@@ -10,4 +10,7 @@ public enum ResourceType
 
     /// <summary>Economic resource. Produced from terrain/trade. Consumed by military/development.</summary>
     Gold,
+
+    /// <summary>Unnamed masses. Grows from sustenance surplus. Consumed by decisions.</summary>
+    Population,
 }
