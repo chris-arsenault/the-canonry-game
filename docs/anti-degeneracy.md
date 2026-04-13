@@ -2,7 +2,11 @@
 
 Degenerate states are derived from entity categories. Anti-degeneracy responses come from three layers: low-altitude shock absorbers (automatic, slow the decline), card-level responses (player-chosen, the interesting decision), and UI warnings (explicit alerts when patterns are detected).
 
-Thresholds and rates are tuning targets determined through playtesting. The architectural commitment is: the mechanisms EXIST, the patterns are DETECTABLE, and the card pool CONTAINS responses. The deck's cycling model ensures the player will eventually draw relevant cards, but not necessarily in time to prevent a specific crisis. Starting archetypes should be constructed to include at least one card addressing each MVP degeneracy pattern.
+Thresholds and rates are tuning targets determined through playtesting. The architectural commitment is: the mechanisms EXIST, the patterns are DETECTABLE, and the card pool CONTAINS responses.
+
+The deck's cycling model ensures the player will eventually draw relevant cards, but not necessarily in time to prevent a specific crisis. This is part of the roguelite aspect: learning which disasters to plan for and which card combinations address them is a core skill that develops across runs. Reaching a degenerate state and trying again with better deck construction is an expected part of the learning loop, not a failure of the system. A future tutorial will guide players through this, but for MVP the discovery is through play.
+
+Note: the game will have an autosave/resume system -- players are not forced to restart from scratch when things go wrong. They can reload and try a different approach. How this interacts with meta-progression is TBD. See also the post-MVP backlog item for branched history ("what-if" divergent timelines from save points).
 
 ---
 

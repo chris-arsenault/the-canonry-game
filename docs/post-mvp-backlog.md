@@ -188,6 +188,15 @@ One-shot cards kept in a hand, played for immediate divine effect.
 
 ## Quality of Life
 
+### Branched History / What-If Timelines
+
+The ability to create a save point at a pivotal moment and branch the simulation into two divergent timelines. The player can swap back and forth between branches to explore "what if I had played a different card here?" or "what if this nation had survived?"
+
+- Create branch points manually or at significant events
+- Multiple active branches from the same save
+- Compare branch outcomes side by side
+- Way post-MVP -- requires save/load maturity and UI for timeline management
+
 ### Speed Options
 
 - More speed levels (1x, 2x, 4x, 8x, max)
