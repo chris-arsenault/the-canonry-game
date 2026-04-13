@@ -1,0 +1,32 @@
+# .NET
+.artifacts/
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+packages/
+*.nupkg
+*.snupkg
+
+# NuGet lock files (generated, not committed)
+packages.lock.json
+
+# Godot
+.godot/
+*.import
+export_presets.cfg
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+*.log
