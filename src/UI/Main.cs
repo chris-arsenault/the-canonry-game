@@ -18,6 +18,7 @@ public partial class Main : Node2D
     private Camera2D? _camera;
     private EntityDetailPanel? _detailPanel;
     private CanvasLayer? _uiLayer;
+    private RichTextLabel? _eventLogLabel;
     private int _frameCount;
 
     public override void _Ready()
@@ -33,10 +34,6 @@ public partial class Main : Node2D
         GD.Print($"NPCs: {_sim.Graph.GetEntitiesByKind(EntityKind.Npc).Count}");
         GD.Print($"Artifacts: {_sim.Graph.GetEntitiesByKind(EntityKind.Artifact).Count}");
         GD.Print($"Regions: {_sim.Graph.GetEntitiesByKind(EntityKind.Region).Count}");
-
-        // Subscribe to events
-        _sim.EventLog.EventEmitted += (_, e) => GD.Print($"[Tick {e.Tick}] {e.Type}: {e.Description}");
-        _sim.Lifecycle.EntityDied += (_, e) => GD.Print($"DEATH: {e.Entity.Name} ({e.Entity.Kind}) at tick {e.DeathTick}");
 
         // Create map renderer
         _mapRenderer = new HexMapRenderer();
@@ -55,20 +52,79 @@ public partial class Main : Node2D
         _uiLayer = new CanvasLayer();
         AddChild(_uiLayer);
 
-        // Detail panel on the right side
-        var marginContainer = new MarginContainer();
-        marginContainer.SetAnchorsPreset(Control.LayoutPreset.RightWide);
-        marginContainer.AddThemeConstantOverride("margin_top", 10);
-        marginContainer.AddThemeConstantOverride("margin_right", 10);
-        marginContainer.AddThemeConstantOverride("margin_bottom", 10);
-        _uiLayer.AddChild(marginContainer);
+        // HBox to split right panel and event log
+        var rootHBox = new HBoxContainer();
+        rootHBox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _uiLayer.AddChild(rootHBox);
 
-        _detailPanel = new EntityDetailPanel();
+        // Left spacer (map area -- transparent, passes mouse through)
+        var mapSpacer = new Control
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        rootHBox.AddChild(mapSpacer);
+
+        // Right panel: detail panel + event log stacked vertically
+        var rightVBox = new VBoxContainer
+        {
+            CustomMinimumSize = new Vector2(320, 0),
+        };
+        rootHBox.AddChild(rightVBox);
+
+        // Detail panel (top half)
+        _detailPanel = new EntityDetailPanel
+        {
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
         _detailPanel.Initialize(_sim);
-        marginContainer.AddChild(_detailPanel);
+        rightVBox.AddChild(_detailPanel);
+
+        // Event log (bottom half)
+        var eventPanel = new PanelContainer
+        {
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0, 200),
+        };
+        rightVBox.AddChild(eventPanel);
+
+        var eventScroll = new ScrollContainer
+        {
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        eventPanel.AddChild(eventScroll);
+
+        _eventLogLabel = new RichTextLabel
+        {
+            BbcodeEnabled = true,
+            FitContent = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            ScrollActive = false,
+        };
+        eventScroll.AddChild(_eventLogLabel);
+
+        // Subscribe to events
+        _sim.EventLog.EventEmitted += OnEventEmitted;
+        _sim.Lifecycle.EntityDied += (_, e) =>
+        {
+            _sim.EventLog.Emit(e.DeathTick, Engine.Events.EventType.Lifecycle,
+                $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
+        };
+
+        // Tick counter label
+        var tickLabel = new Label
+        {
+            Position = new Vector2(10, 10),
+            Text = "Tick: 0",
+        };
+        tickLabel.AddThemeFontSizeOverride("font_size", 14);
+        _uiLayer.AddChild(tickLabel);
+        _tickLabel = tickLabel;
 
         GD.Print("Controls: Space=pause, 1/2/3=speed, WASD/arrows=pan, scroll=zoom, click=select entity");
     }
+
+    private Label? _tickLabel;
 
     public override void _Process(double delta)
     {
@@ -81,20 +137,17 @@ public partial class Main : Node2D
         {
             _mapRenderer?.Refresh();
             _detailPanel?.Refresh();
+            if (_tickLabel is not null)
+            {
+                _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | Speed: {_sim.Clock.Speed}";
+            }
         }
 
         // Camera movement
         HandleCameraMovement((float)delta);
-
-        // Log summary every 120 frames (~2 seconds at 60fps)
-        _frameCount++;
-        if (_frameCount % 120 == 0 && ticksProcessed > 0)
-        {
-            LogSimulationState();
-        }
     }
 
-    public override void _Input(InputEvent @event)
+    public override void _UnhandledInput(InputEvent @event)
     {
         if (_sim is null) return;
 
@@ -110,40 +163,33 @@ public partial class Main : Node2D
                     break;
                 case Key.Key1:
                     _sim.Clock.Speed = SimulationSpeed.Normal;
-                    GD.Print("Speed: Normal (1x)");
                     break;
                 case Key.Key2:
                     _sim.Clock.Speed = SimulationSpeed.Fast;
-                    GD.Print("Speed: Fast (2x)");
                     break;
                 case Key.Key3:
                     _sim.Clock.Speed = SimulationSpeed.VeryFast;
-                    GD.Print("Speed: VeryFast (4x)");
                     break;
             }
         }
 
-        // Zoom with mouse wheel
-        if (@event is InputEventMouseButton { Pressed: true } mouse && _camera is not null)
+        // Mouse events
+        if (@event is InputEventMouseButton { Pressed: true } mouse)
         {
             var zoomFactor = 1.1f;
-            if (mouse.ButtonIndex == MouseButton.WheelUp)
+            if (mouse.ButtonIndex == MouseButton.WheelUp && _camera is not null)
             {
                 _camera.Zoom *= zoomFactor;
+                _camera.Zoom = _camera.Zoom.Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
             }
-            else if (mouse.ButtonIndex == MouseButton.WheelDown)
+            else if (mouse.ButtonIndex == MouseButton.WheelDown && _camera is not null)
             {
                 _camera.Zoom /= zoomFactor;
+                _camera.Zoom = _camera.Zoom.Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
             }
-
-            _camera.Zoom = new Vector2(
-                Mathf.Clamp(_camera.Zoom.X, 0.3f, 5f),
-                Mathf.Clamp(_camera.Zoom.Y, 0.3f, 5f));
-
-            // Left click to select entity
-            if (mouse.ButtonIndex == MouseButton.Left)
+            else if (mouse.ButtonIndex == MouseButton.Left)
             {
-                HandleEntityClick(mouse.GlobalPosition);
+                HandleEntityClick(mouse.Position);
             }
         }
     }
@@ -152,19 +198,18 @@ public partial class Main : Node2D
     {
         if (_sim is null || _camera is null || _mapRenderer is null) return;
 
-        // Convert screen position to world position
-        var worldPos = _camera.Position + (screenPos - GetViewportRect().Size / 2f) / _camera.Zoom;
+        // Convert screen position to world position using the canvas transform
+        var worldPos = GetCanvasTransform().AffineInverse() * screenPos;
 
         // Find nearest entity to click position
         EntityId? nearest = null;
-        var nearestDist = 20f; // Click radius in pixels
+        var nearestDist = _mapRenderer.HexSize * 1.2f; // Click radius scales with hex size
 
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
             if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
 
-            var hexSize = _mapRenderer.HexSize;
-            var entityPixel = HexToPixel(entity.Coordinates.Value.Q, entity.Coordinates.Value.R, hexSize);
+            var entityPixel = HexToPixel(entity.Coordinates.Value.Q, entity.Coordinates.Value.R, _mapRenderer.HexSize);
             var dist = worldPos.DistanceTo(entityPixel);
 
             if (dist < nearestDist)
@@ -177,8 +222,7 @@ public partial class Main : Node2D
         if (nearest is not null)
         {
             _detailPanel?.SelectEntity(nearest.Value);
-            var name = _sim.Graph.GetEntity(nearest.Value)?.Name;
-            GD.Print($"Selected: {name}");
+            GD.Print($"Selected: {_sim.Graph.GetEntity(nearest.Value)?.Name}");
         }
         else
         {
@@ -186,18 +230,34 @@ public partial class Main : Node2D
         }
     }
 
-    private static Vector2 HexToPixel(int q, int r, float hexSize)
+    private void OnEventEmitted(object? sender, Engine.Events.GameEventArgs e)
     {
-        var x = hexSize * (Mathf.Sqrt(3f) * q + Mathf.Sqrt(3f) / 2f * r);
-        var y = hexSize * (1.5f * r);
-        return new Vector2(x, y);
+        if (_eventLogLabel is null) return;
+
+        var color = e.Type switch
+        {
+            Engine.Events.EventType.Lifecycle => "red",
+            Engine.Events.EventType.Threshold => "yellow",
+            Engine.Events.EventType.Creation => "green",
+            Engine.Events.EventType.Card => "cyan",
+            _ => "white",
+        };
+
+        var line = $"[color={color}][{e.Tick}] {e.Description}[/color]\n";
+
+        // Prepend (most recent first) -- but RichTextLabel doesn't support prepend easily,
+        // so we'll append and the scroll container shows latest at bottom
+        _eventLogLabel.AppendText(line);
+
+        // Also print to console
+        GD.Print($"[Tick {e.Tick}] {e.Type}: {e.Description}");
     }
 
     private void HandleCameraMovement(float delta)
     {
         if (_camera is null) return;
 
-        var speed = 200f / _camera.Zoom.X; // Faster when zoomed out
+        var speed = 200f / _camera.Zoom.X;
         var direction = Vector2.Zero;
 
         if (Input.IsActionPressed("ui_left") || Input.IsKeyPressed(Key.A))
@@ -215,16 +275,10 @@ public partial class Main : Node2D
         }
     }
 
-    private void LogSimulationState()
+    private static Vector2 HexToPixel(int q, int r, float hexSize)
     {
-        if (_sim is null) return;
-
-        var tick = _sim.Clock.CurrentTick;
-        var activeNpcs = _sim.Graph.GetEntitiesByKind(EntityKind.Npc)
-            .Count(id => _sim.Graph.GetEntity(id)?.Status == EntityStatus.Active);
-        var activeSettlements = _sim.Graph.GetEntitiesByKind(EntityKind.Settlement)
-            .Count(id => _sim.Graph.GetEntity(id)?.Status == EntityStatus.Active);
-
-        GD.Print($"[Tick {tick}] NPCs: {activeNpcs} | Settlements: {activeSettlements} | Relationships: {_sim.Graph.ActiveRelationshipCount}");
+        var x = hexSize * (Mathf.Sqrt(3f) * q + Mathf.Sqrt(3f) / 2f * r);
+        var y = hexSize * (1.5f * r);
+        return new Vector2(x, y);
     }
 }
