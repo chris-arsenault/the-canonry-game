@@ -88,9 +88,22 @@ public sealed class SimulationRunner
 
     /// <summary>
     /// Build a simulation from the test map with all systems wired together.
+    /// Uses TestDomain for all domain-specific configuration.
     /// </summary>
     public static SimulationRunner CreateFromTestMap()
     {
+        return CreateFromDomain(Domain.TestDomain.Create());
+    }
+
+    /// <summary>
+    /// Build a simulation from a domain config. The domain provides all
+    /// entity kinds, subtypes, attributes, relationships, pressures, and lifecycles.
+    /// The engine provides the framework; the domain provides the content.
+    /// </summary>
+    public static SimulationRunner CreateFromDomain(Domain.DomainConfig domainConfig)
+    {
+        ArgumentNullException.ThrowIfNull(domainConfig);
+
         // Build world
         var testWorld = TestMapBuilder.BuildDefault();
         var graph = testWorld.Graph;
@@ -103,11 +116,11 @@ public sealed class SimulationRunner
         var spatialIndex = new SpatialIndex(grid, regionMap, graph);
         spatialIndex.RebuildFromGraph();
 
-        // Initialize attributes for all entities from kind definitions
-        var kindRegistry = DefaultRegistry.Create();
-        InitializeEntityAttributes(graph, attributes, kindRegistry);
+        // Load domain into engine systems
+        var kindRegistry = Domain.DomainLoader.LoadKindRegistry(domainConfig);
+        Domain.DomainLoader.InitializeEntityAttributes(graph, attributes, domainConfig);
 
-        // Behaviors
+        // Behaviors (impulses still use DefaultImpulses for now -- will be domain-driven in #37)
         var impulseRegistry = new ImpulseRegistry();
         DefaultImpulses.RegisterAll(impulseRegistry);
         var evaluator = new UtilityEvaluator(impulseRegistry);
@@ -119,24 +132,16 @@ public sealed class SimulationRunner
         relationships.AddModifier(new SharedCultureModifier());
         relationships.AddModifier(new NeglectModifier());
 
-        // Lifecycle
-        var lifecycleConfig = new LifecycleConfig();
-        lifecycleConfig.Register(EntityKind.Settlement, "population",
-            new LinearAging { BaseRate = 0.05f, AgeCoefficient = 0.0001f });
-        lifecycleConfig.Register(EntityKind.Nation, "cohesion",
-            new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.00005f });
-        lifecycleConfig.Register(EntityKind.Npc, "hp",
-            new LinearAging { BaseRate = 0.02f, AgeCoefficient = 0.0005f });
-        lifecycleConfig.Register(EntityKind.Artifact, "condition",
-            new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.0001f });
+        // Lifecycle from domain config
+        var lifecycleConfig = Domain.DomainLoader.LoadLifecycleConfig(domainConfig);
         var lifecycle = new LifecycleSystem(graph, attributes, lifecycleConfig);
 
         // Resources
         var resources = new ResourceSystem(graph, attributes, grid);
 
-        // Pressure
+        // Pressure from domain config
         var pressure = new PressureSystem();
-        foreach (var def in DefaultPressures.All())
+        foreach (var def in Domain.DomainLoader.LoadPressureDefinitions(domainConfig))
         {
             pressure.RegisterDefinition(def);
         }
@@ -205,23 +210,7 @@ public sealed class SimulationRunner
     /// <summary>Advance exactly one tick.</summary>
     public bool Tick() => Clock.Tick();
 
-    private static void InitializeEntityAttributes(
-        WorldGraph graph, AttributeStore attributes, KindRegistry kindRegistry)
-    {
-        foreach (var (entityId, entity) in graph.AllEntities)
-        {
-            var kindDef = kindRegistry.GetKindDefinition(entity.Kind);
-            if (kindDef is null) continue;
-
-            foreach (var attr in kindDef.Attributes)
-            {
-                if (!attributes.Has(entityId, attr.Name))
-                {
-                    attributes.Initialize(entityId, attr.Name, attr.Min, attr.Max, attr.Default);
-                }
-            }
-        }
-    }
+    // InitializeEntityAttributes moved to DomainLoader
 
     private static Dictionary<EntityId, IPressureContext> BuildPressureContexts(
         WorldGraph graph, AttributeStore attributes, RegionMap regionMap)

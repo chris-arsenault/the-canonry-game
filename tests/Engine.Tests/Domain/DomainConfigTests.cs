@@ -1,0 +1,133 @@
+namespace Engine.Tests.Domain;
+
+using Engine.Domain;
+using Engine.Kinds;
+using Engine.Simulation;
+
+public class DomainConfigTests
+{
+    [Fact]
+    public void TestDomain_CreatesValidConfig()
+    {
+        var config = TestDomain.Create();
+
+        Assert.Equal(5, config.Kinds.Count);
+        Assert.True(config.Relationships.Count > 10);
+        Assert.Equal(4, config.Pressures.Count);
+        Assert.Equal(4, config.Lifecycles.Count);
+        Assert.Equal(2, config.Resources.Count);
+        Assert.Equal(2, config.Cultures.Count);
+    }
+
+    [Fact]
+    public void TestDomain_AllMvpKindsPresent()
+    {
+        var config = TestDomain.Create();
+
+        Assert.Contains(EntityKind.Region, config.Kinds.Keys);
+        Assert.Contains(EntityKind.Settlement, config.Kinds.Keys);
+        Assert.Contains(EntityKind.Nation, config.Kinds.Keys);
+        Assert.Contains(EntityKind.Npc, config.Kinds.Keys);
+        Assert.Contains(EntityKind.Artifact, config.Kinds.Keys);
+    }
+
+    [Fact]
+    public void TestDomain_KindsHaveSubtypes()
+    {
+        var config = TestDomain.Create();
+
+        foreach (var (_, kindConfig) in config.Kinds)
+        {
+            Assert.NotEmpty(kindConfig.Subtypes);
+        }
+    }
+
+    [Fact]
+    public void TestDomain_KindsHaveAttributes()
+    {
+        var config = TestDomain.Create();
+
+        foreach (var (_, kindConfig) in config.Kinds)
+        {
+            Assert.NotEmpty(kindConfig.Attributes);
+        }
+    }
+
+    [Fact]
+    public void TestDomain_NonRegionKindsHaveHealthAttribute()
+    {
+        var config = TestDomain.Create();
+
+        foreach (var (kind, kindConfig) in config.Kinds)
+        {
+            if (kind == EntityKind.Region)
+            {
+                Assert.Null(kindConfig.HealthAttribute);
+            }
+            else
+            {
+                Assert.NotNull(kindConfig.HealthAttribute);
+            }
+        }
+    }
+
+    [Fact]
+    public void DomainLoader_CreatesKindRegistry()
+    {
+        var config = TestDomain.Create();
+        var registry = DomainLoader.LoadKindRegistry(config);
+
+        Assert.NotNull(registry.GetKindDefinition(EntityKind.Settlement));
+        Assert.NotNull(registry.GetRelationshipKindDefinition("controlled_by"));
+        Assert.True(registry.IsValidSubtype(EntityKind.Npc, "warrior"));
+    }
+
+    [Fact]
+    public void DomainLoader_CreatesLifecycleConfig()
+    {
+        var config = TestDomain.Create();
+        var lifecycleConfig = DomainLoader.LoadLifecycleConfig(config);
+
+        Assert.True(lifecycleConfig.HasConfig(EntityKind.Npc));
+        Assert.True(lifecycleConfig.HasConfig(EntityKind.Settlement));
+        Assert.False(lifecycleConfig.HasConfig(EntityKind.Region));
+    }
+
+    [Fact]
+    public void DomainLoader_CreatesPressureDefinitions()
+    {
+        var config = TestDomain.Create();
+        var pressures = DomainLoader.LoadPressureDefinitions(config).ToList();
+
+        Assert.Equal(4, pressures.Count);
+    }
+
+    [Fact]
+    public void SimulationRunner_CreateFromDomain_Works()
+    {
+        var config = TestDomain.Create();
+        var sim = SimulationRunner.CreateFromDomain(config);
+
+        Assert.NotNull(sim);
+        Assert.True(sim.Graph.EntityCount > 0);
+
+        // Run a few ticks to verify it works
+        for (var i = 0; i < 10; i++)
+        {
+            sim.Tick();
+        }
+
+        Assert.Equal(10, sim.Clock.CurrentTick);
+    }
+
+    [Fact]
+    public void SimulationRunner_CreateFromTestMap_StillWorks()
+    {
+        // Verify the convenience method still works
+        var sim = SimulationRunner.CreateFromTestMap();
+
+        Assert.NotNull(sim);
+        sim.Tick();
+        Assert.Equal(1, sim.Clock.CurrentTick);
+    }
+}
