@@ -14,6 +14,9 @@ public interface ICardContext
     /// <summary>The entity currently being evaluated (for self-referencing mutations).</summary>
     EntityId SelfEntityId { get; }
 
+    /// <summary>Shared RNG for variance in mutations and score expressions.</summary>
+    Random Random { get; }
+
     // --- Read operations (preconditions) ---
     float GetPressure(string pressureName, EntityId scopeId);
     float GetAttribute(EntityId entityId, string attributeName);

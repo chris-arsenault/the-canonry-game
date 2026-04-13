@@ -90,6 +90,66 @@ public class MutationTests
     }
 
     [Fact]
+    public void ModifySelfAttributeMutation_WithVariance_ProducesDistinctDeltas()
+    {
+        var mutation = new ModifySelfAttributeMutation("hp", 10f, variance: 0.3f);
+        var ctx = new TrackingCardContext();
+        var deltas = new HashSet<float>();
+
+        for (var i = 0; i < 20; i++)
+        {
+            mutation.Execute(ctx);
+            deltas.Add(ctx.AttributeModifications[^1].Delta);
+        }
+
+        // With 30% variance, 20 samples should produce more than 1 distinct value
+        Assert.True(deltas.Count > 1, "Variance should produce distinct deltas across executions");
+
+        // All deltas should be within ±30% of the base (10f)
+        foreach (var delta in deltas)
+        {
+            Assert.InRange(delta, 10f * 0.7f, 10f * 1.3f);
+        }
+    }
+
+    [Fact]
+    public void ModifyAttributeMutation_ZeroVariance_ProducesExactDelta()
+    {
+        var ctx = new TrackingCardContext();
+        var mutation = new ModifyAttributeMutation(new EntityId(1), "stability", 10f, variance: 0f);
+
+        mutation.Execute(ctx);
+
+        Assert.Equal(10f, ctx.AttributeModifications[0].Delta);
+    }
+
+    [Fact]
+    public void ConstantScore_WithVariance_ProducesDistinctScores()
+    {
+        var score = new ConstantScore(0.5f, variance: 0.2f);
+        var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
+        var ctx = new TrackingCardContext();
+        var scores = new HashSet<float>();
+
+        for (var i = 0; i < 20; i++)
+        {
+            scores.Add(score.Evaluate(entity, ctx));
+        }
+
+        Assert.True(scores.Count > 1, "Score variance should produce distinct scores");
+    }
+
+    [Fact]
+    public void ConstantScore_ZeroVariance_IsExact()
+    {
+        var score = new ConstantScore(0.5f, variance: 0f);
+        var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
+        var ctx = new TrackingCardContext();
+
+        Assert.Equal(0.5f, score.Evaluate(entity, ctx));
+    }
+
+    [Fact]
     public void Describe_ProducesReadableOutput()
     {
         var mutation = new CreateEntityMutation(EntityKind.Nation, "monarchy", "Kesh", "c_a", null);
@@ -103,6 +163,7 @@ public class MutationTests
     {
         public int CurrentTick => 10;
         public EntityId SelfEntityId => new EntityId(0);
+        public Random Random { get; } = new Random(42);
         public List<(EntityKind Kind, string Name)> CreatedEntities { get; } = [];
         public List<(string Kind, float Strength)> CreatedRelationships { get; } = [];
         public List<(string Attr, float Delta)> AttributeModifications { get; } = [];

@@ -10,13 +10,14 @@ public class LifecycleSystemTests
     private readonly WorldGraph _graph = new();
     private readonly AttributeStore _attributes = new();
 
-    private LifecycleConfig CreateDefaultConfig()
+    private static LifecycleConfig CreateDefaultConfig()
     {
         var config = new LifecycleConfig();
-        config.Register(EntityKind.Npc, "hp", new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f });
-        config.Register(EntityKind.Settlement, "population", new LinearAging { BaseRate = 0.1f, AgeCoefficient = 0.0005f });
-        config.Register(EntityKind.Nation, "cohesion", new LinearAging { BaseRate = 0.005f, AgeCoefficient = 0.0002f });
-        config.Register(EntityKind.Artifact, "condition", new LinearAging { BaseRate = 0.005f, AgeCoefficient = 0.0001f });
+        // Variance = 0 for deterministic tests
+        config.Register(EntityKind.Npc, "hp", new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f, Variance = 0f });
+        config.Register(EntityKind.Settlement, "population", new LinearAging { BaseRate = 0.1f, AgeCoefficient = 0.0005f, Variance = 0f });
+        config.Register(EntityKind.Nation, "cohesion", new LinearAging { BaseRate = 0.005f, AgeCoefficient = 0.0002f, Variance = 0f });
+        config.Register(EntityKind.Artifact, "condition", new LinearAging { BaseRate = 0.005f, AgeCoefficient = 0.0001f, Variance = 0f });
         // Region has no lifecycle config (permanent)
         return config;
     }
@@ -26,7 +27,7 @@ public class LifecycleSystemTests
     [Fact]
     public void LinearAging_NewEntityHasLowDrain()
     {
-        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f };
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f, Variance = 0f };
 
         var drain = aging.ComputeDrain(0);
         Assert.Equal(0.01f, drain, precision: 4);
@@ -35,7 +36,7 @@ public class LifecycleSystemTests
     [Fact]
     public void LinearAging_OldEntityHasHigherDrain()
     {
-        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f };
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f, Variance = 0f };
 
         var youngDrain = aging.ComputeDrain(10);
         var oldDrain = aging.ComputeDrain(100);
@@ -46,7 +47,8 @@ public class LifecycleSystemTests
     [Fact]
     public void LinearAging_DrainIncreasesWithAge()
     {
-        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f };
+        // Use Variance=0 for monotonicity guarantee
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f, Variance = 0f };
 
         float previousDrain = 0;
         for (var age = 0; age <= 100; age += 10)
@@ -55,6 +57,20 @@ public class LifecycleSystemTests
             Assert.True(drain >= previousDrain);
             previousDrain = drain;
         }
+    }
+
+    [Fact]
+    public void LinearAging_WithVariance_ProducesDistinctDrains()
+    {
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f, Variance = 0.3f };
+        var drains = new HashSet<float>();
+
+        for (var i = 0; i < 20; i++)
+        {
+            drains.Add(aging.ComputeDrain(50));
+        }
+
+        Assert.True(drains.Count > 1, "Variance should produce distinct drain values");
     }
 
     // --- Lifecycle system ---

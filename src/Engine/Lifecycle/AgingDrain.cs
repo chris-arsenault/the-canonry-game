@@ -19,8 +19,8 @@ public interface IAgingFunction
 
 /// <summary>
 /// Linear aging: drain increases linearly with age.
-/// drain = baseRate + (age * ageCoefficient)
-/// Simple, predictable, good starting point for tuning.
+/// drain = (baseRate + age * ageCoefficient) * (1 + random jitter)
+/// Variance prevents entities of the same age from dying at the same tick.
 /// </summary>
 public sealed class LinearAging : IAgingFunction
 {
@@ -30,9 +30,22 @@ public sealed class LinearAging : IAgingFunction
     /// <summary>How much additional drain per unit of age.</summary>
     public float AgeCoefficient { get; set; } = 0.0001f;
 
+    /// <summary>Multiplicative variance (0.3 = ±30%). Default 0.2.</summary>
+    public float Variance { get; set; } = 0.2f;
+
+    private readonly Random _random;
+
+    public LinearAging(Random? random = null)
+    {
+        _random = random ?? Random.Shared;
+    }
+
     public float ComputeDrain(int age)
     {
-        return BaseRate + (age * AgeCoefficient);
+        var baseDrain = BaseRate + (age * AgeCoefficient);
+        if (Variance <= 0f) return baseDrain;
+        var factor = 1f + ((float)(_random.NextDouble() * 2.0 - 1.0) * Variance);
+        return baseDrain * Math.Max(factor, 0f);
     }
 }
 

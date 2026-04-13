@@ -313,11 +313,13 @@ internal sealed class SimplePressureContext(
 }
 
 internal sealed class CardContextAdapter(
-    WorldGraph graph, AttributeStore attributes, PressureSystem pressure, WorldState worldState)
+    WorldGraph graph, AttributeStore attributes, PressureSystem pressure, WorldState worldState,
+    Random? random = null)
     : ICardContext
 {
     public int CurrentTick => worldState.CurrentTick;
     public EntityId SelfEntityId => new EntityId(-1); // Card context has no "self" -- cards target explicitly
+    public Random Random { get; } = random ?? System.Random.Shared;
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
     public float GetAttribute(EntityId entityId, string attributeName) => attributes.Get(entityId, attributeName);
     public int CountEntitiesByKind(EntityKind kind) => graph.GetEntitiesByKind(kind).Count;

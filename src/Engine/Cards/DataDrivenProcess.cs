@@ -111,11 +111,13 @@ internal sealed class ProcessCardContext : ICardContext
 
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
+    public Random Random { get; }
 
-    public ProcessCardContext(Entity entity, IWorldState worldState)
+    public ProcessCardContext(Entity entity, IWorldState worldState, Random? random = null)
     {
         _entity = entity;
         _worldState = worldState;
+        Random = random ?? System.Random.Shared;
     }
 
     public float GetPressure(string pressureName, EntityId scopeId) => 0f; // TODO: wire pressure

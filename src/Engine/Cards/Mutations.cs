@@ -46,16 +46,20 @@ public sealed class CreateRelationshipMutation(
     public string Describe() => $"create_relationship({sourceId}->{targetId}, {kind}, strength={strength})";
 }
 
-/// <summary>Modifies an entity's attribute by a delta.</summary>
-public sealed class ModifyAttributeMutation(EntityId entityId, string attributeName, float delta) : IMutation
+/// <summary>
+/// Modifies an entity's attribute by a delta with optional variance.
+/// Actual delta = delta * (1 + random(-variance, +variance)).
+/// Variance of 0 means exact delta. Variance of 0.3 means ±30%.
+/// </summary>
+public sealed class ModifyAttributeMutation(EntityId entityId, string attributeName, float delta, float variance = 0f) : IMutation
 {
     public void Execute(ICardContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.ModifyAttribute(entityId, attributeName, delta);
+        context.ModifyAttribute(entityId, attributeName, Variance.Scale(delta, variance, context.Random));
     }
 
-    public string Describe() => $"modify_attribute({entityId}, {attributeName}, delta={delta})";
+    public string Describe() => $"modify_attribute({entityId}, {attributeName}, delta={delta}, var={variance})";
 }
 
 /// <summary>Directly modifies a pressure value.</summary>
@@ -94,14 +98,19 @@ public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
     public string Describe() => $"set_historical({entityId})";
 }
 
-/// <summary>Modifies the current entity's attribute by a delta. Uses SelfEntityId from context.</summary>
-public sealed class ModifySelfAttributeMutation(string attributeName, float delta) : IMutation
+/// <summary>
+/// Modifies the current entity's attribute by a delta with optional variance.
+/// Actual delta = delta * (1 + random(-variance, +variance)).
+/// Uses SelfEntityId from context.
+/// </summary>
+public sealed class ModifySelfAttributeMutation(string attributeName, float delta, float variance = 0f) : IMutation
 {
     public void Execute(ICardContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.ModifyAttribute(context.SelfEntityId, attributeName, delta);
+        context.ModifyAttribute(context.SelfEntityId, attributeName,
+            Variance.Scale(delta, variance, context.Random));
     }
 
-    public string Describe() => $"modify_self_attribute({attributeName}, delta={delta})";
+    public string Describe() => $"modify_self_attribute({attributeName}, delta={delta}, var={variance})";
 }
