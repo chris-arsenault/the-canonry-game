@@ -9,9 +9,12 @@ using Engine.Simulation;
 
 namespace TheCanonryGame.UI;
 
+#pragma warning disable CA2213 // Godot nodes are managed by the scene tree
 public partial class Main : Node2D
 {
     private SimulationRunner? _sim;
+    private HexMapRenderer? _mapRenderer;
+    private Camera2D? _camera;
     private int _frameCount;
 
     public override void _Ready()
@@ -31,6 +34,21 @@ public partial class Main : Node2D
         // Subscribe to events
         _sim.EventLog.EventEmitted += (_, e) => GD.Print($"[Tick {e.Tick}] {e.Type}: {e.Description}");
         _sim.Lifecycle.EntityDied += (_, e) => GD.Print($"DEATH: {e.Entity.Name} ({e.Entity.Kind}) at tick {e.DeathTick}");
+
+        // Create map renderer
+        _mapRenderer = new HexMapRenderer();
+        _mapRenderer.Initialize(_sim);
+        AddChild(_mapRenderer);
+
+        // Create camera
+        _camera = new Camera2D
+        {
+            Zoom = new Vector2(1.5f, 1.5f),
+        };
+        _camera.MakeCurrent();
+        AddChild(_camera);
+
+        GD.Print("Controls: Space=pause, 1/2/3=speed, WASD/arrows=pan, scroll=zoom");
     }
 
     public override void _Process(double delta)
@@ -39,9 +57,18 @@ public partial class Main : Node2D
 
         var ticksProcessed = _sim.AdvanceFrame();
 
-        // Log summary every 60 frames (~1 second at 60fps)
+        // Refresh map display
+        if (ticksProcessed > 0)
+        {
+            _mapRenderer?.Refresh();
+        }
+
+        // Camera movement
+        HandleCameraMovement((float)delta);
+
+        // Log summary every 120 frames (~2 seconds at 60fps)
         _frameCount++;
-        if (_frameCount % 60 == 0 && ticksProcessed > 0)
+        if (_frameCount % 120 == 0 && ticksProcessed > 0)
         {
             LogSimulationState();
         }
@@ -74,6 +101,46 @@ public partial class Main : Node2D
                     GD.Print("Speed: VeryFast (4x)");
                     break;
             }
+        }
+
+        // Zoom with mouse wheel
+        if (@event is InputEventMouseButton { Pressed: true } mouse && _camera is not null)
+        {
+            var zoomFactor = 1.1f;
+            if (mouse.ButtonIndex == MouseButton.WheelUp)
+            {
+                _camera.Zoom *= zoomFactor;
+            }
+            else if (mouse.ButtonIndex == MouseButton.WheelDown)
+            {
+                _camera.Zoom /= zoomFactor;
+            }
+
+            _camera.Zoom = new Vector2(
+                Mathf.Clamp(_camera.Zoom.X, 0.3f, 5f),
+                Mathf.Clamp(_camera.Zoom.Y, 0.3f, 5f));
+        }
+    }
+
+    private void HandleCameraMovement(float delta)
+    {
+        if (_camera is null) return;
+
+        var speed = 200f / _camera.Zoom.X; // Faster when zoomed out
+        var direction = Vector2.Zero;
+
+        if (Input.IsActionPressed("ui_left") || Input.IsKeyPressed(Key.A))
+            direction.X -= 1;
+        if (Input.IsActionPressed("ui_right") || Input.IsKeyPressed(Key.D))
+            direction.X += 1;
+        if (Input.IsActionPressed("ui_up") || Input.IsKeyPressed(Key.W))
+            direction.Y -= 1;
+        if (Input.IsActionPressed("ui_down") || Input.IsKeyPressed(Key.S))
+            direction.Y += 1;
+
+        if (direction != Vector2.Zero)
+        {
+            _camera.Position += direction.Normalized() * speed * delta;
         }
     }
 
