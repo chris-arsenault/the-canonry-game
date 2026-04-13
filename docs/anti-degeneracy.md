@@ -6,7 +6,7 @@ Thresholds and rates are tuning targets determined through playtesting. The arch
 
 The deck's cycling model ensures the player will eventually draw relevant cards, but not necessarily in time to prevent a specific crisis. This is part of the roguelite aspect: learning which disasters to plan for and which card combinations address them is a core skill that develops across runs. Reaching a degenerate state and trying again with better deck construction is an expected part of the learning loop, not a failure of the system. A future tutorial will guide players through this, but for MVP the discovery is through play.
 
-Note: the game will have an autosave/resume system -- players are not forced to restart from scratch when things go wrong. They can reload and try a different approach. How this interacts with meta-progression is TBD. See also the post-MVP backlog item for branched history ("what-if" divergent timelines from save points).
+Note: the game will have an autosave/resume system -- players are not forced to restart from scratch when things go wrong. They can reload and try a different approach. **Open question for pre-player-facing phases:** is reload a convenience/testing feature, or a real player-facing pillar? If reload is a pillar, it changes the learning loop (the player experiments by reloading rather than by restarting). This does not need to be resolved for MVP but MUST be resolved before Tech Demo. How reload interacts with meta-progression is also TBD. See also the post-MVP backlog item for branched history ("what-if" divergent timelines from save points).
 
 ---
 

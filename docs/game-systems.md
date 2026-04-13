@@ -321,11 +321,9 @@ The player's active card configuration and resource management.
 - Activation/deactivation: placing a card into the tableau activates its simulation component. Removing it deactivates.
 - Mana cap expansion: mechanism TBD (buildings, milestones, era progression), but mana cap grows over the course of a run, allowing more simultaneous cards
 
-**Swap mechanics (TBD -- keep isolatable):**
-- When can the player swap? (freely, cooldown, cost, era-locked)
-- What's the transition cost? (instant, decay period, disruption)
+**Card removal:** Costly, not free. Cards have lifespans and expire naturally. Early removal requires sacrificing a hand card and incurs an early-removal penalty. Some cards can remove other cards as an effect. Free swapping is explicitly rejected -- see `docs/systems/13-tableau-mana.md` for full model. (During testing/MVP, free removal may be enabled for iteration.)
 
-**MVP scope:** Tableau with slots, mana pool with cap, activation/deactivation. Basic swap mechanics (probably free swap with cooldown). Mana cap expansion mechanism TBD.
+**MVP scope:** Tableau with slots, mana pool with cap, activation/deactivation. Card removal with hand-card sacrifice. Mana cap expansion via deck modification events.
 
 ### 14. Lose Condition Monitor — POST-MVP
 
@@ -489,7 +487,7 @@ See `docs/systems/19-narrative-domain.md` for full design.
 
 **MVP entity kinds: Region, Settlement, Nation, NPC, Artifact.** The remaining 7 kinds (Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence) are formalized but deferred to post-MVP. See `docs/systems/entity-kind-registry.md`.
 
-**Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using the 4 MVP entity kinds with placeholder subtypes and cards. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
+**Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using the 5 MVP entity kinds (Region, Settlement, Nation, NPC, Artifact) with placeholder subtypes and cards. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
 
 1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with 5 MVP kinds (Region, Settlement, Nation, NPC, Artifact) and generic subtypes
 2. **Map / Spatial** -- hex grid, fixed test map (procedural generation post-Phase 1)
