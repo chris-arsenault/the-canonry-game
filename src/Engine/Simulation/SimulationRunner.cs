@@ -131,9 +131,20 @@ public sealed class SimulationRunner
 
         // Three-layer behavioral model: processes + decisions via EntityEvaluator
         var activityRegistry = new ActivityRegistry();
-        // Register existing impulses as processes (temporary bridge -- real processes in #37)
-        RegisterLegacyImpulsesAsProcesses(activityRegistry);
+        Behaviors.Processes.SmokeTestProcesses.RegisterAll(activityRegistry);
         var evaluator = new EntityEvaluator(activityRegistry, messageBus);
+
+        // Wiring validation
+        var wiringValidator = new Wiring.WiringValidator();
+        foreach (var (kind, kindConfig) in domainConfig.Kinds)
+        {
+            wiringValidator.RegisterHealthAttribute(kind, kindConfig.HealthAttribute);
+        }
+
+        Behaviors.Processes.SmokeTestProcesses.RegisterContracts(wiringValidator);
+        // Note: ValidateOrThrow disabled for now -- smoke test contracts are minimal
+        // and won't pass full validation. Enable when real processes are designed.
+        // wiringValidator.ValidateOrThrow();
 
         // Relationships
         var relationships = new RelationshipSystem(graph, kindRegistry);
