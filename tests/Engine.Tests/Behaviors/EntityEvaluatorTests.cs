@@ -17,7 +17,7 @@ public class EntityEvaluatorTests
         registry.RegisterProcess(EntityKind.Npc, new TestProcess("rest", 0.2f));
 
         var messages = new List<ProcessExecutedMessage>();
-        bus.Subscribe<ProcessExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
         var evaluator = new EntityEvaluator(registry, bus, new Random(42));
         evaluator.Evaluate(CreateEntity(), new StubWorldState());
@@ -35,7 +35,7 @@ public class EntityEvaluatorTests
         }
 
         var selectedNames = new HashSet<string>();
-        bus.Subscribe<ProcessExecutedMessage>(m => selectedNames.Add(m.ProcessName));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) selectedNames.Add(pm.ProcessName); });
 
         var evaluator = new EntityEvaluator(registry, bus, new Random(42));
         var entity = CreateEntity();
@@ -57,7 +57,7 @@ public class EntityEvaluatorTests
         registry.RegisterProcess(EntityKind.Npc, new TestProcess("available", 0.1f));
 
         var messages = new List<ProcessExecutedMessage>();
-        bus.Subscribe<ProcessExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.Evaluate(CreateEntity(), new StubWorldState());
@@ -73,7 +73,7 @@ public class EntityEvaluatorTests
         registry.RegisterProcess(EntityKind.Npc, new TestProcess("weak", 0.005f));
 
         var messages = new List<ProcessExecutedMessage>();
-        bus.Subscribe<ProcessExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.Evaluate(CreateEntity(), new StubWorldState());
@@ -90,7 +90,7 @@ public class EntityEvaluatorTests
         registry.RegisterDecision(EntityKind.Npc, new TestDecision("wield_artifact", 0.5f, "card_1"));
 
         var messages = new List<DecisionExecutedMessage>();
-        bus.Subscribe<DecisionExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is DecisionExecutedMessage dm) messages.Add(dm); });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.Evaluate(CreateEntity(), new StubWorldState());
@@ -107,7 +107,7 @@ public class EntityEvaluatorTests
         registry.RegisterDecision(EntityKind.Npc, new TestDecision("blocked", 0.9f, "card_1", canExecute: false));
 
         var messages = new List<DecisionExecutedMessage>();
-        bus.Subscribe<DecisionExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is DecisionExecutedMessage dm) messages.Add(dm); });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.Evaluate(CreateEntity(), new StubWorldState());
@@ -126,8 +126,8 @@ public class EntityEvaluatorTests
 
         var processCount = 0;
         var decisionCount = 0;
-        bus.Subscribe<ProcessExecutedMessage>(_ => processCount++);
-        bus.Subscribe<DecisionExecutedMessage>(_ => decisionCount++);
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage) processCount++; });
+        bus.Subscribe(m => { if (m is DecisionExecutedMessage) decisionCount++; });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.Evaluate(CreateEntity(), new StubWorldState());
@@ -150,7 +150,7 @@ public class EntityEvaluatorTests
         registry.RegisterProcess(kind, new TestProcess("test", 0.5f));
 
         var messages = new List<ProcessExecutedMessage>();
-        bus.Subscribe<ProcessExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.Evaluate(CreateEntity(kind), new StubWorldState());
@@ -168,7 +168,7 @@ public class EntityEvaluatorTests
         registry.RegisterProcess(EntityKind.Npc, new TestProcess("eat", 0.5f));
 
         var messages = new List<ProcessExecutedMessage>();
-        bus.Subscribe<ProcessExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
         var entity = CreateEntity();
         entity.Status = EntityStatus.Historical;
@@ -194,7 +194,7 @@ public class EntityEvaluatorTests
         graph.CreateEntity(EntityKind.Settlement, "generic", "Town", "c", 0);
 
         var messages = new List<ProcessExecutedMessage>();
-        bus.Subscribe<ProcessExecutedMessage>(m => messages.Add(m));
+        bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
         var evaluator = new EntityEvaluator(registry, bus);
         evaluator.EvaluateAll(graph, new StubWorldState());

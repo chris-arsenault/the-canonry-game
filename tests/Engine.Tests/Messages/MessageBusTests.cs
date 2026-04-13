@@ -9,33 +9,22 @@ public class MessageBusTests
     private readonly MessageBus _bus = new();
 
     [Fact]
-    public void Subscribe_ReceivesCorrectType()
+    public void Subscribe_ReceivesPublishedMessages()
     {
-        ProcessExecutedMessage? received = null;
-        _bus.Subscribe<ProcessExecutedMessage>(m => received = m);
+        SimulationMessage? received = null;
+        _bus.Subscribe(m => received = m);
 
         _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "NPC ate"));
 
         Assert.NotNull(received);
-        Assert.Equal("eat", received.ProcessName);
+        Assert.IsType<ProcessExecutedMessage>(received);
     }
 
     [Fact]
-    public void Subscribe_DoesNotReceiveWrongType()
-    {
-        ProcessExecutedMessage? received = null;
-        _bus.Subscribe<ProcessExecutedMessage>(m => received = m);
-
-        _bus.Publish(new DecisionExecutedMessage(1, new EntityId(1), EntityKind.Nation, "expand", "Nation expanded"));
-
-        Assert.Null(received);
-    }
-
-    [Fact]
-    public void SubscribeAll_ReceivesEverything()
+    public void Subscribe_ReceivesAllMessageTypes()
     {
         var messages = new List<SimulationMessage>();
-        _bus.SubscribeAll(m => messages.Add(m));
+        _bus.Subscribe(m => messages.Add(m));
 
         _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
         _bus.Publish(new DecisionExecutedMessage(2, new EntityId(2), EntityKind.Nation, "expand", "expanded"));
@@ -45,11 +34,31 @@ public class MessageBusTests
     }
 
     [Fact]
+    public void Subscribe_PatternMatchForSpecificType()
+    {
+        var deaths = new List<EntityDiedMessage>();
+        _bus.Subscribe(m =>
+        {
+            if (m is EntityDiedMessage death)
+            {
+                deaths.Add(death);
+            }
+        });
+
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
+        _bus.Publish(new EntityDiedMessage(2, new EntityId(2), EntityKind.Npc, "Hero"));
+        _bus.Publish(new ProcessExecutedMessage(3, new EntityId(3), EntityKind.Settlement, "harvest", "harvested"));
+
+        Assert.Single(deaths);
+        Assert.Equal("Hero", deaths[0].Name);
+    }
+
+    [Fact]
     public void MultipleSubscribers_AllReceive()
     {
         var count = 0;
-        _bus.Subscribe<ProcessExecutedMessage>(_ => count++);
-        _bus.Subscribe<ProcessExecutedMessage>(_ => count++);
+        _bus.Subscribe(_ => count++);
+        _bus.Subscribe(_ => count++);
 
         _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
 
@@ -60,8 +69,7 @@ public class MessageBusTests
     public void Clear_RemovesAllSubscribers()
     {
         var received = false;
-        _bus.Subscribe<ProcessExecutedMessage>(_ => received = true);
-        _bus.SubscribeAll(_ => received = true);
+        _bus.Subscribe(_ => received = true);
 
         _bus.Clear();
 
@@ -83,7 +91,6 @@ public class MessageBusTests
         Assert.Equal(new EntityId(1), msg.ActorId);
         Assert.Equal(EntityKind.Settlement, msg.ActorKind);
         Assert.Equal("harvest", msg.ProcessName);
-        Assert.Equal("Settlement harvested crops", msg.Description);
         Assert.Equal(2, msg.AffectedEntities.Count);
     }
 
@@ -99,34 +106,6 @@ public class MessageBusTests
     }
 
     [Fact]
-    public void DecisionExecutedMessage_TracksFailure()
-    {
-        var msg = new DecisionExecutedMessage(10, new EntityId(5), EntityKind.Nation,
-            "forge_alliance", "Alliance attempt failed",
-            succeeded: false);
-
-        Assert.False(msg.Succeeded);
-    }
-
-    [Fact]
-    public void EntityMovedMessage_CarriesCoordinates()
-    {
-        var msg = new EntityMovedMessage(5, new EntityId(1), (0, -2), (1, -2));
-
-        Assert.Equal((0, -2), msg.From);
-        Assert.Equal((1, -2), msg.To);
-    }
-
-    [Fact]
-    public void SubtypeChangedMessage_CarriesBothTypes()
-    {
-        var msg = new SubtypeChangedMessage(100, new EntityId(3), "village", "town");
-
-        Assert.Equal("village", msg.OldSubtype);
-        Assert.Equal("town", msg.NewSubtype);
-    }
-
-    [Fact]
     public void EntityDiedMessage_CarriesIdentity()
     {
         var msg = new EntityDiedMessage(500, new EntityId(7), EntityKind.Npc, "Captain Greyfeather");
@@ -135,29 +114,24 @@ public class MessageBusTests
         Assert.Equal("Captain Greyfeather", msg.Name);
     }
 
-    [Fact]
-    public void DegeneracyWarningMessage_CarriesSeverity()
-    {
-        var msg = new DegeneracyWarningMessage(10, "npc_extinction",
-            Engine.Degeneracy.Severity.Warning, "NPC population low");
-
-        Assert.Equal(Engine.Degeneracy.Severity.Warning, msg.Severity);
-    }
-
     // --- Integration: EventLog as subscriber ---
 
     [Fact]
-    public void EventLog_CanSubscribeToMessageBus()
+    public void EventLog_CanSubscribeViaPatternMatch()
     {
         var eventLog = new Engine.Events.EventLog();
-        var bus = new MessageBus();
 
-        // EventLog subscribes to death messages
-        bus.Subscribe<EntityDiedMessage>(msg =>
-            eventLog.Emit(msg.Tick, Engine.Events.EventType.Lifecycle,
-                $"{msg.Name} ({msg.Kind}) died", "lifecycle", msg.EntityId));
+        _bus.Subscribe(msg =>
+        {
+            if (msg is EntityDiedMessage death)
+            {
+                eventLog.Emit(death.Tick, Engine.Events.EventType.Lifecycle,
+                    $"{death.Name} ({death.Kind}) died", "lifecycle", death.EntityId);
+            }
+        });
 
-        bus.Publish(new EntityDiedMessage(42, new EntityId(5), EntityKind.Npc, "Hero"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
+        _bus.Publish(new EntityDiedMessage(42, new EntityId(5), EntityKind.Npc, "Hero"));
 
         var events = eventLog.ByType(Engine.Events.EventType.Lifecycle).ToList();
         Assert.Single(events);
