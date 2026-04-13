@@ -81,7 +81,7 @@ The roguelite loop:
 2. Play the run: draw cards, manage hand, build tableau, observe simulation
 3. Earn deck modifications through card achievement conditions
 4. Adapt deck composition based on what the simulation actually needs
-5. Eventually lose (extinction/stagnation/monoculture) or choose to end
+5. The simulation reaches a natural end (the world degenerates, the player is satisfied, or they choose to start fresh)
 6. Meta-progression: unlock new cards and archetypes for future runs
 7. Start again with deeper understanding and a broader card pool
 
@@ -108,7 +108,7 @@ Each card in the deck has:
 | Tick Clock (#5) | Timed draws are triggered by tick count intervals. |
 | All low-altitude systems | Milestone draw triggers are evaluated against simulation state (entity counts, attribute thresholds, pressure levels). |
 | Save/Load (#15) | Full deck state (draw pile order, discard pile, hand contents, modification progress) is serialized. |
-| Lose Condition Monitor (#14) | Deck composition affects which lose conditions are easier/harder to manage. |
+| Degenerate State Metrics (post-MVP) | Deck composition affects which degenerate states are easier/harder to avoid. |
 
 ---
 

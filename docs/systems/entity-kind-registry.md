@@ -161,29 +161,27 @@ Culture is an ATTRIBUTE, not an entity kind. See `docs/systems/culture.md`. Cult
 
 Eras were a construct for forcing world history phases in a single-shot simulation (the canonry model). They do not have the same role in this game's continuous, player-driven simulation. Eras are not an entity kind. If temporal structure is needed later, it can be added as a tick-clock concept or a domain-specific mechanic.
 
-### Era
-
-Eras are not an entity kind in this game. See above.
-
 ---
 
 ## Summary
 
-| Category | Kind | Low-Altitude Behaviors | Has Agency | Lifecycle |
-|----------|------|----------------------|------------|-----------|
-| Spatial | Region | Passive (stage) | No | Permanent |
-| Spatial | Point of Interest | Passive (local effects) | No | Permanent (MVP) |
-| Spatial | Settlement | Growth/decline, subtype transitions | No | Population-based |
-| Agency | Nation | Border tension, resource flow, expansion, fragmentation | Yes | Cohesion-based |
-| Agency | Faction | Goal pursuit, influence, internal politics | Yes | Cohesion-based |
-| Agency | NPC | Needs, movement, aging, goal response | Yes | HP-based |
-| Agency | Monster | Territory, predation, migration | Yes | Vitality-based |
-| Asset | Artifact | Degradation, resonance, holder effects | No | Condition-based |
-| Asset | Transportation | Degradation, movement, strategic value | No | Condition-based |
-| Asset | Ability | Mastery drift, stability, holder effects | No | Stability-based |
-| Record | Occurrence | Passive (binding construct), natural wind-down | No | Duration-based |
+| Category | Kind | Low-Altitude Behaviors | Has Agency | Lifecycle | MVP |
+|----------|------|----------------------|------------|-----------|-----|
+| Spatial | Region | Passive (stage) | No | Permanent | Post-MVP |
+| Spatial | Point of Interest | Passive (local effects) | No | Permanent | Post-MVP |
+| Spatial | Settlement | Growth/decline, subtype transitions | No | Population-based | **MVP** |
+| Agency | Nation | Border tension, resource flow, expansion, fragmentation | Yes | Cohesion-based | **MVP** |
+| Agency | Faction | Goal pursuit, influence, internal politics | Yes | Cohesion-based | Post-MVP |
+| Agency | NPC | Needs, movement, aging, goal response | Yes | HP-based | **MVP** |
+| Agency | Monster | Territory, predation, migration | Yes | Vitality-based | Post-MVP |
+| Asset | Artifact | Degradation, resonance, holder effects | No | Condition-based | **MVP** |
+| Asset | Transportation | Degradation, movement, strategic value | No | Condition-based | Post-MVP |
+| Asset | Ability | Mastery drift, stability, holder effects | No | Stability-based | Post-MVP |
+| Record | Occurrence | Passive (binding construct), natural wind-down | No | Duration-based | Post-MVP |
 
-**11 entity kinds. 4 categories. All MVP.**
+**11 entity kinds total. 4 MVP kinds (Settlement, Nation, NPC, Artifact). 7 post-MVP kinds.**
+
+MVP kinds are the structural minimum needed for the core simulation loop: places to be (settlements), political entities (nations), individual actors (NPCs), and significant objects (artifacts). The remaining 7 kinds are well-defined and ready to implement but are not needed for the first playable.
 
 ---
 

@@ -40,7 +40,7 @@ The player is not a firefighter. The game should not feel like a series of emerg
 
 ### Not an Optimization Puzzle
 
-There should be no single correct tableau, no solved meta, no "best strategy." Different deck compositions produce different worlds. "Interesting" is subjective. The three-way lose condition tension (extinction vs stagnation vs monoculture) should prevent any single approach from being dominant, and the emergent complexity of card interactions should resist reduction to a formula.
+There should be no single correct tableau, no solved meta, no "best strategy." Different deck compositions produce different worlds. "Interesting" is subjective. The simulation's natural resistance to degenerate states (extinction from unchecked decay, stagnation from unresolved pressure, monoculture from unchecked dominance) combined with the emergent complexity of card interactions should resist reduction to a formula.
 
 **Why rejected:** If the game is solvable, the contemplative tempo becomes boring -- there's nothing to study because the answer is known. The game's replayability depends on genuine uncertainty about what card combinations will produce.
 
@@ -54,7 +54,7 @@ No scripted story. No dialogue trees. No authored narrative arcs. No quest lines
 
 ### Not a Real-Time Strategy Game
 
-The player does not command units, manage economies directly, or fight battles. They do not click on a nation and tell it where to expand. They do not direct a culture's spread. They do not set production queues for settlements. They define the rules by which the simulation's entities -- nations, cultures, factions, heroes, artifacts, and all others -- behave autonomously.
+The player does not command units, manage economies directly, or fight battles. They do not click on a nation and tell it where to expand. They do not set production queues for settlements. They define the rules by which the simulation's entities -- nations, factions, NPCs, artifacts, and all others -- behave autonomously.
 
 **Why rejected:** Direct control contradicts "the deck defines the world's nature." If the player can bypass the card system by micromanaging entities, the card system is decorative, not structural.
 

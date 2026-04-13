@@ -18,7 +18,7 @@ Actions extend the card executor base with:
 
 ### The executor doesn't fire the action -- actors do
 
-Unlike generators and systems (where the executor evaluates preconditions and fires effects directly), the action executor REGISTERS available actions with the entity behavior system. Actors (nations, factions, cultures, heroes -- any entity kind with agency) then evaluate available actions during their impulse evaluation, using the utility AI to score and select.
+Unlike generators and systems (where the executor evaluates preconditions and fires effects directly), the action executor REGISTERS available actions with the entity behavior system. Actors (nations, factions, NPCs, monsters -- any entity kind with agency) then evaluate available actions during their impulse evaluation, using the utility AI to score and select.
 
 The flow:
 1. Action card is in the tableau -> executor registers the action as available

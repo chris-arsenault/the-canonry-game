@@ -18,19 +18,19 @@ A world's nature is expressed through three card types, each defining a differen
 
 ### Generators: What the World Becomes
 
-Generators define the world's evolutionary potential. When simulation conditions are right -- a culture reaches critical mass, a frontier fills with people, a nation's ideology fractures -- generators determine what emerges. A new religion. A new nation. A legendary artifact. A splinter faction.
+Generators define the world's evolutionary potential. When simulation conditions are right -- a frontier fills with people, a nation's ideology fractures, a faction gains enough influence to break away -- generators determine what emerges. A new nation. A splinter faction. A legendary artifact. A monstrous threat.
 
-Generators are not pressure release. They are creation. They respond to simulation conditions (population density, cultural distinctiveness, resource availability) and produce new entities that reshape the graph. The player's choice of generators defines the trajectory of the world: a deck heavy on cultural generators produces a world of diverse, fragmenting, hybridizing civilizations. A deck heavy on political generators produces a world of rising and falling empires.
+Generators are not pressure release. They are creation. They respond to simulation conditions (population density, political instability, faction influence) and produce new entities that reshape the graph. The player's choice of generators defines the trajectory of the world: a deck heavy on faction generators produces a world of competing organizations vying for power within nations. A deck heavy on political generators produces a world of rising and falling empires.
 
 ### Systems: How Forces Behave
 
-Systems define how the world's existing tensions and dynamics operate. When relationships deteriorate, what happens? When resources are scarce, how does scarcity propagate? When cultures border each other, do they merge or resist?
+Systems define how the world's existing tensions and dynamics operate. When relationships deteriorate, what happens? When resources are scarce, how does scarcity propagate? When nations of different cultures share a border, does friction escalate or does trade flourish?
 
 Systems are the pressure-release valves. The world's physics (game systems) build pressure -- relationships shift, resources accumulate and deplete, populations grow. Systems determine how that pressure resolves. Without system cards, pressure builds with no outlet. The player's choice of systems defines the world's temperament: volatile or stable, interconnected or isolated, competitive or cooperative.
 
 ### Actions: What Actors Can Do
 
-Actions define the possibility space for the world's agents. Nations, cultures, factions, and heroes all evaluate available actions each tick and choose based on their state and situation. The player doesn't perform actions -- they make actions possible.
+Actions define the possibility space for the world's agents. Nations, factions, and NPCs evaluate available actions each tick and choose based on their state and situation. The player doesn't perform actions -- they make actions possible.
 
 Actions are about agency. "Forge Alliance" doesn't forge an alliance. It makes alliance-forging a thing that actors in this world can do. The player's choice of actions defines what moves are on the board: a world with "Espionage Networks" and "Diplomatic Summit" plays differently than one with "Holy Crusade" and "Forced Conversion," even if the underlying conditions are identical.
 
@@ -40,7 +40,7 @@ Actions are about agency. "Forge Alliance" doesn't forge an alliance. It makes a
 
 ### 1. The World Is Always Alive
 
-Game systems always run. Relationships form and shift. Resources accumulate and deplete. Populations grow and shrink. Nations experience border tension. Cultures radiate influence. Artifacts degrade and accumulate resonance. Entities age and die. Pressure builds. These are the physics of the world -- they create conditions, they are not configurable, and they are always on.
+Game systems always run. Relationships form and shift. Resources accumulate and deplete. Populations grow and shrink. Nations experience border tension. Cultural differences between neighboring entities create friction. Artifacts degrade and accumulate resonance. Entities age and die. Pressure builds. These are the physics of the world -- they create conditions, they are not configurable, and they are always on.
 
 The world doesn't need the player to exist. It needs the player to have a nature.
 
@@ -54,7 +54,7 @@ A world with "Declare Military War" in the tableau doesn't mean war happens. It 
 
 The world is full of tensions with no outlet. Two nations with deteriorating relationships have no resolution mechanism unless the player provides one. This is the default state -- and it's fine, up to a point.
 
-What the player DOESN'T put in their deck matters as much as what they do. A world without war cards is a world where military conflict doesn't exist as a concept. A world without cultural diffusion is a world where cultures stay fixed. Omission is a choice.
+What the player DOESN'T put in their deck matters as much as what they do. A world without war cards is a world where military conflict doesn't exist as a concept. A world without cultural exchange cards is a world where cultural friction between nations has no outlet. Omission is a choice.
 
 At extremes, unresolved pressure triggers cascading failures or lose conditions. The player cannot ignore all tensions forever. But they choose which ones to give outlets and which ones to let build.
 

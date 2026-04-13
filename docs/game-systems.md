@@ -31,7 +31,7 @@ The single source of truth for world state. All other systems read from and writ
 The hard-coded schema. Defines the vocabulary of the simulation.
 
 **What it is:**
-- The enumeration of all entity kinds: region, settlement, nation, culture, faction, hero, artifact, occurrence, era
+- The enumeration of all entity kinds. See `docs/systems/entity-kind-registry.md` for the formalized list (11 kinds, 4 MVP).
 - Per-kind: valid subtypes, valid relationship types, valid statuses, valid attributes
 - Kind-specific behavior rules (what this kind can do, what systems affect it)
 
@@ -48,7 +48,7 @@ Per-entity continuous variables. The numeric state that game systems modify and 
 
 **What it is:**
 - Named numeric values attached to entities
-- Kind-specific: nations have stability and military strength, cultures have influence and cohesion, settlements have population and development, heroes have health and ambition, artifacts have condition and resonance
+- Kind-specific: nations have stability and military strength, settlements have population and development, NPCs have health and ambition, artifacts have condition and resonance
 - Universal: all entities have prominence (0-5)
 - Bounded: each attribute has a min/max range
 - Change tracking: current value, rate of change, recent delta history (for trend display)
@@ -127,7 +127,7 @@ Each entity kind has inherent behaviors that always run. These are the low-altit
 
 **Design principle:** Behaviors produce TENDENCIES and CONDITIONS. They do not produce OUTCOMES. A nation's border tension increases through low-altitude simulation. What HAPPENS because of that tension (war, isolation, diplomacy) is card territory.
 
-**Design principle:** This system is NOT NPC-centric. Nations and cultures are the primary drivers of interesting macro-dynamics. Heroes are one entity kind among many. The base architecture must work uniformly across all entity kinds -- including future kinds not yet defined (monsters, legendary vehicles, etc.). Each kind has its own behavioral model, but the system that runs them is kind-agnostic.
+**Design principle:** This system is NOT NPC-centric. Nations are the primary drivers of interesting macro-dynamics. NPCs are one entity kind among many. The base architecture must work uniformly across all entity kinds -- including future kinds not yet defined (monsters, factions, etc.). Each kind has its own behavioral model, but the system that runs them is kind-agnostic.
 
 #### Nations
 
@@ -138,14 +138,12 @@ The primary macro-level entities. Aggregate behavioral tendencies modeled throug
 - **Consolidation/fragmentation pressure:** large nations accumulate internal strain (distance from capital, cultural diversity, administrative cost). Small nations accumulate external pressure (vulnerability to neighbors).
 - **Ideological drift:** national ideology shifts over time based on internal faction composition, cultural influences, and historical events.
 
-#### Cultures
+#### Cultural Dynamics (attribute-driven)
 
-The other primary macro-level entity. Spread and cohesion dynamics that operate across political boundaries.
-- **Influence radiation:** cultures radiate influence from high-population, high-prominence settlements outward. Influence follows trade routes and population flows.
-- **Cultural pressure:** adjacent regions experience cultural pressure proportional to influence differential between the local culture and neighboring cultures.
-- **Cohesion:** cultures with geographically concentrated populations have higher cohesion. Diaspora cultures have lower cohesion.
-- **Innovation accumulation:** cultures accumulate innovations over time based on settlement development and inter-cultural contact.
-- **Note:** cultural pressure BUILDS through low-altitude simulation. What HAPPENS with that pressure (diffusion, hybridization, schism) is card territory.
+Culture is an ATTRIBUTE, not an entity kind. Cultural dynamics are computed from the cultural attributes of settlements, nations, and NPCs:
+- **Cultural friction:** entities of different cultures in proximity create friction pressure, feeding into the pressure system.
+- **Cultural influence:** settlements with large populations project their culture's influence onto neighboring settlements. Nations with dominant cultures affect the cultural tendencies of their members.
+- **Note:** culture itself is static (it doesn't spread, merge, or fragment). But NATIONS and FACTIONS composed of entities with different cultures experience internal cultural tension, and neighboring nations of different cultures experience border friction. These dynamics are enacted by nations and NPCs, not by culture itself.
 
 #### Settlements
 
@@ -179,7 +177,7 @@ Individual named entities with high-detail behavioral simulation. One entity kin
 - **Ambition:** heroes seek opportunity based on their subtype. Merchant subtypes follow trade. Warrior subtypes move toward conflict zones. Scholar subtypes move toward high-development settlements.
 - **Movement:** pathfinding between locations on the map, driven by need evaluation.
 - **Aging:** heroes age and eventually die of old age if nothing else kills them.
-- **Note:** heroes are important as individual narrative actors, but the simulation's macro-level dynamics are driven primarily by nation, culture, and faction behaviors. Heroes are the visible face of deeper systemic forces.
+- **Note:** NPCs are important as individual narrative actors, but the simulation's macro-level dynamics are driven primarily by national behaviors. NPCs are the visible face of deeper systemic forces. Cultural dynamics operate through entity attributes, not through NPC actions directly.
 
 #### Future Entity Kinds
 
@@ -190,13 +188,13 @@ The entity behavior system architecture must support additional entity kinds wit
 
 These are not MVP, but the base system must not preclude them.
 
-**MVP scope per kind:**
-- Nations: border tension, resource flow, population pressure, consolidation/fragmentation. MVP.
-- Cultural dynamics (attribute-driven): influence radiation, cultural pressure, cohesion -- computed from entity cultural attributes, not from culture entities. MVP.
-- Settlements: population attraction/loss, resource production/consumption, development. MVP.
-- Factions: goal pursuit, influence accumulation, internal politics. MVP.
-- Artifacts: degradation, mystical accumulation. MVP.
-- Heroes: needs, basic ambition, movement with simple goal selection. MVP.
+**MVP scope (4 entity kinds):**
+- Settlements: population attraction/loss, resource production/consumption (soup + gold), development. MVP.
+- Nations: border tension, resource flow, population pressure, consolidation/fragmentation, cultural friction (from attribute differences). MVP.
+- NPCs: needs (hunger, safety, ambition), movement with simple goal selection. MVP.
+- Artifacts: degradation, mystical accumulation, holder effects. MVP.
+
+**Post-MVP kinds:** Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence. See `docs/systems/entity-kind-registry.md` for full definitions.
 
 ### 7. Relationships
 
@@ -220,11 +218,16 @@ Fine-grained, always-on relationship dynamics between entities.
 
 **MVP scope:** Core implementation with basic modifiers (proximity, shared culture, competing claims, resource competition).
 
-### 8. Resources / Economy — POST-MVP
+### 8. Resources (MVP: Gold and Soup)
 
-Tabled entirely until post-MVP. Resources as a distinct system (3-6 types, production/consumption, flow, stockpiles) are documented in `docs/systems/08-resources-economy-POST-MVP.md`. Key design decision captured there: resources are properties of the map graph, not the entity graph.
+Two-resource system for MVP: gold (economic) and soup (sustenance). Resources are properties of the MAP GRAPH, not the entity graph. They flow between connected settlements within a nation.
 
-For MVP, resource-like effects can be approximated through entity attributes (settlement prosperity, regional fertility) without a dedicated resource system. The entity behavior and pressure systems can operate on these attributes directly.
+- Soup: produced from regional fertility + population labor. Consumed by population. Deficit = population decline. Surplus = growth.
+- Gold: produced from trade and resource-rich terrain. Consumed by military, development, factions. Deficit = stagnation. Surplus = power.
+
+Resources feed into existing systems (settlement behaviors, NPC hunger, pressure, card preconditions) rather than creating their own behavioral layer.
+
+See `docs/systems/resources-mvp.md` for full design. See `docs/systems/08-resources-economy-POST-MVP.md` for expanded multi-resource system (3-6 types, post-MVP).
 
 ### 9. Lifecycle
 
@@ -234,7 +237,7 @@ Aging, death, growth, decay. The passage of time affects entities.
 - Heroes age. They have a lifespan. They die of old age if nothing else kills them.
 - Settlements grow when prosperous (population increases via attraction) and shrink when not.
 - Artifacts degrade over time (condition decreases) unless maintained.
-- Nations/factions/cultures have no inherent lifecycle -- they persist until destroyed or absorbed by card-driven events. But they can accumulate internal strain or external pressure through other low-altitude systems.
+- Nations/factions have no inherent lifecycle -- they persist until destroyed or absorbed by card-driven events. But they can accumulate internal strain or external pressure through other low-altitude systems.
 - Prominence decays for all entities unless actively maintained (this is the always-on sink). **POST-MVP: prominence system is deferred.**
 
 **MVP scope:** Time-since-creation aging function per entity kind. Settlement population decline from age, entity aging/death, artifact degradation. Prominence decay is post-MVP. All entity kinds have lifecycle behaviors from day one.
@@ -257,7 +260,15 @@ Dynamic visual representation of simulation state on the map. This is NOT a simu
 
 **MVP scope:** Entity markers, national territory fill, attribute-driven overlays (at least political and one pressure type), seasonal terrain variation. Animated bulk flow (population/goods movement along routes) is post-MVP.
 
-**Bulk flow (post-MVP):** When the resource system is added, animated population and goods flow along routes becomes a map visualization feature. See `docs/systems/08-resources-economy-POST-MVP.md`.
+**Bulk flow (post-MVP):** When the full resource system is expanded, animated population and goods flow along routes becomes a map visualization feature.
+
+### Event Log
+
+Scrolling event log. The primary communication channel between the simulation and the player. Every significant state change (entity creation, war declaration, alliance formation, settlement founding, NPC death, card firing) generates a log entry. Entries are brief, link to involved entities, and are filterable by type and entity.
+
+Also serves as the debugging backbone during development. Same infrastructure supports player awareness and developer causality tracing.
+
+**MVP scope:** Scrolling text log, filterable, with clickable entity references. No popups, no map pings, no pause-on-event. See `docs/systems/event-log.md`.
 
 ### 11. Pressure
 
@@ -391,7 +402,7 @@ Makes actions available to actors and resolves them.
 
 **What it does:**
 - For each active action card, registers available actions with the entity behavior system
-- Actors (nations, factions, cultures, heroes, and any entity kind with agency) evaluate available actions based on their state, needs, and situation
+- Actors (nations, factions, NPCs, and any entity kind with agency) evaluate available actions based on their state, needs, and situation
 - When an actor selects an action, the executor resolves it: checks success/failure probability, applies effects (attribute changes, relationship changes, prominence changes)
 - Actions have dual outcomes: success effects and failure effects
 
@@ -475,33 +486,37 @@ See `docs/systems/19-narrative-domain.md` for full design.
 
 ## MVP Priority Order (Revised)
 
-**Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using placeholder entities, relationships, and cards. Generic subtypes ("test_npc," "test_settlement," "generic_action") prove the architecture works without domain contamination. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
+**MVP entity kinds: Settlement, Nation, NPC, Artifact.** The remaining 7 kinds (Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence) are formalized but deferred to post-MVP. See `docs/systems/entity-kind-registry.md`.
 
-1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with generic test subtypes
-2. **Map / Spatial** -- regions, positions, procedural map generation with generic terrain
+**Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using the 4 MVP entity kinds with placeholder subtypes and cards. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
+
+1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with 4 MVP kinds and generic subtypes
+2. **Map / Spatial** -- hex grid, fixed test map (procedural generation post-Phase 1)
 3. **Tick Clock** -- time advancement with speed control
-4. **Entity Behaviors (all kinds)** -- with generic impulses and placeholder scoring
-5. **Relationships + Lifecycle** -- basic game physics with generic relationship kinds
-6. **Pressure** -- a few generic pressure types bridging low to mid altitude
-7. **Tableau + Mana (stub)** -- active card slots and mana pool. No deck/hand/draw yet. Cards placed programmatically or via test UI for experimentation.
-8. **Generator + System + Action Executors** -- card execution with generic test cards. Validates precondition evaluation, mutation application, DSL interpreter.
-9. **Map Visualization** -- render low-altitude state + card effects on the map
-10. **Save / Load** -- full state serialization
+4. **Resources (Gold + Soup)** -- two-resource flow system on the map graph
+5. **Entity Behaviors (MVP kinds)** -- settlement growth/decline, nation border tension/resource flow, NPC needs/movement, artifact degradation/resonance
+6. **Relationships + Lifecycle** -- basic game physics with generic relationship kinds
+7. **Pressure** -- a few generic pressure types bridging low to mid altitude
+8. **Tableau + Mana (stub)** -- active card slots and mana pool. Cards placed programmatically for testing.
+9. **Generator + System + Action Executors** -- card execution with generic test cards
+10. **Event Log** -- scrolling event log for debugging and player awareness
+11. **Map Visualization** -- render low-altitude state + card effects on the map
+12. **Save / Load** -- full state serialization
 
-**Initial world state:** For MVP/Phase 1, the starting world state is a single fixed configuration defined programmatically. One map, one set of starting entities and relationships, always the same. This is modifiable through code for different test scenarios. A world generation phase that procedurally creates the starting entity graph is post-Phase 1 -- we need to understand the engine's behavior with known inputs before introducing generated variation.
+**Initial world state:** A single fixed configuration defined programmatically. One map, one set of starting entities and relationships, always the same. Modifiable through code for different test scenarios.
 
-Phase 1 produces: a living world with low-altitude physics, visible pressure, AND the ability to place test cards and observe their mid-altitude effects. This validates the entire altitude model end-to-end with generic content.
+Phase 1 produces: a living world with low-altitude physics (including resource flow), visible pressure, an event log, AND the ability to place test cards and observe their mid-altitude effects. Validates the entire altitude model end-to-end.
 
-**Phase 2: Narrative Domain definition.** Define The Ice Remembers domain package: specific subtypes, specific cards, specific pressures, specific ground truths, naming rules, map parameters. Content creation informed by the validated engine and tested card executor.
+**Phase 2: Narrative Domain definition.** Define The Ice Remembers domain package: specific subtypes, specific cards, specific pressures, specific ground truths, naming rules. Content creation informed by the validated engine.
 
-11. **Narrative Domain (The Ice Remembers)** -- domain package populating the engine with real content
+13. **Narrative Domain (The Ice Remembers)** -- domain package populating the engine with real content
 
 **Phase 3: Full player systems.** Wire up the deck/hand/draw mechanics, archetype selection, deck modification events, and card enhancement/modification using domain content.
 
-12. **Deck + Hand + Draw mechanics** -- cycling deck, timed + milestone draws, hand management
-13. **Deck Modification Events** -- achievement conditions, add/remove/modify/expand-mana choices
-14. **Card Enhancement / Modification** -- Balatro-inspired per-card modification layers
+14. **Deck + Hand + Draw mechanics** -- cycling deck, timed + milestone draws, hand management
+15. **Deck Modification Events** -- achievement conditions, add/remove/modify/expand-mana choices
+16. **Card Enhancement / Modification** -- Balatro-inspired per-card modification layers
 
-**Post-MVP:** Lose Condition Monitor, Resources/Economy, Bulk Flow (animated), Prominence system, additional narrative domains.
+**Post-MVP kinds:** Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence.
 
-**MVP: 17 systems** (including Narrative Domain). Post-MVP: 3 deferred systems + prominence + future domains.
+**Post-MVP systems:** Degenerate state metrics, expanded resource types (3-6), bulk flow visualization, prominence system, additional narrative domains, procedural map generation.

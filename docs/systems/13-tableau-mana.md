@@ -31,7 +31,7 @@ This means the tableau is not a toggle -- playing and removing a card has perman
 
 All cards draw from one mana pool. A generator that costs 3 mana and a system that costs 2 mana compete for the same resource. This creates pure opportunity cost: every card played is mana not available for other cards.
 
-**Future consideration:** differentiated mana types (creation mana, influence mana, etc.) or minimum per-type requirements (at least one generator of each entity kind must be active). These may be needed to prevent degenerate tableaux (all systems, no generators = world stagnates). For MVP, the single pool combined with the stagnation lose condition should provide sufficient pressure to diversify.
+**Future consideration:** differentiated mana types (creation mana, influence mana, etc.) or minimum per-type requirements (at least one generator of each entity kind must be active). These may be needed to prevent degenerate tableaux (all systems, no generators = world stagnates). For MVP, the single pool combined with the simulation's natural resistance to degenerate states should provide sufficient pressure to diversify.
 
 ### Mana cap expands through deck modification events
 
@@ -75,29 +75,31 @@ This supports the "everything visible" design principle. The player understands 
 
 ### Removing a card from the tableau
 
-Removing cards is DIFFICULT by design. Cards are commitments, not toggles. The player cannot freely hot-swap their tableau. Two removal mechanisms:
+Removing cards is possible but COSTLY by design. Cards are commitments, not toggles. The player can always remove a card, but it has a price. Three removal mechanisms:
 
-**Card lifespan:** Cards placed in the tableau have a lifespan (N generations/ticks, defined per card). When the lifespan expires, the card naturally deactivates and returns to the discard pile. The player can plan around known expiration.
+**Natural expiration:** Cards placed in the tableau have a lifespan (N ticks, defined per card). When the lifespan expires, the card naturally deactivates and returns to the discard pile at no cost. The player can plan around known expiration.
 
-**Removal by other cards:** Some cards have effects that remove other cards from the tableau. A "Policy Reform" card might remove another system card as part of its effect. A "Paradigm Shift" might clear and replace multiple tableau cards. This makes removal itself a card-driven action, keeping the player within the card system.
+**Early removal (hand card sacrifice + penalty):** The player can remove a card before its lifespan expires by sacrificing a card from their hand. The sacrificed hand card is discarded. Additionally, removing a card early incurs a per-card penalty (TBD -- possibly mana cost, temporary disruption to the affected simulation area, or a cooldown before a new card can fill the slot). This ensures the player CAN escape a bad card, but at meaningful cost.
 
-**What happens on removal:**
+**Removal by other cards:** Some cards have effects that remove other cards from the tableau as part of their own activation. A "Policy Reform" card might remove another system card. This keeps removal within the card system and creates interesting card design space (cards that are valuable specifically because they clean up the tableau).
+
+**What happens on removal (all mechanisms):**
 1. Card's simulation component deregisters from its executor
 2. Mana pool increases by the card's cost (mana is freed)
 3. Card moves to the deck's discard pile
 4. Existing effects from the card remain in the entity graph
 
 **What this means for play:**
-- Playing a card is a commitment for its lifespan duration. Choose carefully.
-- The "deck as theory" principle is reinforced: your theory must survive its own duration, not be revised every tick.
-- Reactivity is limited to: playing NEW cards into empty mana, and choosing what to play when expired cards leave slots open.
-- The primary skill is forecasting, not patching: "will this card be right for the NEXT N ticks?"
+- Playing a card is a commitment. Removing it early costs a hand card and incurs a penalty.
+- The player is never TRAPPED by a bad card -- they can always pay the price to escape. But the price discourages reactive hot-swapping.
+- The primary skill is forecasting: "will this card be right for its full lifespan?" Making the wrong call costs resources.
+- Natural expiration creates planned turnover windows where the player reconfigures without penalty.
 
 ### No free swapping
 
-Free swapping is explicitly rejected. The design thesis is contemplative constitutional authorship, not reactive live operations. Unlimited free hot-swapping collapses the "deck as theory" concept and turns the game into crisis management, which contradicts the core identity.
+Free swapping is explicitly rejected. The player can always remove a card, but never for free. The cost of early removal (hand card sacrifice + penalty) creates commitment friction without trapping the player.
 
-The commitment friction (lifespan + removal-by-card) ensures that tableau changes are infrequent and weighty, matching the contemplative tempo.
+**Note for testing:** During development, free removal will likely be enabled for iteration. The cost mechanics are the game design; the testing harness bypasses them.
 
 ---
 
@@ -142,7 +144,7 @@ The choice between these options IS the mid-run strategic decision. Do you want 
 | Pressure (#11) | Card preconditions read pressure values. Card effects can modify pressure directly. |
 | Tick Clock (#5) | Tableau cards fire on tick phases (after low-altitude, after pressure recomputation). |
 | Save/Load (#15) | Tableau state (which cards, mana pool, mana cap, achievement progress) is serialized. |
-| Lose Condition Monitor (#14) | Tableau composition affects lose condition risk. No generators = stagnation risk. All generators = monoculture risk. |
+| Degenerate State Metrics (post-MVP) | Tableau composition affects degenerate state risk. No generators = stagnation risk. All generators = monoculture risk. |
 
 ---
 
@@ -155,5 +157,5 @@ The choice between these options IS the mid-run strategic decision. Do you want 
 - **Removal cards.** Which cards can remove other cards from the tableau. How common these are. Whether removal cards are a distinct card type or an effect on existing cards.
 - **Card modification layers.** Balatro research suggests three independent modification axes per card (enhancement + edition + seal equivalent). How these map to simulation cards: does enhancement change HOW the card fires, edition change POTENCY, and seal add SECONDARY EFFECTS? How many layers per card? Are modifications permanent across deck cycles? See `docs/research/balatro-card-model.md`.
 - **Persistent modifiers (Joker equivalent).** Whether the game has a separate row of persistent civilization-level modifiers, distinct from the tableau, that amplify/modify all cards matching certain tags. How many slots. How acquired. Whether these are the same thing as the "locked tableau" concept from design constraints.
-- **Minimum tableau requirements.** Whether the game requires at least one card of each type (generator, system, action) or whether fully skewed tableaux are allowed and the lose conditions handle balance.
+- **Minimum tableau requirements.** Whether the game requires at least one card of each type (generator, system, action) or whether fully skewed tableaux are allowed and the simulation's natural dynamics handle balance.
 - **Tableau visual design.** How the active cards are displayed alongside the map. Sidebar, bottom panel, overlay. How much space the tableau occupies vs. the map and entity details.
