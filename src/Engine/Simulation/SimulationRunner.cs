@@ -11,6 +11,7 @@ using Engine.Graph;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Map;
+using Engine.Messages;
 using Engine.Pressure;
 using Engine.Relationships;
 using Engine.Resources;
@@ -36,10 +37,13 @@ public sealed class SimulationRunner
     public TickClock Clock { get; }
 
     // Low-altitude systems
-    public BehaviorSystem Behaviors { get; }
+    public EntityEvaluator Evaluator { get; }
     public RelationshipSystem Relationships { get; }
     public LifecycleSystem Lifecycle { get; }
     public ResourceSystem Resources { get; }
+
+    // Message bus
+    public MessageBus MessageBus { get; }
 
     // Bridge
     public PressureSystem Pressure { get; }
@@ -56,15 +60,16 @@ public sealed class SimulationRunner
 
     // Registries
     public KindRegistry KindRegistry { get; }
-    public ImpulseRegistry ImpulseRegistry { get; }
+    public ActivityRegistry ActivityRegistry { get; }
 
     private SimulationRunner(
         WorldGraph graph, AttributeStore attributes, EffectSystem effects,
         HexGrid grid, RegionMap regionMap, SpatialIndex spatialIndex,
-        TickClock clock, BehaviorSystem behaviors, RelationshipSystem relationships,
+        TickClock clock, EntityEvaluator evaluator, RelationshipSystem relationships,
         LifecycleSystem lifecycle, ResourceSystem resources, PressureSystem pressure,
         TableauManager tableau, EventLog eventLog, DetectorRegistry detectors,
-        WorldState worldState, KindRegistry kindRegistry, ImpulseRegistry impulseRegistry)
+        WorldState worldState, KindRegistry kindRegistry, ActivityRegistry activityRegistry,
+        MessageBus messageBus)
     {
         Graph = graph;
         Attributes = attributes;
@@ -73,17 +78,18 @@ public sealed class SimulationRunner
         RegionMap = regionMap;
         SpatialIndex = spatialIndex;
         Clock = clock;
-        Behaviors = behaviors;
+        Evaluator = evaluator;
         Relationships = relationships;
         Lifecycle = lifecycle;
         Resources = resources;
         Pressure = pressure;
         Tableau = tableau;
+        MessageBus = messageBus;
         EventLog = eventLog;
         Detectors = detectors;
         WorldState = worldState;
         KindRegistry = kindRegistry;
-        ImpulseRegistry = impulseRegistry;
+        ActivityRegistry = activityRegistry;
     }
 
     /// <summary>
@@ -120,11 +126,14 @@ public sealed class SimulationRunner
         var kindRegistry = Domain.DomainLoader.LoadKindRegistry(domainConfig);
         Domain.DomainLoader.InitializeEntityAttributes(graph, attributes, domainConfig);
 
-        // Behaviors (impulses still use DefaultImpulses for now -- will be domain-driven in #37)
-        var impulseRegistry = new ImpulseRegistry();
-        DefaultImpulses.RegisterAll(impulseRegistry);
-        var evaluator = new UtilityEvaluator(impulseRegistry);
-        var behaviors = new BehaviorSystem(graph, evaluator);
+        // Message bus
+        var messageBus = new MessageBus();
+
+        // Three-layer behavioral model: processes + decisions via EntityEvaluator
+        var activityRegistry = new ActivityRegistry();
+        // Register existing impulses as processes (temporary bridge -- real processes in #37)
+        RegisterLegacyImpulsesAsProcesses(activityRegistry);
+        var evaluator = new EntityEvaluator(activityRegistry, messageBus);
 
         // Relationships
         var relationships = new RelationshipSystem(graph, kindRegistry);
@@ -160,12 +169,14 @@ public sealed class SimulationRunner
         var clock = new TickClock();
         var relContext = new RelationshipContextAdapter(graph, attributes);
 
-        // Phase 1: Low-altitude
-        clock.Register("behaviors", TickPhase.LowAltitude, cadence: 1,
+        // Phase 1: Low-altitude (physics + process selection)
+        clock.Register("physics_and_processes", TickPhase.LowAltitude, cadence: 1,
             tick =>
             {
                 worldState.CurrentTick = tick;
-                behaviors.Tick(worldState);
+                // Physics run first (lifecycle, relationships, resources -- registered below)
+                // Then process/decision selection for all entities
+                evaluator.EvaluateAll(graph, worldState);
             });
         clock.Register("relationships", TickPhase.LowAltitude, cadence: 1,
             tick => relationships.Tick(tick, relContext));
@@ -200,8 +211,9 @@ public sealed class SimulationRunner
 
         return new SimulationRunner(
             graph, attributes, effects, grid, regionMap, spatialIndex,
-            clock, behaviors, relationships, lifecycle, resources, pressure,
-            tableau, eventLog, detectors, worldState, kindRegistry, impulseRegistry);
+            clock, evaluator, relationships, lifecycle, resources, pressure,
+            tableau, eventLog, detectors, worldState, kindRegistry, activityRegistry,
+            messageBus);
     }
 
     /// <summary>Advance the simulation by one frame (speed-dependent tick count).</summary>
@@ -210,7 +222,22 @@ public sealed class SimulationRunner
     /// <summary>Advance exactly one tick.</summary>
     public bool Tick() => Clock.Tick();
 
-    // InitializeEntityAttributes moved to DomainLoader
+    /// <summary>
+    /// Bridge: wrap existing IImpulse implementations as IProcess until #37 rewrites them.
+    /// </summary>
+    private static void RegisterLegacyImpulsesAsProcesses(ActivityRegistry registry)
+    {
+        var impulseRegistry = new ImpulseRegistry();
+        DefaultImpulses.RegisterAll(impulseRegistry);
+
+        foreach (EntityKind kind in Enum.GetValues<EntityKind>())
+        {
+            foreach (var impulse in impulseRegistry.GetImpulses(kind))
+            {
+                registry.RegisterProcess(kind, new LegacyImpulseProcess(impulse));
+            }
+        }
+    }
 
     private static Dictionary<EntityId, IPressureContext> BuildPressureContexts(
         WorldGraph graph, AttributeStore attributes, RegionMap regionMap)
