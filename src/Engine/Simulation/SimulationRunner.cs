@@ -129,6 +129,15 @@ public sealed class SimulationRunner
         // Message bus
         var messageBus = new MessageBus();
 
+        // Wiring validation: check domain coherence before starting
+        var wiringValidator = Domain.DomainLoader.LoadAndValidateWiring(domainConfig);
+        var wiringErrors = wiringValidator.Validate();
+        // Log warnings but don't block startup (test domain has minimal wiring)
+        foreach (var error in wiringErrors)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WIRING] {error.Type}: {error.Message}");
+        }
+
         // Three-layer behavioral model: ALL processes are data-defined in domain config
         var activityRegistry = new ActivityRegistry();
         Domain.DomainLoader.LoadProcesses(domainConfig, activityRegistry);

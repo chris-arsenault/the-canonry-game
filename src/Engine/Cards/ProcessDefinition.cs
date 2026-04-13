@@ -1,6 +1,7 @@
 namespace Engine.Cards;
 
 using Engine.Kinds;
+using Engine.Wiring;
 
 /// <summary>
 /// The role of a definition: how it's registered and when it can fire.
@@ -42,6 +43,12 @@ public sealed class ProcessDefinition
 
     /// <summary>Human-readable description template. {entity.name} etc replaced at runtime.</summary>
     public string DescriptionTemplate { get; set; } = "{name} performed {process}";
+
+    /// <summary>Wiring contract: what this process reads from the simulation.</summary>
+    public HashSet<AttributeRef> Reads { get; } = [];
+
+    /// <summary>Wiring contract: what this process writes to the simulation.</summary>
+    public HashSet<AttributeRef> Writes { get; } = [];
 
     public ProcessDefinition(
         string id,

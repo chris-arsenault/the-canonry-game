@@ -5,6 +5,7 @@ using Engine.Cards;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Pressure;
+using Engine.Wiring;
 
 /// <summary>
 /// Loads a DomainConfig into the engine's runtime systems.
@@ -93,6 +94,32 @@ public static class DomainLoader
                 registry.RegisterDecision(procDef.TargetKind, new DataDrivenDecision(procDef));
             }
         }
+    }
+
+    /// <summary>Extract wiring contracts from process definitions and validate.</summary>
+    public static WiringValidator LoadAndValidateWiring(DomainConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var validator = new WiringValidator();
+
+        // Register health attributes per kind
+        foreach (var (kind, kindConfig) in config.Kinds)
+        {
+            validator.RegisterHealthAttribute(kind, kindConfig.HealthAttribute);
+        }
+
+        // Extract contracts from process definitions
+        foreach (var procDef in config.Processes)
+        {
+            if (procDef.Reads.Count > 0 || procDef.Writes.Count > 0)
+            {
+                validator.RegisterContract(new WiringContract(
+                    procDef.Id, procDef.Reads, procDef.Writes));
+            }
+        }
+
+        return validator;
     }
 
     /// <summary>Initialize attributes for all entities in the graph from domain config.</summary>

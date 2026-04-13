@@ -4,6 +4,7 @@ using Engine.Cards;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
+using Engine.Wiring;
 
 /// <summary>
 /// Test domain providing generic placeholder content for Phase 1 development.
@@ -28,33 +29,85 @@ public static class TestDomain
 
     private static List<ProcessDefinition> CreateProcesses()
     {
-        return
-        [
-            new ProcessDefinition("settlement_tick", "Settlement Tick",
-                DefinitionRole.Process, EntityKind.Settlement,
-                new AlwaysTrue(), new ConstantScore(0.5f))
-            { Mutations = { new ModifySelfAttributeMutation("population", 0.1f) } },
+        var processes = new List<ProcessDefinition>();
 
-            new ProcessDefinition("nation_tick", "Nation Tick",
-                DefinitionRole.Process, EntityKind.Nation,
-                new AlwaysTrue(), new ConstantScore(0.5f))
-            { Mutations = { new ModifySelfAttributeMutation("cohesion", -0.01f) } },
+        // Settlement: prosperity → population (feedback: population → prosperity via NPC presence)
+        var settlementTick = new ProcessDefinition("settlement_tick", "Settlement Tick",
+            DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(), new ConstantScore(0.5f))
+        { Mutations = { new ModifySelfAttributeMutation("population", 0.1f) } };
+        settlementTick.Reads.Add(AttributeRef.Self("prosperity", EntityKind.Settlement));
+        settlementTick.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        processes.Add(settlementTick);
 
-            new ProcessDefinition("npc_tick", "NPC Tick",
-                DefinitionRole.Process, EntityKind.Npc,
-                new AlwaysTrue(), new ConstantScore(0.4f))
-            { Mutations = { new ModifySelfAttributeMutation("hunger", 0.2f) } },
+        // Settlement feedback: population → prosperity
+        var settlementFeedback = new ProcessDefinition("settlement_feedback", "Settlement Feedback",
+            DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(), new ConstantScore(0.4f))
+        { Mutations = { new ModifySelfAttributeMutation("prosperity", 0.05f) } };
+        settlementFeedback.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        settlementFeedback.Writes.Add(AttributeRef.Self("prosperity", EntityKind.Settlement));
+        processes.Add(settlementFeedback);
 
-            new ProcessDefinition("artifact_tick", "Artifact Tick",
-                DefinitionRole.Process, EntityKind.Artifact,
-                new AlwaysTrue(), new ConstantScore(0.5f))
-            { Mutations = { new ModifySelfAttributeMutation("mystical_resonance", 0.05f) } },
+        // Nation: stability → cohesion (feedback: cohesion → stability)
+        var nationTick = new ProcessDefinition("nation_tick", "Nation Tick",
+            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), new ConstantScore(0.5f))
+        { Mutations = { new ModifySelfAttributeMutation("cohesion", -0.01f) } };
+        nationTick.Reads.Add(AttributeRef.Self("stability", EntityKind.Nation));
+        nationTick.Writes.Add(AttributeRef.Self("cohesion", EntityKind.Nation));
+        processes.Add(nationTick);
 
-            new ProcessDefinition("region_tick", "Region Tick",
-                DefinitionRole.Process, EntityKind.Region,
-                new AlwaysTrue(), new ConstantScore(0.3f))
-            { Mutations = { new ModifySelfAttributeMutation("habitability", 0.001f) } },
-        ];
+        var nationFeedback = new ProcessDefinition("nation_feedback", "Nation Feedback",
+            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), new ConstantScore(0.4f))
+        { Mutations = { new ModifySelfAttributeMutation("stability", 0.005f) } };
+        nationFeedback.Reads.Add(AttributeRef.Self("cohesion", EntityKind.Nation));
+        nationFeedback.Writes.Add(AttributeRef.Self("stability", EntityKind.Nation));
+        processes.Add(nationFeedback);
+
+        // NPC: hunger increases (feedback: hp → hunger via lifecycle)
+        var npcTick = new ProcessDefinition("npc_tick", "NPC Tick",
+            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.4f))
+        { Mutations = { new ModifySelfAttributeMutation("hunger", 0.2f) } };
+        npcTick.Reads.Add(AttributeRef.Self("hp", EntityKind.Npc));
+        npcTick.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        processes.Add(npcTick);
+
+        var npcFeedback = new ProcessDefinition("npc_feedback", "NPC Feedback",
+            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.3f))
+        { Mutations = { new ModifySelfAttributeMutation("hp", -0.1f) } };
+        npcFeedback.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        npcFeedback.Writes.Add(AttributeRef.Self("hp", EntityKind.Npc));
+        processes.Add(npcFeedback);
+
+        // Artifact: resonance ↔ condition
+        var artifactTick = new ProcessDefinition("artifact_tick", "Artifact Tick",
+            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), new ConstantScore(0.5f))
+        { Mutations = { new ModifySelfAttributeMutation("mystical_resonance", 0.05f) } };
+        artifactTick.Reads.Add(AttributeRef.Self("condition", EntityKind.Artifact));
+        artifactTick.Writes.Add(AttributeRef.Self("mystical_resonance", EntityKind.Artifact));
+        processes.Add(artifactTick);
+
+        var artifactFeedback = new ProcessDefinition("artifact_feedback", "Artifact Feedback",
+            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), new ConstantScore(0.4f))
+        { Mutations = { new ModifySelfAttributeMutation("condition", 0.01f) } };
+        artifactFeedback.Reads.Add(AttributeRef.Self("mystical_resonance", EntityKind.Artifact));
+        artifactFeedback.Writes.Add(AttributeRef.Self("condition", EntityKind.Artifact));
+        processes.Add(artifactFeedback);
+
+        // Region: fertility ↔ habitability
+        var regionTick = new ProcessDefinition("region_tick", "Region Tick",
+            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), new ConstantScore(0.3f))
+        { Mutations = { new ModifySelfAttributeMutation("habitability", 0.001f) } };
+        regionTick.Reads.Add(AttributeRef.Self("fertility", EntityKind.Region));
+        regionTick.Writes.Add(AttributeRef.Self("habitability", EntityKind.Region));
+        processes.Add(regionTick);
+
+        var regionFeedback = new ProcessDefinition("region_feedback", "Region Feedback",
+            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), new ConstantScore(0.2f))
+        { Mutations = { new ModifySelfAttributeMutation("fertility", 0.0001f) } };
+        regionFeedback.Reads.Add(AttributeRef.Self("habitability", EntityKind.Region));
+        regionFeedback.Writes.Add(AttributeRef.Self("fertility", EntityKind.Region));
+        processes.Add(regionFeedback);
+
+        return processes;
     }
 
     private static Dictionary<EntityKind, KindConfig> CreateKinds()
