@@ -1,3 +1,4 @@
+#pragma warning disable CA2000 // Godot nodes managed by scene tree
 using System.Linq;
 
 using Godot;
@@ -15,6 +16,8 @@ public partial class Main : Node2D
     private SimulationRunner? _sim;
     private HexMapRenderer? _mapRenderer;
     private Camera2D? _camera;
+    private EntityDetailPanel? _detailPanel;
+    private CanvasLayer? _uiLayer;
     private int _frameCount;
 
     public override void _Ready()
@@ -48,7 +51,23 @@ public partial class Main : Node2D
         _camera.MakeCurrent();
         AddChild(_camera);
 
-        GD.Print("Controls: Space=pause, 1/2/3=speed, WASD/arrows=pan, scroll=zoom");
+        // UI layer (not affected by camera zoom/pan)
+        _uiLayer = new CanvasLayer();
+        AddChild(_uiLayer);
+
+        // Detail panel on the right side
+        var marginContainer = new MarginContainer();
+        marginContainer.SetAnchorsPreset(Control.LayoutPreset.RightWide);
+        marginContainer.AddThemeConstantOverride("margin_top", 10);
+        marginContainer.AddThemeConstantOverride("margin_right", 10);
+        marginContainer.AddThemeConstantOverride("margin_bottom", 10);
+        _uiLayer.AddChild(marginContainer);
+
+        _detailPanel = new EntityDetailPanel();
+        _detailPanel.Initialize(_sim);
+        marginContainer.AddChild(_detailPanel);
+
+        GD.Print("Controls: Space=pause, 1/2/3=speed, WASD/arrows=pan, scroll=zoom, click=select entity");
     }
 
     public override void _Process(double delta)
@@ -57,10 +76,11 @@ public partial class Main : Node2D
 
         var ticksProcessed = _sim.AdvanceFrame();
 
-        // Refresh map display
+        // Refresh displays
         if (ticksProcessed > 0)
         {
             _mapRenderer?.Refresh();
+            _detailPanel?.Refresh();
         }
 
         // Camera movement
@@ -119,7 +139,58 @@ public partial class Main : Node2D
             _camera.Zoom = new Vector2(
                 Mathf.Clamp(_camera.Zoom.X, 0.3f, 5f),
                 Mathf.Clamp(_camera.Zoom.Y, 0.3f, 5f));
+
+            // Left click to select entity
+            if (mouse.ButtonIndex == MouseButton.Left)
+            {
+                HandleEntityClick(mouse.GlobalPosition);
+            }
         }
+    }
+
+    private void HandleEntityClick(Vector2 screenPos)
+    {
+        if (_sim is null || _camera is null || _mapRenderer is null) return;
+
+        // Convert screen position to world position
+        var worldPos = _camera.Position + (screenPos - GetViewportRect().Size / 2f) / _camera.Zoom;
+
+        // Find nearest entity to click position
+        EntityId? nearest = null;
+        var nearestDist = 20f; // Click radius in pixels
+
+        foreach (var (entityId, entity) in _sim.Graph.AllEntities)
+        {
+            if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
+
+            var hexSize = _mapRenderer.HexSize;
+            var entityPixel = HexToPixel(entity.Coordinates.Value.Q, entity.Coordinates.Value.R, hexSize);
+            var dist = worldPos.DistanceTo(entityPixel);
+
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearest = entityId;
+            }
+        }
+
+        if (nearest is not null)
+        {
+            _detailPanel?.SelectEntity(nearest.Value);
+            var name = _sim.Graph.GetEntity(nearest.Value)?.Name;
+            GD.Print($"Selected: {name}");
+        }
+        else
+        {
+            _detailPanel?.ClearSelection();
+        }
+    }
+
+    private static Vector2 HexToPixel(int q, int r, float hexSize)
+    {
+        var x = hexSize * (Mathf.Sqrt(3f) * q + Mathf.Sqrt(3f) / 2f * r);
+        var y = hexSize * (1.5f * r);
+        return new Vector2(x, y);
     }
 
     private void HandleCameraMovement(float delta)
