@@ -1,5 +1,7 @@
 namespace Engine.Domain;
 
+using Engine.Behaviors;
+using Engine.Cards;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Pressure;
@@ -71,6 +73,25 @@ public static class DomainLoader
             yield return new PressureDefinition(
                 pc.Name, pc.Scope, pc.Baseline, pc.HomeostasisRate, pc.SmoothingFactor);
             // Contributing factors will be added via wiring contracts (#35)
+        }
+    }
+
+    /// <summary>Register data-driven processes and decisions from domain config.</summary>
+    public static void LoadProcesses(DomainConfig config, ActivityRegistry registry)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(registry);
+
+        foreach (var procDef in config.Processes)
+        {
+            if (procDef.Role == DefinitionRole.Process)
+            {
+                registry.RegisterProcess(procDef.TargetKind, new DataDrivenProcess(procDef));
+            }
+            else
+            {
+                registry.RegisterDecision(procDef.TargetKind, new DataDrivenDecision(procDef));
+            }
         }
     }
 

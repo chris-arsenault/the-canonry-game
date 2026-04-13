@@ -1,5 +1,6 @@
 namespace Engine.Domain;
 
+using Engine.Cards;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
@@ -16,12 +17,44 @@ public static class TestDomain
         return new DomainConfig
         {
             Kinds = CreateKinds(),
+            Processes = CreateProcesses(),
             Relationships = CreateRelationships(),
             Pressures = CreatePressures(),
             Lifecycles = CreateLifecycles(),
             Resources = CreateResources(),
             Cultures = CreateCultures(),
         };
+    }
+
+    private static List<ProcessDefinition> CreateProcesses()
+    {
+        return
+        [
+            new ProcessDefinition("settlement_tick", "Settlement Tick",
+                DefinitionRole.Process, EntityKind.Settlement,
+                new AlwaysTrue(), new ConstantScore(0.5f))
+            { Mutations = { new ModifySelfAttributeMutation("population", 0.1f) } },
+
+            new ProcessDefinition("nation_tick", "Nation Tick",
+                DefinitionRole.Process, EntityKind.Nation,
+                new AlwaysTrue(), new ConstantScore(0.5f))
+            { Mutations = { new ModifySelfAttributeMutation("cohesion", -0.01f) } },
+
+            new ProcessDefinition("npc_tick", "NPC Tick",
+                DefinitionRole.Process, EntityKind.Npc,
+                new AlwaysTrue(), new ConstantScore(0.4f))
+            { Mutations = { new ModifySelfAttributeMutation("hunger", 0.2f) } },
+
+            new ProcessDefinition("artifact_tick", "Artifact Tick",
+                DefinitionRole.Process, EntityKind.Artifact,
+                new AlwaysTrue(), new ConstantScore(0.5f))
+            { Mutations = { new ModifySelfAttributeMutation("mystical_resonance", 0.05f) } },
+
+            new ProcessDefinition("region_tick", "Region Tick",
+                DefinitionRole.Process, EntityKind.Region,
+                new AlwaysTrue(), new ConstantScore(0.3f))
+            { Mutations = { new ModifySelfAttributeMutation("habitability", 0.001f) } },
+        ];
     }
 
     private static Dictionary<EntityKind, KindConfig> CreateKinds()

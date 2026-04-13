@@ -192,6 +192,7 @@ public class TableauManagerTests
     private sealed class StubContext : ICardContext
     {
         public int CurrentTick => CurrentTickValue;
+        public EntityId SelfEntityId => new EntityId(0);
         public int CurrentTickValue { get; set; }
 
         public float GetPressure(string pressureName, EntityId scopeId) => 0f;

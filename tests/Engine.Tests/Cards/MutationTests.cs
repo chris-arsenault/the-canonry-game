@@ -102,6 +102,7 @@ public class MutationTests
     private sealed class TrackingCardContext : ICardContext
     {
         public int CurrentTick => 10;
+        public EntityId SelfEntityId => new EntityId(0);
         public List<(EntityKind Kind, string Name)> CreatedEntities { get; } = [];
         public List<(string Kind, float Strength)> CreatedRelationships { get; } = [];
         public List<(string Attr, float Delta)> AttributeModifications { get; } = [];

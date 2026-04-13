@@ -170,6 +170,7 @@ public class CardExecutorTests
     private sealed class TrackingContext : ICardContext
     {
         public int CurrentTick => CurrentTickValue;
+        public EntityId SelfEntityId => new EntityId(0);
         public int CurrentTickValue { get; set; }
         public List<(string Attr, float Delta)> AttributeModifications { get; } = [];
 

@@ -93,3 +93,15 @@ public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
 
     public string Describe() => $"set_historical({entityId})";
 }
+
+/// <summary>Modifies the current entity's attribute by a delta. Uses SelfEntityId from context.</summary>
+public sealed class ModifySelfAttributeMutation(string attributeName, float delta) : IMutation
+{
+    public void Execute(ICardContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.ModifyAttribute(context.SelfEntityId, attributeName, delta);
+    }
+
+    public string Describe() => $"modify_self_attribute({attributeName}, delta={delta})";
+}

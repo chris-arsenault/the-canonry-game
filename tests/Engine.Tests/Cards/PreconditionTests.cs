@@ -167,6 +167,7 @@ public class PreconditionTests
     private sealed class StubCardContext : ICardContext
     {
         public int CurrentTick => CurrentTickValue;
+        public EntityId SelfEntityId => new EntityId(0);
         public int CurrentTickValue { get; set; } = 10;
         public float PressureValue { get; set; }
         public float AttributeValue { get; set; }

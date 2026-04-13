@@ -11,6 +11,9 @@ public interface ICardContext
 {
     int CurrentTick { get; }
 
+    /// <summary>The entity currently being evaluated (for self-referencing mutations).</summary>
+    EntityId SelfEntityId { get; }
+
     // --- Read operations (preconditions) ---
     float GetPressure(string pressureName, EntityId scopeId);
     float GetAttribute(EntityId entityId, string attributeName);

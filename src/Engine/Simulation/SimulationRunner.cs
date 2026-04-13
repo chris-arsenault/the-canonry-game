@@ -129,22 +129,10 @@ public sealed class SimulationRunner
         // Message bus
         var messageBus = new MessageBus();
 
-        // Three-layer behavioral model: processes + decisions via EntityEvaluator
+        // Three-layer behavioral model: ALL processes are data-defined in domain config
         var activityRegistry = new ActivityRegistry();
-        Behaviors.Processes.SmokeTestProcesses.RegisterAll(activityRegistry);
+        Domain.DomainLoader.LoadProcesses(domainConfig, activityRegistry);
         var evaluator = new EntityEvaluator(activityRegistry, messageBus);
-
-        // Wiring validation
-        var wiringValidator = new Wiring.WiringValidator();
-        foreach (var (kind, kindConfig) in domainConfig.Kinds)
-        {
-            wiringValidator.RegisterHealthAttribute(kind, kindConfig.HealthAttribute);
-        }
-
-        Behaviors.Processes.SmokeTestProcesses.RegisterContracts(wiringValidator);
-        // Note: ValidateOrThrow disabled for now -- smoke test contracts are minimal
-        // and won't pass full validation. Enable when real processes are designed.
-        // wiringValidator.ValidateOrThrow();
 
         // Relationships
         var relationships = new RelationshipSystem(graph, kindRegistry);
@@ -320,6 +308,7 @@ internal sealed class CardContextAdapter(
     : ICardContext
 {
     public int CurrentTick => worldState.CurrentTick;
+    public EntityId SelfEntityId => new EntityId(-1); // Card context has no "self" -- cards target explicitly
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
     public float GetAttribute(EntityId entityId, string attributeName) => attributes.Get(entityId, attributeName);
     public int CountEntitiesByKind(EntityKind kind) => graph.GetEntitiesByKind(kind).Count;
