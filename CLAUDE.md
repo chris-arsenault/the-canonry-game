@@ -97,7 +97,38 @@ Save/load uses MessagePack-CSharp for binary serialization (fast, compact). SQLi
 
 ## Development Commands
 
-TBD -- Godot project not yet initialized.
+```bash
+make ci       # lint + build + test (run before every commit)
+make lint     # build with -warnaserror (all analyzers at AnalysisMode=All)
+make build    # restore + release build
+make test     # run xunit tests
+make clean    # remove .artifacts/
+```
+
+## Development Workflow
+
+For each issue, follow this sequence exactly:
+
+1. **Move ticket to In Progress** on the GitHub project board
+2. **Write code** in the appropriate `src/Engine/` subfolder
+3. **Write tests** in `tests/Engine.Tests/` mirroring the source structure
+4. **Run `make ci`** -- must pass clean (0 warnings, 0 errors, all tests green)
+5. **Domain contamination check:** `grep -ri 'penguin\|orca\|soup\|ice magic\|long dark\|frost' src/Engine/` must return zero matches. Engine code must never reference domain content.
+6. **Validate acceptance criteria** from the issue against the implementation
+7. **Commit** with message referencing the issue: `git commit -m "Description (#N)"`. Use `Closes #N` in the body if the issue is fully complete.
+8. **Update the issue** with commit hash and any notes. Move ticket to Done.
+
+### Commit conventions
+- Commit to `main` directly (no branches for now)
+- Reference the issue number in every commit message
+- One logical change per commit (don't bundle unrelated work)
+- `make ci` must pass before pushing. Do not push broken builds.
+
+### What belongs where
+- `src/Engine/` -- domain-agnostic simulation engine only. No domain terms, no Godot UI.
+- `tests/Engine.Tests/` -- unit tests for engine code. Mirror the source folder structure.
+- `src/Domain/` -- narrative domain content (Phase 2, not yet created)
+- `src/UI/` -- Godot scenes and visualization (not yet created)
 
 ## Repository Structure
 

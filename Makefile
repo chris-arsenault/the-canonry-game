@@ -1,6 +1,6 @@
-.PHONY: ci build test lint clean
+.PHONY: ci build test lint clean domain-check
 
-ci: lint build test
+ci: lint build test domain-check
 
 build:
 	dotnet restore
@@ -11,6 +11,14 @@ test:
 
 lint:
 	dotnet build -c Release -warnaserror
+
+domain-check:
+	@echo "Checking engine for domain contamination..."
+	@if grep -ri 'penguin\|orca\|soup\|ice magic\|long dark\|frosthollow\|iceberg' src/Engine/ 2>/dev/null; then \
+		echo "FAIL: Domain-specific terms found in engine code"; exit 1; \
+	else \
+		echo "PASS: No domain contamination"; \
+	fi
 
 clean:
 	rm -rf .artifacts
