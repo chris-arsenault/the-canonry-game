@@ -1,6 +1,10 @@
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly,
-; but it can also be manually edited if needed.
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -13,7 +17,3 @@ config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 [dotnet]
 
 project/assembly_name="TheCanonryGame"
-
-[rendering]
-
-renderer/rendering_method="forward_plus"
