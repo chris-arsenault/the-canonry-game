@@ -90,9 +90,15 @@ The simulation can reach degenerate states that are no longer interesting to pla
 - **Stagnation**: the world is alive but nothing is changing. Equilibrium without dynamism.
 - **Monoculture**: one entity has consumed everything. Alive but homogeneous.
 
-These are design concerns, not formal lose conditions. The game should be designed so that degenerate states are DIFFICULT to reach through normal play, not so that they trigger a game-over screen. The simulation's low-altitude physics, pressure system, and card interactions should naturally resist degenerate states through the same mechanisms that make the world interesting: lifecycle decay prevents permanent dominance, unresolved pressure eventually cascades, and the aging function ensures nothing lasts forever without active investment.
+These are design concerns, not formal lose conditions. The game resists degenerate states through a three-layer model:
 
-Formal lose conditions with hard thresholds may be added post-MVP if playtesting reveals that degenerate states are too easy to reach accidentally. But the primary design approach is: make the simulation inherently resist degeneracy through its own physics, not through an external monitor that ends the game.
+1. **Low-altitude shock absorbers (automatic):** built into entity physics. Collapse creates fragments not voids. Scarcity drives migration not death. Lifecycle drain is gradual not cliff-edge. These SLOW the decline, buying the player time.
+2. **Card-level responses (player choice):** each degeneracy pattern has generator, system, and action cards that can address it. The player chooses HOW to respond based on their worldview. This is the interesting decision.
+3. **UI warnings (explicit):** known degeneracy patterns are codified as detectors. When thresholds are crossed, the player sees warnings. Informational, not prescriptive.
+
+The game is about guided evolution, not degeneracy prevention. But the player must be aware when the world is trending badly so they can steer. Without intervention, shock absorbers buy time but don't prevent collapse indefinitely.
+
+Degenerate patterns are derived from entity categories. Anti-degeneracy responses come from card types. See `docs/anti-degeneracy.md` for the full mechanism mapping, MVP patterns, and implementation requirements.
 
 There are no win conditions in neutral mode. Success is measured through the player's own goals. Patron mode (favored nation) adds optional win conditions post-MVP.
 

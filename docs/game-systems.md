@@ -188,7 +188,8 @@ The entity behavior system architecture must support additional entity kinds wit
 
 These are not MVP, but the base system must not preclude them.
 
-**MVP scope (4 entity kinds):**
+**MVP scope (5 entity kinds):**
+- Regions: passive stage, scope unit for pressure computation. MVP.
 - Settlements: population attraction/loss, resource production/consumption (soup + gold), development. MVP.
 - Nations: border tension, resource flow, population pressure, consolidation/fragmentation, cultural friction (from attribute differences). MVP.
 - NPCs: needs (hunger, safety, ambition), movement with simple goal selection. MVP.
@@ -486,11 +487,11 @@ See `docs/systems/19-narrative-domain.md` for full design.
 
 ## MVP Priority Order (Revised)
 
-**MVP entity kinds: Settlement, Nation, NPC, Artifact.** The remaining 7 kinds (Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence) are formalized but deferred to post-MVP. See `docs/systems/entity-kind-registry.md`.
+**MVP entity kinds: Region, Settlement, Nation, NPC, Artifact.** The remaining 7 kinds (Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence) are formalized but deferred to post-MVP. See `docs/systems/entity-kind-registry.md`.
 
 **Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using the 4 MVP entity kinds with placeholder subtypes and cards. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
 
-1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with 4 MVP kinds and generic subtypes
+1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with 5 MVP kinds (Region, Settlement, Nation, NPC, Artifact) and generic subtypes
 2. **Map / Spatial** -- hex grid, fixed test map (procedural generation post-Phase 1)
 3. **Tick Clock** -- time advancement with speed control
 4. **Resources (Gold + Soup)** -- two-resource flow system on the map graph

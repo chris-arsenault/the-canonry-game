@@ -167,7 +167,7 @@ Eras were a construct for forcing world history phases in a single-shot simulati
 
 | Category | Kind | Low-Altitude Behaviors | Has Agency | Lifecycle | MVP |
 |----------|------|----------------------|------------|-----------|-----|
-| Spatial | Region | Passive (stage) | No | Permanent | Post-MVP |
+| Spatial | Region | Passive (stage) | No | Permanent | **MVP** |
 | Spatial | Point of Interest | Passive (local effects) | No | Permanent | Post-MVP |
 | Spatial | Settlement | Growth/decline, subtype transitions | No | Population-based | **MVP** |
 | Agency | Nation | Border tension, resource flow, expansion, fragmentation | Yes | Cohesion-based | **MVP** |
@@ -179,9 +179,9 @@ Eras were a construct for forcing world history phases in a single-shot simulati
 | Asset | Ability | Mastery drift, stability, holder effects | No | Stability-based | Post-MVP |
 | Record | Occurrence | Passive (binding construct), natural wind-down | No | Duration-based | Post-MVP |
 
-**11 entity kinds total. 4 MVP kinds (Settlement, Nation, NPC, Artifact). 7 post-MVP kinds.**
+**11 entity kinds total. 5 MVP kinds (Region, Settlement, Nation, NPC, Artifact). 6 post-MVP kinds.**
 
-MVP kinds are the structural minimum needed for the core simulation loop: places to be (settlements), political entities (nations), individual actors (NPCs), and significant objects (artifacts). The remaining 7 kinds are well-defined and ready to implement but are not needed for the first playable.
+MVP kinds are the structural minimum needed for the core simulation loop: geographic areas for pressure scoping (regions), places to be (settlements), political entities (nations), individual actors (NPCs), and significant objects (artifacts). The remaining 6 kinds are well-defined and ready to implement but are not needed for the first playable.
 
 ---
 
