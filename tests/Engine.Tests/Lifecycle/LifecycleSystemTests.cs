@@ -1,0 +1,217 @@
+namespace Engine.Tests.Lifecycle;
+
+using Engine.Attributes;
+using Engine.Graph;
+using Engine.Kinds;
+using Engine.Lifecycle;
+
+public class LifecycleSystemTests
+{
+    private readonly WorldGraph _graph = new();
+    private readonly AttributeStore _attributes = new();
+
+    private LifecycleConfig CreateDefaultConfig()
+    {
+        var config = new LifecycleConfig();
+        config.Register(EntityKind.Npc, "hp", new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f });
+        config.Register(EntityKind.Settlement, "population", new LinearAging { BaseRate = 0.1f, AgeCoefficient = 0.0005f });
+        config.Register(EntityKind.Nation, "cohesion", new LinearAging { BaseRate = 0.005f, AgeCoefficient = 0.0002f });
+        config.Register(EntityKind.Artifact, "condition", new LinearAging { BaseRate = 0.005f, AgeCoefficient = 0.0001f });
+        // Region has no lifecycle config (permanent)
+        return config;
+    }
+
+    // --- Aging function ---
+
+    [Fact]
+    public void LinearAging_NewEntityHasLowDrain()
+    {
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f };
+
+        var drain = aging.ComputeDrain(0);
+        Assert.Equal(0.01f, drain, precision: 4);
+    }
+
+    [Fact]
+    public void LinearAging_OldEntityHasHigherDrain()
+    {
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f };
+
+        var youngDrain = aging.ComputeDrain(10);
+        var oldDrain = aging.ComputeDrain(100);
+
+        Assert.True(oldDrain > youngDrain);
+    }
+
+    [Fact]
+    public void LinearAging_DrainIncreasesWithAge()
+    {
+        var aging = new LinearAging { BaseRate = 0.01f, AgeCoefficient = 0.001f };
+
+        float previousDrain = 0;
+        for (var age = 0; age <= 100; age += 10)
+        {
+            var drain = aging.ComputeDrain(age);
+            Assert.True(drain >= previousDrain);
+            previousDrain = drain;
+        }
+    }
+
+    // --- Lifecycle system ---
+
+    [Fact]
+    public void Tick_AppliesDrainToHealthAttribute()
+    {
+        var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Hero", "c", tick: 0);
+        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        system.Tick(currentTick: 1);
+
+        Assert.True(_attributes.Get(npc.Id, "hp") < 100f);
+    }
+
+    [Fact]
+    public void Tick_NewEntityDrainsSlowly()
+    {
+        var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Young", "c", tick: 0);
+        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        // After 10 ticks of a new entity, drain should be minimal
+        for (var i = 1; i <= 10; i++)
+        {
+            system.Tick(i);
+        }
+
+        Assert.True(_attributes.Get(npc.Id, "hp") > 95f,
+            $"Expected > 95, got {_attributes.Get(npc.Id, "hp")}");
+    }
+
+    [Fact]
+    public void Tick_OldEntityDrainsFaster()
+    {
+        // Entity created at tick 0, we start ticking at 500
+        var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Old", "c", tick: 0);
+        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        // Tick at age 500-510
+        for (var i = 500; i <= 510; i++)
+        {
+            system.Tick(i);
+        }
+
+        var hpAfterOldAge = _attributes.Get(npc.Id, "hp");
+
+        // Compare: fresh entity ticking 10 times
+        var young = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Young", "c", tick: 1000);
+        _attributes.Initialize(young.Id, "hp", 0f, 100f, 100f);
+        for (var i = 1000; i <= 1010; i++)
+        {
+            system.Tick(i);
+        }
+
+        var hpAfterYoungAge = _attributes.Get(young.Id, "hp");
+
+        // Old entity should have lost more HP
+        Assert.True(hpAfterOldAge < hpAfterYoungAge,
+            $"Old HP {hpAfterOldAge} should be < Young HP {hpAfterYoungAge}");
+    }
+
+    // --- Death transition ---
+
+    [Fact]
+    public void Tick_TransitionsToHistoricalAtZeroHealth()
+    {
+        var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dying", "c", tick: 0);
+        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 0.01f); // Almost dead
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        system.Tick(1);
+
+        Assert.Equal(EntityStatus.Historical, npc.Status);
+    }
+
+    [Fact]
+    public void Tick_EmitsDeathEvent()
+    {
+        var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dying", "c", tick: 0);
+        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 0.001f);
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        Entity? dead = null;
+        system.EntityDied += (_, e) => dead = e.Entity;
+
+        system.Tick(1);
+
+        Assert.NotNull(dead);
+        Assert.Equal(npc.Id, dead.Id);
+    }
+
+    [Fact]
+    public void Tick_HistoricalEntityNotProcessed()
+    {
+        var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dead", "c", tick: 0);
+        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 50f);
+        _graph.SetEntityHistorical(npc.Id, tick: 5);
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        system.Tick(10);
+
+        // HP should not have changed (historical entities are skipped)
+        Assert.Equal(50f, _attributes.Get(npc.Id, "hp"));
+    }
+
+    // --- No lifecycle for permanent entities ---
+
+    [Fact]
+    public void Tick_SkipsEntitiesWithoutConfig()
+    {
+        var region = _graph.CreateEntity(EntityKind.Region, "generic_region", "R", "c", tick: 0);
+        _attributes.Initialize(region.Id, "fertility", 0f, 1f, 0.8f);
+
+        var config = CreateDefaultConfig(); // No config for Region
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        system.Tick(100);
+
+        // Fertility unchanged (regions have no lifecycle)
+        Assert.Equal(0.8f, _attributes.Get(region.Id, "fertility"));
+    }
+
+    // --- Counter-drain (other systems sustain health) ---
+
+    [Fact]
+    public void Tick_HealthCanBeCounteredByExternalModification()
+    {
+        var settlement = _graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", tick: 0);
+        _attributes.Initialize(settlement.Id, "population", 0f, 10000f, 1000f);
+
+        var config = CreateDefaultConfig();
+        var system = new LifecycleSystem(_graph, _attributes, config);
+
+        // Simulate 10 ticks where an external system adds population each tick
+        for (var i = 1; i <= 10; i++)
+        {
+            system.Tick(i); // Drain
+            _attributes.Modify(settlement.Id, "population", 5f); // External sustenance
+        }
+
+        // With sustenance counteracting drain, population should stay near or above 1000
+        Assert.True(_attributes.Get(settlement.Id, "population") > 900f,
+            $"Population {_attributes.Get(settlement.Id, "population")} dropped below 900 despite sustenance");
+    }
+}
