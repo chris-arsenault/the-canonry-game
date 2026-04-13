@@ -2,7 +2,6 @@ namespace Engine.Simulation;
 
 using Engine.Attributes;
 using Engine.Behaviors;
-using Engine.Behaviors.Impulses;
 using Engine.Cards;
 using Engine.Clock;
 using Engine.Degeneracy;
@@ -229,23 +228,6 @@ public sealed class SimulationRunner
 
     /// <summary>Advance exactly one tick.</summary>
     public bool Tick() => Clock.Tick();
-
-    /// <summary>
-    /// Bridge: wrap existing IImpulse implementations as IProcess until #37 rewrites them.
-    /// </summary>
-    private static void RegisterLegacyImpulsesAsProcesses(ActivityRegistry registry)
-    {
-        var impulseRegistry = new ImpulseRegistry();
-        DefaultImpulses.RegisterAll(impulseRegistry);
-
-        foreach (EntityKind kind in Enum.GetValues<EntityKind>())
-        {
-            foreach (var impulse in impulseRegistry.GetImpulses(kind))
-            {
-                registry.RegisterProcess(kind, new LegacyImpulseProcess(impulse));
-            }
-        }
-    }
 
     private static Dictionary<EntityId, IPressureContext> BuildPressureContexts(
         WorldGraph graph, AttributeStore attributes, RegionMap regionMap)

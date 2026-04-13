@@ -207,6 +207,21 @@ public class WiringValidatorTests
         validator.ValidateOrThrow();
     }
 
+    // --- TestDomain integration ---
+
+    [Fact]
+    public void TestDomain_WiringValidation_ReportsGaps()
+    {
+        var config = Engine.Domain.TestDomain.Create();
+        var validator = Engine.Domain.DomainLoader.LoadAndValidateWiring(config);
+        var errors = validator.Validate();
+
+        // The TestDomain's feedback loops should close all read/write pairs.
+        // If this fails, the simulation's processes have wiring gaps.
+        // Note: this will need to be updated when real processes replace the smoke tests.
+        Assert.Empty(errors);
+    }
+
     // --- Multiple kinds ---
 
     [Fact]
