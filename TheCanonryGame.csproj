@@ -1,0 +1,15 @@
+<Project Sdk="Godot.NET.Sdk/4.6.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>TheCanonryGame</RootNamespace>
+    <Nullable>enable</Nullable>
+
+    <!-- Only include UI scripts, not the Engine source (Engine is a separate project) -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;tests/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="src/Engine/Engine.csproj" />
+  </ItemGroup>
+</Project>
