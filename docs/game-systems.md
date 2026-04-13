@@ -192,7 +192,7 @@ These are not MVP, but the base system must not preclude them.
 
 **MVP scope per kind:**
 - Nations: border tension, resource flow, population pressure, consolidation/fragmentation. MVP.
-- Cultures: influence radiation, cultural pressure buildup, cohesion. MVP.
+- Cultural dynamics (attribute-driven): influence radiation, cultural pressure, cohesion -- computed from entity cultural attributes, not from culture entities. MVP.
 - Settlements: population attraction/loss, resource production/consumption, development. MVP.
 - Factions: goal pursuit, influence accumulation, internal politics. MVP.
 - Artifacts: degradation, mystical accumulation. MVP.
@@ -209,8 +209,9 @@ Fine-grained, always-on relationship dynamics between entities.
   - Competing claims: entities with overlapping territorial interests trend negative
   - Resource competition: entities competing for the same scarce resources trend negative
   - Trade connections: entities connected by active trade routes trend positive
-- Relationship values are continuous (-1 to +1 or similar range)
-- Relationship TYPES are fixed (allied_with, rival_of, controls, member_of, etc.) but relationship STRENGTH changes continuously through low-altitude dynamics
+- Relationship strength is 0 to 1 with polarity defined by relationship kind (positive kinds like allied_with, negative kinds like rival_of, neutral kinds like controls)
+- Relationship TYPES are fixed but relationship STRENGTH changes continuously through low-altitude dynamics
+- Low-strength relationships are automatically culled (set end date, transition to historical -- topology change as lifecycle, not as simulation)
 
 **What this does NOT do:**
 - Does not determine what happens when relationships reach extremes. That's card territory.
@@ -486,6 +487,8 @@ See `docs/systems/19-narrative-domain.md` for full design.
 8. **Generator + System + Action Executors** -- card execution with generic test cards. Validates precondition evaluation, mutation application, DSL interpreter.
 9. **Map Visualization** -- render low-altitude state + card effects on the map
 10. **Save / Load** -- full state serialization
+
+**Initial world state:** For MVP/Phase 1, the starting world state is a single fixed configuration defined programmatically. One map, one set of starting entities and relationships, always the same. This is modifiable through code for different test scenarios. A world generation phase that procedurally creates the starting entity graph is post-Phase 1 -- we need to understand the engine's behavior with known inputs before introducing generated variation.
 
 Phase 1 produces: a living world with low-altitude physics, visible pressure, AND the ability to place test cards and observe their mid-altitude effects. This validates the entire altitude model end-to-end with generic content.
 

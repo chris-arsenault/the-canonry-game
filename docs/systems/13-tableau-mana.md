@@ -1,4 +1,4 @@
-# System 14: Tableau / Mana
+# System 13: Tableau / Mana
 
 The player's active card configuration, resource management, and the interface between cards and the running simulation.
 
@@ -73,19 +73,31 @@ This supports the "everything visible" design principle. The player understands 
 3. If yes: card moves to tableau, mana pool decreases by card cost, card's simulation component registers with the appropriate executor
 4. If no: card cannot be played. Player must remove something from the tableau first or wait for mana cap expansion.
 
-### Removing a card (tableau -> discard)
+### Removing a card from the tableau
 
-1. Player selects a card in the tableau
-2. Card's simulation component deregisters from its executor
-3. Mana pool increases by the card's cost (mana is freed)
-4. Card moves to the deck's discard pile
-5. Existing effects from the card remain in the entity graph
+Removing cards is DIFFICULT by design. Cards are commitments, not toggles. The player cannot freely hot-swap their tableau. Two removal mechanisms:
 
-### Swapping (removing + playing)
+**Card lifespan:** Cards placed in the tableau have a lifespan (N generations/ticks, defined per card). When the lifespan expires, the card naturally deactivates and returns to the discard pile. The player can plan around known expiration.
 
-No special swap mechanic. The player removes a card (freeing mana) then plays a different card (spending mana). These are two discrete actions. The removed card's effects stop; the new card's effects start on the next tick.
+**Removal by other cards:** Some cards have effects that remove other cards from the tableau. A "Policy Reform" card might remove another system card as part of its effect. A "Paradigm Shift" might clear and replace multiple tableau cards. This makes removal itself a card-driven action, keeping the player within the card system.
 
-There is no cooldown, cost, or restriction on swapping for MVP. The player can reconfigure their tableau freely at any time. If this proves too flexible (allowing trivial min-maxing), cooldowns or swap costs can be added as tuning levers.
+**What happens on removal:**
+1. Card's simulation component deregisters from its executor
+2. Mana pool increases by the card's cost (mana is freed)
+3. Card moves to the deck's discard pile
+4. Existing effects from the card remain in the entity graph
+
+**What this means for play:**
+- Playing a card is a commitment for its lifespan duration. Choose carefully.
+- The "deck as theory" principle is reinforced: your theory must survive its own duration, not be revised every tick.
+- Reactivity is limited to: playing NEW cards into empty mana, and choosing what to play when expired cards leave slots open.
+- The primary skill is forecasting, not patching: "will this card be right for the NEXT N ticks?"
+
+### No free swapping
+
+Free swapping is explicitly rejected. The design thesis is contemplative constitutional authorship, not reactive live operations. Unlimited free hot-swapping collapses the "deck as theory" concept and turns the game into crisis management, which contradicts the core identity.
+
+The commitment friction (lifespan + removal-by-card) ensures that tableau changes are infrequent and weighty, matching the contemplative tempo.
 
 ---
 
@@ -139,7 +151,8 @@ The choice between these options IS the mid-run strategic decision. Do you want 
 - **Starting mana cap.** Enough for 3-4 cards? Needs playtesting against card cost ranges.
 - **Mana cap growth rate.** How many modification events per run? How much cap per increase? Needs to feel meaningful without making late-game tableaux unmanageably large.
 - **Card cost balancing.** The entire cost structure needs iteration. Costs are the primary lever for making the tableau constraint feel right.
-- **Swap restrictions.** MVP has no cooldown or cost for swapping. If this makes the game too fluid (no commitment to a configuration), add friction: cooldown per swap, mana cost for swapping, or a "configuration lock" period after changes.
+- **Card lifespan values.** How many ticks/generations each card type lasts in the tableau. Affects commitment weight and tableau turnover rate. Needs playtesting.
+- **Removal cards.** Which cards can remove other cards from the tableau. How common these are. Whether removal cards are a distinct card type or an effect on existing cards.
 - **Card modification layers.** Balatro research suggests three independent modification axes per card (enhancement + edition + seal equivalent). How these map to simulation cards: does enhancement change HOW the card fires, edition change POTENCY, and seal add SECONDARY EFFECTS? How many layers per card? Are modifications permanent across deck cycles? See `docs/research/balatro-card-model.md`.
 - **Persistent modifiers (Joker equivalent).** Whether the game has a separate row of persistent civilization-level modifiers, distinct from the tableau, that amplify/modify all cards matching certain tags. How many slots. How acquired. Whether these are the same thing as the "locked tableau" concept from design constraints.
 - **Minimum tableau requirements.** Whether the game requires at least one card of each type (generator, system, action) or whether fully skewed tableaux are allowed and the lose conditions handle balance.

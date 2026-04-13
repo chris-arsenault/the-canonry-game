@@ -60,11 +60,11 @@ All attributes are accessible to the player. The "everything visible is everythi
 ### Scalar Attributes
 
 Single numeric values with a defined range.
-- Prominence (0-5, all entities)
 - Population (0-N, settlements)
 - Condition (0-100, artifacts)
 - Health (0-100, mortal entities)
 - Development (0-100, settlements)
+- Prominence (0-5, all entities) -- POST-MVP, listed for illustration
 
 Scalars are the simplest and most common attribute type.
 

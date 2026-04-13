@@ -110,6 +110,6 @@ This avoids entity kind changes and keeps the graph composable: complex real-wor
 ## Open Questions (Deferred to Entity Kind Review)
 
 - **The specific kind list.** Current working set is placeholder. Needs dedicated design session.
-- **Culture: kind or attribute?** Strong arguments both ways. As a kind, culture is a first-class entity with its own behaviors, relationships, and prominence. As an attribute, culture is a property of locations and entities, spreading through low-altitude dynamics. Needs exploration.
+- **Culture is an attribute, not a kind.** RESOLVED. Culture is a fundamental axis (like entity kind itself), not a standalone entity. It is an attribute of locations, nations, factions, and heroes -- representing cultural affiliation, influence, and identity. Cultural dynamics (spread, cohesion, friction) are computed from entity attributes and spatial distribution, not from a separate culture entity's behaviors. This simplifies the entity graph (no culture entities, no culture-to-entity relationships) while preserving cultural dynamics as a simulation layer.
 - **Kind granularity level.** Broad kinds with many subtypes (fewer kinds, more subtypes) vs. narrow kinds (more kinds, fewer subtypes). Affects card targeting granularity and behavioral code organization.
 - **Kind categories.** Physical, metaphysical, temporal -- these are useful organizational labels but may or may not affect game mechanics. TBD whether category matters to the simulation or is purely taxonomic.

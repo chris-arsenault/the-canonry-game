@@ -1,4 +1,4 @@
-# System 7: Entity Behaviors
+# System 6: Entity Behaviors
 
 Per-kind low-altitude simulation. The always-on physics of how entities behave.
 
@@ -116,11 +116,17 @@ These are the low-altitude behaviors per entity kind. They describe WHAT the ent
 - Ideological drift based on internal faction composition and external cultural influence
 - Strategic goal-setting via goal tags on locations and rivals
 
-### Cultures
-- Influence radiation from high-population, high-prominence settlements
-- Cultural pressure buildup at borders with other cultures
-- Cohesion tracking based on geographic concentration vs. diaspora
+### Cultural Dynamics (attribute-driven, not entity-driven)
+
+Culture is an ATTRIBUTE, not an entity kind. Cultural dynamics are computed from the cultural attributes of locations, nations, and other entities, not from standalone culture entities. These dynamics are still low-altitude and always-on:
+
+- Influence radiation from settlements based on population and cultural attribute strength
+- Cultural pressure buildup at borders where different cultural attributes meet
+- Cohesion computed from geographic concentration of shared cultural attributes
 - Innovation accumulation from settlement development and inter-cultural contact
+- Cultural drift: entities' cultural attributes shift over time based on neighboring influences
+
+These dynamics apply to entities that HAVE cultural attributes (locations, nations, factions, heroes), not to culture entities. Cards that target "culture" target the cultural attributes of real entities, not standalone culture entities.
 
 ### Settlements
 - Population attraction/loss based on prosperity, safety, opportunity

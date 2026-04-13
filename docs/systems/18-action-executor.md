@@ -1,4 +1,4 @@
-# System 19: Action Executor
+# System 18: Action Executor
 
 Enables actor behaviors and resolves their outcomes. Defines what the world's entities CAN DO.
 
@@ -150,7 +150,7 @@ success_effects:
 
 failure_effects:
   - modify_attribute(entity=$actor, attribute="stability", delta=-3)
-  - modify_disposition($actor, $target, delta=-0.1)  # failed attempt sours relations
+  - set_tag(entity=$actor, tag="failed_diplomacy_with", value=$target.id)  # historical modifier feeding future disposition calculation
 
 achievement_conditions:
   - { type: fire_count, target: 3, reward: deck_modification }

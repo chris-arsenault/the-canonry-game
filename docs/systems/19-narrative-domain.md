@@ -1,4 +1,4 @@
-# System 20: Narrative Domain
+# System 19: Narrative Domain
 
 The content layer that defines what world the player is playing in. Mechanical, not cosmetic.
 

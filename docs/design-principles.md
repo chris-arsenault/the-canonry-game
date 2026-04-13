@@ -82,17 +82,19 @@ This is SimCity/Stellaris pacing: speed controls let the player fast-forward thr
 
 The difference between "contemplative" and "nothing to do" is whether looking is productive. The map and entity details must always have something to study.
 
-### 7. Three Lose Conditions, No Win Conditions
+### 7. Degenerate States, Not Lose Conditions
 
-The world can fail in three ways:
+The simulation can reach degenerate states that are no longer interesting to play:
 
 - **Extinction**: all civilizations collapse. The simulation has nothing left.
 - **Stagnation**: the world is alive but nothing is changing. Equilibrium without dynamism.
 - **Monoculture**: one entity has consumed everything. Alive but homogeneous.
 
-These three threats tension against each other: preventing one can trigger another. The player's tableau must navigate all three.
+These are design concerns, not formal lose conditions. The game should be designed so that degenerate states are DIFFICULT to reach through normal play, not so that they trigger a game-over screen. The simulation's low-altitude physics, pressure system, and card interactions should naturally resist degenerate states through the same mechanisms that make the world interesting: lifecycle decay prevents permanent dominance, unresolved pressure eventually cascades, and the aging function ensures nothing lasts forever without active investment.
 
-There are no win conditions in neutral mode. Success is measured through the player's own goals, tracked via metrics and the simulation's history. Patron mode (favored nation) adds optional win conditions.
+Formal lose conditions with hard thresholds may be added post-MVP if playtesting reveals that degenerate states are too easy to reach accidentally. But the primary design approach is: make the simulation inherently resist degeneracy through its own physics, not through an external monitor that ends the game.
+
+There are no win conditions in neutral mode. Success is measured through the player's own goals. Patron mode (favored nation) adds optional win conditions post-MVP.
 
 ### 8. The Deck Is a Theory
 

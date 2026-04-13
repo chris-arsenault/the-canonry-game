@@ -75,7 +75,7 @@ One-shot cards kept in a hand, played for immediate divine effect.
 - Patron-only cards: Divine Champion, Covenant, Sacred Ground, Prophecy, Chosen People, etc.
 - Neutral-only cards: Cosmic Equilibrium, Primordial Chaos, Impartial Observer, World Seed
 - Simulation detail increase for favored nation (higher tick frequency for its entities, more detailed events)
-- Storyteller refocus toward favored nation narrative arc
+- Increased event frequency and detail around favored nation (more camera focus, more metrics -- NOT a hidden storyteller/director)
 - UI telescoping (persistent sidebar, map centering, nation detail view)
 
 ### Win Conditions (Patron Mode)

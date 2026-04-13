@@ -1,4 +1,4 @@
-# System 15: Lose Condition Monitor — POST-MVP
+# System 14: Lose Condition Monitor — POST-MVP
 
 Tracks the three threat dimensions. Deferred to post-MVP because meaningful thresholds require a playable simulation to tune against.
 

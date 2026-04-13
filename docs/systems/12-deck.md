@@ -1,4 +1,4 @@
-# System 13: Deck
+# System 12: Deck
 
 The player's card collection, draw mechanics, and deck evolution.
 

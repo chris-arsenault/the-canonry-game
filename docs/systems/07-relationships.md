@@ -1,4 +1,4 @@
-# System 8: Relationships
+# System 7: Relationships
 
 Fine-grained, always-on dynamics between entities.
 

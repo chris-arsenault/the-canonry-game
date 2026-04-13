@@ -108,17 +108,23 @@ Entities are stat blocks with names and relationships. Events are brief, system-
 
 These are explicitly out of scope for the initial design. They may come later but should not influence architectural decisions now.
 
-### No Procedural Map Generation (Initially)
+### Map Generation Scope for First Playable
 
-Maps can be hand-authored initially. Procedural generation is a future feature. The simulation's complexity is in the entity graph and card interactions, not in terrain generation.
+The first playable may use a fixed hand-authored map or a minimal fixed-seed generator. Full procedural generation is MVP but not required for the initial prototype. The simulation's complexity is in the entity graph and card interactions -- map generation quality is important but doesn't need to be solved first.
 
 ---
 
 ## Inherited Constraints from The Canonry
 
-### Hard-Coded Schema, Declarative Components
+### Engine vs. Domain Schema Boundary
 
-Entity kinds, subtypes, relationship kinds, and status values are hard-coded (the canonry's schema editor/enumerist content). Generators, systems, and actions are declarative and data-driven (the canonry's template/system/action JSON content). This split is the expandability boundary: new entity kinds require code changes, new simulation components require only data.
+**Engine-level (hard-coded):** Entity kinds are defined in engine code. The engine knows what a "nation" is, what a "location" is. Adding a new entity kind requires code changes.
+
+**Domain-level (defined per domain, can be programmatic):** Subtypes, relationship kinds, attribute definitions, pressure definitions, and status values are defined by the narrative domain module. The domain module CAN be programmatic (it doesn't have to be purely JSON), but it is a separate module from the engine. Domains define subtypes ("ice-warden" is a hero subtype in The Ice Remembers), relationship kinds ("allied_with" is defined by the domain), and attribute schemas.
+
+**Declarative:** Generators, systems, and actions (cards) are data-driven, defined in DSL. This is the expandability boundary: new cards require only data changes.
+
+This means a second domain can define entirely new subtypes, new relationship kinds, and new attribute configurations without engine changes, but it cannot define new entity kinds.
 
 ### 30 Systems Is Too Many
 

@@ -1,4 +1,4 @@
-# System 9: Resources / Economy
+# System 8: Resources / Economy
 
 Production, consumption, and flow of resources across the map.
 

@@ -1,4 +1,4 @@
-# System 11: Map Visualization
+# System 10: Map Visualization
 
 Dynamic visual representation of simulation state on the map.
 
