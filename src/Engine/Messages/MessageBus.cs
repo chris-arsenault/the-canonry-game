@@ -45,17 +45,21 @@ public sealed class MessageBus
         _globalSubscribers.Add(handler);
     }
 
-    /// <summary>Publish a message to all matching subscribers.</summary>
+    /// <summary>Publish a message to all matching subscribers. Uses runtime type for dispatch.</summary>
     public void Publish<T>(T message) where T : SimulationMessage
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        // Type-specific subscribers
-        if (_subscribers.TryGetValue(typeof(T), out var list))
+        // Use runtime type for dispatch (not compile-time T) so that
+        // Publish(msg) where msg is typed as SimulationMessage but is actually
+        // ProcessExecutedMessage still dispatches to ProcessExecutedMessage subscribers.
+        var runtimeType = message.GetType();
+
+        if (_subscribers.TryGetValue(runtimeType, out var list))
         {
             foreach (var handler in list)
             {
-                ((Action<T>)handler)(message);
+                handler.DynamicInvoke(message);
             }
         }
 
