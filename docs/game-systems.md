@@ -237,7 +237,7 @@ Aging, death, growth, decay. The passage of time affects entities.
 - Heroes age. They have a lifespan. They die of old age if nothing else kills them.
 - Settlements grow when prosperous (population increases via attraction) and shrink when not.
 - Artifacts degrade over time (condition decreases) unless maintained.
-- Nations/factions have no inherent lifecycle -- they persist until destroyed or absorbed by card-driven events. But they can accumulate internal strain or external pressure through other low-altitude systems.
+- All entity kinds have a time-dependent lifecycle drain function. Nations lose cohesion over time. Factions lose organizational coherence. See System 9 (Lifecycle).
 - Prominence decays for all entities unless actively maintained (this is the always-on sink). **POST-MVP: prominence system is deferred.**
 
 **MVP scope:** Time-since-creation aging function per entity kind. Settlement population decline from age, entity aging/death, artifact degradation. Prominence decay is post-MVP. All entity kinds have lifecycle behaviors from day one.
