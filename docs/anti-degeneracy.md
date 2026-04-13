@@ -2,7 +2,7 @@
 
 Degenerate states are derived from entity categories. Anti-degeneracy responses come from three layers: low-altitude shock absorbers (automatic, slow the decline), card-level responses (player-chosen, the interesting decision), and UI warnings (explicit alerts when patterns are detected).
 
-Thresholds and rates are tuning targets determined through playtesting. The architectural commitment is: the mechanisms EXIST, the patterns are DETECTABLE, and the player always has AVAILABLE responses.
+Thresholds and rates are tuning targets determined through playtesting. The architectural commitment is: the mechanisms EXIST, the patterns are DETECTABLE, and the card pool CONTAINS responses. The deck's cycling model ensures the player will eventually draw relevant cards, but not necessarily in time to prevent a specific crisis. Starting archetypes should be constructed to include at least one card addressing each MVP degeneracy pattern.
 
 ---
 
@@ -12,7 +12,7 @@ For each degeneracy pattern:
 
 1. **Low-altitude shock absorber (automatic).** Built into entity physics. Slows the decline. Buys the player time to notice and respond. Does NOT prevent the degeneracy -- just makes it gradual, not instant.
 
-2. **Card-level responses (player choice).** Each pattern has at least one generator, one system, and one action card that could address it. The player chooses which response fits their worldview. This is the interesting decision -- not WHETHER to prevent degeneracy, but HOW.
+2. **Card-level responses (player choice).** The card pool contains generator, system, and action cards that could address each pattern. The player's deck (built from archetype + modifications) determines which responses are available in a given run. The cycling deck ensures all cards in the deck will be drawn eventually, but the player may not have the right card in hand at the exact moment a warning fires. This is by design -- degeneracy response is a strategic concern (build a deck that covers your risks), not a tactical emergency.
 
 3. **UI warning (explicit alert).** Known degeneracy patterns are codified in the engine and surfaced as warnings. The player sees the trend forming and can decide whether and how to respond.
 
@@ -51,7 +51,7 @@ Settlements lose population and trend toward abandonment.
 One nation absorbs or destroys all others. The world has only one political entity.
 
 **Low-altitude shock absorber:**
-- Consolidation/fragmentation pressure: large nations accumulate internal strain (administrative distance, cultural diversity of members, faction pressure). The bigger a nation gets, the more strain it experiences. This is a natural ceiling on expansion.
+- Consolidation/fragmentation pressure: large nations accumulate internal strain (administrative distance from capital, cultural diversity of member settlements). The bigger a nation gets, the more strain it experiences. This is a natural ceiling on expansion. (Post-MVP: faction pressure adds an additional internal strain source when factions are implemented.)
 - Lifecycle aging: old nations have increasing cohesion drain. A nation that has existed long enough to dominate the world is also old enough to be fragile.
 - Cultural friction within large polities: a nation controlling settlements of different cultures experiences internal friction that undermines stability.
 

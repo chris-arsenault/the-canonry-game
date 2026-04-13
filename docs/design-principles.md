@@ -98,7 +98,7 @@ These are design concerns, not formal lose conditions. The game resists degenera
 
 The game is about guided evolution, not degeneracy prevention. But the player must be aware when the world is trending badly so they can steer. Without intervention, shock absorbers buy time but don't prevent collapse indefinitely.
 
-Degenerate patterns are derived from entity categories. Anti-degeneracy responses come from card types. See `docs/anti-degeneracy.md` for the full mechanism mapping, MVP patterns, and implementation requirements.
+Degenerate patterns are derived from entity categories. Anti-degeneracy responses come from card types. MVP covers settlement depopulation (extinction-path) and political monoculture with detectors and UI warnings. Stagnation detection is post-MVP, but the low-altitude physics that resist stagnation (lifecycle decay, relationship drift, pressure accumulation) are active from day one -- we just don't alert on it yet. See `docs/anti-degeneracy.md` for the full mechanism mapping, MVP patterns, and implementation requirements.
 
 There are no win conditions in neutral mode. Success is measured through the player's own goals. Patron mode (favored nation) adds optional win conditions post-MVP.
 
