@@ -51,7 +51,7 @@ dotnet_diagnostic.CA1867.severity = warning
 dotnet_diagnostic.CA2216.severity = warning
 dotnet_diagnostic.CA2227.severity = warning
 dotnet_diagnostic.CA5392.severity = warning
-dotnet_diagnostic.CA5394.severity = warning
+dotnet_diagnostic.CA5394.severity = silent  # Game simulation uses non-crypto random intentionally
 
 # Minimal, low-churn style preferences.
 dotnet_sort_system_directives_first = true
