@@ -86,6 +86,15 @@ Within a single tick, systems execute in a strict, defined order. Results from p
 
 Anti-degeneracy mechanisms (shock absorbers, card responses, UI warnings) are architecturally committed, not bolted on after the fact. Each MVP degeneracy pattern has a codified detector. The detector system is a registry that new patterns can be added to.
 
+## Architecture Decisions
+
+### Entity Graph: QuikGraph, Not Homegrown
+The entity graph uses **QuikGraph** (`QuikGraph` NuGet package) for graph data structures and traversal. **DO NOT reimplement graph traversal, adjacency lists, or query algorithms from scratch** -- this has proven problematic in past projects and is effectively writing a graph database.
+
+QuikGraph provides: `BidirectionalGraph` for directed in/out adjacency, `TaggedEdge` for typed relationship properties, and built-in BFS/DFS. We wrap it with a `WorldGraph` class that adds: secondary indexes by entity kind, historical relationship filtering (active vs ended), and integration with the attribute system.
+
+Save/load uses MessagePack-CSharp for binary serialization (fast, compact). SQLite may be added as a debugging persistence layer for ad-hoc save-file queries. See `docs/research/graph-library-evaluation.md`.
+
 ## Development Commands
 
 TBD -- Godot project not yet initialized.
