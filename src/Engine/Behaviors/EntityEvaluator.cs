@@ -252,13 +252,18 @@ public sealed class EntityEvaluator
 
     private static bool ServesGoal(IProcess process, EntityGoal goal, Entity entity)
     {
-        // A process serves a goal if it writes to the goal's target attribute
         if (process is not DataDrivenProcess ddp) return false;
 
         var targetAttr = goal.TargetAttribute;
+        var goalIsExternal = goal.Provider != entity.Id;
+
         foreach (var write in ddp.Definition.Writes)
         {
-            if (write.Name == targetAttr) return true;
+            if (write.Name != targetAttr) continue;
+
+            // Process write scope must match goal provider scope
+            if (goalIsExternal && write.Scope == Wiring.RefScope.Target) return true;
+            if (!goalIsExternal && write.Scope != Wiring.RefScope.Target) return true;
         }
 
         return false;
