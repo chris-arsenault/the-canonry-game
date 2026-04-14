@@ -117,6 +117,90 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
 }
 
 /// <summary>
+/// Step one hex toward the ResolvedTarget on the context. If no target,
+/// step in a random direction (wander). Pure locomotion — no domain knowledge.
+/// Uses A* pathfinding via IWorldStateAccessor. Manages located_at relationship.
+/// </summary>
+public sealed class StepTowardTargetMutation : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var entity = context.GetEntity(context.SelfEntityId);
+        if (entity?.Coordinates is null) return;
+
+        var currentCoord = new Map.HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+        Map.HexCoord nextHex;
+
+        if (context.ResolvedTarget is not null)
+        {
+            var targetCoord = new Map.HexCoord(context.ResolvedTarget.Value.Q, context.ResolvedTarget.Value.R);
+            if (targetCoord == currentCoord) return; // Already there
+
+            // Need SpatialIndex for A* — access through WorldState
+            if (context is not IWorldStateAccessor worldAccessor) return;
+
+            var path = worldAccessor.WorldState.SpatialIndex.FindPath(currentCoord, targetCoord);
+            if (path is null || path.Count < 2) return;
+
+            nextHex = path[1]; // path[0] is current
+        }
+        else
+        {
+            // No target — wander randomly
+            var direction = context.Random.Next(6);
+            nextHex = currentCoord.Neighbor(direction);
+        }
+
+        // Validate the hex is walkable
+        if (context is IWorldStateAccessor wa)
+        {
+            var cell = wa.WorldState.Grid.GetCell(nextHex);
+            if (cell is null || float.IsPositiveInfinity(cell.MovementCost)) return;
+        }
+
+        // Leave current settlement
+        var currentLocation = context.FindRelatedEntity(context.SelfEntityId, "located_at");
+        if (currentLocation is not null)
+        {
+            context.CullRelationship(context.SelfEntityId, "located_at");
+        }
+
+        // Step
+        context.SetCoordinates(context.SelfEntityId, nextHex.Q, nextHex.R);
+
+        // Arrive at new settlement?
+        if (context is IWorldStateAccessor wa2)
+        {
+            foreach (var sid in wa2.WorldState.Graph.GetEntitiesByKind(Kinds.EntityKind.Settlement))
+            {
+                var settlement = wa2.WorldState.Graph.GetEntity(sid);
+                if (settlement?.Coordinates is not null &&
+                    settlement.Coordinates.Value.Q == nextHex.Q &&
+                    settlement.Coordinates.Value.R == nextHex.R)
+                {
+                    context.CreateRelationship("located_at", Graph.RelationshipPolarity.Neutral,
+                        context.SelfEntityId, sid, 1f);
+                    break;
+                }
+            }
+        }
+    }
+
+    public string Describe() => "step_toward_target(A* + wander fallback)";
+}
+
+/// <summary>
+/// Marker interface: the mutation context can provide direct IWorldState access.
+/// Used by StepTowardTargetMutation for A* pathfinding and settlement detection.
+/// </summary>
+public interface IWorldStateAccessor
+{
+    Behaviors.IWorldState WorldState { get; }
+}
+
+/// <summary>
 /// Consume a resource at the current entity's hex coordinates and reduce an attribute by
 /// the amount consumed. Generic: works with any resource type and any attribute.
 /// e.g., consume sustenance at my hex, reduce my hunger by amount consumed.

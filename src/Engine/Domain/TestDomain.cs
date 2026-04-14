@@ -90,6 +90,18 @@ public static class TestDomain
         npcEat.Writes.Add(AttributeRef.Resource("sustenance"));
         processes.Add(npcEat);
 
+        // NPC: move — step one hex toward resolved target, or wander
+        var npcMove = new ProcessDefinition("npc_move", "Move",
+            DefinitionRole.Process, EntityKind.Npc,
+            new AlwaysTrue(),
+            new ConstantScore(0.4f, variance: 0.2f))
+        { IsDirected = true, Mutations = { new StepTowardTargetMutation() } };
+        npcMove.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        npcMove.Reads.Add(AttributeRef.Resource("sustenance"));
+        npcMove.Reads.Add(AttributeRef.Coordinates(EntityKind.Npc));
+        npcMove.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
+        processes.Add(npcMove);
+
         // Artifact: resonance ↔ condition
         var artifactTick = new ProcessDefinition("artifact_tick", "Artifact Tick",
             DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), new ConstantScore(0.5f, variance: 0.1f))

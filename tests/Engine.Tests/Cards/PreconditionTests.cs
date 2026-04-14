@@ -170,6 +170,7 @@ public class PreconditionTests
         public int CurrentTick => CurrentTickValue;
         public EntityId SelfEntityId => new EntityId(0);
         public Random Random { get; } = new Random(42);
+        public (int Q, int R)? ResolvedTarget => null;
         public int CurrentTickValue { get; set; } = 10;
         public float PressureValue { get; set; }
         public float AttributeValue { get; set; }

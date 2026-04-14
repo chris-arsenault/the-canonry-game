@@ -83,11 +83,15 @@ public static class DomainLoader
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(registry);
 
+        // Build NeedResolver for directed processes
+        var needResolver = new Behaviors.NeedResolver(config.Kinds, config.Processes);
+
         foreach (var procDef in config.Processes)
         {
             if (procDef.Role == DefinitionRole.Process)
             {
-                registry.RegisterProcess(procDef.TargetKind, new DataDrivenProcess(procDef));
+                var resolver = procDef.IsDirected ? needResolver : null;
+                registry.RegisterProcess(procDef.TargetKind, new DataDrivenProcess(procDef, resolver));
             }
             else
             {

@@ -50,6 +50,10 @@ public sealed class ProcessDefinition
     /// <summary>Wiring contract: what this process writes to the simulation.</summary>
     public HashSet<AttributeRef> Writes { get; } = [];
 
+    /// <summary>When true, target resolution runs before mutations:
+    /// NeedResolver → GraphAttributeQuery → resolved target on context.</summary>
+    public bool IsDirected { get; set; }
+
     public ProcessDefinition(
         string id,
         string name,

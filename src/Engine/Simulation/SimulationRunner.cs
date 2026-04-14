@@ -302,6 +302,7 @@ internal sealed class CardMutationContext(
     public int CurrentTick => worldState.CurrentTick;
     public EntityId SelfEntityId => new EntityId(-1); // Card context has no "self" -- cards target explicitly
     public Random Random { get; } = random ?? System.Random.Shared;
+    public (int Q, int R)? ResolvedTarget => null; // Cards don't use directed target resolution
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
     public float GetAttribute(EntityId entityId, string attributeName) => attributes.Get(entityId, attributeName);
     public int CountEntitiesByKind(EntityKind kind) => graph.GetEntitiesByKind(kind).Count;
