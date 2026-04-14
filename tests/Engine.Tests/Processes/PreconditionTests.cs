@@ -1,6 +1,6 @@
-namespace Engine.Tests.Cards;
+namespace Engine.Tests.Processes;
 
-using Engine.Cards;
+using Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using ResourceType = Engine.Resources.ResourceType;

@@ -1,5 +1,7 @@
 namespace Engine.Cards;
 
+using Engine.Processes;
+
 /// <summary>
 /// Processes active cards in the tableau each tick. Evaluates preconditions,
 /// fires mutations for cards whose conditions are met. Handles all three card types

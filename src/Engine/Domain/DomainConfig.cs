@@ -14,7 +14,7 @@ public sealed class DomainConfig
     public required IReadOnlyDictionary<EntityKind, KindConfig> Kinds { get; init; }
 
     /// <summary>Data-defined processes and decisions.</summary>
-    public required IReadOnlyList<Cards.ProcessDefinition> Processes { get; init; }
+    public required IReadOnlyList<Processes.ProcessDefinition> Processes { get; init; }
 
     /// <summary>Relationship kind definitions.</summary>
     public required IReadOnlyList<RelationshipConfig> Relationships { get; init; }

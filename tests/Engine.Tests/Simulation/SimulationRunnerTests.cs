@@ -1,6 +1,7 @@
 namespace Engine.Tests.Simulation;
 
 using Engine.Cards;
+using Engine.Processes;
 using Engine.Clock;
 using Engine.Graph;
 using Engine.Kinds;

@@ -1,6 +1,7 @@
 namespace Engine.Tests.Tableau;
 
 using Engine.Cards;
+using Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using ResourceType = Engine.Resources.ResourceType;

@@ -1,5 +1,7 @@
 namespace Engine.Cards;
 
+using Engine.Processes;
+
 /// <summary>
 /// The type of a card, determining which executor processes it.
 /// </summary>

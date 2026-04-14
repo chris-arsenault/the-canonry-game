@@ -1,4 +1,4 @@
-namespace Engine.Cards;
+namespace Engine.Processes;
 
 #pragma warning disable CA1062 // Parameters validated by EntityEvaluator
 

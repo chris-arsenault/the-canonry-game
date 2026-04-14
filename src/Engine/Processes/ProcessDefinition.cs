@@ -1,4 +1,4 @@
-namespace Engine.Cards;
+namespace Engine.Processes;
 
 using Engine.Kinds;
 using Engine.Wiring;
