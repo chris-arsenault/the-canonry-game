@@ -212,6 +212,8 @@ public static class Expr
     public static Multiply Mul(IExpression l, IExpression r) => new(l, r);
     public static Divide Div(IExpression l, IExpression r) => new(l, r);
     public static Abs Abs(IExpression v) => new(v);
+    public static Min Min(IExpression a, IExpression b) => new(a, b);
+    public static Max Max(IExpression a, IExpression b) => new(a, b);
     public static Clamp Clamp(IExpression v, IExpression min, IExpression max) => new(v, min, max);
     public static Jitter Jitter(IExpression v, float variance) => new(v, variance);
     public static Clamp Score(IExpression v, float variance = 0f) =>

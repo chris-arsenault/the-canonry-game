@@ -36,7 +36,7 @@ public static class TestDomain
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
             DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(),
             Expr.Score(Expr.Lit(0.6f), 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("sustenance", 1f, variance: 0.2f) } };
+        { Cooldown = 3, EntityCooldown = 2, Mutations = { new ModifySelfAttributeMutation("sustenance", 1f, variance: 0.2f) } };
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(stockpile);
 
@@ -45,7 +45,7 @@ public static class TestDomain
             DefinitionRole.Process, EntityKind.Settlement,
             new SelfAttributeThreshold("sustenance", min: 5f, max: null),
             Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(100f)), 0.1f))
-        { Mutations = {
+        { Cooldown = 5, EntityCooldown = 2, Mutations = {
             new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
             new ModifySelfAttributeMutation("sustenance", -5f, variance: 0.2f),
         } };
@@ -55,12 +55,11 @@ public static class TestDomain
         processes.Add(grow);
 
         // Settlement: propaganda — shift target ideology toward self, attenuated by distance
-        // Calculate dx and dy convergence, then apply to target ideology
         var propaganda = new ProcessDefinition("settlement_propaganda", "Propaganda",
             DefinitionRole.Process, EntityKind.Settlement,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(0.3f), 0.1f))
-        { Mutations = {
+        { Cooldown = 15, EntityCooldown = 5, Mutations = {
             // dx = (self.ideology.x - target.ideology.x) * 0.01 / distance
             new CalculateMutation("dx", Expr.Div(
                 Expr.Mul(Expr.Sub(Expr.SelfX("ideology"), Expr.TargetX("ideology")), Expr.Lit(0.01f)),
@@ -82,17 +81,22 @@ public static class TestDomain
             DefinitionRole.Process, EntityKind.Settlement,
             new SelfAttributeThreshold("fame", min: 1f, max: null),
             Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
-        { Mutations = {
-            // stolen = (self.fame - target.fame) * ideology_similarity / distance
+        { Cooldown = 20, EntityCooldown = 5, Mutations = {
+            // stolen = clamp((fame_diff * ideology_sim / distance), 0, target.pop - 5)
             // ideology_similarity = 1 - semantic_distance(ideology)
-            new CalculateMutation("stolen", Expr.Mul(
-                Expr.Sub(Expr.Self("fame"), Expr.Target("fame")),
-                Expr.Div(
-                    Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology")),
-                    Expr.Add(Expr.Distance(), Expr.Lit(1f))))),
+            // stolen = clamp((fame_diff * ideology_sim / distance), 0, target.pop - 5)
+            // Never take the last 5 population from target
+            new CalculateMutation("stolen", Expr.Clamp(
+                Expr.Mul(
+                    Expr.Sub(Expr.Self("fame"), Expr.Target("fame")),
+                    Expr.Div(
+                        Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology")),
+                        Expr.Add(Expr.Distance(), Expr.Lit(1f)))),
+                Expr.Lit(0f),
+                Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Target("population"), Expr.Lit(5f))))),
             new CalculateMutation("neg_stolen", Expr.Mul(Expr.Var("stolen"), Expr.Lit(-1f))),
-            new ModifyTargetByVariableMutation("population", "neg_stolen"),
             new ModifySelfByVariableMutation("population", "stolen"),
+            new ModifyTargetByVariableMutation("population", "neg_stolen"),
         } };
         attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
         attract.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
@@ -127,7 +131,7 @@ public static class TestDomain
                 [
                     new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f },
                     new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
-                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f },
+                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f, DefaultVariance = 0.8f },
                     new() { Name = "ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
                         PlaneDefinition = new Engine.Attributes.SemanticPlaneDefinition(
                             "ideology", "Collectivist↔Individualist", "Traditionalist↔Progressive",

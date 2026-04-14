@@ -44,6 +44,14 @@ public sealed class ProcessDefinition
     /// <summary>Human-readable description template. {entity.name} etc replaced at runtime.</summary>
     public string DescriptionTemplate { get; set; } = "{name} performed {process}";
 
+    /// <summary>Minimum ticks between executions of this process per entity.
+    /// 0 = no cooldown. Applied with jitter (±25%).</summary>
+    public int Cooldown { get; set; }
+
+    /// <summary>Minimum ticks between ANY process execution for the entity.
+    /// 0 = no entity cooldown. Shared across all processes.</summary>
+    public int EntityCooldown { get; set; }
+
     /// <summary>Wiring contract: what this process reads from the simulation.</summary>
     public HashSet<AttributeRef> Reads { get; } = [];
 

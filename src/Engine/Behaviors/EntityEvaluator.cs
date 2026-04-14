@@ -117,9 +117,11 @@ public sealed class EntityEvaluator
 
     private void EvaluateProcesses(Entity entity, IWorldState worldState)
     {
+        // Entity-wide cooldown check
+        if (worldState.CurrentTick < entity.EntityCooldownUntil) return;
+
         if (entity.Goals.Count == 0)
         {
-            // No goals — fall back to scoring all processes without target
             EvaluateWithoutGoals(entity, worldState);
             return;
         }
@@ -128,13 +130,18 @@ public sealed class EntityEvaluator
         var goal = SelectGoal(entity);
         if (goal is null) return;
 
-        // 2. Find processes that serve this goal
+        // 2. Find processes that serve this goal, filtered by cooldowns
         var processes = _registry.GetProcesses(entity.Kind);
         var candidates = new List<(IProcess Process, float Score)>();
+        var tick = worldState.CurrentTick;
 
         foreach (var process in processes)
         {
             if (!ServesGoal(process, goal, entity)) continue;
+
+            // Per-process cooldown check
+            if (entity.ProcessCooldowns.TryGetValue(process.Name, out var cooldownUntil)
+                && tick < cooldownUntil) continue;
 
             var score = process.Score(entity, worldState);
             if (score < MinimumViableScore) continue;
@@ -180,7 +187,6 @@ public sealed class EntityEvaluator
     private void ExecuteProcess(Entity entity, IWorldState worldState,
         IProcess process, EntityId? targetId, EntityGoal? goal)
     {
-        // Set target on entity so ProcessMutationContext can read it
         entity.CurrentTargetId = targetId;
 
         var message = process.Execute(entity, worldState);
@@ -188,6 +194,25 @@ public sealed class EntityEvaluator
         entity.RecordAction(worldState.CurrentTick, process.Name);
 
         entity.CurrentTargetId = null;
+
+        // Apply cooldowns with ±25% jitter
+        if (process is DataDrivenProcess ddp)
+        {
+            var tick = worldState.CurrentTick;
+            if (ddp.Definition.Cooldown > 0)
+            {
+                var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
+                var cd = (int)(ddp.Definition.Cooldown * jitter);
+                entity.ProcessCooldowns[process.Name] = tick + Math.Max(1, cd);
+            }
+
+            if (ddp.Definition.EntityCooldown > 0)
+            {
+                var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
+                var cd = (int)(ddp.Definition.EntityCooldown * jitter);
+                entity.EntityCooldownUntil = tick + Math.Max(1, cd);
+            }
+        }
 
         // If a sub-goal's process fired, trigger goal regeneration next tick
         if (goal is not null && goal.IsSubGoal)

@@ -153,7 +153,15 @@ public static class DomainLoader
                     }
                     else
                     {
-                        var scalar = new Attributes.ScalarValue(attr.Name, attr.Min, attr.Max, attr.Default);
+                        var rng = random ?? Random.Shared;
+                        var defaultVal = attr.Default;
+                        if (attr.DefaultVariance > 0f)
+                        {
+                            var jitter = 1f + ((float)(rng.NextDouble() * 2.0 - 1.0) * attr.DefaultVariance);
+                            defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
+                        }
+
+                        var scalar = new Attributes.ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
 
                         // Register drift as a tick effect (scalar only for now)
                         if (attr.DriftRate != 0f)

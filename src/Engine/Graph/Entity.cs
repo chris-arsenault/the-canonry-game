@@ -32,6 +32,12 @@ public sealed class Entity
     /// <summary>Transient: target entity for current process execution. Set by evaluator, cleared after.</summary>
     public EntityId? CurrentTargetId { get; set; }
 
+    /// <summary>Per-process cooldown tracking: processId → tick when cooldown expires.</summary>
+    public Dictionary<string, int> ProcessCooldowns { get; } = [];
+
+    /// <summary>Entity-wide cooldown: tick when entity can act again.</summary>
+    public int EntityCooldownUntil { get; set; }
+
     /// <summary>Name of the last process or action that executed for this entity.</summary>
     public string? LastActionName { get; set; }
 
