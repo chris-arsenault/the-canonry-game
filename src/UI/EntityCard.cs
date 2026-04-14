@@ -285,6 +285,25 @@ public partial class EntityCard : PanelContainer
             sb.AppendLine($"  ← {rel.Kind} ← {sourceName} ({rel.Strength:F2})");
         }
 
+        // Processes
+        sb.AppendLine("[b][u]Processes[/u][/b]");
+        var processes = _sim.ActivityRegistry.GetProcesses(entity.Kind);
+        if (processes.Count == 0)
+        {
+            sb.AppendLine("  [i](none for this kind)[/i]");
+        }
+        else
+        {
+            foreach (var process in processes)
+            {
+                var canExec = process.CanExecute(entity, _sim.WorldState);
+                var score = process.Score(entity, _sim.WorldState);
+                var statusColor = canExec ? "green" : "red";
+                var statusIcon = canExec ? "✓" : "✗";
+                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {process.Name}  score: {score:F3}");
+            }
+        }
+
         _content.Text = sb.ToString();
     }
 

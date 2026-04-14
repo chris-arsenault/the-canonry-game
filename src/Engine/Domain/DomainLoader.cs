@@ -125,7 +125,7 @@ public static class DomainLoader
     /// <summary>Initialize attributes for all entities in the graph from domain config.
     /// Creates ScalarAttributes on entities with drift effects.</summary>
     public static void InitializeEntityAttributes(
-        Graph.WorldGraph graph, DomainConfig config)
+        Graph.WorldGraph graph, DomainConfig config, Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(config);
@@ -144,8 +144,12 @@ public static class DomainLoader
                     Attributes.IEntityProperty instance;
                     if (attr.PlaneDefinition is not null)
                     {
+                        var rng = random ?? Random.Shared;
+                        var range = attr.Max - attr.Min;
+                        var x = attr.Min + ((float)rng.NextDouble() * range);
+                        var y = attr.Min + ((float)rng.NextDouble() * range);
                         instance = new Attributes.SemanticPlane(
-                            attr.Name, attr.PlaneDefinition, attr.Min, attr.Max, attr.DefaultX, attr.DefaultY);
+                            attr.Name, attr.PlaneDefinition, attr.Min, attr.Max, x, y);
                     }
                     else
                     {
