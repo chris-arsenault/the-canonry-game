@@ -140,7 +140,8 @@ public sealed class SimulationRunner
         // Three-layer behavioral model: ALL processes are data-defined in domain config
         var activityRegistry = new ActivityRegistry();
         Domain.DomainLoader.LoadProcesses(domainConfig, activityRegistry);
-        var evaluator = new EntityEvaluator(activityRegistry, messageBus);
+        var needResolver = new Behaviors.NeedResolver(domainConfig.Kinds, domainConfig.Processes);
+        var evaluator = new EntityEvaluator(activityRegistry, messageBus, needResolver: needResolver);
 
         // Relationships
         var relationships = new RelationshipSystem(graph, kindRegistry);

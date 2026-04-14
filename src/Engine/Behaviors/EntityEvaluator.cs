@@ -1,29 +1,38 @@
 namespace Engine.Behaviors;
 
 using Engine.Graph;
+using Engine.Map;
 using Engine.Messages;
 
 /// <summary>
-/// Three-phase entity evaluator. Replaces BehaviorSystem + UtilityEvaluator.
+/// Three-phase entity evaluator.
 /// Per entity per tick:
 ///   1. Physics (automatic, unconditional -- handled externally by lifecycle/relationships/resources)
-///   2. Process selection (utility AI, weighted random from ALL viable, one picked)
+///   2. Process selection (utility AI, process-provider pairs scored with distance)
 ///   3. Decision selection (utility AI, weighted random from card-gated viable, one picked)
+///
+/// Process selection uses the Sims model: each process scores against all reachable
+/// providers on the graph. The winning process-provider pair becomes the entity's
+/// current goal. If the entity is at the target, execute the process. If not, step
+/// one hex toward it. Re-evaluate each tick for preemption.
 /// </summary>
 public sealed class EntityEvaluator
 {
     private readonly ActivityRegistry _registry;
     private readonly MessageBus _messageBus;
     private readonly Random _random;
+    private readonly NeedResolver? _needResolver;
 
     /// <summary>Minimum score for a process/decision to be considered viable.</summary>
     public float MinimumViableScore { get; set; } = 0.01f;
 
-    public EntityEvaluator(ActivityRegistry registry, MessageBus messageBus, Random? random = null)
+    public EntityEvaluator(ActivityRegistry registry, MessageBus messageBus,
+        Random? random = null, NeedResolver? needResolver = null)
     {
         _registry = registry;
         _messageBus = messageBus;
         _random = random ?? Random.Shared;
+        _needResolver = needResolver;
     }
 
     /// <summary>
@@ -40,13 +49,8 @@ public sealed class EntityEvaluator
             return;
         }
 
-        // Phase 2: Process selection (one from all viable)
-        var process = SelectProcess(entity, worldState);
-        if (process is not null)
-        {
-            var message = process.Execute(entity, worldState);
-            _messageBus.Publish(message);
-        }
+        // Phase 2: Process-provider selection
+        EvaluateProcesses(entity, worldState);
 
         // Phase 3: Decision selection (one from card-gated viable)
         var decision = SelectDecision(entity, worldState);
@@ -72,31 +76,167 @@ public sealed class EntityEvaluator
         }
     }
 
-    private IProcess? SelectProcess(Entity entity, IWorldState worldState)
+    private void EvaluateProcesses(Entity entity, IWorldState worldState)
     {
         var processes = _registry.GetProcesses(entity.Kind);
-        if (processes.Count == 0)
-        {
-            return null;
-        }
+        if (processes.Count == 0) return;
 
-        // Score all viable processes
-        var viable = new List<(IProcess Process, float Score)>();
+        // Score all process-provider pairs
+        var candidates = new List<(IProcess Process, EntityId? ProviderId, (int Q, int R)? ProviderCoord, float Score)>();
+
         foreach (var process in processes)
         {
-            if (!process.CanExecute(entity, worldState))
-            {
-                continue;
-            }
+            if (!process.CanExecute(entity, worldState)) continue;
 
-            var score = process.Score(entity, worldState);
-            if (score >= MinimumViableScore)
+            var baseScore = process.Score(entity, worldState);
+            if (baseScore < MinimumViableScore) continue;
+
+            // For entities with coordinates, score against providers (distance-weighted)
+            var providerCandidates = FindProviders(entity, process, worldState);
+
+            if (providerCandidates.Count > 0)
             {
-                viable.Add((process, score));
+                foreach (var (providerId, providerCoord, providerWeight) in providerCandidates)
+                {
+                    var compositeScore = baseScore * providerWeight;
+                    if (compositeScore >= MinimumViableScore)
+                    {
+                        candidates.Add((process, providerId, providerCoord, compositeScore));
+                    }
+                }
+            }
+            else
+            {
+                // No providers found or process doesn't need providers — score locally
+                candidates.Add((process, null, null, baseScore));
             }
         }
 
-        return WeightedRandomSelect(viable);
+        if (candidates.Count == 0) return;
+
+        // Weighted random selection from all process-provider pairs
+        var totalWeight = 0f;
+        foreach (var (_, _, _, score) in candidates)
+        {
+            totalWeight += score;
+        }
+
+        if (totalWeight <= 0f) return;
+
+        var roll = (float)(_random.NextDouble() * totalWeight);
+        var cumulative = 0f;
+        (IProcess Process, EntityId? ProviderId, (int Q, int R)? ProviderCoord, float Score) winner = candidates[^1];
+
+        foreach (var candidate in candidates)
+        {
+            cumulative += candidate.Score;
+            if (roll <= cumulative)
+            {
+                winner = candidate;
+                break;
+            }
+        }
+
+        // Set or update entity goal
+        if (winner.ProviderId is not null && winner.ProviderCoord is not null)
+        {
+            entity.CurrentGoal = new EntityGoal(
+                winner.Process.Name, winner.ProviderId.Value,
+                winner.ProviderCoord.Value, winner.Score);
+        }
+        else
+        {
+            entity.CurrentGoal = null;
+        }
+
+        // Execute or step toward target
+        if (IsAtTarget(entity))
+        {
+            // At target (or no target) — execute the process
+            var message = winner.Process.Execute(entity, worldState);
+            _messageBus.Publish(message);
+            entity.CurrentGoal = null; // Goal satisfied
+        }
+        else if (entity.CurrentGoal is not null && entity.Coordinates is not null)
+        {
+            // Not at target — step one hex toward it
+            StepTowardGoal(entity, worldState);
+        }
+    }
+
+    private List<(EntityId Id, (int Q, int R) Coord, float Weight)> FindProviders(
+        Entity entity, IProcess process, IWorldState worldState)
+    {
+        if (entity.Coordinates is null || _needResolver is null) return [];
+
+        // Use NeedResolver to find what the entity needs, then query for providers
+        var need = _needResolver.Resolve(entity, worldState.Attributes);
+        if (need is null) return [];
+
+        var consumerCoord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+        var results = new List<(EntityId Id, (int Q, int R) Coord, float Weight)>();
+
+        foreach (var providerRef in need.ProviderRefs)
+        {
+            var providers = GraphAttributeQuery.FindProviders(providerRef, entity, worldState, topN: 5);
+            foreach (var (providerId, weight) in providers)
+            {
+                var providerEntity = worldState.Graph.GetEntity(providerId);
+                if (providerEntity?.Coordinates is null) continue;
+                results.Add((providerId, providerEntity.Coordinates.Value, weight));
+            }
+        }
+
+        return results;
+    }
+
+    private static bool IsAtTarget(Entity entity)
+    {
+        if (entity.CurrentGoal is null) return true; // No goal = "at target"
+        if (entity.Coordinates is null) return true;
+
+        return entity.Coordinates.Value.Q == entity.CurrentGoal.TargetCoordinates.Q
+            && entity.Coordinates.Value.R == entity.CurrentGoal.TargetCoordinates.R;
+    }
+
+    private void StepTowardGoal(Entity entity, IWorldState worldState)
+    {
+        var current = new HexCoord(entity.Coordinates!.Value.Q, entity.Coordinates!.Value.R);
+        var target = new HexCoord(entity.CurrentGoal!.TargetCoordinates.Q, entity.CurrentGoal.TargetCoordinates.R);
+
+        var path = worldState.SpatialIndex.FindPath(current, target);
+        if (path is null || path.Count < 2) return;
+
+        var nextHex = path[1];
+        var cell = worldState.Grid.GetCell(nextHex);
+        if (cell is null || float.IsPositiveInfinity(cell.MovementCost)) return;
+
+        // Cull located_at if leaving a settlement
+        foreach (var rel in worldState.Graph.OutgoingRelationships(entity.Id, "located_at"))
+        {
+            worldState.Graph.CullRelationship(rel, worldState.CurrentTick);
+            break; // located_at is exclusive
+        }
+
+        // Move
+        worldState.Graph.SetCoordinates(entity.Id, nextHex.Q, nextHex.R);
+
+        // Create located_at if arriving at an entity's hex
+        foreach (var (_, other) in worldState.Graph.AllEntities)
+        {
+            if (other.Id == entity.Id) continue;
+            if (other.Coordinates is null) continue;
+            if (other.Coordinates.Value.Q != nextHex.Q || other.Coordinates.Value.R != nextHex.R) continue;
+            if (other.Kind == entity.Kind) continue; // Don't locate_at same kind
+
+            worldState.Graph.CreateRelationship(
+                "located_at", RelationshipPolarity.Neutral, entity.Id, other.Id, 1f, worldState.CurrentTick);
+            break;
+        }
+
+        _messageBus.Publish(new ProcessExecutedMessage(
+            worldState.CurrentTick, entity.Id, entity.Kind,
+            "move", $"{entity.Name} moved toward {entity.CurrentGoal.TargetCoordinates}"));
     }
 
     private IDecision? SelectDecision(Entity entity, IWorldState worldState)
@@ -107,7 +247,6 @@ public sealed class EntityEvaluator
             return null;
         }
 
-        // Score all viable decisions (card-gate checked in CanExecute)
         var viable = new List<(IDecision Decision, float Score)>();
         foreach (var decision in decisions)
         {
@@ -123,27 +262,16 @@ public sealed class EntityEvaluator
             }
         }
 
-        return WeightedRandomSelectDecision(viable);
+        return WeightedRandomSelect(viable);
     }
 
     private T? WeightedRandomSelect<T>(List<(T Item, float Score)> viable) where T : class
     {
-        if (viable.Count == 0)
-        {
-            return null;
-        }
+        if (viable.Count == 0) return null;
 
-        // ALL viable candidates compete -- no top-N cap
         var totalWeight = 0f;
-        foreach (var (_, score) in viable)
-        {
-            totalWeight += score;
-        }
-
-        if (totalWeight <= 0f)
-        {
-            return null;
-        }
+        foreach (var (_, score) in viable) totalWeight += score;
+        if (totalWeight <= 0f) return null;
 
         var roll = (float)(_random.NextDouble() * totalWeight);
         var cumulative = 0f;
@@ -151,18 +279,9 @@ public sealed class EntityEvaluator
         foreach (var (item, score) in viable)
         {
             cumulative += score;
-            if (roll <= cumulative)
-            {
-                return item;
-            }
+            if (roll <= cumulative) return item;
         }
 
         return viable[^1].Item;
-    }
-
-    // Separate method to satisfy generic constraints (IProcess vs IDecision)
-    private IDecision? WeightedRandomSelectDecision(List<(IDecision Decision, float Score)> viable)
-    {
-        return WeightedRandomSelect(viable);
     }
 }

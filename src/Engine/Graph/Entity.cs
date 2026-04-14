@@ -20,6 +20,10 @@ public sealed class Entity
     // Coordinates stored as axial hex (q, r). Nullable for non-spatial entities.
     public (int Q, int R)? Coordinates { get; set; }
 
+    /// <summary>Current process-provider goal. Set by the evaluator, persists across ticks
+    /// until reached or preempted. Null when the entity has no active goal.</summary>
+    public EntityGoal? CurrentGoal { get; set; }
+
     public Entity(
         EntityId id,
         EntityKind kind,

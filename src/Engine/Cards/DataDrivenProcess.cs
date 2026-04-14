@@ -13,15 +13,13 @@ using Engine.Messages;
 public sealed class DataDrivenProcess : IProcess
 {
     private readonly ProcessDefinition _definition;
-    private readonly Behaviors.NeedResolver? _needResolver;
 
     public string Name => _definition.Name;
 
-    public DataDrivenProcess(ProcessDefinition definition, Behaviors.NeedResolver? needResolver = null)
+    public DataDrivenProcess(ProcessDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
         _definition = definition;
-        _needResolver = needResolver;
     }
 
     public bool CanExecute(Entity entity, IWorldState worldState)
@@ -40,12 +38,6 @@ public sealed class DataDrivenProcess : IProcess
     {
         var context = new ProcessMutationContext(entity, worldState);
 
-        // Directed processes: resolve target before mutations
-        if (_definition.IsDirected && _needResolver is not null)
-        {
-            ResolveTarget(entity, worldState, context);
-        }
-
         foreach (var mutation in _definition.Mutations)
         {
             mutation.Execute(context);
@@ -57,35 +49,6 @@ public sealed class DataDrivenProcess : IProcess
 
         return new ProcessExecutedMessage(
             worldState.CurrentTick, entity.Id, entity.Kind, _definition.Name, description);
-    }
-
-    private void ResolveTarget(Entity entity, IWorldState worldState, ProcessMutationContext context)
-    {
-        // Step 1: NeedResolver — what does the entity need?
-        var need = _needResolver!.Resolve(entity, worldState.Attributes);
-        if (need is null) return;
-
-        // Step 2-4: GraphAttributeQuery — find providers, weight by value * inverse distance
-        foreach (var providerRef in need.ProviderRefs)
-        {
-            var candidates = Behaviors.GraphAttributeQuery.FindProviders(
-                providerRef, entity, worldState, topN: 5);
-
-            if (candidates.Count == 0) continue;
-
-            // Step 5: Weighted random pick from top 5
-            var targetId = Behaviors.GraphAttributeQuery.WeightedRandomPick(candidates, context.Random);
-            if (targetId is null) continue;
-
-            var target = worldState.Graph.GetEntity(targetId.Value);
-            if (target?.Coordinates is null) continue;
-
-            // Set resolved target on context for mutations to read
-            context.ResolvedTarget = target.Coordinates.Value;
-            return;
-        }
-
-        // No target found — mutations will see ResolvedTarget = null (wander)
     }
 }
 
@@ -148,7 +111,7 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
-    public (int Q, int R)? ResolvedTarget { get; set; }
+    public (int Q, int R)? ResolvedTarget => null;
     public IWorldState WorldState => _worldState;
 
     public ProcessMutationContext(Entity entity, IWorldState worldState, Random? random = null)

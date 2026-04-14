@@ -78,7 +78,10 @@ public static class TestDomain
         npcFeedback.Writes.Add(AttributeRef.Self("hp", EntityKind.Npc));
         processes.Add(npcFeedback);
 
-        // NPC: eat — consume sustenance at current hex, reduce hunger
+        // NPC: eat — consume sustenance at current hex, reduce hunger.
+        // Precondition checks food at current location. If food is elsewhere,
+        // the evaluator will still select eat (scored against distant providers)
+        // and step the NPC toward the provider until it arrives.
         var npcEat = new ProcessDefinition("npc_eat", "Eat",
             DefinitionRole.Process, EntityKind.Npc,
             new ResourceAvailableAtSelf(ResourceType.Sustenance),
@@ -89,16 +92,6 @@ public static class TestDomain
         npcEat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
         npcEat.Writes.Add(AttributeRef.Resource("sustenance"));
         processes.Add(npcEat);
-
-        // NPC: move — step one hex toward resolved target, or wander
-        var npcMove = new ProcessDefinition("npc_move", "Move",
-            DefinitionRole.Process, EntityKind.Npc,
-            new AlwaysTrue(),
-            new ConstantScore(0.4f, variance: 0.2f))
-        { IsDirected = true, Mutations = { new StepTowardTargetMutation() } };
-        npcMove.Reads.Add(AttributeRef.Coordinates(EntityKind.Npc));
-        npcMove.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
-        processes.Add(npcMove);
 
         // Artifact: resonance ↔ condition
         var artifactTick = new ProcessDefinition("artifact_tick", "Artifact Tick",
