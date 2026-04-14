@@ -38,6 +38,30 @@ public sealed class Entity
     /// <summary>Tick when the last process or action executed.</summary>
     public int? LastActionTick { get; set; }
 
+    /// <summary>Recent action history for frequency display. (tick, processName).</summary>
+    public Queue<(int Tick, string Name)> ActionHistory { get; } = new();
+
+    /// <summary>Health value history for graphing. (tick, value).</summary>
+    public Queue<(int Tick, float Value)> HealthHistory { get; } = new();
+
+    private const int MaxHistorySize = 60;
+
+    /// <summary>Record an action in the history.</summary>
+    public void RecordAction(int tick, string name)
+    {
+        LastActionName = name;
+        LastActionTick = tick;
+        ActionHistory.Enqueue((tick, name));
+        while (ActionHistory.Count > MaxHistorySize) ActionHistory.Dequeue();
+    }
+
+    /// <summary>Record a health value snapshot.</summary>
+    public void RecordHealth(int tick, float value)
+    {
+        HealthHistory.Enqueue((tick, value));
+        while (HealthHistory.Count > MaxHistorySize) HealthHistory.Dequeue();
+    }
+
     public Entity(
         EntityId id,
         EntityKind kind,

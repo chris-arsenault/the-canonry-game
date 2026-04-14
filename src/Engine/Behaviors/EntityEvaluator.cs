@@ -69,8 +69,7 @@ public sealed class EntityEvaluator
                 {
                     var message = winner.Value.Decision.Execute(entity, worldState);
                     _messageBus.Publish(message);
-                    entity.LastActionName = winner.Value.Decision.Name;
-                    entity.LastActionTick = worldState.CurrentTick;
+                    entity.RecordAction(worldState.CurrentTick, winner.Value.Decision.Name);
                 }
             }
         }
@@ -186,8 +185,7 @@ public sealed class EntityEvaluator
 
         var message = process.Execute(entity, worldState);
         _messageBus.Publish(message);
-        entity.LastActionName = process.Name;
-        entity.LastActionTick = worldState.CurrentTick;
+        entity.RecordAction(worldState.CurrentTick, process.Name);
 
         entity.CurrentTargetId = null;
 

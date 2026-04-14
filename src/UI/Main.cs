@@ -21,6 +21,7 @@ public partial class Main : Node2D
     private CanvasLayer? _uiLayer;
     private CanvasLayer? _cardLayer;
     private RichTextLabel? _eventLogLabel;
+    private HealthGraphPanel? _healthGraph;
     private Label? _tickLabel;
     private double _tickAccumulator;
     private bool _stepOneTick;
@@ -123,7 +124,7 @@ public partial class Main : Node2D
         // Initial browser population
         _browser.Refresh();
 
-        GD.Print("Controls: Space=pause/resume, Right=step, 1/2/3=speed, R=reset, N=names, WASD=pan, scroll=zoom, click=select");
+        GD.Print("Controls: Space=pause, Right=step, 1/2/3=speed, R=reset, N=names, G=graph, WASD=pan, scroll=zoom");
     }
 
     public override void _Process(double delta)
@@ -164,6 +165,7 @@ public partial class Main : Node2D
             _mapRenderer?.Refresh();
             _browser?.Refresh();
             RefreshOpenCards();
+            _healthGraph?.Refresh();
         }
 
         if (_tickLabel is not null)
@@ -221,6 +223,9 @@ public partial class Main : Node2D
                     }
 
                     break;
+                case Key.G:
+                    ToggleHealthGraph();
+                    break;
             }
         }
 
@@ -242,6 +247,22 @@ public partial class Main : Node2D
                 HandleMapClick(mouse.Position);
             }
         }
+    }
+
+    private void ToggleHealthGraph()
+    {
+        if (_healthGraph is not null)
+        {
+            _healthGraph.QueueFree();
+            _healthGraph = null;
+            return;
+        }
+
+        if (_sim is null || _cardLayer is null) return;
+        _healthGraph = new HealthGraphPanel();
+        _healthGraph.Initialize(_sim);
+        _healthGraph.Position = new Vector2(300, 50);
+        _cardLayer.AddChild(_healthGraph);
     }
 
     private void ResetSimulation()

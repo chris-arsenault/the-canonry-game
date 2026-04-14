@@ -193,11 +193,27 @@ public partial class EntityCard : PanelContainer
 
         sb.AppendLine();
 
-        // Last Action
-        sb.AppendLine("[b][u]Last Action[/u][/b]");
-        if (entity.LastActionName is not null)
+        // Action History (frequency)
+        sb.AppendLine("[b][u]Recent Actions[/u][/b]");
+        if (entity.ActionHistory.Count > 0)
         {
-            sb.AppendLine($"  {entity.LastActionName} [color=gray](tick {entity.LastActionTick})[/color]");
+            var counts = new Dictionary<string, int>();
+            foreach (var (_, name) in entity.ActionHistory)
+            {
+                counts.TryGetValue(name, out var c);
+                counts[name] = c + 1;
+            }
+
+            foreach (var (name, count) in counts.OrderByDescending(kv => kv.Value))
+            {
+                var bar = new string('█', System.Math.Min(count, 20));
+                sb.AppendLine($"  {name}: {count} [color=gray]{bar}[/color]");
+            }
+
+            if (entity.LastActionName is not null)
+            {
+                sb.AppendLine($"  [i]Last: {entity.LastActionName} (tick {entity.LastActionTick})[/i]");
+            }
         }
         else
         {

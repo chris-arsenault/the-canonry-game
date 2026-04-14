@@ -195,6 +195,19 @@ public sealed class SimulationRunner
             tick => resources.Tick(tick));
         clock.Register("processes", TickPhase.LowAltitude, cadence: 1,
             _ => evaluator.EvaluateAll(graph, worldState));
+        clock.Register("health_recording", TickPhase.LowAltitude, cadence: 1,
+            tick =>
+            {
+                foreach (var (_, e) in graph.AllEntities)
+                {
+                    if (e.Status != EntityStatus.Active) continue;
+                    var healthAttr = domainConfig.Kinds.TryGetValue(e.Kind, out var kc) ? kc.HealthAttribute : null;
+                    if (healthAttr is not null)
+                    {
+                        e.RecordHealth(tick, e.Attributes.GetValue(healthAttr));
+                    }
+                }
+            });
 
         // Phase 2: Pressure (every 5 ticks for efficiency)
         clock.Register("pressure", TickPhase.Pressure, cadence: 5,

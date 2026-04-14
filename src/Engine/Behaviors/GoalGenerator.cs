@@ -53,11 +53,28 @@ public sealed class GoalGenerator
     private List<EntityGoal> GeneratePrimaryGoals(
         Entity entity, KindConfig kindConfig, IWorldState worldState)
     {
-        // Find attribute deficits
+        // Find attribute needs
         var deficits = new List<(string Attribute, float Urgency)>();
+
+        // Health attribute always generates a goal — entity always wants more health
+        if (kindConfig.HealthAttribute is not null)
+        {
+            var healthScalar = entity.Attributes.GetScalar(kindConfig.HealthAttribute);
+            if (healthScalar is not null)
+            {
+                var range = healthScalar.Max - healthScalar.Min;
+                // Urgency: lower health = more urgent. At max health, urgency is still > 0.
+                var healthRatio = range > 0 ? (healthScalar.Value - healthScalar.Min) / range : 1f;
+                var urgency = Math.Max(0.1f, 1f - healthRatio); // Always at least 0.1
+                deficits.Add((kindConfig.HealthAttribute, urgency));
+            }
+        }
+
+        // Other attributes: deficit from default
         foreach (var attrConfig in kindConfig.Attributes)
         {
-            if (attrConfig.PlaneDefinition is not null) continue; // Skip semantic planes for now
+            if (attrConfig.Name == kindConfig.HealthAttribute) continue; // Already handled
+            if (attrConfig.PlaneDefinition is not null) continue;
 
             var scalar = entity.Attributes.GetScalar(attrConfig.Name);
             if (scalar is null) continue;
