@@ -63,21 +63,6 @@ public static class TestDomain
         nationFeedback.Writes.Add(AttributeRef.Self("stability", EntityKind.Nation));
         processes.Add(nationFeedback);
 
-        // NPC: hunger increases (feedback: hp → hunger via lifecycle)
-        var npcTick = new ProcessDefinition("npc_tick", "NPC Tick",
-            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.4f, variance: 0.15f))
-        { Mutations = { new ModifySelfAttributeMutation("hunger", 0.2f, variance: 0.4f) } };
-        npcTick.Reads.Add(AttributeRef.Self("hp", EntityKind.Npc));
-        npcTick.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        processes.Add(npcTick);
-
-        var npcFeedback = new ProcessDefinition("npc_feedback", "NPC Feedback",
-            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.3f, variance: 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("hp", -0.1f, variance: 0.3f) } };
-        npcFeedback.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        npcFeedback.Writes.Add(AttributeRef.Self("hp", EntityKind.Npc));
-        processes.Add(npcFeedback);
-
         // NPC: eat — consume sustenance at current hex, reduce hunger.
         // Precondition checks food at current location. If food is elsewhere,
         // the evaluator will still select eat (scored against distant providers)

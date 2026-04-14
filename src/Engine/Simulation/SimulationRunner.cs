@@ -192,6 +192,17 @@ public sealed class SimulationRunner
             tick => lifecycle.Tick(tick));
         clock.Register("resources", TickPhase.LowAltitude, cadence: 1,
             tick => resources.Tick(tick));
+        clock.Register("npc_needs", TickPhase.LowAltitude, cadence: 1,
+            _ =>
+            {
+                // Physics: hunger increases every tick for all active NPCs
+                foreach (var npcId in graph.GetEntitiesByKind(EntityKind.Npc))
+                {
+                    var npc = graph.GetEntity(npcId);
+                    if (npc is null || npc.Status != EntityStatus.Active) continue;
+                    attributes.Modify(npcId, "hunger", 0.2f);
+                }
+            });
 
         // Phase 2: Pressure (every 5 ticks for efficiency)
         clock.Register("pressure", TickPhase.Pressure, cadence: 5,
