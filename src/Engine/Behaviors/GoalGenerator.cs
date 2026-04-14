@@ -151,25 +151,27 @@ public sealed class GoalGenerator
             if (procDef.Precondition.Evaluate(context)) continue; // Passes — no sub-goal needed
 
             // Precondition fails — what's blocking?
-            var blockingAttr = procDef.Precondition.GetBlockingAttribute();
-            if (blockingAttr is null) continue;
+            var blockingAttrs = procDef.Precondition.GetBlockingAttributes();
 
-            // Check we don't already have a sub-goal for this
-            var alreadyExists = false;
-            foreach (var existing in subGoals)
+            foreach (var blockingAttr in blockingAttrs)
             {
-                if (existing.BlockingAttribute == blockingAttr)
+                // Check we don't already have a sub-goal for this
+                var alreadyExists = false;
+                foreach (var existing in subGoals)
                 {
-                    alreadyExists = true;
-                    break;
+                    if (existing.BlockingAttribute == blockingAttr)
+                    {
+                        alreadyExists = true;
+                        break;
+                    }
                 }
-            }
 
-            if (!alreadyExists)
-            {
-                subGoals.Add(new EntityGoal(
-                    parentGoal.Attribute, parentGoal.Provider, parentGoal.Urgency,
-                    parentGoalId: parentGoal.Id, blockingAttribute: blockingAttr));
+                if (!alreadyExists)
+                {
+                    subGoals.Add(new EntityGoal(
+                        parentGoal.Attribute, parentGoal.Provider, parentGoal.Urgency,
+                        parentGoalId: parentGoal.Id, blockingAttribute: blockingAttr));
+                }
             }
         }
 

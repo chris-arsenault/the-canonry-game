@@ -12,10 +12,10 @@ public interface IPrecondition
     /// <summary>Evaluate this precondition against the current world state.</summary>
     bool Evaluate(IMutationContext context);
 
-    /// <summary>When the precondition fails, which attribute is blocking?
-    /// Returns null if passing or not introspectable. Used by goal system
+    /// <summary>When the precondition fails, which attributes are blocking?
+    /// Returns empty if passing or not introspectable. Used by goal system
     /// to generate sub-goals for unmet prerequisites.</summary>
-    string? GetBlockingAttribute() => null;
+    IReadOnlyList<string> GetBlockingAttributes() => [];
 
     /// <summary>Human-readable description for UI display.</summary>
     string Describe();
@@ -31,8 +31,8 @@ public sealed class AndPrecondition(IReadOnlyList<IPrecondition> children) : IPr
     public bool Evaluate(IMutationContext context) =>
         Children.All(c => c.Evaluate(context));
 
-    public string? GetBlockingAttribute() =>
-        Children.Select(c => c.GetBlockingAttribute()).FirstOrDefault(a => a is not null);
+    public IReadOnlyList<string> GetBlockingAttributes() =>
+        Children.SelectMany(c => c.GetBlockingAttributes()).Distinct().ToList();
 
     public string Describe() =>
         $"ALL({string.Join(", ", Children.Select(c => c.Describe()))})";
@@ -145,7 +145,7 @@ public sealed class SelfAttributeThreshold(string attributeName, float? min, flo
         return true;
     }
 
-    public string? GetBlockingAttribute() => attributeName;
+    public IReadOnlyList<string> GetBlockingAttributes() => [attributeName];
 
     public string Describe() =>
         $"self_attribute({attributeName}, {(min.HasValue ? $"min={min}" : "")}{(max.HasValue ? $"max={max}" : "")})";
@@ -166,10 +166,33 @@ public sealed class TargetAttributeThreshold(string attributeName, float? min, f
         return true;
     }
 
-    public string? GetBlockingAttribute() => attributeName;
+    public IReadOnlyList<string> GetBlockingAttributes() => [attributeName];
 
     public string Describe() =>
         $"target_attribute({attributeName}, {(min.HasValue ? $"min={min}" : "")}{(max.HasValue ? $"max={max}" : "")})";
+}
+
+/// <summary>Checks that the semantic distance between self and target on a plane is below a threshold.</summary>
+public sealed class SemanticDistanceThreshold(string attributeName, float maxDistance) : IPrecondition
+{
+    public bool Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.ResolvedTargetId is null) return false;
+        var selfEntity = context.GetEntity(context.SelfEntityId);
+        var targetEntity = context.GetEntity(context.ResolvedTargetId.Value);
+        if (selfEntity is null || targetEntity is null) return false;
+
+        var selfPlane = selfEntity.Attributes.GetPlane(attributeName);
+        var targetPlane = targetEntity.Attributes.GetPlane(attributeName);
+        if (selfPlane is null || targetPlane is null) return false;
+
+        return selfPlane.DistanceTo(targetPlane) <= maxDistance;
+    }
+
+    public IReadOnlyList<string> GetBlockingAttributes() => [attributeName];
+
+    public string Describe() => $"semantic_distance({attributeName}, max={maxDistance})";
 }
 
 /// <summary>Always true. Used for system cards that run unconditionally.</summary>
