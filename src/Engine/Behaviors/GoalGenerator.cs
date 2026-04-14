@@ -97,16 +97,16 @@ public sealed class GoalGenerator
 
                 if (!writesToAttr) continue;
 
-                // Find and score providers from process wiring contracts
+                // Find and score providers — all entities of the process's target kind
                 var scoredProviders = FindAndScoreProviders(procDef, entity, worldState);
 
-                foreach (var (providerId, providerWeight, scope) in scoredProviders)
+                foreach (var (providerId, providerWeight) in scoredProviders)
                 {
                     if (goals.Count >= MaxGoals) break;
                     var key = (attribute, providerId);
                     if (usedProviders.Contains(key)) continue;
                     usedProviders.Add(key);
-                    goals.Add(new EntityGoal(attribute, providerId, scope, urgency * providerWeight));
+                    goals.Add(new EntityGoal(attribute, providerId, urgency * providerWeight));
                 }
             }
         }
@@ -114,41 +114,25 @@ public sealed class GoalGenerator
         return goals;
     }
 
-    private static List<(EntityId Id, float Weight, RefScope Scope)> FindAndScoreProviders(
+    private static List<(EntityId Id, float Weight)> FindAndScoreProviders(
         ProcessDefinition procDef, Entity consumer, IWorldState worldState)
     {
-        // Collect target refs to know what to search for
+        // Find all entities of the process's target kind that have the written attribute
         AttributeRef? searchRef = null;
-        foreach (var r in procDef.Reads)
+        foreach (var w in procDef.Writes)
         {
-            if (r.Scope == RefScope.Target && r.Kind.HasValue) { searchRef = r; break; }
+            if (w.Kind.HasValue) { searchRef = w; break; }
         }
 
-        if (searchRef is null)
-        {
-            foreach (var w in procDef.Writes)
-            {
-                if (w.Scope == RefScope.Target && w.Kind.HasValue) { searchRef = w; break; }
-            }
-        }
+        if (searchRef is null) return [];
 
-        if (searchRef is null)
-        {
-            return [(consumer.Id, 1f, RefScope.Self)];
-        }
-
-        // Find candidates (unscored)
-        var candidates = GraphAttributeQuery.FindCandidates(
-            AttributeRef.Self(searchRef.Name, searchRef.Kind!.Value), worldState);
-
+        var candidates = GraphAttributeQuery.FindCandidates(searchRef, worldState);
         if (candidates.Count == 0) return [];
 
-        // Score candidates using the process's ProviderScoreExpression
-        var scored = new List<(EntityId Id, float Weight, RefScope Scope)>();
+        // Score each candidate using the process's ProviderScoreExpression
+        var scored = new List<(EntityId Id, float Weight)>();
         foreach (var candidateId in candidates)
         {
-            if (candidateId == consumer.Id) continue;
-
             var candidateEntity = worldState.Graph.GetEntity(candidateId);
             if (candidateEntity is null) continue;
 
@@ -160,31 +144,30 @@ public sealed class GoalGenerator
             }
             else
             {
-                weight = 1f; // No expression — all providers equal
+                weight = 1f;
             }
 
             if (weight > 0f)
             {
-                scored.Add((candidateId, weight, RefScope.Target));
+                scored.Add((candidateId, weight));
             }
         }
 
         if (scored.Count == 0) return [];
 
-        // Normalize weights relative to best
+        // Normalize and take top 3
         var maxWeight = 0f;
-        foreach (var (_, w, _) in scored)
+        foreach (var (_, w) in scored)
         {
             if (w > maxWeight) maxWeight = w;
         }
 
-        var result = new List<(EntityId, float, RefScope)>();
-        foreach (var (id, w, scope) in scored)
+        var result = new List<(EntityId, float)>();
+        foreach (var (id, w) in scored)
         {
-            result.Add((id, maxWeight > 0f ? w / maxWeight : 1f, scope));
+            result.Add((id, maxWeight > 0f ? w / maxWeight : 1f));
         }
 
-        // Sort by weight, take top 3
         result.Sort((a, b) => b.Item2.CompareTo(a.Item2));
         if (result.Count > 3) result.RemoveRange(3, result.Count - 3);
 
@@ -223,7 +206,7 @@ public sealed class GoalGenerator
                 if (!alreadyExists)
                 {
                     subGoals.Add(new EntityGoal(
-                        parentGoal.Attribute, parentGoal.Provider, parentGoal.Scope, parentGoal.Urgency,
+                        parentGoal.Attribute, parentGoal.Provider, parentGoal.Urgency,
                         parentGoalId: parentGoal.Id, blockingAttribute: blockingAttr));
                 }
             }

@@ -74,8 +74,8 @@ public static class TestDomain
             new ModifyTargetByVariableMutation("ideology", "dy", "y"),
         } };
         propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
-        propaganda.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
-        propaganda.Writes.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
+        propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        propaganda.Writes.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
         processes.Add(propaganda);
 
         // Settlement: attract population — steal from target, requires fame advantage
@@ -107,11 +107,11 @@ public static class TestDomain
             new ModifyTargetByVariableMutation("population", "neg_stolen"),
         } };
         attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Target("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Target("population", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
         attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        attract.Writes.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
         processes.Add(attract);
 
         // TODO: NPC, Nation, Artifact, Region processes removed — rebuilding from ground up

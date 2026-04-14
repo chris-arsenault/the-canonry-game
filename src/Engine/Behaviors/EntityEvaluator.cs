@@ -158,7 +158,7 @@ public sealed class EntityEvaluator
             var winner = WeightedRandomSelect(candidates);
             if (winner is null) continue;
 
-            var targetId = goal.Scope == Wiring.RefScope.Target ? goal.Provider : (EntityId?)null;
+            var targetId = (EntityId?)goal.Provider;
             ExecuteProcess(entity, worldState, winner.Value.Process, targetId, goal);
             return;
         }
@@ -255,13 +255,9 @@ public sealed class EntityEvaluator
         if (process is not DataDrivenProcess ddp) return false;
 
         var targetAttr = goal.TargetAttribute;
-
         foreach (var write in ddp.Definition.Writes)
         {
-            if (write.Name != targetAttr) continue;
-
-            // Process write scope must match goal scope
-            if (write.Scope == goal.Scope) return true;
+            if (write.Name == targetAttr) return true;
         }
 
         return false;
