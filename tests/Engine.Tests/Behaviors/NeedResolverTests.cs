@@ -52,13 +52,12 @@ public class NeedResolverTests
         var resolver = new NeedResolver(kinds, processes);
 
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
         InitAttr(npc, "hp", 0f, 100f, 100f);
         InitAttr(npc, "hunger", 0f, 100f, 80f); // Very hungry
         InitAttr(npc, "ambition", 0f, 100f, 50f);
 
-        var result = resolver.Resolve(npc, attributes);
+        var result = resolver.Resolve(npc);
 
         Assert.NotNull(result);
         Assert.Equal("hunger", result.DominantAttribute);
@@ -74,13 +73,12 @@ public class NeedResolverTests
         var resolver = new NeedResolver(kinds, processes);
 
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
         InitAttr(npc, "hp", 0f, 100f, 100f);
         InitAttr(npc, "hunger", 0f, 100f, 0f); // Not hungry at all
         InitAttr(npc, "ambition", 0f, 100f, 50f); // At ideal
 
-        var result = resolver.Resolve(npc, attributes);
+        var result = resolver.Resolve(npc);
 
         Assert.Null(result); // All attributes near ideal
     }
@@ -99,13 +97,12 @@ public class NeedResolverTests
         var resolver = new NeedResolver(kinds, processes);
 
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
         InitAttr(npc, "hp", 0f, 100f, 10f); // Very low HP
         InitAttr(npc, "hunger", 0f, 100f, 20f); // Slightly hungry
         InitAttr(npc, "ambition", 0f, 100f, 50f);
 
-        var result = resolver.Resolve(npc, attributes);
+        var result = resolver.Resolve(npc);
 
         Assert.NotNull(result);
         Assert.Equal("hp", result.DominantAttribute);
@@ -120,9 +117,8 @@ public class NeedResolverTests
             new List<ProcessDefinition>());
 
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
 
-        Assert.Null(resolver.Resolve(npc, attributes));
+        Assert.Null(resolver.Resolve(npc));
     }
 }

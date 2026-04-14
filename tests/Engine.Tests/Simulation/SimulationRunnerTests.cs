@@ -53,7 +53,8 @@ public class SimulationRunnerTests
 
         // Get an NPC and record initial HP
         var npcId = sim.Graph.GetEntitiesByKind(EntityKind.Npc).First();
-        var initialHp = sim.Attributes.Get(npcId, "hp");
+        var npc = sim.Graph.GetEntity(npcId)!;
+        var initialHp = npc.Attributes.GetValue("hp");
 
         // Run 50 ticks
         for (var i = 0; i < 50; i++)
@@ -61,7 +62,7 @@ public class SimulationRunnerTests
             sim.Tick();
         }
 
-        var finalHp = sim.Attributes.Get(npcId, "hp");
+        var finalHp = npc.Attributes.GetValue("hp");
 
         // HP should have changed (lifecycle drain + hunger effects)
         Assert.NotEqual(initialHp, finalHp);
@@ -157,7 +158,8 @@ public class SimulationRunnerTests
         {
             foreach (var entityId in sim.Graph.GetEntitiesByKind(kind))
             {
-                var attrNames = sim.Attributes.GetAttributeNames(entityId).ToList();
+                var entity = sim.Graph.GetEntity(entityId)!;
+                var attrNames = entity.Attributes.Names.ToList();
                 Assert.True(attrNames.Count > 0,
                     $"Entity {entityId} of kind {kind} has no attributes");
             }

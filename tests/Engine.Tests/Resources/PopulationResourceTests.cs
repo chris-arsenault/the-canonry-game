@@ -1,6 +1,5 @@
 namespace Engine.Tests.Resources;
 
-using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -14,7 +13,7 @@ public class PopulationResourceTests
         // Low population + high fertility = sustenance surplus = population growth
         // Production = 0.9 * (50/100) * 1 = 0.45, Consumption = 50 * 0.01 = 0.5
         // Still deficit at these rates. Increase production factor.
-        var (system, _, _) = CreateSystem(fertility: 0.9f, population: 50);
+        var (system, _) = CreateSystem(fertility: 0.9f, population: 50);
         system.SustenanceProductionFactor = 3f; // Boost production to ensure surplus
 
         system.Tick(1);
@@ -28,7 +27,7 @@ public class PopulationResourceTests
     public void Population_DeclinesFromSustenanceDeficit()
     {
         // Very low fertility, very high population = deficit
-        var (system, _, _) = CreateSystem(fertility: 0.05f, population: 5000);
+        var (system, _) = CreateSystem(fertility: 0.05f, population: 5000);
 
         system.Tick(1);
 
@@ -40,7 +39,7 @@ public class PopulationResourceTests
     [Fact]
     public void ConsumePopulation_ReducesPopulation()
     {
-        var (system, _, _) = CreateSystem(fertility: 0.5f, population: 500);
+        var (system, _) = CreateSystem(fertility: 0.5f, population: 500);
         system.Tick(1); // Initialize population stockpile
 
         var coord = new HexCoord(0, 0);
@@ -55,7 +54,7 @@ public class PopulationResourceTests
     [Fact]
     public void ConsumePopulation_ClampsToAvailable()
     {
-        var (system, _, _) = CreateSystem(fertility: 0.5f, population: 100);
+        var (system, _) = CreateSystem(fertility: 0.5f, population: 100);
         system.Tick(1);
 
         var coord = new HexCoord(0, 0);
@@ -70,7 +69,7 @@ public class PopulationResourceTests
     [Fact]
     public void HasMinimumPopulation_ChecksThreshold()
     {
-        var (system, _, _) = CreateSystem(fertility: 0.5f, population: 200);
+        var (system, _) = CreateSystem(fertility: 0.5f, population: 200);
         system.Tick(1);
 
         var coord = new HexCoord(0, 0);
@@ -82,7 +81,6 @@ public class PopulationResourceTests
     public void Population_FlowsWithinNation()
     {
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var grid = new HexGrid(3);
 
         var nation = graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
@@ -91,8 +89,6 @@ public class PopulationResourceTests
         var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
         rich.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 1000));
         rich.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
-        attributes.Initialize(rich.Id, "population", 0, 10000, 1000);
-        attributes.Initialize(rich.Id, "development", 0, 100, 10);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
@@ -100,12 +96,10 @@ public class PopulationResourceTests
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
         poor.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 50));
         poor.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
-        attributes.Initialize(poor.Id, "population", 0, 10000, 50);
-        attributes.Initialize(poor.Id, "development", 0, 100, 5);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
 
-        var system = new ResourceSystem(graph, attributes, grid);
+        var system = new ResourceSystem(graph, grid);
 
         // Run multiple ticks to see population flow
         for (var i = 0; i < 5; i++)
@@ -126,7 +120,6 @@ public class PopulationResourceTests
     public void Population_DoesNotFlowBetweenNations()
     {
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var grid = new HexGrid(3);
 
         var nationA = graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", 0);
@@ -135,20 +128,16 @@ public class PopulationResourceTests
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "SA", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 1000));
         sA.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
-        attributes.Initialize(sA.Id, "population", 0, 10000, 1000);
-        attributes.Initialize(sA.Id, "development", 0, 100, 10);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "SB", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 10));
         sB.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
-        attributes.Initialize(sB.Id, "population", 0, 10000, 10);
-        attributes.Initialize(sB.Id, "development", 0, 100, 5);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
 
-        var system = new ResourceSystem(graph, attributes, grid);
+        var system = new ResourceSystem(graph, grid);
         system.Tick(1);
 
         // Nation B's settlement should not receive population from Nation A
@@ -158,22 +147,19 @@ public class PopulationResourceTests
 
     // --- Helper ---
 
-    private static (ResourceSystem System, WorldGraph Graph, AttributeStore Attrs) CreateSystem(
+    private static (ResourceSystem System, WorldGraph Graph) CreateSystem(
         float fertility = 0.5f, float population = 100f)
     {
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var grid = new HexGrid(3);
 
         var nation = graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
         settlement.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 100000, population));
         settlement.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
-        attributes.Initialize(settlement.Id, "population", 0, 100000, population);
-        attributes.Initialize(settlement.Id, "development", 0, 100, 10);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: fertility);
 
-        return (new ResourceSystem(graph, attributes, grid), graph, attributes);
+        return (new ResourceSystem(graph, grid), graph);
     }
 }

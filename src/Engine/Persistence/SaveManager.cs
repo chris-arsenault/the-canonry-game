@@ -2,7 +2,6 @@ namespace Engine.Persistence;
 
 using MessagePack;
 
-using Engine.Attributes;
 using Engine.Graph;
 
 /// <summary>
@@ -14,11 +13,10 @@ public static class SaveManager
     /// <summary>
     /// Capture the current simulation state into a serializable snapshot.
     /// </summary>
-    public static SaveState Capture(WorldGraph graph, AttributeStore attributes, int currentTick,
+    public static SaveState Capture(WorldGraph graph, int currentTick,
         float currentMana = 0f, float manaCap = 10f)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        ArgumentNullException.ThrowIfNull(attributes);
 
         var state = new SaveState
         {
@@ -63,16 +61,16 @@ public static class SaveManager
             }
         }
 
-        // Attributes
-        foreach (var (id, _) in graph.AllEntities)
+        // Attributes (from entity-owned AttributeSet)
+        foreach (var (id, entity) in graph.AllEntities)
         {
-            foreach (var attrName in attributes.GetAttributeNames(id))
+            foreach (var attrName in entity.Attributes.Names)
             {
                 state.Attributes.Add(new AttributeData
                 {
                     EntityId = id.Value,
                     Name = attrName,
-                    Value = attributes.Get(id, attrName),
+                    Value = entity.Attributes.GetValue(attrName),
                 });
             }
         }

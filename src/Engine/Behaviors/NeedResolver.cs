@@ -1,6 +1,5 @@
 namespace Engine.Behaviors;
 
-using Engine.Attributes;
 using Engine.Cards;
 using Engine.Graph;
 using Engine.Kinds;
@@ -31,10 +30,9 @@ public sealed class NeedResolver
     /// Resolve what the entity needs and what to search for on the graph.
     /// Returns null if the entity has no urgent needs or no provider can be derived.
     /// </summary>
-    public NeedResult? Resolve(Entity entity, AttributeStore attributes)
+    public NeedResult? Resolve(Entity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
-        ArgumentNullException.ThrowIfNull(attributes);
 
         if (!_kindConfigs.TryGetValue(entity.Kind, out var kindConfig))
         {

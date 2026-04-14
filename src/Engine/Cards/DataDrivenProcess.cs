@@ -172,8 +172,6 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
     {
         var entity = _worldState.Graph.GetEntity(entityId);
         entity?.Attributes.Modify(attributeName, delta);
-        // Legacy sync — remove when AttributeStore is fully retired
-        _worldState.Attributes.Modify(entityId, attributeName, delta);
     }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { } // TODO: wire pressure

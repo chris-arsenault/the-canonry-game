@@ -24,7 +24,6 @@ public sealed class SimulationRunner
 {
     // Core data
     public WorldGraph Graph { get; }
-    public AttributeStore Attributes { get; }
     public EffectSystem Effects { get; }
 
     // Map
@@ -62,7 +61,7 @@ public sealed class SimulationRunner
     public ActivityRegistry ActivityRegistry { get; }
 
     private SimulationRunner(
-        WorldGraph graph, AttributeStore attributes, EffectSystem effects,
+        WorldGraph graph, EffectSystem effects,
         HexGrid grid, RegionMap regionMap, SpatialIndex spatialIndex,
         TickClock clock, EntityEvaluator evaluator, RelationshipSystem relationships,
         LifecycleSystem lifecycle, ResourceSystem resources, PressureSystem pressure,
@@ -71,7 +70,6 @@ public sealed class SimulationRunner
         MessageBus messageBus)
     {
         Graph = graph;
-        Attributes = attributes;
         Effects = effects;
         Grid = grid;
         RegionMap = regionMap;
@@ -116,14 +114,13 @@ public sealed class SimulationRunner
         var regionMap = testWorld.RegionMap;
 
         // Core systems
-        var attributes = new AttributeStore();
         var effects = new EffectSystem();
         var spatialIndex = new SpatialIndex(grid, regionMap, graph);
         spatialIndex.RebuildFromGraph();
 
         // Load domain into engine systems
         var kindRegistry = Domain.DomainLoader.LoadKindRegistry(domainConfig);
-        Domain.DomainLoader.InitializeEntityAttributes(graph, attributes, domainConfig);
+        Domain.DomainLoader.InitializeEntityAttributes(graph, domainConfig);
 
         // Message bus
         var messageBus = new MessageBus();
@@ -151,10 +148,10 @@ public sealed class SimulationRunner
 
         // Lifecycle from domain config
         var lifecycleConfig = Domain.DomainLoader.LoadLifecycleConfig(domainConfig);
-        var lifecycle = new LifecycleSystem(graph, attributes, lifecycleConfig);
+        var lifecycle = new LifecycleSystem(graph, lifecycleConfig);
 
         // Resources
-        var resources = new ResourceSystem(graph, attributes, grid);
+        var resources = new ResourceSystem(graph, grid);
 
         // Pressure from domain config
         var pressure = new PressureSystem();
@@ -171,7 +168,7 @@ public sealed class SimulationRunner
         var detectors = DetectorRegistry.CreateDefault(eventLog);
 
         // World state
-        var worldState = new WorldState(graph, attributes, effects, grid, regionMap, spatialIndex, resources);
+        var worldState = new WorldState(graph, effects, grid, regionMap, spatialIndex, resources);
 
         // Wire to tick clock
         var clock = new TickClock();
@@ -201,7 +198,7 @@ public sealed class SimulationRunner
         clock.Register("pressure", TickPhase.Pressure, cadence: 5,
             _ =>
             {
-                var contexts = BuildPressureContexts(graph, attributes, regionMap);
+                var contexts = BuildPressureContexts(graph, regionMap);
                 pressure.Compute(contexts);
             });
 
@@ -209,7 +206,7 @@ public sealed class SimulationRunner
         clock.Register("tableau", TickPhase.CardExecution, cadence: 1,
             tick =>
             {
-                var cardContext = new CardMutationContext(graph, attributes, pressure, worldState);
+                var cardContext = new CardMutationContext(graph, pressure, worldState);
                 tableau.Tick(tick, cardContext);
             });
 
@@ -217,12 +214,12 @@ public sealed class SimulationRunner
         clock.Register("degeneracy", TickPhase.EventNotification, cadence: 10,
             tick =>
             {
-                var degCtx = BuildDegeneracyContext(graph, attributes);
+                var degCtx = BuildDegeneracyContext(graph);
                 detectors.Evaluate(degCtx, tick);
             });
 
         return new SimulationRunner(
-            graph, attributes, effects, grid, regionMap, spatialIndex,
+            graph, effects, grid, regionMap, spatialIndex,
             clock, evaluator, relationships, lifecycle, resources, pressure,
             tableau, eventLog, detectors, worldState, kindRegistry, activityRegistry,
             messageBus);
@@ -235,7 +232,7 @@ public sealed class SimulationRunner
     public bool Tick() => Clock.Tick();
 
     private static Dictionary<EntityId, IPressureContext> BuildPressureContexts(
-        WorldGraph graph, AttributeStore attributes, RegionMap regionMap)
+        WorldGraph graph, RegionMap regionMap)
     {
         var contexts = new Dictionary<EntityId, IPressureContext>();
         foreach (var region in regionMap.AllRegions)
@@ -250,15 +247,15 @@ public sealed class SimulationRunner
                 }
             }
 
-            contexts[region.EntityId] = new SimplePressureContext(graph, attributes, entitiesInRegion);
+            contexts[region.EntityId] = new SimplePressureContext(graph, entitiesInRegion);
         }
 
         return contexts;
     }
 
-    private static DegeneracyContextAdapter BuildDegeneracyContext(WorldGraph graph, AttributeStore attributes)
+    private static DegeneracyContextAdapter BuildDegeneracyContext(WorldGraph graph)
     {
-        return new DegeneracyContextAdapter(graph, attributes);
+        return new DegeneracyContextAdapter(graph);
     }
 }
 
@@ -275,7 +272,7 @@ internal sealed class RelationshipContextAdapter(WorldGraph graph)
 }
 
 internal sealed class SimplePressureContext(
-    WorldGraph graph, AttributeStore attributes, IReadOnlyCollection<EntityId> entitiesInScope)
+    WorldGraph graph, IReadOnlyCollection<EntityId> entitiesInScope)
     : IPressureContext
 {
     public IReadOnlyCollection<EntityId> EntitiesInScope => entitiesInScope;
@@ -297,11 +294,11 @@ internal sealed class SimplePressureContext(
     }
 
     public float GetAttribute(EntityId entityId, string attributeName) =>
-        attributes.Get(entityId, attributeName);
+        graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
 }
 
 internal sealed class CardMutationContext(
-    WorldGraph graph, AttributeStore attributes, PressureSystem pressure, WorldState worldState,
+    WorldGraph graph, PressureSystem pressure, WorldState worldState,
     Random? random = null)
     : IMutationContext
 {
@@ -348,7 +345,6 @@ internal sealed class CardMutationContext(
     public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
     {
         graph.GetEntity(entityId)?.Attributes.Modify(attributeName, delta);
-        attributes.Modify(entityId, attributeName, delta); // Legacy sync
     }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
@@ -393,7 +389,7 @@ internal sealed class CardMutationContext(
     }
 }
 
-internal sealed class DegeneracyContextAdapter(WorldGraph graph, AttributeStore attributes)
+internal sealed class DegeneracyContextAdapter(WorldGraph graph)
     : IDegeneracyContext
 {
     public int ActiveSettlementCount =>
@@ -402,7 +398,7 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph, AttributeStore 
 
     public int DecliningSettlementCount =>
         graph.GetEntitiesByKind(EntityKind.Settlement).Count(id =>
-            attributes.GetTrend(id, "population") < 0);
+            graph.GetEntity(id)?.Attributes["population"]?.Trend < 0);
 
     public int ActiveNationCount =>
         graph.GetEntitiesByKind(EntityKind.Nation).Count(id =>

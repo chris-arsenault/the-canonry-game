@@ -114,12 +114,12 @@ public partial class EntityDetailPanel : PanelContainer
 
         // Attributes
         sb.AppendLine("[b][u]Attributes[/u][/b]");
-        var attrNames = _sim.Attributes.GetAttributeNames(_selectedEntityId.Value).OrderBy(n => n, System.StringComparer.Ordinal);
+        var attrNames = entity.Attributes.Names.OrderBy(n => n, System.StringComparer.Ordinal);
         foreach (var attrName in attrNames)
         {
-            var baseValue = _sim.Attributes.Get(_selectedEntityId.Value, attrName);
+            var baseValue = entity.Attributes.GetValue(attrName);
             var effectMod = _sim.Effects.ComputeEffectModifier(_selectedEntityId.Value, attrName);
-            var trend = _sim.Attributes.GetTrend(_selectedEntityId.Value, attrName);
+            var trend = entity.Attributes[attrName]?.Trend ?? 0f;
             var trendArrow = trend > 0.01f ? "[color=green]▲[/color]" : trend < -0.01f ? "[color=red]▼[/color]" : "—";
 
             if (System.Math.Abs(effectMod) > 0.01f)

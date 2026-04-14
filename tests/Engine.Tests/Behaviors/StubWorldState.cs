@@ -11,7 +11,6 @@ using Engine.Map;
 internal sealed class StubWorldState : IWorldState
 {
     public WorldGraph Graph { get; } = new();
-    public AttributeStore Attributes { get; } = new();
     public EffectSystem Effects { get; } = new();
     public HexGrid Grid { get; }
     public RegionMap RegionMap { get; } = new();
@@ -25,7 +24,7 @@ internal sealed class StubWorldState : IWorldState
         SpatialIndex = new SpatialIndex(Grid, RegionMap, Graph);
         if (withResources)
         {
-            Resources = new Engine.Resources.ResourceSystem(Graph, Attributes, Grid);
+            Resources = new Engine.Resources.ResourceSystem(Graph, Grid);
         }
     }
 }

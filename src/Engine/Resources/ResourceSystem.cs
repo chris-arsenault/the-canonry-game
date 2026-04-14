@@ -1,6 +1,5 @@
 namespace Engine.Resources;
 
-using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -14,7 +13,6 @@ using Engine.Map;
 public sealed class ResourceSystem
 {
     private readonly WorldGraph _graph;
-    private readonly AttributeStore _attributes;
     private readonly HexGrid _grid;
 
     public ResourceLayer Sustenance { get; }
@@ -42,10 +40,9 @@ public sealed class ResourceSystem
     /// <summary>Fraction of surplus redistributed per tick during intra-national flow.</summary>
     public float FlowRate { get; set; } = 0.3f;
 
-    public ResourceSystem(WorldGraph graph, AttributeStore attributes, HexGrid grid)
+    public ResourceSystem(WorldGraph graph, HexGrid grid)
     {
         _graph = graph;
-        _attributes = attributes;
         _grid = grid;
 
         Sustenance = new ResourceLayer(ResourceType.Sustenance);

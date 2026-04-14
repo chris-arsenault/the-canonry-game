@@ -12,7 +12,6 @@ using Engine.Map;
 public sealed class WorldState : IWorldState
 {
     public WorldGraph Graph { get; }
-    public AttributeStore Attributes { get; }
     public EffectSystem Effects { get; }
     public HexGrid Grid { get; }
     public RegionMap RegionMap { get; }
@@ -22,7 +21,6 @@ public sealed class WorldState : IWorldState
 
     public WorldState(
         WorldGraph graph,
-        AttributeStore attributes,
         EffectSystem effects,
         HexGrid grid,
         RegionMap regionMap,
@@ -30,7 +28,6 @@ public sealed class WorldState : IWorldState
         Resources.ResourceSystem? resources = null)
     {
         Graph = graph;
-        Attributes = attributes;
         Effects = effects;
         Grid = grid;
         RegionMap = regionMap;

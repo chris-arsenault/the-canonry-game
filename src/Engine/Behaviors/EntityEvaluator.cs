@@ -176,7 +176,7 @@ public sealed class EntityEvaluator
         if (entity.Coordinates is null || _needResolver is null) return [];
 
         // Use NeedResolver to find what the entity needs, then query for providers
-        var need = _needResolver.Resolve(entity, worldState.Attributes);
+        var need = _needResolver.Resolve(entity);
         if (need is null) return [];
 
         var consumerCoord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);

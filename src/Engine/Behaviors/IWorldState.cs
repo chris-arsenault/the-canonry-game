@@ -9,7 +9,6 @@ using Engine.Graph;
 public interface IWorldState
 {
     WorldGraph Graph { get; }
-    Engine.Attributes.AttributeStore Attributes { get; }
     Engine.Attributes.EffectSystem Effects { get; }
     Engine.Map.HexGrid Grid { get; }
     Engine.Map.RegionMap RegionMap { get; }

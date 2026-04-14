@@ -123,16 +123,14 @@ public static class DomainLoader
     }
 
     /// <summary>Initialize attributes for all entities in the graph from domain config.
-    /// Creates AttributeInstances on entities with drift effects. Also populates
-    /// the legacy AttributeStore for backward compatibility during migration.</summary>
+    /// Creates AttributeInstances on entities with drift effects.</summary>
     public static void InitializeEntityAttributes(
-        Graph.WorldGraph graph, Attributes.AttributeStore attributes, DomainConfig config)
+        Graph.WorldGraph graph, DomainConfig config)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        ArgumentNullException.ThrowIfNull(attributes);
         ArgumentNullException.ThrowIfNull(config);
 
-        foreach (var (entityId, entity) in graph.AllEntities)
+        foreach (var (_, entity) in graph.AllEntities)
         {
             if (!config.Kinds.TryGetValue(entity.Kind, out var kindConfig))
             {
@@ -141,7 +139,6 @@ public static class DomainLoader
 
             foreach (var attr in kindConfig.Attributes)
             {
-                // New: entity-owned AttributeInstance
                 if (!entity.Attributes.Has(attr.Name))
                 {
                     var instance = new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.Default);
@@ -156,12 +153,6 @@ public static class DomainLoader
                     }
 
                     entity.Attributes.Add(instance);
-                }
-
-                // Legacy: keep AttributeStore in sync during migration
-                if (!attributes.Has(entityId, attr.Name))
-                {
-                    attributes.Initialize(entityId, attr.Name, attr.Min, attr.Max, attr.Default);
                 }
             }
         }

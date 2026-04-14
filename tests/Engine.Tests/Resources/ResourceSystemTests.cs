@@ -1,6 +1,5 @@
 namespace Engine.Tests.Resources;
 
-using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -76,7 +75,7 @@ public class ResourceSystemTests
     [Fact]
     public void System_ProducesSustenanceFromFertilityAndPopulation()
     {
-        var (system, _, _) = CreateTestSystem();
+        var (system, _) = CreateTestSystem();
 
         system.Tick(1);
 
@@ -89,7 +88,7 @@ public class ResourceSystemTests
     [Fact]
     public void System_ConsumesSustenanceProportionalToPopulation()
     {
-        var (system, _, _) = CreateTestSystem();
+        var (system, _) = CreateTestSystem();
 
         system.Tick(1);
 
@@ -101,7 +100,7 @@ public class ResourceSystemTests
     [Fact]
     public void System_ProducesGoldFromDevelopment()
     {
-        var (system, _, _) = CreateTestSystem();
+        var (system, _) = CreateTestSystem();
 
         system.Tick(1);
 
@@ -112,7 +111,7 @@ public class ResourceSystemTests
     [Fact]
     public void System_NoProductionWithoutSettlement()
     {
-        var (system, _, _) = CreateTestSystem();
+        var (system, _) = CreateTestSystem();
 
         system.Tick(1);
 
@@ -128,7 +127,6 @@ public class ResourceSystemTests
     public void System_FlowDoesNotCrossNationBoundaries()
     {
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var grid = new HexGrid(3);
 
         // Two nations, one settlement each
@@ -137,19 +135,19 @@ public class ResourceSystemTests
 
         // Nation A has a high-fertility settlement (surplus)
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
-        attributes.Initialize(sA.Id, "population", 0, 10000, 200);
-        attributes.Initialize(sA.Id, "development", 0, 100, 20);
+        sA.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 200));
+        sA.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 20));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         // Nation B has a low-fertility settlement (deficit)
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (2, 0));
-        attributes.Initialize(sB.Id, "population", 0, 10000, 200);
-        attributes.Initialize(sB.Id, "development", 0, 100, 5);
+        sB.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 200));
+        sB.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
 
-        var system = new ResourceSystem(graph, attributes, grid);
+        var system = new ResourceSystem(graph, grid);
         system.Tick(1);
 
         // Nation B's settlement should NOT benefit from Nation A's surplus
@@ -161,26 +159,25 @@ public class ResourceSystemTests
     public void System_FlowWithinSameNation()
     {
         var graph = new WorldGraph();
-        var attributes = new AttributeStore();
         var grid = new HexGrid(3);
 
         var nation = graph.CreateEntity(EntityKind.Nation, "generic_nation", "N", "c", 0);
 
         // Rich settlement (surplus)
         var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
-        attributes.Initialize(rich.Id, "population", 0, 10000, 100);
-        attributes.Initialize(rich.Id, "development", 0, 100, 10);
+        rich.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 100));
+        rich.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         // Poor settlement (deficit)
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
-        attributes.Initialize(poor.Id, "population", 0, 10000, 500);
-        attributes.Initialize(poor.Id, "development", 0, 100, 5);
+        poor.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 500));
+        poor.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
 
-        var system = new ResourceSystem(graph, attributes, grid);
+        var system = new ResourceSystem(graph, grid);
         system.Tick(1);
 
         // If poor has deficit and rich has surplus, some flow should happen
@@ -197,24 +194,20 @@ public class ResourceSystemTests
 
     // --- Helper ---
 
-    private (ResourceSystem System, WorldGraph Graph, AttributeStore Attributes) CreateTestSystem()
+    private static (ResourceSystem System, WorldGraph Graph) CreateTestSystem()
     {
         var world = TestMapBuilder.BuildDefault(seed: 42);
-        var attributes = new AttributeStore();
 
-        // Initialize attributes for all settlements (entity-owned + legacy store)
+        // Initialize attributes for all settlements
         foreach (var sid in world.Graph.GetEntitiesByKind(EntityKind.Settlement))
         {
             var entity = world.Graph.GetEntity(sid)!;
             entity.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 100));
             entity.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
             entity.Attributes.Add(new Engine.Attributes.AttributeInstance("prosperity", 0, 100, 50));
-            attributes.Initialize(sid, "population", 0, 10000, 100);
-            attributes.Initialize(sid, "development", 0, 100, 10);
-            attributes.Initialize(sid, "prosperity", 0, 100, 50);
         }
 
-        var system = new ResourceSystem(world.Graph, attributes, world.Grid);
-        return (system, world.Graph, attributes);
+        var system = new ResourceSystem(world.Graph, world.Grid);
+        return (system, world.Graph);
     }
 }

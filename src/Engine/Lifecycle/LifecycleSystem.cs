@@ -1,6 +1,5 @@
 namespace Engine.Lifecycle;
 
-using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 
@@ -12,16 +11,14 @@ using Engine.Kinds;
 public sealed class LifecycleSystem
 {
     private readonly WorldGraph _graph;
-    private readonly AttributeStore _attributes;
     private readonly LifecycleConfig _config;
 
     /// <summary>Emitted when an entity transitions to historical status due to health reaching zero.</summary>
     public event EventHandler<LifecycleDeathEventArgs>? EntityDied;
 
-    public LifecycleSystem(WorldGraph graph, AttributeStore attributes, LifecycleConfig config)
+    public LifecycleSystem(WorldGraph graph, LifecycleConfig config)
     {
         _graph = graph;
-        _attributes = attributes;
         _config = config;
     }
 
@@ -54,7 +51,6 @@ public sealed class LifecycleSystem
 
             // Apply drain to health attribute
             entity.Attributes.Modify(healthAttr, -drain);
-            _attributes.Modify(entityId, healthAttr, -drain); // Legacy sync
 
             // Check if health reached zero
             var health = entity.Attributes.GetValue(healthAttr);

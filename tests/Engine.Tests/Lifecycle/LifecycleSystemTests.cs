@@ -8,7 +8,6 @@ using Engine.Lifecycle;
 public class LifecycleSystemTests
 {
     private readonly WorldGraph _graph = new();
-    private readonly AttributeStore _attributes = new();
 
     private static LifecycleConfig CreateDefaultConfig()
     {
@@ -79,24 +78,24 @@ public class LifecycleSystemTests
     public void Tick_AppliesDrainToHealthAttribute()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Hero", "c", tick: 0);
-        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
+        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         system.Tick(currentTick: 1);
 
-        Assert.True(_attributes.Get(npc.Id, "hp") < 100f);
+        Assert.True(npc.Attributes.GetValue("hp") < 100f);
     }
 
     [Fact]
     public void Tick_NewEntityDrainsSlowly()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Young", "c", tick: 0);
-        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
+        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         // After 10 ticks of a new entity, drain should be minimal
         for (var i = 1; i <= 10; i++)
@@ -104,8 +103,8 @@ public class LifecycleSystemTests
             system.Tick(i);
         }
 
-        Assert.True(_attributes.Get(npc.Id, "hp") > 95f,
-            $"Expected > 95, got {_attributes.Get(npc.Id, "hp")}");
+        Assert.True(npc.Attributes.GetValue("hp") > 95f,
+            $"Expected > 95, got {npc.Attributes.GetValue("hp")}");
     }
 
     [Fact]
@@ -113,10 +112,10 @@ public class LifecycleSystemTests
     {
         // Entity created at tick 0, we start ticking at 500
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Old", "c", tick: 0);
-        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
+        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         // Tick at age 500-510
         for (var i = 500; i <= 510; i++)
@@ -124,17 +123,17 @@ public class LifecycleSystemTests
             system.Tick(i);
         }
 
-        var hpAfterOldAge = _attributes.Get(npc.Id, "hp");
+        var hpAfterOldAge = npc.Attributes.GetValue("hp");
 
         // Compare: fresh entity ticking 10 times
         var young = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Young", "c", tick: 1000);
-        _attributes.Initialize(young.Id, "hp", 0f, 100f, 100f);
+        young.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
         for (var i = 1000; i <= 1010; i++)
         {
             system.Tick(i);
         }
 
-        var hpAfterYoungAge = _attributes.Get(young.Id, "hp");
+        var hpAfterYoungAge = young.Attributes.GetValue("hp");
 
         // Old entity should have lost more HP
         Assert.True(hpAfterOldAge < hpAfterYoungAge,
@@ -147,10 +146,10 @@ public class LifecycleSystemTests
     public void Tick_TransitionsToHistoricalAtZeroHealth()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dying", "c", tick: 0);
-        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 0.01f); // Almost dead
+        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 0.01f)); // Almost dead
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         system.Tick(1);
 
@@ -161,10 +160,10 @@ public class LifecycleSystemTests
     public void Tick_EmitsDeathEvent()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dying", "c", tick: 0);
-        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 0.001f);
+        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 0.001f));
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         Entity? dead = null;
         system.EntityDied += (_, e) => dead = e.Entity;
@@ -179,16 +178,16 @@ public class LifecycleSystemTests
     public void Tick_HistoricalEntityNotProcessed()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dead", "c", tick: 0);
-        _attributes.Initialize(npc.Id, "hp", 0f, 100f, 50f);
+        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 50f));
         _graph.SetEntityHistorical(npc.Id, tick: 5);
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         system.Tick(10);
 
         // HP should not have changed (historical entities are skipped)
-        Assert.Equal(50f, _attributes.Get(npc.Id, "hp"));
+        Assert.Equal(50f, npc.Attributes.GetValue("hp"));
     }
 
     // --- No lifecycle for permanent entities ---
@@ -197,15 +196,15 @@ public class LifecycleSystemTests
     public void Tick_SkipsEntitiesWithoutConfig()
     {
         var region = _graph.CreateEntity(EntityKind.Region, "generic_region", "R", "c", tick: 0);
-        _attributes.Initialize(region.Id, "fertility", 0f, 1f, 0.8f);
+        region.Attributes.Add(new AttributeInstance("fertility", 0f, 1f, 0.8f));
 
         var config = CreateDefaultConfig(); // No config for Region
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         system.Tick(100);
 
         // Fertility unchanged (regions have no lifecycle)
-        Assert.Equal(0.8f, _attributes.Get(region.Id, "fertility"));
+        Assert.Equal(0.8f, region.Attributes.GetValue("fertility"));
     }
 
     // --- Counter-drain (other systems sustain health) ---
@@ -214,20 +213,20 @@ public class LifecycleSystemTests
     public void Tick_HealthCanBeCounteredByExternalModification()
     {
         var settlement = _graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", tick: 0);
-        _attributes.Initialize(settlement.Id, "population", 0f, 10000f, 1000f);
+        settlement.Attributes.Add(new AttributeInstance("population", 0f, 10000f, 1000f));
 
         var config = CreateDefaultConfig();
-        var system = new LifecycleSystem(_graph, _attributes, config);
+        var system = new LifecycleSystem(_graph, config);
 
         // Simulate 10 ticks where an external system adds population each tick
         for (var i = 1; i <= 10; i++)
         {
             system.Tick(i); // Drain
-            _attributes.Modify(settlement.Id, "population", 5f); // External sustenance
+            settlement.Attributes.Modify("population", 5f); // External sustenance
         }
 
         // With sustenance counteracting drain, population should stay near or above 1000
-        Assert.True(_attributes.Get(settlement.Id, "population") > 900f,
-            $"Population {_attributes.Get(settlement.Id, "population")} dropped below 900 despite sustenance");
+        Assert.True(settlement.Attributes.GetValue("population") > 900f,
+            $"Population {settlement.Attributes.GetValue("population")} dropped below 900 despite sustenance");
     }
 }

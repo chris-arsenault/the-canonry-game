@@ -12,12 +12,11 @@ public class SaveManagerTests
     public void Capture_CapturesEntities()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         graph.CreateEntity(EntityKind.Nation, "monarchy", "Kesh", "culture_a", tick: 0);
         graph.CreateEntity(EntityKind.Settlement, "city", "Capital", "culture_a", tick: 0, (1, 2));
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 50);
+        var state = SaveManager.Capture(graph, currentTick: 50);
 
         Assert.Equal(2, state.Entities.Count);
         Assert.Equal(50, state.CurrentTick);
@@ -27,13 +26,12 @@ public class SaveManagerTests
     public void Capture_CapturesRelationships()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         var nation = graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", 0);
         graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, settlement.Id, 0.9f, 0);
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 10);
+        var state = SaveManager.Capture(graph, currentTick: 10);
 
         Assert.Single(state.Relationships);
         Assert.Equal("controls", state.Relationships[0].Kind);
@@ -44,13 +42,12 @@ public class SaveManagerTests
     public void Capture_CapturesAttributes()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         var entity = graph.CreateEntity(EntityKind.Npc, "hero", "Captain", "c", 0);
-        attrs.Initialize(entity.Id, "hp", 0, 100, 85);
-        attrs.Initialize(entity.Id, "hunger", 0, 100, 15);
+        entity.Attributes.Add(new AttributeInstance("hp", 0, 100, 85));
+        entity.Attributes.Add(new AttributeInstance("hunger", 0, 100, 15));
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 20);
+        var state = SaveManager.Capture(graph, currentTick: 20);
 
         Assert.Equal(2, state.Attributes.Count);
     }
@@ -59,11 +56,10 @@ public class SaveManagerTests
     public void Capture_CapturesCoordinates()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (3, -1));
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 0);
+        var state = SaveManager.Capture(graph, currentTick: 0);
 
         Assert.Equal(3, state.Entities[0].CoordQ);
         Assert.Equal(-1, state.Entities[0].CoordR);
@@ -73,11 +69,10 @@ public class SaveManagerTests
     public void Capture_NullCoordinatesForNonSpatial()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 0);
+        var state = SaveManager.Capture(graph, currentTick: 0);
 
         Assert.Null(state.Entities[0].CoordQ);
         Assert.Null(state.Entities[0].CoordR);
@@ -89,15 +84,14 @@ public class SaveManagerTests
     public void RoundTrip_PreservesState()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         var nation = graph.CreateEntity(EntityKind.Nation, "monarchy", "Kesh", "culture_a", tick: 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "city", "Capital", "culture_a", tick: 5, (1, 2));
-        attrs.Initialize(nation.Id, "stability", 0, 100, 75);
-        attrs.Initialize(settlement.Id, "population", 0, 10000, 500);
+        nation.Attributes.Add(new AttributeInstance("stability", 0, 100, 75));
+        settlement.Attributes.Add(new AttributeInstance("population", 0, 10000, 500));
         graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, settlement.Id, 0.9f, 5);
 
-        var original = SaveManager.Capture(graph, attrs, currentTick: 42, currentMana: 7f, manaCap: 12f);
+        var original = SaveManager.Capture(graph, currentTick: 42, currentMana: 7f, manaCap: 12f);
 
         // Serialize and deserialize
         var bytes = SaveManager.Serialize(original);
@@ -135,17 +129,16 @@ public class SaveManagerTests
     public void RoundTrip_CompactBinaryFormat()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
 
         // Create a moderate world
         for (var i = 0; i < 50; i++)
         {
             var e = graph.CreateEntity(EntityKind.Settlement, "village", $"S{i}", "c", 0, (i % 10, i / 10));
-            attrs.Initialize(e.Id, "population", 0, 10000, 100 + i);
-            attrs.Initialize(e.Id, "development", 0, 100, 10);
+            e.Attributes.Add(new AttributeInstance("population", 0, 10000, 100 + i));
+            e.Attributes.Add(new AttributeInstance("development", 0, 100, 10));
         }
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 100);
+        var state = SaveManager.Capture(graph, currentTick: 100);
         var bytes = SaveManager.Serialize(state);
 
         // 50 entities with 2 attributes each should be well under 50KB
@@ -159,10 +152,9 @@ public class SaveManagerTests
     public void SaveAndLoad_FileRoundTrip()
     {
         var graph = new WorldGraph();
-        var attrs = new AttributeStore();
         graph.CreateEntity(EntityKind.Nation, "generic", "TestNation", "c", 0);
 
-        var state = SaveManager.Capture(graph, attrs, currentTick: 99);
+        var state = SaveManager.Capture(graph, currentTick: 99);
         var path = Path.GetTempFileName();
 
         try

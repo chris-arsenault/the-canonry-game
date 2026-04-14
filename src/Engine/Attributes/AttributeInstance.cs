@@ -14,6 +14,8 @@ public sealed class AttributeInstance
 {
     private readonly List<AttributeEffect> _tickEffects = [];
     private readonly List<AttributeEffect> _staticEffects = [];
+    private readonly Queue<float> _recentDeltas = new();
+    private const int TrendWindow = 10;
 
     public string Name { get; }
     public float Min { get; }
@@ -52,7 +54,9 @@ public sealed class AttributeInstance
     /// <summary>Modify the base value by a delta. Used by mutations (eat, damage, etc.).</summary>
     public void Modify(float delta)
     {
+        var before = Base;
         Base = Math.Clamp(Base + delta, Min, Max);
+        TrackDelta(Base - before);
     }
 
     /// <summary>Set the base value directly. Rare — used for initialization or resets.</summary>
@@ -76,7 +80,18 @@ public sealed class AttributeInstance
                 additive += effect.Value;
         }
 
+        var before = Base;
         Base = Math.Clamp(Base + (additive * multiplicative), Min, Max);
+        TrackDelta(Base - before);
+    }
+
+    /// <summary>Recent rate of change (average of last N deltas).</summary>
+    public float Trend => _recentDeltas.Count == 0 ? 0f : _recentDeltas.Sum() / _recentDeltas.Count;
+
+    private void TrackDelta(float delta)
+    {
+        _recentDeltas.Enqueue(delta);
+        while (_recentDeltas.Count > TrendWindow) _recentDeltas.Dequeue();
     }
 
     /// <summary>Register a tick effect (applied each tick to modify base).</summary>
