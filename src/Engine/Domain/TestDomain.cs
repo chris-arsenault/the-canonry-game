@@ -220,7 +220,7 @@ public static class TestDomain
     {
         return new Dictionary<EntityKind, Domain.LifecycleConfig>
         {
-            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.002f, AgeCoefficient = 0.00008f },
+            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.002f, AgeCoefficient = 0.00015f },
             [EntityKind.Nation] = new() { HealthAttribute = "cohesion", BaseRate = 0.01f, AgeCoefficient = 0.00005f },
             [EntityKind.Npc] = new() { HealthAttribute = "hp", BaseRate = 0.02f, AgeCoefficient = 0.0005f },
             [EntityKind.Artifact] = new() { HealthAttribute = "condition", BaseRate = 0.01f, AgeCoefficient = 0.0001f },
