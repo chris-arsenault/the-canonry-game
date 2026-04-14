@@ -122,7 +122,9 @@ public static class DomainLoader
         return validator;
     }
 
-    /// <summary>Initialize attributes for all entities in the graph from domain config.</summary>
+    /// <summary>Initialize attributes for all entities in the graph from domain config.
+    /// Creates AttributeInstances on entities with drift effects. Also populates
+    /// the legacy AttributeStore for backward compatibility during migration.</summary>
     public static void InitializeEntityAttributes(
         Graph.WorldGraph graph, Attributes.AttributeStore attributes, DomainConfig config)
     {
@@ -139,6 +141,24 @@ public static class DomainLoader
 
             foreach (var attr in kindConfig.Attributes)
             {
+                // New: entity-owned AttributeInstance
+                if (!entity.Attributes.Has(attr.Name))
+                {
+                    var instance = new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.Default);
+
+                    // Register drift as a tick effect
+                    if (attr.DriftRate != 0f)
+                    {
+                        instance.AddTickEffect(new Attributes.AttributeEffect(
+                            $"innate_drift_{attr.Name}",
+                            $"Natural {attr.Name} drift",
+                            attr.DriftRate));
+                    }
+
+                    entity.Attributes.Add(instance);
+                }
+
+                // Legacy: keep AttributeStore in sync during migration
                 if (!attributes.Has(entityId, attr.Name))
                 {
                     attributes.Initialize(entityId, attr.Name, attr.Min, attr.Max, attr.Default);

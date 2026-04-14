@@ -192,8 +192,8 @@ public sealed class SimulationRunner
             tick => lifecycle.Tick(tick));
         clock.Register("resources", TickPhase.LowAltitude, cadence: 1,
             tick => resources.Tick(tick));
-        // Per-tick attribute drift from domain config (hunger increases, condition degrades, etc.)
-        var maintenance = new Lifecycle.MaintenanceSystem(graph, attributes, domainConfig.Kinds);
+        // Per-tick attribute maintenance: applies tick effects (drift, drain, buffs) to all entities
+        var maintenance = new Lifecycle.MaintenanceSystem(graph);
         clock.Register("maintenance", TickPhase.LowAltitude, cadence: 1,
             _ => maintenance.Tick());
 
