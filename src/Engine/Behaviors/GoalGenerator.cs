@@ -97,15 +97,10 @@ public sealed class GoalGenerator
 
                 if (!writesToAttr) continue;
 
-                // Collect target refs from this process's contracts
-                var targetRefs = CollectTargetRefs(procDef);
+                // Find and score providers from process wiring contracts
+                var scoredProviders = FindAndScoreProviders(procDef, entity, worldState);
 
-                // Find providers based on target refs
-                var providers = targetRefs.Count > 0
-                    ? FindTargetProviders(targetRefs, entity, worldState)
-                    : [(entity.Id, 1f)]; // No target refs → self is the context
-
-                foreach (var (providerId, providerWeight) in providers)
+                foreach (var (providerId, providerWeight) in scoredProviders)
                 {
                     if (goals.Count >= MaxGoals) break;
                     var key = (attribute, providerId);
@@ -119,54 +114,82 @@ public sealed class GoalGenerator
         return goals;
     }
 
-    private static List<AttributeRef> CollectTargetRefs(ProcessDefinition procDef)
+    private static List<(EntityId Id, float Weight)> FindAndScoreProviders(
+        ProcessDefinition procDef, Entity consumer, IWorldState worldState)
     {
-        var refs = new List<AttributeRef>();
+        // Collect target refs to know what to search for
+        AttributeRef? searchRef = null;
         foreach (var r in procDef.Reads)
         {
-            if (r.Scope == RefScope.Target) refs.Add(r);
+            if (r.Scope == RefScope.Target && r.Kind.HasValue) { searchRef = r; break; }
         }
 
-        foreach (var w in procDef.Writes)
+        if (searchRef is null)
         {
-            if (w.Scope == RefScope.Target) refs.Add(w);
-        }
-
-        return refs;
-    }
-
-    private static List<(EntityId Id, float Weight)> FindTargetProviders(
-        List<AttributeRef> targetRefs, Entity consumer, IWorldState worldState)
-    {
-        foreach (var tRef in targetRefs)
-        {
-            if (!tRef.Kind.HasValue) continue;
-
-            var providers = GraphAttributeQuery.FindProviders(
-                AttributeRef.Self(tRef.Name, tRef.Kind.Value),
-                consumer, worldState, topN: 3);
-
-            if (providers.Count == 0) continue;
-
-            // Normalize weights relative to the best provider
-            var maxWeight = 0f;
-            foreach (var (_, w) in providers)
+            foreach (var w in procDef.Writes)
             {
-                if (w > maxWeight) maxWeight = w;
+                if (w.Scope == RefScope.Target && w.Kind.HasValue) { searchRef = w; break; }
+            }
+        }
+
+        if (searchRef is null)
+        {
+            // No target refs — entity is its own context
+            return [(consumer.Id, 1f)];
+        }
+
+        // Find candidates (unscored)
+        var candidates = GraphAttributeQuery.FindCandidates(
+            AttributeRef.Self(searchRef.Name, searchRef.Kind!.Value), worldState);
+
+        if (candidates.Count == 0) return [];
+
+        // Score candidates using the process's ProviderScoreExpression
+        var scored = new List<(EntityId Id, float Weight)>();
+        foreach (var candidateId in candidates)
+        {
+            if (candidateId == consumer.Id) continue;
+
+            var candidateEntity = worldState.Graph.GetEntity(candidateId);
+            if (candidateEntity is null) continue;
+
+            float weight;
+            if (procDef.ProviderScoreExpression is not null)
+            {
+                var exprCtx = new ExpressionContext(consumer, candidateEntity, worldState.Grid);
+                weight = Math.Max(0f, procDef.ProviderScoreExpression.Evaluate(exprCtx));
+            }
+            else
+            {
+                weight = 1f; // No expression — all providers equal
             }
 
-            var result = new List<(EntityId, float)>();
-            foreach (var (providerId, weight) in providers)
+            if (weight > 0f)
             {
-                if (providerId == consumer.Id) continue;
-                var normalizedWeight = maxWeight > 0f ? weight / maxWeight : 1f;
-                result.Add((providerId, normalizedWeight));
+                scored.Add((candidateId, weight));
             }
-
-            if (result.Count > 0) return result;
         }
 
-        return [];
+        if (scored.Count == 0) return [];
+
+        // Normalize weights relative to best
+        var maxWeight = 0f;
+        foreach (var (_, w) in scored)
+        {
+            if (w > maxWeight) maxWeight = w;
+        }
+
+        var result = new List<(EntityId, float)>();
+        foreach (var (id, w) in scored)
+        {
+            result.Add((id, maxWeight > 0f ? w / maxWeight : 1f));
+        }
+
+        // Sort by weight, take top 3
+        result.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+        if (result.Count > 3) result.RemoveRange(3, result.Count - 3);
+
+        return result;
     }
 
     private List<EntityGoal> GenerateSubGoals(

@@ -54,12 +54,14 @@ public static class TestDomain
         grow.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(grow);
 
-        // Settlement: propaganda — shift target ideology toward self, attenuated by distance
+        // Settlement: propaganda — shift target ideology toward self
+        // Provider score: ideology distance (further apart = more to gain from propaganda)
         var propaganda = new ProcessDefinition("settlement_propaganda", "Propaganda",
             DefinitionRole.Process, EntityKind.Settlement,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(0.3f), 0.1f))
-        { Cooldown = 15, EntityCooldown = 5, Mutations = {
+        { Cooldown = 15, EntityCooldown = 5, ProviderScoreExpression = Expr.SemanticDistance("ideology"),
+          Mutations = {
             // dx = (self.ideology.x - target.ideology.x) * 0.01 / distance
             new CalculateMutation("dx", Expr.Div(
                 Expr.Mul(Expr.Sub(Expr.SelfX("ideology"), Expr.TargetX("ideology")), Expr.Lit(0.01f)),
@@ -86,7 +88,12 @@ public static class TestDomain
                 new SemanticDistanceThreshold("ideology", 0.5f),
             ]),
             Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
-        { Cooldown = 20, EntityCooldown = 5, Mutations = {
+        { Cooldown = 20, EntityCooldown = 5,
+          // Provider score: fame advantage * ideology similarity
+          ProviderScoreExpression = Expr.Mul(
+              Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Self("fame"), Expr.Target("fame"))),
+              Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology"))),
+          Mutations = {
             // stolen = clamp(fame_diff * ideology_sim / distance, 0, 5)
             new CalculateMutation("stolen", Expr.Clamp(
                 Expr.Mul(

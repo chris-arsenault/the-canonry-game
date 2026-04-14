@@ -38,6 +38,10 @@ public sealed class ProcessDefinition
     /// <summary>Scoring expression for utility AI. Higher = more likely selected.</summary>
     public IExpression ScoreExpression { get; set; }
 
+    /// <summary>Expression to score candidate providers during goal generation.
+    /// Evaluated with self + candidate as target. Null = all providers score 1.0.</summary>
+    public IExpression? ProviderScoreExpression { get; set; }
+
     /// <summary>Mutations applied when this process/decision executes.</summary>
     public System.Collections.ObjectModel.Collection<IMutation> Mutations { get; } = [];
 
