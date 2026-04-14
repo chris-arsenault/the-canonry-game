@@ -147,9 +147,10 @@ public sealed class SimulationRunner
         relationships.AddModifier(new SharedCultureModifier());
         relationships.AddModifier(new NeglectModifier());
 
-        // Lifecycle from domain config
+        // Lifecycle from domain config — register drain tick effects on all entities
         var lifecycleConfig = Domain.DomainLoader.LoadLifecycleConfig(domainConfig);
         var lifecycle = new LifecycleSystem(graph, lifecycleConfig);
+        lifecycle.InitializeEffects();
 
         // Resources
         var resources = new ResourceSystem(graph, grid);
@@ -175,25 +176,25 @@ public sealed class SimulationRunner
         var clock = new TickClock();
         var relContext = new RelationshipContextAdapter(graph);
 
-        // Phase 1: Low-altitude (physics + process selection)
-        clock.Register("physics_and_processes", TickPhase.LowAltitude, cadence: 1,
+        // Phase 1: Low-altitude physics
+        // Order: update drain rates → apply tick effects → check death → resources → processes
+        var maintenance = new Lifecycle.MaintenanceSystem(graph);
+        clock.Register("lifecycle_drain_update", TickPhase.LowAltitude, cadence: 1,
             tick =>
             {
                 worldState.CurrentTick = tick;
-                // Physics run first (lifecycle, relationships, resources -- registered below)
-                // Then process/decision selection for all entities
-                evaluator.EvaluateAll(graph, worldState);
+                lifecycle.UpdateDrainRates(tick);
             });
-        clock.Register("relationships", TickPhase.LowAltitude, cadence: 1,
-            tick => relationships.Tick(tick, relContext));
-        clock.Register("lifecycle", TickPhase.LowAltitude, cadence: 1,
-            tick => lifecycle.Tick(tick));
-        clock.Register("resources", TickPhase.LowAltitude, cadence: 1,
-            tick => resources.Tick(tick));
-        // Per-tick attribute maintenance: applies tick effects (drift, drain, buffs) to all entities
-        var maintenance = new Lifecycle.MaintenanceSystem(graph);
         clock.Register("maintenance", TickPhase.LowAltitude, cadence: 1,
             _ => maintenance.Tick());
+        clock.Register("lifecycle_death_check", TickPhase.LowAltitude, cadence: 1,
+            tick => lifecycle.CheckDeaths(tick));
+        clock.Register("relationships", TickPhase.LowAltitude, cadence: 1,
+            tick => relationships.Tick(tick, relContext));
+        clock.Register("resources", TickPhase.LowAltitude, cadence: 1,
+            tick => resources.Tick(tick));
+        clock.Register("processes", TickPhase.LowAltitude, cadence: 1,
+            _ => evaluator.EvaluateAll(graph, worldState));
 
         // Phase 2: Pressure (every 5 ticks for efficiency)
         clock.Register("pressure", TickPhase.Pressure, cadence: 5,

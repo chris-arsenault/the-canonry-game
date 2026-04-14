@@ -21,6 +21,19 @@ public class LifecycleSystemTests
         return config;
     }
 
+    /// <summary>Simulate one tick: update drain rates, apply tick effects, check deaths.</summary>
+    private static void SimulateTick(LifecycleSystem system, WorldGraph graph, int tick)
+    {
+        system.UpdateDrainRates(tick);
+        foreach (var (_, entity) in graph.AllEntities)
+        {
+            if (entity.Status == EntityStatus.Active)
+                entity.Attributes.ApplyTickEffects();
+        }
+
+        system.CheckDeaths(tick);
+    }
+
     // --- Aging function ---
 
     [Fact]
@@ -82,8 +95,9 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
-        system.Tick(currentTick: 1);
+        SimulateTick(system, _graph, 1);
 
         Assert.True(npc.Attributes.GetValue("hp") < 100f);
     }
@@ -96,11 +110,12 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
         // After 10 ticks of a new entity, drain should be minimal
         for (var i = 1; i <= 10; i++)
         {
-            system.Tick(i);
+            SimulateTick(system, _graph,i);
         }
 
         Assert.True(npc.Attributes.GetValue("hp") > 95f,
@@ -116,11 +131,12 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
         // Tick at age 500-510
         for (var i = 500; i <= 510; i++)
         {
-            system.Tick(i);
+            SimulateTick(system, _graph,i);
         }
 
         var hpAfterOldAge = npc.Attributes.GetValue("hp");
@@ -130,7 +146,7 @@ public class LifecycleSystemTests
         young.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
         for (var i = 1000; i <= 1010; i++)
         {
-            system.Tick(i);
+            SimulateTick(system, _graph,i);
         }
 
         var hpAfterYoungAge = young.Attributes.GetValue("hp");
@@ -150,8 +166,9 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
-        system.Tick(1);
+        SimulateTick(system, _graph,1);
 
         Assert.Equal(EntityStatus.Historical, npc.Status);
     }
@@ -164,11 +181,12 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
         Entity? dead = null;
         system.EntityDied += (_, e) => dead = e.Entity;
 
-        system.Tick(1);
+        SimulateTick(system, _graph,1);
 
         Assert.NotNull(dead);
         Assert.Equal(npc.Id, dead.Id);
@@ -183,8 +201,9 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
-        system.Tick(10);
+        SimulateTick(system, _graph,10);
 
         // HP should not have changed (historical entities are skipped)
         Assert.Equal(50f, npc.Attributes.GetValue("hp"));
@@ -200,8 +219,9 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig(); // No config for Region
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
-        system.Tick(100);
+        SimulateTick(system, _graph,100);
 
         // Fertility unchanged (regions have no lifecycle)
         Assert.Equal(0.8f, region.Attributes.GetValue("fertility"));
@@ -217,11 +237,12 @@ public class LifecycleSystemTests
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
+        system.InitializeEffects();
 
         // Simulate 10 ticks where an external system adds population each tick
         for (var i = 1; i <= 10; i++)
         {
-            system.Tick(i); // Drain
+            SimulateTick(system, _graph,i); // Drain
             settlement.Attributes.Modify("population", 5f); // External sustenance
         }
 

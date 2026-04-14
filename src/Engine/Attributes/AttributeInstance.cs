@@ -133,8 +133,9 @@ public sealed class AttributeEffect
     /// <summary>Human-readable description of where this effect comes from.</summary>
     public string Description { get; }
 
-    /// <summary>The effect value. For deltas: the amount added. For multipliers: the factor.</summary>
-    public float Value { get; }
+    /// <summary>The effect value. For deltas: the amount added. For multipliers: the factor.
+    /// Mutable so systems can update values (e.g., age-dependent lifecycle drain).</summary>
+    public float Value { get; set; }
 
     /// <summary>If true, this is a multiplicative effect. If false, additive.</summary>
     public bool IsMultiplier { get; }
