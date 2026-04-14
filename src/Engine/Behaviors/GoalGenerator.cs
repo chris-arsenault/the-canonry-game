@@ -103,15 +103,15 @@ public sealed class GoalGenerator
                 // Find providers based on target refs
                 var providers = targetRefs.Count > 0
                     ? FindTargetProviders(targetRefs, entity, worldState)
-                    : [entity.Id]; // No target refs → self is the context
+                    : [(entity.Id, 1f)]; // No target refs → self is the context
 
-                foreach (var providerId in providers)
+                foreach (var (providerId, providerWeight) in providers)
                 {
                     if (goals.Count >= MaxGoals) break;
                     var key = (attribute, providerId);
                     if (usedProviders.Contains(key)) continue;
                     usedProviders.Add(key);
-                    goals.Add(new EntityGoal(attribute, providerId, urgency));
+                    goals.Add(new EntityGoal(attribute, providerId, urgency * providerWeight));
                 }
             }
         }
@@ -135,7 +135,7 @@ public sealed class GoalGenerator
         return refs;
     }
 
-    private static List<EntityId> FindTargetProviders(
+    private static List<(EntityId Id, float Weight)> FindTargetProviders(
         List<AttributeRef> targetRefs, Entity consumer, IWorldState worldState)
     {
         foreach (var tRef in targetRefs)
@@ -146,11 +146,21 @@ public sealed class GoalGenerator
                 AttributeRef.Self(tRef.Name, tRef.Kind.Value),
                 consumer, worldState, topN: 3);
 
-            var result = new List<EntityId>();
-            foreach (var (providerId, _) in providers)
+            if (providers.Count == 0) continue;
+
+            // Normalize weights relative to the best provider
+            var maxWeight = 0f;
+            foreach (var (_, w) in providers)
+            {
+                if (w > maxWeight) maxWeight = w;
+            }
+
+            var result = new List<(EntityId, float)>();
+            foreach (var (providerId, weight) in providers)
             {
                 if (providerId == consumer.Id) continue;
-                result.Add(providerId);
+                var normalizedWeight = maxWeight > 0f ? weight / maxWeight : 1f;
+                result.Add((providerId, normalizedWeight));
             }
 
             if (result.Count > 0) return result;

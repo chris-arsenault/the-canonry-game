@@ -305,7 +305,7 @@ public partial class EntityCard : PanelContainer
             sb.AppendLine($"  ← {rel.Kind} ← {sourceName} ({rel.Strength:F2})");
         }
 
-        // Processes
+        // Processes (evaluated per goal)
         sb.AppendLine("[b][u]Processes[/u][/b]");
         var processes = _sim.ActivityRegistry.GetProcesses(entity.Kind);
         if (processes.Count == 0)
@@ -314,25 +314,43 @@ public partial class EntityCard : PanelContainer
         }
         else
         {
-            foreach (var process in processes)
+            // Evaluate each process against each of the entity's goals
+            var shown = new HashSet<string>();
+            foreach (var goal in entity.Goals)
             {
-                if (process is Engine.Processes.DataDrivenProcess ddp)
+                var providerName = goal.Provider == entity.Id ? "self" :
+                    (_sim.Graph.GetEntity(goal.Provider)?.Name ?? "?");
+
+                foreach (var process in processes)
                 {
+                    if (process is not Engine.Processes.DataDrivenProcess ddp) continue;
+
+                    // Check if process serves this goal
+                    var serves = false;
+                    foreach (var w in ddp.Definition.Writes)
+                    {
+                        if (w.Name == goal.TargetAttribute) { serves = true; break; }
+                    }
+
+                    if (!serves) continue;
+
+                    var key = $"{process.Name}:{goal.Provider}";
+                    if (shown.Contains(key)) continue;
+                    shown.Add(key);
+
+                    entity.CurrentTargetId = goal.Provider != entity.Id ? goal.Provider : null;
                     var ctx = new Engine.Processes.ProcessMutationContext(entity, _sim.WorldState);
                     var result = ddp.Definition.Precondition.Evaluate(ctx);
+                    entity.CurrentTargetId = null;
+
                     var score = process.Score(entity, _sim.WorldState);
                     var statusColor = result.Passed ? "green" : "red";
                     var statusIcon = result.Passed ? "✓" : "✗";
-                    sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {process.Name}  score: {score:F3}");
+                    sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {process.Name} → {providerName}  score: {score:F3}");
                     if (!result.Passed)
                     {
                         sb.AppendLine($"    [color=gray]{result.Diagnostic}[/color]");
                     }
-                }
-                else
-                {
-                    var canExec = process.CanExecute(entity, _sim.WorldState);
-                    sb.AppendLine($"  {(canExec ? "✓" : "✗")} {process.Name}");
                 }
             }
         }
