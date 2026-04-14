@@ -4,11 +4,12 @@ using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Processes;
+using Engine.Wiring;
 
 /// <summary>
-/// Generates goals for an entity from attribute deficits and available providers.
-/// Also generates sub-goals by analyzing blocked preconditions on serving processes.
-/// Replaces NeedResolver.
+/// Generates goals for an entity from attribute deficits and process wiring contracts.
+/// No self/external distinction — providers derived from process Target refs.
+/// Sub-goals generated from blocked preconditions.
 /// </summary>
 public sealed class GoalGenerator
 {
@@ -26,7 +27,6 @@ public sealed class GoalGenerator
         _processes = processes;
     }
 
-    /// <summary>Generate goals for an entity. Returns primary goals + sub-goals.</summary>
     public IReadOnlyList<EntityGoal> Generate(Entity entity, IWorldState worldState)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -35,16 +35,13 @@ public sealed class GoalGenerator
         if (!_kindConfigs.TryGetValue(entity.Kind, out var kindConfig))
             return [];
 
-        // 1. Compute attribute deficits → primary goals
         var primaryGoals = GeneratePrimaryGoals(entity, kindConfig, worldState);
 
-        // 2. For each primary goal, analyze blocked processes → sub-goals
         var allGoals = new List<EntityGoal>();
         foreach (var goal in primaryGoals)
         {
             allGoals.Add(goal);
-            var subGoals = GenerateSubGoals(goal, entity, worldState);
-            allGoals.AddRange(subGoals);
+            allGoals.AddRange(GenerateSubGoals(goal, entity, worldState));
         }
 
         return allGoals;
@@ -53,73 +50,113 @@ public sealed class GoalGenerator
     private List<EntityGoal> GeneratePrimaryGoals(
         Entity entity, KindConfig kindConfig, IWorldState worldState)
     {
-        // Find attribute needs
         var deficits = new List<(string Attribute, float Urgency)>();
 
-        // Health attribute always generates a goal — entity always wants more health
-        if (kindConfig.HealthAttribute is not null)
-        {
-            var healthScalar = entity.Attributes.GetScalar(kindConfig.HealthAttribute);
-            if (healthScalar is not null)
-            {
-                var range = healthScalar.Max - healthScalar.Min;
-                // Urgency: lower health = more urgent. At max health, urgency is still > 0.
-                var healthRatio = range > 0 ? (healthScalar.Value - healthScalar.Min) / range : 1f;
-                var urgency = Math.Max(0.1f, 1f - healthRatio); // Always at least 0.1
-                deficits.Add((kindConfig.HealthAttribute, urgency));
-            }
-        }
-
-        // Other attributes: deficit from default
         foreach (var attrConfig in kindConfig.Attributes)
         {
-            if (attrConfig.Name == kindConfig.HealthAttribute) continue; // Already handled
             if (attrConfig.PlaneDefinition is not null) continue;
 
             var scalar = entity.Attributes.GetScalar(attrConfig.Name);
             if (scalar is null) continue;
 
-            var range = attrConfig.Max - attrConfig.Min;
-            if (range <= 0f) continue;
-
-            var distance = Math.Abs(scalar.Value - attrConfig.Default);
-            var urgency = distance / range;
-            if (urgency > 0.01f)
+            float urgency;
+            if (attrConfig.Baseline > 0f)
             {
-                deficits.Add((attrConfig.Name, urgency));
+                urgency = attrConfig.Baseline / (attrConfig.Baseline + scalar.Value);
             }
+            else
+            {
+                var range = attrConfig.Max - attrConfig.Min;
+                urgency = range > 0f ? Math.Abs(scalar.Value - attrConfig.Default) / range : 0f;
+            }
+
+            if (urgency < 0.01f) continue;
+            deficits.Add((attrConfig.Name, urgency));
         }
 
-        // Sort by urgency, take top N
         deficits.Sort((a, b) => b.Urgency.CompareTo(a.Urgency));
 
+        // For each deficit, find providers from process wiring contracts
         var goals = new List<EntityGoal>();
-        var usedProviders = new HashSet<EntityId>();
+        var usedProviders = new HashSet<(string Attr, EntityId Provider)>();
 
         foreach (var (attribute, urgency) in deficits)
         {
             if (goals.Count >= MaxGoals) break;
 
-            // Self-directed goal
-            goals.Add(new EntityGoal(attribute, entity.Id, urgency));
-
-            // External goal: find providers on the graph
-            var providers = GraphAttributeQuery.FindProviders(
-                Wiring.AttributeRef.Self(attribute, entity.Kind),
-                entity, worldState, topN: 1);
-
-            foreach (var (providerId, _) in providers)
+            foreach (var procDef in _processes)
             {
-                if (providerId == entity.Id) continue;
-                if (usedProviders.Contains(providerId)) continue;
+                if (procDef.TargetKind != entity.Kind) continue;
                 if (goals.Count >= MaxGoals) break;
 
-                usedProviders.Add(providerId);
-                goals.Add(new EntityGoal(attribute, providerId, urgency * 0.7f));
+                var writesToAttr = false;
+                foreach (var write in procDef.Writes)
+                {
+                    if (write.Name == attribute) { writesToAttr = true; break; }
+                }
+
+                if (!writesToAttr) continue;
+
+                // Collect target refs from this process's contracts
+                var targetRefs = CollectTargetRefs(procDef);
+
+                // Find providers based on target refs
+                var providers = targetRefs.Count > 0
+                    ? FindTargetProviders(targetRefs, entity, worldState)
+                    : [entity.Id]; // No target refs → self is the context
+
+                foreach (var providerId in providers)
+                {
+                    if (goals.Count >= MaxGoals) break;
+                    var key = (attribute, providerId);
+                    if (usedProviders.Contains(key)) continue;
+                    usedProviders.Add(key);
+                    goals.Add(new EntityGoal(attribute, providerId, urgency));
+                }
             }
         }
 
         return goals;
+    }
+
+    private static List<AttributeRef> CollectTargetRefs(ProcessDefinition procDef)
+    {
+        var refs = new List<AttributeRef>();
+        foreach (var r in procDef.Reads)
+        {
+            if (r.Scope == RefScope.Target) refs.Add(r);
+        }
+
+        foreach (var w in procDef.Writes)
+        {
+            if (w.Scope == RefScope.Target) refs.Add(w);
+        }
+
+        return refs;
+    }
+
+    private static List<EntityId> FindTargetProviders(
+        List<AttributeRef> targetRefs, Entity consumer, IWorldState worldState)
+    {
+        foreach (var tRef in targetRefs)
+        {
+            if (!tRef.Kind.HasValue) continue;
+
+            var providers = GraphAttributeQuery.FindProviders(
+                AttributeRef.Self(tRef.Name, tRef.Kind.Value),
+                consumer, worldState, topN: 3);
+
+            var result = new List<EntityId>();
+            foreach (var (providerId, _) in providers)
+            {
+                if (providerId == consumer.Id) continue;
+                result.Add(providerId);
+            }
+
+            if (result.Count > 0) return result;
+        }
+
+        return [];
     }
 
     private List<EntityGoal> GenerateSubGoals(
@@ -127,7 +164,6 @@ public sealed class GoalGenerator
     {
         var subGoals = new List<EntityGoal>();
 
-        // Find processes that write to the parent goal's attribute
         foreach (var procDef in _processes)
         {
             if (procDef.TargetKind != entity.Kind) continue;
@@ -135,36 +171,21 @@ public sealed class GoalGenerator
             var writesToGoalAttr = false;
             foreach (var write in procDef.Writes)
             {
-                if (write.Name == parentGoal.Attribute)
-                {
-                    writesToGoalAttr = true;
-                    break;
-                }
+                if (write.Name == parentGoal.Attribute) { writesToGoalAttr = true; break; }
             }
 
             if (!writesToGoalAttr) continue;
 
-            // Build a temporary context with the goal's provider as target
             var context = new GoalCheckContext(entity, parentGoal.Provider, worldState);
-
-            // Check if precondition fails
             var result = procDef.Precondition.Evaluate(context);
-            if (result.Passed) continue; // No sub-goal needed
+            if (result.Passed) continue;
 
-            // Precondition fails — create sub-goals for blocking attributes
-            var blockingAttrs = result.BlockingAttributes;
-
-            foreach (var blockingAttr in blockingAttrs)
+            foreach (var blockingAttr in result.BlockingAttributes)
             {
-                // Check we don't already have a sub-goal for this
                 var alreadyExists = false;
                 foreach (var existing in subGoals)
                 {
-                    if (existing.BlockingAttribute == blockingAttr)
-                    {
-                        alreadyExists = true;
-                        break;
-                    }
+                    if (existing.BlockingAttribute == blockingAttr) { alreadyExists = true; break; }
                 }
 
                 if (!alreadyExists)
@@ -179,7 +200,6 @@ public sealed class GoalGenerator
         return subGoals;
     }
 
-    /// <summary>Minimal IMutationContext for precondition checking during goal generation.</summary>
     private sealed class GoalCheckContext : IMutationContext
     {
         private readonly Entity _entity;
@@ -200,17 +220,14 @@ public sealed class GoalGenerator
         public float GetPressure(string pressureName, EntityId scopeId) => 0f;
         public float GetAttribute(EntityId entityId, string attributeName) =>
             _worldState.Graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
-        public int CountEntitiesByKind(Kinds.EntityKind kind) =>
-            _worldState.Graph.GetEntitiesByKind(kind).Count;
+        public int CountEntitiesByKind(EntityKind kind) => _worldState.Graph.GetEntitiesByKind(kind).Count;
         public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) => null;
         public int? GetLastFiredTick() => null;
         public Entity? GetEntity(EntityId id) => _worldState.Graph.GetEntity(id);
         public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) => null;
-        public IReadOnlyCollection<EntityId> GetEntitiesByKind(Kinds.EntityKind kind) =>
-            _worldState.Graph.GetEntitiesByKind(kind);
+        public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) => _worldState.Graph.GetEntitiesByKind(kind);
         public float GetResource((int Q, int R) coordinates, Resources.ResourceType resourceType) => 0f;
-        public Entity CreateEntity(Kinds.EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) =>
-            throw new NotSupportedException();
+        public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) => throw new NotSupportedException();
         public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) { }
         public void ModifyAttribute(EntityId entityId, string attributeName, float delta) { }
         public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { }

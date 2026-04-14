@@ -63,6 +63,10 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Subtype(EntityKind kind) =>
         new(RefScope.Structural, "subtype", kind);
 
+    /// <summary>Attribute on the process's target entity</summary>
+    public static AttributeRef Target(string name, EntityKind kind) =>
+        new(RefScope.Target, name, kind);
+
     // --- Equality (for use in HashSet) ---
 
     public override string ToString() =>
@@ -106,4 +110,7 @@ public enum RefScope
 
     /// <summary>Structural property (coordinates, subtype, status).</summary>
     Structural,
+
+    /// <summary>Attribute on the process's resolved target entity.</summary>
+    Target,
 }

@@ -72,7 +72,8 @@ public static class TestDomain
             new ModifyTargetByVariableMutation("ideology", "dy", "y"),
         } };
         propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
-        propaganda.Writes.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        propaganda.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
+        propaganda.Writes.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
         processes.Add(propaganda);
 
         // Settlement: attract population — steal from target, requires fame advantage
@@ -99,9 +100,11 @@ public static class TestDomain
             new ModifyTargetByVariableMutation("population", "neg_stolen"),
         } };
         attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("fame", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
         attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        attract.Writes.Add(AttributeRef.Target("population", EntityKind.Settlement));
         processes.Add(attract);
 
         // TODO: NPC, Nation, Artifact, Region processes removed — rebuilding from ground up
@@ -129,7 +132,7 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
                 Attributes =
                 [
-                    new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f },
+                    new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
                     new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
                     new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f, DefaultVariance = 0.8f },
                     new() { Name = "ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,

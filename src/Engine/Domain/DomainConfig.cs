@@ -51,6 +51,10 @@ public sealed class AttributeConfig
     /// <summary>Variance on default value at initialization. 0 = exact, 0.5 = ±50%.</summary>
     public float DefaultVariance { get; init; }
 
+    /// <summary>Comfortable level for urgency calculation. Urgency = baseline / (baseline + value).
+    /// Higher baseline = slower urgency decay as value grows. 0 = use default formula.</summary>
+    public float Baseline { get; init; }
+
     /// <summary>Per-tick drift rate. Positive = increases each tick, negative = decreases.
     /// Zero (default) = no drift. e.g., hunger drifts +0.2/tick, condition drifts -0.01/tick.</summary>
     public float DriftRate { get; init; }
