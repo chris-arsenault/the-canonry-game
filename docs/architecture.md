@@ -35,24 +35,24 @@ RelationshipSystem      → Strength modifiers (proximity, culture, competing cl
 ResourceSystem          → Sustenance + gold production/consumption, population dynamics, intra-national flow
 ```
 
-**Phase 2 — Processes (utility AI, always available, one per entity per tick):**
+**Phase 2 — Goal-Driven Process Evaluation:**
 ```
-EntityEvaluator (Layer 2)
-  → For each active entity, score all viable processes via utility AI
-  → Weighted random selection from ALL viable (no top-N cap)
-  → Execute selected process's mutations
-  → Processes are data-defined in DomainConfig (ProcessDefinition with Role=Process)
-  → Multi-effect and cross-entity (NPC eat reduces hunger AND settlement food)
+EntityEvaluator
+  → Regenerate goals (every 10 ticks or on sub-goal completion)
+  → Select goal (weighted random by urgency)
+  → Find serving processes (writes to goal's target attribute)
+  → Filter by cooldowns and preconditions (PreconditionResult with diagnostics)
+  → Weighted random selection, execute mutations
+  → Goal provider set as target on mutation context
+  → Cooldowns applied with ±25% jitter
+  → If no viable process for selected goal, fall through to next goal
 ```
 
-**Phase 3 — Decisions (utility AI, card-gated, one per entity per tick):**
+**Phase 3 — Decisions (card-gated, separate from processes):**
 ```
-EntityEvaluator (Layer 3)
-  → For each active entity, score all viable decisions (card-gated only)
-  → Weighted random selection, same as processes
-  → Execute selected decision's mutations
-  → Decisions are data-defined (ProcessDefinition with Role=Decision, EnablingCardId)
-  → Consume population. Produce event log entries.
+EntityEvaluator
+  → Score viable decisions (card-gated only)
+  → Weighted random selection, execute
 ```
 
 **Phase 4 — Bridge (every 5 ticks):**
@@ -93,19 +93,15 @@ WorldGraph (QuikGraph BidirectionalGraph)
   ├── Secondary index: Dictionary<EntityKind, HashSet<EntityId>>
   └── Historical: culled relationships retained with end dates
 
-AttributeStore
-  ├── Per-entity scalars: (EntityId, name) → float, clamped to min/max
-  └── Rate-of-change ring buffer for trend display
+Entity-Owned Attributes (IEntityProperty)
+  ├── ScalarValue: base + tick effects + static effects, trend tracking
+  ├── SemanticPlane: 2D (X,Y) with per-component effects, label reduction, distance
+  └── AttributeSet: Dictionary<string, IEntityProperty> per entity
 
-EffectSystem (PF2e stacking)
-  ├── Same-type: take best bonus / worst penalty
-  ├── Cross-type: always stack
-  └── Indexed by target AND source for auto-cleanup
-
-SemanticPlaneStore
-  ├── 2D continuous positions per entity per plane
-  ├── 3x3 reducer → 9 categorical labels
-  └── Euclidean distance for disposition computation
+Effect Composition
+  ├── Tick effects: base += sum(deltas) * product(multipliers) each tick
+  ├── Static effects: effective = base composed on read
+  └── Effects carry source ID for cleanup when source is removed
 
 ResourceLayer (map-graph properties)
   ├── Per-cell: production, consumption, stockpile
@@ -122,40 +118,40 @@ DomainConfig (data-defined, loaded at startup)
   └── Cultures: CultureConfig
 ```
 
-## Three-Layer Behavioral Model
+## Goal-Driven Behavioral Model
 
 ```
-Per entity per tick:
+Goal System:
+  Entity maintains max 3 primary goals + sub-goals
+  Goals: (attribute, provider, urgency) — what to change, who to act on
+  Generated from attribute deficits + process wiring contracts
+  Provider found by querying graph for entities matching Target-scoped refs
+  Sub-goals generated from blocked precondition results (BlockingAttributes)
+  Regenerated every 10 ticks or when sub-goal fires
 
-Layer 1: PHYSICS (automatic)
-  LifecycleSystem, RelationshipSystem, ResourceSystem
-  Not scored, not selected. Runs unconditionally.
-  Produces: entropy, drift, flow.
+Process Evaluation (per entity per tick):
+  1. Select goal (weighted random by urgency)
+  2. Find serving processes (writes to goal's target attribute)
+  3. Filter by cooldowns + preconditions (PreconditionResult with diagnostics)
+  4. Weighted random select, execute with goal's provider as target
+  5. Fall through to next goal if no viable process
 
-Layer 2: PROCESSES (utility AI, always available)
-  Data-defined ProcessDefinitions interpreted by DataDrivenProcess.
-  One selected per entity per tick via weighted random.
-  ALL entity kinds participate. Cross-entity mutations.
-  Produces: conditions, tendencies, incremental changes.
-  Does NOT produce outcomes.
-
-Layer 3: DECISIONS (utility AI, card-gated)
-  Data-defined ProcessDefinitions interpreted by DataDrivenDecision.
-  One selected per entity per tick. Only when enabling card is active.
-  ALL entity kinds participate. Consume population.
-  Produces: new relationships, entities, major attribute shifts.
-  Nearly always produces outcomes.
-
-ProcessDefinition (shared DSL for processes and decisions):
+ProcessDefinition:
   ├── Id, Name, Role (Process | Decision), TargetKind
-  ├── EnablingCardId (null for processes, card ID for decisions)
-  ├── Precondition: composable AND/OR tree
-  ├── ScoreExpression: data-defined formula with variance
-  ├── Mutations: ordered list with variance
-  │     ModifySelfAttribute, ModifyRelatedAttribute (cross-entity),
-  │     CreateEntity, CreateRelationship, ModifyPressure, SetTag
-  ├── Reads: HashSet<AttributeRef> (wiring contract)
-  └── Writes: HashSet<AttributeRef> (wiring contract)
+  ├── Precondition: composable tree → PreconditionResult (passed, diagnostic, blockers)
+  ├── ScoreExpression: IExpression evaluated against entity state
+  ├── ProviderScoreExpression: IExpression evaluated per candidate provider (#82)
+  ├── Mutations: ordered list (CalculateMutation, ModifySelf/Target, variable chaining)
+  ├── Cooldown + EntityCooldown (with ±25% jitter)
+  ├── Reads: HashSet<AttributeRef> with Self/Target scope
+  └── Writes: HashSet<AttributeRef> with Self/Target scope
+
+Expression System (IExpression):
+  ├── Attribute paths: self.hunger, target.ideology.x
+  ├── Arithmetic: +, -, *, /
+  ├── Built-ins: distance, semantic_distance, min, max, clamp, abs, jitter
+  ├── Context variables: CalculateMutation stores, subsequent mutations read
+  └── Used by: scoring, provider scoring, calculate mutations
 ```
 
 ## Entity Model
@@ -237,8 +233,8 @@ SaveManager (MessagePack binary)
 ## Key Architectural Principles
 
 1. **No domain mixing** — engine code never references domain content (no penguins, no orcas, no soup). Engine knows entity kinds, attributes, relationships, cards, and pressure. Domain defines subtypes, processes, cards, naming rules.
-2. **Altitude separation** — three layers (physics → processes → decisions) plus pressure bridge to card execution. One-directional within a tick.
-3. **Processes, decisions, and cards are data** — DSL-defined, mutable at runtime, interpreted by executors. One data language, three uses.
+2. **Uniform evaluation** — all entities go through the same goal/process evaluator. No per-kind code. Entity kinds differ only in registered processes and attributes.
+3. **Processes, decisions, and cards are data** — DSL-defined, mutable at runtime, interpreted by executors. Provider scoring is process-defined, not engine-hardcoded.
 4. **QuikGraph, not homegrown** — graph traversal via library, not custom implementation.
 5. **Everything serializable** — every system supports MessagePack round-trip.
 6. **Everything visible** — no hidden state, all attributes/effects inspectable. No hidden storyteller.
@@ -261,29 +257,32 @@ This refactor is tracked as #32. The current concrete implementation works for P
 ```
 src/
   Engine/
-    Graph/          WorldGraph, Entity, Relationship, EntityId, EntityStatus, GraphEvents
+    Graph/          WorldGraph, Entity, EntityGoal, Relationship, EntityId
     Kinds/          EntityKind, KindConfig, KindRegistry, RelationshipConfig
-    Attributes/     AttributeStore, SemanticPlane, EffectSystem
+    Attributes/     IEntityProperty, ScalarValue, SemanticPlane, SemanticPlaneDefinition,
+                    AttributeEffect, AttributeSet, EffectSystem
+    Processes/      ProcessDefinition, DataDrivenProcess, DataDrivenDecision,
+                    IMutationContext, IPrecondition, PreconditionResult, IMutation,
+                    IExpression, Expression, Variance
+    Behaviors/      IProcess, IDecision, ActivityRegistry, EntityEvaluator,
+                    GoalGenerator, GraphAttributeQuery, IWorldState
     Map/            HexCoord, HexCell, HexGrid, TerrainType, Region, SpatialIndex, TestMapBuilder
     Clock/          TickClock, TickPhase, SimulationSpeed
-    Behaviors/      IProcess, IDecision, ActivityRegistry, EntityEvaluator, IWorldState
     Relationships/  StrengthModifier, DefaultModifiers, DispositionCalculator, RelationshipSystem
-    Lifecycle/      AgingDrain, LifecycleSystem
+    Lifecycle/      AgingDrain, LifecycleSystem, MaintenanceSystem
     Resources/      ResourceType, ResourceLayer, ResourceSystem
-    Pressure/       ContributingFactor, PressureDefinition, PressureSystem, DefaultPressures
-    Cards/          ProcessDefinition, DataDrivenProcess, DataDrivenDecision,
-                    IPrecondition, IScoreExpression, IMutation, ICardContext,
-                    CardDefinition, CardInstance, CardExecutor, Variance
+    Pressure/       ContributingFactor, PressureDefinition, PressureSystem
+    Cards/          CardDefinition, CardInstance, CardExecutor
     Tableau/        TableauManager
-    Wiring/         AttributeRef, WiringContract, WiringValidator
+    Wiring/         AttributeRef (Self/Target scope), WiringContract, WiringValidator
     Domain/         DomainConfig, DomainLoader, TestDomain
-    Messages/       MessageBus, SimulationMessage (ProcessExecuted, DecisionExecuted, etc.)
+    Messages/       MessageBus, SimulationMessage
     Events/         GameEventArgs, EventLog
     Degeneracy/     IDegeneracyDetector, DefaultDetectors, DetectorRegistry
     Persistence/    SaveState, SaveManager
     Simulation/     SimulationRunner, WorldState
   UI/
-    Main.cs, HexMapRenderer.cs, EntityDetailPanel.cs
+    Main.cs, HexMapRenderer.cs, EntityBrowser.cs, EntityCard.cs, HealthGraphPanel.cs
 tests/
-  Engine.Tests/     388 tests mirroring src/Engine structure
+  Engine.Tests/     384 tests mirroring src/Engine structure
 ```

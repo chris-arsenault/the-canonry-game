@@ -26,30 +26,22 @@ A system can be:
 - Replaced with an alternative implementation
 - Disabled for debugging without breaking the simulation
 
-### 3. Altitude Separation Is Structural
+### 3. Uniform Evaluation — No Per-Kind Code
 
-The simulation operates in three layers per entity per tick, plus card execution above:
+All entities go through the same evaluator. The engine has zero per-kind behavioral code. Entity kinds differ only in which processes are registered for them and what attributes they have. The evaluator selects goals, finds serving processes, and executes mutations identically for settlements, NPCs, nations, artifacts, and regions.
 
-- **Layer 1 - Physics** (automatic): lifecycle drain, relationship drift, resource flow. Dedicated engine systems. Not scored, not selected.
-- **Layer 2 - Processes** (utility AI, always available): mundane activities. One selected per entity per tick. ALL entity kinds participate. Multi-effect and cross-entity.
-- **Layer 3 - Decisions** (utility AI, card-gated): significant actions. One selected per entity per tick. Only when enabling Action card is in tableau. Consume population.
-- **Pressure** bridges layers 1-3 to card execution: smoothed aggregates of low-altitude state.
-- **Card execution** (generators, systems): reads pressure and entity state, writes to entity graph.
+Physics (lifecycle drain, maintenance) runs unconditionally. Processes are goal-driven with sub-goal generation from blocked preconditions. Decisions are card-gated. Data flow is one-directional within a tick.
 
-Data flow is one-directional within a tick. No system reaches backward. Physics does NOT read pressure or card state. Pressure does NOT write to entity attributes.
+### 4. Everything Is Data and Process-Defined
 
-### 4. Processes, Decisions, and Cards Are Data, Not Code
-
-Process definitions, decision definitions, and card definitions are all expressed in the same data-driven DSL: preconditions (AND/OR tree), scoring expressions (for utility AI), mutations (ordered effects), and wiring contracts (declared reads/writes). NOT as hard-coded classes or functions. The engine interprets these data structures at runtime.
+Processes, decisions, and cards are data-driven: preconditions (returning PreconditionResult with diagnostics and blocking attributes), IExpression scoring, mutations with context variables, and wiring contracts with Self/Target scope. Provider scoring is process-defined via expressions — the engine does NOT hardcode distance, attribute comparisons, or any other scoring metric.
 
 This enables:
-- Domain-defined processes, decisions, and cards without engine changes
-- Runtime card modification (Balatro-style enhancements)
-- Wiring validation at startup (does the data produce a coherent world?)
-- Serialization of all definitions for save/load
+- Domain-defined processes without engine changes
+- Goals and sub-goals derived from attribute deficits and wiring contracts
+- Provider scoring customized per process
+- Wiring validation at startup
 - Changing a process = changing data in the domain config, not recompiling
-
-The only code is the interpreter (DataDrivenProcess, DataDrivenDecision, CardExecutor). The behaviors themselves are data.
 
 ### 5. Entity Kinds Are Engine, Subtypes Are Domain
 
