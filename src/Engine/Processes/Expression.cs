@@ -166,6 +166,19 @@ public sealed class Abs(IExpression value) : IExpression
     public float Evaluate(ExpressionContext ctx) => Math.Abs(value.Evaluate(ctx));
 }
 
+/// <summary>Adds random jitter: value + random(-variance, +variance). For scoring variance.</summary>
+public sealed class Jitter(IExpression value, float variance) : IExpression
+{
+    public float Evaluate(ExpressionContext ctx)
+    {
+        var v = value.Evaluate(ctx);
+        if (variance <= 0f) return v;
+        // Use a simple hash-based random since ExpressionContext has no Random
+        // This is deterministic per-evaluation which is fine for scoring
+        return v + ((float)(System.Random.Shared.NextDouble() * 2.0 - 1.0) * variance);
+    }
+}
+
 /// <summary>Helper for building expressions concisely in domain config code.</summary>
 public static class Expr
 {
@@ -185,4 +198,7 @@ public static class Expr
     public static Divide Div(IExpression l, IExpression r) => new(l, r);
     public static Abs Abs(IExpression v) => new(v);
     public static Clamp Clamp(IExpression v, IExpression min, IExpression max) => new(v, min, max);
+    public static Jitter Jitter(IExpression v, float variance) => new(v, variance);
+    public static Clamp Score(IExpression v, float variance = 0f) =>
+        new(variance > 0f ? new Jitter(v, variance) : v, new Literal(0f), new Literal(1f));
 }

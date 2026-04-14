@@ -31,7 +31,7 @@ public class NeedResolverTests
     private static List<ProcessDefinition> CreateNpcProcesses()
     {
         var eat = new ProcessDefinition("npc_eat", "Eat",
-            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.5f));
+            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), Expr.Score(Expr.Lit(0.5f)));
         eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
         eat.Reads.Add(AttributeRef.Resource("sustenance"));
         eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
@@ -88,7 +88,7 @@ public class NeedResolverTests
     {
         var kinds = CreateNpcKindConfig();
         var rest = new ProcessDefinition("npc_rest", "Rest",
-            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.5f));
+            DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), Expr.Score(Expr.Lit(0.5f)));
         rest.Reads.Add(AttributeRef.Self("hp", EntityKind.Npc));
         rest.Writes.Add(AttributeRef.Self("hp", EntityKind.Npc));
 

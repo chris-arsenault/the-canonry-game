@@ -36,7 +36,7 @@ public sealed class ProcessDefinition
     public IPrecondition Precondition { get; set; }
 
     /// <summary>Scoring expression for utility AI. Higher = more likely selected.</summary>
-    public IScoreExpression ScoreExpression { get; set; }
+    public IExpression ScoreExpression { get; set; }
 
     /// <summary>Mutations applied when this process/decision executes.</summary>
     public System.Collections.ObjectModel.Collection<IMutation> Mutations { get; } = [];
@@ -57,7 +57,7 @@ public sealed class ProcessDefinition
         DefinitionRole role,
         EntityKind targetKind,
         IPrecondition precondition,
-        IScoreExpression scoreExpression)
+        IExpression scoreExpression)
     {
         Id = id;
         Name = name;

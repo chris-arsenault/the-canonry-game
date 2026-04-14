@@ -225,7 +225,10 @@ public partial class EntityCard : PanelContainer
                     effectInfo = $" [color=gray]({string.Join(", ", parts)})[/color]";
             }
 
-            sb.AppendLine($"  {attr.Name}: [b]{attr.Value:F1}[/b]{effectInfo}");
+            if (attr.Is2D)
+                sb.AppendLine($"  {attr.Name}: [b]({attr.X:F2}, {attr.Y:F2})[/b]{effectInfo}");
+            else
+                sb.AppendLine($"  {attr.Name}: [b]{attr.Value:F1}[/b]{effectInfo}");
         }
 
         sb.AppendLine();

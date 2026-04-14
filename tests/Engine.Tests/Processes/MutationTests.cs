@@ -125,29 +125,29 @@ public class MutationTests
     }
 
     [Fact]
-    public void ConstantScore_WithVariance_ProducesDistinctScores()
+    public void Expression_WithJitter_ProducesDistinctScores()
     {
-        var score = new ConstantScore(0.5f, variance: 0.2f);
+        var score = Expr.Score(Expr.Lit(0.5f), 0.2f);
         var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
-        var ctx = new TrackingMutationContext();
+        var exprCtx = new ExpressionContext(entity);
         var scores = new HashSet<float>();
 
         for (var i = 0; i < 20; i++)
         {
-            scores.Add(score.Evaluate(entity, ctx));
+            scores.Add(score.Evaluate(exprCtx));
         }
 
         Assert.True(scores.Count > 1, "Score variance should produce distinct scores");
     }
 
     [Fact]
-    public void ConstantScore_ZeroVariance_IsExact()
+    public void Expression_ZeroVariance_IsExact()
     {
-        var score = new ConstantScore(0.5f, variance: 0f);
+        var score = Expr.Score(Expr.Lit(0.5f), 0f);
         var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
-        var ctx = new TrackingMutationContext();
+        var exprCtx = new ExpressionContext(entity);
 
-        Assert.Equal(0.5f, score.Evaluate(entity, ctx));
+        Assert.Equal(0.5f, score.Evaluate(exprCtx));
     }
 
     [Fact]

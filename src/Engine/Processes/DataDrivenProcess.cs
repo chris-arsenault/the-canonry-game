@@ -30,8 +30,8 @@ public sealed class DataDrivenProcess : IProcess
 
     public float Score(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessMutationContext(entity, worldState);
-        return _definition.ScoreExpression.Evaluate(entity, context);
+        var exprCtx = new ExpressionContext(entity);
+        return _definition.ScoreExpression.Evaluate(exprCtx);
     }
 
     public SimulationMessage Execute(Entity entity, IWorldState worldState)
@@ -76,8 +76,8 @@ public sealed class DataDrivenDecision : IDecision
 
     public float Score(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessMutationContext(entity, worldState);
-        return _definition.ScoreExpression.Evaluate(entity, context);
+        var exprCtx = new ExpressionContext(entity);
+        return _definition.ScoreExpression.Evaluate(exprCtx);
     }
 
     public SimulationMessage Execute(Entity entity, IWorldState worldState)

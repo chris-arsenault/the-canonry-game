@@ -141,7 +141,9 @@ public static class DomainLoader
             {
                 if (!entity.Attributes.Has(attr.Name))
                 {
-                    var instance = new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.Default);
+                    var instance = attr.Is2D
+                        ? new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.DefaultX, attr.DefaultY)
+                        : new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.Default);
 
                     // Register drift as a tick effect
                     if (attr.DriftRate != 0f)

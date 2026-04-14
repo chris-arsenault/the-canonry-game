@@ -35,7 +35,7 @@ public static class TestDomain
         // TODO: production should scale with terrain fertility (#75)
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
             DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(),
-            new ConstantScore(0.6f, variance: 0.1f))
+            Expr.Score(Expr.Lit(0.6f), 0.1f))
         { Mutations = { new ModifySelfAttributeMutation("sustenance", 1f, variance: 0.2f) } };
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(stockpile);
@@ -44,7 +44,7 @@ public static class TestDomain
         var grow = new ProcessDefinition("settlement_grow", "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
             new SelfAttributeThreshold("sustenance", min: 5f, max: null),
-            new AttributeRatioScore("sustenance", 100f, variance: 0.1f))
+            Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(100f)), 0.1f))
         { Mutations = {
             new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
             new ModifySelfAttributeMutation("sustenance", -5f, variance: 0.2f),
@@ -56,14 +56,14 @@ public static class TestDomain
 
         // Nation: stability → cohesion (feedback: cohesion → stability)
         var nationTick = new ProcessDefinition("nation_tick", "Nation Tick",
-            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), new ConstantScore(0.5f, variance: 0.15f))
+            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), Expr.Score(Expr.Lit(0.5f), 0.15f))
         { Mutations = { new ModifySelfAttributeMutation("cohesion", -0.01f, variance: 0.3f) } };
         nationTick.Reads.Add(AttributeRef.Self("stability", EntityKind.Nation));
         nationTick.Writes.Add(AttributeRef.Self("cohesion", EntityKind.Nation));
         processes.Add(nationTick);
 
         var nationFeedback = new ProcessDefinition("nation_feedback", "Nation Feedback",
-            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), new ConstantScore(0.4f, variance: 0.1f))
+            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), Expr.Score(Expr.Lit(0.4f), 0.1f))
         { Mutations = { new ModifySelfAttributeMutation("stability", 0.005f, variance: 0.25f) } };
         nationFeedback.Reads.Add(AttributeRef.Self("cohesion", EntityKind.Nation));
         nationFeedback.Writes.Add(AttributeRef.Self("stability", EntityKind.Nation));
@@ -75,7 +75,7 @@ public static class TestDomain
         var npcEat = new ProcessDefinition("npc_eat", "Eat",
             DefinitionRole.Process, EntityKind.Npc,
             new SelfAttributeThreshold("hunger", min: 1f, max: null),
-            new AttributeRatioScore("hunger", 100f, variance: 0.1f))
+            Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(100f)), 0.1f))
         { Mutations = {
             new ModifyTargetAttributeMutation("sustenance", -5f, variance: 0.3f),
             new ModifySelfAttributeMutation("hunger", -5f, variance: 0.3f),
@@ -88,14 +88,14 @@ public static class TestDomain
 
         // Artifact: resonance ↔ condition
         var artifactTick = new ProcessDefinition("artifact_tick", "Artifact Tick",
-            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), new ConstantScore(0.5f, variance: 0.1f))
+            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), Expr.Score(Expr.Lit(0.5f), 0.1f))
         { Mutations = { new ModifySelfAttributeMutation("mystical_resonance", 0.05f, variance: 0.2f) } };
         artifactTick.Reads.Add(AttributeRef.Self("condition", EntityKind.Artifact));
         artifactTick.Writes.Add(AttributeRef.Self("mystical_resonance", EntityKind.Artifact));
         processes.Add(artifactTick);
 
         var artifactFeedback = new ProcessDefinition("artifact_feedback", "Artifact Feedback",
-            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), new ConstantScore(0.4f, variance: 0.1f))
+            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), Expr.Score(Expr.Lit(0.4f), 0.1f))
         { Mutations = { new ModifySelfAttributeMutation("condition", 0.01f, variance: 0.2f) } };
         artifactFeedback.Reads.Add(AttributeRef.Self("mystical_resonance", EntityKind.Artifact));
         artifactFeedback.Writes.Add(AttributeRef.Self("condition", EntityKind.Artifact));
@@ -103,14 +103,14 @@ public static class TestDomain
 
         // Region: fertility ↔ habitability
         var regionTick = new ProcessDefinition("region_tick", "Region Tick",
-            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), new ConstantScore(0.3f, variance: 0.1f))
+            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), Expr.Score(Expr.Lit(0.3f), 0.1f))
         { Mutations = { new ModifySelfAttributeMutation("habitability", 0.001f, variance: 0.2f) } };
         regionTick.Reads.Add(AttributeRef.Self("fertility", EntityKind.Region));
         regionTick.Writes.Add(AttributeRef.Self("habitability", EntityKind.Region));
         processes.Add(regionTick);
 
         var regionFeedback = new ProcessDefinition("region_feedback", "Region Feedback",
-            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), new ConstantScore(0.2f, variance: 0.05f))
+            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), Expr.Score(Expr.Lit(0.2f), 0.05f))
         { Mutations = { new ModifySelfAttributeMutation("fertility", 0.0001f, variance: 0.2f) } };
         regionFeedback.Reads.Add(AttributeRef.Self("habitability", EntityKind.Region));
         regionFeedback.Writes.Add(AttributeRef.Self("fertility", EntityKind.Region));
@@ -142,7 +142,7 @@ public static class TestDomain
                     new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f },
                     new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
                     new() { Name = "fame", Min = 0f, Max = 1000f, Default = 0f },
-                    new() { Name = "ideology", Min = -100f, Max = 100f, Default = 0f },
+                    new() { Name = "ideology", Min = 0f, Max = 1f, Is2D = true, DefaultX = 0.5f, DefaultY = 0.5f },
                 ],
                 HealthAttribute = "population",
             },
