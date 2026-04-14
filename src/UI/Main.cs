@@ -123,7 +123,7 @@ public partial class Main : Node2D
         // Initial browser population
         _browser.Refresh();
 
-        GD.Print("Controls: Space=pause/resume, Right=step 1 tick, 1/2/3=speed, WASD=pan, scroll=zoom, click=select");
+        GD.Print("Controls: Space=pause/resume, Right=step 1 tick, 1/2/3=speed, R=reset, WASD=pan, scroll=zoom, click=select");
     }
 
     public override void _Process(double delta)
@@ -210,6 +210,9 @@ public partial class Main : Node2D
                 case Key.Right:
                     _stepOneTick = true;
                     break;
+                case Key.R:
+                    ResetSimulation();
+                    break;
             }
         }
 
@@ -231,6 +234,39 @@ public partial class Main : Node2D
                 HandleMapClick(mouse.Position);
             }
         }
+    }
+
+    private void ResetSimulation()
+    {
+        if (_cardLayer is not null)
+        {
+            foreach (var (_, card) in _openCards)
+            {
+                card.QueueFree();
+            }
+
+            _openCards.Clear();
+        }
+
+        _sim = SimulationRunner.CreateFromTestMap();
+        _sim.Clock.Speed = SimulationSpeed.Paused;
+        _tickAccumulator = 0;
+
+        _sim.EventLog.EventEmitted += OnEventEmitted;
+        _sim.Lifecycle.EntityDied += (_, e) =>
+        {
+            _sim.EventLog.Emit(e.DeathTick, Engine.Events.EventType.Lifecycle,
+                $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
+        };
+
+        _mapRenderer?.Initialize(_sim);
+        _mapRenderer?.Refresh();
+        _browser?.Initialize(_sim);
+        _browser?.Refresh();
+
+        if (_eventLogLabel is not null) _eventLogLabel.Text = "";
+
+        GD.Print("Simulation reset");
     }
 
     private void OnBrowserEntitySelected(int entityIdValue)
