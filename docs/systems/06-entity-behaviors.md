@@ -1,196 +1,141 @@
 # System 6: Entity Behaviors
 
-Per-kind low-altitude simulation. The always-on physics of how entities behave.
+The process and goal system that drives all entity activity.
 
 ---
 
 ## Purpose
 
-Every entity kind has inherent behaviors that run each tick. These produce the CONDITIONS that mid-altitude cards respond to. Entity behaviors are the low-altitude simulation -- they modify attributes, shift relationships, create pressure, and drive bulk flow. They do not produce outcomes (that's card territory).
+Every entity participates in the same evaluation system. There is no per-kind behavioral code. The domain defines processes as data. The engine evaluates goals, selects processes, and executes mutations. Entity kinds differ only in which processes are registered for them and what attributes they have.
 
 ---
 
-## Three-Layer Behavioral Model
+## Goal System
 
-Entity evaluation runs three layers per entity per tick, in strict order. Each layer has a distinct role and different rules about availability, selection, and effect magnitude.
+Entities maintain persistent goals derived from their attribute deficits. Goals drive process selection. Sub-goals are generated from blocked preconditions.
 
-### Layer 1: Physics (Automatic, Unconditional)
+### Goal Structure
 
-Physics runs for every active entity every tick. It is not selected, not scored, not skipped. These are the systems that run because they must: lifecycle drain, relationship drift, resource production and consumption, population flow.
+A goal is: change attribute X, acting on provider entity Y. The provider is any entity on the graph that a process can operate on.
 
-Physics is implemented by dedicated engine systems (LifecycleSystem, RelationshipSystem, ResourceSystem), not by the process/decision evaluation pipeline. Physics sets conditions that processes and decisions respond to.
+- Goals are regenerated every N ticks or when a sub-goal's process fires.
+- Max 3 primary goals per entity, plus sub-goals.
+- Goals compete via urgency-weighted random selection.
 
-### Layer 2: Processes (Utility AI, Always Available)
+### Goal Generation
 
-Processes are the mundane, granular, always-on activities that entities perform. They are NOT card-gated. They run because that's what these things DO.
+1. Compute attribute deficits (urgency from baseline curve, not from max)
+2. For each deficit, find processes that write to that attribute
+3. For each process, examine wiring contracts for Target-scoped refs
+4. Query graph for entities matching target refs → providers
+5. Score providers using the process's provider score expression
+6. Create goals: (attribute, provider, urgency * provider_weight)
 
-- Selected via utility AI: all viable processes are scored, one is picked via weighted random selection from ALL viable candidates (no top-N cap).
-- One process fires per entity per tick.
-- ALL entity kinds participate. Not just "agency" kinds -- settlements harvest, artifacts degrade, regions shift. Every entity kind has a process menu.
-- Processes are **multi-effect and cross-entity**. An NPC eating reduces its own hunger AND consumes sustenance from the settlement it is located at. A settlement harvesting reads regional fertility AND writes to its own sustenance stockpile. Cross-kind interaction through the entity graph is fundamental, not optional.
-- Processes create variance: the same entity in the same conditions might eat OR move OR rest depending on the weighted random roll and the score jitter.
+### Sub-Goal Generation
 
-Processes produce tendencies and incremental changes. They do NOT produce outcomes. Border tension goes up through processes -- what that tension MEANS (war, diplomacy, isolation) is decided by decisions, which are card territory.
+For each goal, evaluate serving processes' preconditions against the goal's provider. If a precondition fails, its `PreconditionResult` reports blocking attributes. Create sub-goals for each blocking attribute. The provider carries through — sub-goals target the same provider as their parent.
 
-### Layer 3: Decisions (Utility AI, Card-Gated)
-
-Decisions are the significant, world-changing actions that only exist when the player has placed the enabling card in the tableau. They are the pressure release valves the player chooses to install.
-
-- Selected via utility AI: same weighted random as processes, evaluated separately.
-- One decision fires per entity per tick (independent of the process that fired).
-- ALL entity kinds participate. A settlement can "expand borders" if the card exists. An artifact can "bond with wielder" if the card exists. Non-sentient objects take actions in 4X games.
-- Card-gated: if the enabling Action card is not in the tableau, the decision does not exist. Removing the card removes the possibility.
-- Decisions nearly always produce new relationships, new entities, or major attribute shifts. They are discrete, significant events.
-- Decisions consume population (the universal action currency). Population is finite, forcing the player to triage what the world spends its people on.
-- Decision execution emits typed messages to the pub/sub bus. These become event log entries visible to the player.
-
-A world without the "Declare War" card is a world where war doesn't exist as a concept, and military tension has no outlet. A world without "Cultural Exchange" is a world where cultural friction between nations sits unresolved. Omission is a choice.
+Example: attract(Frosthaven) fails because ideology distance > threshold. Blocking attribute: "ideology." Sub-goal: converge ideology with Frosthaven. Propaganda serves this sub-goal.
 
 ---
 
-## Data-Driven Definition
+## Process Evaluation (Per Tick)
 
-Processes and decisions are defined as DATA, not code. They use the same DSL as cards:
+1. Check entity-wide cooldown
+2. Try goals in urgency-weighted order until one has a viable process
+3. For the selected goal, find serving processes (writes to goal's target attribute)
+4. Filter by per-process cooldowns and preconditions
+5. Score viable processes, weighted random select
+6. Set goal's provider as target on mutation context
+7. Execute winning process's mutations
+8. Apply cooldowns with jitter
 
-- **Preconditions**: composable AND/OR tree of checks (attribute thresholds, pressure thresholds, relationship existence, cooldowns, entity counts)
-- **Scoring expression**: data-defined formula for utility AI (`attribute("hunger") / 100`, `constant(0.5)`, weighted sums). Scores include variance (jitter) to prevent deterministic selection.
-- **Mutations**: ordered list of effects (modify self attribute, modify related entity attribute, create relationship, modify pressure, etc.). Mutations include variance (multiplicative jitter on deltas).
-- **Wiring contracts**: declared Reads and Writes as structured AttributeRef values. The WiringValidator checks at startup that all processes form coherent feedback loops with no dead-end or orphan attributes.
-
-A ProcessDefinition with `Role = Process` is always available. A ProcessDefinition with `Role = Decision` requires an `EnablingCardId` referencing an active card in the tableau. The engine interprets both identically -- the only difference is availability gating.
-
-This means:
-- No C# process classes. Processes are data in the DomainConfig.
-- Changing a process = changing data, not recompiling.
-- The engine tests verify interpretation, not specific content.
-- The domain defines all processes. A new domain can define entirely new processes without engine changes.
+No branching on entity kind, location, or whether the process operates on the entity itself or another entity. The process's mutations determine what gets modified. The goal's provider determines the target context. The engine is agnostic.
 
 ---
 
-## Cross-Kind Interaction
+## Process Definition
 
-Cross-kind interaction is what makes the simulation feel like a world instead of five independent counters. Processes interact across entity kinds through the entity graph:
+Processes are data. Each process declares:
 
-- **Relationship-resolved reads and writes**: A mutation can follow a named relationship to find a target entity and read or modify its attributes. An NPC's "eat" process follows its `located_at` relationship to the settlement, reads the settlement's sustenance, and modifies both the settlement's sustenance (down) and its own hunger (down).
-- **Attribute effects (PF2e typed bonus system)**: Relationships create ongoing attribute modifiers on related entities. Effects are typed (political, cultural, artifact, environmental). Same-type effects don't stack (take best bonus / worst penalty). Cross-type effects always stack. Every effect carries source metadata. Effective attribute = base + sum(filtered effects).
-- **Goal tags (message-passing)**: Entities can set goal tags on other entities or locations. These are signals that other entities perceive and respond to during their own process evaluation. A nation sets a strategic goal on a frontier region; NPCs aligned with that nation weigh it during movement scoring.
+- **Preconditions**: composable tree returning `PreconditionResult` with diagnostics and blocking attributes
+- **Scoring expression**: IExpression evaluated against entity state
+- **Provider score expression**: IExpression evaluated per candidate provider to weight goal urgency
+- **Mutations**: ordered list of effects using context variables and attribute paths
+- **Wiring contracts**: Self-scoped and Target-scoped AttributeRefs declaring what the process reads and writes
+- **Cooldowns**: per-process and per-entity, with jitter
 
-The engine provides generic cross-kind mutation primitives. The domain composes them into specific behaviors like "eat" or "harvest."
+### Wiring Contracts and Target Scope
 
----
+Wiring contracts declare whether a process operates on the entity itself (Self scope) or on another entity (Target scope). This is the ONLY distinction the engine makes — it is data on the process, not code in the engine.
 
-## Per-Kind Behavioral Descriptions
+- `Self.population` — reads/writes the entity's own population
+- `Target.population` — reads/writes the target provider's population
 
-These describe WHAT each kind does, not HOW the decision is made.
+Processes with Target-scoped refs trigger provider search during goal generation. Processes with only Self-scoped refs use the entity itself as the context. No branching in engine code — the contracts declare the truth.
 
-### Nations
+### Provider Scoring
 
-The primary macro-level entities. Aggregate behavioral tendencies modeled through bulk flow and attribute dynamics -- NOT anthropomorphized.
-- Border tension computed from proximity to neighbors, relative military strength, relationship values
-- Internal resource flow between controlled settlements
-- Population pressure driving frontier expansion tendency
-- Consolidation/fragmentation pressure from size, cultural diversity, administrative distance
-- Ideological drift based on internal faction composition and external cultural influence
-- Strategic goal-setting via goal tags on locations and rivals
+Each process that has Target-scoped refs declares how to score candidate providers via an IExpression. The expression evaluates with the candidate as `target`, giving access to all its attributes and semantic plane data. Provider weight modulates goal urgency.
 
-### Cultural Dynamics (attribute-driven)
+Examples:
+- Attract: `(self.fame - target.fame) * (1 - semantic_distance(ideology))`
+- Propaganda: `semantic_distance(ideology)` (further ideology = more to gain)
 
-Culture is an ATTRIBUTE, not an entity kind. Cultural dynamics are computed from the cultural attributes of settlements, nations, and NPCs:
-- Cultural friction: entities of different cultures in proximity create friction pressure, feeding into the pressure system
-- Cultural influence: settlements with large populations project their culture's influence onto neighboring settlements
-- Culture itself is static (doesn't spread, merge, or fragment). Nations and NPCs of different cultures interact, creating dynamics enacted by nations and NPCs, not by culture itself.
-
-### Settlements
-
-The foundational economic unit. Growth and decline dynamics.
-- Resource production from regional terrain, population, and development level
-- Resource consumption by population (sustenance consumed, gold consumed)
-- Population attraction when prosperous, population loss when impoverished
-- Development growth from sustained prosperity, decline from sustained hardship
-- Strategic significance from geographic position
-
-### Artifacts
-
-Objects of significance with their own low-altitude dynamics.
-- Condition degradation over time (wear and entropy)
-- Mystical resonance accumulation from involvement in significant events
-- Influence radius affecting nearby entities and locations
-- What mystical resonance and artifact influence DO in aggregate is card territory. The accumulation itself is inherent.
-
-### NPCs (Heroes)
-
-Individual named entities. One entity kind among many -- NOT the primary focus. Nations and cultures are the more interesting macro-level piece.
-- Needs: hunger, safety. Hunger increases each tick. A hungry NPC moves toward food. A threatened NPC moves toward safety.
-- Movement: pathfinding on the map, driven by need evaluation. Movement is just a process in the menu, not a separate system.
-- Aging: NPCs age and eventually die of old age if nothing else kills them.
-- Ambition: NPCs seek opportunity based on their subtype.
-- Response to goal tags from nations, factions, and other entities.
-- NPCs are the visible face of deeper systemic forces. Cultural dynamics operate through entity attributes, not through NPC actions directly.
-
-### Regions
-
-Passive stage. Scope unit for pressure computation. Provide terrain that determines what settlements can produce.
-- Seasonal fertility shifts (cyclical modification around baseline)
-- Slow feature development over long time scales (resource discovery from sustained habitation)
-- Regions are permanent entities -- no health metric, no lifecycle drain.
+This is process-defined, not engine-hardcoded. Distance, attribute comparisons, and semantic plane data are available but none are assumed.
 
 ---
 
-## Entity Behaviors vs. Bulk Flow
+## Processes Are Not Kind-Specific
 
-The boundary between per-entity behaviors and aggregate map phenomena is not yet clearly defined:
-- Entity Behaviors handles per-entity attribute changes (a specific settlement's prosperity increases, a specific NPC moves)
-- Bulk Flow handles aggregate phenomena (population flowing between settlements, goods moving along routes, influence gradients)
-- Entity Behaviors feeds Bulk Flow (settlement prosperity differentials drive population flow direction)
-- Bulk Flow feeds Entity Behaviors (population inflow increases a settlement's population attribute)
+A "settlement process" is just a ProcessDefinition with `TargetKind = Settlement`. The engine doesn't know what a settlement is. It evaluates goals, finds processes registered for that entity kind, selects one, and executes its mutations. If a process writes `Target.ideology`, the engine finds target providers and sets the target on the context. If a process writes `Self.sustenance`, the engine executes the mutation on the entity. Same code path.
 
-Whether these are one system or two with defined interfaces is an implementation question.
+The domain defines which processes apply to which entity kinds. The engine provides the evaluation loop. This means:
+- Adding a new entity kind requires zero engine changes
+- Adding a new process requires zero engine changes
+- All entity kinds go through the same evaluator
+- All processes go through the same mutation execution
 
 ---
 
-## Wiring Validation
+## Attribute System
 
-All processes and decisions declare wiring contracts: which attributes they read and which they write, as structured AttributeRef values. The WiringValidator runs at startup after all domain content is loaded and checks:
+Entity attributes are the foundation of all behavior. Attributes are either scalar (single value with effects) or semantic planes (2D with per-component effects). The attribute system provides:
 
-1. No dead-end attributes (written but never read by anything)
-2. No orphan attributes (read but never written by anything)
-3. Every entity kind participates in at least one feedback cycle
-4. Every entity kind with a health attribute has a sustaining path (something increases health)
-5. Every entity kind with a health attribute has a threatening path (something decreases health -- guaranteed by lifecycle drain)
+- **Tick effects**: per-tick modifications (drift, drain, buffs). Compose: `base += sum(deltas) * product(multipliers)`
+- **Static effects**: read-time modifications (bonuses from relationships, artifacts). Compose on read.
+- **Trend tracking**: recent delta history for UI and degeneracy detection
+- **Urgency derivation**: baseline curve determines how urgently the entity needs to change this attribute
 
-The validator is pure instrumentation. It validates that the domain's data produces a coherent world. It doesn't alter behavior. If validation fails, the simulation refuses to start with specific error messages identifying exactly what's missing.
+Attributes are the broadcast mechanism. Every entity advertises what it has by virtue of having attributes. Processes query for entities with specific attributes. No separate "provider registration" — existence is the broadcast.
 
-Key feedback loops that must exist:
-- Sustenance surplus -> population growth -> more labor -> more sustenance production (reinforcing)
-- Population consumed by decisions -> fewer laborers -> less production (balancing)
-- Sustenance deficit -> population decline -> fewer laborers -> less production (death spiral with recovery path)
-- NPC presence at settlement -> settlement effects via PF2e effect system
-- Nation controls settlement -> settlement effects via effect system
-- Relationship strength -> bilateral attribute effects
-- Terrain at coordinates -> attribute modifiers
-- Settlement prosperity -> NPC attraction -> more NPC presence (reinforcing)
-- Lifecycle drain offset by resource availability (well-fed entities live longer)
+---
+
+## Preconditions
+
+Preconditions return `PreconditionResult` with:
+- `Passed`: boolean
+- `Diagnostic`: human-readable explanation ("self.fame=3.0 (need >= 5)")
+- `BlockingAttributes`: which attributes are preventing the precondition from passing
+
+Diagnostics are produced during evaluation, not via separate introspection. The goal system reads blocking attributes from failed results to generate sub-goals. The UI displays diagnostics directly.
 
 ---
 
 ## Interactions with Other Systems
 
-| System | How Entity Behaviors Interacts |
-|--------|-------------------------------|
-| Entity Graph (#1) | Reads entity state and relationships. Processes do NOT modify graph topology (no creating/destroying relationships -- that's decision/card territory). Decisions CAN create relationships. |
-| Entity Kinds (#2) | Kind determines which processes and decisions are available for each entity. |
-| Attributes (#3) | Primary reader and writer of attribute values. Reads base attributes + computes effective attributes from relationship effects. |
-| Map/Spatial (#4) | Reads terrain, distance, pathfinding for movement and spatial evaluation. |
-| Resources (#8) | Processes read and write resource layers (sustenance, gold, population). Cross-kind interaction happens partly through shared resource state. |
-| Pressure (#11) | Entity behavior outputs feed INTO pressure computation. Behaviors do NOT read pressure. |
-| Relationships (#7) | Reads relationship values for cross-kind effect computation and goal tag evaluation. Processes modify relationship STRENGTH but not topology. |
-| Action Executor (#18) | Decision cards register available decisions. Entities evaluate them alongside processes during their tick. |
+| System | Interaction |
+|--------|-------------|
+| Entity Graph | Processes read entity state and relationships. Target mutations modify other entities on the graph. |
+| Attributes | Processes read and write via attribute paths (Self and Target scope). Effects compose per-tick and on-read. |
+| Pressure | Process outputs feed INTO pressure computation. Processes do NOT read pressure (pressure is for card preconditions). |
+| Lifecycle | Maintenance system applies tick effects. Lifecycle system updates age-dependent drain rates. Both are physics, not processes. |
+| Cards/Decisions | Decision cards register additional processes (card-gated). Same evaluation loop, just with availability gating. |
 
 ---
 
-## Open Questions (Deferred)
+## Open Questions
 
-- **GOAP extension architecture.** How the utility AI base should be structured to allow GOAP layering post-MVP. The base must be extensible without rewriting.
-- **Entity Behavior vs. Bulk Flow boundary.** One system or two. Interface between them.
-- **Effect computation performance.** Summing all relationship-derived effects per entity per tick could be expensive. May need caching, dirty-flagging, or cadence optimization.
-- **Goal tag design.** Schema for goal tags, how they're set and consumed, how they expire, how conflicts between multiple goal sources are resolved.
+- **Bulk flow**: aggregate phenomena (population migration, trade routes) may be separate from per-entity process evaluation
+- **GOAP extension**: multi-step planning beyond one level of sub-goals
+- **Goal tag design**: how entities broadcast intentions for other entities to respond to

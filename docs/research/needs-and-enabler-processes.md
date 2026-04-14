@@ -169,6 +169,18 @@ The alternative (Model B) is simpler — keep move as a separate process, score 
 
 ---
 
+## IMPORTANT: Where This Research Misleads
+
+The Sims model is spatial-first: objects advertise at locations, Sims walk to them, distance attenuates scores. This is appropriate for The Sims because Sims physically move through a house to interact with objects.
+
+**Our game is NOT primarily spatial for most interactions.** Settlements interact through attribute comparisons (fame, ideology, population), not physical proximity. A settlement's propaganda affects another settlement based on ideology distance on a semantic plane, not hex distance on the map. Distance MAY be a factor in some process expressions but it is NOT a structural assumption of the engine.
+
+The provider/consumer model from this research is correct: entities broadcast attributes, processes query for matching providers. But the SCORING of providers must be process-defined (via expressions), not engine-hardcoded (via distance). Each process declares how to evaluate candidate providers based on whatever attributes matter for that process.
+
+Do NOT use this research to justify distance-based scoring defaults.
+
+---
+
 ## Sources
 
 - [The Genius AI Behind The Sims - Mark Brown (GMTK)](https://gmtk.substack.com/p/the-genius-ai-behind-the-sims)

@@ -153,17 +153,19 @@ Each entity kind participates in a three-layer behavioral model that runs per en
 
 **Design principle:** Processes and decisions are DATA, not code. They are defined in the domain config using the same DSL as cards (preconditions, scoring expressions, mutations, wiring contracts). The engine interprets them. Changing a process = changing data, not recompiling. See `docs/systems/06-entity-behaviors.md` for the full three-layer model, data-driven definition, cross-kind interaction, and wiring validation.
 
-**Design principle:** Processes are MULTI-EFFECT and CROSS-ENTITY. An NPC eating reduces its own hunger AND consumes sustenance from the settlement it is located at. A settlement harvesting reads regional fertility AND writes to its own stockpile. Cross-kind interaction through the entity graph is fundamental, not optional. The engine provides generic cross-kind mutation primitives. The domain composes them into specific behaviors.
+**Design principle:** Processes are MULTI-EFFECT and CROSS-ENTITY. Wiring contracts declare Self-scoped and Target-scoped attribute refs. Processes with Target refs operate on other entities via the goal system's provider resolution. The engine is agnostic to whether a process acts on the entity itself or on another entity — the mutations determine what gets modified, the goal determines the target context. No per-kind behavioral code exists in the engine.
 
-#### Per-Kind Behaviors
+**Design principle:** Provider scoring is PROCESS-DEFINED. Each process that operates on target entities declares how to score candidate providers via an expression. The expression evaluates against each candidate's attributes. Distance, attribute comparisons, and semantic plane data are available but none are assumed by the engine.
 
-**Nations:** Border tension, internal resource flow, population pressure, consolidation/fragmentation, ideological drift, strategic goal-setting.
+#### Process Examples (Domain-Defined, Not Engine-Level)
 
-**Settlements:** Resource production (sustenance from fertility+labor, gold from development), resource consumption, population attraction/loss, development growth/decline.
+These are examples of how the TestDomain defines processes. They are data, not engine code:
+- **Stockpile** (Settlement): writes sustenance. No target scope — operates on entity itself.
+- **Grow** (Settlement): reads sustenance, writes population. Precondition: sustenance threshold.
+- **Propaganda** (Settlement): writes target's ideology. Target scope — provider found by expression scoring.
+- **Attract** (Settlement): writes population on both entities. Target scope — provider scored by fame/ideology expression.
 
-**NPCs:** Needs (hunger, safety), movement toward goals, aging, ambition-driven subtype behavior. NPCs are the visible face of deeper systemic forces -- not the primary drivers.
-
-**Artifacts:** Condition degradation, mystical resonance accumulation, influence radius. What resonance DOES in aggregate is card territory.
+Entity kinds differ only in what processes the domain registers for them, not in engine behavior.
 
 **Regions:** Seasonal fertility shifts, slow feature development. Permanent entities with no lifecycle drain.
 
