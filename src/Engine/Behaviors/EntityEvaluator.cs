@@ -83,21 +83,28 @@ public sealed class EntityEvaluator
         var processes = _registry.GetProcesses(entity.Kind);
         if (processes.Count == 0) return;
 
-        // Score all process-provider pairs
+        // Score all process-provider pairs.
+        // Preconditions are NOT checked here — they only gate execution at target.
+        // This allows processes like "eat" to score against distant providers
+        // even when the precondition (food at current hex) fails.
         var candidates = new List<(IProcess Process, EntityId? ProviderId, (int Q, int R)? ProviderCoord, float Score)>();
 
         foreach (var process in processes)
         {
-            if (!process.CanExecute(entity, worldState)) continue;
-
             var baseScore = process.Score(entity, worldState);
             if (baseScore < MinimumViableScore) continue;
 
-            // For entities with coordinates, score against providers (distance-weighted)
-            var providerCandidates = FindProviders(entity, process, worldState);
+            var canExecuteLocally = process.CanExecute(entity, worldState);
 
-            if (providerCandidates.Count > 0)
+            if (canExecuteLocally)
             {
+                // Process can fire right here — score locally, no provider needed
+                candidates.Add((process, null, null, baseScore));
+            }
+            else
+            {
+                // Can't execute locally — score against distant providers
+                var providerCandidates = FindProviders(entity, process, worldState);
                 foreach (var (providerId, providerCoord, providerWeight) in providerCandidates)
                 {
                     var compositeScore = baseScore * providerWeight;
@@ -107,27 +114,18 @@ public sealed class EntityEvaluator
                     }
                 }
             }
-            else
-            {
-                // No providers found or process doesn't need providers — score locally
-                candidates.Add((process, null, null, baseScore));
-            }
         }
 
         if (candidates.Count == 0) return;
 
         // Weighted random selection from all process-provider pairs
         var totalWeight = 0f;
-        foreach (var (_, _, _, score) in candidates)
-        {
-            totalWeight += score;
-        }
-
+        foreach (var (_, _, _, score) in candidates) totalWeight += score;
         if (totalWeight <= 0f) return;
 
         var roll = (float)(_random.NextDouble() * totalWeight);
         var cumulative = 0f;
-        (IProcess Process, EntityId? ProviderId, (int Q, int R)? ProviderCoord, float Score) winner = candidates[^1];
+        var winner = candidates[^1];
 
         foreach (var candidate in candidates)
         {
@@ -151,15 +149,18 @@ public sealed class EntityEvaluator
             entity.CurrentGoal = null;
         }
 
-        // Execute or step toward target
+        // At target (or no target): check precondition and execute
         if (IsAtTarget(entity))
         {
-            // At target (or no target) — execute the process
-            var message = winner.Process.Execute(entity, worldState);
-            _messageBus.Publish(message);
-            entity.LastActionName = winner.Process.Name;
-            entity.LastActionTick = worldState.CurrentTick;
-            entity.CurrentGoal = null; // Goal satisfied
+            if (winner.Process.CanExecute(entity, worldState))
+            {
+                var message = winner.Process.Execute(entity, worldState);
+                _messageBus.Publish(message);
+                entity.LastActionName = winner.Process.Name;
+                entity.LastActionTick = worldState.CurrentTick;
+            }
+
+            entity.CurrentGoal = null;
         }
         else if (entity.CurrentGoal is not null && entity.Coordinates is not null)
         {
