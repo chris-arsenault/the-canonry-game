@@ -75,7 +75,7 @@ public sealed class TableauManager
     /// Process one tick: tick lifespans, evaluate and fire active cards.
     /// Called during the CardExecution phase of the tick clock.
     /// </summary>
-    public void Tick(int currentTick, ICardContext context)
+    public void Tick(int currentTick, IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 

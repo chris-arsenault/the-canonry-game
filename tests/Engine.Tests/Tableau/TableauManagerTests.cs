@@ -189,7 +189,7 @@ public class TableauManagerTests
 
     // --- Stub context ---
 
-    private sealed class StubContext : ICardContext
+    private sealed class StubContext : IMutationContext
     {
         public int CurrentTick => CurrentTickValue;
         public EntityId SelfEntityId => new EntityId(0);

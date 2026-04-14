@@ -18,7 +18,7 @@ public sealed class CardExecutor
     /// Evaluate and potentially fire a single card instance.
     /// Returns true if the card fired.
     /// </summary>
-    public bool TryFire(CardInstance instance, ICardContext context)
+    public bool TryFire(CardInstance instance, IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(instance);
         ArgumentNullException.ThrowIfNull(context);
@@ -69,7 +69,7 @@ public sealed class CardExecutor
         return true;
     }
 
-    private static void ExecuteMutations(IEnumerable<IMutation> mutations, ICardContext context)
+    private static void ExecuteMutations(IEnumerable<IMutation> mutations, IMutationContext context)
     {
         foreach (var mutation in mutations)
         {

@@ -204,7 +204,7 @@ public sealed class SimulationRunner
         clock.Register("tableau", TickPhase.CardExecution, cadence: 1,
             tick =>
             {
-                var cardContext = new CardContextAdapter(graph, attributes, pressure, worldState);
+                var cardContext = new CardMutationContext(graph, attributes, pressure, worldState);
                 tableau.Tick(tick, cardContext);
             });
 
@@ -294,10 +294,10 @@ internal sealed class SimplePressureContext(
         attributes.Get(entityId, attributeName);
 }
 
-internal sealed class CardContextAdapter(
+internal sealed class CardMutationContext(
     WorldGraph graph, AttributeStore attributes, PressureSystem pressure, WorldState worldState,
     Random? random = null)
-    : ICardContext
+    : IMutationContext
 {
     public int CurrentTick => worldState.CurrentTick;
     public EntityId SelfEntityId => new EntityId(-1); // Card context has no "self" -- cards target explicitly

@@ -10,7 +10,7 @@ using Engine.Kinds;
 public interface IPrecondition
 {
     /// <summary>Evaluate this precondition against the current world state.</summary>
-    bool Evaluate(ICardContext context);
+    bool Evaluate(IMutationContext context);
 
     /// <summary>Human-readable description for UI display.</summary>
     string Describe();
@@ -23,7 +23,7 @@ public sealed class AndPrecondition(IReadOnlyList<IPrecondition> children) : IPr
 {
     public IReadOnlyList<IPrecondition> Children { get; } = children;
 
-    public bool Evaluate(ICardContext context) =>
+    public bool Evaluate(IMutationContext context) =>
         Children.All(c => c.Evaluate(context));
 
     public string Describe() =>
@@ -37,7 +37,7 @@ public sealed class OrPrecondition(IReadOnlyList<IPrecondition> children) : IPre
 {
     public IReadOnlyList<IPrecondition> Children { get; } = children;
 
-    public bool Evaluate(ICardContext context) =>
+    public bool Evaluate(IMutationContext context) =>
         Children.Any(c => c.Evaluate(context));
 
     public string Describe() =>
@@ -49,7 +49,7 @@ public sealed class OrPrecondition(IReadOnlyList<IPrecondition> children) : IPre
 /// <summary>Checks a pressure value against a threshold.</summary>
 public sealed class PressureThreshold(string pressureName, EntityId scopeId, float? min, float? max) : IPrecondition
 {
-    public bool Evaluate(ICardContext context)
+    public bool Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var value = context.GetPressure(pressureName, scopeId);
@@ -65,7 +65,7 @@ public sealed class PressureThreshold(string pressureName, EntityId scopeId, flo
 /// <summary>Checks an entity's attribute value against a threshold.</summary>
 public sealed class AttributeThreshold(EntityId entityId, string attributeName, float? min, float? max) : IPrecondition
 {
-    public bool Evaluate(ICardContext context)
+    public bool Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var value = context.GetAttribute(entityId, attributeName);
@@ -81,7 +81,7 @@ public sealed class AttributeThreshold(EntityId entityId, string attributeName, 
 /// <summary>Checks that at least N entities of a kind exist.</summary>
 public sealed class EntityCountCheck(EntityKind kind, int min) : IPrecondition
 {
-    public bool Evaluate(ICardContext context)
+    public bool Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         return context.CountEntitiesByKind(kind) >= min;
@@ -94,7 +94,7 @@ public sealed class EntityCountCheck(EntityKind kind, int min) : IPrecondition
 public sealed class RelationshipExists(
     EntityId sourceId, EntityId targetId, string relationshipKind, float? minStrength) : IPrecondition
 {
-    public bool Evaluate(ICardContext context)
+    public bool Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var rel = context.FindRelationship(sourceId, targetId, relationshipKind);
@@ -112,7 +112,7 @@ public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
 {
     public int MinimumTicksSinceFire => minimumTicksSinceFire;
 
-    public bool Evaluate(ICardContext context)
+    public bool Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var lastFired = context.GetLastFiredTick();
@@ -126,6 +126,6 @@ public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
 /// <summary>Always true. Used for system cards that run unconditionally.</summary>
 public sealed class AlwaysTrue : IPrecondition
 {
-    public bool Evaluate(ICardContext context) => true;
+    public bool Evaluate(IMutationContext context) => true;
     public string Describe() => "always_true";
 }

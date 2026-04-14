@@ -12,28 +12,28 @@ public class PreconditionTests
     public void And_AllTrue_ReturnsTrue()
     {
         var and = new AndPrecondition([new AlwaysTrue(), new AlwaysTrue()]);
-        Assert.True(and.Evaluate(new StubCardContext()));
+        Assert.True(and.Evaluate(new StubMutationContext()));
     }
 
     [Fact]
     public void And_OneFalse_ReturnsFalse()
     {
         var and = new AndPrecondition([new AlwaysTrue(), new NeverTrue()]);
-        Assert.False(and.Evaluate(new StubCardContext()));
+        Assert.False(and.Evaluate(new StubMutationContext()));
     }
 
     [Fact]
     public void Or_OneFalseOneTrue_ReturnsTrue()
     {
         var or = new OrPrecondition([new NeverTrue(), new AlwaysTrue()]);
-        Assert.True(or.Evaluate(new StubCardContext()));
+        Assert.True(or.Evaluate(new StubMutationContext()));
     }
 
     [Fact]
     public void Or_AllFalse_ReturnsFalse()
     {
         var or = new OrPrecondition([new NeverTrue(), new NeverTrue()]);
-        Assert.False(or.Evaluate(new StubCardContext()));
+        Assert.False(or.Evaluate(new StubMutationContext()));
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class PreconditionTests
             new OrPrecondition([new NeverTrue(), new AlwaysTrue()]),
             new AlwaysTrue(),
         ]);
-        Assert.True(nested.Evaluate(new StubCardContext()));
+        Assert.True(nested.Evaluate(new StubMutationContext()));
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class PreconditionTests
             new OrPrecondition([new NeverTrue(), new NeverTrue()]),
             new AlwaysTrue(),
         ]);
-        Assert.False(nested.Evaluate(new StubCardContext()));
+        Assert.False(nested.Evaluate(new StubMutationContext()));
     }
 
     // --- Leaf conditions ---
@@ -63,7 +63,7 @@ public class PreconditionTests
     [Fact]
     public void PressureThreshold_PassesWhenInRange()
     {
-        var ctx = new StubCardContext { PressureValue = 60f };
+        var ctx = new StubMutationContext { PressureValue = 60f };
         var check = new PressureThreshold("military_tension", new EntityId(1), min: 50f, max: 80f);
         Assert.True(check.Evaluate(ctx));
     }
@@ -71,7 +71,7 @@ public class PreconditionTests
     [Fact]
     public void PressureThreshold_FailsBelowMin()
     {
-        var ctx = new StubCardContext { PressureValue = 30f };
+        var ctx = new StubMutationContext { PressureValue = 30f };
         var check = new PressureThreshold("military_tension", new EntityId(1), min: 50f, max: null);
         Assert.False(check.Evaluate(ctx));
     }
@@ -79,7 +79,7 @@ public class PreconditionTests
     [Fact]
     public void PressureThreshold_FailsAboveMax()
     {
-        var ctx = new StubCardContext { PressureValue = 90f };
+        var ctx = new StubMutationContext { PressureValue = 90f };
         var check = new PressureThreshold("military_tension", new EntityId(1), min: null, max: 80f);
         Assert.False(check.Evaluate(ctx));
     }
@@ -87,7 +87,7 @@ public class PreconditionTests
     [Fact]
     public void AttributeThreshold_PassesInRange()
     {
-        var ctx = new StubCardContext { AttributeValue = 40f };
+        var ctx = new StubMutationContext { AttributeValue = 40f };
         var check = new AttributeThreshold(new EntityId(1), "stability", min: 20f, max: null);
         Assert.True(check.Evaluate(ctx));
     }
@@ -95,7 +95,7 @@ public class PreconditionTests
     [Fact]
     public void AttributeThreshold_FailsBelowMin()
     {
-        var ctx = new StubCardContext { AttributeValue = 10f };
+        var ctx = new StubMutationContext { AttributeValue = 10f };
         var check = new AttributeThreshold(new EntityId(1), "stability", min: 20f, max: null);
         Assert.False(check.Evaluate(ctx));
     }
@@ -103,7 +103,7 @@ public class PreconditionTests
     [Fact]
     public void EntityCountCheck_Passes()
     {
-        var ctx = new StubCardContext { EntityCount = 3 };
+        var ctx = new StubMutationContext { EntityCount = 3 };
         var check = new EntityCountCheck(EntityKind.Nation, min: 2);
         Assert.True(check.Evaluate(ctx));
     }
@@ -111,7 +111,7 @@ public class PreconditionTests
     [Fact]
     public void EntityCountCheck_FailsBelowMin()
     {
-        var ctx = new StubCardContext { EntityCount = 1 };
+        var ctx = new StubMutationContext { EntityCount = 1 };
         var check = new EntityCountCheck(EntityKind.Nation, min: 2);
         Assert.False(check.Evaluate(ctx));
     }
@@ -119,7 +119,7 @@ public class PreconditionTests
     [Fact]
     public void CooldownCheck_PassesWhenNeverFired()
     {
-        var ctx = new StubCardContext { LastFiredTick = null, CurrentTickValue = 10 };
+        var ctx = new StubMutationContext { LastFiredTick = null, CurrentTickValue = 10 };
         var check = new CooldownCheck(5);
         Assert.True(check.Evaluate(ctx));
     }
@@ -127,7 +127,7 @@ public class PreconditionTests
     [Fact]
     public void CooldownCheck_PassesAfterCooldown()
     {
-        var ctx = new StubCardContext { LastFiredTick = 5, CurrentTickValue = 20 };
+        var ctx = new StubMutationContext { LastFiredTick = 5, CurrentTickValue = 20 };
         var check = new CooldownCheck(10);
         Assert.True(check.Evaluate(ctx));
     }
@@ -135,7 +135,7 @@ public class PreconditionTests
     [Fact]
     public void CooldownCheck_FailsDuringCooldown()
     {
-        var ctx = new StubCardContext { LastFiredTick = 5, CurrentTickValue = 10 };
+        var ctx = new StubMutationContext { LastFiredTick = 5, CurrentTickValue = 10 };
         var check = new CooldownCheck(10);
         Assert.False(check.Evaluate(ctx));
     }
@@ -160,11 +160,11 @@ public class PreconditionTests
 
     private sealed class NeverTrue : IPrecondition
     {
-        public bool Evaluate(ICardContext context) => false;
+        public bool Evaluate(IMutationContext context) => false;
         public string Describe() => "never_true";
     }
 
-    private sealed class StubCardContext : ICardContext
+    private sealed class StubMutationContext : IMutationContext
     {
         public int CurrentTick => CurrentTickValue;
         public EntityId SelfEntityId => new EntityId(0);

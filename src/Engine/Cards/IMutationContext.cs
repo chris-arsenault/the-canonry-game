@@ -7,7 +7,7 @@ using Engine.Kinds;
 /// Context provided to preconditions and mutations for accessing and modifying world state.
 /// Abstracts the card system from specific system implementations.
 /// </summary>
-public interface ICardContext
+public interface IMutationContext
 {
     int CurrentTick { get; }
 

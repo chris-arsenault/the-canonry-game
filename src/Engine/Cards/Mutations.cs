@@ -10,7 +10,7 @@ using Engine.Kinds;
 public interface IMutation
 {
     /// <summary>Apply this mutation to the world state.</summary>
-    void Execute(ICardContext context);
+    void Execute(IMutationContext context);
 
     /// <summary>Human-readable description.</summary>
     string Describe();
@@ -23,7 +23,7 @@ public sealed class CreateEntityMutation(
     /// <summary>After execution, holds the ID of the created entity for subsequent mutations.</summary>
     public EntityId? CreatedId { get; private set; }
 
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var entity = context.CreateEntity(kind, subtype, name, culture, coordinates);
@@ -37,7 +37,7 @@ public sealed class CreateEntityMutation(
 public sealed class CreateRelationshipMutation(
     EntityId sourceId, EntityId targetId, string kind, RelationshipPolarity polarity, float strength) : IMutation
 {
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.CreateRelationship(kind, polarity, sourceId, targetId, strength);
@@ -53,7 +53,7 @@ public sealed class CreateRelationshipMutation(
 /// </summary>
 public sealed class ModifyAttributeMutation(EntityId entityId, string attributeName, float delta, float variance = 0f) : IMutation
 {
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.ModifyAttribute(entityId, attributeName, Variance.Scale(delta, variance, context.Random));
@@ -65,7 +65,7 @@ public sealed class ModifyAttributeMutation(EntityId entityId, string attributeN
 /// <summary>Directly modifies a pressure value.</summary>
 public sealed class ModifyPressureMutation(string pressureName, EntityId scopeId, float delta) : IMutation
 {
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.ModifyPressure(pressureName, scopeId, delta);
@@ -77,7 +77,7 @@ public sealed class ModifyPressureMutation(string pressureName, EntityId scopeId
 /// <summary>Sets a tag on an entity.</summary>
 public sealed class SetTagMutation(EntityId entityId, string key, string value) : IMutation
 {
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.SetTag(entityId, key, value);
@@ -89,7 +89,7 @@ public sealed class SetTagMutation(EntityId entityId, string key, string value) 
 /// <summary>Transitions an entity to historical status.</summary>
 public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
 {
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.SetEntityHistorical(entityId);
@@ -105,7 +105,7 @@ public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
 /// </summary>
 public sealed class ModifySelfAttributeMutation(string attributeName, float delta, float variance = 0f) : IMutation
 {
-    public void Execute(ICardContext context)
+    public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.ModifyAttribute(context.SelfEntityId, attributeName,

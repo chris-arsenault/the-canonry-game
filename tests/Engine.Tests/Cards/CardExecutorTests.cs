@@ -163,11 +163,11 @@ public class CardExecutorTests
 
     private sealed class NeverTrue : IPrecondition
     {
-        public bool Evaluate(ICardContext context) => false;
+        public bool Evaluate(IMutationContext context) => false;
         public string Describe() => "never";
     }
 
-    private sealed class TrackingContext : ICardContext
+    private sealed class TrackingContext : IMutationContext
     {
         public int CurrentTick => CurrentTickValue;
         public EntityId SelfEntityId => new EntityId(0);

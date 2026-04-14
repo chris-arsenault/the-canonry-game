@@ -9,7 +9,7 @@ public class MutationTests
     [Fact]
     public void CreateEntityMutation_CreatesAndStoresId()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var mutation = new CreateEntityMutation(
             EntityKind.Settlement, "village", "NewTown", "culture_a", (0, 0));
 
@@ -23,7 +23,7 @@ public class MutationTests
     [Fact]
     public void CreateRelationshipMutation_Creates()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var mutation = new CreateRelationshipMutation(
             new EntityId(1), new EntityId(2), "controls", RelationshipPolarity.Neutral, 1f);
 
@@ -36,7 +36,7 @@ public class MutationTests
     [Fact]
     public void ModifyAttributeMutation_Modifies()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var mutation = new ModifyAttributeMutation(new EntityId(1), "stability", 10f);
 
         mutation.Execute(ctx);
@@ -48,7 +48,7 @@ public class MutationTests
     [Fact]
     public void ModifyPressureMutation_Modifies()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var mutation = new ModifyPressureMutation("military_tension", new EntityId(100), 20f);
 
         mutation.Execute(ctx);
@@ -60,7 +60,7 @@ public class MutationTests
     [Fact]
     public void SetTagMutation_SetsTag()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var mutation = new SetTagMutation(new EntityId(1), "goal", "acquire");
 
         mutation.Execute(ctx);
@@ -72,7 +72,7 @@ public class MutationTests
     [Fact]
     public void MutationsExecuteInOrder()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var order = new List<string>();
 
         var createEntity = new CreateEntityMutation(EntityKind.Settlement, "v", "T", "c", null);
@@ -93,7 +93,7 @@ public class MutationTests
     public void ModifySelfAttributeMutation_WithVariance_ProducesDistinctDeltas()
     {
         var mutation = new ModifySelfAttributeMutation("hp", 10f, variance: 0.3f);
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var deltas = new HashSet<float>();
 
         for (var i = 0; i < 20; i++)
@@ -115,7 +115,7 @@ public class MutationTests
     [Fact]
     public void ModifyAttributeMutation_ZeroVariance_ProducesExactDelta()
     {
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var mutation = new ModifyAttributeMutation(new EntityId(1), "stability", 10f, variance: 0f);
 
         mutation.Execute(ctx);
@@ -128,7 +128,7 @@ public class MutationTests
     {
         var score = new ConstantScore(0.5f, variance: 0.2f);
         var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
         var scores = new HashSet<float>();
 
         for (var i = 0; i < 20; i++)
@@ -144,7 +144,7 @@ public class MutationTests
     {
         var score = new ConstantScore(0.5f, variance: 0f);
         var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
-        var ctx = new TrackingCardContext();
+        var ctx = new TrackingMutationContext();
 
         Assert.Equal(0.5f, score.Evaluate(entity, ctx));
     }
@@ -159,7 +159,7 @@ public class MutationTests
 
     // --- Tracking context ---
 
-    private sealed class TrackingCardContext : ICardContext
+    private sealed class TrackingMutationContext : IMutationContext
     {
         public int CurrentTick => 10;
         public EntityId SelfEntityId => new EntityId(0);

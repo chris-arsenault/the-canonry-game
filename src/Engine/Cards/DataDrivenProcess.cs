@@ -25,19 +25,19 @@ public sealed class DataDrivenProcess : IProcess
     public bool CanExecute(Entity entity, IWorldState worldState)
     {
         // Create a minimal card context for precondition evaluation
-        var context = new ProcessCardContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState);
         return _definition.Precondition.Evaluate(context);
     }
 
     public float Score(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessCardContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState);
         return _definition.ScoreExpression.Evaluate(entity, context);
     }
 
     public SimulationMessage Execute(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessCardContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState);
 
         foreach (var mutation in _definition.Mutations)
         {
@@ -71,19 +71,19 @@ public sealed class DataDrivenDecision : IDecision
 
     public bool CanExecute(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessCardContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState);
         return _definition.Precondition.Evaluate(context);
     }
 
     public float Score(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessCardContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState);
         return _definition.ScoreExpression.Evaluate(entity, context);
     }
 
     public SimulationMessage Execute(Entity entity, IWorldState worldState)
     {
-        var context = new ProcessCardContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState);
 
         foreach (var mutation in _definition.Mutations)
         {
@@ -101,10 +101,10 @@ public sealed class DataDrivenDecision : IDecision
 }
 
 /// <summary>
-/// Bridges IWorldState to ICardContext for data-driven process precondition/mutation evaluation.
+/// Bridges IWorldState to IMutationContext for data-driven process precondition/mutation evaluation.
 /// Uses the entity being evaluated as the implicit "self" for attribute reads.
 /// </summary>
-internal sealed class ProcessCardContext : ICardContext
+internal sealed class ProcessMutationContext : IMutationContext
 {
     private readonly Entity _entity;
     private readonly IWorldState _worldState;
@@ -113,7 +113,7 @@ internal sealed class ProcessCardContext : ICardContext
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
 
-    public ProcessCardContext(Entity entity, IWorldState worldState, Random? random = null)
+    public ProcessMutationContext(Entity entity, IWorldState worldState, Random? random = null)
     {
         _entity = entity;
         _worldState = worldState;

@@ -11,13 +11,13 @@ using Engine.Graph;
 /// </summary>
 public interface IScoreExpression
 {
-    float Evaluate(Entity entity, ICardContext context);
+    float Evaluate(Entity entity, IMutationContext context);
 }
 
 /// <summary>Returns a constant value with optional variance (jitter ±variance around value).</summary>
 public sealed class ConstantScore(float value, float variance = 0f) : IScoreExpression
 {
-    public float Evaluate(Entity entity, ICardContext context)
+    public float Evaluate(Entity entity, IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         return Math.Clamp(Variance.Jitter(value, variance, context.Random), 0f, 1f);
@@ -27,7 +27,7 @@ public sealed class ConstantScore(float value, float variance = 0f) : IScoreExpr
 /// <summary>Returns attribute / max, normalized to [0,1], with optional variance.</summary>
 public sealed class AttributeRatioScore(string attributeName, float max, float variance = 0f) : IScoreExpression
 {
-    public float Evaluate(Entity entity, ICardContext context)
+    public float Evaluate(Entity entity, IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var value = context.GetAttribute(entity.Id, attributeName);
@@ -39,7 +39,7 @@ public sealed class AttributeRatioScore(string attributeName, float max, float v
 /// <summary>Returns 1 - (attribute / max). High attribute = low score. With optional variance.</summary>
 public sealed class InverseAttributeRatioScore(string attributeName, float max, float variance = 0f) : IScoreExpression
 {
-    public float Evaluate(Entity entity, ICardContext context)
+    public float Evaluate(Entity entity, IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
         var value = context.GetAttribute(entity.Id, attributeName);
@@ -51,7 +51,7 @@ public sealed class InverseAttributeRatioScore(string attributeName, float max, 
 /// <summary>Weighted sum of multiple score expressions.</summary>
 public sealed class WeightedSumScore(IReadOnlyList<(IScoreExpression Expression, float Weight)> terms) : IScoreExpression
 {
-    public float Evaluate(Entity entity, ICardContext context)
+    public float Evaluate(Entity entity, IMutationContext context)
     {
         var total = 0f;
         foreach (var (expr, weight) in terms)
