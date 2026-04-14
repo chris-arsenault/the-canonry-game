@@ -15,45 +15,64 @@ Settlements evolve through subtypes as they grow:
 
 | Attribute | Description |
 |-----------|-------------|
-| Population | Number of inhabitants. The settlement's health metric — reaches zero and the settlement becomes a ruin. |
-| Development | Infrastructure level. Increases gold production and resilience. |
-| Prosperity | Economic health. Drives population attraction and NPC satisfaction. |
-| Defense | Military fortification. Affects vulnerability to external threats. |
+| Population | Number of inhabitants. Health metric — reaches zero and the settlement becomes a ruin. Starts low, unbounded max. Lifecycle drain increases with age. |
+| Sustenance | Food stockpile. Produced by stockpiling, consumed by converting to population growth. |
+| Fame | Reputation and influence. Increased by deeds. Required to attract population from other settlements. |
+| Ideology | Political/cultural leaning. Settlements with similar ideologies attract each other's population more easily. |
 
 ## Processes
 
 These are the mundane, always-available activities a settlement performs each tick. One is selected via weighted random.
 
-### Harvest
-Produce sustenance from the surrounding terrain. Higher fertility and more population labor yield more food.
-- **Reads:** map cell fertility, population (labor force)
-- **Writes:** settlement prosperity (increases with surplus), resource layer sustenance production
-- **Cross-entity:** feeds the sustenance resource layer that NPCs and population depend on
+### Stockpile Sustenance
+Produce sustenance from surrounding terrain and labor.
+- **Reads:** terrain fertility (TODO), population (labor force)
+- **Writes:** sustenance (increases)
+- **Notes:** currently flat rate, will scale with terrain fertility when hex cell data is accessible to processes
 
-### Repair
-Invest population labor into maintaining and improving infrastructure.
-- **Reads:** population, development
-- **Writes:** development (increases), population (small cost — labor diverted)
-- **Precondition:** development below maximum, population above minimum labor threshold
+### Convert Sustenance to Population
+Convert food surplus into population growth.
+- **Reads:** sustenance
+- **Writes:** population (increases), sustenance (decreases)
+- **Precondition:** sustenance above threshold
 
-### Attract Migrants
-When prosperous, a settlement pulls population from the surrounding region.
-- **Reads:** prosperity, nearby settlement prosperity (differential)
-- **Writes:** population layer (increases at this cell), population layer at source (decreases)
-- **Precondition:** prosperity above regional average
+### Attract Population
+Pull population from a nearby settlement. Requires fame advantage and proximity.
+- **Reads:** fame (self vs target), ideology (similarity), distance to target
+- **Writes:** population (increases on self, decreases on target)
+- **Precondition:** fame > target fame, target within range
+- **Modifiers:** similar ideology increases attraction rate, dissimilar decreases it
+- **Range:** base range is short. Extended by trading posts (see below).
+- **Target selection:** nearby settlements, weighted by fame differential and ideology similarity
 
-### Store Food
-Buffer sustenance surplus against future deficit. Builds stockpile reserves.
-- **Reads:** sustenance net (surplus available), current stockpile
-- **Writes:** sustenance stockpile (increases)
-- **Precondition:** sustenance net is positive (surplus exists)
+### Build Trading Post
+Extend the settlement's interaction range. A supporting process — does not directly satisfy a need but enables other processes (attract population, trade) to reach further.
+- **Reads:** population (labor cost), sustenance (material cost)
+- **Writes:** range attribute or creates a trading post entity/relationship
+- **Notes:** analogous to movement for NPCs — an enabler process that creates conditions for other processes. See docs/systems/enabler-processes.md.
 
-### Grow
+### Harvest Resources
+Collect specific resources from a nearby point of interest (POI).
+- **Reads:** POI type and yield, distance to POI
+- **Writes:** relevant resource attribute (gold, materials, etc.)
+- **Precondition:** POI within range
+
+### Build Fortification
+Invest population labor into military defenses.
+- **Reads:** population (labor cost)
+- **Writes:** defense attribute (increases)
+
+### Create Farm
+Establish agricultural infrastructure to increase sustenance production.
+- **Reads:** population (labor cost), terrain fertility
+- **Writes:** sustenance production rate (permanent modifier via tick effect)
+- **Notes:** creates a lasting tick effect rather than a one-time delta
+
+### Grow (Subtype Transition)
 Transition to the next settlement subtype when population thresholds are met.
 - **Reads:** population, current subtype
 - **Writes:** subtype (village → town, town → city)
 - **Precondition:** population exceeds threshold for next subtype
-- **Emits:** SubtypeChangedMessage — this is a notable event
 
 ## Decisions (Card-Gated)
 
@@ -64,12 +83,13 @@ These require specific cards in the player's tableau.
 ## What Sustains a Settlement
 
 Population is the settlement's health metric. It is sustained by:
-- Sustenance surplus (food production exceeds consumption)
-- Prosperity attracting migrants
-- NPC presence boosting economic activity
+- Sustenance surplus (converting food to population growth)
+- Fame attracting migrants from nearby settlements
+- Ideological similarity with neighbors
 
 It is threatened by:
-- Sustenance deficit (famine)
-- Lifecycle aging drain (old settlements require more maintenance)
-- Population consumed by decisions (expansion, military, labor)
+- Sustenance deficit (no food to convert)
+- Lifecycle aging drain (old settlements require more maintenance to sustain population)
+- Population consumed by building/labor processes
 - Loss of controlling nation (stability loss)
+- Rival settlements with higher fame stealing population
