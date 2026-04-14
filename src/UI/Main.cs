@@ -1,4 +1,5 @@
 #pragma warning disable CA2000 // Godot nodes managed by scene tree
+using System.Collections.Generic;
 using System.Linq;
 
 using Godot;
@@ -16,12 +17,14 @@ public partial class Main : Node2D
     private SimulationRunner? _sim;
     private HexMapRenderer? _mapRenderer;
     private Camera2D? _camera;
-    private EntityDetailPanel? _detailPanel;
+    private EntityBrowser? _browser;
     private CanvasLayer? _uiLayer;
+    private CanvasLayer? _cardLayer;
     private RichTextLabel? _eventLogLabel;
-    private int _frameCount;
+    private Label? _tickLabel;
     private double _tickAccumulator;
     private bool _stepOneTick;
+    private readonly Dictionary<EntityId, EntityCard> _openCards = [];
 
     public override void _Ready()
     {
@@ -30,12 +33,7 @@ public partial class Main : Node2D
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Normal;
 
-        GD.Print($"Simulation initialized: {_sim.Graph.EntityCount} entities, {_sim.Graph.ActiveRelationshipCount} relationships");
-        GD.Print($"Settlements: {_sim.Graph.GetEntitiesByKind(EntityKind.Settlement).Count}");
-        GD.Print($"Nations: {_sim.Graph.GetEntitiesByKind(EntityKind.Nation).Count}");
-        GD.Print($"NPCs: {_sim.Graph.GetEntitiesByKind(EntityKind.Npc).Count}");
-        GD.Print($"Artifacts: {_sim.Graph.GetEntitiesByKind(EntityKind.Artifact).Count}");
-        GD.Print($"Regions: {_sim.Graph.GetEntitiesByKind(EntityKind.Region).Count}");
+        GD.Print($"Simulation initialized: {_sim.Graph.EntityCount} entities");
 
         // Create map renderer
         _mapRenderer = new HexMapRenderer();
@@ -54,12 +52,22 @@ public partial class Main : Node2D
         _uiLayer = new CanvasLayer();
         AddChild(_uiLayer);
 
-        // HBox to split right panel and event log
+        // Card layer (floating cards, above UI)
+        _cardLayer = new CanvasLayer { Layer = 2 };
+        AddChild(_cardLayer);
+
+        // Root layout: browser on left, spacer in middle, event log on right
         var rootHBox = new HBoxContainer();
         rootHBox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _uiLayer.AddChild(rootHBox);
 
-        // Left spacer (map area -- transparent, passes mouse through)
+        // Left: entity browser
+        _browser = new EntityBrowser();
+        _browser.Initialize(_sim);
+        _browser.EntitySelected += OnBrowserEntitySelected;
+        rootHBox.AddChild(_browser);
+
+        // Middle spacer (map area -- transparent, passes mouse through)
         var mapSpacer = new Control
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
@@ -67,26 +75,16 @@ public partial class Main : Node2D
         };
         rootHBox.AddChild(mapSpacer);
 
-        // Right panel: detail panel + event log stacked vertically
+        // Right: event log
         var rightVBox = new VBoxContainer
         {
-            CustomMinimumSize = new Vector2(320, 0),
+            CustomMinimumSize = new Vector2(300, 0),
         };
         rootHBox.AddChild(rightVBox);
 
-        // Detail panel (top half)
-        _detailPanel = new EntityDetailPanel
-        {
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-        };
-        _detailPanel.Initialize(_sim);
-        rightVBox.AddChild(_detailPanel);
-
-        // Event log (bottom half)
         var eventPanel = new PanelContainer
         {
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 200),
         };
         rightVBox.AddChild(eventPanel);
 
@@ -113,20 +111,20 @@ public partial class Main : Node2D
                 $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
         };
 
-        // Tick counter label
-        var tickLabel = new Label
+        // Tick counter label (top center)
+        _tickLabel = new Label
         {
             Position = new Vector2(10, 10),
             Text = "Tick: 0",
         };
-        tickLabel.AddThemeFontSizeOverride("font_size", 14);
-        _uiLayer.AddChild(tickLabel);
-        _tickLabel = tickLabel;
+        _tickLabel.AddThemeFontSizeOverride("font_size", 14);
+        _uiLayer.AddChild(_tickLabel);
+
+        // Initial browser population
+        _browser.Refresh();
 
         GD.Print("Controls: Space=pause/resume, Right=step 1 tick, 1/2/3=speed, WASD=pan, scroll=zoom, click=select");
     }
-
-    private Label? _tickLabel;
 
     public override void _Process(double delta)
     {
@@ -134,10 +132,9 @@ public partial class Main : Node2D
 
         var ticksProcessed = 0;
 
-        // Manual single-step (right arrow)
         if (_stepOneTick)
         {
-            _sim.Clock.Speed = SimulationSpeed.Normal; // Temporarily unpause for one tick
+            _sim.Clock.Speed = SimulationSpeed.Normal;
             _sim.Tick();
             _sim.Clock.Speed = SimulationSpeed.Paused;
             _stepOneTick = false;
@@ -145,12 +142,11 @@ public partial class Main : Node2D
         }
         else if (_sim.Clock.Speed != SimulationSpeed.Paused)
         {
-            // Time-based ticking: seconds per tick varies by speed
             var secondsPerTick = _sim.Clock.Speed switch
             {
-                SimulationSpeed.Normal => 1.0,   // 1 tick per second
-                SimulationSpeed.Fast => 0.25,    // 4 ticks per second
-                SimulationSpeed.VeryFast => 0.1, // 10 ticks per second
+                SimulationSpeed.Normal => 1.0,
+                SimulationSpeed.Fast => 0.25,
+                SimulationSpeed.VeryFast => 0.1,
                 _ => 1.0,
             };
 
@@ -163,11 +159,11 @@ public partial class Main : Node2D
             }
         }
 
-        // Refresh displays
         if (ticksProcessed > 0)
         {
             _mapRenderer?.Refresh();
-            _detailPanel?.Refresh();
+            _browser?.Refresh();
+            RefreshOpenCards();
         }
 
         if (_tickLabel is not null)
@@ -176,7 +172,6 @@ public partial class Main : Node2D
             _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | {speedText}";
         }
 
-        // Camera movement
         HandleCameraMovement((float)delta);
     }
 
@@ -199,7 +194,6 @@ public partial class Main : Node2D
                         _tickAccumulator = 0;
                     }
 
-                    GD.Print($"Speed: {_sim.Clock.Speed}");
                     break;
                 case Key.Key1:
                     _sim.Clock.Speed = SimulationSpeed.Normal;
@@ -219,7 +213,6 @@ public partial class Main : Node2D
             }
         }
 
-        // Mouse events
         if (@event is InputEventMouseButton { Pressed: true } mouse)
         {
             var zoomFactor = 1.1f;
@@ -235,21 +228,24 @@ public partial class Main : Node2D
             }
             else if (mouse.ButtonIndex == MouseButton.Left)
             {
-                HandleEntityClick(mouse.Position);
+                HandleMapClick(mouse.Position);
             }
         }
     }
 
-    private void HandleEntityClick(Vector2 screenPos)
+    private void OnBrowserEntitySelected(int entityIdValue)
+    {
+        OpenEntityCard(new EntityId(entityIdValue), new Vector2(300, 100));
+    }
+
+    private void HandleMapClick(Vector2 screenPos)
     {
         if (_sim is null || _camera is null || _mapRenderer is null) return;
 
-        // Convert screen position to world position using the canvas transform
         var worldPos = GetCanvasTransform().AffineInverse() * screenPos;
 
-        // Find nearest entity to click position
         EntityId? nearest = null;
-        var nearestDist = _mapRenderer.HexSize * 1.2f; // Click radius scales with hex size
+        var nearestDist = _mapRenderer.HexSize * 1.2f;
 
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
@@ -267,12 +263,39 @@ public partial class Main : Node2D
 
         if (nearest is not null)
         {
-            _detailPanel?.SelectEntity(nearest.Value);
-            GD.Print($"Selected: {_sim.Graph.GetEntity(nearest.Value)?.Name}");
+            OpenEntityCard(nearest.Value, screenPos + new Vector2(20, -20));
         }
-        else
+    }
+
+    private void OpenEntityCard(EntityId entityId, Vector2 position)
+    {
+        if (_sim is null || _cardLayer is null) return;
+
+        // If card already open, bring it to front
+        if (_openCards.TryGetValue(entityId, out var existing))
         {
-            _detailPanel?.ClearSelection();
+            _cardLayer.RemoveChild(existing);
+            _cardLayer.AddChild(existing); // Re-add to move to top
+            return;
+        }
+
+        var card = new EntityCard();
+        card.Initialize(_sim, entityId, position);
+        card.CardClosed += OnCardClosed;
+        _cardLayer.AddChild(card);
+        _openCards[entityId] = card;
+    }
+
+    private void OnCardClosed(EntityCard card)
+    {
+        _openCards.Remove(card.EntityId);
+    }
+
+    private void RefreshOpenCards()
+    {
+        foreach (var (_, card) in _openCards)
+        {
+            card.Refresh();
         }
     }
 
@@ -289,14 +312,7 @@ public partial class Main : Node2D
             _ => "white",
         };
 
-        var line = $"[color={color}][{e.Tick}] {e.Description}[/color]\n";
-
-        // Prepend (most recent first) -- but RichTextLabel doesn't support prepend easily,
-        // so we'll append and the scroll container shows latest at bottom
-        _eventLogLabel.AppendText(line);
-
-        // Also print to console
-        GD.Print($"[Tick {e.Tick}] {e.Type}: {e.Description}");
+        _eventLogLabel.AppendText($"[color={color}][{e.Tick}] {e.Description}[/color]\n");
     }
 
     private void HandleCameraMovement(float delta)
@@ -306,14 +322,10 @@ public partial class Main : Node2D
         var speed = 200f / _camera.Zoom.X;
         var direction = Vector2.Zero;
 
-        if (Input.IsKeyPressed(Key.A))
-            direction.X -= 1;
-        if (Input.IsKeyPressed(Key.D))
-            direction.X += 1;
-        if (Input.IsKeyPressed(Key.W))
-            direction.Y -= 1;
-        if (Input.IsKeyPressed(Key.S))
-            direction.Y += 1;
+        if (Input.IsKeyPressed(Key.A)) direction.X -= 1;
+        if (Input.IsKeyPressed(Key.D)) direction.X += 1;
+        if (Input.IsKeyPressed(Key.W)) direction.Y -= 1;
+        if (Input.IsKeyPressed(Key.S)) direction.Y += 1;
 
         if (direction != Vector2.Zero)
         {

@@ -24,6 +24,12 @@ public sealed class Entity
     /// until reached or preempted. Null when the entity has no active goal.</summary>
     public EntityGoal? CurrentGoal { get; set; }
 
+    /// <summary>Name of the last process or action that executed for this entity.</summary>
+    public string? LastActionName { get; set; }
+
+    /// <summary>Tick when the last process or action executed.</summary>
+    public int? LastActionTick { get; set; }
+
     public Entity(
         EntityId id,
         EntityKind kind,

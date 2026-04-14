@@ -58,6 +58,8 @@ public sealed class EntityEvaluator
         {
             var message = decision.Execute(entity, worldState);
             _messageBus.Publish(message);
+            entity.LastActionName = decision.Name;
+            entity.LastActionTick = worldState.CurrentTick;
         }
     }
 
@@ -155,12 +157,16 @@ public sealed class EntityEvaluator
             // At target (or no target) — execute the process
             var message = winner.Process.Execute(entity, worldState);
             _messageBus.Publish(message);
+            entity.LastActionName = winner.Process.Name;
+            entity.LastActionTick = worldState.CurrentTick;
             entity.CurrentGoal = null; // Goal satisfied
         }
         else if (entity.CurrentGoal is not null && entity.Coordinates is not null)
         {
             // Not at target — step one hex toward it
             StepTowardGoal(entity, worldState);
+            entity.LastActionName = $"Moving toward {entity.CurrentGoal.TargetCoordinates}";
+            entity.LastActionTick = worldState.CurrentTick;
         }
     }
 
