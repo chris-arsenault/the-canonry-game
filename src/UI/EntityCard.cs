@@ -204,22 +204,28 @@ public partial class EntityCard : PanelContainer
 
         // Attributes
         sb.AppendLine("[b][u]Attributes[/u][/b]");
-        var attrNames = _sim.Attributes.GetAttributeNames(_entityId).OrderBy(n => n, System.StringComparer.Ordinal);
-        foreach (var attrName in attrNames)
+        foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
         {
-            var value = _sim.Attributes.Get(_entityId, attrName);
-            var effectMod = _sim.Effects.ComputeEffectModifier(_entityId, attrName);
-            var trend = _sim.Attributes.GetTrend(_entityId, attrName);
-            var trendArrow = trend > 0.01f ? "[color=green]▲[/color]" : trend < -0.01f ? "[color=red]▼[/color]" : "—";
+            var tickCount = attr.TickEffects.Count;
+            var staticCount = attr.StaticEffects.Count;
+            var effectInfo = "";
+            if (tickCount > 0 || staticCount > 0)
+            {
+                var parts = new List<string>();
+                if (tickCount > 0)
+                {
+                    var tickDelta = attr.TickEffects.Where(e => !e.IsMultiplier).Sum(e => e.Value);
+                    if (System.Math.Abs(tickDelta) > 0.001f)
+                        parts.Add($"{tickDelta:+0.##;-0.##}/tick");
+                }
 
-            if (System.Math.Abs(effectMod) > 0.01f)
-            {
-                sb.AppendLine($"  {attrName}: [b]{value:F1}[/b] (+{effectMod:F1}) {trendArrow}");
+                if (staticCount > 0)
+                    parts.Add($"{staticCount} effects");
+                if (parts.Count > 0)
+                    effectInfo = $" [color=gray]({string.Join(", ", parts)})[/color]";
             }
-            else
-            {
-                sb.AppendLine($"  {attrName}: [b]{value:F1}[/b] {trendArrow}");
-            }
+
+            sb.AppendLine($"  {attr.Name}: [b]{attr.Value:F1}[/b]{effectInfo}");
         }
 
         sb.AppendLine();

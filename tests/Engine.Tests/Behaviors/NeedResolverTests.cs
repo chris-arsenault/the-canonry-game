@@ -39,6 +39,11 @@ public class NeedResolverTests
         return [eat];
     }
 
+    private static void InitAttr(Entity entity, string name, float min, float max, float value)
+    {
+        entity.Attributes.Add(new AttributeInstance(name, min, max, value));
+    }
+
     [Fact]
     public void Resolve_HungryNpc_ReturnsSustenanceAsProvider()
     {
@@ -49,9 +54,9 @@ public class NeedResolverTests
         var graph = new WorldGraph();
         var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
-        attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
-        attributes.Initialize(npc.Id, "hunger", 0f, 100f, 80f); // Very hungry
-        attributes.Initialize(npc.Id, "ambition", 0f, 100f, 50f);
+        InitAttr(npc, "hp", 0f, 100f, 100f);
+        InitAttr(npc, "hunger", 0f, 100f, 80f); // Very hungry
+        InitAttr(npc, "ambition", 0f, 100f, 50f);
 
         var result = resolver.Resolve(npc, attributes);
 
@@ -71,9 +76,9 @@ public class NeedResolverTests
         var graph = new WorldGraph();
         var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
-        attributes.Initialize(npc.Id, "hp", 0f, 100f, 100f);
-        attributes.Initialize(npc.Id, "hunger", 0f, 100f, 0f); // Not hungry at all
-        attributes.Initialize(npc.Id, "ambition", 0f, 100f, 50f); // At ideal
+        InitAttr(npc, "hp", 0f, 100f, 100f);
+        InitAttr(npc, "hunger", 0f, 100f, 0f); // Not hungry at all
+        InitAttr(npc, "ambition", 0f, 100f, 50f); // At ideal
 
         var result = resolver.Resolve(npc, attributes);
 
@@ -84,7 +89,6 @@ public class NeedResolverTests
     public void Resolve_DamagedNpc_HpIsDominant()
     {
         var kinds = CreateNpcKindConfig();
-        // Add a process that writes to hp and reads from something
         var rest = new ProcessDefinition("npc_rest", "Rest",
             DefinitionRole.Process, EntityKind.Npc, new AlwaysTrue(), new ConstantScore(0.5f));
         rest.Reads.Add(AttributeRef.Self("hp", EntityKind.Npc));
@@ -97,9 +101,9 @@ public class NeedResolverTests
         var graph = new WorldGraph();
         var attributes = new AttributeStore();
         var npc = graph.CreateEntity(EntityKind.Npc, "generic_npc", "Test", "c", tick: 0);
-        attributes.Initialize(npc.Id, "hp", 0f, 100f, 10f); // Very low HP
-        attributes.Initialize(npc.Id, "hunger", 0f, 100f, 20f); // Slightly hungry
-        attributes.Initialize(npc.Id, "ambition", 0f, 100f, 50f);
+        InitAttr(npc, "hp", 0f, 100f, 10f); // Very low HP
+        InitAttr(npc, "hunger", 0f, 100f, 20f); // Slightly hungry
+        InitAttr(npc, "ambition", 0f, 100f, 50f);
 
         var result = resolver.Resolve(npc, attributes);
 

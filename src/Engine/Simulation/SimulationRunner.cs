@@ -175,7 +175,7 @@ public sealed class SimulationRunner
 
         // Wire to tick clock
         var clock = new TickClock();
-        var relContext = new RelationshipContextAdapter(graph, attributes);
+        var relContext = new RelationshipContextAdapter(graph);
 
         // Phase 1: Low-altitude (physics + process selection)
         clock.Register("physics_and_processes", TickPhase.LowAltitude, cadence: 1,
@@ -264,11 +264,12 @@ public sealed class SimulationRunner
 
 // --- Adapter classes to bridge system interfaces ---
 
-internal sealed class RelationshipContextAdapter(WorldGraph graph, AttributeStore attributes)
+internal sealed class RelationshipContextAdapter(WorldGraph graph)
     : IRelationshipContext
 {
     public Entity? GetEntity(EntityId id) => graph.GetEntity(id);
-    public float GetAttribute(EntityId entityId, string attributeName) => attributes.Get(entityId, attributeName);
+    public float GetAttribute(EntityId entityId, string attributeName) =>
+        graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
     public (int Q, int R)? GetCoordinates(EntityId entityId) => graph.GetEntity(entityId)?.Coordinates;
     public float? GetSemanticDistance(EntityId a, EntityId b, string planeName) => null; // TODO: wire semantic planes
 }
@@ -309,7 +310,8 @@ internal sealed class CardMutationContext(
     public Random Random { get; } = random ?? System.Random.Shared;
     public (int Q, int R)? ResolvedTarget => null; // Cards don't use directed target resolution
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
-    public float GetAttribute(EntityId entityId, string attributeName) => attributes.Get(entityId, attributeName);
+    public float GetAttribute(EntityId entityId, string attributeName) =>
+        graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
     public int CountEntitiesByKind(EntityKind kind) => graph.GetEntitiesByKind(kind).Count;
 
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
@@ -343,8 +345,11 @@ internal sealed class CardMutationContext(
     public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) =>
         graph.CreateRelationship(kind, polarity, sourceId, targetId, strength, CurrentTick);
 
-    public void ModifyAttribute(EntityId entityId, string attributeName, float delta) =>
-        attributes.Modify(entityId, attributeName, delta);
+    public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
+    {
+        graph.GetEntity(entityId)?.Attributes.Modify(attributeName, delta);
+        attributes.Modify(entityId, attributeName, delta); // Legacy sync
+    }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
         pressure.ApplyDelta(pressureName, scopeId, delta);

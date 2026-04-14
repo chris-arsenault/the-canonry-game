@@ -48,7 +48,7 @@ public sealed class NeedResolver
 
         foreach (var attrConfig in kindConfig.Attributes)
         {
-            var current = attributes.Get(entity.Id, attrConfig.Name);
+            var current = entity.Attributes.GetValue(attrConfig.Name);
             var range = attrConfig.Max - attrConfig.Min;
             if (range <= 0f) continue;
 

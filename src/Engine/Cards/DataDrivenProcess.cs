@@ -122,8 +122,11 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
     }
 
     public float GetPressure(string pressureName, EntityId scopeId) => 0f; // TODO: wire pressure
-    public float GetAttribute(EntityId entityId, string attributeName) =>
-        _worldState.Attributes.Get(entityId, attributeName);
+    public float GetAttribute(EntityId entityId, string attributeName)
+    {
+        var entity = _worldState.Graph.GetEntity(entityId);
+        return entity?.Attributes.GetValue(attributeName) ?? 0f;
+    }
 
     public int CountEntitiesByKind(Kinds.EntityKind kind) =>
         _worldState.Graph.GetEntitiesByKind(kind).Count;
@@ -165,8 +168,13 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
         EntityId sourceId, EntityId targetId, float strength) =>
         _worldState.Graph.CreateRelationship(kind, polarity, sourceId, targetId, strength, CurrentTick);
 
-    public void ModifyAttribute(EntityId entityId, string attributeName, float delta) =>
+    public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
+    {
+        var entity = _worldState.Graph.GetEntity(entityId);
+        entity?.Attributes.Modify(attributeName, delta);
+        // Legacy sync — remove when AttributeStore is fully retired
         _worldState.Attributes.Modify(entityId, attributeName, delta);
+    }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { } // TODO: wire pressure
     public void SetTag(EntityId entityId, string key, string value) { }

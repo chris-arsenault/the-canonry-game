@@ -82,8 +82,8 @@ public sealed class ResourceSystem
                 continue;
             }
 
-            var population = _attributes.Get(settlementId, "population");
-            var development = _attributes.Get(settlementId, "development");
+            var population = entity.Attributes.GetValue("population");
+            var development = entity.Attributes.GetValue("development");
 
             // Sustenance: fertility * population labor -> production, population -> consumption
             var sustenanceProd = cell.Fertility * (population / 100f) * SustenanceProductionFactor;

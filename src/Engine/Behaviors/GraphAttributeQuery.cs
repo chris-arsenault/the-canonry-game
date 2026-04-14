@@ -114,7 +114,7 @@ public static class GraphAttributeQuery
                 continue;
             }
 
-            var value = worldState.Attributes.Get(entityId, attributeName);
+            var value = entity.Attributes.GetValue(attributeName);
             if (value <= 0f) continue;
 
             var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);

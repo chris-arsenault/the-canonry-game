@@ -202,9 +202,13 @@ public class ResourceSystemTests
         var world = TestMapBuilder.BuildDefault(seed: 42);
         var attributes = new AttributeStore();
 
-        // Initialize attributes for all settlements
+        // Initialize attributes for all settlements (entity-owned + legacy store)
         foreach (var sid in world.Graph.GetEntitiesByKind(EntityKind.Settlement))
         {
+            var entity = world.Graph.GetEntity(sid)!;
+            entity.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 100));
+            entity.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
+            entity.Attributes.Add(new Engine.Attributes.AttributeInstance("prosperity", 0, 100, 50));
             attributes.Initialize(sid, "population", 0, 10000, 100);
             attributes.Initialize(sid, "development", 0, 100, 10);
             attributes.Initialize(sid, "prosperity", 0, 100, 50);

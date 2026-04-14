@@ -107,7 +107,7 @@ public partial class HexMapRenderer : Node2D
             switch (entity.Kind)
             {
                 case EntityKind.Settlement:
-                    var pop = _sim.Attributes.Get(entityId, "population");
+                    var pop = entity.Attributes.GetValue("population");
                     var radius = Mathf.Clamp(pop / 100f * 3f, 3f, 12f);
                     DrawCircle(center, radius, new Color(0.9f, 0.85f, 0.3f));
                     DrawCircle(center, radius, new Color(0.1f, 0.1f, 0.1f), filled: false);

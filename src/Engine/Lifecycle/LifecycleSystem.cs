@@ -53,10 +53,11 @@ public sealed class LifecycleSystem
             var drain = aging.ComputeDrain(age);
 
             // Apply drain to health attribute
-            _attributes.Modify(entityId, healthAttr, -drain);
+            entity.Attributes.Modify(healthAttr, -drain);
+            _attributes.Modify(entityId, healthAttr, -drain); // Legacy sync
 
             // Check if health reached zero
-            var health = _attributes.Get(entityId, healthAttr);
+            var health = entity.Attributes.GetValue(healthAttr);
             if (health <= 0f)
             {
                 toTransition.Add(entityId);

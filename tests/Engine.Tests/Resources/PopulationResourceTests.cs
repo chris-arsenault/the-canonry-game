@@ -89,6 +89,8 @@ public class PopulationResourceTests
 
         // Rich cell
         var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
+        rich.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 1000));
+        rich.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
         attributes.Initialize(rich.Id, "population", 0, 10000, 1000);
         attributes.Initialize(rich.Id, "development", 0, 100, 10);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
@@ -96,6 +98,8 @@ public class PopulationResourceTests
 
         // Poor cell
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
+        poor.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 50));
+        poor.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
         attributes.Initialize(poor.Id, "population", 0, 10000, 50);
         attributes.Initialize(poor.Id, "development", 0, 100, 5);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
@@ -129,12 +133,16 @@ public class PopulationResourceTests
         var nationB = graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", 0);
 
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "SA", "c", 0, (0, 0));
+        sA.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 1000));
+        sA.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
         attributes.Initialize(sA.Id, "population", 0, 10000, 1000);
         attributes.Initialize(sA.Id, "development", 0, 100, 10);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "SB", "c", 0, (2, 0));
+        sB.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 10));
+        sB.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
         attributes.Initialize(sB.Id, "population", 0, 10000, 10);
         attributes.Initialize(sB.Id, "development", 0, 100, 5);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
@@ -159,6 +167,8 @@ public class PopulationResourceTests
 
         var nation = graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
+        settlement.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 100000, population));
+        settlement.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
         attributes.Initialize(settlement.Id, "population", 0, 100000, population);
         attributes.Initialize(settlement.Id, "development", 0, 100, 10);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, nation.Id, 1f, 0);
