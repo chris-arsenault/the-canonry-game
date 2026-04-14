@@ -12,6 +12,11 @@ public interface IPrecondition
     /// <summary>Evaluate this precondition against the current world state.</summary>
     bool Evaluate(IMutationContext context);
 
+    /// <summary>When the precondition fails, which attribute is blocking?
+    /// Returns null if passing or not introspectable. Used by goal system
+    /// to generate sub-goals for unmet prerequisites.</summary>
+    string? GetBlockingAttribute() => null;
+
     /// <summary>Human-readable description for UI display.</summary>
     string Describe();
 }
@@ -25,6 +30,9 @@ public sealed class AndPrecondition(IReadOnlyList<IPrecondition> children) : IPr
 
     public bool Evaluate(IMutationContext context) =>
         Children.All(c => c.Evaluate(context));
+
+    public string? GetBlockingAttribute() =>
+        Children.Select(c => c.GetBlockingAttribute()).FirstOrDefault(a => a is not null);
 
     public string Describe() =>
         $"ALL({string.Join(", ", Children.Select(c => c.Describe()))})";
@@ -136,6 +144,8 @@ public sealed class SelfAttributeThreshold(string attributeName, float? min, flo
         if (max.HasValue && value > max.Value) return false;
         return true;
     }
+
+    public string? GetBlockingAttribute() => attributeName;
 
     public string Describe() =>
         $"self_attribute({attributeName}, {(min.HasValue ? $"min={min}" : "")}{(max.HasValue ? $"max={max}" : "")})";

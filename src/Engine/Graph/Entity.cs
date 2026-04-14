@@ -23,9 +23,14 @@ public sealed class Entity
     /// <summary>Entity-owned attribute instances. Initialized from domain config at creation.</summary>
     public Attributes.AttributeSet Attributes { get; } = new();
 
-    /// <summary>Current process-provider goal. Set by the evaluator, persists across ticks
-    /// until reached or preempted. Null when the entity has no active goal.</summary>
-    public EntityGoal? CurrentGoal { get; set; }
+    /// <summary>Active goals. Max 3 primary + their sub-goals. Regenerated periodically.</summary>
+    public System.Collections.ObjectModel.Collection<EntityGoal> Goals { get; } = [];
+
+    /// <summary>Tick when goals were last generated.</summary>
+    public int GoalsGeneratedAt { get; set; }
+
+    /// <summary>Transient: target entity for current process execution. Set by evaluator, cleared after.</summary>
+    public EntityId? CurrentTargetId { get; set; }
 
     /// <summary>Name of the last process or action that executed for this entity.</summary>
     public string? LastActionName { get; set; }

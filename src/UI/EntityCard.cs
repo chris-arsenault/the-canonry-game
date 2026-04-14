@@ -173,18 +173,22 @@ public partial class EntityCard : PanelContainer
 
         sb.AppendLine();
 
-        // Current Goal
-        sb.AppendLine("[b][u]Current Goal[/u][/b]");
-        if (entity.CurrentGoal is not null)
+        // Goals
+        sb.AppendLine("[b][u]Goals[/u][/b]");
+        if (entity.Goals.Count == 0)
         {
-            var targetName = _sim.Graph.GetEntity(entity.CurrentGoal.TargetEntityId)?.Name ?? "unknown";
-            sb.AppendLine($"  Process: [b]{entity.CurrentGoal.ProcessId}[/b]");
-            sb.AppendLine($"  Target: {targetName} at ({entity.CurrentGoal.TargetCoordinates.Q}, {entity.CurrentGoal.TargetCoordinates.R})");
-            sb.AppendLine($"  Score: {entity.CurrentGoal.Score:F3}");
+            sb.AppendLine("  [i]No goals[/i]");
         }
         else
         {
-            sb.AppendLine("  [i]No active goal[/i]");
+            foreach (var goal in entity.Goals)
+            {
+                var providerName = goal.Provider == entity.Id ? "self" :
+                    (_sim.Graph.GetEntity(goal.Provider)?.Name ?? goal.Provider.ToString());
+                var prefix = goal.IsSubGoal ? "  ↳ " : "  ";
+                var attr = goal.IsSubGoal ? $"unblock {goal.BlockingAttribute}" : goal.Attribute;
+                sb.AppendLine($"{prefix}[b]{attr}[/b] via {providerName} (urgency {goal.Urgency:F2})");
+            }
         }
 
         sb.AppendLine();

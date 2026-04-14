@@ -2,33 +2,35 @@ namespace Engine.Behaviors;
 
 using Engine.Graph;
 using Engine.Messages;
+using Engine.Processes;
 
 /// <summary>
-/// Per-entity per-tick process and decision evaluation.
+/// Per-entity per-tick evaluation. Selects a goal, finds processes that serve it,
+/// picks the best viable one, executes.
 ///
-/// Every process is scored. Processes that operate on other entities are scored
-/// against providers (distance-weighted). The winning process-provider pair is
-/// selected via weighted random. If the precondition passes, the process executes.
-///
-/// No locality branching. No movement. All processes go through the same flow.
+/// Goals are regenerated every N ticks or when a sub-goal fires.
+/// No locality branching. All processes go through the same flow.
 /// </summary>
 public sealed class EntityEvaluator
 {
     private readonly ActivityRegistry _registry;
     private readonly MessageBus _messageBus;
     private readonly Random _random;
-    private readonly NeedResolver? _needResolver;
+    private readonly GoalGenerator? _goalGenerator;
 
     /// <summary>Minimum score for a process to be considered viable.</summary>
     public float MinimumViableScore { get; set; } = 0.01f;
 
+    /// <summary>How often to regenerate goals (in ticks).</summary>
+    public int GoalRegenerationInterval { get; set; } = 10;
+
     public EntityEvaluator(ActivityRegistry registry, MessageBus messageBus,
-        Random? random = null, NeedResolver? needResolver = null)
+        Random? random = null, GoalGenerator? goalGenerator = null)
     {
         _registry = registry;
         _messageBus = messageBus;
         _random = random ?? Random.Shared;
-        _needResolver = needResolver;
+        _goalGenerator = goalGenerator;
     }
 
     public void Evaluate(Entity entity, IWorldState worldState)
@@ -38,16 +40,58 @@ public sealed class EntityEvaluator
 
         if (entity.Status != EntityStatus.Active) return;
 
+        // Regenerate goals if needed
+        if (_goalGenerator is not null &&
+            (entity.Goals.Count == 0 ||
+             worldState.CurrentTick - entity.GoalsGeneratedAt >= GoalRegenerationInterval))
+        {
+            RegenerateGoals(entity, worldState);
+        }
+
         EvaluateProcesses(entity, worldState);
 
-        var decision = SelectDecision(entity, worldState);
-        if (decision is not null)
+        // Decision selection (card-gated, separate from processes)
+        var decisions = _registry.GetDecisions(entity.Kind);
+        if (decisions.Count > 0)
         {
-            var message = decision.Execute(entity, worldState);
-            _messageBus.Publish(message);
-            entity.LastActionName = decision.Name;
-            entity.LastActionTick = worldState.CurrentTick;
+            var viableDecisions = new List<(IDecision Decision, float Score)>();
+            foreach (var decision in decisions)
+            {
+                if (!decision.CanExecute(entity, worldState)) continue;
+                var score = decision.Score(entity, worldState);
+                if (score >= MinimumViableScore) viableDecisions.Add((decision, score));
+            }
+
+            if (viableDecisions.Count > 0)
+            {
+                var winner = WeightedRandomSelectDecision(viableDecisions);
+                if (winner is not null)
+                {
+                    var message = winner.Value.Decision.Execute(entity, worldState);
+                    _messageBus.Publish(message);
+                    entity.LastActionName = winner.Value.Decision.Name;
+                    entity.LastActionTick = worldState.CurrentTick;
+                }
+            }
         }
+    }
+
+    private (IDecision Decision, float Score)? WeightedRandomSelectDecision(
+        List<(IDecision Decision, float Score)> candidates)
+    {
+        if (candidates.Count == 0) return null;
+        var totalWeight = 0f;
+        foreach (var (_, score) in candidates) totalWeight += score;
+        if (totalWeight <= 0f) return null;
+        var roll = (float)(_random.NextDouble() * totalWeight);
+        var cumulative = 0f;
+        foreach (var candidate in candidates)
+        {
+            cumulative += candidate.Score;
+            if (roll <= cumulative) return candidate;
+        }
+
+        return candidates[^1];
     }
 
     public void EvaluateAll(WorldGraph graph, IWorldState worldState)
@@ -61,110 +105,143 @@ public sealed class EntityEvaluator
         }
     }
 
+    private void RegenerateGoals(Entity entity, IWorldState worldState)
+    {
+        entity.Goals.Clear();
+        foreach (var goal in _goalGenerator!.Generate(entity, worldState))
+        {
+            entity.Goals.Add(goal);
+        }
+
+        entity.GoalsGeneratedAt = worldState.CurrentTick;
+    }
+
     private void EvaluateProcesses(Entity entity, IWorldState worldState)
     {
-        var processes = _registry.GetProcesses(entity.Kind);
-        if (processes.Count == 0) return;
+        if (entity.Goals.Count == 0)
+        {
+            // No goals — fall back to scoring all processes without target
+            EvaluateWithoutGoals(entity, worldState);
+            return;
+        }
 
-        // Score every process. Find providers for each. No locality branching.
-        var candidates = new List<(IProcess Process, EntityId? TargetId, float Score)>();
+        // 1. Select a goal (weighted random by urgency)
+        var goal = SelectGoal(entity);
+        if (goal is null) return;
+
+        // 2. Find processes that serve this goal
+        var processes = _registry.GetProcesses(entity.Kind);
+        var candidates = new List<(IProcess Process, float Score)>();
 
         foreach (var process in processes)
         {
-            var baseScore = process.Score(entity, worldState);
-            if (baseScore < MinimumViableScore) continue;
+            if (!ServesGoal(process, goal, entity)) continue;
 
-            // Find providers for this process
-            var providers = FindProviders(entity, worldState);
+            var score = process.Score(entity, worldState);
+            if (score < MinimumViableScore) continue;
 
-            if (providers.Count > 0)
-            {
-                // Score each process-provider pair with distance weighting
-                foreach (var (providerId, _, weight) in providers)
-                {
-                    var compositeScore = baseScore * weight;
-                    if (compositeScore >= MinimumViableScore)
-                    {
-                        candidates.Add((process, providerId, compositeScore));
-                    }
-                }
-            }
+            if (!process.CanExecute(entity, worldState)) continue;
 
-            // Also add as self-targeted candidate (no provider)
-            candidates.Add((process, null, baseScore));
+            candidates.Add((process, score));
         }
 
         if (candidates.Count == 0) return;
 
-        // Weighted random selection
+        // 3. Weighted random select
         var winner = WeightedRandomSelect(candidates);
         if (winner is null) return;
 
-        var (winProcess, winTargetId, _) = winner.Value;
-
-        // Set goal if target exists
-        if (winTargetId is not null)
-        {
-            var targetEntity = worldState.Graph.GetEntity(winTargetId.Value);
-            if (targetEntity?.Coordinates is not null)
-            {
-                entity.CurrentGoal = new EntityGoal(
-                    winProcess.Name, winTargetId.Value,
-                    targetEntity.Coordinates.Value, 0f);
-            }
-        }
-        else
-        {
-            entity.CurrentGoal = null;
-        }
-
-        // Check precondition and execute
-        if (winProcess.CanExecute(entity, worldState))
-        {
-            var message = winProcess.Execute(entity, worldState);
-            _messageBus.Publish(message);
-            entity.LastActionName = winProcess.Name;
-            entity.LastActionTick = worldState.CurrentTick;
-            entity.CurrentGoal = null;
-        }
+        // 4. Set the goal's provider as target on the entity, then execute
+        var targetId = goal.Provider != entity.Id ? goal.Provider : (EntityId?)null;
+        ExecuteProcess(entity, worldState, winner.Value.Process, targetId, goal);
     }
 
-    private List<(EntityId Id, (int Q, int R) Coord, float Weight)> FindProviders(
-        Entity entity, IWorldState worldState)
+    private void EvaluateWithoutGoals(Entity entity, IWorldState worldState)
     {
-        if (_needResolver is null) return [];
+        var processes = _registry.GetProcesses(entity.Kind);
+        var candidates = new List<(IProcess Process, float Score)>();
 
-        var need = _needResolver.Resolve(entity);
-        if (need is null) return [];
-
-        var results = new List<(EntityId Id, (int Q, int R) Coord, float Weight)>();
-
-        foreach (var providerRef in need.ProviderRefs)
+        foreach (var process in processes)
         {
-            var providers = GraphAttributeQuery.FindProviders(providerRef, entity, worldState, topN: 5);
-            foreach (var (providerId, weight) in providers)
-            {
-                var providerEntity = worldState.Graph.GetEntity(providerId);
-                if (providerEntity?.Coordinates is null) continue;
-                results.Add((providerId, providerEntity.Coordinates.Value, weight));
-            }
+            var score = process.Score(entity, worldState);
+            if (score < MinimumViableScore) continue;
+            if (!process.CanExecute(entity, worldState)) continue;
+            candidates.Add((process, score));
         }
 
-        return results;
+        if (candidates.Count == 0) return;
+
+        var winner = WeightedRandomSelect(candidates);
+        if (winner is not null)
+        {
+            ExecuteProcess(entity, worldState, winner.Value.Process, null, null);
+        }
     }
 
-    private (IProcess Process, EntityId? TargetId, float Score)? WeightedRandomSelect(
-        List<(IProcess Process, EntityId? TargetId, float Score)> candidates)
+    private void ExecuteProcess(Entity entity, IWorldState worldState,
+        IProcess process, EntityId? targetId, EntityGoal? goal)
+    {
+        // Set target on entity so ProcessMutationContext can read it
+        entity.CurrentTargetId = targetId;
+
+        var message = process.Execute(entity, worldState);
+        _messageBus.Publish(message);
+        entity.LastActionName = process.Name;
+        entity.LastActionTick = worldState.CurrentTick;
+
+        entity.CurrentTargetId = null;
+
+        // If a sub-goal's process fired, trigger goal regeneration next tick
+        if (goal is not null && goal.IsSubGoal)
+        {
+            entity.GoalsGeneratedAt = 0; // Force regeneration next tick
+        }
+    }
+
+    private EntityGoal? SelectGoal(Entity entity)
+    {
+        if (entity.Goals.Count == 0) return null;
+
+        var totalUrgency = 0f;
+        foreach (var goal in entity.Goals) totalUrgency += goal.Urgency;
+        if (totalUrgency <= 0f) return null;
+
+        var roll = (float)(_random.NextDouble() * totalUrgency);
+        var cumulative = 0f;
+        foreach (var goal in entity.Goals)
+        {
+            cumulative += goal.Urgency;
+            if (roll <= cumulative) return goal;
+        }
+
+        return entity.Goals[^1];
+    }
+
+    private static bool ServesGoal(IProcess process, EntityGoal goal, Entity entity)
+    {
+        // A process serves a goal if it writes to the goal's target attribute
+        if (process is not DataDrivenProcess ddp) return false;
+
+        var targetAttr = goal.TargetAttribute;
+        foreach (var write in ddp.Definition.Writes)
+        {
+            if (write.Name == targetAttr) return true;
+        }
+
+        return false;
+    }
+
+    private (IProcess Process, float Score)? WeightedRandomSelect(
+        List<(IProcess Process, float Score)> candidates)
     {
         if (candidates.Count == 0) return null;
 
         var totalWeight = 0f;
-        foreach (var (_, _, score) in candidates) totalWeight += score;
+        foreach (var (_, score) in candidates) totalWeight += score;
         if (totalWeight <= 0f) return null;
 
         var roll = (float)(_random.NextDouble() * totalWeight);
         var cumulative = 0f;
-
         foreach (var candidate in candidates)
         {
             cumulative += candidate.Score;
@@ -172,35 +249,5 @@ public sealed class EntityEvaluator
         }
 
         return candidates[^1];
-    }
-
-    private IDecision? SelectDecision(Entity entity, IWorldState worldState)
-    {
-        var decisions = _registry.GetDecisions(entity.Kind);
-        if (decisions.Count == 0) return null;
-
-        var viable = new List<(IDecision Decision, float Score)>();
-        foreach (var decision in decisions)
-        {
-            if (!decision.CanExecute(entity, worldState)) continue;
-            var score = decision.Score(entity, worldState);
-            if (score >= MinimumViableScore) viable.Add((decision, score));
-        }
-
-        if (viable.Count == 0) return null;
-
-        var totalWeight = 0f;
-        foreach (var (_, score) in viable) totalWeight += score;
-        if (totalWeight <= 0f) return null;
-
-        var roll = (float)(_random.NextDouble() * totalWeight);
-        var cumulative = 0f;
-        foreach (var (decision, score) in viable)
-        {
-            cumulative += score;
-            if (roll <= cumulative) return decision;
-        }
-
-        return viable[^1].Decision;
     }
 }

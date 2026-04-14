@@ -12,43 +12,43 @@ using Engine.Messages;
 /// </summary>
 public sealed class DataDrivenProcess : IProcess
 {
-    private readonly ProcessDefinition _definition;
+    public ProcessDefinition Definition { get; }
 
-    public string Name => _definition.Name;
+    public string Name => Definition.Name;
 
     public DataDrivenProcess(ProcessDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        _definition = definition;
+        Definition = definition;
     }
 
     public bool CanExecute(Entity entity, IWorldState worldState)
     {
         var context = new ProcessMutationContext(entity, worldState);
-        return _definition.Precondition.Evaluate(context);
+        return Definition.Precondition.Evaluate(context);
     }
 
     public float Score(Entity entity, IWorldState worldState)
     {
         var exprCtx = new ExpressionContext(entity);
-        return _definition.ScoreExpression.Evaluate(exprCtx);
+        return Definition.ScoreExpression.Evaluate(exprCtx);
     }
 
     public SimulationMessage Execute(Entity entity, IWorldState worldState)
     {
         var context = new ProcessMutationContext(entity, worldState);
 
-        foreach (var mutation in _definition.Mutations)
+        foreach (var mutation in Definition.Mutations)
         {
             mutation.Execute(context);
         }
 
-        var description = _definition.DescriptionTemplate
+        var description = Definition.DescriptionTemplate
             .Replace("{name}", entity.Name, StringComparison.Ordinal)
-            .Replace("{process}", _definition.Name, StringComparison.Ordinal);
+            .Replace("{process}", Definition.Name, StringComparison.Ordinal);
 
         return new ProcessExecutedMessage(
-            worldState.CurrentTick, entity.Id, entity.Kind, _definition.Name, description);
+            worldState.CurrentTick, entity.Id, entity.Kind, Definition.Name, description);
     }
 }
 
@@ -112,7 +112,7 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
-    public EntityId? ResolvedTargetId => _entity.CurrentGoal?.TargetEntityId;
+    public EntityId? ResolvedTargetId => _entity.CurrentTargetId;
     public IWorldState WorldState => _worldState;
 
     public void SetVariable(string name, float value)
