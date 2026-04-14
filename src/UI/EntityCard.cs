@@ -63,6 +63,11 @@ public partial class EntityCard : PanelContainer
         _titleLabel.AddThemeFontSizeOverride("font_size", 14);
         titleBar.AddChild(_titleLabel);
 
+        // Copy button
+        var copyBtn = new Button { Text = "📋", CustomMinimumSize = new Vector2(28, 28) };
+        copyBtn.Pressed += () => { if (_content is not null) DisplayServer.ClipboardSet(_content.Text); };
+        titleBar.AddChild(copyBtn);
+
         // Collapse button
         var collapseBtn = new Button { Text = "_", CustomMinimumSize = new Vector2(28, 28) };
         collapseBtn.Pressed += OnCollapsePressed;
