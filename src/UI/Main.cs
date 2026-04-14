@@ -20,6 +20,8 @@ public partial class Main : Node2D
     private CanvasLayer? _uiLayer;
     private RichTextLabel? _eventLogLabel;
     private int _frameCount;
+    private double _tickAccumulator;
+    private bool _stepOneTick;
 
     public override void _Ready()
     {
@@ -121,7 +123,7 @@ public partial class Main : Node2D
         _uiLayer.AddChild(tickLabel);
         _tickLabel = tickLabel;
 
-        GD.Print("Controls: Space=pause, 1/2/3=speed, WASD/arrows=pan, scroll=zoom, click=select entity");
+        GD.Print("Controls: Space=pause/resume, Right=step 1 tick, 1/2/3=speed, WASD=pan, scroll=zoom, click=select");
     }
 
     private Label? _tickLabel;
@@ -130,17 +132,48 @@ public partial class Main : Node2D
     {
         if (_sim is null) return;
 
-        var ticksProcessed = _sim.AdvanceFrame();
+        var ticksProcessed = 0;
+
+        // Manual single-step (right arrow)
+        if (_stepOneTick)
+        {
+            _sim.Clock.Speed = SimulationSpeed.Normal; // Temporarily unpause for one tick
+            _sim.Tick();
+            _sim.Clock.Speed = SimulationSpeed.Paused;
+            _stepOneTick = false;
+            ticksProcessed = 1;
+        }
+        else if (_sim.Clock.Speed != SimulationSpeed.Paused)
+        {
+            // Time-based ticking: seconds per tick varies by speed
+            var secondsPerTick = _sim.Clock.Speed switch
+            {
+                SimulationSpeed.Normal => 1.0,   // 1 tick per second
+                SimulationSpeed.Fast => 0.25,    // 4 ticks per second
+                SimulationSpeed.VeryFast => 0.1, // 10 ticks per second
+                _ => 1.0,
+            };
+
+            _tickAccumulator += delta;
+            while (_tickAccumulator >= secondsPerTick)
+            {
+                _sim.Tick();
+                _tickAccumulator -= secondsPerTick;
+                ticksProcessed++;
+            }
+        }
 
         // Refresh displays
         if (ticksProcessed > 0)
         {
             _mapRenderer?.Refresh();
             _detailPanel?.Refresh();
-            if (_tickLabel is not null)
-            {
-                _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | Speed: {_sim.Clock.Speed}";
-            }
+        }
+
+        if (_tickLabel is not null)
+        {
+            var speedText = _sim.Clock.Speed == SimulationSpeed.Paused ? "PAUSED" : $"{_sim.Clock.Speed}";
+            _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | {speedText}";
         }
 
         // Camera movement
@@ -156,19 +189,32 @@ public partial class Main : Node2D
             switch (key.Keycode)
             {
                 case Key.Space:
-                    _sim.Clock.Speed = _sim.Clock.Speed == SimulationSpeed.Paused
-                        ? SimulationSpeed.Normal
-                        : SimulationSpeed.Paused;
+                    if (_sim.Clock.Speed == SimulationSpeed.Paused)
+                    {
+                        _sim.Clock.Speed = SimulationSpeed.Normal;
+                    }
+                    else
+                    {
+                        _sim.Clock.Speed = SimulationSpeed.Paused;
+                        _tickAccumulator = 0;
+                    }
+
                     GD.Print($"Speed: {_sim.Clock.Speed}");
                     break;
                 case Key.Key1:
                     _sim.Clock.Speed = SimulationSpeed.Normal;
+                    _tickAccumulator = 0;
                     break;
                 case Key.Key2:
                     _sim.Clock.Speed = SimulationSpeed.Fast;
+                    _tickAccumulator = 0;
                     break;
                 case Key.Key3:
                     _sim.Clock.Speed = SimulationSpeed.VeryFast;
+                    _tickAccumulator = 0;
+                    break;
+                case Key.Right:
+                    _stepOneTick = true;
                     break;
             }
         }
@@ -260,13 +306,13 @@ public partial class Main : Node2D
         var speed = 200f / _camera.Zoom.X;
         var direction = Vector2.Zero;
 
-        if (Input.IsActionPressed("ui_left") || Input.IsKeyPressed(Key.A))
+        if (Input.IsKeyPressed(Key.A))
             direction.X -= 1;
-        if (Input.IsActionPressed("ui_right") || Input.IsKeyPressed(Key.D))
+        if (Input.IsKeyPressed(Key.D))
             direction.X += 1;
-        if (Input.IsActionPressed("ui_up") || Input.IsKeyPressed(Key.W))
+        if (Input.IsKeyPressed(Key.W))
             direction.Y -= 1;
-        if (Input.IsActionPressed("ui_down") || Input.IsKeyPressed(Key.S))
+        if (Input.IsKeyPressed(Key.S))
             direction.Y += 1;
 
         if (direction != Vector2.Zero)
