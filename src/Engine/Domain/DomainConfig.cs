@@ -47,6 +47,10 @@ public sealed class AttributeConfig
     public required float Min { get; init; }
     public required float Max { get; init; }
     public required float Default { get; init; }
+
+    /// <summary>Per-tick drift rate. Positive = increases each tick, negative = decreases.
+    /// Zero (default) = no drift. e.g., hunger drifts +0.2/tick, condition drifts -0.01/tick.</summary>
+    public float DriftRate { get; init; }
 }
 
 /// <summary>Relationship kind configuration.</summary>

@@ -156,9 +156,9 @@ public static class TestDomain
                 Attributes =
                 [
                     new() { Name = "hp", Min = 0f, Max = 100f, Default = 100f },
-                    new() { Name = "hunger", Min = 0f, Max = 100f, Default = 0f },
+                    new() { Name = "hunger", Min = 0f, Max = 100f, Default = 0f, DriftRate = 0.2f },
                     new() { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
-                    new() { Name = "age", Min = 0f, Max = 1000f, Default = 20f },
+                    new() { Name = "age", Min = 0f, Max = 1000f, Default = 20f, DriftRate = 1f },
                 ],
                 HealthAttribute = "hp",
             },
@@ -167,8 +167,8 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_artifact", "weapon", "armor", "instrument", "relic", "scroll" },
                 Attributes =
                 [
-                    new() { Name = "condition", Min = 0f, Max = 100f, Default = 100f },
-                    new() { Name = "mystical_resonance", Min = 0f, Max = 100f, Default = 0f },
+                    new() { Name = "condition", Min = 0f, Max = 100f, Default = 100f, DriftRate = -0.01f },
+                    new() { Name = "mystical_resonance", Min = 0f, Max = 100f, Default = 0f, DriftRate = 0.05f },
                     new() { Name = "power", Min = 0f, Max = 100f, Default = 10f },
                 ],
                 HealthAttribute = "condition",

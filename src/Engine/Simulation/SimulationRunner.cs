@@ -192,18 +192,10 @@ public sealed class SimulationRunner
             tick => lifecycle.Tick(tick));
         clock.Register("resources", TickPhase.LowAltitude, cadence: 1,
             tick => resources.Tick(tick));
-        // TEMPORARY: hardcoded hunger drift until #73 (maintenance system) is implemented.
-        // This should be a domain-defined per-tick maintenance function with modifier composition.
-        clock.Register("npc_needs_TEMP", TickPhase.LowAltitude, cadence: 1,
-            _ =>
-            {
-                foreach (var npcId in graph.GetEntitiesByKind(EntityKind.Npc))
-                {
-                    var npc = graph.GetEntity(npcId);
-                    if (npc is null || npc.Status != EntityStatus.Active) continue;
-                    attributes.Modify(npcId, "hunger", 0.2f);
-                }
-            });
+        // Per-tick attribute drift from domain config (hunger increases, condition degrades, etc.)
+        var maintenance = new Lifecycle.MaintenanceSystem(graph, attributes, domainConfig.Kinds);
+        clock.Register("maintenance", TickPhase.LowAltitude, cadence: 1,
+            _ => maintenance.Tick());
 
         // Phase 2: Pressure (every 5 ticks for efficiency)
         clock.Register("pressure", TickPhase.Pressure, cadence: 5,
