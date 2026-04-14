@@ -32,21 +32,29 @@ public static class TestDomain
     {
         var processes = new List<ProcessDefinition>();
 
-        // Settlement: prosperity → population (feedback: population → prosperity via NPC presence)
-        var settlementTick = new ProcessDefinition("settlement_tick", "Settlement Tick",
-            DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(), new ConstantScore(0.5f, variance: 0.15f))
-        { Mutations = { new ModifySelfAttributeMutation("population", 0.1f, variance: 0.3f) } };
-        settlementTick.Reads.Add(AttributeRef.Self("prosperity", EntityKind.Settlement));
-        settlementTick.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        processes.Add(settlementTick);
+        // Settlement: stockpile sustenance from labor (population → sustenance)
+        // TODO: production should scale with terrain fertility (#75), currently flat rate * population
+        var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
+            DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(),
+            new ConstantScore(0.6f, variance: 0.1f))
+        { Mutations = { new StockpileMutation("population", "sustenance", 0.1f, variance: 0.2f) } };
+        stockpile.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
+        processes.Add(stockpile);
 
-        // Settlement feedback: population → prosperity
-        var settlementFeedback = new ProcessDefinition("settlement_feedback", "Settlement Feedback",
-            DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(), new ConstantScore(0.4f, variance: 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("prosperity", 0.05f, variance: 0.25f) } };
-        settlementFeedback.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        settlementFeedback.Writes.Add(AttributeRef.Self("prosperity", EntityKind.Settlement));
-        processes.Add(settlementFeedback);
+        // Settlement: convert sustenance surplus into population growth
+        var grow = new ProcessDefinition("settlement_grow", "Grow",
+            DefinitionRole.Process, EntityKind.Settlement,
+            new SelfAttributeThreshold("sustenance", min: 5f, max: null),
+            new AttributeRatioScore("sustenance", 100f, variance: 0.1f))
+        { Mutations = {
+            new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
+            new ModifySelfAttributeMutation("sustenance", -5f, variance: 0.2f),
+        } };
+        grow.Reads.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
+        grow.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        grow.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
+        processes.Add(grow);
 
         // Nation: stability → cohesion (feedback: cohesion → stability)
         var nationTick = new ProcessDefinition("nation_tick", "Nation Tick",
@@ -131,10 +139,10 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
                 Attributes =
                 [
-                    new() { Name = "population", Min = 0f, Max = 100000f, Default = 100f },
-                    new() { Name = "development", Min = 0f, Max = 100f, Default = 10f },
-                    new() { Name = "prosperity", Min = 0f, Max = 100f, Default = 50f },
-                    new() { Name = "defense", Min = 0f, Max = 100f, Default = 10f },
+                    new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f },
+                    new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
+                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 0f },
+                    new() { Name = "ideology", Min = -100f, Max = 100f, Default = 0f },
                 ],
                 HealthAttribute = "population",
             },
@@ -217,7 +225,7 @@ public static class TestDomain
     {
         return new Dictionary<EntityKind, Domain.LifecycleConfig>
         {
-            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.05f, AgeCoefficient = 0.0001f },
+            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.01f, AgeCoefficient = 0.0002f },
             [EntityKind.Nation] = new() { HealthAttribute = "cohesion", BaseRate = 0.01f, AgeCoefficient = 0.00005f },
             [EntityKind.Npc] = new() { HealthAttribute = "hp", BaseRate = 0.02f, AgeCoefficient = 0.0005f },
             [EntityKind.Artifact] = new() { HealthAttribute = "condition", BaseRate = 0.01f, AgeCoefficient = 0.0001f },

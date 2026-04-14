@@ -117,6 +117,26 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
 }
 
 /// <summary>
+/// Reads one of the entity's attributes and adds a scaled amount to another.
+/// e.g., population * 0.1 → sustenance. Generic production/conversion mutation.
+/// </summary>
+public sealed class StockpileMutation(
+    string sourceAttribute, string targetAttribute, float factor, float variance = 0f) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var entity = context.GetEntity(context.SelfEntityId);
+        if (entity is null) return;
+        var sourceValue = entity.Attributes.GetValue(sourceAttribute);
+        var production = Variance.Scale(sourceValue * factor, variance, context.Random);
+        context.ModifyAttribute(context.SelfEntityId, targetAttribute, production);
+    }
+
+    public string Describe() => $"stockpile({sourceAttribute} * {factor} → {targetAttribute}, var={variance})";
+}
+
+/// <summary>
 /// Marker interface: the mutation context can provide direct IWorldState access.
 /// Used by mutations or evaluator internals that need spatial queries or pathfinding.
 /// </summary>

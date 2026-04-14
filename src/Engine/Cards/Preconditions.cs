@@ -124,6 +124,24 @@ public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
     public string Describe() => $"cooldown(min_ticks={minimumTicksSinceFire})";
 }
 
+/// <summary>Checks the current entity's own attribute against a threshold.</summary>
+public sealed class SelfAttributeThreshold(string attributeName, float? min, float? max) : IPrecondition
+{
+    public bool Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var entity = context.GetEntity(context.SelfEntityId);
+        if (entity is null) return false;
+        var value = entity.Attributes.GetValue(attributeName);
+        if (min.HasValue && value < min.Value) return false;
+        if (max.HasValue && value > max.Value) return false;
+        return true;
+    }
+
+    public string Describe() =>
+        $"self_attribute({attributeName}, {(min.HasValue ? $"min={min}" : "")}{(max.HasValue ? $"max={max}" : "")})";
+}
+
 /// <summary>Always true. Used for system cards that run unconditionally.</summary>
 public sealed class AlwaysTrue : IPrecondition
 {
