@@ -2,7 +2,6 @@ namespace Engine.Processes;
 
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Resources;
 
 /// <summary>
 /// A composable precondition tree node. Evaluates against world state.
@@ -147,19 +146,4 @@ public sealed class AlwaysTrue : IPrecondition
 {
     public bool Evaluate(IMutationContext context) => true;
     public string Describe() => "always_true";
-}
-
-/// <summary>Checks that a resource is available at the entity's current hex coordinates.</summary>
-public sealed class ResourceAvailableAtSelf(Resources.ResourceType resourceType, float minAmount = 0.01f) : IPrecondition
-{
-    public bool Evaluate(IMutationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        var entity = context.GetEntity(context.SelfEntityId);
-        if (entity?.Coordinates is null) return false;
-        var amount = context.GetResource(entity.Coordinates.Value, resourceType);
-        return amount >= minAmount;
-    }
-
-    public string Describe() => $"resource_available({resourceType}, min={minAmount})";
 }

@@ -216,12 +216,13 @@ public class WiringValidatorTests
         var validator = Engine.Domain.DomainLoader.LoadAndValidateWiring(config);
         var errors = validator.Validate();
 
-        // Known gaps in the TestDomain (smoke test processes removed, real processes WIP):
-        // - NPC has no sustaining path for hp (no process writes to hp yet)
-        // These will be resolved as real processes are implemented.
-        // For now, verify we get the expected errors and no unexpected ones.
+        // Known gaps — real processes are WIP. Just verify no unexpected error types.
         Assert.All(errors, e =>
-            Assert.Contains("Npc", e.Message, System.StringComparison.Ordinal));
+            Assert.True(
+                e.Type == Engine.Wiring.WiringErrorType.DeadEnd
+                || e.Type == Engine.Wiring.WiringErrorType.NoSustainingPath
+                || e.Type == Engine.Wiring.WiringErrorType.Orphan,
+                $"Unexpected error type: {e.Type} — {e.Message}"));
     }
 
     // --- Multiple kinds ---

@@ -2,7 +2,6 @@ namespace Engine.Processes;
 
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Resources;
 
 /// <summary>
 /// A mutation: a single effect applied to the world when a card fires.
@@ -117,56 +116,28 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
 }
 
 /// <summary>
-/// Reads one of the entity's attributes and adds a scaled amount to another.
-/// e.g., population * 0.1 → sustenance. Generic production/conversion mutation.
+/// Modifies an attribute on the resolved target entity (from the process-provider pair).
+/// e.g., NPC eats → target settlement loses sustenance.
+/// No-op if no target is resolved.
 /// </summary>
-public sealed class StockpileMutation(
-    string sourceAttribute, string targetAttribute, float factor, float variance = 0f) : IMutation
+public sealed class ModifyTargetAttributeMutation(string attributeName, float delta, float variance = 0f) : IMutation
 {
     public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var entity = context.GetEntity(context.SelfEntityId);
-        if (entity is null) return;
-        var sourceValue = entity.Attributes.GetValue(sourceAttribute);
-        var production = Variance.Scale(sourceValue * factor, variance, context.Random);
-        context.ModifyAttribute(context.SelfEntityId, targetAttribute, production);
+        if (context.ResolvedTargetId is null) return;
+        context.ModifyAttribute(context.ResolvedTargetId.Value, attributeName,
+            Variance.Scale(delta, variance, context.Random));
     }
 
-    public string Describe() => $"stockpile({sourceAttribute} * {factor} → {targetAttribute}, var={variance})";
+    public string Describe() => $"modify_target({attributeName}, delta={delta}, var={variance})";
 }
 
 /// <summary>
 /// Marker interface: the mutation context can provide direct IWorldState access.
-/// Used by mutations or evaluator internals that need spatial queries or pathfinding.
+/// Used by evaluator internals that need spatial queries or pathfinding.
 /// </summary>
 public interface IWorldStateAccessor
 {
     Behaviors.IWorldState WorldState { get; }
-}
-
-/// <summary>
-/// Consume a resource at the current entity's hex coordinates and reduce an attribute by
-/// the amount consumed. Generic: works with any resource type and any attribute.
-/// e.g., consume sustenance at my hex, reduce my hunger by amount consumed.
-/// </summary>
-public sealed class ConsumeResourceAtSelfMutation(
-    ResourceType resourceType, float amount, string attributeToReduce, float variance = 0f) : IMutation
-{
-    public void Execute(IMutationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        var entity = context.GetEntity(context.SelfEntityId);
-        if (entity?.Coordinates is null) return;
-
-        var toConsume = Variance.Scale(amount, variance, context.Random);
-        var consumed = context.ConsumeResource(entity.Coordinates.Value, resourceType, toConsume);
-
-        if (consumed > 0f)
-        {
-            context.ModifyAttribute(context.SelfEntityId, attributeToReduce, -consumed);
-        }
-    }
-
-    public string Describe() => $"consume_resource({resourceType}, amount={amount}, reduces={attributeToReduce}, var={variance})";
 }

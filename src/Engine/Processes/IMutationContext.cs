@@ -18,9 +18,9 @@ public interface IMutationContext
     /// <summary>Shared RNG for variance in mutations and score expressions.</summary>
     Random Random { get; }
 
-    /// <summary>Target coordinates resolved by the process pipeline for directed processes.
-    /// Set before mutations execute. Null for non-directed processes or when no target found.</summary>
-    (int Q, int R)? ResolvedTarget { get; }
+    /// <summary>Target entity resolved by the evaluator's process-provider selection.
+    /// Set before mutations execute. Null when no provider target.</summary>
+    EntityId? ResolvedTargetId { get; }
 
     // --- Read operations (preconditions + scoring) ---
     float GetPressure(string pressureName, EntityId scopeId);

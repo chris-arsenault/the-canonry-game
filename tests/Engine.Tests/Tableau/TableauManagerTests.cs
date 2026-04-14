@@ -196,7 +196,7 @@ public class TableauManagerTests
         public int CurrentTick => CurrentTickValue;
         public EntityId SelfEntityId => new EntityId(0);
         public Random Random { get; } = new Random(42);
-        public (int Q, int R)? ResolvedTarget => null;
+        public EntityId? ResolvedTargetId => null;
         public int CurrentTickValue { get; set; }
 
         public float GetPressure(string pressureName, EntityId scopeId) => 0f;

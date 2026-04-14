@@ -111,7 +111,7 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
-    public (int Q, int R)? ResolvedTarget => null;
+    public EntityId? ResolvedTargetId => _entity.CurrentGoal?.TargetEntityId;
     public IWorldState WorldState => _worldState;
 
     public ProcessMutationContext(Entity entity, IWorldState worldState, Random? random = null)

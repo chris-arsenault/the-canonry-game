@@ -4,7 +4,6 @@ using Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
-using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -32,13 +31,12 @@ public static class TestDomain
     {
         var processes = new List<ProcessDefinition>();
 
-        // Settlement: stockpile sustenance from labor (population → sustenance)
-        // TODO: production should scale with terrain fertility (#75), currently flat rate * population
+        // Settlement: stockpile sustenance
+        // TODO: production should scale with terrain fertility (#75)
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
             DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(),
             new ConstantScore(0.6f, variance: 0.1f))
-        { Mutations = { new StockpileMutation("population", "sustenance", 0.1f, variance: 0.2f) } };
-        stockpile.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        { Mutations = { new ModifySelfAttributeMutation("sustenance", 1f, variance: 0.2f) } };
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(stockpile);
 
@@ -71,19 +69,21 @@ public static class TestDomain
         nationFeedback.Writes.Add(AttributeRef.Self("stability", EntityKind.Nation));
         processes.Add(nationFeedback);
 
-        // NPC: eat — consume sustenance at current hex, reduce hunger.
-        // Precondition checks food at current location. If food is elsewhere,
-        // the evaluator will still select eat (scored against distant providers)
-        // and step the NPC toward the provider until it arrives.
+        // NPC: eat — take sustenance from target settlement, reduce own hunger.
+        // Precondition: target settlement has sustenance. Evaluator scores against
+        // distant providers and walks NPC toward them if not at target.
         var npcEat = new ProcessDefinition("npc_eat", "Eat",
             DefinitionRole.Process, EntityKind.Npc,
-            new ResourceAvailableAtSelf(ResourceType.Sustenance),
+            new SelfAttributeThreshold("hunger", min: 1f, max: null),
             new AttributeRatioScore("hunger", 100f, variance: 0.1f))
-        { Mutations = { new ConsumeResourceAtSelfMutation(ResourceType.Sustenance, 5f, "hunger", variance: 0.3f) } };
+        { Mutations = {
+            new ModifyTargetAttributeMutation("sustenance", -5f, variance: 0.3f),
+            new ModifySelfAttributeMutation("hunger", -5f, variance: 0.3f),
+        } };
         npcEat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        npcEat.Reads.Add(AttributeRef.Resource("sustenance"));
+        npcEat.Reads.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         npcEat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        npcEat.Writes.Add(AttributeRef.Resource("sustenance"));
+        npcEat.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(npcEat);
 
         // Artifact: resonance ↔ condition
