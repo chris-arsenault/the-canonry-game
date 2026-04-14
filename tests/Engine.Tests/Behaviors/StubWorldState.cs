@@ -13,14 +13,19 @@ internal sealed class StubWorldState : IWorldState
     public WorldGraph Graph { get; } = new();
     public AttributeStore Attributes { get; } = new();
     public EffectSystem Effects { get; } = new();
-    public HexGrid Grid { get; } = new(1);
+    public HexGrid Grid { get; }
     public RegionMap RegionMap { get; } = new();
     public SpatialIndex SpatialIndex { get; }
-    public Engine.Resources.ResourceSystem? Resources => null;
+    public Engine.Resources.ResourceSystem? Resources { get; }
     public int CurrentTick { get; set; }
 
-    public StubWorldState()
+    public StubWorldState(int gridRadius = 1, bool withResources = false)
     {
+        Grid = new HexGrid(gridRadius);
         SpatialIndex = new SpatialIndex(Grid, RegionMap, Graph);
+        if (withResources)
+        {
+            Resources = new Engine.Resources.ResourceSystem(Graph, Attributes, Grid);
+        }
     }
 }
