@@ -22,9 +22,9 @@ public sealed class DataDrivenProcess : IProcess
         Definition = definition;
     }
 
-    public bool CanExecute(Entity entity, IWorldState worldState)
+    public bool CanExecute(Entity entity, IWorldState worldState, EntityId? targetId)
     {
-        var context = new ProcessMutationContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState, targetId: targetId);
         return Definition.Precondition.Evaluate(context).Passed;
     }
 
@@ -34,9 +34,9 @@ public sealed class DataDrivenProcess : IProcess
         return Definition.ScoreExpression.Evaluate(exprCtx);
     }
 
-    public SimulationMessage Execute(Entity entity, IWorldState worldState)
+    public SimulationMessage Execute(Entity entity, IWorldState worldState, EntityId? targetId)
     {
-        var context = new ProcessMutationContext(entity, worldState);
+        var context = new ProcessMutationContext(entity, worldState, targetId: targetId);
 
         foreach (var mutation in Definition.Mutations)
         {
@@ -112,7 +112,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
-    public EntityId? ResolvedTargetId => _entity.CurrentTargetId;
+    public EntityId? ResolvedTargetId { get; }
     public IWorldState WorldState => _worldState;
 
     public void SetVariable(string name, float value)
@@ -126,10 +126,12 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         return _variables is not null && _variables.TryGetValue(name, out var value) ? value : 0f;
     }
 
-    public ProcessMutationContext(Entity entity, IWorldState worldState, Random? random = null)
+    public ProcessMutationContext(Entity entity, IWorldState worldState,
+        Random? random = null, EntityId? targetId = null)
     {
         _entity = entity;
         _worldState = worldState;
+        ResolvedTargetId = targetId;
         Random = random ?? System.Random.Shared;
     }
 

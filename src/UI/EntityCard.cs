@@ -310,52 +310,25 @@ public partial class EntityCard : PanelContainer
             sb.AppendLine($"  ← {rel.Kind} ← {sourceName} ({rel.Strength:F2})");
         }
 
-        // Processes (evaluated per goal)
+        // Evaluation Report (engine-produced, read-only)
         sb.AppendLine("[b][u]Processes[/u][/b]");
-        var processes = _sim.ActivityRegistry.GetProcesses(entity.Kind);
-        if (processes.Count == 0)
+        var report = entity.LastEvaluation;
+        if (report is null || report.Candidates.Count == 0)
         {
-            sb.AppendLine("  [i](none for this kind)[/i]");
+            sb.AppendLine("  [i](no evaluation data)[/i]");
         }
         else
         {
-            // Evaluate each process against each of the entity's goals
-            var shown = new HashSet<string>();
-            foreach (var goal in entity.Goals)
+            foreach (var candidate in report.Candidates)
             {
-                var providerName = goal.Provider == entity.Id ? "self" :
-                    (_sim.Graph.GetEntity(goal.Provider)?.Name ?? "?");
-
-                foreach (var process in processes)
+                var statusColor = candidate.WasSelected ? "cyan"
+                    : candidate.PreconditionPassed ? "green" : "red";
+                var statusIcon = candidate.WasSelected ? "★"
+                    : candidate.PreconditionPassed ? "✓" : "✗";
+                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {candidate.ProcessName} → {candidate.ProviderName}  score: {candidate.Score:F3}");
+                if (!candidate.PreconditionPassed)
                 {
-                    if (process is not Engine.Processes.DataDrivenProcess ddp) continue;
-
-                    // Check if process serves this goal
-                    var serves = false;
-                    foreach (var w in ddp.Definition.Writes)
-                    {
-                        if (w.Name == goal.TargetAttribute) { serves = true; break; }
-                    }
-
-                    if (!serves) continue;
-
-                    var key = $"{process.Name}:{goal.Provider}";
-                    if (shown.Contains(key)) continue;
-                    shown.Add(key);
-
-                    entity.CurrentTargetId = goal.Provider != entity.Id ? goal.Provider : null;
-                    var ctx = new Engine.Processes.ProcessMutationContext(entity, _sim.WorldState);
-                    var result = ddp.Definition.Precondition.Evaluate(ctx);
-                    entity.CurrentTargetId = null;
-
-                    var score = process.Score(entity, _sim.WorldState);
-                    var statusColor = result.Passed ? "green" : "red";
-                    var statusIcon = result.Passed ? "✓" : "✗";
-                    sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {process.Name} → {providerName}  score: {score:F3}");
-                    if (!result.Passed)
-                    {
-                        sb.AppendLine($"    [color=gray]{result.Diagnostic}[/color]");
-                    }
+                    sb.AppendLine($"    [color=gray]{candidate.PreconditionDiagnostic}[/color]");
                 }
             }
         }

@@ -29,8 +29,8 @@ public sealed class Entity
     /// <summary>Tick when goals were last generated.</summary>
     public int GoalsGeneratedAt { get; set; }
 
-    /// <summary>Transient: target entity for current process execution. Set by evaluator, cleared after.</summary>
-    public EntityId? CurrentTargetId { get; set; }
+    /// <summary>Engine-produced evaluation report from the last tick. UI reads this.</summary>
+    public EvaluationReport? LastEvaluation { get; set; }
 
     /// <summary>Per-process cooldown tracking: processId → tick when cooldown expires.</summary>
     public Dictionary<string, int> ProcessCooldowns { get; } = [];

@@ -234,10 +234,10 @@ public class EntityEvaluatorTests
     private sealed class TestProcess(string name, float score, bool canExecute = true) : IProcess
     {
         public string Name => name;
-        public bool CanExecute(Entity entity, IWorldState worldState) => canExecute;
+        public bool CanExecute(Entity entity, IWorldState worldState, EntityId? targetId) => canExecute;
         public float Score(Entity entity, IWorldState worldState) => score;
 
-        public SimulationMessage Execute(Entity entity, IWorldState worldState) =>
+        public SimulationMessage Execute(Entity entity, IWorldState worldState, EntityId? targetId) =>
             new ProcessExecutedMessage(worldState.CurrentTick, entity.Id, entity.Kind, name,
                 $"{entity.Name} performed {name}");
     }

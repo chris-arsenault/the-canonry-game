@@ -117,110 +117,133 @@ public sealed class EntityEvaluator
 
     private void EvaluateProcesses(Entity entity, IWorldState worldState)
     {
-        // Entity-wide cooldown check
-        if (worldState.CurrentTick < entity.EntityCooldownUntil) return;
+        var tick = worldState.CurrentTick;
+        var reportCandidates = new List<ProcessCandidate>();
 
-        if (entity.Goals.Count == 0)
+        // Entity-wide cooldown check
+        if (tick < entity.EntityCooldownUntil)
         {
-            EvaluateWithoutGoals(entity, worldState);
+            entity.LastEvaluation = new EvaluationReport
+            { Tick = tick, Candidates = reportCandidates };
             return;
         }
 
-        // Try goals in weighted random order until one has a viable process
         var processes = _registry.GetProcesses(entity.Kind);
-        var tick = worldState.CurrentTick;
-        var triedGoals = new HashSet<string>();
+        string? selectedGoalId = null;
+        string? executedName = null;
 
-        for (var attempts = 0; attempts < entity.Goals.Count; attempts++)
+        // Evaluate all goals and all serving processes, recording everything
+        var triedGoals = new HashSet<string>();
+        var executed = false;
+
+        for (var attempts = 0; !executed && attempts < Math.Max(1, entity.Goals.Count); attempts++)
         {
-            var goal = SelectGoal(entity, triedGoals);
-            if (goal is null) break;
-            triedGoals.Add(goal.Id);
+            var goal = entity.Goals.Count > 0 ? SelectGoal(entity, triedGoals) : null;
+            if (goal is not null) triedGoals.Add(goal.Id);
+
+            var targetId = goal is not null ? (EntityId?)goal.Provider : null;
+            var goalId = goal?.Id ?? "";
+            var providerName = goal is not null
+                ? (worldState.Graph.GetEntity(goal.Provider)?.Name ?? goal.Provider.ToString())
+                : "none";
 
             var candidates = new List<(IProcess Process, float Score)>();
+
             foreach (var process in processes)
             {
-                if (!ServesGoal(process, goal)) continue;
+                if (goal is not null && !ServesGoal(process, goal)) continue;
 
-                if (entity.ProcessCooldowns.TryGetValue(process.Name, out var cooldownUntil)
-                    && tick < cooldownUntil) continue;
+                var onCooldown = entity.ProcessCooldowns.TryGetValue(process.Name, out var cdUntil)
+                    && tick < cdUntil;
 
                 var score = process.Score(entity, worldState);
-                if (score < MinimumViableScore) continue;
 
-                if (!process.CanExecute(entity, worldState)) continue;
+                PreconditionResult precondResult;
+                if (onCooldown)
+                {
+                    precondResult = PreconditionResult.Fail($"cooldown until tick {cdUntil}");
+                }
+                else if (score < MinimumViableScore)
+                {
+                    precondResult = PreconditionResult.Fail($"score {score:F3} below threshold");
+                }
+                else
+                {
+                    precondResult = process is DataDrivenProcess ddp2
+                        ? ddp2.Definition.Precondition.Evaluate(
+                            new ProcessMutationContext(entity, worldState, targetId: targetId))
+                        : process.CanExecute(entity, worldState, targetId)
+                            ? PreconditionResult.Pass()
+                            : PreconditionResult.Fail("precondition failed");
+                }
 
-                candidates.Add((process, score));
+                var viable = !onCooldown && score >= MinimumViableScore && precondResult.Passed;
+                if (viable) candidates.Add((process, score));
+
+                reportCandidates.Add(new ProcessCandidate
+                {
+                    ProcessName = process.Name,
+                    GoalId = goalId,
+                    ProviderName = providerName,
+                    Score = score,
+                    PreconditionPassed = precondResult.Passed,
+                    PreconditionDiagnostic = precondResult.Diagnostic,
+                    OnCooldown = onCooldown,
+                    WasSelected = false, // Updated below if selected
+                });
             }
 
-            if (candidates.Count == 0) continue; // Try next goal
+            if (candidates.Count == 0) continue;
 
             var winner = WeightedRandomSelect(candidates);
             if (winner is null) continue;
 
-            var targetId = (EntityId?)goal.Provider;
-            ExecuteProcess(entity, worldState, winner.Value.Process, targetId, goal);
-            return;
-        }
-    }
+            selectedGoalId = goalId;
+            executedName = winner.Value.Process.Name;
 
-    private void EvaluateWithoutGoals(Entity entity, IWorldState worldState)
-    {
-        var processes = _registry.GetProcesses(entity.Kind);
-        var candidates = new List<(IProcess Process, float Score)>();
-
-        foreach (var process in processes)
-        {
-            var score = process.Score(entity, worldState);
-            if (score < MinimumViableScore) continue;
-            if (!process.CanExecute(entity, worldState)) continue;
-            candidates.Add((process, score));
-        }
-
-        if (candidates.Count == 0) return;
-
-        var winner = WeightedRandomSelect(candidates);
-        if (winner is not null)
-        {
-            ExecuteProcess(entity, worldState, winner.Value.Process, null, null);
-        }
-    }
-
-    private void ExecuteProcess(Entity entity, IWorldState worldState,
-        IProcess process, EntityId? targetId, EntityGoal? goal)
-    {
-        entity.CurrentTargetId = targetId;
-
-        var message = process.Execute(entity, worldState);
-        _messageBus.Publish(message);
-        entity.RecordAction(worldState.CurrentTick, process.Name);
-
-        entity.CurrentTargetId = null;
-
-        // Apply cooldowns with ±25% jitter
-        if (process is DataDrivenProcess ddp)
-        {
-            var tick = worldState.CurrentTick;
-            if (ddp.Definition.Cooldown > 0)
+            // Mark winner in report
+            foreach (var c in reportCandidates)
             {
-                var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
-                var cd = (int)(ddp.Definition.Cooldown * jitter);
-                entity.ProcessCooldowns[process.Name] = tick + Math.Max(1, cd);
+                if (c.ProcessName == executedName && c.GoalId == goalId)
+                    c.WasSelected = true;
             }
 
-            if (ddp.Definition.EntityCooldown > 0)
+            // Execute — targetId flows as parameter, never stored on entity
+            var message = winner.Value.Process.Execute(entity, worldState, targetId);
+            _messageBus.Publish(message);
+            entity.RecordAction(tick, winner.Value.Process.Name);
+
+            // Apply cooldowns
+            if (winner.Value.Process is DataDrivenProcess ddp)
             {
-                var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
-                var cd = (int)(ddp.Definition.EntityCooldown * jitter);
-                entity.EntityCooldownUntil = tick + Math.Max(1, cd);
+                if (ddp.Definition.Cooldown > 0)
+                {
+                    var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
+                    entity.ProcessCooldowns[ddp.Name] = tick + Math.Max(1, (int)(ddp.Definition.Cooldown * jitter));
+                }
+
+                if (ddp.Definition.EntityCooldown > 0)
+                {
+                    var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
+                    entity.EntityCooldownUntil = tick + Math.Max(1, (int)(ddp.Definition.EntityCooldown * jitter));
+                }
             }
+
+            if (goal is not null && goal.IsSubGoal)
+            {
+                entity.GoalsGeneratedAt = 0;
+            }
+
+            executed = true;
         }
 
-        // If a sub-goal's process fired, trigger goal regeneration next tick
-        if (goal is not null && goal.IsSubGoal)
+        entity.LastEvaluation = new EvaluationReport
         {
-            entity.GoalsGeneratedAt = 0; // Force regeneration next tick
-        }
+            Tick = tick,
+            SelectedGoalId = selectedGoalId,
+            ExecutedProcessName = executedName,
+            Candidates = reportCandidates,
+        };
     }
 
     private EntityGoal? SelectGoal(Entity entity, HashSet<string>? exclude = null)
