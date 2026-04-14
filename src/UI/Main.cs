@@ -290,6 +290,7 @@ public partial class Main : Node2D
 
         _mapRenderer?.Initialize(_sim);
         _mapRenderer?.Refresh();
+        _healthGraph?.Initialize(_sim);
         _browser?.Initialize(_sim);
         _browser?.Refresh();
 
