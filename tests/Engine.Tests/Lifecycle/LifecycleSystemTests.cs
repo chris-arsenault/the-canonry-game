@@ -91,7 +91,7 @@ public class LifecycleSystemTests
     public void Tick_AppliesDrainToHealthAttribute()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Hero", "c", tick: 0);
-        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
+        npc.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
@@ -106,7 +106,7 @@ public class LifecycleSystemTests
     public void Tick_NewEntityDrainsSlowly()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Young", "c", tick: 0);
-        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
+        npc.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
@@ -127,7 +127,7 @@ public class LifecycleSystemTests
     {
         // Entity created at tick 0, we start ticking at 500
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Old", "c", tick: 0);
-        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
+        npc.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
@@ -143,7 +143,7 @@ public class LifecycleSystemTests
 
         // Compare: fresh entity ticking 10 times
         var young = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Young", "c", tick: 1000);
-        young.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 100f));
+        young.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
         for (var i = 1000; i <= 1010; i++)
         {
             SimulateTick(system, _graph,i);
@@ -162,7 +162,7 @@ public class LifecycleSystemTests
     public void Tick_TransitionsToHistoricalAtZeroHealth()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dying", "c", tick: 0);
-        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 0.01f)); // Almost dead
+        npc.Attributes.Add(new ScalarValue("hp", 0f, 100f, 0.01f)); // Almost dead
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
@@ -177,7 +177,7 @@ public class LifecycleSystemTests
     public void Tick_EmitsDeathEvent()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dying", "c", tick: 0);
-        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 0.001f));
+        npc.Attributes.Add(new ScalarValue("hp", 0f, 100f, 0.001f));
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);
@@ -196,7 +196,7 @@ public class LifecycleSystemTests
     public void Tick_HistoricalEntityNotProcessed()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic_npc", "Dead", "c", tick: 0);
-        npc.Attributes.Add(new AttributeInstance("hp", 0f, 100f, 50f));
+        npc.Attributes.Add(new ScalarValue("hp", 0f, 100f, 50f));
         _graph.SetEntityHistorical(npc.Id, tick: 5);
 
         var config = CreateDefaultConfig();
@@ -215,7 +215,7 @@ public class LifecycleSystemTests
     public void Tick_SkipsEntitiesWithoutConfig()
     {
         var region = _graph.CreateEntity(EntityKind.Region, "generic_region", "R", "c", tick: 0);
-        region.Attributes.Add(new AttributeInstance("fertility", 0f, 1f, 0.8f));
+        region.Attributes.Add(new ScalarValue("fertility", 0f, 1f, 0.8f));
 
         var config = CreateDefaultConfig(); // No config for Region
         var system = new LifecycleSystem(_graph, config);
@@ -233,7 +233,7 @@ public class LifecycleSystemTests
     public void Tick_HealthCanBeCounteredByExternalModification()
     {
         var settlement = _graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", tick: 0);
-        settlement.Attributes.Add(new AttributeInstance("population", 0f, 10000f, 1000f));
+        settlement.Attributes.Add(new ScalarValue("population", 0f, 10000f, 1000f));
 
         var config = CreateDefaultConfig();
         var system = new LifecycleSystem(_graph, config);

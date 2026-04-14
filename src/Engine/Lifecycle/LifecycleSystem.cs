@@ -54,7 +54,7 @@ public sealed class LifecycleSystem
             var (healthAttr, aging) = lifecycleConfig.Value;
             var age = currentTick - entity.CreatedAt;
             var drain = aging.ComputeDrain(age);
-            var attr = entity.Attributes[healthAttr];
+            var attr = entity.Attributes.GetScalar(healthAttr);
             if (attr is null) continue;
 
             var drainEffect = FindEffect(attr, DrainSourcePrefix + healthAttr);
@@ -80,7 +80,7 @@ public sealed class LifecycleSystem
             if (lifecycleConfig is null) continue;
 
             var (healthAttr, _) = lifecycleConfig.Value;
-            var attr = entity.Attributes[healthAttr];
+            var attr = entity.Attributes.GetScalar(healthAttr);
             if (attr is not null && attr.Value <= 0f)
             {
                 toTransition.Add(entityId);
@@ -106,7 +106,7 @@ public sealed class LifecycleSystem
         if (lifecycleConfig is null) return;
 
         var (healthAttr, aging) = lifecycleConfig.Value;
-        var attr = entity.Attributes[healthAttr];
+        var attr = entity.Attributes.GetScalar(healthAttr);
         if (attr is null) return;
 
         var sourceId = DrainSourcePrefix + healthAttr;
@@ -115,7 +115,7 @@ public sealed class LifecycleSystem
             sourceId, $"Lifecycle aging drain on {healthAttr}", -initialDrain));
     }
 
-    private static AttributeEffect? FindEffect(AttributeInstance attr, string sourceId)
+    private static AttributeEffect? FindEffect(ScalarValue attr, string sourceId)
     {
         foreach (var effect in attr.TickEffects)
         {

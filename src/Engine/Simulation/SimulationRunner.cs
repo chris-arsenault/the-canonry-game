@@ -403,7 +403,7 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph)
 
     public int DecliningSettlementCount =>
         graph.GetEntitiesByKind(EntityKind.Settlement).Count(id =>
-            graph.GetEntity(id)?.Attributes["population"]?.Trend < 0);
+            graph.GetEntity(id)?.Attributes.GetScalar("population")?.Trend < 0);
 
     public int ActiveNationCount =>
         graph.GetEntitiesByKind(EntityKind.Nation).Count(id =>

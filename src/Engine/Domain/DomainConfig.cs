@@ -52,8 +52,8 @@ public sealed class AttributeConfig
     /// Zero (default) = no drift. e.g., hunger drifts +0.2/tick, condition drifts -0.01/tick.</summary>
     public float DriftRate { get; init; }
 
-    /// <summary>If true, this is a 2D semantic plane attribute with X and Y components.</summary>
-    public bool Is2D { get; init; }
+    /// <summary>Semantic plane definition for 2D attributes. Null for scalar attributes.</summary>
+    public Attributes.SemanticPlaneDefinition? PlaneDefinition { get; init; }
 
     /// <summary>Default X value for 2D attributes.</summary>
     public float DefaultX { get; init; }

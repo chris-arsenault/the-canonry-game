@@ -206,29 +206,22 @@ public partial class EntityCard : PanelContainer
         sb.AppendLine("[b][u]Attributes[/u][/b]");
         foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
         {
-            var tickCount = attr.TickEffects.Count;
-            var staticCount = attr.StaticEffects.Count;
-            var effectInfo = "";
-            if (tickCount > 0 || staticCount > 0)
+            if (attr is Engine.Attributes.ScalarValue scalar)
             {
-                var parts = new List<string>();
-                if (tickCount > 0)
+                var effectInfo = "";
+                if (scalar.TickEffects.Count > 0)
                 {
-                    var tickDelta = attr.TickEffects.Where(e => !e.IsMultiplier).Sum(e => e.Value);
+                    var tickDelta = scalar.TickEffects.Where(e => !e.IsMultiplier).Sum(e => e.Value);
                     if (System.Math.Abs(tickDelta) > 0.001f)
-                        parts.Add($"{tickDelta:+0.##;-0.##}/tick");
+                        effectInfo = $" [color=gray]({tickDelta:+0.##;-0.##}/tick)[/color]";
                 }
 
-                if (staticCount > 0)
-                    parts.Add($"{staticCount} effects");
-                if (parts.Count > 0)
-                    effectInfo = $" [color=gray]({string.Join(", ", parts)})[/color]";
+                sb.AppendLine($"  {scalar.Name}: [b]{scalar.Value:F1}[/b]{effectInfo}");
             }
-
-            if (attr.Is2D)
-                sb.AppendLine($"  {attr.Name}: [b]({attr.X:F2}, {attr.Y:F2})[/b]{effectInfo}");
-            else
-                sb.AppendLine($"  {attr.Name}: [b]{attr.Value:F1}[/b]{effectInfo}");
+            else if (attr is Engine.Attributes.SemanticPlane plane)
+            {
+                sb.AppendLine($"  {plane.Name}: [b]({plane.X:F2}, {plane.Y:F2})[/b] [{plane.Label}]");
+            }
         }
 
         sb.AppendLine();
@@ -237,25 +230,28 @@ public partial class EntityCard : PanelContainer
         var hasEffects = false;
         foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
         {
-            if (attr.TickEffects.Count == 0 && attr.StaticEffects.Count == 0) continue;
-            if (!hasEffects)
+            void ShowEffects(string label, IReadOnlyList<Engine.Attributes.AttributeEffect> effects, string suffix)
             {
-                sb.AppendLine("[b][u]Active Effects[/u][/b]");
-                hasEffects = true;
+                foreach (var effect in effects)
+                {
+                    if (!hasEffects) { sb.AppendLine("[b][u]Active Effects[/u][/b]"); hasEffects = true; }
+                    var sign = effect.Value >= 0 ? "+" : "";
+                    var kind = effect.IsMultiplier ? "×" : "";
+                    sb.AppendLine($"  {label}: {kind}{sign}{effect.Value:F3}{suffix} [color=gray]{effect.Description}[/color]");
+                }
             }
 
-            foreach (var effect in attr.TickEffects)
+            if (attr is Engine.Attributes.ScalarValue scalar)
             {
-                var sign = effect.Value >= 0 ? "+" : "";
-                var kind = effect.IsMultiplier ? "×" : "";
-                sb.AppendLine($"  {attr.Name}: {kind}{sign}{effect.Value:F3}/tick [color=gray]{effect.Description}[/color]");
+                ShowEffects(scalar.Name, scalar.TickEffects, "/tick");
+                ShowEffects(scalar.Name, scalar.StaticEffects, "");
             }
-
-            foreach (var effect in attr.StaticEffects)
+            else if (attr is Engine.Attributes.SemanticPlane plane)
             {
-                var sign = effect.Value >= 0 ? "+" : "";
-                var kind = effect.IsMultiplier ? "×" : "";
-                sb.AppendLine($"  {attr.Name}: {kind}{sign}{effect.Value:F3} [color=gray]{effect.Description}[/color]");
+                ShowEffects($"{plane.Name}.x", plane.TickEffectsX, "/tick");
+                ShowEffects($"{plane.Name}.y", plane.TickEffectsY, "/tick");
+                ShowEffects($"{plane.Name}.x", plane.StaticEffectsX, "");
+                ShowEffects($"{plane.Name}.y", plane.StaticEffectsY, "");
             }
         }
 

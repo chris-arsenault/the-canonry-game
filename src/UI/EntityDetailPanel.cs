@@ -119,7 +119,7 @@ public partial class EntityDetailPanel : PanelContainer
         {
             var baseValue = entity.Attributes.GetValue(attrName);
             var effectMod = _sim.Effects.ComputeEffectModifier(_selectedEntityId.Value, attrName);
-            var trend = entity.Attributes[attrName]?.Trend ?? 0f;
+            var trend = (entity.Attributes[attrName] as Engine.Attributes.ScalarValue)?.Trend ?? 0f;
             var trendArrow = trend > 0.01f ? "[color=green]▲[/color]" : trend < -0.01f ? "[color=red]▼[/color]" : "—";
 
             if (System.Math.Abs(effectMod) > 0.01f)

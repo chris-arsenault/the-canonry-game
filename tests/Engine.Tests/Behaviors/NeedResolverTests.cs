@@ -41,7 +41,7 @@ public class NeedResolverTests
 
     private static void InitAttr(Entity entity, string name, float min, float max, float value)
     {
-        entity.Attributes.Add(new AttributeInstance(name, min, max, value));
+        entity.Attributes.Add(new ScalarValue(name, min, max, value));
     }
 
     [Fact]

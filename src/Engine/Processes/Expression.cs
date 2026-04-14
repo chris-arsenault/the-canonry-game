@@ -44,17 +44,22 @@ public sealed class ExpressionContext
         var attr = entity.Attributes[attributeName];
         if (attr is null) return 0f;
 
-        if (component is not null && attr.Is2D)
+        if (component is not null && attr is Attributes.SemanticPlane plane)
         {
             return component switch
             {
-                "x" => attr.X,
-                "y" => attr.Y,
+                "x" => plane.X,
+                "y" => plane.Y,
                 _ => 0f,
             };
         }
 
-        return attr.Value;
+        if (attr is Attributes.ScalarValue scalar)
+        {
+            return scalar.Value;
+        }
+
+        return 0f;
     }
 }
 
@@ -134,14 +139,12 @@ public sealed class SemanticDistance(string attributeName) : IExpression
         ArgumentNullException.ThrowIfNull(ctx);
         if (ctx.Target is null) return float.MaxValue;
 
-        var selfAttr = ctx.Self.Attributes[attributeName];
-        var targetAttr = ctx.Target.Attributes[attributeName];
-        if (selfAttr is null || targetAttr is null || !selfAttr.Is2D || !targetAttr.Is2D)
+        var selfPlane = ctx.Self.Attributes.GetPlane(attributeName);
+        var targetPlane = ctx.Target.Attributes.GetPlane(attributeName);
+        if (selfPlane is null || targetPlane is null)
             return float.MaxValue;
 
-        var dx = selfAttr.X - targetAttr.X;
-        var dy = selfAttr.Y - targetAttr.Y;
-        return MathF.Sqrt((dx * dx) + (dy * dy));
+        return selfPlane.DistanceTo(targetPlane);
     }
 }
 

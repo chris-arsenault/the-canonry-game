@@ -123,7 +123,7 @@ public static class DomainLoader
     }
 
     /// <summary>Initialize attributes for all entities in the graph from domain config.
-    /// Creates AttributeInstances on entities with drift effects.</summary>
+    /// Creates ScalarAttributes on entities with drift effects.</summary>
     public static void InitializeEntityAttributes(
         Graph.WorldGraph graph, DomainConfig config)
     {
@@ -141,17 +141,26 @@ public static class DomainLoader
             {
                 if (!entity.Attributes.Has(attr.Name))
                 {
-                    var instance = attr.Is2D
-                        ? new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.DefaultX, attr.DefaultY)
-                        : new Attributes.AttributeInstance(attr.Name, attr.Min, attr.Max, attr.Default);
-
-                    // Register drift as a tick effect
-                    if (attr.DriftRate != 0f)
+                    Attributes.IEntityProperty instance;
+                    if (attr.PlaneDefinition is not null)
                     {
-                        instance.AddTickEffect(new Attributes.AttributeEffect(
-                            $"innate_drift_{attr.Name}",
-                            $"Natural {attr.Name} drift",
-                            attr.DriftRate));
+                        instance = new Attributes.SemanticPlane(
+                            attr.Name, attr.PlaneDefinition, attr.Min, attr.Max, attr.DefaultX, attr.DefaultY);
+                    }
+                    else
+                    {
+                        var scalar = new Attributes.ScalarValue(attr.Name, attr.Min, attr.Max, attr.Default);
+
+                        // Register drift as a tick effect (scalar only for now)
+                        if (attr.DriftRate != 0f)
+                        {
+                            scalar.AddTickEffect(new Attributes.AttributeEffect(
+                                $"innate_drift_{attr.Name}",
+                                $"Natural {attr.Name} drift",
+                                attr.DriftRate));
+                        }
+
+                        instance = scalar;
                     }
 
                     entity.Attributes.Add(instance);

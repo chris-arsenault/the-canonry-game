@@ -142,7 +142,12 @@ public static class TestDomain
                     new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f },
                     new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
                     new() { Name = "fame", Min = 0f, Max = 1000f, Default = 0f },
-                    new() { Name = "ideology", Min = 0f, Max = 1f, Is2D = true, DefaultX = 0.5f, DefaultY = 0.5f },
+                    new() { Name = "ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
+                        PlaneDefinition = new Engine.Attributes.SemanticPlaneDefinition(
+                            "ideology", "Collectivist↔Individualist", "Traditionalist↔Progressive",
+                            ["Trad-Collective", "Traditionalist", "Trad-Individual",
+                             "Collective", "Centrist", "Individual",
+                             "Prog-Collective", "Progressive", "Prog-Individual"]) },
                 ],
                 HealthAttribute = "population",
             },

@@ -174,12 +174,7 @@ public sealed class ModifySelfByVariableMutation(string attributeName, string va
         var entity = context.GetEntity(context.SelfEntityId);
         if (entity is null) return;
 
-        var attr = entity.Attributes[attributeName];
-        if (attr is null) return;
-
-        if (component is "x") attr.ModifyX(delta);
-        else if (component is "y") attr.ModifyY(delta);
-        else attr.Modify(delta);
+        MutationHelper.ModifyByComponent(entity, attributeName, component, delta);
     }
 
     public string Describe() => $"modify_self_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
@@ -200,15 +195,29 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
         var entity = context.GetEntity(context.ResolvedTargetId.Value);
         if (entity is null) return;
 
-        var attr = entity.Attributes[attributeName];
-        if (attr is null) return;
-
-        if (component is "x") attr.ModifyX(delta);
-        else if (component is "y") attr.ModifyY(delta);
-        else attr.Modify(delta);
+        MutationHelper.ModifyByComponent(entity, attributeName, component, delta);
     }
 
     public string Describe() => $"modify_target_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
+}
+
+/// <summary>Helper to modify an attribute by component (scalar, x, or y).</summary>
+internal static class MutationHelper
+{
+    internal static void ModifyByComponent(
+        Graph.Entity entity, string attributeName, string? component, float delta)
+    {
+        var attr = entity.Attributes[attributeName];
+        if (attr is Attributes.SemanticPlane plane && component is not null)
+        {
+            if (component is "x") plane.ModifyX(delta);
+            else if (component is "y") plane.ModifyY(delta);
+        }
+        else if (attr is Attributes.ScalarValue scalar)
+        {
+            scalar.Modify(delta);
+        }
+    }
 }
 
 /// <summary>

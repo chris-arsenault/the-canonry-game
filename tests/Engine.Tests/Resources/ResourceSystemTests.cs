@@ -135,15 +135,15 @@ public class ResourceSystemTests
 
         // Nation A has a high-fertility settlement (surplus)
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
-        sA.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 200));
-        sA.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 20));
+        sA.Attributes.Add(new Engine.Attributes.ScalarValue("population", 0, 10000, 200));
+        sA.Attributes.Add(new Engine.Attributes.ScalarValue("development", 0, 100, 20));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         // Nation B has a low-fertility settlement (deficit)
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (2, 0));
-        sB.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 200));
-        sB.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
+        sB.Attributes.Add(new Engine.Attributes.ScalarValue("population", 0, 10000, 200));
+        sB.Attributes.Add(new Engine.Attributes.ScalarValue("development", 0, 100, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
 
@@ -165,15 +165,15 @@ public class ResourceSystemTests
 
         // Rich settlement (surplus)
         var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
-        rich.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 100));
-        rich.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
+        rich.Attributes.Add(new Engine.Attributes.ScalarValue("population", 0, 10000, 100));
+        rich.Attributes.Add(new Engine.Attributes.ScalarValue("development", 0, 100, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         // Poor settlement (deficit)
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
-        poor.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 500));
-        poor.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 5));
+        poor.Attributes.Add(new Engine.Attributes.ScalarValue("population", 0, 10000, 500));
+        poor.Attributes.Add(new Engine.Attributes.ScalarValue("development", 0, 100, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
 
@@ -202,9 +202,9 @@ public class ResourceSystemTests
         foreach (var sid in world.Graph.GetEntitiesByKind(EntityKind.Settlement))
         {
             var entity = world.Graph.GetEntity(sid)!;
-            entity.Attributes.Add(new Engine.Attributes.AttributeInstance("population", 0, 10000, 100));
-            entity.Attributes.Add(new Engine.Attributes.AttributeInstance("development", 0, 100, 10));
-            entity.Attributes.Add(new Engine.Attributes.AttributeInstance("prosperity", 0, 100, 50));
+            entity.Attributes.Add(new Engine.Attributes.ScalarValue("population", 0, 10000, 100));
+            entity.Attributes.Add(new Engine.Attributes.ScalarValue("development", 0, 100, 10));
+            entity.Attributes.Add(new Engine.Attributes.ScalarValue("prosperity", 0, 100, 50));
         }
 
         var system = new ResourceSystem(world.Graph, world.Grid);

@@ -1,136 +1,150 @@
 namespace Engine.Attributes;
 
-using Engine.Graph;
-
 /// <summary>
-/// Defines a 2D semantic plane with axis labels and a reducer that maps
-/// continuous positions to categorical labels (default 3x3 grid = 9 labels).
+/// A semantic plane attribute on an entity. Has X and Y components, each with
+/// independent effects. References a SemanticPlaneDefinition for axis labels
+/// and categorical label reduction.
+///
+/// All plane-specific logic (distance, labels, components) lives here.
 /// </summary>
-public sealed class SemanticPlaneDefinition
+public sealed class SemanticPlane : IEntityProperty
 {
+    private float _baseX;
+    private float _baseY;
+    private readonly List<AttributeEffect> _tickEffectsX = [];
+    private readonly List<AttributeEffect> _tickEffectsY = [];
+    private readonly List<AttributeEffect> _staticEffectsX = [];
+    private readonly List<AttributeEffect> _staticEffectsY = [];
+
     public string Name { get; }
-    public string XAxisLabel { get; }
-    public string YAxisLabel { get; }
+    public float Min { get; }
+    public float Max { get; }
+    public SemanticPlaneDefinition Definition { get; }
 
-    /// <summary>Labels for the 3x3 grid regions. Indexed as [row * 3 + col] where
-    /// row 0 = low Y, row 2 = high Y, col 0 = low X, col 2 = high X.</summary>
-    public IReadOnlyList<string> Labels { get; }
+    /// <summary>Effective X component: base + static effects.</summary>
+    public float X => ComputeEffective(_baseX, _staticEffectsX);
 
-    public SemanticPlaneDefinition(
-        string name,
-        string xAxisLabel,
-        string yAxisLabel,
-        IReadOnlyList<string> labels)
-    {
-        ArgumentNullException.ThrowIfNull(labels);
+    /// <summary>Effective Y component: base + static effects.</summary>
+    public float Y => ComputeEffective(_baseY, _staticEffectsY);
 
-        if (labels.Count != 9)
-        {
-            throw new ArgumentException("Semantic plane requires exactly 9 labels for 3x3 grid", nameof(labels));
-        }
+    /// <summary>Categorical label from the 3x3 reducer based on current position.</summary>
+    public string Label => Definition.Reduce(
+        NormalizeToUnit(_baseX), NormalizeToUnit(_baseY));
 
-        Name = name;
-        XAxisLabel = xAxisLabel;
-        YAxisLabel = yAxisLabel;
-        Labels = labels;
-    }
-
-    /// <summary>
-    /// Reduce a continuous position (0-1 on each axis) to a categorical label.
-    /// </summary>
-    public string Reduce(float x, float y)
-    {
-        var col = x switch
-        {
-            < 0.333f => 0,
-            < 0.667f => 1,
-            _ => 2,
-        };
-
-        var row = y switch
-        {
-            < 0.333f => 0,
-            < 0.667f => 1,
-            _ => 2,
-        };
-
-        return Labels[(row * 3) + col];
-    }
-}
-
-/// <summary>
-/// Stores entity positions on semantic planes.
-/// </summary>
-public sealed class SemanticPlaneStore
-{
-    private readonly Dictionary<string, SemanticPlaneDefinition> _definitions = [];
-    private readonly Dictionary<(EntityId EntityId, string PlaneName), (float X, float Y)> _positions = [];
-
-    public void RegisterPlane(SemanticPlaneDefinition definition)
+    public SemanticPlane(
+        string name, SemanticPlaneDefinition definition,
+        float min, float max, float defaultX, float defaultY)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        _definitions[definition.Name] = definition;
+        Name = name;
+        Definition = definition;
+        Min = min;
+        Max = max;
+        _baseX = Math.Clamp(defaultX, min, max);
+        _baseY = Math.Clamp(defaultY, min, max);
     }
 
-    public SemanticPlaneDefinition? GetDefinition(string planeName)
+    /// <summary>Modify the X component by a delta.</summary>
+    public void ModifyX(float delta)
     {
-        return _definitions.GetValueOrDefault(planeName);
+        _baseX = Math.Clamp(_baseX + delta, Min, Max);
     }
 
-    public void SetPosition(EntityId entityId, string planeName, float x, float y)
+    /// <summary>Modify the Y component by a delta.</summary>
+    public void ModifyY(float delta)
     {
-        _positions[(entityId, planeName)] = (Math.Clamp(x, 0f, 1f), Math.Clamp(y, 0f, 1f));
+        _baseY = Math.Clamp(_baseY + delta, Min, Max);
     }
 
-    public (float X, float Y)? GetPosition(EntityId entityId, string planeName)
+    /// <summary>Euclidean distance to another plane attribute on the same plane.</summary>
+    public float DistanceTo(SemanticPlane other)
     {
-        return _positions.TryGetValue((entityId, planeName), out var pos) ? pos : null;
-    }
-
-    /// <summary>
-    /// Get the reduced label for an entity's position on a semantic plane.
-    /// Returns null if the entity has no position on this plane or the plane is undefined.
-    /// </summary>
-    public string? GetLabel(EntityId entityId, string planeName)
-    {
-        if (!_definitions.TryGetValue(planeName, out var definition))
-        {
-            return null;
-        }
-
-        if (!_positions.TryGetValue((entityId, planeName), out var pos))
-        {
-            return null;
-        }
-
-        return definition.Reduce(pos.X, pos.Y);
-    }
-
-    /// <summary>
-    /// Compute Euclidean distance between two entities on a semantic plane.
-    /// Used for disposition calculation. Returns null if either entity has no position.
-    /// </summary>
-    public float? GetDistance(EntityId a, EntityId b, string planeName)
-    {
-        var posA = GetPosition(a, planeName);
-        var posB = GetPosition(b, planeName);
-
-        if (posA is null || posB is null)
-        {
-            return null;
-        }
-
-        var dx = posA.Value.X - posB.Value.X;
-        var dy = posA.Value.Y - posB.Value.Y;
+        ArgumentNullException.ThrowIfNull(other);
+        var dx = X - other.X;
+        var dy = Y - other.Y;
         return MathF.Sqrt((dx * dx) + (dy * dy));
     }
 
-    public void RemoveEntity(EntityId entityId)
+    public void ApplyTickEffects()
     {
-        var keys = _positions.Keys.Where(k => k.EntityId == entityId).ToList();
-        foreach (var key in keys)
+        ApplyComponentTickEffects(ref _baseX, _tickEffectsX);
+        ApplyComponentTickEffects(ref _baseY, _tickEffectsY);
+    }
+
+    /// <summary>Add a tick effect to a component ("x" or "y").</summary>
+    public void AddTickEffect(AttributeEffect effect, string component)
+    {
+        ArgumentNullException.ThrowIfNull(effect);
+        if (component is "x") _tickEffectsX.Add(effect);
+        else if (component is "y") _tickEffectsY.Add(effect);
+    }
+
+    /// <summary>Add a static effect to a component ("x" or "y").</summary>
+    public void AddStaticEffect(AttributeEffect effect, string component)
+    {
+        ArgumentNullException.ThrowIfNull(effect);
+        if (component is "x") _staticEffectsX.Add(effect);
+        else if (component is "y") _staticEffectsY.Add(effect);
+    }
+
+    public void RemoveEffectsBySource(string sourceId)
+    {
+        _tickEffectsX.RemoveAll(e => e.SourceId == sourceId);
+        _tickEffectsY.RemoveAll(e => e.SourceId == sourceId);
+        _staticEffectsX.RemoveAll(e => e.SourceId == sourceId);
+        _staticEffectsY.RemoveAll(e => e.SourceId == sourceId);
+    }
+
+    /// <summary>All tick effects on X component.</summary>
+    public IReadOnlyList<AttributeEffect> TickEffectsX => _tickEffectsX;
+
+    /// <summary>All tick effects on Y component.</summary>
+    public IReadOnlyList<AttributeEffect> TickEffectsY => _tickEffectsY;
+
+    /// <summary>All static effects on X component.</summary>
+    public IReadOnlyList<AttributeEffect> StaticEffectsX => _staticEffectsX;
+
+    /// <summary>All static effects on Y component.</summary>
+    public IReadOnlyList<AttributeEffect> StaticEffectsY => _staticEffectsY;
+
+    private float ComputeEffective(float baseValue, List<AttributeEffect> staticEffects)
+    {
+        if (staticEffects.Count == 0) return baseValue;
+
+        var additive = 0f;
+        var multiplicative = 1f;
+        foreach (var effect in staticEffects)
         {
-            _positions.Remove(key);
+            if (effect.IsMultiplier)
+                multiplicative *= effect.Value;
+            else
+                additive += effect.Value;
         }
+
+        return Math.Clamp((baseValue + additive) * multiplicative, Min, Max);
+    }
+
+    private void ApplyComponentTickEffects(ref float baseValue, List<AttributeEffect> effects)
+    {
+        if (effects.Count == 0) return;
+
+        var additive = 0f;
+        var multiplicative = 1f;
+        foreach (var effect in effects)
+        {
+            if (effect.IsMultiplier)
+                multiplicative *= effect.Value;
+            else
+                additive += effect.Value;
+        }
+
+        baseValue = Math.Clamp(baseValue + (additive * multiplicative), Min, Max);
+    }
+
+    /// <summary>Normalize a value from [Min, Max] to [0, 1] for the reducer.</summary>
+    private float NormalizeToUnit(float value)
+    {
+        var range = Max - Min;
+        return range > 0 ? (value - Min) / range : 0.5f;
     }
 }
