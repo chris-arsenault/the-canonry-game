@@ -100,13 +100,13 @@ public sealed class GoalGenerator
                 // Find and score providers from process wiring contracts
                 var scoredProviders = FindAndScoreProviders(procDef, entity, worldState);
 
-                foreach (var (providerId, providerWeight) in scoredProviders)
+                foreach (var (providerId, providerWeight, scope) in scoredProviders)
                 {
                     if (goals.Count >= MaxGoals) break;
                     var key = (attribute, providerId);
                     if (usedProviders.Contains(key)) continue;
                     usedProviders.Add(key);
-                    goals.Add(new EntityGoal(attribute, providerId, urgency * providerWeight));
+                    goals.Add(new EntityGoal(attribute, providerId, scope, urgency * providerWeight));
                 }
             }
         }
@@ -114,7 +114,7 @@ public sealed class GoalGenerator
         return goals;
     }
 
-    private static List<(EntityId Id, float Weight)> FindAndScoreProviders(
+    private static List<(EntityId Id, float Weight, RefScope Scope)> FindAndScoreProviders(
         ProcessDefinition procDef, Entity consumer, IWorldState worldState)
     {
         // Collect target refs to know what to search for
@@ -134,8 +134,7 @@ public sealed class GoalGenerator
 
         if (searchRef is null)
         {
-            // No target refs — entity is its own context
-            return [(consumer.Id, 1f)];
+            return [(consumer.Id, 1f, RefScope.Self)];
         }
 
         // Find candidates (unscored)
@@ -145,7 +144,7 @@ public sealed class GoalGenerator
         if (candidates.Count == 0) return [];
 
         // Score candidates using the process's ProviderScoreExpression
-        var scored = new List<(EntityId Id, float Weight)>();
+        var scored = new List<(EntityId Id, float Weight, RefScope Scope)>();
         foreach (var candidateId in candidates)
         {
             if (candidateId == consumer.Id) continue;
@@ -166,7 +165,7 @@ public sealed class GoalGenerator
 
             if (weight > 0f)
             {
-                scored.Add((candidateId, weight));
+                scored.Add((candidateId, weight, RefScope.Target));
             }
         }
 
@@ -174,15 +173,15 @@ public sealed class GoalGenerator
 
         // Normalize weights relative to best
         var maxWeight = 0f;
-        foreach (var (_, w) in scored)
+        foreach (var (_, w, _) in scored)
         {
             if (w > maxWeight) maxWeight = w;
         }
 
-        var result = new List<(EntityId, float)>();
-        foreach (var (id, w) in scored)
+        var result = new List<(EntityId, float, RefScope)>();
+        foreach (var (id, w, scope) in scored)
         {
-            result.Add((id, maxWeight > 0f ? w / maxWeight : 1f));
+            result.Add((id, maxWeight > 0f ? w / maxWeight : 1f, scope));
         }
 
         // Sort by weight, take top 3
@@ -224,7 +223,7 @@ public sealed class GoalGenerator
                 if (!alreadyExists)
                 {
                     subGoals.Add(new EntityGoal(
-                        parentGoal.Attribute, parentGoal.Provider, parentGoal.Urgency,
+                        parentGoal.Attribute, parentGoal.Provider, parentGoal.Scope, parentGoal.Urgency,
                         parentGoalId: parentGoal.Id, blockingAttribute: blockingAttr));
                 }
             }

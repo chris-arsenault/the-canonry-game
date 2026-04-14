@@ -15,8 +15,11 @@ public sealed class EntityGoal
     /// <summary>The attribute this goal wants to change.</summary>
     public string Attribute { get; }
 
-    /// <summary>The entity to act on/toward (self or another entity).</summary>
+    /// <summary>The entity to act on/toward.</summary>
     public EntityId Provider { get; }
+
+    /// <summary>The wiring scope that generated this goal (Self or Target).</summary>
+    public Wiring.RefScope Scope { get; }
 
     /// <summary>How urgent this goal is (from attribute deficit).</summary>
     public float Urgency { get; set; }
@@ -27,12 +30,13 @@ public sealed class EntityGoal
     /// <summary>For sub-goals: which attribute is being unblocked on the parent's process.</summary>
     public string? BlockingAttribute { get; }
 
-    public EntityGoal(string attribute, EntityId provider, float urgency,
+    public EntityGoal(string attribute, EntityId provider, Wiring.RefScope scope, float urgency,
         string? parentGoalId = null, string? blockingAttribute = null)
     {
         Id = $"goal_{System.Threading.Interlocked.Increment(ref _nextId)}";
         Attribute = attribute;
         Provider = provider;
+        Scope = scope;
         Urgency = urgency;
         ParentGoalId = parentGoalId;
         BlockingAttribute = blockingAttribute;

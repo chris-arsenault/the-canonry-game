@@ -140,7 +140,7 @@ public sealed class EntityEvaluator
             var candidates = new List<(IProcess Process, float Score)>();
             foreach (var process in processes)
             {
-                if (!ServesGoal(process, goal, entity)) continue;
+                if (!ServesGoal(process, goal)) continue;
 
                 if (entity.ProcessCooldowns.TryGetValue(process.Name, out var cooldownUntil)
                     && tick < cooldownUntil) continue;
@@ -158,7 +158,7 @@ public sealed class EntityEvaluator
             var winner = WeightedRandomSelect(candidates);
             if (winner is null) continue;
 
-            var targetId = goal.Provider != entity.Id ? goal.Provider : (EntityId?)null;
+            var targetId = goal.Scope == Wiring.RefScope.Target ? goal.Provider : (EntityId?)null;
             ExecuteProcess(entity, worldState, winner.Value.Process, targetId, goal);
             return;
         }
@@ -250,20 +250,18 @@ public sealed class EntityEvaluator
         return last;
     }
 
-    private static bool ServesGoal(IProcess process, EntityGoal goal, Entity entity)
+    private static bool ServesGoal(IProcess process, EntityGoal goal)
     {
         if (process is not DataDrivenProcess ddp) return false;
 
         var targetAttr = goal.TargetAttribute;
-        var goalIsExternal = goal.Provider != entity.Id;
 
         foreach (var write in ddp.Definition.Writes)
         {
             if (write.Name != targetAttr) continue;
 
-            // Process write scope must match goal provider scope
-            if (goalIsExternal && write.Scope == Wiring.RefScope.Target) return true;
-            if (!goalIsExternal && write.Scope != Wiring.RefScope.Target) return true;
+            // Process write scope must match goal scope
+            if (write.Scope == goal.Scope) return true;
         }
 
         return false;
