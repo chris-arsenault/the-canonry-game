@@ -1,210 +1,140 @@
 namespace Engine.Tests.Processes;
 
-using Engine.Processes;
+using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
-using ResourceType = Engine.Resources.ResourceType;
+using Engine.Processes;
+using Engine.Tests;
+using Engine.Tests.Behaviors;
 
 public class MutationTests
 {
     [Fact]
-    public void CreateEntityMutation_CreatesAndStoresId()
+    public void ModifySelfAttributeMutation_WithZeroVariance_AppliesExactDelta()
     {
-        var ctx = new TrackingMutationContext();
-        var mutation = new CreateEntityMutation(
-            EntityKind.Settlement, "village", "NewTown", "culture_a", (0, 0));
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        var context = new TestMutationContext(self, worldState: world, random: new FixedRandom(0.5));
 
-        mutation.Execute(ctx);
+        new ModifySelfAttributeMutation("population", 4f, variance: 0f).Execute(context);
 
-        Assert.NotNull(mutation.CreatedId);
-        Assert.Single(ctx.CreatedEntities);
-        Assert.Equal(EntityKind.Settlement, ctx.CreatedEntities[0].Kind);
+        Assert.Equal(14f, self.Attributes.GetValue("population"));
     }
 
     [Fact]
-    public void CreateRelationshipMutation_Creates()
+    public void ModifySelfAttributeMutation_WithVariance_ProducesDistinctResults()
     {
-        var ctx = new TrackingMutationContext();
-        var mutation = new CreateRelationshipMutation(
-            new EntityId(1), new EntityId(2), "controls", RelationshipPolarity.Neutral, 1f);
+        var world = new StubWorldState(gridRadius: 5);
+        var random = new Random(42);
+        var values = new HashSet<float>();
 
-        mutation.Execute(ctx);
-
-        Assert.Single(ctx.CreatedRelationships);
-        Assert.Equal("controls", ctx.CreatedRelationships[0].Kind);
-    }
-
-    [Fact]
-    public void ModifyAttributeMutation_Modifies()
-    {
-        var ctx = new TrackingMutationContext();
-        var mutation = new ModifyAttributeMutation(new EntityId(1), "stability", 10f);
-
-        mutation.Execute(ctx);
-
-        Assert.Single(ctx.AttributeModifications);
-        Assert.Equal(("stability", 10f), ctx.AttributeModifications[0]);
-    }
-
-    [Fact]
-    public void ModifyPressureMutation_Modifies()
-    {
-        var ctx = new TrackingMutationContext();
-        var mutation = new ModifyPressureMutation("military_tension", new EntityId(100), 20f);
-
-        mutation.Execute(ctx);
-
-        Assert.Single(ctx.PressureModifications);
-        Assert.Equal(("military_tension", 20f), ctx.PressureModifications[0]);
-    }
-
-    [Fact]
-    public void SetTagMutation_SetsTag()
-    {
-        var ctx = new TrackingMutationContext();
-        var mutation = new SetTagMutation(new EntityId(1), "goal", "acquire");
-
-        mutation.Execute(ctx);
-
-        Assert.Single(ctx.TagsSet);
-        Assert.Equal(("goal", "acquire"), ctx.TagsSet[0]);
-    }
-
-    [Fact]
-    public void MutationsExecuteInOrder()
-    {
-        var ctx = new TrackingMutationContext();
-        var order = new List<string>();
-
-        var createEntity = new CreateEntityMutation(EntityKind.Settlement, "v", "T", "c", null);
-        var modifyAttr = new ModifyAttributeMutation(new EntityId(1), "hp", -5f);
-
-        // Execute in order
-        createEntity.Execute(ctx);
-        order.Add("create");
-        modifyAttr.Execute(ctx);
-        order.Add("modify");
-
-        Assert.Equal(["create", "modify"], order);
-        Assert.Single(ctx.CreatedEntities);
-        Assert.Single(ctx.AttributeModifications);
-    }
-
-    [Fact]
-    public void ModifySelfAttributeMutation_WithVariance_ProducesDistinctDeltas()
-    {
-        var mutation = new ModifySelfAttributeMutation("hp", 10f, variance: 0.3f);
-        var ctx = new TrackingMutationContext();
-        var deltas = new HashSet<float>();
-
-        for (var i = 0; i < 20; i++)
+        for (var i = 0; i < 10; i++)
         {
-            mutation.Execute(ctx);
-            deltas.Add(ctx.AttributeModifications[^1].Delta);
+            var self = CreateSettlement(world, $"Self_{i}", (i, 0), population: 10f);
+            var context = new TestMutationContext(self, worldState: world, random: random);
+            new ModifySelfAttributeMutation("population", 4f, variance: 0.25f).Execute(context);
+            values.Add(self.Attributes.GetValue("population"));
         }
 
-        // With 30% variance, 20 samples should produce more than 1 distinct value
-        Assert.True(deltas.Count > 1, "Variance should produce distinct deltas across executions");
-
-        // All deltas should be within ±30% of the base (10f)
-        foreach (var delta in deltas)
-        {
-            Assert.InRange(delta, 10f * 0.7f, 10f * 1.3f);
-        }
+        Assert.True(values.Count > 1);
     }
 
     [Fact]
-    public void ModifyAttributeMutation_ZeroVariance_ProducesExactDelta()
+    public void ModifyTargetAttributeMutation_ModifiesResolvedTarget()
     {
-        var ctx = new TrackingMutationContext();
-        var mutation = new ModifyAttributeMutation(new EntityId(1), "stability", 10f, variance: 0f);
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        var target = CreateSettlement(world, "Target", (1, 0), population: 10f);
+        var context = new TestMutationContext(self, target, worldState: world, random: new FixedRandom(0.5));
 
-        mutation.Execute(ctx);
+        new ModifyTargetAttributeMutation("population", -3f, variance: 0f).Execute(context);
 
-        Assert.Equal(10f, ctx.AttributeModifications[0].Delta);
+        Assert.Equal(7f, target.Attributes.GetValue("population"));
     }
 
     [Fact]
-    public void Expression_WithJitter_ProducesDistinctScores()
+    public void ModifyTargetAttributeMutation_IsNoOpWithoutTarget()
     {
-        var score = Expr.Score(Expr.Lit(0.5f), 0.2f);
-        var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
-        var exprCtx = new ExpressionContext(entity);
-        var scores = new HashSet<float>();
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        var context = new TestMutationContext(self, worldState: world);
 
-        for (var i = 0; i < 20; i++)
-        {
-            scores.Add(score.Evaluate(exprCtx));
-        }
+        new ModifyTargetAttributeMutation("population", -3f, variance: 0f).Execute(context);
 
-        Assert.True(scores.Count > 1, "Score variance should produce distinct scores");
+        Assert.Equal(10f, self.Attributes.GetValue("population"));
     }
 
     [Fact]
-    public void Expression_ZeroVariance_IsExact()
+    public void CalculateMutation_StoresVariablesAndSubsequentMutationsCanReadThem()
     {
-        var score = Expr.Score(Expr.Lit(0.5f), 0f);
-        var entity = new Entity(new EntityId(1), EntityKind.Npc, "generic_npc", "Npc", "c", 0, null);
-        var exprCtx = new ExpressionContext(entity);
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 8f);
+        var target = CreateSettlement(world, "Target", (1, 0), population: 6f, fame: 3f);
+        var context = new TestMutationContext(self, target, worldState: world, random: new FixedRandom(0.5));
 
-        Assert.Equal(0.5f, score.Evaluate(exprCtx));
+        new CalculateMutation("delta", Expr.Sub(Expr.Self("fame"), Expr.Target("fame"))).Execute(context);
+        new CalculateMutation("double_delta", Expr.Mul(Expr.Var("delta"), Expr.Lit(2f))).Execute(context);
+        new ModifySelfByVariableMutation("population", "delta").Execute(context);
+        new ModifyTargetByVariableMutation("population", "double_delta").Execute(context);
+
+        Assert.Equal(5f, context.GetVariable("delta"));
+        Assert.Equal(10f, context.GetVariable("double_delta"));
+        Assert.Equal(15f, self.Attributes.GetValue("population"));
+        Assert.Equal(16f, target.Attributes.GetValue("population"));
     }
 
     [Fact]
-    public void Describe_ProducesReadableOutput()
+    public void ModifySelfByVariableMutation_CanWriteSemanticPlaneComponents()
     {
-        var mutation = new CreateEntityMutation(EntityKind.Nation, "monarchy", "Kesh", "c_a", null);
-        Assert.Contains("create_entity", mutation.Describe(), StringComparison.Ordinal);
-        Assert.Contains("Nation", mutation.Describe(), StringComparison.Ordinal);
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), ideology: (0.2f, 0.8f));
+        var context = new TestMutationContext(self, worldState: world, random: new FixedRandom(0.5));
+        context.SetVariable("dx", 0.3f);
+        context.SetVariable("dy", -0.2f);
+
+        new ModifySelfByVariableMutation("ideology", "dx", "x").Execute(context);
+        new ModifySelfByVariableMutation("ideology", "dy", "y").Execute(context);
+
+        var plane = self.Attributes.GetPlane("ideology")!;
+        Assert.Equal(0.5f, plane.X, precision: 3);
+        Assert.Equal(0.6f, plane.Y, precision: 3);
     }
 
-    // --- Tracking context ---
-
-    private sealed class TrackingMutationContext : IMutationContext
+    [Fact]
+    public void ModifyTargetByVariableMutation_UsesZeroWhenVariableIsMissing()
     {
-        public int CurrentTick => 10;
-        public EntityId SelfEntityId => new EntityId(0);
-        public Random Random { get; } = new Random(42);
-        public EntityId? ResolvedTargetId => null;
-        public List<(EntityKind Kind, string Name)> CreatedEntities { get; } = [];
-        public List<(string Kind, float Strength)> CreatedRelationships { get; } = [];
-        public List<(string Attr, float Delta)> AttributeModifications { get; } = [];
-        public List<(string Name, float Delta)> PressureModifications { get; } = [];
-        public List<(string Key, string Value)> TagsSet { get; } = [];
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        var target = CreateSettlement(world, "Target", (1, 0), population: 6f);
+        var context = new TestMutationContext(self, target, worldState: world, random: new FixedRandom(0.5));
 
-        public float GetPressure(string pressureName, EntityId scopeId) => 0f;
-        public float GetAttribute(EntityId entityId, string attributeName) => 0f;
-        public int CountEntitiesByKind(EntityKind kind) => 0;
-        public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) => null;
-        public int? GetLastFiredTick() => null;
-        public Entity? GetEntity(EntityId id) => null;
+        new ModifyTargetByVariableMutation("population", "missing").Execute(context);
 
-        public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates)
-        {
-            CreatedEntities.Add((kind, name));
-            return new Entity(new EntityId(99), kind, subtype, name, culture, CurrentTick, coordinates);
-        }
+        Assert.Equal(6f, target.Attributes.GetValue("population"));
+    }
 
-        public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) =>
-            CreatedRelationships.Add((kind, strength));
+    [Fact]
+    public void RemovedDomainSpecificMutations_DoNotExist()
+    {
+        var mutationTypeNames = typeof(IMutation).Assembly.GetTypes().Select(t => t.Name).ToHashSet();
 
-        public void ModifyAttribute(EntityId entityId, string attributeName, float delta) =>
-            AttributeModifications.Add((attributeName, delta));
+        Assert.DoesNotContain("StockpileMutation", mutationTypeNames);
+        Assert.DoesNotContain("ConsumeResourceAtSelfMutation", mutationTypeNames);
+    }
 
-        public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
-            PressureModifications.Add((pressureName, delta));
-
-        public void SetTag(EntityId entityId, string key, string value) =>
-            TagsSet.Add((key, value));
-
-        public void SetEntityHistorical(EntityId entityId) { }
-        public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) => null;
-        public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) => [];
-        public float GetResource((int Q, int R) coordinates, ResourceType resourceType) => 0f;
-        public float ConsumeResource((int Q, int R) coordinates, ResourceType resourceType, float amount) => 0f;
-        public void SetCoordinates(EntityId entityId, int q, int r) { }
-        public void CullRelationship(EntityId sourceId, string relationshipKind) { }
-        public void SetVariable(string name, float value) { }
-        public float GetVariable(string name) => 0f;
+    private static Entity CreateSettlement(
+        StubWorldState world,
+        string name,
+        (int Q, int R) coordinates,
+        float population = 0f,
+        float fame = 0f,
+        (float X, float Y)? ideology = null)
+    {
+        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", name, "c", 0, coordinates);
+        entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
+        entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
+        var (x, y) = ideology ?? (0.5f, 0.5f);
+        entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, x, y));
+        return entity;
     }
 }

@@ -247,6 +247,8 @@ public sealed class TargetIsNotSelf : IPrecondition
     public PreconditionResult Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
+        if (context.ResolvedTargetId is null)
+            return PreconditionResult.Fail("no target");
         return context.ResolvedTargetId != context.SelfEntityId
             ? PreconditionResult.Pass("target is not self")
             : PreconditionResult.Fail("target is self");
