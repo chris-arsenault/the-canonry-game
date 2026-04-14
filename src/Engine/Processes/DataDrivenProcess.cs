@@ -25,7 +25,7 @@ public sealed class DataDrivenProcess : IProcess
     public bool CanExecute(Entity entity, IWorldState worldState)
     {
         var context = new ProcessMutationContext(entity, worldState);
-        return Definition.Precondition.Evaluate(context);
+        return Definition.Precondition.Evaluate(context).Passed;
     }
 
     public float Score(Entity entity, IWorldState worldState)
@@ -71,7 +71,7 @@ public sealed class DataDrivenDecision : IDecision
     public bool CanExecute(Entity entity, IWorldState worldState)
     {
         var context = new ProcessMutationContext(entity, worldState);
-        return _definition.Precondition.Evaluate(context);
+        return _definition.Precondition.Evaluate(context).Passed;
     }
 
     public float Score(Entity entity, IWorldState worldState)
@@ -103,7 +103,7 @@ public sealed class DataDrivenDecision : IDecision
 /// Bridges IWorldState to IMutationContext for data-driven process precondition/mutation evaluation.
 /// Uses the entity being evaluated as the implicit "self" for attribute reads.
 /// </summary>
-internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAccessor
+public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccessor
 {
     private readonly Entity _entity;
     private readonly IWorldState _worldState;

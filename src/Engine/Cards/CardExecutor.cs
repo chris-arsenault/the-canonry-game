@@ -41,10 +41,10 @@ public sealed class CardExecutor
         }
 
         // Evaluate precondition tree
-        var preconditionMet = instance.Definition.Precondition.Evaluate(context);
-        instance.LastPreconditionResult = preconditionMet;
+        var preconditionResult = instance.Definition.Precondition.Evaluate(context);
+        instance.LastPreconditionResult = preconditionResult.Passed;
 
-        if (!preconditionMet)
+        if (!preconditionResult.Passed)
         {
             return false;
         }

@@ -316,11 +316,24 @@ public partial class EntityCard : PanelContainer
         {
             foreach (var process in processes)
             {
-                var canExec = process.CanExecute(entity, _sim.WorldState);
-                var score = process.Score(entity, _sim.WorldState);
-                var statusColor = canExec ? "green" : "red";
-                var statusIcon = canExec ? "✓" : "✗";
-                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {process.Name}  score: {score:F3}");
+                if (process is Engine.Processes.DataDrivenProcess ddp)
+                {
+                    var ctx = new Engine.Processes.ProcessMutationContext(entity, _sim.WorldState);
+                    var result = ddp.Definition.Precondition.Evaluate(ctx);
+                    var score = process.Score(entity, _sim.WorldState);
+                    var statusColor = result.Passed ? "green" : "red";
+                    var statusIcon = result.Passed ? "✓" : "✗";
+                    sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {process.Name}  score: {score:F3}");
+                    if (!result.Passed)
+                    {
+                        sb.AppendLine($"    [color=gray]{result.Diagnostic}[/color]");
+                    }
+                }
+                else
+                {
+                    var canExec = process.CanExecute(entity, _sim.WorldState);
+                    sb.AppendLine($"  {(canExec ? "✓" : "✗")} {process.Name}");
+                }
             }
         }
 

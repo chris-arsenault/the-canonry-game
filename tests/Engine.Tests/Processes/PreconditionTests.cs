@@ -13,28 +13,28 @@ public class PreconditionTests
     public void And_AllTrue_ReturnsTrue()
     {
         var and = new AndPrecondition([new AlwaysTrue(), new AlwaysTrue()]);
-        Assert.True(and.Evaluate(new StubMutationContext()));
+        Assert.True(and.Evaluate(new StubMutationContext()).Passed);
     }
 
     [Fact]
     public void And_OneFalse_ReturnsFalse()
     {
         var and = new AndPrecondition([new AlwaysTrue(), new NeverTrue()]);
-        Assert.False(and.Evaluate(new StubMutationContext()));
+        Assert.False(and.Evaluate(new StubMutationContext()).Passed);
     }
 
     [Fact]
     public void Or_OneFalseOneTrue_ReturnsTrue()
     {
         var or = new OrPrecondition([new NeverTrue(), new AlwaysTrue()]);
-        Assert.True(or.Evaluate(new StubMutationContext()));
+        Assert.True(or.Evaluate(new StubMutationContext()).Passed);
     }
 
     [Fact]
     public void Or_AllFalse_ReturnsFalse()
     {
         var or = new OrPrecondition([new NeverTrue(), new NeverTrue()]);
-        Assert.False(or.Evaluate(new StubMutationContext()));
+        Assert.False(or.Evaluate(new StubMutationContext()).Passed);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class PreconditionTests
             new OrPrecondition([new NeverTrue(), new AlwaysTrue()]),
             new AlwaysTrue(),
         ]);
-        Assert.True(nested.Evaluate(new StubMutationContext()));
+        Assert.True(nested.Evaluate(new StubMutationContext()).Passed);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class PreconditionTests
             new OrPrecondition([new NeverTrue(), new NeverTrue()]),
             new AlwaysTrue(),
         ]);
-        Assert.False(nested.Evaluate(new StubMutationContext()));
+        Assert.False(nested.Evaluate(new StubMutationContext()).Passed);
     }
 
     // --- Leaf conditions ---
@@ -66,7 +66,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { PressureValue = 60f };
         var check = new PressureThreshold("military_tension", new EntityId(1), min: 50f, max: 80f);
-        Assert.True(check.Evaluate(ctx));
+        Assert.True(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { PressureValue = 30f };
         var check = new PressureThreshold("military_tension", new EntityId(1), min: 50f, max: null);
-        Assert.False(check.Evaluate(ctx));
+        Assert.False(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { PressureValue = 90f };
         var check = new PressureThreshold("military_tension", new EntityId(1), min: null, max: 80f);
-        Assert.False(check.Evaluate(ctx));
+        Assert.False(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { AttributeValue = 40f };
         var check = new AttributeThreshold(new EntityId(1), "stability", min: 20f, max: null);
-        Assert.True(check.Evaluate(ctx));
+        Assert.True(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { AttributeValue = 10f };
         var check = new AttributeThreshold(new EntityId(1), "stability", min: 20f, max: null);
-        Assert.False(check.Evaluate(ctx));
+        Assert.False(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { EntityCount = 3 };
         var check = new EntityCountCheck(EntityKind.Nation, min: 2);
-        Assert.True(check.Evaluate(ctx));
+        Assert.True(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { EntityCount = 1 };
         var check = new EntityCountCheck(EntityKind.Nation, min: 2);
-        Assert.False(check.Evaluate(ctx));
+        Assert.False(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { LastFiredTick = null, CurrentTickValue = 10 };
         var check = new CooldownCheck(5);
-        Assert.True(check.Evaluate(ctx));
+        Assert.True(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { LastFiredTick = 5, CurrentTickValue = 20 };
         var check = new CooldownCheck(10);
-        Assert.True(check.Evaluate(ctx));
+        Assert.True(check.Evaluate(ctx).Passed);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class PreconditionTests
     {
         var ctx = new StubMutationContext { LastFiredTick = 5, CurrentTickValue = 10 };
         var check = new CooldownCheck(10);
-        Assert.False(check.Evaluate(ctx));
+        Assert.False(check.Evaluate(ctx).Passed);
     }
 
     // --- Describe ---
@@ -161,7 +161,7 @@ public class PreconditionTests
 
     private sealed class NeverTrue : IPrecondition
     {
-        public bool Evaluate(IMutationContext context) => false;
+        public PreconditionResult Evaluate(IMutationContext context) => PreconditionResult.Fail("never");
         public string Describe() => "never_true";
     }
 

@@ -165,7 +165,7 @@ public class CardExecutorTests
 
     private sealed class NeverTrue : IPrecondition
     {
-        public bool Evaluate(IMutationContext context) => false;
+        public PreconditionResult Evaluate(IMutationContext context) => PreconditionResult.Fail("never");
         public string Describe() => "never";
     }
 

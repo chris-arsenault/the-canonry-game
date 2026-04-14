@@ -148,10 +148,11 @@ public sealed class GoalGenerator
             var context = new GoalCheckContext(entity, parentGoal.Provider, worldState);
 
             // Check if precondition fails
-            if (procDef.Precondition.Evaluate(context)) continue; // Passes — no sub-goal needed
+            var result = procDef.Precondition.Evaluate(context);
+            if (result.Passed) continue; // No sub-goal needed
 
-            // Precondition fails — what's blocking?
-            var blockingAttrs = procDef.Precondition.GetBlockingAttributes();
+            // Precondition fails — create sub-goals for blocking attributes
+            var blockingAttrs = result.BlockingAttributes;
 
             foreach (var blockingAttr in blockingAttrs)
             {
