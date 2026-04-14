@@ -230,6 +230,40 @@ public partial class EntityCard : PanelContainer
 
         sb.AppendLine();
 
+        // Active Effects (tick + static, per attribute)
+        var hasEffects = false;
+        foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
+        {
+            if (attr.TickEffects.Count == 0 && attr.StaticEffects.Count == 0) continue;
+            if (!hasEffects)
+            {
+                sb.AppendLine("[b][u]Active Effects[/u][/b]");
+                hasEffects = true;
+            }
+
+            foreach (var effect in attr.TickEffects)
+            {
+                var sign = effect.Value >= 0 ? "+" : "";
+                var kind = effect.IsMultiplier ? "×" : "";
+                sb.AppendLine($"  {attr.Name}: {kind}{sign}{effect.Value:F3}/tick [color=gray]{effect.Description}[/color]");
+            }
+
+            foreach (var effect in attr.StaticEffects)
+            {
+                var sign = effect.Value >= 0 ? "+" : "";
+                var kind = effect.IsMultiplier ? "×" : "";
+                sb.AppendLine($"  {attr.Name}: {kind}{sign}{effect.Value:F3} [color=gray]{effect.Description}[/color]");
+            }
+        }
+
+        if (!hasEffects)
+        {
+            sb.AppendLine("[b][u]Active Effects[/u][/b]");
+            sb.AppendLine("  [i](none)[/i]");
+        }
+
+        sb.AppendLine();
+
         // Relationships
         sb.AppendLine("[b][u]Relationships[/u][/b]");
         var outgoing = _sim.Graph.OutgoingRelationships(_entityId).ToList();
