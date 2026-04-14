@@ -4,6 +4,7 @@ using Engine.Cards;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
+using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -76,6 +77,18 @@ public static class TestDomain
         npcFeedback.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
         npcFeedback.Writes.Add(AttributeRef.Self("hp", EntityKind.Npc));
         processes.Add(npcFeedback);
+
+        // NPC: eat — consume sustenance at current hex, reduce hunger
+        var npcEat = new ProcessDefinition("npc_eat", "Eat",
+            DefinitionRole.Process, EntityKind.Npc,
+            new ResourceAvailableAtSelf(ResourceType.Sustenance),
+            new AttributeRatioScore("hunger", 100f, variance: 0.1f))
+        { Mutations = { new ConsumeResourceAtSelfMutation(ResourceType.Sustenance, 5f, "hunger", variance: 0.3f) } };
+        npcEat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        npcEat.Reads.Add(AttributeRef.Resource("sustenance"));
+        npcEat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        npcEat.Writes.Add(AttributeRef.Resource("sustenance"));
+        processes.Add(npcEat);
 
         // Artifact: resonance ↔ condition
         var artifactTick = new ProcessDefinition("artifact_tick", "Artifact Tick",

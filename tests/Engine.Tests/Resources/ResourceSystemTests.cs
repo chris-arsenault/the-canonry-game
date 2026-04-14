@@ -199,7 +199,7 @@ public class ResourceSystemTests
 
     private (ResourceSystem System, WorldGraph Graph, AttributeStore Attributes) CreateTestSystem()
     {
-        var world = TestMapBuilder.BuildDefault();
+        var world = TestMapBuilder.BuildDefault(seed: 42);
         var attributes = new AttributeStore();
 
         // Initialize attributes for all settlements

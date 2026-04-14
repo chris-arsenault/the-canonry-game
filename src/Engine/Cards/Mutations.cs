@@ -2,6 +2,7 @@ namespace Engine.Cards;
 
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Resources;
 
 /// <summary>
 /// A mutation: a single effect applied to the world when a card fires.
@@ -113,4 +114,30 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
     }
 
     public string Describe() => $"modify_self_attribute({attributeName}, delta={delta}, var={variance})";
+}
+
+/// <summary>
+/// Consume a resource at the current entity's hex coordinates and reduce an attribute by
+/// the amount consumed. Generic: works with any resource type and any attribute.
+/// e.g., consume sustenance at my hex, reduce my hunger by amount consumed.
+/// </summary>
+public sealed class ConsumeResourceAtSelfMutation(
+    ResourceType resourceType, float amount, string attributeToReduce, float variance = 0f) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var entity = context.GetEntity(context.SelfEntityId);
+        if (entity?.Coordinates is null) return;
+
+        var toConsume = Variance.Scale(amount, variance, context.Random);
+        var consumed = context.ConsumeResource(entity.Coordinates.Value, resourceType, toConsume);
+
+        if (consumed > 0f)
+        {
+            context.ModifyAttribute(context.SelfEntityId, attributeToReduce, -consumed);
+        }
+    }
+
+    public string Describe() => $"consume_resource({resourceType}, amount={amount}, reduces={attributeToReduce}, var={variance})";
 }

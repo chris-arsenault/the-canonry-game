@@ -8,7 +8,7 @@ public class SpatialIndexTests
 {
     private static (SpatialIndex Index, TestWorld World) CreateTestSetup()
     {
-        var world = TestMapBuilder.BuildDefault();
+        var world = TestMapBuilder.BuildDefault(seed: 42);
         var index = new SpatialIndex(world.Grid, world.RegionMap, world.Graph);
         index.RebuildFromGraph();
         return (index, world);
