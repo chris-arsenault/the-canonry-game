@@ -151,6 +151,27 @@ public sealed class SelfAttributeThreshold(string attributeName, float? min, flo
         $"self_attribute({attributeName}, {(min.HasValue ? $"min={min}" : "")}{(max.HasValue ? $"max={max}" : "")})";
 }
 
+/// <summary>Checks the resolved target entity's attribute against a threshold.</summary>
+public sealed class TargetAttributeThreshold(string attributeName, float? min, float? max) : IPrecondition
+{
+    public bool Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.ResolvedTargetId is null) return false;
+        var entity = context.GetEntity(context.ResolvedTargetId.Value);
+        if (entity is null) return false;
+        var value = entity.Attributes.GetValue(attributeName);
+        if (min.HasValue && value < min.Value) return false;
+        if (max.HasValue && value > max.Value) return false;
+        return true;
+    }
+
+    public string? GetBlockingAttribute() => attributeName;
+
+    public string Describe() =>
+        $"target_attribute({attributeName}, {(min.HasValue ? $"min={min}" : "")}{(max.HasValue ? $"max={max}" : "")})";
+}
+
 /// <summary>Always true. Used for system cards that run unconditionally.</summary>
 public sealed class AlwaysTrue : IPrecondition
 {

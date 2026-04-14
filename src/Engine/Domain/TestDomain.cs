@@ -79,21 +79,20 @@ public static class TestDomain
         // Stolen = base * (self.fame - target.fame) / distance. Min 10 to fire.
         var attract = new ProcessDefinition("settlement_attract", "Attract Population",
             DefinitionRole.Process, EntityKind.Settlement,
-            new SelfAttributeThreshold("fame", min: 1f, max: null),
+            new AndPrecondition([
+                new SelfAttributeThreshold("fame", min: 1f, max: null),
+                new TargetAttributeThreshold("population", min: 10f, max: null),
+            ]),
             Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
         { Cooldown = 20, EntityCooldown = 5, Mutations = {
-            // stolen = clamp((fame_diff * ideology_sim / distance), 0, target.pop - 5)
-            // ideology_similarity = 1 - semantic_distance(ideology)
-            // stolen = clamp((fame_diff * ideology_sim / distance), 0, target.pop - 5)
-            // Never take the last 5 population from target
+            // stolen = clamp(fame_diff * ideology_sim / distance, 0, 5)
             new CalculateMutation("stolen", Expr.Clamp(
                 Expr.Mul(
                     Expr.Sub(Expr.Self("fame"), Expr.Target("fame")),
                     Expr.Div(
                         Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology")),
                         Expr.Add(Expr.Distance(), Expr.Lit(1f)))),
-                Expr.Lit(0f),
-                Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Target("population"), Expr.Lit(5f))))),
+                Expr.Lit(0f), Expr.Lit(5f))),
             new CalculateMutation("neg_stolen", Expr.Mul(Expr.Var("stolen"), Expr.Lit(-1f))),
             new ModifySelfByVariableMutation("population", "stolen"),
             new ModifyTargetByVariableMutation("population", "neg_stolen"),
