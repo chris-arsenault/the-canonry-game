@@ -96,8 +96,6 @@ public static class TestDomain
             new AlwaysTrue(),
             new ConstantScore(0.4f, variance: 0.2f))
         { IsDirected = true, Mutations = { new StepTowardTargetMutation() } };
-        npcMove.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        npcMove.Reads.Add(AttributeRef.Resource("sustenance"));
         npcMove.Reads.Add(AttributeRef.Coordinates(EntityKind.Npc));
         npcMove.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
         processes.Add(npcMove);
