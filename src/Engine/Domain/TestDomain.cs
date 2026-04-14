@@ -36,18 +36,18 @@ public static class TestDomain
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
             DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(),
             Expr.Score(Expr.Lit(0.6f), 0.1f))
-        { Cooldown = 3, EntityCooldown = 2, Mutations = { new ModifySelfAttributeMutation("sustenance", 1f, variance: 0.2f) } };
+        { Cooldown = 2, EntityCooldown = 1, Mutations = { new ModifySelfAttributeMutation("sustenance", 2f, variance: 0.2f) } };
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(stockpile);
 
         // Settlement: convert sustenance surplus into population growth
         var grow = new ProcessDefinition("settlement_grow", "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
-            new SelfAttributeThreshold("sustenance", min: 5f, max: null),
-            Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(100f)), 0.1f))
+            new SelfAttributeThreshold("sustenance", min: 3f, max: null),
+            Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(50f)), 0.1f))
         { Cooldown = 5, EntityCooldown = 2, Mutations = {
             new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
-            new ModifySelfAttributeMutation("sustenance", -5f, variance: 0.2f),
+            new ModifySelfAttributeMutation("sustenance", -3f, variance: 0.2f),
         } };
         grow.Reads.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         grow.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
@@ -220,7 +220,7 @@ public static class TestDomain
     {
         return new Dictionary<EntityKind, Domain.LifecycleConfig>
         {
-            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.002f, AgeCoefficient = 0.00015f },
+            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.002f, AgeCoefficient = 0.00008f },
             [EntityKind.Nation] = new() { HealthAttribute = "cohesion", BaseRate = 0.01f, AgeCoefficient = 0.00005f },
             [EntityKind.Npc] = new() { HealthAttribute = "hp", BaseRate = 0.02f, AgeCoefficient = 0.0005f },
             [EntityKind.Artifact] = new() { HealthAttribute = "condition", BaseRate = 0.01f, AgeCoefficient = 0.0001f },
