@@ -227,6 +227,34 @@ public sealed class SemanticDistanceThreshold(string attributeName, float maxDis
     public string Describe() => $"semantic_distance({attributeName}) <= {maxDistance}";
 }
 
+/// <summary>Target must be the entity itself.</summary>
+public sealed class TargetIsSelf : IPrecondition
+{
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.ResolvedTargetId == context.SelfEntityId
+            ? PreconditionResult.Pass("target is self")
+            : PreconditionResult.Fail("target is not self");
+    }
+
+    public string Describe() => "target == self";
+}
+
+/// <summary>Target must NOT be the entity itself.</summary>
+public sealed class TargetIsNotSelf : IPrecondition
+{
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return context.ResolvedTargetId != context.SelfEntityId
+            ? PreconditionResult.Pass("target is not self")
+            : PreconditionResult.Fail("target is self");
+    }
+
+    public string Describe() => "target != self";
+}
+
 /// <summary>Always passes.</summary>
 public sealed class AlwaysTrue : IPrecondition
 {

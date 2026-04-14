@@ -34,7 +34,7 @@ public static class TestDomain
         // Settlement: stockpile sustenance
         // TODO: production should scale with terrain fertility (#75)
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
-            DefinitionRole.Process, EntityKind.Settlement, new AlwaysTrue(),
+            DefinitionRole.Process, EntityKind.Settlement, new TargetIsSelf(),
             Expr.Score(Expr.Lit(0.6f), 0.1f))
         { Cooldown = 2, EntityCooldown = 1, Mutations = { new ModifySelfAttributeMutation("sustenance", 2f, variance: 0.2f) } };
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
@@ -43,7 +43,7 @@ public static class TestDomain
         // Settlement: convert sustenance surplus into population growth
         var grow = new ProcessDefinition("settlement_grow", "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
-            new SelfAttributeThreshold("sustenance", min: 3f, max: null),
+            new AndPrecondition([new TargetIsSelf(), new SelfAttributeThreshold("sustenance", min: 3f, max: null)]),
             Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(50f)), 0.1f))
         { Cooldown = 5, EntityCooldown = 2, Mutations = {
             new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
@@ -58,7 +58,7 @@ public static class TestDomain
         // Provider score: ideology distance (further apart = more to gain from propaganda)
         var propaganda = new ProcessDefinition("settlement_propaganda", "Propaganda",
             DefinitionRole.Process, EntityKind.Settlement,
-            new AlwaysTrue(),
+            new TargetIsNotSelf(),
             Expr.Score(Expr.Lit(0.3f), 0.1f))
         { Cooldown = 15, EntityCooldown = 5, ProviderScoreExpression = Expr.SemanticDistance("ideology"),
           Mutations = {
@@ -83,6 +83,7 @@ public static class TestDomain
         var attract = new ProcessDefinition("settlement_attract", "Attract Population",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
+                new TargetIsNotSelf(),
                 new SelfAttributeThreshold("fame", min: 1f, max: null),
                 new TargetAttributeThreshold("population", min: 10f, max: null),
                 new SemanticDistanceThreshold("ideology", 0.5f),
