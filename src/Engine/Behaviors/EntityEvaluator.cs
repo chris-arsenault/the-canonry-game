@@ -141,7 +141,6 @@ public sealed class EntityEvaluator
             var goal = entity.Goals.Count > 0 ? SelectGoal(entity, triedGoals) : null;
             if (goal is not null) triedGoals.Add(goal.Id);
 
-            var targetId = goal is not null ? (EntityId?)goal.Provider : null;
             var goalId = goal?.Id ?? "";
             var providerName = goal is not null
                 ? (worldState.Graph.GetEntity(goal.Provider)?.Name ?? goal.Provider.ToString())
@@ -171,8 +170,8 @@ public sealed class EntityEvaluator
                 {
                     precondResult = process is DataDrivenProcess ddp2
                         ? ddp2.Definition.Precondition.Evaluate(
-                            new ProcessMutationContext(entity, worldState, targetId: targetId))
-                        : process.CanExecute(entity, worldState, targetId)
+                            new ProcessMutationContext(entity, worldState, goal: goal))
+                        : process.CanExecute(entity, worldState, goal)
                             ? PreconditionResult.Pass()
                             : PreconditionResult.Fail("precondition failed");
                 }
@@ -208,8 +207,7 @@ public sealed class EntityEvaluator
                     c.WasSelected = true;
             }
 
-            // Execute — targetId flows as parameter, never stored on entity
-            var message = winner.Value.Process.Execute(entity, worldState, targetId);
+            var message = winner.Value.Process.Execute(entity, worldState, goal);
             _messageBus.Publish(message);
             entity.RecordAction(tick, winner.Value.Process.Name);
 

@@ -22,9 +22,9 @@ public sealed class DataDrivenProcess : IProcess
         Definition = definition;
     }
 
-    public bool CanExecute(Entity entity, IWorldState worldState, EntityId? targetId)
+    public bool CanExecute(Entity entity, IWorldState worldState, EntityGoal? goal)
     {
-        var context = new ProcessMutationContext(entity, worldState, targetId: targetId);
+        var context = new ProcessMutationContext(entity, worldState, goal: goal);
         return Definition.Precondition.Evaluate(context).Passed;
     }
 
@@ -34,9 +34,9 @@ public sealed class DataDrivenProcess : IProcess
         return Definition.ScoreExpression.Evaluate(exprCtx);
     }
 
-    public SimulationMessage Execute(Entity entity, IWorldState worldState, EntityId? targetId)
+    public SimulationMessage Execute(Entity entity, IWorldState worldState, EntityGoal? goal)
     {
-        var context = new ProcessMutationContext(entity, worldState, targetId: targetId);
+        var context = new ProcessMutationContext(entity, worldState, goal: goal);
 
         foreach (var mutation in Definition.Mutations)
         {
@@ -112,8 +112,11 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
-    public EntityId? ResolvedTargetId { get; }
+    public EntityId? ResolvedTargetId => Goal?.Provider;
     public IWorldState WorldState => _worldState;
+
+    /// <summary>The goal this process is executing against. Null when no goal.</summary>
+    public EntityGoal? Goal { get; }
 
     public void SetVariable(string name, float value)
     {
@@ -127,11 +130,11 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     }
 
     public ProcessMutationContext(Entity entity, IWorldState worldState,
-        Random? random = null, EntityId? targetId = null)
+        Random? random = null, EntityGoal? goal = null)
     {
         _entity = entity;
         _worldState = worldState;
-        ResolvedTargetId = targetId;
+        Goal = goal;
         Random = random ?? System.Random.Shared;
     }
 

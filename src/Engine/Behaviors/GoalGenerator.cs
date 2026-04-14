@@ -191,7 +191,7 @@ public sealed class GoalGenerator
 
             if (!writesToGoalAttr) continue;
 
-            var context = new GoalCheckContext(entity, parentGoal.Provider, worldState);
+            var context = new GoalCheckContext(entity, parentGoal, worldState);
             var result = procDef.Precondition.Evaluate(context);
             if (result.Passed) continue;
 
@@ -225,10 +225,10 @@ public sealed class GoalGenerator
         public Random Random => Random.Shared;
         public EntityId? ResolvedTargetId { get; }
 
-        public GoalCheckContext(Entity entity, EntityId targetId, IWorldState worldState)
+        public GoalCheckContext(Entity entity, EntityGoal goal, IWorldState worldState)
         {
             _entity = entity;
-            ResolvedTargetId = targetId;
+            ResolvedTargetId = goal.Provider;
             _worldState = worldState;
         }
 

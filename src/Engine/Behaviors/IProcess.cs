@@ -11,15 +11,9 @@ using Engine.Messages;
 public interface IProcess
 {
     string Name { get; }
-
-    /// <summary>Can this process run against the given target?</summary>
-    bool CanExecute(Entity entity, IWorldState worldState, EntityId? targetId);
-
-    /// <summary>Utility score. Higher = more likely selected.</summary>
+    bool CanExecute(Entity entity, IWorldState worldState, EntityGoal? goal);
     float Score(Entity entity, IWorldState worldState);
-
-    /// <summary>Execute: apply mutations. Target is the goal's provider.</summary>
-    SimulationMessage Execute(Entity entity, IWorldState worldState, EntityId? targetId);
+    SimulationMessage Execute(Entity entity, IWorldState worldState, EntityGoal? goal);
 }
 
 /// <summary>
