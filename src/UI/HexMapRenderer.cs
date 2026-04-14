@@ -24,6 +24,9 @@ public partial class HexMapRenderer : Node2D
     /// <summary>Whether to show territory overlay (nation colors on controlled settlements).</summary>
     [Export] public bool ShowTerritory { get; set; } = true;
 
+    /// <summary>Whether to show floating name labels attached to entity markers.</summary>
+    [Export] public bool ShowEntityNames { get; set; } = true;
+
     public void Initialize(SimulationRunner sim)
     {
         _sim = sim;
@@ -92,6 +95,8 @@ public partial class HexMapRenderer : Node2D
     {
         if (_sim is null) return;
 
+        var font = ThemeDB.FallbackFont;
+
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
             if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
@@ -116,6 +121,13 @@ public partial class HexMapRenderer : Node2D
                     DrawRect(new Rect2(center.X - 3 + 8, center.Y - 3 + 5, 6, 6),
                         new Color(0.8f, 0.2f, 0.8f));
                     break;
+            }
+
+            if (ShowEntityNames && font is not null)
+            {
+                var labelPos = center + new Vector2(-entity.Name.Length * 2.5f, -HexSize * 0.6f);
+                DrawString(font, labelPos, entity.Name, HorizontalAlignment.Left, -1, 10,
+                    new Color(1f, 1f, 1f, 0.9f));
             }
         }
     }

@@ -123,7 +123,7 @@ public partial class Main : Node2D
         // Initial browser population
         _browser.Refresh();
 
-        GD.Print("Controls: Space=pause/resume, Right=step 1 tick, 1/2/3=speed, R=reset, WASD=pan, scroll=zoom, click=select");
+        GD.Print("Controls: Space=pause/resume, Right=step, 1/2/3=speed, R=reset, N=names, WASD=pan, scroll=zoom, click=select");
     }
 
     public override void _Process(double delta)
@@ -212,6 +212,14 @@ public partial class Main : Node2D
                     break;
                 case Key.R:
                     ResetSimulation();
+                    break;
+                case Key.N:
+                    if (_mapRenderer is not null)
+                    {
+                        _mapRenderer.ShowEntityNames = !_mapRenderer.ShowEntityNames;
+                        _mapRenderer.Refresh();
+                    }
+
                     break;
             }
         }

@@ -27,6 +27,8 @@ public partial class EntityCard : PanelContainer
     private bool _dragging;
     private Vector2 _dragOffset;
     private bool _collapsed;
+    private bool _resizing;
+    private ScrollContainer? _scroll;
 
     /// <summary>Emitted when the user closes this card.</summary>
     [Signal]
@@ -43,7 +45,7 @@ public partial class EntityCard : PanelContainer
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(320, 0);
+        CustomMinimumSize = new Vector2(340, 400);
         MouseFilter = MouseFilterEnum.Stop;
 
         var outerVBox = new VBoxContainer();
@@ -78,12 +80,13 @@ public partial class EntityCard : PanelContainer
         _body = new VBoxContainer();
         outerVBox.AddChild(_body);
 
-        var scroll = new ScrollContainer
+        _scroll = new ScrollContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 200),
+            CustomMinimumSize = new Vector2(0, 300),
         };
-        _body.AddChild(scroll);
+        _body.AddChild(_scroll);
+        var scroll = _scroll;
 
         _content = new RichTextLabel
         {
@@ -105,8 +108,14 @@ public partial class EntityCard : PanelContainer
             {
                 if (mb.Pressed)
                 {
-                    // Start drag if clicking in title area (top 32px)
-                    if (mb.Position.Y < 32)
+                    // Resize handle: bottom-right 20x20 corner
+                    if (mb.Position.X > Size.X - 20 && mb.Position.Y > Size.Y - 20)
+                    {
+                        _resizing = true;
+                        GetViewport().SetInputAsHandled();
+                    }
+                    // Drag if clicking in title area (top 32px)
+                    else if (mb.Position.Y < 32)
                     {
                         _dragging = true;
                         _dragOffset = mb.Position;
@@ -116,13 +125,25 @@ public partial class EntityCard : PanelContainer
                 else
                 {
                     _dragging = false;
+                    _resizing = false;
                 }
             }
         }
-        else if (@event is InputEventMouseMotion mm && _dragging)
+        else if (@event is InputEventMouseMotion mm)
         {
-            Position += mm.Relative;
-            GetViewport().SetInputAsHandled();
+            if (_dragging)
+            {
+                Position += mm.Relative;
+                GetViewport().SetInputAsHandled();
+            }
+            else if (_resizing && _scroll is not null)
+            {
+                var newWidth = Mathf.Max(280, CustomMinimumSize.X + mm.Relative.X);
+                var newScrollHeight = Mathf.Max(100, _scroll.CustomMinimumSize.Y + mm.Relative.Y);
+                CustomMinimumSize = new Vector2(newWidth, CustomMinimumSize.Y + mm.Relative.Y);
+                _scroll.CustomMinimumSize = new Vector2(0, newScrollHeight);
+                GetViewport().SetInputAsHandled();
+            }
         }
     }
 
@@ -144,10 +165,10 @@ public partial class EntityCard : PanelContainer
         var sb = new StringBuilder();
 
         // Header
-        sb.AppendLine($"[b]Subtype:[/b] {entity.Subtype}  |  [b]Culture:[/b] {entity.Culture}  |  [b]Status:[/b] {entity.Status}");
+        sb.AppendLine($"{entity.Subtype}  |  {entity.Culture}  |  {entity.Status}");
         if (entity.Coordinates is not null)
         {
-            sb.AppendLine($"[b]Position:[/b] ({entity.Coordinates.Value.Q}, {entity.Coordinates.Value.R})  |  [b]Age:[/b] {_sim.Clock.CurrentTick - entity.CreatedAt}");
+            sb.AppendLine($"({entity.Coordinates.Value.Q}, {entity.Coordinates.Value.R})  |  age {_sim.Clock.CurrentTick - entity.CreatedAt}");
         }
 
         sb.AppendLine();
