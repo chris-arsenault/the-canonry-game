@@ -3,6 +3,7 @@ namespace Engine.Tests.Cards;
 using Engine.Cards;
 using Engine.Graph;
 using Engine.Kinds;
+using ResourceType = Engine.Resources.ResourceType;
 
 public class PreconditionTests
 {
@@ -191,5 +192,11 @@ public class PreconditionTests
         public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { }
         public void SetTag(EntityId entityId, string key, string value) { }
         public void SetEntityHistorical(EntityId entityId) { }
+        public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) => null;
+        public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) => [];
+        public float GetResource((int Q, int R) coordinates, ResourceType resourceType) => 0f;
+        public float ConsumeResource((int Q, int R) coordinates, ResourceType resourceType, float amount) => 0f;
+        public void SetCoordinates(EntityId entityId, int q, int r) { }
+        public void CullRelationship(EntityId sourceId, string relationshipKind) { }
     }
 }

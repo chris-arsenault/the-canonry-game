@@ -17,6 +17,7 @@ public sealed class WorldState : IWorldState
     public HexGrid Grid { get; }
     public RegionMap RegionMap { get; }
     public SpatialIndex SpatialIndex { get; }
+    public Resources.ResourceSystem? Resources { get; }
     public int CurrentTick { get; set; }
 
     public WorldState(
@@ -25,7 +26,8 @@ public sealed class WorldState : IWorldState
         EffectSystem effects,
         HexGrid grid,
         RegionMap regionMap,
-        SpatialIndex spatialIndex)
+        SpatialIndex spatialIndex,
+        Resources.ResourceSystem? resources = null)
     {
         Graph = graph;
         Attributes = attributes;
@@ -33,5 +35,6 @@ public sealed class WorldState : IWorldState
         Grid = grid;
         RegionMap = regionMap;
         SpatialIndex = spatialIndex;
+        Resources = resources;
     }
 }

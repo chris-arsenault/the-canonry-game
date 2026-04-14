@@ -134,6 +134,28 @@ internal sealed class ProcessMutationContext : IMutationContext
     public int? GetLastFiredTick() => null;
     public Entity? GetEntity(EntityId id) => _worldState.Graph.GetEntity(id);
 
+    public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind)
+    {
+        var rel = _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
+        return rel?.TargetId;
+    }
+
+    public IReadOnlyCollection<EntityId> GetEntitiesByKind(Kinds.EntityKind kind) =>
+        _worldState.Graph.GetEntitiesByKind(kind);
+
+    public float GetResource((int Q, int R) coordinates, Resources.ResourceType resourceType)
+    {
+        if (_worldState.Resources is null) return 0f;
+        var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
+        return resourceType switch
+        {
+            Resources.ResourceType.Sustenance => _worldState.Resources.Sustenance.GetStockpile(coord),
+            Resources.ResourceType.Gold => _worldState.Resources.Gold.GetStockpile(coord),
+            Resources.ResourceType.Population => _worldState.Resources.PopulationLayer.GetStockpile(coord),
+            _ => 0f,
+        };
+    }
+
     public Entity CreateEntity(Kinds.EntityKind kind, string subtype, string name, string culture,
         (int Q, int R)? coordinates) =>
         _worldState.Graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);
@@ -149,4 +171,36 @@ internal sealed class ProcessMutationContext : IMutationContext
     public void SetTag(EntityId entityId, string key, string value) { }
     public void SetEntityHistorical(EntityId entityId) =>
         _worldState.Graph.SetEntityHistorical(entityId, CurrentTick);
+
+    public float ConsumeResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float amount)
+    {
+        if (_worldState.Resources is null) return 0f;
+        var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
+        // ResourceSystem.ConsumePopulation works on the population layer;
+        // for sustenance/gold we consume from stockpile directly
+        var layer = resourceType switch
+        {
+            Resources.ResourceType.Sustenance => _worldState.Resources.Sustenance,
+            Resources.ResourceType.Gold => _worldState.Resources.Gold,
+            Resources.ResourceType.Population => _worldState.Resources.PopulationLayer,
+            _ => null,
+        };
+        if (layer is null) return 0f;
+        var available = layer.GetStockpile(coord);
+        var consumed = Math.Min(amount, available);
+        layer.AddToStockpile(coord, -consumed);
+        return consumed;
+    }
+
+    public void SetCoordinates(EntityId entityId, int q, int r) =>
+        _worldState.Graph.SetCoordinates(entityId, q, r);
+
+    public void CullRelationship(EntityId sourceId, string relationshipKind)
+    {
+        var rel = _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
+        if (rel is not null)
+        {
+            _worldState.Graph.CullRelationship(rel, CurrentTick);
+        }
+    }
 }

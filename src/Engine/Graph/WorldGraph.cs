@@ -68,6 +68,16 @@ public sealed class WorldGraph
 
     public IReadOnlyDictionary<EntityId, Entity> AllEntities => _entities;
 
+    public void SetCoordinates(EntityId id, int q, int r)
+    {
+        if (!_entities.TryGetValue(id, out var entity))
+        {
+            throw new ArgumentException($"Entity {id} not found", nameof(id));
+        }
+
+        entity.Coordinates = (q, r);
+    }
+
     public void SetEntityHistorical(EntityId id, int tick)
     {
         if (!_entities.TryGetValue(id, out var entity))

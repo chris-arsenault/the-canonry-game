@@ -170,7 +170,7 @@ public sealed class SimulationRunner
         var detectors = DetectorRegistry.CreateDefault(eventLog);
 
         // World state
-        var worldState = new WorldState(graph, attributes, effects, grid, regionMap, spatialIndex);
+        var worldState = new WorldState(graph, attributes, effects, grid, regionMap, spatialIndex, resources);
 
         // Wire to tick clock
         var clock = new TickClock();
@@ -312,6 +312,25 @@ internal sealed class CardMutationContext(
     public int? GetLastFiredTick() => null; // Per-card, handled by CardInstance
     public Entity? GetEntity(EntityId id) => graph.GetEntity(id);
 
+    public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) =>
+        graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
+
+    public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) =>
+        graph.GetEntitiesByKind(kind);
+
+    public float GetResource((int Q, int R) coordinates, Resources.ResourceType resourceType)
+    {
+        if (worldState.Resources is null) return 0f;
+        var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
+        return resourceType switch
+        {
+            Resources.ResourceType.Sustenance => worldState.Resources.Sustenance.GetStockpile(coord),
+            Resources.ResourceType.Gold => worldState.Resources.Gold.GetStockpile(coord),
+            Resources.ResourceType.Population => worldState.Resources.PopulationLayer.GetStockpile(coord),
+            _ => 0f,
+        };
+    }
+
     public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) =>
         graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);
 
@@ -331,6 +350,36 @@ internal sealed class CardMutationContext(
 
     public void SetEntityHistorical(EntityId entityId) =>
         graph.SetEntityHistorical(entityId, CurrentTick);
+
+    public float ConsumeResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float amount)
+    {
+        if (worldState.Resources is null) return 0f;
+        var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
+        var layer = resourceType switch
+        {
+            Resources.ResourceType.Sustenance => worldState.Resources.Sustenance,
+            Resources.ResourceType.Gold => worldState.Resources.Gold,
+            Resources.ResourceType.Population => worldState.Resources.PopulationLayer,
+            _ => null,
+        };
+        if (layer is null) return 0f;
+        var available = layer.GetStockpile(coord);
+        var consumed = Math.Min(amount, available);
+        layer.AddToStockpile(coord, -consumed);
+        return consumed;
+    }
+
+    public void SetCoordinates(EntityId entityId, int q, int r) =>
+        graph.SetCoordinates(entityId, q, r);
+
+    public void CullRelationship(EntityId sourceId, string relationshipKind)
+    {
+        var rel = graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
+        if (rel is not null)
+        {
+            graph.CullRelationship(rel, CurrentTick);
+        }
+    }
 }
 
 internal sealed class DegeneracyContextAdapter(WorldGraph graph, AttributeStore attributes)

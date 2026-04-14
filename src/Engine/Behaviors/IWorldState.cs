@@ -14,5 +14,6 @@ public interface IWorldState
     Engine.Map.HexGrid Grid { get; }
     Engine.Map.RegionMap RegionMap { get; }
     Engine.Map.SpatialIndex SpatialIndex { get; }
+    Engine.Resources.ResourceSystem? Resources { get; }
     int CurrentTick { get; }
 }

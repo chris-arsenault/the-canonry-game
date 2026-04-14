@@ -16,6 +16,7 @@ internal sealed class StubWorldState : IWorldState
     public HexGrid Grid { get; } = new(1);
     public RegionMap RegionMap { get; } = new();
     public SpatialIndex SpatialIndex { get; }
+    public Engine.Resources.ResourceSystem? Resources => null;
     public int CurrentTick { get; set; }
 
     public StubWorldState()
