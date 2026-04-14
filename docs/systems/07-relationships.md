@@ -138,7 +138,7 @@ The specific factors and their coefficients are per-relationship-kind. An allied
 | Attributes (#3) | Relationships carry effect definitions that transfer attribute modifiers to related entities (the effect transfer pattern). |
 | Map/Spatial (#4) | Proximity and distance feed into strength modification factors. |
 | Pressure (#11) | Relationship counts and types within a region feed into pressure computation. |
-| Entity Behaviors (#6) | Reads relationship values for impulse evaluation. Relationship-derived effects modify entity effective attributes. |
+| Entity Behaviors (#6) | Reads relationship values for process/decision evaluation. Relationship-derived effects modify entity effective attributes. |
 | Lifecycle (#9) | When an entity transitions to historical status, its relationships may be culled or preserved. |
 | Card Executors (#16-18) | Cards create new relationships (generators, actions). Cards may modify relationship strength directly (system effects). |
 

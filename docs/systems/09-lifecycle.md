@@ -28,7 +28,7 @@ The lifecycle system applies a time-since-creation dependent drain on this healt
 - Is NOT a fixed lifespan -- it is a growing downward pressure
 - Is kind-specific in shape and rate
 
-An old entity CAN survive indefinitely if other systems counteract the drain. A prosperous ancient city's population is sustained by attraction impulses that outpace the age drain. A well-maintained artifact's condition is restored by its holder. Cards can also artificially extend lifespan by boosting the health metric directly -- effectively competing with entropy.
+An old entity CAN survive indefinitely if other systems counteract the drain. A prosperous ancient city's population is sustained by attraction processes that outpace the age drain. A well-maintained artifact's condition is restored by its holder. Cards can also artificially extend lifespan by boosting the health metric directly -- effectively competing with entropy.
 
 This creates a natural dynamic: young entities are self-sustaining (the drain is negligible). Mature entities are stable if conditions are favorable. Ancient entities require active investment to survive -- they become expensive to maintain, creating interesting decisions about whether to sustain the old or let it die to make room for the new.
 
@@ -38,7 +38,7 @@ The exact functions per kind are TBD. The design commitment is: there EXISTS a h
 
 For MVP, entities have two lifecycle states:
 - **Active:** participating in the simulation. Visible, interactable, affects and is affected by other entities.
-- **Historical:** no longer participating. Remains in the graph for reference and relationship queries. Does not consume simulation resources (no impulse evaluation, no attribute modification). Is not displayed on the map by default (may be togglable).
+- **Historical:** no longer participating. Remains in the graph for reference and relationship queries. Does not consume simulation resources (no process/decision evaluation, no attribute modification). Is not displayed on the map by default (may be togglable).
 
 Transition from active to historical is triggered by kind-specific conditions:
 - A mortal entity whose health reaches zero
@@ -79,7 +79,7 @@ This keeps the lifecycle system's role clean: it drains health, other systems su
 | Entity Graph (#1) | Reads entity creation timestamps. Writes status changes (active -> historical). |
 | Entity Kinds (#2) | Kind determines which aging function applies and which attributes it modifies. |
 | Attributes (#3) | Writes to kind-specific attributes (health, population, condition, stability) based on age function. |
-| Entity Behaviors (#6) | Aging modifies attributes that entity behavior reads. An aging hero's reduced proficiency changes their impulse scores. |
+| Entity Behaviors (#6) | Aging modifies attributes that entity behavior reads. An aging hero's reduced proficiency changes their process scores. |
 | Tick Clock (#5) | Time-since-creation is computed from current tick minus entity's createdAt. |
 | Card Executors (#16-18) | Cards may counteract aging effects (healing, maintenance, renewal) by modifying the same attributes the aging function pushes down. Cards compete with entropy. |
 

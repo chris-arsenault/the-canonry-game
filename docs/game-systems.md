@@ -82,18 +82,34 @@ The 2D physical world. Geography that matters to the simulation.
 
 ## Simulation Altitude Model
 
-The simulation operates at two altitudes. This is a critical architectural distinction.
+The simulation operates at three layers within each entity's tick evaluation, plus the card execution layer above. This is a critical architectural distinction.
 
-**Low altitude (always-on, NOT card-controlled):** Each entity kind has inherent behaviors that run because that's what these things DO. Nations experience border tension and resource flow. Cultures radiate influence and accumulate innovations. Settlements attract or repel population. Factions pursue goals and exert political pressure. Artifacts degrade and accumulate resonance. Heroes move and consume. These are the physics of each entity kind. They produce CONDITIONS -- pressure, tension, accumulation, deficit.
+### Layer 1: Physics (Automatic, Unconditional)
 
-**Mid altitude (card-controlled):** Cards operate on the AGGREGATE EFFECTS of low-level simulation. "Cultural Diffusion" doesn't move individual people -- it defines what happens when enough cultural pressure has accumulated at a border through low-level population flow and proximity. "Declare War" doesn't make soldiers fight -- it defines what happens when enough border tension has built up through low-level national behavior.
+Runs for every active entity every tick. Not selected, not scored, not skipped. Lifecycle drain, relationship drift, resource production/consumption, population flow. Implemented by dedicated engine systems (LifecycleSystem, RelationshipSystem, ResourceSystem). Physics sets conditions.
 
-**Why this ordering matters:** The canonry declared high-level outcomes and hoped coherence emerged downward. This game simulates low-level behaviors and lets cards define what the aggregate means. Coherence comes from the bottom up, not the top down.
+### Layer 2: Processes (Utility AI, Always Available)
+
+The mundane, granular, always-on activities. Eat, move, rest, harvest, repair, degrade, accumulate. ALL entity kinds participate. Selected via utility AI with weighted random from all viable candidates (no top-N cap). One process fires per entity per tick. Processes are **multi-effect and cross-entity** -- an NPC eating reduces its hunger AND the settlement's food. Processes produce tendencies and incremental changes. They do NOT produce outcomes.
+
+### Layer 3: Decisions (Utility AI, Card-Gated)
+
+The significant, world-changing actions. Declare war, forge alliance, expand borders, wield artifact. Only exist when the player has placed the enabling Action card in the tableau. ALL entity kinds participate. One decision fires per entity per tick (independent of the process). Decisions consume population (the universal action currency). They nearly always create new relationships or entities. Removing the card removes the possibility entirely.
+
+### Card Execution (Mid-Altitude)
+
+Generator and System cards operate on the AGGREGATE EFFECTS of low-level simulation. They read pressure and entity state, then write to the entity graph. Cards define WHAT CONDITIONS MEAN -- what happens when pressure releases, what emerges from accumulated state.
+
+### Why This Ordering Matters
+
+The canonry declared high-level outcomes and hoped coherence emerged downward. This game simulates low-level behaviors and lets cards define what the aggregate means. Coherence comes from the bottom up, not the top down.
 
 The hierarchy:
-1. Low altitude produces CONDITIONS (pressure, tension, accumulation)
-2. Cards define WHAT THOSE CONDITIONS MEAN (what happens when pressure releases, what emerges from accumulated state)
-3. High altitude outcomes EMERGE from the interaction of low-level physics and card-defined responses
+1. Physics produces raw state changes (entropy, drift, flow)
+2. Processes produce CONDITIONS (pressure, tension, accumulation, deficit) through always-on entity activity
+3. Decisions define WHAT CONDITIONS MEAN for entities that act (card-gated significant actions)
+4. Card execution (generators, systems) defines WHAT CONDITIONS MEAN at the world level
+5. Outcomes EMERGE from the interaction of all layers
 
 ---
 
@@ -112,90 +128,52 @@ Time management. Drives everything.
 - Tick phases: within a single tick, systems execute in a defined order
 
 **Tick phase order (within a single tick):**
-1. Low-altitude systems update (entity behaviors, resources, lifecycle, relationships, bulk flow)
-2. Pressure recomputation (aggregates low-altitude state)
-3. Card precondition evaluation (checks pressures/conditions against active cards)
-4. Card execution (generators, systems, actions that fired)
-5. Effects applied back to entity graph
-6. State change notification
+1. Physics: lifecycle drain, relationship drift, resource production/consumption, population flow (automatic, unconditional)
+2. Process selection and execution: utility AI selects one process per entity, executes mutations (always available)
+3. Decision selection and execution: utility AI selects one decision per entity, executes mutations (card-gated only)
+4. Pressure recomputation: aggregates low-altitude state from phases 1-3
+5. Card precondition evaluation: checks pressures/conditions against active generator and system cards
+6. Card execution: generators and systems that fired apply effects
+7. Effects applied back to entity graph
+8. State change notification
 
 **MVP scope:** Full implementation. Speed control and cadence management are essential from day one.
 
-### 6. Entity Behaviors (Per-Kind Low-Altitude Simulation)
+### 6. Entity Behaviors (Three-Layer Behavioral Model)
 
-Each entity kind has inherent behaviors that always run. These are the low-altitude simulation -- they produce the conditions that cards operate on. This is NOT card-controlled.
+Each entity kind participates in a three-layer behavioral model that runs per entity per tick:
 
-**Design principle:** Behaviors produce TENDENCIES and CONDITIONS. They do not produce OUTCOMES. A nation's border tension increases through low-altitude simulation. What HAPPENS because of that tension (war, isolation, diplomacy) is card territory.
+1. **Physics** (automatic, unconditional): lifecycle drain, relationship drift, resource flow. Dedicated engine systems. Not scored, not selected.
+2. **Processes** (utility AI, always available): mundane activities. One selected per entity per tick via weighted random from all viable candidates.
+3. **Decisions** (utility AI, card-gated): significant actions. One selected per entity per tick. Only available when enabling Action card is in the tableau.
 
-**Design principle:** This system is NOT NPC-centric. Nations are the primary drivers of interesting macro-dynamics. NPCs are one entity kind among many. The base architecture must work uniformly across all entity kinds -- including future kinds not yet defined (monsters, factions, etc.). Each kind has its own behavioral model, but the system that runs them is kind-agnostic.
+**Design principle:** Processes produce TENDENCIES and CONDITIONS. They do not produce OUTCOMES. A nation's border tension increases through processes. What HAPPENS because of that tension (war, isolation, diplomacy) is decision/card territory.
 
-#### Nations
+**Design principle:** This system is NOT NPC-centric. Nations are the primary drivers of interesting macro-dynamics. NPCs are one entity kind among many. ALL entity kinds participate in ALL three layers. The base architecture is kind-agnostic.
 
-The primary macro-level entities. Aggregate behavioral tendencies modeled through bulk flow and attribute dynamics -- NOT anthropomorphized.
-- **Border tension:** nations with overlapping territorial claims experience increasing tension along their borders. Computed from proximity, relative military strength, and relationship values.
-- **Resource flow:** resources move between a nation's settlements through internal routes. Surplus concentrates at capitals/major settlements. Deficit propagates outward.
-- **Population pressure:** when a nation's settlements are at capacity, demographic pressure builds. Population naturally flows toward frontier regions within the nation's territory.
-- **Consolidation/fragmentation pressure:** large nations accumulate internal strain (distance from capital, cultural diversity, administrative cost). Small nations accumulate external pressure (vulnerability to neighbors).
-- **Ideological drift:** national ideology shifts over time based on internal faction composition, cultural influences, and historical events.
+**Design principle:** Processes and decisions are DATA, not code. They are defined in the domain config using the same DSL as cards (preconditions, scoring expressions, mutations, wiring contracts). The engine interprets them. Changing a process = changing data, not recompiling. See `docs/systems/06-entity-behaviors.md` for the full three-layer model, data-driven definition, cross-kind interaction, and wiring validation.
 
-#### Cultural Dynamics (attribute-driven)
+**Design principle:** Processes are MULTI-EFFECT and CROSS-ENTITY. An NPC eating reduces its own hunger AND consumes sustenance from the settlement it is located at. A settlement harvesting reads regional fertility AND writes to its own stockpile. Cross-kind interaction through the entity graph is fundamental, not optional. The engine provides generic cross-kind mutation primitives. The domain composes them into specific behaviors.
 
-Culture is an ATTRIBUTE, not an entity kind. Cultural dynamics are computed from the cultural attributes of settlements, nations, and NPCs:
-- **Cultural friction:** entities of different cultures in proximity create friction pressure, feeding into the pressure system.
-- **Cultural influence:** settlements with large populations project their culture's influence onto neighboring settlements. Nations with dominant cultures affect the cultural tendencies of their members.
-- **Note:** culture itself is static (it doesn't spread, merge, or fragment). But NATIONS and FACTIONS composed of entities with different cultures experience internal cultural tension, and neighboring nations of different cultures experience border friction. These dynamics are enacted by nations and NPCs, not by culture itself.
+#### Per-Kind Behaviors
 
-#### Settlements
+**Nations:** Border tension, internal resource flow, population pressure, consolidation/fragmentation, ideological drift, strategic goal-setting.
 
-The foundational economic unit. Growth and decline dynamics.
-- **Population attraction:** prosperous, safe settlements attract population. Impoverished or dangerous settlements lose population.
-- **Resource production:** settlements produce resources based on regional terrain, population, and development level.
-- **Resource consumption:** populations consume food and materials. Deficit triggers decline.
-- **Development:** sustained prosperity increases development. Sustained hardship decreases it.
-- **Strategic significance:** settlements at geographic chokepoints, river crossings, or resource concentrations naturally accumulate importance.
+**Settlements:** Resource production (sustenance from fertility+labor, gold from development), resource consumption, population attraction/loss, development growth/decline.
 
-#### Factions
+**NPCs:** Needs (hunger, safety), movement toward goals, aging, ambition-driven subtype behavior. NPCs are the visible face of deeper systemic forces -- not the primary drivers.
 
-Goal-driven organizations that operate within and across nations.
-- **Goal pursuit:** factions have objectives (accumulate wealth, spread ideology, gain political power) that influence member behavior and create internal national pressure.
-- **Influence accumulation:** faction influence changes based on member prominence, resources, and actions. Growing factions exert more pressure on national policy.
-- **Internal politics:** factions within the same nation exert competing pressures on national attributes (stability, ideology). Multiple factions create the internal dynamics that make nations interesting.
-- **Cross-national reach:** factions can span multiple nations (trade leagues, religious orders, secret societies), creating trans-national pressure networks.
+**Artifacts:** Condition degradation, mystical resonance accumulation, influence radius. What resonance DOES in aggregate is card territory.
 
-#### Artifacts
-
-Objects of significance with their own low-altitude dynamics.
-- **Wear and degradation:** artifact condition decreases over time. Neglected artifacts degrade faster. Artifacts in active use degrade differently than stored ones.
-- **Mystical accumulation:** artifacts involved in significant events (present at great battles, held during founding of nations, used in cultural ceremonies) accumulate mystical resonance. This is a slowly increasing attribute, not card-controlled.
-- **Influence radius:** prominent artifacts affect the entities and locations near them. A legendary sword in a settlement affects that settlement's military reputation. A sacred text in a culture's heartland affects cultural cohesion.
-- **Note:** what mystical resonance and artifact influence DO in aggregate is card territory. The accumulation itself is inherent.
-
-#### Heroes
-
-Individual named entities with high-detail behavioral simulation. One entity kind among many -- NOT the primary focus.
-- **Needs:** heroes have basic needs (hunger, safety) that drive moment-to-moment behavior. A hungry hero moves toward food. A threatened hero moves toward safety.
-- **Ambition:** heroes seek opportunity based on their subtype. Merchant subtypes follow trade. Warrior subtypes move toward conflict zones. Scholar subtypes move toward high-development settlements.
-- **Movement:** pathfinding between locations on the map, driven by need evaluation.
-- **Aging:** heroes age and eventually die of old age if nothing else kills them.
-- **Note:** NPCs are important as individual narrative actors, but the simulation's macro-level dynamics are driven primarily by national behaviors. NPCs are the visible face of deeper systemic forces. Cultural dynamics operate through entity attributes, not through NPC actions directly.
+**Regions:** Seasonal fertility shifts, slow feature development. Permanent entities with no lifecycle drain.
 
 #### Future Entity Kinds
 
-The entity behavior system architecture must support additional entity kinds without structural changes. Planned future kinds include:
-- **Monsters / Creatures:** entities with territorial behavior, predation dynamics, and interaction with settlements and heroes
-- **Legendary Vehicles / Ships:** mobile artifacts with their own movement patterns, crew dynamics, and route-based behavior
-- **Religious Orders / Institutions:** formalized cross-national organizations with doctrine, hierarchy, and conversion dynamics
+Architecture supports additional kinds without structural changes: Monsters/Creatures, Legendary Vehicles/Ships, Religious Orders/Institutions. Not MVP.
 
-These are not MVP, but the base system must not preclude them.
+**MVP scope (5 entity kinds):** Region, Settlement, Nation, NPC, Artifact. All participate in all three behavioral layers.
 
-**MVP scope (5 entity kinds):**
-- Regions: passive stage, scope unit for pressure computation. MVP.
-- Settlements: population attraction/loss, resource production/consumption (soup + gold), development. MVP.
-- Nations: border tension, resource flow, population pressure, consolidation/fragmentation, cultural friction (from attribute differences). MVP.
-- NPCs: needs (hunger, safety, ambition), movement with simple goal selection. MVP.
-- Artifacts: degradation, mystical accumulation, holder effects. MVP.
-
-**Post-MVP kinds:** Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence. See `docs/systems/entity-kind-registry.md` for full definitions.
+**Post-MVP kinds:** Point of Interest, Faction, Monster, Transportation, Ability, Occurrence. See `docs/systems/entity-kind-registry.md`.
 
 ### 7. Relationships
 
@@ -424,29 +402,32 @@ Map / Spatial → positions, adjacency, terrain (includes procedural generation)
     ↑
 Tick Clock → drives all updates
     ↑
-LOW ALTITUDE (always-on, not card-controlled)
-├── Entity Behaviors (per-kind) → nation border tension/resource flow,
-│                                  cultural influence/pressure, settlement growth,
-│                                  faction politics, artifact degradation/resonance,
-│                                  hero needs/movement
-├── Relationships → fine-grained dynamics (reads attributes, map)
-├── (Resources / Economy → POST-MVP)
-├── Lifecycle → aging, growth, decay (reads attributes)
-└── Map Visualization → reads all low-altitude state, renders spatially (NOT a simulation system)
+LAYER 1: PHYSICS (automatic, unconditional)
+├── Lifecycle → aging drain, death transitions
+├── Relationships → strength drift from proximity, culture, competing claims
+├── Resources → sustenance/gold production, consumption, population dynamics
+└── Map Visualization → reads all state, renders spatially (NOT a simulation system)
     ↑
-Pressure → BRIDGE: smoothed aggregates of low-altitude state
+LAYER 2: PROCESSES (utility AI, always available, one per entity per tick)
+├── Per-kind process menus (data-defined in domain config)
+├── Cross-entity mutations (NPC eats → settlement loses food)
+└── Wiring contracts validated at startup
     ↑
-MID ALTITUDE (card-controlled)
+LAYER 3: DECISIONS (utility AI, card-gated, one per entity per tick)
+├── Available only when enabling Action card is in tableau
+├── Consume population (universal action currency)
+└── Produce significant world-state changes (new relationships, entities)
+    ↑
+Pressure → BRIDGE: smoothed aggregates of layers 1-3
+    ↑
+CARD EXECUTION (mid-altitude)
 ├── Deck → player's card collection
 ├── Tableau / Mana → active cards + resource pool
-├── Lose Condition Monitor → threat tracking (reads low-altitude + pressure)
-└── Save / Load → full state serialization (reads/writes everything)
-    ↑
-Card Precondition Evaluation (reads pressure, attributes, relationships, map)
-    ↑
+├── Save / Load → full state serialization
+├── Card Precondition Evaluation (reads pressure, attributes, relationships, map)
 ├── Generator Executor → creates entities (what the world BECOMES)
 ├── System Executor → modifies world processes (how forces BEHAVE)
-└── Action Executor → enables actor behaviors (what actors CAN DO)
+└── (Action cards register decisions into Layer 3 above)
     ↑
 Effects applied back to Entity Graph (loop)
 ```

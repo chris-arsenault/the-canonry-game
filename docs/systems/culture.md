@@ -29,7 +29,7 @@ Culture is a non-spatially-bound, overarching construct that defines an entity's
 |--------|----------------------|
 | Entity Graph (#1) | Culture is a property on entity records (like kind and subtype). Not a separate entity. |
 | Attributes (#3) | Culture defines initial attribute tendencies and may provide ongoing modifiers. |
-| Entity Behaviors (#6) | Cultural tendencies influence impulse scoring weights. Entities of different cultures evaluate the same impulses with slightly different priorities. |
+| Entity Behaviors (#6) | Cultural tendencies influence process scoring weights. Entities of different cultures evaluate the same processes with slightly different priorities. |
 | Relationships (#7) | Shared culture is a factor in relationship strength modification (same culture trends positive). Cultural difference feeds into disposition calculation via semantic plane distance. |
 | Pressure (#11) | Cultural distribution across a region feeds into cultural friction pressure. |
 | Narrative Domain (#19) | Culture list and per-culture definitions (tendencies, naming rules, modifiers) are defined by the domain. |

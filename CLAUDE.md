@@ -28,30 +28,34 @@ A system can be:
 
 ### 3. Altitude Separation Is Structural
 
-Low-altitude systems (entity behaviors, relationships, lifecycle, resources) and mid-altitude systems (card executors) are in separate code paths with a defined interface. The pressure system is the bridge.
+The simulation operates in three layers per entity per tick, plus card execution above:
 
-- Low-altitude systems read entity state and write attribute changes. They do NOT read pressure or card state.
-- Pressure reads low-altitude outputs. It does NOT write to entity attributes.
-- Card executors read pressure and entity state. They write to the entity graph.
-- This data flow is one-directional within a tick. No system reaches backward.
+- **Layer 1 - Physics** (automatic): lifecycle drain, relationship drift, resource flow. Dedicated engine systems. Not scored, not selected.
+- **Layer 2 - Processes** (utility AI, always available): mundane activities. One selected per entity per tick. ALL entity kinds participate. Multi-effect and cross-entity.
+- **Layer 3 - Decisions** (utility AI, card-gated): significant actions. One selected per entity per tick. Only when enabling Action card is in tableau. Consume population.
+- **Pressure** bridges layers 1-3 to card execution: smoothed aggregates of low-altitude state.
+- **Card execution** (generators, systems): reads pressure and entity state, writes to entity graph.
 
-### 4. Cards Are Data, Not Code
+Data flow is one-directional within a tick. No system reaches backward. Physics does NOT read pressure or card state. Pressure does NOT write to entity attributes.
 
-Card definitions (generators, systems, actions) are expressed in a DSL or structured data format. NOT as hard-coded classes or functions. The card executor interprets card definitions at runtime.
+### 4. Processes, Decisions, and Cards Are Data, Not Code
+
+Process definitions, decision definitions, and card definitions are all expressed in the same data-driven DSL: preconditions (AND/OR tree), scoring expressions (for utility AI), mutations (ordered effects), and wiring contracts (declared reads/writes). NOT as hard-coded classes or functions. The engine interprets these data structures at runtime.
 
 This enables:
-- Domain-defined cards without engine changes
+- Domain-defined processes, decisions, and cards without engine changes
 - Runtime card modification (Balatro-style enhancements)
-- Player-created cards (post-MVP)
-- Serialization of card state for save/load
+- Wiring validation at startup (does the data produce a coherent world?)
+- Serialization of all definitions for save/load
+- Changing a process = changing data in the domain config, not recompiling
 
-The only code in the card system is the executor/interpreter. The cards themselves are data.
+The only code is the interpreter (DataDrivenProcess, DataDrivenDecision, CardExecutor). The behaviors themselves are data.
 
 ### 5. Entity Kinds Are Engine, Subtypes Are Domain
 
-The engine defines entity kind classes: Region, Settlement, Nation, NPC, Artifact (MVP), plus post-MVP kinds. Each kind has engine-level behavioral code (impulse evaluation, lifecycle drain, etc.).
+The engine defines entity kind classes: Region, Settlement, Nation, NPC, Artifact (MVP), plus post-MVP kinds. Each kind participates in the three-layer behavioral model (physics, processes, decisions).
 
-The domain module defines: subtypes within each kind, attribute schemas per subtype, relationship kind catalog, pressure definitions, and card content. A new domain can define entirely new subtypes and relationships without engine changes.
+The domain module defines: subtypes within each kind, attribute schemas per subtype, relationship kind catalog, pressure definitions, process definitions, decision definitions, and card content. A new domain can define entirely new subtypes, processes, and relationships without engine changes.
 
 ### 6. Everything Is Serializable
 

@@ -18,7 +18,7 @@ The game engine is domain-agnostic. The game itself is a domain. "The Ice Rememb
 
 A narrative domain doesn't just change names and flavor text. It changes what EXISTS in the simulation:
 
-- **Subtypes:** the domain defines which subtypes exist for each entity kind. In The Ice Remembers, hero subtypes might be: ice-warden, lore-keeper, wave-rider, tusk-hunter. In The Glass Frontier, they might be: sand-singer, dune-merchant, glass-forger, mirage-reader. Different subtypes mean different impulse weights, different card targeting, different behavioral priorities.
+- **Subtypes:** the domain defines which subtypes exist for each entity kind. In The Ice Remembers, hero subtypes might be: ice-warden, lore-keeper, wave-rider, tusk-hunter. In The Glass Frontier, they might be: sand-singer, dune-merchant, glass-forger, mirage-reader. Different subtypes mean different process scoring weights, different card targeting, different behavioral priorities.
 - **Cards:** the domain defines the card pool. Each domain has its own generators, systems, and actions reflecting its world. The Ice Remembers has cards for orca raids, ice magic, the Long Dark. The Glass Frontier has cards for sandstorms, glass trade, oasis politics. Some cards may be shared across domains (basic settlement founding, basic diplomacy), but many are domain-specific.
 - **Low-altitude physics:** some low-altitude behaviors are domain-specific. In The Ice Remembers, there might be an "ice stability" low-altitude system that doesn't exist in other domains. In The Glass Frontier, "sand migration" might affect settlement placement. These are not card-gated -- they are always-on physics specific to the domain.
 - **Ground truths:** facts that constrain the simulation. "All food is soup" means the food resource (post-MVP) has specific production/consumption characteristics. "The Long Dark is coming" means there is a cyclical environmental pressure unique to this domain. "Orcas are a persistent external threat" means there is an always-on hostile entity behavior.
@@ -34,7 +34,7 @@ The domain plugs into the engine through defined extension points:
 - **Attribute definitions:** the engine defines the attribute system (scalars, semantic planes, reducers). The domain defines which specific attributes each kind+subtype has, their ranges, and their semantic plane configurations.
 - **Relationship kind definitions:** the engine defines the relationship system (strength, polarity, culling, exclusivity). The domain defines which specific relationship kinds exist and their properties.
 - **Card definitions:** the engine defines the card executor system (preconditions, mutations, DSL). The domain defines the specific cards (generators, systems, actions) using the DSL.
-- **Low-altitude behavior extensions:** the engine defines the entity behavior framework (utility AI, impulse evaluation). The domain can add domain-specific impulses and scoring curves per subtype.
+- **Process and decision definitions:** the engine defines the behavioral framework (utility AI, three-layer evaluation, data-driven DSL). The domain defines all processes and decisions as data in the DomainConfig.
 - **Pressure definitions:** the engine defines the pressure system (contributing factors, homeostasis, smoothing). The domain defines the specific pressure types and their contributing factor configurations.
 - **Strategy archetypes:** the engine defines the deck system (deck > hand > tableau, archetype selection). The domain defines which archetypes are available and what cards they contain.
 - **Naming rules:** the engine defines name generation as an interface. The domain provides culture-specific naming data (from the canonry's name forge or equivalent).
@@ -94,7 +94,7 @@ This boundary must be maintained rigorously. Every system must be auditable: "do
 - Map system (hex grid, regions, adjacency, pathfinding)
 - Pressure computation framework
 - Tick clock and phase ordering
-- Entity behavior framework (utility AI, impulse scoring, goal tags)
+- Entity behavior framework (three-layer model, utility AI, process/decision evaluation, goal tags)
 - Card executor framework (precondition evaluation, mutation application, DSL interpreter)
 - Deck / hand / tableau mechanics
 - Mana system
@@ -102,7 +102,7 @@ This boundary must be maintained rigorously. Every system must be auditable: "do
 - Map visualization framework (overlay system, entity markers, relationship lines)
 
 **Domain-specific (The Ice Remembers package):**
-- "Ice-warden" as a hero subtype with specific impulse weights
+- "Ice-warden" as a hero subtype with specific process scoring weights
 - "Orca raid" as a generator card with specific preconditions
 - "The Long Dark" as a cyclical pressure with specific contributing factors
 - "Iceberg stability" as a domain-specific low-altitude physics

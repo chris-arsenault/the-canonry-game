@@ -23,7 +23,7 @@ Soup is THE food resource for the Ice Remembers domain. It is not an abstraction
 - **Produced by:** settlements, based on regional fertility and population (labor)
 - **Consumed by:** population at settlements (each population unit consumes N soup per tick)
 - **Surplus effect:** attracts population inflow, increases settlement prosperity attribute
-- **Deficit effect:** causes population decline, decreases prosperity, drives NPC hunger impulse
+- **Deficit effect:** causes population decline, decreases prosperity, drives NPC hunger process
 
 ### Gold
 
@@ -61,7 +61,7 @@ Inter-nation flow requires trade-related cards (post-MVP for full implementation
 Resources don't create their own behavioral layer. They feed into existing systems:
 - **Settlement behaviors:** population growth/decline driven by soup surplus/deficit
 - **Nation behaviors:** economic pressure driven by gold surplus/deficit across controlled settlements
-- **NPC behaviors:** hunger impulse driven by local soup availability
+- **NPC behaviors:** hunger process driven by local soup availability
 - **Pressure:** resource surplus/deficit feeds into economic stress pressure computation
 - **Card preconditions:** cards can check resource levels ("fire when soup deficit in region exceeds N")
 

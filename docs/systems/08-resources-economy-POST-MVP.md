@@ -122,7 +122,7 @@ Resources should be visible on the map as overlays:
 | System | How Resources Interacts |
 |--------|-------------------------|
 | Map/Spatial (#4) | Resources are properties of map cells. Terrain determines base production. Connectivity determines flow paths. |
-| Entity Behaviors (#6) | Entity impulses read resource availability at their location. Hunger-driven movement responds to food availability. Settlement growth responds to resource surplus. |
+| Entity Behaviors (#6) | Entity processes read resource availability at their location. Hunger-driven movement responds to food availability. Settlement growth responds to resource surplus. |
 | Pressure (#11) | Resource surplus/deficit feeds into economic stress pressure. Sustained regional deficit increases pressure. |
 | Relationships (#7) | Trade relationships may modify inter-national flow rates (when trade cards are active). Resource competition between neighboring entities feeds into relationship strength modification. |
 | Bulk Flow (#11) | Goods flow along trade routes is a bulk flow phenomenon. Resource flow and bulk flow may share computation or be the same system. |

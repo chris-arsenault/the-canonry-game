@@ -32,7 +32,7 @@ Settlements lose population and trend toward abandonment.
 
 **Low-altitude shock absorber:**
 - Soup deficit causes SLOW population decline, not instant death. The drain rate is proportional to the deficit, not binary.
-- NPC hunger impulse drives migration TOWARD settlements with surplus, concentrating surviving population rather than letting it scatter and die.
+- NPC hunger process drives migration TOWARD settlements with surplus, concentrating surviving population rather than letting it scatter and die.
 - Lifecycle drain on settlements starts near zero and increases with age -- young settlements are resilient, only old neglected settlements decline quickly.
 
 **Card-level responses:**
@@ -80,7 +80,7 @@ All NPCs die and none are generated. The world has no individual actors.
 
 **Low-altitude shock absorber:**
 - NPC lifecycle drain starts near zero. Young NPCs are highly resilient. Only old NPCs face significant mortality pressure.
-- Hunger impulse drives NPCs toward food (soup surplus settlements), naturally keeping them alive as long as food exists.
+- Hunger process drives NPCs toward food (soup surplus settlements), naturally keeping them alive as long as food exists.
 - NPCs don't die from a single bad tick -- HP drain from hunger is gradual, and moving toward food reverses it.
 
 **Card-level responses:**
@@ -120,7 +120,7 @@ Both soup and gold reach zero everywhere simultaneously.
 
 ### NPC Congregation
 All NPCs cluster in one settlement, leaving the rest of the world uninhabited by actors.
-- Shock absorber: ambition impulse should drive NPCs toward opportunity, not just safety. Competition for limited resources at crowded settlements should push NPCs outward.
+- Shock absorber: ambition process should drive NPCs toward opportunity, not just safety. Competition for limited resources at crowded settlements should push NPCs outward.
 - Card response: action cards that enable exploration, pioneering, or assignment.
 - UI warning: "N% of NPCs are at a single settlement."
 

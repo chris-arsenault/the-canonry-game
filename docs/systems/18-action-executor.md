@@ -1,14 +1,14 @@
-# System 18: Action Executor
+# System 18: Action Executor (Decisions)
 
-Enables actor behaviors and resolves their outcomes. Defines what the world's entities CAN DO.
+Enables entity decisions and resolves their outcomes. Defines what the world's entities CAN DO.
 
 ---
 
 ## Purpose
 
-Action cards define the possibility space. When an action card is in the tableau, entities of the specified kinds GAIN the ability to perform that action. Without the card, the action doesn't exist in the simulation. "Declare War" in the tableau means nations can go to war. Remove it and war becomes impossible -- existing wars may persist (the relationships remain) but no new wars can be declared.
+Action cards define the possibility space. When an action card is in the tableau, entities of the specified kinds GAIN the ability to perform that decision. Without the card, the decision doesn't exist in the simulation. "Declare War" in the tableau means nations can go to war. Remove it and war becomes impossible -- existing wars may persist (the relationships remain) but no new wars can be declared.
 
-Actions are the bridge between the entity behavior system (which produces impulses and conditions) and significant world-state changes (new relationships, status transitions, entity creation). Low-altitude impulses build conditions. Actions produce outcomes.
+Decisions are Layer 3 of the three-layer behavioral model. Low-altitude processes (Layer 2) build conditions. Decisions produce outcomes. Decisions are defined in the same data-driven DSL as processes and cards -- they are ProcessDefinitions with `Role = Decision` and an `EnablingCardId`.
 
 ---
 
@@ -16,18 +16,18 @@ Actions are the bridge between the entity behavior system (which produces impuls
 
 Actions extend the card executor base with:
 
-### The executor doesn't fire the action -- actors do
+### Decisions are evaluated by entities, not by the executor
 
-Unlike generators and systems (where the executor evaluates preconditions and fires effects directly), the action executor REGISTERS available actions with the entity behavior system. Actors (nations, factions, NPCs, monsters -- any entity kind with agency) then evaluate available actions during their impulse evaluation, using the utility AI to score and select.
+Unlike generators and systems (where the executor evaluates preconditions and fires effects directly), the action executor REGISTERS available decisions with the entity evaluator. ALL entity kinds (not just "agency" kinds) then evaluate available decisions during Layer 3 of their tick evaluation, using the utility AI to score and select.
 
 The flow:
-1. Action card is in the tableau -> executor registers the action as available
-2. Entity behavior system runs impulse evaluation for an actor entity
-3. Actor evaluates registered actions alongside its normal impulses
-4. If the action scores highly AND its preconditions are met for this specific actor, the actor selects it
-5. The action executor resolves the action: applies mutations, records the outcome
+1. Action card is in the tableau -> its decisions are registered as available for the specified entity kinds
+2. EntityEvaluator runs Layer 3 (decision selection) for each active entity
+3. Entity evaluates all available decisions alongside each other (not alongside processes -- those are Layer 2)
+4. If a decision scores highly AND its preconditions are met, the entity selects it
+5. The decision's mutations execute: attribute changes, relationship creation, pressure modification
 
-This means the executor is both a registration system (making actions available) and a resolution system (applying effects when actors choose the action). It does NOT decide when to fire -- actors do.
+Decisions are data-driven ProcessDefinitions interpreted by the same DataDrivenDecision class. No per-decision C# code.
 
 ### Actor selection and targeting
 
@@ -51,7 +51,7 @@ Both actor and target selection are preconditions. If no valid actor-target pair
 
 ### Actions nearly always produce new relationships
 
-This is the key distinction from impulses (System 7). Impulses are small, incremental, relationship-preserving. Actions are significant, discrete, and relationship-creating/destroying:
+This is the key distinction from processes (Layer 2). Processes are small, incremental, relationship-preserving. Decisions are significant, discrete, and relationship-creating/destroying:
 
 - "Declare War" creates an at_war_with relationship
 - "Forge Alliance" creates an allied_with relationship
@@ -164,17 +164,17 @@ achievement_conditions:
 
 The action executor and entity behavior system are tightly coupled:
 
-**Entity Behaviors provides:** impulse evaluation, actor state, goal tag response. The utility AI scores available actions alongside impulses. An action that scores highly enough is selected by the actor.
+**Entity Behaviors provides:** process/decision evaluation, actor state, goal tag response. The EntityEvaluator runs Layer 3 (decision selection) for entities with available decisions.
 
 **Action Executor provides:** the set of available actions (registered from active action cards). Resolution logic when an actor selects an action.
 
 **The boundary:** entity behaviors decides WHAT the actor wants to do. The action executor determines WHETHER it succeeds and WHAT the consequences are.
 
-**Impulses vs Actions (recap):**
-- Impulses: always available, small/frequent, attribute-modifying, no card required
-- Actions: card-gated, significant/infrequent, relationship-creating, card required in tableau
+**Processes vs Decisions (recap):**
+- Processes (Layer 2): always available, small/frequent, attribute-modifying, no card required
+- Decisions (Layer 3): card-gated, significant/infrequent, relationship-creating, card required in tableau
 
-An actor's tick evaluation considers BOTH its impulses (always available) and any registered actions (from active action cards). The utility AI scores all of them on the same scale. An action must score higher than all impulses to be selected -- it must be genuinely the best thing the actor can do right now.
+Processes and decisions are evaluated SEPARATELY -- they are different layers, not competitors on the same scale. Each entity fires one process AND one decision per tick (if viable candidates exist in each layer). This means a decision does not need to outscore processes to fire -- it only competes against other available decisions.
 
 ---
 
@@ -182,7 +182,7 @@ An actor's tick evaluation considers BOTH its impulses (always available) and an
 
 | System | Action Executor-Specific Interaction |
 |--------|--------------------------------------|
-| Entity Behaviors (#6) | Registers available actions. Actors evaluate and select actions during impulse evaluation. |
+| Entity Behaviors (#6) | Action cards register decisions. Entities evaluate and select decisions during Layer 3 of their tick evaluation. |
 | Entity Graph (#1) | Creates new relationships (primary purpose). May create entities (less common than generators). |
 | Relationships (#7) | Creates, modifies, and culls relationships. Actions are the primary card-driven topology changer. |
 | Attributes (#3) | Success/failure effects modify actor and target attributes. |
@@ -192,7 +192,7 @@ An actor's tick evaluation considers BOTH its impulses (always available) and an
 
 ## Open Questions (Deferred)
 
-- **Action scoring integration.** How the utility AI scores registered actions against impulses. Whether actions use the same scoring curves or a separate evaluation. Whether action scores are boosted or penalized relative to impulses.
+- **Decision scoring calibration.** Whether decisions need different scoring ranges than processes, or if the separate-layer evaluation (Layer 2 vs Layer 3) is sufficient to prevent one from dominating the other.
 - **Multi-actor actions.** Can an action involve more than two entities? A "Form Coalition" action might require three nations. How does multi-party targeting work?
 - **Action chains.** Can actions trigger other actions? If "Declare War" fires, can it immediately trigger "Call to Arms" for the defender's allies? Or must this wait for the next tick? (Current design: next tick.)
 - **Actor agency vs player control.** The player enables actions via cards but doesn't choose WHEN actors use them. Should the player have any influence over action timing or targeting beyond card preconditions? (E.g., in patron mode, can the player nudge their favored nation to choose a specific action?)

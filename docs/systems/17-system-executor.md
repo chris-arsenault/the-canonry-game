@@ -133,7 +133,7 @@ achievement_conditions:
 | Attributes (#3) | Primary writer of incremental attribute changes across many entities per tick. |
 | Pressure (#11) | Reads pressure for preconditions. Writes pressure modifications directly. System effects also indirectly affect pressure through attribute changes picked up next recomputation. |
 | Relationships (#7) | May modify relationship strength. May create/cull relationships (though this is more typically generator/action territory). |
-| Entity Behaviors (#6) | System effects modify the attributes that entity behaviors read, indirectly influencing low-altitude impulse selection. |
+| Entity Behaviors (#6) | System effects modify the attributes that entity behaviors read, indirectly influencing low-altitude process selection. |
 | Other active cards | Tag-based interaction with co-active cards amplifies or dampens effects. |
 
 ---

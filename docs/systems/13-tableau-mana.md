@@ -107,7 +107,7 @@ Free swapping is explicitly rejected. The player can always remove a card, but n
 
 Card mana costs are a primary balancing lever:
 
-- **Cheap cards (1-2 mana):** narrow effects, situational utility. Can run many simultaneously. "A specific cultural impulse modifier" or "a minor action enabling a rare behavior."
+- **Cheap cards (1-2 mana):** narrow effects, situational utility. Can run many simultaneously. "A specific cultural process modifier" or "a minor action enabling a rare behavior."
 - **Mid-cost cards (3-4 mana):** meaningful effects, the backbone of most tableaux. Most generators, systems, and major actions. "Cultural Diffusion," "Found Settlement," "Declare War."
 - **Expensive cards (5+ mana):** powerful, broad effects that shape the simulation significantly. Running one means NOT running 2-3 cheaper cards. "Continental Trade Network," "Age of Empires," "Divine Mandate."
 
