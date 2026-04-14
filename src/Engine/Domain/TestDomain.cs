@@ -54,67 +54,53 @@ public static class TestDomain
         grow.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(grow);
 
-        // Nation: stability → cohesion (feedback: cohesion → stability)
-        var nationTick = new ProcessDefinition("nation_tick", "Nation Tick",
-            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), Expr.Score(Expr.Lit(0.5f), 0.15f))
-        { Mutations = { new ModifySelfAttributeMutation("cohesion", -0.01f, variance: 0.3f) } };
-        nationTick.Reads.Add(AttributeRef.Self("stability", EntityKind.Nation));
-        nationTick.Writes.Add(AttributeRef.Self("cohesion", EntityKind.Nation));
-        processes.Add(nationTick);
-
-        var nationFeedback = new ProcessDefinition("nation_feedback", "Nation Feedback",
-            DefinitionRole.Process, EntityKind.Nation, new AlwaysTrue(), Expr.Score(Expr.Lit(0.4f), 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("stability", 0.005f, variance: 0.25f) } };
-        nationFeedback.Reads.Add(AttributeRef.Self("cohesion", EntityKind.Nation));
-        nationFeedback.Writes.Add(AttributeRef.Self("stability", EntityKind.Nation));
-        processes.Add(nationFeedback);
-
-        // NPC: eat — take sustenance from target settlement, reduce own hunger.
-        // Precondition: target settlement has sustenance. Evaluator scores against
-        // distant providers and walks NPC toward them if not at target.
-        var npcEat = new ProcessDefinition("npc_eat", "Eat",
-            DefinitionRole.Process, EntityKind.Npc,
-            new SelfAttributeThreshold("hunger", min: 1f, max: null),
-            Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(100f)), 0.1f))
+        // Settlement: propaganda — shift target ideology toward self, attenuated by distance
+        // Calculate dx and dy convergence, then apply to target ideology
+        var propaganda = new ProcessDefinition("settlement_propaganda", "Propaganda",
+            DefinitionRole.Process, EntityKind.Settlement,
+            new AlwaysTrue(),
+            Expr.Score(Expr.Lit(0.3f), 0.1f))
         { Mutations = {
-            new ModifyTargetAttributeMutation("sustenance", -5f, variance: 0.3f),
-            new ModifySelfAttributeMutation("hunger", -5f, variance: 0.3f),
+            // dx = (self.ideology.x - target.ideology.x) * 0.01 / distance
+            new CalculateMutation("dx", Expr.Div(
+                Expr.Mul(Expr.Sub(Expr.SelfX("ideology"), Expr.TargetX("ideology")), Expr.Lit(0.01f)),
+                Expr.Add(Expr.Distance(), Expr.Lit(1f)))), // +1 to avoid div by zero
+            // dy = (self.ideology.y - target.ideology.y) * 0.01 / distance
+            new CalculateMutation("dy", Expr.Div(
+                Expr.Mul(Expr.Sub(Expr.SelfY("ideology"), Expr.TargetY("ideology")), Expr.Lit(0.01f)),
+                Expr.Add(Expr.Distance(), Expr.Lit(1f)))),
+            new ModifyTargetByVariableMutation("ideology", "dx", "x"),
+            new ModifyTargetByVariableMutation("ideology", "dy", "y"),
         } };
-        npcEat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        npcEat.Reads.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
-        npcEat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        npcEat.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
-        processes.Add(npcEat);
+        propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        propaganda.Writes.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        processes.Add(propaganda);
 
-        // Artifact: resonance ↔ condition
-        var artifactTick = new ProcessDefinition("artifact_tick", "Artifact Tick",
-            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), Expr.Score(Expr.Lit(0.5f), 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("mystical_resonance", 0.05f, variance: 0.2f) } };
-        artifactTick.Reads.Add(AttributeRef.Self("condition", EntityKind.Artifact));
-        artifactTick.Writes.Add(AttributeRef.Self("mystical_resonance", EntityKind.Artifact));
-        processes.Add(artifactTick);
+        // Settlement: attract population — steal from target, requires fame advantage
+        // Stolen = base * (self.fame - target.fame) / distance. Min 10 to fire.
+        var attract = new ProcessDefinition("settlement_attract", "Attract Population",
+            DefinitionRole.Process, EntityKind.Settlement,
+            new SelfAttributeThreshold("fame", min: 1f, max: null),
+            Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
+        { Mutations = {
+            // stolen = (self.fame - target.fame) * ideology_similarity / distance
+            // ideology_similarity = 1 - semantic_distance(ideology)
+            new CalculateMutation("stolen", Expr.Mul(
+                Expr.Sub(Expr.Self("fame"), Expr.Target("fame")),
+                Expr.Div(
+                    Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology")),
+                    Expr.Add(Expr.Distance(), Expr.Lit(1f))))),
+            new CalculateMutation("neg_stolen", Expr.Mul(Expr.Var("stolen"), Expr.Lit(-1f))),
+            new ModifyTargetByVariableMutation("population", "neg_stolen"),
+            new ModifySelfByVariableMutation("population", "stolen"),
+        } };
+        attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        processes.Add(attract);
 
-        var artifactFeedback = new ProcessDefinition("artifact_feedback", "Artifact Feedback",
-            DefinitionRole.Process, EntityKind.Artifact, new AlwaysTrue(), Expr.Score(Expr.Lit(0.4f), 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("condition", 0.01f, variance: 0.2f) } };
-        artifactFeedback.Reads.Add(AttributeRef.Self("mystical_resonance", EntityKind.Artifact));
-        artifactFeedback.Writes.Add(AttributeRef.Self("condition", EntityKind.Artifact));
-        processes.Add(artifactFeedback);
-
-        // Region: fertility ↔ habitability
-        var regionTick = new ProcessDefinition("region_tick", "Region Tick",
-            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), Expr.Score(Expr.Lit(0.3f), 0.1f))
-        { Mutations = { new ModifySelfAttributeMutation("habitability", 0.001f, variance: 0.2f) } };
-        regionTick.Reads.Add(AttributeRef.Self("fertility", EntityKind.Region));
-        regionTick.Writes.Add(AttributeRef.Self("habitability", EntityKind.Region));
-        processes.Add(regionTick);
-
-        var regionFeedback = new ProcessDefinition("region_feedback", "Region Feedback",
-            DefinitionRole.Process, EntityKind.Region, new AlwaysTrue(), Expr.Score(Expr.Lit(0.2f), 0.05f))
-        { Mutations = { new ModifySelfAttributeMutation("fertility", 0.0001f, variance: 0.2f) } };
-        regionFeedback.Reads.Add(AttributeRef.Self("habitability", EntityKind.Region));
-        regionFeedback.Writes.Add(AttributeRef.Self("fertility", EntityKind.Region));
-        processes.Add(regionFeedback);
+        // TODO: NPC, Nation, Artifact, Region processes removed — rebuilding from ground up
 
         return processes;
     }
@@ -141,7 +127,7 @@ public static class TestDomain
                 [
                     new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f },
                     new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
-                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 0f },
+                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f },
                     new() { Name = "ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
                         PlaneDefinition = new Engine.Attributes.SemanticPlaneDefinition(
                             "ideology", "Collectivist↔Individualist", "Traditionalist↔Progressive",

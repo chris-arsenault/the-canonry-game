@@ -22,12 +22,15 @@ public sealed class ExpressionContext
     public Entity Self { get; }
     public Entity? Target { get; }
     public HexGrid? Grid { get; }
+    public IMutationContext? MutationContext { get; }
 
-    public ExpressionContext(Entity self, Entity? target = null, HexGrid? grid = null)
+    public ExpressionContext(Entity self, Entity? target = null, HexGrid? grid = null,
+        IMutationContext? mutationContext = null)
     {
         Self = self;
         Target = target;
         Grid = grid;
+        MutationContext = mutationContext;
     }
 
     public float ResolvePath(string entityRef, string attributeName, string? component = null)
@@ -82,11 +85,20 @@ public sealed class AttributePath(string entityRef, string attributeName, string
 }
 
 /// <summary>Read a named context variable (set by CalculateMutation).</summary>
-public sealed class VariableRef(string variableName) : IExpression
+public sealed class VariableRef : IExpression
 {
-    public string VariableName { get; } = variableName;
+    public string VariableName { get; }
 
-    public float Evaluate(ExpressionContext ctx) => 0f; // Variables resolved by IMutationContext, not ExpressionContext
+    public VariableRef(string variableName)
+    {
+        VariableName = variableName;
+    }
+
+    public float Evaluate(ExpressionContext ctx)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        return ctx.MutationContext?.GetVariable(VariableName) ?? 0f;
+    }
 }
 
 // --- Arithmetic ---

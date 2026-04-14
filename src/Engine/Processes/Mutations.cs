@@ -153,7 +153,7 @@ public sealed class CalculateMutation(string variableName, IExpression expressio
         if (context is IWorldStateAccessor wa)
             grid = wa.WorldState.Grid;
 
-        var exprCtx = new ExpressionContext(self, target, grid);
+        var exprCtx = new ExpressionContext(self, target, grid, context);
         var result = expression.Evaluate(exprCtx);
         context.SetVariable(variableName, result);
     }

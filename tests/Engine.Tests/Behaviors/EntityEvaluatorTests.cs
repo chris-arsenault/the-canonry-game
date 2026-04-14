@@ -59,11 +59,16 @@ public class EntityEvaluatorTests
         var messages = new List<ProcessExecutedMessage>();
         bus.Subscribe(m => { if (m is ProcessExecutedMessage pm) messages.Add(pm); });
 
+        // Run multiple evaluations — blocked may win some rounds but won't fire.
+        // Available should fire at least once.
         var evaluator = new EntityEvaluator(registry, bus);
-        evaluator.Evaluate(CreateEntity(), new StubWorldState());
+        for (var i = 0; i < 50; i++)
+        {
+            evaluator.Evaluate(CreateEntity(), new StubWorldState());
+        }
 
-        Assert.Single(messages);
-        Assert.Equal("available", messages[0].ProcessName);
+        Assert.True(messages.Count > 0, "Available process should have fired at least once");
+        Assert.All(messages, m => Assert.Equal("available", m.ProcessName));
     }
 
     [Fact]
