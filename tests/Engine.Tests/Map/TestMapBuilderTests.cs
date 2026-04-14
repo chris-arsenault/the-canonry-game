@@ -6,16 +6,26 @@ using Engine.Map;
 
 public class TestMapBuilderTests
 {
-    private readonly TestWorld _world = TestMapBuilder.BuildDefault();
+    private readonly TestWorld _world = TestMapBuilder.BuildDefault(seed: 42);
 
     // --- Determinism ---
 
     [Fact]
-    public void BuildDefault_IsDeterministic()
+    public void BuildDefault_IsDeterministicWithSeed()
     {
-        var world2 = TestMapBuilder.BuildDefault();
+        var world2 = TestMapBuilder.BuildDefault(seed: 42);
         Assert.Equal(_world.Grid.CellCount, world2.Grid.CellCount);
         Assert.Equal(_world.Graph.EntityCount, world2.Graph.EntityCount);
+
+        // NPC coordinates should match with same seed
+        var npcs1 = _world.Graph.GetEntitiesByKind(EntityKind.Npc).ToList();
+        var npcs2 = world2.Graph.GetEntitiesByKind(EntityKind.Npc).ToList();
+        for (var i = 0; i < npcs1.Count; i++)
+        {
+            var e1 = _world.Graph.GetEntity(npcs1[i])!;
+            var e2 = world2.Graph.GetEntity(npcs2[i])!;
+            Assert.Equal(e1.Coordinates, e2.Coordinates);
+        }
     }
 
     // --- Grid ---
@@ -119,25 +129,40 @@ public class TestMapBuilderTests
     }
 
     [Fact]
-    public void AllNpcs_HaveLocation()
+    public void AllNpcs_HaveCoordinates()
     {
         foreach (var npcId in _world.Graph.GetEntitiesByKind(EntityKind.Npc))
         {
-            var location = _world.Graph.OutgoingRelationships(npcId, "located_at").ToList();
-            Assert.Single(location);
+            var npc = _world.Graph.GetEntity(npcId);
+            Assert.NotNull(npc);
+            Assert.NotNull(npc.Coordinates);
         }
     }
 
     [Fact]
-    public void Artifact_IsHeldByNpc()
+    public void AllNpcs_SpawnOnWalkableHexes()
+    {
+        foreach (var npcId in _world.Graph.GetEntitiesByKind(EntityKind.Npc))
+        {
+            var npc = _world.Graph.GetEntity(npcId)!;
+            var coord = new HexCoord(npc.Coordinates!.Value.Q, npc.Coordinates!.Value.R);
+            var cell = _world.Grid.GetCell(coord);
+            Assert.NotNull(cell);
+            Assert.False(float.IsPositiveInfinity(cell.MovementCost),
+                $"NPC {npc.Name} spawned on impassable terrain at {coord}");
+        }
+    }
+
+    [Fact]
+    public void Artifact_IsStoredAtSettlement()
     {
         var artifactId = _world.Graph.GetEntitiesByKind(EntityKind.Artifact).First();
-        var holders = _world.Graph.IncomingRelationships(artifactId, "holds").ToList();
-        Assert.Single(holders);
+        var storedAt = _world.Graph.OutgoingRelationships(artifactId, "stored_at").ToList();
+        Assert.Single(storedAt);
 
-        var holder = _world.Graph.GetEntity(holders[0].SourceId);
-        Assert.NotNull(holder);
-        Assert.Equal(EntityKind.Npc, holder.Kind);
+        var location = _world.Graph.GetEntity(storedAt[0].TargetId);
+        Assert.NotNull(location);
+        Assert.Equal(EntityKind.Settlement, location.Kind);
     }
 
     [Fact]

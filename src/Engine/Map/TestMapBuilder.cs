@@ -13,12 +13,14 @@ public sealed class TestMapBuilder
     /// <summary>
     /// Build the default test world: a radius-5 hex grid with 3 regions,
     /// 2 nations, 5 settlements, 3 NPCs, 1 artifact, and relationships.
+    /// NPCs spawn at random walkable hex locations.
     /// </summary>
-    public static TestWorld BuildDefault()
+    public static TestWorld BuildDefault(int? seed = null)
     {
         var grid = new HexGrid(5);
         var regionMap = new RegionMap();
         var graph = new WorldGraph();
+        var random = seed.HasValue ? new Random(seed.Value) : new Random();
 
         // --- Terrain setup ---
         PaintTerrain(grid);
@@ -27,7 +29,7 @@ public sealed class TestMapBuilder
         var regions = CreateRegions(grid, regionMap, graph);
 
         // --- Entity setup ---
-        CreateEntities(graph, regions);
+        CreateEntities(graph, grid, regions, random);
 
         return new TestWorld(grid, regionMap, graph);
     }
@@ -124,7 +126,8 @@ public sealed class TestMapBuilder
         };
     }
 
-    private static void CreateEntities(WorldGraph graph, Dictionary<string, Region> regions)
+    private static void CreateEntities(WorldGraph graph, HexGrid grid,
+        Dictionary<string, Region> regions, Random random)
     {
         // --- Nations ---
         var nationA = graph.CreateEntity(
@@ -132,7 +135,7 @@ public sealed class TestMapBuilder
         var nationB = graph.CreateEntity(
             EntityKind.Nation, "generic_nation", "Southern League", "culture_b", tick: 0);
 
-        // --- Settlements ---
+        // --- Settlements (fixed positions — they define the geography) ---
         var s1 = graph.CreateEntity(
             EntityKind.Settlement, "village", "Frosthaven", "culture_a", tick: 0,
             coordinates: (0, -2));
@@ -149,6 +152,16 @@ public sealed class TestMapBuilder
             EntityKind.Settlement, "town", "Midpoint", "culture_a", tick: 0,
             coordinates: (0, 0));
 
+        // Build settlement coordinate lookup for NPC located_at checks
+        var settlementsByCoord = new Dictionary<HexCoord, EntityId>
+        {
+            [new HexCoord(0, -2)] = s1.Id,
+            [new HexCoord(-1, 0)] = s2.Id,
+            [new HexCoord(1, 1)] = s3.Id,
+            [new HexCoord(-2, 2)] = s4.Id,
+            [new HexCoord(0, 0)] = s5.Id,
+        };
+
         // Nation A controls northern settlements
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s1.Id, nationA.Id, 1f, 0);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s2.Id, nationA.Id, 1f, 0);
@@ -158,7 +171,7 @@ public sealed class TestMapBuilder
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s3.Id, nationB.Id, 1f, 0);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s4.Id, nationB.Id, 1f, 0);
 
-        // Settlement -> Region (located_in)
+        // Settlement -> Region (contains)
         graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
             regions["northlands"].EntityId, s1.Id, 1f, 0);
         graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
@@ -170,34 +183,44 @@ public sealed class TestMapBuilder
         graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
             regions["heartlands"].EntityId, s5.Id, 1f, 0);
 
-        // --- NPCs ---
-        var npc1 = graph.CreateEntity(
-            EntityKind.Npc, "warrior", "Captain Greyfeather", "culture_a", tick: 0,
-            coordinates: (0, -2));
-        var npc2 = graph.CreateEntity(
-            EntityKind.Npc, "merchant", "Trader Shellback", "culture_b", tick: 0,
-            coordinates: (1, 1));
-        var npc3 = graph.CreateEntity(
-            EntityKind.Npc, "scholar", "Elder Deepcurrent", "culture_a", tick: 0,
-            coordinates: (-1, 0));
+        // --- Walkable hex pool for random NPC placement ---
+        var walkableHexes = grid.AllCells
+            .Where(c => !float.IsPositiveInfinity(c.MovementCost))
+            .Select(c => c.Coord)
+            .ToList();
 
-        // NPC loyalties
-        graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc1.Id, nationA.Id, 0.9f, 0);
-        graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc2.Id, nationB.Id, 0.7f, 0);
-        graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc3.Id, nationA.Id, 0.8f, 0);
+        // --- NPCs (random hex positions) ---
+        var npcDefs = new (string Subtype, string Name, string Culture, EntityId Nation, float Loyalty)[]
+        {
+            ("warrior", "Captain Greyfeather", "culture_a", nationA.Id, 0.9f),
+            ("merchant", "Trader Shellback", "culture_b", nationB.Id, 0.7f),
+            ("scholar", "Elder Deepcurrent", "culture_a", nationA.Id, 0.8f),
+        };
 
-        // NPC locations
-        graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc1.Id, s1.Id, 1f, 0);
-        graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc2.Id, s3.Id, 1f, 0);
-        graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc3.Id, s2.Id, 1f, 0);
+        foreach (var (subtype, name, culture, nationId, loyalty) in npcDefs)
+        {
+            var hex = walkableHexes[random.Next(walkableHexes.Count)];
+            var npc = graph.CreateEntity(
+                EntityKind.Npc, subtype, name, culture, tick: 0,
+                coordinates: (hex.Q, hex.R));
+
+            // Loyalty to nation
+            graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, nationId, loyalty, 0);
+
+            // located_at only if spawning on a settlement hex
+            if (settlementsByCoord.TryGetValue(hex, out var settlementId))
+            {
+                graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc.Id, settlementId, 1f, 0);
+            }
+        }
 
         // --- Artifacts ---
         var artifact = graph.CreateEntity(
             EntityKind.Artifact, "weapon", "Stormcleaver", "culture_a", tick: 0,
             coordinates: (0, -2));
 
-        // Artifact held by NPC
-        graph.CreateRelationship("holds", RelationshipPolarity.Neutral, npc1.Id, artifact.Id, 1f, 0);
+        // Artifact stored at Frosthaven (not held by a specific NPC since NPCs are randomly placed)
+        graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0);
     }
 }
 
