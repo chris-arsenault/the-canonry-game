@@ -107,12 +107,24 @@ internal sealed class ProcessMutationContext : IMutationContext, IWorldStateAcce
 {
     private readonly Entity _entity;
     private readonly IWorldState _worldState;
+    private Dictionary<string, float>? _variables;
 
     public int CurrentTick => _worldState.CurrentTick;
     public EntityId SelfEntityId => _entity.Id;
     public Random Random { get; }
     public EntityId? ResolvedTargetId => _entity.CurrentGoal?.TargetEntityId;
     public IWorldState WorldState => _worldState;
+
+    public void SetVariable(string name, float value)
+    {
+        _variables ??= [];
+        _variables[name] = value;
+    }
+
+    public float GetVariable(string name)
+    {
+        return _variables is not null && _variables.TryGetValue(name, out var value) ? value : 0f;
+    }
 
     public ProcessMutationContext(Entity entity, IWorldState worldState, Random? random = null)
     {

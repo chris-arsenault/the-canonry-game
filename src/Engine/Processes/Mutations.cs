@@ -134,6 +134,84 @@ public sealed class ModifyTargetAttributeMutation(string attributeName, float de
 }
 
 /// <summary>
+/// Evaluate an expression and store the result as a named context variable.
+/// Subsequent mutations can read it via context.GetVariable().
+/// </summary>
+public sealed class CalculateMutation(string variableName, IExpression expression) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var self = context.GetEntity(context.SelfEntityId);
+        if (self is null) return;
+
+        Entity? target = context.ResolvedTargetId is not null
+            ? context.GetEntity(context.ResolvedTargetId.Value) : null;
+
+        Map.HexGrid? grid = null;
+        if (context is IWorldStateAccessor wa)
+            grid = wa.WorldState.Grid;
+
+        var exprCtx = new ExpressionContext(self, target, grid);
+        var result = expression.Evaluate(exprCtx);
+        context.SetVariable(variableName, result);
+    }
+
+    public string Describe() => $"calculate({variableName})";
+}
+
+/// <summary>
+/// Modifies self attribute by the value of a named context variable (set by CalculateMutation).
+/// </summary>
+public sealed class ModifySelfByVariableMutation(string attributeName, string variableName,
+    string? component = null, float variance = 0f) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var delta = Variance.Scale(context.GetVariable(variableName), variance, context.Random);
+        var entity = context.GetEntity(context.SelfEntityId);
+        if (entity is null) return;
+
+        var attr = entity.Attributes[attributeName];
+        if (attr is null) return;
+
+        if (component is "x") attr.ModifyX(delta);
+        else if (component is "y") attr.ModifyY(delta);
+        else attr.Modify(delta);
+    }
+
+    public string Describe() => $"modify_self_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
+}
+
+/// <summary>
+/// Modifies target attribute by the value of a named context variable.
+/// </summary>
+public sealed class ModifyTargetByVariableMutation(string attributeName, string variableName,
+    string? component = null, float variance = 0f) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.ResolvedTargetId is null) return;
+
+        var delta = Variance.Scale(context.GetVariable(variableName), variance, context.Random);
+        var entity = context.GetEntity(context.ResolvedTargetId.Value);
+        if (entity is null) return;
+
+        var attr = entity.Attributes[attributeName];
+        if (attr is null) return;
+
+        if (component is "x") attr.ModifyX(delta);
+        else if (component is "y") attr.ModifyY(delta);
+        else attr.Modify(delta);
+    }
+
+    public string Describe() => $"modify_target_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
+}
+
+/// <summary>
 /// Marker interface: the mutation context can provide direct IWorldState access.
 /// Used by evaluator internals that need spatial queries or pathfinding.
 /// </summary>

@@ -22,6 +22,12 @@ public interface IMutationContext
     /// Set before mutations execute. Null when no provider target.</summary>
     EntityId? ResolvedTargetId { get; }
 
+    /// <summary>Set a named variable for use by subsequent mutations in this process execution.</summary>
+    void SetVariable(string name, float value);
+
+    /// <summary>Get a named variable set by a prior mutation. Returns 0 if not set.</summary>
+    float GetVariable(string name);
+
     // --- Read operations (preconditions + scoring) ---
     float GetPressure(string pressureName, EntityId scopeId);
     float GetAttribute(EntityId entityId, string attributeName);

@@ -22,6 +22,23 @@ public sealed class AttributeInstance
     public float Max { get; }
     public float Base { get; private set; }
 
+    /// <summary>Whether this is a 2D semantic plane attribute (has X and Y components).</summary>
+    public bool Is2D { get; }
+
+    // 2D components (only used when Is2D = true)
+    private float _baseX;
+    private float _baseY;
+    private readonly List<AttributeEffect> _tickEffectsX = [];
+    private readonly List<AttributeEffect> _tickEffectsY = [];
+    private readonly List<AttributeEffect> _staticEffectsX = [];
+    private readonly List<AttributeEffect> _staticEffectsY = [];
+
+    /// <summary>X component of a 2D attribute. Returns 0 for scalar attributes.</summary>
+    public float X => !Is2D ? 0f : ComputeComponent(_baseX, _staticEffectsX);
+
+    /// <summary>Y component of a 2D attribute. Returns 0 for scalar attributes.</summary>
+    public float Y => !Is2D ? 0f : ComputeComponent(_baseY, _staticEffectsY);
+
     /// <summary>Computed effective value: base composed with static effects.</summary>
     public float Value
     {
@@ -43,6 +60,7 @@ public sealed class AttributeInstance
         }
     }
 
+    /// <summary>Create a scalar attribute.</summary>
     public AttributeInstance(string name, float min, float max, float defaultValue)
     {
         Name = name;
@@ -51,12 +69,36 @@ public sealed class AttributeInstance
         Base = Math.Clamp(defaultValue, min, max);
     }
 
-    /// <summary>Modify the base value by a delta. Used by mutations (eat, damage, etc.).</summary>
+    /// <summary>Create a 2D semantic plane attribute.</summary>
+    public AttributeInstance(string name, float min, float max, float defaultX, float defaultY)
+    {
+        Name = name;
+        Min = min;
+        Max = max;
+        Is2D = true;
+        _baseX = Math.Clamp(defaultX, min, max);
+        _baseY = Math.Clamp(defaultY, min, max);
+        Base = 0f; // Not meaningful for 2D — use X and Y
+    }
+
+    /// <summary>Modify the base value by a delta. For scalar attributes.</summary>
     public void Modify(float delta)
     {
         var before = Base;
         Base = Math.Clamp(Base + delta, Min, Max);
         TrackDelta(Base - before);
+    }
+
+    /// <summary>Modify the X component by a delta. For 2D attributes.</summary>
+    public void ModifyX(float delta)
+    {
+        _baseX = Math.Clamp(_baseX + delta, Min, Max);
+    }
+
+    /// <summary>Modify the Y component by a delta. For 2D attributes.</summary>
+    public void ModifyY(float delta)
+    {
+        _baseY = Math.Clamp(_baseY + delta, Min, Max);
     }
 
     /// <summary>Set the base value directly. Rare — used for initialization or resets.</summary>
@@ -65,8 +107,21 @@ public sealed class AttributeInstance
         Base = Math.Clamp(value, Min, Max);
     }
 
-    /// <summary>Apply tick effects: base += sum(deltas) * product(multipliers). Called once per tick.</summary>
+    /// <summary>Apply tick effects. For scalar: base += sum * product. For 2D: same per component.</summary>
     public void ApplyTickEffects()
+    {
+        if (!Is2D)
+        {
+            ApplyTickEffectsScalar();
+        }
+        else
+        {
+            ApplyTickEffectsComponent(ref _baseX, _tickEffectsX);
+            ApplyTickEffectsComponent(ref _baseY, _tickEffectsY);
+        }
+    }
+
+    private void ApplyTickEffectsScalar()
     {
         if (_tickEffects.Count == 0) return;
 
@@ -85,6 +140,40 @@ public sealed class AttributeInstance
         TrackDelta(Base - before);
     }
 
+    private void ApplyTickEffectsComponent(ref float baseValue, List<AttributeEffect> effects)
+    {
+        if (effects.Count == 0) return;
+
+        var additive = 0f;
+        var multiplicative = 1f;
+        foreach (var effect in effects)
+        {
+            if (effect.IsMultiplier)
+                multiplicative *= effect.Value;
+            else
+                additive += effect.Value;
+        }
+
+        baseValue = Math.Clamp(baseValue + (additive * multiplicative), Min, Max);
+    }
+
+    private static float ComputeComponent(float baseValue, List<AttributeEffect> staticEffects)
+    {
+        if (staticEffects.Count == 0) return baseValue;
+
+        var additive = 0f;
+        var multiplicative = 1f;
+        foreach (var effect in staticEffects)
+        {
+            if (effect.IsMultiplier)
+                multiplicative *= effect.Value;
+            else
+                additive += effect.Value;
+        }
+
+        return (baseValue + additive) * multiplicative;
+    }
+
     /// <summary>Recent rate of change (average of last N deltas).</summary>
     public float Trend => _recentDeltas.Count == 0 ? 0f : _recentDeltas.Sum() / _recentDeltas.Count;
 
@@ -94,32 +183,47 @@ public sealed class AttributeInstance
         while (_recentDeltas.Count > TrendWindow) _recentDeltas.Dequeue();
     }
 
-    /// <summary>Register a tick effect (applied each tick to modify base).</summary>
-    public void AddTickEffect(AttributeEffect effect)
+    /// <summary>Register a tick effect. For scalar attributes, targets the base.
+    /// For 2D, use component parameter: null=scalar, "x"=X, "y"=Y.</summary>
+    public void AddTickEffect(AttributeEffect effect, string? component = null)
     {
         ArgumentNullException.ThrowIfNull(effect);
-        _tickEffects.Add(effect);
+        if (Is2D && component is "x") _tickEffectsX.Add(effect);
+        else if (Is2D && component is "y") _tickEffectsY.Add(effect);
+        else _tickEffects.Add(effect);
     }
 
-    /// <summary>Register a static effect (applied on read, doesn't modify base).</summary>
-    public void AddStaticEffect(AttributeEffect effect)
+    /// <summary>Register a static effect. For 2D, specify component.</summary>
+    public void AddStaticEffect(AttributeEffect effect, string? component = null)
     {
         ArgumentNullException.ThrowIfNull(effect);
-        _staticEffects.Add(effect);
+        if (Is2D && component is "x") _staticEffectsX.Add(effect);
+        else if (Is2D && component is "y") _staticEffectsY.Add(effect);
+        else _staticEffects.Add(effect);
     }
 
-    /// <summary>Remove all effects from a given source (e.g., when relationship culled or artifact dropped).</summary>
+    /// <summary>Remove all effects from a given source across all components.</summary>
     public void RemoveEffectsBySource(string sourceId)
     {
         _tickEffects.RemoveAll(e => e.SourceId == sourceId);
         _staticEffects.RemoveAll(e => e.SourceId == sourceId);
+        _tickEffectsX.RemoveAll(e => e.SourceId == sourceId);
+        _tickEffectsY.RemoveAll(e => e.SourceId == sourceId);
+        _staticEffectsX.RemoveAll(e => e.SourceId == sourceId);
+        _staticEffectsY.RemoveAll(e => e.SourceId == sourceId);
     }
 
-    /// <summary>All active tick effects (for inspection/debugging).</summary>
+    /// <summary>All active tick effects on scalar/base (for inspection).</summary>
     public IReadOnlyList<AttributeEffect> TickEffects => _tickEffects;
 
-    /// <summary>All active static effects (for inspection/debugging).</summary>
+    /// <summary>All active static effects on scalar/base (for inspection).</summary>
     public IReadOnlyList<AttributeEffect> StaticEffects => _staticEffects;
+
+    /// <summary>Tick effects on X component (2D only).</summary>
+    public IReadOnlyList<AttributeEffect> TickEffectsX => _tickEffectsX;
+
+    /// <summary>Tick effects on Y component (2D only).</summary>
+    public IReadOnlyList<AttributeEffect> TickEffectsY => _tickEffectsY;
 }
 
 /// <summary>

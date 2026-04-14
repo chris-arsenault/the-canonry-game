@@ -304,10 +304,13 @@ internal sealed class CardMutationContext(
     Random? random = null)
     : IMutationContext
 {
+    private Dictionary<string, float>? _variables;
     public int CurrentTick => worldState.CurrentTick;
     public EntityId SelfEntityId => new EntityId(-1); // Card context has no "self" -- cards target explicitly
     public Random Random { get; } = random ?? System.Random.Shared;
-    public EntityId? ResolvedTargetId => null; // Cards don't use directed target resolution
+    public EntityId? ResolvedTargetId => null;
+    public void SetVariable(string name, float value) { _variables ??= []; _variables[name] = value; }
+    public float GetVariable(string name) => _variables is not null && _variables.TryGetValue(name, out var v) ? v : 0f;
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
     public float GetAttribute(EntityId entityId, string attributeName) =>
         graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;

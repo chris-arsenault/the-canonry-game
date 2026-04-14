@@ -199,5 +199,7 @@ public class PreconditionTests
         public float ConsumeResource((int Q, int R) coordinates, ResourceType resourceType, float amount) => 0f;
         public void SetCoordinates(EntityId entityId, int q, int r) { }
         public void CullRelationship(EntityId sourceId, string relationshipKind) { }
+        public void SetVariable(string name, float value) { }
+        public float GetVariable(string name) => 0f;
     }
 }
