@@ -1,6 +1,7 @@
 namespace Engine.Domain;
 
 using Engine.Kinds;
+using Engine.Wiring;
 
 /// <summary>
 /// All domain-specific content that the engine needs. Attribute names, subtypes,
@@ -38,6 +39,14 @@ public sealed class KindConfig
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required IReadOnlyList<AttributeConfig> Attributes { get; init; }
     public string? HealthAttribute { get; init; }
+    public IReadOnlyList<StandingDriveConfig> StandingDrives { get; init; } = [];
+}
+
+/// <summary>Low-urgency standing drive that participates in normal goal generation.</summary>
+public sealed class StandingDriveConfig
+{
+    public required AttributeRef DesiredEffect { get; init; }
+    public float BaseUrgency { get; init; }
 }
 
 /// <summary>Single attribute definition.</summary>

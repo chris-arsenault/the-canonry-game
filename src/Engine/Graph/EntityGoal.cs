@@ -1,5 +1,7 @@
 namespace Engine.Graph;
 
+using Engine.Wiring;
+
 /// <summary>
 /// A persistent goal an entity is working toward. Entities maintain multiple
 /// concurrent goals. Processes serve goals. Sub-goals are generated from
@@ -12,36 +14,41 @@ public sealed class EntityGoal
     /// <summary>Unique ID within the entity's goal list.</summary>
     public string Id { get; }
 
-    /// <summary>The attribute this goal wants to change.</summary>
-    public string Attribute { get; }
+    /// <summary>The specific scoped effect this goal wants to produce.</summary>
+    public AttributeRef DesiredEffect { get; }
 
-    /// <summary>The entity to act on/toward.</summary>
-    public EntityId Provider { get; }
+    /// <summary>The entity this plan acts on/toward when evaluating the planned process.</summary>
+    public EntityId TargetEntityId { get; }
 
     /// <summary>How urgent this goal is (from attribute deficit).</summary>
     public float Urgency { get; set; }
 
+    /// <summary>The process this goal is currently planning around. Null for abstract blocker goals.</summary>
+    public string? PlannedProcessId { get; }
+
     /// <summary>Parent goal ID. Non-null for sub-goals.</summary>
     public string? ParentGoalId { get; }
 
-    /// <summary>For sub-goals: which attribute is being unblocked on the parent's process.</summary>
-    public string? BlockingAttribute { get; }
+    /// <summary>Whether this goal is the current actionable step of a plan.</summary>
+    public bool IsActionable { get; set; }
 
-    public EntityGoal(string attribute, EntityId provider, float urgency,
-        string? parentGoalId = null, string? blockingAttribute = null)
+    /// <summary>Planner depth. Primary goals are depth 0.</summary>
+    public int Depth { get; }
+
+    public EntityGoal(AttributeRef desiredEffect, EntityId targetEntityId, float urgency,
+        string? plannedProcessId = null, string? parentGoalId = null,
+        bool isActionable = true, int depth = 0)
     {
         Id = $"goal_{System.Threading.Interlocked.Increment(ref _nextId)}";
-        Attribute = attribute;
-        Provider = provider;
+        DesiredEffect = desiredEffect;
+        TargetEntityId = targetEntityId;
         Urgency = urgency;
+        PlannedProcessId = plannedProcessId;
         ParentGoalId = parentGoalId;
-        BlockingAttribute = blockingAttribute;
+        IsActionable = isActionable;
+        Depth = depth;
     }
 
     /// <summary>Whether this is a sub-goal (has a parent).</summary>
     public bool IsSubGoal => ParentGoalId is not null;
-
-    /// <summary>The attribute that processes should write to in order to serve this goal.
-    /// For primary goals: the goal's attribute. For sub-goals: the blocking attribute.</summary>
-    public string TargetAttribute => BlockingAttribute ?? Attribute;
 }

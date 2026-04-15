@@ -6,6 +6,7 @@ using Engine.Kinds;
 using Engine.Processes;
 using Engine.Tests;
 using Engine.Tests.Behaviors;
+using Engine.Wiring;
 
 public class PreconditionTests
 {
@@ -16,17 +17,21 @@ public class PreconditionTests
 
         Assert.True(result.Passed);
         Assert.Equal("ok", result.Diagnostic);
-        Assert.Empty(result.BlockingAttributes);
+        Assert.Empty(result.Blockers);
     }
 
     [Fact]
     public void PreconditionResult_FailContainsDiagnosticAndBlockers()
     {
-        var result = PreconditionResult.Fail("blocked", "sustenance", "fame");
+        var result = PreconditionResult.Fail("blocked",
+            AttributeRef.Self("sustenance", EntityKind.Settlement),
+            AttributeRef.Self("fame", EntityKind.Settlement));
 
         Assert.False(result.Passed);
         Assert.Equal("blocked", result.Diagnostic);
-        Assert.Equal(["sustenance", "fame"], result.BlockingAttributes);
+        Assert.Equal(
+            [AttributeRef.Self("sustenance", EntityKind.Settlement), AttributeRef.Self("fame", EntityKind.Settlement)],
+            result.Blockers);
     }
 
     [Fact]
@@ -69,7 +74,7 @@ public class PreconditionTests
         Assert.False(result.Passed);
         Assert.Contains("self.sustenance=2.0", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains(">= 3", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal(["sustenance"], result.BlockingAttributes);
+        Assert.Equal([AttributeRef.Self("sustenance", EntityKind.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -84,7 +89,7 @@ public class PreconditionTests
 
         Assert.False(result.Passed);
         Assert.Contains("target.sustenance=2.0", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal(["sustenance"], result.BlockingAttributes);
+        Assert.Equal([AttributeRef.Target("sustenance", EntityKind.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -98,7 +103,7 @@ public class PreconditionTests
 
         Assert.False(result.Passed);
         Assert.Equal("no target", result.Diagnostic);
-        Assert.Equal(["sustenance"], result.BlockingAttributes);
+        Assert.Equal([AttributeRef.Target("sustenance")], result.Blockers);
     }
 
     [Fact]
@@ -125,7 +130,7 @@ public class PreconditionTests
         var result = new SemanticDistanceThreshold("ideology", 0.5f).Evaluate(context);
 
         Assert.False(result.Passed);
-        Assert.Equal(["ideology"], result.BlockingAttributes);
+        Assert.Equal([AttributeRef.Target("ideology", EntityKind.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -140,7 +145,7 @@ public class PreconditionTests
 
         Assert.False(result.Passed);
         Assert.Contains("not a semantic plane", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal(["sustenance"], result.BlockingAttributes);
+        Assert.Equal([AttributeRef.Target("sustenance", EntityKind.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -160,7 +165,9 @@ public class PreconditionTests
         var result = precondition.Evaluate(context);
 
         Assert.False(result.Passed);
-        Assert.Equal(["ideology", "sustenance"], result.BlockingAttributes.OrderBy(x => x).ToArray());
+        Assert.Equal(
+            [AttributeRef.Self("sustenance", EntityKind.Settlement), AttributeRef.Target("ideology", EntityKind.Settlement)],
+            result.Blockers.OrderBy(x => x.Scope).ThenBy(x => x.Name).ToArray());
         Assert.Contains("; ", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("self.sustenance", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("ideology distance", result.Diagnostic, StringComparison.Ordinal);
@@ -183,6 +190,40 @@ public class PreconditionTests
 
         Assert.True(result.Passed);
         Assert.Equal("all conditions met", result.Diagnostic);
+    }
+
+    [Fact]
+    public void RelatedEntityMatchesTarget_EmitsReusableRelationalBlocker()
+    {
+        var world = CreateWorld();
+        var self = CreateSettlement(world, "Self", (0, 0));
+        var target = CreateSettlement(world, "Target", (1, 0));
+        var other = CreateSettlement(world, "Other", (2, 0));
+        world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, self.Id, other.Id, 1f, 0);
+
+        var result = new RelatedEntityMatchesTarget("located_at").Evaluate(
+            new TestMutationContext(self, target, worldState: world));
+
+        Assert.False(result.Passed);
+        Assert.Contains("located_at", result.Diagnostic, StringComparison.Ordinal);
+        Assert.Equal(
+            [AttributeRef.TargetRelation("located_at", EntityKind.Settlement)],
+            result.Blockers);
+    }
+
+    [Fact]
+    public void RelatedEntityMatchesTarget_PassesWhenRelationPointsToResolvedTarget()
+    {
+        var world = CreateWorld();
+        var self = CreateSettlement(world, "Self", (0, 0));
+        var target = CreateSettlement(world, "Target", (1, 0));
+        world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, self.Id, target.Id, 1f, 0);
+
+        var result = new RelatedEntityMatchesTarget("located_at").Evaluate(
+            new TestMutationContext(self, target, worldState: world));
+
+        Assert.True(result.Passed);
+        Assert.Equal("located_at matches target", result.Diagnostic);
     }
 
     [Fact]

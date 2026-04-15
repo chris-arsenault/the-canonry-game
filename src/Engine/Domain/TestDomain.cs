@@ -39,6 +39,7 @@ public static class TestDomain
         { Cooldown = 2, EntityCooldown = 1,
           RewardExpression = Expr.Lit(2f), // Fixed reward: 2 sustenance per execution
           Mutations = { new ModifySelfAttributeMutation("sustenance", 2f, variance: 0.2f) } };
+        stockpile.GoalEffects.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(stockpile);
 
@@ -53,6 +54,7 @@ public static class TestDomain
             new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
             new ModifySelfAttributeMutation("sustenance", -3f, variance: 0.2f),
         } };
+        grow.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
         grow.Reads.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         grow.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
         grow.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
@@ -77,9 +79,11 @@ public static class TestDomain
             new ModifyTargetByVariableMutation("ideology", "dx", "x"),
             new ModifyTargetByVariableMutation("ideology", "dy", "y"),
         } };
+        propaganda.GoalEffects.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
+        propaganda.ProviderSelectors.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
         propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
-        propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
-        propaganda.Writes.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        propaganda.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
+        propaganda.Writes.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
         processes.Add(propaganda);
 
         // Settlement: attract population — steal from target, requires fame advantage
@@ -88,8 +92,8 @@ public static class TestDomain
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsNotSelf(),
-                new SelfAttributeThreshold("fame", min: 1f, max: null),
-                new TargetAttributeThreshold("population", min: 10f, max: null),
+                new SelfAttributeThreshold("fame", min: 1f, max: null, plannerRelevant: false),
+                new TargetAttributeThreshold("population", min: 10f, max: null, plannerRelevant: false),
                 new SemanticDistanceThreshold("ideology", 0.5f),
             ]),
             Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
@@ -111,12 +115,14 @@ public static class TestDomain
             new ModifySelfByVariableMutation("population", "stolen"),
             new ModifyTargetByVariableMutation("population", "neg_stolen"),
         } };
+        attract.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
         attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("fame", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
         attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        attract.Writes.Add(AttributeRef.Target("population", EntityKind.Settlement));
         processes.Add(attract);
 
         // TODO: NPC, Nation, Artifact, Region processes removed — rebuilding from ground up

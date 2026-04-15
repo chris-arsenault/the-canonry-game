@@ -59,7 +59,7 @@ public sealed class SimulationRunner
 
     // Registries
     public KindRegistry KindRegistry { get; }
-    public ActivityRegistry ActivityRegistry { get; }
+    public BehaviorDefinitionIndex BehaviorDefinitions { get; }
 
     private SimulationRunner(
         WorldGraph graph, EffectSystem effects,
@@ -67,7 +67,7 @@ public sealed class SimulationRunner
         TickClock clock, EntityEvaluator evaluator, RelationshipSystem relationships,
         LifecycleSystem lifecycle, ResourceSystem resources, PressureSystem pressure,
         TableauManager tableau, EventLog eventLog, DetectorRegistry detectors,
-        WorldState worldState, KindRegistry kindRegistry, ActivityRegistry activityRegistry,
+        WorldState worldState, KindRegistry kindRegistry, BehaviorDefinitionIndex behaviorDefinitions,
         MessageBus messageBus)
     {
         Graph = graph;
@@ -87,7 +87,7 @@ public sealed class SimulationRunner
         Detectors = detectors;
         WorldState = worldState;
         KindRegistry = kindRegistry;
-        ActivityRegistry = activityRegistry;
+        BehaviorDefinitions = behaviorDefinitions;
     }
 
     /// <summary>
@@ -136,10 +136,10 @@ public sealed class SimulationRunner
         }
 
         // Three-layer behavioral model: ALL processes are data-defined in domain config
-        var activityRegistry = new ActivityRegistry();
-        Domain.DomainLoader.LoadProcesses(domainConfig, activityRegistry);
+        var behaviorDefinitions = new BehaviorDefinitionIndex();
+        Domain.DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions);
         var goalGenerator = new Behaviors.GoalGenerator(domainConfig.Kinds, domainConfig.Processes);
-        var evaluator = new EntityEvaluator(activityRegistry, messageBus, goalGenerator: goalGenerator);
+        var evaluator = new EntityEvaluator(behaviorDefinitions, messageBus, goalGenerator: goalGenerator);
 
         // Relationships
         var relationships = new RelationshipSystem(graph, kindRegistry);
@@ -170,7 +170,7 @@ public sealed class SimulationRunner
         var detectors = DetectorRegistry.CreateDefault(eventLog);
 
         // World state
-        var worldState = new WorldState(graph, effects, grid, regionMap, spatialIndex, resources);
+        var worldState = new WorldState(graph, effects, pressure, grid, regionMap, spatialIndex, resources);
 
         // Wire to tick clock
         var clock = new TickClock();
@@ -236,7 +236,7 @@ public sealed class SimulationRunner
         return new SimulationRunner(
             graph, effects, grid, regionMap, spatialIndex,
             clock, evaluator, relationships, lifecycle, resources, pressure,
-            tableau, eventLog, detectors, worldState, kindRegistry, activityRegistry,
+            tableau, eventLog, detectors, worldState, kindRegistry, behaviorDefinitions,
             messageBus);
     }
 

@@ -7,8 +7,11 @@ namespace Engine.Graph;
 public sealed class EvaluationReport
 {
     public int Tick { get; init; }
+    public int SourceTick { get; init; }
     public string? SelectedGoalId { get; init; }
     public string? ExecutedProcessName { get; init; }
+    public bool IsStale { get; init; }
+    public string? StatusNote { get; init; }
     public IReadOnlyList<ProcessCandidate> Candidates { get; init; } = [];
 }
 

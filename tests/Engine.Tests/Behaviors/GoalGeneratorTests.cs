@@ -5,6 +5,7 @@ using Engine.Behaviors;
 using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Pressure;
 using Engine.Processes;
 using Engine.Tests;
 using Engine.Wiring;
@@ -12,9 +13,9 @@ using Engine.Wiring;
 public class GoalGeneratorTests
 {
     [Theory]
-    [InlineData(10f, 0.667f)]
-    [InlineData(20f, 0.5f)]
-    [InlineData(100f, 0.167f)]
+    [InlineData(10f, 1.12f)]
+    [InlineData(20f, 0.84f)]
+    [InlineData(100f, 0.28f)]
     public void Generate_UsesBaselineUrgencyCurve(float population, float expectedUrgency)
     {
         var world = new StubWorldState(gridRadius: 5);
@@ -24,9 +25,9 @@ public class GoalGeneratorTests
 
         var goal = Assert.Single(generator.Generate(entity, world), g => !g.IsSubGoal);
 
-        Assert.Equal("population", goal.Attribute);
-        Assert.Equal(entity.Id, goal.Provider);
-        Assert.InRange(goal.Urgency, expectedUrgency - 0.01f, expectedUrgency + 0.01f);
+        Assert.Equal(AttributeRef.Self("population", EntityKind.Settlement), goal.DesiredEffect);
+        Assert.Equal(entity.Id, goal.TargetEntityId);
+        Assert.InRange(goal.Urgency, expectedUrgency - 0.02f, expectedUrgency + 0.02f);
     }
 
     [Fact]
@@ -91,7 +92,7 @@ public class GoalGeneratorTests
         var primaryGoals = generator.Generate(entity, world).Where(g => !g.IsSubGoal).ToList();
 
         Assert.Equal(3, primaryGoals.Count);
-        Assert.Equal(["a", "b", "c"], primaryGoals.Select(g => g.Attribute).ToArray());
+        Assert.Equal(["a", "b", "c"], primaryGoals.Select(EffectName).ToArray());
         Assert.True(primaryGoals[0].Urgency >= primaryGoals[1].Urgency);
         Assert.True(primaryGoals[1].Urgency >= primaryGoals[2].Urgency);
     }
@@ -106,28 +107,28 @@ public class GoalGeneratorTests
 
         var goals = generator.Generate(entity, world);
 
-        Assert.DoesNotContain(goals, g => g.Attribute == "population");
+        Assert.DoesNotContain(goals, g => g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)));
     }
 
     [Fact]
-    public void Generate_UsesWeightOneForAllProvidersWhenScoreExpressionIsMissing()
+    public void Generate_UsesWeightOneForAllProvidersWhenRewardExpressionIsConstant()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, fame: 10f, coordinates: (0, 0));
         var otherA = CreateSettlement(world, "A", population: 30f, fame: 20f, coordinates: (1, 0));
         var otherB = CreateSettlement(world, "B", population: 30f, fame: 40f, coordinates: (2, 0));
 
-        var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"),
-            [CreateProcess("grow", "population")]);
+        var process = CreateExternalProcess("grow", "population");
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [process]);
 
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.Attribute == "population")
-            .OrderBy(g => g.Provider.Value)
+            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
+            .OrderBy(g => g.TargetEntityId.Value)
             .ToList();
 
         Assert.Equal(3, goals.Count);
-        Assert.All(goals, g => Assert.InRange(g.Urgency, 0.66f, 0.67f));
-        Assert.Equal([self.Id, otherA.Id, otherB.Id], goals.Select(g => g.Provider).ToArray());
+        Assert.All(goals, g => Assert.InRange(g.Urgency, 1.12f, 1.14f));
+        Assert.Equal([self.Id, otherA.Id, otherB.Id], goals.Select(g => g.TargetEntityId).ToArray());
     }
 
     [Fact]
@@ -142,23 +143,23 @@ public class GoalGeneratorTests
         var extra = CreateSettlement(world, "Extra", population: 30f, fame: 25f, coordinates: (5, 0));
 
         var process = CreateProcess("attract", "population");
+        process.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
         process.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
         var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [process]);
 
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.Attribute == "population")
+            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
             .OrderByDescending(g => g.Urgency)
             .ToList();
 
         Assert.Equal(3, goals.Count);
-        Assert.Equal([best.Id, extra.Id, high.Id], goals.Select(g => g.Provider).ToArray());
-        // Urgency = baseline_urgency(0.667) * raw_reward (no normalization)
-        // Best: 0.667 * 20 = 13.33, Extra: 0.667 * 15 = 10.0, High: 0.667 * 10 = 6.67
-        Assert.InRange(goals[0].Urgency, 13f, 14f);
-        Assert.InRange(goals[1].Urgency, 9.5f, 10.5f);
-        Assert.InRange(goals[2].Urgency, 6.3f, 7f);
+        Assert.Equal([best.Id, extra.Id, high.Id], goals.Select(g => g.TargetEntityId).ToArray());
+        // Planning rewards are damped to keep long external chains from swamping direct self plans.
+        Assert.InRange(goals[0].Urgency, 2.6f, 2.8f);
+        Assert.InRange(goals[1].Urgency, 2.4f, 2.6f);
+        Assert.InRange(goals[2].Urgency, 2.2f, 2.4f);
         // Low and Self have reward 0 (fame diff = 0), excluded
-        Assert.DoesNotContain(goals, g => g.Provider == self.Id);
+        Assert.DoesNotContain(goals, g => g.TargetEntityId == self.Id);
     }
 
     [Fact]
@@ -166,19 +167,21 @@ public class GoalGeneratorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var entity = CreateSettlement(world, "Self", population: 10f, sustenance: 0f);
+        var stockpile = CreateProcess("stockpile", "sustenance");
 
         var growA = CreateProcess("grow_a", "population",
             new SelfAttributeThreshold("sustenance", min: 3f, max: null));
         var growB = CreateProcess("grow_b", "population",
             new SelfAttributeThreshold("sustenance", min: 5f, max: null));
-        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [growA, growB]);
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [growA, growB, stockpile]);
 
         var goals = generator.Generate(entity, world);
 
-        Assert.Contains(goals, g => !g.IsSubGoal && g.Attribute == "population");
-        var subGoal = Assert.Single(goals, g => g.IsSubGoal);
-        Assert.Equal("sustenance", subGoal.BlockingAttribute);
-        Assert.Equal(entity.Id, subGoal.Provider);
+        Assert.Contains(goals, g => !g.IsSubGoal && !g.IsActionable &&
+            g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)));
+        var subGoal = Assert.Single(goals, g => g.IsSubGoal && g.IsActionable);
+        Assert.Equal(AttributeRef.Self("sustenance", EntityKind.Settlement), subGoal.DesiredEffect);
+        Assert.Equal(entity.Id, subGoal.TargetEntityId);
     }
 
     [Fact]
@@ -186,17 +189,18 @@ public class GoalGeneratorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var entity = CreateSettlement(world, "Self", population: 10f, sustenance: 0f);
+        var stockpile = CreateProcess("stockpile", "sustenance");
 
         var grow = CreateProcess("grow", "population",
             new SelfAttributeThreshold("sustenance", min: 3f, max: null));
-        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [grow]);
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [grow, stockpile]);
 
         var goals = generator.Generate(entity, world);
         var parent = Assert.Single(goals, g => !g.IsSubGoal);
-        var child = Assert.Single(goals, g => g.IsSubGoal);
+        var child = Assert.Single(goals, g => g.IsSubGoal && g.IsActionable);
 
-        Assert.Equal(parent.Provider, child.Provider);
-        Assert.Equal(parent.Urgency, child.Urgency);
+        Assert.Equal(parent.TargetEntityId, child.TargetEntityId);
+        Assert.True(parent.Urgency >= child.Urgency);
         Assert.Equal(parent.Id, child.ParentGoalId);
     }
 
@@ -206,17 +210,18 @@ public class GoalGeneratorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, sustenance: 0f, coordinates: (0, 0));
         var other = CreateSettlement(world, "Other", population: 10f, sustenance: 10f, coordinates: (2, 0));
+        var aid = CreateProcessServingEffect("aid", AttributeRef.Target("sustenance", EntityKind.Settlement));
 
-        var process = CreateProcess("grow", "population",
+        var process = CreateExternalProcess("grow", "population",
             new AndPrecondition([new TargetIsSelf(), new TargetAttributeThreshold("sustenance", min: 3f, max: null)]));
-        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [process]);
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [process, aid]);
 
         var goals = generator.Generate(self, world);
 
-        var selfGoal = Assert.Single(goals, g => !g.IsSubGoal && g.Provider == self.Id);
-        var otherGoal = Assert.Single(goals, g => !g.IsSubGoal && g.Provider == other.Id);
-        Assert.Contains(goals, g => g.ParentGoalId == selfGoal.Id && g.BlockingAttribute == "sustenance");
-        Assert.DoesNotContain(goals, g => g.ParentGoalId == otherGoal.Id);
+        var selfGoal = Assert.Single(goals, g => !g.IsSubGoal && g.TargetEntityId == self.Id);
+        Assert.Contains(goals, g => g.ParentGoalId == selfGoal.Id &&
+            g.DesiredEffect.Equals(AttributeRef.Target("sustenance", EntityKind.Settlement)));
+        Assert.DoesNotContain(goals, g => !g.IsSubGoal && g.TargetEntityId == other.Id);
     }
 
     [Fact]
@@ -225,17 +230,202 @@ public class GoalGeneratorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, sustenance: 10f, coordinates: (0, 0));
         var other = CreateSettlement(world, "Other", population: 10f, sustenance: 0f, coordinates: (2, 0));
+        var aid = CreateProcessServingEffect("aid", AttributeRef.Target("sustenance", EntityKind.Settlement));
 
-        var process = CreateProcess("attract", "population",
+        var process = CreateExternalProcess("attract", "population",
             new AndPrecondition([new TargetIsNotSelf(), new TargetAttributeThreshold("sustenance", min: 3f, max: null)]));
-        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [process]);
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance"), [process, aid]);
 
         var goals = generator.Generate(self, world);
 
-        var selfGoal = Assert.Single(goals, g => !g.IsSubGoal && g.Provider == self.Id);
-        var otherGoal = Assert.Single(goals, g => !g.IsSubGoal && g.Provider == other.Id);
-        Assert.DoesNotContain(goals, g => g.ParentGoalId == selfGoal.Id);
-        Assert.Contains(goals, g => g.ParentGoalId == otherGoal.Id && g.BlockingAttribute == "sustenance");
+        var otherGoal = Assert.Single(goals, g => !g.IsSubGoal && g.TargetEntityId == other.Id);
+        Assert.DoesNotContain(goals, g => !g.IsSubGoal && g.TargetEntityId == self.Id);
+        Assert.Contains(goals, g => g.ParentGoalId == otherGoal.Id &&
+            g.DesiredEffect.Equals(AttributeRef.Target("sustenance", EntityKind.Settlement)));
+    }
+
+    [Fact]
+    public void Generate_BlockedSelfDirectedPlanStillProducesActionableEnablerWhenRewardIsZero()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", population: 10f, sustenance: 0f, fame: 10f, coordinates: (0, 0));
+        var other = CreateSettlement(world, "Other", population: 30f, sustenance: 10f, fame: 30f, coordinates: (2, 0));
+        other.Attributes.GetPlane("ideology")!.ModifyX(0.5f);
+        other.Attributes.GetPlane("ideology")!.ModifyY(0.5f);
+        self.Attributes.GetPlane("ideology")!.ModifyX(-0.5f);
+        self.Attributes.GetPlane("ideology")!.ModifyY(-0.5f);
+
+        var stockpile = CreateProcess("stockpile", "sustenance");
+
+        var grow = CreateProcess("grow", "population",
+            new SelfAttributeThreshold("sustenance", min: 3f, max: null));
+        grow.RewardExpression = Expr.Div(Expr.Self("sustenance"), Expr.Lit(3f));
+
+        var attract = CreateExternalProcess("attract", "population",
+            new SemanticDistanceThreshold("ideology", 0.5f));
+        attract.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
+
+        var propaganda = CreateProcessServingEffect("propaganda", AttributeRef.Target("ideology", EntityKind.Settlement));
+
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance", "fame"),
+            [grow, stockpile, attract, propaganda]);
+
+        var goals = generator.Generate(self, world);
+
+        Assert.Contains(goals, g => g.IsActionable &&
+            g.PlannedProcessId == "stockpile" &&
+            g.DesiredEffect.Equals(AttributeRef.Self("sustenance", EntityKind.Settlement)));
+
+        Assert.Contains(goals, g => g.IsActionable &&
+            g.PlannedProcessId == "propaganda" &&
+            g.DesiredEffect.Equals(AttributeRef.Target("ideology", EntityKind.Settlement)));
+    }
+
+    [Fact]
+    public void Generate_UsesRelationshipPreconditionInPlannerContext()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", population: 10f, coordinates: (0, 0));
+        var other = CreateSettlement(world, "Other", population: 30f, coordinates: (1, 0));
+        world.Graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, self.Id, other.Id, 0.8f, 0);
+
+        var attract = CreateExternalProcess(
+            "attract",
+            "population",
+            new AndPrecondition([
+                new TargetIsNotSelf(),
+                new RelationshipExists(self.Id, other.Id, "allied_with", minStrength: 0.5f),
+            ]));
+        var generator = new GoalGenerator(CreateSettlementKinds("population"), [attract]);
+
+        var goals = generator.Generate(self, world)
+            .Where(g => !g.IsSubGoal)
+            .ToList();
+
+        Assert.Contains(goals, g => g.TargetEntityId == other.Id && g.IsActionable);
+    }
+
+    [Fact]
+    public void Generate_UsesPressureThresholdInPlannerContext()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", population: 10f, coordinates: (0, 0));
+        SeedPressure(world, "demographic_pressure", self.Id, 4f);
+
+        var process = CreateProcess(
+            "stabilize",
+            "population",
+            new PressureThreshold("demographic_pressure", self.Id, min: null, max: 5f));
+        var generator = new GoalGenerator(CreateSettlementKinds("population"), [process]);
+
+        var goals = generator.Generate(self, world)
+            .Where(g => !g.IsSubGoal)
+            .ToList();
+
+        Assert.Contains(goals, g => g.PlannedProcessId == "stabilize" && g.IsActionable);
+    }
+
+    [Fact]
+    public void Generate_UsesPerProcessLastExecutionTickInPlannerContext()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        world.CurrentTick = 6;
+        var self = CreateSettlement(world, "Self", population: 10f, coordinates: (0, 0));
+
+        var process = CreateProcess("grow", "population", new CooldownCheck(3));
+        self.RecordAction(5, process.Name, process.Id);
+
+        var generator = new GoalGenerator(CreateSettlementKinds("population"), [process]);
+        var goals = generator.Generate(self, world);
+
+        Assert.Empty(goals);
+    }
+
+    [Fact]
+    public void Generate_IncludesStandingDrivesWhenNoDeficitExists()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var entity = CreateSettlement(world, "Self", population: 25f, sustenance: 5f);
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes =
+                [
+                    new AttributeConfig { Name = "population", Min = 0f, Max = 1000f, Default = 25f, Baseline = 0f },
+                ],
+                HealthAttribute = "population",
+                StandingDrives =
+                [
+                    new StandingDriveConfig
+                    {
+                        DesiredEffect = AttributeRef.Self("population", EntityKind.Settlement),
+                        BaseUrgency = 0.08f,
+                    },
+                ],
+            },
+        };
+
+        var grow = CreateProcess("grow", "population");
+        var generator = new GoalGenerator(kinds, [grow]);
+
+        var goal = Assert.Single(generator.Generate(entity, world), g => !g.IsSubGoal);
+
+        Assert.Equal("grow", goal.PlannedProcessId);
+        Assert.InRange(goal.Urgency, 0.13f, 0.15f);
+        Assert.Contains("Standing Drives:", entity.GoalGenerationTrace, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Generate_RelationalBlockerInheritsParentTarget()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
+        self.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 80f));
+        var settlement = CreateSettlement(world, "Target", population: 25f, sustenance: 10f, coordinates: (2, 0));
+
+        var eat = new ProcessDefinition(
+            "eat",
+            "Eat",
+            DefinitionRole.Process,
+            EntityKind.Npc,
+            new AndPrecondition([
+                new TargetIsNotSelf(),
+                new RelatedEntityMatchesTarget("located_at"),
+            ]),
+            Expr.Score(Expr.Lit(1f)));
+        eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.ProviderSelectors.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+
+        var move = new ProcessDefinition(
+            "move",
+            "Move",
+            DefinitionRole.Process,
+            EntityKind.Npc,
+            new TargetIsNotSelf(),
+            Expr.Score(Expr.Lit(1f)));
+        move.GoalEffects.Add(AttributeRef.TargetRelation("located_at", EntityKind.Settlement));
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Npc] = new()
+            {
+                Subtypes = new HashSet<string> { "warrior" },
+                Attributes = [new AttributeConfig { Name = "hunger", Min = 0f, Max = 100f, Default = 0f, Baseline = 20f }],
+                HealthAttribute = "hunger",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [eat, move]);
+        var goals = generator.Generate(self, world);
+
+        var parent = Assert.Single(goals, g => !g.IsSubGoal);
+        var child = Assert.Single(goals, g => g.IsSubGoal);
+        Assert.Equal(settlement.Id, parent.TargetEntityId);
+        Assert.Equal(settlement.Id, child.TargetEntityId);
+        Assert.Equal(AttributeRef.TargetRelation("located_at", EntityKind.Settlement), child.DesiredEffect);
     }
 
     private static Dictionary<EntityKind, KindConfig> CreateSettlementKinds(params string[] attributes)
@@ -296,7 +486,68 @@ public class GoalGeneratorTests
             precondition ?? new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)));
 
+        process.GoalEffects.Add(AttributeRef.Self(attribute, EntityKind.Settlement));
         process.Writes.Add(AttributeRef.Self(attribute, EntityKind.Settlement));
         return process;
+    }
+
+    private static ProcessDefinition CreateExternalProcess(string id, string attribute, IPrecondition? precondition = null)
+    {
+        var process = CreateProcess(id, attribute, precondition);
+        process.ProviderSelectors.Add(AttributeRef.Target(attribute, EntityKind.Settlement));
+        return process;
+    }
+
+    private static ProcessDefinition CreateProcessServingEffect(string id, AttributeRef effect)
+    {
+        var process = new ProcessDefinition(
+            id,
+            id,
+            DefinitionRole.Process,
+            EntityKind.Settlement,
+            new AlwaysTrue(),
+            Expr.Score(Expr.Lit(1f)));
+
+        process.GoalEffects.Add(effect);
+        process.Writes.Add(effect);
+        return process;
+    }
+
+    private static string EffectName(EntityGoal goal) => goal.DesiredEffect.Name;
+
+    private static void SeedPressure(StubWorldState world, string pressureName, EntityId scopeId, float value)
+    {
+        if (world.Pressure is null)
+        {
+            throw new InvalidOperationException("Stub world has no pressure system.");
+        }
+
+        var definition = new PressureDefinition(
+            pressureName,
+            PressureScope.Entity,
+            baseline: 0f,
+            homeostasisRate: 0f,
+            smoothingFactor: 1f);
+        world.Pressure.RegisterDefinition(definition);
+        world.Pressure.ApplyDelta(pressureName, scopeId, value);
+        world.Pressure.Compute(new Dictionary<EntityId, IPressureContext>
+        {
+            [scopeId] = new TestPressureContext([scopeId], world.Graph),
+        });
+    }
+
+    private sealed class TestPressureContext(IReadOnlyCollection<EntityId> entitiesInScope, WorldGraph graph)
+        : IPressureContext
+    {
+        public IReadOnlyCollection<EntityId> EntitiesInScope => entitiesInScope;
+        public Entity? GetEntity(EntityId id) => graph.GetEntity(id);
+        public int CountEntities(Func<Entity, bool> predicate) =>
+            entitiesInScope
+                .Select(id => graph.GetEntity(id))
+                .Count(entity => entity is not null && predicate(entity));
+        public int CountRelationships(Func<Relationship, bool> predicate) =>
+            entitiesInScope.Sum(id => graph.OutgoingRelationships(id).Count(predicate));
+        public float GetAttribute(EntityId entityId, string attributeName) =>
+            graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
     }
 }

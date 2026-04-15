@@ -32,8 +32,17 @@ public sealed class Entity
     /// <summary>Engine-produced evaluation report from the last tick. UI reads this.</summary>
     public EvaluationReport? LastEvaluation { get; set; }
 
+    /// <summary>Hidden diagnostic trace from the most recent goal-generation pass.</summary>
+    public string? GoalGenerationTrace { get; set; }
+
+    /// <summary>Hidden diagnostic trace from the most recent evaluation pass.</summary>
+    public string? EvaluationTrace { get; set; }
+
     /// <summary>Per-process cooldown tracking: processId → tick when cooldown expires.</summary>
     public Dictionary<string, int> ProcessCooldowns { get; } = [];
+
+    /// <summary>Per-definition last execution tick keyed by definition id.</summary>
+    public Dictionary<string, int> LastDefinitionExecutionTicks { get; } = [];
 
     /// <summary>Entity-wide cooldown: tick when entity can act again.</summary>
     public int EntityCooldownUntil { get; set; }
@@ -53,10 +62,15 @@ public sealed class Entity
     private const int MaxHistorySize = 60;
 
     /// <summary>Record an action in the history.</summary>
-    public void RecordAction(int tick, string name)
+    public void RecordAction(int tick, string name, string? definitionId = null)
     {
         LastActionName = name;
         LastActionTick = tick;
+        if (definitionId is not null)
+        {
+            LastDefinitionExecutionTicks[definitionId] = tick;
+        }
+
         ActionHistory.Enqueue((tick, name));
         while (ActionHistory.Count > MaxHistorySize) ActionHistory.Dequeue();
     }

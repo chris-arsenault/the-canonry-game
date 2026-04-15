@@ -65,7 +65,7 @@ public partial class EntityCard : PanelContainer
 
         // Copy button
         var copyBtn = new Button { Text = "📋", CustomMinimumSize = new Vector2(28, 28) };
-        copyBtn.Pressed += () => { if (_content is not null) DisplayServer.ClipboardSet(_content.Text); };
+        copyBtn.Pressed += OnCopyPressed;
         titleBar.AddChild(copyBtn);
 
         // Collapse button
@@ -188,11 +188,14 @@ public partial class EntityCard : PanelContainer
         {
             foreach (var goal in entity.Goals)
             {
-                var providerName = goal.Provider == entity.Id ? "self" :
-                    (_sim.Graph.GetEntity(goal.Provider)?.Name ?? goal.Provider.ToString());
+                var providerName = goal.TargetEntityId == entity.Id ? "self" :
+                    (_sim.Graph.GetEntity(goal.TargetEntityId)?.Name ?? goal.TargetEntityId.ToString());
                 var prefix = goal.IsSubGoal ? "  ↳ " : "  ";
-                var attr = goal.IsSubGoal ? $"unblock {goal.BlockingAttribute}" : goal.Attribute;
-                sb.AppendLine($"{prefix}[b]{attr}[/b] via {providerName} (urgency {goal.Urgency:F2})");
+                var state = goal.IsActionable ? "next" : "blocked";
+                var attr = goal.IsSubGoal
+                    ? $"unblock {DescribeGoalEffect(goal.DesiredEffect)}"
+                    : DescribeGoalEffect(goal.DesiredEffect);
+                sb.AppendLine($"{prefix}[b]{attr}[/b] via {providerName} [{state}] (urgency {goal.Urgency:F2})");
             }
         }
 
@@ -313,12 +316,25 @@ public partial class EntityCard : PanelContainer
         // Evaluation Report (engine-produced, read-only)
         sb.AppendLine("[b][u]Processes[/u][/b]");
         var report = entity.LastEvaluation;
-        if (report is null || report.Candidates.Count == 0)
+        if (report is null)
         {
             sb.AppendLine("  [i](no evaluation data)[/i]");
         }
         else
         {
+            if (!string.IsNullOrWhiteSpace(report.StatusNote) && (report.IsStale || report.Candidates.Count == 0))
+            {
+                sb.AppendLine($"  [i][color=gray]{FormatReportStatus(report, _sim.Clock.CurrentTick)}[/color][/i]");
+            }
+
+            if (report.Candidates.Count == 0)
+            {
+                if (string.IsNullOrWhiteSpace(report.StatusNote))
+                {
+                    sb.AppendLine("  [i](no evaluation data)[/i]");
+                }
+            }
+
             foreach (var candidate in report.Candidates)
             {
                 var statusColor = candidate.WasSelected ? "cyan"
@@ -336,6 +352,16 @@ public partial class EntityCard : PanelContainer
         _content.Text = sb.ToString();
     }
 
+    private static string DescribeGoalEffect(Engine.Wiring.AttributeRef effect)
+    {
+        return effect.Scope switch
+        {
+            Engine.Wiring.RefScope.Self => effect.Name,
+            Engine.Wiring.RefScope.Target => $"target.{effect.Name}",
+            _ => effect.ToString(),
+        };
+    }
+
     private void OnCollapsePressed()
     {
         _collapsed = !_collapsed;
@@ -346,5 +372,56 @@ public partial class EntityCard : PanelContainer
     {
         EmitSignal(SignalName.CardClosed, this);
         QueueFree();
+    }
+
+    private void OnCopyPressed()
+    {
+        if (_sim is null || _content is null)
+        {
+            return;
+        }
+
+        var entity = _sim.Graph.GetEntity(_entityId);
+        if (entity is null)
+        {
+            return;
+        }
+
+        DisplayServer.ClipboardSet(BuildClipboardText(entity, _content.Text));
+    }
+
+    private static string BuildClipboardText(Entity entity, string visibleText)
+    {
+        var sb = new StringBuilder(visibleText);
+        AppendDiagnosticSection(sb, "Goal Generation Trace", entity.GoalGenerationTrace);
+        AppendDiagnosticSection(sb, "Evaluation Trace", entity.EvaluationTrace);
+        return sb.ToString();
+    }
+
+    private static void AppendDiagnosticSection(StringBuilder sb, string title, string? trace)
+    {
+        if (string.IsNullOrWhiteSpace(trace))
+        {
+            return;
+        }
+
+        sb.AppendLine();
+        sb.AppendLine();
+        sb.AppendLine($"--- {title} ---");
+        sb.AppendLine(trace.TrimEnd());
+    }
+
+    private static string FormatReportStatus(EvaluationReport report, int currentTick)
+    {
+        if (!report.IsStale)
+        {
+            return report.StatusNote ?? string.Empty;
+        }
+
+        var age = System.Math.Max(0, currentTick - report.SourceTick);
+        var prefix = age == 1 ? "stale by 1 tick" : $"stale by {age} ticks";
+        return string.IsNullOrWhiteSpace(report.StatusNote)
+            ? prefix
+            : $"{prefix}: {report.StatusNote}";
     }
 }

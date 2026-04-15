@@ -13,6 +13,7 @@ public sealed class WorldState : IWorldState
 {
     public WorldGraph Graph { get; }
     public EffectSystem Effects { get; }
+    public Engine.Pressure.PressureSystem? Pressure { get; }
     public HexGrid Grid { get; }
     public RegionMap RegionMap { get; }
     public SpatialIndex SpatialIndex { get; }
@@ -22,6 +23,7 @@ public sealed class WorldState : IWorldState
     public WorldState(
         WorldGraph graph,
         EffectSystem effects,
+        Engine.Pressure.PressureSystem? pressure,
         HexGrid grid,
         RegionMap regionMap,
         SpatialIndex spatialIndex,
@@ -29,6 +31,7 @@ public sealed class WorldState : IWorldState
     {
         Graph = graph;
         Effects = effects;
+        Pressure = pressure;
         Grid = grid;
         RegionMap = regionMap;
         SpatialIndex = spatialIndex;

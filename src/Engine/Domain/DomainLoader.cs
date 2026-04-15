@@ -77,22 +77,15 @@ public static class DomainLoader
         }
     }
 
-    /// <summary>Register data-driven processes and decisions from domain config.</summary>
-    public static void LoadProcesses(DomainConfig config, ActivityRegistry registry)
+    /// <summary>Register process and decision definitions from domain config into a definition-backed index.</summary>
+    public static void LoadProcesses(DomainConfig config, BehaviorDefinitionIndex definitions)
     {
         ArgumentNullException.ThrowIfNull(config);
-        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(definitions);
 
         foreach (var procDef in config.Processes)
         {
-            if (procDef.Role == DefinitionRole.Process)
-            {
-                registry.RegisterProcess(procDef.TargetKind, new DataDrivenProcess(procDef));
-            }
-            else
-            {
-                registry.RegisterDecision(procDef.TargetKind, new DataDrivenDecision(procDef));
-            }
+            definitions.Register(procDef);
         }
     }
 
@@ -112,10 +105,20 @@ public static class DomainLoader
         // Extract contracts from process definitions
         foreach (var procDef in config.Processes)
         {
-            if (procDef.Reads.Count > 0 || procDef.Writes.Count > 0)
+            if (procDef.Reads.Count > 0 ||
+                procDef.Writes.Count > 0 ||
+                procDef.GoalEffects.Count > 0 ||
+                procDef.ProviderSelectors.Count > 0)
             {
+                var plannerAnalysis = PreconditionInspector.Analyze(procDef);
                 validator.RegisterContract(new WiringContract(
-                    procDef.Id, procDef.Reads, procDef.Writes));
+                    procDef.Id,
+                    procDef.Reads,
+                    procDef.Writes,
+                    goalEffects: procDef.GoalEffects,
+                    providerSelectors: procDef.ProviderSelectors,
+                    plannerBlockers: plannerAnalysis.PlannerBlockers,
+                    hasOpaquePlannerBranches: plannerAnalysis.HasOpaquePlannerBranches));
             }
         }
 

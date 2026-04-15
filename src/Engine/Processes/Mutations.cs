@@ -2,6 +2,7 @@ namespace Engine.Processes;
 
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Map;
 
 /// <summary>
 /// A mutation: a single effect applied to the world when a card fires.
@@ -201,6 +202,85 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
     public string Describe() => $"modify_target_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
 }
 
+/// <summary>
+/// Moves self one step along a path toward the resolved target.
+/// Optionally maintains an exclusive location-style relationship such as located_at.
+/// </summary>
+public sealed class MoveTowardTargetMutation(
+    string? locationRelationshipKind = "located_at",
+    EntityKind? locationEntityKind = EntityKind.Settlement) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context is not IWorldStateAccessor accessor) return;
+        if (context.ResolvedTargetId is null) return;
+
+        var self = context.GetEntity(context.SelfEntityId);
+        var target = context.GetEntity(context.ResolvedTargetId.Value);
+        if (self?.Coordinates is null || target?.Coordinates is null) return;
+
+        var start = new HexCoord(self.Coordinates.Value.Q, self.Coordinates.Value.R);
+        var destination = new HexCoord(target.Coordinates.Value.Q, target.Coordinates.Value.R);
+
+        if (start != destination)
+        {
+            var path = accessor.WorldState.SpatialIndex.FindPath(start, destination);
+            if (path is null || path.Count < 2) return;
+
+            var nextStep = path[1];
+            context.SetCoordinates(context.SelfEntityId, nextStep.Q, nextStep.R);
+        }
+
+        MovementHelper.SyncLocationRelationship(
+            context,
+            accessor.WorldState,
+            locationRelationshipKind,
+            locationEntityKind,
+            preferredEntityId: context.ResolvedTargetId);
+    }
+
+    public string Describe() => $"move_toward_target(rel={locationRelationshipKind ?? "none"})";
+}
+
+/// <summary>
+/// Moves self to a random walkable neighboring cell. Useful for ambient movement processes.
+/// Optionally maintains an exclusive location-style relationship such as located_at.
+/// </summary>
+public sealed class WanderMutation(
+    string? locationRelationshipKind = "located_at",
+    EntityKind? locationEntityKind = EntityKind.Settlement) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context is not IWorldStateAccessor accessor) return;
+
+        var self = context.GetEntity(context.SelfEntityId);
+        if (self?.Coordinates is null) return;
+
+        var current = new HexCoord(self.Coordinates.Value.Q, self.Coordinates.Value.R);
+        var candidates = accessor.WorldState.Grid.GetNeighbors(current)
+            .Where(cell => !float.IsPositiveInfinity(cell.MovementCost))
+            .Select(cell => cell.Coord)
+            .ToList();
+
+        if (candidates.Count == 0) return;
+
+        var index = Math.Clamp((int)(context.Random.NextDouble() * candidates.Count), 0, candidates.Count - 1);
+        var nextStep = candidates[index];
+        context.SetCoordinates(context.SelfEntityId, nextStep.Q, nextStep.R);
+
+        MovementHelper.SyncLocationRelationship(
+            context,
+            accessor.WorldState,
+            locationRelationshipKind,
+            locationEntityKind);
+    }
+
+    public string Describe() => $"wander(rel={locationRelationshipKind ?? "none"})";
+}
+
 /// <summary>Helper to modify an attribute by component (scalar, x, or y).</summary>
 internal static class MutationHelper
 {
@@ -217,6 +297,78 @@ internal static class MutationHelper
         {
             scalar.Modify(delta);
         }
+    }
+}
+
+internal static class MovementHelper
+{
+    internal static void SyncLocationRelationship(
+        IMutationContext context,
+        Behaviors.IWorldState worldState,
+        string? relationshipKind,
+        EntityKind? locationEntityKind,
+        EntityId? preferredEntityId = null)
+    {
+        if (string.IsNullOrWhiteSpace(relationshipKind) || locationEntityKind is null)
+        {
+            return;
+        }
+
+        var self = context.GetEntity(context.SelfEntityId);
+        if (self?.Coordinates is null)
+        {
+            return;
+        }
+
+        var currentRelatedEntityId = context.FindRelatedEntity(context.SelfEntityId, relationshipKind);
+        var coord = new HexCoord(self.Coordinates.Value.Q, self.Coordinates.Value.R);
+        var desiredEntityId = ResolveLocationEntityAtCell(
+            worldState,
+            coord,
+            locationEntityKind.Value,
+            preferredEntityId);
+
+        if (currentRelatedEntityId == desiredEntityId)
+        {
+            return;
+        }
+
+        if (currentRelatedEntityId is not null)
+        {
+            context.CullRelationship(context.SelfEntityId, relationshipKind);
+        }
+
+        if (desiredEntityId is not null)
+        {
+            context.CreateRelationship(
+                relationshipKind,
+                RelationshipPolarity.Neutral,
+                context.SelfEntityId,
+                desiredEntityId.Value,
+                1f);
+        }
+    }
+
+    private static EntityId? ResolveLocationEntityAtCell(
+        Behaviors.IWorldState worldState,
+        HexCoord coord,
+        EntityKind locationEntityKind,
+        EntityId? preferredEntityId)
+    {
+        var candidates = worldState.SpatialIndex.EntitiesAtCell(coord)
+            .Select(worldState.Graph.GetEntity)
+            .Where(entity => entity is not null &&
+                entity.Status == EntityStatus.Active &&
+                entity.Kind == locationEntityKind)
+            .Select(entity => entity!.Id)
+            .ToList();
+
+        if (preferredEntityId is not null && candidates.Contains(preferredEntityId.Value))
+        {
+            return preferredEntityId.Value;
+        }
+
+        return candidates.Count > 0 ? candidates[0] : null;
     }
 }
 
