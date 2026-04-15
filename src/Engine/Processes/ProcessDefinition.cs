@@ -75,6 +75,14 @@ public sealed class ProcessDefinition
     /// </summary>
     public HashSet<AttributeRef> ProviderSelectors { get; } = [];
 
+    /// <summary>
+    /// Planner contract: support opportunities that can improve this process's
+    /// downstream utility even when the process is not hard-blocked.
+    /// Example: a settlement can grow now, but irrigating first would improve
+    /// local food and make growth substantially better.
+    /// </summary>
+    public System.Collections.ObjectModel.Collection<PlannerSupportRule> SupportRules { get; } = [];
+
 
     public ProcessDefinition(
         string id,

@@ -7,12 +7,13 @@ using Engine.Kinds;
 using Engine.Map;
 using Engine.Messages;
 using Engine.Processes;
+using Engine.Resources;
 using Engine.Tests.Behaviors;
 
 public class NpcLoopDomainTests
 {
     [Fact]
-    public void TestDomain_HungryNpcGeneratesEatPlanWithMoveSubGoal()
+    public void TestDomain_HungryNpcGeneratesSustenancePlanWithMoveSubGoal()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -22,21 +23,21 @@ public class NpcLoopDomainTests
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 20f);
-        SetScalar(settlement, "stored_food", 10f);
+        SetAmbientFood(world, settlement, 5f);
 
         var generator = new GoalGenerator(config.Kinds, config.Processes);
         var goals = generator.Generate(npc, world);
 
-        var eatGoal = Assert.Single(goals, g => g.PlannedProcessId == "npc_eat" && !g.IsSubGoal);
+        var sustainGoal = Assert.Single(goals, g => g.PlannedProcessId == "npc_take_sustenance" && !g.IsSubGoal);
         var moveGoal = Assert.Single(goals, g => g.PlannedProcessId == "npc_move_to_target" && g.IsSubGoal);
 
-        Assert.Equal(settlement.Id, eatGoal.TargetEntityId);
+        Assert.Equal(settlement.Id, sustainGoal.TargetEntityId);
         Assert.Equal(settlement.Id, moveGoal.TargetEntityId);
-        Assert.Equal(eatGoal.Id, moveGoal.ParentGoalId);
+        Assert.Equal(sustainGoal.Id, moveGoal.ParentGoalId);
     }
 
     [Fact]
-    public void TestDomain_HungryNpcMovesTowardFoodSettlement()
+    public void TestDomain_HungryNpcMovesTowardSustenanceSettlement()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -46,7 +47,7 @@ public class NpcLoopDomainTests
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 20f);
-        SetScalar(settlement, "stored_food", 10f);
+        SetAmbientFood(world, settlement, 5f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
@@ -57,7 +58,7 @@ public class NpcLoopDomainTests
     }
 
     [Fact]
-    public void TestDomain_HungryNpcEatsWhenAlreadyAtFoodSettlement()
+    public void TestDomain_HungryNpcTakesSustenanceAtFoodRichSettlement()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -68,24 +69,43 @@ public class NpcLoopDomainTests
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 20f);
-        SetScalar(settlement, "stored_food", 10f);
+        SetAmbientFood(world, settlement, 5f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
 
-        Assert.Equal("Eat", npc.LastEvaluation!.ExecutedProcessName);
+        Assert.Equal("Take Sustenance", npc.LastEvaluation!.ExecutedProcessName);
         Assert.InRange(npc.Attributes.GetValue("hunger"), 6.8f, 9.2f);
-        Assert.Equal(9f, settlement.Attributes.GetValue("stored_food"), precision: 3);
+        Assert.True(settlement.Attributes.GetValue("prestige") > 0f);
     }
 
     [Fact]
-    public void TestDomain_CalmNpcWandersFromStandingDrive()
+    public void TestDomain_CalmNpcAttendsSettlementFromStandingDrive()
     {
         var config = TestDomain.Create();
-        var world = new StubWorldState(gridRadius: 5);
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Home", "c", 0, (0, 0));
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc.Id, settlement.Id, 1f, 0);
+        DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
+        world.SpatialIndex.RebuildFromGraph();
+
+        SetScalar(npc, "hunger", 0f);
+        var prestigeBefore = settlement.Attributes.GetValue("prestige");
+
+        var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
+        evaluator.Evaluate(npc, world);
+
+        Assert.Equal("Attend Settlement", npc.LastEvaluation!.ExecutedProcessName);
+        Assert.True(settlement.Attributes.GetValue("prestige") > prestigeBefore);
+    }
+
+    [Fact]
+    public void TestDomain_NpcWandersWhenNoNamedPlacesExist()
+    {
+        var config = TestDomain.Create();
+        var world = new StubWorldState(gridRadius: 5);
+        var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
@@ -96,11 +116,10 @@ public class NpcLoopDomainTests
 
         Assert.Equal("Wander", npc.LastEvaluation!.ExecutedProcessName);
         Assert.NotEqual((0, 0), npc.Coordinates);
-        Assert.Empty(world.Graph.OutgoingRelationships(npc.Id, "located_at"));
     }
 
     [Fact]
-    public void TestDomain_GrowBlockedSettlementStockpilesIntoStoredFoodWithoutConsumingAmbientFood()
+    public void TestDomain_LowFoodSettlementIrrigatesBeforeGrowing()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -109,16 +128,37 @@ public class NpcLoopDomainTests
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(settlement, "residents", 5f);
-        SetScalar(settlement, "stored_food", 0f);
-        SetAmbientFood(world, settlement, 6f);
+        SetAmbientFood(world, settlement, 0.5f);
         SetAmbientPopulation(world, settlement, 5f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(settlement, world);
 
-        Assert.Equal("Stockpile", settlement.LastEvaluation!.ExecutedProcessName);
-        Assert.True(settlement.Attributes.GetValue("stored_food") > 0f);
-        Assert.Equal(6f, GetAmbientFood(world, settlement), precision: 3);
+        Assert.Equal("Irrigate", settlement.LastEvaluation!.ExecutedProcessName);
+        Assert.True(GetAmbientFood(world, settlement) > 0.5f);
+    }
+
+    [Fact]
+    public void TestDomain_HealthySettlementGrowsDirectly()
+    {
+        var config = TestDomain.Create();
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
+        var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
+        DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
+        world.SpatialIndex.RebuildFromGraph();
+
+        SetScalar(settlement, "residents", 5f);
+        SetAmbientFood(world, settlement, 5f);
+        SetAmbientPopulation(world, settlement, 5f);
+        var residentsBefore = settlement.Attributes.GetValue("residents");
+        var ambientPopulationBefore = GetAmbientPopulation(world, settlement);
+
+        var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
+        evaluator.Evaluate(settlement, world);
+
+        Assert.Equal("Grow", settlement.LastEvaluation!.ExecutedProcessName);
+        Assert.True(settlement.Attributes.GetValue("residents") > residentsBefore);
+        Assert.True(GetAmbientPopulation(world, settlement) < ambientPopulationBefore);
     }
 
     private static EntityEvaluator CreateEvaluator(DomainConfig config, Random random)
@@ -134,7 +174,7 @@ public class NpcLoopDomainTests
         var scalar = Assert.IsType<Engine.Attributes.ScalarValue>(entity.Attributes[attributeName]);
         scalar.SetBase(value);
     }
-    
+
     private static void SetAmbientFood(StubWorldState world, Entity settlement, float value)
     {
         Assert.NotNull(world.Resources);
@@ -159,5 +199,13 @@ public class NpcLoopDomainTests
         world.Resources!.PopulationLayer.SetStockpile(
             new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R),
             value);
+    }
+
+    private static float GetAmbientPopulation(StubWorldState world, Entity settlement)
+    {
+        Assert.NotNull(world.Resources);
+        Assert.NotNull(settlement.Coordinates);
+        return world.Resources!.PopulationLayer.GetStockpile(
+            new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R));
     }
 }

@@ -99,7 +99,6 @@ public class ResourceSystemTests
         grid.SetCell(coord, TerrainType.Plains, fertility: 0.7f);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0f, 100000f, 10f));
-        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0f, 10000f, 0f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0f, 100f, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0f, 1000f, 5f));
         grid.GetCell(coord)!.AmbientFood = 4f;
@@ -141,7 +140,6 @@ public class ResourceSystemTests
         // Settlement A on fertile land
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 200));
-        sA.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 20));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
@@ -151,7 +149,6 @@ public class ResourceSystemTests
         // Settlement B on poor land
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 200));
-        sB.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);

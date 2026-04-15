@@ -36,7 +36,7 @@ public sealed class GoalGenerator
     /// <summary>
     /// Self-directed processes still need to exist as planning branches even when
     /// their provider reward is currently zero, because they may be unblocked by a
-    /// sub-goal (for example grow -> stockpile).
+    /// sub-goal or support action (for example grow -> irrigate).
     /// </summary>
     public float MinimumSelfDirectedReward { get; set; } = 1f;
 
@@ -273,16 +273,53 @@ public sealed class GoalGenerator
             if (precondition.Passed)
             {
                 var score = EvaluateProcessScore(process, entity, targetEntity, worldState);
-                if (score <= 0f)
+                var immediateUrgency = score > 0f
+                    ? weightedUrgency * MathF.Max(score, MinimumActionableScoreWeight)
+                    : 0f;
+
+                var supportPlan = depth < MaxPlanningDepth
+                    ? BuildBestSupportPlan(
+                        entity,
+                        worldState,
+                        process,
+                        targetEntity,
+                        parentGoal: goal,
+                        weightedUrgency: weightedUrgency,
+                        processScore: score,
+                        depth: depth + 1,
+                        visited: visited,
+                        trace: trace)
+                    : null;
+
+                if (supportPlan is not null && supportPlan.BestActionableUrgency > immediateUrgency)
+                {
+                    goal.Urgency = supportPlan.BestActionableUrgency;
+                    AppendTraceLine(trace, depth,
+                        $"support path selected over immediate action for process={process.Name} score={score:F3} support_leaf={supportPlan.BestActionableUrgency:F3}");
+
+                    var supportGoals = new List<EntityGoal> { goal };
+                    supportGoals.AddRange(supportPlan.Goals);
+                    return new GoalPlan(goal, supportGoals, supportPlan.BestActionableUrgency);
+                }
+
+                if (immediateUrgency <= 0f)
                 {
                     AppendTraceLine(trace, depth, $"passed preconditions but rejected process={process.Name}: score={score:F3}");
                     return null;
                 }
 
-                goal.Urgency = weightedUrgency * MathF.Max(score, MinimumActionableScoreWeight);
+                goal.Urgency = immediateUrgency;
                 goal.IsActionable = true;
-                AppendTraceLine(trace, depth,
-                    $"actionable process={process.Name} score={score:F3} final_urgency={goal.Urgency:F3}");
+                if (supportPlan is not null)
+                {
+                    AppendTraceLine(trace, depth,
+                        $"actionable process={process.Name} score={score:F3} final_urgency={goal.Urgency:F3} support_available={supportPlan.BestActionableUrgency:F3}");
+                }
+                else
+                {
+                    AppendTraceLine(trace, depth,
+                        $"actionable process={process.Name} score={score:F3} final_urgency={goal.Urgency:F3}");
+                }
 
                 return new GoalPlan(goal, [goal], goal.Urgency);
             }
@@ -337,6 +374,70 @@ public sealed class GoalGenerator
         {
             visited.Remove(new PlanKey(desiredEffect, targetEntityId, process.Id));
         }
+    }
+
+    private GoalPlan? BuildBestSupportPlan(
+        Entity entity,
+        IWorldState worldState,
+        ProcessDefinition process,
+        Entity targetEntity,
+        EntityGoal parentGoal,
+        float weightedUrgency,
+        float processScore,
+        int depth,
+        HashSet<PlanKey> visited,
+        StringBuilder trace)
+    {
+        GoalPlan? best = null;
+        var scoreHeadroom = 1f - Math.Clamp(processScore, 0f, 1f);
+        foreach (var rule in process.SupportRules)
+        {
+            var currentValue = EvaluateSupportCurrentValue(process, entity, targetEntity, worldState, rule);
+            if (rule.DesiredMinimum <= 0f)
+            {
+                continue;
+            }
+
+            var deficitRatio = Math.Clamp((rule.DesiredMinimum - currentValue) / rule.DesiredMinimum, 0f, 1f);
+            if (deficitRatio <= 0f)
+            {
+                continue;
+            }
+
+            var childBaseUrgency = weightedUrgency
+                * SubGoalUrgencyScale
+                * rule.UrgencyScale
+                * MathF.Max(deficitRatio, scoreHeadroom);
+            if (childBaseUrgency <= 0f)
+            {
+                continue;
+            }
+
+            AppendTraceLine(trace, depth,
+                $"support effect={DescribeEffect(rule.DesiredEffect)} current={currentValue:F3} desired={rule.DesiredMinimum:F3} deficit={deficitRatio:F3} child_base={childBaseUrgency:F3}");
+
+            var candidate = BuildBestPlanForBlocker(
+                entity,
+                worldState,
+                rule.DesiredEffect,
+                parentGoal,
+                childBaseUrgency,
+                depth,
+                visited,
+                trace);
+
+            if (candidate is null)
+            {
+                continue;
+            }
+
+            if (best is null || candidate.BestActionableUrgency > best.BestActionableUrgency)
+            {
+                best = candidate;
+            }
+        }
+
+        return best;
     }
 
     private GoalPlan? BuildBestPlanForBlocker(
@@ -480,6 +581,28 @@ public sealed class GoalGenerator
             process.Id,
             worldState);
         return MathF.Max(0f, process.ScoreExpression.Evaluate(
+            new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext)));
+    }
+
+    private static float EvaluateSupportCurrentValue(
+        ProcessDefinition process,
+        Entity entity,
+        Entity targetEntity,
+        IWorldState worldState,
+        PlannerSupportRule rule)
+    {
+        var desiredEffect = process.GoalEffects.FirstOrDefault()
+            ?? AttributeRef.StructuralFact("planning_probe", entity.Kind);
+        var expressionContext = new GoalCheckContext(
+            entity,
+            new EntityGoal(
+                desiredEffect: desiredEffect,
+                targetEntityId: targetEntity.Id,
+                urgency: 0f,
+                plannedProcessId: process.Id),
+            process.Id,
+            worldState);
+        return MathF.Max(0f, rule.CurrentValueExpression.Evaluate(
             new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext)));
     }
 

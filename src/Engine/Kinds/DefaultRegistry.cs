@@ -37,7 +37,6 @@ public static class DefaultRegistry
             attributes:
             [
                 new AttributeDefinition("residents", 0f, 100000f, 100f),
-                new AttributeDefinition("stored_food", 0f, 10000f, 0f),
                 new AttributeDefinition("security", 0f, 100f, 20f),
                 new AttributeDefinition("prestige", 0f, 100f, 10f),
             ],

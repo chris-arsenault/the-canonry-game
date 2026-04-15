@@ -32,55 +32,71 @@ public static class TestDomain
     {
         var processes = new List<ProcessDefinition>();
 
-        // Settlement: convert ambient local food potential into usable stored food.
-        var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
+        // Settlement: improve ambient local food potential. This is a support action
+        // that makes direct growth stronger without introducing a stockpile layer.
+        var irrigate = new ProcessDefinition("settlement_irrigate", "Irrigate",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsSelf(),
-                new LocationResourceThreshold(ResourceType.Food, min: 1f, max: null, plannerRelevant: false),
+                new LocationResourceThreshold(ResourceType.Food, min: null, max: 8f, plannerRelevant: false),
             ]),
-            Expr.Score(Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(10f)), 0.1f))
+            Expr.Score(
+                Expr.Div(
+                    Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Lit(8f), Expr.SelfLocationResource(ResourceType.Food))),
+                    Expr.Lit(8f))))
         {
             Cooldown = 2,
             EntityCooldown = 1,
-            RewardExpression = Expr.SelfLocationResource(ResourceType.Food),
+            RewardExpression = Expr.Max(
+                Expr.Lit(0f),
+                Expr.Sub(Expr.Lit(8f), Expr.SelfLocationResource(ResourceType.Food))),
             Mutations =
             {
-                new CalculateMutation(
-                    "stockpiled_food",
-                    Expr.Clamp(
-                        Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(2f)),
-                        Expr.Lit(1f),
-                        Expr.Lit(4f))),
-                new ModifySelfByVariableMutation("stored_food", "stockpiled_food", variance: 0.2f),
+                new ModifyLocationResourceMutation(ResourceType.Food, 2f, variance: 0.1f),
             },
         };
-        stockpile.GoalEffects.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
-        stockpile.Reads.Add(AttributeRef.Resource("food"));
-        stockpile.Writes.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
-        processes.Add(stockpile);
+        irrigate.GoalEffects.Add(AttributeRef.Resource("food"));
+        irrigate.Reads.Add(AttributeRef.Resource("food"));
+        irrigate.Writes.Add(AttributeRef.Resource("food"));
+        processes.Add(irrigate);
 
-        // Settlement: convert stored food and ambient population into residents.
+        // Settlement: direct growth from ambient conditions. Food remains a map-level
+        // affordance, not a concrete settlement store. Low food makes growth weak,
+        // so irrigation can become the planner-visible support step.
         var grow = new ProcessDefinition("settlement_grow", "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsSelf(),
-                new SelfAttributeThreshold("stored_food", min: 3f, max: null),
                 new LocationResourceThreshold(ResourceType.Population, min: 1f, max: null, plannerRelevant: false),
             ]),
-            Expr.Score(Expr.Div(Expr.Self("residents"), Expr.Lit(100f)), 0.1f))
+            Expr.Score(
+                Expr.Min(
+                    Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(4f)),
+                    Expr.Div(Expr.SelfLocationResource(ResourceType.Population), Expr.Lit(3f)))))
         { Cooldown = 5, EntityCooldown = 2,
-          RewardExpression = Expr.Lit(1.5f),
+          RewardExpression = Expr.Mul(
+              Expr.Max(Expr.Lit(0f), Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(4f))),
+              Expr.Max(Expr.Lit(0f), Expr.Div(Expr.SelfLocationResource(ResourceType.Population), Expr.Lit(2f)))),
           Mutations = {
-            new ModifySelfAttributeMutation("residents", 1f, variance: 0.3f),
-            new ModifySelfAttributeMutation("stored_food", -3f, variance: 0.2f),
+            new CalculateMutation(
+                "growth_amount",
+                Expr.Clamp(
+                    Expr.Min(
+                        Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(4f)),
+                        Expr.Div(Expr.SelfLocationResource(ResourceType.Population), Expr.Lit(2f))),
+                    Expr.Lit(0.5f),
+                    Expr.Lit(2f))),
+            new ModifySelfByVariableMutation("residents", "growth_amount", variance: 0.2f),
             new ModifyLocationResourceMutation(ResourceType.Population, -1f),
         } };
         grow.GoalEffects.Add(AttributeRef.Self("residents", EntityKind.Settlement));
-        grow.Reads.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
+        grow.SupportRules.Add(new PlannerSupportRule(
+            AttributeRef.Resource("food"),
+            Expr.SelfLocationResource(ResourceType.Food),
+            desiredMinimum: 4f));
+        grow.Reads.Add(AttributeRef.Resource("food"));
         grow.Reads.Add(AttributeRef.Resource("population"));
         grow.Writes.Add(AttributeRef.Self("residents", EntityKind.Settlement));
-        grow.Writes.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
         grow.Writes.Add(AttributeRef.Resource("population"));
         processes.Add(grow);
 
@@ -147,37 +163,71 @@ public static class TestDomain
         attract.Writes.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         processes.Add(attract);
 
-        // NPC: eat at a settlement with food. If not already there, movement becomes the
-        // planner-visible blocker through RelatedEntityMatchesTarget("located_at").
-        var eat = new ProcessDefinition("npc_eat", "Eat",
+        // NPC: invest time at a named settlement to satisfy sustainment.
+        // The settlement matters because it is a named place on a favorable hex,
+        // not because it owns a literal food stockpile.
+        var takeSustenance = new ProcessDefinition("npc_take_sustenance", "Take Sustenance",
             DefinitionRole.Process, EntityKind.Npc,
             new AndPrecondition([
                 new TargetIsNotSelf(),
                 new SelfAttributeThreshold("hunger", min: 5f, max: null, plannerRelevant: false),
                 new RelatedEntityMatchesTarget("located_at"),
-                new TargetAttributeThreshold("stored_food", min: 1f, max: null, plannerRelevant: false),
+                new LocationResourceThreshold(ResourceType.Food, min: 2f, max: null, targetLocation: true, plannerRelevant: false),
             ]),
-            Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(20f)), 0.05f))
+            Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(20f))))
         {
             Cooldown = 3,
             EntityCooldown = 1,
             RewardExpression = Expr.Div(
-                Expr.Target("residents"),
+                Expr.Mul(
+                    Expr.TargetLocationResource(ResourceType.Food),
+                    Expr.Add(Expr.Target("prestige"), Expr.Target("residents"))),
                 Expr.Add(Expr.Distance(), Expr.Lit(1f))),
             Mutations =
             {
                 new ModifySelfAttributeMutation("hunger", -12f, variance: 0.1f),
-                new ModifyTargetAttributeMutation("stored_food", -1f),
+                new ModifyTargetAttributeMutation("prestige", 0.1f, variance: 0.1f),
             },
         };
-        eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        eat.Reads.Add(AttributeRef.Target("stored_food", EntityKind.Settlement));
-        eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.Writes.Add(AttributeRef.Target("stored_food", EntityKind.Settlement));
-        processes.Add(eat);
+        takeSustenance.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        takeSustenance.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        takeSustenance.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        takeSustenance.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        takeSustenance.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        takeSustenance.Reads.Add(AttributeRef.Resource("food"));
+        takeSustenance.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        takeSustenance.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        processes.Add(takeSustenance);
+
+        // NPC: spend time in a settlement even when not urgently hungry. This keeps
+        // NPCs moving toward named places and lets their presence contribute.
+        var attendSettlement = new ProcessDefinition("npc_attend_settlement", "Attend Settlement",
+            DefinitionRole.Process, EntityKind.Npc,
+            new AndPrecondition([
+                new TargetIsNotSelf(),
+                new RelatedEntityMatchesTarget("located_at"),
+            ]),
+            Expr.Score(Expr.Lit(0.25f)))
+        {
+            Cooldown = 1,
+            EntityCooldown = 0,
+            RewardExpression = Expr.Div(
+                Expr.Add(Expr.Target("prestige"), Expr.Target("residents")),
+                Expr.Add(Expr.Distance(), Expr.Lit(1f))),
+            Mutations =
+            {
+                new ModifyTargetAttributeMutation("prestige", 0.2f, variance: 0.1f),
+                new ModifySelfAttributeMutation("hunger", -2f, variance: 0.1f),
+            },
+        };
+        attendSettlement.GoalEffects.Add(AttributeRef.StructuralFact("settlement_presence", EntityKind.Npc));
+        attendSettlement.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        attendSettlement.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        attendSettlement.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        attendSettlement.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        attendSettlement.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        attendSettlement.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        processes.Add(attendSettlement);
 
         // NPC: move toward the chosen settlement. This is intentionally the first cut
         // of a reusable movement enabler; the planner/presence abstraction will be
@@ -202,8 +252,8 @@ public static class TestDomain
         // NPC: low-urgency ambient motion when nothing more pressing dominates.
         var wander = new ProcessDefinition("npc_wander", "Wander",
             DefinitionRole.Process, EntityKind.Npc,
-            new SelfAttributeThreshold("hunger", min: null, max: 5f, plannerRelevant: false),
-            Expr.Score(Expr.Lit(0.2f), 0.05f))
+            new AlwaysTrue(),
+            Expr.Score(Expr.Lit(0.2f)))
         {
             Cooldown = 0,
             EntityCooldown = 0,
@@ -243,7 +293,6 @@ public static class TestDomain
                 Attributes =
                 [
                     new() { Name = "residents", Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
-                    new() { Name = "stored_food", Min = 0f, Max = 10000f, Default = 0f },
                     new() { Name = "security", Min = 0f, Max = 100f, Default = 20f },
                     new() { Name = "prestige", Min = 0f, Max = 1000f, Default = 5f, DefaultVariance = 0.8f },
                     new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
@@ -280,8 +329,13 @@ public static class TestDomain
                 [
                     new StandingDriveConfig
                     {
+                        DesiredEffect = AttributeRef.StructuralFact("settlement_presence", EntityKind.Npc),
+                        BaseUrgency = 0.04f,
+                    },
+                    new StandingDriveConfig
+                    {
                         DesiredEffect = AttributeRef.StructuralFact("roam", EntityKind.Npc),
-                        BaseUrgency = 0.03f,
+                        BaseUrgency = 0.015f,
                     },
                 ],
             },

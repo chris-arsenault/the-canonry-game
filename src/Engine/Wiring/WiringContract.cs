@@ -25,6 +25,12 @@ public sealed class WiringContract
     /// <summary>Planner-managed blockers inferred from the process precondition tree.</summary>
     public IReadOnlySet<AttributeRef> PlannerBlockers { get; }
 
+    /// <summary>
+    /// Planner-managed support effects that may be chosen to improve the utility
+    /// of an otherwise viable process.
+    /// </summary>
+    public IReadOnlySet<AttributeRef> PlannerSupportEffects { get; }
+
     /// <summary>True when the precondition tree contains planner logic that static validation cannot fully resolve.</summary>
     public bool HasOpaquePlannerBranches { get; }
 
@@ -35,6 +41,7 @@ public sealed class WiringContract
         IReadOnlySet<AttributeRef>? goalEffects = null,
         IReadOnlySet<AttributeRef>? providerSelectors = null,
         IReadOnlySet<AttributeRef>? plannerBlockers = null,
+        IReadOnlySet<AttributeRef>? plannerSupportEffects = null,
         bool hasOpaquePlannerBranches = false)
     {
         OwnerName = ownerName;
@@ -43,6 +50,7 @@ public sealed class WiringContract
         GoalEffects = goalEffects ?? new HashSet<AttributeRef>();
         ProviderSelectors = providerSelectors ?? new HashSet<AttributeRef>();
         PlannerBlockers = plannerBlockers ?? new HashSet<AttributeRef>();
+        PlannerSupportEffects = plannerSupportEffects ?? new HashSet<AttributeRef>();
         HasOpaquePlannerBranches = hasOpaquePlannerBranches;
     }
 }

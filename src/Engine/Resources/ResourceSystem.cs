@@ -6,10 +6,10 @@ using Engine.Map;
 /// <summary>
 /// Maintains ambient per-hex resource fields.
 /// The current model treats food, wealth, and population as map-level affordance
-/// values: what a place can support, not the concrete stockpiles actors directly
-/// consume. Named entities/processes convert these values into usable stores or
-/// outcomes. This system therefore initializes and preserves ambient map-state
-/// rather than running a settlement-centric economy.
+/// values: what a place can support, not a concrete actor-owned inventory layer.
+/// Named entities/processes turn these ambient conditions into concrete outcomes.
+/// This system therefore initializes and preserves ambient map-state rather than
+/// running a settlement-centric economy.
 /// </summary>
 public sealed class ResourceSystem
 {

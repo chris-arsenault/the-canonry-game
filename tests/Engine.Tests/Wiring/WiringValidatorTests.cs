@@ -169,6 +169,24 @@ public class WiringValidatorTests
         Assert.Empty(errors);
     }
 
+    [Fact]
+    public void Validate_DetectsUnreachablePlannerSupportEffect()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract(
+            "grow",
+            reads: new HashSet<AttributeRef> { AttributeRef.Resource("food") },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            plannerSupportEffects: new HashSet<AttributeRef> { AttributeRef.Resource("food") }));
+
+        var errors = validator.Validate();
+
+        Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableSupportEffect &&
+            e.Message.Contains("food", StringComparison.Ordinal));
+    }
+
     // --- Dead-end detection ---
 
     [Fact]
@@ -334,7 +352,7 @@ public class WiringValidatorTests
         validator.RegisterHealthAttribute(EntityKind.Settlement, "population");
 
         // NPC has complete wiring
-        validator.RegisterContract(new WiringContract("npc_eat",
+        validator.RegisterContract(new WiringContract("npc_sustain",
             reads: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) }));
         validator.RegisterContract(new WiringContract("npc_hunger",

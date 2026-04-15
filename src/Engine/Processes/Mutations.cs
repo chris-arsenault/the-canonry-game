@@ -119,7 +119,7 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
 
 /// <summary>
 /// Modifies an attribute on the resolved target entity (from the process-provider pair).
-/// e.g., NPC eats → target settlement loses stored food.
+/// e.g., NPC presence increases target settlement prestige.
 /// No-op if no target is resolved.
 /// </summary>
 public sealed class ModifyTargetAttributeMutation(string attributeName, float delta, float variance = 0f) : IMutation

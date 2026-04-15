@@ -118,6 +118,7 @@ public static class DomainLoader
                     goalEffects: procDef.GoalEffects,
                     providerSelectors: procDef.ProviderSelectors,
                     plannerBlockers: plannerAnalysis.PlannerBlockers,
+                    plannerSupportEffects: procDef.SupportRules.Select(r => r.DesiredEffect).ToHashSet(),
                     hasOpaquePlannerBranches: plannerAnalysis.HasOpaquePlannerBranches));
             }
         }

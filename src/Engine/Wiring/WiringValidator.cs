@@ -144,7 +144,21 @@ public sealed class WiringValidator
             }
         }
 
-        // 9. Planner goal effects must have at least one reachable chain to an actionable leaf.
+        // 9. Planner support effects must be satisfiable by some declared goal effect.
+        foreach (var contract in _contracts)
+        {
+            foreach (var supportEffect in contract.PlannerSupportEffects)
+            {
+                if (!allGoalEffects.ContainsKey(supportEffect))
+                {
+                    errors.Add(new WiringError(
+                        WiringErrorType.UnreachableSupportEffect,
+                        $"Planner support effect '{supportEffect}' declared by '{contract.OwnerName}' has no serving goal effect."));
+                }
+            }
+        }
+
+        // 10. Planner goal effects must have at least one reachable chain to an actionable leaf.
         foreach (var goalEffect in allGoalEffects.Keys)
         {
             if (!HasReachablePlannerPath(goalEffect, []))
@@ -256,6 +270,7 @@ public enum WiringErrorType
     NoCycle,
     GoalEffectNotWritten,
     UnreachableBlocker,
+    UnreachableSupportEffect,
     UnreachableGoalEffect,
 }
 

@@ -5,7 +5,7 @@ namespace Engine.Resources;
 /// </summary>
 public enum ResourceType
 {
-    /// <summary>Ambient food potential of a hex. Supports conversion actions such as stockpiling.</summary>
+    /// <summary>Ambient food potential of a hex. Biases sustainment and growth actions.</summary>
     Food,
 
     /// <summary>Ambient wealth potential of a hex. Shapes extraction and location desirability.</summary>

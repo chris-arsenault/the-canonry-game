@@ -79,7 +79,6 @@ public class PopulationResourceTests
         // Rich cell
         var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 1000));
-        rich.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
@@ -89,7 +88,6 @@ public class PopulationResourceTests
         // Poor cell
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 50));
-        poor.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
@@ -119,7 +117,6 @@ public class PopulationResourceTests
 
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "SA", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 1000));
-        sA.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
@@ -128,7 +125,6 @@ public class PopulationResourceTests
 
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "SB", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10));
-        sB.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
@@ -155,7 +151,6 @@ public class PopulationResourceTests
         var nation = graph.CreateEntity(EntityKind.Faction, "generic_faction", "N", "c", 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10f));
-        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, nation.Id, 1f, 0);

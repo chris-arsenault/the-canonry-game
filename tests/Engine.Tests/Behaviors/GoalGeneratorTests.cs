@@ -7,6 +7,7 @@ using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
 using Engine.Processes;
+using Engine.Resources;
 using Engine.Tests;
 using Engine.Wiring;
 
@@ -282,6 +283,59 @@ public class GoalGeneratorTests
     }
 
     [Fact]
+    public void Generate_SelectsSupportActionWhenImmediateProcessIsWeak()
+    {
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
+        var self = CreateSettlement(world, "Self", population: 10f, coordinates: (0, 0));
+        SetAmbientResource(world, self, ResourceType.Food, 0.5f);
+        SetAmbientResource(world, self, ResourceType.Population, 5f);
+
+        var grow = new ProcessDefinition(
+            "grow",
+            "Grow",
+            DefinitionRole.Process,
+            EntityKind.Settlement,
+            new AndPrecondition([
+                new TargetIsSelf(),
+                new LocationResourceThreshold(ResourceType.Population, min: 1f, max: null, plannerRelevant: false),
+            ]),
+            Expr.Score(Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(4f))));
+        grow.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        grow.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        grow.Reads.Add(AttributeRef.Resource("food"));
+        grow.Reads.Add(AttributeRef.Resource("population"));
+        grow.SupportRules.Add(new PlannerSupportRule(
+            AttributeRef.Resource("food"),
+            Expr.SelfLocationResource(ResourceType.Food),
+            desiredMinimum: 4f));
+
+        var irrigate = new ProcessDefinition(
+            "irrigate",
+            "Irrigate",
+            DefinitionRole.Process,
+            EntityKind.Settlement,
+            new TargetIsSelf(),
+            Expr.Score(
+                Expr.Div(
+                    Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Lit(8f), Expr.SelfLocationResource(ResourceType.Food))),
+                    Expr.Lit(8f))));
+        irrigate.GoalEffects.Add(AttributeRef.Resource("food"));
+        irrigate.Reads.Add(AttributeRef.Resource("food"));
+        irrigate.Writes.Add(AttributeRef.Resource("food"));
+
+        var generator = new GoalGenerator(CreateSettlementKinds("population"), [grow, irrigate]);
+        var goals = generator.Generate(self, world);
+
+        var root = Assert.Single(goals, g => !g.IsSubGoal && g.PlannedProcessId == "grow");
+        var child = Assert.Single(goals, g => g.IsSubGoal && g.PlannedProcessId == "irrigate");
+
+        Assert.False(root.IsActionable);
+        Assert.True(child.IsActionable);
+        Assert.Equal(AttributeRef.Resource("food"), child.DesiredEffect);
+        Assert.Equal(root.Id, child.ParentGoalId);
+    }
+
+    [Fact]
     public void Generate_UsesRelationshipPreconditionInPlannerContext()
     {
         var world = new StubWorldState(gridRadius: 5);
@@ -514,6 +568,24 @@ public class GoalGeneratorTests
     }
 
     private static string EffectName(EntityGoal goal) => goal.DesiredEffect.Name;
+
+    private static void SetAmbientResource(StubWorldState world, Entity entity, ResourceType resourceType, float value)
+    {
+        if (entity.Coordinates is null)
+        {
+            throw new InvalidOperationException("Entity has no coordinates.");
+        }
+
+        var coord = new Engine.Map.HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+        var layer = resourceType switch
+        {
+            ResourceType.Food => world.Resources!.Food,
+            ResourceType.Wealth => world.Resources!.Wealth,
+            ResourceType.Population => world.Resources!.PopulationLayer,
+            _ => throw new ArgumentOutOfRangeException(nameof(resourceType)),
+        };
+        layer.SetStockpile(coord, value);
+    }
 
     private static void SeedPressure(StubWorldState world, string pressureName, EntityId scopeId, float value)
     {
