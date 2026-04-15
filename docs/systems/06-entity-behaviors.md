@@ -114,6 +114,8 @@ The current NPC loop is intentionally simple but structurally aligned:
 
 This is a substitute loop, not the final NPC design. The important property is that movement is discovered as an enabler, not hardcoded as `eat -> move -> eat`.
 
+Process ideation for the next wave of behavior should follow the interface-first loop rules in [process_design.md](./process_design.md).
+
 ---
 
 ## Diagnostics and Validation
