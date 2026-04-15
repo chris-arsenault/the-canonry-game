@@ -1,100 +1,211 @@
 # Resources (MVP)
 
-Two-resource system: gold and soup. Properties of the map graph that flow between locations.
+The current resource system is an ambient hex-state model.
+
+The three MVP resource types are:
+
+- `food`
+- `wealth`
+- `population`
+
+They live on the map, not on entities.
 
 ---
 
-## Purpose
+## Core Intent
 
-Resources provide the material dimension that makes settlements, nations, and NPCs feel grounded. Without resources, population growth and settlement prosperity are abstract numbers. With resources, there's a tangible reason settlements grow (they have food), nations compete (they want wealth), and NPCs move (they seek sustenance).
+Resources are **possibility space**, not a standalone economy sim.
 
-Resources are properties of the MAP GRAPH, not the entity graph. They exist at locations and flow between connected locations. Entities interact with resources through their spatial position.
+They answer questions like:
 
----
+- what can this place support?
+- how favorable is this place for a process?
+- what background mass or capacity exists here?
+- what slow world-state can support actions modify?
 
-## The Two MVP Resources
-
-### Soup
-
-The primary sustenance resource. Settlements produce soup from regional fertility. Populations consume soup. Soup deficit causes population decline. Soup surplus attracts population.
-
-Soup is THE food resource for the Ice Remembers domain. It is not an abstraction -- it is literally soup. All food is soup. This is a ground truth of the domain.
-
-- **Produced by:** settlements, based on regional fertility and population (labor)
-- **Consumed by:** population at settlements (each population unit consumes N soup per tick)
-- **Surplus effect:** attracts population inflow, increases settlement prosperity attribute
-- **Deficit effect:** causes population decline, decreases prosperity, drives NPC hunger process
-
-### Gold
-
-The economic resource. Produced by trade, extracted from resources, accumulated through commerce. Gold enables construction, military strength, and political power.
-
-- **Produced by:** settlements with trade connections, settlements on resource-rich terrain, domain-specific production rules
-- **Consumed by:** military maintenance, development projects, faction operations (TBD specifics)
-- **Surplus effect:** increases development rate, enables card effects that require gold, attracts factions
-- **Deficit effect:** decreases military strength, slows development, faction instability
+They are meant to shape action choice, not become a giant autonomous subsystem of production chains and actor inventories.
 
 ---
 
-## Design Decisions
+## Principles
 
-### Resources are map-graph properties
+### 1. Ambient, not actor-owned
 
-Resources exist at map cells and flow along connections between settlements. They are NOT entity attributes. A settlement doesn't "have 200 soup" as an attribute -- the map cells the settlement occupies have a soup production rate, and the local soup supply is computed from production, consumption, and flow.
+Hex resources are ambient map-state values. They are not settlement attributes, NPC inventory, or faction wallets.
 
-This means:
-- Resource visualization is a MAP overlay (soup production heatmap, gold flow lines)
-- Resource state is spatial, not entity-bound
-- Moving a population to a different location changes their resource access automatically
+### 2. Named entities convert or exploit ambient state
 
-### Flow model
+Processes turn ambient conditions into concrete outcomes.
 
-Resources flow between connected settlements within the same nation. Surplus at one settlement flows toward deficit at another. Flow rate depends on:
-- Distance (further = slower, more loss)
-- Terrain between (roads speed flow, mountains slow it)
-- Connection quality (trade routes improve flow)
+Examples:
 
-Inter-nation flow requires trade-related cards (post-MVP for full implementation, but basic flow within a nation is MVP).
+- a settlement grows because local `food` and `population` make growth possible
+- `Irrigate` raises ambient `food` so later growth becomes better
+- an NPC can remain in rich terrain longer because hunger grows more slowly there
+- an artifact may eventually move only through hexes with enough ambient `population`
 
-### Resources feed into existing systems
+### 3. Resources should bias and gate, not dominate
 
-Resources don't create their own behavioral layer. They feed into existing systems:
-- **Settlement behaviors:** population growth/decline driven by soup surplus/deficit
-- **Nation behaviors:** economic pressure driven by gold surplus/deficit across controlled settlements
-- **NPC behaviors:** hunger process driven by local soup availability
-- **Pressure:** resource surplus/deficit feeds into economic stress pressure computation
-- **Card preconditions:** cards can check resource levels ("fire when soup deficit in region exceeds N")
+The resource layer exists to:
 
-### Two resources is the MVP floor
+- bias utility
+- gate actions
+- provide support targets
+- represent unnamed background forces
 
-Gold and soup are the minimum that creates interesting economic dynamics:
-- Settlements must produce soup or decline (survival pressure)
-- Settlements must generate gold or stagnate (development pressure)
-- A settlement rich in soup but poor in gold has different strategic value than the reverse
-- Trade (when cards enable it) creates interdependence: a gold-rich settlement trades with a soup-rich one
+It is not meant to become the main game loop by itself.
 
-Post-MVP resources (materials, strategic resources, luxury goods) can be added by the domain without architectural changes.
+### 4. Keep ambient and concrete semantics distinct
+
+The design must preserve the difference between:
+
+- `possible here`
+- `available now`
+
+Right now MVP mostly uses the first. If the game later truly needs the second, it should be added deliberately rather than smuggled in as ad hoc settlement attributes.
+
+---
+
+## Current Implementation
+
+### Resource fields
+
+The engine currently exposes three per-hex resource layers:
+
+- `food`
+- `wealth`
+- `population`
+
+These are stored in `ResourceLayer` and managed by `ResourceSystem`.
+
+### Map generation
+
+Map generation seeds resource values directly from terrain-specific variance bands.
+
+Examples:
+
+- plains have higher `food` and `population`
+- tundra has lower `food`
+- mountains tend to be low `food` but better `wealth`
+
+This is done at hex generation time, not derived from settlement presence.
+
+### Runtime behavior
+
+The MVP runtime currently preserves those seeded ambient fields rather than running a settlement-centric production/consumption economy every tick.
+
+That means:
+
+- no automatic intra-faction flow economy
+- no settlement-driven resource derivation pass
+- no actor-owned stockpile layer in the core engine
+
+Processes and systems can still read and mutate ambient resource values.
+
+---
+
+## How Resources Affect Behavior Today
+
+### Settlements
+
+Settlements currently use ambient resources directly.
+
+- `Grow` consumes ambient local `population`
+- `Grow` depends on ambient local `food`
+- `Irrigate` increases ambient local `food`
+
+This gives the first support-planning chain:
+
+```text
+Want residents
+  -> Grow is weak
+  -> Irrigate improves local food
+  -> better food makes Grow better later
+```
+
+### NPCs
+
+NPC hunger now uses ambient food in two different ways:
+
+- ambient `food` at the NPC's location slows hunger growth
+- `Eat` must still happen at a named settlement and provides the strong negative hunger correction
+
+So a rich grassland lets an NPC stay out longer, but it does not replace the need to return to a named place eventually.
+
+### Future examples already supported by the model
+
+The intended use of resources includes cases like:
+
+- artifacts moving only through hexes with enough ambient `population`
+- factions preferring or taxing high-`wealth` territory
+- support actions improving ambient fields because they make later actions better
+
+Those are aligned with the model even if they are not all implemented yet.
+
+---
+
+## Resource Roles by Type
+
+### `food`
+
+Current role:
+
+- sustainment quality of place
+- growth support input
+- planner threshold and support target
+
+### `wealth`
+
+Current role:
+
+- desirability / future extraction potential
+- future faction and settlement projection input
+
+### `population`
+
+Current role:
+
+- ambient background populace on a hex
+- unnamed labor / carry capacity / support substrate
+
+This is intentionally different from settlement `residents`, which is concentrated named settlement population.
+
+---
+
+## What The Resource System Is Not
+
+The current MVP resource system is **not**:
+
+- a trade simulator
+- a settlement stockpile economy
+- a faction redistribution system
+- a general-purpose inventory model
+
+Those may become useful later, but they should only be added if they serve actual gameplay needs and preserve the ambient-resource distinction.
 
 ---
 
 ## Interactions with Other Systems
 
-| System | How Resources Interacts |
-|--------|------------------------|
-| Map/Spatial (#4) | Resources are map-graph properties. Terrain determines base production. Connectivity determines flow paths. |
-| Entity Behaviors (#6) | Settlement growth driven by soup. NPC hunger driven by local soup. Nation pressure driven by gold. |
-| Pressure (#11) | Resource surplus/deficit feeds into economic stress pressure. |
-| Card Executors (#16-18) | Cards can check resource levels as preconditions. Cards can modify resource production/flow. Trade cards enable inter-nation resource flow. |
-| Lifecycle (#9) | Population decline from sustained soup deficit accelerates settlement aging toward ruin. |
-| Narrative Domain (#19) | Resource types, production rules, and consumption rates are domain-defined. "Soup" is an Ice Remembers domain choice. Another domain might call its sustenance resource something else. |
-| Event Log | "Famine in Frosthollow: soup deficit for 10 ticks" |
+| System | Current interaction |
+|--------|---------------------|
+| Map / Spatial | Terrain seeds ambient resource values per hex. |
+| Entity Behaviors | Processes read and mutate ambient resources as thresholds, utility inputs, and support targets. |
+| Planner | Resource refs can appear in goal effects, preconditions, and support rules. |
+| Lifecycle | Ambient food currently influences hunger drift through a dedicated location-resource drift system. |
+| UI | Hover tooltip shows live per-hex ambient resource values. |
 
 ---
 
-## Open Questions (Deferred)
+## Near-Term Direction
 
-- **Exact production/consumption rates.** How much soup a settlement produces per population per tick. How much gold. Needs playtesting.
-- **Flow mechanics.** How resource flow between settlements is computed. Whether flow is instant (deficit immediately draws from surplus) or gradual (flow rate per tick). Gradual is more realistic but adds complexity.
-- **Gold consumption specifics.** What exactly consumes gold. Military? Development? Faction operations? The consumption model determines what creates gold pressure.
-- **Map cell vs settlement level.** Do resources track per-cell or per-settlement? Per-cell is more granular but more expensive. Per-settlement is simpler.
-- **Stockpiles.** Whether settlements accumulate surplus as stockpiles (buffering against future deficit). MVP might skip stockpiles and use pure flow rates. Stockpiles add interesting dynamics (saving for winter) but also complexity.
+The current model is intentionally light.
+
+Near-term expansion should preserve the same principles:
+
+- slow environmental change is good
+- support actions that improve ambient fields are good
+- named entities converting ambient state into concrete outcomes is good
+- introducing a full autonomous economy just because the engine can do it is not
+
+If the game later needs explicit named-location stores or services, that should be treated as a deliberate new layer, not a silent return to settlement-owned pseudo-resource attributes.

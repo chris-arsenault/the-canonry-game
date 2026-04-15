@@ -86,15 +86,15 @@ The simulation operates at three layers within each entity's tick evaluation, pl
 
 ### Layer 1: Physics (Automatic, Unconditional)
 
-Runs for every active entity every tick. Not selected, not scored, not skipped. Lifecycle drain, relationship drift, resource production/consumption, population flow. Implemented by dedicated engine systems (LifecycleSystem, RelationshipSystem, ResourceSystem). Physics sets conditions.
+Runs for every active entity every tick. Not selected, not scored, not skipped. Lifecycle drain, ambient location-resource drift, maintenance, relationship drift, and ambient resource preservation all live here. Implemented by dedicated engine systems. Physics sets conditions.
 
-### Layer 2: Processes (Utility AI, Always Available)
+### Layer 2: Processes (Planner + Utility AI)
 
-The mundane, granular, always-on activities. Eat, move, rest, harvest, repair, degrade, accumulate. ALL entity kinds participate. Selected via utility AI with weighted random from all viable candidates (no top-N cap). One process fires per entity per tick. Processes are **multi-effect and cross-entity** -- an NPC eating reduces its hunger AND the settlement's food. Processes produce tendencies and incremental changes. They do NOT produce outcomes.
+The mundane, granular, always-on activities. Eat, move, rest, harvest, repair, degrade, accumulate. ALL active entity kinds participate. The planner first builds bounded goal trees from deficits, standing drives, blockers, and support rules; then the evaluator selects one actionable process leaf. One process fires per entity per tick. Processes are multi-effect and may be cross-entity. They produce local changes and conditions, not global outcomes.
 
 ### Layer 3: Decisions (Utility AI, Card-Gated)
 
-The significant, world-changing actions. Declare war, forge alliance, expand borders, wield artifact. Only exist when the player has placed the enabling Action card in the tableau. ALL entity kinds participate. One decision fires per entity per tick (independent of the process). Decisions consume population (the universal action currency). They nearly always create new relationships or entities. Removing the card removes the possibility entirely.
+The significant, world-changing actions. Declare war, forge alliance, expand borders, wield artifact. They share the same definition model as processes. The intended runtime model is still card-gated decision availability, though the full tableau-driven availability wiring remains deferred.
 
 ### Card Execution (Mid-Altitude)
 
@@ -105,9 +105,9 @@ Generator and System cards operate on the AGGREGATE EFFECTS of low-level simulat
 The canonry declared high-level outcomes and hoped coherence emerged downward. This game simulates low-level behaviors and lets cards define what the aggregate means. Coherence comes from the bottom up, not the top down.
 
 The hierarchy:
-1. Physics produces raw state changes (entropy, drift, flow)
-2. Processes produce CONDITIONS (pressure, tension, accumulation, deficit) through always-on entity activity
-3. Decisions define WHAT CONDITIONS MEAN for entities that act (card-gated significant actions)
+1. Physics produces raw state changes (drift, decay, ambient conditions)
+2. Processes produce conditions through planner-driven low-altitude activity
+3. Decisions define what those conditions mean for entities that act
 4. Card execution (generators, systems) defines WHAT CONDITIONS MEAN at the world level
 5. Outcomes EMERGE from the interaction of all layers
 
@@ -128,7 +128,7 @@ Time management. Drives everything.
 - Tick phases: within a single tick, systems execute in a defined order
 
 **Tick phase order (within a single tick):**
-1. Physics: lifecycle drain, relationship drift, resource production/consumption, population flow (automatic, unconditional)
+1. Physics: lifecycle drain, relationship drift, ambient resource drift, maintenance, and other automatic systems
 2. Process selection and execution: utility AI selects one process per entity, executes mutations (always available)
 3. Decision selection and execution: utility AI selects one decision per entity, executes mutations (card-gated only)
 4. Pressure recomputation: aggregates low-altitude state from phases 1-3
@@ -143,27 +143,28 @@ Time management. Drives everything.
 
 Each entity kind participates in a three-layer behavioral model that runs per entity per tick:
 
-1. **Physics** (automatic, unconditional): lifecycle drain, relationship drift, resource flow. Dedicated engine systems. Not scored, not selected.
-2. **Processes** (utility AI, always available): mundane activities. One selected per entity per tick via weighted random from all viable candidates.
-3. **Decisions** (utility AI, card-gated): significant actions. One selected per entity per tick. Only available when enabling Action card is in the tableau.
+1. **Physics** (automatic, unconditional): lifecycle drain, relationship drift, ambient resource drift, and maintenance. Dedicated engine systems. Not scored, not selected.
+2. **Processes** (planner + utility AI): mundane activities. The planner builds bounded goal trees from deficits and standing drives; the evaluator executes one actionable process leaf per entity per tick.
+3. **Decisions** (same definition model, card-gated): significant actions. Runtime tableau-driven decision availability is still a deferred integration step.
 
-**Design principle:** Processes produce TENDENCIES and CONDITIONS. They do not produce OUTCOMES. A nation's border tension increases through processes. What HAPPENS because of that tension (war, isolation, diplomacy) is decision/card territory.
+**Design principle:** Processes produce tendencies, conditions, and local changes. They are low-altitude behavior, not global outcomes.
 
-**Design principle:** This system is NOT NPC-centric. Nations are the primary drivers of interesting macro-dynamics. NPCs are one entity kind among many. ALL entity kinds participate in ALL three layers. The base architecture is kind-agnostic.
+**Design principle:** This system is not NPC-centric. All active entity kinds participate in the same runtime model. The engine is kind-agnostic.
 
-**Design principle:** Processes and decisions are DATA, not code. They are defined in the domain config using the same DSL as cards (preconditions, scoring expressions, mutations, wiring contracts). The engine interprets them. Changing a process = changing data, not recompiling. See `docs/systems/06-entity-behaviors.md` for the full three-layer model, data-driven definition, cross-kind interaction, and wiring validation.
+**Design principle:** Processes and decisions are data, not code. They are defined in the domain config and interpreted by the engine. See `docs/systems/06-entity-behaviors.md` for the behavior stack and `docs/systems/planner.md` for the detailed planning model.
 
-**Design principle:** Processes are MULTI-EFFECT and CROSS-ENTITY. Wiring contracts declare Self-scoped and Target-scoped attribute refs. Processes with Target refs operate on other entities via the goal system's provider resolution. The engine is agnostic to whether a process acts on the entity itself or on another entity — the mutations determine what gets modified, the goal determines the target context. No per-kind behavioral code exists in the engine.
+**Design principle:** Processes are multi-effect and can be cross-entity. Planner contracts (`GoalEffects`, `ProviderSelectors`, blockers, support rules) and execution contracts (`Reads`, `Writes`, `Mutations`) are all declared on `ProcessDefinition`.
 
-**Design principle:** Provider scoring is PROCESS-DEFINED. Each process that operates on target entities declares how to score candidate providers via an expression. The expression evaluates against each candidate's attributes. Distance, attribute comparisons, and semantic plane data are available but none are assumed by the engine.
+**Design principle:** Provider scoring is process-defined. Target candidates are weighted by the process's reward expression; the engine does not hardcode settlement, NPC, faction, or artifact logic.
 
 #### Process Examples (Domain-Defined, Not Engine-Level)
 
 These are examples of how the TestDomain defines processes. They are data, not engine code:
-- **Stockpile** (Settlement): writes sustenance. No target scope — operates on entity itself.
-- **Grow** (Settlement): reads sustenance, writes population. Precondition: sustenance threshold.
-- **Propaganda** (Settlement): writes target's ideology. Target scope — provider found by expression scoring.
-- **Attract** (Settlement): writes population on both entities. Target scope — provider scored by fame/ideology expression.
+- **Grow** (Settlement): increases `residents` using ambient local `food` and `population`
+- **Irrigate** (Settlement): increases ambient local `food`, often as a support action for later growth
+- **Propaganda** (Settlement): shifts a target settlement's ideology
+- **Attract Population** (Settlement): steals `residents` from another settlement when prestige and ideology line up
+- **Eat / Move To Target / Wander** (NPC): a simple substitute loop showing multi-step movement without hardcoded chains
 
 Entity kinds differ only in what processes the domain registers for them, not in engine behavior.
 
@@ -173,9 +174,9 @@ Entity kinds differ only in what processes the domain registers for them, not in
 
 Architecture supports additional kinds without structural changes: Monsters/Creatures, Legendary Vehicles/Ships, Religious Orders/Institutions. Not MVP.
 
-**MVP scope (5 entity kinds):** Region, Settlement, Nation, NPC, Artifact. All participate in all three behavioral layers.
+**MVP scope (5 entity kinds):** Region, Settlement, Faction, NPC, Artifact. All participate in the shared behavior stack.
 
-**Post-MVP kinds:** Point of Interest, Faction, Monster, Transportation, Ability, Occurrence. See `docs/systems/entity-kind-registry.md`.
+**Post-MVP kinds:** Point of Interest, Monster, Transportation, Ability, Occurrence. See `docs/systems/entity-kind-registry.md`.
 
 ### 7. Relationships
 
@@ -199,16 +200,26 @@ Fine-grained, always-on relationship dynamics between entities.
 
 **MVP scope:** Core implementation with basic modifiers (proximity, shared culture, competing claims, resource competition).
 
-### 8. Resources (MVP: Gold and Soup)
+### 8. Resources (MVP: Ambient Hex Resources)
 
-Two-resource system for MVP: gold (economic) and soup (sustenance). Resources are properties of the MAP GRAPH, not the entity graph. They flow between connected settlements within a nation.
+The MVP resource model uses three ambient per-hex fields:
 
-- Soup: produced from regional fertility + population labor. Consumed by population. Deficit = population decline. Surplus = growth.
-- Gold: produced from trade and resource-rich terrain. Consumed by military, development, factions. Deficit = stagnation. Surplus = power.
+- `food`
+- `wealth`
+- `population`
 
-Resources feed into existing systems (settlement behaviors, NPC hunger, pressure, card preconditions) rather than creating their own behavioral layer.
+These are properties of the map graph, not entity attributes.
 
-See `docs/systems/resources-mvp.md` for full design. See `docs/systems/08-resources-economy-POST-MVP.md` for expanded multi-resource system (3-6 types, post-MVP).
+They represent what a place can support, not a concrete actor-owned inventory layer. Processes read and modify them as thresholds, utility inputs, support targets, and background mass.
+
+Examples:
+
+- ambient `food` slows NPC hunger growth
+- `Eat` still requires a named settlement for strong negative hunger
+- `Grow` depends on ambient local `food` and `population`
+- `Irrigate` increases ambient local `food` to improve later growth
+
+See `docs/systems/resources-mvp.md` for the current implementation and design intent. See `docs/systems/08-resources-economy-POST-MVP.md` for the future expansion principles.
 
 ### 9. Lifecycle
 
@@ -218,7 +229,7 @@ Aging, death, growth, decay. The passage of time affects entities.
 - Heroes age. They have a lifespan. They die of old age if nothing else kills them.
 - Settlements grow when prosperous (population increases via attraction) and shrink when not.
 - Artifacts degrade over time (condition decreases) unless maintained.
-- All entity kinds have a time-dependent lifecycle drain function. Nations lose cohesion over time. Factions lose organizational coherence. See System 9 (Lifecycle).
+- All entity kinds have a time-dependent lifecycle drain function. Factions lose cohesion over time. See System 9 (Lifecycle).
 - Prominence decays for all entities unless actively maintained (this is the always-on sink). **POST-MVP: prominence system is deferred.**
 
 **MVP scope:** Time-since-creation aging function per entity kind. Settlement population decline from age, entity aging/death, artifact degradation. Prominence decay is post-MVP. All entity kinds have lifecycle behaviors from day one.
@@ -468,15 +479,15 @@ See `docs/systems/19-narrative-domain.md` for full design.
 
 ## MVP Priority Order (Revised)
 
-**MVP entity kinds: Region, Settlement, Nation, NPC, Artifact.** The remaining 7 kinds (Region, Point of Interest, Faction, Monster, Transportation, Ability, Occurrence) are formalized but deferred to post-MVP. See `docs/systems/entity-kind-registry.md`.
+**MVP entity kinds: Region, Settlement, Faction, NPC, Artifact.** Additional kinds such as Point of Interest, Monster, Transportation, Ability, and Occurrence remain deferred. See `docs/systems/entity-kind-registry.md`.
 
-**Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using the 5 MVP entity kinds (Region, Settlement, Nation, NPC, Artifact) with placeholder subtypes and cards. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
+**Phase 1: Engine + card executor stubs with generic test content.** Build and validate the domain-agnostic engine using the 5 MVP entity kinds (Region, Settlement, Faction, NPC, Artifact) with placeholder subtypes and cards. Includes card executor and tableau stubs so we can programmatically place test cards and observe their effects -- no deck/hand/draw mechanics yet, just "put this card in the tableau and see what happens."
 
-1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with 5 MVP kinds (Region, Settlement, Nation, NPC, Artifact) and generic subtypes
+1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation with 5 MVP kinds (Region, Settlement, Faction, NPC, Artifact) and generic subtypes
 2. **Map / Spatial** -- hex grid, fixed test map (procedural generation post-Phase 1)
 3. **Tick Clock** -- time advancement with speed control
-4. **Resources (Gold + Soup)** -- two-resource flow system on the map graph
-5. **Entity Behaviors (MVP kinds)** -- settlement growth/decline, nation border tension/resource flow, NPC needs/movement, artifact degradation/resonance
+4. **Resources (ambient hex fields)** -- `food`, `wealth`, and `population` as map-state possibility space
+5. **Entity Behaviors (MVP kinds)** -- settlement growth/support actions, faction cohesion/influence, NPC needs/movement, artifact degradation/compulsion
 6. **Relationships + Lifecycle** -- basic game physics with generic relationship kinds
 7. **Pressure** -- a few generic pressure types bridging low to mid altitude
 8. **Tableau + Mana (stub)** -- active card slots and mana pool. Cards placed programmatically for testing.
@@ -487,7 +498,7 @@ See `docs/systems/19-narrative-domain.md` for full design.
 
 **Initial world state:** A single fixed configuration defined programmatically. One map, one set of starting entities and relationships, always the same. Modifiable through code for different test scenarios.
 
-Phase 1 produces: a living world with low-altitude physics (including resource flow), visible pressure, an event log, AND the ability to place test cards and observe their mid-altitude effects. Validates the entire altitude model end-to-end.
+Phase 1 produces: a living world with low-altitude physics, ambient map resources, visible pressure, an event log, AND the ability to place test cards and observe their mid-altitude effects. Validates the entire altitude model end-to-end.
 
 **Phase 2: Narrative Domain definition.** Define The Ice Remembers domain package: specific subtypes, specific cards, specific pressures, specific ground truths, naming rules. Content creation informed by the validated engine.
 

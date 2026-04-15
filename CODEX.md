@@ -131,9 +131,9 @@ No planner or execution code should reach backward in the tick or rely on ambigu
 
 ## Current Refactor Direction
 
-The current planner refactor is tracked on GitHub project `#2` and issue tree `#84` through `#108`.
+The original planner refactor body is complete. New work should preserve that architecture rather than reopening compatibility-oriented changes.
 
-Codex should align implementation decisions with that issue tree:
+Current behavior/resource work should continue to align with these completed principles:
 
 - unify planning/execution around `ProcessDefinition`
 - add explicit planner contracts
@@ -143,7 +143,7 @@ Codex should align implementation decisions with that issue tree:
 - align validation/observability/tests
 - make card-gated decisions runtime-driven
 
-Do not implement around these issues. Implement through them.
+Deferred follow-up work is now tracked as standalone backlog items in GitHub project `#2` rather than under the old umbrella.
 
 ## Workflow Rules
 
@@ -171,8 +171,9 @@ If a task is not yet ticketed and is large enough to matter architecturally, tic
 
 Before declaring a planner change complete:
 
-- run targeted tests for the changed area
-- run broader integration tests when the change crosses subsystem boundaries
+- default to `make ci` as the single verification pass
+- do not run separate `dotnet build` / `dotnet test` commands and then run `make ci` again in the same normal flow
+- use narrower commands only when debugging a failure, shortening a tight edit loop, or isolating a specific broken area before the final `make ci`
 - prefer updating tests that currently encode the wrong architecture rather than preserving them
 
 If a current test suite validates obsolete behavior, revise the tests to validate the intended architecture.
