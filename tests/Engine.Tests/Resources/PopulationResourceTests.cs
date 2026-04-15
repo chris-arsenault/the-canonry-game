@@ -8,13 +8,10 @@ using Engine.Resources;
 public class PopulationResourceTests
 {
     [Fact]
-    public void Population_InitializesFromHabitability()
+    public void Population_InitializesFromCellSeed()
     {
-        var (system, _) = CreateSystem(fertility: 0.9f);
-        var poorSystem = CreateSystem(fertility: 0.1f).System;
-
-        system.Tick(1);
-        poorSystem.Tick(1);
+        var (system, _, _) = CreateSystem(ambientPopulation: 9f);
+        var poorSystem = CreateSystem(ambientPopulation: 1f).System;
 
         var coord = new HexCoord(0, 0);
         Assert.True(system.GetPopulation(coord) > poorSystem.GetPopulation(coord));
@@ -23,8 +20,7 @@ public class PopulationResourceTests
     [Fact]
     public void Population_RemainsStableAcrossTicksWithoutActions()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f);
-        system.Tick(1);
+        var (system, _, _) = CreateSystem(ambientPopulation: 5f);
         var coord = new HexCoord(0, 0);
         var before = system.GetPopulation(coord);
 
@@ -37,8 +33,7 @@ public class PopulationResourceTests
     [Fact]
     public void ConsumePopulation_ReducesPopulation()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f, ambientPopulation: 500f);
-        system.Tick(1);
+        var (system, _, _) = CreateSystem(ambientPopulation: 500f);
 
         var coord = new HexCoord(0, 0);
         var before = system.GetPopulation(coord);
@@ -52,8 +47,7 @@ public class PopulationResourceTests
     [Fact]
     public void ConsumePopulation_ClampsToAvailable()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f, ambientPopulation: 100f);
-        system.Tick(1);
+        var (system, _, _) = CreateSystem(ambientPopulation: 100f);
 
         var coord = new HexCoord(0, 0);
         var available = system.GetPopulation(coord);
@@ -67,8 +61,7 @@ public class PopulationResourceTests
     [Fact]
     public void HasMinimumPopulation_ChecksThreshold()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f, ambientPopulation: 200f);
-        system.Tick(1);
+        var (system, _, _) = CreateSystem(ambientPopulation: 200f);
 
         var coord = new HexCoord(0, 0);
         Assert.True(system.HasMinimumPopulation(coord, 50f));
@@ -91,6 +84,7 @@ public class PopulationResourceTests
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
+        grid.GetCell(new HexCoord(0, 0))!.AmbientPopulation = 8f;
 
         // Poor cell
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
@@ -100,9 +94,9 @@ public class PopulationResourceTests
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
+        grid.GetCell(new HexCoord(1, 0))!.AmbientPopulation = 1f;
 
         var system = new ResourceSystem(graph, grid);
-        system.Tick(1);
         system.PopulationLayer.SetStockpile(new HexCoord(0, 0), 100f);
         system.PopulationLayer.SetStockpile(new HexCoord(1, 0), 5f);
         system.Tick(2);
@@ -130,6 +124,7 @@ public class PopulationResourceTests
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
+        grid.GetCell(new HexCoord(0, 0))!.AmbientPopulation = 8f;
 
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "SB", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10));
@@ -138,9 +133,9 @@ public class PopulationResourceTests
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
+        grid.GetCell(new HexCoord(2, 0))!.AmbientPopulation = 1f;
 
         var system = new ResourceSystem(graph, grid);
-        system.Tick(1);
 
         system.PopulationLayer.SetStockpile(new HexCoord(0, 0), 100f);
         system.PopulationLayer.SetStockpile(new HexCoord(2, 0), 5f);
@@ -151,8 +146,8 @@ public class PopulationResourceTests
 
     // --- Helper ---
 
-    private static (ResourceSystem System, WorldGraph Graph) CreateSystem(
-        float fertility = 0.5f, float ambientPopulation = -1f)
+    private static (ResourceSystem System, WorldGraph Graph, HexGrid Grid) CreateSystem(
+        float ambientPopulation = 5f)
     {
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
@@ -164,15 +159,11 @@ public class PopulationResourceTests
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, nation.Id, 1f, 0);
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: fertility);
+        var coord = new HexCoord(0, 0);
+        grid.SetCell(coord, TerrainType.Plains, fertility: 0.5f);
+        grid.GetCell(coord)!.AmbientPopulation = ambientPopulation;
 
         var system = new ResourceSystem(graph, grid);
-        if (ambientPopulation >= 0f)
-        {
-            system.Tick(1);
-            system.PopulationLayer.SetStockpile(new HexCoord(0, 0), ambientPopulation);
-        }
-
-        return (system, graph);
+        return (system, graph, grid);
     }
 }

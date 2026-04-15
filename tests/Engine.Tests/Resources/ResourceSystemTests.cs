@@ -69,30 +69,25 @@ public class ResourceSystemTests
     // --- ResourceSystem: ambient initialization ---
 
     [Fact]
-    public void System_InitializesAmbientFoodFromTerrainFertility()
+    public void System_InitializesAmbientFoodFromMapSeed()
     {
-        var (system, _) = CreateTestSystem();
+        var (system, _, grid) = CreateTestSystem();
 
-        system.Tick(1);
+        var coord = new HexCoord(0, -2);
+        var cell = grid.GetCell(coord)!;
 
-        var fertile = new HexCoord(0, -2);
-        var barren = new HexCoord(0, 4);
-
-        Assert.True(system.Food.GetStockpile(fertile) > system.Food.GetStockpile(barren));
+        Assert.Equal(cell.AmbientFood, system.Food.GetStockpile(coord));
     }
 
     [Fact]
-    public void System_InitializesAmbientWealthFromTerrain()
+    public void System_InitializesAmbientWealthFromMapSeed()
     {
-        var (system, _) = CreateTestSystem();
+        var (system, _, grid) = CreateTestSystem();
 
-        system.Tick(1);
+        var coord = new HexCoord(0, -2);
+        var cell = grid.GetCell(coord)!;
 
-        var land = new HexCoord(0, -2);
-        var water = new HexCoord(0, 4);
-
-        Assert.True(system.Wealth.GetStockpile(land) > 0f);
-        Assert.Equal(0f, system.Wealth.GetStockpile(water));
+        Assert.Equal(cell.AmbientWealth, system.Wealth.GetStockpile(coord));
     }
 
     [Fact]
@@ -107,9 +102,9 @@ public class ResourceSystemTests
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0f, 10000f, 0f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0f, 100f, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0f, 1000f, 5f));
+        grid.GetCell(coord)!.AmbientFood = 4f;
 
         var system = new ResourceSystem(graph, grid);
-        system.Tick(1);
         var initial = system.Food.GetStockpile(coord);
 
         settlement.Attributes.Modify("residents", 5000f);
@@ -121,10 +116,9 @@ public class ResourceSystemTests
     [Fact]
     public void System_LeavesAmbientFoodStableAcrossTicksWithoutActions()
     {
-        var (system, _) = CreateTestSystem();
+        var (system, _, _) = CreateTestSystem();
         var coord = new HexCoord(0, -2);
 
-        system.Tick(1);
         var before = system.Food.GetStockpile(coord);
         system.Tick(2);
         system.Tick(3);
@@ -152,6 +146,7 @@ public class ResourceSystemTests
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 20));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
+        grid.GetCell(new HexCoord(0, 0))!.AmbientFood = 5f;
 
         // Settlement B on poor land
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (2, 0));
@@ -161,9 +156,9 @@ public class ResourceSystemTests
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
+        grid.GetCell(new HexCoord(2, 0))!.AmbientFood = 1f;
 
         var system = new ResourceSystem(graph, grid);
-        system.Tick(1);
         system.Food.SetStockpile(new HexCoord(0, 0), 10f);
         system.Food.SetStockpile(new HexCoord(2, 0), 0f);
         system.Tick(2);
@@ -173,13 +168,13 @@ public class ResourceSystemTests
 
     // --- Helper ---
 
-    private static (ResourceSystem System, WorldGraph Graph) CreateTestSystem()
+    private static (ResourceSystem System, WorldGraph Graph, HexGrid Grid) CreateTestSystem()
     {
         var world = TestMapBuilder.BuildDefault(seed: 42);
 
         DomainLoader.InitializeEntityAttributes(world.Graph, TestDomain.Create(), new Random(42));
 
         var system = new ResourceSystem(world.Graph, world.Grid);
-        return (system, world.Graph);
+        return (system, world.Graph, world.Grid);
     }
 }

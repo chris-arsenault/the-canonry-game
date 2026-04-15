@@ -12,7 +12,7 @@ public sealed class TestMapBuilder
 {
     /// <summary>
     /// Build the default test world: a radius-5 hex grid with 3 regions,
-    /// 2 nations, 5 settlements, 3 NPCs, 1 artifact, and relationships.
+    /// 2 factions, 5 settlements, 3 NPCs, 1 artifact, and relationships.
     /// NPCs spawn at random walkable hex locations.
     /// </summary>
     public static TestWorld BuildDefault(int? seed = null)
@@ -23,7 +23,7 @@ public sealed class TestMapBuilder
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
 
         // --- Terrain setup ---
-        PaintTerrain(grid);
+        PaintTerrain(grid, random);
 
         // --- Region setup ---
         var regions = CreateRegions(grid, regionMap, graph);
@@ -34,7 +34,7 @@ public sealed class TestMapBuilder
         return new TestWorld(grid, regionMap, graph);
     }
 
-    private static void PaintTerrain(HexGrid grid)
+    private static void PaintTerrain(HexGrid grid, Random random)
     {
         foreach (var cell in grid.AllCells)
         {
@@ -43,41 +43,60 @@ public sealed class TestMapBuilder
             // Mountains along the diagonal (natural region boundary)
             if (q + r is >= 2 and <= 3 && q >= 0)
             {
-                grid.SetCell(cell.Coord, TerrainType.Mountain, elevation: 300f, fertility: 0.1f);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Mountain,
+                    elevation: 300f, fertility: 0.1f, random);
                 continue;
             }
 
             // Water in the far south
             if (r >= 4)
             {
-                grid.SetCell(cell.Coord, TerrainType.Water, elevation: 0f, fertility: 0f);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Water,
+                    elevation: 0f, fertility: 0f, random);
                 continue;
             }
 
             // Coastal near the water
             if (r == 3 && q <= 0)
             {
-                grid.SetCell(cell.Coord, TerrainType.Coastal, elevation: 5f, fertility: 0.6f);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Coastal,
+                    elevation: 5f, fertility: 0.6f, random);
                 continue;
             }
 
             // Forest in the northwest
             if (q <= -2 && r <= 0)
             {
-                grid.SetCell(cell.Coord, TerrainType.Forest, elevation: 50f, fertility: 0.4f);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Forest,
+                    elevation: 50f, fertility: 0.4f, random);
                 continue;
             }
 
             // Tundra in the far north
             if (r <= -3)
             {
-                grid.SetCell(cell.Coord, TerrainType.Tundra, elevation: 100f, fertility: 0.2f);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Tundra,
+                    elevation: 100f, fertility: 0.2f, random);
                 continue;
             }
 
             // Everything else is plains with good fertility
-            grid.SetCell(cell.Coord, TerrainType.Plains, elevation: 20f, fertility: 0.7f);
+            SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Plains,
+                elevation: 20f, fertility: 0.7f, random);
         }
+    }
+
+    private static void SetTerrainAndAmbientResources(
+        HexGrid grid,
+        HexCoord coord,
+        TerrainType terrain,
+        float elevation,
+        float fertility,
+        Random random)
+    {
+        grid.SetCell(coord, terrain, elevation, fertility);
+        var cell = grid.GetCell(coord)!;
+        TerrainAmbientResources.Seed(cell, random);
     }
 
     private static Dictionary<string, Region> CreateRegions(

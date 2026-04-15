@@ -26,6 +26,15 @@ public class TestMapBuilderTests
             var e2 = world2.Graph.GetEntity(npcs2[i])!;
             Assert.Equal(e1.Coordinates, e2.Coordinates);
         }
+
+        var cells1 = _world.Grid.AllCells.OrderBy(c => c.Coord.Q).ThenBy(c => c.Coord.R).ToList();
+        var cells2 = world2.Grid.AllCells.OrderBy(c => c.Coord.Q).ThenBy(c => c.Coord.R).ToList();
+        for (var i = 0; i < cells1.Count; i++)
+        {
+            Assert.Equal(cells1[i].AmbientFood, cells2[i].AmbientFood);
+            Assert.Equal(cells1[i].AmbientWealth, cells2[i].AmbientWealth);
+            Assert.Equal(cells1[i].AmbientPopulation, cells2[i].AmbientPopulation);
+        }
     }
 
     // --- Grid ---
@@ -48,6 +57,30 @@ public class TestMapBuilderTests
         Assert.Contains(TerrainType.Plains, terrainTypes);
         Assert.Contains(TerrainType.Mountain, terrainTypes);
         Assert.Contains(TerrainType.Water, terrainTypes);
+    }
+
+    [Fact]
+    public void AllCells_HaveAmbientResourcesWithinTerrainProfiles()
+    {
+        foreach (var cell in _world.Grid.AllCells)
+        {
+            var profile = TerrainAmbientResources.GetProfile(cell.Terrain);
+
+            Assert.True(profile.Food.Contains(cell.AmbientFood),
+                $"{cell.Coord} food {cell.AmbientFood} outside [{profile.Food.Min}, {profile.Food.Max}]");
+            Assert.True(profile.Wealth.Contains(cell.AmbientWealth),
+                $"{cell.Coord} wealth {cell.AmbientWealth} outside [{profile.Wealth.Min}, {profile.Wealth.Max}]");
+            Assert.True(profile.Population.Contains(cell.AmbientPopulation),
+                $"{cell.Coord} population {cell.AmbientPopulation} outside [{profile.Population.Min}, {profile.Population.Max}]");
+        }
+    }
+
+    [Fact]
+    public void TerrainProfiles_UseExpectedPopulationBands()
+    {
+        Assert.Equal(new AmbientValueRange(0f, 3f), TerrainAmbientResources.GetProfile(TerrainType.Tundra).Population);
+        Assert.Equal(new AmbientValueRange(0f, 1f), TerrainAmbientResources.GetProfile(TerrainType.Water).Population);
+        Assert.Equal(new AmbientValueRange(3f, 5f), TerrainAmbientResources.GetProfile(TerrainType.Plains).Population);
     }
 
     // --- Regions ---

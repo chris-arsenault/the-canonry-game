@@ -1,7 +1,8 @@
 namespace Engine.Map;
 
 /// <summary>
-/// A single cell in the hex grid. Stores terrain and derived attributes.
+/// A single cell in the hex grid. Stores terrain, map-seeded ambient resource
+/// values, and derived attributes.
 /// Cells are map infrastructure, not entities in the graph.
 /// </summary>
 public sealed class HexCell
@@ -10,6 +11,9 @@ public sealed class HexCell
     public TerrainType Terrain { get; set; }
     public float Elevation { get; set; }
     public float Fertility { get; set; }
+    public float AmbientFood { get; set; }
+    public float AmbientWealth { get; set; }
+    public float AmbientPopulation { get; set; }
     public HashSet<string> Resources { get; } = [];
 
     /// <summary>Derived: how viable this cell is for settlement. Recompute when base values change.</summary>
@@ -24,6 +28,9 @@ public sealed class HexCell
         Terrain = terrain;
         Elevation = elevation;
         Fertility = Math.Clamp(fertility, 0f, 1f);
+        AmbientFood = 0f;
+        AmbientWealth = 0f;
+        AmbientPopulation = 0f;
     }
 
     private float ComputeHabitability()

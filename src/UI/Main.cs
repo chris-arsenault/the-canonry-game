@@ -7,6 +7,7 @@ using Godot;
 using Engine.Clock;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Map;
 using Engine.Simulation;
 
 namespace TheCanonryGame.UI;
@@ -14,6 +15,8 @@ namespace TheCanonryGame.UI;
 #pragma warning disable CA2213 // Godot nodes are managed by the scene tree
 public partial class Main : Node2D
 {
+    private const ulong HexTooltipDelayMs = 500;
+
     private SimulationRunner? _sim;
     private HexMapRenderer? _mapRenderer;
     private Camera2D? _camera;
@@ -23,8 +26,13 @@ public partial class Main : Node2D
     private RichTextLabel? _eventLogLabel;
     private HealthGraphPanel? _healthGraph;
     private Label? _tickLabel;
+    private PanelContainer? _hexTooltipPanel;
+    private Label? _hexTooltipLabel;
     private double _tickAccumulator;
     private bool _stepOneTick;
+    private HexCoord? _hoveredHex;
+    private Vector2 _hoverScreenPosition;
+    private ulong _hoverStartedAtMs;
     private readonly Dictionary<EntityId, EntityCard> _openCards = [];
 
     public override void _Ready()
@@ -121,6 +129,20 @@ public partial class Main : Node2D
         _tickLabel.AddThemeFontSizeOverride("font_size", 14);
         _uiLayer.AddChild(_tickLabel);
 
+        _hexTooltipPanel = new PanelContainer
+        {
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _hexTooltipLabel = new Label
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+        };
+        _hexTooltipLabel.AddThemeFontSizeOverride("font_size", 12);
+        _hexTooltipPanel.AddChild(_hexTooltipLabel);
+        _uiLayer.AddChild(_hexTooltipPanel);
+
         // Initial browser population
         _browser.Refresh();
 
@@ -175,6 +197,7 @@ public partial class Main : Node2D
         }
 
         HandleCameraMovement((float)delta);
+        UpdateHexHoverTooltip();
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -280,6 +303,7 @@ public partial class Main : Node2D
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Paused;
         _tickAccumulator = 0;
+        ClearHexHoverTooltip();
 
         _sim.EventLog.EventEmitted += OnEventEmitted;
         _sim.Lifecycle.EntityDied += (_, e) =>
@@ -317,7 +341,8 @@ public partial class Main : Node2D
         {
             if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
 
-            var entityPixel = HexToPixel(entity.Coordinates.Value.Q, entity.Coordinates.Value.R, _mapRenderer.HexSize);
+            var entityPixel = _mapRenderer.GetHexCenter(
+                new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R));
             var dist = worldPos.DistanceTo(entityPixel);
 
             if (dist < nearestDist)
@@ -331,6 +356,89 @@ public partial class Main : Node2D
         {
             OpenEntityCard(nearest.Value, screenPos + new Vector2(20, -20));
         }
+    }
+
+    private void UpdateHexHoverTooltip()
+    {
+        if (_sim is null || _mapRenderer is null || _hexTooltipPanel is null || _hexTooltipLabel is null)
+        {
+            return;
+        }
+
+        var hoveredControl = GetViewport().GuiGetHoveredControl();
+        if (hoveredControl is not null)
+        {
+            ClearHexHoverTooltip();
+            return;
+        }
+
+        var screenPos = GetViewport().GetMousePosition();
+        var worldPos = GetCanvasTransform().AffineInverse() * screenPos;
+        var pointedHex = _mapRenderer.GetHexAtWorldPosition(worldPos);
+        if (pointedHex is null)
+        {
+            ClearHexHoverTooltip();
+            return;
+        }
+
+        _hoverScreenPosition = screenPos;
+        if (_hoveredHex is null || _hoveredHex.Value != pointedHex.Value)
+        {
+            _hoveredHex = pointedHex.Value;
+            _hoverStartedAtMs = Time.GetTicksMsec();
+            _hexTooltipPanel.Visible = false;
+            return;
+        }
+
+        if (!_hexTooltipPanel.Visible && Time.GetTicksMsec() - _hoverStartedAtMs < HexTooltipDelayMs)
+        {
+            return;
+        }
+
+        _hexTooltipLabel.Text = FormatHexTooltip(pointedHex.Value);
+        _hexTooltipPanel.Visible = true;
+        PositionHexTooltip(_hoverScreenPosition);
+    }
+
+    private void ClearHexHoverTooltip()
+    {
+        _hoveredHex = null;
+        if (_hexTooltipPanel is not null)
+        {
+            _hexTooltipPanel.Visible = false;
+        }
+    }
+
+    private string FormatHexTooltip(HexCoord coord)
+    {
+        if (_sim is null)
+        {
+            return string.Empty;
+        }
+
+        var cell = _sim.Grid.GetCell(coord);
+        var terrain = cell?.Terrain.ToString() ?? "Unknown";
+        var food = _sim.Resources.Food.GetStockpile(coord);
+        var wealth = _sim.Resources.Wealth.GetStockpile(coord);
+        var population = _sim.Resources.PopulationLayer.GetStockpile(coord);
+        return $"{coord.Q}, {coord.R}  {terrain}\nfood: {food:0.0}\nwealth: {wealth:0.0}\npopulation: {population:0.0}";
+    }
+
+    private void PositionHexTooltip(Vector2 screenPos)
+    {
+        if (_hexTooltipPanel is null)
+        {
+            return;
+        }
+
+        var viewportSize = GetViewportRect().Size;
+        var panelSize = _hexTooltipPanel.GetCombinedMinimumSize();
+        var pos = screenPos + new Vector2(16f, 18f);
+        pos.X = Mathf.Min(pos.X, viewportSize.X - panelSize.X - 8f);
+        pos.Y = Mathf.Min(pos.Y, viewportSize.Y - panelSize.Y - 8f);
+        pos.X = Mathf.Max(pos.X, 8f);
+        pos.Y = Mathf.Max(pos.Y, 8f);
+        _hexTooltipPanel.Position = pos;
     }
 
     private void OpenEntityCard(EntityId entityId, Vector2 position)
@@ -397,12 +505,5 @@ public partial class Main : Node2D
         {
             _camera.Position += direction.Normalized() * speed * delta;
         }
-    }
-
-    private static Vector2 HexToPixel(int q, int r, float hexSize)
-    {
-        var x = hexSize * (Mathf.Sqrt(3f) * q + Mathf.Sqrt(3f) / 2f * r);
-        var y = hexSize * (1.5f * r);
-        return new Vector2(x, y);
     }
 }

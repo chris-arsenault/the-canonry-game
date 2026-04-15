@@ -55,6 +55,34 @@ public partial class HexMapRenderer : Node2D
         QueueRedraw();
     }
 
+    public Vector2 GetHexCenter(HexCoord coord)
+    {
+        return HexToPixel(coord);
+    }
+
+    public HexCoord? GetHexAtWorldPosition(Vector2 worldPos)
+    {
+        if (_sim is null)
+        {
+            return null;
+        }
+
+        HexCoord? nearest = null;
+        var nearestDist = HexSize;
+
+        foreach (var cell in _sim.Grid.AllCells)
+        {
+            var dist = worldPos.DistanceTo(HexToPixel(cell.Coord));
+            if (dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearest = cell.Coord;
+            }
+        }
+
+        return nearest;
+    }
+
     private void DrawHexCell(HexCell cell)
     {
         var center = HexToPixel(cell.Coord);

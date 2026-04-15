@@ -20,15 +20,6 @@ public sealed class ResourceSystem
     public ResourceLayer Wealth { get; }
     public ResourceLayer PopulationLayer { get; }
 
-    /// <summary>Scale factor turning fertility into ambient food potential.</summary>
-    public float FoodPotentialFactor { get; set; } = 10f;
-
-    /// <summary>Scale factor turning habitability into ambient wealth potential.</summary>
-    public float WealthPotentialFactor { get; set; } = 8f;
-
-    /// <summary>Scale factor turning habitability into ambient population presence.</summary>
-    public float PopulationPresenceFactor { get; set; } = 10f;
-
     public ResourceSystem(WorldGraph graph, HexGrid grid)
     {
         _grid = grid;
@@ -36,12 +27,14 @@ public sealed class ResourceSystem
         Food = new ResourceLayer(ResourceType.Food);
         Wealth = new ResourceLayer(ResourceType.Wealth);
         PopulationLayer = new ResourceLayer(ResourceType.Population);
+
+        InitializeAmbientResources();
+        _initialized = true;
     }
 
     /// <summary>
-    /// Process one tick: ensure ambient resource fields are initialized.
-    /// Richer slow-change systems will layer on top of this, but this class no longer
-    /// runs a settlement-driven economy or faction redistribution model.
+    /// Process one tick. Ambient resource fields are seeded from map generation at
+    /// construction time; richer slow-change systems will layer on top of this.
     /// </summary>
     public void Tick(int currentTick)
     {
@@ -58,49 +51,10 @@ public sealed class ResourceSystem
     {
         foreach (var cell in _grid.AllCells)
         {
-            Food.SetStockpile(cell.Coord, ComputeAmbientFood(cell));
-            Wealth.SetStockpile(cell.Coord, ComputeAmbientWealth(cell));
-            PopulationLayer.SetStockpile(cell.Coord, ComputeAmbientPopulation(cell));
+            Food.SetStockpile(cell.Coord, cell.AmbientFood);
+            Wealth.SetStockpile(cell.Coord, cell.AmbientWealth);
+            PopulationLayer.SetStockpile(cell.Coord, cell.AmbientPopulation);
         }
-    }
-
-    private float ComputeAmbientFood(HexCell cell)
-    {
-        if (cell.Terrain == TerrainType.Water)
-        {
-            return 0f;
-        }
-
-        return cell.Fertility * FoodPotentialFactor;
-    }
-
-    private float ComputeAmbientWealth(HexCell cell)
-    {
-        if (cell.Terrain == TerrainType.Water)
-        {
-            return 0f;
-        }
-
-        var terrainBonus = cell.Terrain switch
-        {
-            TerrainType.Coastal => 2f,
-            TerrainType.Plains => 1.5f,
-            TerrainType.Forest => 1f,
-            TerrainType.Mountain => 1.5f,
-            _ => 0f,
-        };
-
-        return (cell.Habitability * WealthPotentialFactor) + terrainBonus + cell.Resources.Count;
-    }
-
-    private float ComputeAmbientPopulation(HexCell cell)
-    {
-        if (cell.Terrain == TerrainType.Water)
-        {
-            return 0f;
-        }
-
-        return cell.Habitability * PopulationPresenceFactor;
     }
 
     /// <summary>
