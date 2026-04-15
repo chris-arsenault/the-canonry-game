@@ -588,12 +588,12 @@ public class EntityEvaluatorTests
     }
 
     [Fact]
-    public void GoalGenerator_GoalsForSameEntityHaveDifferentUrgencies()
+    public void GoalGenerator_CommitsToSingleGoalPerDesiredEffect()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
-        CreateSettlement(world, "Weak", (1, 0), population: 10f, fame: 3f);
-        CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
+        var weak = CreateSettlement(world, "Weak", (1, 0), population: 10f, fame: 3f);
+        var strong = CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
 
         var attract = CreateProcess("Attract", "population", new TargetIsNotSelf());
         attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
@@ -617,9 +617,10 @@ public class EntityEvaluatorTests
         var generator = new GoalGenerator(kinds, [grow, attract]);
         var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
 
-        var urgencies = goals.Select(g => g.Urgency).Distinct().ToList();
-        Assert.True(urgencies.Count > 1,
-            $"All goals have same urgency: {string.Join(", ", goals.Select(g => $"{g.TargetEntityId}={g.Urgency:F3}"))}");
+        var goal = Assert.Single(goals);
+        Assert.DoesNotContain(goals, g => g.TargetEntityId == strong.Id);
+        Assert.True(goal.TargetEntityId == self.Id || goal.TargetEntityId == weak.Id,
+            $"Unexpected committed goal target: {goal.TargetEntityId}");
     }
 
     [Fact]

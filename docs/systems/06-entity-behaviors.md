@@ -88,7 +88,7 @@ The planner is not a generic GOAP search over arbitrary world states. It is a bo
 - max planning depth: `2`
 - only actionable leaves compete for execution
 - blocked parents remain visible for inspectability
-- standing drives currently get at most one root slot each, so one idle motive cannot crowd out everything else
+- the planner keeps one committed root per desired effect, so one need does not fragment into several competing target branches on every replan
 
 The first support-planning path is already live:
 

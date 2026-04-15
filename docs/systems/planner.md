@@ -178,32 +178,33 @@ Current limits:
 - max generated goals per entity: `12`
 - max planning depth: `2`
 
-There is one important asymmetry:
+The current planner keeps one committed root per desired effect.
 
-- **deficit-driven demands** may retain multiple target alternatives
-- **standing drives** currently keep only one root slot each
+That means:
 
-That rule exists to stop one idle motive from filling the whole plan set with multiple equivalent destinations.
+- one hunger plan, not three simultaneous hunger destination plans
+- one roam plan, not several equivalent roam destinations
+- replanning can replace the committed root, but only when the old plan disappears or a challenger is materially better
 
 ---
 
-## Why Standing Drives Only Get One Root Slot
+## Why The Planner Keeps One Committed Root Per Effect
 
-Without this rule, a low-urgency ambient motive can crowd out more interesting fallback behavior.
+Without this rule, one need can fragment into several simultaneously competing destination plans.
 
 Example problem:
 
 ```text
-Standing drive: be at a settlement
-  -> candidate target A
-  -> candidate target B
-  -> candidate target C
+hunger
+  -> Eat at target A
+  -> Eat at target B
+  -> Eat at target C
 
-All three occupy root slots,
-so Wander never survives into the final goal set.
+All three roots survive,
+so the entity keeps reconsidering where to satisfy the same need.
 ```
 
-Restricting standing drives to one root keeps the planner readable and behaviorally diverse without damaging real multi-target deficit planning.
+Committing to one root per effect makes entities finish a plan more often, even if it is not globally optimal, which is preferable to visible dithering.
 
 ---
 

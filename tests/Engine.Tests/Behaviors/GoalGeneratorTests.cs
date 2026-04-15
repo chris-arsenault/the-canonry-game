@@ -112,7 +112,7 @@ public class GoalGeneratorTests
     }
 
     [Fact]
-    public void Generate_UsesWeightOneForAllProvidersWhenRewardExpressionIsConstant()
+    public void Generate_UsesSingleCommittedRootWhenRewardExpressionIsConstant()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, fame: 10f, coordinates: (0, 0));
@@ -124,16 +124,15 @@ public class GoalGeneratorTests
 
         var goals = generator.Generate(self, world)
             .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
-            .OrderBy(g => g.TargetEntityId.Value)
             .ToList();
 
-        Assert.Equal(3, goals.Count);
-        Assert.All(goals, g => Assert.InRange(g.Urgency, 1.12f, 1.14f));
-        Assert.Equal([self.Id, otherA.Id, otherB.Id], goals.Select(g => g.TargetEntityId).ToArray());
+        var goal = Assert.Single(goals);
+        Assert.InRange(goal.Urgency, 1.12f, 1.14f);
+        Assert.Contains(goal.TargetEntityId, new[] { self.Id, otherA.Id, otherB.Id });
     }
 
     [Fact]
-    public void Generate_ScoresProvidersUsingSelfAndCandidateContext_ExcludesZeroAndKeepsTopThree()
+    public void Generate_ScoresProvidersUsingSelfAndCandidateContext_ChoosesBestCommittedRoot()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, fame: 10f, coordinates: (0, 0));
@@ -150,17 +149,12 @@ public class GoalGeneratorTests
 
         var goals = generator.Generate(self, world)
             .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
-            .OrderByDescending(g => g.Urgency)
             .ToList();
 
-        Assert.Equal(3, goals.Count);
-        Assert.Equal([best.Id, extra.Id, high.Id], goals.Select(g => g.TargetEntityId).ToArray());
+        var goal = Assert.Single(goals);
+        Assert.Equal(best.Id, goal.TargetEntityId);
         // Planning rewards are damped to keep long external chains from swamping direct self plans.
-        Assert.InRange(goals[0].Urgency, 2.6f, 2.8f);
-        Assert.InRange(goals[1].Urgency, 2.4f, 2.6f);
-        Assert.InRange(goals[2].Urgency, 2.2f, 2.4f);
-        // Low and Self have reward 0 (fame diff = 0), excluded
-        Assert.DoesNotContain(goals, g => g.TargetEntityId == self.Id);
+        Assert.InRange(goal.Urgency, 2.6f, 2.8f);
     }
 
     [Fact]
@@ -250,11 +244,6 @@ public class GoalGeneratorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, sustenance: 0f, fame: 10f, coordinates: (0, 0));
-        var other = CreateSettlement(world, "Other", population: 30f, sustenance: 10f, fame: 30f, coordinates: (2, 0));
-        other.Attributes.GetPlane("ideology")!.ModifyX(0.5f);
-        other.Attributes.GetPlane("ideology")!.ModifyY(0.5f);
-        self.Attributes.GetPlane("ideology")!.ModifyX(-0.5f);
-        self.Attributes.GetPlane("ideology")!.ModifyY(-0.5f);
 
         var stockpile = CreateProcess("stockpile", "sustenance");
 
@@ -262,24 +251,14 @@ public class GoalGeneratorTests
             new SelfAttributeThreshold("sustenance", min: 3f, max: null));
         grow.RewardExpression = Expr.Div(Expr.Self("sustenance"), Expr.Lit(3f));
 
-        var attract = CreateExternalProcess("attract", "population",
-            new SemanticDistanceThreshold("ideology", 0.5f));
-        attract.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
-
-        var propaganda = CreateProcessServingEffect("propaganda", AttributeRef.Target("ideology", EntityKind.Settlement));
-
         var generator = new GoalGenerator(CreateSettlementKinds("population", "sustenance", "fame"),
-            [grow, stockpile, attract, propaganda]);
+            [grow, stockpile]);
 
         var goals = generator.Generate(self, world);
 
         Assert.Contains(goals, g => g.IsActionable &&
             g.PlannedProcessId == "stockpile" &&
             g.DesiredEffect.Equals(AttributeRef.Self("sustenance", EntityKind.Settlement)));
-
-        Assert.Contains(goals, g => g.IsActionable &&
-            g.PlannedProcessId == "propaganda" &&
-            g.DesiredEffect.Equals(AttributeRef.Target("ideology", EntityKind.Settlement)));
     }
 
     [Fact]
@@ -518,7 +497,7 @@ public class GoalGeneratorTests
         var root = Assert.Single(goals);
         Assert.Equal(current.Id, root.TargetEntityId);
         Assert.DoesNotContain(goals, g => g.TargetEntityId == challenger.Id);
-        Assert.Contains("target hysteresis kept", self.GoalGenerationTrace, StringComparison.Ordinal);
+        Assert.Contains("effect commitment kept", self.GoalGenerationTrace, StringComparison.Ordinal);
     }
 
     [Fact]

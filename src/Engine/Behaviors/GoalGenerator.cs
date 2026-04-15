@@ -45,7 +45,7 @@ public sealed class GoalGenerator
 
     /// <summary>
     /// Fractional improvement required before switching an existing root plan to a
-    /// different target for the same desired effect/process. This protects actors
+    /// different committed plan for the same desired effect. This protects actors
     /// from oscillating between nearly equivalent targets across replans.
     /// </summary>
     public float TargetSwitchHysteresisRatio { get; set; } = 0.2f;
@@ -181,7 +181,6 @@ public sealed class GoalGenerator
         }
 
         var plans = new List<GoalPlan>();
-        var rootPlans = new Dictionary<(AttributeRef Effect, string ProcessId, EntityId Target), GoalPlan>();
 
         foreach (var (effect, urgency, sources) in orderedDemands)
         {
@@ -192,13 +191,10 @@ public sealed class GoalGenerator
                 continue;
             }
 
-            var singleRootForDrive = sources.Contains("standing", StringComparer.Ordinal)
-                && !sources.Contains("deficit", StringComparer.Ordinal);
-            GoalPlan? bestStandingPlan = null;
+            var candidatePlans = new List<GoalPlan>();
 
             foreach (var process in servingProcesses)
             {
-                var processPlans = new List<GoalPlan>();
                 foreach (var targetId in EnumeratePrimaryTargets(entity, process, worldState))
                 {
                     var plan = BuildPlan(
@@ -215,97 +211,59 @@ public sealed class GoalGenerator
 
                     if (plan is not null && plan.BestActionableUrgency > 0f)
                     {
-                        processPlans.Add(plan);
-                    }
-                }
-
-                if (processPlans.Count == 0)
-                {
-                    continue;
-                }
-
-                var stickyPlan = SelectStickyPlan(entity, effect, process.Id, processPlans, trace);
-                if (stickyPlan is not null)
-                {
-                    if (singleRootForDrive)
-                    {
-                        if (bestStandingPlan is null ||
-                            stickyPlan.BestActionableUrgency > bestStandingPlan.BestActionableUrgency)
-                        {
-                            bestStandingPlan = stickyPlan;
-                        }
-                    }
-                    else
-                    {
-                        rootPlans[(effect, process.Id, stickyPlan.Root.TargetEntityId)] = stickyPlan;
-                    }
-
-                    continue;
-                }
-
-                foreach (var plan in processPlans)
-                {
-                    if (singleRootForDrive)
-                    {
-                        if (bestStandingPlan is null ||
-                            plan.BestActionableUrgency > bestStandingPlan.BestActionableUrgency)
-                        {
-                            bestStandingPlan = plan;
-                        }
-
-                        continue;
-                    }
-
-                    var key = (effect, process.Id, plan.Root.TargetEntityId);
-                    if (!rootPlans.TryGetValue(key, out var existing) ||
-                        plan.BestActionableUrgency > existing.BestActionableUrgency)
-                    {
-                        rootPlans[key] = plan;
+                        candidatePlans.Add(plan);
                     }
                 }
             }
 
-            if (singleRootForDrive && bestStandingPlan is not null)
+            if (candidatePlans.Count == 0)
             {
-                var root = bestStandingPlan.Root;
-                rootPlans[(effect, root.PlannedProcessId ?? "(abstract)", root.TargetEntityId)] = bestStandingPlan;
+                continue;
+            }
+
+            var selectedPlan = SelectCommittedPlan(entity, effect, candidatePlans, trace);
+            if (selectedPlan is not null)
+            {
+                plans.Add(selectedPlan);
             }
         }
 
-        plans.AddRange(rootPlans.Values);
         return plans;
     }
 
-    private GoalPlan? SelectStickyPlan(
+    private GoalPlan? SelectCommittedPlan(
         Entity entity,
         AttributeRef effect,
-        string processId,
         IReadOnlyList<GoalPlan> candidatePlans,
         StringBuilder trace)
     {
+        var bestPlan = candidatePlans
+            .OrderByDescending(p => p.BestActionableUrgency)
+            .FirstOrDefault();
+        if (bestPlan is null)
+        {
+            return null;
+        }
+
         var previousRoot = entity.Goals
             .Where(g => !g.IsSubGoal &&
-                        g.PlannedProcessId == processId &&
                         g.DesiredEffect.Equals(effect))
             .OrderByDescending(g => g.Urgency)
             .FirstOrDefault();
         if (previousRoot is null)
         {
-            return null;
+            return bestPlan;
         }
 
-        var previousPlan = candidatePlans.FirstOrDefault(p => p.Root.TargetEntityId == previousRoot.TargetEntityId);
+        var previousPlan = candidatePlans.FirstOrDefault(p =>
+            p.Root.TargetEntityId == previousRoot.TargetEntityId &&
+            string.Equals(p.Root.PlannedProcessId, previousRoot.PlannedProcessId, StringComparison.Ordinal));
         if (previousPlan is null)
         {
-            return null;
-        }
-
-        var bestPlan = candidatePlans
-            .OrderByDescending(p => p.BestActionableUrgency)
-            .First();
-        if (bestPlan.Root.TargetEntityId == previousPlan.Root.TargetEntityId)
-        {
-            return previousPlan;
+            AppendLineInvariant(
+                trace,
+                $"effect commitment released effect={DescribeEffect(effect)} old_process={previousRoot.PlannedProcessId ?? "(abstract)"} old_target={previousRoot.TargetEntityId} reason=prior plan unavailable");
+            return bestPlan;
         }
 
         var requiredImprovement = previousPlan.BestActionableUrgency * (1f + TargetSwitchHysteresisRatio);
@@ -313,14 +271,14 @@ public sealed class GoalGenerator
         {
             AppendLineInvariant(
                 trace,
-                $"target hysteresis kept process={processId} effect={DescribeEffect(effect)} target={previousPlan.Root.TargetEntityId} previous={previousPlan.BestActionableUrgency:F3} challenger={bestPlan.BestActionableUrgency:F3}");
+                $"effect commitment kept process={previousPlan.Root.PlannedProcessId ?? "(abstract)"} effect={DescribeEffect(effect)} target={previousPlan.Root.TargetEntityId} previous={previousPlan.BestActionableUrgency:F3} challenger={bestPlan.BestActionableUrgency:F3}");
             return previousPlan;
         }
 
         AppendLineInvariant(
             trace,
-            $"target hysteresis released process={processId} effect={DescribeEffect(effect)} old_target={previousPlan.Root.TargetEntityId} old={previousPlan.BestActionableUrgency:F3} new_target={bestPlan.Root.TargetEntityId} new={bestPlan.BestActionableUrgency:F3}");
-        return null;
+            $"effect commitment released effect={DescribeEffect(effect)} old_process={previousPlan.Root.PlannedProcessId ?? "(abstract)"} old_target={previousPlan.Root.TargetEntityId} old={previousPlan.BestActionableUrgency:F3} new_process={bestPlan.Root.PlannedProcessId ?? "(abstract)"} new_target={bestPlan.Root.TargetEntityId} new={bestPlan.BestActionableUrgency:F3}");
+        return bestPlan;
     }
 
     private GoalPlan? BuildPlan(
