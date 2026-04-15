@@ -21,6 +21,8 @@ public partial class Main : Node2D
     private HexMapRenderer? _mapRenderer;
     private Camera2D? _camera;
     private EntityBrowser? _browser;
+    private HBoxContainer? _rootLayout;
+    private Control? _mapSpacer;
     private CanvasLayer? _uiLayer;
     private CanvasLayer? _cardLayer;
     private RichTextLabel? _eventLogLabel;
@@ -66,30 +68,30 @@ public partial class Main : Node2D
         AddChild(_cardLayer);
 
         // Root layout: browser on left, spacer in middle, event log on right
-        var rootHBox = new HBoxContainer();
-        rootHBox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _uiLayer.AddChild(rootHBox);
+        _rootLayout = new HBoxContainer();
+        _rootLayout.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _uiLayer.AddChild(_rootLayout);
 
         // Left: entity browser
         _browser = new EntityBrowser();
         _browser.Initialize(_sim);
         _browser.EntitySelected += OnBrowserEntitySelected;
-        rootHBox.AddChild(_browser);
+        _rootLayout.AddChild(_browser);
 
         // Middle spacer (map area -- transparent, passes mouse through)
-        var mapSpacer = new Control
+        _mapSpacer = new Control
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        rootHBox.AddChild(mapSpacer);
+        _rootLayout.AddChild(_mapSpacer);
 
         // Right: event log
         var rightVBox = new VBoxContainer
         {
             CustomMinimumSize = new Vector2(300, 0),
         };
-        rootHBox.AddChild(rightVBox);
+        _rootLayout.AddChild(rightVBox);
 
         var eventPanel = new PanelContainer
         {
@@ -366,7 +368,7 @@ public partial class Main : Node2D
         }
 
         var hoveredControl = GetViewport().GuiGetHoveredControl();
-        if (hoveredControl is not null)
+        if (ShouldSuppressHexTooltip(hoveredControl))
         {
             ClearHexHoverTooltip();
             return;
@@ -407,6 +409,18 @@ public partial class Main : Node2D
         {
             _hexTooltipPanel.Visible = false;
         }
+    }
+
+    private bool ShouldSuppressHexTooltip(Control? hoveredControl)
+    {
+        if (hoveredControl is null)
+        {
+            return false;
+        }
+
+        // The root layout spans the whole screen, including the transparent map gap.
+        // Treat it as pass-through so hovering the map does not suppress the tooltip.
+        return hoveredControl != _rootLayout && hoveredControl != _mapSpacer;
     }
 
     private string FormatHexTooltip(HexCoord coord)
