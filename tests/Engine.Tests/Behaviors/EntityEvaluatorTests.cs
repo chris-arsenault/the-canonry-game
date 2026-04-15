@@ -2,6 +2,7 @@ namespace Engine.Tests.Behaviors;
 
 using Engine.Attributes;
 using Engine.Behaviors;
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Messages;
@@ -373,6 +374,101 @@ public class EntityEvaluatorTests
         Assert.NotNull(self.LastEvaluation);
         Assert.Single(self.LastEvaluation!.Candidates);
         Assert.Null(self.LastEvaluation.ExecutedProcessName);
+    }
+
+    [Fact]
+    public void Evaluate_ReportShowsPreconditionFailure_NotScoreThreshold()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        var other = CreateSettlement(world, "Other", (1, 0), population: 10f);
+        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+
+        var registry = new ActivityRegistry();
+        // Grow has TargetIsSelf — should fail precondition against Other, not show "score below threshold"
+        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population", new TargetIsSelf()));
+
+        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        evaluator.Evaluate(self, world);
+
+        var candidate = Assert.Single(self.LastEvaluation!.Candidates);
+        Assert.False(candidate.PreconditionPassed);
+        Assert.Contains("target", candidate.PreconditionDiagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("score", candidate.PreconditionDiagnostic, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Evaluate_PreconditionEvaluatedBeforeScore()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        var other = CreateSettlement(world, "Other", (1, 0), population: 10f);
+        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+
+        var registry = new ActivityRegistry();
+        // Process with TargetIsSelf AND score=0 — precondition failure should be reported, not score
+        registry.RegisterProcess(EntityKind.Settlement,
+            CreateProcess("Grow", "population", new TargetIsSelf(), scoreExpression: Expr.Lit(0f)));
+
+        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        evaluator.Evaluate(self, world);
+
+        var candidate = Assert.Single(self.LastEvaluation!.Candidates);
+        Assert.False(candidate.PreconditionPassed);
+        // Should show precondition failure, not "score below threshold"
+        Assert.DoesNotContain("score", candidate.PreconditionDiagnostic, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GoalGenerator_ExternalGoalsHaveDifferentUrgencyFromProviderScoring()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
+        var weak = CreateSettlement(world, "Weak", (1, 0), population: 10f, fame: 5f);
+        var strong = CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
+
+        var process = CreateProcess("Attract", "population");
+        // Provider score: fame difference (higher self fame relative to target = better target)
+        process.Definition.ProviderScoreExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [
+                    new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 20f },
+                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f },
+                ],
+                HealthAttribute = "population",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [process.Definition]);
+        var goals = generator.Generate(self, world)
+            .Where(g => !g.IsSubGoal && g.Attribute == "population")
+            .ToList();
+
+        // Weak has fame 5, self has 10 → fame diff = 5 (good target)
+        // Strong has fame 20, self has 10 → fame diff = -10 (bad target, excluded)
+        // Self has fame 10, self → fame diff = 0 (excluded)
+        // Goals should have different urgencies based on provider scores
+        Assert.True(goals.Count >= 1);
+
+        var weakGoal = goals.FirstOrDefault(g => g.Provider == weak.Id);
+        Assert.NotNull(weakGoal);
+
+        // Strong should be excluded (negative score)
+        var strongGoal = goals.FirstOrDefault(g => g.Provider == strong.Id);
+        Assert.Null(strongGoal);
+
+        // Weak goal urgency should be different from base urgency (modulated by provider weight)
+        var selfGoal = goals.FirstOrDefault(g => g.Provider == self.Id);
+        if (selfGoal is not null && weakGoal is not null)
+        {
+            // They should NOT have the same urgency
+            Assert.NotEqual(selfGoal.Urgency, weakGoal.Urgency);
+        }
     }
 
     private static DataDrivenProcess CreateProcess(

@@ -155,16 +155,11 @@ public sealed class EntityEvaluator
                 var onCooldown = entity.ProcessCooldowns.TryGetValue(process.Name, out var cdUntil)
                     && tick < cdUntil;
 
-                var score = process.Score(entity, worldState);
-
+                // Evaluate precondition first (reveals real failure reason)
                 PreconditionResult precondResult;
                 if (onCooldown)
                 {
                     precondResult = PreconditionResult.Fail($"cooldown until tick {cdUntil}");
-                }
-                else if (score < MinimumViableScore)
-                {
-                    precondResult = PreconditionResult.Fail($"score {score:F3} below threshold");
                 }
                 else
                 {
@@ -176,7 +171,9 @@ public sealed class EntityEvaluator
                             : PreconditionResult.Fail("precondition failed");
                 }
 
-                var viable = !onCooldown && score >= MinimumViableScore && precondResult.Passed;
+                // Score only matters if precondition passed
+                var score = precondResult.Passed ? process.Score(entity, worldState) : 0f;
+                var viable = precondResult.Passed && score >= MinimumViableScore;
                 if (viable) candidates.Add((process, score));
 
                 reportCandidates.Add(new ProcessCandidate
