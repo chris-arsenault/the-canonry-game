@@ -9,6 +9,7 @@ using Engine.Messages;
 using Engine.Processes;
 using Engine.Resources;
 using Engine.Tests.Behaviors;
+using Engine.Wiring;
 
 public class NpcLoopDomainTests
 {
@@ -77,6 +78,42 @@ public class NpcLoopDomainTests
         Assert.Equal("Eat", npc.LastEvaluation!.ExecutedProcessName);
         Assert.InRange(npc.Attributes.GetValue("hunger"), 6.8f, 9.2f);
         Assert.True(settlement.Attributes.GetValue("prestige") > 0f);
+    }
+
+    [Fact]
+    public void TestDomain_HungryNpcKeepsPreviousEatTargetWhenAlternativeIsOnlySlightlyBetter()
+    {
+        var config = TestDomain.Create();
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
+        var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (1, 0));
+        var current = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Current", "c", 0, (0, 0));
+        var challenger = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Challenger", "c", 0, (2, 0));
+        DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
+        world.SpatialIndex.RebuildFromGraph();
+
+        SetScalar(npc, "hunger", 20f);
+        SetScalar(current, "residents", 20f);
+        SetScalar(challenger, "residents", 20f);
+        SetScalar(current, "prestige", 5f);
+        SetScalar(challenger, "prestige", 5.5f);
+        SetAmbientFood(world, current, 5f);
+        SetAmbientFood(world, challenger, 5f);
+
+        npc.Goals.Add(new EntityGoal(
+            AttributeRef.Self("hunger", EntityKind.Npc),
+            current.Id,
+            urgency: 0.5f,
+            plannedProcessId: "npc_eat",
+            isActionable: false));
+
+        var generator = new GoalGenerator(config.Kinds, config.Processes);
+        var goals = generator.Generate(npc, world)
+            .Where(g => !g.IsSubGoal && g.PlannedProcessId == "npc_eat")
+            .ToList();
+
+        var root = Assert.Single(goals);
+        Assert.Equal(current.Id, root.TargetEntityId);
+        Assert.DoesNotContain(goals, g => g.TargetEntityId == challenger.Id);
     }
 
     [Fact]

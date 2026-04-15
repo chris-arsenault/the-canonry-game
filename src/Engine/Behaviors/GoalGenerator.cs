@@ -43,6 +43,13 @@ public sealed class GoalGenerator
     /// <summary>Lower bound used when an actionable leaf passes preconditions but has a tiny score.</summary>
     public float MinimumActionableScoreWeight { get; set; } = 0.1f;
 
+    /// <summary>
+    /// Fractional improvement required before switching an existing root plan to a
+    /// different target for the same desired effect/process. This protects actors
+    /// from oscillating between nearly equivalent targets across replans.
+    /// </summary>
+    public float TargetSwitchHysteresisRatio { get; set; } = 0.2f;
+
     public GoalGenerator(
         IReadOnlyDictionary<EntityKind, KindConfig> kindConfigs,
         IReadOnlyList<ProcessDefinition> processes)
@@ -191,6 +198,7 @@ public sealed class GoalGenerator
 
             foreach (var process in servingProcesses)
             {
+                var processPlans = new List<GoalPlan>();
                 foreach (var targetId in EnumeratePrimaryTargets(entity, process, worldState))
                 {
                     var plan = BuildPlan(
@@ -207,23 +215,52 @@ public sealed class GoalGenerator
 
                     if (plan is not null && plan.BestActionableUrgency > 0f)
                     {
-                        if (singleRootForDrive)
-                        {
-                            if (bestStandingPlan is null ||
-                                plan.BestActionableUrgency > bestStandingPlan.BestActionableUrgency)
-                            {
-                                bestStandingPlan = plan;
-                            }
+                        processPlans.Add(plan);
+                    }
+                }
 
-                            continue;
+                if (processPlans.Count == 0)
+                {
+                    continue;
+                }
+
+                var stickyPlan = SelectStickyPlan(entity, effect, process.Id, processPlans, trace);
+                if (stickyPlan is not null)
+                {
+                    if (singleRootForDrive)
+                    {
+                        if (bestStandingPlan is null ||
+                            stickyPlan.BestActionableUrgency > bestStandingPlan.BestActionableUrgency)
+                        {
+                            bestStandingPlan = stickyPlan;
+                        }
+                    }
+                    else
+                    {
+                        rootPlans[(effect, process.Id, stickyPlan.Root.TargetEntityId)] = stickyPlan;
+                    }
+
+                    continue;
+                }
+
+                foreach (var plan in processPlans)
+                {
+                    if (singleRootForDrive)
+                    {
+                        if (bestStandingPlan is null ||
+                            plan.BestActionableUrgency > bestStandingPlan.BestActionableUrgency)
+                        {
+                            bestStandingPlan = plan;
                         }
 
-                        var key = (effect, process.Id, targetId);
-                        if (!rootPlans.TryGetValue(key, out var existing) ||
-                            plan.BestActionableUrgency > existing.BestActionableUrgency)
-                        {
-                            rootPlans[key] = plan;
-                        }
+                        continue;
+                    }
+
+                    var key = (effect, process.Id, plan.Root.TargetEntityId);
+                    if (!rootPlans.TryGetValue(key, out var existing) ||
+                        plan.BestActionableUrgency > existing.BestActionableUrgency)
+                    {
+                        rootPlans[key] = plan;
                     }
                 }
             }
@@ -237,6 +274,53 @@ public sealed class GoalGenerator
 
         plans.AddRange(rootPlans.Values);
         return plans;
+    }
+
+    private GoalPlan? SelectStickyPlan(
+        Entity entity,
+        AttributeRef effect,
+        string processId,
+        IReadOnlyList<GoalPlan> candidatePlans,
+        StringBuilder trace)
+    {
+        var previousRoot = entity.Goals
+            .Where(g => !g.IsSubGoal &&
+                        g.PlannedProcessId == processId &&
+                        g.DesiredEffect.Equals(effect))
+            .OrderByDescending(g => g.Urgency)
+            .FirstOrDefault();
+        if (previousRoot is null)
+        {
+            return null;
+        }
+
+        var previousPlan = candidatePlans.FirstOrDefault(p => p.Root.TargetEntityId == previousRoot.TargetEntityId);
+        if (previousPlan is null)
+        {
+            return null;
+        }
+
+        var bestPlan = candidatePlans
+            .OrderByDescending(p => p.BestActionableUrgency)
+            .First();
+        if (bestPlan.Root.TargetEntityId == previousPlan.Root.TargetEntityId)
+        {
+            return previousPlan;
+        }
+
+        var requiredImprovement = previousPlan.BestActionableUrgency * (1f + TargetSwitchHysteresisRatio);
+        if (bestPlan.BestActionableUrgency <= requiredImprovement)
+        {
+            AppendLineInvariant(
+                trace,
+                $"target hysteresis kept process={processId} effect={DescribeEffect(effect)} target={previousPlan.Root.TargetEntityId} previous={previousPlan.BestActionableUrgency:F3} challenger={bestPlan.BestActionableUrgency:F3}");
+            return previousPlan;
+        }
+
+        AppendLineInvariant(
+            trace,
+            $"target hysteresis released process={processId} effect={DescribeEffect(effect)} old_target={previousPlan.Root.TargetEntityId} old={previousPlan.BestActionableUrgency:F3} new_target={bestPlan.Root.TargetEntityId} new={bestPlan.BestActionableUrgency:F3}");
+        return null;
     }
 
     private GoalPlan? BuildPlan(

@@ -112,8 +112,9 @@ public sealed class EntityEvaluator
 
     private void RegenerateGoals(Entity entity, IWorldState worldState)
     {
+        var generatedGoals = _goalGenerator!.Generate(entity, worldState);
         entity.Goals.Clear();
-        foreach (var goal in _goalGenerator!.Generate(entity, worldState))
+        foreach (var goal in generatedGoals)
         {
             entity.Goals.Add(goal);
         }

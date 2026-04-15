@@ -492,6 +492,36 @@ public class GoalGeneratorTests
     }
 
     [Fact]
+    public void Generate_KeepsPreviousTargetWhenAlternativeIsOnlyFractionallyBetter()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", population: 10f, fame: 10f, coordinates: (0, 0));
+        var current = CreateSettlement(world, "Current", population: 30f, fame: 19f, coordinates: (2, 0));
+        var challenger = CreateSettlement(world, "Challenger", population: 30f, fame: 20f, coordinates: (2, 1));
+
+        var attract = CreateProcess("attract", "population");
+        attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
+
+        self.Goals.Add(new EntityGoal(
+            AttributeRef.Self("population", EntityKind.Settlement),
+            current.Id,
+            urgency: 1f,
+            plannedProcessId: "attract",
+            isActionable: true));
+
+        var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [attract]);
+        var goals = generator.Generate(self, world)
+            .Where(g => !g.IsSubGoal && g.PlannedProcessId == "attract")
+            .ToList();
+
+        var root = Assert.Single(goals);
+        Assert.Equal(current.Id, root.TargetEntityId);
+        Assert.DoesNotContain(goals, g => g.TargetEntityId == challenger.Id);
+        Assert.Contains("target hysteresis kept", self.GoalGenerationTrace, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Generate_RelationalBlockerInheritsParentTarget()
     {
         var world = new StubWorldState(gridRadius: 5);
