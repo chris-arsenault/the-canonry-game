@@ -13,7 +13,7 @@ using Engine.Tests.Behaviors;
 public class NpcLoopDomainTests
 {
     [Fact]
-    public void TestDomain_HungryNpcGeneratesSustenancePlanWithMoveSubGoal()
+    public void TestDomain_HungryNpcGeneratesEatPlanWithMoveSubGoal()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -28,7 +28,7 @@ public class NpcLoopDomainTests
         var generator = new GoalGenerator(config.Kinds, config.Processes);
         var goals = generator.Generate(npc, world);
 
-        var sustainGoal = Assert.Single(goals, g => g.PlannedProcessId == "npc_take_sustenance" && !g.IsSubGoal);
+        var sustainGoal = Assert.Single(goals, g => g.PlannedProcessId == "npc_eat" && !g.IsSubGoal);
         var moveGoal = Assert.Single(goals, g => g.PlannedProcessId == "npc_move_to_target" && g.IsSubGoal);
 
         Assert.Equal(settlement.Id, sustainGoal.TargetEntityId);
@@ -37,7 +37,7 @@ public class NpcLoopDomainTests
     }
 
     [Fact]
-    public void TestDomain_HungryNpcMovesTowardSustenanceSettlement()
+    public void TestDomain_HungryNpcMovesTowardEatingSettlement()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -58,7 +58,7 @@ public class NpcLoopDomainTests
     }
 
     [Fact]
-    public void TestDomain_HungryNpcTakesSustenanceAtFoodRichSettlement()
+    public void TestDomain_HungryNpcEatsAtFoodRichSettlement()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -74,13 +74,13 @@ public class NpcLoopDomainTests
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
 
-        Assert.Equal("Take Sustenance", npc.LastEvaluation!.ExecutedProcessName);
+        Assert.Equal("Eat", npc.LastEvaluation!.ExecutedProcessName);
         Assert.InRange(npc.Attributes.GetValue("hunger"), 6.8f, 9.2f);
         Assert.True(settlement.Attributes.GetValue("prestige") > 0f);
     }
 
     [Fact]
-    public void TestDomain_CalmNpcAttendsSettlementFromStandingDrive()
+    public void TestDomain_CalmNpcWandersEvenWhenSettlementExists()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -91,13 +91,13 @@ public class NpcLoopDomainTests
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 0f);
-        var prestigeBefore = settlement.Attributes.GetValue("prestige");
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
 
-        Assert.Equal("Attend Settlement", npc.LastEvaluation!.ExecutedProcessName);
-        Assert.True(settlement.Attributes.GetValue("prestige") > prestigeBefore);
+        Assert.Equal("Wander", npc.LastEvaluation!.ExecutedProcessName);
+        Assert.NotEqual((0, 0), npc.Coordinates);
+        Assert.Empty(world.Graph.OutgoingRelationships(npc.Id, "located_at"));
     }
 
     [Fact]

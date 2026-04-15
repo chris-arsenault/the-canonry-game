@@ -154,6 +154,8 @@ public sealed class SimulationRunner
 
         // Resources
         var resources = new ResourceSystem(graph, grid);
+        var locationDrift = new LocationResourceDriftSystem(graph, domainConfig.Kinds, resources);
+        locationDrift.InitializeEffects();
 
         // Pressure from domain config
         var pressure = new PressureSystem();
@@ -185,6 +187,8 @@ public sealed class SimulationRunner
                 worldState.CurrentTick = tick;
                 lifecycle.UpdateDrainRates(tick);
             });
+        clock.Register("location_resource_drift", TickPhase.LowAltitude, cadence: 1,
+            _ => locationDrift.UpdateDriftEffects());
         clock.Register("maintenance", TickPhase.LowAltitude, cadence: 1,
             _ => maintenance.Tick());
         clock.Register("lifecycle_death_check", TickPhase.LowAltitude, cadence: 1,

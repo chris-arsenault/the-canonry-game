@@ -185,6 +185,10 @@ public sealed class GoalGenerator
                 continue;
             }
 
+            var singleRootForDrive = sources.Contains("standing", StringComparer.Ordinal)
+                && !sources.Contains("deficit", StringComparer.Ordinal);
+            GoalPlan? bestStandingPlan = null;
+
             foreach (var process in servingProcesses)
             {
                 foreach (var targetId in EnumeratePrimaryTargets(entity, process, worldState))
@@ -203,6 +207,17 @@ public sealed class GoalGenerator
 
                     if (plan is not null && plan.BestActionableUrgency > 0f)
                     {
+                        if (singleRootForDrive)
+                        {
+                            if (bestStandingPlan is null ||
+                                plan.BestActionableUrgency > bestStandingPlan.BestActionableUrgency)
+                            {
+                                bestStandingPlan = plan;
+                            }
+
+                            continue;
+                        }
+
                         var key = (effect, process.Id, targetId);
                         if (!rootPlans.TryGetValue(key, out var existing) ||
                             plan.BestActionableUrgency > existing.BestActionableUrgency)
@@ -211,6 +226,12 @@ public sealed class GoalGenerator
                         }
                     }
                 }
+            }
+
+            if (singleRootForDrive && bestStandingPlan is not null)
+            {
+                var root = bestStandingPlan.Root;
+                rootPlans[(effect, root.PlannedProcessId ?? "(abstract)", root.TargetEntityId)] = bestStandingPlan;
             }
         }
 

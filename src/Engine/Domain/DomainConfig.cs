@@ -2,6 +2,7 @@ namespace Engine.Domain;
 
 using Engine.Kinds;
 using Engine.Wiring;
+using Engine.Resources;
 
 /// <summary>
 /// All domain-specific content that the engine needs. Attribute names, subtypes,
@@ -67,6 +68,29 @@ public sealed class AttributeConfig
     /// <summary>Per-tick drift rate. Positive = increases each tick, negative = decreases.
     /// Zero (default) = no drift. e.g., hunger drifts +0.2/tick, condition drifts -0.01/tick.</summary>
     public float DriftRate { get; init; }
+
+    /// <summary>
+    /// Optional ambient location resource that adds a dynamic offset to this attribute's
+    /// per-tick drift. Useful for sustainment behaviors like hunger rising more slowly
+    /// on food-rich hexes than on barren ones.
+    /// </summary>
+    public ResourceType? LocationResourceDriftResource { get; init; }
+
+    /// <summary>
+    /// Per-unit offset applied from the ambient location resource. Negative values reduce
+    /// drift on rich hexes; positive values amplify drift.
+    /// </summary>
+    public float LocationResourceDriftPerUnit { get; init; }
+
+    /// <summary>
+    /// Minimum dynamic offset contributed by the ambient location resource.
+    /// </summary>
+    public float LocationResourceDriftMinOffset { get; init; }
+
+    /// <summary>
+    /// Maximum dynamic offset contributed by the ambient location resource.
+    /// </summary>
+    public float LocationResourceDriftMaxOffset { get; init; }
 
     /// <summary>Semantic plane definition for 2D attributes. Null for scalar attributes.</summary>
     public Attributes.SemanticPlaneDefinition? PlaneDefinition { get; init; }

@@ -163,10 +163,9 @@ public static class TestDomain
         attract.Writes.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         processes.Add(attract);
 
-        // NPC: invest time at a named settlement to satisfy sustainment.
-        // The settlement matters because it is a named place on a favorable hex,
-        // not because it owns a literal food stockpile.
-        var takeSustenance = new ProcessDefinition("npc_take_sustenance", "Take Sustenance",
+        // NPC: eat at a named settlement. This is the only strong negative hunger
+        // action; ambient food merely slows hunger growth, it does not replace eating.
+        var eat = new ProcessDefinition("npc_eat", "Eat",
             DefinitionRole.Process, EntityKind.Npc,
             new AndPrecondition([
                 new TargetIsNotSelf(),
@@ -189,45 +188,15 @@ public static class TestDomain
                 new ModifyTargetAttributeMutation("prestige", 0.1f, variance: 0.1f),
             },
         };
-        takeSustenance.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        takeSustenance.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        takeSustenance.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        takeSustenance.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        takeSustenance.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
-        takeSustenance.Reads.Add(AttributeRef.Resource("food"));
-        takeSustenance.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        takeSustenance.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
-        processes.Add(takeSustenance);
-
-        // NPC: spend time in a settlement even when not urgently hungry. This keeps
-        // NPCs moving toward named places and lets their presence contribute.
-        var attendSettlement = new ProcessDefinition("npc_attend_settlement", "Attend Settlement",
-            DefinitionRole.Process, EntityKind.Npc,
-            new AndPrecondition([
-                new TargetIsNotSelf(),
-                new RelatedEntityMatchesTarget("located_at"),
-            ]),
-            Expr.Score(Expr.Lit(0.25f)))
-        {
-            Cooldown = 1,
-            EntityCooldown = 0,
-            RewardExpression = Expr.Div(
-                Expr.Add(Expr.Target("prestige"), Expr.Target("residents")),
-                Expr.Add(Expr.Distance(), Expr.Lit(1f))),
-            Mutations =
-            {
-                new ModifyTargetAttributeMutation("prestige", 0.2f, variance: 0.1f),
-                new ModifySelfAttributeMutation("hunger", -2f, variance: 0.1f),
-            },
-        };
-        attendSettlement.GoalEffects.Add(AttributeRef.StructuralFact("settlement_presence", EntityKind.Npc));
-        attendSettlement.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        attendSettlement.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        attendSettlement.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
-        attendSettlement.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        attendSettlement.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
-        attendSettlement.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        processes.Add(attendSettlement);
+        eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        eat.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        eat.Reads.Add(AttributeRef.Resource("food"));
+        eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        processes.Add(eat);
 
         // NPC: move toward the chosen settlement. This is intentionally the first cut
         // of a reusable movement enabler; the planner/presence abstraction will be
@@ -319,7 +288,18 @@ public static class TestDomain
                 Attributes =
                 [
                     new() { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
-                    new() { Name = "hunger", Min = 0f, Max = 100f, Default = 0f, DriftRate = 0.2f },
+                    new()
+                    {
+                        Name = "hunger",
+                        Min = 0f,
+                        Max = 100f,
+                        Default = 0f,
+                        DriftRate = 0.35f,
+                        LocationResourceDriftResource = ResourceType.Food,
+                        LocationResourceDriftPerUnit = -0.04f,
+                        LocationResourceDriftMinOffset = -0.27f,
+                        LocationResourceDriftMaxOffset = 0f,
+                    },
                     new() { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
                     new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
                         PlaneDefinition = CreateCivicPlaneDefinition() },
@@ -329,13 +309,8 @@ public static class TestDomain
                 [
                     new StandingDriveConfig
                     {
-                        DesiredEffect = AttributeRef.StructuralFact("settlement_presence", EntityKind.Npc),
-                        BaseUrgency = 0.04f,
-                    },
-                    new StandingDriveConfig
-                    {
                         DesiredEffect = AttributeRef.StructuralFact("roam", EntityKind.Npc),
-                        BaseUrgency = 0.015f,
+                        BaseUrgency = 0.03f,
                     },
                 ],
             },

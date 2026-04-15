@@ -432,6 +432,66 @@ public class GoalGeneratorTests
     }
 
     [Fact]
+    public void Generate_StandingDriveUsesOnlyOneRootSlotAcrossTargets()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
+        self.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 0f));
+        self.Attributes.Add(new ScalarValue("ambition", 0f, 100f, 50f));
+        self.Attributes.Add(new ScalarValue("vitality", 0f, 100f, 100f));
+        var near = CreateSettlement(world, "Near", population: 20f, coordinates: (0, 0));
+        var far = CreateSettlement(world, "Far", population: 40f, coordinates: (3, 0));
+
+        var attend = new ProcessDefinition(
+            "attend",
+            "Attend",
+            DefinitionRole.Process,
+            EntityKind.Npc,
+            new AlwaysTrue(),
+            Expr.Score(Expr.Lit(1f)));
+        attend.GoalEffects.Add(AttributeRef.StructuralFact("presence", EntityKind.Npc));
+        attend.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attend.RewardExpression = Expr.Div(Expr.Target("population"), Expr.Add(Expr.Distance(), Expr.Lit(1f)));
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Npc] = new()
+            {
+                Subtypes = new HashSet<string> { "warrior" },
+                Attributes =
+                [
+                    new AttributeConfig { Name = "hunger", Min = 0f, Max = 100f, Default = 0f },
+                    new AttributeConfig { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
+                    new AttributeConfig { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
+                ],
+                HealthAttribute = "vitality",
+                StandingDrives =
+                [
+                    new StandingDriveConfig
+                    {
+                        DesiredEffect = AttributeRef.StructuralFact("presence", EntityKind.Npc),
+                        BaseUrgency = 0.04f,
+                    },
+                ],
+            },
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [new AttributeConfig { Name = "population", Min = 0f, Max = 1000f, Default = 10f }],
+                HealthAttribute = "population",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [attend]);
+        var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
+
+        var root = Assert.Single(goals);
+        Assert.Equal("attend", root.PlannedProcessId);
+        Assert.Equal(near.Id, root.TargetEntityId);
+        Assert.DoesNotContain(goals, g => g.TargetEntityId == far.Id);
+    }
+
+    [Fact]
     public void Generate_RelationalBlockerInheritsParentTarget()
     {
         var world = new StubWorldState(gridRadius: 5);

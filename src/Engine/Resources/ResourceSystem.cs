@@ -78,4 +78,12 @@ public sealed class ResourceSystem
     /// <summary>Get population at a cell.</summary>
     public float GetPopulation(HexCoord coord) => PopulationLayer.GetStockpile(coord);
 
+    public ResourceLayer GetLayer(ResourceType resourceType) => resourceType switch
+    {
+        ResourceType.Food => Food,
+        ResourceType.Wealth => Wealth,
+        ResourceType.Population => PopulationLayer,
+        _ => throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, "Unknown resource type"),
+    };
+
 }
