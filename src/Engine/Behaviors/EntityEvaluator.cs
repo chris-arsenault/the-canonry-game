@@ -134,6 +134,7 @@ public sealed class EntityEvaluator
 
         // Evaluate all goals and all serving processes, recording everything
         var triedGoals = new HashSet<string>();
+        var evaluatedPairs = new HashSet<(string ProcessName, EntityId Provider)>();
         var executed = false;
 
         for (var attempts = 0; !executed && attempts < Math.Max(1, entity.Goals.Count); attempts++)
@@ -151,6 +152,13 @@ public sealed class EntityEvaluator
             foreach (var process in processes)
             {
                 if (goal is not null && !ServesGoal(process, goal)) continue;
+
+                // Skip process-provider pairs already evaluated in a prior goal attempt.
+                // Two goals with the same Provider and TargetAttribute produce identical
+                // precondition/score results, so re-evaluating is wasteful and creates
+                // duplicate entries in the report.
+                if (goal is not null && !evaluatedPairs.Add((process.Name, goal.Provider)))
+                    continue;
 
                 var onCooldown = entity.ProcessCooldowns.TryGetValue(process.Name, out var cdUntil)
                     && tick < cdUntil;
