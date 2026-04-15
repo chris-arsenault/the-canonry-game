@@ -36,7 +36,9 @@ public static class TestDomain
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
             DefinitionRole.Process, EntityKind.Settlement, new TargetIsSelf(),
             Expr.Score(Expr.Lit(0.6f), 0.1f))
-        { Cooldown = 2, EntityCooldown = 1, Mutations = { new ModifySelfAttributeMutation("sustenance", 2f, variance: 0.2f) } };
+        { Cooldown = 2, EntityCooldown = 1,
+          RewardExpression = Expr.Lit(2f), // Fixed reward: 2 sustenance per execution
+          Mutations = { new ModifySelfAttributeMutation("sustenance", 2f, variance: 0.2f) } };
         stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
         processes.Add(stockpile);
 
@@ -45,7 +47,9 @@ public static class TestDomain
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([new TargetIsSelf(), new SelfAttributeThreshold("sustenance", min: 3f, max: null)]),
             Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(50f)), 0.1f))
-        { Cooldown = 5, EntityCooldown = 2, Mutations = {
+        { Cooldown = 5, EntityCooldown = 2,
+          RewardExpression = Expr.Div(Expr.Self("sustenance"), Expr.Lit(3f)), // Reward scales with available sustenance
+          Mutations = {
             new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
             new ModifySelfAttributeMutation("sustenance", -3f, variance: 0.2f),
         } };
@@ -60,7 +64,7 @@ public static class TestDomain
             DefinitionRole.Process, EntityKind.Settlement,
             new TargetIsNotSelf(),
             Expr.Score(Expr.Lit(0.3f), 0.1f))
-        { Cooldown = 15, EntityCooldown = 5, ProviderScoreExpression = Expr.SemanticDistance("ideology"),
+        { Cooldown = 15, EntityCooldown = 5, RewardExpression = Expr.SemanticDistance("ideology"),
           Mutations = {
             // dx = (self.ideology.x - target.ideology.x) * 0.01 / distance
             new CalculateMutation("dx", Expr.Div(
@@ -91,7 +95,7 @@ public static class TestDomain
             Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
         { Cooldown = 20, EntityCooldown = 5,
           // Provider score: fame advantage * ideology similarity
-          ProviderScoreExpression = Expr.Mul(
+          RewardExpression = Expr.Mul(
               Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Self("fame"), Expr.Target("fame"))),
               Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology"))),
           Mutations = {

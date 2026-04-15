@@ -84,94 +84,81 @@ public sealed class GoalGenerator
         {
             if (goals.Count >= MaxGoals) break;
 
+            // Find serving processes for this attribute
+            var servingProcesses = new List<ProcessDefinition>();
             foreach (var procDef in _processes)
             {
                 if (procDef.TargetKind != entity.Kind) continue;
-                if (goals.Count >= MaxGoals) break;
-
-                var writesToAttr = false;
                 foreach (var write in procDef.Writes)
                 {
-                    if (write.Name == attribute) { writesToAttr = true; break; }
-                }
-
-                if (!writesToAttr) continue;
-
-                // Find and score providers — all entities of the process's target kind
-                var scoredProviders = FindAndScoreProviders(procDef, entity, worldState);
-
-                foreach (var (providerId, providerWeight) in scoredProviders)
-                {
-                    if (goals.Count >= MaxGoals) break;
-                    var key = (attribute, providerId);
-                    if (usedProviders.Contains(key)) continue;
-                    usedProviders.Add(key);
-                    goals.Add(new EntityGoal(attribute, providerId, urgency * providerWeight));
+                    if (write.Name == attribute) { servingProcesses.Add(procDef); break; }
                 }
             }
+
+            if (servingProcesses.Count == 0) continue;
+
+            // Find ALL candidate providers once across all serving processes
+            var candidateIds = new HashSet<EntityId>();
+            foreach (var procDef in servingProcesses)
+            {
+                foreach (var write in procDef.Writes)
+                {
+                    if (write.Kind.HasValue)
+                    {
+                        foreach (var id in GraphAttributeQuery.FindCandidates(write, worldState))
+                        {
+                            candidateIds.Add(id);
+                        }
+                    }
+                }
+            }
+
+            // Include self as candidate (always valid)
+            candidateIds.Add(entity.Id);
+
+            // Score each provider: best reward across all serving processes, no normalization
+            var scoredCandidates = new List<(EntityId Id, float Reward)>();
+            foreach (var candidateId in candidateIds)
+            {
+                var key = (attribute, candidateId);
+                if (usedProviders.Contains(key)) continue;
+
+                var candidateEntity = worldState.Graph.GetEntity(candidateId);
+                if (candidateEntity is null || candidateEntity.Status != EntityStatus.Active) continue;
+
+                var bestReward = 0f;
+                foreach (var procDef in servingProcesses)
+                {
+                    var exprCtx = new ExpressionContext(entity, candidateEntity, worldState.Grid);
+                    var reward = Math.Max(0f, procDef.RewardExpression.Evaluate(exprCtx));
+                    if (reward > bestReward) bestReward = reward;
+                }
+
+                if (bestReward > 0f)
+                {
+                    scoredCandidates.Add((candidateId, bestReward));
+                }
+            }
+
+            // Sort by reward descending, take top to fill remaining goal slots
+            scoredCandidates.Sort((a, b) => b.Reward.CompareTo(a.Reward));
+            foreach (var (candidateId, reward) in scoredCandidates)
+            {
+                if (goals.Count >= MaxGoals) break;
+                var key = (attribute, candidateId);
+                usedProviders.Add(key);
+                goals.Add(new EntityGoal(attribute, candidateId, urgency * reward));
+            }
+        }
+
+        // Sort by weight, keep top MaxGoals
+        goals.Sort((a, b) => b.Urgency.CompareTo(a.Urgency));
+        if (goals.Count > MaxGoals)
+        {
+            goals.RemoveRange(MaxGoals, goals.Count - MaxGoals);
         }
 
         return goals;
-    }
-
-    private static List<(EntityId Id, float Weight)> FindAndScoreProviders(
-        ProcessDefinition procDef, Entity consumer, IWorldState worldState)
-    {
-        // Find all entities of the process's target kind that have the written attribute
-        AttributeRef? searchRef = null;
-        foreach (var w in procDef.Writes)
-        {
-            if (w.Kind.HasValue) { searchRef = w; break; }
-        }
-
-        if (searchRef is null) return [];
-
-        var candidates = GraphAttributeQuery.FindCandidates(searchRef, worldState);
-        if (candidates.Count == 0) return [];
-
-        // Score each candidate using the process's ProviderScoreExpression
-        var scored = new List<(EntityId Id, float Weight)>();
-        foreach (var candidateId in candidates)
-        {
-            var candidateEntity = worldState.Graph.GetEntity(candidateId);
-            if (candidateEntity is null) continue;
-
-            float weight;
-            if (procDef.ProviderScoreExpression is not null)
-            {
-                var exprCtx = new ExpressionContext(consumer, candidateEntity, worldState.Grid);
-                weight = Math.Max(0f, procDef.ProviderScoreExpression.Evaluate(exprCtx));
-            }
-            else
-            {
-                weight = 1f;
-            }
-
-            if (weight > 0f)
-            {
-                scored.Add((candidateId, weight));
-            }
-        }
-
-        if (scored.Count == 0) return [];
-
-        // Normalize and take top 3
-        var maxWeight = 0f;
-        foreach (var (_, w) in scored)
-        {
-            if (w > maxWeight) maxWeight = w;
-        }
-
-        var result = new List<(EntityId, float)>();
-        foreach (var (id, w) in scored)
-        {
-            result.Add((id, maxWeight > 0f ? w / maxWeight : 1f));
-        }
-
-        result.Sort((a, b) => b.Item2.CompareTo(a.Item2));
-        if (result.Count > 3) result.RemoveRange(3, result.Count - 3);
-
-        return result;
     }
 
     private List<EntityGoal> GenerateSubGoals(

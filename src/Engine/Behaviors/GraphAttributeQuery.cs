@@ -9,7 +9,7 @@ using Engine.Wiring;
 /// <summary>
 /// Find candidate entities that have a named attribute or resource.
 /// Returns unscored candidates. Scoring is done by the caller
-/// (typically GoalGenerator using the process's ProviderScoreExpression).
+/// (typically GoalGenerator using the process's RewardExpression).
 /// </summary>
 public static class GraphAttributeQuery
 {

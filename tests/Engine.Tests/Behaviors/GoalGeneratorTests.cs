@@ -142,7 +142,7 @@ public class GoalGeneratorTests
         var extra = CreateSettlement(world, "Extra", population: 30f, fame: 25f, coordinates: (5, 0));
 
         var process = CreateProcess("attract", "population");
-        process.ProviderScoreExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
+        process.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
         var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [process]);
 
         var goals = generator.Generate(self, world)
@@ -152,10 +152,13 @@ public class GoalGeneratorTests
 
         Assert.Equal(3, goals.Count);
         Assert.Equal([best.Id, extra.Id, high.Id], goals.Select(g => g.Provider).ToArray());
-        Assert.InRange(goals[0].Urgency, 0.66f, 0.67f);
-        Assert.InRange(goals[1].Urgency, 0.49f, 0.51f);
-        Assert.InRange(goals[2].Urgency, 0.33f, 0.34f);
-        Assert.DoesNotContain(goals, g => g.Provider == self.Id || g.Provider == mid.Id);
+        // Urgency = baseline_urgency(0.667) * raw_reward (no normalization)
+        // Best: 0.667 * 20 = 13.33, Extra: 0.667 * 15 = 10.0, High: 0.667 * 10 = 6.67
+        Assert.InRange(goals[0].Urgency, 13f, 14f);
+        Assert.InRange(goals[1].Urgency, 9.5f, 10.5f);
+        Assert.InRange(goals[2].Urgency, 6.3f, 7f);
+        // Low and Self have reward 0 (fame diff = 0), excluded
+        Assert.DoesNotContain(goals, g => g.Provider == self.Id);
     }
 
     [Fact]

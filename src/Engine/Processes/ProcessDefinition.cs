@@ -38,9 +38,10 @@ public sealed class ProcessDefinition
     /// <summary>Scoring expression for utility AI. Higher = more likely selected.</summary>
     public IExpression ScoreExpression { get; set; }
 
-    /// <summary>Expression to score candidate providers during goal generation.
-    /// Evaluated with self + candidate as target. Null = all providers score 1.0.</summary>
-    public IExpression? ProviderScoreExpression { get; set; }
+    /// <summary>Estimates the reward of acting on a provider. Evaluated with self + candidate
+    /// as target. Absolute value — not normalized. Goal weight = urgency * reward.
+    /// Required for all processes.</summary>
+    public IExpression RewardExpression { get; set; } = new Literal(1f);
 
     /// <summary>Mutations applied when this process/decision executes.</summary>
     public System.Collections.ObjectModel.Collection<IMutation> Mutations { get; } = [];

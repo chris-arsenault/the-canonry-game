@@ -429,7 +429,7 @@ public class EntityEvaluatorTests
 
         var process = CreateProcess("Attract", "population");
         // Provider score: fame difference (higher self fame relative to target = better target)
-        process.Definition.ProviderScoreExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
+        process.Definition.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
@@ -469,6 +469,72 @@ public class EntityEvaluatorTests
             // They should NOT have the same urgency
             Assert.NotEqual(selfGoal.Urgency, weakGoal.Urgency);
         }
+    }
+
+    [Fact]
+    public void GoalGenerator_ProcessWithoutProviderScore_DoesNotDuplicateGoals()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        CreateSettlement(world, "Other1", (1, 0), population: 10f);
+        CreateSettlement(world, "Other2", (2, 0), population: 10f);
+
+        var grow = CreateProcess("Grow", "population", new TargetIsSelf());
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [
+                    new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 20f },
+                ],
+                HealthAttribute = "population",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [grow.Definition]);
+        var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
+
+        // Grow reward is Literal(1f) — all providers offer equal reward.
+        // Goals created for all providers (self + others). Preconditions filter during evaluation.
+        Assert.Equal(3, goals.Count);
+        // All have same weight because reward is constant
+        Assert.True(goals.All(g => Math.Abs(g.Urgency - goals[0].Urgency) < 0.01f));
+    }
+
+    [Fact]
+    public void GoalGenerator_GoalsForSameEntityHaveDifferentUrgencies()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
+        CreateSettlement(world, "Weak", (1, 0), population: 10f, fame: 3f);
+        CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
+
+        var attract = CreateProcess("Attract", "population", new TargetIsNotSelf());
+        attract.Definition.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
+
+        var grow = CreateProcess("Grow", "population", new TargetIsSelf());
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [
+                    new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 20f },
+                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f },
+                ],
+                HealthAttribute = "population",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [grow.Definition, attract.Definition]);
+        var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
+
+        var urgencies = goals.Select(g => g.Urgency).Distinct().ToList();
+        Assert.True(urgencies.Count > 1,
+            $"All goals have same urgency: {string.Join(", ", goals.Select(g => $"{g.Provider}={g.Urgency:F3}"))}");
     }
 
     private static DataDrivenProcess CreateProcess(
