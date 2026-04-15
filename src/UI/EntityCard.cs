@@ -19,6 +19,13 @@ namespace TheCanonryGame.UI;
 #pragma warning disable CA2213 // Godot nodes managed by scene tree
 public partial class EntityCard : PanelContainer
 {
+    private const float DefaultWidth = 380f;
+    private const float DefaultHeight = 460f;
+    private const float MinimumWidth = 320f;
+    private const float MinimumHeight = 220f;
+    private const float ResizeGripSize = 24f;
+    private const double BottomStickThreshold = 160d;
+
     private SimulationRunner? _sim;
     private EntityId _entityId;
     private RichTextLabel? _content;
@@ -29,6 +36,10 @@ public partial class EntityCard : PanelContainer
     private bool _collapsed;
     private bool _resizing;
     private ScrollContainer? _scroll;
+    private double _pendingScrollValue;
+    private double _pendingScrollDistanceFromBottom;
+    private bool _pendingScrollStickToBottom;
+    private bool _scrollRestoreQueued;
 
     /// <summary>Emitted when the user closes this card.</summary>
     [Signal]
@@ -45,10 +56,15 @@ public partial class EntityCard : PanelContainer
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(340, 400);
+        CustomMinimumSize = new Vector2(MinimumWidth, MinimumHeight);
+        Size = new Vector2(DefaultWidth, DefaultHeight);
         MouseFilter = MouseFilterEnum.Stop;
 
-        var outerVBox = new VBoxContainer();
+        var outerVBox = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
         AddChild(outerVBox);
 
         // Title bar (draggable)
@@ -82,13 +98,16 @@ public partial class EntityCard : PanelContainer
         outerVBox.AddChild(new HSeparator());
 
         // Body (collapsible)
-        _body = new VBoxContainer();
+        _body = new VBoxContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
         outerVBox.AddChild(_body);
 
         _scroll = new ScrollContainer
         {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 300),
         };
         _body.AddChild(_scroll);
         var scroll = _scroll;
@@ -113,8 +132,8 @@ public partial class EntityCard : PanelContainer
             {
                 if (mb.Pressed)
                 {
-                    // Resize handle: bottom-right 20x20 corner
-                    if (mb.Position.X > Size.X - 20 && mb.Position.Y > Size.Y - 20)
+                    // Resize handle: bottom-right corner
+                    if (mb.Position.X > Size.X - ResizeGripSize && mb.Position.Y > Size.Y - ResizeGripSize)
                     {
                         _resizing = true;
                         GetViewport().SetInputAsHandled();
@@ -143,10 +162,10 @@ public partial class EntityCard : PanelContainer
             }
             else if (_resizing && _scroll is not null)
             {
-                var newWidth = Mathf.Max(280, CustomMinimumSize.X + mm.Relative.X);
-                var newScrollHeight = Mathf.Max(100, _scroll.CustomMinimumSize.Y + mm.Relative.Y);
-                CustomMinimumSize = new Vector2(newWidth, CustomMinimumSize.Y + mm.Relative.Y);
-                _scroll.CustomMinimumSize = new Vector2(0, newScrollHeight);
+                var newSize = Size + mm.Relative;
+                newSize.X = Mathf.Max(MinimumWidth, newSize.X);
+                newSize.Y = Mathf.Max(MinimumHeight, newSize.Y);
+                Size = newSize;
                 GetViewport().SetInputAsHandled();
             }
         }
@@ -166,6 +185,8 @@ public partial class EntityCard : PanelContainer
 
         _titleLabel.Text = $"{entity.Name} ({entity.Kind})";
         if (_collapsed) return; // Don't rebuild body when collapsed
+
+        CaptureScrollAnchor();
 
         var sb = new StringBuilder();
 
@@ -350,6 +371,7 @@ public partial class EntityCard : PanelContainer
         }
 
         _content.Text = sb.ToString();
+        QueueScrollRestore();
     }
 
     private static string DescribeGoalEffect(Engine.Wiring.AttributeRef effect)
@@ -423,5 +445,67 @@ public partial class EntityCard : PanelContainer
         return string.IsNullOrWhiteSpace(report.StatusNote)
             ? prefix
             : $"{prefix}: {report.StatusNote}";
+    }
+
+    private void CaptureScrollAnchor()
+    {
+        if (_scroll is null)
+        {
+            return;
+        }
+
+        var bar = _scroll.GetVScrollBar();
+        if (bar is null)
+        {
+            return;
+        }
+
+        var maxScroll = GetMaxScroll(bar);
+        _pendingScrollValue = bar.Value;
+        _pendingScrollDistanceFromBottom = System.Math.Max(0d, maxScroll - bar.Value);
+        _pendingScrollStickToBottom = _pendingScrollDistanceFromBottom <= BottomStickThreshold;
+    }
+
+    private void QueueScrollRestore()
+    {
+        if (_scroll is null || _scrollRestoreQueued)
+        {
+            return;
+        }
+
+        _scrollRestoreQueued = true;
+        CallDeferred(nameof(DeferScrollRestore));
+    }
+
+    private void DeferScrollRestore()
+    {
+        CallDeferred(nameof(ApplyScrollRestore));
+    }
+
+    private void ApplyScrollRestore()
+    {
+        _scrollRestoreQueued = false;
+
+        if (_scroll is null)
+        {
+            return;
+        }
+
+        var bar = _scroll.GetVScrollBar();
+        if (bar is null)
+        {
+            return;
+        }
+
+        var maxScroll = GetMaxScroll(bar);
+        var target = _pendingScrollStickToBottom
+            ? System.Math.Max(0d, maxScroll - _pendingScrollDistanceFromBottom)
+            : System.Math.Min(_pendingScrollValue, maxScroll);
+        _scroll.ScrollVertical = (int)System.Math.Round(target);
+    }
+
+    private static double GetMaxScroll(VScrollBar bar)
+    {
+        return System.Math.Max(0d, bar.MaxValue - bar.Page);
     }
 }
