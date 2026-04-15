@@ -125,7 +125,75 @@ public static class TestDomain
         attract.Writes.Add(AttributeRef.Target("population", EntityKind.Settlement));
         processes.Add(attract);
 
-        // TODO: NPC, Nation, Artifact, Region processes removed — rebuilding from ground up
+        // NPC: eat at a settlement with food. If not already there, movement becomes the
+        // planner-visible blocker through RelatedEntityMatchesTarget("located_at").
+        var eat = new ProcessDefinition("npc_eat", "Eat",
+            DefinitionRole.Process, EntityKind.Npc,
+            new AndPrecondition([
+                new TargetIsNotSelf(),
+                new SelfAttributeThreshold("hunger", min: 5f, max: null, plannerRelevant: false),
+                new RelatedEntityMatchesTarget("located_at"),
+                new TargetAttributeThreshold("sustenance", min: 1f, max: null, plannerRelevant: false),
+            ]),
+            Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(20f)), 0.05f))
+        {
+            Cooldown = 3,
+            EntityCooldown = 1,
+            RewardExpression = Expr.Div(
+                Expr.Target("sustenance"),
+                Expr.Add(Expr.Distance(), Expr.Lit(1f))),
+            Mutations =
+            {
+                new ModifySelfAttributeMutation("hunger", -12f, variance: 0.1f),
+                new ModifyTargetAttributeMutation("sustenance", -1f),
+            },
+        };
+        eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.ProviderSelectors.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Reads.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Writes.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        processes.Add(eat);
+
+        // NPC: move toward the chosen settlement. This is intentionally the first cut
+        // of a reusable movement enabler; the planner/presence abstraction will be
+        // generalized further before we add many more target-specific movement chains.
+        var moveToTarget = new ProcessDefinition("npc_move_to_target", "Move To Target",
+            DefinitionRole.Process, EntityKind.Npc,
+            new TargetIsNotSelf(),
+            Expr.Score(
+                Expr.Div(Expr.Lit(1f), Expr.Add(Expr.Distance(), Expr.Lit(1f))),
+                0.05f))
+        {
+            Cooldown = 0,
+            EntityCooldown = 0,
+            RewardExpression = Expr.Div(Expr.Lit(1f), Expr.Add(Expr.Distance(), Expr.Lit(1f))),
+            Mutations = { new MoveTowardTargetMutation() },
+        };
+        moveToTarget.GoalEffects.Add(AttributeRef.TargetRelation("located_at", EntityKind.Settlement));
+        moveToTarget.Reads.Add(AttributeRef.Coordinates(EntityKind.Npc));
+        moveToTarget.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
+        processes.Add(moveToTarget);
+
+        // NPC: low-urgency ambient motion when nothing more pressing dominates.
+        var wander = new ProcessDefinition("npc_wander", "Wander",
+            DefinitionRole.Process, EntityKind.Npc,
+            new SelfAttributeThreshold("hunger", min: null, max: 5f, plannerRelevant: false),
+            Expr.Score(Expr.Lit(0.2f), 0.05f))
+        {
+            Cooldown = 0,
+            EntityCooldown = 0,
+            RewardExpression = Expr.Lit(1f),
+            Mutations = { new WanderMutation() },
+        };
+        wander.GoalEffects.Add(AttributeRef.StructuralFact("roam", EntityKind.Npc));
+        wander.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        wander.Reads.Add(AttributeRef.Coordinates(EntityKind.Npc));
+        wander.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
+        processes.Add(wander);
+
+        // TODO: Nation, Artifact, Region processes removed — rebuilding from ground up
 
         return processes;
     }
@@ -185,6 +253,14 @@ public static class TestDomain
                     new() { Name = "age", Min = 0f, Max = 1000f, Default = 20f, DriftRate = 1f },
                 ],
                 HealthAttribute = "hp",
+                StandingDrives =
+                [
+                    new StandingDriveConfig
+                    {
+                        DesiredEffect = AttributeRef.StructuralFact("roam", EntityKind.Npc),
+                        BaseUrgency = 0.03f,
+                    },
+                ],
             },
             [EntityKind.Artifact] = new()
             {
