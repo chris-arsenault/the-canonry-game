@@ -63,6 +63,18 @@ public sealed class ProcessDefinition
     /// <summary>Wiring contract: what this process writes to the simulation.</summary>
     public HashSet<AttributeRef> Writes { get; } = [];
 
+    /// <summary>
+    /// Planner contract: the goal effects this process can satisfy.
+    /// Primary goals are usually self-scoped; sub-goals may target another entity.
+    /// </summary>
+    public HashSet<AttributeRef> GoalEffects { get; } = [];
+
+    /// <summary>
+    /// Planner contract: refs used to enumerate external provider/target candidates.
+    /// Empty means the process is self-directed and should only consider self.
+    /// </summary>
+    public HashSet<AttributeRef> ProviderSelectors { get; } = [];
+
 
     public ProcessDefinition(
         string id,

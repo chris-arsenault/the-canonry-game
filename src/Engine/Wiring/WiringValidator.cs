@@ -12,6 +12,8 @@ using Engine.Kinds;
 /// 3. Every entity kind participates in at least one cycle
 /// 4. Every entity kind has a sustaining path (something increases health)
 /// 5. Every entity kind has a threatening path (something decreases health)
+/// 6. Planner goal effects must correspond to execution writes
+/// 7. Planner blockers must be satisfiable by some reachable goal-effect chain
 /// </summary>
 public sealed class WiringValidator
 {
@@ -39,6 +41,7 @@ public sealed class WiringValidator
 
         var allWrites = CollectAllRefs(c => c.Writes);
         var allReads = CollectAllRefs(c => c.Reads);
+        var allGoalEffects = CollectAllRefs(c => c.GoalEffects);
 
         // 1. Dead-end attributes: written but never read
         foreach (var (attrRef, writers) in allWrites)
@@ -112,7 +115,52 @@ public sealed class WiringValidator
             }
         }
 
+        // 7. Planner contracts: declared goal effects must correspond to execution writes.
+        foreach (var contract in _contracts)
+        {
+            foreach (var goalEffect in contract.GoalEffects)
+            {
+                if (GoalEffectRequiresDirectWrite(goalEffect) &&
+                    !contract.Writes.Contains(goalEffect))
+                {
+                    errors.Add(new WiringError(
+                        WiringErrorType.GoalEffectNotWritten,
+                        $"Planner goal effect '{goalEffect}' declared by '{contract.OwnerName}' is not present in its execution writes."));
+                }
+            }
+        }
+
+        // 8. Planner blockers must be satisfiable by some declared goal effect.
+        foreach (var contract in _contracts)
+        {
+            foreach (var blocker in contract.PlannerBlockers)
+            {
+                if (!allGoalEffects.ContainsKey(blocker))
+                {
+                    errors.Add(new WiringError(
+                        WiringErrorType.UnreachableBlocker,
+                        $"Planner blocker '{blocker}' emitted by '{contract.OwnerName}' has no serving goal effect."));
+                }
+            }
+        }
+
+        // 9. Planner goal effects must have at least one reachable chain to an actionable leaf.
+        foreach (var goalEffect in allGoalEffects.Keys)
+        {
+            if (!HasReachablePlannerPath(goalEffect, []))
+            {
+                errors.Add(new WiringError(
+                    WiringErrorType.UnreachableGoalEffect,
+                    $"Planner goal effect '{goalEffect}' has no reachable blocker chain to an actionable process."));
+            }
+        }
+
         return errors;
+    }
+
+    private static bool GoalEffectRequiresDirectWrite(AttributeRef goalEffect)
+    {
+        return goalEffect.Scope is not RefScope.Structural and not RefScope.Relational;
     }
 
     /// <summary>
@@ -150,6 +198,53 @@ public sealed class WiringValidator
 
         return result;
     }
+
+    private bool HasReachablePlannerPath(
+        AttributeRef effect,
+        HashSet<AttributeRef> visiting)
+    {
+        if (!visiting.Add(effect))
+        {
+            return false;
+        }
+
+        try
+        {
+            foreach (var contract in _contracts.Where(c => c.GoalEffects.Contains(effect)))
+            {
+                if (contract.HasOpaquePlannerBranches)
+                {
+                    return true;
+                }
+
+                if (contract.PlannerBlockers.Count == 0)
+                {
+                    return true;
+                }
+
+                var allBlockersReachable = true;
+                foreach (var blocker in contract.PlannerBlockers)
+                {
+                    if (!HasReachablePlannerPath(blocker, visiting))
+                    {
+                        allBlockersReachable = false;
+                        break;
+                    }
+                }
+
+                if (allBlockersReachable)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            visiting.Remove(effect);
+        }
+    }
 }
 
 public enum WiringErrorType
@@ -159,6 +254,9 @@ public enum WiringErrorType
     NoSustainingPath,
     NoThreateningPath,
     NoCycle,
+    GoalEffectNotWritten,
+    UnreachableBlocker,
+    UnreachableGoalEffect,
 }
 
 public sealed class WiringError

@@ -12,6 +12,7 @@ internal sealed class StubWorldState : IWorldState
 {
     public WorldGraph Graph { get; } = new();
     public EffectSystem Effects { get; } = new();
+    public Engine.Pressure.PressureSystem? Pressure { get; } = new();
     public HexGrid Grid { get; }
     public RegionMap RegionMap { get; } = new();
     public SpatialIndex SpatialIndex { get; }

@@ -35,6 +35,10 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Self(string name, EntityKind kind) =>
         new(RefScope.Self, name, kind);
 
+    /// <summary>Attribute on the resolved target/provider entity.</summary>
+    public static AttributeRef Target(string name, EntityKind? kind = null) =>
+        new(RefScope.Target, name, kind);
+
     /// <summary>Attribute on the settlement at this entity's location</summary>
     public static AttributeRef LocationSettlement(string name) =>
         new(RefScope.Location, name, EntityKind.Settlement);
@@ -42,6 +46,10 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     /// <summary>Attribute on an entity related via a specific relationship kind</summary>
     public static AttributeRef Related(string relationshipKind, string attributeName, EntityKind targetKind) =>
         new(RefScope.Related, attributeName, targetKind, relationshipKind);
+
+    /// <summary>Planner fact about the relationship between self and the resolved target.</summary>
+    public static AttributeRef TargetRelation(string relationshipKind, EntityKind? targetKind = null, string factName = "matched") =>
+        new(RefScope.Relational, factName, targetKind, relationshipKind);
 
     /// <summary>Map cell property at entity's coordinates</summary>
     public static AttributeRef MapCell(string propertyName) =>
@@ -55,13 +63,17 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Pressure(string pressureName) =>
         new(RefScope.Pressure, pressureName);
 
+    /// <summary>Named structural/planner fact.</summary>
+    public static AttributeRef StructuralFact(string name, EntityKind? kind = null) =>
+        new(RefScope.Structural, name, kind);
+
     /// <summary>Entity's own coordinates</summary>
     public static AttributeRef Coordinates(EntityKind kind) =>
-        new(RefScope.Structural, "coordinates", kind);
+        StructuralFact("coordinates", kind);
 
     /// <summary>Entity's subtype</summary>
     public static AttributeRef Subtype(EntityKind kind) =>
-        new(RefScope.Structural, "subtype", kind);
+        StructuralFact("subtype", kind);
 
     // --- Equality (for use in HashSet) ---
 
@@ -89,11 +101,17 @@ public enum RefScope
     /// <summary>Attribute on the entity itself.</summary>
     Self,
 
+    /// <summary>Attribute on the process target/provider.</summary>
+    Target,
+
     /// <summary>Attribute on an entity at this entity's location.</summary>
     Location,
 
     /// <summary>Attribute on a related entity (via relationship traversal).</summary>
     Related,
+
+    /// <summary>Planner fact about the relationship between self and the resolved target.</summary>
+    Relational,
 
     /// <summary>Property of the entity's hex cell.</summary>
     MapCell,

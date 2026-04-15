@@ -17,13 +17,13 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
-        var goal = new EntityGoal("population", self.Id, 1f);
+        var goal = CreateGoal("population", self.Id, 1f);
         self.Goals.Add(goal);
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population"));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
@@ -36,12 +36,12 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 0.9f));
-        self.Goals.Add(new EntityGoal("fame", self.Id, 0.1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 0.9f));
+        self.Goals.Add(CreateGoal("fame", self.Id, 0.1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population"));
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Celebrate", "fame"));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
+        definitions.Register(CreateProcess("Celebrate", "fame"));
 
         var bus = new MessageBus();
         var executed = new List<string>();
@@ -53,7 +53,7 @@ public class EntityEvaluatorTests
             }
         });
 
-        var evaluator = new EntityEvaluator(registry, bus, new Random(42));
+        var evaluator = new EntityEvaluator(definitions, bus, new Random(42));
         for (var i = 0; i < 500; i++)
         {
             evaluator.Evaluate(self, world);
@@ -66,25 +66,28 @@ public class EntityEvaluatorTests
     public void Evaluate_FallsThroughToLaterGoalsWhenSelectedGoalHasNoViableProcesses()
     {
         var world = new StubWorldState(gridRadius: 5);
+        world.CurrentTick = 7;
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
-        var blockedGoal = new EntityGoal("population", self.Id, 1f);
-        var viableGoal = new EntityGoal("fame", self.Id, 0.2f);
+        var blockedGoal = CreateGoal("population", self.Id, 1f);
+        var viableGoal = CreateGoal("fame", self.Id, 0.2f);
         self.Goals.Add(blockedGoal);
         self.Goals.Add(viableGoal);
+        self.GoalsGeneratedAt = 7;
 
         var blocked = CreateProcess("Blocked", "population", scoreExpression: Expr.Lit(0f));
         var viable = CreateProcess("Celebrate", "fame");
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, blocked);
-        registry.RegisterProcess(EntityKind.Settlement, viable);
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(blocked);
+        definitions.Register(viable);
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.0));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.0));
         evaluator.Evaluate(self, world);
 
         Assert.Equal("Celebrate", self.LastEvaluation!.ExecutedProcessName);
         Assert.Contains(self.LastEvaluation.Candidates, c => c.GoalId == blockedGoal.Id && c.ProcessName == "Blocked");
         Assert.Contains(self.LastEvaluation.Candidates, c => c.GoalId == viableGoal.Id && c.ProcessName == "Celebrate");
+        Assert.Equal(0, self.GoalsGeneratedAt);
     }
 
     [Fact]
@@ -92,13 +95,13 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population"));
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Celebrate", "fame"));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
+        definitions.Register(CreateProcess("Celebrate", "fame"));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Single(self.LastEvaluation!.Candidates);
@@ -110,13 +113,13 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f, parentGoalId: "parent", blockingAttribute: "sustenance"));
+        self.Goals.Add(CreateGoal("sustenance", self.Id, 1f, parentGoalId: "parent"));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population"));
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Stockpile", "sustenance"));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
+        definitions.Register(CreateProcess("Stockpile", "sustenance"));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Single(self.LastEvaluation!.Candidates);
@@ -128,12 +131,12 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population", new TargetIsSelf()));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population", new TargetIsSelf()));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -147,12 +150,12 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population", new TargetIsSelf()));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population", new TargetIsSelf()));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -166,13 +169,13 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f, sustenance: 10f);
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement,
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(
             CreateProcess("Grow", "population", new SelfAttributeThreshold("sustenance", min: 3f, max: null)));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -186,13 +189,13 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 10f);
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f, sustenance: 0f);
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement,
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(
             CreateProcess("Grow", "population", new TargetAttributeThreshold("sustenance", min: 3f, max: null)));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -206,13 +209,13 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, ideology: (0f, 0f));
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f, ideology: (1f, 1f));
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement,
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(
             CreateProcess("Grow", "population", new SemanticDistanceThreshold("ideology", 0.5f)));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -225,12 +228,12 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population", cooldown: 4));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population", cooldown: 4));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
 
         world.CurrentTick = 0;
         evaluator.Evaluate(self, world);
@@ -251,19 +254,29 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
+
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
+
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+
+        world.CurrentTick = 0;
+        evaluator.Evaluate(self, world);
+
         self.EntityCooldownUntil = 5;
         world.CurrentTick = 2;
-
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population"));
-
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
-        Assert.Empty(self.LastEvaluation!.Candidates);
-        Assert.Null(self.LastEvaluation.ExecutedProcessName);
+        Assert.True(self.LastEvaluation!.IsStale);
+        Assert.Equal(0, self.LastEvaluation.SourceTick);
+        Assert.Single(self.LastEvaluation.Candidates);
+        Assert.Equal("Grow", self.LastEvaluation.Candidates[0].ProcessName);
+        Assert.Equal(2, self.LastEvaluation.Tick);
+        Assert.Contains("entity cooldown until tick 5", self.LastEvaluation.StatusNote, StringComparison.Ordinal);
+        Assert.Equal("Grow", self.LastEvaluation.ExecutedProcessName);
+        Assert.Contains("reusing report from tick 0", self.EvaluationTrace, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -273,12 +286,12 @@ public class EntityEvaluatorTests
         {
             var world = new StubWorldState(gridRadius: 5);
             var self = CreateSettlement(world, $"Self_{jitterRoll}", (0, 0), population: 10f);
-            self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+            self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
-            var registry = new ActivityRegistry();
-            registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population", cooldown: 8));
+            var definitions = new BehaviorDefinitionIndex();
+            definitions.Register(CreateProcess("Grow", "population", cooldown: 8));
 
-            var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.0, 0.0, jitterRoll));
+            var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.0, 0.0, jitterRoll));
             evaluator.Evaluate(self, world);
 
             Assert.InRange(self.ProcessCooldowns["Grow"], 6, 10);
@@ -291,7 +304,7 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
         var definition = new ProcessDefinition(
             "attract",
@@ -303,14 +316,15 @@ public class EntityEvaluatorTests
         {
             Cooldown = 3,
         };
+        definition.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
         definition.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
         definition.Mutations.Add(new ModifySelfAttributeMutation("population", 1f));
         definition.Mutations.Add(new ModifyTargetAttributeMutation("population", -2f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, new DataDrivenProcess(definition));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(definition);
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Equal(11f, self.Attributes.GetValue("population"));
@@ -324,14 +338,14 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Blocked", "population",
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Blocked", "population",
             new SelfAttributeThreshold("sustenance", min: 3f, max: null)));
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population"));
+        definitions.Register(CreateProcess("Grow", "population"));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.9));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.9));
         evaluator.Evaluate(self, world);
 
         var report = self.LastEvaluation!;
@@ -347,10 +361,10 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, new SimpleProcess("Idle"));
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateIdleProcess("Idle"));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Equal("Idle", self.LastEvaluation!.ExecutedProcessName);
@@ -358,17 +372,87 @@ public class EntityEvaluatorTests
     }
 
     [Fact]
+    public void Evaluate_WithGoalGeneratorAndNoGoals_DoesNotRunUnguidedProcesses()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateIdleProcess("Idle"));
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [
+                    new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 0f },
+                ],
+                HealthAttribute = "population",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [CreateIdleProcess("Idle")]);
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5), generator);
+        evaluator.Evaluate(self, world);
+
+        Assert.NotNull(self.LastEvaluation);
+        Assert.Null(self.LastEvaluation!.ExecutedProcessName);
+        Assert.Equal("no planner goals", self.LastEvaluation.StatusNote);
+    }
+
+    [Fact]
+    public void Evaluate_StandingDriveExecutesThroughNormalGoalPath()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 25f);
+
+        var idleGrowth = CreateProcess("IdleGrowth", "population");
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [
+                    new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 0f },
+                ],
+                HealthAttribute = "population",
+                StandingDrives =
+                [
+                    new StandingDriveConfig
+                    {
+                        DesiredEffect = AttributeRef.Self("population", EntityKind.Settlement),
+                        BaseUrgency = 0.08f,
+                    },
+                ],
+            },
+        };
+
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(idleGrowth);
+
+        var generator = new GoalGenerator(kinds, [idleGrowth]);
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5), generator);
+        evaluator.Evaluate(self, world);
+
+        Assert.Equal("IdleGrowth", self.LastEvaluation!.ExecutedProcessName);
+        Assert.False(string.IsNullOrEmpty(self.LastEvaluation.SelectedGoalId));
+        Assert.NotEmpty(self.Goals);
+    }
+
+    [Fact]
     public void Evaluate_ProducesReportEvenWhenNoProcessFires()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
-        self.Goals.Add(new EntityGoal("population", self.Id, 1f));
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
-        var registry = new ActivityRegistry();
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Blocked", "population",
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Blocked", "population",
             precondition: new SelfAttributeThreshold("sustenance", min: 3f, max: null)));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
@@ -382,13 +466,13 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
-        var registry = new ActivityRegistry();
+        var definitions = new BehaviorDefinitionIndex();
         // Grow has TargetIsSelf — should fail precondition against Other, not show "score below threshold"
-        registry.RegisterProcess(EntityKind.Settlement, CreateProcess("Grow", "population", new TargetIsSelf()));
+        definitions.Register(CreateProcess("Grow", "population", new TargetIsSelf()));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -403,14 +487,14 @@ public class EntityEvaluatorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
         var other = CreateSettlement(world, "Other", (1, 0), population: 10f);
-        self.Goals.Add(new EntityGoal("population", other.Id, 1f));
+        self.Goals.Add(CreateGoal("population", other.Id, 1f));
 
-        var registry = new ActivityRegistry();
+        var definitions = new BehaviorDefinitionIndex();
         // Process with TargetIsSelf AND score=0 — precondition failure should be reported, not score
-        registry.RegisterProcess(EntityKind.Settlement,
+        definitions.Register(
             CreateProcess("Grow", "population", new TargetIsSelf(), scoreExpression: Expr.Lit(0f)));
 
-        var evaluator = new EntityEvaluator(registry, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -428,8 +512,9 @@ public class EntityEvaluatorTests
         var strong = CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
 
         var process = CreateProcess("Attract", "population");
+        process.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
         // Provider score: fame difference (higher self fame relative to target = better target)
-        process.Definition.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
+        process.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
@@ -444,9 +529,9 @@ public class EntityEvaluatorTests
             },
         };
 
-        var generator = new GoalGenerator(kinds, [process.Definition]);
+        var generator = new GoalGenerator(kinds, [process]);
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.Attribute == "population")
+            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
             .ToList();
 
         // Weak has fame 5, self has 10 → fame diff = 5 (good target)
@@ -455,15 +540,15 @@ public class EntityEvaluatorTests
         // Goals should have different urgencies based on provider scores
         Assert.True(goals.Count >= 1);
 
-        var weakGoal = goals.FirstOrDefault(g => g.Provider == weak.Id);
+        var weakGoal = goals.FirstOrDefault(g => g.TargetEntityId == weak.Id);
         Assert.NotNull(weakGoal);
 
         // Strong should be excluded (negative score)
-        var strongGoal = goals.FirstOrDefault(g => g.Provider == strong.Id);
+        var strongGoal = goals.FirstOrDefault(g => g.TargetEntityId == strong.Id);
         Assert.Null(strongGoal);
 
         // Weak goal urgency should be different from base urgency (modulated by provider weight)
-        var selfGoal = goals.FirstOrDefault(g => g.Provider == self.Id);
+        var selfGoal = goals.FirstOrDefault(g => g.TargetEntityId == self.Id);
         if (selfGoal is not null && weakGoal is not null)
         {
             // They should NOT have the same urgency
@@ -493,14 +578,13 @@ public class EntityEvaluatorTests
             },
         };
 
-        var generator = new GoalGenerator(kinds, [grow.Definition]);
+        var generator = new GoalGenerator(kinds, [grow]);
         var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
 
         // Grow reward is Literal(1f) — all providers offer equal reward.
-        // Goals created for all providers (self + others). Preconditions filter during evaluation.
-        Assert.Equal(3, goals.Count);
-        // All have same weight because reward is constant
-        Assert.True(goals.All(g => Math.Abs(g.Urgency - goals[0].Urgency) < 0.01f));
+        // Self-only processes now emit only self goals.
+        Assert.Single(goals);
+        Assert.Equal(self.Id, goals[0].TargetEntityId);
     }
 
     [Fact]
@@ -512,7 +596,8 @@ public class EntityEvaluatorTests
         CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
 
         var attract = CreateProcess("Attract", "population", new TargetIsNotSelf());
-        attract.Definition.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
+        attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
 
         var grow = CreateProcess("Grow", "population", new TargetIsSelf());
 
@@ -529,15 +614,48 @@ public class EntityEvaluatorTests
             },
         };
 
-        var generator = new GoalGenerator(kinds, [grow.Definition, attract.Definition]);
+        var generator = new GoalGenerator(kinds, [grow, attract]);
         var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
 
         var urgencies = goals.Select(g => g.Urgency).Distinct().ToList();
         Assert.True(urgencies.Count > 1,
-            $"All goals have same urgency: {string.Join(", ", goals.Select(g => $"{g.Provider}={g.Urgency:F3}"))}");
+            $"All goals have same urgency: {string.Join(", ", goals.Select(g => $"{g.TargetEntityId}={g.Urgency:F3}"))}");
     }
 
-    private static DataDrivenProcess CreateProcess(
+    [Fact]
+    public void GoalGenerator_RecordsTraceForPlannerExpansion()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
+
+        var grow = CreateProcess(
+            "Grow",
+            "population",
+            new SelfAttributeThreshold("sustenance", min: 3f, max: null));
+        var stockpile = CreateProcess("Stockpile", "sustenance");
+
+        var kinds = new Dictionary<EntityKind, KindConfig>
+        {
+            [EntityKind.Settlement] = new()
+            {
+                Subtypes = new HashSet<string> { "village" },
+                Attributes = [
+                    new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 20f },
+                    new() { Name = "sustenance", Min = 0f, Max = 1000f, Default = 5f, Baseline = 5f },
+                ],
+                HealthAttribute = "population",
+            },
+        };
+
+        var generator = new GoalGenerator(kinds, [grow, stockpile]);
+        _ = generator.Generate(self, world);
+
+        Assert.NotNull(self.GoalGenerationTrace);
+        Assert.Contains("blocked process=Grow", self.GoalGenerationTrace, StringComparison.Ordinal);
+        Assert.Contains("selected child process=STOCKPILE", self.GoalGenerationTrace, StringComparison.Ordinal);
+    }
+
+    private static ProcessDefinition CreateProcess(
         string name,
         string writesAttribute,
         IPrecondition? precondition = null,
@@ -556,8 +674,34 @@ public class EntityEvaluatorTests
             Cooldown = cooldown,
             EntityCooldown = entityCooldown,
         };
+        definition.GoalEffects.Add(AttributeRef.Self(writesAttribute, EntityKind.Settlement));
         definition.Writes.Add(AttributeRef.Self(writesAttribute, EntityKind.Settlement));
-        return new DataDrivenProcess(definition);
+        return definition;
+    }
+
+    private static ProcessDefinition CreateIdleProcess(string name) =>
+        new(
+            name.ToUpperInvariant(),
+            name,
+            DefinitionRole.Process,
+            EntityKind.Settlement,
+            new AlwaysTrue(),
+            Expr.Score(Expr.Lit(1f)));
+
+    private static EntityGoal CreateGoal(
+        string attribute,
+        EntityId targetEntityId,
+        float urgency,
+        string? parentGoalId = null,
+        RefScope scope = RefScope.Self)
+    {
+        var effect = scope switch
+        {
+            RefScope.Target => AttributeRef.Target(attribute, EntityKind.Settlement),
+            _ => AttributeRef.Self(attribute, EntityKind.Settlement),
+        };
+
+        return new EntityGoal(effect, targetEntityId, urgency, parentGoalId: parentGoalId);
     }
 
     private static Entity CreateSettlement(
@@ -576,17 +720,5 @@ public class EntityEvaluatorTests
         var (x, y) = ideology ?? (0.5f, 0.5f);
         entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, x, y));
         return entity;
-    }
-
-    private sealed class SimpleProcess(string name) : IProcess
-    {
-        public string Name => name;
-
-        public bool CanExecute(Entity entity, IWorldState worldState, EntityGoal? goal) => true;
-
-        public float Score(Entity entity, IWorldState worldState) => 1f;
-
-        public SimulationMessage Execute(Entity entity, IWorldState worldState, EntityGoal? goal) =>
-            new ProcessExecutedMessage(worldState.CurrentTick, entity.Id, entity.Kind, name, name);
     }
 }

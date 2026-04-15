@@ -70,6 +70,105 @@ public class WiringValidatorTests
         Assert.Empty(errors);
     }
 
+    [Fact]
+    public void Validate_DetectsGoalEffectThatIsNotWritten()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract(
+            "phantom_growth",
+            reads: new HashSet<AttributeRef>(),
+            writes: new HashSet<AttributeRef>(),
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) }));
+
+        var errors = validator.Validate();
+        Assert.Contains(errors, e => e.Type == WiringErrorType.GoalEffectNotWritten &&
+            e.Message.Contains("population", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_RelationalPlannerGoalEffect_DoesNotRequireDirectWrite()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract(
+            "move_to_target",
+            reads: new HashSet<AttributeRef> { AttributeRef.Coordinates(EntityKind.Npc) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Coordinates(EntityKind.Npc) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.TargetRelation("located_at", EntityKind.Settlement) }));
+
+        var errors = validator.Validate();
+
+        Assert.DoesNotContain(errors, e => e.Type == WiringErrorType.GoalEffectNotWritten);
+    }
+
+    [Fact]
+    public void Validate_DetectsUnreachablePlannerBlocker()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract(
+            "grow",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+
+        var errors = validator.Validate();
+        Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableBlocker &&
+            e.Message.Contains("sustenance", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableGoalEffect &&
+            e.Message.Contains("population", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_DetectsCircularPlannerChainWithoutActionableLeaf()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract(
+            "grow",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+
+        validator.RegisterContract(new WiringContract(
+            "stockpile",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) }));
+
+        var errors = validator.Validate();
+        Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableGoalEffect &&
+            e.Message.Contains("population", StringComparison.Ordinal));
+        Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableGoalEffect &&
+            e.Message.Contains("sustenance", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_PassesWhenPlannerBlockerChainHasActionableBaseCase()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract(
+            "grow",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+
+        validator.RegisterContract(new WiringContract(
+            "stockpile",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+
+        var errors = validator.Validate();
+        Assert.Empty(errors);
+    }
+
     // --- Dead-end detection ---
 
     [Fact]

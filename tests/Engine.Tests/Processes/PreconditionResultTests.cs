@@ -3,6 +3,7 @@ namespace Engine.Tests.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Processes;
+using Engine.Wiring;
 
 public class PreconditionResultTests
 {
@@ -51,7 +52,7 @@ public class PreconditionResultTests
         Assert.False(result.Passed);
         Assert.Contains("sustenance", result.Diagnostic, System.StringComparison.Ordinal);
         Assert.Contains("2.0", result.Diagnostic, System.StringComparison.Ordinal);
-        Assert.Contains("sustenance", result.BlockingAttributes);
+        Assert.Contains(AttributeRef.Self("sustenance", EntityKind.Settlement), result.Blockers);
     }
 
     [Fact]
@@ -71,8 +72,8 @@ public class PreconditionResultTests
         var result = and.Evaluate(ctx);
 
         Assert.False(result.Passed);
-        Assert.Contains("fame", result.BlockingAttributes);
-        Assert.Contains("sustenance", result.BlockingAttributes);
+        Assert.Contains(AttributeRef.Self("fame", EntityKind.Settlement), result.Blockers);
+        Assert.Contains(AttributeRef.Self("sustenance", EntityKind.Settlement), result.Blockers);
     }
 
     private static StubMutationContext CreateContext(int selfId, int targetId)

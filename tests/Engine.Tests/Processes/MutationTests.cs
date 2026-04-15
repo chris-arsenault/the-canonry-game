@@ -122,6 +122,59 @@ public class MutationTests
         Assert.DoesNotContain("ConsumeResourceAtSelfMutation", mutationTypeNames);
     }
 
+    [Fact]
+    public void MoveTowardTargetMutation_MovesOneStepAndUpdatesSpatialIndex()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateNpc(world, "Self", (0, 0));
+        var target = CreateSettlement(world, "Target", (2, 0), population: 10f);
+        world.SpatialIndex.RebuildFromGraph();
+
+        new MoveTowardTargetMutation(locationRelationshipKind: null, locationEntityKind: null)
+            .Execute(new TestMutationContext(self, target, worldState: world));
+
+        Assert.Equal((1, 0), self.Coordinates);
+        Assert.DoesNotContain(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(0, 0)));
+        Assert.Contains(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(1, 0)));
+    }
+
+    [Fact]
+    public void MoveTowardTargetMutation_SynchronizesLocatedAtWhenEnteringSettlement()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var currentSettlement = CreateSettlement(world, "Current", (0, 0), population: 10f);
+        var targetSettlement = CreateSettlement(world, "Target", (1, 0), population: 10f);
+        var self = CreateNpc(world, "Self", (0, 0));
+        world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, self.Id, currentSettlement.Id, 1f, 0);
+        world.SpatialIndex.RebuildFromGraph();
+
+        new MoveTowardTargetMutation().Execute(new TestMutationContext(self, targetSettlement, worldState: world));
+
+        Assert.Equal((1, 0), self.Coordinates);
+        var activeLocatedAt = Assert.Single(world.Graph.OutgoingRelationships(self.Id, "located_at"));
+        Assert.Equal(targetSettlement.Id, activeLocatedAt.TargetId);
+    }
+
+    [Fact]
+    public void WanderMutation_MovesToWalkableNeighborAndClearsLocatedAtWhenLeavingSettlement()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var settlement = CreateSettlement(world, "Home", (0, 0), population: 10f);
+        var self = CreateNpc(world, "Self", (0, 0));
+        world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, self.Id, settlement.Id, 1f, 0);
+        world.SpatialIndex.RebuildFromGraph();
+
+        new WanderMutation().Execute(new TestMutationContext(
+            self,
+            worldState: world,
+            random: new FixedRandom(0.0)));
+
+        Assert.Equal((1, 0), self.Coordinates);
+        Assert.Empty(world.Graph.OutgoingRelationships(self.Id, "located_at"));
+        Assert.DoesNotContain(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(0, 0)));
+        Assert.Contains(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(1, 0)));
+    }
+
     private static Entity CreateSettlement(
         StubWorldState world,
         string name,
@@ -135,6 +188,14 @@ public class MutationTests
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
         var (x, y) = ideology ?? (0.5f, 0.5f);
         entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, x, y));
+        return entity;
+    }
+
+    private static Entity CreateNpc(StubWorldState world, string name, (int Q, int R) coordinates)
+    {
+        var entity = world.Graph.CreateEntity(EntityKind.Npc, "warrior", name, "c", 0, coordinates);
+        entity.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
+        entity.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 0f));
         return entity;
     }
 }

@@ -9,7 +9,7 @@ using Engine.Wiring;
 public class GraphAttributeQueryTests
 {
     [Fact]
-    public void FindCandidates_FindsEntitiesOfTheSpecifiedKindWithPositiveAttributeValue()
+    public void FindCandidates_FindsEntitiesOfTheSpecifiedKindWithMatchingAttribute()
     {
         var world = CreateWorld();
 
@@ -17,12 +17,12 @@ public class GraphAttributeQueryTests
             AttributeRef.Self("population", EntityKind.Settlement),
             world);
 
-        Assert.Equal(2, candidates.Count);
-        Assert.Contains(world.Graph.GetEntitiesByKind(EntityKind.Settlement), id => candidates.Contains(id));
+        Assert.Equal(3, candidates.Count);
+        Assert.Equal(world.Graph.GetEntitiesByKind(EntityKind.Settlement).Count, candidates.Count);
     }
 
     [Fact]
-    public void FindCandidates_ExcludesEntitiesWithZeroOrNegativeValues()
+    public void FindCandidates_UsesStructuralEligibilityNotCurrentValue()
     {
         var world = CreateWorld();
 
@@ -30,9 +30,10 @@ public class GraphAttributeQueryTests
             AttributeRef.Self("fame", EntityKind.Settlement),
             world);
 
-        Assert.Single(candidates);
-        var onlyCandidate = world.Graph.GetEntity(candidates[0])!;
-        Assert.Equal("Positive", onlyCandidate.Name);
+        Assert.Equal(3, candidates.Count);
+        Assert.Contains(candidates, id => world.Graph.GetEntity(id)!.Name == "Positive");
+        Assert.Contains(candidates, id => world.Graph.GetEntity(id)!.Name == "Zero");
+        Assert.Contains(candidates, id => world.Graph.GetEntity(id)!.Name == "Negative");
     }
 
     [Fact]

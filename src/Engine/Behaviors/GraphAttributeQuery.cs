@@ -7,32 +7,31 @@ using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
-/// Find candidate entities that have a named attribute or resource.
-/// Returns unscored candidates. Scoring is done by the caller
-/// (typically GoalGenerator using the process's RewardExpression).
+/// Find structurally eligible candidate entities for a planner provider selector.
+/// Returns unscored candidates. Scoring is done by the caller.
 /// </summary>
 public static class GraphAttributeQuery
 {
     /// <summary>
-    /// Find entities that have the referenced attribute/resource with value > 0.
+    /// Find entities that satisfy the referenced selector.
     /// Returns entity IDs — no scoring, no ordering.
     /// </summary>
     public static IReadOnlyList<EntityId> FindCandidates(
-        AttributeRef providerRef,
+        AttributeRef selector,
         IWorldState worldState)
     {
-        ArgumentNullException.ThrowIfNull(providerRef);
+        ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(worldState);
 
         var candidates = new List<EntityId>();
 
-        if (providerRef.Scope == RefScope.Resource)
+        if (selector.Scope == RefScope.Resource)
         {
-            FindResourceCandidates(providerRef.Name, worldState, candidates);
+            FindResourceCandidates(selector.Name, worldState, candidates);
         }
-        else if (providerRef.Kind.HasValue)
+        else if (selector.Kind.HasValue)
         {
-            FindAttributeCandidates(providerRef.Name, providerRef.Kind.Value, worldState, candidates);
+            FindAttributeCandidates(selector.Name, selector.Kind.Value, worldState, candidates);
         }
 
         return candidates;
@@ -82,7 +81,7 @@ public static class GraphAttributeQuery
             if (entity is null || entity.Status != EntityStatus.Active)
                 continue;
 
-            if (entity.Attributes.GetValue(attributeName) > 0f)
+            if (entity.Attributes.Has(attributeName))
                 candidates.Add(entityId);
         }
     }

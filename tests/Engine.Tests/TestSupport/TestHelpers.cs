@@ -72,7 +72,8 @@ internal sealed class TestMutationContext : IMutationContext, IWorldStateAccesso
 
     public float GetVariable(string name) => _variables.GetValueOrDefault(name);
 
-    public float GetPressure(string pressureName, EntityId scopeId) => 0f;
+    public float GetPressure(string pressureName, EntityId scopeId) =>
+        _worldState.Pressure?.GetValue(pressureName, scopeId) ?? 0f;
 
     public float GetAttribute(EntityId entityId, string attributeName) =>
         _worldState.Graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
@@ -109,8 +110,16 @@ internal sealed class TestMutationContext : IMutationContext, IWorldStateAccesso
         };
     }
 
-    public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) =>
-        _worldState.Graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);
+    public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates)
+    {
+        var entity = _worldState.Graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);
+        if (coordinates is not null)
+        {
+            _worldState.SpatialIndex.PlaceEntity(entity.Id, new Engine.Map.HexCoord(coordinates.Value.Q, coordinates.Value.R));
+        }
+
+        return entity;
+    }
 
     public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) =>
         _worldState.Graph.CreateRelationship(kind, polarity, sourceId, targetId, strength, CurrentTick);
@@ -122,8 +131,11 @@ internal sealed class TestMutationContext : IMutationContext, IWorldStateAccesso
 
     public void SetTag(EntityId entityId, string key, string value) { }
 
-    public void SetEntityHistorical(EntityId entityId) =>
+    public void SetEntityHistorical(EntityId entityId)
+    {
+        _worldState.SpatialIndex.RemoveEntity(entityId);
         _worldState.Graph.SetEntityHistorical(entityId, CurrentTick);
+    }
 
     public float ConsumeResource((int Q, int R) coordinates, ResourceType resourceType, float amount)
     {
@@ -152,8 +164,12 @@ internal sealed class TestMutationContext : IMutationContext, IWorldStateAccesso
         return consumed;
     }
 
-    public void SetCoordinates(EntityId entityId, int q, int r) =>
+    public void SetCoordinates(EntityId entityId, int q, int r)
+    {
+        _worldState.SpatialIndex.RemoveEntity(entityId);
         _worldState.Graph.SetCoordinates(entityId, q, r);
+        _worldState.SpatialIndex.PlaceEntity(entityId, new Engine.Map.HexCoord(q, r));
+    }
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {
