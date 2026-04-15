@@ -48,10 +48,10 @@ Per-entity continuous variables. The numeric state that game systems modify and 
 
 **What it is:**
 - Named numeric values attached to entities
-- Kind-specific: nations have stability and military strength, settlements have population and development, NPCs have health and ambition, artifacts have condition and resonance
-- Universal: all entities have prominence (0-5)
+- Kind-specific: regions track slow world-state, settlements track integrity and projection, factions track cohesion/support/influence, NPCs track vitality and drives, artifacts track condition/power/containment
 - Bounded: each attribute has a min/max range
 - Change tracking: current value, rate of change, recent delta history (for trend display)
+- Attribute selection follows a shared design model. See `docs/systems/attribute-model.md`.
 
 **Data model:**
 - Attribute definitions per entity kind (name, min, max, default)

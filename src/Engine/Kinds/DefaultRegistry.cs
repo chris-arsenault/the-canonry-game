@@ -26,7 +26,7 @@ public static class DefaultRegistry
             attributes:
             [
                 new AttributeDefinition("fertility", 0f, 1f, 0.5f),
-                new AttributeDefinition("water_balance", 0f, 100f, 50f),
+                new AttributeDefinition("regional_safety", 0f, 100f, 50f),
                 new AttributeDefinition("geologic_stability", 0f, 100f, 80f),
             ],
             healthAttribute: null)); // Regions are permanent

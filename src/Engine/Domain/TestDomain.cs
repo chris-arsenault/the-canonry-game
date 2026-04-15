@@ -249,7 +249,7 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_region", "tundra", "coastal", "mountain", "plains" },
                 Attributes =
                 [
-                    new() { Name = "water_balance", Min = 0f, Max = 100f, Default = 50f },
+                    new() { Name = "regional_safety", Min = 0f, Max = 100f, Default = 50f },
                     new() { Name = "geologic_stability", Min = 0f, Max = 100f, Default = 80f },
                     new() { Name = "mystic_resonance", Min = 0f, Max = 1f, DefaultX = 0.2f, DefaultY = 0.5f,
                         PlaneDefinition = CreateMysticPlaneDefinition() },

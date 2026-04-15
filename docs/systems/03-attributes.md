@@ -8,6 +8,8 @@ Per-entity numeric state. The values that make entities distinct from each other
 
 Attributes are the measurable properties of entities. They are the substrate that low-altitude systems modify, that pressure aggregates, and that cards evaluate preconditions against. Every meaningful difference between two entities of the same kind is expressed through attributes.
 
+The current active domain also uses a 5-bucket selection model to keep attribute lists disciplined: `Integrity`, `Need/Drive`, `Capacity`, `Projection`, and `Alignment`. See [attribute-model.md](./attribute-model.md).
+
 ---
 
 ## Design Decisions
