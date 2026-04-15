@@ -40,13 +40,13 @@ public class GoalGeneratorTests
             [EntityKind.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
-                Attributes = [new AttributeConfig { Name = "morale", Min = 0f, Max = 100f, Default = 20f }],
+                Attributes = [new AttributeConfig { Name = "morale", Min = 0f, Max = 100f, Default = 100f }],
                 HealthAttribute = "morale",
             },
         };
 
         var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Self", "c", 0, (0, 0));
-        entity.Attributes.Add(new ScalarValue("morale", 0f, 100f, 20f));
+        entity.Attributes.Add(new ScalarValue("morale", 0f, 100f, 100f));
 
         var process = CreateProcess("celebrate", "morale");
         var generator = new GoalGenerator(kinds, [process]);
@@ -415,7 +415,7 @@ public class GoalGeneratorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
-        self.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 0f));
+        self.Attributes.Add(new ScalarValue("satiety", 0f, 100f, 100f));
         self.Attributes.Add(new ScalarValue("ambition", 0f, 100f, 50f));
         self.Attributes.Add(new ScalarValue("vitality", 0f, 100f, 100f));
         var near = CreateSettlement(world, "Near", population: 20f, coordinates: (0, 0));
@@ -439,7 +439,7 @@ public class GoalGeneratorTests
                 Subtypes = new HashSet<string> { "warrior" },
                 Attributes =
                 [
-                    new AttributeConfig { Name = "hunger", Min = 0f, Max = 100f, Default = 0f },
+                    new AttributeConfig { Name = "satiety", Min = 0f, Max = 100f, Default = 100f },
                     new AttributeConfig { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
                     new AttributeConfig { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
                 ],
@@ -505,7 +505,7 @@ public class GoalGeneratorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
-        self.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 80f));
+        self.Attributes.Add(new ScalarValue("satiety", 0f, 100f, 20f));
         var settlement = CreateSettlement(world, "Target", population: 25f, sustenance: 10f, coordinates: (2, 0));
 
         var eat = new ProcessDefinition(
@@ -518,9 +518,9 @@ public class GoalGeneratorTests
                 new RelatedEntityMatchesTarget("located_at"),
             ]),
             Expr.Score(Expr.Lit(1f)));
-        eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.GoalEffects.Add(AttributeRef.Self("satiety", EntityKind.Npc));
         eat.ProviderSelectors.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
-        eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Writes.Add(AttributeRef.Self("satiety", EntityKind.Npc));
 
         var move = new ProcessDefinition(
             "move",
@@ -536,8 +536,8 @@ public class GoalGeneratorTests
             [EntityKind.Npc] = new()
             {
                 Subtypes = new HashSet<string> { "warrior" },
-                Attributes = [new AttributeConfig { Name = "hunger", Min = 0f, Max = 100f, Default = 0f, Baseline = 20f }],
-                HealthAttribute = "hunger",
+                Attributes = [new AttributeConfig { Name = "satiety", Min = 0f, Max = 100f, Default = 100f }],
+                HealthAttribute = null,
             },
         };
 

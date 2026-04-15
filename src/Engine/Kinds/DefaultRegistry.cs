@@ -59,7 +59,7 @@ public static class DefaultRegistry
             attributes:
             [
                 new AttributeDefinition("vitality", 0f, 100f, 100f),
-                new AttributeDefinition("hunger", 0f, 100f, 0f),
+                new AttributeDefinition("satiety", 0f, 100f, 100f),
                 new AttributeDefinition("ambition", 0f, 100f, 50f),
             ],
             healthAttribute: "vitality"));
@@ -70,7 +70,7 @@ public static class DefaultRegistry
             attributes:
             [
                 new AttributeDefinition("condition", 0f, 100f, 100f),
-                new AttributeDefinition("compulsion", 0f, 100f, 0f),
+                new AttributeDefinition("containment", 0f, 100f, 90f),
                 new AttributeDefinition("power", 0f, 100f, 10f),
             ],
             healthAttribute: "condition"));

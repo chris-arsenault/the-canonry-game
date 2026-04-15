@@ -163,17 +163,17 @@ public static class TestDomain
         attract.Writes.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         processes.Add(attract);
 
-        // NPC: eat at a named settlement. This is the only strong negative hunger
-        // action; ambient food merely slows hunger growth, it does not replace eating.
+        // NPC: eat at a named settlement. This is the only strong positive satiety
+        // action; ambient food merely slows satiety loss, it does not replace eating.
         var eat = new ProcessDefinition("npc_eat", "Eat",
             DefinitionRole.Process, EntityKind.Npc,
             new AndPrecondition([
                 new TargetIsNotSelf(),
-                new SelfAttributeThreshold("hunger", min: 5f, max: null, plannerRelevant: false),
+                new SelfAttributeThreshold("satiety", min: null, max: 95f, plannerRelevant: false),
                 new RelatedEntityMatchesTarget("located_at"),
                 new LocationResourceThreshold(ResourceType.Food, min: 2f, max: null, targetLocation: true, plannerRelevant: false),
             ]),
-            Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(20f))))
+            Expr.Score(Expr.Div(Expr.Sub(Expr.Lit(100f), Expr.Self("satiety")), Expr.Lit(20f))))
         {
             Cooldown = 3,
             EntityCooldown = 1,
@@ -184,17 +184,17 @@ public static class TestDomain
                 Expr.Add(Expr.Distance(), Expr.Lit(1f))),
             Mutations =
             {
-                new ModifySelfAttributeMutation("hunger", -12f, variance: 0.1f),
+                new ModifySelfAttributeMutation("satiety", 12f, variance: 0.1f),
                 new ModifyTargetAttributeMutation("prestige", 0.1f, variance: 0.1f),
             },
         };
-        eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.GoalEffects.Add(AttributeRef.Self("satiety", EntityKind.Npc));
         eat.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Reads.Add(AttributeRef.Self("satiety", EntityKind.Npc));
         eat.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         eat.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
         eat.Reads.Add(AttributeRef.Resource("food"));
-        eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        eat.Writes.Add(AttributeRef.Self("satiety", EntityKind.Npc));
         eat.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
         processes.Add(eat);
 
@@ -230,7 +230,7 @@ public static class TestDomain
             Mutations = { new WanderMutation() },
         };
         wander.GoalEffects.Add(AttributeRef.StructuralFact("roam", EntityKind.Npc));
-        wander.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
+        wander.Reads.Add(AttributeRef.Self("satiety", EntityKind.Npc));
         wander.Reads.Add(AttributeRef.Coordinates(EntityKind.Npc));
         wander.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
         processes.Add(wander);
@@ -290,15 +290,21 @@ public static class TestDomain
                     new() { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
                     new()
                     {
-                        Name = "hunger",
+                        Name = "satiety",
                         Min = 0f,
                         Max = 100f,
-                        Default = 0f,
-                        DriftRate = 0.35f,
+                        Default = 100f,
+                        DriftRate = -0.35f,
                         LocationResourceDriftResource = ResourceType.Food,
-                        LocationResourceDriftPerUnit = -0.04f,
-                        LocationResourceDriftMinOffset = -0.27f,
-                        LocationResourceDriftMaxOffset = 0f,
+                        LocationResourceDriftPerUnit = 0.04f,
+                        LocationResourceDriftMinOffset = 0f,
+                        LocationResourceDriftMaxOffset = 0.27f,
+                        CriticalEffect = new CriticalEffectConfig
+                        {
+                            TargetAttribute = "vitality",
+                            DeltaPerTick = -0.20f,
+                            Description = "Critical satiety loss drains vitality",
+                        },
                     },
                     new() { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
                     new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
@@ -321,7 +327,7 @@ public static class TestDomain
                 [
                     new() { Name = "condition", Min = 0f, Max = 100f, Default = 100f, DriftRate = -0.01f },
                     new() { Name = "power", Min = 0f, Max = 100f, Default = 10f },
-                    new() { Name = "compulsion", Min = 0f, Max = 100f, Default = 10f, DriftRate = 0.05f },
+                    new() { Name = "containment", Min = 0f, Max = 100f, Default = 90f, DriftRate = -0.05f },
                     new() { Name = "mystic_resonance", Min = 0f, Max = 1f, DefaultX = 0.4f, DefaultY = 0.5f,
                         PlaneDefinition = CreateMysticPlaneDefinition() },
                 ],

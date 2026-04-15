@@ -8,7 +8,7 @@ using Engine.Tests.Behaviors;
 public class LocationResourceDriftSystemTests
 {
     [Fact]
-    public void UpdateDriftEffects_HighFoodHexReducesHungerGrowthMoreThanLowFoodHex()
+    public void UpdateDriftEffects_HighFoodHexSlowsSatietyLossMoreThanLowFoodHex()
     {
         var config = TestDomain.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
@@ -26,7 +26,7 @@ public class LocationResourceDriftSystemTests
         var maintenance = new MaintenanceSystem(world.Graph);
         maintenance.Tick();
 
-        Assert.InRange(richNpc.Attributes.GetValue("hunger"), 0.14f, 0.16f);
-        Assert.InRange(poorNpc.Attributes.GetValue("hunger"), 0.34f, 0.36f);
+        Assert.InRange(richNpc.Attributes.GetValue("satiety"), 99.84f, 99.86f);
+        Assert.InRange(poorNpc.Attributes.GetValue("satiety"), 99.64f, 99.66f);
     }
 }

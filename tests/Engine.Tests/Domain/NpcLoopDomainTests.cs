@@ -23,7 +23,7 @@ public class NpcLoopDomainTests
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
-        SetScalar(npc, "hunger", 20f);
+        SetScalar(npc, "satiety", 20f);
         SetAmbientFood(world, settlement, 5f);
 
         var generator = new GoalGenerator(config.Kinds, config.Processes);
@@ -47,7 +47,7 @@ public class NpcLoopDomainTests
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
-        SetScalar(npc, "hunger", 20f);
+        SetScalar(npc, "satiety", 20f);
         SetAmbientFood(world, settlement, 5f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
@@ -69,14 +69,14 @@ public class NpcLoopDomainTests
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
-        SetScalar(npc, "hunger", 20f);
+        SetScalar(npc, "satiety", 20f);
         SetAmbientFood(world, settlement, 5f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
 
         Assert.Equal("Eat", npc.LastEvaluation!.ExecutedProcessName);
-        Assert.InRange(npc.Attributes.GetValue("hunger"), 6.8f, 9.2f);
+        Assert.InRange(npc.Attributes.GetValue("satiety"), 30.8f, 33.2f);
         Assert.True(settlement.Attributes.GetValue("prestige") > 0f);
     }
 
@@ -91,7 +91,7 @@ public class NpcLoopDomainTests
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
-        SetScalar(npc, "hunger", 20f);
+        SetScalar(npc, "satiety", 20f);
         SetScalar(current, "residents", 20f);
         SetScalar(challenger, "residents", 20f);
         SetScalar(current, "prestige", 5f);
@@ -100,7 +100,7 @@ public class NpcLoopDomainTests
         SetAmbientFood(world, challenger, 5f);
 
         npc.Goals.Add(new EntityGoal(
-            AttributeRef.Self("hunger", EntityKind.Npc),
+            AttributeRef.Self("satiety", EntityKind.Npc),
             current.Id,
             urgency: 0.5f,
             plannedProcessId: "npc_eat",
@@ -117,6 +117,26 @@ public class NpcLoopDomainTests
     }
 
     [Fact]
+    public void TestDomain_HighSatietyNpcDoesNotGenerateEatPlanPrematurely()
+    {
+        var config = TestDomain.Create();
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
+        var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
+        var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (2, 0));
+        DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
+        world.SpatialIndex.RebuildFromGraph();
+
+        SetScalar(npc, "satiety", 95f);
+        SetAmbientFood(world, settlement, 5f);
+
+        var generator = new GoalGenerator(config.Kinds, config.Processes);
+        var goals = generator.Generate(npc, world);
+
+        Assert.DoesNotContain(goals, g => g.PlannedProcessId == "npc_eat");
+        Assert.Contains(goals, g => g.PlannedProcessId == "npc_wander");
+    }
+
+    [Fact]
     public void TestDomain_CalmNpcWandersEvenWhenSettlementExists()
     {
         var config = TestDomain.Create();
@@ -127,7 +147,7 @@ public class NpcLoopDomainTests
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
-        SetScalar(npc, "hunger", 0f);
+        SetScalar(npc, "satiety", 100f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
@@ -146,7 +166,7 @@ public class NpcLoopDomainTests
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
-        SetScalar(npc, "hunger", 0f);
+        SetScalar(npc, "satiety", 100f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);

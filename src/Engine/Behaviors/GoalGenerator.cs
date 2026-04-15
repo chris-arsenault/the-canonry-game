@@ -120,7 +120,11 @@ public sealed class GoalGenerator
             if (scalar is null) continue;
 
             float urgency;
-            if (attrConfig.Baseline > 0f)
+            if (StandardNeedScale.AppliesTo(attrConfig))
+            {
+                urgency = StandardNeedScale.ComputeUrgency(scalar.Value);
+            }
+            else if (attrConfig.Baseline > 0f)
             {
                 urgency = attrConfig.Baseline / (attrConfig.Baseline + scalar.Value);
             }

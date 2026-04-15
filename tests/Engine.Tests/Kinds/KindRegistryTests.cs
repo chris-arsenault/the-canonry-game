@@ -225,7 +225,7 @@ public class KindRegistryTests
 
         var attrNames = def.Attributes.Select(a => a.Name).ToHashSet();
         Assert.Contains("vitality", attrNames);
-        Assert.Contains("hunger", attrNames);
+        Assert.Contains("satiety", attrNames);
         Assert.Contains("ambition", attrNames);
     }
 }

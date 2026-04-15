@@ -61,17 +61,24 @@ public sealed class AttributeConfig
     /// <summary>Variance on default value at initialization. 0 = exact, 0.5 = ±50%.</summary>
     public float DefaultVariance { get; init; }
 
-    /// <summary>Comfortable level for urgency calculation. Urgency = baseline / (baseline + value).
+    /// <summary>
+    /// Optional critical-range hook. When this attribute falls into the shared critical
+    /// band for standard 0-100 scalar attributes, the engine applies the configured
+    /// per-tick effect to another attribute on the same entity.
+    /// </summary>
+    public CriticalEffectConfig? CriticalEffect { get; init; }
+
+    /// <summary>Legacy comfort parameter for non-standard scalar urgency calculation.
     /// Higher baseline = slower urgency decay as value grows. 0 = use default formula.</summary>
     public float Baseline { get; init; }
 
     /// <summary>Per-tick drift rate. Positive = increases each tick, negative = decreases.
-    /// Zero (default) = no drift. e.g., hunger drifts +0.2/tick, condition drifts -0.01/tick.</summary>
+    /// Zero (default) = no drift. e.g., satiety drifts -0.35/tick, condition drifts -0.01/tick.</summary>
     public float DriftRate { get; init; }
 
     /// <summary>
     /// Optional ambient location resource that adds a dynamic offset to this attribute's
-    /// per-tick drift. Useful for sustainment behaviors like hunger rising more slowly
+    /// per-tick drift. Useful for sustainment behaviors like satiety falling more slowly
     /// on food-rich hexes than on barren ones.
     /// </summary>
     public ResourceType? LocationResourceDriftResource { get; init; }
@@ -100,6 +107,18 @@ public sealed class AttributeConfig
 
     /// <summary>Default Y value for 2D attributes.</summary>
     public float DefaultY { get; init; }
+}
+
+/// <summary>
+/// Domain-defined negative effect applied while an attribute remains in the shared
+/// critical band. The engine owns when the critical band is active; the domain owns
+/// what the penalty does.
+/// </summary>
+public sealed class CriticalEffectConfig
+{
+    public required string TargetAttribute { get; init; }
+    public required float DeltaPerTick { get; init; }
+    public string? Description { get; init; }
 }
 
 /// <summary>Relationship kind configuration.</summary>
