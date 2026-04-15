@@ -171,6 +171,10 @@ public sealed class RelationshipExists(
 /// <summary>
 /// Checks whether the entity reached the resolved target through a named relationship.
 /// Example: self.located_at == resolved target settlement.
+/// TODO: Generalize this relation-backed arrival check into a target-agnostic presence
+/// fact before adding more target-specific movement chains. The planner should converge
+/// on one reusable "I can act on this target now" abstraction, not a growing family of
+/// per-domain relationship blockers.
 /// </summary>
 public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool plannerRelevant = true) : IPrecondition
 {

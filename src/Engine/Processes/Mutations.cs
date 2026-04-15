@@ -205,6 +205,9 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
 /// <summary>
 /// Moves self one step along a path toward the resolved target.
 /// Optionally maintains an exclusive location-style relationship such as located_at.
+/// TODO: This is the first reusable movement primitive, not the final planner shape.
+/// Keep future work focused on generalizing the arrival/presence fact rather than
+/// proliferating target-specific movement mutations.
 /// </summary>
 public sealed class MoveTowardTargetMutation(
     string? locationRelationshipKind = "located_at",
