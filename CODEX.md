@@ -147,6 +147,15 @@ Do not implement around these issues. Implement through them.
 
 ## Workflow Rules
 
+### Git Workflow
+
+This repository currently uses a direct-to-`main` workflow.
+
+- Commit directly to `main`
+- Push directly to `origin/main`
+- Do not create feature branches, draft PRs, or branch-based handoff flows unless explicitly requested
+- Commit regularly during substantial work instead of batching everything into one late publish step
+
 For substantial work:
 
 1. Confirm the issue(s) being executed
