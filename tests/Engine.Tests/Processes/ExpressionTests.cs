@@ -4,6 +4,7 @@ using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Processes;
+using Engine.Resources;
 using Engine.Tests;
 using Engine.Tests.Behaviors;
 
@@ -99,6 +100,24 @@ public class ExpressionTests
         var context = CreateContext();
 
         Assert.Equal(0f, new VariableRef("delta").Evaluate(context));
+    }
+
+    [Fact]
+    public void LocationResourcePaths_ReadAmbientResourceValuesFromMutationContext()
+    {
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0f, 0f));
+        var target = CreateEntity(world, "Target", (2, 0), fame: 11f, ideology: (0.3f, 0.4f));
+        var selfCoord = new Engine.Map.HexCoord(0, 0);
+        var targetCoord = new Engine.Map.HexCoord(2, 0);
+        world.Resources!.Food.SetStockpile(selfCoord, 6f);
+        world.Resources.Food.SetStockpile(targetCoord, 9f);
+
+        var mutationContext = new TestMutationContext(self, target, worldState: world);
+        var context = new ExpressionContext(self, target, world.Grid, mutationContext);
+
+        Assert.Equal(6f, Expr.SelfLocationResource(ResourceType.Food).Evaluate(context));
+        Assert.Equal(9f, Expr.TargetLocationResource(ResourceType.Food).Evaluate(context));
     }
 
     private static ExpressionContext CreateContext()

@@ -32,23 +32,40 @@ public static class TestDomain
     {
         var processes = new List<ProcessDefinition>();
 
-        // Settlement: gather food into the local hex stockpile.
+        // Settlement: convert ambient local food potential into usable stored food.
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
-            DefinitionRole.Process, EntityKind.Settlement, new TargetIsSelf(),
-            Expr.Score(Expr.Lit(0.6f), 0.1f))
-        { Cooldown = 2, EntityCooldown = 1,
-          RewardExpression = Expr.Lit(2f),
-          Mutations = { new ModifyLocationResourceMutation(ResourceType.Food, 2f, variance: 0.2f) } };
-        stockpile.GoalEffects.Add(AttributeRef.Resource("food"));
-        stockpile.Writes.Add(AttributeRef.Resource("food"));
+            DefinitionRole.Process, EntityKind.Settlement,
+            new AndPrecondition([
+                new TargetIsSelf(),
+                new LocationResourceThreshold(ResourceType.Food, min: 1f, max: null, plannerRelevant: false),
+            ]),
+            Expr.Score(Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(10f)), 0.1f))
+        {
+            Cooldown = 2,
+            EntityCooldown = 1,
+            RewardExpression = Expr.SelfLocationResource(ResourceType.Food),
+            Mutations =
+            {
+                new CalculateMutation(
+                    "stockpiled_food",
+                    Expr.Clamp(
+                        Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(2f)),
+                        Expr.Lit(1f),
+                        Expr.Lit(4f))),
+                new ModifySelfByVariableMutation("stored_food", "stockpiled_food", variance: 0.2f),
+            },
+        };
+        stockpile.GoalEffects.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
+        stockpile.Reads.Add(AttributeRef.Resource("food"));
+        stockpile.Writes.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
         processes.Add(stockpile);
 
-        // Settlement: convert local food and ambient population into residents.
+        // Settlement: convert stored food and ambient population into residents.
         var grow = new ProcessDefinition("settlement_grow", "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsSelf(),
-                new LocationResourceThreshold(ResourceType.Food, min: 3f, max: null),
+                new SelfAttributeThreshold("stored_food", min: 3f, max: null),
                 new LocationResourceThreshold(ResourceType.Population, min: 1f, max: null, plannerRelevant: false),
             ]),
             Expr.Score(Expr.Div(Expr.Self("residents"), Expr.Lit(100f)), 0.1f))
@@ -56,14 +73,14 @@ public static class TestDomain
           RewardExpression = Expr.Lit(1.5f),
           Mutations = {
             new ModifySelfAttributeMutation("residents", 1f, variance: 0.3f),
-            new ModifyLocationResourceMutation(ResourceType.Food, -3f, variance: 0.2f),
+            new ModifySelfAttributeMutation("stored_food", -3f, variance: 0.2f),
             new ModifyLocationResourceMutation(ResourceType.Population, -1f),
         } };
         grow.GoalEffects.Add(AttributeRef.Self("residents", EntityKind.Settlement));
-        grow.Reads.Add(AttributeRef.Resource("food"));
+        grow.Reads.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
         grow.Reads.Add(AttributeRef.Resource("population"));
         grow.Writes.Add(AttributeRef.Self("residents", EntityKind.Settlement));
-        grow.Writes.Add(AttributeRef.Resource("food"));
+        grow.Writes.Add(AttributeRef.Self("stored_food", EntityKind.Settlement));
         grow.Writes.Add(AttributeRef.Resource("population"));
         processes.Add(grow);
 
@@ -138,7 +155,7 @@ public static class TestDomain
                 new TargetIsNotSelf(),
                 new SelfAttributeThreshold("hunger", min: 5f, max: null, plannerRelevant: false),
                 new RelatedEntityMatchesTarget("located_at"),
-                new LocationResourceThreshold(ResourceType.Food, min: 1f, max: null, targetLocation: true, plannerRelevant: false),
+                new TargetAttributeThreshold("stored_food", min: 1f, max: null, plannerRelevant: false),
             ]),
             Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(20f)), 0.05f))
         {
@@ -150,16 +167,16 @@ public static class TestDomain
             Mutations =
             {
                 new ModifySelfAttributeMutation("hunger", -12f, variance: 0.1f),
-                new ModifyLocationResourceMutation(ResourceType.Food, -1f, targetLocation: true),
+                new ModifyTargetAttributeMutation("stored_food", -1f),
             },
         };
         eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
         eat.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
         eat.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
-        eat.Reads.Add(AttributeRef.Resource("food"));
+        eat.Reads.Add(AttributeRef.Target("stored_food", EntityKind.Settlement));
         eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.Writes.Add(AttributeRef.Resource("food"));
+        eat.Writes.Add(AttributeRef.Target("stored_food", EntityKind.Settlement));
         processes.Add(eat);
 
         // NPC: move toward the chosen settlement. This is intentionally the first cut
@@ -226,6 +243,7 @@ public static class TestDomain
                 Attributes =
                 [
                     new() { Name = "residents", Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
+                    new() { Name = "stored_food", Min = 0f, Max = 10000f, Default = 0f },
                     new() { Name = "security", Min = 0f, Max = 100f, Default = 20f },
                     new() { Name = "prestige", Min = 0f, Max = 1000f, Default = 5f, DefaultVariance = 0.8f },
                     new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
@@ -337,6 +355,7 @@ public static class TestDomain
         [
             new() { Name = "food", DisplayName = "Food" },
             new() { Name = "wealth", DisplayName = "Wealth" },
+            new() { Name = "population", DisplayName = "Population" },
         ];
     }
 

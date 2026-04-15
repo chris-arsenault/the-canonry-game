@@ -215,7 +215,7 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool pla
 }
 
 /// <summary>
-/// Checks a resource stockpile at self or target location against a threshold.
+/// Checks an ambient resource value at self or target location against a threshold.
 /// Planner-relevant variants emit a resource blocker so other processes can supply it.
 /// </summary>
 public sealed class LocationResourceThreshold(

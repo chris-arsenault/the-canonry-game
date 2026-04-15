@@ -2,6 +2,7 @@ namespace Engine.Processes;
 
 using Engine.Graph;
 using Engine.Map;
+using Engine.Resources;
 
 /// <summary>
 /// A composable expression that evaluates to a float given entity state.
@@ -98,6 +99,29 @@ public sealed class VariableRef : IExpression
     {
         ArgumentNullException.ThrowIfNull(ctx);
         return ctx.MutationContext?.GetVariable(VariableName) ?? 0f;
+    }
+}
+
+/// <summary>Read an ambient resource value at self or target location.</summary>
+public sealed class LocationResourcePath(string entityRef, ResourceType resourceType) : IExpression
+{
+    public float Evaluate(ExpressionContext ctx)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+
+        var entity = entityRef switch
+        {
+            "self" => ctx.Self,
+            "target" => ctx.Target,
+            _ => null,
+        };
+
+        if (entity?.Coordinates is null || ctx.MutationContext is null)
+        {
+            return 0f;
+        }
+
+        return ctx.MutationContext.GetResource(entity.Coordinates.Value, resourceType);
     }
 }
 
@@ -204,6 +228,8 @@ public static class Expr
     public static AttributePath Target(string attr) => new("target", attr);
     public static AttributePath TargetX(string attr) => new("target", attr, "x");
     public static AttributePath TargetY(string attr) => new("target", attr, "y");
+    public static LocationResourcePath SelfLocationResource(ResourceType resourceType) => new("self", resourceType);
+    public static LocationResourcePath TargetLocationResource(ResourceType resourceType) => new("target", resourceType);
     public static VariableRef Var(string name) => new(name);
     public static Distance Distance() => new();
     public static SemanticDistance SemanticDistance(string attr) => new(attr);

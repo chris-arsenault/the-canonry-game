@@ -11,27 +11,25 @@ public class ResourceSystemTests
     // --- ResourceLayer ---
 
     [Fact]
-    public void Layer_NetIsProductionMinusConsumption()
+    public void Layer_SetStockpileStoresAmbientValue()
     {
         var layer = new ResourceLayer(ResourceType.Food);
         var coord = new HexCoord(0, 0);
 
-        layer.SetProduction(coord, 10f);
-        layer.SetConsumption(coord, 4f);
+        layer.SetStockpile(coord, 10f);
 
-        Assert.Equal(6f, layer.GetNet(coord));
+        Assert.Equal(10f, layer.GetStockpile(coord));
     }
 
     [Fact]
-    public void Layer_NegativeNetIsDeficit()
+    public void Layer_SetStockpileClampsNegativeValues()
     {
         var layer = new ResourceLayer(ResourceType.Food);
         var coord = new HexCoord(0, 0);
 
-        layer.SetProduction(coord, 3f);
-        layer.SetConsumption(coord, 8f);
+        layer.SetStockpile(coord, -8f);
 
-        Assert.Equal(-5f, layer.GetNet(coord));
+        Assert.Equal(0f, layer.GetStockpile(coord));
     }
 
     [Fact]
@@ -62,70 +60,82 @@ public class ResourceSystemTests
     public void Layer_TotalsAcrossCells()
     {
         var layer = new ResourceLayer(ResourceType.Food);
-        layer.SetProduction(new HexCoord(0, 0), 10f);
-        layer.SetProduction(new HexCoord(1, 0), 5f);
-        layer.SetConsumption(new HexCoord(0, 0), 3f);
+        layer.SetStockpile(new HexCoord(0, 0), 10f);
+        layer.SetStockpile(new HexCoord(1, 0), 5f);
 
-        Assert.Equal(15f, layer.TotalProduction);
-        Assert.Equal(3f, layer.TotalConsumption);
-        Assert.Equal(12f, layer.TotalNet);
+        Assert.Equal(15f, layer.TotalValue);
     }
 
-    // --- ResourceSystem: production/consumption ---
+    // --- ResourceSystem: ambient initialization ---
 
     [Fact]
-    public void System_ProducesSustenanceFromFertilityAndPopulation()
+    public void System_InitializesAmbientFoodFromTerrainFertility()
     {
         var (system, _) = CreateTestSystem();
 
         system.Tick(1);
 
-        // Settlement at (0,-2) on the test map: plains, fertility ~0.7, residents 100
+        var fertile = new HexCoord(0, -2);
+        var barren = new HexCoord(0, 4);
+
+        Assert.True(system.Food.GetStockpile(fertile) > system.Food.GetStockpile(barren));
+    }
+
+    [Fact]
+    public void System_InitializesAmbientWealthFromTerrain()
+    {
+        var (system, _) = CreateTestSystem();
+
+        system.Tick(1);
+
+        var land = new HexCoord(0, -2);
+        var water = new HexCoord(0, 4);
+
+        Assert.True(system.Wealth.GetStockpile(land) > 0f);
+        Assert.Equal(0f, system.Wealth.GetStockpile(water));
+    }
+
+    [Fact]
+    public void System_DoesNotDeriveAmbientFoodFromSettlementResidents()
+    {
+        var graph = new WorldGraph();
+        var grid = new HexGrid(3);
+        var coord = new HexCoord(0, 0);
+        grid.SetCell(coord, TerrainType.Plains, fertility: 0.7f);
+        var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0f, 100000f, 10f));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0f, 10000f, 0f));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0f, 100f, 20f));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0f, 1000f, 5f));
+
+        var system = new ResourceSystem(graph, grid);
+        system.Tick(1);
+        var initial = system.Food.GetStockpile(coord);
+
+        settlement.Attributes.Modify("residents", 5000f);
+        system.Tick(2);
+
+        Assert.Equal(initial, system.Food.GetStockpile(coord));
+    }
+
+    [Fact]
+    public void System_LeavesAmbientFoodStableAcrossTicksWithoutActions()
+    {
+        var (system, _) = CreateTestSystem();
         var coord = new HexCoord(0, -2);
-        Assert.True(system.Food.GetProduction(coord) > 0f,
-            $"Sustenance production at {coord}: {system.Food.GetProduction(coord)}");
-    }
-
-    [Fact]
-    public void System_ConsumesSustenanceProportionalToPopulation()
-    {
-        var (system, _) = CreateTestSystem();
 
         system.Tick(1);
+        var before = system.Food.GetStockpile(coord);
+        system.Tick(2);
+        system.Tick(3);
 
-        // Any settlement with residents > 0 should consume food
-        var coord = new HexCoord(0, -2);
-        Assert.True(system.Food.GetConsumption(coord) > 0f);
+        Assert.Equal(before, system.Food.GetStockpile(coord));
     }
 
-    [Fact]
-    public void System_ProducesGoldFromDevelopment()
-    {
-        var (system, _) = CreateTestSystem();
-
-        system.Tick(1);
-
-        var coord = new HexCoord(0, -2);
-        Assert.True(system.Wealth.GetProduction(coord) > 0f);
-    }
+    // --- No faction redistribution ---
 
     [Fact]
-    public void System_NoProductionWithoutSettlement()
-    {
-        var (system, _) = CreateTestSystem();
-
-        system.Tick(1);
-
-        // Cell with no settlement should have zero production
-        var emptyCoord = new HexCoord(3, -3);
-        Assert.Equal(0f, system.Food.GetProduction(emptyCoord));
-        Assert.Equal(0f, system.Wealth.GetProduction(emptyCoord));
-    }
-
-    // --- Intra-national flow ---
-
-    [Fact]
-    public void System_FlowDoesNotCrossNationBoundaries()
+    public void System_DoesNotRedistributeAmbientFoodBetweenFactions()
     {
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
@@ -134,63 +144,31 @@ public class ResourceSystemTests
         var nationA = graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
         var nationB = graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
 
-        // Nation A has a high-fertility settlement (surplus)
+        // Settlement A on fertile land
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 200));
+        sA.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
+        sA.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 20));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
-        // Nation B has a low-fertility settlement (deficit)
+        // Settlement B on poor land
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 200));
+        sB.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
+        sB.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
 
         var system = new ResourceSystem(graph, grid);
         system.Tick(1);
+        system.Food.SetStockpile(new HexCoord(0, 0), 10f);
+        system.Food.SetStockpile(new HexCoord(2, 0), 0f);
+        system.Tick(2);
 
-        // Nation B's settlement should NOT benefit from Nation A's surplus
-        // Stockpile at B's location should be 0 (no inter-national flow)
         Assert.Equal(0f, system.Food.GetStockpile(new HexCoord(2, 0)));
-    }
-
-    [Fact]
-    public void System_FlowWithinSameNation()
-    {
-        var graph = new WorldGraph();
-        var grid = new HexGrid(3);
-
-        var nation = graph.CreateEntity(EntityKind.Faction, "generic_faction", "N", "c", 0);
-
-        // Rich settlement (surplus)
-        var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
-        rich.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 100));
-        rich.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
-
-        // Poor settlement (deficit)
-        var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
-        poor.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 500));
-        poor.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
-        grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
-
-        var system = new ResourceSystem(graph, grid);
-        system.Tick(1);
-
-        // If poor has deficit and rich has surplus, some flow should happen
-        var richNet = system.Food.GetNet(new HexCoord(0, 0));
-        var poorNet = system.Food.GetNet(new HexCoord(1, 0));
-
-        if (richNet > 0 && poorNet < 0)
-        {
-            // Poor should have received some stockpile from flow
-            Assert.True(system.Food.GetStockpile(new HexCoord(1, 0)) > 0f,
-                "Deficit settlement should receive flow from surplus settlement");
-        }
     }
 
     // --- Helper ---
@@ -200,14 +178,6 @@ public class ResourceSystemTests
         var world = TestMapBuilder.BuildDefault(seed: 42);
 
         DomainLoader.InitializeEntityAttributes(world.Graph, TestDomain.Create(), new Random(42));
-
-        // Stabilize the settlement inputs the resource system reads.
-        foreach (var sid in world.Graph.GetEntitiesByKind(EntityKind.Settlement))
-        {
-            var entity = world.Graph.GetEntity(sid)!;
-            Assert.IsType<Engine.Attributes.ScalarValue>(entity.Attributes["residents"]).SetBase(100f);
-            Assert.IsType<Engine.Attributes.ScalarValue>(entity.Attributes["prestige"]).SetBase(10f);
-        }
 
         var system = new ResourceSystem(world.Graph, world.Grid);
         return (system, world.Graph);

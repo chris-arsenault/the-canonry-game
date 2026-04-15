@@ -5,13 +5,13 @@ namespace Engine.Resources;
 /// </summary>
 public enum ResourceType
 {
-    /// <summary>Food. Produced from fertility + labor. Consumed by residents and NPCs.</summary>
+    /// <summary>Ambient food potential of a hex. Supports conversion actions such as stockpiling.</summary>
     Food,
 
-    /// <summary>Wealth. Produced from settlement activity and prestige. Redistributed through factions.</summary>
+    /// <summary>Ambient wealth potential of a hex. Shapes extraction and location desirability.</summary>
     Wealth,
 
-    /// <summary>Ambient populace on a hex. Grows from food surplus and can be drawn into settlements.</summary>
+    /// <summary>Ambient populace on a hex. Constrains unnamed labor, movement, and other background support.</summary>
     Population,
 }
 

@@ -61,9 +61,10 @@ public sealed class EntityEvaluator
             var viableDecisions = new List<(ProcessDefinition Definition, float Score)>();
             foreach (var decision in decisions)
             {
-                    var context = new ProcessMutationContext(entity, worldState, definitionId: decision.Id);
+                var context = new ProcessMutationContext(entity, worldState, definitionId: decision.Id);
                 if (!decision.Precondition.Evaluate(context).Passed) continue;
-                var score = decision.ScoreExpression.Evaluate(new ExpressionContext(entity, grid: worldState.Grid));
+                var score = decision.ScoreExpression.Evaluate(
+                    new ExpressionContext(entity, grid: worldState.Grid, mutationContext: context));
                 if (score >= MinimumViableScore) viableDecisions.Add((decision, score));
             }
 
@@ -243,16 +244,18 @@ public sealed class EntityEvaluator
                 }
                 else
                 {
-                    precondResult = process.Precondition.Evaluate(
-                        new ProcessMutationContext(entity, worldState, goal: goal, definitionId: process.Id));
+                    var processContext = new ProcessMutationContext(entity, worldState, goal: goal, definitionId: process.Id);
+                    precondResult = process.Precondition.Evaluate(processContext);
                 }
 
                 // Score only matters if precondition passed
                 var targetEntity = goal is not null
                     ? worldState.Graph.GetEntity(goal.TargetEntityId)
                     : null;
+                var scoreContext = new ProcessMutationContext(entity, worldState, goal: goal, definitionId: process.Id);
                 var score = precondResult.Passed
-                    ? process.ScoreExpression.Evaluate(new ExpressionContext(entity, targetEntity, worldState.Grid))
+                    ? process.ScoreExpression.Evaluate(
+                        new ExpressionContext(entity, targetEntity, worldState.Grid, scoreContext))
                     : 0f;
                 var viable = precondResult.Passed && score >= MinimumViableScore;
                 if (viable) candidates.Add((process, score));

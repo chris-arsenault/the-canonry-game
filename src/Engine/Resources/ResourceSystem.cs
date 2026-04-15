@@ -1,48 +1,36 @@
 namespace Engine.Resources;
 
 using Engine.Graph;
-using Engine.Kinds;
 using Engine.Map;
 
 /// <summary>
-/// Per-tick resource computation: calculates production and consumption from
-/// entity attributes and terrain, then handles intra-faction flow (surplus
-/// from one settlement flows toward deficit at another within the same faction).
-/// Registers with TickClock at LowAltitude phase.
+/// Maintains ambient per-hex resource fields.
+/// The current model treats food, wealth, and population as map-level affordance
+/// values: what a place can support, not the concrete stockpiles actors directly
+/// consume. Named entities/processes convert these values into usable stores or
+/// outcomes. This system therefore initializes and preserves ambient map-state
+/// rather than running a settlement-centric economy.
 /// </summary>
 public sealed class ResourceSystem
 {
-    private readonly WorldGraph _graph;
     private readonly HexGrid _grid;
+    private bool _initialized;
 
     public ResourceLayer Food { get; }
     public ResourceLayer Wealth { get; }
     public ResourceLayer PopulationLayer { get; }
 
-    /// <summary>Food produced per unit of (fertility * residents / 100).</summary>
-    public float FoodProductionFactor { get; set; } = 1f;
+    /// <summary>Scale factor turning fertility into ambient food potential.</summary>
+    public float FoodPotentialFactor { get; set; } = 10f;
 
-    /// <summary>Food consumed per resident per tick.</summary>
-    public float FoodConsumptionPerResident { get; set; } = 0.01f;
+    /// <summary>Scale factor turning habitability into ambient wealth potential.</summary>
+    public float WealthPotentialFactor { get; set; } = 8f;
 
-    /// <summary>Wealth produced per unit of local activity per tick.</summary>
-    public float WealthProductionFactor { get; set; } = 0.1f;
-
-    /// <summary>Fixed wealth consumption per settlement per tick.</summary>
-    public float WealthConsumptionPerSettlement { get; set; } = 0.5f;
-
-    /// <summary>Ambient population growth rate from food surplus.</summary>
-    public float PopulationGrowthFromFood { get; set; } = 0.5f;
-
-    /// <summary>Ambient population decline rate from food deficit.</summary>
-    public float PopulationDeclineFromDeficit { get; set; } = 0.3f;
-
-    /// <summary>Fraction of surplus redistributed per tick during intra-faction flow.</summary>
-    public float FlowRate { get; set; } = 0.3f;
+    /// <summary>Scale factor turning habitability into ambient population presence.</summary>
+    public float PopulationPresenceFactor { get; set; } = 10f;
 
     public ResourceSystem(WorldGraph graph, HexGrid grid)
     {
-        _graph = graph;
         _grid = grid;
 
         Food = new ResourceLayer(ResourceType.Food);
@@ -51,76 +39,68 @@ public sealed class ResourceSystem
     }
 
     /// <summary>
-    /// Process one tick: compute production/consumption, population dynamics, then redistribute.
+    /// Process one tick: ensure ambient resource fields are initialized.
+    /// Richer slow-change systems will layer on top of this, but this class no longer
+    /// runs a settlement-driven economy or faction redistribution model.
     /// </summary>
     public void Tick(int currentTick)
     {
-        ComputeProductionAndConsumption();
-        ComputePopulationDynamics();
-        RedistributeWithinFactions(Food);
-        RedistributeWithinFactions(Wealth);
-        RedistributeWithinFactions(PopulationLayer);
+        if (_initialized)
+        {
+            return;
+        }
+
+        InitializeAmbientResources();
+        _initialized = true;
     }
 
-    private void ComputeProductionAndConsumption()
+    private void InitializeAmbientResources()
     {
-        foreach (var settlementId in _graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var cell in _grid.AllCells)
         {
-            var entity = _graph.GetEntity(settlementId);
-            if (entity is null || entity.Status != EntityStatus.Active || entity.Coordinates is null)
-            {
-                continue;
-            }
-
-            var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
-            var cell = _grid.GetCell(coord);
-            if (cell is null)
-            {
-                continue;
-            }
-
-            var residents = entity.Attributes.GetValue("residents");
-            var prestige = entity.Attributes.GetValue("prestige");
-
-            // Food: fertility * resident labor -> production, residents -> consumption
-            var foodProd = cell.Fertility * (residents / 100f) * FoodProductionFactor;
-            var foodCons = residents * FoodConsumptionPerResident;
-            Food.SetProduction(coord, foodProd);
-            Food.SetConsumption(coord, foodCons);
-
-            // Wealth: resident activity and prestige generate output, each settlement consumes upkeep.
-            var wealthProd = ((residents / 100f) + (prestige / 50f)) * WealthProductionFactor;
-            Wealth.SetProduction(coord, wealthProd);
-            Wealth.SetConsumption(coord, WealthConsumptionPerSettlement);
-
-            // Ambient population seeds around occupied settlements and later grows or declines
-            // from local food surplus/deficit.
-            if (PopulationLayer.GetStockpile(coord) <= 0 && residents > 0)
-            {
-                PopulationLayer.AddToStockpile(coord, residents);
-            }
+            Food.SetStockpile(cell.Coord, ComputeAmbientFood(cell));
+            Wealth.SetStockpile(cell.Coord, ComputeAmbientWealth(cell));
+            PopulationLayer.SetStockpile(cell.Coord, ComputeAmbientPopulation(cell));
         }
     }
 
-    private void ComputePopulationDynamics()
+    private float ComputeAmbientFood(HexCell cell)
     {
-        // Ambient population grows from food surplus, declines from deficit.
-        foreach (var coord in Food.ActiveCells)
+        if (cell.Terrain == TerrainType.Water)
         {
-            var foodNet = Food.GetNet(coord);
-            var currentPop = PopulationLayer.GetStockpile(coord);
-
-            if (foodNet > 0)
-            {
-                var growth = foodNet * PopulationGrowthFromFood;
-                PopulationLayer.AddToStockpile(coord, growth);
-            }
-            else if (foodNet < 0 && currentPop > 0)
-            {
-                var decline = -foodNet * PopulationDeclineFromDeficit;
-                PopulationLayer.AddToStockpile(coord, -decline);
-            }
+            return 0f;
         }
+
+        return cell.Fertility * FoodPotentialFactor;
+    }
+
+    private float ComputeAmbientWealth(HexCell cell)
+    {
+        if (cell.Terrain == TerrainType.Water)
+        {
+            return 0f;
+        }
+
+        var terrainBonus = cell.Terrain switch
+        {
+            TerrainType.Coastal => 2f,
+            TerrainType.Plains => 1.5f,
+            TerrainType.Forest => 1f,
+            TerrainType.Mountain => 1.5f,
+            _ => 0f,
+        };
+
+        return (cell.Habitability * WealthPotentialFactor) + terrainBonus + cell.Resources.Count;
+    }
+
+    private float ComputeAmbientPopulation(HexCell cell)
+    {
+        if (cell.Terrain == TerrainType.Water)
+        {
+            return 0f;
+        }
+
+        return cell.Habitability * PopulationPresenceFactor;
     }
 
     /// <summary>
@@ -144,83 +124,4 @@ public sealed class ResourceSystem
     /// <summary>Get population at a cell.</summary>
     public float GetPopulation(HexCoord coord) => PopulationLayer.GetStockpile(coord);
 
-    private void RedistributeWithinFactions(ResourceLayer layer)
-    {
-        // Group settlements by controlling faction
-        var factionSettlements = new Dictionary<EntityId, List<(HexCoord Coord, EntityId SettlementId)>>();
-
-        foreach (var settlementId in _graph.GetEntitiesByKind(EntityKind.Settlement))
-        {
-            var entity = _graph.GetEntity(settlementId);
-            if (entity is null || entity.Status != EntityStatus.Active || entity.Coordinates is null)
-            {
-                continue;
-            }
-
-            // Find controlling faction
-            var controlRels = _graph.OutgoingRelationships(settlementId, "controlled_by");
-            foreach (var rel in controlRels)
-            {
-                if (!factionSettlements.TryGetValue(rel.TargetId, out var list))
-                {
-                    list = [];
-                    factionSettlements[rel.TargetId] = list;
-                }
-
-                var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
-                list.Add((coord, settlementId));
-                break; // controlled_by is exclusive
-            }
-        }
-
-        // For each faction, redistribute surplus to deficit settlements
-        foreach (var (_, settlements) in factionSettlements)
-        {
-            if (settlements.Count < 2)
-            {
-                continue;
-            }
-
-            var totalSurplus = 0f;
-            var totalDeficit = 0f;
-            var surplusCells = new List<(HexCoord Coord, float Surplus)>();
-            var deficitCells = new List<(HexCoord Coord, float Deficit)>();
-
-            foreach (var (coord, _) in settlements)
-            {
-                var net = layer.GetNet(coord);
-                if (net > 0)
-                {
-                    surplusCells.Add((coord, net));
-                    totalSurplus += net;
-                }
-                else if (net < 0)
-                {
-                    deficitCells.Add((coord, -net));
-                    totalDeficit += -net;
-                }
-            }
-
-            if (totalSurplus <= 0 || totalDeficit <= 0)
-            {
-                continue;
-            }
-
-            // Transfer proportionally: each deficit cell gets a share of available surplus
-            var available = Math.Min(totalSurplus, totalDeficit) * FlowRate;
-
-            foreach (var (coord, deficit) in deficitCells)
-            {
-                var share = (deficit / totalDeficit) * available;
-                layer.AddToStockpile(coord, share);
-            }
-
-            // Deduct from surplus cells proportionally
-            foreach (var (coord, surplus) in surplusCells)
-            {
-                var deduction = (surplus / totalSurplus) * available;
-                layer.AddToStockpile(coord, -deduction);
-            }
-        }
-    }
 }

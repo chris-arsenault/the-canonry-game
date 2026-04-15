@@ -8,39 +8,37 @@ using Engine.Resources;
 public class PopulationResourceTests
 {
     [Fact]
-    public void Population_GrowsFromSustenanceSurplus()
+    public void Population_InitializesFromHabitability()
     {
-        // Low residents + high fertility = food surplus = ambient population growth
-        // Production = 0.9 * (50/100) * 1 = 0.45, Consumption = 50 * 0.01 = 0.5
-        // Still deficit at these rates. Increase production factor.
-        var (system, _) = CreateSystem(fertility: 0.9f, population: 50);
-        system.FoodProductionFactor = 3f; // Boost production to ensure surplus
+        var (system, _) = CreateSystem(fertility: 0.9f);
+        var poorSystem = CreateSystem(fertility: 0.1f).System;
 
         system.Tick(1);
+        poorSystem.Tick(1);
 
         var coord = new HexCoord(0, 0);
-        var pop = system.GetPopulation(coord);
-        Assert.True(pop > 50f, $"Population {pop} should have grown from food surplus");
+        Assert.True(system.GetPopulation(coord) > poorSystem.GetPopulation(coord));
     }
 
     [Fact]
-    public void Population_DeclinesFromSustenanceDeficit()
+    public void Population_RemainsStableAcrossTicksWithoutActions()
     {
-        // Very low fertility, very high population = deficit
-        var (system, _) = CreateSystem(fertility: 0.05f, population: 5000);
-
+        var (system, _) = CreateSystem(fertility: 0.5f);
         system.Tick(1);
-
         var coord = new HexCoord(0, 0);
-        var pop = system.GetPopulation(coord);
-        Assert.True(pop < 5000f, $"Population {pop} should have declined from deficit");
+        var before = system.GetPopulation(coord);
+
+        system.Tick(2);
+        system.Tick(3);
+
+        Assert.Equal(before, system.GetPopulation(coord));
     }
 
     [Fact]
     public void ConsumePopulation_ReducesPopulation()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f, population: 500);
-        system.Tick(1); // Initialize population stockpile
+        var (system, _) = CreateSystem(fertility: 0.5f, ambientPopulation: 500f);
+        system.Tick(1);
 
         var coord = new HexCoord(0, 0);
         var before = system.GetPopulation(coord);
@@ -54,7 +52,7 @@ public class PopulationResourceTests
     [Fact]
     public void ConsumePopulation_ClampsToAvailable()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f, population: 100);
+        var (system, _) = CreateSystem(fertility: 0.5f, ambientPopulation: 100f);
         system.Tick(1);
 
         var coord = new HexCoord(0, 0);
@@ -69,7 +67,7 @@ public class PopulationResourceTests
     [Fact]
     public void HasMinimumPopulation_ChecksThreshold()
     {
-        var (system, _) = CreateSystem(fertility: 0.5f, population: 200);
+        var (system, _) = CreateSystem(fertility: 0.5f, ambientPopulation: 200f);
         system.Tick(1);
 
         var coord = new HexCoord(0, 0);
@@ -78,7 +76,7 @@ public class PopulationResourceTests
     }
 
     [Fact]
-    public void Population_FlowsWithinNation()
+    public void Population_DoesNotFlowWithinFaction()
     {
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
@@ -88,6 +86,8 @@ public class PopulationResourceTests
         // Rich cell
         var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 1000));
+        rich.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
+        rich.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
@@ -95,25 +95,23 @@ public class PopulationResourceTests
         // Poor cell
         var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 50));
+        poor.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
+        poor.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
 
         var system = new ResourceSystem(graph, grid);
+        system.Tick(1);
+        system.PopulationLayer.SetStockpile(new HexCoord(0, 0), 100f);
+        system.PopulationLayer.SetStockpile(new HexCoord(1, 0), 5f);
+        system.Tick(2);
 
-        // Run multiple ticks to see population flow
-        for (var i = 0; i < 5; i++)
-        {
-            system.Tick(i);
-        }
-
-        // Population at the rich cell should be higher than the poor cell
-        // and flow should have moved some population toward the poor cell
         var richPop = system.GetPopulation(new HexCoord(0, 0));
         var poorPop = system.GetPopulation(new HexCoord(1, 0));
 
-        Assert.True(richPop > poorPop, "Rich cell should still have more population");
-        Assert.True(poorPop > 0, "Poor cell should have some population from flow");
+        Assert.Equal(100f, richPop);
+        Assert.Equal(5f, poorPop);
     }
 
     [Fact]
@@ -127,12 +125,16 @@ public class PopulationResourceTests
 
         var sA = graph.CreateEntity(EntityKind.Settlement, "village", "SA", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 1000));
+        sA.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
+        sA.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
 
         var sB = graph.CreateEntity(EntityKind.Settlement, "village", "SB", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10));
+        sB.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0));
+        sB.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
         grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
@@ -140,26 +142,37 @@ public class PopulationResourceTests
         var system = new ResourceSystem(graph, grid);
         system.Tick(1);
 
-        // Faction B's settlement should not receive population from Faction A
-        Assert.True(system.GetPopulation(new HexCoord(2, 0)) <= 10f + 5f, // Only initial + possible small growth
-            "Population should not flow between nations");
+        system.PopulationLayer.SetStockpile(new HexCoord(0, 0), 100f);
+        system.PopulationLayer.SetStockpile(new HexCoord(2, 0), 5f);
+        system.Tick(2);
+
+        Assert.Equal(5f, system.GetPopulation(new HexCoord(2, 0)));
     }
 
     // --- Helper ---
 
     private static (ResourceSystem System, WorldGraph Graph) CreateSystem(
-        float fertility = 0.5f, float population = 100f)
+        float fertility = 0.5f, float ambientPopulation = -1f)
     {
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
 
         var nation = graph.CreateEntity(EntityKind.Faction, "generic_faction", "N", "c", 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
-        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, population));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10f));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("stored_food", 0, 10000, 0f));
+        settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, nation.Id, 1f, 0);
         grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: fertility);
 
-        return (new ResourceSystem(graph, grid), graph);
+        var system = new ResourceSystem(graph, grid);
+        if (ambientPopulation >= 0f)
+        {
+            system.Tick(1);
+            system.PopulationLayer.SetStockpile(new HexCoord(0, 0), ambientPopulation);
+        }
+
+        return (system, graph);
     }
 }

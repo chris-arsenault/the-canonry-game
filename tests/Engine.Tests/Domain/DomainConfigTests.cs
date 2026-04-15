@@ -15,7 +15,7 @@ public class DomainConfigTests
         Assert.True(config.Relationships.Count > 10);
         Assert.Equal(4, config.Pressures.Count);
         Assert.Equal(4, config.Lifecycles.Count);
-        Assert.Equal(2, config.Resources.Count);
+        Assert.Equal(3, config.Resources.Count);
         Assert.Equal(2, config.Cultures.Count);
     }
 

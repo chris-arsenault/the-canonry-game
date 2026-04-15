@@ -433,8 +433,19 @@ public sealed class GoalGenerator
     private PlanningRewardInfo EvaluatePlanningRewardInfo(
         ProcessDefinition process, Entity entity, Entity targetEntity, IWorldState worldState)
     {
+        var desiredEffect = process.GoalEffects.FirstOrDefault()
+            ?? AttributeRef.StructuralFact("planning_probe", entity.Kind);
+        var expressionContext = new GoalCheckContext(
+            entity,
+            new EntityGoal(
+                desiredEffect: desiredEffect,
+                targetEntityId: targetEntity.Id,
+                urgency: 0f,
+                plannedProcessId: process.Id),
+            process.Id,
+            worldState);
         var rawReward = process.RewardExpression.Evaluate(
-            new ExpressionContext(entity, targetEntity, worldState.Grid));
+            new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext));
 
         if (process.ProviderSelectors.Count == 0)
         {
@@ -457,8 +468,19 @@ public sealed class GoalGenerator
     private static float EvaluateProcessScore(
         ProcessDefinition process, Entity entity, Entity targetEntity, IWorldState worldState)
     {
+        var desiredEffect = process.GoalEffects.FirstOrDefault()
+            ?? AttributeRef.StructuralFact("planning_probe", entity.Kind);
+        var expressionContext = new GoalCheckContext(
+            entity,
+            new EntityGoal(
+                desiredEffect: desiredEffect,
+                targetEntityId: targetEntity.Id,
+                urgency: 0f,
+                plannedProcessId: process.Id),
+            process.Id,
+            worldState);
         return MathF.Max(0f, process.ScoreExpression.Evaluate(
-            new ExpressionContext(entity, targetEntity, worldState.Grid)));
+            new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext)));
     }
 
     private List<EntityGoal> TrimGoals(List<EntityGoal> goals)

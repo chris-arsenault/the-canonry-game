@@ -44,7 +44,7 @@ public interface IMutationContext
     /// <summary>Get all active entity IDs of a given kind.</summary>
     IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind);
 
-    /// <summary>Read resource stockpile at the given hex coordinates.</summary>
+    /// <summary>Read the ambient resource value at the given hex coordinates.</summary>
     float GetResource((int Q, int R) coordinates, ResourceType resourceType);
 
     // --- Write operations (mutations) ---

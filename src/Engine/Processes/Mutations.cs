@@ -119,7 +119,7 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
 
 /// <summary>
 /// Modifies an attribute on the resolved target entity (from the process-provider pair).
-/// e.g., NPC eats → target settlement loses sustenance.
+/// e.g., NPC eats → target settlement loses stored food.
 /// No-op if no target is resolved.
 /// </summary>
 public sealed class ModifyTargetAttributeMutation(string attributeName, float delta, float variance = 0f) : IMutation
@@ -136,8 +136,8 @@ public sealed class ModifyTargetAttributeMutation(string attributeName, float de
 }
 
 /// <summary>
-/// Modifies a resource stockpile at self or target location by a delta.
-/// Positive deltas add stockpile, negative deltas consume it.
+/// Modifies an ambient resource value at self or target location by a delta.
+/// Positive deltas increase the location's resource field, negative deltas reduce it.
 /// </summary>
 public sealed class ModifyLocationResourceMutation(
     ResourceType resourceType,
