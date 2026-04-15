@@ -170,6 +170,80 @@ public sealed class RelationshipExists(
 }
 
 /// <summary>
+/// Checks that the resolved target has a named relationship back to self.
+/// Example: target settlement --controlled_by--> self faction.
+/// </summary>
+public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? minStrength = null, bool plannerRelevant = false) : IPrecondition
+{
+    public string RelationshipKind { get; } = relationshipKind;
+    public float? MinStrength { get; } = minStrength;
+    public bool PlannerRelevant { get; } = plannerRelevant;
+
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var targetEntity = context.ResolvedTargetId is not null
+            ? context.GetEntity(context.ResolvedTargetId.Value)
+            : null;
+        IReadOnlyList<AttributeRef> blockers = PlannerRelevant && targetEntity is not null
+            ? [AttributeRef.Target(RelationshipKind, targetEntity.Kind)]
+            : Array.Empty<AttributeRef>();
+
+        if (context.ResolvedTargetId is null)
+            return PreconditionResult.Fail("no target", blockers);
+
+        var relationship = context.FindRelationship(context.ResolvedTargetId.Value, context.SelfEntityId, RelationshipKind);
+        if (relationship is null)
+            return PreconditionResult.Fail($"target has no {RelationshipKind} relationship to self", blockers);
+        if (MinStrength.HasValue && relationship.Strength < MinStrength.Value)
+            return PreconditionResult.Fail($"{RelationshipKind} strength={relationship.Strength:F2} (need >= {MinStrength})", blockers);
+
+        return PreconditionResult.Pass($"target {RelationshipKind} self (strength={relationship.Strength:F2})");
+    }
+
+    public string Describe() =>
+        $"target_has_relationship_to_self({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+}
+
+/// <summary>
+/// Checks that self has a named relationship to the resolved target.
+/// Example: self npc --loyal_to--> target faction.
+/// </summary>
+public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? minStrength = null, bool plannerRelevant = false) : IPrecondition
+{
+    public string RelationshipKind { get; } = relationshipKind;
+    public float? MinStrength { get; } = minStrength;
+    public bool PlannerRelevant { get; } = plannerRelevant;
+
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var targetEntity = context.ResolvedTargetId is not null
+            ? context.GetEntity(context.ResolvedTargetId.Value)
+            : null;
+        IReadOnlyList<AttributeRef> blockers = PlannerRelevant && targetEntity is not null
+            ? [AttributeRef.Target(RelationshipKind, targetEntity.Kind)]
+            : Array.Empty<AttributeRef>();
+
+        if (context.ResolvedTargetId is null)
+            return PreconditionResult.Fail("no target", blockers);
+
+        var relationship = context.FindRelationship(context.SelfEntityId, context.ResolvedTargetId.Value, RelationshipKind);
+        if (relationship is null)
+            return PreconditionResult.Fail($"self has no {RelationshipKind} relationship to target", blockers);
+        if (MinStrength.HasValue && relationship.Strength < MinStrength.Value)
+            return PreconditionResult.Fail($"{RelationshipKind} strength={relationship.Strength:F2} (need >= {MinStrength})", blockers);
+
+        return PreconditionResult.Pass($"self {RelationshipKind} target (strength={relationship.Strength:F2})");
+    }
+
+    public string Describe() =>
+        $"self_has_relationship_to_target({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+}
+
+/// <summary>
 /// Checks whether the entity reached the resolved target through a named relationship.
 /// Example: self.located_at == resolved target settlement.
 /// TODO: Generalize this relation-backed arrival check into a target-agnostic presence

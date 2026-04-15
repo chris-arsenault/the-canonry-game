@@ -4,6 +4,8 @@ How to design new processes so they enrich the simulation instead of feeling bol
 
 This document is the canonical reference for process ideation before implementation.
 
+Concrete loop specifications live under [docs/loops](../loops/README.md).
+
 ---
 
 ## Core Stance
@@ -258,6 +260,10 @@ When choosing the next MVP process set, prefer loops that:
 - use at least one existing seed process
 - involve at least 3 entities
 - cross at least 3 kinds
+
+## Active Loop Specs
+
+- [Settlement Magnet And Circulation](../loops/settlement-magnet-and-circulation.md)
 - create both a growth path and a failure path
 - obviously support future player intervention
 

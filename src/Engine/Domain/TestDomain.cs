@@ -87,7 +87,6 @@ public static class TestDomain
                     Expr.Lit(0.5f),
                     Expr.Lit(2f))),
             new ModifySelfByVariableMutation("residents", "growth_amount", variance: 0.2f),
-            new ModifyLocationResourceMutation(ResourceType.Population, -1f),
         } };
         grow.GoalEffects.Add(AttributeRef.Self("residents", EntityKind.Settlement));
         grow.SupportRules.Add(new PlannerSupportRule(
@@ -97,7 +96,6 @@ public static class TestDomain
         grow.Reads.Add(AttributeRef.Resource("food"));
         grow.Reads.Add(AttributeRef.Resource("population"));
         grow.Writes.Add(AttributeRef.Self("residents", EntityKind.Settlement));
-        grow.Writes.Add(AttributeRef.Resource("population"));
         processes.Add(grow);
 
         // Settlement: propaganda — shift target civic ideology toward self.
@@ -235,7 +233,144 @@ public static class TestDomain
         wander.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
         processes.Add(wander);
 
-        // TODO: Faction, Artifact, Region processes removed — rebuilding from ground up
+        // NPC: create works at the settlement already being visited. This is a civic
+        // contribution action, not a movement magnet; blocked remote candidates should
+        // simply fall away instead of generating movement sub-goals.
+        var createWorks = new ProcessDefinition("npc_create_works", "Create Works",
+            DefinitionRole.Process, EntityKind.Npc,
+            new AndPrecondition([
+                new TargetIsNotSelf(),
+                new RelatedEntityMatchesTarget("located_at", plannerRelevant: false),
+                new SelfAttributeThreshold("satiety", min: 70f, max: null, plannerRelevant: false),
+                new TargetAttributeThreshold("security", min: 25f, max: null, plannerRelevant: false),
+            ]),
+            Expr.Score(
+                Expr.Div(
+                    Expr.Add(
+                        Expr.Target("prestige"),
+                        Expr.Div(Expr.Target("residents"), Expr.Lit(10f))),
+                    Expr.Lit(20f))))
+        {
+            Cooldown = 4,
+            EntityCooldown = 1,
+            RewardExpression = Expr.Div(
+                Expr.Add(
+                    Expr.Target("prestige"),
+                    Expr.Add(
+                        Expr.Target("security"),
+                        Expr.Div(Expr.Target("residents"), Expr.Lit(5f)))),
+                Expr.Lit(10f)),
+            Mutations =
+            {
+                new ModifySelfAttributeMutation("satiety", -2f, variance: 0.1f),
+                new ModifyTargetAttributeMutation("prestige", 0.6f, variance: 0.15f),
+                new ModifyRelatedEntitiesAttributeMutation(
+                    "loyal_to",
+                    RelationshipTraversalDirection.Outgoing,
+                    "support",
+                    1.0f,
+                    variance: 0.15f),
+            },
+        };
+        createWorks.GoalEffects.Add(AttributeRef.StructuralFact("settlement_contribution", EntityKind.Npc));
+        createWorks.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        createWorks.Reads.Add(AttributeRef.Self("satiety", EntityKind.Npc));
+        createWorks.Reads.Add(AttributeRef.Target("security", EntityKind.Settlement));
+        createWorks.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        createWorks.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        createWorks.Writes.Add(AttributeRef.Self("satiety", EntityKind.Npc));
+        createWorks.Writes.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        processes.Add(createWorks);
+
+        // Faction: patrol controlled settlements. Support is spent to raise both local
+        // settlement security and broader regional safety.
+        var patrol = new ProcessDefinition("faction_patrol", "Patrol",
+            DefinitionRole.Process, EntityKind.Faction,
+            new AndPrecondition([
+                new TargetIsNotSelf(),
+                new TargetHasRelationshipToSelf("controlled_by"),
+                new SelfAttributeThreshold("support", min: 10f, max: null, plannerRelevant: false),
+                new TargetAttributeThreshold("security", min: null, max: 80f, plannerRelevant: false),
+            ]),
+            Expr.Score(
+                Expr.Div(
+                    Expr.Add(
+                        Expr.Sub(Expr.Lit(100f), Expr.Target("security")),
+                        Expr.Div(Expr.Target("prestige"), Expr.Lit(2f))),
+                    Expr.Lit(50f))))
+        {
+            Cooldown = 5,
+            EntityCooldown = 1,
+            RewardExpression = Expr.Div(
+                Expr.Add(
+                    Expr.Sub(Expr.Lit(100f), Expr.Target("security")),
+                    Expr.Add(
+                        Expr.Target("prestige"),
+                        Expr.Div(Expr.Target("residents"), Expr.Lit(10f)))),
+                Expr.Lit(20f)),
+            Mutations =
+            {
+                new ModifySelfAttributeMutation("support", -2.5f, variance: 0.1f),
+                new ModifySelfAttributeMutation("influence", 0.6f, variance: 0.1f),
+                new ModifyTargetAttributeMutation("security", 4f, variance: 0.1f),
+                new ModifyRelatedEntitiesAttributeMutation(
+                    "contains",
+                    RelationshipTraversalDirection.Incoming,
+                    "regional_safety",
+                    2f,
+                    useTargetEntity: true,
+                    variance: 0.1f),
+            },
+        };
+        patrol.GoalEffects.Add(AttributeRef.StructuralFact("territorial_order", EntityKind.Faction));
+        patrol.ProviderSelectors.Add(AttributeRef.Target("security", EntityKind.Settlement));
+        patrol.Reads.Add(AttributeRef.Self("support", EntityKind.Faction));
+        patrol.Reads.Add(AttributeRef.Self("influence", EntityKind.Faction));
+        patrol.Reads.Add(AttributeRef.Target("security", EntityKind.Settlement));
+        patrol.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        patrol.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        patrol.Writes.Add(AttributeRef.Self("support", EntityKind.Faction));
+        patrol.Writes.Add(AttributeRef.Self("influence", EntityKind.Faction));
+        patrol.Writes.Add(AttributeRef.Target("security", EntityKind.Settlement));
+        processes.Add(patrol);
+
+        // Region: form militia from the surrounding populace to stabilize contained
+        // settlements. This is a safety response, not a depletion/recovery economy loop.
+        var formMilitia = new ProcessDefinition("region_form_militia", "Form Militia",
+            DefinitionRole.Process, EntityKind.Region,
+            new AndPrecondition([
+                new TargetIsSelf(),
+                new SelfAttributeThreshold("regional_safety", min: null, max: 85f, plannerRelevant: false),
+                new SelfAttributeThreshold("geologic_stability", min: 25f, max: null, plannerRelevant: false),
+            ]),
+            Expr.Score(
+                Expr.Div(
+                    Expr.Sub(Expr.Lit(100f), Expr.Self("regional_safety")),
+                    Expr.Lit(30f))))
+        {
+            Cooldown = 6,
+            EntityCooldown = 2,
+            RewardExpression = Expr.Div(
+                Expr.Mul(
+                    Expr.Sub(Expr.Lit(100f), Expr.Self("regional_safety")),
+                    Expr.Max(Expr.Lit(0.1f), Expr.Div(Expr.Self("geologic_stability"), Expr.Lit(100f)))),
+                Expr.Lit(10f)),
+            Mutations =
+            {
+                new ModifySelfAttributeMutation("regional_safety", 3f, variance: 0.1f),
+                new ModifyRelatedEntitiesAttributeMutation(
+                    "contains",
+                    RelationshipTraversalDirection.Outgoing,
+                    "security",
+                    2f,
+                    variance: 0.1f),
+            },
+        };
+        formMilitia.GoalEffects.Add(AttributeRef.Self("regional_safety", EntityKind.Region));
+        formMilitia.Reads.Add(AttributeRef.Self("regional_safety", EntityKind.Region));
+        formMilitia.Reads.Add(AttributeRef.Self("geologic_stability", EntityKind.Region));
+        formMilitia.Writes.Add(AttributeRef.Self("regional_safety", EntityKind.Region));
+        processes.Add(formMilitia);
 
         return processes;
     }
@@ -281,6 +416,14 @@ public static class TestDomain
                         PlaneDefinition = CreateCivicPlaneDefinition() },
                 ],
                 HealthAttribute = "cohesion",
+                StandingDrives =
+                [
+                    new StandingDriveConfig
+                    {
+                        DesiredEffect = AttributeRef.StructuralFact("territorial_order", EntityKind.Faction),
+                        BaseUrgency = 0.035f,
+                    },
+                ],
             },
             [EntityKind.Npc] = new()
             {
@@ -317,6 +460,11 @@ public static class TestDomain
                     {
                         DesiredEffect = AttributeRef.StructuralFact("roam", EntityKind.Npc),
                         BaseUrgency = 0.03f,
+                    },
+                    new StandingDriveConfig
+                    {
+                        DesiredEffect = AttributeRef.StructuralFact("settlement_contribution", EntityKind.Npc),
+                        BaseUrgency = 0.04f,
                     },
                 ],
             },

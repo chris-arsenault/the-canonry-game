@@ -227,6 +227,35 @@ public class PreconditionTests
     }
 
     [Fact]
+    public void TargetHasRelationshipToSelf_PassesWhenTargetPointsBackToSelf()
+    {
+        var world = CreateWorld();
+        var faction = world.Graph.CreateEntity(EntityKind.Faction, "order", "Faction", "c", 0, null);
+        var settlement = CreateSettlement(world, "Target", (1, 0));
+        world.Graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, faction.Id, 1f, 0);
+
+        var result = new TargetHasRelationshipToSelf("controlled_by").Evaluate(
+            new TestMutationContext(faction, settlement, worldState: world));
+
+        Assert.True(result.Passed);
+        Assert.Contains("controlled_by", result.Diagnostic, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SelfHasRelationshipToTarget_FailsWhenRelationshipMissing()
+    {
+        var world = CreateWorld();
+        var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Npc", "c", 0, (0, 0));
+        var faction = world.Graph.CreateEntity(EntityKind.Faction, "order", "Faction", "c", 0, null);
+
+        var result = new SelfHasRelationshipToTarget("loyal_to").Evaluate(
+            new TestMutationContext(npc, faction, worldState: world));
+
+        Assert.False(result.Passed);
+        Assert.Contains("self has no loyal_to relationship to target", result.Diagnostic, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AlwaysTrue_AlwaysPasses()
     {
         var world = CreateWorld();

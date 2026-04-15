@@ -175,6 +175,47 @@ public class MutationTests
         Assert.Contains(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(1, 0)));
     }
 
+    [Fact]
+    public void ModifyRelatedEntitiesAttributeMutation_ModifiesOutgoingRelatedEntitiesFromSelf()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var npc = CreateNpc(world, "Npc", (0, 0));
+        var faction = CreateFaction(world, "Faction");
+        world.Graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, faction.Id, 1f, 0);
+        var context = new TestMutationContext(npc, worldState: world, random: new FixedRandom(0.5));
+
+        new ModifyRelatedEntitiesAttributeMutation(
+            "loyal_to",
+            RelationshipTraversalDirection.Outgoing,
+            "support",
+            4f,
+            variance: 0f).Execute(context);
+
+        Assert.Equal(44f, faction.Attributes.GetValue("support"));
+    }
+
+    [Fact]
+    public void ModifyRelatedEntitiesAttributeMutation_CanUseTargetAsAnchorForIncomingTraversal()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var faction = CreateFaction(world, "Faction");
+        var region = CreateRegion(world, "Region");
+        var settlement = CreateSettlement(world, "Settlement", (0, 0), population: 10f);
+        settlement.Attributes.Add(new ScalarValue("security", 0f, 100f, 20f));
+        world.Graph.CreateRelationship("contains", RelationshipPolarity.Neutral, region.Id, settlement.Id, 1f, 0);
+        var context = new TestMutationContext(faction, settlement, worldState: world, random: new FixedRandom(0.5));
+
+        new ModifyRelatedEntitiesAttributeMutation(
+            "contains",
+            RelationshipTraversalDirection.Incoming,
+            "regional_safety",
+            3f,
+            useTargetEntity: true,
+            variance: 0f).Execute(context);
+
+        Assert.Equal(53f, region.Attributes.GetValue("regional_safety"));
+    }
+
     private static Entity CreateSettlement(
         StubWorldState world,
         string name,
@@ -196,6 +237,22 @@ public class MutationTests
         var entity = world.Graph.CreateEntity(EntityKind.Npc, "warrior", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
         entity.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 0f));
+        return entity;
+    }
+
+    private static Entity CreateFaction(StubWorldState world, string name)
+    {
+        var entity = world.Graph.CreateEntity(EntityKind.Faction, "order", name, "c", 0, null);
+        entity.Attributes.Add(new ScalarValue("support", 0f, 100f, 40f));
+        entity.Attributes.Add(new ScalarValue("influence", 0f, 100f, 30f));
+        return entity;
+    }
+
+    private static Entity CreateRegion(StubWorldState world, string name)
+    {
+        var entity = world.Graph.CreateEntity(EntityKind.Region, "plains", name, "c", 0, null);
+        entity.Attributes.Add(new ScalarValue("regional_safety", 0f, 100f, 50f));
+        entity.Attributes.Add(new ScalarValue("geologic_stability", 0f, 100f, 80f));
         return entity;
     }
 }

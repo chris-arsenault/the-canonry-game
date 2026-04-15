@@ -208,14 +208,13 @@ public class NpcLoopDomainTests
         SetAmbientFood(world, settlement, 5f);
         SetAmbientPopulation(world, settlement, 5f);
         var residentsBefore = settlement.Attributes.GetValue("residents");
-        var ambientPopulationBefore = GetAmbientPopulation(world, settlement);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(settlement, world);
 
         Assert.Equal("Grow", settlement.LastEvaluation!.ExecutedProcessName);
         Assert.True(settlement.Attributes.GetValue("residents") > residentsBefore);
-        Assert.True(GetAmbientPopulation(world, settlement) < ambientPopulationBefore);
+        Assert.Equal(5f, GetAmbientPopulation(world, settlement), precision: 3);
     }
 
     private static EntityEvaluator CreateEvaluator(DomainConfig config, Random random)

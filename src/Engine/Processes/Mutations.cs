@@ -163,6 +163,68 @@ public sealed class ModifyLocationResourceMutation(
         $"modify_{(targetLocation ? "target" : "self")}_location_resource({resourceType.ToDomainName()}, delta={delta}, var={variance})";
 }
 
+/// <summary>Traversal direction for relationship-based bulk mutations.</summary>
+public enum RelationshipTraversalDirection
+{
+    Outgoing,
+    Incoming,
+}
+
+/// <summary>
+/// Modifies a scalar attribute on all entities related to self or target through a named relationship.
+/// This is the generic bridge for processes that spill effects across the graph without hard-coding
+/// domain semantics into the engine.
+/// </summary>
+public sealed class ModifyRelatedEntitiesAttributeMutation(
+    string relationshipKind,
+    RelationshipTraversalDirection direction,
+    string attributeName,
+    float delta,
+    bool useTargetEntity = false,
+    float variance = 0f) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context is not IWorldStateAccessor accessor)
+        {
+            return;
+        }
+
+        var anchorId = useTargetEntity ? context.ResolvedTargetId : context.SelfEntityId;
+        if (anchorId is null)
+        {
+            return;
+        }
+
+        var relationships = direction == RelationshipTraversalDirection.Outgoing
+            ? accessor.WorldState.Graph.OutgoingRelationships(anchorId.Value, relationshipKind)
+            : accessor.WorldState.Graph.IncomingRelationships(anchorId.Value, relationshipKind);
+
+        foreach (var relationship in relationships)
+        {
+            var relatedEntityId = direction == RelationshipTraversalDirection.Outgoing
+                ? relationship.TargetId
+                : relationship.SourceId;
+            var relatedEntity = context.GetEntity(relatedEntityId);
+            if (relatedEntity is null ||
+                relatedEntity.Status != EntityStatus.Active ||
+                !relatedEntity.Attributes.Has(attributeName))
+            {
+                continue;
+            }
+
+            context.ModifyAttribute(
+                relatedEntityId,
+                attributeName,
+                Variance.Scale(delta, variance, context.Random));
+        }
+    }
+
+    public string Describe() =>
+        $"modify_related_attribute(anchor={(useTargetEntity ? "target" : "self")}, dir={direction}, rel={relationshipKind}, attr={attributeName}, delta={delta}, var={variance})";
+}
+
 /// <summary>
 /// Evaluate an expression and store the result as a named context variable.
 /// Subsequent mutations can read it via context.GetVariable().
