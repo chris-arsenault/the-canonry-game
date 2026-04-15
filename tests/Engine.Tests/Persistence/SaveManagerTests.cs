@@ -13,7 +13,7 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        graph.CreateEntity(EntityKind.Nation, "monarchy", "Kesh", "culture_a", tick: 0);
+        graph.CreateEntity(EntityKind.Faction, "monarchy", "Kesh", "culture_a", tick: 0);
         graph.CreateEntity(EntityKind.Settlement, "city", "Capital", "culture_a", tick: 0, (1, 2));
 
         var state = SaveManager.Capture(graph, currentTick: 50);
@@ -27,7 +27,7 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        var nation = graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
+        var nation = graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", 0);
         graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, settlement.Id, 0.9f, 0);
 
@@ -70,7 +70,7 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", 0);
+        graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", 0);
 
         var state = SaveManager.Capture(graph, currentTick: 0);
 
@@ -85,7 +85,7 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        var nation = graph.CreateEntity(EntityKind.Nation, "monarchy", "Kesh", "culture_a", tick: 0);
+        var nation = graph.CreateEntity(EntityKind.Faction, "monarchy", "Kesh", "culture_a", tick: 0);
         var settlement = graph.CreateEntity(EntityKind.Settlement, "city", "Capital", "culture_a", tick: 5, (1, 2));
         nation.Attributes.Add(new ScalarValue("stability", 0, 100, 75));
         settlement.Attributes.Add(new ScalarValue("population", 0, 10000, 500));
@@ -107,7 +107,7 @@ public class SaveManagerTests
         Assert.Equal(1, restored.Version);
 
         // Entity details
-        var nationData = restored.Entities.First(e => e.Kind == EntityKind.Nation);
+        var nationData = restored.Entities.First(e => e.Kind == EntityKind.Faction);
         Assert.Equal("monarchy", nationData.Subtype);
         Assert.Equal("Kesh", nationData.Name);
         Assert.Equal("culture_a", nationData.Culture);
@@ -152,7 +152,7 @@ public class SaveManagerTests
     public void SaveAndLoad_FileRoundTrip()
     {
         var graph = new WorldGraph();
-        graph.CreateEntity(EntityKind.Nation, "generic", "TestNation", "c", 0);
+        graph.CreateEntity(EntityKind.Faction, "generic", "TestNation", "c", 0);
 
         var state = SaveManager.Capture(graph, currentTick: 99);
         var path = Path.GetTempFileName();

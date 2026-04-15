@@ -12,9 +12,9 @@ public class WorldGraphTests
     [Fact]
     public void CreateEntity_ReturnsEntityWithCorrectProperties()
     {
-        var entity = _graph.CreateEntity(EntityKind.Nation, "generic", "TestNation", "culture_a", tick: 0);
+        var entity = _graph.CreateEntity(EntityKind.Faction, "generic", "TestNation", "culture_a", tick: 0);
 
-        Assert.Equal(EntityKind.Nation, entity.Kind);
+        Assert.Equal(EntityKind.Faction, entity.Kind);
         Assert.Equal("generic", entity.Subtype);
         Assert.Equal("TestNation", entity.Name);
         Assert.Equal("culture_a", entity.Culture);
@@ -25,8 +25,8 @@ public class WorldGraphTests
     [Fact]
     public void CreateEntity_AssignsUniqueIds()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
 
         Assert.NotEqual(a.Id, b.Id);
     }
@@ -42,11 +42,11 @@ public class WorldGraphTests
     [Fact]
     public void GetEntitiesByKind_ReturnsCorrectSet()
     {
-        _graph.CreateEntity(EntityKind.Nation, "generic", "N1", "c", tick: 0);
-        _graph.CreateEntity(EntityKind.Nation, "generic", "N2", "c", tick: 0);
+        _graph.CreateEntity(EntityKind.Faction, "generic", "N1", "c", tick: 0);
+        _graph.CreateEntity(EntityKind.Faction, "generic", "N2", "c", tick: 0);
         _graph.CreateEntity(EntityKind.Settlement, "generic", "S1", "c", tick: 0);
 
-        Assert.Equal(2, _graph.GetEntitiesByKind(EntityKind.Nation).Count);
+        Assert.Equal(2, _graph.GetEntitiesByKind(EntityKind.Faction).Count);
         Assert.Single(_graph.GetEntitiesByKind(EntityKind.Settlement));
         Assert.Empty(_graph.GetEntitiesByKind(EntityKind.Npc));
     }
@@ -74,7 +74,7 @@ public class WorldGraphTests
     [Fact]
     public void CreateRelationship_ReturnsRelationshipWithCorrectProperties()
     {
-        var nation = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
+        var nation = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
         var settlement = _graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", tick: 0);
 
         var rel = _graph.CreateRelationship(
@@ -92,7 +92,7 @@ public class WorldGraphTests
     [Fact]
     public void CreateRelationship_ThrowsForNonexistentEntity()
     {
-        var nation = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
+        var nation = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
 
         Assert.Throws<ArgumentException>(() =>
             _graph.CreateRelationship(
@@ -103,8 +103,8 @@ public class WorldGraphTests
     [Fact]
     public void CreateRelationship_ClampsStrengthToRange()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
 
         var rel = _graph.CreateRelationship(
             "allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 1.5f, tick: 0);
@@ -117,7 +117,7 @@ public class WorldGraphTests
     [Fact]
     public void OutgoingRelationships_ReturnsCorrectEdges()
     {
-        var nation = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
+        var nation = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
         var s1 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S1", "c", tick: 0);
         var s2 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S2", "c", tick: 0);
 
@@ -132,9 +132,9 @@ public class WorldGraphTests
     [Fact]
     public void OutgoingRelationships_FilterByKind()
     {
-        var nation = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
+        var nation = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
         var s = _graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", tick: 0);
-        var rival = _graph.CreateEntity(EntityKind.Nation, "generic", "R", "c", tick: 0);
+        var rival = _graph.CreateEntity(EntityKind.Faction, "generic", "R", "c", tick: 0);
 
         _graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, s.Id, 1f, 0);
         _graph.CreateRelationship("rival_of", RelationshipPolarity.Negative, nation.Id, rival.Id, 0.5f, 0);
@@ -148,8 +148,8 @@ public class WorldGraphTests
     public void IncomingRelationships_ReturnsCorrectEdges()
     {
         var s = _graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", tick: 0);
-        var n1 = _graph.CreateEntity(EntityKind.Nation, "generic", "N1", "c", tick: 0);
-        var n2 = _graph.CreateEntity(EntityKind.Nation, "generic", "N2", "c", tick: 0);
+        var n1 = _graph.CreateEntity(EntityKind.Faction, "generic", "N1", "c", tick: 0);
+        var n2 = _graph.CreateEntity(EntityKind.Faction, "generic", "N2", "c", tick: 0);
 
         _graph.CreateRelationship("controls", RelationshipPolarity.Neutral, n1.Id, s.Id, 1f, 0);
         _graph.CreateRelationship("influences", RelationshipPolarity.Positive, n2.Id, s.Id, 0.3f, 0);
@@ -163,8 +163,8 @@ public class WorldGraphTests
     [Fact]
     public void CullRelationship_SetsEndDateAndRemovesFromActive()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
 
         var rel = _graph.CreateRelationship(
             "allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, tick: 0);
@@ -181,8 +181,8 @@ public class WorldGraphTests
     [Fact]
     public void AllRelationshipsBetween_ReturnsActiveAndHistorical()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
 
         var alliance = _graph.CreateRelationship(
             "allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.8f, tick: 0);
@@ -200,8 +200,8 @@ public class WorldGraphTests
     [Fact]
     public void AllRelationshipsBetween_FilterByKind()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
 
         _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.8f, 0);
         _graph.CreateRelationship("rival_of", RelationshipPolarity.Negative, a.Id, b.Id, 0.3f, 0);
@@ -217,7 +217,7 @@ public class WorldGraphTests
     {
         // NPC -> loyal_to -> Nation -> controls -> Settlement
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic", "Hero", "c", tick: 0);
-        var nation = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
+        var nation = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
         var s1 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S1", "c", tick: 0);
         var s2 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S2", "c", tick: 0);
 
@@ -237,8 +237,8 @@ public class WorldGraphTests
     public void EntitiesWithinHops_RespectsEdgeFilter()
     {
         var npc = _graph.CreateEntity(EntityKind.Npc, "generic", "Hero", "c", tick: 0);
-        var nation = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
-        var rival = _graph.CreateEntity(EntityKind.Nation, "generic", "R", "c", tick: 0);
+        var nation = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
+        var rival = _graph.CreateEntity(EntityKind.Faction, "generic", "R", "c", tick: 0);
 
         _graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, nation.Id, 0.9f, 0);
         _graph.CreateRelationship("rival_of", RelationshipPolarity.Negative, npc.Id, rival.Id, 0.5f, 0);
@@ -263,8 +263,8 @@ public class WorldGraphTests
     [Fact]
     public void UpdateRelationshipStrength_ClampsAndFiresEvent()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
 
         var rel = _graph.CreateRelationship(
             "allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, tick: 0);
@@ -286,7 +286,7 @@ public class WorldGraphTests
         Entity? created = null;
         _graph.EntityCreated += (_, e) => created = e.Entity;
 
-        var entity = _graph.CreateEntity(EntityKind.Nation, "generic", "N", "c", tick: 0);
+        var entity = _graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", tick: 0);
 
         Assert.NotNull(created);
         Assert.Equal(entity.Id, created.Id);
@@ -298,7 +298,7 @@ public class WorldGraphTests
         Relationship? created = null;
         _graph.RelationshipCreated += (_, e) => created = e.Relationship;
 
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
         var b = _graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", tick: 0);
 
         _graph.CreateRelationship("controls", RelationshipPolarity.Neutral, a.Id, b.Id, 1f, 0);
@@ -313,8 +313,8 @@ public class WorldGraphTests
         int? endTick = null;
         _graph.RelationshipCulled += (_, e) => endTick = e.EndTick;
 
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic", "A", "c", tick: 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic", "B", "c", tick: 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic", "A", "c", tick: 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic", "B", "c", tick: 0);
         var rel = _graph.CreateRelationship(
             "allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, tick: 0);
 
@@ -328,8 +328,8 @@ public class WorldGraphTests
     [Fact]
     public void Integration_SettlementsControlledByNation()
     {
-        var nationA = _graph.CreateEntity(EntityKind.Nation, "generic", "NationA", "c", tick: 0);
-        var nationB = _graph.CreateEntity(EntityKind.Nation, "generic", "NationB", "c", tick: 0);
+        var nationA = _graph.CreateEntity(EntityKind.Faction, "generic", "NationA", "c", tick: 0);
+        var nationB = _graph.CreateEntity(EntityKind.Faction, "generic", "NationB", "c", tick: 0);
         var s1 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S1", "c", tick: 0);
         var s2 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S2", "c", tick: 0);
         var s3 = _graph.CreateEntity(EntityKind.Settlement, "generic", "S3", "c", tick: 0);

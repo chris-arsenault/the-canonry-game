@@ -52,6 +52,7 @@ public interface IMutationContext
     void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength);
     void ModifyAttribute(EntityId entityId, string attributeName, float delta);
     void ModifyPressure(string pressureName, EntityId scopeId, float delta);
+    void ModifyResource((int Q, int R) coordinates, ResourceType resourceType, float delta);
     void SetTag(EntityId entityId, string key, string value);
     void SetEntityHistorical(EntityId entityId);
 

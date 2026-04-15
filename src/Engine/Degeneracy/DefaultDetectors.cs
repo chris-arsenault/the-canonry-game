@@ -28,12 +28,12 @@ public sealed class SettlementDepopulationDetector : IDegeneracyDetector
 }
 
 /// <summary>
-/// Political monoculture: one nation controls too much of the world.
+/// Political monoculture: one faction controls too much of the world.
 /// </summary>
 public sealed class PoliticalMonocultureDetector : IDegeneracyDetector
 {
     public string Name => "political_monoculture";
-    public string WarningMessage => "One nation dominates the world.";
+    public string WarningMessage => "One faction dominates the world.";
 
     public float WarningThreshold { get; set; } = 0.6f;
     public float CriticalThreshold { get; set; } = 0.8f;
@@ -47,7 +47,7 @@ public sealed class PoliticalMonocultureDetector : IDegeneracyDetector
             return Severity.Normal;
         }
 
-        var ratio = (float)context.MaxNationSettlementCount / context.TotalSettlementCount;
+        var ratio = (float)context.MaxFactionSettlementCount / context.TotalSettlementCount;
         if (ratio >= CriticalThreshold) return Severity.Critical;
         if (ratio >= WarningThreshold) return Severity.Warning;
         return Severity.Normal;

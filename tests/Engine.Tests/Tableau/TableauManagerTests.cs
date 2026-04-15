@@ -210,6 +210,7 @@ public class TableauManagerTests
         public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) { }
         public void ModifyAttribute(EntityId entityId, string attributeName, float delta) { }
         public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { }
+        public void ModifyResource((int Q, int R) coordinates, ResourceType resourceType, float delta) { }
         public void SetTag(EntityId entityId, string key, string value) { }
         public void SetEntityHistorical(EntityId entityId) { }
         public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) => null;

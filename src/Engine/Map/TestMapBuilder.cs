@@ -129,11 +129,11 @@ public sealed class TestMapBuilder
     private static void CreateEntities(WorldGraph graph, HexGrid grid,
         Dictionary<string, Region> regions, Random random)
     {
-        // --- Nations ---
-        var nationA = graph.CreateEntity(
-            EntityKind.Nation, "generic_nation", "Northern Compact", "culture_a", tick: 0);
-        var nationB = graph.CreateEntity(
-            EntityKind.Nation, "generic_nation", "Southern League", "culture_b", tick: 0);
+        // --- Factions ---
+        var factionA = graph.CreateEntity(
+            EntityKind.Faction, "generic_faction", "Northern Compact", "culture_a", tick: 0);
+        var factionB = graph.CreateEntity(
+            EntityKind.Faction, "generic_faction", "Southern League", "culture_b", tick: 0);
 
         // --- Settlements (fixed positions — they define the geography) ---
         var s1 = graph.CreateEntity(
@@ -162,14 +162,14 @@ public sealed class TestMapBuilder
             [new HexCoord(0, 0)] = s5.Id,
         };
 
-        // Nation A controls northern settlements
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s1.Id, nationA.Id, 1f, 0);
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s2.Id, nationA.Id, 1f, 0);
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s5.Id, nationA.Id, 0.8f, 0);
+        // Faction A controls northern settlements
+        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s1.Id, factionA.Id, 1f, 0);
+        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s2.Id, factionA.Id, 1f, 0);
+        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s5.Id, factionA.Id, 0.8f, 0);
 
-        // Nation B controls southern settlements
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s3.Id, nationB.Id, 1f, 0);
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s4.Id, nationB.Id, 1f, 0);
+        // Faction B controls southern settlements
+        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s3.Id, factionB.Id, 1f, 0);
+        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s4.Id, factionB.Id, 1f, 0);
 
         // Settlement -> Region (contains)
         graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
@@ -190,22 +190,22 @@ public sealed class TestMapBuilder
             .ToList();
 
         // --- NPCs (random hex positions) ---
-        var npcDefs = new (string Subtype, string Name, string Culture, EntityId Nation, float Loyalty)[]
+        var npcDefs = new (string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)[]
         {
-            ("warrior", "Captain Greyfeather", "culture_a", nationA.Id, 0.9f),
-            ("merchant", "Trader Shellback", "culture_b", nationB.Id, 0.7f),
-            ("scholar", "Elder Deepcurrent", "culture_a", nationA.Id, 0.8f),
+            ("warrior", "Captain Greyfeather", "culture_a", factionA.Id, 0.9f),
+            ("merchant", "Trader Shellback", "culture_b", factionB.Id, 0.7f),
+            ("scholar", "Elder Deepcurrent", "culture_a", factionA.Id, 0.8f),
         };
 
-        foreach (var (subtype, name, culture, nationId, loyalty) in npcDefs)
+        foreach (var (subtype, name, culture, factionId, loyalty) in npcDefs)
         {
             var hex = walkableHexes[random.Next(walkableHexes.Count)];
             var npc = graph.CreateEntity(
                 EntityKind.Npc, subtype, name, culture, tick: 0,
                 coordinates: (hex.Q, hex.R));
 
-            // Loyalty to nation
-            graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, nationId, loyalty, 0);
+            // Loyalty to faction
+            graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, factionId, loyalty, 0);
 
             // located_at only if spawning on a settlement hex
             if (settlementsByCoord.TryGetValue(hex, out var settlementId))

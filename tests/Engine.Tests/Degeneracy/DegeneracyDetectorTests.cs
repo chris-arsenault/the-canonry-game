@@ -40,28 +40,28 @@ public class DegeneracyDetectorTests
     [Fact]
     public void Monoculture_NormalWithBalancedNations()
     {
-        var ctx = new StubContext { TotalSettlementCount = 10, MaxNationSettlementCount = 4 };
+        var ctx = new StubContext { TotalSettlementCount = 10, MaxFactionSettlementCount = 4 };
         Assert.Equal(Severity.Normal, new PoliticalMonocultureDetector().Evaluate(ctx));
     }
 
     [Fact]
     public void Monoculture_WarningWhenDominant()
     {
-        var ctx = new StubContext { TotalSettlementCount = 10, MaxNationSettlementCount = 7 };
+        var ctx = new StubContext { TotalSettlementCount = 10, MaxFactionSettlementCount = 7 };
         Assert.Equal(Severity.Warning, new PoliticalMonocultureDetector().Evaluate(ctx));
     }
 
     [Fact]
     public void Monoculture_CriticalWhenOverwhelming()
     {
-        var ctx = new StubContext { TotalSettlementCount = 10, MaxNationSettlementCount = 9 };
+        var ctx = new StubContext { TotalSettlementCount = 10, MaxFactionSettlementCount = 9 };
         Assert.Equal(Severity.Critical, new PoliticalMonocultureDetector().Evaluate(ctx));
     }
 
     [Fact]
     public void Monoculture_NormalWhenNoSettlements()
     {
-        var ctx = new StubContext { TotalSettlementCount = 0, MaxNationSettlementCount = 0 };
+        var ctx = new StubContext { TotalSettlementCount = 0, MaxFactionSettlementCount = 0 };
         Assert.Equal(Severity.Normal, new PoliticalMonocultureDetector().Evaluate(ctx));
     }
 
@@ -99,7 +99,7 @@ public class DegeneracyDetectorTests
             ActiveSettlementCount = 10,
             DecliningSettlementCount = 1,
             TotalSettlementCount = 10,
-            MaxNationSettlementCount = 3,
+            MaxFactionSettlementCount = 3,
             ActiveNpcCount = 15,
         };
 
@@ -116,10 +116,10 @@ public class DegeneracyDetectorTests
         var registry = DetectorRegistry.CreateDefault(eventLog);
 
         // First: normal
-        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxNationSettlementCount = 3, ActiveNpcCount = 15 }, 1);
+        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxFactionSettlementCount = 3, ActiveNpcCount = 15 }, 1);
 
         // Second: NPC extinction warning
-        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxNationSettlementCount = 3, ActiveNpcCount = 3 }, 2);
+        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxFactionSettlementCount = 3, ActiveNpcCount = 3 }, 2);
 
         var warnings = eventLog.ByType(EventType.Threshold).ToList();
         Assert.Single(warnings);
@@ -133,10 +133,10 @@ public class DegeneracyDetectorTests
         var registry = DetectorRegistry.CreateDefault(eventLog);
 
         // Trigger warning
-        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxNationSettlementCount = 3, ActiveNpcCount = 3 }, 1);
+        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxFactionSettlementCount = 3, ActiveNpcCount = 3 }, 1);
 
         // Recover
-        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxNationSettlementCount = 3, ActiveNpcCount = 20 }, 2);
+        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxFactionSettlementCount = 3, ActiveNpcCount = 20 }, 2);
 
         var events = eventLog.ByType(EventType.Threshold).ToList();
         Assert.Equal(2, events.Count);
@@ -147,7 +147,7 @@ public class DegeneracyDetectorTests
     public void Registry_GetSeverity()
     {
         var registry = DetectorRegistry.CreateDefault();
-        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxNationSettlementCount = 3, ActiveNpcCount = 1 }, 1);
+        registry.Evaluate(new StubContext { ActiveSettlementCount = 10, DecliningSettlementCount = 1, TotalSettlementCount = 10, MaxFactionSettlementCount = 3, ActiveNpcCount = 1 }, 1);
 
         Assert.Equal(Severity.Critical, registry.GetSeverity("npc_extinction"));
         Assert.Equal(Severity.Normal, registry.GetSeverity("settlement_depopulation"));
@@ -159,8 +159,8 @@ public class DegeneracyDetectorTests
     {
         public int ActiveSettlementCount { get; set; } = 10;
         public int DecliningSettlementCount { get; set; }
-        public int ActiveNationCount { get; set; } = 2;
-        public int MaxNationSettlementCount { get; set; } = 5;
+        public int ActiveFactionCount { get; set; } = 2;
+        public int MaxFactionSettlementCount { get; set; } = 5;
         public int TotalSettlementCount { get; set; } = 10;
         public int ActiveNpcCount { get; set; } = 10;
     }

@@ -27,8 +27,8 @@ public class RelationshipSystemTests
     [Fact]
     public void ProximityModifier_IncreasesStrengthForNearbyEntities()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0, (0, 0));
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0, (1, 0));
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0, (0, 0));
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0, (1, 0));
         var rel = _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var modifier = new ProximityModifier { MaxDistance = 10, MaxDelta = 0.01f };
@@ -40,8 +40,8 @@ public class RelationshipSystemTests
     [Fact]
     public void ProximityModifier_ZeroDeltaForDistantEntities()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0, (0, 0));
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0, (5, 5));
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0, (0, 0));
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0, (5, 5));
         var rel = _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var modifier = new ProximityModifier { MaxDistance = 3, MaxDelta = 0.01f };
@@ -53,8 +53,8 @@ public class RelationshipSystemTests
     [Fact]
     public void SharedCultureModifier_PositiveForSameCulture()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "culture_x", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "culture_x", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "culture_x", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "culture_x", 0);
         var rel = _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var modifier = new SharedCultureModifier();
@@ -66,8 +66,8 @@ public class RelationshipSystemTests
     [Fact]
     public void SharedCultureModifier_NegativeForDifferentCulture()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "culture_x", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "culture_y", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "culture_x", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "culture_y", 0);
         var rel = _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var modifier = new SharedCultureModifier();
@@ -79,8 +79,8 @@ public class RelationshipSystemTests
     [Fact]
     public void NeglectModifier_AlwaysNegative()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
         var rel = _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var modifier = new NeglectModifier();
@@ -94,8 +94,8 @@ public class RelationshipSystemTests
     [Fact]
     public void System_ModifiesStrengthOverMultipleTicks()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "culture_x", 0, (0, 0));
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "culture_x", 0, (1, 0));
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "culture_x", 0, (0, 0));
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "culture_x", 0, (1, 0));
         var rel = _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var system = CreateSystem();
@@ -115,8 +115,8 @@ public class RelationshipSystemTests
     [Fact]
     public void System_StrengthNeverExceeds1()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0, (0, 0));
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0, (0, 1));
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0, (0, 0));
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0, (0, 1));
         _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.99f, 0);
 
         var system = CreateSystem();
@@ -137,8 +137,8 @@ public class RelationshipSystemTests
     [Fact]
     public void System_CullsWeakRelationships()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
         _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.02f, 0);
 
         var system = CreateSystem();
@@ -154,8 +154,8 @@ public class RelationshipSystemTests
     [Fact]
     public void System_CulledRelationshipPreservesHistory()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
         _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.02f, 0);
 
         var system = CreateSystem();
@@ -171,8 +171,8 @@ public class RelationshipSystemTests
     [Fact]
     public void System_DoesNotCullAboveThreshold()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
         _graph.CreateRelationship("allied_with", RelationshipPolarity.Positive, a.Id, b.Id, 0.5f, 0);
 
         var system = CreateSystem();
@@ -188,8 +188,8 @@ public class RelationshipSystemTests
     [Fact]
     public void Disposition_HighForSimilarEntities()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
 
         var govPlane = new SemanticPlaneDefinition("government", "x", "y",
             ["ll", "ml", "hl", "lm", "mm", "hm", "lh", "mh", "hh"]);
@@ -207,8 +207,8 @@ public class RelationshipSystemTests
     [Fact]
     public void Disposition_LowForDifferentEntities()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
 
         var govPlane = new SemanticPlaneDefinition("government", "x", "y",
             ["ll", "ml", "hl", "lm", "mm", "hm", "lh", "mh", "hh"]);
@@ -226,8 +226,8 @@ public class RelationshipSystemTests
     [Fact]
     public void Disposition_DefaultWhenNoPlanesRegistered()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
 
         var calc = new DispositionCalculator(CreateContext()) { DefaultDisposition = 0.5f };
 
@@ -237,8 +237,8 @@ public class RelationshipSystemTests
     [Fact]
     public void Disposition_IsSymmetric()
     {
-        var a = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "A", "c", 0);
-        var b = _graph.CreateEntity(EntityKind.Nation, "generic_nation", "B", "c", 0);
+        var a = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
+        var b = _graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
 
         var plane = new SemanticPlaneDefinition("ideology", "x", "y",
             ["1", "2", "3", "4", "5", "6", "7", "8", "9"]);

@@ -10,13 +10,12 @@ public enum EntityKind
     // MVP kinds
     Region,
     Settlement,
-    Nation,
+    Faction,
     Npc,
     Artifact,
 
     // Post-MVP kinds (reserved, not implemented)
     PointOfInterest,
-    Faction,
     Monster,
     Transportation,
     Ability,

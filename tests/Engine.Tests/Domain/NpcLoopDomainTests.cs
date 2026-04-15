@@ -4,6 +4,7 @@ using Engine.Behaviors;
 using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Map;
 using Engine.Messages;
 using Engine.Processes;
 using Engine.Tests.Behaviors;
@@ -14,14 +15,14 @@ public class NpcLoopDomainTests
     public void TestDomain_HungryNpcGeneratesEatPlanWithMoveSubGoal()
     {
         var config = TestDomain.Create();
-        var world = new StubWorldState(gridRadius: 5);
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (2, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 20f);
-        SetScalar(settlement, "sustenance", 10f);
+        SetFood(world, settlement, 10f);
 
         var generator = new GoalGenerator(config.Kinds, config.Processes);
         var goals = generator.Generate(npc, world);
@@ -38,14 +39,14 @@ public class NpcLoopDomainTests
     public void TestDomain_HungryNpcMovesTowardFoodSettlement()
     {
         var config = TestDomain.Create();
-        var world = new StubWorldState(gridRadius: 5);
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (2, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 20f);
-        SetScalar(settlement, "sustenance", 10f);
+        SetFood(world, settlement, 10f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
@@ -59,7 +60,7 @@ public class NpcLoopDomainTests
     public void TestDomain_HungryNpcEatsWhenAlreadyAtFoodSettlement()
     {
         var config = TestDomain.Create();
-        var world = new StubWorldState(gridRadius: 5);
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (0, 0));
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc.Id, settlement.Id, 1f, 0);
@@ -67,14 +68,14 @@ public class NpcLoopDomainTests
         world.SpatialIndex.RebuildFromGraph();
 
         SetScalar(npc, "hunger", 20f);
-        SetScalar(settlement, "sustenance", 10f);
+        SetFood(world, settlement, 10f);
 
         var evaluator = CreateEvaluator(config, new FixedRandom(0.0, 0.5, 0.5, 0.5));
         evaluator.Evaluate(npc, world);
 
         Assert.Equal("Eat", npc.LastEvaluation!.ExecutedProcessName);
         Assert.InRange(npc.Attributes.GetValue("hunger"), 6.8f, 9.2f);
-        Assert.Equal(9f, settlement.Attributes.GetValue("sustenance"), precision: 3);
+        Assert.Equal(9f, GetFood(world, settlement), precision: 3);
     }
 
     [Fact]
@@ -110,5 +111,22 @@ public class NpcLoopDomainTests
     {
         var scalar = Assert.IsType<Engine.Attributes.ScalarValue>(entity.Attributes[attributeName]);
         scalar.SetBase(value);
+    }
+
+    private static void SetFood(StubWorldState world, Entity settlement, float value)
+    {
+        Assert.NotNull(world.Resources);
+        Assert.NotNull(settlement.Coordinates);
+        var coord = new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R);
+        var current = world.Resources!.Food.GetStockpile(coord);
+        world.Resources.Food.AddToStockpile(coord, value - current);
+    }
+
+    private static float GetFood(StubWorldState world, Entity settlement)
+    {
+        Assert.NotNull(world.Resources);
+        Assert.NotNull(settlement.Coordinates);
+        var coord = new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R);
+        return world.Resources!.Food.GetStockpile(coord);
     }
 }

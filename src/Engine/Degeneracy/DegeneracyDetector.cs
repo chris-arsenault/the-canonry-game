@@ -33,8 +33,8 @@ public interface IDegeneracyContext
 {
     int ActiveSettlementCount { get; }
     int DecliningSettlementCount { get; }
-    int ActiveNationCount { get; }
-    int MaxNationSettlementCount { get; }
+    int ActiveFactionCount { get; }
+    int MaxFactionSettlementCount { get; }
     int TotalSettlementCount { get; }
     int ActiveNpcCount { get; }
 }

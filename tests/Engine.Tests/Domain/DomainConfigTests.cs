@@ -26,7 +26,7 @@ public class DomainConfigTests
 
         Assert.Contains(EntityKind.Region, config.Kinds.Keys);
         Assert.Contains(EntityKind.Settlement, config.Kinds.Keys);
-        Assert.Contains(EntityKind.Nation, config.Kinds.Keys);
+        Assert.Contains(EntityKind.Faction, config.Kinds.Keys);
         Assert.Contains(EntityKind.Npc, config.Kinds.Keys);
         Assert.Contains(EntityKind.Artifact, config.Kinds.Keys);
     }

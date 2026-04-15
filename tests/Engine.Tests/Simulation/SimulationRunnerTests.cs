@@ -52,10 +52,10 @@ public class SimulationRunnerTests
     {
         var sim = SimulationRunner.CreateFromTestMap();
 
-        // Get an NPC and record initial HP
+        // Get an NPC and record initial vitality
         var npcId = sim.Graph.GetEntitiesByKind(EntityKind.Npc).First();
         var npc = sim.Graph.GetEntity(npcId)!;
-        var initialHp = npc.Attributes.GetValue("hp");
+        var initialVitality = npc.Attributes.GetValue("vitality");
 
         // Run 50 ticks
         for (var i = 0; i < 50; i++)
@@ -63,10 +63,10 @@ public class SimulationRunnerTests
             sim.Tick();
         }
 
-        var finalHp = npc.Attributes.GetValue("hp");
+        var finalVitality = npc.Attributes.GetValue("vitality");
 
-        // HP should have changed (lifecycle drain + hunger effects)
-        Assert.NotEqual(initialHp, finalHp);
+        // Vitality should change from lifecycle drain over time.
+        Assert.NotEqual(initialVitality, finalVitality);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class SimulationRunnerTests
         var npcId = sim.Graph.GetEntitiesByKind(EntityKind.Npc).First();
         var card = new CardDefinition("test_boost", "Test Boost", CardType.System,
             new AlwaysTrue(), manaCost: 1, cooldown: 0, cadence: 1, lifespan: 50);
-        card.Mutations.Add(new ModifyAttributeMutation(npcId, "hp", 1f));
+        card.Mutations.Add(new ModifyAttributeMutation(npcId, "vitality", 1f));
 
         var instance = sim.Tableau.PlaceCard(card, sim.Clock.CurrentTick);
         Assert.NotNull(instance);
@@ -155,7 +155,7 @@ public class SimulationRunnerTests
     {
         var sim = SimulationRunner.CreateFromTestMap();
 
-        foreach (var kind in new[] { EntityKind.Settlement, EntityKind.Nation, EntityKind.Npc, EntityKind.Artifact })
+        foreach (var kind in new[] { EntityKind.Settlement, EntityKind.Faction, EntityKind.Npc, EntityKind.Artifact })
         {
             foreach (var entityId in sim.Graph.GetEntitiesByKind(kind))
             {

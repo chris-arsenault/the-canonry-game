@@ -347,8 +347,8 @@ internal sealed class CardMutationContext(
         var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
         return resourceType switch
         {
-            Resources.ResourceType.Sustenance => worldState.Resources.Sustenance.GetStockpile(coord),
-            Resources.ResourceType.Gold => worldState.Resources.Gold.GetStockpile(coord),
+            Resources.ResourceType.Food => worldState.Resources.Food.GetStockpile(coord),
+            Resources.ResourceType.Wealth => worldState.Resources.Wealth.GetStockpile(coord),
             Resources.ResourceType.Population => worldState.Resources.PopulationLayer.GetStockpile(coord),
             _ => 0f,
         };
@@ -368,6 +368,20 @@ internal sealed class CardMutationContext(
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
         pressure.ApplyDelta(pressureName, scopeId, delta);
 
+    public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta)
+    {
+        if (worldState.Resources is null) return;
+        var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
+        var layer = resourceType switch
+        {
+            Resources.ResourceType.Food => worldState.Resources.Food,
+            Resources.ResourceType.Wealth => worldState.Resources.Wealth,
+            Resources.ResourceType.Population => worldState.Resources.PopulationLayer,
+            _ => null,
+        };
+        layer?.AddToStockpile(coord, delta);
+    }
+
     public void SetTag(EntityId entityId, string key, string value)
     {
         // TODO: implement tag storage
@@ -382,8 +396,8 @@ internal sealed class CardMutationContext(
         var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
         var layer = resourceType switch
         {
-            Resources.ResourceType.Sustenance => worldState.Resources.Sustenance,
-            Resources.ResourceType.Gold => worldState.Resources.Gold,
+            Resources.ResourceType.Food => worldState.Resources.Food,
+            Resources.ResourceType.Wealth => worldState.Resources.Wealth,
             Resources.ResourceType.Population => worldState.Resources.PopulationLayer,
             _ => null,
         };
@@ -416,22 +430,22 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph)
 
     public int DecliningSettlementCount =>
         graph.GetEntitiesByKind(EntityKind.Settlement).Count(id =>
-            graph.GetEntity(id)?.Attributes.GetScalar("population")?.Trend < 0);
+            graph.GetEntity(id)?.Attributes.GetScalar("residents")?.Trend < 0);
 
-    public int ActiveNationCount =>
-        graph.GetEntitiesByKind(EntityKind.Nation).Count(id =>
+    public int ActiveFactionCount =>
+        graph.GetEntitiesByKind(EntityKind.Faction).Count(id =>
             graph.GetEntity(id)?.Status == EntityStatus.Active);
 
-    public int MaxNationSettlementCount
+    public int MaxFactionSettlementCount
     {
         get
         {
             var max = 0;
-            foreach (var nationId in graph.GetEntitiesByKind(EntityKind.Nation))
+            foreach (var factionId in graph.GetEntitiesByKind(EntityKind.Faction))
             {
                 var count = graph.GetEntitiesByKind(EntityKind.Settlement)
                     .Count(sid => graph.OutgoingRelationships(sid, "controlled_by")
-                        .Any(r => r.TargetId == nationId));
+                        .Any(r => r.TargetId == factionId));
                 max = Math.Max(max, count);
             }
 

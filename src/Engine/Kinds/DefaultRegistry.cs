@@ -26,8 +26,8 @@ public static class DefaultRegistry
             attributes:
             [
                 new AttributeDefinition("fertility", 0f, 1f, 0.5f),
-                new AttributeDefinition("resource_richness", 0f, 1f, 0.3f),
-                new AttributeDefinition("habitability", 0f, 1f, 0.5f),
+                new AttributeDefinition("water_balance", 0f, 100f, 50f),
+                new AttributeDefinition("geologic_stability", 0f, 100f, 80f),
             ],
             healthAttribute: null)); // Regions are permanent
 
@@ -36,22 +36,20 @@ public static class DefaultRegistry
             validSubtypes: new HashSet<string> { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
             attributes:
             [
-                new AttributeDefinition("population", 0f, 100000f, 100f),
-                new AttributeDefinition("development", 0f, 100f, 10f),
-                new AttributeDefinition("prosperity", 0f, 100f, 50f),
-                new AttributeDefinition("defense", 0f, 100f, 10f),
+                new AttributeDefinition("residents", 0f, 100000f, 100f),
+                new AttributeDefinition("security", 0f, 100f, 20f),
+                new AttributeDefinition("prestige", 0f, 100f, 10f),
             ],
-            healthAttribute: "population"));
+            healthAttribute: "residents"));
 
         registry.RegisterKind(new KindDefinition(
-            EntityKind.Nation,
-            validSubtypes: new HashSet<string> { "generic_nation", "monarchy", "republic", "tribal" },
+            EntityKind.Faction,
+            validSubtypes: new HashSet<string> { "generic_faction", "order", "cult", "company", "league" },
             attributes:
             [
-                new AttributeDefinition("stability", 0f, 100f, 50f),
-                new AttributeDefinition("military_strength", 0f, 100f, 20f),
                 new AttributeDefinition("cohesion", 0f, 100f, 70f),
-                new AttributeDefinition("legitimacy", 0f, 100f, 50f),
+                new AttributeDefinition("support", 0f, 100f, 40f),
+                new AttributeDefinition("influence", 0f, 100f, 30f),
             ],
             healthAttribute: "cohesion"));
 
@@ -60,12 +58,11 @@ public static class DefaultRegistry
             validSubtypes: new HashSet<string> { "generic_npc", "hero", "merchant", "scholar", "warrior" },
             attributes:
             [
-                new AttributeDefinition("hp", 0f, 100f, 100f),
+                new AttributeDefinition("vitality", 0f, 100f, 100f),
                 new AttributeDefinition("hunger", 0f, 100f, 0f),
                 new AttributeDefinition("ambition", 0f, 100f, 50f),
-                new AttributeDefinition("age", 0f, 1000f, 20f),
             ],
-            healthAttribute: "hp"));
+            healthAttribute: "vitality"));
 
         registry.RegisterKind(new KindDefinition(
             EntityKind.Artifact,
@@ -73,7 +70,7 @@ public static class DefaultRegistry
             attributes:
             [
                 new AttributeDefinition("condition", 0f, 100f, 100f),
-                new AttributeDefinition("mystical_resonance", 0f, 100f, 0f),
+                new AttributeDefinition("compulsion", 0f, 100f, 0f),
                 new AttributeDefinition("power", 0f, 100f, 10f),
             ],
             healthAttribute: "condition"));

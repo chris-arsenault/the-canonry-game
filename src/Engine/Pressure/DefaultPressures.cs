@@ -14,8 +14,8 @@ public static class DefaultPressures
         var def = new PressureDefinition("military_tension", PressureScope.Regional,
             baseline: 0f, homeostasisRate: 0.05f, smoothingFactor: 0.2f);
 
-        // More nations in a region = more tension
-        def.Factors.Add(new EntityCountFactor("nation_count", EntityKind.Nation, coefficient: 8f));
+        // More factions in a region = more tension
+        def.Factors.Add(new EntityCountFactor("faction_count", EntityKind.Faction, coefficient: 8f));
 
         // Negative relationships increase tension
         def.Factors.Add(new NegativeRelationshipFactor("rivalries", "rival_of", coefficient: 15f));
@@ -31,9 +31,9 @@ public static class DefaultPressures
         var def = new PressureDefinition("economic_stress", PressureScope.Regional,
             baseline: 0f, homeostasisRate: 0.08f, smoothingFactor: 0.25f);
 
-        // Large populations with low prosperity = stress
+        // Large settlements with low security = stress
         def.Factors.Add(new LowAttributeFactor("low_prosperity", EntityKind.Settlement,
-            "prosperity", threshold: 30f, coefficient: 5f));
+            "security", threshold: 30f, coefficient: 5f));
 
         return def;
     }

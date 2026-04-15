@@ -42,8 +42,8 @@ public static class GraphAttributeQuery
     {
         var resourceType = resourceName switch
         {
-            "sustenance" => ResourceType.Sustenance,
-            "gold" => ResourceType.Gold,
+            "food" => ResourceType.Food,
+            "wealth" => ResourceType.Wealth,
             "population" => ResourceType.Population,
             _ => (ResourceType?)null,
         };
@@ -52,8 +52,8 @@ public static class GraphAttributeQuery
 
         var layer = resourceType.Value switch
         {
-            ResourceType.Sustenance => worldState.Resources.Sustenance,
-            ResourceType.Gold => worldState.Resources.Gold,
+            ResourceType.Food => worldState.Resources.Food,
+            ResourceType.Wealth => worldState.Resources.Wealth,
             ResourceType.Population => worldState.Resources.PopulationLayer,
             _ => null,
         };

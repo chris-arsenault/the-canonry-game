@@ -570,8 +570,8 @@ public sealed class GoalGenerator
             var coord = new Engine.Map.HexCoord(coordinates.Q, coordinates.R);
             return resourceType switch
             {
-                Resources.ResourceType.Sustenance => _worldState.Resources.Sustenance.GetStockpile(coord),
-                Resources.ResourceType.Gold => _worldState.Resources.Gold.GetStockpile(coord),
+                Resources.ResourceType.Food => _worldState.Resources.Food.GetStockpile(coord),
+                Resources.ResourceType.Wealth => _worldState.Resources.Wealth.GetStockpile(coord),
                 Resources.ResourceType.Population => _worldState.Resources.PopulationLayer.GetStockpile(coord),
                 _ => 0f,
             };
@@ -580,6 +580,7 @@ public sealed class GoalGenerator
         public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) { }
         public void ModifyAttribute(EntityId entityId, string attributeName, float delta) { }
         public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { }
+        public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta) { }
         public void SetTag(EntityId entityId, string key, string value) { }
         public void SetEntityHistorical(EntityId entityId) { }
         public float ConsumeResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float amount) => 0f;

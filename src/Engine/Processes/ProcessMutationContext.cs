@@ -80,8 +80,8 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
         return resourceType switch
         {
-            Resources.ResourceType.Sustenance => _worldState.Resources.Sustenance.GetStockpile(coord),
-            Resources.ResourceType.Gold => _worldState.Resources.Gold.GetStockpile(coord),
+            Resources.ResourceType.Food => _worldState.Resources.Food.GetStockpile(coord),
+            Resources.ResourceType.Wealth => _worldState.Resources.Wealth.GetStockpile(coord),
             Resources.ResourceType.Population => _worldState.Resources.PopulationLayer.GetStockpile(coord),
             _ => 0f,
         };
@@ -110,6 +110,20 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { } // TODO: wire pressure
+    public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta)
+    {
+        if (_worldState.Resources is null) return;
+        var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
+        var layer = resourceType switch
+        {
+            Resources.ResourceType.Food => _worldState.Resources.Food,
+            Resources.ResourceType.Wealth => _worldState.Resources.Wealth,
+            Resources.ResourceType.Population => _worldState.Resources.PopulationLayer,
+            _ => null,
+        };
+        layer?.AddToStockpile(coord, delta);
+    }
+
     public void SetTag(EntityId entityId, string key, string value) { }
 
     public void SetEntityHistorical(EntityId entityId)
@@ -124,8 +138,8 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         var coord = new Map.HexCoord(coordinates.Q, coordinates.R);
         var layer = resourceType switch
         {
-            Resources.ResourceType.Sustenance => _worldState.Resources.Sustenance,
-            Resources.ResourceType.Gold => _worldState.Resources.Gold,
+            Resources.ResourceType.Food => _worldState.Resources.Food,
+            Resources.ResourceType.Wealth => _worldState.Resources.Wealth,
             Resources.ResourceType.Population => _worldState.Resources.PopulationLayer,
             _ => null,
         };

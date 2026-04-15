@@ -79,7 +79,7 @@ public class TestMapBuilderTests
     [Fact]
     public void Has2Nations()
     {
-        Assert.Equal(2, _world.Graph.GetEntitiesByKind(EntityKind.Nation).Count);
+        Assert.Equal(2, _world.Graph.GetEntitiesByKind(EntityKind.Faction).Count);
     }
 
     [Fact]

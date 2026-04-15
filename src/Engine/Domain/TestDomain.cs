@@ -4,6 +4,7 @@ using Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
+using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -31,98 +32,102 @@ public static class TestDomain
     {
         var processes = new List<ProcessDefinition>();
 
-        // Settlement: stockpile sustenance
-        // TODO: production should scale with terrain fertility (#75)
+        // Settlement: gather food into the local hex stockpile.
         var stockpile = new ProcessDefinition("settlement_stockpile", "Stockpile",
             DefinitionRole.Process, EntityKind.Settlement, new TargetIsSelf(),
             Expr.Score(Expr.Lit(0.6f), 0.1f))
         { Cooldown = 2, EntityCooldown = 1,
-          RewardExpression = Expr.Lit(2f), // Fixed reward: 2 sustenance per execution
-          Mutations = { new ModifySelfAttributeMutation("sustenance", 2f, variance: 0.2f) } };
-        stockpile.GoalEffects.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
-        stockpile.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
+          RewardExpression = Expr.Lit(2f),
+          Mutations = { new ModifyLocationResourceMutation(ResourceType.Food, 2f, variance: 0.2f) } };
+        stockpile.GoalEffects.Add(AttributeRef.Resource("food"));
+        stockpile.Writes.Add(AttributeRef.Resource("food"));
         processes.Add(stockpile);
 
-        // Settlement: convert sustenance surplus into population growth
+        // Settlement: convert local food and ambient population into residents.
         var grow = new ProcessDefinition("settlement_grow", "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
-            new AndPrecondition([new TargetIsSelf(), new SelfAttributeThreshold("sustenance", min: 3f, max: null)]),
-            Expr.Score(Expr.Div(Expr.Self("sustenance"), Expr.Lit(50f)), 0.1f))
+            new AndPrecondition([
+                new TargetIsSelf(),
+                new LocationResourceThreshold(ResourceType.Food, min: 3f, max: null),
+                new LocationResourceThreshold(ResourceType.Population, min: 1f, max: null, plannerRelevant: false),
+            ]),
+            Expr.Score(Expr.Div(Expr.Self("residents"), Expr.Lit(100f)), 0.1f))
         { Cooldown = 5, EntityCooldown = 2,
-          RewardExpression = Expr.Div(Expr.Self("sustenance"), Expr.Lit(3f)), // Reward scales with available sustenance
+          RewardExpression = Expr.Lit(1.5f),
           Mutations = {
-            new ModifySelfAttributeMutation("population", 1f, variance: 0.3f),
-            new ModifySelfAttributeMutation("sustenance", -3f, variance: 0.2f),
+            new ModifySelfAttributeMutation("residents", 1f, variance: 0.3f),
+            new ModifyLocationResourceMutation(ResourceType.Food, -3f, variance: 0.2f),
+            new ModifyLocationResourceMutation(ResourceType.Population, -1f),
         } };
-        grow.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        grow.Reads.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
-        grow.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        grow.Writes.Add(AttributeRef.Self("sustenance", EntityKind.Settlement));
+        grow.GoalEffects.Add(AttributeRef.Self("residents", EntityKind.Settlement));
+        grow.Reads.Add(AttributeRef.Resource("food"));
+        grow.Reads.Add(AttributeRef.Resource("population"));
+        grow.Writes.Add(AttributeRef.Self("residents", EntityKind.Settlement));
+        grow.Writes.Add(AttributeRef.Resource("food"));
+        grow.Writes.Add(AttributeRef.Resource("population"));
         processes.Add(grow);
 
-        // Settlement: propaganda — shift target ideology toward self
-        // Provider score: ideology distance (further apart = more to gain from propaganda)
+        // Settlement: propaganda — shift target civic ideology toward self.
         var propaganda = new ProcessDefinition("settlement_propaganda", "Propaganda",
             DefinitionRole.Process, EntityKind.Settlement,
             new TargetIsNotSelf(),
             Expr.Score(Expr.Lit(0.3f), 0.1f))
-        { Cooldown = 15, EntityCooldown = 5, RewardExpression = Expr.SemanticDistance("ideology"),
+        { Cooldown = 15, EntityCooldown = 5, RewardExpression = Expr.SemanticDistance("civic_ideology"),
           Mutations = {
-            // dx = (self.ideology.x - target.ideology.x) * 0.01 / distance
+            // dx = (self.civic_ideology.x - target.civic_ideology.x) * 0.01 / distance
             new CalculateMutation("dx", Expr.Div(
-                Expr.Mul(Expr.Sub(Expr.SelfX("ideology"), Expr.TargetX("ideology")), Expr.Lit(0.01f)),
+                Expr.Mul(Expr.Sub(Expr.SelfX("civic_ideology"), Expr.TargetX("civic_ideology")), Expr.Lit(0.01f)),
                 Expr.Add(Expr.Distance(), Expr.Lit(1f)))), // +1 to avoid div by zero
-            // dy = (self.ideology.y - target.ideology.y) * 0.01 / distance
+            // dy = (self.civic_ideology.y - target.civic_ideology.y) * 0.01 / distance
             new CalculateMutation("dy", Expr.Div(
-                Expr.Mul(Expr.Sub(Expr.SelfY("ideology"), Expr.TargetY("ideology")), Expr.Lit(0.01f)),
+                Expr.Mul(Expr.Sub(Expr.SelfY("civic_ideology"), Expr.TargetY("civic_ideology")), Expr.Lit(0.01f)),
                 Expr.Add(Expr.Distance(), Expr.Lit(1f)))),
-            new ModifyTargetByVariableMutation("ideology", "dx", "x"),
-            new ModifyTargetByVariableMutation("ideology", "dy", "y"),
+            new ModifyTargetByVariableMutation("civic_ideology", "dx", "x"),
+            new ModifyTargetByVariableMutation("civic_ideology", "dy", "y"),
         } };
-        propaganda.GoalEffects.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
-        propaganda.ProviderSelectors.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
-        propaganda.Reads.Add(AttributeRef.Self("ideology", EntityKind.Settlement));
-        propaganda.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
-        propaganda.Writes.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
+        propaganda.GoalEffects.Add(AttributeRef.Target("civic_ideology", EntityKind.Settlement));
+        propaganda.ProviderSelectors.Add(AttributeRef.Target("civic_ideology", EntityKind.Settlement));
+        propaganda.Reads.Add(AttributeRef.Self("civic_ideology", EntityKind.Settlement));
+        propaganda.Reads.Add(AttributeRef.Target("civic_ideology", EntityKind.Settlement));
+        propaganda.Writes.Add(AttributeRef.Target("civic_ideology", EntityKind.Settlement));
         processes.Add(propaganda);
 
-        // Settlement: attract population — steal from target, requires fame advantage
-        // Stolen = base * (self.fame - target.fame) / distance. Min 10 to fire.
+        // Settlement: attract residents from another settlement, requires prestige advantage.
         var attract = new ProcessDefinition("settlement_attract", "Attract Population",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsNotSelf(),
-                new SelfAttributeThreshold("fame", min: 1f, max: null, plannerRelevant: false),
-                new TargetAttributeThreshold("population", min: 10f, max: null, plannerRelevant: false),
-                new SemanticDistanceThreshold("ideology", 0.5f),
+                new SelfAttributeThreshold("prestige", min: 1f, max: null, plannerRelevant: false),
+                new TargetAttributeThreshold("residents", min: 10f, max: null, plannerRelevant: false),
+                new SemanticDistanceThreshold("civic_ideology", 0.5f),
             ]),
-            Expr.Score(Expr.Div(Expr.Self("fame"), Expr.Lit(100f)), 0.1f))
+            Expr.Score(Expr.Div(Expr.Self("prestige"), Expr.Lit(100f)), 0.1f))
         { Cooldown = 20, EntityCooldown = 5,
-          // Provider score: fame advantage * ideology similarity
+          // Provider score: prestige advantage * ideology similarity
           RewardExpression = Expr.Mul(
-              Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Self("fame"), Expr.Target("fame"))),
-              Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology"))),
+              Expr.Max(Expr.Lit(0f), Expr.Sub(Expr.Self("prestige"), Expr.Target("prestige"))),
+              Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("civic_ideology"))),
           Mutations = {
-            // stolen = clamp(fame_diff * ideology_sim / distance, 0, 5)
+            // stolen = clamp(prestige_diff * ideology_sim / distance, 0, 5)
             new CalculateMutation("stolen", Expr.Clamp(
                 Expr.Mul(
-                    Expr.Sub(Expr.Self("fame"), Expr.Target("fame")),
+                    Expr.Sub(Expr.Self("prestige"), Expr.Target("prestige")),
                     Expr.Div(
-                        Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("ideology")),
+                        Expr.Sub(Expr.Lit(1f), Expr.SemanticDistance("civic_ideology")),
                         Expr.Add(Expr.Distance(), Expr.Lit(1f)))),
                 Expr.Lit(0f), Expr.Lit(5f))),
             new CalculateMutation("neg_stolen", Expr.Mul(Expr.Var("stolen"), Expr.Lit(-1f))),
-            new ModifySelfByVariableMutation("population", "stolen"),
-            new ModifyTargetByVariableMutation("population", "neg_stolen"),
+            new ModifySelfByVariableMutation("residents", "stolen"),
+            new ModifyTargetByVariableMutation("residents", "neg_stolen"),
         } };
-        attract.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Self("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Target("fame", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Target("population", EntityKind.Settlement));
-        attract.Reads.Add(AttributeRef.Target("ideology", EntityKind.Settlement));
-        attract.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        attract.Writes.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.GoalEffects.Add(AttributeRef.Self("residents", EntityKind.Settlement));
+        attract.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Self("prestige", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("prestige", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        attract.Reads.Add(AttributeRef.Target("civic_ideology", EntityKind.Settlement));
+        attract.Writes.Add(AttributeRef.Self("residents", EntityKind.Settlement));
+        attract.Writes.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         processes.Add(attract);
 
         // NPC: eat at a settlement with food. If not already there, movement becomes the
@@ -133,27 +138,28 @@ public static class TestDomain
                 new TargetIsNotSelf(),
                 new SelfAttributeThreshold("hunger", min: 5f, max: null, plannerRelevant: false),
                 new RelatedEntityMatchesTarget("located_at"),
-                new TargetAttributeThreshold("sustenance", min: 1f, max: null, plannerRelevant: false),
+                new LocationResourceThreshold(ResourceType.Food, min: 1f, max: null, targetLocation: true, plannerRelevant: false),
             ]),
             Expr.Score(Expr.Div(Expr.Self("hunger"), Expr.Lit(20f)), 0.05f))
         {
             Cooldown = 3,
             EntityCooldown = 1,
             RewardExpression = Expr.Div(
-                Expr.Target("sustenance"),
+                Expr.Target("residents"),
                 Expr.Add(Expr.Distance(), Expr.Lit(1f))),
             Mutations =
             {
                 new ModifySelfAttributeMutation("hunger", -12f, variance: 0.1f),
-                new ModifyTargetAttributeMutation("sustenance", -1f),
+                new ModifyLocationResourceMutation(ResourceType.Food, -1f, targetLocation: true),
             },
         };
         eat.GoalEffects.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.ProviderSelectors.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        eat.ProviderSelectors.Add(AttributeRef.Target("residents", EntityKind.Settlement));
         eat.Reads.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.Reads.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        eat.Reads.Add(AttributeRef.Target("residents", EntityKind.Settlement));
+        eat.Reads.Add(AttributeRef.Resource("food"));
         eat.Writes.Add(AttributeRef.Self("hunger", EntityKind.Npc));
-        eat.Writes.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
+        eat.Writes.Add(AttributeRef.Resource("food"));
         processes.Add(eat);
 
         // NPC: move toward the chosen settlement. This is intentionally the first cut
@@ -193,7 +199,7 @@ public static class TestDomain
         wander.Writes.Add(AttributeRef.Coordinates(EntityKind.Npc));
         processes.Add(wander);
 
-        // TODO: Nation, Artifact, Region processes removed — rebuilding from ground up
+        // TODO: Faction, Artifact, Region processes removed — rebuilding from ground up
 
         return processes;
     }
@@ -207,9 +213,10 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_region", "tundra", "coastal", "mountain", "plains" },
                 Attributes =
                 [
-                    new() { Name = "fertility", Min = 0f, Max = 1f, Default = 0.5f },
-                    new() { Name = "resource_richness", Min = 0f, Max = 1f, Default = 0.3f },
-                    new() { Name = "habitability", Min = 0f, Max = 1f, Default = 0.5f },
+                    new() { Name = "water_balance", Min = 0f, Max = 100f, Default = 50f },
+                    new() { Name = "geologic_stability", Min = 0f, Max = 100f, Default = 80f },
+                    new() { Name = "mystic_resonance", Min = 0f, Max = 1f, DefaultX = 0.2f, DefaultY = 0.5f,
+                        PlaneDefinition = CreateMysticPlaneDefinition() },
                 ],
                 HealthAttribute = null,
             },
@@ -218,27 +225,24 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
                 Attributes =
                 [
-                    new() { Name = "population", Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
-                    new() { Name = "sustenance", Min = 0f, Max = 100000f, Default = 0f },
-                    new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f, DefaultVariance = 0.8f },
-                    new() { Name = "ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
-                        PlaneDefinition = new Engine.Attributes.SemanticPlaneDefinition(
-                            "ideology", "Collectivist↔Individualist", "Traditionalist↔Progressive",
-                            ["Trad-Collective", "Traditionalist", "Trad-Individual",
-                             "Collective", "Centrist", "Individual",
-                             "Prog-Collective", "Progressive", "Prog-Individual"]) },
+                    new() { Name = "residents", Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
+                    new() { Name = "security", Min = 0f, Max = 100f, Default = 20f },
+                    new() { Name = "prestige", Min = 0f, Max = 1000f, Default = 5f, DefaultVariance = 0.8f },
+                    new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
+                        PlaneDefinition = CreateCivicPlaneDefinition() },
                 ],
-                HealthAttribute = "population",
+                HealthAttribute = "residents",
             },
-            [EntityKind.Nation] = new()
+            [EntityKind.Faction] = new()
             {
-                Subtypes = new HashSet<string> { "generic_nation", "monarchy", "republic", "tribal" },
+                Subtypes = new HashSet<string> { "generic_faction", "order", "cult", "company", "league" },
                 Attributes =
                 [
-                    new() { Name = "stability", Min = 0f, Max = 100f, Default = 50f },
-                    new() { Name = "military_strength", Min = 0f, Max = 100f, Default = 20f },
                     new() { Name = "cohesion", Min = 0f, Max = 100f, Default = 70f },
-                    new() { Name = "legitimacy", Min = 0f, Max = 100f, Default = 50f },
+                    new() { Name = "support", Min = 0f, Max = 100f, Default = 40f },
+                    new() { Name = "influence", Min = 0f, Max = 100f, Default = 30f },
+                    new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
+                        PlaneDefinition = CreateCivicPlaneDefinition() },
                 ],
                 HealthAttribute = "cohesion",
             },
@@ -247,12 +251,13 @@ public static class TestDomain
                 Subtypes = new HashSet<string> { "generic_npc", "hero", "merchant", "scholar", "warrior" },
                 Attributes =
                 [
-                    new() { Name = "hp", Min = 0f, Max = 100f, Default = 100f },
+                    new() { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
                     new() { Name = "hunger", Min = 0f, Max = 100f, Default = 0f, DriftRate = 0.2f },
                     new() { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
-                    new() { Name = "age", Min = 0f, Max = 1000f, Default = 20f, DriftRate = 1f },
+                    new() { Name = "civic_ideology", Min = 0f, Max = 1f, DefaultX = 0.5f, DefaultY = 0.5f,
+                        PlaneDefinition = CreateCivicPlaneDefinition() },
                 ],
-                HealthAttribute = "hp",
+                HealthAttribute = "vitality",
                 StandingDrives =
                 [
                     new StandingDriveConfig
@@ -268,8 +273,10 @@ public static class TestDomain
                 Attributes =
                 [
                     new() { Name = "condition", Min = 0f, Max = 100f, Default = 100f, DriftRate = -0.01f },
-                    new() { Name = "mystical_resonance", Min = 0f, Max = 100f, Default = 0f, DriftRate = 0.05f },
                     new() { Name = "power", Min = 0f, Max = 100f, Default = 10f },
+                    new() { Name = "compulsion", Min = 0f, Max = 100f, Default = 10f, DriftRate = 0.05f },
+                    new() { Name = "mystic_resonance", Min = 0f, Max = 1f, DefaultX = 0.4f, DefaultY = 0.5f,
+                        PlaneDefinition = CreateMysticPlaneDefinition() },
                 ],
                 HealthAttribute = "condition",
             },
@@ -317,9 +324,9 @@ public static class TestDomain
     {
         return new Dictionary<EntityKind, Domain.LifecycleConfig>
         {
-            [EntityKind.Settlement] = new() { HealthAttribute = "population", BaseRate = 0.002f, AgeCoefficient = 0.00008f },
-            [EntityKind.Nation] = new() { HealthAttribute = "cohesion", BaseRate = 0.01f, AgeCoefficient = 0.00005f },
-            [EntityKind.Npc] = new() { HealthAttribute = "hp", BaseRate = 0.02f, AgeCoefficient = 0.0005f },
+            [EntityKind.Settlement] = new() { HealthAttribute = "residents", BaseRate = 0.002f, AgeCoefficient = 0.00008f },
+            [EntityKind.Faction] = new() { HealthAttribute = "cohesion", BaseRate = 0.01f, AgeCoefficient = 0.00005f },
+            [EntityKind.Npc] = new() { HealthAttribute = "vitality", BaseRate = 0.02f, AgeCoefficient = 0.0005f },
             [EntityKind.Artifact] = new() { HealthAttribute = "condition", BaseRate = 0.01f, AgeCoefficient = 0.0001f },
         };
     }
@@ -328,10 +335,30 @@ public static class TestDomain
     {
         return
         [
-            new() { Name = "sustenance", DisplayName = "Sustenance" },
-            new() { Name = "gold", DisplayName = "Gold" },
+            new() { Name = "food", DisplayName = "Food" },
+            new() { Name = "wealth", DisplayName = "Wealth" },
         ];
     }
+
+    private static Engine.Attributes.SemanticPlaneDefinition CreateCivicPlaneDefinition() => new(
+        "civic_ideology",
+        "Collectivist↔Individualist",
+        "Traditionalist↔Progressive",
+        [
+            "Trad-Collective", "Traditionalist", "Trad-Individual",
+            "Collective", "Centrist", "Individual",
+            "Prog-Collective", "Progressive", "Prog-Individual",
+        ]);
+
+    private static Engine.Attributes.SemanticPlaneDefinition CreateMysticPlaneDefinition() => new(
+        "mystic_resonance",
+        "Quiescent↔Resonant",
+        "Corrupting↔Purifying",
+        [
+            "Quiescent-Corrupting", "Corrupting", "Resonant-Corrupting",
+            "Quiescent", "Balanced", "Resonant",
+            "Quiescent-Purifying", "Purifying", "Resonant-Purifying",
+        ]);
 
     private static List<CultureConfig> CreateCultures()
     {

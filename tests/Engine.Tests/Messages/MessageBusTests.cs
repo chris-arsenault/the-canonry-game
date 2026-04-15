@@ -27,7 +27,7 @@ public class MessageBusTests
         _bus.Subscribe(m => messages.Add(m));
 
         _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
-        _bus.Publish(new DecisionExecutedMessage(2, new EntityId(2), EntityKind.Nation, "expand", "expanded"));
+        _bus.Publish(new DecisionExecutedMessage(2, new EntityId(2), EntityKind.Faction, "expand", "expanded"));
         _bus.Publish(new EntityDiedMessage(3, new EntityId(3), EntityKind.Npc, "Hero"));
 
         Assert.Equal(3, messages.Count);
@@ -97,7 +97,7 @@ public class MessageBusTests
     [Fact]
     public void DecisionExecutedMessage_CarriesCardInfo()
     {
-        var msg = new DecisionExecutedMessage(10, new EntityId(5), EntityKind.Nation,
+        var msg = new DecisionExecutedMessage(10, new EntityId(5), EntityKind.Faction,
             "expand_borders", "Northern Compact expanded east",
             cardId: "card_expand", succeeded: true);
 

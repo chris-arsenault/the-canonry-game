@@ -5,12 +5,23 @@ namespace Engine.Resources;
 /// </summary>
 public enum ResourceType
 {
-    /// <summary>Sustenance. Produced from fertility + labor. Consumed by population.</summary>
-    Sustenance,
+    /// <summary>Food. Produced from fertility + labor. Consumed by residents and NPCs.</summary>
+    Food,
 
-    /// <summary>Economic resource. Produced from terrain/trade. Consumed by military/development.</summary>
-    Gold,
+    /// <summary>Wealth. Produced from settlement activity and prestige. Redistributed through factions.</summary>
+    Wealth,
 
-    /// <summary>Unnamed masses. Grows from sustenance surplus. Consumed by decisions.</summary>
+    /// <summary>Ambient populace on a hex. Grows from food surplus and can be drawn into settlements.</summary>
     Population,
+}
+
+public static class ResourceTypeExtensions
+{
+    public static string ToDomainName(this ResourceType resourceType) => resourceType switch
+    {
+        ResourceType.Food => "food",
+        ResourceType.Wealth => "wealth",
+        ResourceType.Population => "population",
+        _ => throw new ArgumentOutOfRangeException(nameof(resourceType), resourceType, "Unknown resource type"),
+    };
 }

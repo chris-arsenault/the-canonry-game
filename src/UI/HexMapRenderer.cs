@@ -21,7 +21,7 @@ public partial class HexMapRenderer : Node2D
     /// <summary>Pixel size of each hex cell (outer radius).</summary>
     [Export] public float HexSize { get; set; } = 30f;
 
-    /// <summary>Whether to show territory overlay (nation colors on controlled settlements).</summary>
+    /// <summary>Whether to show territory overlay (faction colors on controlled settlements).</summary>
     [Export] public bool ShowTerritory { get; set; } = true;
 
     /// <summary>Whether to show floating name labels attached to entity markers.</summary>
@@ -69,25 +69,25 @@ public partial class HexMapRenderer : Node2D
     {
         if (_sim is null) return;
 
-        // Color cells based on controlling nation
-        var nationColors = AssignNationColors();
+        // Color cells based on controlling faction
+        var factionColors = AssignFactionColors();
 
         foreach (var settlementId in _sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
         {
             var entity = _sim.Graph.GetEntity(settlementId);
             if (entity?.Coordinates is null || entity.Status != EntityStatus.Active) continue;
 
-            // Find controlling nation
+            // Find controlling faction
             var controlRel = _sim.Graph.OutgoingRelationships(settlementId, "controlled_by").FirstOrDefault();
             if (controlRel is null) continue;
 
-            if (!nationColors.TryGetValue(controlRel.TargetId, out var nationColor)) continue;
+            if (!factionColors.TryGetValue(controlRel.TargetId, out var factionColor)) continue;
 
             var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
             var center = HexToPixel(coord);
             var points = GetHexPoints(center, HexSize * 0.85f);
 
-            DrawColoredPolygon(points, new Color(nationColor, 0.25f));
+            DrawColoredPolygon(points, new Color(factionColor, 0.25f));
         }
     }
 
@@ -107,8 +107,8 @@ public partial class HexMapRenderer : Node2D
             switch (entity.Kind)
             {
                 case EntityKind.Settlement:
-                    var pop = entity.Attributes.GetValue("population");
-                    var radius = Mathf.Clamp(pop / 100f * 3f, 3f, 12f);
+                    var residents = entity.Attributes.GetValue("residents");
+                    var radius = Mathf.Clamp(residents / 100f * 3f, 3f, 12f);
                     DrawCircle(center, radius, new Color(0.9f, 0.85f, 0.3f));
                     DrawCircle(center, radius, new Color(0.1f, 0.1f, 0.1f), filled: false);
                     break;
@@ -168,7 +168,7 @@ public partial class HexMapRenderer : Node2D
         _ => new Color(0.5f, 0.5f, 0.5f),
     };
 
-    private Dictionary<EntityId, Color> AssignNationColors()
+    private Dictionary<EntityId, Color> AssignFactionColors()
     {
         var colors = new Dictionary<EntityId, Color>();
         if (_sim is null) return colors;
@@ -183,9 +183,9 @@ public partial class HexMapRenderer : Node2D
         };
 
         var i = 0;
-        foreach (var nationId in _sim.Graph.GetEntitiesByKind(EntityKind.Nation))
+        foreach (var factionId in _sim.Graph.GetEntitiesByKind(EntityKind.Faction))
         {
-            colors[nationId] = palette[i % palette.Length];
+            colors[factionId] = palette[i % palette.Length];
             i++;
         }
 

@@ -2,6 +2,7 @@ namespace Engine.Processes;
 
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -211,6 +212,51 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool pla
     }
 
     public string Describe() => $"related_matches_target({RelationshipKind})";
+}
+
+/// <summary>
+/// Checks a resource stockpile at self or target location against a threshold.
+/// Planner-relevant variants emit a resource blocker so other processes can supply it.
+/// </summary>
+public sealed class LocationResourceThreshold(
+    ResourceType resourceType,
+    float? min,
+    float? max,
+    bool targetLocation = false,
+    bool plannerRelevant = true) : IPrecondition
+{
+    public ResourceType ResourceType { get; } = resourceType;
+    public float? Min { get; } = min;
+    public float? Max { get; } = max;
+    public bool TargetLocation { get; } = targetLocation;
+    public bool PlannerRelevant { get; } = plannerRelevant;
+
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var entityId = TargetLocation ? context.ResolvedTargetId : context.SelfEntityId;
+        var entity = entityId is not null ? context.GetEntity(entityId.Value) : null;
+        IReadOnlyList<AttributeRef> blockers = PlannerRelevant
+            ? [AttributeRef.Resource(ResourceType.ToDomainName())]
+            : Array.Empty<AttributeRef>();
+
+        if (entityId is null)
+            return PreconditionResult.Fail("no target", blockers);
+        if (entity?.Coordinates is null)
+            return PreconditionResult.Fail(TargetLocation ? "target has no location" : "self has no location", blockers);
+
+        var value = context.GetResource(entity.Coordinates.Value, ResourceType);
+        var prefix = TargetLocation ? "target_location" : "self_location";
+        if (Min.HasValue && value < Min.Value)
+            return PreconditionResult.Fail($"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need >= {Min})", blockers);
+        if (Max.HasValue && value > Max.Value)
+            return PreconditionResult.Fail($"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need <= {Max})", blockers);
+        return PreconditionResult.Pass($"{prefix}.{ResourceType.ToDomainName()}={value:F1}");
+    }
+
+    public string Describe() =>
+        $"{(TargetLocation ? "target" : "self")}_location_resource({ResourceType.ToDomainName()}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
 }
 
 /// <summary>Checks that enough ticks have passed since a card last fired.</summary>

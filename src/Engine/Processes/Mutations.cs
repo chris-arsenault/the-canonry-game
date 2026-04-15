@@ -3,6 +3,7 @@ namespace Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
+using Engine.Resources;
 
 /// <summary>
 /// A mutation: a single effect applied to the world when a card fires.
@@ -132,6 +133,34 @@ public sealed class ModifyTargetAttributeMutation(string attributeName, float de
     }
 
     public string Describe() => $"modify_target({attributeName}, delta={delta}, var={variance})";
+}
+
+/// <summary>
+/// Modifies a resource stockpile at self or target location by a delta.
+/// Positive deltas add stockpile, negative deltas consume it.
+/// </summary>
+public sealed class ModifyLocationResourceMutation(
+    ResourceType resourceType,
+    float delta,
+    bool targetLocation = false,
+    float variance = 0f) : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var entityId = targetLocation ? context.ResolvedTargetId : context.SelfEntityId;
+        if (entityId is null) return;
+
+        var entity = context.GetEntity(entityId.Value);
+        if (entity?.Coordinates is null) return;
+
+        var amount = Variance.Scale(delta, variance, context.Random);
+        context.ModifyResource(entity.Coordinates.Value, resourceType, amount);
+    }
+
+    public string Describe() =>
+        $"modify_{(targetLocation ? "target" : "self")}_location_resource({resourceType.ToDomainName()}, delta={delta}, var={variance})";
 }
 
 /// <summary>

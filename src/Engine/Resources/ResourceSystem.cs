@@ -6,8 +6,8 @@ using Engine.Map;
 
 /// <summary>
 /// Per-tick resource computation: calculates production and consumption from
-/// entity attributes and terrain, then handles intra-national flow (surplus
-/// from one settlement flows toward deficit at another within the same nation).
+/// entity attributes and terrain, then handles intra-faction flow (surplus
+/// from one settlement flows toward deficit at another within the same faction).
 /// Registers with TickClock at LowAltitude phase.
 /// </summary>
 public sealed class ResourceSystem
@@ -15,29 +15,29 @@ public sealed class ResourceSystem
     private readonly WorldGraph _graph;
     private readonly HexGrid _grid;
 
-    public ResourceLayer Sustenance { get; }
-    public ResourceLayer Gold { get; }
+    public ResourceLayer Food { get; }
+    public ResourceLayer Wealth { get; }
     public ResourceLayer PopulationLayer { get; }
 
-    /// <summary>Sustenance produced per unit of (fertility * population / 100).</summary>
-    public float SustenanceProductionFactor { get; set; } = 1f;
+    /// <summary>Food produced per unit of (fertility * residents / 100).</summary>
+    public float FoodProductionFactor { get; set; } = 1f;
 
-    /// <summary>Sustenance consumed per unit of population per tick.</summary>
-    public float SustenanceConsumptionPerCapita { get; set; } = 0.01f;
+    /// <summary>Food consumed per resident per tick.</summary>
+    public float FoodConsumptionPerResident { get; set; } = 0.01f;
 
-    /// <summary>Gold produced per unit of development per tick.</summary>
-    public float GoldProductionFactor { get; set; } = 0.1f;
+    /// <summary>Wealth produced per unit of local activity per tick.</summary>
+    public float WealthProductionFactor { get; set; } = 0.1f;
 
-    /// <summary>Fixed gold consumption per settlement per tick.</summary>
-    public float GoldConsumptionPerSettlement { get; set; } = 0.5f;
+    /// <summary>Fixed wealth consumption per settlement per tick.</summary>
+    public float WealthConsumptionPerSettlement { get; set; } = 0.5f;
 
-    /// <summary>Population growth rate from sustenance surplus.</summary>
-    public float PopulationGrowthFromSustenance { get; set; } = 0.5f;
+    /// <summary>Ambient population growth rate from food surplus.</summary>
+    public float PopulationGrowthFromFood { get; set; } = 0.5f;
 
-    /// <summary>Population decline rate from sustenance deficit.</summary>
+    /// <summary>Ambient population decline rate from food deficit.</summary>
     public float PopulationDeclineFromDeficit { get; set; } = 0.3f;
 
-    /// <summary>Fraction of surplus redistributed per tick during intra-national flow.</summary>
+    /// <summary>Fraction of surplus redistributed per tick during intra-faction flow.</summary>
     public float FlowRate { get; set; } = 0.3f;
 
     public ResourceSystem(WorldGraph graph, HexGrid grid)
@@ -45,8 +45,8 @@ public sealed class ResourceSystem
         _graph = graph;
         _grid = grid;
 
-        Sustenance = new ResourceLayer(ResourceType.Sustenance);
-        Gold = new ResourceLayer(ResourceType.Gold);
+        Food = new ResourceLayer(ResourceType.Food);
+        Wealth = new ResourceLayer(ResourceType.Wealth);
         PopulationLayer = new ResourceLayer(ResourceType.Population);
     }
 
@@ -57,9 +57,9 @@ public sealed class ResourceSystem
     {
         ComputeProductionAndConsumption();
         ComputePopulationDynamics();
-        RedistributeWithinNations(Sustenance);
-        RedistributeWithinNations(Gold);
-        RedistributeWithinNations(PopulationLayer);
+        RedistributeWithinFactions(Food);
+        RedistributeWithinFactions(Wealth);
+        RedistributeWithinFactions(PopulationLayer);
     }
 
     private void ComputeProductionAndConsumption()
@@ -79,47 +79,45 @@ public sealed class ResourceSystem
                 continue;
             }
 
-            var population = entity.Attributes.GetValue("population");
-            var development = entity.Attributes.GetValue("development");
+            var residents = entity.Attributes.GetValue("residents");
+            var prestige = entity.Attributes.GetValue("prestige");
 
-            // Sustenance: fertility * population labor -> production, population -> consumption
-            var sustenanceProd = cell.Fertility * (population / 100f) * SustenanceProductionFactor;
-            var sustenanceCons = population * SustenanceConsumptionPerCapita;
-            Sustenance.SetProduction(coord, sustenanceProd);
-            Sustenance.SetConsumption(coord, sustenanceCons);
+            // Food: fertility * resident labor -> production, residents -> consumption
+            var foodProd = cell.Fertility * (residents / 100f) * FoodProductionFactor;
+            var foodCons = residents * FoodConsumptionPerResident;
+            Food.SetProduction(coord, foodProd);
+            Food.SetConsumption(coord, foodCons);
 
-            // Gold: development-based production, fixed per-settlement consumption
-            var goldProd = development * GoldProductionFactor;
-            Gold.SetProduction(coord, goldProd);
-            Gold.SetConsumption(coord, GoldConsumptionPerSettlement);
+            // Wealth: resident activity and prestige generate output, each settlement consumes upkeep.
+            var wealthProd = ((residents / 100f) + (prestige / 50f)) * WealthProductionFactor;
+            Wealth.SetProduction(coord, wealthProd);
+            Wealth.SetConsumption(coord, WealthConsumptionPerSettlement);
 
-            // Population: existing population at this cell (from entity attributes or stockpile)
-            // Initial population set from settlement population attribute
-            if (PopulationLayer.GetStockpile(coord) <= 0 && population > 0)
+            // Ambient population seeds around occupied settlements and later grows or declines
+            // from local food surplus/deficit.
+            if (PopulationLayer.GetStockpile(coord) <= 0 && residents > 0)
             {
-                PopulationLayer.AddToStockpile(coord, population);
+                PopulationLayer.AddToStockpile(coord, residents);
             }
         }
     }
 
     private void ComputePopulationDynamics()
     {
-        // Population grows from sustenance surplus, declines from deficit
-        foreach (var coord in Sustenance.ActiveCells)
+        // Ambient population grows from food surplus, declines from deficit.
+        foreach (var coord in Food.ActiveCells)
         {
-            var sustenanceNet = Sustenance.GetNet(coord);
+            var foodNet = Food.GetNet(coord);
             var currentPop = PopulationLayer.GetStockpile(coord);
 
-            if (sustenanceNet > 0)
+            if (foodNet > 0)
             {
-                // Surplus = population growth
-                var growth = sustenanceNet * PopulationGrowthFromSustenance;
+                var growth = foodNet * PopulationGrowthFromFood;
                 PopulationLayer.AddToStockpile(coord, growth);
             }
-            else if (sustenanceNet < 0 && currentPop > 0)
+            else if (foodNet < 0 && currentPop > 0)
             {
-                // Deficit = population decline
-                var decline = -sustenanceNet * PopulationDeclineFromDeficit;
+                var decline = -foodNet * PopulationDeclineFromDeficit;
                 PopulationLayer.AddToStockpile(coord, -decline);
             }
         }
@@ -146,10 +144,10 @@ public sealed class ResourceSystem
     /// <summary>Get population at a cell.</summary>
     public float GetPopulation(HexCoord coord) => PopulationLayer.GetStockpile(coord);
 
-    private void RedistributeWithinNations(ResourceLayer layer)
+    private void RedistributeWithinFactions(ResourceLayer layer)
     {
-        // Group settlements by controlling nation
-        var nationSettlements = new Dictionary<EntityId, List<(HexCoord Coord, EntityId SettlementId)>>();
+        // Group settlements by controlling faction
+        var factionSettlements = new Dictionary<EntityId, List<(HexCoord Coord, EntityId SettlementId)>>();
 
         foreach (var settlementId in _graph.GetEntitiesByKind(EntityKind.Settlement))
         {
@@ -159,14 +157,14 @@ public sealed class ResourceSystem
                 continue;
             }
 
-            // Find controlling nation
+            // Find controlling faction
             var controlRels = _graph.OutgoingRelationships(settlementId, "controlled_by");
             foreach (var rel in controlRels)
             {
-                if (!nationSettlements.TryGetValue(rel.TargetId, out var list))
+                if (!factionSettlements.TryGetValue(rel.TargetId, out var list))
                 {
                     list = [];
-                    nationSettlements[rel.TargetId] = list;
+                    factionSettlements[rel.TargetId] = list;
                 }
 
                 var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
@@ -175,8 +173,8 @@ public sealed class ResourceSystem
             }
         }
 
-        // For each nation, redistribute surplus to deficit settlements
-        foreach (var (_, settlements) in nationSettlements)
+        // For each faction, redistribute surplus to deficit settlements
+        foreach (var (_, settlements) in factionSettlements)
         {
             if (settlements.Count < 2)
             {

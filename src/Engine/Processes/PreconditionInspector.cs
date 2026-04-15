@@ -2,6 +2,7 @@ namespace Engine.Processes;
 
 using Engine.Kinds;
 using Engine.Wiring;
+using Engine.Resources;
 
 /// <summary>
 /// Static planner-facing inspection of preconditions.
@@ -86,6 +87,13 @@ public static class PreconditionInspector
                     blockers.Add(AttributeRef.TargetRelation(
                         relatedEntityMatchesTarget.RelationshipKind,
                         targetKind));
+                }
+
+                return false;
+            case LocationResourceThreshold locationResourceThreshold:
+                if (locationResourceThreshold.PlannerRelevant)
+                {
+                    blockers.Add(AttributeRef.Resource(locationResourceThreshold.ResourceType.ToDomainName()));
                 }
 
                 return false;

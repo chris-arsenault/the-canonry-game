@@ -12,7 +12,7 @@ public class KindRegistryTests
     [Theory]
     [InlineData(EntityKind.Region)]
     [InlineData(EntityKind.Settlement)]
-    [InlineData(EntityKind.Nation)]
+    [InlineData(EntityKind.Faction)]
     [InlineData(EntityKind.Npc)]
     [InlineData(EntityKind.Artifact)]
     public void AllMvpKinds_AreRegistered(EntityKind kind)
@@ -34,13 +34,13 @@ public class KindRegistryTests
     [Fact]
     public void IsValidSubtype_AcceptsGenericSubtype()
     {
-        Assert.True(_registry.IsValidSubtype(EntityKind.Nation, "generic_nation"));
+        Assert.True(_registry.IsValidSubtype(EntityKind.Faction, "generic_faction"));
     }
 
     [Fact]
     public void IsValidSubtype_AcceptsDomainSubtype()
     {
-        Assert.True(_registry.IsValidSubtype(EntityKind.Nation, "monarchy"));
+        Assert.True(_registry.IsValidSubtype(EntityKind.Faction, "order"));
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class KindRegistryTests
     [Fact]
     public void ValidateRelationship_AcceptsValidPair()
     {
-        // Nation (Agency) controls Settlement... wait, controlled_by is Spatial->Agency
+        // Faction (Agency) controls Settlement... wait, controlled_by is Spatial->Agency
         // Let's test Agency->Spatial: located_at
         var error = _registry.ValidateRelationship("located_at", EntityKind.Npc, EntityKind.Settlement);
         Assert.Null(error);
@@ -69,7 +69,7 @@ public class KindRegistryTests
     [Fact]
     public void ValidateRelationship_AcceptsAgencyToAgency()
     {
-        var error = _registry.ValidateRelationship("allied_with", EntityKind.Nation, EntityKind.Nation);
+        var error = _registry.ValidateRelationship("allied_with", EntityKind.Faction, EntityKind.Faction);
         Assert.Null(error);
     }
 
@@ -77,7 +77,7 @@ public class KindRegistryTests
     public void ValidateRelationship_RejectsInvalidSourceCategory()
     {
         // Artifact (Asset) cannot be source of allied_with (requires Agency source)
-        var error = _registry.ValidateRelationship("allied_with", EntityKind.Artifact, EntityKind.Nation);
+        var error = _registry.ValidateRelationship("allied_with", EntityKind.Artifact, EntityKind.Faction);
         Assert.NotNull(error);
         Assert.Contains("source category", error, StringComparison.OrdinalIgnoreCase);
     }
@@ -85,9 +85,9 @@ public class KindRegistryTests
     [Fact]
     public void ValidateRelationship_RejectsInvalidTargetCategory()
     {
-        // controlled_by is Spatial->Agency. Nation (Agency) as target is valid,
-        // but Artifact (Asset) as source is invalid for controlled_by (Spatial source required)
-        var error = _registry.ValidateRelationship("controlled_by", EntityKind.Nation, EntityKind.Settlement);
+        // controlled_by is Spatial->Agency. Faction (Agency) as source is invalid because
+        // controlled_by requires a spatial source and agency target.
+        var error = _registry.ValidateRelationship("controlled_by", EntityKind.Faction, EntityKind.Settlement);
         Assert.NotNull(error);
         Assert.Contains("source category", error, StringComparison.OrdinalIgnoreCase);
     }
@@ -95,7 +95,7 @@ public class KindRegistryTests
     [Fact]
     public void ValidateRelationship_RejectsUnknownKind()
     {
-        var error = _registry.ValidateRelationship("nonexistent", EntityKind.Nation, EntityKind.Nation);
+        var error = _registry.ValidateRelationship("nonexistent", EntityKind.Faction, EntityKind.Faction);
         Assert.NotNull(error);
         Assert.Contains("Unknown", error, StringComparison.OrdinalIgnoreCase);
     }
@@ -158,10 +158,10 @@ public class KindRegistryTests
         var registry = DefaultRegistry.Create();
         var called = false;
 
-        registry.RegisterBehaviorHandler(EntityKind.Nation, _ => called = true);
+        registry.RegisterBehaviorHandler(EntityKind.Faction, _ => called = true);
 
         var entity = new Entity(
-            new EntityId(0), EntityKind.Nation, "generic_nation", "TestNation", "culture_a", 0);
+            new EntityId(0), EntityKind.Faction, "generic_faction", "TestNation", "culture_a", 0);
 
         registry.DispatchBehavior(entity);
 
@@ -184,7 +184,7 @@ public class KindRegistryTests
         var registry = DefaultRegistry.Create();
         EntityKind? dispatched = null;
 
-        registry.RegisterBehaviorHandler(EntityKind.Nation, e => dispatched = e.Kind);
+        registry.RegisterBehaviorHandler(EntityKind.Faction, e => dispatched = e.Kind);
         registry.RegisterBehaviorHandler(EntityKind.Npc, e => dispatched = e.Kind);
 
         var npc = new Entity(
@@ -208,7 +208,7 @@ public class KindRegistryTests
     [Fact]
     public void KindDefinition_HasHealthAttribute()
     {
-        var nationDef = _registry.GetKindDefinition(EntityKind.Nation);
+        var nationDef = _registry.GetKindDefinition(EntityKind.Faction);
         Assert.NotNull(nationDef);
         Assert.Equal("cohesion", nationDef.HealthAttribute);
 
@@ -224,9 +224,8 @@ public class KindRegistryTests
         Assert.NotNull(def);
 
         var attrNames = def.Attributes.Select(a => a.Name).ToHashSet();
-        Assert.Contains("hp", attrNames);
+        Assert.Contains("vitality", attrNames);
         Assert.Contains("hunger", attrNames);
         Assert.Contains("ambition", attrNames);
-        Assert.Contains("age", attrNames);
     }
 }

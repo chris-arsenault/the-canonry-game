@@ -168,8 +168,8 @@ public class PressureSystemTests
 
         // Context with 2 nations
         var graph = new WorldGraph();
-        var n1 = graph.CreateEntity(EntityKind.Nation, "generic", "N1", "c", 0);
-        var n2 = graph.CreateEntity(EntityKind.Nation, "generic", "N2", "c", 0);
+        var n1 = graph.CreateEntity(EntityKind.Faction, "generic", "N1", "c", 0);
+        var n2 = graph.CreateEntity(EntityKind.Faction, "generic", "N2", "c", 0);
 
         var context = new StubPressureContext(graph, [n1.Id, n2.Id]);
         system.Compute(new Dictionary<EntityId, IPressureContext> { [scopeId] = context });
