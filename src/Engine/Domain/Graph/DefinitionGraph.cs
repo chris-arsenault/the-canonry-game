@@ -2,7 +2,6 @@ namespace Engine.Domain.Graph;
 
 using Engine.Domain.Config;
 using Engine.Kinds;
-using Engine.Pressure;
 using Engine.Processes;
 using Engine.Wiring;
 
@@ -31,7 +30,7 @@ public sealed class DefinitionKindNode
 public sealed class DefinitionAttributeNode
 {
     public required DefinitionAttributeKey Key { get; init; }
-    public required DefinitionAttributeMetadata Metadata { get; init; }
+    public required DefinitionAttributeShape Shape { get; init; }
     public required AttributeConfig SourceConfig { get; init; }
     public bool IsHealthAttribute { get; init; }
     public DefinitionCriticalEffectNode? CriticalEffect { get; init; }
@@ -62,21 +61,18 @@ public sealed class DefinitionStandingDriveNode
 public sealed class DefinitionResourceNode
 {
     public required DefinitionResourceId Id { get; init; }
-    public required DefinitionResourceMetadata Metadata { get; init; }
     public required ResourceConfig SourceConfig { get; init; }
 }
 
 public sealed class DefinitionRelationshipNode
 {
     public required DefinitionRelationshipId Id { get; init; }
-    public required DefinitionRelationshipMetadata Metadata { get; init; }
     public required RelationshipConfig SourceConfig { get; init; }
 }
 
 public sealed class DefinitionPressureNode
 {
     public required DefinitionPressureId Id { get; init; }
-    public required DefinitionPressureMetadata Metadata { get; init; }
     public required PressureConfig SourceConfig { get; init; }
 }
 

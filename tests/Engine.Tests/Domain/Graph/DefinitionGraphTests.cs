@@ -14,24 +14,31 @@ public class DefinitionGraphTests
     public void Build_FromTestDomain_CreatesTypedGraph()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var residents = new DefinitionAttributeId(TestDomainAttributeId.Residents.ToDomainName());
+        var security = new DefinitionAttributeId(TestDomainAttributeId.Security.ToDomainName());
+        var satiety = new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName());
+        var vitality = new DefinitionAttributeId(TestDomainAttributeId.Vitality.ToDomainName());
+        var food = new DefinitionResourceId(TestDomainResource.Food.ToDomainName());
+        var controlledBy = new DefinitionRelationshipId(TestDomainRelationship.ControlledBy.ToDomainName());
+        var culturalFriction = new DefinitionPressureId(TestDomainPressure.CulturalFriction.ToDomainName());
 
         var settlement = Assert.Contains(EntityKind.Settlement, graph.Kinds);
-        Assert.Contains(DefinitionAttributeId.Residents, settlement.Attributes.Keys);
-        Assert.Contains(DefinitionAttributeId.Security, settlement.Attributes.Keys);
-        Assert.Equal(DefinitionAttributeId.Residents, settlement.HealthAttribute);
-        Assert.Contains(DefinitionResourceId.Food, graph.Resources.Keys);
-        Assert.Contains(DefinitionRelationshipId.ControlledBy, graph.Relationships.Keys);
-        Assert.Contains(DefinitionPressureId.CulturalFriction, graph.Pressures.Keys);
+        Assert.Contains(residents, settlement.Attributes.Keys);
+        Assert.Contains(security, settlement.Attributes.Keys);
+        Assert.Equal(residents, settlement.HealthAttribute);
+        Assert.Contains(food, graph.Resources.Keys);
+        Assert.Contains(controlledBy, graph.Relationships.Keys);
+        Assert.Contains(culturalFriction, graph.Pressures.Keys);
         Assert.Contains(EntityKind.Npc, graph.Lifecycles.Keys);
 
         var npcEat = Assert.Contains("npc_eat", graph.Processes);
         Assert.Contains(
             npcEat.GoalEffects,
-            reference => reference.ValueId is AttributeValueId { AttributeId: DefinitionAttributeId.Satiety });
+            reference => reference.ValueId is AttributeValueId { AttributeId: var attributeId } && attributeId == satiety);
         Assert.Contains(
             graph.Attributes.Values,
-            attribute => attribute.Key == new DefinitionAttributeKey(EntityKind.Npc, DefinitionAttributeId.Satiety) &&
-                         attribute.CriticalEffect is { TargetAttributeId: DefinitionAttributeId.Vitality });
+            attribute => attribute.Key == new DefinitionAttributeKey(EntityKind.Npc, satiety) &&
+                         attribute.CriticalEffect is { TargetAttributeId: var targetId } && targetId == vitality);
     }
 
     [Fact]
@@ -74,7 +81,7 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_DomainWithUnknownDeclaredResource_Throws()
+    public void Build_DomainWithNewDeclaredResource_AcceptsItAsDomainData()
     {
         var config = TestDomainDefinition.Create();
         var badConfig = new DomainConfig
@@ -88,7 +95,8 @@ public class DefinitionGraphTests
             Cultures = config.Cultures,
         };
 
-        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(badConfig));
-        Assert.Contains("manna", ex.Message, StringComparison.Ordinal);
+        var graph = DomainLoader.BuildDefinitionGraph(badConfig);
+
+        Assert.Contains(new DefinitionResourceId("manna"), graph.Resources.Keys);
     }
 }

@@ -14,6 +14,7 @@ public static class DefinitionGraphBuilder
 
         var kindNodes = new Dictionary<EntityKind, DefinitionKindNode>();
         var attributeIndex = new Dictionary<DefinitionAttributeKey, DefinitionAttributeNode>();
+
         foreach (var (kind, kindConfig) in config.Kinds)
         {
             var kindNode = BuildKindNode(kind, kindConfig);
@@ -39,7 +40,12 @@ public static class DefinitionGraphBuilder
                     $"Process '{process.Id}' targets kind '{process.TargetKind}' which is not present in the domain kinds.");
             }
 
-            processNodes[process.Id] = BuildProcessNode(process);
+            processNodes[process.Id] = BuildProcessNode(
+                process,
+                kindNodes,
+                resourceNodes,
+                relationshipNodes,
+                pressureNodes);
         }
 
         var graph = new DefinitionGraph
@@ -64,32 +70,29 @@ public static class DefinitionGraphBuilder
 
         foreach (var attribute in kindConfig.Attributes)
         {
-            var attributeId = ParseAttributeId(attribute.Name, kind, "attribute");
-            var metadata = DefinitionAttributeCatalog.Get(attributeId);
-
-            var observedShape = attribute.PlaneDefinition is null
-                ? DefinitionAttributeShape.Scalar
-                : DefinitionAttributeShape.Plane2D;
-            if (observedShape != metadata.Shape)
+            var attributeId = new DefinitionAttributeId(attribute.Name);
+            if (attributes.ContainsKey(attributeId))
             {
                 throw new DefinitionGraphException(
-                    $"Attribute '{attribute.Name}' on kind '{kind}' has shape '{observedShape}' but the declared shape is '{metadata.Shape}'.");
+                    $"Kind '{kind}' declares duplicate attribute '{attribute.Name}'.");
             }
 
             attributes[attributeId] = new DefinitionAttributeNode
             {
                 Key = new DefinitionAttributeKey(kind, attributeId),
-                Metadata = metadata,
+                Shape = attribute.PlaneDefinition is null
+                    ? DefinitionAttributeShape.Scalar
+                    : DefinitionAttributeShape.Plane2D,
                 SourceConfig = attribute,
                 IsHealthAttribute = false,
-                CriticalEffect = BuildCriticalEffect(attribute.CriticalEffect, kind),
+                CriticalEffect = BuildCriticalEffect(attribute.CriticalEffect),
                 LocationResourceDrift = BuildLocationResourceDrift(attribute),
             };
         }
 
         if (kindConfig.HealthAttribute is not null)
         {
-            var healthId = ParseAttributeId(kindConfig.HealthAttribute, kind, "health attribute");
+            var healthId = new DefinitionAttributeId(kindConfig.HealthAttribute);
             if (!attributes.TryGetValue(healthId, out var healthNode))
             {
                 throw new DefinitionGraphException(
@@ -99,7 +102,7 @@ public static class DefinitionGraphBuilder
             attributes[healthId] = new DefinitionAttributeNode
             {
                 Key = healthNode.Key,
-                Metadata = healthNode.Metadata,
+                Shape = healthNode.Shape,
                 SourceConfig = healthNode.SourceConfig,
                 CriticalEffect = healthNode.CriticalEffect,
                 LocationResourceDrift = healthNode.LocationResourceDrift,
@@ -111,7 +114,12 @@ public static class DefinitionGraphBuilder
         var standingDrives = kindConfig.StandingDrives
             .Select(drive => new DefinitionStandingDriveNode
             {
-                DesiredEffect = ConvertRef(drive.DesiredEffect),
+                DesiredEffect = ConvertRef(
+                    drive.DesiredEffect,
+                    kindNodes: null,
+                    resourceNodes: null,
+                    relationshipNodes: null,
+                    pressureNodes: null),
                 BaseUrgency = drive.BaseUrgency,
             })
             .ToList();
@@ -131,16 +139,16 @@ public static class DefinitionGraphBuilder
         var nodes = new Dictionary<DefinitionResourceId, DefinitionResourceNode>();
         foreach (var resource in resources)
         {
-            if (!DefinitionResourceCatalog.TryParse(resource.Name, out var resourceId))
+            var resourceId = new DefinitionResourceId(resource.Name);
+            if (nodes.ContainsKey(resourceId))
             {
                 throw new DefinitionGraphException(
-                    $"Domain declares unknown resource '{resource.Name}'. Add it to DefinitionResourceCatalog first.");
+                    $"Domain declares duplicate resource '{resource.Name}'.");
             }
 
             nodes[resourceId] = new DefinitionResourceNode
             {
                 Id = resourceId,
-                Metadata = DefinitionResourceCatalog.Get(resourceId),
                 SourceConfig = resource,
             };
         }
@@ -154,16 +162,16 @@ public static class DefinitionGraphBuilder
         var nodes = new Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>();
         foreach (var relationship in relationships)
         {
-            if (!DefinitionRelationshipCatalog.TryParse(relationship.Name, out var relationshipId))
+            var relationshipId = new DefinitionRelationshipId(relationship.Name);
+            if (nodes.ContainsKey(relationshipId))
             {
                 throw new DefinitionGraphException(
-                    $"Domain declares unknown relationship '{relationship.Name}'. Add it to DefinitionRelationshipCatalog first.");
+                    $"Domain declares duplicate relationship '{relationship.Name}'.");
             }
 
             nodes[relationshipId] = new DefinitionRelationshipNode
             {
                 Id = relationshipId,
-                Metadata = DefinitionRelationshipCatalog.Get(relationshipId),
                 SourceConfig = relationship,
             };
         }
@@ -177,16 +185,16 @@ public static class DefinitionGraphBuilder
         var nodes = new Dictionary<DefinitionPressureId, DefinitionPressureNode>();
         foreach (var pressure in pressures)
         {
-            if (!DefinitionPressureCatalog.TryParse(pressure.Name, out var pressureId))
+            var pressureId = new DefinitionPressureId(pressure.Name);
+            if (nodes.ContainsKey(pressureId))
             {
                 throw new DefinitionGraphException(
-                    $"Domain declares unknown pressure '{pressure.Name}'. Add it to DefinitionPressureCatalog first.");
+                    $"Domain declares duplicate pressure '{pressure.Name}'.");
             }
 
             nodes[pressureId] = new DefinitionPressureNode
             {
                 Id = pressureId,
-                Metadata = DefinitionPressureCatalog.Get(pressureId),
                 SourceConfig = pressure,
             };
         }
@@ -201,17 +209,16 @@ public static class DefinitionGraphBuilder
         var nodes = new Dictionary<EntityKind, DefinitionLifecycleNode>();
         foreach (var (kind, lifecycle) in config.Lifecycles)
         {
-            if (!kindNodes.TryGetValue(kind, out var kindNode))
+            if (!kindNodes.ContainsKey(kind))
             {
                 throw new DefinitionGraphException(
                     $"Lifecycle declared for missing kind '{kind}'.");
             }
 
-            var healthAttribute = ParseAttributeId(lifecycle.HealthAttribute, kind, "lifecycle health attribute");
             nodes[kind] = new DefinitionLifecycleNode
             {
                 Kind = kind,
-                HealthAttribute = healthAttribute,
+                HealthAttribute = new DefinitionAttributeId(lifecycle.HealthAttribute),
                 SourceConfig = lifecycle,
             };
         }
@@ -219,7 +226,12 @@ public static class DefinitionGraphBuilder
         return nodes;
     }
 
-    private static DefinitionProcessNode BuildProcessNode(ProcessDefinition process)
+    private static DefinitionProcessNode BuildProcessNode(
+        ProcessDefinition process,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode> pressureNodes)
     {
         return new DefinitionProcessNode
         {
@@ -228,13 +240,13 @@ public static class DefinitionGraphBuilder
             Role = process.Role,
             TargetKind = process.TargetKind,
             SourceDefinition = process,
-            Reads = ConvertRefs(process.Reads),
-            Writes = ConvertRefs(process.Writes),
-            GoalEffects = ConvertRefs(process.GoalEffects),
-            ProviderSelectors = ConvertRefs(process.ProviderSelectors),
+            Reads = ConvertRefs(process.Reads, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            Writes = ConvertRefs(process.Writes, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            GoalEffects = ConvertRefs(process.GoalEffects, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            ProviderSelectors = ConvertRefs(process.ProviderSelectors, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
             SupportRules = process.SupportRules.Select(rule => new DefinitionSupportRuleNode
             {
-                DesiredEffect = ConvertRef(rule.DesiredEffect),
+                DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
                 DesiredMinimum = rule.DesiredMinimum,
                 UrgencyScale = rule.UrgencyScale,
                 SourceRule = rule,
@@ -242,7 +254,7 @@ public static class DefinitionGraphBuilder
         };
     }
 
-    private static DefinitionCriticalEffectNode? BuildCriticalEffect(CriticalEffectConfig? config, EntityKind kind)
+    private static DefinitionCriticalEffectNode? BuildCriticalEffect(CriticalEffectConfig? config)
     {
         if (config is null)
         {
@@ -251,7 +263,7 @@ public static class DefinitionGraphBuilder
 
         return new DefinitionCriticalEffectNode
         {
-            TargetAttributeId = ParseAttributeId(config.TargetAttribute, kind, "critical-effect target attribute"),
+            TargetAttributeId = new DefinitionAttributeId(config.TargetAttribute),
             DeltaPerTick = config.DeltaPerTick,
             Description = config.Description,
         };
@@ -266,116 +278,138 @@ public static class DefinitionGraphBuilder
 
         return new DefinitionLocationResourceDriftNode
         {
-            ResourceId = ParseResourceId(attribute.LocationResourceDriftResource.Value.ToDomainName()),
+            ResourceId = new DefinitionResourceId(attribute.LocationResourceDriftResource.Value.ToDomainName()),
             PerUnit = attribute.LocationResourceDriftPerUnit,
             MinOffset = attribute.LocationResourceDriftMinOffset,
             MaxOffset = attribute.LocationResourceDriftMaxOffset,
         };
     }
 
-    private static HashSet<TypedDefinitionRef> ConvertRefs(IEnumerable<AttributeRef> refs) =>
-        refs.Select(ConvertRef).ToHashSet();
+    private static HashSet<TypedDefinitionRef> ConvertRefs(
+        IEnumerable<AttributeRef> refs,
+        Dictionary<EntityKind, DefinitionKindNode>? kindNodes,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode>? pressureNodes) =>
+        refs.Select(attrRef => ConvertRef(attrRef, kindNodes, resourceNodes, relationshipNodes, pressureNodes)).ToHashSet();
 
-    private static TypedDefinitionRef ConvertRef(AttributeRef attrRef)
+    private static TypedDefinitionRef ConvertRef(
+        AttributeRef attrRef,
+        Dictionary<EntityKind, DefinitionKindNode>? kindNodes,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode>? pressureNodes)
     {
         ArgumentNullException.ThrowIfNull(attrRef);
 
         return attrRef.Scope switch
         {
             RefScope.Self or RefScope.Target or RefScope.Location or RefScope.Related
-                => ConvertAttributeScopedRef(attrRef),
+                => ConvertAttributeScopedRef(attrRef, kindNodes, relationshipNodes),
             RefScope.Resource
-                => ConvertResourceRef(attrRef),
+                => ConvertResourceRef(attrRef, resourceNodes),
             RefScope.Pressure
-                => ConvertPressureRef(attrRef),
+                => ConvertPressureRef(attrRef, pressureNodes),
             RefScope.Structural
                 => new TypedDefinitionRef(attrRef.Scope, new StructuralValueId(attrRef.Name), attrRef.Kind),
             RefScope.MapCell
                 => new TypedDefinitionRef(attrRef.Scope, new MapCellValueId(attrRef.Name), attrRef.Kind),
             RefScope.Relational
-                => ConvertRelationalRef(attrRef),
+                => ConvertRelationalRef(attrRef, relationshipNodes),
             _ => throw new DefinitionGraphException($"Unsupported ref scope '{attrRef.Scope}'."),
         };
     }
 
-    private static TypedDefinitionRef ConvertAttributeScopedRef(AttributeRef attrRef)
+    private static TypedDefinitionRef ConvertAttributeScopedRef(
+        AttributeRef attrRef,
+        Dictionary<EntityKind, DefinitionKindNode>? kindNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes)
     {
-        if (!DefinitionAttributeCatalog.TryParse(attrRef.Name, out var attributeId))
+        var attributeId = new DefinitionAttributeId(attrRef.Name);
+        if (kindNodes is not null && attrRef.Kind is EntityKind kind)
         {
-            throw new DefinitionGraphException(
-                $"Unknown attribute ref '{attrRef.Name}' in scope '{attrRef.Scope}'. Add it to DefinitionAttributeCatalog first.");
+            EnsureKindAttributeDeclared(kindNodes, kind, attributeId, attrRef);
         }
 
         return new TypedDefinitionRef(
             attrRef.Scope,
             new AttributeValueId(attributeId),
             attrRef.Kind,
-            TryParseRelationship(attrRef.RelationshipKind));
+            TryParseRelationship(attrRef.RelationshipKind, relationshipNodes));
     }
 
-    private static TypedDefinitionRef ConvertResourceRef(AttributeRef attrRef) =>
-        new(attrRef.Scope, new ResourceValueId(ParseResourceId(attrRef.Name)), attrRef.Kind);
-
-    private static TypedDefinitionRef ConvertPressureRef(AttributeRef attrRef)
+    private static TypedDefinitionRef ConvertResourceRef(
+        AttributeRef attrRef,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes)
     {
-        if (!DefinitionPressureCatalog.TryParse(attrRef.Name, out var pressureId))
+        var resourceId = new DefinitionResourceId(attrRef.Name);
+        if (resourceNodes is not null && !resourceNodes.ContainsKey(resourceId))
         {
             throw new DefinitionGraphException(
-                $"Unknown pressure ref '{attrRef.Name}'. Add it to DefinitionPressureCatalog first.");
+                $"Unknown resource ref '{attrRef.Name}'. Declare it in the domain resources first.");
+        }
+
+        return new TypedDefinitionRef(attrRef.Scope, new ResourceValueId(resourceId), attrRef.Kind);
+    }
+
+    private static TypedDefinitionRef ConvertPressureRef(
+        AttributeRef attrRef,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode>? pressureNodes)
+    {
+        var pressureId = new DefinitionPressureId(attrRef.Name);
+        if (pressureNodes is not null && !pressureNodes.ContainsKey(pressureId))
+        {
+            throw new DefinitionGraphException(
+                $"Unknown pressure ref '{attrRef.Name}'. Declare it in the domain pressures first.");
         }
 
         return new TypedDefinitionRef(attrRef.Scope, new PressureValueId(pressureId), attrRef.Kind);
     }
 
-    private static TypedDefinitionRef ConvertRelationalRef(AttributeRef attrRef)
+    private static TypedDefinitionRef ConvertRelationalRef(
+        AttributeRef attrRef,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes)
     {
         return new TypedDefinitionRef(
             attrRef.Scope,
             new RelationalValueId(attrRef.Name),
             attrRef.Kind,
-            TryParseRelationship(attrRef.RelationshipKind));
+            TryParseRelationship(attrRef.RelationshipKind, relationshipNodes));
     }
 
-    private static DefinitionAttributeId ParseAttributeId(string name, EntityKind kind, string context)
+    private static void EnsureKindAttributeDeclared(
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        EntityKind kind,
+        DefinitionAttributeId attributeId,
+        AttributeRef attrRef)
     {
-        if (!DefinitionAttributeCatalog.TryParse(name, out var attributeId))
+        if (!kindNodes.TryGetValue(kind, out var kindNode))
         {
             throw new DefinitionGraphException(
-                $"Kind '{kind}' declares unknown {context} '{name}'. Add it to DefinitionAttributeCatalog first.");
+                $"Ref '{attrRef}' targets kind '{kind}' which is not declared in the domain.");
         }
 
-        var metadata = DefinitionAttributeCatalog.Get(attributeId);
-        if (!metadata.AllowedKinds.Contains(kind))
+        if (!kindNode.Attributes.ContainsKey(attributeId))
         {
             throw new DefinitionGraphException(
-                $"Attribute '{name}' is not declared for kind '{kind}'.");
+                $"Unknown attribute ref '{attrRef.Name}' for kind '{kind}'. Declare it on that kind first.");
         }
-
-        return attributeId;
     }
 
-    private static DefinitionResourceId ParseResourceId(string name)
-    {
-        if (!DefinitionResourceCatalog.TryParse(name, out var resourceId))
-        {
-            throw new DefinitionGraphException(
-                $"Unknown resource ref '{name}'. Add it to DefinitionResourceCatalog first.");
-        }
-
-        return resourceId;
-    }
-
-    private static DefinitionRelationshipId? TryParseRelationship(string? relationshipKind)
+    private static DefinitionRelationshipId? TryParseRelationship(
+        string? relationshipKind,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes)
     {
         if (string.IsNullOrWhiteSpace(relationshipKind))
         {
             return null;
         }
 
-        if (!DefinitionRelationshipCatalog.TryParse(relationshipKind, out var relationshipId))
+        var relationshipId = new DefinitionRelationshipId(relationshipKind);
+        if (relationshipNodes is not null && !relationshipNodes.ContainsKey(relationshipId))
         {
             throw new DefinitionGraphException(
-                $"Unknown relationship ref '{relationshipKind}'. Add it to DefinitionRelationshipCatalog first.");
+                $"Unknown relationship ref '{relationshipKind}'. Declare it in the domain relationships first.");
         }
 
         return relationshipId;

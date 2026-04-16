@@ -1,6 +1,5 @@
 namespace Engine.Domain.Graph;
 
-using Engine.Domain.Config;
 using Engine.Kinds;
 using Engine.Wiring;
 
@@ -60,11 +59,7 @@ public static class DefinitionGraphValidator
 
             foreach (var supportRule in process.SupportRules)
             {
-                ValidateRefs(
-                    $"{process.Id}.support",
-                    [supportRule.DesiredEffect],
-                    graph,
-                    errors);
+                ValidateRefs($"{process.Id}.support", [supportRule.DesiredEffect], graph, errors);
             }
         }
 
@@ -103,18 +98,17 @@ public static class DefinitionGraphValidator
                 errors.Add($"Attribute node key mismatch for '{keyKind}.{attributeId}'.");
             }
 
-            var metadata = DefinitionAttributeCatalog.Get(attributeId);
-            if (!metadata.AllowedKinds.Contains(keyKind))
-            {
-                errors.Add($"Attribute '{attributeId}' is not declared for kind '{keyKind}'.");
-            }
-
             var observedShape = attributeNode.SourceConfig.PlaneDefinition is null
                 ? DefinitionAttributeShape.Scalar
                 : DefinitionAttributeShape.Plane2D;
-            if (observedShape != metadata.Shape)
+            if (observedShape != attributeNode.Shape)
             {
-                errors.Add($"Attribute '{attributeId}' on kind '{keyKind}' has shape '{observedShape}' but should be '{metadata.Shape}'.");
+                errors.Add($"Attribute '{attributeId}' on kind '{keyKind}' has shape '{observedShape}' but node shape is '{attributeNode.Shape}'.");
+            }
+
+            if (attributeNode.SourceConfig.Name != attributeId.Value)
+            {
+                errors.Add($"Attribute node id '{attributeId}' does not match source config name '{attributeNode.SourceConfig.Name}'.");
             }
 
             if (attributeNode.CriticalEffect is not null)
@@ -172,6 +166,12 @@ public static class DefinitionGraphValidator
             errors.Add(
                 $"Lifecycle for kind '{keyKind}' uses health attribute '{lifecycleNode.HealthAttribute}' but kind health is '{kindNode.HealthAttribute}'.");
         }
+
+        if (lifecycleNode.SourceConfig.HealthAttribute != lifecycleNode.HealthAttribute.Value)
+        {
+            errors.Add(
+                $"Lifecycle node health id '{lifecycleNode.HealthAttribute}' does not match source config name '{lifecycleNode.SourceConfig.HealthAttribute}'.");
+        }
     }
 
     private static void ValidateRefs(
@@ -218,31 +218,29 @@ public static class DefinitionGraphValidator
         DefinitionGraph graph,
         List<string> errors)
     {
-        var metadata = DefinitionAttributeCatalog.Get(attributeValue.AttributeId);
-
-        if (reference.Kind is EntityKind kind)
+        if (reference.Kind is not EntityKind kind)
         {
-            if (!metadata.AllowedKinds.Contains(kind))
-            {
-                errors.Add(
-                    $"Definition ref on '{ownerId}' uses attribute '{attributeValue.AttributeId}' with incompatible kind '{kind}'.");
-            }
+            return;
+        }
 
-            var key = new DefinitionAttributeKey(kind, attributeValue.AttributeId);
-            if (graph.Kinds.TryGetValue(kind, out var kindNode) &&
-                !kindNode.Attributes.ContainsKey(attributeValue.AttributeId) &&
-                (reference.Scope == RefScope.Self || reference.Scope == RefScope.Location))
-            {
-                errors.Add(
-                    $"Definition ref on '{ownerId}' uses attribute '{attributeValue.AttributeId}' on kind '{kind}' but the domain did not declare it.");
-            }
+        if (!graph.Kinds.TryGetValue(kind, out var kindNode))
+        {
+            errors.Add($"Definition ref on '{ownerId}' uses attribute '{attributeValue.AttributeId}' with missing kind '{kind}'.");
+            return;
+        }
 
-            if (!graph.Attributes.ContainsKey(key) &&
-                reference.Scope == RefScope.Self)
-            {
-                errors.Add(
-                    $"Definition ref on '{ownerId}' points to missing self attribute '{kind}.{attributeValue.AttributeId}'.");
-            }
+        var key = new DefinitionAttributeKey(kind, attributeValue.AttributeId);
+        var shouldExistOnKind = reference.Scope is RefScope.Self or RefScope.Location;
+        if (shouldExistOnKind && !kindNode.Attributes.ContainsKey(attributeValue.AttributeId))
+        {
+            errors.Add(
+                $"Definition ref on '{ownerId}' uses attribute '{attributeValue.AttributeId}' on kind '{kind}' but the domain did not declare it.");
+        }
+
+        if (reference.Scope == RefScope.Self && !graph.Attributes.ContainsKey(key))
+        {
+            errors.Add(
+                $"Definition ref on '{ownerId}' points to missing self attribute '{kind}.{attributeValue.AttributeId}'.");
         }
     }
 }
