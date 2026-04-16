@@ -32,6 +32,12 @@ public sealed class DomainConfig
 
     /// <summary>Culture definitions.</summary>
     public required IReadOnlyList<CultureConfig> Cultures { get; init; }
+
+    /// <summary>
+    /// Optional higher-order semantic stock/flow model for reasoning and validation.
+    /// This is domain-authored structured data, not derived from runtime process wiring.
+    /// </summary>
+    public SemanticDomainConfig? Semantics { get; init; }
 }
 
 /// <summary>Per-kind configuration: subtypes, attributes, health metric.</summary>

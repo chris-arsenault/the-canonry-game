@@ -222,6 +222,7 @@ public sealed class SemanticVerbNode
     public SemanticOwnerType OwnerType { get; init; } = SemanticOwnerType.Unknown;
     public EntityKind? OwnerKind { get; init; }
     public DefinitionProcessNode? ImplementedProcess { get; init; }
+    public string? Notes { get; init; }
     public bool IsImplementedProcess => ImplementedProcess is not null;
 }
 
@@ -237,6 +238,7 @@ public sealed class SemanticFlowEdge
     public int SourceRow { get; init; }
     public SemanticMechanism Mechanism { get; init; } = SemanticMechanism.Unknown;
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
+    public IReadOnlyList<TypedDefinitionRef> SourceRefs { get; init; } = [];
 }
 
 public sealed class SemanticModifierEdge

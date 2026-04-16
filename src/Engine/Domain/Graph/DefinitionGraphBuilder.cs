@@ -59,6 +59,11 @@ public static class DefinitionGraphBuilder
             Attributes = attributeIndex,
         };
 
+        if (config.Semantics is not null)
+        {
+            DefinitionSemanticGraphBuilder.Populate(graph, config.Semantics);
+        }
+
         DefinitionGraphValidator.ValidateOrThrow(graph);
         return graph;
     }

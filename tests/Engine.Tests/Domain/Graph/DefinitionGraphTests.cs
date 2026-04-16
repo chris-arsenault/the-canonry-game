@@ -1,6 +1,5 @@
 namespace Engine.Tests.Domain.Graph;
 
-using System.IO;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
@@ -71,14 +70,16 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void SemanticFlowGraph_StartsEmptyUntilCsvContentIsImported()
+    public void Build_FromTestDomain_PopulatesTypedSemanticGraph()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        Assert.Empty(graph.SemanticFlows.Stocks);
-        Assert.Empty(graph.SemanticFlows.Flows);
-        Assert.Empty(graph.SemanticFlows.Modifiers);
-        Assert.Empty(graph.SemanticFlows.Couplings);
+        Assert.Equal(19, graph.SemanticFlows.Stocks.Count);
+        Assert.Equal(32, graph.SemanticFlows.Verbs.Count);
+        Assert.Equal(66, graph.SemanticFlows.Flows.Count);
+        Assert.Equal(8, graph.SemanticFlows.Modifiers.Count);
+        Assert.Equal(33, graph.SemanticFlows.ProcessReferences.Count);
+        Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
 
     [Fact]
@@ -102,46 +103,33 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_WithSemanticWorksheets_ImportsTypedStocksAndDiagnostics()
+    public void Build_FromTestDomain_ResolvesRepresentativeSemanticEdges()
     {
-        var repoRoot = FindRepoRoot();
-        var worksheetDir = Path.Combine(repoRoot, "docs", "entities", "worksheets");
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create(), worksheetDir);
-
-        Assert.Equal(19, graph.SemanticFlows.Stocks.Count);
         Assert.Contains(
             graph.SemanticFlows.Verbs,
-            verb => verb.Id == "settlement_grow");
+            verb => verb.Id == TestDomainVerbId.SettlementGrow.ToVerbId() &&
+                    verb.ImplementedProcess?.Id == TestDomainProcessId.SettlementGrow.ToProcessId());
         Assert.Contains(
             graph.SemanticFlows.Verbs,
-            verb => verb.Id == "engine_decay" && verb.OwnerType == SemanticOwnerType.Engine);
+            verb => verb.Id == TestDomainVerbId.EngineDecay.ToVerbId() &&
+                    verb.OwnerType == SemanticOwnerType.Engine);
+        Assert.Contains(
+            graph.SemanticFlows.Flows,
+            flow => flow.Verb.Id == TestDomainVerbId.NpcEat.ToVerbId() &&
+                    flow.Role == SemanticFlowRole.Inflow &&
+                    flow.TargetStock.AttributeKey == new DefinitionAttributeKey(
+                        EntityKind.Npc,
+                        new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())) &&
+                    flow.SourceRefs.Any(reference => reference.ValueId is ResourceValueId { ResourceId.Value: "food" }));
         Assert.Contains(
             graph.SemanticFlows.ProcessReferences,
-            reference => reference.ProcessId == "npc_eat" &&
+            reference => reference.ProcessId == TestDomainProcessId.NpcEat.ToProcessId() &&
                          reference.Kind == SemanticProcessReferenceKind.Reads &&
                          reference.TargetStock.AttributeKey == new DefinitionAttributeKey(
                              EntityKind.Npc,
-                             new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())));
-        Assert.NotEmpty(graph.SemanticFlows.Diagnostics);
-        Assert.Contains(
-            graph.SemanticFlows.Diagnostics,
-            diagnostic => diagnostic.Code == "future_process_reference");
-    }
-
-    private static string FindRepoRoot()
-    {
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "TheCanonryGame.slnx")))
-            {
-                return current.FullName;
-            }
-
-            current = current.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate repository root from test base directory.");
+                             new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())) &&
+                         reference.MatchesDefinitionGraph);
     }
 }

@@ -11,6 +11,7 @@ using Attr = Engine.Domain.TestDomain.TestDomainAttributeId;
 using Culture = Engine.Domain.TestDomain.TestDomainCulture;
 using Fact = Engine.Domain.TestDomain.TestDomainStructuralFact;
 using Press = Engine.Domain.TestDomain.TestDomainPressure;
+using Proc = Engine.Domain.TestDomain.TestDomainProcessId;
 using Rel = Engine.Domain.TestDomain.TestDomainRelationship;
 using Res = Engine.Domain.TestDomain.TestDomainResource;
 
@@ -32,6 +33,7 @@ public static class TestDomainDefinition
             Lifecycles = CreateLifecycles(),
             Resources = CreateResources(),
             Cultures = CreateCultures(),
+            Semantics = TestDomainSemanticDefinition.Create(),
         };
     }
 
@@ -40,6 +42,7 @@ public static class TestDomainDefinition
     private static string F(Fact fact) => fact.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
     private static string P(Press pressure) => pressure.ToDomainName();
+    private static string ProcId(Proc processId) => processId.ToProcessId();
     private static string R(Res resource) => resource.ToDomainName();
     private static ResourceType T(Res resource) => resource.ToResourceType();
 
@@ -49,7 +52,7 @@ public static class TestDomainDefinition
 
         // Settlement: improve ambient local food potential. This is a support action
         // that makes direct growth stronger without introducing a stockpile layer.
-        var irrigate = new ProcessDefinition("settlement_irrigate", "Irrigate",
+        var irrigate = new ProcessDefinition(ProcId(Proc.SettlementIrrigate), "Irrigate",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsSelf(),
@@ -78,7 +81,7 @@ public static class TestDomainDefinition
         // Settlement: direct growth from ambient conditions. Food remains a map-level
         // affordance, not a concrete settlement store. Low food makes growth weak,
         // so irrigation can become the planner-visible support step.
-        var grow = new ProcessDefinition("settlement_grow", "Grow",
+        var grow = new ProcessDefinition(ProcId(Proc.SettlementGrow), "Grow",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsSelf(),
@@ -114,7 +117,7 @@ public static class TestDomainDefinition
         processes.Add(grow);
 
         // Settlement: propaganda — shift target civic ideology toward self.
-        var propaganda = new ProcessDefinition("settlement_propaganda", "Propaganda",
+        var propaganda = new ProcessDefinition(ProcId(Proc.SettlementPropaganda), "Propaganda",
             DefinitionRole.Process, EntityKind.Settlement,
             new TargetIsNotSelf(),
             Expr.Score(Expr.Lit(0.3f), 0.1f))
@@ -139,7 +142,7 @@ public static class TestDomainDefinition
         processes.Add(propaganda);
 
         // Settlement: attract residents from another settlement, requires prestige advantage.
-        var attract = new ProcessDefinition("settlement_attract", "Attract Population",
+        var attract = new ProcessDefinition(ProcId(Proc.SettlementAttract), "Attract Population",
             DefinitionRole.Process, EntityKind.Settlement,
             new AndPrecondition([
                 new TargetIsNotSelf(),
@@ -178,7 +181,7 @@ public static class TestDomainDefinition
 
         // NPC: eat at a named settlement. This is the only strong positive satiety
         // action; ambient food merely slows satiety loss, it does not replace eating.
-        var eat = new ProcessDefinition("npc_eat", "Eat",
+        var eat = new ProcessDefinition(ProcId(Proc.NpcEat), "Eat",
             DefinitionRole.Process, EntityKind.Npc,
             new AndPrecondition([
                 new TargetIsNotSelf(),
@@ -214,7 +217,7 @@ public static class TestDomainDefinition
         // NPC: move toward the chosen settlement. This is intentionally the first cut
         // of a reusable movement enabler; the planner/presence abstraction will be
         // generalized further before we add many more target-specific movement chains.
-        var moveToTarget = new ProcessDefinition("npc_move_to_target", "Move To Target",
+        var moveToTarget = new ProcessDefinition(ProcId(Proc.NpcMoveToTarget), "Move To Target",
             DefinitionRole.Process, EntityKind.Npc,
             new TargetIsNotSelf(),
             Expr.Score(
@@ -232,7 +235,7 @@ public static class TestDomainDefinition
         processes.Add(moveToTarget);
 
         // NPC: low-urgency ambient motion when nothing more pressing dominates.
-        var wander = new ProcessDefinition("npc_wander", "Wander",
+        var wander = new ProcessDefinition(ProcId(Proc.NpcWander), "Wander",
             DefinitionRole.Process, EntityKind.Npc,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(0.2f)))
@@ -251,7 +254,7 @@ public static class TestDomainDefinition
         // NPC: create works at the settlement already being visited. This is a civic
         // contribution action, not a movement magnet; blocked remote candidates should
         // simply fall away instead of generating movement sub-goals.
-        var createWorks = new ProcessDefinition("npc_create_works", "Create Works",
+        var createWorks = new ProcessDefinition(ProcId(Proc.NpcCreateWorks), "Create Works",
             DefinitionRole.Process, EntityKind.Npc,
             new AndPrecondition([
                 new TargetIsNotSelf(),
@@ -295,11 +298,12 @@ public static class TestDomainDefinition
         createWorks.Reads.Add(AttributeRef.Target(A(Attr.Residents), EntityKind.Settlement));
         createWorks.Writes.Add(AttributeRef.Self(A(Attr.Satiety), EntityKind.Npc));
         createWorks.Writes.Add(AttributeRef.Target(A(Attr.Prestige), EntityKind.Settlement));
+        createWorks.Writes.Add(AttributeRef.Related(L(Rel.LoyalTo), A(Attr.Support), EntityKind.Faction));
         processes.Add(createWorks);
 
         // Faction: patrol controlled settlements. Support is spent to raise both local
         // settlement security and broader regional safety.
-        var patrol = new ProcessDefinition("faction_patrol", "Patrol",
+        var patrol = new ProcessDefinition(ProcId(Proc.FactionPatrol), "Patrol",
             DefinitionRole.Process, EntityKind.Faction,
             new AndPrecondition([
                 new TargetIsNotSelf(),
@@ -347,11 +351,12 @@ public static class TestDomainDefinition
         patrol.Writes.Add(AttributeRef.Self(A(Attr.Support), EntityKind.Faction));
         patrol.Writes.Add(AttributeRef.Self(A(Attr.Influence), EntityKind.Faction));
         patrol.Writes.Add(AttributeRef.Target(A(Attr.Security), EntityKind.Settlement));
+        patrol.Writes.Add(AttributeRef.Related(L(Rel.Contains), A(Attr.RegionalSafety), EntityKind.Region));
         processes.Add(patrol);
 
         // Region: form militia from the surrounding populace to stabilize contained
         // settlements. This is a safety response, not a depletion/recovery economy loop.
-        var formMilitia = new ProcessDefinition("region_form_militia", "Form Militia",
+        var formMilitia = new ProcessDefinition(ProcId(Proc.RegionFormMilitia), "Form Militia",
             DefinitionRole.Process, EntityKind.Region,
             new AndPrecondition([
                 new TargetIsSelf(),
@@ -385,6 +390,7 @@ public static class TestDomainDefinition
         formMilitia.Reads.Add(AttributeRef.Self(A(Attr.RegionalSafety), EntityKind.Region));
         formMilitia.Reads.Add(AttributeRef.Self(A(Attr.GeologicStability), EntityKind.Region));
         formMilitia.Writes.Add(AttributeRef.Self(A(Attr.RegionalSafety), EntityKind.Region));
+        formMilitia.Writes.Add(AttributeRef.Related(L(Rel.Contains), A(Attr.Security), EntityKind.Settlement));
         processes.Add(formMilitia);
 
         return processes;

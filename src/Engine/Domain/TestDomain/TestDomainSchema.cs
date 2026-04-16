@@ -165,3 +165,111 @@ public static class TestDomainCultureExtensions
         _ => throw new ArgumentOutOfRangeException(nameof(culture), culture, "Unknown test-domain culture"),
     };
 }
+
+public enum TestDomainProcessId
+{
+    SettlementIrrigate,
+    SettlementGrow,
+    SettlementPropaganda,
+    SettlementAttract,
+    NpcEat,
+    NpcMoveToTarget,
+    NpcWander,
+    NpcCreateWorks,
+    FactionPatrol,
+    RegionFormMilitia,
+}
+
+public static class TestDomainProcessIdExtensions
+{
+    public static string ToProcessId(this TestDomainProcessId processId) => processId switch
+    {
+        TestDomainProcessId.SettlementIrrigate => "settlement_irrigate",
+        TestDomainProcessId.SettlementGrow => "settlement_grow",
+        TestDomainProcessId.SettlementPropaganda => "settlement_propaganda",
+        TestDomainProcessId.SettlementAttract => "settlement_attract",
+        TestDomainProcessId.NpcEat => "npc_eat",
+        TestDomainProcessId.NpcMoveToTarget => "npc_move_to_target",
+        TestDomainProcessId.NpcWander => "npc_wander",
+        TestDomainProcessId.NpcCreateWorks => "npc_create_works",
+        TestDomainProcessId.FactionPatrol => "faction_patrol",
+        TestDomainProcessId.RegionFormMilitia => "region_form_militia",
+        _ => throw new ArgumentOutOfRangeException(nameof(processId), processId, "Unknown test-domain process id"),
+    };
+}
+
+public enum TestDomainVerbId
+{
+    ArtifactChannel,
+    ArtifactCleanse,
+    ArtifactDevote,
+    ArtifactEmanate,
+    ArtifactEmpower,
+    ArtifactEnshrine,
+    ArtifactHeal,
+    ArtifactPurify,
+    EngineDecay,
+    FactionAttract,
+    FactionConsecrate,
+    FactionIndoctrinate,
+    FactionMaintain,
+    FactionPatrol,
+    FactionRadicalize,
+    FactionRally,
+    FactionRecruit,
+    FactionTax,
+    NpcCreateWorks,
+    NpcEat,
+    NpcEndure,
+    NpcGuard,
+    RegionAttune,
+    RegionFormMilitia,
+    RegionIrrigate,
+    RegionSettle,
+    RegionShelter,
+    SettlementAttract,
+    SettlementGarrison,
+    SettlementGrow,
+    SettlementPropaganda,
+    SettlementTrade,
+}
+
+public static class TestDomainVerbIdExtensions
+{
+    public static string ToVerbId(this TestDomainVerbId verbId) => verbId switch
+    {
+        TestDomainVerbId.ArtifactChannel => "artifact_channel",
+        TestDomainVerbId.ArtifactCleanse => "artifact_cleanse",
+        TestDomainVerbId.ArtifactDevote => "artifact_devote",
+        TestDomainVerbId.ArtifactEmanate => "artifact_emanate",
+        TestDomainVerbId.ArtifactEmpower => "artifact_empower",
+        TestDomainVerbId.ArtifactEnshrine => "artifact_enshrine",
+        TestDomainVerbId.ArtifactHeal => "artifact_heal",
+        TestDomainVerbId.ArtifactPurify => "artifact_purify",
+        TestDomainVerbId.EngineDecay => "engine_decay",
+        TestDomainVerbId.FactionAttract => "faction_attract",
+        TestDomainVerbId.FactionConsecrate => "faction_consecrate",
+        TestDomainVerbId.FactionIndoctrinate => "faction_indoctrinate",
+        TestDomainVerbId.FactionMaintain => "faction_maintain",
+        TestDomainVerbId.FactionPatrol => "faction_patrol",
+        TestDomainVerbId.FactionRadicalize => "faction_radicalize",
+        TestDomainVerbId.FactionRally => "faction_rally",
+        TestDomainVerbId.FactionRecruit => "faction_recruit",
+        TestDomainVerbId.FactionTax => "faction_tax",
+        TestDomainVerbId.NpcCreateWorks => "npc_create_works",
+        TestDomainVerbId.NpcEat => "npc_eat",
+        TestDomainVerbId.NpcEndure => "npc_endure",
+        TestDomainVerbId.NpcGuard => "npc_guard",
+        TestDomainVerbId.RegionAttune => "region_attune",
+        TestDomainVerbId.RegionFormMilitia => "region_form_militia",
+        TestDomainVerbId.RegionIrrigate => "region_irrigate",
+        TestDomainVerbId.RegionSettle => "region_settle",
+        TestDomainVerbId.RegionShelter => "region_shelter",
+        TestDomainVerbId.SettlementAttract => "settlement_attract",
+        TestDomainVerbId.SettlementGarrison => "settlement_garrison",
+        TestDomainVerbId.SettlementGrow => "settlement_grow",
+        TestDomainVerbId.SettlementPropaganda => "settlement_propaganda",
+        TestDomainVerbId.SettlementTrade => "settlement_trade",
+        _ => throw new ArgumentOutOfRangeException(nameof(verbId), verbId, "Unknown test-domain verb id"),
+    };
+}

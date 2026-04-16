@@ -17,23 +17,7 @@ public static class DomainLoader
 {
     /// <summary>Build a typed domain definition graph for validation and higher-order reasoning.</summary>
     public static DefinitionGraph BuildDefinitionGraph(DomainConfig config) =>
-        BuildDefinitionGraph(config, semanticWorksheetDirectory: null);
-
-    /// <summary>
-    /// Build a typed domain definition graph and optionally import semantic worksheet data.
-    /// Worksheet import is tolerant: valid structure is imported and semantic drift is recorded
-    /// as diagnostics on the semantic graph instead of throwing.
-    /// </summary>
-    public static DefinitionGraph BuildDefinitionGraph(DomainConfig config, string? semanticWorksheetDirectory)
-    {
-        var graph = DefinitionGraphBuilder.Build(config);
-        if (!string.IsNullOrWhiteSpace(semanticWorksheetDirectory))
-        {
-            SemanticWorksheetImporter.ImportDirectory(graph, semanticWorksheetDirectory);
-        }
-
-        return graph;
-    }
+        DefinitionGraphBuilder.Build(config);
 
     /// <summary>Build a KindRegistry from domain config.</summary>
     public static KindRegistry LoadKindRegistry(DomainConfig config)
