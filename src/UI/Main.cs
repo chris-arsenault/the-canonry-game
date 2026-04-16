@@ -432,10 +432,11 @@ public partial class Main : Node2D
 
         var cell = _sim.Grid.GetCell(coord);
         var terrain = cell?.Terrain.ToString() ?? "Unknown";
+        var regionName = _sim.RegionMap.GetRegionForCell(coord)?.Name ?? "Unassigned";
         var food = _sim.Resources.Food.GetStockpile(coord);
         var wealth = _sim.Resources.Wealth.GetStockpile(coord);
         var population = _sim.Resources.PopulationLayer.GetStockpile(coord);
-        return $"{coord.Q}, {coord.R}  {terrain}\nfood: {food:0.0}\nwealth: {wealth:0.0}\npopulation: {population:0.0}";
+        return $"{coord.Q}, {coord.R}  {terrain}  ·  {regionName}\nfood: {food:0.0}\nwealth: {wealth:0.0}\npopulation: {population:0.0}";
     }
 
     private void PositionHexTooltip(Vector2 screenPos)

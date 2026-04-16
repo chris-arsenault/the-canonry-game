@@ -27,6 +27,9 @@ public partial class HexMapRenderer : Node2D
     /// <summary>Whether to show floating name labels attached to entity markers.</summary>
     [Export] public bool ShowEntityNames { get; set; } = true;
 
+    /// <summary>Whether to draw a thicker line along hex edges where two regions meet.</summary>
+    [Export] public bool ShowRegionBorders { get; set; } = true;
+
     public void Initialize(SimulationRunner sim)
     {
         _sim = sim;
@@ -44,6 +47,11 @@ public partial class HexMapRenderer : Node2D
         if (ShowTerritory)
         {
             DrawTerritoryOverlay();
+        }
+
+        if (ShowRegionBorders)
+        {
+            DrawRegionBorders();
         }
 
         DrawEntityMarkers();
@@ -133,6 +141,49 @@ public partial class HexMapRenderer : Node2D
             var alpha = Mathf.Clamp(0.25f + strength * 0.3f, 0.25f, 0.55f);
             DrawColoredPolygon(points, new Color(factionColor, alpha));
         }
+    }
+
+    private void DrawRegionBorders()
+    {
+        if (_sim is null) return;
+
+        var borderColor = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+        const float borderWidth = 2.5f;
+
+        foreach (var cell in _sim.Grid.AllCells)
+        {
+            var region = _sim.RegionMap.GetRegionForCell(cell.Coord);
+            var center = HexToPixel(cell.Coord);
+            var points = GetHexPoints(center);
+
+            for (var d = 0; d < 6; d++)
+            {
+                var neighborCoord = cell.Coord.Neighbor(d);
+
+                // Canonicalize: only draw each shared edge once. For edges against
+                // cells outside the grid, always draw (no duplicate partner to handle).
+                if (_sim.Grid.ContainsCoord(neighborCoord))
+                {
+                    if (!IsCanonicalEdgeOwner(cell.Coord, neighborCoord)) continue;
+                }
+
+                var neighborRegion = _sim.RegionMap.GetRegionForCell(neighborCoord);
+                if (ReferenceEquals(region, neighborRegion)) continue;
+
+                // Edge `d` (direction index) sits between hex vertices (6-d)%6 and (7-d)%6.
+                // See HexCoord.Directions vs GetHexPoints vertex ordering.
+                var edgeIdx = (6 - d) % 6;
+                var a = points[edgeIdx];
+                var b = points[(edgeIdx + 1) % 6];
+                DrawLine(a, b, borderColor, borderWidth, antialiased: true);
+            }
+        }
+    }
+
+    private static bool IsCanonicalEdgeOwner(HexCoord self, HexCoord neighbor)
+    {
+        if (self.Q != neighbor.Q) return self.Q < neighbor.Q;
+        return self.R < neighbor.R;
     }
 
     private void DrawEntityMarkers()
