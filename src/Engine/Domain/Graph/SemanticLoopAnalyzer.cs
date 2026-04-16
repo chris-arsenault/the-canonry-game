@@ -37,28 +37,9 @@ public static class SemanticLoopAnalyzer
     {
         var grouped = new Dictionary<(DefinitionAttributeKey Source, DefinitionAttributeKey Target), List<SemanticFlowEdge>>();
 
-        foreach (var flow in graph.Flows)
+        foreach (var edge in SemanticStockGraphProjection.ProjectAttributeEdges(graph))
         {
-            foreach (var sourceRef in flow.SourceRefs)
-            {
-                if (sourceRef.ValueId is not AttributeValueId { AttributeId: var attributeId } ||
-                    sourceRef.Kind is not EntityKind kind)
-                {
-                    continue;
-                }
-
-                var sourceKey = new DefinitionAttributeKey(kind, attributeId);
-                var targetKey = flow.TargetStock.AttributeKey;
-                var key = (sourceKey, targetKey);
-
-                if (!grouped.TryGetValue(key, out var flows))
-                {
-                    flows = [];
-                    grouped[key] = flows;
-                }
-
-                flows.Add(flow);
-            }
+            grouped[(edge.SourceKey, edge.TargetKey)] = [.. edge.SupportingFlows];
         }
 
         var adjacency = new Dictionary<DefinitionAttributeKey, List<SemanticLoopEdge>>();

@@ -77,8 +77,8 @@ public class DefinitionGraphTests
         Assert.Equal(19, graph.SemanticFlows.Stocks.Count);
         Assert.Equal(32, graph.SemanticFlows.Verbs.Count);
         Assert.Equal(66, graph.SemanticFlows.Flows.Count);
-        Assert.Equal(8, graph.SemanticFlows.Modifiers.Count);
-        Assert.Equal(33, graph.SemanticFlows.ProcessReferences.Count);
+        Assert.Equal(7, graph.SemanticFlows.Modifiers.Count);
+        Assert.Equal(26, graph.SemanticFlows.ProcessReferences.Count);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
 
@@ -180,6 +180,60 @@ public class DefinitionGraphTests
         Assert.Equal(0, coverage.XOutflows);
         Assert.Equal(1, coverage.YInflows);
         Assert.Equal(1, coverage.YOutflows);
+    }
+
+    [Fact]
+    public void Build_FromTestDomain_ProjectsStockEdgesUsingFlowRole()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
+
+        Assert.Contains(
+            projected,
+            edge => edge.SourceKey == new DefinitionAttributeKey(
+                        EntityKind.Npc,
+                        new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())) &&
+                    edge.TargetKey == new DefinitionAttributeKey(
+                        EntityKind.Settlement,
+                        new DefinitionAttributeId(TestDomainAttributeId.Security.ToDomainName())));
+
+        Assert.Contains(
+            projected,
+            edge => edge.SourceKey == new DefinitionAttributeKey(
+                        EntityKind.Faction,
+                        new DefinitionAttributeId(TestDomainAttributeId.Support.ToDomainName())) &&
+                    edge.TargetKey == new DefinitionAttributeKey(
+                        EntityKind.Settlement,
+                        new DefinitionAttributeId(TestDomainAttributeId.Security.ToDomainName())));
+
+        Assert.Contains(
+            projected,
+            edge => edge.SourceKey == new DefinitionAttributeKey(
+                        EntityKind.Settlement,
+                        new DefinitionAttributeId(TestDomainAttributeId.Security.ToDomainName())) &&
+                    edge.TargetKey == new DefinitionAttributeKey(
+                        EntityKind.Region,
+                        new DefinitionAttributeId(TestDomainAttributeId.RegionalSafety.ToDomainName())));
+    }
+
+    [Fact]
+    public void Build_FromTestDomain_HasNoDirectTwoNodeReversals()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
+        var edgeSet = projected
+            .Select(edge => (edge.SourceKey, edge.TargetKey))
+            .ToHashSet();
+
+        var reversals = projected
+            .Where(edge =>
+                           edge.SourceKey != edge.TargetKey &&
+                           graph.Attributes[edge.SourceKey].Shape == DefinitionAttributeShape.Scalar &&
+                           graph.Attributes[edge.TargetKey].Shape == DefinitionAttributeShape.Scalar &&
+                           edgeSet.Contains((edge.TargetKey, edge.SourceKey)))
+            .ToList();
+
+        Assert.Empty(reversals);
     }
 
     [Fact]

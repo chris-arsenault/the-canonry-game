@@ -64,6 +64,7 @@ public static class DefinitionGraphValidator
         }
 
         ValidateSemanticFlows(graph, errors);
+        ValidateProjectedSemanticEdges(graph, errors);
 
         return errors;
     }
@@ -293,6 +294,44 @@ public static class DefinitionGraphValidator
                 errors.Add(
                     $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one Y-axis outflow but none are declared.");
             }
+        }
+    }
+
+    private static void ValidateProjectedSemanticEdges(DefinitionGraph graph, List<string> errors)
+    {
+        var projectedEdges = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
+        var edgeSet = projectedEdges
+            .Select(edge => (edge.SourceKey, edge.TargetKey))
+            .ToHashSet();
+
+        foreach (var edge in projectedEdges)
+        {
+            if (edge.SourceKey == edge.TargetKey)
+            {
+                continue;
+            }
+
+            if (!graph.Attributes.TryGetValue(edge.SourceKey, out var sourceAttribute) ||
+                !graph.Attributes.TryGetValue(edge.TargetKey, out var targetAttribute) ||
+                sourceAttribute.Shape != DefinitionAttributeShape.Scalar ||
+                targetAttribute.Shape != DefinitionAttributeShape.Scalar)
+            {
+                continue;
+            }
+
+            if (!edgeSet.Contains((edge.TargetKey, edge.SourceKey)))
+            {
+                continue;
+            }
+
+            var pair = $"{edge.SourceKey.Kind}.{edge.SourceKey.AttributeId.Value} <-> {edge.TargetKey.Kind}.{edge.TargetKey.AttributeId.Value}";
+            if (errors.Any(error => error.Contains(pair, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            errors.Add(
+                $"Semantic stock graph contains a direct two-node reversal '{pair}'. Encode a longer path or an explicit modifier/coupling instead of opposite one-hop flows.");
         }
     }
 }

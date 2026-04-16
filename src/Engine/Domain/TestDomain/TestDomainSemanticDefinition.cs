@@ -53,11 +53,11 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Faction, Attr.Support, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Recruit gates on settlement.residents without depleting them (dual allegiance). Maintain spends support on custodian artifact upkeep."),
+            "Recruit gates on settlement.residents without depleting them (dual allegiance). Maintain spends support on custodian artifact upkeep. Patrol spends support to raise settlement security."),
         Stock(EntityKind.Faction, Attr.Influence, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Gated by custodian artifact power (non-depleting — artifact keeps its power while projecting influence). Spent on attracting NPCs and patrolling settlements."),
+            "Gated by custodian artifact power (non-depleting — artifact keeps its power while projecting influence). Spent on attracting NPCs."),
         Stock(EntityKind.Faction, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
@@ -70,11 +70,11 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Npc, Attr.Satiety, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Hex.food is a non-depleting gate on eat (abundance signal, not stockpile). create_works reads satiety as gate (threshold to fire) — ambition is the real cost (burnout)."),
+            "Hex.food is a non-depleting gate on eat (abundance signal, not stockpile)."),
         Stock(EntityKind.Npc, Attr.Ambition, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Low at spawn (20). Seeded by faction_attract. create_works spends ambition (burnout cost) to raise settlement.prestige; gated by satiety but doesn't consume it."),
+            "Low at spawn (20). Seeded by faction_attract. create_works spends ambition (burnout cost) to raise settlement.prestige."),
         Stock(EntityKind.Npc, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
@@ -100,7 +100,7 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Settlement, Attr.Security, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Externally supplied by NPC guards (depletes satiety) and faction patrols (depletes influence). Depleted outward via settlement_garrison — security flows from settlement into containing region.regional_safety."),
+            "Externally supplied by NPC guards (depletes satiety) and faction patrols (depletes support). Depleted outward via settlement_garrison — security flows from settlement into containing region.regional_safety."),
         Stock(EntityKind.Settlement, Attr.Prestige, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
@@ -166,10 +166,10 @@ public static class TestDomainSemanticDefinition
         Decay(EntityKind.Faction, Attr.Cohesion),
         Inflow(EntityKind.Faction, Attr.Support, Verb.FactionRecruit, SemanticMechanism.Gate, "self; gate from settlement.residents", Target(EntityKind.Settlement, Attr.Residents)),
         Outflow(EntityKind.Faction, Attr.Support, Verb.FactionMaintain, SemanticMechanism.Conversion, "self; conversion to artifact.condition", Target(EntityKind.Artifact, Attr.Condition)),
+        Outflow(EntityKind.Faction, Attr.Support, Verb.FactionPatrol, SemanticMechanism.Conversion, "self; conversion to settlement.security", Target(EntityKind.Settlement, Attr.Security)),
         Decay(EntityKind.Faction, Attr.Support),
         Inflow(EntityKind.Faction, Attr.Influence, Verb.ArtifactEmpower, SemanticMechanism.Gate, "target; gate from artifact.power", Target(EntityKind.Artifact, Attr.Power)),
         Outflow(EntityKind.Faction, Attr.Influence, Verb.FactionAttract, SemanticMechanism.Conversion, "self; conversion to NPC.ambition", Target(EntityKind.Npc, Attr.Ambition)),
-        Outflow(EntityKind.Faction, Attr.Influence, Verb.FactionPatrol, SemanticMechanism.Conversion, "self; conversion to settlement.security", Target(EntityKind.Settlement, Attr.Security)),
         Decay(EntityKind.Faction, Attr.Influence),
         Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionConsecrate, SemanticMechanism.Shift, "self; shifts Ideo·X UP → Individualist; plane-plane mutual with Region.Res·X", SemanticPlaneAxis.X, Target(EntityKind.Region, Attr.MysticResonance)),
         Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "self/target; drift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
@@ -210,7 +210,7 @@ public static class TestDomainSemanticDefinition
         Outflow(EntityKind.Settlement, Attr.Residents, Verb.SettlementAttract, SemanticMechanism.Conversion, "target; conversion to self settlement", Self(EntityKind.Settlement, Attr.Residents)),
         Decay(EntityKind.Settlement, Attr.Residents),
         Inflow(EntityKind.Settlement, Attr.Security, Verb.NpcGuard, SemanticMechanism.Conversion, "target; conversion from NPC.satiety", Self(EntityKind.Npc, Attr.Satiety)),
-        Inflow(EntityKind.Settlement, Attr.Security, Verb.FactionPatrol, SemanticMechanism.Conversion, "target; conversion from faction.influence", Self(EntityKind.Faction, Attr.Influence)),
+        Inflow(EntityKind.Settlement, Attr.Security, Verb.FactionPatrol, SemanticMechanism.Conversion, "target; conversion from faction.support", Self(EntityKind.Faction, Attr.Support)),
         Outflow(EntityKind.Settlement, Attr.Security, Verb.SettlementGarrison, SemanticMechanism.Conversion, "self; conversion to region.regional_safety", Related(Rel.Contains, Attr.RegionalSafety, EntityKind.Region)),
         Decay(EntityKind.Settlement, Attr.Security),
         Inflow(EntityKind.Settlement, Attr.Prestige, Verb.NpcCreateWorks, SemanticMechanism.Conversion, "target; conversion from NPC.ambition", Self(EntityKind.Npc, Attr.Ambition)),
@@ -223,7 +223,6 @@ public static class TestDomainSemanticDefinition
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() =>
     [
-        Modifier(EntityKind.Npc, Attr.Satiety, Verb.NpcCreateWorks, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Region, Attr.RegionalSafety, Verb.RegionShelter, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Residents, Verb.FactionRecruit, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementTrade, SemanticModifierDirection.Positive, "gate"),
@@ -245,7 +244,6 @@ public static class TestDomainSemanticDefinition
         Read(Proc.NpcCreateWorks, EntityKind.Settlement, Attr.Security),
         Read(Proc.FactionPatrol, EntityKind.Settlement, Attr.Security),
         DirectWrite(Proc.FactionPatrol, EntityKind.Settlement, Attr.Security),
-        IndirectWrite(Proc.RegionFormMilitia, EntityKind.Settlement, Attr.Security),
 
         Read(Proc.SettlementAttract, EntityKind.Settlement, Attr.Prestige),
         Read(Proc.NpcEat, EntityKind.Settlement, Attr.Prestige),
@@ -260,22 +258,15 @@ public static class TestDomainSemanticDefinition
 
         Read(Proc.RegionFormMilitia, EntityKind.Region, Attr.RegionalSafety),
         DirectWrite(Proc.RegionFormMilitia, EntityKind.Region, Attr.RegionalSafety),
-        IndirectWrite(Proc.FactionPatrol, EntityKind.Region, Attr.RegionalSafety),
 
         Read(Proc.RegionFormMilitia, EntityKind.Region, Attr.GeologicStability),
 
         Read(Proc.FactionPatrol, EntityKind.Faction, Attr.Support),
         DirectWrite(Proc.FactionPatrol, EntityKind.Faction, Attr.Support),
-        IndirectWrite(Proc.NpcCreateWorks, EntityKind.Faction, Attr.Support),
-
-        Read(Proc.FactionPatrol, EntityKind.Faction, Attr.Influence),
-        DirectWrite(Proc.FactionPatrol, EntityKind.Faction, Attr.Influence),
 
         Read(Proc.NpcEat, EntityKind.Npc, Attr.Satiety),
         Read(Proc.NpcWander, EntityKind.Npc, Attr.Satiety),
-        Read(Proc.NpcCreateWorks, EntityKind.Npc, Attr.Satiety),
         DirectWrite(Proc.NpcEat, EntityKind.Npc, Attr.Satiety),
-        DirectWrite(Proc.NpcCreateWorks, EntityKind.Npc, Attr.Satiety),
     ];
 
     private static SemanticStockConfig Stock(
