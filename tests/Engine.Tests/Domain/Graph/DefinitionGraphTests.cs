@@ -235,4 +235,27 @@ public class DefinitionGraphTests
         Assert.Contains("Npc.ambition", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("outflow", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void FindClosedLoops_FromTestDomain_FindsOnlyLoopsMeetingDistinctKindThreshold()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+
+        var loops = SemanticLoopAnalyzer.FindClosedLoops(graph, minDistinctKinds: 3, maxLength: 6);
+
+        Assert.NotEmpty(loops);
+        Assert.All(loops, loop => Assert.True(loop.DistinctKinds >= 3));
+    }
+
+    [Fact]
+    public void FindClosedLoops_FromTestDomain_FindsRepresentativeThreeKindLoop()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+
+        var loops = SemanticLoopAnalyzer.FindClosedLoops(graph, minDistinctKinds: 3, maxLength: 6);
+
+        Assert.Contains(
+            loops,
+            loop => loop.Signature == "Npc.satiety -> Settlement.security -> Region.regional_safety -> Npc.vitality");
+    }
 }
