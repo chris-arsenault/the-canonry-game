@@ -60,6 +60,18 @@ public partial class EntityBrowser : PanelContainer
         scroll.AddChild(_listContainer);
     }
 
+    private static string? FormatLastActionSubtitle(Entity entity, int currentTick)
+    {
+        if (entity.LastActionName is null || entity.LastActionTick is null)
+        {
+            return null;
+        }
+
+        var age = System.Math.Max(0, currentTick - entity.LastActionTick.Value);
+        var ageText = age == 0 ? "now" : $"{age}t ago";
+        return $"    {entity.LastActionName} · {ageText}";
+    }
+
     /// <summary>Rebuild the entity list from current simulation state.</summary>
     public void Refresh()
     {
@@ -93,10 +105,10 @@ public partial class EntityBrowser : PanelContainer
                 var entity = _sim.Graph.GetEntity(entityId);
                 if (entity is null) continue;
 
-                var statusColor = entity.Status == EntityStatus.Active ? "" : " [dead]";
+                var statusSuffix = entity.Status == EntityStatus.Active ? "" : " [dead]";
                 var btn = new Button
                 {
-                    Text = $"  {entity.Name}{statusColor}",
+                    Text = $"  {entity.Name}{statusSuffix}",
                     Alignment = HorizontalAlignment.Left,
                     Flat = true,
                 };
@@ -105,6 +117,18 @@ public partial class EntityBrowser : PanelContainer
                 btn.Pressed += () => EmitSignal(SignalName.EntitySelected, capturedId.Value);
                 _listContainer.AddChild(btn);
                 _entityButtons[entityId] = btn;
+
+                var subtitleText = FormatLastActionSubtitle(entity, _sim.Clock.CurrentTick);
+                if (subtitleText is not null)
+                {
+                    var subtitle = new Label
+                    {
+                        Text = subtitleText,
+                    };
+                    subtitle.AddThemeFontSizeOverride("font_size", 10);
+                    subtitle.AddThemeColorOverride("font_color", new Color(0.65f, 0.65f, 0.65f));
+                    _listContainer.AddChild(subtitle);
+                }
             }
         }
     }
