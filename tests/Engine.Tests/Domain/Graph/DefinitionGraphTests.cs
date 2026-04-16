@@ -142,19 +142,44 @@ public class DefinitionGraphTests
             .Select(stock => new
             {
                 Stock = stock,
-                Inflows = graph.SemanticFlows.Flows.Count(flow =>
-                    flow.TargetStock == stock && flow.Role == SemanticFlowRole.Inflow),
-                Outflows = graph.SemanticFlows.Flows.Count(flow =>
-                    flow.TargetStock == stock && flow.Role == SemanticFlowRole.Outflow),
+                Coverage = SemanticCoverageAnalyzer.Summarize(stock, graph.SemanticFlows),
             })
             .Where(entry =>
                 (entry.Stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
-                 entry.Inflows == 0) ||
+                 entry.Coverage.ScalarInflows == 0) ||
                 (entry.Stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
-                 entry.Outflows == 0))
+                 entry.Coverage.ScalarOutflows == 0) ||
+                (entry.Stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
+                 entry.Coverage.XInflows == 0) ||
+                (entry.Stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
+                 entry.Coverage.XOutflows == 0) ||
+                (entry.Stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
+                 entry.Coverage.YInflows == 0) ||
+                (entry.Stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
+                 entry.Coverage.YOutflows == 0))
             .ToList();
 
         Assert.Empty(uncovered);
+    }
+
+    [Fact]
+    public void Build_FromTestDomain_PlaneCoverageIsAxisAware()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var artifactResonance = Assert.Single(
+            graph.SemanticFlows.Stocks,
+            stock => stock.AttributeKey == new DefinitionAttributeKey(
+                EntityKind.Artifact,
+                new DefinitionAttributeId(TestDomainAttributeId.MysticResonance.ToDomainName())));
+
+        var coverage = SemanticCoverageAnalyzer.Summarize(artifactResonance, graph.SemanticFlows);
+
+        Assert.Equal(0, coverage.ScalarInflows);
+        Assert.Equal(0, coverage.ScalarOutflows);
+        Assert.Equal(0, coverage.XInflows);
+        Assert.Equal(0, coverage.XOutflows);
+        Assert.Equal(1, coverage.YInflows);
+        Assert.Equal(1, coverage.YOutflows);
     }
 
     [Fact]

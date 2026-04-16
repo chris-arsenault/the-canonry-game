@@ -157,8 +157,8 @@ public static class TestDomainSemanticDefinition
         Inflow(EntityKind.Artifact, Attr.Containment, Verb.ArtifactEnshrine, SemanticMechanism.Gate, "self; gate from settlement.prestige", Target(EntityKind.Settlement, Attr.Prestige)),
         Outflow(EntityKind.Artifact, Attr.Containment, Verb.ArtifactHeal, SemanticMechanism.Conversion, "self; conversion to NPC.vitality", Target(EntityKind.Npc, Attr.Vitality)),
         Outflow(EntityKind.Artifact, Attr.Containment, Verb.ArtifactEmanate, SemanticMechanism.Emanation, "self; emanation to region.res_x", Target(EntityKind.Region, Attr.MysticResonance)),
-        Inflow(EntityKind.Artifact, Attr.MysticResonance, Verb.ArtifactCleanse, SemanticMechanism.Shift, "self; shifts Res·Y UP → Purifying; plane-plane mutual with NPC.Ideo·Y", Target(EntityKind.Npc, Attr.CivicIdeology)),
-        Outflow(EntityKind.Artifact, Attr.MysticResonance, Verb.ArtifactPurify, SemanticMechanism.Shift, "self; shifts Res·Y DOWN → Corrupting; plane→polar, raises region.geologic_stability", Target(EntityKind.Region, Attr.GeologicStability)),
+        Inflow(EntityKind.Artifact, Attr.MysticResonance, Verb.ArtifactCleanse, SemanticMechanism.Shift, "self; shifts Res·Y UP → Purifying; plane-plane mutual with NPC.Ideo·Y", SemanticPlaneAxis.Y, Target(EntityKind.Npc, Attr.CivicIdeology)),
+        Outflow(EntityKind.Artifact, Attr.MysticResonance, Verb.ArtifactPurify, SemanticMechanism.Shift, "self; shifts Res·Y DOWN → Corrupting; plane→polar, raises region.geologic_stability", SemanticPlaneAxis.Y, Target(EntityKind.Region, Attr.GeologicStability)),
 
         Inflow(EntityKind.Faction, Attr.Cohesion, Verb.FactionTax, SemanticMechanism.Inflow, "self; inflow, rate modified by hex.wealth", Resource(Res.Wealth)),
         Inflow(EntityKind.Faction, Attr.Cohesion, Verb.FactionRally, SemanticMechanism.Conversion, "self; conversion from NPC.ideo_x", Target(EntityKind.Npc, Attr.CivicIdeology)),
@@ -171,9 +171,9 @@ public static class TestDomainSemanticDefinition
         Outflow(EntityKind.Faction, Attr.Influence, Verb.FactionAttract, SemanticMechanism.Conversion, "self; conversion to NPC.ambition", Target(EntityKind.Npc, Attr.Ambition)),
         Outflow(EntityKind.Faction, Attr.Influence, Verb.FactionPatrol, SemanticMechanism.Conversion, "self; conversion to settlement.security", Target(EntityKind.Settlement, Attr.Security)),
         Decay(EntityKind.Faction, Attr.Influence),
-        Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionConsecrate, SemanticMechanism.Shift, "self; shifts Ideo·X UP → Individualist; plane-plane mutual with Region.Res·X", Target(EntityKind.Region, Attr.MysticResonance)),
+        Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionConsecrate, SemanticMechanism.Shift, "self; shifts Ideo·X UP → Individualist; plane-plane mutual with Region.Res·X", SemanticPlaneAxis.X, Target(EntityKind.Region, Attr.MysticResonance)),
         Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "self/target; drift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
-        Outflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionRadicalize, SemanticMechanism.Shift, "self; shifts Ideo·X DOWN → Collectivist; polar→plane, depletes cohesion", Self(EntityKind.Faction, Attr.Cohesion)),
+        Outflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionRadicalize, SemanticMechanism.Shift, "self; shifts Ideo·X DOWN → Collectivist; polar→plane, depletes cohesion", SemanticPlaneAxis.X, Self(EntityKind.Faction, Attr.Cohesion)),
         Outflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "self/target; drift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
 
         Inflow(EntityKind.Npc, Attr.Vitality, Verb.ArtifactHeal, SemanticMechanism.Conversion, "target; conversion", Target(EntityKind.Artifact, Attr.Containment)),
@@ -186,12 +186,12 @@ public static class TestDomainSemanticDefinition
         Decay(EntityKind.Npc, Attr.Satiety),
         Inflow(EntityKind.Npc, Attr.Ambition, Verb.FactionAttract, SemanticMechanism.Conversion, "target; conversion from faction.influence", Target(EntityKind.Faction, Attr.Influence)),
         Outflow(EntityKind.Npc, Attr.Ambition, Verb.NpcCreateWorks, SemanticMechanism.Conversion, "self; conversion to settlement.prestige", Target(EntityKind.Settlement, Attr.Prestige)),
-        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.RegionAttune, SemanticMechanism.Shift, "target; shifts Ideo·X UP → Individualist; plane-plane", Target(EntityKind.Region, Attr.MysticResonance)),
-        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.ArtifactCleanse, SemanticMechanism.Shift, "target; shifts Ideo·Y UP → Progressive; plane-plane mutual with Res·Y", Target(EntityKind.Artifact, Attr.MysticResonance)),
+        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.RegionAttune, SemanticMechanism.Shift, "target; shifts Ideo·X UP → Individualist; plane-plane", SemanticPlaneAxis.X, Target(EntityKind.Region, Attr.MysticResonance)),
+        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.ArtifactCleanse, SemanticMechanism.Shift, "target; shifts Ideo·Y UP → Progressive; plane-plane mutual with Res·Y", SemanticPlaneAxis.Y, Target(EntityKind.Artifact, Attr.MysticResonance)),
         Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Settlement, Attr.CivicIdeology)),
         Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Faction, Attr.CivicIdeology)),
-        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionRally, SemanticMechanism.Shift, "target; shifts Ideo·X DOWN → Collectivist; plane→polar, raises faction.cohesion", Target(EntityKind.Faction, Attr.Cohesion)),
-        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.ArtifactDevote, SemanticMechanism.Shift, "target; shifts Ideo·X DOWN → Collectivist; plane→polar, raises artifact.power", Target(EntityKind.Artifact, Attr.Power)),
+        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionRally, SemanticMechanism.Shift, "target; shifts Ideo·X DOWN → Collectivist; plane→polar, raises faction.cohesion", SemanticPlaneAxis.X, Target(EntityKind.Faction, Attr.Cohesion)),
+        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.ArtifactDevote, SemanticMechanism.Shift, "target; shifts Ideo·X DOWN → Collectivist; plane→polar, raises artifact.power", SemanticPlaneAxis.X, Target(EntityKind.Artifact, Attr.Power)),
         Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Settlement, Attr.CivicIdeology)),
         Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Faction, Attr.CivicIdeology)),
 
@@ -201,9 +201,9 @@ public static class TestDomainSemanticDefinition
         Inflow(EntityKind.Region, Attr.GeologicStability, Verb.ArtifactPurify, SemanticMechanism.Emanation, "target; emanation from artifact.res_y", Target(EntityKind.Artifact, Attr.MysticResonance)),
         Outflow(EntityKind.Region, Attr.GeologicStability, Verb.RegionIrrigate, SemanticMechanism.Conversion, "self; conversion to hex.food", Resource(Res.Food)),
         Decay(EntityKind.Region, Attr.GeologicStability),
-        Inflow(EntityKind.Region, Attr.MysticResonance, Verb.FactionConsecrate, SemanticMechanism.Shift, "target; shifts Res·X UP → Resonant; plane-plane mutual with Faction.Ideo·X", Target(EntityKind.Faction, Attr.CivicIdeology)),
-        Inflow(EntityKind.Region, Attr.MysticResonance, Verb.ArtifactEmanate, SemanticMechanism.Shift, "target; shifts Res·X UP → Resonant; polar→plane, depletes artifact.containment", Target(EntityKind.Artifact, Attr.Containment)),
-        Outflow(EntityKind.Region, Attr.MysticResonance, Verb.RegionAttune, SemanticMechanism.Shift, "self; shifts Res·X DOWN → Quiescent; plane-plane, also shifts NPC.Ideo·X UP → Individualist", Target(EntityKind.Npc, Attr.CivicIdeology)),
+        Inflow(EntityKind.Region, Attr.MysticResonance, Verb.FactionConsecrate, SemanticMechanism.Shift, "target; shifts Res·X UP → Resonant; plane-plane mutual with Faction.Ideo·X", SemanticPlaneAxis.X, Target(EntityKind.Faction, Attr.CivicIdeology)),
+        Inflow(EntityKind.Region, Attr.MysticResonance, Verb.ArtifactEmanate, SemanticMechanism.Shift, "target; shifts Res·X UP → Resonant; polar→plane, depletes artifact.containment", SemanticPlaneAxis.X, Target(EntityKind.Artifact, Attr.Containment)),
+        Outflow(EntityKind.Region, Attr.MysticResonance, Verb.RegionAttune, SemanticMechanism.Shift, "self; shifts Res·X DOWN → Quiescent; plane-plane, also shifts NPC.Ideo·X UP → Individualist", SemanticPlaneAxis.X, Target(EntityKind.Npc, Attr.CivicIdeology)),
 
         Inflow(EntityKind.Settlement, Attr.Residents, Verb.SettlementGrow, SemanticMechanism.Inflow, "self; inflow, rate modified by hex.population", Resource(Res.Population)),
         Inflow(EntityKind.Settlement, Attr.Residents, Verb.SettlementAttract, SemanticMechanism.Conversion, "self; conversion from target settlement", Target(EntityKind.Settlement, Attr.Residents)),
@@ -292,6 +292,9 @@ public static class TestDomainSemanticDefinition
             AttributeName = A(attribute),
             StockClass = stockClass,
             FeedbackClass = feedbackClass,
+            RequiredFlowCoverage = stockClass == SemanticStockClass.Plane
+                ? SemanticFlowCoverageRequirement.None
+                : SemanticFlowCoverageRequirement.Both,
             BoundsLabel = boundsLabel,
             ConservationLabel = conservationLabel,
             Notes = notes,
@@ -326,7 +329,17 @@ public static class TestDomainSemanticDefinition
         SemanticMechanism mechanism,
         string signatureLabel,
         params AttributeRef[] sourceRefs) =>
-        Flow(kind, attribute, verb, SemanticFlowRole.Inflow, mechanism, signatureLabel, sourceRefs);
+        Flow(kind, attribute, verb, SemanticFlowRole.Inflow, mechanism, signatureLabel, SemanticPlaneAxis.None, sourceRefs);
+
+    private static SemanticFlowConfig Inflow(
+        EntityKind kind,
+        Attr attribute,
+        Verb verb,
+        SemanticMechanism mechanism,
+        string signatureLabel,
+        SemanticPlaneAxis planeAxis,
+        params AttributeRef[] sourceRefs) =>
+        Flow(kind, attribute, verb, SemanticFlowRole.Inflow, mechanism, signatureLabel, planeAxis, sourceRefs);
 
     private static SemanticFlowConfig Outflow(
         EntityKind kind,
@@ -335,7 +348,17 @@ public static class TestDomainSemanticDefinition
         SemanticMechanism mechanism,
         string signatureLabel,
         params AttributeRef[] sourceRefs) =>
-        Flow(kind, attribute, verb, SemanticFlowRole.Outflow, mechanism, signatureLabel, sourceRefs);
+        Flow(kind, attribute, verb, SemanticFlowRole.Outflow, mechanism, signatureLabel, SemanticPlaneAxis.None, sourceRefs);
+
+    private static SemanticFlowConfig Outflow(
+        EntityKind kind,
+        Attr attribute,
+        Verb verb,
+        SemanticMechanism mechanism,
+        string signatureLabel,
+        SemanticPlaneAxis planeAxis,
+        params AttributeRef[] sourceRefs) =>
+        Flow(kind, attribute, verb, SemanticFlowRole.Outflow, mechanism, signatureLabel, planeAxis, sourceRefs);
 
     private static SemanticFlowConfig Decay(EntityKind kind, Attr attribute) =>
         new()
@@ -354,6 +377,7 @@ public static class TestDomainSemanticDefinition
         SemanticFlowRole role,
         SemanticMechanism mechanism,
         string signatureLabel,
+        SemanticPlaneAxis planeAxis,
         params AttributeRef[] sourceRefs) =>
         new()
         {
@@ -361,6 +385,7 @@ public static class TestDomainSemanticDefinition
             Role = role,
             TargetKind = kind,
             TargetAttribute = A(attribute),
+            PlaneAxis = planeAxis,
             Mechanism = mechanism,
             SignatureLabel = signatureLabel,
             FormLabel = signatureLabel,

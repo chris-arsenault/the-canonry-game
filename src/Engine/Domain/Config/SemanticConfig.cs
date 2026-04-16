@@ -21,6 +21,10 @@ public sealed class SemanticStockConfig
     public required SemanticFeedbackClass FeedbackClass { get; init; }
     public SemanticFlowCoverageRequirement RequiredFlowCoverage { get; init; } =
         SemanticFlowCoverageRequirement.Both;
+    public SemanticFlowCoverageRequirement RequiredXFlowCoverage { get; init; } =
+        SemanticFlowCoverageRequirement.None;
+    public SemanticFlowCoverageRequirement RequiredYFlowCoverage { get; init; } =
+        SemanticFlowCoverageRequirement.None;
     public string? BoundsLabel { get; init; }
     public string? ConservationLabel { get; init; }
     public string? CoverageNotes { get; init; }
@@ -42,6 +46,7 @@ public sealed class SemanticFlowConfig
     public required SemanticFlowRole Role { get; init; }
     public required EntityKind TargetKind { get; init; }
     public required string TargetAttribute { get; init; }
+    public SemanticPlaneAxis PlaneAxis { get; init; } = SemanticPlaneAxis.None;
     public SemanticMechanism Mechanism { get; init; } = SemanticMechanism.Unknown;
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
     public string? SignatureLabel { get; init; }

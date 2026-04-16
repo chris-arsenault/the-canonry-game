@@ -146,6 +146,13 @@ public enum SemanticFlowCoverageRequirement
     Both = Inflow | Outflow,
 }
 
+public enum SemanticPlaneAxis
+{
+    None,
+    X,
+    Y,
+}
+
 public enum SemanticFunctionalForm
 {
     Unknown,
@@ -220,6 +227,10 @@ public sealed class SemanticStockNode
     public SemanticFeedbackClass FeedbackClass { get; init; } = SemanticFeedbackClass.Unknown;
     public SemanticFlowCoverageRequirement RequiredFlowCoverage { get; init; } =
         SemanticFlowCoverageRequirement.Both;
+    public SemanticFlowCoverageRequirement RequiredXFlowCoverage { get; init; } =
+        SemanticFlowCoverageRequirement.None;
+    public SemanticFlowCoverageRequirement RequiredYFlowCoverage { get; init; } =
+        SemanticFlowCoverageRequirement.None;
     public string? RawBounds { get; init; }
     public string? RawConservation { get; init; }
     public string? CoverageNotes { get; init; }
@@ -244,6 +255,7 @@ public sealed class SemanticFlowEdge
     public required SemanticVerbNode Verb { get; init; }
     public required SemanticFlowRole Role { get; init; }
     public required SemanticStockNode TargetStock { get; init; }
+    public SemanticPlaneAxis PlaneAxis { get; init; } = SemanticPlaneAxis.None;
     public string? RawSignature { get; init; }
     public string? RawForm { get; init; }
     public string? SourceWorksheet { get; init; }

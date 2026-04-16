@@ -250,23 +250,48 @@ public static class DefinitionGraphValidator
     {
         foreach (var stock in graph.SemanticFlows.Stocks)
         {
-            var inflowCount = graph.SemanticFlows.Flows.Count(flow =>
-                flow.TargetStock == stock && flow.Role == SemanticFlowRole.Inflow);
-            var outflowCount = graph.SemanticFlows.Flows.Count(flow =>
-                flow.TargetStock == stock && flow.Role == SemanticFlowRole.Outflow);
+            var coverage = SemanticCoverageAnalyzer.Summarize(stock, graph.SemanticFlows);
 
             if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
-                inflowCount == 0)
+                coverage.ScalarInflows == 0)
             {
                 errors.Add(
                     $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one inflow but none are declared.");
             }
 
             if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
-                outflowCount == 0)
+                coverage.ScalarOutflows == 0)
             {
                 errors.Add(
                     $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one outflow but none are declared.");
+            }
+
+            if (stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
+                coverage.XInflows == 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one X-axis inflow but none are declared.");
+            }
+
+            if (stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
+                coverage.XOutflows == 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one X-axis outflow but none are declared.");
+            }
+
+            if (stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
+                coverage.YInflows == 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one Y-axis inflow but none are declared.");
+            }
+
+            if (stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
+                coverage.YOutflows == 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one Y-axis outflow but none are declared.");
             }
         }
     }
