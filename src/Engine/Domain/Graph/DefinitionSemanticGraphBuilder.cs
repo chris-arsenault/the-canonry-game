@@ -135,8 +135,10 @@ public static class DefinitionSemanticGraphBuilder
                 AttributeKey = key,
                 StockClass = config.StockClass,
                 FeedbackClass = config.FeedbackClass,
+                RequiredFlowCoverage = config.RequiredFlowCoverage,
                 RawBounds = config.BoundsLabel,
                 RawConservation = config.ConservationLabel,
+                CoverageNotes = config.CoverageNotes,
                 Notes = config.Notes,
             };
 

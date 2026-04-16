@@ -19,8 +19,11 @@ public sealed class SemanticStockConfig
     public required string AttributeName { get; init; }
     public required SemanticStockClass StockClass { get; init; }
     public required SemanticFeedbackClass FeedbackClass { get; init; }
+    public SemanticFlowCoverageRequirement RequiredFlowCoverage { get; init; } =
+        SemanticFlowCoverageRequirement.Both;
     public string? BoundsLabel { get; init; }
     public string? ConservationLabel { get; init; }
+    public string? CoverageNotes { get; init; }
     public string? Notes { get; init; }
 }
 

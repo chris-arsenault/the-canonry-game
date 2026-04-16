@@ -132,4 +132,82 @@ public class DefinitionGraphTests
                              new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())) &&
                          reference.MatchesDefinitionGraph);
     }
+
+    [Fact]
+    public void Build_FromTestDomain_AllSemanticStocksSatisfyRequiredFlowCoverage()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+
+        var uncovered = graph.SemanticFlows.Stocks
+            .Select(stock => new
+            {
+                Stock = stock,
+                Inflows = graph.SemanticFlows.Flows.Count(flow =>
+                    flow.TargetStock == stock && flow.Role == SemanticFlowRole.Inflow),
+                Outflows = graph.SemanticFlows.Flows.Count(flow =>
+                    flow.TargetStock == stock && flow.Role == SemanticFlowRole.Outflow),
+            })
+            .Where(entry =>
+                (entry.Stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
+                 entry.Inflows == 0) ||
+                (entry.Stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
+                 entry.Outflows == 0))
+            .ToList();
+
+        Assert.Empty(uncovered);
+    }
+
+    [Fact]
+    public void Build_SemanticStockMissingRequiredOutflow_Throws()
+    {
+        var config = TestDomainDefinition.Create();
+        var semantics = config.Semantics!;
+        var brokenStocks = semantics.Stocks
+            .Select(stock =>
+                stock.Kind == EntityKind.Npc &&
+                stock.AttributeName == TestDomainAttributeId.Ambition.ToDomainName()
+                    ? new SemanticStockConfig
+                    {
+                        Kind = stock.Kind,
+                        AttributeName = stock.AttributeName,
+                        StockClass = stock.StockClass,
+                        FeedbackClass = stock.FeedbackClass,
+                        RequiredFlowCoverage = SemanticFlowCoverageRequirement.Both,
+                        BoundsLabel = stock.BoundsLabel,
+                        ConservationLabel = stock.ConservationLabel,
+                        CoverageNotes = stock.CoverageNotes,
+                        Notes = stock.Notes,
+                    }
+                    : stock)
+            .ToList();
+        var brokenFlows = semantics.Flows
+            .Where(flow =>
+                !(flow.TargetKind == EntityKind.Npc &&
+                  flow.TargetAttribute == TestDomainAttributeId.Ambition.ToDomainName() &&
+                  flow.Role == SemanticFlowRole.Outflow))
+            .ToList();
+
+        var brokenConfig = new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Processes = config.Processes,
+            Relationships = config.Relationships,
+            Pressures = config.Pressures,
+            Lifecycles = config.Lifecycles,
+            Resources = config.Resources,
+            Cultures = config.Cultures,
+            Semantics = new SemanticDomainConfig
+            {
+                Stocks = brokenStocks,
+                Verbs = semantics.Verbs,
+                Flows = brokenFlows,
+                Modifiers = semantics.Modifiers,
+                ProcessReferences = semantics.ProcessReferences,
+            },
+        };
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
+        Assert.Contains("Npc.ambition", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("outflow", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

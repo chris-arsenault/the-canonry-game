@@ -137,6 +137,15 @@ public enum SemanticFlowRole
     Outflow,
 }
 
+[Flags]
+public enum SemanticFlowCoverageRequirement
+{
+    None = 0,
+    Inflow = 1,
+    Outflow = 2,
+    Both = Inflow | Outflow,
+}
+
 public enum SemanticFunctionalForm
 {
     Unknown,
@@ -209,8 +218,11 @@ public sealed class SemanticStockNode
     public required DefinitionAttributeKey AttributeKey { get; init; }
     public SemanticStockClass StockClass { get; init; } = SemanticStockClass.Unknown;
     public SemanticFeedbackClass FeedbackClass { get; init; } = SemanticFeedbackClass.Unknown;
+    public SemanticFlowCoverageRequirement RequiredFlowCoverage { get; init; } =
+        SemanticFlowCoverageRequirement.Both;
     public string? RawBounds { get; init; }
     public string? RawConservation { get; init; }
+    public string? CoverageNotes { get; init; }
     public string? Notes { get; init; }
     public string? SourceWorksheet { get; init; }
     public int SourceRow { get; init; }

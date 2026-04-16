@@ -63,6 +63,8 @@ public static class DefinitionGraphValidator
             }
         }
 
+        ValidateSemanticFlows(graph, errors);
+
         return errors;
     }
 
@@ -241,6 +243,31 @@ public static class DefinitionGraphValidator
         {
             errors.Add(
                 $"Definition ref on '{ownerId}' points to missing self attribute '{kind}.{attributeValue.AttributeId}'.");
+        }
+    }
+
+    private static void ValidateSemanticFlows(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var stock in graph.SemanticFlows.Stocks)
+        {
+            var inflowCount = graph.SemanticFlows.Flows.Count(flow =>
+                flow.TargetStock == stock && flow.Role == SemanticFlowRole.Inflow);
+            var outflowCount = graph.SemanticFlows.Flows.Count(flow =>
+                flow.TargetStock == stock && flow.Role == SemanticFlowRole.Outflow);
+
+            if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
+                inflowCount == 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one inflow but none are declared.");
+            }
+
+            if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
+                outflowCount == 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one outflow but none are declared.");
+            }
         }
     }
 }
