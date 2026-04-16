@@ -1,6 +1,7 @@
 namespace Engine.Tests.Lifecycle;
 
-using Engine.Domain;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Tests.Behaviors;
@@ -10,7 +11,7 @@ public class CriticalAttributeEffectSystemTests
     [Fact]
     public void UpdateEffects_CriticalSatietyAppliesConfiguredVitalityPenalty()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
@@ -30,7 +31,7 @@ public class CriticalAttributeEffectSystemTests
     [Fact]
     public void UpdateEffects_NonCriticalSatietyDoesNotApplyConfiguredVitalityPenalty()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));

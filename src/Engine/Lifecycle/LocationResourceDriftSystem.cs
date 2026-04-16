@@ -1,7 +1,7 @@
 namespace Engine.Lifecycle;
 
 using Engine.Attributes;
-using Engine.Domain;
+using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Resources;
 

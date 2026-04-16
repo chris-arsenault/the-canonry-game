@@ -2,7 +2,7 @@ namespace Engine.Tests.Behaviors;
 
 using Engine.Attributes;
 using Engine.Behaviors;
-using Engine.Domain;
+using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;

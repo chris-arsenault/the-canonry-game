@@ -1,4 +1,4 @@
-namespace Engine.Domain;
+namespace Engine.Domain.Config;
 
 using Engine.Kinds;
 using Engine.Wiring;
@@ -125,7 +125,7 @@ public sealed class CriticalEffectConfig
 public sealed class RelationshipConfig
 {
     public required string Name { get; init; }
-    public required Graph.RelationshipPolarity Polarity { get; init; }
+    public required Engine.Graph.RelationshipPolarity Polarity { get; init; }
     public required IReadOnlySet<EntityCategory> ValidSourceCategories { get; init; }
     public required IReadOnlySet<EntityCategory> ValidTargetCategories { get; init; }
     public bool IsSymmetric { get; init; }
@@ -137,7 +137,7 @@ public sealed class RelationshipConfig
 public sealed class PressureConfig
 {
     public required string Name { get; init; }
-    public required Pressure.PressureScope Scope { get; init; }
+    public required Engine.Pressure.PressureScope Scope { get; init; }
     public float Baseline { get; init; }
     public float HomeostasisRate { get; init; } = 0.1f;
     public float SmoothingFactor { get; init; } = 0.3f;

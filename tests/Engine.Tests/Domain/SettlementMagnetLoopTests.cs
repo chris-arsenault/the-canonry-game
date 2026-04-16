@@ -1,7 +1,9 @@
 namespace Engine.Tests.Domain;
 
 using Engine.Behaviors;
-using Engine.Domain;
+using Engine.Domain.Config;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -15,7 +17,7 @@ public class SettlementMagnetLoopTests
     [Fact]
     public void TestDomain_NpcCreateWorksRaisesSettlementPrestigeAndFactionSupport()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
         var faction = world.Graph.CreateEntity(EntityKind.Faction, "league", "League", "c", 0, null);
@@ -43,7 +45,7 @@ public class SettlementMagnetLoopTests
     [Fact]
     public void TestDomain_FactionPatrolRaisesSettlementSecurityAndRegionalSafety()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var region = world.Graph.CreateEntity(EntityKind.Region, "plains", "Region", "c", 0, null);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
@@ -72,7 +74,7 @@ public class SettlementMagnetLoopTests
     [Fact]
     public void TestDomain_UnsafeRegionFormsMilitiaAcrossContainedSettlements()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var region = world.Graph.CreateEntity(EntityKind.Region, "plains", "Region", "c", 0, null);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));

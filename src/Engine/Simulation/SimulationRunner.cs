@@ -6,6 +6,9 @@ using Engine.Cards;
 using Engine.Processes;
 using Engine.Clock;
 using Engine.Degeneracy;
+using Engine.Domain.Config;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Events;
 using Engine.Graph;
 using Engine.Kinds;
@@ -96,7 +99,7 @@ public sealed class SimulationRunner
     /// </summary>
     public static SimulationRunner CreateFromTestMap()
     {
-        return CreateFromDomain(Domain.TestDomain.Create());
+        return CreateFromDomain(TestDomainDefinition.Create());
     }
 
     /// <summary>
@@ -104,7 +107,7 @@ public sealed class SimulationRunner
     /// entity kinds, subtypes, attributes, relationships, pressures, and lifecycles.
     /// The engine provides the framework; the domain provides the content.
     /// </summary>
-    public static SimulationRunner CreateFromDomain(Domain.DomainConfig domainConfig)
+    public static SimulationRunner CreateFromDomain(DomainConfig domainConfig)
     {
         ArgumentNullException.ThrowIfNull(domainConfig);
 
@@ -120,14 +123,14 @@ public sealed class SimulationRunner
         spatialIndex.RebuildFromGraph();
 
         // Load domain into engine systems
-        var kindRegistry = Domain.DomainLoader.LoadKindRegistry(domainConfig);
-        Domain.DomainLoader.InitializeEntityAttributes(graph, domainConfig);
+        var kindRegistry = DomainLoader.LoadKindRegistry(domainConfig);
+        DomainLoader.InitializeEntityAttributes(graph, domainConfig);
 
         // Message bus
         var messageBus = new MessageBus();
 
         // Wiring validation: check domain coherence before starting
-        var wiringValidator = Domain.DomainLoader.LoadAndValidateWiring(domainConfig);
+        var wiringValidator = DomainLoader.LoadAndValidateWiring(domainConfig);
         var wiringErrors = wiringValidator.Validate();
         // Log warnings but don't block startup (test domain has minimal wiring)
         foreach (var error in wiringErrors)
@@ -137,7 +140,7 @@ public sealed class SimulationRunner
 
         // Three-layer behavioral model: ALL processes are data-defined in domain config
         var behaviorDefinitions = new BehaviorDefinitionIndex();
-        Domain.DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions);
+        DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions);
         var goalGenerator = new Behaviors.GoalGenerator(domainConfig.Kinds, domainConfig.Processes);
         var evaluator = new EntityEvaluator(behaviorDefinitions, messageBus, goalGenerator: goalGenerator);
 
@@ -148,7 +151,7 @@ public sealed class SimulationRunner
         relationships.AddModifier(new NeglectModifier());
 
         // Lifecycle from domain config — register drain tick effects on all entities
-        var lifecycleConfig = Domain.DomainLoader.LoadLifecycleConfig(domainConfig);
+        var lifecycleConfig = DomainLoader.LoadLifecycleConfig(domainConfig);
         var lifecycle = new LifecycleSystem(graph, lifecycleConfig);
         lifecycle.InitializeEffects();
 
@@ -160,7 +163,7 @@ public sealed class SimulationRunner
 
         // Pressure from domain config
         var pressure = new PressureSystem();
-        foreach (var def in Domain.DomainLoader.LoadPressureDefinitions(domainConfig))
+        foreach (var def in DomainLoader.LoadPressureDefinitions(domainConfig))
         {
             pressure.RegisterDefinition(def);
         }

@@ -329,8 +329,8 @@ public class WiringValidatorTests
     [Fact]
     public void TestDomain_WiringValidation_ReportsKnownGaps()
     {
-        var config = Engine.Domain.TestDomain.Create();
-        var validator = Engine.Domain.DomainLoader.LoadAndValidateWiring(config);
+        var config = Engine.Domain.TestDomain.TestDomainDefinition.Create();
+        var validator = Engine.Domain.Loader.DomainLoader.LoadAndValidateWiring(config);
         var errors = validator.Validate();
 
         // Known gaps — real processes are WIP. Just verify no unexpected error types.

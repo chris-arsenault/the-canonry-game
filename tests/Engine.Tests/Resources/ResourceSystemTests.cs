@@ -1,6 +1,7 @@
 namespace Engine.Tests.Resources;
 
-using Engine.Domain;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -169,7 +170,7 @@ public class ResourceSystemTests
     {
         var world = TestMapBuilder.BuildDefault(seed: 42);
 
-        DomainLoader.InitializeEntityAttributes(world.Graph, TestDomain.Create(), new Random(42));
+        DomainLoader.InitializeEntityAttributes(world.Graph, TestDomainDefinition.Create(), new Random(42));
 
         var system = new ResourceSystem(world.Graph, world.Grid);
         return (system, world.Graph, world.Grid);

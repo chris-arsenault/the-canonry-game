@@ -1,7 +1,9 @@
 namespace Engine.Tests.Domain;
 
 using Engine.Behaviors;
-using Engine.Domain;
+using Engine.Domain.Config;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -16,7 +18,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_HungryNpcGeneratesEatPlanWithMoveSubGoal()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (2, 0));
@@ -40,7 +42,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_HungryNpcMovesTowardEatingSettlement()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (2, 0));
@@ -61,7 +63,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_HungryNpcEatsAtFoodRichSettlement()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (0, 0));
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
@@ -83,7 +85,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_HungryNpcKeepsPreviousEatTargetWhenAlternativeIsOnlySlightlyBetter()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (1, 0));
         var current = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Current", "c", 0, (0, 0));
@@ -119,7 +121,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_HighSatietyNpcDoesNotGenerateEatPlanPrematurely()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Target", "c", 0, (2, 0));
@@ -139,7 +141,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_CalmNpcWandersEvenWhenSettlementExists()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Home", "c", 0, (0, 0));
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
@@ -160,7 +162,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_NpcWandersWhenNoNamedPlacesExist()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5);
         var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
@@ -178,7 +180,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_LowFoodSettlementIrrigatesBeforeGrowing()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
@@ -198,7 +200,7 @@ public class NpcLoopDomainTests
     [Fact]
     public void TestDomain_HealthySettlementGrowsDirectly()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var world = new StubWorldState(gridRadius: 5, withResources: true);
         var settlement = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
         DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));

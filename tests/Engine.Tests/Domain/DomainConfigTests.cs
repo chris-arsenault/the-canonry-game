@@ -1,6 +1,7 @@
 namespace Engine.Tests.Domain;
 
-using Engine.Domain;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Kinds;
 using Engine.Simulation;
 
@@ -9,7 +10,7 @@ public class DomainConfigTests
     [Fact]
     public void TestDomain_CreatesValidConfig()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
 
         Assert.Equal(5, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
@@ -22,7 +23,7 @@ public class DomainConfigTests
     [Fact]
     public void TestDomain_AllMvpKindsPresent()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
 
         Assert.Contains(EntityKind.Region, config.Kinds.Keys);
         Assert.Contains(EntityKind.Settlement, config.Kinds.Keys);
@@ -34,7 +35,7 @@ public class DomainConfigTests
     [Fact]
     public void TestDomain_KindsHaveSubtypes()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
@@ -45,7 +46,7 @@ public class DomainConfigTests
     [Fact]
     public void TestDomain_KindsHaveAttributes()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
@@ -56,7 +57,7 @@ public class DomainConfigTests
     [Fact]
     public void TestDomain_NonRegionKindsHaveHealthAttribute()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
 
         foreach (var (kind, kindConfig) in config.Kinds)
         {
@@ -74,7 +75,7 @@ public class DomainConfigTests
     [Fact]
     public void DomainLoader_CreatesKindRegistry()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var registry = DomainLoader.LoadKindRegistry(config);
 
         Assert.NotNull(registry.GetKindDefinition(EntityKind.Settlement));
@@ -85,7 +86,7 @@ public class DomainConfigTests
     [Fact]
     public void DomainLoader_CreatesLifecycleConfig()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var lifecycleConfig = DomainLoader.LoadLifecycleConfig(config);
 
         Assert.True(lifecycleConfig.HasConfig(EntityKind.Npc));
@@ -96,7 +97,7 @@ public class DomainConfigTests
     [Fact]
     public void DomainLoader_CreatesPressureDefinitions()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var pressures = DomainLoader.LoadPressureDefinitions(config).ToList();
 
         Assert.Equal(4, pressures.Count);
@@ -105,7 +106,7 @@ public class DomainConfigTests
     [Fact]
     public void SimulationRunner_CreateFromDomain_Works()
     {
-        var config = TestDomain.Create();
+        var config = TestDomainDefinition.Create();
         var sim = SimulationRunner.CreateFromDomain(config);
 
         Assert.NotNull(sim);

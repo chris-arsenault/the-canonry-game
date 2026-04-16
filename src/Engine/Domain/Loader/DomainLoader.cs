@@ -1,6 +1,8 @@
-namespace Engine.Domain;
+namespace Engine.Domain.Loader;
 
 using Engine.Behaviors;
+using Engine.Domain.Config;
+using Engine.Domain.Graph;
 using Engine.Processes;
 using Engine.Kinds;
 using Engine.Lifecycle;
@@ -13,6 +15,10 @@ using Engine.Wiring;
 /// </summary>
 public static class DomainLoader
 {
+    /// <summary>Build a typed domain definition graph for validation and higher-order reasoning.</summary>
+    public static DefinitionGraph BuildDefinitionGraph(DomainConfig config) =>
+        DefinitionGraphBuilder.Build(config);
+
     /// <summary>Build a KindRegistry from domain config.</summary>
     public static KindRegistry LoadKindRegistry(DomainConfig config)
     {
@@ -49,11 +55,11 @@ public static class DomainLoader
     }
 
     /// <summary>Build a LifecycleConfig from domain config.</summary>
-    public static Lifecycle.LifecycleConfig LoadLifecycleConfig(DomainConfig config)
+    public static Engine.Lifecycle.LifecycleConfig LoadLifecycleConfig(DomainConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
 
-        var lifecycleConfig = new Lifecycle.LifecycleConfig();
+        var lifecycleConfig = new Engine.Lifecycle.LifecycleConfig();
 
         foreach (var (kind, lc) in config.Lifecycles)
         {
@@ -129,7 +135,7 @@ public static class DomainLoader
     /// <summary>Initialize attributes for all entities in the graph from domain config.
     /// Creates ScalarAttributes on entities with drift effects.</summary>
     public static void InitializeEntityAttributes(
-        Graph.WorldGraph graph, DomainConfig config, Random? random = null)
+        Engine.Graph.WorldGraph graph, DomainConfig config, Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(config);

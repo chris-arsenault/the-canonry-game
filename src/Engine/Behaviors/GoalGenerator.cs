@@ -1,6 +1,6 @@
 namespace Engine.Behaviors;
 
-using Engine.Domain;
+using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Processes;

@@ -1,4 +1,4 @@
-namespace Engine.Domain;
+namespace Engine.Domain.Config;
 
 /// <summary>
 /// Shared semantics for bounded 0-100 scalar attributes where higher is better and

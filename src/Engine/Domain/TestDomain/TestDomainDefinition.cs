@@ -1,5 +1,6 @@
-namespace Engine.Domain;
+namespace Engine.Domain.TestDomain;
 
+using Engine.Domain.Config;
 using Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
@@ -12,7 +13,7 @@ using Engine.Wiring;
 /// All values that were previously hard-coded in Default*.cs files live here.
 /// Swap this with a real domain (The Ice Remembers) in Phase 2.
 /// </summary>
-public static class TestDomain
+public static class TestDomainDefinition
 {
     public static DomainConfig Create()
     {
@@ -521,9 +522,9 @@ public static class TestDomain
         ];
     }
 
-    private static Dictionary<EntityKind, Domain.LifecycleConfig> CreateLifecycles()
+    private static Dictionary<EntityKind, LifecycleConfig> CreateLifecycles()
     {
-        return new Dictionary<EntityKind, Domain.LifecycleConfig>
+        return new Dictionary<EntityKind, LifecycleConfig>
         {
             [EntityKind.Settlement] = new() { HealthAttribute = "residents", BaseRate = 0.002f, AgeCoefficient = 0.00008f },
             [EntityKind.Faction] = new() { HealthAttribute = "cohesion", BaseRate = 0.01f, AgeCoefficient = 0.00005f },
