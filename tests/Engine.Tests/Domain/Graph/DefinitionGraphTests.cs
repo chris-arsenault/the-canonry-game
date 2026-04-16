@@ -1,5 +1,6 @@
 namespace Engine.Tests.Domain.Graph;
 
+using System.IO;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
@@ -98,5 +99,49 @@ public class DefinitionGraphTests
         var graph = DomainLoader.BuildDefinitionGraph(badConfig);
 
         Assert.Contains(new DefinitionResourceId("manna"), graph.Resources.Keys);
+    }
+
+    [Fact]
+    public void Build_WithSemanticWorksheets_ImportsTypedStocksAndDiagnostics()
+    {
+        var repoRoot = FindRepoRoot();
+        var worksheetDir = Path.Combine(repoRoot, "docs", "entities", "worksheets");
+
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create(), worksheetDir);
+
+        Assert.Equal(19, graph.SemanticFlows.Stocks.Count);
+        Assert.Contains(
+            graph.SemanticFlows.Verbs,
+            verb => verb.Id == "settlement_grow");
+        Assert.Contains(
+            graph.SemanticFlows.Verbs,
+            verb => verb.Id == "engine_decay" && verb.OwnerType == SemanticOwnerType.Engine);
+        Assert.Contains(
+            graph.SemanticFlows.ProcessReferences,
+            reference => reference.ProcessId == "npc_eat" &&
+                         reference.Kind == SemanticProcessReferenceKind.Reads &&
+                         reference.TargetStock.AttributeKey == new DefinitionAttributeKey(
+                             EntityKind.Npc,
+                             new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())));
+        Assert.NotEmpty(graph.SemanticFlows.Diagnostics);
+        Assert.Contains(
+            graph.SemanticFlows.Diagnostics,
+            diagnostic => diagnostic.Code == "future_process_reference");
+    }
+
+    private static string FindRepoRoot()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "TheCanonryGame.slnx")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository root from test base directory.");
     }
 }

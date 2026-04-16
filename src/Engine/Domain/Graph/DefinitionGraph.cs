@@ -123,9 +123,12 @@ public sealed record TypedDefinitionRef(
 public sealed class SemanticFlowGraph
 {
     public ICollection<SemanticStockNode> Stocks { get; } = [];
+    public ICollection<SemanticVerbNode> Verbs { get; } = [];
     public ICollection<SemanticFlowEdge> Flows { get; } = [];
     public ICollection<SemanticModifierEdge> Modifiers { get; } = [];
     public ICollection<SemanticCouplingEdge> Couplings { get; } = [];
+    public ICollection<SemanticProcessReference> ProcessReferences { get; } = [];
+    public ICollection<SemanticImportDiagnostic> Diagnostics { get; } = [];
 }
 
 public enum SemanticFlowRole
@@ -145,18 +148,94 @@ public enum SemanticFunctionalForm
     Event,
 }
 
+public enum SemanticStockClass
+{
+    Unknown,
+    Anchor,
+    Free,
+    Plane,
+}
+
+public enum SemanticFeedbackClass
+{
+    Unknown,
+    Anchor,
+    Balancing,
+    Drift,
+}
+
+public enum SemanticMechanism
+{
+    Unknown,
+    Inflow,
+    Conversion,
+    Gate,
+    Drift,
+    Emanation,
+    Sacrifice,
+    Shift,
+}
+
+public enum SemanticOwnerType
+{
+    Unknown,
+    Entity,
+    Engine,
+}
+
+public enum SemanticModifierDirection
+{
+    Unknown,
+    Positive,
+    Negative,
+}
+
+public enum SemanticProcessReferenceKind
+{
+    Reads,
+    DirectWrites,
+    IndirectWrites,
+}
+
+public enum SemanticDiagnosticSeverity
+{
+    Info,
+    Warning,
+    Error,
+}
+
 public sealed class SemanticStockNode
 {
     public required DefinitionAttributeKey AttributeKey { get; init; }
-    public DefinitionConservationClass Conservation { get; init; } = DefinitionConservationClass.Unspecified;
+    public SemanticStockClass StockClass { get; init; } = SemanticStockClass.Unknown;
+    public SemanticFeedbackClass FeedbackClass { get; init; } = SemanticFeedbackClass.Unknown;
+    public string? RawBounds { get; init; }
+    public string? RawConservation { get; init; }
+    public string? Notes { get; init; }
+    public string? SourceWorksheet { get; init; }
+    public int SourceRow { get; init; }
+}
+
+public sealed class SemanticVerbNode
+{
+    public required string Id { get; init; }
+    public SemanticOwnerType OwnerType { get; init; } = SemanticOwnerType.Unknown;
+    public EntityKind? OwnerKind { get; init; }
+    public DefinitionProcessNode? ImplementedProcess { get; init; }
+    public bool IsImplementedProcess => ImplementedProcess is not null;
 }
 
 public sealed class SemanticFlowEdge
 {
     public required string Id { get; init; }
+    public required SemanticVerbNode Verb { get; init; }
     public required SemanticFlowRole Role { get; init; }
-    public required EntityKind OwnerKind { get; init; }
     public required SemanticStockNode TargetStock { get; init; }
+    public string? RawSignature { get; init; }
+    public string? RawForm { get; init; }
+    public string? SourceWorksheet { get; init; }
+    public int SourceRow { get; init; }
+    public SemanticMechanism Mechanism { get; init; } = SemanticMechanism.Unknown;
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
 }
 
@@ -164,7 +243,12 @@ public sealed class SemanticModifierEdge
 {
     public required string Id { get; init; }
     public required SemanticStockNode SourceStock { get; init; }
-    public required SemanticFlowEdge TargetFlow { get; init; }
+    public required string TargetVerbId { get; init; }
+    public SemanticVerbNode? TargetVerb { get; init; }
+    public string? RawForm { get; init; }
+    public string? SourceWorksheet { get; init; }
+    public int SourceRow { get; init; }
+    public SemanticModifierDirection Direction { get; init; } = SemanticModifierDirection.Unknown;
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
 }
 
@@ -173,4 +257,27 @@ public sealed class SemanticCouplingEdge
     public required string Id { get; init; }
     public required SemanticStockNode SourceStock { get; init; }
     public required SemanticStockNode TargetStock { get; init; }
+    public string? RawDescription { get; init; }
+    public string? SourceWorksheet { get; init; }
+    public int SourceRow { get; init; }
+}
+
+public sealed class SemanticProcessReference
+{
+    public required string ProcessId { get; init; }
+    public required SemanticProcessReferenceKind Kind { get; init; }
+    public required SemanticStockNode TargetStock { get; init; }
+    public DefinitionProcessNode? ResolvedProcess { get; init; }
+    public bool MatchesDefinitionGraph { get; init; }
+    public string? SourceWorksheet { get; init; }
+    public int SourceRow { get; init; }
+}
+
+public sealed class SemanticImportDiagnostic
+{
+    public required SemanticDiagnosticSeverity Severity { get; init; }
+    public required string Code { get; init; }
+    public required string Message { get; init; }
+    public string? SourceWorksheet { get; init; }
+    public int? SourceRow { get; init; }
 }
