@@ -7,49 +7,49 @@ This is an inventory page, not a design-spec page.
 
 ## Region
 
-- `regional_safety`
-- `geologic_stability`
-- `mystic_resonance`
+- `regional_safety` — scalar
+- `geologic_stability` — scalar
+- `mystic_resonance` — 2D
 
 Health attribute:
 - none
 
 ## Settlement
 
-- `residents`
-- `security`
-- `prestige`
-- `civic_ideology`
+- `residents` — scalar
+- `security` — scalar
+- `prestige` — scalar
+- `civic_ideology` — 2D
 
 Health attribute:
 - `residents`
 
 ## Faction
 
-- `cohesion`
-- `support`
-- `influence`
-- `civic_ideology`
+- `cohesion` — scalar
+- `support` — scalar
+- `influence` — scalar
+- `civic_ideology` — 2D
 
 Health attribute:
 - `cohesion`
 
 ## Npc
 
-- `vitality`
-- `satiety`
-- `ambition`
-- `civic_ideology`
+- `vitality` — scalar
+- `satiety` — scalar
+- `ambition` — scalar
+- `civic_ideology` — 2D
 
 Health attribute:
 - `vitality`
 
 ## Artifact
 
-- `condition`
-- `power`
-- `containment`
-- `mystic_resonance`
+- `condition` — scalar
+- `power` — scalar
+- `containment` — scalar
+- `mystic_resonance` — 2D
 
 Health attribute:
 - `condition`
