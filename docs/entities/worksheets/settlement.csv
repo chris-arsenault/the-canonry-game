@@ -1,0 +1,5 @@
+Entity Kind,Attribute,Bounds,Conservation,Named Inflows (signature; form),Named Outflows (signature; form),Rate Modulators (flow -> direction; form),Feedback Class,Existing Processes (reads),Existing Processes (direct writes),Existing Processes (indirect writes),Notes
+Settlement,residents,,,,,,,"settlement_attract (self/target); npc_eat (target); npc_create_works (target); faction_patrol (target)","settlement_grow (self); settlement_attract (self/target)",,
+Settlement,security,,,,,,,"npc_create_works (target); faction_patrol (target)","faction_patrol (target)","region_form_militia (contained settlements via contains)",,
+Settlement,prestige,,,,,,,"settlement_attract (self/target); npc_eat (target); npc_create_works (target); faction_patrol (target)","npc_eat (target); npc_create_works (target)",,
+Settlement,civic_ideology,,,,,,,"settlement_propaganda (self/target); settlement_attract (target)","settlement_propaganda (target)",,

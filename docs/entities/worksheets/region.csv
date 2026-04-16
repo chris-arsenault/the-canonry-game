@@ -1,0 +1,4 @@
+Entity Kind,Attribute,Bounds,Conservation,Named Inflows (signature; form),Named Outflows (signature; form),Rate Modulators (flow -> direction; form),Feedback Class,Existing Processes (reads),Existing Processes (direct writes),Existing Processes (indirect writes),Notes
+Region,regional_safety,,,,,,,"region_form_militia (self)","region_form_militia (self)","faction_patrol (containing region via contains)",,
+Region,geologic_stability,,,,,,,"region_form_militia (self)",,,,
+Region,mystic_resonance,,,,,,,,,,

@@ -1,0 +1,5 @@
+Entity Kind,Attribute,Bounds,Conservation,Named Inflows (signature; form),Named Outflows (signature; form),Rate Modulators (flow -> direction; form),Feedback Class,Existing Processes (reads),Existing Processes (direct writes),Existing Processes (indirect writes),Notes
+Faction,cohesion,,,,,,,,,,
+Faction,support,,,,,,,"faction_patrol (self)","faction_patrol (self)","npc_create_works (loyal faction via loyal_to)",,
+Faction,influence,,,,,,,"faction_patrol (self)","faction_patrol (self)",,
+Faction,civic_ideology,,,,,,,,,,

@@ -1,0 +1,5 @@
+Entity Kind,Attribute,Bounds,Conservation,Named Inflows (signature; form),Named Outflows (signature; form),Rate Modulators (flow -> direction; form),Feedback Class,Existing Processes (reads),Existing Processes (direct writes),Existing Processes (indirect writes),Notes
+Npc,vitality,,,,,,,,,,
+Npc,satiety,,,,,,,"npc_eat (self); npc_wander (self); npc_create_works (self)","npc_eat (self); npc_create_works (self)",,
+Npc,ambition,,,,,,,,,,
+Npc,civic_ideology,,,,,,,,,,
