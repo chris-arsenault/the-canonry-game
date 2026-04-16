@@ -7,13 +7,16 @@ using Godot;
 
 using Engine.Attributes;
 using Engine.Graph;
+using Engine.Kinds;
 using Engine.Simulation;
 
 namespace TheCanonryGame.UI;
 
 /// <summary>
-/// Multi-series graph panel. Up to three (entity, attribute) pairs plotted against time.
-/// History is captured here each tick — no engine dependency on per-attribute queues.
+/// Multi-series graph panel. Up to three (EntityKind, attribute) pairs plotted against time.
+/// Each configured slot draws one line per live entity of that kind that has the attribute,
+/// all sharing the slot's palette color. History is captured here each tick — no engine
+/// dependency on per-attribute queues.
 /// </summary>
 #pragma warning disable CA2213 // Godot nodes managed by scene tree
 public partial class AttributeGraphPanel : PanelContainer
@@ -23,31 +26,33 @@ public partial class AttributeGraphPanel : PanelContainer
 
     private static readonly Color[] Palette =
     [
-        new(0.9f, 0.3f, 0.3f),
-        new(0.3f, 0.7f, 0.95f),
-        new(0.35f, 0.9f, 0.45f),
+        new(0.9f, 0.35f, 0.35f),
+        new(0.35f, 0.7f, 0.95f),
+        new(0.4f, 0.9f, 0.5f),
     ];
 
     private SimulationRunner? _sim;
     private Label? _titleLabel;
     private Control? _graphArea;
     private readonly SeriesSlot[] _slots = new SeriesSlot[MaxSeries];
-    private int _lastEntityListCount = -1;
+    private int _lastEntityRosterHash;
 
     private sealed class SeriesSlot
     {
-        public OptionButton EntityPicker { get; init; } = null!;
+        public OptionButton KindPicker { get; init; } = null!;
         public OptionButton AttributePicker { get; init; } = null!;
-        public Label ValueLabel { get; init; } = null!;
-        public EntityId? EntityId { get; set; }
+        public Label CountLabel { get; init; } = null!;
+        public EntityKind? Kind { get; set; }
         public string? AttributeName { get; set; }
-        public Queue<(int Tick, float Value)> History { get; } = new();
 
-        public bool IsConfigured => EntityId is not null && AttributeName is not null;
+        /// <summary>Per-entity sample history for this slot. Entries pruned when entity no longer matches.</summary>
+        public Dictionary<EntityId, Queue<(int Tick, float Value)>> History { get; } = [];
+
+        public bool IsConfigured => Kind is not null && AttributeName is not null;
 
         public void Clear()
         {
-            EntityId = null;
+            Kind = null;
             AttributeName = null;
             History.Clear();
         }
@@ -61,7 +66,7 @@ public partial class AttributeGraphPanel : PanelContainer
             slot?.Clear();
         }
 
-        RebuildEntityDropdowns();
+        RebuildKindDropdowns();
     }
 
     public override void _Ready()
@@ -104,20 +109,22 @@ public partial class AttributeGraphPanel : PanelContainer
         _graphArea.Draw += DrawGraph;
         vbox.AddChild(_graphArea);
 
-        RebuildEntityDropdowns();
+        RebuildKindDropdowns();
     }
 
     public void Refresh()
     {
         if (_sim is null) return;
 
-        if (_sim.Graph.AllEntities.Count != _lastEntityListCount)
+        var rosterHash = ComputeRosterHash();
+        if (rosterHash != _lastEntityRosterHash)
         {
-            RebuildEntityDropdowns();
+            _lastEntityRosterHash = rosterHash;
+            RebuildKindDropdowns();
         }
 
         SampleAll(_sim.Clock.CurrentTick);
-        UpdateValueLabels();
+        UpdateCountLabels();
 
         if (_titleLabel is not null)
         {
@@ -140,12 +147,12 @@ public partial class AttributeGraphPanel : PanelContainer
         };
         row.AddChild(swatch);
 
-        var entityPicker = new OptionButton
+        var kindPicker = new OptionButton
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        entityPicker.ItemSelected += (selected) => OnEntityPicked(index, (int)selected);
-        row.AddChild(entityPicker);
+        kindPicker.ItemSelected += (selected) => OnKindPicked(index, (int)selected);
+        row.AddChild(kindPicker);
 
         var attrPicker = new OptionButton
         {
@@ -154,14 +161,14 @@ public partial class AttributeGraphPanel : PanelContainer
         attrPicker.ItemSelected += (selected) => OnAttrPicked(index, (int)selected);
         row.AddChild(attrPicker);
 
-        var valueLabel = new Label
+        var countLabel = new Label
         {
             Text = "—",
             CustomMinimumSize = new Vector2(70, 0),
             HorizontalAlignment = HorizontalAlignment.Right,
         };
-        valueLabel.AddThemeColorOverride("font_color", Palette[index]);
-        row.AddChild(valueLabel);
+        countLabel.AddThemeColorOverride("font_color", Palette[index]);
+        row.AddChild(countLabel);
 
         var clearBtn = new Button { Text = "×", CustomMinimumSize = new Vector2(28, 28) };
         clearBtn.Pressed += () => ClearSlot(index);
@@ -169,45 +176,82 @@ public partial class AttributeGraphPanel : PanelContainer
 
         return new SeriesSlot
         {
-            EntityPicker = entityPicker,
+            KindPicker = kindPicker,
             AttributePicker = attrPicker,
-            ValueLabel = valueLabel,
+            CountLabel = countLabel,
         };
     }
 
-    private void RebuildEntityDropdowns()
+    private int ComputeRosterHash()
+    {
+        if (_sim is null) return 0;
+
+        // Cheap structural hash: count active entities per kind. Changes when entities are
+        // added, removed, or die — enough to trigger a dropdown rebuild.
+        var hash = 17;
+        foreach (EntityKind kind in System.Enum.GetValues<EntityKind>())
+        {
+            var ids = _sim.Graph.GetEntitiesByKind(kind);
+            var alive = 0;
+            foreach (var id in ids)
+            {
+                if (_sim.Graph.GetEntity(id)?.Status == EntityStatus.Active) alive++;
+            }
+
+            hash = hash * 31 + ((int)kind) * 1009 + alive;
+        }
+
+        return hash;
+    }
+
+    private void RebuildKindDropdowns()
     {
         if (_sim is null) return;
-        _lastEntityListCount = _sim.Graph.AllEntities.Count;
 
-        var items = _sim.Graph.AllEntities
-            .Where(kv => kv.Value.Status == EntityStatus.Active)
-            .OrderBy(kv => kv.Value.Kind)
-            .ThenBy(kv => kv.Value.Name, System.StringComparer.Ordinal)
-            .Select(kv => (Id: kv.Key, Label: $"{kv.Value.Name} ({kv.Value.Kind})"))
-            .ToList();
+        var kindsWithActive = new List<EntityKind>();
+        foreach (EntityKind kind in System.Enum.GetValues<EntityKind>())
+        {
+            if (HasAnyActive(kind)) kindsWithActive.Add(kind);
+        }
 
         foreach (var slot in _slots)
         {
-            if (slot?.EntityPicker is null) continue;
+            if (slot?.KindPicker is null) continue;
 
-            var previous = slot.EntityId;
-            slot.EntityPicker.Clear();
-            slot.EntityPicker.AddItem("— pick entity —", -1);
+            var previous = slot.Kind;
+            slot.KindPicker.Clear();
+            slot.KindPicker.AddItem("— pick kind —", -1);
 
             var selectedIdx = 0;
-            for (var i = 0; i < items.Count; i++)
+            for (var i = 0; i < kindsWithActive.Count; i++)
             {
-                slot.EntityPicker.AddItem(items[i].Label, items[i].Id.Value);
-                if (previous is not null && items[i].Id == previous.Value)
+                var kind = kindsWithActive[i];
+                slot.KindPicker.AddItem(kind.ToString(), (int)kind);
+                if (previous == kind)
                 {
                     selectedIdx = i + 1;
                 }
             }
 
-            slot.EntityPicker.Selected = selectedIdx;
+            slot.KindPicker.Selected = selectedIdx;
+            if (selectedIdx == 0 && previous is not null)
+            {
+                slot.Clear();
+            }
+
             RebuildAttributeDropdown(slot);
         }
+    }
+
+    private bool HasAnyActive(EntityKind kind)
+    {
+        if (_sim is null) return false;
+        foreach (var id in _sim.Graph.GetEntitiesByKind(kind))
+        {
+            if (_sim.Graph.GetEntity(id)?.Status == EntityStatus.Active) return true;
+        }
+
+        return false;
     }
 
     private void RebuildAttributeDropdown(SeriesSlot slot)
@@ -217,15 +261,7 @@ public partial class AttributeGraphPanel : PanelContainer
         slot.AttributePicker.Clear();
         slot.AttributePicker.AddItem("— pick attribute —", -1);
 
-        if (slot.EntityId is null)
-        {
-            slot.AttributePicker.Selected = 0;
-            slot.AttributePicker.Disabled = true;
-            return;
-        }
-
-        var entity = _sim.Graph.GetEntity(slot.EntityId.Value);
-        if (entity is null)
+        if (slot.Kind is null)
         {
             slot.AttributePicker.Selected = 0;
             slot.AttributePicker.Disabled = true;
@@ -233,11 +269,7 @@ public partial class AttributeGraphPanel : PanelContainer
         }
 
         slot.AttributePicker.Disabled = false;
-        var names = entity.Attributes.All
-            .OfType<ScalarValue>()
-            .Select(s => s.Name)
-            .OrderBy(n => n, System.StringComparer.Ordinal)
-            .ToList();
+        var names = CollectScalarAttributeNames(slot.Kind.Value);
 
         var selectedIdx = 0;
         for (var i = 0; i < names.Count; i++)
@@ -252,21 +284,42 @@ public partial class AttributeGraphPanel : PanelContainer
         if (selectedIdx == 0)
         {
             slot.AttributeName = null;
+            slot.History.Clear();
         }
 
         slot.AttributePicker.Selected = selectedIdx;
     }
 
-    private void OnEntityPicked(int slotIndex, int itemIndex)
+    private List<string> CollectScalarAttributeNames(EntityKind kind)
+    {
+        if (_sim is null) return [];
+
+        var names = new HashSet<string>();
+        foreach (var id in _sim.Graph.GetEntitiesByKind(kind))
+        {
+            var entity = _sim.Graph.GetEntity(id);
+            if (entity?.Status != EntityStatus.Active) continue;
+            foreach (var attr in entity.Attributes.All)
+            {
+                if (attr is ScalarValue scalar) names.Add(scalar.Name);
+            }
+        }
+
+        return [.. names.OrderBy(n => n, System.StringComparer.Ordinal)];
+    }
+
+    private void OnKindPicked(int slotIndex, int itemIndex)
     {
         if (_sim is null) return;
         var slot = _slots[slotIndex];
 
-        var newId = itemIndex > 0 ? (EntityId?)new EntityId(slot.EntityPicker.GetItemId(itemIndex)) : null;
+        EntityKind? newKind = itemIndex > 0
+            ? (EntityKind)slot.KindPicker.GetItemId(itemIndex)
+            : null;
 
-        if (newId == slot.EntityId) return;
+        if (newKind == slot.Kind) return;
 
-        slot.EntityId = newId;
+        slot.Kind = newKind;
         slot.AttributeName = null;
         slot.History.Clear();
         RebuildAttributeDropdown(slot);
@@ -293,9 +346,9 @@ public partial class AttributeGraphPanel : PanelContainer
     {
         var slot = _slots[index];
         slot.Clear();
-        slot.EntityPicker.Selected = 0;
+        slot.KindPicker.Selected = 0;
         RebuildAttributeDropdown(slot);
-        UpdateValueLabels();
+        UpdateCountLabels();
         _graphArea?.QueueRedraw();
     }
 
@@ -307,33 +360,45 @@ public partial class AttributeGraphPanel : PanelContainer
         {
             if (!slot.IsConfigured) continue;
 
-            var entity = _sim.Graph.GetEntity(slot.EntityId!.Value);
-            if (entity is null)
+            var currentIds = new HashSet<EntityId>();
+            foreach (var id in _sim.Graph.GetEntitiesByKind(slot.Kind!.Value))
             {
-                slot.Clear();
-                continue;
+                var entity = _sim.Graph.GetEntity(id);
+                if (entity?.Status != EntityStatus.Active) continue;
+                if (entity.Attributes[slot.AttributeName!] is not ScalarValue scalar) continue;
+
+                currentIds.Add(id);
+                if (!slot.History.TryGetValue(id, out var queue))
+                {
+                    queue = new Queue<(int, float)>();
+                    slot.History[id] = queue;
+                }
+
+                queue.Enqueue((currentTick, scalar.Value));
+                while (queue.Count > MaxSamples) queue.Dequeue();
             }
 
-            if (entity.Attributes[slot.AttributeName!] is not ScalarValue scalar) continue;
-
-            slot.History.Enqueue((currentTick, scalar.Value));
-            while (slot.History.Count > MaxSamples) slot.History.Dequeue();
+            // Prune histories for entities that no longer qualify (died or lost the attribute).
+            var stale = slot.History.Keys.Where(id => !currentIds.Contains(id)).ToList();
+            foreach (var id in stale)
+            {
+                slot.History.Remove(id);
+            }
         }
     }
 
-    private void UpdateValueLabels()
+    private void UpdateCountLabels()
     {
         foreach (var slot in _slots)
         {
-            if (slot.History.Count > 0)
+            if (!slot.IsConfigured)
             {
-                var latest = slot.History.Last().Value;
-                slot.ValueLabel.Text = $"{latest:F1}";
+                slot.CountLabel.Text = "—";
+                continue;
             }
-            else
-            {
-                slot.ValueLabel.Text = slot.IsConfigured ? "…" : "—";
-            }
+
+            var lineCount = slot.History.Count(kv => kv.Value.Count >= 2);
+            slot.CountLabel.Text = lineCount == 1 ? "1 line" : $"{lineCount} lines";
         }
     }
 
@@ -348,15 +413,15 @@ public partial class AttributeGraphPanel : PanelContainer
 
         _graphArea.DrawRect(new Rect2(margin, margin, graphW, graphH), new Color(0.08f, 0.08f, 0.1f));
 
-        var active = _slots.Where(s => s.History.Count >= 2).ToList();
         var font = ThemeDB.FallbackFont;
+        var anyLines = _slots.Any(s => s.History.Any(kv => kv.Value.Count >= 2));
 
-        if (active.Count == 0)
+        if (!anyLines)
         {
             if (font is not null)
             {
                 _graphArea.DrawString(font, new Vector2(margin + 10, margin + graphH / 2),
-                    "Pick an entity and attribute to start plotting.",
+                    "Pick a kind and attribute to start plotting.",
                     HorizontalAlignment.Left, -1, 12, new Color(0.5f, 0.5f, 0.55f));
             }
 
@@ -365,21 +430,25 @@ public partial class AttributeGraphPanel : PanelContainer
 
         var minTick = int.MaxValue;
         var maxTick = int.MinValue;
-        var maxVal = 0f;
-        var minVal = 0f;
-        foreach (var slot in active)
+        var maxVal = float.NegativeInfinity;
+        var minVal = float.PositiveInfinity;
+        foreach (var slot in _slots)
         {
-            foreach (var (tick, value) in slot.History)
+            foreach (var queue in slot.History.Values)
             {
-                if (tick < minTick) minTick = tick;
-                if (tick > maxTick) maxTick = tick;
-                if (value > maxVal) maxVal = value;
-                if (value < minVal) minVal = value;
+                foreach (var (tick, value) in queue)
+                {
+                    if (tick < minTick) minTick = tick;
+                    if (tick > maxTick) maxTick = tick;
+                    if (value > maxVal) maxVal = value;
+                    if (value < minVal) minVal = value;
+                }
             }
         }
 
         if (maxTick <= minTick) return;
         if (Mathf.IsEqualApprox(maxVal, minVal)) maxVal = minVal + 1f;
+        if (minVal > 0f && minVal < maxVal * 0.1f) minVal = 0f;
 
         var tickRange = (float)(maxTick - minTick);
         var valueRange = maxVal - minVal;
@@ -400,24 +469,35 @@ public partial class AttributeGraphPanel : PanelContainer
         for (var i = 0; i < _slots.Length; i++)
         {
             var slot = _slots[i];
-            if (slot.History.Count < 2) continue;
+            if (!slot.IsConfigured) continue;
 
             var color = Palette[i];
-            var points = new List<Vector2>(slot.History.Count);
-            foreach (var (tick, value) in slot.History)
+            var legendText = $"{slot.Kind}.{slot.AttributeName}";
+            if (font is not null)
             {
-                var x = margin + ((tick - minTick) / tickRange * graphW);
-                var y = margin + graphH - ((value - minVal) / valueRange * graphH);
-                points.Add(new Vector2(x, y));
+                _graphArea.DrawString(font, new Vector2(margin + 6 + i * 160, margin + 14),
+                    legendText, HorizontalAlignment.Left, -1, 10, color);
             }
 
-            _graphArea.DrawPolyline(points.ToArray(), color, 1.5f, antialiased: true);
-
-            if (font is not null && _sim.Graph.GetEntity(slot.EntityId!.Value) is { } entity)
+            foreach (var (entityId, queue) in slot.History)
             {
-                var labelText = $"{entity.Name}.{slot.AttributeName}";
-                _graphArea.DrawString(font, points[^1] + new Vector2(4, -4), labelText,
-                    HorizontalAlignment.Left, -1, 10, color);
+                if (queue.Count < 2) continue;
+
+                var points = new List<Vector2>(queue.Count);
+                foreach (var (tick, value) in queue)
+                {
+                    var x = margin + ((tick - minTick) / tickRange * graphW);
+                    var y = margin + graphH - ((value - minVal) / valueRange * graphH);
+                    points.Add(new Vector2(x, y));
+                }
+
+                _graphArea.DrawPolyline(points.ToArray(), color, 1.2f, antialiased: true);
+
+                if (font is not null && _sim.Graph.GetEntity(entityId) is { } entity)
+                {
+                    _graphArea.DrawString(font, points[^1] + new Vector2(4, -2), entity.Name,
+                        HorizontalAlignment.Left, -1, 9, color);
+                }
             }
         }
     }
