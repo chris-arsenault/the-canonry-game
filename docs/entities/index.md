@@ -7,49 +7,49 @@ This is an inventory page, not a design-spec page.
 
 ## Region
 
-- `regional_safety` — scalar
-- `geologic_stability` — scalar
-- `mystic_resonance` — 2D
+- `regional_safety` — scalar — Projection
+- `geologic_stability` — scalar — Integrity
+- `mystic_resonance` — 2D — Alignment
 
 Health attribute:
 - none
 
 ## Settlement
 
-- `residents` — scalar
-- `security` — scalar
-- `prestige` — scalar
-- `civic_ideology` — 2D
+- `residents` — scalar — Integrity
+- `security` — scalar — Capacity
+- `prestige` — scalar — Projection
+- `civic_ideology` — 2D — Alignment
 
 Health attribute:
 - `residents`
 
 ## Faction
 
-- `cohesion` — scalar
-- `support` — scalar
-- `influence` — scalar
-- `civic_ideology` — 2D
+- `cohesion` — scalar — Integrity
+- `support` — scalar — Capacity
+- `influence` — scalar — Projection
+- `civic_ideology` — 2D — Alignment
 
 Health attribute:
 - `cohesion`
 
 ## Npc
 
-- `vitality` — scalar
-- `satiety` — scalar
-- `ambition` — scalar
-- `civic_ideology` — 2D
+- `vitality` — scalar — Integrity
+- `satiety` — scalar — Need
+- `ambition` — scalar — Drive
+- `civic_ideology` — 2D — Alignment
 
 Health attribute:
 - `vitality`
 
 ## Artifact
 
-- `condition` — scalar
-- `power` — scalar
-- `containment` — scalar
-- `mystic_resonance` — 2D
+- `condition` — scalar — Integrity
+- `power` — scalar — Capacity / Projection
+- `containment` — scalar — Drive
+- `mystic_resonance` — 2D — Alignment
 
 Health attribute:
 - `condition`
