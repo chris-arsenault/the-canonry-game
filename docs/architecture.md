@@ -282,7 +282,7 @@ src/
     Persistence/    SaveState, SaveManager
     Simulation/     SimulationRunner, WorldState
   UI/
-    Main.cs, HexMapRenderer.cs, EntityBrowser.cs, EntityCard.cs, HealthGraphPanel.cs
+    Main.cs, HexMapRenderer.cs, EntityBrowser.cs, EntityCard.cs, EntityDetailPanel.cs, AttributeGraphPanel.cs
 tests/
   Engine.Tests/     384 tests mirroring src/Engine structure
 ```

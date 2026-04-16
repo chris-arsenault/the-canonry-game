@@ -26,7 +26,7 @@ public partial class Main : Node2D
     private CanvasLayer? _uiLayer;
     private CanvasLayer? _cardLayer;
     private RichTextLabel? _eventLogLabel;
-    private HealthGraphPanel? _healthGraph;
+    private AttributeGraphPanel? _attributeGraph;
     private Label? _tickLabel;
     private PanelContainer? _hexTooltipPanel;
     private Label? _hexTooltipLabel;
@@ -189,7 +189,7 @@ public partial class Main : Node2D
             _mapRenderer?.Refresh();
             _browser?.Refresh();
             RefreshOpenCards();
-            _healthGraph?.Refresh();
+            _attributeGraph?.Refresh();
         }
 
         if (_tickLabel is not null)
@@ -249,7 +249,7 @@ public partial class Main : Node2D
 
                     break;
                 case Key.G:
-                    ToggleHealthGraph();
+                    ToggleAttributeGraph();
                     break;
             }
         }
@@ -274,20 +274,20 @@ public partial class Main : Node2D
         }
     }
 
-    private void ToggleHealthGraph()
+    private void ToggleAttributeGraph()
     {
-        if (_healthGraph is not null)
+        if (_attributeGraph is not null)
         {
-            _healthGraph.QueueFree();
-            _healthGraph = null;
+            _attributeGraph.QueueFree();
+            _attributeGraph = null;
             return;
         }
 
         if (_sim is null || _cardLayer is null) return;
-        _healthGraph = new HealthGraphPanel();
-        _healthGraph.Initialize(_sim);
-        _healthGraph.Position = new Vector2(300, 50);
-        _cardLayer.AddChild(_healthGraph);
+        _attributeGraph = new AttributeGraphPanel();
+        _cardLayer.AddChild(_attributeGraph);
+        _attributeGraph.Initialize(_sim);
+        _attributeGraph.Position = new Vector2(300, 50);
     }
 
     private void ResetSimulation()
@@ -316,7 +316,7 @@ public partial class Main : Node2D
 
         _mapRenderer?.Initialize(_sim);
         _mapRenderer?.Refresh();
-        _healthGraph?.Initialize(_sim);
+        _attributeGraph?.Initialize(_sim);
         _browser?.Initialize(_sim);
         _browser?.Refresh();
 
