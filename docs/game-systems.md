@@ -60,6 +60,18 @@ Per-entity continuous variables. The numeric state that game systems modify and 
 
 **MVP scope:** Full implementation. The set of attributes per kind will expand over time, but the system itself is MVP.
 
+### 3a. Domain Definition Graph
+
+The engine also maintains a typed definition graph for the authored domain itself. This is separate from the runtime entity graph and is used for validation and semantic reasoning.
+
+**What it is:**
+- Typed domain schema graph built from `DomainConfig`
+- Semantic stock/flow layer built from typed semantic config
+- Validators and analyzers for coverage, loop detection, and semantic drift
+- The programmatic replacement for worksheet-only reasoning
+
+See `docs/systems/15-domain-definition-graph.md`.
+
 ### 4. Map / Spatial
 
 The 2D physical world. Geography that matters to the simulation.

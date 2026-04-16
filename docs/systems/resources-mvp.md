@@ -10,6 +10,8 @@ The three MVP resource types are:
 
 They live on the map, not on entities.
 
+How the typed domain-definition graph represents these ambient resources is documented in [15-domain-definition-graph.md](./15-domain-definition-graph.md).
+
 ---
 
 ## Core Intent

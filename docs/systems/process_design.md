@@ -6,6 +6,8 @@ This document is the canonical reference for process ideation before implementat
 
 Concrete loop specifications live under [docs/loops](../loops/README.md).
 
+The typed semantic/definition graph that backs structural validation is described in [15-domain-definition-graph.md](./15-domain-definition-graph.md).
+
 ---
 
 ## Core Stance
