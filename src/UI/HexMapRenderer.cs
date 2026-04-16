@@ -97,25 +97,41 @@ public partial class HexMapRenderer : Node2D
     {
         if (_sim is null) return;
 
-        // Color cells based on controlling faction
         var factionColors = AssignFactionColors();
 
-        foreach (var settlementId in _sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        // Factions manifest through relationships (controlled_by, loyal_to, member_of, ...).
+        // Rather than hardcoding a whitelist of relationship kinds, we shade any hex whose
+        // resident entity has an outgoing relationship to a Faction-kind target.
+        // Dominant-by-strength per hex: if two entities on one hex point at different factions,
+        // the stronger relationship wins. Multi-faction disputes belong on the detail card,
+        // not the map — shading stays readable at a glance.
+        var hexFaction = new Dictionary<HexCoord, (EntityId FactionId, float Strength)>();
+
+        foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
-            var entity = _sim.Graph.GetEntity(settlementId);
-            if (entity?.Coordinates is null || entity.Status != EntityStatus.Active) continue;
+            if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
 
-            // Find controlling faction
-            var controlRel = _sim.Graph.OutgoingRelationships(settlementId, "controlled_by").FirstOrDefault();
-            if (controlRel is null) continue;
+            foreach (var rel in _sim.Graph.OutgoingRelationships(entityId))
+            {
+                var target = _sim.Graph.GetEntity(rel.TargetId);
+                if (target?.Kind != EntityKind.Faction) continue;
 
-            if (!factionColors.TryGetValue(controlRel.TargetId, out var factionColor)) continue;
+                var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+                if (!hexFaction.TryGetValue(coord, out var current) || rel.Strength > current.Strength)
+                {
+                    hexFaction[coord] = (rel.TargetId, rel.Strength);
+                }
+            }
+        }
 
-            var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+        foreach (var (coord, (factionId, strength)) in hexFaction)
+        {
+            if (!factionColors.TryGetValue(factionId, out var factionColor)) continue;
+
             var center = HexToPixel(coord);
             var points = GetHexPoints(center, HexSize * 0.85f);
-
-            DrawColoredPolygon(points, new Color(factionColor, 0.25f));
+            var alpha = Mathf.Clamp(0.25f + strength * 0.3f, 0.25f, 0.55f);
+            DrawColoredPolygon(points, new Color(factionColor, alpha));
         }
     }
 
@@ -210,11 +226,15 @@ public partial class HexMapRenderer : Node2D
             new Color(0.6f, 0.2f, 0.6f),
         };
 
-        var i = 0;
-        foreach (var factionId in _sim.Graph.GetEntitiesByKind(EntityKind.Faction))
+        // Order by EntityId value so each faction gets the same color every run.
+        // The underlying kind index is a HashSet — enumeration order is not stable.
+        var factionIds = _sim.Graph.GetEntitiesByKind(EntityKind.Faction)
+            .OrderBy(id => id.Value)
+            .ToList();
+
+        for (var i = 0; i < factionIds.Count; i++)
         {
-            colors[factionId] = palette[i % palette.Length];
-            i++;
+            colors[factionIds[i]] = palette[i % palette.Length];
         }
 
         return colors;
