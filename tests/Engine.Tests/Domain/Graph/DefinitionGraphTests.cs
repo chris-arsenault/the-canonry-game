@@ -75,10 +75,10 @@ public class DefinitionGraphTests
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
         Assert.Equal(22, graph.SemanticFlows.Stocks.Count);
-        Assert.Equal(32, graph.SemanticFlows.Verbs.Count);
-        Assert.Equal(73, graph.SemanticFlows.Flows.Count);
-        Assert.Equal(4, graph.SemanticFlows.Modifiers.Count);
-        Assert.Equal(26, graph.SemanticFlows.ProcessReferences.Count);
+        Assert.Equal(31, graph.SemanticFlows.Verbs.Count);
+        Assert.Equal(74, graph.SemanticFlows.Flows.Count);
+        Assert.Equal(3, graph.SemanticFlows.Modifiers.Count);
+        Assert.Equal(23, graph.SemanticFlows.ProcessReferences.Count);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
 

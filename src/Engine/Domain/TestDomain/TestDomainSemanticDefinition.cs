@@ -104,7 +104,7 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Settlement, Attr.Prestige, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Earned via NPC deeds (create_works depletes ambition). Spent via artifact_enshrine (conversion to artifact.containment). Also gates trade, attract, grow."),
+            "Earned via NPC deeds (create_works depletes ambition). Spent via artifact_enshrine (conversion to artifact.containment) and settlement_trade (conversion to hex.wealth). Also gates attract and grow."),
         Stock(EntityKind.Settlement, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
@@ -140,7 +140,6 @@ public static class TestDomainSemanticDefinition
         EntityVerb(Verb.NpcEndure, EntityKind.Npc),
         EntityVerb(Verb.NpcGuard, EntityKind.Npc),
         EntityVerb(Verb.RegionAttune, EntityKind.Region),
-        EntityVerb(Verb.RegionFormMilitia, EntityKind.Region, Proc.RegionFormMilitia),
         EntityVerb(Verb.RegionIrrigate, EntityKind.Region),
         EntityVerb(Verb.RegionSettle, EntityKind.Region),
         EntityVerb(Verb.RegionShelter, EntityKind.Region),
@@ -225,6 +224,7 @@ public static class TestDomainSemanticDefinition
         Decay(EntityKind.Settlement, Attr.Security),
         Inflow(EntityKind.Settlement, Attr.Prestige, Verb.NpcCreateWorks, SemanticMechanism.Conversion, "target; conversion from NPC.ambition", Self(EntityKind.Npc, Attr.Ambition)),
         Outflow(EntityKind.Settlement, Attr.Prestige, Verb.ArtifactEnshrine, SemanticMechanism.Conversion, "self; conversion to artifact.containment", Target(EntityKind.Artifact, Attr.Containment)),
+        Outflow(EntityKind.Settlement, Attr.Prestige, Verb.SettlementTrade, SemanticMechanism.Conversion, "self; conversion to hex.wealth", Resource(Res.Wealth)),
         Decay(EntityKind.Settlement, Attr.Prestige),
         Inflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Shift, "self/target; shift ↔ NPC", Target(EntityKind.Npc, Attr.CivicIdeology)),
         Inflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "target; shift ↔ faction", Target(EntityKind.Faction, Attr.CivicIdeology)),
@@ -234,7 +234,6 @@ public static class TestDomainSemanticDefinition
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() =>
     [
-        Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementTrade, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementAttract, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementGrow, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementAttract, SemanticModifierDirection.Positive, "volume modifier"),
@@ -263,11 +262,6 @@ public static class TestDomainSemanticDefinition
         Read(Proc.SettlementPropaganda, EntityKind.Settlement, Attr.CivicIdeology),
         Read(Proc.SettlementAttract, EntityKind.Settlement, Attr.CivicIdeology),
         DirectWrite(Proc.SettlementPropaganda, EntityKind.Settlement, Attr.CivicIdeology),
-
-        Read(Proc.RegionFormMilitia, EntityKind.Region, Attr.RegionalSafety),
-        DirectWrite(Proc.RegionFormMilitia, EntityKind.Region, Attr.RegionalSafety),
-
-        Read(Proc.RegionFormMilitia, EntityKind.Region, Attr.GeologicStability),
 
         Read(Proc.FactionPatrol, EntityKind.Faction, Attr.Support),
         DirectWrite(Proc.FactionPatrol, EntityKind.Faction, Attr.Support),
