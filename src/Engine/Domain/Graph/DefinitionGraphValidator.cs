@@ -68,8 +68,44 @@ public static class DefinitionGraphValidator
         ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
         ValidateKindAttributeCategoryShape(graph, errors);
+        ValidateKindHasSelfSacrificeVerb(graph, errors);
 
         return errors;
+    }
+
+    /// <summary>
+    /// Every entity kind must declare at least one self→self flow: a projected
+    /// stock-graph edge where both endpoints are attribute stocks on that same kind.
+    /// This guarantees every kind has a last-resort intra-entity action (sacrifice
+    /// one of its own stocks into another).
+    /// </summary>
+    private static void ValidateKindHasSelfSacrificeVerb(DefinitionGraph graph, List<string> errors)
+    {
+        var kindsPresent = graph.Kinds.Keys.ToList();
+        if (kindsPresent.Count == 0)
+        {
+            return;
+        }
+
+        var kindsWithSelfLoop = new HashSet<EntityKind>();
+        foreach (var edge in SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows))
+        {
+            if (edge.SourceId is AttributeStockId sa &&
+                edge.TargetId is AttributeStockId ta &&
+                sa.Key.Kind == ta.Key.Kind)
+            {
+                kindsWithSelfLoop.Add(sa.Key.Kind);
+            }
+        }
+
+        foreach (var kind in kindsPresent)
+        {
+            if (!kindsWithSelfLoop.Contains(kind))
+            {
+                errors.Add(
+                    $"Kind '{kind}' has no self-sacrifice verb. Every kind must declare at least one flow whose source and target stocks are both attributes of that kind.");
+            }
+        }
     }
 
     private static void ValidateKindAttributeCategoryShape(DefinitionGraph graph, List<string> errors)

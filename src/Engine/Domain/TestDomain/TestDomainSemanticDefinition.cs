@@ -69,9 +69,9 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Settlement, Attr.Sanitation, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100", "free", "Need — public hygiene deficit drives corrective behaviors."),
 
-        // Resource stocks are re-added when verbs produce them (region_irrigate, region_settle,
-        // settlement_trade). Omitted here during reconstruction to avoid tripping the resource-
-        // inflow invariant.
+        ResourceStock(Res.Food, "Ambient hex food abundance."),
+        ResourceStock(Res.Wealth, "Ambient hex wealth."),
+        ResourceStock(Res.Population, "Ambient hex population."),
     ];
 
     private static IReadOnlyList<SemanticVerbConfig> CreateVerbs() =>
@@ -122,30 +122,7 @@ public static class TestDomainSemanticDefinition
             AttributeName = A(attribute),
             StockClass = stockClass,
             FeedbackClass = feedbackClass,
-            // Flow graph is under reconstruction: decay-only coverage until verbs are re-authored.
-            // Tighten back to Both once each stock has at least one authored inflow verb.
-            RequiredFlowCoverage = SemanticFlowCoverageRequirement.Outflow,
-            BoundsLabel = boundsLabel,
-            ConservationLabel = conservationLabel,
-            Notes = notes,
-        };
-
-    // TODO: remove once every scalar stock has a real authored inflow.
-    private static SemanticAttributeStockConfig StockOutflowOnly(
-        EntityKind kind,
-        Attr attribute,
-        SemanticStockClass stockClass,
-        SemanticFeedbackClass feedbackClass,
-        string boundsLabel,
-        string conservationLabel,
-        string notes) =>
-        new()
-        {
-            Kind = kind,
-            AttributeName = A(attribute),
-            StockClass = stockClass,
-            FeedbackClass = feedbackClass,
-            RequiredFlowCoverage = SemanticFlowCoverageRequirement.Outflow,
+            RequiredFlowCoverage = SemanticFlowCoverageRequirement.Both,
             BoundsLabel = boundsLabel,
             ConservationLabel = conservationLabel,
             Notes = notes,
