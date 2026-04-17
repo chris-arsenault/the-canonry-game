@@ -219,6 +219,7 @@ public static class DefinitionSemanticGraphBuilder
                 OwnerKind = config.OwnerKind,
                 ImplementedProcess = implementedProcess,
                 Notes = config.Notes,
+                IsFlowless = config.IsFlowless,
             };
 
             verbs[config.Id] = verb;

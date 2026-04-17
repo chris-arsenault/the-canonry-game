@@ -64,9 +64,57 @@ public static class DefinitionGraphValidator
         }
 
         ValidateSemanticFlows(graph, errors);
+        ValidateSemanticVerbParticipation(graph, errors);
+        ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
 
         return errors;
+    }
+
+    private static void ValidateSemanticVerbParticipation(DefinitionGraph graph, List<string> errors)
+    {
+        var verbsWithFlows = graph.SemanticFlows.Flows
+            .Select(flow => flow.Verb.Id)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var verb in graph.SemanticFlows.Verbs)
+        {
+            if (verb.IsFlowless)
+            {
+                continue;
+            }
+
+            if (!verbsWithFlows.Contains(verb.Id))
+            {
+                errors.Add(
+                    $"Semantic verb '{verb.Id}' is declared but has no flows. Either author a flow for it or set IsFlowless = true.");
+            }
+        }
+    }
+
+    private static void ValidateResourceStockInflows(DefinitionGraph graph, List<string> errors)
+    {
+        var resourceStocks = graph.SemanticFlows.Stocks
+            .Where(stock => stock.Id is ResourceStockId)
+            .ToList();
+        if (resourceStocks.Count == 0)
+        {
+            return;
+        }
+
+        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
+        var inflowTargets = projected
+            .Select(edge => edge.TargetId)
+            .ToHashSet();
+
+        foreach (var stock in resourceStocks)
+        {
+            if (!inflowTargets.Contains(stock.Id))
+            {
+                errors.Add(
+                    $"Resource stock '{stock.Id.Label}' has no inflow producer. Author an outflow on some entity stock whose source ref is this resource.");
+            }
+        }
     }
 
     public static void ValidateOrThrow(DefinitionGraph graph)

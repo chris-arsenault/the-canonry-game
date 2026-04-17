@@ -47,6 +47,13 @@ public sealed class SemanticVerbConfig
     public EntityKind? OwnerKind { get; init; }
     public string? ImplementedProcessId { get; init; }
     public string? Notes { get; init; }
+
+    /// <summary>
+    /// True when this verb is explicitly authored to have no flows — e.g., a verb
+    /// that only acts through modifier effects, or a stub awaiting design work.
+    /// When false, the verb must appear in at least one flow or validation fails.
+    /// </summary>
+    public bool IsFlowless { get; init; }
 }
 
 public sealed class SemanticFlowConfig

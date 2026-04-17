@@ -263,6 +263,7 @@ public sealed class SemanticVerbNode
     public EntityKind? OwnerKind { get; init; }
     public DefinitionProcessNode? ImplementedProcess { get; init; }
     public string? Notes { get; init; }
+    public bool IsFlowless { get; init; }
     public bool IsImplementedProcess => ImplementedProcess is not null;
 }
 
