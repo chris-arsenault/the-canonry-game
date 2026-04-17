@@ -192,10 +192,7 @@ public partial class EntityCard : PanelContainer
 
         // Header
         sb.AppendLine($"{entity.Subtype}  |  {entity.Culture}  |  {entity.Status}");
-        if (entity.Coordinates is not null)
-        {
-            sb.AppendLine($"({entity.Coordinates.Value.Q}, {entity.Coordinates.Value.R})  |  age {_sim.Clock.CurrentTick - entity.CreatedAt}");
-        }
+        sb.AppendLine($"({entity.Coordinates.Q}, {entity.Coordinates.R})  |  age {_sim.Clock.CurrentTick - entity.CreatedAt}");
 
         sb.AppendLine();
 

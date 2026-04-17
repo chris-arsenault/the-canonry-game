@@ -63,10 +63,10 @@ public sealed class EntityData
     public int UpdatedAt { get; set; }
 
     [Key(8)]
-    public int? CoordQ { get; set; }
+    public int CoordQ { get; set; }
 
     [Key(9)]
-    public int? CoordR { get; set; }
+    public int CoordR { get; set; }
 
     [Key(10)]
     public int SemanticQ { get; set; }

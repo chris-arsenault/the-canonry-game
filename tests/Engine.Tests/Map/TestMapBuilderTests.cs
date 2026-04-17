@@ -168,7 +168,6 @@ public class TestMapBuilderTests
         {
             var npc = _world.Graph.GetEntity(npcId);
             Assert.NotNull(npc);
-            Assert.NotNull(npc.Coordinates);
         }
     }
 
@@ -178,7 +177,7 @@ public class TestMapBuilderTests
         foreach (var npcId in _world.Graph.GetEntitiesByKind(EntityKind.Npc))
         {
             var npc = _world.Graph.GetEntity(npcId)!;
-            var coord = new HexCoord(npc.Coordinates!.Value.Q, npc.Coordinates!.Value.R);
+            var coord = new HexCoord(npc.Coordinates.Q, npc.Coordinates.R);
             var cell = _world.Grid.GetCell(coord);
             Assert.NotNull(cell);
             Assert.False(float.IsPositiveInfinity(cell.MovementCost),
@@ -221,7 +220,6 @@ public class TestMapBuilderTests
         {
             var entity = _world.Graph.GetEntity(sid);
             Assert.NotNull(entity);
-            Assert.NotNull(entity.Coordinates);
         }
     }
 }

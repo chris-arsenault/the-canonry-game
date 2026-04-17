@@ -47,12 +47,12 @@ public sealed class SpatialIndex
     public void RemoveEntity(EntityId entityId)
     {
         var entity = _graph.GetEntity(entityId);
-        if (entity?.Coordinates is null)
+        if (entity is null)
         {
             return;
         }
 
-        var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+        var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
         if (_entitiesAtCell.TryGetValue(coord, out var set))
         {
             set.Remove(entityId);
@@ -69,12 +69,7 @@ public sealed class SpatialIndex
 
         foreach (var (id, entity) in _graph.AllEntities)
         {
-            if (entity.Coordinates is null)
-            {
-                continue;
-            }
-
-            var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+            var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
             if (!_entitiesAtCell.TryGetValue(coord, out var set))
             {
                 set = [];
@@ -165,7 +160,7 @@ public sealed class SpatialIndex
                 var entity = _graph.GetEntity(entityId);
                 if (entity?.Coordinates is not null)
                 {
-                    var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+                    var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
                     if (HexCoord.Distance(from, coord) <= r)
                     {
                         return entityId;

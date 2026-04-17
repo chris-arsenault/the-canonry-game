@@ -74,8 +74,8 @@ public class SaveManagerTests
 
         var state = SaveManager.Capture(graph, currentTick: 0);
 
-        Assert.Null(state.Entities[0].CoordQ);
-        Assert.Null(state.Entities[0].CoordR);
+        Assert.Equal(0, state.Entities[0].CoordQ);
+        Assert.Equal(0, state.Entities[0].CoordR);
     }
 
     // --- Serialization round-trip ---

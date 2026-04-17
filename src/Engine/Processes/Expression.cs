@@ -116,12 +116,12 @@ public sealed class LocationResourcePath(string entityRef, ResourceType resource
             _ => null,
         };
 
-        if (entity?.Coordinates is null || ctx.MutationContext is null)
+        if (entity is null || ctx.MutationContext is null)
         {
             return 0f;
         }
 
-        return ctx.MutationContext.GetResource(entity.Coordinates.Value, resourceType);
+        return ctx.MutationContext.GetResource(entity.Coordinates, resourceType);
     }
 }
 
@@ -159,11 +159,11 @@ public sealed class Distance : IExpression
     public float Evaluate(ExpressionContext ctx)
     {
         ArgumentNullException.ThrowIfNull(ctx);
-        if (ctx.Self.Coordinates is null || ctx.Target?.Coordinates is null) return float.MaxValue;
+        if (ctx.Target is null) return float.MaxValue;
 
         return HexCoord.Distance(
-            new HexCoord(ctx.Self.Coordinates.Value.Q, ctx.Self.Coordinates.Value.R),
-            new HexCoord(ctx.Target.Coordinates.Value.Q, ctx.Target.Coordinates.Value.R));
+            new HexCoord(ctx.Self.Coordinates.Q, ctx.Self.Coordinates.R),
+            new HexCoord(ctx.Target.Coordinates.Q, ctx.Target.Coordinates.R));
     }
 }
 

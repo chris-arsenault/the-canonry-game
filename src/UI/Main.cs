@@ -341,10 +341,10 @@ public partial class Main : Node2D
 
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
-            if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
+            if (entity.Status != EntityStatus.Active) continue;
 
             var entityPixel = _mapRenderer.GetHexCenter(
-                new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R));
+                new HexCoord(entity.Coordinates.Q, entity.Coordinates.R));
             var dist = worldPos.DistanceTo(entityPixel);
 
             if (dist < nearestDist)

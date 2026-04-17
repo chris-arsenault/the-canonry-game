@@ -26,7 +26,7 @@ public class SpatialIndexTests
         foreach (var sid in settlements)
         {
             var entity = world.Graph.GetEntity(sid)!;
-            var coord = new HexCoord(entity.Coordinates!.Value.Q, entity.Coordinates!.Value.R);
+            var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
             Assert.Contains(sid, index.EntitiesAtCell(coord));
         }
     }

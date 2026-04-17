@@ -640,12 +640,7 @@ public class GoalGeneratorTests
 
     private static void SetAmbientResource(StubWorldState world, Entity entity, ResourceType resourceType, float value)
     {
-        if (entity.Coordinates is null)
-        {
-            throw new InvalidOperationException("Entity has no coordinates.");
-        }
-
-        var coord = new Engine.Map.HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+        var coord = new Engine.Map.HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
         var layer = resourceType switch
         {
             ResourceType.Food => world.Resources!.Food,

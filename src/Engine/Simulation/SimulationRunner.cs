@@ -265,8 +265,7 @@ public sealed class SimulationRunner
             var entitiesInRegion = new List<EntityId>();
             foreach (var (eid, entity) in graph.AllEntities)
             {
-                if (entity.Coordinates is null) continue;
-                if (region.ContainsCell(new Map.HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R)))
+                if (region.ContainsCell(new Map.HexCoord(entity.Coordinates.Q, entity.Coordinates.R)))
                 {
                     entitiesInRegion.Add(eid);
                 }

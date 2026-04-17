@@ -320,7 +320,7 @@ public sealed class LocationResourceThreshold(
         if (entity?.Coordinates is null)
             return PreconditionResult.Fail(TargetLocation ? "target has no location" : "self has no location", blockers);
 
-        var value = context.GetResource(entity.Coordinates.Value, ResourceType);
+        var value = context.GetResource(entity.Coordinates, ResourceType);
         var prefix = TargetLocation ? "target_location" : "self_location";
         if (Min.HasValue && value < Min.Value)
             return PreconditionResult.Fail($"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need >= {Min})", blockers);

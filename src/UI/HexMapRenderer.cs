@@ -117,14 +117,14 @@ public partial class HexMapRenderer : Node2D
 
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
-            if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
+            if (entity.Status != EntityStatus.Active) continue;
 
             foreach (var rel in _sim.Graph.OutgoingRelationships(entityId))
             {
                 var target = _sim.Graph.GetEntity(rel.TargetId);
                 if (target?.Kind != EntityKind.Faction) continue;
 
-                var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+                var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
                 if (!hexFaction.TryGetValue(coord, out var current) || rel.Strength > current.Strength)
                 {
                     hexFaction[coord] = (rel.TargetId, rel.Strength);
@@ -194,9 +194,9 @@ public partial class HexMapRenderer : Node2D
 
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
-            if (entity.Coordinates is null || entity.Status != EntityStatus.Active) continue;
+            if (entity.Status != EntityStatus.Active) continue;
 
-            var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+            var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
             var center = HexToPixel(coord);
 
             switch (entity.Kind)

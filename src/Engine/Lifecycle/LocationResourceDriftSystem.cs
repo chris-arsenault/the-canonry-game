@@ -104,14 +104,10 @@ public sealed class LocationResourceDriftSystem
                 continue;
             }
 
-            var offset = 0f;
-            if (entity.Coordinates is not null)
-            {
-                var resourceValue = _resources
-                    .GetLayer(attrConfig.LocationResourceDriftResource.Value)
-                    .GetStockpile(new Engine.Map.HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R));
-                offset = resourceValue * attrConfig.LocationResourceDriftPerUnit;
-            }
+            var resourceValue = _resources
+                .GetLayer(attrConfig.LocationResourceDriftResource.Value)
+                .GetStockpile(new Engine.Map.HexCoord(entity.Coordinates.Q, entity.Coordinates.R));
+            var offset = resourceValue * attrConfig.LocationResourceDriftPerUnit;
 
             effect.Value = Math.Clamp(
                 offset,

@@ -38,8 +38,8 @@ public static class SaveManager
                 Culture = entity.Culture,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
-                CoordQ = entity.Coordinates?.Q,
-                CoordR = entity.Coordinates?.R,
+                CoordQ = entity.Coordinates.Q,
+                CoordR = entity.Coordinates.R,
                 SemanticQ = entity.SemanticPosition.Q,
                 SemanticR = entity.SemanticPosition.R,
             });

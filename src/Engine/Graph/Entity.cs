@@ -18,8 +18,9 @@ public sealed class Entity
     public int CreatedAt { get; }
     public int UpdatedAt { get; set; }
 
-    // Coordinates stored as axial hex (q, r). Nullable for non-spatial entities.
-    public (int Q, int R)? Coordinates { get; set; }
+    // Every entity carries a physical hex coordinate. Stationary kinds (Faction, Region)
+    // pin to a representative hex; mobile kinds (Npc, Artifact) move through the grid.
+    public (int Q, int R) Coordinates { get; set; }
 
     /// <summary>
     /// Position on the shared semantic hex grid (autonomy/resonance/tradition).
@@ -107,6 +108,6 @@ public sealed class Entity
         Status = EntityStatus.Active;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
-        Coordinates = coordinates;
+        Coordinates = coordinates ?? (0, 0);
     }
 }

@@ -63,10 +63,10 @@ public static class GraphAttributeQuery
         foreach (var entityId in worldState.Graph.GetEntitiesByKind(EntityKind.Settlement))
         {
             var entity = worldState.Graph.GetEntity(entityId);
-            if (entity is null || entity.Status != EntityStatus.Active || entity.Coordinates is null)
+            if (entity is null || entity.Status != EntityStatus.Active)
                 continue;
 
-            var coord = new HexCoord(entity.Coordinates.Value.Q, entity.Coordinates.Value.R);
+            var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
             if (layer.GetStockpile(coord) > 0f)
                 candidates.Add(entityId);
         }

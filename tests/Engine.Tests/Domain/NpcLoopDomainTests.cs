@@ -233,34 +233,30 @@ public class NpcLoopDomainTests
     private static void SetAmbientFood(StubWorldState world, Entity settlement, float value)
     {
         Assert.NotNull(world.Resources);
-        Assert.NotNull(settlement.Coordinates);
         world.Resources!.Food.SetStockpile(
-            new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R),
+            new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R),
             value);
     }
 
     private static float GetAmbientFood(StubWorldState world, Entity settlement)
     {
         Assert.NotNull(world.Resources);
-        Assert.NotNull(settlement.Coordinates);
         return world.Resources!.Food.GetStockpile(
-            new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R));
+            new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R));
     }
 
     private static void SetAmbientPopulation(StubWorldState world, Entity settlement, float value)
     {
         Assert.NotNull(world.Resources);
-        Assert.NotNull(settlement.Coordinates);
         world.Resources!.PopulationLayer.SetStockpile(
-            new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R),
+            new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R),
             value);
     }
 
     private static float GetAmbientPopulation(StubWorldState world, Entity settlement)
     {
         Assert.NotNull(world.Resources);
-        Assert.NotNull(settlement.Coordinates);
         return world.Resources!.PopulationLayer.GetStockpile(
-            new HexCoord(settlement.Coordinates.Value.Q, settlement.Coordinates.Value.R));
+            new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R));
     }
 }

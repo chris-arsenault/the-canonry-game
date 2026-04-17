@@ -156,7 +156,7 @@ public sealed class ModifyLocationResourceMutation(
         if (entity?.Coordinates is null) return;
 
         var amount = Variance.Scale(delta, variance, context.Random);
-        context.ModifyResource(entity.Coordinates.Value, resourceType, amount);
+        context.ModifyResource(entity.Coordinates, resourceType, amount);
     }
 
     public string Describe() =>
@@ -314,8 +314,8 @@ public sealed class MoveTowardTargetMutation(
         var target = context.GetEntity(context.ResolvedTargetId.Value);
         if (self?.Coordinates is null || target?.Coordinates is null) return;
 
-        var start = new HexCoord(self.Coordinates.Value.Q, self.Coordinates.Value.R);
-        var destination = new HexCoord(target.Coordinates.Value.Q, target.Coordinates.Value.R);
+        var start = new HexCoord(self.Coordinates.Q, self.Coordinates.R);
+        var destination = new HexCoord(target.Coordinates.Q, target.Coordinates.R);
 
         if (start != destination)
         {
@@ -353,7 +353,7 @@ public sealed class WanderMutation(
         var self = context.GetEntity(context.SelfEntityId);
         if (self?.Coordinates is null) return;
 
-        var current = new HexCoord(self.Coordinates.Value.Q, self.Coordinates.Value.R);
+        var current = new HexCoord(self.Coordinates.Q, self.Coordinates.R);
         var candidates = accessor.WorldState.Grid.GetNeighbors(current)
             .Where(cell => !float.IsPositiveInfinity(cell.MovementCost))
             .Select(cell => cell.Coord)
@@ -415,7 +415,7 @@ internal static class MovementHelper
         }
 
         var currentRelatedEntityId = context.FindRelatedEntity(context.SelfEntityId, relationshipKind);
-        var coord = new HexCoord(self.Coordinates.Value.Q, self.Coordinates.Value.R);
+        var coord = new HexCoord(self.Coordinates.Q, self.Coordinates.R);
         var desiredEntityId = ResolveLocationEntityAtCell(
             worldState,
             coord,

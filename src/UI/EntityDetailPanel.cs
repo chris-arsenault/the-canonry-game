@@ -105,10 +105,7 @@ public partial class EntityDetailPanel : PanelContainer
         sb.AppendLine($"[b]Status:[/b] {entity.Status}");
         sb.AppendLine($"[b]Culture:[/b] {entity.Culture}");
         sb.AppendLine($"[b]Age:[/b] {_sim.Clock.CurrentTick - entity.CreatedAt} ticks");
-        if (entity.Coordinates is not null)
-        {
-            sb.AppendLine($"[b]Position:[/b] ({entity.Coordinates.Value.Q}, {entity.Coordinates.Value.R})");
-        }
+        sb.AppendLine($"[b]Position:[/b] ({entity.Coordinates.Q}, {entity.Coordinates.R})");
 
         sb.AppendLine();
 
