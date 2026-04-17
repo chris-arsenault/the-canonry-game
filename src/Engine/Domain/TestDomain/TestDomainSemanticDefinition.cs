@@ -108,7 +108,7 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Settlement, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
-            "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. Settlement participates only in shift verbs (propaganda with NPCs, indoctrinate with factions). Shift direction depends on partner state. Ideology modulates attract VOLUME (how many residents move)."),
+            "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. Settlement participates only in shift verbs (propaganda with NPCs, indoctrinate with factions). Shift direction depends on partner state."),
 
         ResourceStock(Res.Food, "Ambient hex food abundance. Modifies NPC satiety intake; produced by region_irrigate. Not depleted by npc_eat — it is a non-consuming abundance signal."),
         ResourceStock(Res.Wealth, "Ambient hex wealth. Modifies faction_tax intake rate; produced by settlement_trade. Not depleted by tax — it is a non-consuming abundance signal."),
@@ -232,10 +232,7 @@ public static class TestDomainSemanticDefinition
         Outflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "target; shift ↔ faction", Target(EntityKind.Faction, Attr.CivicIdeology)),
     ];
 
-    private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() =>
-    [
-        Modifier(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementAttract, SemanticModifierDirection.Positive, "volume modifier"),
-    ];
+    private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
 
     private static IReadOnlyList<SemanticProcessReferenceConfig> CreateProcessReferences() =>
     [
