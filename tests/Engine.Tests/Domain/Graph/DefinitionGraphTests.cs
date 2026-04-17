@@ -74,10 +74,10 @@ public class DefinitionGraphTests
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        Assert.Equal(19, graph.SemanticFlows.Stocks.Count);
+        Assert.Equal(22, graph.SemanticFlows.Stocks.Count);
         Assert.Equal(32, graph.SemanticFlows.Verbs.Count);
-        Assert.Equal(66, graph.SemanticFlows.Flows.Count);
-        Assert.Equal(7, graph.SemanticFlows.Modifiers.Count);
+        Assert.Equal(70, graph.SemanticFlows.Flows.Count);
+        Assert.Equal(6, graph.SemanticFlows.Modifiers.Count);
         Assert.Equal(26, graph.SemanticFlows.ProcessReferences.Count);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
@@ -217,20 +217,116 @@ public class DefinitionGraphTests
     }
 
     [Fact]
+    public void Build_FromTestDomain_FlowsMarkGateFlowsExplicitly()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+
+        var empowerOutflow = Assert.Single(
+            graph.SemanticFlows.Flows,
+            flow => flow.Verb.Id == TestDomainVerbId.ArtifactEmpower.ToVerbId() &&
+                    flow.Role == SemanticFlowRole.Outflow);
+        Assert.True(empowerOutflow.IsGate);
+
+        var channelOutflow = Assert.Single(
+            graph.SemanticFlows.Flows,
+            flow => flow.Verb.Id == TestDomainVerbId.ArtifactChannel.ToVerbId() &&
+                    flow.Role == SemanticFlowRole.Outflow);
+        Assert.False(channelOutflow.IsGate);
+    }
+
+    [Fact]
+    public void Build_FromTestDomain_ProjectionFlagsGateOnlyEdges()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
+
+        var empowerEdge = Assert.Single(
+            projected,
+            edge => edge.SourceKey == new DefinitionAttributeKey(
+                        EntityKind.Artifact,
+                        new DefinitionAttributeId(TestDomainAttributeId.Power.ToDomainName())) &&
+                    edge.TargetKey == new DefinitionAttributeKey(
+                        EntityKind.Faction,
+                        new DefinitionAttributeId(TestDomainAttributeId.Influence.ToDomainName())));
+        Assert.True(empowerEdge.IsGateOnly);
+
+        var guardEdge = Assert.Single(
+            projected,
+            edge => edge.SourceKey == new DefinitionAttributeKey(
+                        EntityKind.Npc,
+                        new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())) &&
+                    edge.TargetKey == new DefinitionAttributeKey(
+                        EntityKind.Settlement,
+                        new DefinitionAttributeId(TestDomainAttributeId.Security.ToDomainName())));
+        Assert.False(guardEdge.IsGateOnly);
+    }
+
+    [Fact]
+    public void Build_FromTestDomain_ResourcesAreFirstClassStocks()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+
+        var food = new DefinitionResourceId(TestDomainResource.Food.ToDomainName());
+        var population = new DefinitionResourceId(TestDomainResource.Population.ToDomainName());
+        var wealth = new DefinitionResourceId(TestDomainResource.Wealth.ToDomainName());
+
+        Assert.Contains(
+            graph.SemanticFlows.Stocks,
+            stock => stock.Id is ResourceStockId resource && resource.ResourceId == food);
+        Assert.Contains(
+            graph.SemanticFlows.Stocks,
+            stock => stock.Id is ResourceStockId resource && resource.ResourceId == population);
+        Assert.Contains(
+            graph.SemanticFlows.Stocks,
+            stock => stock.Id is ResourceStockId resource && resource.ResourceId == wealth);
+    }
+
+    [Fact]
+    public void Build_FromTestDomain_ProjectsResourceBackedEdges()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
+
+        var food = new ResourceStockId(new DefinitionResourceId(TestDomainResource.Food.ToDomainName()));
+        var population = new ResourceStockId(new DefinitionResourceId(TestDomainResource.Population.ToDomainName()));
+        var npcSatiety = new AttributeStockId(new DefinitionAttributeKey(
+            EntityKind.Npc,
+            new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())));
+        var settlementResidents = new AttributeStockId(new DefinitionAttributeKey(
+            EntityKind.Settlement,
+            new DefinitionAttributeId(TestDomainAttributeId.Residents.ToDomainName())));
+        var regionGeologicStability = new AttributeStockId(new DefinitionAttributeKey(
+            EntityKind.Region,
+            new DefinitionAttributeId(TestDomainAttributeId.GeologicStability.ToDomainName())));
+
+        Assert.Contains(
+            projected,
+            edge => edge.SourceId.Equals(food) && edge.TargetId.Equals(npcSatiety));
+        Assert.Contains(
+            projected,
+            edge => edge.SourceId.Equals(population) && edge.TargetId.Equals(settlementResidents));
+        Assert.Contains(
+            projected,
+            edge => edge.SourceId.Equals(regionGeologicStability) && edge.TargetId.Equals(food));
+    }
+
+    [Fact]
     public void Build_FromTestDomain_HasNoDirectTwoNodeReversals()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
         var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
         var edgeSet = projected
-            .Select(edge => (edge.SourceKey, edge.TargetKey))
+            .Select(edge => (edge.SourceId, edge.TargetId))
             .ToHashSet();
 
         var reversals = projected
             .Where(edge =>
-                           edge.SourceKey != edge.TargetKey &&
-                           graph.Attributes[edge.SourceKey].Shape == DefinitionAttributeShape.Scalar &&
-                           graph.Attributes[edge.TargetKey].Shape == DefinitionAttributeShape.Scalar &&
-                           edgeSet.Contains((edge.TargetKey, edge.SourceKey)))
+                edge.SourceId is AttributeStockId sourceAttr &&
+                edge.TargetId is AttributeStockId targetAttr &&
+                edge.SourceId != edge.TargetId &&
+                graph.Attributes[sourceAttr.Key].Shape == DefinitionAttributeShape.Scalar &&
+                graph.Attributes[targetAttr.Key].Shape == DefinitionAttributeShape.Scalar &&
+                edgeSet.Contains((edge.TargetId, edge.SourceId)))
             .ToList();
 
         Assert.Empty(reversals);
@@ -243,19 +339,20 @@ public class DefinitionGraphTests
         var semantics = config.Semantics!;
         var brokenStocks = semantics.Stocks
             .Select(stock =>
-                stock.Kind == EntityKind.Npc &&
-                stock.AttributeName == TestDomainAttributeId.Ambition.ToDomainName()
-                    ? new SemanticStockConfig
+                stock is SemanticAttributeStockConfig attr &&
+                attr.Kind == EntityKind.Npc &&
+                attr.AttributeName == TestDomainAttributeId.Ambition.ToDomainName()
+                    ? (SemanticStockConfig)new SemanticAttributeStockConfig
                     {
-                        Kind = stock.Kind,
-                        AttributeName = stock.AttributeName,
-                        StockClass = stock.StockClass,
-                        FeedbackClass = stock.FeedbackClass,
+                        Kind = attr.Kind,
+                        AttributeName = attr.AttributeName,
+                        StockClass = attr.StockClass,
+                        FeedbackClass = attr.FeedbackClass,
                         RequiredFlowCoverage = SemanticFlowCoverageRequirement.Both,
-                        BoundsLabel = stock.BoundsLabel,
-                        ConservationLabel = stock.ConservationLabel,
-                        CoverageNotes = stock.CoverageNotes,
-                        Notes = stock.Notes,
+                        BoundsLabel = attr.BoundsLabel,
+                        ConservationLabel = attr.ConservationLabel,
+                        CoverageNotes = attr.CoverageNotes,
+                        Notes = attr.Notes,
                     }
                     : stock)
             .ToList();
@@ -288,6 +385,117 @@ public class DefinitionGraphTests
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
         Assert.Contains("Npc.ambition", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("outflow", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Build_ScalarStockMissingDecayOutflow_Throws()
+    {
+        var config = TestDomainDefinition.Create();
+        var semantics = config.Semantics!;
+        var withoutAmbitionDecay = semantics.Flows
+            .Where(flow => !(flow.TargetKind == EntityKind.Npc &&
+                             flow.TargetAttribute == TestDomainAttributeId.Ambition.ToDomainName() &&
+                             flow.VerbId == TestDomainVerbId.EngineDecay.ToVerbId()))
+            .ToList();
+
+        var brokenConfig = new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Processes = config.Processes,
+            Relationships = config.Relationships,
+            Pressures = config.Pressures,
+            Lifecycles = config.Lifecycles,
+            Resources = config.Resources,
+            Cultures = config.Cultures,
+            Semantics = new SemanticDomainConfig
+            {
+                Stocks = semantics.Stocks,
+                Verbs = semantics.Verbs,
+                Flows = withoutAmbitionDecay,
+                Modifiers = semantics.Modifiers,
+                ProcessReferences = semantics.ProcessReferences,
+            },
+        };
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
+        Assert.Contains("Npc.ambition", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("engine_decay", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Build_PlaneStockWithDecayFlow_Throws()
+    {
+        var config = TestDomainDefinition.Create();
+        var semantics = config.Semantics!;
+        var flowsWithPlaneDecay = semantics.Flows
+            .Append(new SemanticFlowConfig
+            {
+                VerbId = TestDomainVerbId.EngineDecay.ToVerbId(),
+                Role = SemanticFlowRole.Outflow,
+                TargetKind = EntityKind.Settlement,
+                TargetAttribute = TestDomainAttributeId.CivicIdeology.ToDomainName(),
+                Mechanism = SemanticMechanism.Decay,
+            })
+            .ToList();
+
+        var brokenConfig = new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Processes = config.Processes,
+            Relationships = config.Relationships,
+            Pressures = config.Pressures,
+            Lifecycles = config.Lifecycles,
+            Resources = config.Resources,
+            Cultures = config.Cultures,
+            Semantics = new SemanticDomainConfig
+            {
+                Stocks = semantics.Stocks,
+                Verbs = semantics.Verbs,
+                Flows = flowsWithPlaneDecay,
+                Modifiers = semantics.Modifiers,
+                ProcessReferences = semantics.ProcessReferences,
+            },
+        };
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
+        Assert.Contains("Settlement.civic_ideology", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("plane", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Build_PlaneAxisOutflowWithoutInflow_Throws()
+    {
+        var config = TestDomainDefinition.Create();
+        var semantics = config.Semantics!;
+        var withoutCleanseInflow = semantics.Flows
+            .Where(flow => !(flow.TargetKind == EntityKind.Artifact &&
+                             flow.TargetAttribute == TestDomainAttributeId.MysticResonance.ToDomainName() &&
+                             flow.Role == SemanticFlowRole.Inflow &&
+                             flow.PlaneAxis == SemanticPlaneAxis.Y))
+            .ToList();
+
+        var brokenConfig = new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Processes = config.Processes,
+            Relationships = config.Relationships,
+            Pressures = config.Pressures,
+            Lifecycles = config.Lifecycles,
+            Resources = config.Resources,
+            Cultures = config.Cultures,
+            Semantics = new SemanticDomainConfig
+            {
+                Stocks = semantics.Stocks,
+                Verbs = semantics.Verbs,
+                Flows = withoutCleanseInflow,
+                Modifiers = semantics.Modifiers,
+                ProcessReferences = semantics.ProcessReferences,
+            },
+        };
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
+        Assert.Contains("Artifact.mystic_resonance", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Y-axis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

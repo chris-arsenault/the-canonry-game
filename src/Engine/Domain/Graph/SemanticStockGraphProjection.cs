@@ -9,23 +9,29 @@ public static class SemanticStockGraphProjection
     {
         ArgumentNullException.ThrowIfNull(graph);
 
-        var grouped = new Dictionary<(DefinitionAttributeKey Source, DefinitionAttributeKey Target), List<SemanticFlowEdge>>();
+        var stockByAttribute = graph.Stocks
+            .Where(stock => stock.Id is AttributeStockId)
+            .ToDictionary(stock => ((AttributeStockId)stock.Id).Key, stock => stock.Id);
+        var stockByResource = graph.Stocks
+            .Where(stock => stock.Id is ResourceStockId)
+            .ToDictionary(stock => ((ResourceStockId)stock.Id).ResourceId, stock => stock.Id);
+
+        var grouped = new Dictionary<(SemanticStockId Source, SemanticStockId Target), List<SemanticFlowEdge>>();
 
         foreach (var flow in graph.Flows)
         {
             foreach (var sourceRef in flow.SourceRefs)
             {
-                if (sourceRef.ValueId is not AttributeValueId { AttributeId: var attributeId } ||
-                    sourceRef.Kind is not EntityKind kind)
+                var referenceStockId = TryResolveStockId(sourceRef, stockByAttribute, stockByResource);
+                if (referenceStockId is null)
                 {
                     continue;
                 }
 
-                var referenceKey = new DefinitionAttributeKey(kind, attributeId);
-                var stockKey = flow.TargetStock.AttributeKey;
+                var targetStockId = flow.TargetStock.Id;
                 var edgeKey = flow.Role == SemanticFlowRole.Inflow
-                    ? (referenceKey, stockKey)
-                    : (stockKey, referenceKey);
+                    ? (referenceStockId, targetStockId)
+                    : (targetStockId, referenceStockId);
 
                 if (!grouped.TryGetValue(edgeKey, out var flows))
                 {
@@ -38,24 +44,54 @@ public static class SemanticStockGraphProjection
         }
 
         return grouped
-            .OrderBy(entry => $"{entry.Key.Source.Kind}.{entry.Key.Source.AttributeId.Value}")
-            .ThenBy(entry => $"{entry.Key.Target.Kind}.{entry.Key.Target.AttributeId.Value}")
-            .Select(entry => new SemanticProjectedAttributeEdge
+            .OrderBy(entry => entry.Key.Source.Label, StringComparer.Ordinal)
+            .ThenBy(entry => entry.Key.Target.Label, StringComparer.Ordinal)
+            .Select(entry =>
             {
-                SourceKey = entry.Key.Source,
-                TargetKey = entry.Key.Target,
-                SupportingFlows = entry.Value
+                var supporting = entry.Value
                     .OrderBy(flow => flow.Verb.Id, StringComparer.Ordinal)
                     .ThenBy(flow => flow.Role)
-                    .ToArray(),
+                    .ToArray();
+                return new SemanticProjectedAttributeEdge
+                {
+                    SourceId = entry.Key.Source,
+                    TargetId = entry.Key.Target,
+                    SupportingFlows = supporting,
+                    IsGateOnly = supporting.All(flow => flow.IsGate),
+                };
             })
             .ToArray();
+    }
+
+    private static SemanticStockId? TryResolveStockId(
+        TypedDefinitionRef sourceRef,
+        Dictionary<DefinitionAttributeKey, SemanticStockId> stockByAttribute,
+        Dictionary<DefinitionResourceId, SemanticStockId> stockByResource)
+    {
+        switch (sourceRef.ValueId)
+        {
+            case AttributeValueId attributeValue when sourceRef.Kind is EntityKind kind:
+            {
+                var key = new DefinitionAttributeKey(kind, attributeValue.AttributeId);
+                return stockByAttribute.TryGetValue(key, out var attributeStockId) ? attributeStockId : null;
+            }
+
+            case ResourceValueId resourceValue:
+                return stockByResource.TryGetValue(resourceValue.ResourceId, out var resourceStockId) ? resourceStockId : null;
+
+            default:
+                return null;
+        }
     }
 }
 
 public sealed class SemanticProjectedAttributeEdge
 {
-    public required DefinitionAttributeKey SourceKey { get; init; }
-    public required DefinitionAttributeKey TargetKey { get; init; }
+    public required SemanticStockId SourceId { get; init; }
+    public required SemanticStockId TargetId { get; init; }
     public required IReadOnlyList<SemanticFlowEdge> SupportingFlows { get; init; }
+    public bool IsGateOnly { get; init; }
+
+    public DefinitionAttributeKey? SourceKey => (SourceId as AttributeStockId)?.Key;
+    public DefinitionAttributeKey? TargetKey => (TargetId as AttributeStockId)?.Key;
 }

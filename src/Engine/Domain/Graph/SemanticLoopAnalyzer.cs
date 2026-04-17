@@ -16,7 +16,7 @@ public static class SemanticLoopAnalyzer
 
         var adjacencies = BuildAdjacencies(graph.SemanticFlows);
         var stocks = graph.SemanticFlows.Stocks
-            .OrderBy(stock => StockLabel(stock))
+            .OrderBy(stock => stock.Id.Label, StringComparer.Ordinal)
             .ToList();
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -25,39 +25,39 @@ public static class SemanticLoopAnalyzer
         foreach (var start in stocks)
         {
             var path = new List<SemanticLoopEdge>();
-            var visited = new HashSet<DefinitionAttributeKey> { start.AttributeKey };
-            Explore(start.AttributeKey, start.AttributeKey, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
+            var visited = new HashSet<SemanticStockId> { start.Id };
+            Explore(start.Id, start.Id, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
         }
 
         return loops;
     }
 
-    private static Dictionary<DefinitionAttributeKey, List<SemanticLoopEdge>> BuildAdjacencies(
+    private static Dictionary<SemanticStockId, List<SemanticLoopEdge>> BuildAdjacencies(
         SemanticFlowGraph graph)
     {
-        var grouped = new Dictionary<(DefinitionAttributeKey Source, DefinitionAttributeKey Target), List<SemanticFlowEdge>>();
+        var grouped = new Dictionary<(SemanticStockId Source, SemanticStockId Target), List<SemanticFlowEdge>>();
 
         foreach (var edge in SemanticStockGraphProjection.ProjectAttributeEdges(graph))
         {
-            grouped[(edge.SourceKey, edge.TargetKey)] = [.. edge.SupportingFlows];
+            grouped[(edge.SourceId, edge.TargetId)] = [.. edge.SupportingFlows];
         }
 
-        var adjacency = new Dictionary<DefinitionAttributeKey, List<SemanticLoopEdge>>();
-        foreach (var ((sourceKey, targetKey), flows) in grouped)
+        var adjacency = new Dictionary<SemanticStockId, List<SemanticLoopEdge>>();
+        foreach (var ((sourceId, targetId), flows) in grouped)
         {
             var edge = new SemanticLoopEdge
             {
-                SourceKey = sourceKey,
-                TargetKey = targetKey,
+                SourceId = sourceId,
+                TargetId = targetId,
                 SupportingFlows = flows
                     .OrderBy(flow => flow.Verb.Id, StringComparer.Ordinal)
                     .ToArray(),
             };
 
-            if (!adjacency.TryGetValue(sourceKey, out var edges))
+            if (!adjacency.TryGetValue(sourceId, out var edges))
             {
                 edges = [];
-                adjacency[sourceKey] = edges;
+                adjacency[sourceId] = edges;
             }
 
             edges.Add(edge);
@@ -65,19 +65,17 @@ public static class SemanticLoopAnalyzer
 
         foreach (var (_, edges) in adjacency)
         {
-            edges.Sort((left, right) => string.CompareOrdinal(
-                $"{left.TargetKey.Kind}.{left.TargetKey.AttributeId.Value}",
-                $"{right.TargetKey.Kind}.{right.TargetKey.AttributeId.Value}"));
+            edges.Sort((left, right) => string.CompareOrdinal(left.TargetId.Label, right.TargetId.Label));
         }
 
         return adjacency;
     }
 
     private static void Explore(
-        DefinitionAttributeKey start,
-        DefinitionAttributeKey current,
-        IReadOnlyDictionary<DefinitionAttributeKey, List<SemanticLoopEdge>> adjacencies,
-        HashSet<DefinitionAttributeKey> visited,
+        SemanticStockId start,
+        SemanticStockId current,
+        IReadOnlyDictionary<SemanticStockId, List<SemanticLoopEdge>> adjacencies,
+        HashSet<SemanticStockId> visited,
         List<SemanticLoopEdge> path,
         HashSet<string> seen,
         List<SemanticClosedLoop> loops,
@@ -91,7 +89,7 @@ public static class SemanticLoopAnalyzer
 
         foreach (var edge in nextEdges)
         {
-            if (edge.TargetKey == start)
+            if (edge.TargetId == start)
             {
                 if (path.Count + 1 < 2)
                 {
@@ -100,8 +98,8 @@ public static class SemanticLoopAnalyzer
 
                 var cycleEdges = path.Append(edge).ToArray();
                 var kindCount = cycleEdges
-                    .Select(loopEdge => loopEdge.SourceKey.Kind)
-                    .Append(start.Kind)
+                    .Select(loopEdge => DistinctKindOf(loopEdge.SourceId))
+                    .Append(DistinctKindOf(start))
                     .Distinct()
                     .Count();
 
@@ -124,22 +122,22 @@ public static class SemanticLoopAnalyzer
                 continue;
             }
 
-            if (path.Count + 1 >= maxLength || !visited.Add(edge.TargetKey))
+            if (path.Count + 1 >= maxLength || !visited.Add(edge.TargetId))
             {
                 continue;
             }
 
             path.Add(edge);
-            Explore(start, edge.TargetKey, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
+            Explore(start, edge.TargetId, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
             path.RemoveAt(path.Count - 1);
-            visited.Remove(edge.TargetKey);
+            visited.Remove(edge.TargetId);
         }
     }
 
     private static string Canonicalize(IReadOnlyList<SemanticLoopEdge> cycleEdges)
     {
         var nodes = cycleEdges
-            .Select(edge => $"{edge.SourceKey.Kind}.{edge.SourceKey.AttributeId.Value}")
+            .Select(edge => edge.SourceId.Label)
             .ToArray();
 
         var rotations = Enumerable.Range(0, nodes.Length)
@@ -152,8 +150,12 @@ public static class SemanticLoopAnalyzer
         return rotations.Min(StringComparer.Ordinal)!;
     }
 
-    private static string StockLabel(SemanticStockNode stock) =>
-        $"{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId.Value}";
+    private static string DistinctKindOf(SemanticStockId id) => id switch
+    {
+        AttributeStockId attribute => attribute.Key.Kind.ToString(),
+        ResourceStockId => "hex",
+        _ => id.Label,
+    };
 }
 
 public sealed class SemanticClosedLoop
@@ -165,7 +167,10 @@ public sealed class SemanticClosedLoop
 
 public sealed class SemanticLoopEdge
 {
-    public required DefinitionAttributeKey SourceKey { get; init; }
-    public required DefinitionAttributeKey TargetKey { get; init; }
+    public required SemanticStockId SourceId { get; init; }
+    public required SemanticStockId TargetId { get; init; }
     public required IReadOnlyList<SemanticFlowEdge> SupportingFlows { get; init; }
+
+    public DefinitionAttributeKey? SourceKey => (SourceId as AttributeStockId)?.Key;
+    public DefinitionAttributeKey? TargetKey => (TargetId as AttributeStockId)?.Key;
 }

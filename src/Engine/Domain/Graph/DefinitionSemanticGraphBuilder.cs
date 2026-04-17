@@ -12,7 +12,7 @@ public static class DefinitionSemanticGraphBuilder
 
         Reset(graph.SemanticFlows);
 
-        var stockByKey = BuildStocks(graph, config.Stocks);
+        var stockById = BuildStocks(graph, config.Stocks);
         var verbById = BuildVerbs(graph, config.Verbs);
 
         foreach (var flow in config.Flows)
@@ -23,10 +23,10 @@ public static class DefinitionSemanticGraphBuilder
                     $"Semantic flow references undeclared verb '{flow.VerbId}'.");
             }
 
-            var targetKey = new DefinitionAttributeKey(
+            var targetId = new AttributeStockId(new DefinitionAttributeKey(
                 flow.TargetKind,
-                new DefinitionAttributeId(flow.TargetAttribute));
-            if (!stockByKey.TryGetValue(targetKey, out var targetStock))
+                new DefinitionAttributeId(flow.TargetAttribute)));
+            if (!stockById.TryGetValue(targetId, out var targetStock))
             {
                 throw new DefinitionGraphException(
                     $"Semantic flow '{flow.VerbId}' targets undeclared stock '{flow.TargetKind}.{flow.TargetAttribute}'.");
@@ -49,10 +49,10 @@ public static class DefinitionSemanticGraphBuilder
 
         foreach (var modifier in config.Modifiers)
         {
-            var sourceKey = new DefinitionAttributeKey(
+            var sourceId = new AttributeStockId(new DefinitionAttributeKey(
                 modifier.SourceKind,
-                new DefinitionAttributeId(modifier.SourceAttribute));
-            if (!stockByKey.TryGetValue(sourceKey, out var sourceStock))
+                new DefinitionAttributeId(modifier.SourceAttribute)));
+            if (!stockById.TryGetValue(sourceId, out var sourceStock))
             {
                 throw new DefinitionGraphException(
                     $"Semantic modifier references undeclared source stock '{modifier.SourceKind}.{modifier.SourceAttribute}'.");
@@ -81,7 +81,8 @@ public static class DefinitionSemanticGraphBuilder
             var targetKey = new DefinitionAttributeKey(
                 processReference.TargetKind,
                 new DefinitionAttributeId(processReference.TargetAttribute));
-            if (!stockByKey.TryGetValue(targetKey, out var targetStock))
+            var targetId = new AttributeStockId(targetKey);
+            if (!stockById.TryGetValue(targetId, out var targetStock))
             {
                 throw new DefinitionGraphException(
                     $"Semantic process reference for '{processReference.ProcessId}' targets undeclared stock '{processReference.TargetKind}.{processReference.TargetAttribute}'.");
@@ -111,29 +112,23 @@ public static class DefinitionSemanticGraphBuilder
         }
     }
 
-    private static Dictionary<DefinitionAttributeKey, SemanticStockNode> BuildStocks(
+    private static Dictionary<SemanticStockId, SemanticStockNode> BuildStocks(
         DefinitionGraph graph,
         IReadOnlyList<SemanticStockConfig> configs)
     {
-        var stocks = new Dictionary<DefinitionAttributeKey, SemanticStockNode>();
+        var stocks = new Dictionary<SemanticStockId, SemanticStockNode>();
         foreach (var config in configs)
         {
-            var key = new DefinitionAttributeKey(config.Kind, new DefinitionAttributeId(config.AttributeName));
-            if (!graph.Attributes.ContainsKey(key))
+            var id = ResolveStockId(graph, config);
+            if (stocks.ContainsKey(id))
             {
                 throw new DefinitionGraphException(
-                    $"Semantic stock references undeclared attribute '{config.Kind}.{config.AttributeName}'.");
-            }
-
-            if (stocks.ContainsKey(key))
-            {
-                throw new DefinitionGraphException(
-                    $"Semantic stock config duplicates '{config.Kind}.{config.AttributeName}'.");
+                    $"Semantic stock config duplicates '{id.Label}'.");
             }
 
             var stock = new SemanticStockNode
             {
-                AttributeKey = key,
+                Id = id,
                 StockClass = config.StockClass,
                 FeedbackClass = config.FeedbackClass,
                 RequiredFlowCoverage = config.RequiredFlowCoverage,
@@ -145,11 +140,47 @@ public static class DefinitionSemanticGraphBuilder
                 Notes = config.Notes,
             };
 
-            stocks[key] = stock;
+            stocks[id] = stock;
             graph.SemanticFlows.Stocks.Add(stock);
         }
 
         return stocks;
+    }
+
+    private static SemanticStockId ResolveStockId(DefinitionGraph graph, SemanticStockConfig config)
+    {
+        switch (config)
+        {
+            case SemanticAttributeStockConfig attributeConfig:
+            {
+                var key = new DefinitionAttributeKey(
+                    attributeConfig.Kind,
+                    new DefinitionAttributeId(attributeConfig.AttributeName));
+                if (!graph.Attributes.ContainsKey(key))
+                {
+                    throw new DefinitionGraphException(
+                        $"Semantic stock references undeclared attribute '{attributeConfig.Kind}.{attributeConfig.AttributeName}'.");
+                }
+
+                return new AttributeStockId(key);
+            }
+
+            case SemanticResourceStockConfig resourceConfig:
+            {
+                var resourceId = new DefinitionResourceId(resourceConfig.ResourceName);
+                if (!graph.Resources.ContainsKey(resourceId))
+                {
+                    throw new DefinitionGraphException(
+                        $"Semantic stock references undeclared resource '{resourceConfig.ResourceName}'.");
+                }
+
+                return new ResourceStockId(resourceId);
+            }
+
+            default:
+                throw new DefinitionGraphException(
+                    $"Unsupported semantic stock config type '{config.GetType().Name}'.");
+        }
     }
 
     private static Dictionary<string, SemanticVerbNode> BuildVerbs(

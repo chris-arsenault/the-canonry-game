@@ -13,12 +13,10 @@ public sealed class SemanticDomainConfig
     public IReadOnlyList<SemanticProcessReferenceConfig> ProcessReferences { get; init; } = [];
 }
 
-public sealed class SemanticStockConfig
+public abstract class SemanticStockConfig
 {
-    public required EntityKind Kind { get; init; }
-    public required string AttributeName { get; init; }
-    public required SemanticStockClass StockClass { get; init; }
-    public required SemanticFeedbackClass FeedbackClass { get; init; }
+    public SemanticStockClass StockClass { get; init; } = SemanticStockClass.Unknown;
+    public SemanticFeedbackClass FeedbackClass { get; init; } = SemanticFeedbackClass.Unknown;
     public SemanticFlowCoverageRequirement RequiredFlowCoverage { get; init; } =
         SemanticFlowCoverageRequirement.Both;
     public SemanticFlowCoverageRequirement RequiredXFlowCoverage { get; init; } =
@@ -29,6 +27,17 @@ public sealed class SemanticStockConfig
     public string? ConservationLabel { get; init; }
     public string? CoverageNotes { get; init; }
     public string? Notes { get; init; }
+}
+
+public sealed class SemanticAttributeStockConfig : SemanticStockConfig
+{
+    public required EntityKind Kind { get; init; }
+    public required string AttributeName { get; init; }
+}
+
+public sealed class SemanticResourceStockConfig : SemanticStockConfig
+{
+    public required string ResourceName { get; init; }
 }
 
 public sealed class SemanticVerbConfig

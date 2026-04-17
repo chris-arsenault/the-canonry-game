@@ -41,7 +41,7 @@ public static class TestDomainSemanticDefinition
             "0..100",
             "free",
             "Enshrine refills containment via custodian settlement prestige (gate, non-depleting on settlement). Depleted by heal events and passive emanation into region resonance."),
-        Stock(EntityKind.Artifact, Attr.MysticResonance, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
+        Stock(EntityKind.Artifact, Attr.MysticResonance, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Quiescent↔Resonant, Y=Corrupting↔Purifying",
             "plane (X/Y independent)",
             "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. cleanse shifts Res·Y UP (mutual with NPC Ideo·Y rising). purify shifts Res·Y DOWN (toward Corrupting) — the purifier is tainted through use, releasing stability to the region. Res·X reserved extension space."),
@@ -58,10 +58,10 @@ public static class TestDomainSemanticDefinition
             "0..100",
             "free",
             "Gated by custodian artifact power (non-depleting — artifact keeps its power while projecting influence). Spent on attracting NPCs."),
-        Stock(EntityKind.Faction, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
+        Stock(EntityKind.Faction, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
-            "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. consecrate shifts faction Ideo·X UP (toward Individualist) while also shifting Region.Res·X UP (toward Resonant) — mutual UP on both sides. radicalize shifts Ideo·X DOWN (toward Collectivist), depleting cohesion. Indoctrinate drifts depend on partner state."),
+            "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. consecrate shifts faction Ideo·X UP (toward Individualist) while also shifting Region.Res·X UP (toward Resonant) — mutual UP on both sides. radicalize shifts Ideo·X DOWN (toward Collectivist), depleting cohesion. Indoctrinate shifts depend on partner state."),
 
         Stock(EntityKind.Npc, Attr.Vitality, SemanticStockClass.Anchor, SemanticFeedbackClass.Anchor,
             "0..100",
@@ -75,10 +75,10 @@ public static class TestDomainSemanticDefinition
             "0..100",
             "free",
             "Low at spawn (20). Seeded by faction_attract. create_works spends ambition (burnout cost) to raise settlement.prestige."),
-        Stock(EntityKind.Npc, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
+        Stock(EntityKind.Npc, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
-            "Plane rows: 'Inflow'/'Outflow' columns mean axis shift UP/DOWN, not stock gain/loss. attune and cleanse shift NPC values UP on their axes. rally and devote shift Ideo·X DOWN (toward Collectivist) as collectivist actions — these are plane→polar where the polar target (cohesion, power) rises. Propaganda/indoctrinate are context-dependent drifts toward partner state."),
+            "Plane rows: 'Inflow'/'Outflow' columns mean axis shift UP/DOWN, not stock gain/loss. attune and cleanse shift NPC values UP on their axes. rally and devote shift Ideo·X DOWN (toward Collectivist) as collectivist actions — these are plane→polar where the polar target (cohesion, power) rises. Propaganda/indoctrinate are context-dependent shifts toward partner state."),
 
         Stock(EntityKind.Region, Attr.RegionalSafety, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
@@ -87,8 +87,8 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Region, Attr.GeologicStability, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "region_irrigate converts geologic_stability into hex.food. Only named inflow is artifact purification (high Res·Y); otherwise drifts down via engine_decay."),
-        Stock(EntityKind.Region, Attr.MysticResonance, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
+            "region_irrigate converts geologic_stability into hex.food. Only named inflow is artifact purification (high Res·Y); otherwise decays via engine_decay."),
+        Stock(EntityKind.Region, Attr.MysticResonance, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Quiescent↔Resonant, Y=Corrupting↔Purifying",
             "plane (X/Y independent)",
             "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. Res·X shifts UP via consecrate and emanate (toward Resonant). Res·X shifts DOWN via attune (toward Quiescent) — attuning an NPC spends the land's resonance. Res·Y reserved extension space."),
@@ -105,10 +105,14 @@ public static class TestDomainSemanticDefinition
             "0..100",
             "free",
             "Earned via NPC deeds (create_works depletes ambition). Gates four downstream verbs: trade (→hex.wealth), attract and grow (resident targeting), artifact_enshrine (→artifact.containment)."),
-        Stock(EntityKind.Settlement, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Drift,
+        Stock(EntityKind.Settlement, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
-            "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. Settlement participates only in drift verbs (propaganda with NPCs, indoctrinate with factions). Shift direction depends on partner state. Ideology modulates attract VOLUME (how many residents move)."),
+            "Plane rows: 'Inflow'/'Outflow' = axis shift UP/DOWN. Settlement participates only in shift verbs (propaganda with NPCs, indoctrinate with factions). Shift direction depends on partner state. Ideology modulates attract VOLUME (how many residents move)."),
+
+        ResourceStock(Res.Food, "Ambient hex food abundance. Modifies NPC satiety intake; produced by region_irrigate. Not depleted by npc_eat — it is a non-consuming abundance signal."),
+        ResourceStock(Res.Wealth, "Ambient hex wealth. Modifies faction_tax intake rate; produced by settlement_trade. Not depleted by tax — it is a non-consuming abundance signal."),
+        ResourceStock(Res.Population, "Ambient hex population. Modifies settlement_grow intake rate; produced by region_settle (wilderness→populace). Not depleted by grow — it is a non-consuming abundance signal."),
     ];
 
     private static IReadOnlyList<SemanticVerbConfig> CreateVerbs() =>
@@ -151,12 +155,15 @@ public static class TestDomainSemanticDefinition
     [
         Inflow(EntityKind.Artifact, Attr.Condition, Verb.FactionMaintain, SemanticMechanism.Conversion, "target; conversion from faction.support", Target(EntityKind.Faction, Attr.Support)),
         Outflow(EntityKind.Artifact, Attr.Condition, Verb.ArtifactChannel, SemanticMechanism.Sacrifice, "self; sacrifice into power", Self(EntityKind.Artifact, Attr.Power)),
+        Decay(EntityKind.Artifact, Attr.Condition),
         Inflow(EntityKind.Artifact, Attr.Power, Verb.ArtifactChannel, SemanticMechanism.Conversion, "self; conversion from condition", Self(EntityKind.Artifact, Attr.Condition)),
         Inflow(EntityKind.Artifact, Attr.Power, Verb.ArtifactDevote, SemanticMechanism.Conversion, "self; conversion from NPC.ideo_x", Target(EntityKind.Npc, Attr.CivicIdeology)),
         Outflow(EntityKind.Artifact, Attr.Power, Verb.ArtifactEmpower, SemanticMechanism.Gate, "self; gate to faction.influence", Target(EntityKind.Faction, Attr.Influence)),
+        Decay(EntityKind.Artifact, Attr.Power),
         Inflow(EntityKind.Artifact, Attr.Containment, Verb.ArtifactEnshrine, SemanticMechanism.Gate, "self; gate from settlement.prestige", Target(EntityKind.Settlement, Attr.Prestige)),
         Outflow(EntityKind.Artifact, Attr.Containment, Verb.ArtifactHeal, SemanticMechanism.Conversion, "self; conversion to NPC.vitality", Target(EntityKind.Npc, Attr.Vitality)),
         Outflow(EntityKind.Artifact, Attr.Containment, Verb.ArtifactEmanate, SemanticMechanism.Emanation, "self; emanation to region.res_x", Target(EntityKind.Region, Attr.MysticResonance)),
+        Decay(EntityKind.Artifact, Attr.Containment),
         Inflow(EntityKind.Artifact, Attr.MysticResonance, Verb.ArtifactCleanse, SemanticMechanism.Shift, "self; shifts Res·Y UP → Purifying; plane-plane mutual with NPC.Ideo·Y", SemanticPlaneAxis.Y, Target(EntityKind.Npc, Attr.CivicIdeology)),
         Outflow(EntityKind.Artifact, Attr.MysticResonance, Verb.ArtifactPurify, SemanticMechanism.Shift, "self; shifts Res·Y DOWN → Corrupting; plane→polar, raises region.geologic_stability", SemanticPlaneAxis.Y, Target(EntityKind.Region, Attr.GeologicStability)),
 
@@ -172,9 +179,9 @@ public static class TestDomainSemanticDefinition
         Outflow(EntityKind.Faction, Attr.Influence, Verb.FactionAttract, SemanticMechanism.Conversion, "self; conversion to NPC.ambition", Target(EntityKind.Npc, Attr.Ambition)),
         Decay(EntityKind.Faction, Attr.Influence),
         Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionConsecrate, SemanticMechanism.Shift, "self; shifts Ideo·X UP → Individualist; plane-plane mutual with Region.Res·X", SemanticPlaneAxis.X, Target(EntityKind.Region, Attr.MysticResonance)),
-        Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "self/target; drift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
+        Inflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "self/target; shift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
         Outflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionRadicalize, SemanticMechanism.Shift, "self; shifts Ideo·X DOWN → Collectivist; polar→plane, depletes cohesion", SemanticPlaneAxis.X, Self(EntityKind.Faction, Attr.Cohesion)),
-        Outflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "self/target; drift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
+        Outflow(EntityKind.Faction, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "self/target; shift ↔ NPC/settlement", Target(EntityKind.Npc, Attr.CivicIdeology), Target(EntityKind.Settlement, Attr.CivicIdeology)),
 
         Inflow(EntityKind.Npc, Attr.Vitality, Verb.ArtifactHeal, SemanticMechanism.Conversion, "target; conversion", Target(EntityKind.Artifact, Attr.Containment)),
         Inflow(EntityKind.Npc, Attr.Vitality, Verb.RegionShelter, SemanticMechanism.Gate, "target; gate", Target(EntityKind.Region, Attr.RegionalSafety)),
@@ -186,14 +193,15 @@ public static class TestDomainSemanticDefinition
         Decay(EntityKind.Npc, Attr.Satiety),
         Inflow(EntityKind.Npc, Attr.Ambition, Verb.FactionAttract, SemanticMechanism.Conversion, "target; conversion from faction.influence", Target(EntityKind.Faction, Attr.Influence)),
         Outflow(EntityKind.Npc, Attr.Ambition, Verb.NpcCreateWorks, SemanticMechanism.Conversion, "self; conversion to settlement.prestige", Target(EntityKind.Settlement, Attr.Prestige)),
+        Decay(EntityKind.Npc, Attr.Ambition),
         Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.RegionAttune, SemanticMechanism.Shift, "target; shifts Ideo·X UP → Individualist; plane-plane", SemanticPlaneAxis.X, Target(EntityKind.Region, Attr.MysticResonance)),
         Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.ArtifactCleanse, SemanticMechanism.Shift, "target; shifts Ideo·Y UP → Progressive; plane-plane mutual with Res·Y", SemanticPlaneAxis.Y, Target(EntityKind.Artifact, Attr.MysticResonance)),
-        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Settlement, Attr.CivicIdeology)),
-        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Faction, Attr.CivicIdeology)),
+        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Shift, "target; shift ↔ NPC", Target(EntityKind.Settlement, Attr.CivicIdeology)),
+        Inflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "target; shift ↔ NPC", Target(EntityKind.Faction, Attr.CivicIdeology)),
         Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionRally, SemanticMechanism.Shift, "target; shifts Ideo·X DOWN → Collectivist; plane→polar, raises faction.cohesion", SemanticPlaneAxis.X, Target(EntityKind.Faction, Attr.Cohesion)),
         Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.ArtifactDevote, SemanticMechanism.Shift, "target; shifts Ideo·X DOWN → Collectivist; plane→polar, raises artifact.power", SemanticPlaneAxis.X, Target(EntityKind.Artifact, Attr.Power)),
-        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Settlement, Attr.CivicIdeology)),
-        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "target; drift ↔ NPC", Target(EntityKind.Faction, Attr.CivicIdeology)),
+        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Shift, "target; shift ↔ NPC", Target(EntityKind.Settlement, Attr.CivicIdeology)),
+        Outflow(EntityKind.Npc, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "target; shift ↔ NPC", Target(EntityKind.Faction, Attr.CivicIdeology)),
 
         Inflow(EntityKind.Region, Attr.RegionalSafety, Verb.SettlementGarrison, SemanticMechanism.Conversion, "target; conversion from settlement.security", Target(EntityKind.Settlement, Attr.Security)),
         Outflow(EntityKind.Region, Attr.RegionalSafety, Verb.RegionSettle, SemanticMechanism.Conversion, "self; conversion to hex.population", Resource(Res.Population)),
@@ -215,16 +223,15 @@ public static class TestDomainSemanticDefinition
         Decay(EntityKind.Settlement, Attr.Security),
         Inflow(EntityKind.Settlement, Attr.Prestige, Verb.NpcCreateWorks, SemanticMechanism.Conversion, "target; conversion from NPC.ambition", Self(EntityKind.Npc, Attr.Ambition)),
         Decay(EntityKind.Settlement, Attr.Prestige),
-        Inflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Drift, "self/target; drift ↔ NPC", Target(EntityKind.Npc, Attr.CivicIdeology)),
-        Inflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "target; drift ↔ faction", Target(EntityKind.Faction, Attr.CivicIdeology)),
-        Outflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Drift, "self/target; drift ↔ NPC", Target(EntityKind.Npc, Attr.CivicIdeology)),
-        Outflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Drift, "target; drift ↔ faction", Target(EntityKind.Faction, Attr.CivicIdeology)),
+        Inflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Shift, "self/target; shift ↔ NPC", Target(EntityKind.Npc, Attr.CivicIdeology)),
+        Inflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "target; shift ↔ faction", Target(EntityKind.Faction, Attr.CivicIdeology)),
+        Outflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementPropaganda, SemanticMechanism.Shift, "self/target; shift ↔ NPC", Target(EntityKind.Npc, Attr.CivicIdeology)),
+        Outflow(EntityKind.Settlement, Attr.CivicIdeology, Verb.FactionIndoctrinate, SemanticMechanism.Shift, "target; shift ↔ faction", Target(EntityKind.Faction, Attr.CivicIdeology)),
     ];
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() =>
     [
         Modifier(EntityKind.Region, Attr.RegionalSafety, Verb.RegionShelter, SemanticModifierDirection.Positive, "gate"),
-        Modifier(EntityKind.Settlement, Attr.Residents, Verb.FactionRecruit, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementTrade, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementAttract, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementGrow, SemanticModifierDirection.Positive, "gate"),
@@ -269,7 +276,7 @@ public static class TestDomainSemanticDefinition
         DirectWrite(Proc.NpcEat, EntityKind.Npc, Attr.Satiety),
     ];
 
-    private static SemanticStockConfig Stock(
+    private static SemanticAttributeStockConfig Stock(
         EntityKind kind,
         Attr attribute,
         SemanticStockClass stockClass,
@@ -288,6 +295,16 @@ public static class TestDomainSemanticDefinition
                 : SemanticFlowCoverageRequirement.Both,
             BoundsLabel = boundsLabel,
             ConservationLabel = conservationLabel,
+            Notes = notes,
+        };
+
+    private static SemanticResourceStockConfig ResourceStock(Res resource, string notes) =>
+        new()
+        {
+            ResourceName = R(resource),
+            StockClass = SemanticStockClass.Free,
+            FeedbackClass = SemanticFeedbackClass.Unknown,
+            RequiredFlowCoverage = SemanticFlowCoverageRequirement.None,
             Notes = notes,
         };
 
@@ -358,7 +375,7 @@ public static class TestDomainSemanticDefinition
             Role = SemanticFlowRole.Outflow,
             TargetKind = kind,
             TargetAttribute = A(attribute),
-            Mechanism = SemanticMechanism.Drift,
+            Mechanism = SemanticMechanism.Decay,
         };
 
     private static SemanticFlowConfig Flow(

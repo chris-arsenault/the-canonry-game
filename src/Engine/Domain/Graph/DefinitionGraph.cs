@@ -19,6 +19,21 @@ public sealed class DefinitionGraph
 
 public sealed record DefinitionAttributeKey(EntityKind Kind, DefinitionAttributeId AttributeId);
 
+public abstract record SemanticStockId
+{
+    public abstract string Label { get; }
+}
+
+public sealed record AttributeStockId(DefinitionAttributeKey Key) : SemanticStockId
+{
+    public override string Label => $"{Key.Kind}.{Key.AttributeId.Value}";
+}
+
+public sealed record ResourceStockId(DefinitionResourceId ResourceId) : SemanticStockId
+{
+    public override string Label => $"hex.{ResourceId.Value}";
+}
+
 public sealed class DefinitionKindNode
 {
     public required EntityKind Kind { get; init; }
@@ -177,7 +192,6 @@ public enum SemanticFeedbackClass
     Unknown,
     Anchor,
     Balancing,
-    Drift,
 }
 
 public enum SemanticMechanism
@@ -186,7 +200,7 @@ public enum SemanticMechanism
     Inflow,
     Conversion,
     Gate,
-    Drift,
+    Decay,
     Emanation,
     Sacrifice,
     Shift,
@@ -222,7 +236,7 @@ public enum SemanticDiagnosticSeverity
 
 public sealed class SemanticStockNode
 {
-    public required DefinitionAttributeKey AttributeKey { get; init; }
+    public required SemanticStockId Id { get; init; }
     public SemanticStockClass StockClass { get; init; } = SemanticStockClass.Unknown;
     public SemanticFeedbackClass FeedbackClass { get; init; } = SemanticFeedbackClass.Unknown;
     public SemanticFlowCoverageRequirement RequiredFlowCoverage { get; init; } =
@@ -237,6 +251,9 @@ public sealed class SemanticStockNode
     public string? Notes { get; init; }
     public string? SourceWorksheet { get; init; }
     public int SourceRow { get; init; }
+
+    public DefinitionAttributeKey? AttributeKey => (Id as AttributeStockId)?.Key;
+    public DefinitionResourceId? ResourceId => (Id as ResourceStockId)?.ResourceId;
 }
 
 public sealed class SemanticVerbNode
@@ -263,6 +280,8 @@ public sealed class SemanticFlowEdge
     public SemanticMechanism Mechanism { get; init; } = SemanticMechanism.Unknown;
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
     public IReadOnlyList<TypedDefinitionRef> SourceRefs { get; init; } = [];
+
+    public bool IsGate => Mechanism == SemanticMechanism.Gate;
 }
 
 public sealed class SemanticModifierEdge

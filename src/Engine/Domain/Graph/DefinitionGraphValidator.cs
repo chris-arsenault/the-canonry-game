@@ -252,79 +252,162 @@ public static class DefinitionGraphValidator
         foreach (var stock in graph.SemanticFlows.Stocks)
         {
             var coverage = SemanticCoverageAnalyzer.Summarize(stock, graph.SemanticFlows);
+            var stockLabel = stock.Id.Label;
 
             if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
                 coverage.ScalarInflows == 0)
             {
                 errors.Add(
-                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one inflow but none are declared.");
+                    $"Semantic stock '{stockLabel}' requires at least one inflow but none are declared.");
             }
 
             if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
                 coverage.ScalarOutflows == 0)
             {
                 errors.Add(
-                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one outflow but none are declared.");
+                    $"Semantic stock '{stockLabel}' requires at least one outflow but none are declared.");
             }
 
             if (stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
                 coverage.XInflows == 0)
             {
                 errors.Add(
-                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one X-axis inflow but none are declared.");
+                    $"Semantic stock '{stockLabel}' requires at least one X-axis inflow but none are declared.");
             }
 
             if (stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
                 coverage.XOutflows == 0)
             {
                 errors.Add(
-                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one X-axis outflow but none are declared.");
+                    $"Semantic stock '{stockLabel}' requires at least one X-axis outflow but none are declared.");
             }
 
             if (stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
                 coverage.YInflows == 0)
             {
                 errors.Add(
-                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one Y-axis inflow but none are declared.");
+                    $"Semantic stock '{stockLabel}' requires at least one Y-axis inflow but none are declared.");
             }
 
             if (stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
                 coverage.YOutflows == 0)
             {
                 errors.Add(
-                    $"Semantic stock '{stock.AttributeKey.Kind}.{stock.AttributeKey.AttributeId}' requires at least one Y-axis outflow but none are declared.");
+                    $"Semantic stock '{stockLabel}' requires at least one Y-axis outflow but none are declared.");
             }
+
+            ValidateStockDecayRules(stock, graph.SemanticFlows, stockLabel, errors);
+            ValidatePlaneAxisBalance(stock, coverage, stockLabel, errors);
+        }
+    }
+
+    private static void ValidatePlaneAxisBalance(
+        SemanticStockNode stock,
+        SemanticCoverageSummary coverage,
+        string stockLabel,
+        List<string> errors)
+    {
+        if (stock.StockClass != SemanticStockClass.Plane)
+        {
+            return;
+        }
+
+        if (coverage.XOutflows > 0 && coverage.XInflows == 0)
+        {
+            errors.Add(
+                $"Plane stock '{stockLabel}' has X-axis outflows but no X-axis inflows; planes with outflow on an axis must have inflow on that axis.");
+        }
+
+        if (coverage.YOutflows > 0 && coverage.YInflows == 0)
+        {
+            errors.Add(
+                $"Plane stock '{stockLabel}' has Y-axis outflows but no Y-axis inflows; planes with outflow on an axis must have inflow on that axis.");
+        }
+    }
+
+    private static void ValidateStockDecayRules(
+        SemanticStockNode stock,
+        SemanticFlowGraph graph,
+        string stockLabel,
+        List<string> errors)
+    {
+        var relatedFlows = graph.Flows.Where(flow => flow.TargetStock == stock).ToList();
+        var decayFlows = relatedFlows
+            .Where(flow => flow.Mechanism == SemanticMechanism.Decay)
+            .ToList();
+
+        if (stock.Id is ResourceStockId)
+        {
+            if (decayFlows.Count > 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stockLabel}' is a resource; resource stocks must not declare engine_decay flows.");
+            }
+
+            return;
+        }
+
+        if (stock.StockClass == SemanticStockClass.Plane)
+        {
+            if (decayFlows.Count > 0)
+            {
+                errors.Add(
+                    $"Semantic stock '{stockLabel}' is a plane; plane stocks must not declare engine_decay flows.");
+            }
+
+            return;
+        }
+
+        var hasDecayOutflow = decayFlows.Any(flow => flow.Role == SemanticFlowRole.Outflow);
+        if (!hasDecayOutflow)
+        {
+            errors.Add(
+                $"Semantic stock '{stockLabel}' is scalar and must declare an engine_decay outflow.");
+        }
+
+        var nonOutflowDecay = decayFlows.Any(flow => flow.Role != SemanticFlowRole.Outflow);
+        if (nonOutflowDecay)
+        {
+            errors.Add(
+                $"Semantic stock '{stockLabel}' declares a decay flow that is not an outflow; decay only applies as an outflow.");
         }
     }
 
     private static void ValidateProjectedSemanticEdges(DefinitionGraph graph, List<string> errors)
     {
         var projectedEdges = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
-        var edgeSet = projectedEdges
-            .Select(edge => (edge.SourceKey, edge.TargetKey))
+        var massFlowPairs = projectedEdges
+            .Where(edge => !edge.IsGateOnly)
+            .Select(edge => (edge.SourceId, edge.TargetId))
             .ToHashSet();
 
         foreach (var edge in projectedEdges)
         {
-            if (edge.SourceKey == edge.TargetKey)
+            if (edge.IsGateOnly || edge.SourceId == edge.TargetId)
             {
                 continue;
             }
 
-            if (!graph.Attributes.TryGetValue(edge.SourceKey, out var sourceAttribute) ||
-                !graph.Attributes.TryGetValue(edge.TargetKey, out var targetAttribute) ||
+            if (edge.SourceId is not AttributeStockId sourceAttributeId ||
+                edge.TargetId is not AttributeStockId targetAttributeId)
+            {
+                continue;
+            }
+
+            if (!graph.Attributes.TryGetValue(sourceAttributeId.Key, out var sourceAttribute) ||
+                !graph.Attributes.TryGetValue(targetAttributeId.Key, out var targetAttribute) ||
                 sourceAttribute.Shape != DefinitionAttributeShape.Scalar ||
                 targetAttribute.Shape != DefinitionAttributeShape.Scalar)
             {
                 continue;
             }
 
-            if (!edgeSet.Contains((edge.TargetKey, edge.SourceKey)))
+            if (!massFlowPairs.Contains((edge.TargetId, edge.SourceId)))
             {
                 continue;
             }
 
-            var pair = $"{edge.SourceKey.Kind}.{edge.SourceKey.AttributeId.Value} <-> {edge.TargetKey.Kind}.{edge.TargetKey.AttributeId.Value}";
+            var pair = $"{sourceAttributeId.Label} <-> {targetAttributeId.Label}";
             if (errors.Any(error => error.Contains(pair, StringComparison.Ordinal)))
             {
                 continue;
