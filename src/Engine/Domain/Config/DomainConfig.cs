@@ -56,10 +56,41 @@ public sealed class StandingDriveConfig
     public float BaseUrgency { get; init; }
 }
 
+/// <summary>
+/// Category of an attribute within the uniform H + (C|P) + (N|D) invariant.
+/// Every kind must have exactly 3 attributes: one Health, one from {Capacity, Projection}
+/// (outward emission), and one from {Need, Drive} (internal state).
+/// </summary>
+public enum AttributeCategory
+{
+    /// <summary>Lifecycle anchor. Dies/destroyed at 0. Exactly one per kind.</summary>
+    Health,
+
+    /// <summary>Outward emission — tangible/mechanical working stock.</summary>
+    Capacity,
+
+    /// <summary>Outward emission — symbolic/reputational stock.</summary>
+    Projection,
+
+    /// <summary>Internal state — deficit-driven urge to refill.</summary>
+    Need,
+
+    /// <summary>Internal state — self-generating fuel for outward action.</summary>
+    Drive,
+}
+
 /// <summary>Single attribute definition.</summary>
 public sealed class AttributeConfig
 {
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Category slot. Every kind must declare exactly 3 attributes: one Health,
+    /// one outward (Capacity or Projection), one internal (Need or Drive). Defaults
+    /// to Capacity for test scaffolds; canonical domain configs set this explicitly.
+    /// </summary>
+    public AttributeCategory Category { get; init; } = AttributeCategory.Capacity;
+
     public required float Min { get; init; }
     public required float Max { get; init; }
     public float Default { get; init; }

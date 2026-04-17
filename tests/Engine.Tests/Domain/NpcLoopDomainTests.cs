@@ -79,7 +79,6 @@ public class NpcLoopDomainTests
 
         Assert.Equal("Eat", npc.LastEvaluation!.ExecutedProcessName);
         Assert.InRange(npc.Attributes.GetValue("satiety"), 30.8f, 33.2f);
-        Assert.True(settlement.Attributes.GetValue("prestige") > 0f);
     }
 
     [Fact]
@@ -96,8 +95,6 @@ public class NpcLoopDomainTests
         SetScalar(npc, "satiety", 20f);
         SetScalar(current, "residents", 20f);
         SetScalar(challenger, "residents", 20f);
-        SetScalar(current, "prestige", 5f);
-        SetScalar(challenger, "prestige", 5.5f);
         SetAmbientFood(world, current, 5f);
         SetAmbientFood(world, challenger, 5f);
 

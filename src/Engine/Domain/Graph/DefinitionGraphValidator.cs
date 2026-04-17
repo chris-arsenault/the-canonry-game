@@ -67,8 +67,60 @@ public static class DefinitionGraphValidator
         ValidateSemanticVerbParticipation(graph, errors);
         ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
+        ValidateKindAttributeCategoryShape(graph, errors);
 
         return errors;
+    }
+
+    private static void ValidateKindAttributeCategoryShape(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var (kind, kindNode) in graph.Kinds)
+        {
+            var attributes = kindNode.Attributes.Values.ToList();
+
+            if (attributes.Count != 3)
+            {
+                errors.Add(
+                    $"Kind '{kind}' declares {attributes.Count} attributes; exactly 3 are required (Health + one of Capacity/Projection + one of Need/Drive).");
+                continue;
+            }
+
+            var healthCount = attributes.Count(a => a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Health);
+            var outwardCount = attributes.Count(a =>
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Capacity ||
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Projection);
+            var internalCount = attributes.Count(a =>
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Need ||
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Drive);
+
+            if (healthCount != 1)
+            {
+                errors.Add(
+                    $"Kind '{kind}' has {healthCount} Health attributes; exactly one is required.");
+            }
+
+            if (outwardCount != 1)
+            {
+                errors.Add(
+                    $"Kind '{kind}' has {outwardCount} outward attributes (Capacity or Projection); exactly one is required.");
+            }
+
+            if (internalCount != 1)
+            {
+                errors.Add(
+                    $"Kind '{kind}' has {internalCount} internal attributes (Need or Drive); exactly one is required.");
+            }
+
+            if (kindNode.HealthAttribute is DefinitionAttributeId healthId)
+            {
+                if (kindNode.Attributes.TryGetValue(healthId, out var healthAttr) &&
+                    healthAttr.SourceConfig.Category != Engine.Domain.Config.AttributeCategory.Health)
+                {
+                    errors.Add(
+                        $"Kind '{kind}' declares health attribute '{healthId.Value}' but its Category is '{healthAttr.SourceConfig.Category}', not Health.");
+                }
+            }
+        }
     }
 
     private static void ValidateSemanticVerbParticipation(DefinitionGraph graph, List<string> errors)

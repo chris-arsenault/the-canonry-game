@@ -15,7 +15,7 @@ public class DomainConfigTests
         Assert.Equal(5, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
         Assert.Equal(4, config.Pressures.Count);
-        Assert.Equal(4, config.Lifecycles.Count);
+        Assert.Equal(5, config.Lifecycles.Count);
         Assert.Equal(3, config.Resources.Count);
         Assert.Equal(2, config.Cultures.Count);
     }
@@ -55,20 +55,13 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void TestDomain_NonRegionKindsHaveHealthAttribute()
+    public void TestDomain_AllKindsHaveHealthAttribute()
     {
         var config = TestDomainDefinition.Create();
 
-        foreach (var (kind, kindConfig) in config.Kinds)
+        foreach (var (_, kindConfig) in config.Kinds)
         {
-            if (kind == EntityKind.Region)
-            {
-                Assert.Null(kindConfig.HealthAttribute);
-            }
-            else
-            {
-                Assert.NotNull(kindConfig.HealthAttribute);
-            }
+            Assert.NotNull(kindConfig.HealthAttribute);
         }
     }
 
@@ -91,7 +84,7 @@ public class DomainConfigTests
 
         Assert.True(lifecycleConfig.HasConfig(EntityKind.Npc));
         Assert.True(lifecycleConfig.HasConfig(EntityKind.Settlement));
-        Assert.False(lifecycleConfig.HasConfig(EntityKind.Region));
+        Assert.True(lifecycleConfig.HasConfig(EntityKind.Region));
     }
 
     [Fact]
