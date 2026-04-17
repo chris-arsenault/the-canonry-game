@@ -1,6 +1,7 @@
 namespace Engine.Graph;
 
 using Engine.Kinds;
+using Engine.Map;
 
 /// <summary>
 /// A node in the entity graph. Stores identity and structural data only.
@@ -19,6 +20,13 @@ public sealed class Entity
 
     // Coordinates stored as axial hex (q, r). Nullable for non-spatial entities.
     public (int Q, int R)? Coordinates { get; set; }
+
+    /// <summary>
+    /// Position on the shared semantic hex grid (autonomy/resonance/tradition).
+    /// Every entity carries a semantic position. Physical-mobile entities also carry
+    /// physical Coordinates; stationary entities move only on the semantic grid.
+    /// </summary>
+    public SemanticHexCoord SemanticPosition { get; set; } = SemanticHexCoord.Origin;
 
     /// <summary>Entity-owned attribute instances. Initialized from domain config at creation.</summary>
     public Attributes.AttributeSet Attributes { get; } = new();

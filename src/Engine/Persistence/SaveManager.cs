@@ -40,6 +40,8 @@ public static class SaveManager
                 UpdatedAt = entity.UpdatedAt,
                 CoordQ = entity.Coordinates?.Q,
                 CoordR = entity.Coordinates?.R,
+                SemanticQ = entity.SemanticPosition.Q,
+                SemanticR = entity.SemanticPosition.R,
             });
         }
 

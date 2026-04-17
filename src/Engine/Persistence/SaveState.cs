@@ -67,6 +67,12 @@ public sealed class EntityData
 
     [Key(9)]
     public int? CoordR { get; set; }
+
+    [Key(10)]
+    public int SemanticQ { get; set; }
+
+    [Key(11)]
+    public int SemanticR { get; set; }
 }
 
 [MessagePackObject]

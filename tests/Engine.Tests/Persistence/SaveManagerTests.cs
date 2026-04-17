@@ -115,6 +115,8 @@ public class SaveManagerTests
         var settlementData = restored.Entities.First(e => e.Kind == EntityKind.Settlement);
         Assert.Equal(1, settlementData.CoordQ);
         Assert.Equal(2, settlementData.CoordR);
+        Assert.Equal(0, settlementData.SemanticQ);
+        Assert.Equal(0, settlementData.SemanticR);
 
         // Relationship details
         Assert.Equal("controls", restored.Relationships[0].Kind);
