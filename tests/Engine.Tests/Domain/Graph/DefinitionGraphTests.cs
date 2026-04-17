@@ -76,8 +76,8 @@ public class DefinitionGraphTests
 
         Assert.Equal(22, graph.SemanticFlows.Stocks.Count);
         Assert.Equal(32, graph.SemanticFlows.Verbs.Count);
-        Assert.Equal(70, graph.SemanticFlows.Flows.Count);
-        Assert.Equal(6, graph.SemanticFlows.Modifiers.Count);
+        Assert.Equal(73, graph.SemanticFlows.Flows.Count);
+        Assert.Equal(4, graph.SemanticFlows.Modifiers.Count);
         Assert.Equal(26, graph.SemanticFlows.ProcessReferences.Count);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
@@ -217,48 +217,11 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_FromTestDomain_FlowsMarkGateFlowsExplicitly()
+    public void Build_FromTestDomain_HasNoGateFlows()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        var empowerOutflow = Assert.Single(
-            graph.SemanticFlows.Flows,
-            flow => flow.Verb.Id == TestDomainVerbId.ArtifactEmpower.ToVerbId() &&
-                    flow.Role == SemanticFlowRole.Outflow);
-        Assert.True(empowerOutflow.IsGate);
-
-        var channelOutflow = Assert.Single(
-            graph.SemanticFlows.Flows,
-            flow => flow.Verb.Id == TestDomainVerbId.ArtifactChannel.ToVerbId() &&
-                    flow.Role == SemanticFlowRole.Outflow);
-        Assert.False(channelOutflow.IsGate);
-    }
-
-    [Fact]
-    public void Build_FromTestDomain_ProjectionFlagsGateOnlyEdges()
-    {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
-        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
-
-        var empowerEdge = Assert.Single(
-            projected,
-            edge => edge.SourceKey == new DefinitionAttributeKey(
-                        EntityKind.Artifact,
-                        new DefinitionAttributeId(TestDomainAttributeId.Power.ToDomainName())) &&
-                    edge.TargetKey == new DefinitionAttributeKey(
-                        EntityKind.Faction,
-                        new DefinitionAttributeId(TestDomainAttributeId.Influence.ToDomainName())));
-        Assert.True(empowerEdge.IsGateOnly);
-
-        var guardEdge = Assert.Single(
-            projected,
-            edge => edge.SourceKey == new DefinitionAttributeKey(
-                        EntityKind.Npc,
-                        new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName())) &&
-                    edge.TargetKey == new DefinitionAttributeKey(
-                        EntityKind.Settlement,
-                        new DefinitionAttributeId(TestDomainAttributeId.Security.ToDomainName())));
-        Assert.False(guardEdge.IsGateOnly);
+        Assert.DoesNotContain(graph.SemanticFlows.Flows, flow => flow.IsGate);
     }
 
     [Fact]
