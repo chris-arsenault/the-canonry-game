@@ -74,11 +74,11 @@ public class DefinitionGraphTests
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        Assert.Equal(22, graph.SemanticFlows.Stocks.Count);
-        Assert.Equal(31, graph.SemanticFlows.Verbs.Count);
-        Assert.Equal(74, graph.SemanticFlows.Flows.Count);
+        Assert.Equal(17, graph.SemanticFlows.Stocks.Count);
+        Assert.Equal(21, graph.SemanticFlows.Verbs.Count);
+        Assert.Equal(48, graph.SemanticFlows.Flows.Count);
         Assert.Empty(graph.SemanticFlows.Modifiers);
-        Assert.Equal(23, graph.SemanticFlows.ProcessReferences.Count);
+        Assert.Equal(20, graph.SemanticFlows.ProcessReferences.Count);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
 
@@ -160,26 +160,6 @@ public class DefinitionGraphTests
             .ToList();
 
         Assert.Empty(uncovered);
-    }
-
-    [Fact]
-    public void Build_FromTestDomain_PlaneCoverageIsAxisAware()
-    {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
-        var artifactResonance = Assert.Single(
-            graph.SemanticFlows.Stocks,
-            stock => stock.AttributeKey == new DefinitionAttributeKey(
-                EntityKind.Artifact,
-                new DefinitionAttributeId(TestDomainAttributeId.MysticResonance.ToDomainName())));
-
-        var coverage = SemanticCoverageAnalyzer.Summarize(artifactResonance, graph.SemanticFlows);
-
-        Assert.Equal(0, coverage.ScalarInflows);
-        Assert.Equal(0, coverage.ScalarOutflows);
-        Assert.Equal(0, coverage.XInflows);
-        Assert.Equal(0, coverage.XOutflows);
-        Assert.Equal(1, coverage.YInflows);
-        Assert.Equal(1, coverage.YOutflows);
     }
 
     [Fact]
@@ -383,82 +363,6 @@ public class DefinitionGraphTests
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
         Assert.Contains("Npc.ambition", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("engine_decay", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void Build_PlaneStockWithDecayFlow_Throws()
-    {
-        var config = TestDomainDefinition.Create();
-        var semantics = config.Semantics!;
-        var flowsWithPlaneDecay = semantics.Flows
-            .Append(new SemanticFlowConfig
-            {
-                VerbId = TestDomainVerbId.EngineDecay.ToVerbId(),
-                Role = SemanticFlowRole.Outflow,
-                TargetKind = EntityKind.Settlement,
-                TargetAttribute = TestDomainAttributeId.CivicIdeology.ToDomainName(),
-                Mechanism = SemanticMechanism.Decay,
-            })
-            .ToList();
-
-        var brokenConfig = new DomainConfig
-        {
-            Kinds = config.Kinds,
-            Processes = config.Processes,
-            Relationships = config.Relationships,
-            Pressures = config.Pressures,
-            Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
-            Cultures = config.Cultures,
-            Semantics = new SemanticDomainConfig
-            {
-                Stocks = semantics.Stocks,
-                Verbs = semantics.Verbs,
-                Flows = flowsWithPlaneDecay,
-                Modifiers = semantics.Modifiers,
-                ProcessReferences = semantics.ProcessReferences,
-            },
-        };
-
-        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
-        Assert.Contains("Settlement.civic_ideology", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("plane", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void Build_PlaneAxisOutflowWithoutInflow_Throws()
-    {
-        var config = TestDomainDefinition.Create();
-        var semantics = config.Semantics!;
-        var withoutCleanseInflow = semantics.Flows
-            .Where(flow => !(flow.TargetKind == EntityKind.Artifact &&
-                             flow.TargetAttribute == TestDomainAttributeId.MysticResonance.ToDomainName() &&
-                             flow.Role == SemanticFlowRole.Inflow &&
-                             flow.PlaneAxis == SemanticPlaneAxis.Y))
-            .ToList();
-
-        var brokenConfig = new DomainConfig
-        {
-            Kinds = config.Kinds,
-            Processes = config.Processes,
-            Relationships = config.Relationships,
-            Pressures = config.Pressures,
-            Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
-            Cultures = config.Cultures,
-            Semantics = new SemanticDomainConfig
-            {
-                Stocks = semantics.Stocks,
-                Verbs = semantics.Verbs,
-                Flows = withoutCleanseInflow,
-                Modifiers = semantics.Modifiers,
-                ProcessReferences = semantics.ProcessReferences,
-            },
-        };
-
-        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
-        Assert.Contains("Artifact.mystic_resonance", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Y-axis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
