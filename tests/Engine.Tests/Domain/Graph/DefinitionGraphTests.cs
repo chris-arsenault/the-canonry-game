@@ -77,7 +77,7 @@ public class DefinitionGraphTests
         Assert.Equal(22, graph.SemanticFlows.Stocks.Count);
         Assert.Equal(31, graph.SemanticFlows.Verbs.Count);
         Assert.Equal(74, graph.SemanticFlows.Flows.Count);
-        Assert.Equal(3, graph.SemanticFlows.Modifiers.Count);
+        Assert.Single(graph.SemanticFlows.Modifiers);
         Assert.Equal(23, graph.SemanticFlows.ProcessReferences.Count);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }

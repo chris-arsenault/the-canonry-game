@@ -104,7 +104,7 @@ public static class TestDomainSemanticDefinition
         Stock(EntityKind.Settlement, Attr.Prestige, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100",
             "free",
-            "Earned via NPC deeds (create_works depletes ambition). Spent via artifact_enshrine (conversion to artifact.containment) and settlement_trade (conversion to hex.wealth). Also gates attract and grow."),
+            "Earned via NPC deeds (create_works depletes ambition). Spent via artifact_enshrine (conversion to artifact.containment) and settlement_trade (conversion to hex.wealth)."),
         Stock(EntityKind.Settlement, Attr.CivicIdeology, SemanticStockClass.Plane, SemanticFeedbackClass.Unknown,
             "0..100 per bucket; X=Collectivist↔Individualist, Y=Traditionalist↔Progressive",
             "plane (X/Y independent)",
@@ -234,8 +234,6 @@ public static class TestDomainSemanticDefinition
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() =>
     [
-        Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementAttract, SemanticModifierDirection.Positive, "gate"),
-        Modifier(EntityKind.Settlement, Attr.Prestige, Verb.SettlementGrow, SemanticModifierDirection.Positive, "gate"),
         Modifier(EntityKind.Settlement, Attr.CivicIdeology, Verb.SettlementAttract, SemanticModifierDirection.Positive, "volume modifier"),
     ];
 
