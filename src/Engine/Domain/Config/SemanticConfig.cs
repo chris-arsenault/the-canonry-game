@@ -10,7 +10,7 @@ public sealed class SemanticDomainConfig
     public IReadOnlyList<SemanticVerbConfig> Verbs { get; init; } = [];
     public IReadOnlyList<SemanticFlowConfig> Flows { get; init; } = [];
     public IReadOnlyList<SemanticModifierConfig> Modifiers { get; init; } = [];
-    public IReadOnlyList<SemanticProcessReferenceConfig> ProcessReferences { get; init; } = [];
+    public IReadOnlyList<SemanticGeneratorConfig> Generators { get; init; } = [];
 }
 
 public abstract class SemanticStockConfig
@@ -45,7 +45,6 @@ public sealed class SemanticVerbConfig
     public required string Id { get; init; }
     public required SemanticOwnerType OwnerType { get; init; }
     public EntityKind? OwnerKind { get; init; }
-    public string? ImplementedProcessId { get; init; }
     public SemanticVerbRole Role { get; init; } = SemanticVerbRole.Action;
     public string? Notes { get; init; }
 
@@ -87,12 +86,4 @@ public sealed class SemanticModifierConfig
     public required SemanticModifierDirection Direction { get; init; }
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
     public string? FormLabel { get; init; }
-}
-
-public sealed class SemanticProcessReferenceConfig
-{
-    public required string ProcessId { get; init; }
-    public required SemanticProcessReferenceKind Kind { get; init; }
-    public required EntityKind TargetKind { get; init; }
-    public required string TargetAttribute { get; init; }
 }
