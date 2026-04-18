@@ -30,6 +30,7 @@ public static class DefinitionGraphBuilder
         var relationshipNodes = BuildRelationshipNodes(config.Relationships);
         var pressureNodes = BuildPressureNodes(config.Pressures);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
+        var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
 
         var processNodes = new Dictionary<string, DefinitionProcessNode>(StringComparer.Ordinal);
         foreach (var process in config.Processes)
@@ -52,6 +53,7 @@ public static class DefinitionGraphBuilder
         {
             Kinds = kindNodes,
             Processes = processNodes,
+            Generators = generatorNodes,
             Resources = resourceNodes,
             Relationships = relationshipNodes,
             Pressures = pressureNodes,
@@ -62,6 +64,11 @@ public static class DefinitionGraphBuilder
         if (config.Semantics is not null)
         {
             DefinitionSemanticGraphBuilder.Populate(graph, config.Semantics);
+
+            foreach (var (id, node) in RuntimeGeneratorBuilder.Build(config.Semantics.Generators, graph))
+            {
+                generatorNodes[id] = node;
+            }
         }
 
         DefinitionGraphValidator.ValidateOrThrow(graph);
@@ -132,10 +139,12 @@ public static class DefinitionGraphBuilder
         return new DefinitionKindNode
         {
             Kind = kind,
+            Subtypes = new HashSet<string>(kindConfig.Subtypes),
             Attributes = attributes,
             HealthAttribute = healthAttribute,
             StandingDrives = standingDrives,
             Description = kindConfig.Description,
+            PrimaryPlane = kindConfig.PrimaryPlane,
         };
     }
 

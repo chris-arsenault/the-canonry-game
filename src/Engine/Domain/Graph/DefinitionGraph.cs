@@ -9,6 +9,7 @@ public sealed class DefinitionGraph
 {
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
     public required IReadOnlyDictionary<string, DefinitionProcessNode> Processes { get; init; }
+    public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
     public required IReadOnlyDictionary<DefinitionResourceId, DefinitionResourceNode> Resources { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
     public required IReadOnlyDictionary<DefinitionPressureId, DefinitionPressureNode> Pressures { get; init; }
@@ -37,10 +38,12 @@ public sealed record ResourceStockId(DefinitionResourceId ResourceId) : Semantic
 public sealed class DefinitionKindNode
 {
     public required EntityKind Kind { get; init; }
+    public required IReadOnlySet<string> Subtypes { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeId, DefinitionAttributeNode> Attributes { get; init; }
     public DefinitionAttributeId? HealthAttribute { get; init; }
     public required IReadOnlyList<DefinitionStandingDriveNode> StandingDrives { get; init; }
     public string? Description { get; init; }
+    public required Engine.Domain.Config.PrimaryPlane PrimaryPlane { get; init; }
 }
 
 public sealed class DefinitionAttributeNode
@@ -107,6 +110,61 @@ public sealed class DefinitionSupportRuleNode
     public required PlannerSupportRule SourceRule { get; init; }
 }
 
+public sealed class DefinitionGeneratorNode
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public required DefinitionGeneratorTarget Target { get; init; }
+    public required IReadOnlyList<DefinitionProducedEntity> Produces { get; init; }
+    public required IReadOnlyList<DefinitionGeneratorRelationship> Relationships { get; init; }
+    public required IReadOnlyList<DefinitionGeneratorTrigger> Triggers { get; init; }
+    public int PulseWeight { get; init; }
+    public int? MaxRunsPerSim { get; init; }
+    public required SemanticGeneratorConfig SourceConfig { get; init; }
+}
+
+public sealed class DefinitionGeneratorTarget
+{
+    public required EntityKind Kind { get; init; }
+    public IReadOnlySet<string>? Subtypes { get; init; }
+    public bool AllowWilderness { get; init; }
+    public IReadOnlyList<DefinitionSaturationLimit> SaturationLimits { get; init; } = [];
+}
+
+public sealed class DefinitionSaturationLimit
+{
+    public required DefinitionRelationshipId RelationshipId { get; init; }
+    public required string Direction { get; init; }
+    public required int MaxCount { get; init; }
+}
+
+public sealed class DefinitionProducedEntity
+{
+    public required string Ref { get; init; }
+    public required EntityKind Kind { get; init; }
+    public required string Subtype { get; init; }
+    public required string Role { get; init; }
+    public float CreateChance { get; init; } = 1f;
+    public SemanticPlacement Placement { get; init; } = SemanticPlacement.Near;
+    public string? InheritCultureFrom { get; init; }
+}
+
+public sealed class DefinitionGeneratorRelationship
+{
+    public required string SourceRef { get; init; }
+    public required string DestinationRef { get; init; }
+    public required DefinitionRelationshipId RelationshipId { get; init; }
+    public float Strength { get; init; } = 1f;
+}
+
+public sealed class DefinitionGeneratorTrigger
+{
+    public required EntityKind OnKind { get; init; }
+    public DefinitionAttributeId? AttributeId { get; init; }
+    public TriggerDirection Direction { get; init; } = TriggerDirection.Any;
+}
+
 public sealed class DefinitionProcessNode
 {
     public required string Id { get; init; }
@@ -143,7 +201,6 @@ public sealed class SemanticFlowGraph
     public ICollection<SemanticFlowEdge> Flows { get; } = [];
     public ICollection<SemanticModifierEdge> Modifiers { get; } = [];
     public ICollection<SemanticCouplingEdge> Couplings { get; } = [];
-    public ICollection<SemanticProcessReference> ProcessReferences { get; } = [];
     public ICollection<SemanticImportDiagnostic> Diagnostics { get; } = [];
 }
 
@@ -241,13 +298,6 @@ public enum SemanticModifierDirection
     Negative,
 }
 
-public enum SemanticProcessReferenceKind
-{
-    Reads,
-    DirectWrites,
-    IndirectWrites,
-}
-
 public enum SemanticDiagnosticSeverity
 {
     Info,
@@ -282,11 +332,9 @@ public sealed class SemanticVerbNode
     public required string Id { get; init; }
     public SemanticOwnerType OwnerType { get; init; } = SemanticOwnerType.Unknown;
     public EntityKind? OwnerKind { get; init; }
-    public DefinitionProcessNode? ImplementedProcess { get; init; }
     public SemanticVerbRole Role { get; init; } = SemanticVerbRole.Action;
     public string? Notes { get; init; }
     public bool IsFlowless { get; init; }
-    public bool IsImplementedProcess => ImplementedProcess is not null;
 }
 
 public sealed class SemanticFlowEdge
@@ -327,17 +375,6 @@ public sealed class SemanticCouplingEdge
     public required SemanticStockNode SourceStock { get; init; }
     public required SemanticStockNode TargetStock { get; init; }
     public string? RawDescription { get; init; }
-    public string? SourceWorksheet { get; init; }
-    public int SourceRow { get; init; }
-}
-
-public sealed class SemanticProcessReference
-{
-    public required string ProcessId { get; init; }
-    public required SemanticProcessReferenceKind Kind { get; init; }
-    public required SemanticStockNode TargetStock { get; init; }
-    public DefinitionProcessNode? ResolvedProcess { get; init; }
-    public bool MatchesDefinitionGraph { get; init; }
     public string? SourceWorksheet { get; init; }
     public int SourceRow { get; init; }
 }
