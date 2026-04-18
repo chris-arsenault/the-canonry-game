@@ -87,8 +87,56 @@ public static class DefinitionGraphValidator
         ValidateRpsRing(graph, errors);
         ValidateUntouchedAttributeOutflowToHex(graph, errors);
         ValidateMobilityAndDriftVerbs(graph, errors);
+        ValidateGeneratorSet(graph, errors);
 
         return errors;
+    }
+
+    private static void ValidateGeneratorSet(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var generator in graph.Generators.Values)
+        {
+            if (generator.Triggers.Count == 0)
+            {
+                errors.Add($"Generator '{generator.Id}' must declare at least one trigger.");
+            }
+
+            foreach (var trigger in generator.Triggers)
+            {
+                if (trigger.OnKind != generator.Target.Kind)
+                {
+                    errors.Add(
+                        $"Generator '{generator.Id}' target kind '{generator.Target.Kind}' does not match trigger kind '{trigger.OnKind}'.");
+                }
+            }
+
+            var referencedRefs = generator.Relationships
+                .SelectMany(relationship => new[] { relationship.SourceRef, relationship.DestinationRef })
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (var produced in generator.Produces)
+            {
+                if (!referencedRefs.Contains(produced.Ref) &&
+                    !(produced.CreateChance < 1f && produced.Kind == EntityKind.Artifact))
+                {
+                    errors.Add(
+                        $"Generator '{generator.Id}' produces '{produced.Ref}' but no relationship references it.");
+                }
+
+                if (produced.CreateChance < 1f)
+                {
+                    var referenceCount = generator.Relationships.Count(relationship =>
+                        relationship.SourceRef == produced.Ref || relationship.DestinationRef == produced.Ref);
+                    if (referenceCount > 2)
+                    {
+                        errors.Add(
+                            $"Generator '{generator.Id}' optional produce '{produced.Ref}' is referenced by {referenceCount} relationships; keep optional anchors at 2 or fewer.");
+                    }
+                }
+            }
+
+            ValidateGeneratorCultureInheritance(generator, errors);
+        }
     }
 
     /// <summary>
@@ -412,6 +460,55 @@ public static class DefinitionGraphValidator
                     $"Resource stock '{stock.Id.Label}' has no inflow producer. Author an outflow on some entity stock whose source ref is this resource.");
             }
         }
+    }
+
+    private static void ValidateGeneratorCultureInheritance(
+        DefinitionGeneratorNode generator,
+        List<string> errors)
+    {
+        var producesByRef = generator.Produces.ToDictionary(produced => produced.Ref, StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var produced in generator.Produces)
+        {
+            if (HasGeneratorCultureCycle(produced.Ref, producesByRef, visited, visiting))
+            {
+                errors.Add(
+                    $"Generator '{generator.Id}' has cyclic InheritCultureFrom chain involving '{produced.Ref}'.");
+                return;
+            }
+        }
+    }
+
+    private static bool HasGeneratorCultureCycle(
+        string currentRef,
+        IReadOnlyDictionary<string, DefinitionProducedEntity> producesByRef,
+        HashSet<string> visited,
+        HashSet<string> visiting)
+    {
+        if (visiting.Contains(currentRef))
+        {
+            return true;
+        }
+
+        if (!visited.Add(currentRef))
+        {
+            return false;
+        }
+
+        visiting.Add(currentRef);
+
+        if (producesByRef[currentRef].InheritCultureFrom is { } nextRef &&
+            nextRef != "$target" &&
+            producesByRef.ContainsKey(nextRef) &&
+            HasGeneratorCultureCycle(nextRef, producesByRef, visited, visiting))
+        {
+            return true;
+        }
+
+        visiting.Remove(currentRef);
+        return false;
     }
 
     public static void ValidateOrThrow(DefinitionGraph graph)

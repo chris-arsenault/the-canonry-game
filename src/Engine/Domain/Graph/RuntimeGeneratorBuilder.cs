@@ -42,8 +42,6 @@ public static class RuntimeGeneratorBuilder
                         $"Generator '{config.Id}' declares duplicate produce ref '{produced.Ref}'.");
                 }
 
-                EnsureDeclaredRef(config.Id, produced.InheritCultureFrom, declaredRefs, "InheritCultureFrom");
-
                 produces.Add(new DefinitionProducedEntity
                 {
                     Ref = produced.Ref,
@@ -54,6 +52,11 @@ public static class RuntimeGeneratorBuilder
                     Placement = produced.Placement,
                     InheritCultureFrom = produced.InheritCultureFrom,
                 });
+            }
+
+            foreach (var produced in produces)
+            {
+                EnsureDeclaredRef(config.Id, produced.InheritCultureFrom, declaredRefs, "InheritCultureFrom");
             }
 
             var relationships = config.Relationships
