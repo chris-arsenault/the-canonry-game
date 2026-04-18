@@ -10,6 +10,7 @@ using Engine.Domain.Config;
 using Engine.Domain.Loader;
 using Engine.Domain.TestDomain;
 using Engine.Events;
+using Engine.Generators;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Lifecycle;
@@ -111,6 +112,8 @@ public sealed class SimulationRunner
     {
         ArgumentNullException.ThrowIfNull(domainConfig);
 
+        var definitionGraph = DomainLoader.BuildDefinitionGraph(domainConfig);
+
         // Build world
         var testWorld = TestMapBuilder.BuildDefault();
         var graph = testWorld.Graph;
@@ -176,8 +179,23 @@ public sealed class SimulationRunner
         var eventLog = new EventLog();
         var detectors = DetectorRegistry.CreateDefault(eventLog);
 
+        var generators = new GeneratorInstanceRegistry();
+        foreach (var generator in definitionGraph.Generators.Values)
+        {
+            generators.GetOrCreate(generator);
+        }
+
         // World state
-        var worldState = new WorldState(graph, effects, pressure, grid, regionMap, spatialIndex, semanticPlane, resources);
+        var worldState = new WorldState(
+            graph,
+            effects,
+            pressure,
+            grid,
+            regionMap,
+            spatialIndex,
+            semanticPlane,
+            generators,
+            resources);
 
         // Wire to tick clock
         var clock = new TickClock();

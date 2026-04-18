@@ -3,6 +3,9 @@ namespace Engine.Tests.Simulation;
 using Engine.Cards;
 using Engine.Processes;
 using Engine.Clock;
+using Engine.Domain.Config;
+using Engine.Domain.Loader;
+using Engine.Domain.TestDomain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Simulation;
@@ -13,13 +16,29 @@ public class SimulationRunnerTests
     public void CreateFromTestMap_Initializes()
     {
         var sim = SimulationRunner.CreateFromTestMap();
+        var definitionGraph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
         Assert.NotNull(sim.Graph);
         Assert.NotNull(sim.Clock);
         Assert.NotNull(sim.Tableau);
         Assert.NotNull(sim.EventLog);
         Assert.NotNull(sim.WorldState.SemanticPlane);
+        Assert.Equal(definitionGraph.Generators.Count, sim.WorldState.Generators.Count);
         Assert.True(sim.Graph.EntityCount > 0);
+    }
+
+    [Fact]
+    public void CreateFromDomain_SeedsGeneratorRegistry()
+    {
+        var domain = WithGenerators(CreateValidGenerator());
+        var definitionGraph = DomainLoader.BuildDefinitionGraph(domain);
+
+        var sim = SimulationRunner.CreateFromDomain(domain);
+
+        Assert.Equal(definitionGraph.Generators.Count, sim.WorldState.Generators.Count);
+        var instance = Assert.Single(sim.WorldState.Generators.ById.Values);
+        Assert.Equal("hero_emergence", instance.GeneratorId);
+        Assert.Equal(definitionGraph.Generators["hero_emergence"].Id, instance.Definition.Id);
     }
 
     [Fact]
@@ -166,5 +185,70 @@ public class SimulationRunnerTests
                     $"Entity {entityId} of kind {kind} has no attributes");
             }
         }
+    }
+
+    private static SemanticGeneratorConfig CreateValidGenerator() =>
+        new()
+        {
+            Id = "hero_emergence",
+            Name = "Hero Emergence",
+            Target = new SemanticGeneratorTarget
+            {
+                Kind = EntityKind.Settlement,
+            },
+            Produces =
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            Relationships =
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+            ],
+            Triggers =
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = EntityKind.Settlement,
+                    AttributeName = "sanitation",
+                    Direction = TriggerDirection.Low,
+                },
+            ],
+        };
+
+    private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
+    {
+        var config = TestDomainDefinition.Create();
+        var semantics = config.Semantics!;
+
+        return new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Processes = config.Processes,
+            Relationships = config.Relationships,
+            Pressures = config.Pressures,
+            Lifecycles = config.Lifecycles,
+            Resources = config.Resources,
+            Cultures = config.Cultures,
+            Semantics = new SemanticDomainConfig
+            {
+                Stocks = semantics.Stocks,
+                Verbs = semantics.Verbs,
+                Flows = semantics.Flows,
+                Modifiers = semantics.Modifiers,
+                Generators = generators,
+            },
+        };
     }
 }

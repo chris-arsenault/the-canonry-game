@@ -2,6 +2,7 @@ namespace Engine.Simulation;
 
 using Engine.Attributes;
 using Engine.Behaviors;
+using Engine.Generators;
 using Engine.Graph;
 using Engine.Map;
 
@@ -18,6 +19,7 @@ public sealed class WorldState : IWorldState
     public RegionMap RegionMap { get; }
     public SpatialIndex SpatialIndex { get; }
     public SemanticPlaneIndex SemanticPlane { get; }
+    public GeneratorInstanceRegistry Generators { get; }
     public Resources.ResourceSystem? Resources { get; }
     public int CurrentTick { get; set; }
 
@@ -29,6 +31,7 @@ public sealed class WorldState : IWorldState
         RegionMap regionMap,
         SpatialIndex spatialIndex,
         SemanticPlaneIndex semanticPlane,
+        GeneratorInstanceRegistry generators,
         Resources.ResourceSystem? resources = null)
     {
         Graph = graph;
@@ -38,6 +41,7 @@ public sealed class WorldState : IWorldState
         RegionMap = regionMap;
         SpatialIndex = spatialIndex;
         SemanticPlane = semanticPlane;
+        Generators = generators;
         Resources = resources;
     }
 }
