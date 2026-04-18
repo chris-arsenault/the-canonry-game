@@ -5,6 +5,20 @@ using Engine.Wiring;
 
 public static class DefinitionGraphValidator
 {
+    /// <summary>
+    /// Fixed RPS ring ordering. Flows: K_N.I → K_{N+1}.O and K_N.O → K_{N+2}.I.
+    /// Order reads "mundane → metaphysical": NPCs work the land, Settlements organize them,
+    /// Factions organize Settlements, Regions contain everything, Artifacts transcend.
+    /// </summary>
+    private static readonly EntityKind[] RpsOrder =
+    [
+        EntityKind.Npc,
+        EntityKind.Settlement,
+        EntityKind.Faction,
+        EntityKind.Region,
+        EntityKind.Artifact,
+    ];
+
     public static IReadOnlyList<string> Validate(DefinitionGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
@@ -68,44 +82,206 @@ public static class DefinitionGraphValidator
         ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
         ValidateKindAttributeCategoryShape(graph, errors);
-        ValidateKindHasSelfSacrificeVerb(graph, errors);
+        ValidateHealthInflowFromHex(graph, errors);
+        ValidateSelfSacrificeFromHealth(graph, errors);
+        ValidateRpsRing(graph, errors);
+        ValidateUntouchedAttributeOutflowToHex(graph, errors);
 
         return errors;
     }
 
     /// <summary>
-    /// Every entity kind must declare at least one self→self flow: a projected
-    /// stock-graph edge where both endpoints are attribute stocks on that same kind.
-    /// This guarantees every kind has a last-resort intra-entity action (sacrifice
-    /// one of its own stocks into another).
+    /// Every kind's Health attribute must have at least one inflow whose source ref
+    /// is a hex resource. Hex resources are the canonical supply for Health.
     /// </summary>
-    private static void ValidateKindHasSelfSacrificeVerb(DefinitionGraph graph, List<string> errors)
+    private static void ValidateHealthInflowFromHex(DefinitionGraph graph, List<string> errors)
     {
-        var kindsPresent = graph.Kinds.Keys.ToList();
-        if (kindsPresent.Count == 0)
+        foreach (var (kind, kindNode) in graph.Kinds)
+        {
+            if (kindNode.HealthAttribute is not DefinitionAttributeId healthId)
+            {
+                continue;
+            }
+
+            var hasHexInflow = graph.SemanticFlows.Flows.Any(flow =>
+                flow.Role == SemanticFlowRole.Inflow &&
+                flow.TargetStock.Id is AttributeStockId stockId &&
+                stockId.Key.Kind == kind &&
+                stockId.Key.AttributeId == healthId &&
+                flow.SourceRefs.Any(src => src.ValueId is ResourceValueId));
+
+            if (!hasHexInflow)
+            {
+                errors.Add(
+                    $"Kind '{kind}' health attribute '{healthId.Value}' has no hex-resource inflow. Author an inflow whose source ref is a hex resource.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every kind must declare exactly one self-sacrifice flow whose source is the
+    /// Health attribute and whose target is one of the other two attributes (Outward
+    /// or Internal). This guarantees every kind has a last-resort H→X drain action.
+    /// </summary>
+    private static void ValidateSelfSacrificeFromHealth(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var (kind, kindNode) in graph.Kinds)
+        {
+            if (kindNode.HealthAttribute is not DefinitionAttributeId healthId)
+            {
+                continue;
+            }
+
+            var selfSacFlows = graph.SemanticFlows.Flows
+                .Where(flow =>
+                    flow.Role == SemanticFlowRole.Inflow &&
+                    flow.TargetStock.Id is AttributeStockId targetId &&
+                    targetId.Key.Kind == kind &&
+                    targetId.Key.AttributeId != healthId &&
+                    flow.SourceRefs.Any(src =>
+                        src.Scope == RefScope.Self &&
+                        src.Kind == kind &&
+                        src.ValueId is AttributeValueId healthVal &&
+                        healthVal.AttributeId == healthId))
+                .ToList();
+
+            if (selfSacFlows.Count == 0)
+            {
+                errors.Add(
+                    $"Kind '{kind}' has no self-sacrifice flow from Health ('{healthId.Value}'). Author one inflow on K.O or K.I whose source ref is Self(K, {healthId.Value}).");
+            }
+            else if (selfSacFlows.Count > 1)
+            {
+                errors.Add(
+                    $"Kind '{kind}' declares {selfSacFlows.Count} self-sacrifice flows from Health; exactly one is required.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// RPS ring invariant. Given the fixed RpsOrder ordering:
+    ///   For every K_N in the ring: K_N.I → K_{N+1}.O and K_N.O → K_{N+2}.I
+    /// Both projected edges must exist. Ring wraps modulo 5.
+    /// </summary>
+    private static void ValidateRpsRing(DefinitionGraph graph, List<string> errors)
+    {
+        var kindsInGraph = new HashSet<EntityKind>(graph.Kinds.Keys);
+        if (!RpsOrder.All(kindsInGraph.Contains))
         {
             return;
         }
 
-        var kindsWithSelfLoop = new HashSet<EntityKind>();
-        foreach (var edge in SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows))
-        {
-            if (edge.SourceId is AttributeStockId sa &&
-                edge.TargetId is AttributeStockId ta &&
-                sa.Key.Kind == ta.Key.Kind)
-            {
-                kindsWithSelfLoop.Add(sa.Key.Kind);
-            }
-        }
+        var projectedEdges = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows)
+            .Where(edge => edge.SourceId is AttributeStockId && edge.TargetId is AttributeStockId)
+            .Select(edge => (Source: ((AttributeStockId)edge.SourceId).Key, Target: ((AttributeStockId)edge.TargetId).Key))
+            .ToHashSet();
 
-        foreach (var kind in kindsPresent)
+        for (var n = 0; n < RpsOrder.Length; n++)
         {
-            if (!kindsWithSelfLoop.Contains(kind))
+            var kN = RpsOrder[n];
+            var kNext = RpsOrder[(n + 1) % RpsOrder.Length];
+            var kSkip = RpsOrder[(n + 2) % RpsOrder.Length];
+
+            var outward = OutwardAttribute(graph, kN);
+            var internalAttr = InternalAttribute(graph, kN);
+            var nextOutward = OutwardAttribute(graph, kNext);
+            var skipInternal = InternalAttribute(graph, kSkip);
+
+            if (outward is null || internalAttr is null || nextOutward is null || skipInternal is null)
+            {
+                continue;
+            }
+
+            var iEdge = (new DefinitionAttributeKey(kN, internalAttr.Value),
+                         new DefinitionAttributeKey(kNext, nextOutward.Value));
+            if (!projectedEdges.Contains(iEdge))
             {
                 errors.Add(
-                    $"Kind '{kind}' has no self-sacrifice verb. Every kind must declare at least one flow whose source and target stocks are both attributes of that kind.");
+                    $"RPS ring: flow {kN}.{internalAttr.Value.Value} → {kNext}.{nextOutward.Value.Value} is missing.");
+            }
+
+            var oEdge = (new DefinitionAttributeKey(kN, outward.Value),
+                         new DefinitionAttributeKey(kSkip, skipInternal.Value));
+            if (!projectedEdges.Contains(oEdge))
+            {
+                errors.Add(
+                    $"RPS ring: flow {kN}.{outward.Value.Value} → {kSkip}.{skipInternal.Value.Value} is missing.");
             }
         }
+    }
+
+    /// <summary>
+    /// The attribute not involved in the self-sacrifice (the untouched one) must
+    /// outflow to a hex resource. Provides the production side of the hex cycle.
+    /// </summary>
+    private static void ValidateUntouchedAttributeOutflowToHex(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var (kind, kindNode) in graph.Kinds)
+        {
+            if (kindNode.HealthAttribute is not DefinitionAttributeId healthId)
+            {
+                continue;
+            }
+
+            // Find the self-sac target (the attribute receiving from Health).
+            var sacTarget = graph.SemanticFlows.Flows
+                .Where(flow =>
+                    flow.Role == SemanticFlowRole.Inflow &&
+                    flow.TargetStock.Id is AttributeStockId target &&
+                    target.Key.Kind == kind &&
+                    target.Key.AttributeId != healthId &&
+                    flow.SourceRefs.Any(src =>
+                        src.Scope == RefScope.Self &&
+                        src.Kind == kind &&
+                        src.ValueId is AttributeValueId va &&
+                        va.AttributeId == healthId))
+                .Select(flow => ((AttributeStockId)flow.TargetStock.Id).Key.AttributeId)
+                .FirstOrDefault();
+
+            if (sacTarget == default)
+            {
+                continue; // self-sac invariant will report its own error
+            }
+
+            // Untouched = the other non-Health attribute.
+            var untouched = kindNode.Attributes.Keys
+                .FirstOrDefault(id => id != healthId && id != sacTarget);
+            if (untouched == default)
+            {
+                continue;
+            }
+
+            var hasHexOutflow = graph.SemanticFlows.Flows.Any(flow =>
+                flow.Role == SemanticFlowRole.Outflow &&
+                flow.TargetStock.Id is AttributeStockId source &&
+                source.Key.Kind == kind &&
+                source.Key.AttributeId == untouched &&
+                flow.SourceRefs.Any(src => src.ValueId is ResourceValueId));
+
+            if (!hasHexOutflow)
+            {
+                errors.Add(
+                    $"Kind '{kind}' untouched attribute '{untouched.Value}' has no outflow to a hex resource. Author an outflow on {kind}.{untouched.Value} whose source ref is a hex resource.");
+            }
+        }
+    }
+
+    private static DefinitionAttributeId? OutwardAttribute(DefinitionGraph graph, EntityKind kind)
+    {
+        return graph.Kinds[kind].Attributes.Values
+            .FirstOrDefault(a =>
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Capacity ||
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Projection)?
+            .Key.AttributeId;
+    }
+
+    private static DefinitionAttributeId? InternalAttribute(DefinitionGraph graph, EntityKind kind)
+    {
+        return graph.Kinds[kind].Attributes.Values
+            .FirstOrDefault(a =>
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Need ||
+                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Drive)?
+            .Key.AttributeId;
     }
 
     private static void ValidateKindAttributeCategoryShape(DefinitionGraph graph, List<string> errors)
