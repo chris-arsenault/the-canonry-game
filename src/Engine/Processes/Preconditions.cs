@@ -487,3 +487,108 @@ public sealed class AlwaysTrue : IPrecondition
     public PreconditionResult Evaluate(IMutationContext context) => PreconditionResult.Pass("always");
     public string Describe() => "always_true";
 }
+
+/// <summary>
+/// Target must be within the given hex distance on the specified plane. Physical
+/// plane uses map hex coordinates (Entity.Coordinates); semantic plane uses
+/// Entity.SemanticPosition on the autonomy/resonance/tradition axes. When the
+/// check fails, emits a structural-fact blocker (<see cref="InRangeFactName"/>)
+/// so the planner can route to the owner kind's mobility verb as a sub-goal.
+/// </summary>
+public sealed class WithinPlaneDistancePrecondition(int maxDistance, Engine.Domain.Config.PrimaryPlane plane) : IPrecondition
+{
+    public const string PhysicalInRangeFact = "in_physical_range";
+    public const string SemanticInRangeFact = "in_semantic_range";
+
+    public int MaxDistance { get; } = maxDistance;
+    public Engine.Domain.Config.PrimaryPlane Plane { get; } = plane;
+
+    public string InRangeFactName => Plane == Engine.Domain.Config.PrimaryPlane.Physical
+        ? PhysicalInRangeFact
+        : SemanticInRangeFact;
+
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var self = context.GetEntity(context.SelfEntityId);
+        var blocker = AttributeRef.StructuralFact(InRangeFactName, self?.Kind);
+
+        if (context.ResolvedTargetId is null)
+        {
+            return PreconditionResult.Fail("no target", blocker);
+        }
+
+        var target = context.GetEntity(context.ResolvedTargetId.Value);
+        if (self is null || target is null)
+        {
+            return PreconditionResult.Fail("missing entity", blocker);
+        }
+
+        int distance;
+        string planeLabel;
+        if (Plane == Engine.Domain.Config.PrimaryPlane.Physical)
+        {
+            var a = new Map.HexCoord(self.Coordinates.Q, self.Coordinates.R);
+            var b = new Map.HexCoord(target.Coordinates.Q, target.Coordinates.R);
+            distance = Map.HexCoord.Distance(a, b);
+            planeLabel = "physical";
+        }
+        else
+        {
+            distance = Map.SemanticHexCoord.Distance(self.SemanticPosition, target.SemanticPosition);
+            planeLabel = "semantic";
+        }
+
+        return distance <= MaxDistance
+            ? PreconditionResult.Pass($"{planeLabel}_distance={distance} (≤ {MaxDistance})")
+            : PreconditionResult.Fail($"{planeLabel}_distance={distance} (need ≤ {MaxDistance})", blocker);
+    }
+
+    public string Describe() =>
+        Plane == Engine.Domain.Config.PrimaryPlane.Physical
+            ? $"physical_distance ≤ {MaxDistance}"
+            : $"semantic_distance ≤ {MaxDistance}";
+}
+
+/// <summary>Inverts the result of a wrapped precondition.</summary>
+public sealed class NotPrecondition(IPrecondition inner) : IPrecondition
+{
+    public IPrecondition Inner { get; } = inner;
+
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        var result = Inner.Evaluate(context);
+        return result.Passed
+            ? PreconditionResult.Fail($"not({result.Diagnostic})")
+            : PreconditionResult.Pass($"not({result.Diagnostic})");
+    }
+
+    public string Describe() => $"not({Inner.Describe()})";
+}
+
+/// <summary>
+/// Self's hex must contain at least one other named entity. Used to gate hex→Health
+/// verbs ("must happen at a named entity, not in empty wilderness").
+/// </summary>
+public sealed class HasColocatedNamedEntityPrecondition : IPrecondition
+{
+    public PreconditionResult Evaluate(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context is not IWorldStateAccessor accessor) return PreconditionResult.Fail("no world state");
+
+        var self = context.GetEntity(context.SelfEntityId);
+        if (self is null) return PreconditionResult.Fail("self has no location");
+
+        var coord = new Map.HexCoord(self.Coordinates.Q, self.Coordinates.R);
+        var hasOther = accessor.WorldState.SpatialIndex.EntitiesAtCell(coord)
+            .Any(id => id != context.SelfEntityId);
+
+        return hasOther
+            ? PreconditionResult.Pass("co-located with named entity")
+            : PreconditionResult.Fail("no other named entity at hex");
+    }
+
+    public string Describe() => "has_colocated_named_entity";
+}

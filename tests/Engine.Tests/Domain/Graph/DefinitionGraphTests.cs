@@ -31,10 +31,6 @@ public class DefinitionGraphTests
         Assert.Contains(culturalFriction, graph.Pressures.Keys);
         Assert.Contains(EntityKind.Npc, graph.Lifecycles.Keys);
 
-        var npcEat = Assert.Contains("npc_eat", graph.Processes);
-        Assert.Contains(
-            npcEat.GoalEffects,
-            reference => reference.ValueId is AttributeValueId { AttributeId: var attributeId } && attributeId == satiety);
         Assert.Contains(
             graph.Attributes.Values,
             attribute => attribute.Key == new DefinitionAttributeKey(EntityKind.Npc, satiety) &&
@@ -86,7 +82,6 @@ public class DefinitionGraphTests
         Assert.Equal(55, graph.SemanticFlows.Flows.Count);
 
         Assert.Empty(graph.SemanticFlows.Modifiers);
-        Assert.Empty(graph.SemanticFlows.ProcessReferences);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
     }
 
@@ -267,7 +262,6 @@ public class DefinitionGraphTests
                 Verbs = semantics.Verbs,
                 Flows = brokenFlows,
                 Modifiers = semantics.Modifiers,
-                ProcessReferences = semantics.ProcessReferences,
             },
         };
 
@@ -302,7 +296,6 @@ public class DefinitionGraphTests
                 Verbs = semantics.Verbs,
                 Flows = withoutAmbitionDecay,
                 Modifiers = semantics.Modifiers,
-                ProcessReferences = semantics.ProcessReferences,
             },
         };
 

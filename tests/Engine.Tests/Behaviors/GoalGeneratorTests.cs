@@ -42,6 +42,7 @@ public class GoalGeneratorTests
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [new AttributeConfig { Name = "morale", Min = 0f, Max = 100f, Default = 100f }],
                 HealthAttribute = "morale",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -73,6 +74,7 @@ public class GoalGeneratorTests
                     new AttributeConfig { Name = "d", Min = 0f, Max = 100f, Default = 100f },
                 ],
                 HealthAttribute = "a",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -389,6 +391,7 @@ public class GoalGeneratorTests
                     new AttributeConfig { Name = "population", Min = 0f, Max = 1000f, Default = 25f, Baseline = 0f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
                 StandingDrives =
                 [
                     new StandingDriveConfig
@@ -444,6 +447,7 @@ public class GoalGeneratorTests
                     new AttributeConfig { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
                 ],
                 HealthAttribute = "vitality",
+                PrimaryPlane = PrimaryPlane.Physical,
                 StandingDrives =
                 [
                     new StandingDriveConfig
@@ -458,6 +462,7 @@ public class GoalGeneratorTests
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [new AttributeConfig { Name = "population", Min = 0f, Max = 1000f, Default = 10f }],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -538,6 +543,7 @@ public class GoalGeneratorTests
                 Subtypes = new HashSet<string> { "warrior" },
                 Attributes = [new AttributeConfig { Name = "satiety", Min = 0f, Max = 100f, Default = 100f }],
                 HealthAttribute = null,
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -572,6 +578,7 @@ public class GoalGeneratorTests
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = configs,
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
     }

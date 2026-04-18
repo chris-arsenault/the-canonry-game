@@ -5,7 +5,6 @@ using Engine.Domain.Graph;
 using Engine.Kinds;
 using Engine.Wiring;
 using Attr = Engine.Domain.TestDomain.TestDomainAttributeId;
-using Proc = Engine.Domain.TestDomain.TestDomainProcessId;
 using Rel = Engine.Domain.TestDomain.TestDomainRelationship;
 using Res = Engine.Domain.TestDomain.TestDomainResource;
 using Verb = Engine.Domain.TestDomain.TestDomainVerbId;
@@ -23,7 +22,6 @@ public static class TestDomainSemanticDefinition
 
     private static string A(Attr attribute) => attribute.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
-    private static string ProcId(Proc processId) => processId.ToProcessId();
     private static string R(Res resource) => resource.ToDomainName();
     private static string VerbId(Verb verbId) => verbId.ToVerbId();
 
@@ -91,7 +89,7 @@ public static class TestDomainSemanticDefinition
             notes: "The settlement overreaches — residents are spent on ambition that exceeds their capacity. Soldiers march too far, builders work to ruin, missionaries die in the wilderness; the city's reach grows at the cost of its people."),
 
         // Hex → Health inflow verbs (food / wealth / population feed each kind's lifecycle).
-        EntityVerb(Verb.NpcEat, EntityKind.Npc, Proc.NpcEat,
+        EntityVerb(Verb.NpcEat, EntityKind.Npc,
             notes: "NPCs draw nourishment from the local hex's food abundance."),
         EntityVerb(Verb.ArtifactEndow, EntityKind.Artifact,
             notes: "Wealthy locales endow artifacts — patrons fund preservation and custodial care."),
@@ -99,7 +97,7 @@ public static class TestDomainSemanticDefinition
             notes: "Wealth circulating through faction territory binds its unity."),
         EntityVerb(Verb.RegionRoot, EntityKind.Region,
             notes: "Agricultural cultivation roots the region — soil management stabilizes the bedrock."),
-        EntityVerb(Verb.SettlementGrow, EntityKind.Settlement, Proc.SettlementGrow,
+        EntityVerb(Verb.SettlementGrow, EntityKind.Settlement,
             notes: "Settlements absorb population from their hex as immigrants join."),
 
         // Untouched → hex outflow verbs (each kind expands the local hex's possibility space at the cost of an attribute).
@@ -247,8 +245,6 @@ public static class TestDomainSemanticDefinition
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
 
-    private static IReadOnlyList<SemanticProcessReferenceConfig> CreateProcessReferences() => [];
-
     private static SemanticAttributeStockConfig Stock(
         EntityKind kind,
         Attr attribute,
@@ -282,14 +278,12 @@ public static class TestDomainSemanticDefinition
     private static SemanticVerbConfig EntityVerb(
         Verb verb,
         EntityKind ownerKind,
-        Proc? implementedProcess = null,
         string? notes = null) =>
         new()
         {
             Id = VerbId(verb),
             OwnerType = SemanticOwnerType.Entity,
             OwnerKind = ownerKind,
-            ImplementedProcessId = implementedProcess is Proc process ? ProcId(process) : null,
             Notes = notes,
         };
 
@@ -518,27 +512,6 @@ public static class TestDomainSemanticDefinition
             FormLabel = formLabel,
         };
 
-    private static SemanticProcessReferenceConfig Read(Proc process, EntityKind targetKind, Attr targetAttribute) =>
-        ProcessReference(process, SemanticProcessReferenceKind.Reads, targetKind, targetAttribute);
-
-    private static SemanticProcessReferenceConfig DirectWrite(Proc process, EntityKind targetKind, Attr targetAttribute) =>
-        ProcessReference(process, SemanticProcessReferenceKind.DirectWrites, targetKind, targetAttribute);
-
-    private static SemanticProcessReferenceConfig IndirectWrite(Proc process, EntityKind targetKind, Attr targetAttribute) =>
-        ProcessReference(process, SemanticProcessReferenceKind.IndirectWrites, targetKind, targetAttribute);
-
-    private static SemanticProcessReferenceConfig ProcessReference(
-        Proc process,
-        SemanticProcessReferenceKind kind,
-        EntityKind targetKind,
-        Attr targetAttribute) =>
-        new()
-        {
-            ProcessId = ProcId(process),
-            Kind = kind,
-            TargetKind = targetKind,
-            TargetAttribute = A(targetAttribute),
-        };
 
     private static AttributeRef Resource(Res resource) =>
         AttributeRef.Resource(R(resource));

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,9 +11,21 @@ using Engine.Simulation;
 
 namespace TheCanonryGame.UI;
 
+/// <summary>Which plane the renderer is currently drawing.</summary>
+public enum PlaneMode
+{
+    Physical,
+    Semantic,
+}
+
 /// <summary>
 /// Renders the hex grid with terrain colors, entity markers, and territory overlays.
 /// Uses Godot's _Draw() for per-cell rendering with full control over colors.
+///
+/// Supports two plane modes: Physical (map hex grid with terrain/regions/territory)
+/// and Semantic (neutral grid over the autonomy × resonance × tradition axes, with
+/// entities drawn at their SemanticPosition so you can watch semantic-plane kinds
+/// reposition toward their targets).
 /// </summary>
 public partial class HexMapRenderer : Node2D
 {
@@ -30,6 +43,9 @@ public partial class HexMapRenderer : Node2D
     /// <summary>Whether to draw a thicker line along hex edges where two regions meet.</summary>
     [Export] public bool ShowRegionBorders { get; set; } = true;
 
+    /// <summary>Which plane is rendered. Physical = map hex grid; Semantic = autonomy/resonance/tradition.</summary>
+    public PlaneMode CurrentPlane { get; set; } = PlaneMode.Physical;
+
     public void Initialize(SimulationRunner sim)
     {
         _sim = sim;
@@ -39,19 +55,26 @@ public partial class HexMapRenderer : Node2D
     {
         if (_sim is null) return;
 
-        foreach (var cell in _sim.Grid.AllCells)
+        if (CurrentPlane == PlaneMode.Physical)
         {
-            DrawHexCell(cell);
-        }
+            foreach (var cell in _sim.Grid.AllCells)
+            {
+                DrawPhysicalHexCell(cell);
+            }
 
-        if (ShowTerritory)
-        {
-            DrawTerritoryOverlay();
-        }
+            if (ShowTerritory)
+            {
+                DrawTerritoryOverlay();
+            }
 
-        if (ShowRegionBorders)
+            if (ShowRegionBorders)
+            {
+                DrawRegionBorders();
+            }
+        }
+        else
         {
-            DrawRegionBorders();
+            DrawSemanticGrid();
         }
 
         DrawEntityMarkers();
@@ -77,21 +100,33 @@ public partial class HexMapRenderer : Node2D
 
         HexCoord? nearest = null;
         var nearestDist = HexSize;
+        var coords = CurrentPlane == PlaneMode.Physical
+            ? _sim.Grid.AllCells.Select(c => c.Coord)
+            : HexCoord.CoordsInRadius(new HexCoord(0, 0), _sim.Grid.Radius);
 
-        foreach (var cell in _sim.Grid.AllCells)
+        foreach (var coord in coords)
         {
-            var dist = worldPos.DistanceTo(HexToPixel(cell.Coord));
+            var dist = worldPos.DistanceTo(HexToPixel(coord));
             if (dist < nearestDist)
             {
                 nearestDist = dist;
-                nearest = cell.Coord;
+                nearest = coord;
             }
         }
 
         return nearest;
     }
 
-    private void DrawHexCell(HexCell cell)
+    /// <summary>Returns the entity's position in the currently rendered plane as a HexCoord.</summary>
+    public HexCoord EntityCoordForCurrentPlane(Entity entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        return CurrentPlane == PlaneMode.Physical
+            ? new HexCoord(entity.Coordinates.Q, entity.Coordinates.R)
+            : new HexCoord(entity.SemanticPosition.Q, entity.SemanticPosition.R);
+    }
+
+    private void DrawPhysicalHexCell(HexCell cell)
     {
         var center = HexToPixel(cell.Coord);
         var color = GetTerrainColor(cell.Terrain);
@@ -99,6 +134,32 @@ public partial class HexMapRenderer : Node2D
 
         DrawColoredPolygon(points, color);
         DrawPolyline([.. points, points[0]], new Color(0.2f, 0.2f, 0.2f, 0.3f), 1f);
+    }
+
+    private void DrawSemanticGrid()
+    {
+        if (_sim is null) return;
+
+        // Semantic hex grid matches the physical grid's radius so the view has the
+        // same footprint. Cells are purely visual scaffolding on the
+        // autonomy (Q) × resonance (R) × tradition (S) plane — no terrain, no regions.
+        var radius = _sim.Grid.Radius;
+        var fill = new Color(0.18f, 0.19f, 0.22f);
+        var outline = new Color(0.35f, 0.37f, 0.42f, 0.6f);
+        var axisHighlight = new Color(0.55f, 0.55f, 0.60f, 0.85f);
+
+        foreach (var coord in HexCoord.CoordsInRadius(new HexCoord(0, 0), radius))
+        {
+            var center = HexToPixel(coord);
+            var points = GetHexPoints(center);
+
+            DrawColoredPolygon(points, fill);
+
+            // Highlight the three axes (Q=0, R=0, S=0) so autonomy/resonance/tradition
+            // are readable at a glance. Origin gets all three.
+            var onAxis = coord.Q == 0 || coord.R == 0 || coord.S == 0;
+            DrawPolyline([.. points, points[0]], onAxis ? axisHighlight : outline, onAxis ? 1.5f : 1f);
+        }
     }
 
     private void DrawTerritoryOverlay()
@@ -196,7 +257,7 @@ public partial class HexMapRenderer : Node2D
         {
             if (entity.Status != EntityStatus.Active) continue;
 
-            var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
+            var coord = EntityCoordForCurrentPlane(entity);
             var center = HexToPixel(coord);
 
             switch (entity.Kind)

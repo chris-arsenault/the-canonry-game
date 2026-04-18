@@ -27,6 +27,12 @@ public sealed class EntityEvaluator
     /// <summary>How often to regenerate goals (in ticks).</summary>
     public int GoalRegenerationInterval { get; set; } = 10;
 
+    /// <summary>Width of the recency window for repetition penalty, in ticks.</summary>
+    public int RecencyWindow { get; set; } = 10;
+
+    /// <summary>Score multiplier applied per recent firing of the same (entity, process) pair.</summary>
+    public float RecencyDecayFactor { get; set; } = 0.5f;
+
     public EntityEvaluator(BehaviorDefinitionIndex definitions, MessageBus messageBus,
         Random? random = null, GoalGenerator? goalGenerator = null)
     {
@@ -254,10 +260,19 @@ public sealed class EntityEvaluator
                     ? worldState.Graph.GetEntity(goal.TargetEntityId)
                     : null;
                 var scoreContext = new ProcessMutationContext(entity, worldState, goal: goal, definitionId: process.Id);
-                var score = precondResult.Passed
+                var rawScore = precondResult.Passed
                     ? process.ScoreExpression.Evaluate(
                         new ExpressionContext(entity, targetEntity, worldState.Grid, scoreContext))
                     : 0f;
+
+                // Per-entity, per-process recency decay: each time this entity fired
+                // this process inside the RecencyWindow, score is multiplied by
+                // RecencyDecayFactor. Structurally discourages loops on any verb.
+                var recentFirings = entity.CountRecentActions(process.Name, tick - RecencyWindow);
+                var score = recentFirings > 0
+                    ? rawScore * MathF.Pow(RecencyDecayFactor, recentFirings)
+                    : rawScore;
+
                 var viable = precondResult.Passed && score >= MinimumViableScore;
                 if (viable) candidates.Add((process, score));
 

@@ -77,40 +77,6 @@ public static class DefinitionSemanticGraphBuilder
             });
         }
 
-        foreach (var processReference in config.ProcessReferences)
-        {
-            var targetKey = new DefinitionAttributeKey(
-                processReference.TargetKind,
-                new DefinitionAttributeId(processReference.TargetAttribute));
-            var targetId = new AttributeStockId(targetKey);
-            if (!stockById.TryGetValue(targetId, out var targetStock))
-            {
-                throw new DefinitionGraphException(
-                    $"Semantic process reference for '{processReference.ProcessId}' targets undeclared stock '{processReference.TargetKind}.{processReference.TargetAttribute}'.");
-            }
-
-            if (!graph.Processes.TryGetValue(processReference.ProcessId, out var processNode))
-            {
-                throw new DefinitionGraphException(
-                    $"Semantic process reference points to missing implemented process '{processReference.ProcessId}'.");
-            }
-
-            var matches = ProcessTouchesStock(processNode, targetKey, processReference.Kind);
-            if (!matches)
-            {
-                throw new DefinitionGraphException(
-                    $"Semantic process reference marks '{processReference.ProcessId}' as {processReference.Kind} on '{processReference.TargetKind}.{processReference.TargetAttribute}', but the current definition graph does not match.");
-            }
-
-            graph.SemanticFlows.ProcessReferences.Add(new SemanticProcessReference
-            {
-                ProcessId = processReference.ProcessId,
-                Kind = processReference.Kind,
-                TargetStock = targetStock,
-                ResolvedProcess = processNode,
-                MatchesDefinitionGraph = true,
-            });
-        }
     }
 
     private static Dictionary<SemanticStockId, SemanticStockNode> BuildStocks(
@@ -196,29 +162,11 @@ public static class DefinitionSemanticGraphBuilder
                 throw new DefinitionGraphException($"Semantic verb config duplicates '{config.Id}'.");
             }
 
-            DefinitionProcessNode? implementedProcess = null;
-            if (!string.IsNullOrWhiteSpace(config.ImplementedProcessId))
-            {
-                if (!graph.Processes.TryGetValue(config.ImplementedProcessId, out implementedProcess))
-                {
-                    throw new DefinitionGraphException(
-                        $"Semantic verb '{config.Id}' points to missing implemented process '{config.ImplementedProcessId}'.");
-                    }
-
-                if (config.OwnerKind is { } ownerKind &&
-                    implementedProcess.TargetKind != ownerKind)
-                {
-                    throw new DefinitionGraphException(
-                        $"Semantic verb '{config.Id}' declares owner '{ownerKind}' but implemented process '{config.ImplementedProcessId}' targets '{implementedProcess.TargetKind}'.");
-                }
-            }
-
             var verb = new SemanticVerbNode
             {
                 Id = config.Id,
                 OwnerType = config.OwnerType,
                 OwnerKind = config.OwnerKind,
-                ImplementedProcess = implementedProcess,
                 Role = config.Role,
                 Notes = config.Notes,
                 IsFlowless = config.IsFlowless,
@@ -329,21 +277,6 @@ public static class DefinitionSemanticGraphBuilder
         return relationshipId;
     }
 
-    private static bool ProcessTouchesStock(
-        DefinitionProcessNode process,
-        DefinitionAttributeKey stockKey,
-        SemanticProcessReferenceKind referenceKind)
-    {
-        var refs = referenceKind == SemanticProcessReferenceKind.Reads
-            ? process.Reads
-            : process.Writes;
-
-        return refs.Any(reference =>
-            reference.Kind == stockKey.Kind &&
-            reference.ValueId is AttributeValueId { AttributeId: var attributeId } &&
-            attributeId == stockKey.AttributeId);
-    }
-
     private static void Reset(SemanticFlowGraph graph)
     {
         graph.Stocks.Clear();
@@ -351,7 +284,6 @@ public static class DefinitionSemanticGraphBuilder
         graph.Flows.Clear();
         graph.Modifiers.Clear();
         graph.Couplings.Clear();
-        graph.ProcessReferences.Clear();
         graph.Diagnostics.Clear();
     }
 }

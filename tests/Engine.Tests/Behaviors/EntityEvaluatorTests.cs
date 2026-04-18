@@ -13,6 +13,53 @@ using Engine.Wiring;
 public class EntityEvaluatorTests
 {
     [Fact]
+    public void Evaluate_RecencyDecay_ShiftsRepeatedWinnerToAlternateProcess()
+    {
+        // Two viable processes with equal raw score. Without recency decay the
+        // weighted random would pick both roughly 50/50. With decay, repeat firings
+        // of the same process drop its score — so the loser rebounds and both
+        // processes end up fairly close to 50/50, but NEITHER process ever fires
+        // more than ~15 times in any 10-tick window (decay keeps it dominated).
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f);
+        self.Goals.Add(CreateGoal("population", self.Id, 0.5f));
+        self.Goals.Add(CreateGoal("fame", self.Id, 0.5f));
+
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
+        definitions.Register(CreateProcess("Celebrate", "fame"));
+
+        var bus = new MessageBus();
+        var executed = new List<(int Tick, string Name)>();
+        bus.Subscribe(message =>
+        {
+            if (message is ProcessExecutedMessage processExecuted)
+            {
+                executed.Add((processExecuted.Tick, processExecuted.ProcessName));
+            }
+        });
+
+        var evaluator = new EntityEvaluator(definitions, bus, new Random(42));
+        for (var i = 0; i < 100; i++)
+        {
+            world.CurrentTick = i + 1;
+            evaluator.Evaluate(self, world);
+        }
+
+        // With decay on, no process should monopolize a 10-tick window.
+        for (var startTick = 1; startTick <= 91; startTick++)
+        {
+            var window = executed.Where(e => e.Tick >= startTick && e.Tick < startTick + 10).ToList();
+            var growInWindow = window.Count(e => e.Name == "Grow");
+            var celebrateInWindow = window.Count(e => e.Name == "Celebrate");
+            Assert.True(growInWindow <= 7,
+                $"Grow fired {growInWindow} times in ticks [{startTick},{startTick + 10}) — recency decay should cap sustained repetition.");
+            Assert.True(celebrateInWindow <= 7,
+                $"Celebrate fired {celebrateInWindow} times in ticks [{startTick},{startTick + 10}) — recency decay should cap sustained repetition.");
+        }
+    }
+
+    [Fact]
     public void Evaluate_SelectsTheOnlyGoal()
     {
         var world = new StubWorldState(gridRadius: 5);
@@ -53,7 +100,12 @@ public class EntityEvaluatorTests
             }
         });
 
-        var evaluator = new EntityEvaluator(definitions, bus, new Random(42));
+        // Turn off recency decay: this test is about urgency-weighted goal selection,
+        // not the anti-repetition penalty (which is exercised elsewhere).
+        var evaluator = new EntityEvaluator(definitions, bus, new Random(42))
+        {
+            RecencyDecayFactor = 1f,
+        };
         for (var i = 0; i < 500; i++)
         {
             evaluator.Evaluate(self, world);
@@ -389,6 +441,7 @@ public class EntityEvaluatorTests
                     new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 0f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -418,6 +471,7 @@ public class EntityEvaluatorTests
                     new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 0f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
                 StandingDrives =
                 [
                     new StandingDriveConfig
@@ -526,6 +580,7 @@ public class EntityEvaluatorTests
                     new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -575,6 +630,7 @@ public class EntityEvaluatorTests
                     new() { Name = "population", Min = 0f, Max = 1000f, Default = 10f, Baseline = 20f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -611,6 +667,7 @@ public class EntityEvaluatorTests
                     new() { Name = "fame", Min = 0f, Max = 1000f, Default = 5f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 
@@ -645,6 +702,7 @@ public class EntityEvaluatorTests
                     new() { Name = "sustenance", Min = 0f, Max = 1000f, Default = 5f, Baseline = 5f },
                 ],
                 HealthAttribute = "population",
+                PrimaryPlane = PrimaryPlane.Physical,
             },
         };
 

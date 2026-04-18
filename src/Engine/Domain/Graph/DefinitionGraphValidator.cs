@@ -1,6 +1,7 @@
 namespace Engine.Domain.Graph;
 
 using Engine.Kinds;
+using Engine.Processes;
 using Engine.Wiring;
 
 public static class DefinitionGraphValidator
@@ -87,6 +88,8 @@ public static class DefinitionGraphValidator
         ValidateRpsRing(graph, errors);
         ValidateUntouchedAttributeOutflowToHex(graph, errors);
         ValidateMobilityAndDriftVerbs(graph, errors);
+        ValidateNonHealthScalarDecay(graph, errors);
+        ValidateTransferPreconditionGates(graph, errors);
         ValidateGeneratorSet(graph, errors);
 
         return errors;
@@ -255,6 +258,99 @@ public static class DefinitionGraphValidator
             {
                 errors.Add(
                     $"RPS ring: missing +2 edge from {kN} to {kSkip} (need at least one non-Health attribute pair).");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every process that issues a <see cref="TransferAttributeMutation"/> must
+    /// gate its source side at stock ≥ transfer amount. The transfer mutation is
+    /// all-or-nothing; without the gate, a process would be allowed to fire when
+    /// it can't actually move the authored rate, and the mutation would silently
+    /// abort — making the authored economy dishonest. This encodes the soft-gate
+    /// invariant so it's impossible to author a transfer without the matching
+    /// precondition.
+    /// </summary>
+    private static void ValidateTransferPreconditionGates(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var (id, processNode) in graph.Processes)
+        {
+            var process = processNode.SourceDefinition;
+            foreach (var mutation in process.Mutations)
+            {
+                if (mutation is not TransferAttributeMutation transfer) continue;
+
+                var hasGate = PreconditionTreeHasSourceGate(
+                    process.Precondition,
+                    transfer.Source,
+                    transfer.SourceAttribute,
+                    transfer.Amount);
+                if (!hasGate)
+                {
+                    errors.Add(
+                        $"Process '{id}' has a TransferAttributeMutation moving {transfer.Amount} from " +
+                        $"{transfer.Source}.{transfer.SourceAttribute} but no precondition gates the source at ≥ {transfer.Amount}. " +
+                        "Transfers are all-or-nothing; add a threshold precondition on the source stock.");
+                }
+            }
+        }
+    }
+
+    private static bool PreconditionTreeHasSourceGate(
+        IPrecondition node,
+        TransferEndpoint source,
+        string attributeName,
+        float amount)
+    {
+        switch (node)
+        {
+            case AndPrecondition and:
+                foreach (var child in and.Children)
+                {
+                    if (PreconditionTreeHasSourceGate(child, source, attributeName, amount))
+                        return true;
+                }
+                return false;
+            case SelfAttributeThreshold selfThreshold
+                when source == TransferEndpoint.Self &&
+                     string.Equals(selfThreshold.AttributeName, attributeName, StringComparison.Ordinal) &&
+                     selfThreshold.Min is { } min && min >= amount:
+                return true;
+            case TargetAttributeThreshold targetThreshold
+                when source == TransferEndpoint.Target &&
+                     string.Equals(targetThreshold.AttributeName, attributeName, StringComparison.Ordinal) &&
+                     targetThreshold.Min is { } min && min >= amount:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// The semantic catalog declares engine_decay on every scalar stock; at runtime
+    /// that shows up as <c>AttributeConfig.DriftRate</c>. Health attributes are
+    /// drained separately by the lifecycle system, so they're exempt. Every other
+    /// scalar attribute must declare a negative DriftRate — otherwise the agent
+    /// can fill the stock once and never face renewed deficit, collapsing the
+    /// planner's dynamic behavior.
+    /// </summary>
+    private static void ValidateNonHealthScalarDecay(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var (kind, kindNode) in graph.Kinds)
+        {
+            foreach (var (attrId, attrNode) in kindNode.Attributes)
+            {
+                if (attrNode.IsHealthAttribute) continue;
+                if (attrNode.Shape != DefinitionAttributeShape.Scalar) continue;
+
+                var driftRate = attrNode.SourceConfig.DriftRate;
+                if (driftRate >= 0f)
+                {
+                    errors.Add(
+                        $"Kind '{kind}' non-Health attribute '{attrId.Value}' has DriftRate={driftRate:F2}; " +
+                        "every non-Health scalar stock must decay (the semantic catalog declares engine_decay for it). " +
+                        "Set a negative DriftRate on the AttributeConfig.");
+                }
             }
         }
     }

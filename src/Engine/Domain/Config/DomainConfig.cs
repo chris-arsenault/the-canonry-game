@@ -54,6 +54,21 @@ public sealed class KindConfig
     /// readers to understand the kind's semantic identity.
     /// </summary>
     public string? Description { get; init; }
+
+    /// <summary>
+    /// The plane on which this kind primarily positions itself. Physical-plane kinds
+    /// (Npc, Artifact) use the map hex grid and measure proximity via HexCoord.Distance.
+    /// Semantic-plane kinds (Settlement, Faction, Region) use SemanticHexCoord on the
+    /// autonomy/resonance/tradition axes. Mobility/drift verbs and cross-entity verb
+    /// proximity checks pick their metric from the owner's primary plane.
+    /// </summary>
+    public required PrimaryPlane PrimaryPlane { get; init; }
+}
+
+public enum PrimaryPlane
+{
+    Physical,
+    Semantic,
 }
 
 /// <summary>Low-urgency standing drive that participates in normal goal generation.</summary>

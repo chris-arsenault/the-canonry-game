@@ -91,6 +91,26 @@ public sealed class Entity
         while (HealthHistory.Count > MaxHistorySize) HealthHistory.Dequeue();
     }
 
+    /// <summary>
+    /// Count how many times <paramref name="actionName"/> fired on this entity at or
+    /// after <paramref name="sinceTick"/>. Used by the utility AI to soft-penalize
+    /// recent repetition — a process fired N times recently gets its score scaled
+    /// down, encouraging the planner to consider alternatives without hard-locking.
+    /// </summary>
+    public int CountRecentActions(string actionName, int sinceTick)
+    {
+        ArgumentNullException.ThrowIfNull(actionName);
+        var count = 0;
+        foreach (var (tick, name) in ActionHistory)
+        {
+            if (tick >= sinceTick && string.Equals(name, actionName, StringComparison.Ordinal))
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public Entity(
         EntityId id,
         EntityKind kind,

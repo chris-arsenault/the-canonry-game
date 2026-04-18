@@ -164,38 +164,6 @@ public static class TestDomainCultureExtensions
     };
 }
 
-public enum TestDomainProcessId
-{
-    SettlementIrrigate,
-    SettlementGrow,
-    SettlementPropaganda,
-    SettlementAttract,
-    NpcEat,
-    NpcMoveToTarget,
-    NpcWander,
-    NpcCreateWorks,
-    FactionPatrol,
-    RegionFormMilitia,
-}
-
-public static class TestDomainProcessIdExtensions
-{
-    public static string ToProcessId(this TestDomainProcessId processId) => processId switch
-    {
-        TestDomainProcessId.SettlementIrrigate => "settlement_irrigate",
-        TestDomainProcessId.SettlementGrow => "settlement_grow",
-        TestDomainProcessId.SettlementPropaganda => "settlement_propaganda",
-        TestDomainProcessId.SettlementAttract => "settlement_attract",
-        TestDomainProcessId.NpcEat => "npc_eat",
-        TestDomainProcessId.NpcMoveToTarget => "npc_move_to_target",
-        TestDomainProcessId.NpcWander => "npc_wander",
-        TestDomainProcessId.NpcCreateWorks => "npc_create_works",
-        TestDomainProcessId.FactionPatrol => "faction_patrol",
-        TestDomainProcessId.RegionFormMilitia => "region_form_militia",
-        _ => throw new ArgumentOutOfRangeException(nameof(processId), processId, "Unknown test-domain process id"),
-    };
-}
-
 public enum TestDomainVerbId
 {
     ArtifactChannel,

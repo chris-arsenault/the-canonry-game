@@ -1,55 +1,30 @@
 # Entity Index
 
-Current active entity kinds and their current attributes, as defined in
-[TestDomain.cs](/home/tsonu/src/the-canonry-game/src/Engine/Domain/TestDomain.cs).
+Source of truth for entity kinds, attributes, and verbs is C#, not this document:
 
-This is an inventory page, not a design-spec page.
+- **Enums (kinds, attributes, resources, relationships, verbs, cultures):** `src/Engine/Domain/TestDomain/TestDomainSchema.cs`
+- **Runtime kind shapes + lifecycles + descriptions:** `src/Engine/Domain/TestDomain/TestDomainDefinition.cs`
+- **Semantic stocks, verbs, and flow catalog (stock-flow authoring surface):** `src/Engine/Domain/TestDomain/TestDomainSemanticDefinition.cs`
+- **Invariants enforced at build time:** `src/Engine/Domain/Graph/DefinitionGraphValidator.cs`
 
-## Region
+## Kind summary
 
-- `regional_safety` — scalar — Projection
-- `geologic_stability` — scalar — Integrity
-- `mystic_resonance` — 2D — Alignment
+Each kind has three scalar attributes — Health + one outward (Capacity or Projection) + one internal (Need or Drive) — plus a culture-neutral role on the semantic-coord plane (autonomy × resonance × tradition):
 
-Health attribute:
-- none
+| Kind | Health | Outward | Internal | Primary plane |
+|---|---|---|---|---|
+| Npc | vitality | motivation (C) | satiety (N) | physical hex |
+| Artifact | condition | power (C) | aura (D) | physical hex (carried) |
+| Settlement | residents | dominion (P) | sanitation (N) | semantic |
+| Faction | cohesion | influence (P) | provisions (N) | semantic |
+| Region | geologic_stability | regional_safety (C) | pristineness (N) | semantic |
 
-## Settlement
+Region is the geographic area itself, not its inhabitants — its semantic alignment is the animist spirit-of-place.
 
-- `residents` — scalar — Integrity
-- `security` — scalar — Capacity
-- `prestige` — scalar — Projection
-- `civic_ideology` — 2D — Alignment
+## Verb roles
 
-Health attribute:
-- `residents`
+Every kind declares exactly one mobility verb (enablement — gets into range of targets) and exactly one drift verb (downtime — one-step random motion on its primary plane). The remaining verbs are Actions: self-sacrifice (H→X), hex→Health, untouched→hex, and the cross-entity RPS ring. See `TestDomainSemanticDefinition.cs` for the full catalog and authored narrative notes.
 
-## Faction
+## Hex resources
 
-- `cohesion` — scalar — Integrity
-- `support` — scalar — Capacity
-- `influence` — scalar — Projection
-- `civic_ideology` — 2D — Alignment
-
-Health attribute:
-- `cohesion`
-
-## Npc
-
-- `vitality` — scalar — Integrity
-- `satiety` — scalar — Need
-- `ambition` — scalar — Drive
-- `civic_ideology` — 2D — Alignment
-
-Health attribute:
-- `vitality`
-
-## Artifact
-
-- `condition` — scalar — Integrity
-- `power` — scalar — Capacity / Projection
-- `containment` — scalar — Drive
-- `mystic_resonance` — 2D — Alignment
-
-Health attribute:
-- `condition`
+Three ambient hex resources — `food`, `wealth`, `population` — are possibility space, not stock. Attribute→hex verbs expand hex values (+1 per firing). Hex→Health verbs read hex values as rate multipliers (2 × hex.value) and do not drain hex values.

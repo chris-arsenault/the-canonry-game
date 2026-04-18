@@ -148,13 +148,26 @@ public sealed class TestMapBuilder
     private static void CreateEntities(WorldGraph graph, HexGrid grid,
         Dictionary<string, Region> regions, Random random)
     {
+        // Every entity gets a distinct starting position on BOTH the physical hex
+        // grid and the semantic (autonomy/resonance/tradition) plane. No two
+        // entities overlap on either plane at tick 0.
+        var takenPhysical = new HashSet<HexCoord>();
+        var takenSemantic = new HashSet<SemanticHexCoord>();
+
         // --- Factions ---
         var factionA = graph.CreateEntity(
             EntityKind.Faction, "generic_faction", "Northern Compact", "culture_a", tick: 0);
         var factionB = graph.CreateEntity(
             EntityKind.Faction, "generic_faction", "Southern League", "culture_b", tick: 0);
 
-        // --- Settlements (fixed positions — they define the geography) ---
+        SetPhysical(factionA, new HexCoord(-2, -2), takenPhysical);
+        SetPhysical(factionB, new HexCoord(3, 1), takenPhysical);
+        // Opposite corners of the semantic plane so mobility verbs visibly chase
+        // across autonomy × resonance × tradition space.
+        SetSemantic(factionA, new SemanticHexCoord(-3, 3), takenSemantic);
+        SetSemantic(factionB, new SemanticHexCoord(3, -3), takenSemantic);
+
+        // --- Settlements (fixed physical positions — they define the geography) ---
         var s1 = graph.CreateEntity(
             EntityKind.Settlement, "village", "Frosthaven", "culture_a", tick: 0,
             coordinates: (0, -2));
@@ -170,6 +183,33 @@ public sealed class TestMapBuilder
         var s5 = graph.CreateEntity(
             EntityKind.Settlement, "town", "Midpoint", "culture_a", tick: 0,
             coordinates: (0, 0));
+
+        // Settlement physical coords are implicit from the coordinates above; record
+        // them as taken so later entities don't collide.
+        takenPhysical.Add(new HexCoord(0, -2));
+        takenPhysical.Add(new HexCoord(-1, 0));
+        takenPhysical.Add(new HexCoord(1, 1));
+        takenPhysical.Add(new HexCoord(-2, 2));
+        takenPhysical.Add(new HexCoord(0, 0));
+
+        // Distinct semantic anchors per settlement so all five don't cluster at
+        // origin on the semantic plane. Chosen for flavor: Midpoint at the
+        // neutral center, Frosthaven on the tradition axis, etc.
+        SetSemantic(s5, new SemanticHexCoord(0, 0), takenSemantic);
+        SetSemantic(s1, new SemanticHexCoord(0, -2), takenSemantic);
+        SetSemantic(s2, new SemanticHexCoord(-2, 0), takenSemantic);
+        SetSemantic(s3, new SemanticHexCoord(1, -2), takenSemantic);
+        SetSemantic(s4, new SemanticHexCoord(-2, 1), takenSemantic);
+
+        // --- Regions: give each a representative physical hex (central-ish cell of
+        //     its region) and a semantic anchor. Region.Coordinates defaults to
+        //     (0,0) which collides with other entities; set distinct positions. ---
+        SetPhysical(graph.GetEntity(regions["northlands"].EntityId)!, new HexCoord(0, -4), takenPhysical);
+        SetPhysical(graph.GetEntity(regions["heartlands"].EntityId)!, new HexCoord(2, -1), takenPhysical);
+        SetPhysical(graph.GetEntity(regions["coastlands"].EntityId)!, new HexCoord(-3, 4), takenPhysical);
+        SetSemantic(graph.GetEntity(regions["northlands"].EntityId)!, new SemanticHexCoord(1, 1), takenSemantic);
+        SetSemantic(graph.GetEntity(regions["heartlands"].EntityId)!, new SemanticHexCoord(-1, 2), takenSemantic);
+        SetSemantic(graph.GetEntity(regions["coastlands"].EntityId)!, new SemanticHexCoord(2, 2), takenSemantic);
 
         // Build settlement coordinate lookup for NPC located_at checks
         var settlementsByCoord = new Dictionary<HexCoord, EntityId>
@@ -202,13 +242,7 @@ public sealed class TestMapBuilder
         graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
             regions["heartlands"].EntityId, s5.Id, 1f, 0);
 
-        // --- Walkable hex pool for random NPC placement ---
-        var walkableHexes = grid.AllCells
-            .Where(c => !float.IsPositiveInfinity(c.MovementCost))
-            .Select(c => c.Coord)
-            .ToList();
-
-        // --- NPCs (random hex positions) ---
+        // --- NPCs (random walkable hex, excluding already-taken positions) ---
         var npcDefs = new (string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)[]
         {
             ("warrior", "Captain Greyfeather", "culture_a", factionA.Id, 0.9f),
@@ -216,12 +250,43 @@ public sealed class TestMapBuilder
             ("scholar", "Elder Deepcurrent", "culture_a", factionA.Id, 0.8f),
         };
 
+        // NPCs get distinct semantic positions so factions have to pick among
+        // targets and move between them on the plane. NPCs themselves don't move
+        // semantically (their primary plane is physical), so these anchors stay put.
+        var npcSemanticSeeds = new[]
+        {
+            new SemanticHexCoord(2, 0),
+            new SemanticHexCoord(0, 2),
+            new SemanticHexCoord(-2, -1),
+        };
+
+        var npcIndex = 0;
         foreach (var (subtype, name, culture, factionId, loyalty) in npcDefs)
         {
-            var hex = walkableHexes[random.Next(walkableHexes.Count)];
+            // Pick from walkable hexes minus anything we've already placed, so no two
+            // entities start on the same physical hex.
+            var availableHexes = grid.AllCells
+                .Where(c => !float.IsPositiveInfinity(c.MovementCost))
+                .Select(c => c.Coord)
+                .Where(c => !takenPhysical.Contains(c))
+                .ToList();
+            if (availableHexes.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "No free walkable hexes remain for NPC placement; grid may be too small or too many fixed entities.");
+            }
+            var hex = availableHexes[random.Next(availableHexes.Count)];
+            takenPhysical.Add(hex);
+
             var npc = graph.CreateEntity(
                 EntityKind.Npc, subtype, name, culture, tick: 0,
                 coordinates: (hex.Q, hex.R));
+
+            if (npcIndex < npcSemanticSeeds.Length)
+            {
+                SetSemantic(npc, npcSemanticSeeds[npcIndex], takenSemantic);
+            }
+            npcIndex++;
 
             // Loyalty to faction
             graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, factionId, loyalty, 0);
@@ -234,12 +299,37 @@ public sealed class TestMapBuilder
         }
 
         // --- Artifacts ---
+        // Physical hex (1, -3) is adjacent to Frosthaven (0, -2) — close enough for
+        // the stored_at story to read as "kept in Frosthaven's treasury one hex over"
+        // without overlapping another entity.
         var artifact = graph.CreateEntity(
             EntityKind.Artifact, "weapon", "Stormcleaver", "culture_a", tick: 0,
-            coordinates: (0, -2));
+            coordinates: (1, -3));
+        takenPhysical.Add(new HexCoord(1, -3));
+        SetSemantic(artifact, new SemanticHexCoord(3, 0), takenSemantic);
 
         // Artifact stored at Frosthaven (not held by a specific NPC since NPCs are randomly placed)
         graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0);
+    }
+
+    private static void SetPhysical(Engine.Graph.Entity entity, HexCoord coord, HashSet<HexCoord> taken)
+    {
+        if (!taken.Add(coord))
+        {
+            throw new InvalidOperationException(
+                $"Physical position ({coord.Q},{coord.R}) already taken; duplicate starting coords.");
+        }
+        entity.Coordinates = (coord.Q, coord.R);
+    }
+
+    private static void SetSemantic(Engine.Graph.Entity entity, SemanticHexCoord coord, HashSet<SemanticHexCoord> taken)
+    {
+        if (!taken.Add(coord))
+        {
+            throw new InvalidOperationException(
+                $"Semantic position ({coord.Q},{coord.R}) already taken; duplicate starting coords.");
+        }
+        entity.SemanticPosition = coord;
     }
 }
 

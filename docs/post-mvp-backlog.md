@@ -217,6 +217,34 @@ The ability to create a save point at a pivotal moment and branch the simulation
 
 ---
 
+## Planner Extensions
+
+### Support-Goal Generalization
+
+Today `GoalGenerator.BuildBestPlanForBlocker` only creates sub-goals when a precondition is **hard-blocked**. Once every precondition passes, the planner commits to the immediate action even if the process would be substantially more productive in a better context.
+
+The existing `SupportRules` concept is attached to specific processes (settlement_grow's "food ≥ 4 helps") but is narrow and hand-authored. Generalize it so any process can declare **"would be better if X"** conditions (target stock ≥ threshold, pressure ≤ threshold, relationship strength ≥ threshold, etc.) and the planner automatically surfaces processes that can improve that state as *support sub-goals* with their own urgency scaled by how much they'd lift the parent's reward.
+
+**What this unlocks:**
+- Factions naturally interleave building-up NPCs (distribute food, protect) with extracting from them (starve, extort) — pastoral / parasitic cycles rather than pure extraction.
+- Regions pre-seed pristineness before settlement growth hits the threshold where it becomes relevant.
+- Settlements invest in sanitation now because sanctify scales better with it later.
+- Reads as long-form strategy rather than hammering.
+
+**Design questions:**
+- How does support urgency get scored against direct-action urgency without the planner vanishing into unbounded support chains?
+- Depth limits (current `MaxPlanningDepth` may need revision).
+- How to distinguish "support would help" from "support is actually useful given current world state" — prevent pathological cases where every process projects support sub-goals on every tick.
+- Should support sub-goals use the same expansion rules as blocker sub-goals, or a different scoring regime?
+
+**Prerequisites:**
+- Transfer conservation (done — #26) so support state measurements are trustworthy.
+- Recency decay (done — #27) so hammering-plus-support doesn't become a super-hammer.
+
+**Why deferred:** biggest structural change to the planner yet. Lands after we have more behavioral data from the current generator + decay combination to know what scoring shapes are needed.
+
+---
+
 ## Architectural Extensions
 
 ### Mod Support

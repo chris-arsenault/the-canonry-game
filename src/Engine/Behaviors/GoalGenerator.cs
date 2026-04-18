@@ -564,9 +564,16 @@ public sealed class GoalGenerator
 
     private EntityId ResolveBlockedTarget(Entity entity, EntityGoal parentGoal, AttributeRef blocker)
     {
+        // Target and Relational blockers always inherit parent target (they're about
+        // the actor's relationship with the parent's target).
+        // Structural blockers (e.g., "in_physical_range", "in_semantic_range") inherit
+        // when the parent goal itself has a non-self target — those facts describe the
+        // actor's position relative to that target.
+        // Self-scope or self-directed parents fall back to self.
         return blocker.Scope switch
         {
             RefScope.Target or RefScope.Relational => parentGoal.TargetEntityId,
+            RefScope.Structural when parentGoal.TargetEntityId != entity.Id => parentGoal.TargetEntityId,
             _ => entity.Id,
         };
     }
@@ -737,7 +744,7 @@ public sealed class GoalGenerator
         public float BestActionableUrgency { get; } = bestActionableUrgency;
     }
 
-        private sealed class GoalCheckContext : IMutationContext
+        private sealed class GoalCheckContext : IMutationContext, IWorldStateAccessor
     {
         private readonly Entity _entity;
         private readonly string? _definitionId;
@@ -747,6 +754,7 @@ public sealed class GoalGenerator
         public EntityId SelfEntityId => _entity.Id;
         public Random Random => Random.Shared;
         public EntityId? ResolvedTargetId { get; }
+        public IWorldState WorldState => _worldState;
 
         public GoalCheckContext(Entity entity, EntityGoal goal, string? definitionId, IWorldState worldState)
         {

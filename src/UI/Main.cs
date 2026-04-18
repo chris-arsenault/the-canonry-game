@@ -8,6 +8,7 @@ using Engine.Clock;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
+using Engine.Observability;
 using Engine.Simulation;
 
 namespace TheCanonryGame.UI;
@@ -28,7 +29,9 @@ public partial class Main : Node2D
     private RichTextLabel? _eventLogLabel;
     private AttributeGraphPanel? _attributeGraph;
     private Label? _tickLabel;
+    private Button? _planeToggleButton;
     private TableauPanel? _tableauPanel;
+    private RunLogger? _runLogger;
     private PanelContainer? _hexTooltipPanel;
     private Label? _hexTooltipLabel;
     private double _tickAccumulator;
@@ -38,6 +41,13 @@ public partial class Main : Node2D
     private ulong _hoverStartedAtMs;
     private readonly Dictionary<EntityId, EntityCard> _openCards = [];
 
+    public override void _ExitTree()
+    {
+        _runLogger?.Dispose();
+        _runLogger = null;
+        base._ExitTree();
+    }
+
     public override void _Ready()
     {
         GD.Print("The Canonry Game - Initializing simulation...");
@@ -45,7 +55,9 @@ public partial class Main : Node2D
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Normal;
 
-        GD.Print($"Simulation initialized: {_sim.Graph.EntityCount} entities");
+        var logPath = RunLogger.DefaultLogPath();
+        _runLogger = new RunLogger(logPath, _sim);
+        GD.Print($"Simulation initialized: {_sim.Graph.EntityCount} entities. Run log -> {logPath}");
 
         // Create map renderer
         _mapRenderer = new HexMapRenderer();
@@ -132,6 +144,19 @@ public partial class Main : Node2D
         _tickLabel.AddThemeFontSizeOverride("font_size", 14);
         _uiLayer.AddChild(_tickLabel);
 
+        // Lower-left plane toggle: flips renderer between physical hex map and
+        // semantic autonomy/resonance/tradition plane. Camera is preserved.
+        _planeToggleButton = new Button
+        {
+            Text = "View: Physical",
+            CustomMinimumSize = new Vector2(160, 36),
+        };
+        _planeToggleButton.AddThemeFontSizeOverride("font_size", 13);
+        _planeToggleButton.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
+        _planeToggleButton.Position = new Vector2(12, -48);
+        _planeToggleButton.Pressed += OnTogglePlanePressed;
+        _uiLayer.AddChild(_planeToggleButton);
+
         _tableauPanel = new TableauPanel();
         _tableauPanel.Initialize(_sim);
         _uiLayer.AddChild(_tableauPanel);
@@ -168,6 +193,7 @@ public partial class Main : Node2D
         {
             _sim.Clock.Speed = SimulationSpeed.Normal;
             _sim.Tick();
+            _runLogger?.OnTickEnded();
             _sim.Clock.Speed = SimulationSpeed.Paused;
             _stepOneTick = false;
             ticksProcessed = 1;
@@ -186,6 +212,7 @@ public partial class Main : Node2D
             while (_tickAccumulator >= secondsPerTick)
             {
                 _sim.Tick();
+                _runLogger?.OnTickEnded();
                 _tickAccumulator -= secondsPerTick;
                 ticksProcessed++;
             }
@@ -281,6 +308,20 @@ public partial class Main : Node2D
         }
     }
 
+    private void OnTogglePlanePressed()
+    {
+        if (_mapRenderer is null || _planeToggleButton is null) return;
+
+        _mapRenderer.CurrentPlane = _mapRenderer.CurrentPlane == PlaneMode.Physical
+            ? PlaneMode.Semantic
+            : PlaneMode.Physical;
+        _planeToggleButton.Text = _mapRenderer.CurrentPlane == PlaneMode.Physical
+            ? "View: Physical"
+            : "View: Semantic";
+        _mapRenderer.Refresh();
+        ClearHexHoverTooltip();
+    }
+
     private void ToggleAttributeGraph()
     {
         if (_attributeGraph is not null)
@@ -309,10 +350,16 @@ public partial class Main : Node2D
             _openCards.Clear();
         }
 
+        _runLogger?.Dispose();
+
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Paused;
         _tickAccumulator = 0;
         ClearHexHoverTooltip();
+
+        var logPath = RunLogger.DefaultLogPath();
+        _runLogger = new RunLogger(logPath, _sim);
+        GD.Print($"Simulation reset. New run log -> {logPath}");
 
         _sim.EventLog.EventEmitted += OnEventEmitted;
         _sim.Lifecycle.EntityDied += (_, e) =>
@@ -352,7 +399,7 @@ public partial class Main : Node2D
             if (entity.Status != EntityStatus.Active) continue;
 
             var entityPixel = _mapRenderer.GetHexCenter(
-                new HexCoord(entity.Coordinates.Q, entity.Coordinates.R));
+                _mapRenderer.EntityCoordForCurrentPlane(entity));
             var dist = worldPos.DistanceTo(entityPixel);
 
             if (dist < nearestDist)
@@ -436,6 +483,20 @@ public partial class Main : Node2D
         if (_sim is null)
         {
             return string.Empty;
+        }
+
+        if (_mapRenderer?.CurrentPlane == PlaneMode.Semantic)
+        {
+            // Semantic plane: Q = autonomy, R = resonance, S = tradition.
+            var s = -coord.Q - coord.R;
+            var occupants = _sim.Graph.AllEntities
+                .Where(pair => pair.Value.Status == EntityStatus.Active &&
+                               pair.Value.SemanticPosition.Q == coord.Q &&
+                               pair.Value.SemanticPosition.R == coord.R)
+                .Select(pair => $"{pair.Value.Name} ({pair.Value.Kind})")
+                .ToList();
+            var occupantsLine = occupants.Count == 0 ? "(empty)" : string.Join(", ", occupants);
+            return $"autonomy={coord.Q}  resonance={coord.R}  tradition={s}\n{occupantsLine}";
         }
 
         var cell = _sim.Grid.GetCell(coord);

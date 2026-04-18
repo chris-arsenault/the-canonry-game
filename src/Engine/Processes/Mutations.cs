@@ -135,6 +135,71 @@ public sealed class ModifyTargetAttributeMutation(string attributeName, float de
     public string Describe() => $"modify_target({attributeName}, delta={delta}, var={variance})";
 }
 
+/// <summary>Which entity (relative to the process context) an endpoint refers to.</summary>
+public enum TransferEndpoint
+{
+    Self,
+    Target,
+}
+
+/// <summary>
+/// Atomically transfers exactly <paramref name="Amount"/> units between two
+/// attribute stocks. Either the full amount moves or nothing does — partial
+/// transfers are not permitted. Conservation is expected to be enforced by a
+/// precondition that gates availability at the source ≥ Amount; this mutation
+/// double-checks at execution time and aborts the transfer if the source
+/// somehow holds less (defensive, should never fire in practice).
+///
+/// Use this for any same-tick debit/credit pair (self-sac, cross-entity
+/// conversions). The fixed-amount invariant keeps stock-flow math closed:
+/// every verb firing moves the authored transfer rate exactly.
+/// </summary>
+public sealed class TransferAttributeMutation(
+    TransferEndpoint source,
+    string sourceAttribute,
+    TransferEndpoint destination,
+    string destinationAttribute,
+    float amount) : IMutation
+{
+    public TransferEndpoint Source { get; } = source;
+    public string SourceAttribute { get; } = sourceAttribute;
+    public TransferEndpoint Destination { get; } = destination;
+    public string DestinationAttribute { get; } = destinationAttribute;
+    public float Amount { get; } = amount;
+
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var sourceId = ResolveEndpoint(context, Source);
+        var destinationId = ResolveEndpoint(context, Destination);
+        if (sourceId is null || destinationId is null) return;
+
+        var sourceEntity = context.GetEntity(sourceId.Value);
+        if (sourceEntity is null) return;
+
+        // Precondition should have gated this at source ≥ Amount. If a concurrent
+        // mutation on another actor already drained the stock this tick, abort
+        // rather than partial-transfer — conservation is all-or-nothing.
+        var available = sourceEntity.Attributes.GetValue(SourceAttribute);
+        if (available < Amount) return;
+
+        context.ModifyAttribute(sourceId.Value, SourceAttribute, -Amount);
+        context.ModifyAttribute(destinationId.Value, DestinationAttribute, +Amount);
+    }
+
+    public string Describe() => FormattableString.Invariant(
+        $"transfer({Source}.{SourceAttribute} → {Destination}.{DestinationAttribute}, ={Amount})");
+
+    private static EntityId? ResolveEndpoint(IMutationContext context, TransferEndpoint endpoint) =>
+        endpoint switch
+        {
+            TransferEndpoint.Self => context.SelfEntityId,
+            TransferEndpoint.Target => context.ResolvedTargetId,
+            _ => null,
+        };
+}
+
 /// <summary>
 /// Modifies an ambient resource value at self or target location by a delta.
 /// Positive deltas increase the location's resource field, negative deltas reduce it.
@@ -294,6 +359,40 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
 }
 
 /// <summary>
+/// Hex→Health conversion. Reads the hex resource value at self's location and
+/// credits self's attribute by <c>ratePerHexValue × hex_value</c>. The hex value
+/// does NOT drain — hex resources are possibility space that act as a rate
+/// multiplier on the health gain.
+/// </summary>
+public sealed class HexToHealthMutation(
+    string attributeName,
+    ResourceType resource,
+    float ratePerHexValue = 2f) : IMutation
+{
+    public string AttributeName { get; } = attributeName;
+    public ResourceType Resource { get; } = resource;
+    public float RatePerHexValue { get; } = ratePerHexValue;
+
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var self = context.GetEntity(context.SelfEntityId);
+        if (self is null) return;
+
+        var hexValue = context.GetResource(
+            (self.Coordinates.Q, self.Coordinates.R),
+            Resource);
+        if (hexValue <= 0f) return;
+
+        var delta = RatePerHexValue * hexValue;
+        context.ModifyAttribute(context.SelfEntityId, AttributeName, delta);
+    }
+
+    public string Describe() =>
+        $"hex_to_health({AttributeName}, hex.{Resource.ToDomainName()}, rate={RatePerHexValue})";
+}
+
+/// <summary>
 /// Moves self one step along a path toward the resolved target.
 /// Optionally maintains an exclusive location-style relationship such as located_at.
 /// TODO: This is the first reusable movement primitive, not the final planner shape.
@@ -373,6 +472,66 @@ public sealed class WanderMutation(
     }
 
     public string Describe() => $"wander(rel={locationRelationshipKind ?? "none"})";
+}
+
+/// <summary>
+/// Semantic-plane mobility. Steps self's SemanticPosition one hex toward the
+/// resolved target's SemanticPosition along whichever axis shrinks the distance
+/// most. No pathfinding — semantic space is always passable.
+/// </summary>
+public sealed class MoveTowardTargetOnSemanticPlaneMutation : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.ResolvedTargetId is null) return;
+
+        var self = context.GetEntity(context.SelfEntityId);
+        var target = context.GetEntity(context.ResolvedTargetId.Value);
+        if (self is null || target is null) return;
+
+        var current = self.SemanticPosition;
+        var dest = target.SemanticPosition;
+        if (current == dest) return;
+
+        SemanticHexCoord? best = null;
+        var bestDistance = SemanticHexCoord.Distance(current, dest);
+        foreach (var neighbor in current.Neighbors())
+        {
+            var d = SemanticHexCoord.Distance(neighbor, dest);
+            if (d < bestDistance)
+            {
+                bestDistance = d;
+                best = neighbor;
+            }
+        }
+
+        if (best.HasValue)
+        {
+            self.SemanticPosition = best.Value;
+        }
+    }
+
+    public string Describe() => "move_toward_target_semantic";
+}
+
+/// <summary>
+/// Semantic-plane drift. Steps self's SemanticPosition to a uniformly random
+/// neighbor on the autonomy/resonance/tradition plane.
+/// </summary>
+public sealed class WanderOnSemanticPlaneMutation : IMutation
+{
+    public void Execute(IMutationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var self = context.GetEntity(context.SelfEntityId);
+        if (self is null) return;
+
+        var direction = Math.Clamp((int)(context.Random.NextDouble() * 6), 0, 5);
+        self.SemanticPosition = self.SemanticPosition.Neighbor(direction);
+    }
+
+    public string Describe() => "wander_semantic";
 }
 
 /// <summary>Helper to modify an attribute by component (scalar, x, or y).</summary>
