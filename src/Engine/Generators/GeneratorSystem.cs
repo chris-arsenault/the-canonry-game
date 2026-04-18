@@ -13,6 +13,7 @@ using Engine.Messages;
 public sealed class GeneratorSystem
 {
     private const string DefaultGeneratedCulture = "none";
+    private const string DefaultInheritedCulture = "culture_a";
     private const string DriftSourcePrefix = "innate_drift_";
     private const string LifecycleDrainSourcePrefix = "lifecycle_drain_";
 
@@ -92,7 +93,7 @@ public sealed class GeneratorSystem
         }
 
         var winner = ChooseWeighted(applicable);
-        Fire(winner.Instance.Definition, winner.Target.ExecutionTarget, currentTick);
+        Fire(winner.Instance.Definition, winner.Target, currentTick);
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -104,8 +105,32 @@ public sealed class GeneratorSystem
         ArgumentNullException.ThrowIfNull(generator);
         ArgumentNullException.ThrowIfNull(target);
 
+        Fire(generator, ResolveExecutionTarget(target), currentTick);
+    }
+
+    private void Fire(DefinitionGeneratorNode generator, ResolvedGeneratorTarget target, int currentTick)
+    {
+        ArgumentNullException.ThrowIfNull(generator);
+        ArgumentNullException.ThrowIfNull(target);
+
+        var targetContext = target.ExecutionTarget switch
+        {
+            EntityId entityId => BuildEntityTargetContext(entityId),
+            HexCoord physicalOrigin => new ExecutionTargetContext(
+                target.TargetEntity,
+                physicalOrigin,
+                target.TargetEntity.SemanticPosition,
+                physicalOrigin),
+            _ => throw new ArgumentException("Generator target must be an EntityId or HexCoord.", nameof(target)),
+        };
+        Fire(generator, targetContext, currentTick);
+    }
+
+    private void Fire(DefinitionGeneratorNode generator, ExecutionTargetContext targetContext, int currentTick)
+    {
+        ArgumentNullException.ThrowIfNull(generator);
+
         var instance = _instances.GetOrCreate(generator);
-        var targetContext = ResolveExecutionTarget(target);
         var symbols = new Dictionary<string, EntityId?>(StringComparer.Ordinal)
         {
             ["$target"] = targetContext.TargetEntity?.Id,
@@ -328,7 +353,7 @@ public sealed class GeneratorSystem
 
         if (string.Equals(produced.InheritCultureFrom, "$target", StringComparison.Ordinal))
         {
-            return NormalizeCulture(targetEntity?.Culture);
+            return NormalizeInheritedCulture(targetEntity?.Culture);
         }
 
         if (!symbols.TryGetValue(produced.InheritCultureFrom, out var entityId) || entityId is null)
@@ -336,7 +361,7 @@ public sealed class GeneratorSystem
             return DefaultGeneratedCulture;
         }
 
-        return NormalizeCulture(_graph.GetEntity(entityId.Value)?.Culture);
+        return NormalizeInheritedCulture(_graph.GetEntity(entityId.Value)?.Culture);
     }
 
     private (HexCoord Physical, SemanticHexCoord Semantic) ResolvePlacement(
@@ -451,8 +476,10 @@ public sealed class GeneratorSystem
             -lifecycle.SourceConfig.BaseRate));
     }
 
-    private static string NormalizeCulture(string? culture) =>
-        string.IsNullOrWhiteSpace(culture) ? DefaultGeneratedCulture : culture;
+    private static string NormalizeInheritedCulture(string? culture) =>
+        string.IsNullOrWhiteSpace(culture) || string.Equals(culture, "none", StringComparison.OrdinalIgnoreCase)
+            ? DefaultInheritedCulture
+            : culture;
 
     private sealed record ApplicableGeneratorTarget(
         GeneratorInstance Instance,

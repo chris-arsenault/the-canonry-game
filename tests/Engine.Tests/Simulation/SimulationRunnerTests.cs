@@ -57,6 +57,11 @@ public class SimulationRunnerTests
     {
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
 
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        {
+            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("sanitation")!.SetBase(10f);
+        }
+
         for (var i = 0; i < 25; i++)
         {
             sim.Tick();

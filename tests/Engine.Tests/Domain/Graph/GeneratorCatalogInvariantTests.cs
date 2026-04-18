@@ -147,6 +147,46 @@ public class GeneratorCatalogInvariantTests
         Assert.Contains("must declare at least one trigger", ex.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Validate_ArtifactDiscoveryWithoutRelationships_IsAllowed()
+    {
+        var generator = new SemanticGeneratorConfig
+        {
+            Id = "artifact_discovery",
+            Name = "Artifact Discovery",
+            Target = new SemanticGeneratorTarget
+            {
+                Kind = EntityKind.Region,
+                AllowWilderness = true,
+            },
+            Produces =
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$artifact",
+                    Kind = EntityKind.Artifact,
+                    Subtype = "instrument",
+                    Role = "discovered",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            Relationships = [],
+            Triggers =
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = EntityKind.Region,
+                    AttributeName = "pristineness",
+                    Direction = TriggerDirection.High,
+                },
+            ],
+        };
+
+        var graph = DomainLoader.BuildDefinitionGraph(WithGenerators(generator));
+
+        Assert.Contains("artifact_discovery", graph.Generators.Keys);
+    }
+
     private static SemanticGeneratorConfig CreateBaseGenerator(
         IReadOnlyList<SemanticProducedEntity>? produces = null,
         IReadOnlyList<SemanticGeneratorRelationship>? relationships = null,

@@ -9,11 +9,15 @@ using Engine.Kinds;
 public class RuntimeGeneratorBuilderTests
 {
     [Fact]
-    public void Build_FromTestDomain_WithNoGenerators_Succeeds()
+    public void Build_FromTestDomain_ProjectsMvpGenerators()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        Assert.Empty(graph.Generators);
+        Assert.Equal(4, graph.Generators.Count);
+        Assert.Contains("colony_founding", graph.Generators.Keys);
+        Assert.Contains("hero_emergence", graph.Generators.Keys);
+        Assert.Contains("faction_splinter", graph.Generators.Keys);
+        Assert.Contains("artifact_discovery", graph.Generators.Keys);
     }
 
     [Fact]

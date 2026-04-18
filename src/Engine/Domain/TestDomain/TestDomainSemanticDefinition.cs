@@ -18,7 +18,7 @@ public static class TestDomainSemanticDefinition
         Verbs = CreateVerbs(),
         Flows = CreateFlows(),
         Modifiers = CreateModifiers(),
-        ProcessReferences = CreateProcessReferences(),
+        Generators = TestDomainGeneratorDefinition.Create(),
     };
 
     private static string A(Attr attribute) => attribute.ToDomainName();

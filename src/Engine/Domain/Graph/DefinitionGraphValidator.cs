@@ -117,7 +117,7 @@ public static class DefinitionGraphValidator
             foreach (var produced in generator.Produces)
             {
                 if (!referencedRefs.Contains(produced.Ref) &&
-                    !(produced.CreateChance < 1f && produced.Kind == EntityKind.Artifact))
+                    produced.Kind != EntityKind.Artifact)
                 {
                     errors.Add(
                         $"Generator '{generator.Id}' produces '{produced.Ref}' but no relationship references it.");

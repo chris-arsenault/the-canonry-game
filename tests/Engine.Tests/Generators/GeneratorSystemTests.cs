@@ -347,6 +347,109 @@ public class GeneratorSystemTests
         Assert.Equal(25, message.Tick);
     }
 
+    [Fact]
+    public void Tick_AllowWilderness_KeepsRegionTargetForRelationshipsAndCultureFallback()
+    {
+        var generator = CreateGenerator(
+            "colony_founding",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = EntityKind.Region,
+                AllowWilderness = true,
+                SaturationLimits =
+                [
+                    new SemanticSaturationLimit
+                    {
+                        RelationshipKind = "contains",
+                        Direction = "out",
+                        MaxCount = 3,
+                    },
+                ],
+            },
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$settlement",
+                    Kind = EntityKind.Settlement,
+                    Subtype = "village",
+                    Role = "primary",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$leader",
+                    Kind = EntityKind.Npc,
+                    Subtype = "warrior",
+                    Role = "leader",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$faction",
+                    Kind = EntityKind.Faction,
+                    Subtype = "generic_faction",
+                    Role = "founding_faction",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$leader",
+                    DestinationRef = "$settlement",
+                    Kind = "located_at",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$settlement",
+                    DestinationRef = "$faction",
+                    Kind = "controlled_by",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$leader",
+                    DestinationRef = "$faction",
+                    Kind = "loyal_to",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$target",
+                    DestinationRef = "$settlement",
+                    Kind = "contains",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = EntityKind.Region,
+                    AttributeName = "pristineness",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var regionIds = sim.Graph.GetEntitiesByKind(EntityKind.Region).ToHashSet();
+        var settlementIds = sim.Graph.GetEntitiesByKind(EntityKind.Settlement).ToHashSet();
+
+        foreach (var regionId in regionIds)
+        {
+            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristineness")!.SetBase(90f);
+        }
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "colony_founding" });
+
+        var newSettlementId = sim.Graph.GetEntitiesByKind(EntityKind.Settlement).Single(id => !settlementIds.Contains(id));
+        var newSettlement = sim.Graph.GetEntity(newSettlementId)!;
+        var containingRegionId = regionIds.Single(regionId =>
+            sim.Graph.OutgoingRelationships(regionId, "contains")
+                .Any(relationship => relationship.TargetId == newSettlementId));
+
+        Assert.Equal("culture_a", newSettlement.Culture);
+        Assert.Contains(containingRegionId, regionIds);
+    }
+
     private static (SimulationRunner Sim, GeneratorSystem System) CreateSystem(
         Random random,
         params SemanticGeneratorConfig[] generators)

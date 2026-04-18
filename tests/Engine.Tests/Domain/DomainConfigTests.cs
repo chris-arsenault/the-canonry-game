@@ -1,6 +1,7 @@
 namespace Engine.Tests.Domain;
 
 using Engine.Domain.Loader;
+using Engine.Messages;
 using Engine.Domain.TestDomain;
 using Engine.Kinds;
 using Engine.Simulation;
@@ -18,6 +19,7 @@ public class DomainConfigTests
         Assert.Equal(5, config.Lifecycles.Count);
         Assert.Equal(3, config.Resources.Count);
         Assert.Equal(2, config.Cultures.Count);
+        Assert.Equal(4, config.Semantics!.Generators.Count);
     }
 
     [Fact]
@@ -123,5 +125,31 @@ public class DomainConfigTests
         Assert.NotNull(sim);
         sim.Tick();
         Assert.Equal(1, sim.Clock.CurrentTick);
+    }
+
+    [Fact]
+    public void SimulationRunner_CreateFromTestMap_GeneratorContentGrowsTheWorld()
+    {
+        var sim = SimulationRunner.CreateFromTestMap();
+        var initialEntityCount = sim.Graph.EntityCount;
+        var firedGeneratorIds = new HashSet<string>(StringComparer.Ordinal);
+
+        sim.MessageBus.Subscribe(message =>
+        {
+            if (message is GeneratorFiredMessage fired)
+            {
+                firedGeneratorIds.Add(fired.GeneratorId);
+            }
+        });
+
+        for (var i = 0; i < 100; i++)
+        {
+            sim.Tick();
+        }
+
+        Assert.True(sim.Graph.EntityCount >= initialEntityCount + 2);
+        Assert.True(
+            firedGeneratorIds.Contains("colony_founding") || firedGeneratorIds.Contains("hero_emergence"),
+            "Expected colony_founding or hero_emergence to fire within 100 ticks.");
     }
 }
