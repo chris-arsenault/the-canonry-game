@@ -113,6 +113,14 @@ public static class TestDomainSemanticDefinition
             notes: "Safe regions draw migrants — fearless settlers follow the protective aura."),
         EntityVerb(Verb.SettlementMarket, EntityKind.Settlement,
             notes: "Clean settlements anchor commerce — sanitation enables markets, storage, and disease-free trade."),
+
+        // RPS ring conversion verbs (cross-entity drain).
+        EntityVerb(Verb.SettlementLevy, EntityKind.Settlement,
+            notes: "The settlement levies labor from its NPCs — their satiety is spent on civic projects, converting into the city's projected reach."),
+        EntityVerb(Verb.FactionMuster, EntityKind.Faction,
+            notes: "The faction musters its followers — NPC motivation is spent and stockpiled as material: enlistments, tithes, foraging parties."),
+        EntityVerb(Verb.FactionRacket, EntityKind.Faction,
+            notes: "The faction runs a protection racket — settlement sanitation is skimmed off the top as kickbacks, palm-greasing, and 'arrangements,' converting civic order into projected influence."),
     ];
 
     private static IReadOnlyList<SemanticFlowConfig> CreateFlows() =>
@@ -173,6 +181,14 @@ public static class TestDomainSemanticDefinition
             "Safe regions draw migrants — fearless settlers follow the protective aura."),
         UntouchedToHex(EntityKind.Settlement, Attr.Sanitation, Res.Wealth, Verb.SettlementMarket,
             "Clean settlements anchor commerce — sanitation enables markets, storage, and disease-free trade."),
+
+        // RPS ring conversions (batch 3).
+        ..Conversion(EntityKind.Npc, Attr.Satiety, EntityKind.Settlement, Attr.Dominion, Verb.SettlementLevy,
+            "The settlement levies labor from its NPCs — their satiety is spent on civic projects, converting into projected reach."),
+        ..Conversion(EntityKind.Npc, Attr.Motivation, EntityKind.Faction, Attr.Provisions, Verb.FactionMuster,
+            "The faction musters its followers — NPC motivation is spent and stockpiled as material: enlistments, tithes, foraging parties."),
+        ..Conversion(EntityKind.Settlement, Attr.Sanitation, EntityKind.Faction, Attr.Influence, Verb.FactionRacket,
+            "The faction runs a protection racket — settlement sanitation is skimmed off the top as kickbacks and palm-greasing, converting civic order into projected influence."),
     ];
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
@@ -319,6 +335,44 @@ public static class TestDomainSemanticDefinition
             Reasoning = reasoning,
             SourceRefs = [Resource(resource)],
         };
+
+    // Emits both halves of a cross-entity conversion flow: source kind's stock
+    // depletes, target kind's stock grows. Outflow on source attribute (target ref
+    // = destination), inflow on target attribute (source ref = origin). Both
+    // halves share the same narrative reasoning.
+    private static IEnumerable<SemanticFlowConfig> Conversion(
+        EntityKind sourceKind,
+        Attr sourceAttr,
+        EntityKind targetKind,
+        Attr targetAttr,
+        Verb verb,
+        string reasoning)
+    {
+        yield return new SemanticFlowConfig
+        {
+            VerbId = VerbId(verb),
+            Role = SemanticFlowRole.Outflow,
+            TargetKind = sourceKind,
+            TargetAttribute = A(sourceAttr),
+            Mechanism = SemanticMechanism.Conversion,
+            SignatureLabel = $"target; conversion to {targetKind}.{A(targetAttr)}",
+            FormLabel = $"target; conversion to {targetKind}.{A(targetAttr)}",
+            Reasoning = reasoning,
+            SourceRefs = [Target(targetKind, targetAttr)],
+        };
+        yield return new SemanticFlowConfig
+        {
+            VerbId = VerbId(verb),
+            Role = SemanticFlowRole.Inflow,
+            TargetKind = targetKind,
+            TargetAttribute = A(targetAttr),
+            Mechanism = SemanticMechanism.Conversion,
+            SignatureLabel = $"self; conversion from {sourceKind}.{A(sourceAttr)}",
+            FormLabel = $"self; conversion from {sourceKind}.{A(sourceAttr)}",
+            Reasoning = reasoning,
+            SourceRefs = [Target(sourceKind, sourceAttr)],
+        };
+    }
 
     // Emits both halves of a self-sacrifice flow (Health → X): an outflow on H
     // with source ref Self(kind, target), and an inflow on target with source ref
