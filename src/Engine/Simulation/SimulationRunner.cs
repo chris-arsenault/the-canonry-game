@@ -67,6 +67,7 @@ public sealed class SimulationRunner
     public KindRegistry KindRegistry { get; }
     public BehaviorDefinitionIndex BehaviorDefinitions { get; }
     public GeneratorSystem GeneratorSystem { get; }
+    public IReadOnlyDictionary<string, CardDefinition> SpawnCards { get; }
 
     private SimulationRunner(
         WorldGraph graph, EffectSystem effects,
@@ -76,6 +77,7 @@ public sealed class SimulationRunner
         TableauManager tableau, EventLog eventLog, DetectorRegistry detectors,
         WorldState worldState, DefinitionGraph definitionGraph, KindRegistry kindRegistry,
         BehaviorDefinitionIndex behaviorDefinitions, GeneratorSystem generatorSystem,
+        IReadOnlyDictionary<string, CardDefinition> spawnCards,
         MessageBus messageBus)
     {
         Graph = graph;
@@ -98,6 +100,7 @@ public sealed class SimulationRunner
         KindRegistry = kindRegistry;
         BehaviorDefinitions = behaviorDefinitions;
         GeneratorSystem = generatorSystem;
+        SpawnCards = spawnCards;
     }
 
     /// <summary>
@@ -210,6 +213,7 @@ public sealed class SimulationRunner
             semanticPlane,
             messageBus,
             new Random(42));
+        var spawnCards = new Dictionary<string, CardDefinition>(StringComparer.Ordinal);
 
         foreach (var generator in definitionGraph.Generators.Values)
         {
@@ -223,6 +227,7 @@ public sealed class SimulationRunner
                 cadence: 0,
                 lifespan: int.MaxValue,
                 generatorId: generator.Id);
+            spawnCards[generator.Id] = definition;
             _ = tableau.PlaceCard(definition, currentTick: 0)
                 ?? throw new InvalidOperationException($"Failed to place generator card '{generator.Id}'.");
         }
@@ -302,7 +307,7 @@ public sealed class SimulationRunner
             graph, effects, grid, regionMap, spatialIndex,
             clock, evaluator, relationships, lifecycle, resources, pressure,
             tableau, eventLog, detectors, worldState, definitionGraph, kindRegistry,
-            behaviorDefinitions, generatorSystem, messageBus);
+            behaviorDefinitions, generatorSystem, spawnCards, messageBus);
     }
 
     /// <summary>Advance the simulation by one frame (speed-dependent tick count).</summary>

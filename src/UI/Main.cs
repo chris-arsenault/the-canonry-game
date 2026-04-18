@@ -28,6 +28,7 @@ public partial class Main : Node2D
     private RichTextLabel? _eventLogLabel;
     private AttributeGraphPanel? _attributeGraph;
     private Label? _tickLabel;
+    private TableauPanel? _tableauPanel;
     private PanelContainer? _hexTooltipPanel;
     private Label? _hexTooltipLabel;
     private double _tickAccumulator;
@@ -130,6 +131,12 @@ public partial class Main : Node2D
         };
         _tickLabel.AddThemeFontSizeOverride("font_size", 14);
         _uiLayer.AddChild(_tickLabel);
+
+        _tableauPanel = new TableauPanel();
+        _tableauPanel.Initialize(_sim);
+        _uiLayer.AddChild(_tableauPanel);
+        _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
+        _tableauPanel.Position = new Vector2(-140, -312);
 
         _hexTooltipPanel = new PanelContainer
         {
@@ -319,6 +326,7 @@ public partial class Main : Node2D
         _attributeGraph?.Initialize(_sim);
         _browser?.Initialize(_sim);
         _browser?.Refresh();
+        _tableauPanel?.Initialize(_sim);
 
         if (_eventLogLabel is not null) _eventLogLabel.Text = "";
 

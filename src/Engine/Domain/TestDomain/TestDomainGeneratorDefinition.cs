@@ -13,6 +13,7 @@ public static class TestDomainGeneratorDefinition
         {
             Id = "colony_founding",
             Name = "Colony Founding",
+            Description = "Found a new village package in a still-pristine region.",
             Target = new SemanticGeneratorTarget
             {
                 Kind = EntityKind.Region,
@@ -96,6 +97,7 @@ public static class TestDomainGeneratorDefinition
         {
             Id = "hero_emergence",
             Name = "Hero Emergence",
+            Description = "A strained settlement produces a hero, sometimes with a weapon.",
             Target = new SemanticGeneratorTarget
             {
                 Kind = EntityKind.Settlement,
@@ -150,6 +152,7 @@ public static class TestDomainGeneratorDefinition
         {
             Id = "faction_splinter",
             Name = "Faction Splinter",
+            Description = "A cohesive faction throws off a rival splinter and its leader.",
             Target = new SemanticGeneratorTarget
             {
                 Kind = EntityKind.Faction,
@@ -209,6 +212,7 @@ public static class TestDomainGeneratorDefinition
         {
             Id = "artifact_discovery",
             Name = "Artifact Discovery",
+            Description = "A pristine region yields a newly discovered instrument artifact.",
             Target = new SemanticGeneratorTarget
             {
                 Kind = EntityKind.Region,

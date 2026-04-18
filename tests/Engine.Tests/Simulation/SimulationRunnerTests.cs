@@ -87,6 +87,36 @@ public class SimulationRunnerTests
     }
 
     [Fact]
+    public void ReplacingGeneratorCard_ResumesFiringAtNextPulse()
+    {
+        var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
+        var card = Assert.Single(sim.Tableau.ActiveCards);
+
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        {
+            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("sanitation")!.SetBase(10f);
+        }
+
+        sim.Tableau.RemoveCard(card);
+        for (var i = 0; i < 25; i++)
+        {
+            sim.Tick();
+        }
+
+        Assert.Equal(0, sim.GeneratorSystem.TotalFired);
+
+        var replacement = sim.Tableau.PlaceCard(sim.SpawnCards["hero_emergence"], sim.Clock.CurrentTick);
+        Assert.NotNull(replacement);
+
+        for (var i = 0; i < 25; i++)
+        {
+            sim.Tick();
+        }
+
+        Assert.Equal(1, sim.GeneratorSystem.TotalFired);
+    }
+
+    [Fact]
     public void Tick_AdvancesSimulation()
     {
         var sim = SimulationRunner.CreateFromTestMap();
