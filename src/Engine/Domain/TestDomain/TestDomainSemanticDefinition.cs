@@ -89,6 +89,30 @@ public static class TestDomainSemanticDefinition
             notes: "Slow geological calm purifies the land — the region settles and cleans itself."),
         EntityVerb(Verb.SettlementMobilize, EntityKind.Settlement,
             notes: "The settlement conscripts its residents into extending reach — soldiers, emissaries, missionaries."),
+
+        // Hex → Health inflow verbs (food / wealth / population feed each kind's lifecycle).
+        EntityVerb(Verb.NpcEat, EntityKind.Npc, Proc.NpcEat,
+            notes: "NPCs draw nourishment from the local hex's food abundance."),
+        EntityVerb(Verb.ArtifactEndow, EntityKind.Artifact,
+            notes: "Wealthy locales endow artifacts — patrons fund preservation and custodial care."),
+        EntityVerb(Verb.FactionTax, EntityKind.Faction,
+            notes: "Wealth circulating through faction territory binds its unity."),
+        EntityVerb(Verb.RegionRoot, EntityKind.Region,
+            notes: "Agricultural cultivation roots the region — soil management stabilizes the bedrock."),
+        EntityVerb(Verb.SettlementGrow, EntityKind.Settlement, Proc.SettlementGrow,
+            notes: "Settlements absorb population from their hex as immigrants join."),
+
+        // Untouched → hex outflow verbs (each kind returns something to its local hex).
+        EntityVerb(Verb.NpcInspire, EntityKind.Npc,
+            notes: "Motivated NPCs draw migrants — role models and social magnets seed the hex's population."),
+        EntityVerb(Verb.ArtifactEmanate, EntityKind.Artifact,
+            notes: "The artifact's contained spiritual charge bleeds into the land, fertilizing it."),
+        EntityVerb(Verb.FactionDistribute, EntityKind.Faction,
+            notes: "Faction stockpiles fed back into the local food supply — alms, charity, military rations."),
+        EntityVerb(Verb.RegionSettle, EntityKind.Region,
+            notes: "Safe regions draw migrants — fearless settlers follow the protective aura."),
+        EntityVerb(Verb.SettlementMarket, EntityKind.Settlement,
+            notes: "Clean settlements anchor commerce — sanitation enables markets, storage, and disease-free trade."),
     ];
 
     private static IReadOnlyList<SemanticFlowConfig> CreateFlows() =>
@@ -125,6 +149,30 @@ public static class TestDomainSemanticDefinition
             "Slow geological calm purifies the land — the region settles and cleans itself."),
         ..SelfSac(EntityKind.Settlement, Attr.Residents, Attr.Dominion, Verb.SettlementMobilize,
             "The settlement conscripts its residents into extending reach — soldiers, emissaries, missionaries."),
+
+        // Hex → Health inflows (every kind's lifecycle anchor feeds from a hex resource).
+        HexToHealth(EntityKind.Npc, Attr.Vitality, Res.Food, Verb.NpcEat,
+            "NPCs draw nourishment from the local hex's food abundance."),
+        HexToHealth(EntityKind.Artifact, Attr.Condition, Res.Wealth, Verb.ArtifactEndow,
+            "Wealthy locales endow artifacts — patrons fund preservation and custodial care."),
+        HexToHealth(EntityKind.Faction, Attr.Cohesion, Res.Wealth, Verb.FactionTax,
+            "Wealth circulating through faction territory binds its unity."),
+        HexToHealth(EntityKind.Region, Attr.GeologicStability, Res.Food, Verb.RegionRoot,
+            "Agricultural cultivation roots the region — soil management stabilizes the bedrock."),
+        HexToHealth(EntityKind.Settlement, Attr.Residents, Res.Population, Verb.SettlementGrow,
+            "Settlements absorb population from their hex as immigrants join."),
+
+        // Untouched → hex outflows (each kind returns something to its local hex).
+        UntouchedToHex(EntityKind.Npc, Attr.Motivation, Res.Population, Verb.NpcInspire,
+            "Motivated NPCs draw migrants — role models and social magnets seed the hex's population."),
+        UntouchedToHex(EntityKind.Artifact, Attr.Containment, Res.Food, Verb.ArtifactEmanate,
+            "The artifact's contained spiritual charge bleeds into the land, fertilizing it."),
+        UntouchedToHex(EntityKind.Faction, Attr.Provisions, Res.Food, Verb.FactionDistribute,
+            "Faction stockpiles fed back into the local food supply — alms, charity, military rations."),
+        UntouchedToHex(EntityKind.Region, Attr.RegionalSafety, Res.Population, Verb.RegionSettle,
+            "Safe regions draw migrants — fearless settlers follow the protective aura."),
+        UntouchedToHex(EntityKind.Settlement, Attr.Sanitation, Res.Wealth, Verb.SettlementMarket,
+            "Clean settlements anchor commerce — sanitation enables markets, storage, and disease-free trade."),
     ];
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
@@ -229,6 +277,47 @@ public static class TestDomainSemanticDefinition
             TargetKind = kind,
             TargetAttribute = A(attribute),
             Mechanism = SemanticMechanism.Decay,
+        };
+
+    // Hex → Health inflow. Source ref is a hex resource; target is the kind's Health.
+    private static SemanticFlowConfig HexToHealth(
+        EntityKind kind,
+        Attr health,
+        Res resource,
+        Verb verb,
+        string reasoning) =>
+        new()
+        {
+            VerbId = VerbId(verb),
+            Role = SemanticFlowRole.Inflow,
+            TargetKind = kind,
+            TargetAttribute = A(health),
+            Mechanism = SemanticMechanism.Inflow,
+            SignatureLabel = $"self; inflow from hex.{R(resource)}",
+            FormLabel = $"self; inflow from hex.{R(resource)}",
+            Reasoning = reasoning,
+            SourceRefs = [Resource(resource)],
+        };
+
+    // Untouched → hex outflow. Target stock is the kind's Untouched attribute;
+    // source ref is a hex resource (the destination of the mass).
+    private static SemanticFlowConfig UntouchedToHex(
+        EntityKind kind,
+        Attr untouched,
+        Res resource,
+        Verb verb,
+        string reasoning) =>
+        new()
+        {
+            VerbId = VerbId(verb),
+            Role = SemanticFlowRole.Outflow,
+            TargetKind = kind,
+            TargetAttribute = A(untouched),
+            Mechanism = SemanticMechanism.Conversion,
+            SignatureLabel = $"self; outflow to hex.{R(resource)}",
+            FormLabel = $"self; outflow to hex.{R(resource)}",
+            Reasoning = reasoning,
+            SourceRefs = [Resource(resource)],
         };
 
     // Emits both halves of a self-sacrifice flow (Health → X): an outflow on H
