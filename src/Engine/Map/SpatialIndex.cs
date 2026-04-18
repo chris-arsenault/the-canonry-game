@@ -172,6 +172,35 @@ public sealed class SpatialIndex
         return null;
     }
 
+    public HexCoord? FindFreePhysicalHex(HexCoord origin, int maxRadius = 5)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(maxRadius);
+
+        for (var radius = 0; radius <= maxRadius; radius++)
+        {
+            foreach (var coord in HexCoord.CoordsInRadius(origin, radius))
+            {
+                if (HexCoord.Distance(origin, coord) != radius)
+                {
+                    continue;
+                }
+
+                var cell = _grid.GetCell(coord);
+                if (cell is null || float.IsPositiveInfinity(cell.MovementCost))
+                {
+                    continue;
+                }
+
+                if (!_entitiesAtCell.TryGetValue(coord, out var occupants) || occupants.Count == 0)
+                {
+                    return coord;
+                }
+            }
+        }
+
+        return null;
+    }
+
     // --- Pathfinding ---
 
     /// <summary>

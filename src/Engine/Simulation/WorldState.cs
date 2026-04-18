@@ -17,6 +17,7 @@ public sealed class WorldState : IWorldState
     public HexGrid Grid { get; }
     public RegionMap RegionMap { get; }
     public SpatialIndex SpatialIndex { get; }
+    public SemanticPlaneIndex SemanticPlane { get; }
     public Resources.ResourceSystem? Resources { get; }
     public int CurrentTick { get; set; }
 
@@ -27,6 +28,7 @@ public sealed class WorldState : IWorldState
         HexGrid grid,
         RegionMap regionMap,
         SpatialIndex spatialIndex,
+        SemanticPlaneIndex semanticPlane,
         Resources.ResourceSystem? resources = null)
     {
         Graph = graph;
@@ -35,6 +37,7 @@ public sealed class WorldState : IWorldState
         Grid = grid;
         RegionMap = regionMap;
         SpatialIndex = spatialIndex;
+        SemanticPlane = semanticPlane;
         Resources = resources;
     }
 }

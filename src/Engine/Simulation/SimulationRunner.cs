@@ -121,6 +121,7 @@ public sealed class SimulationRunner
         var effects = new EffectSystem();
         var spatialIndex = new SpatialIndex(grid, regionMap, graph);
         spatialIndex.RebuildFromGraph();
+        var semanticPlane = new SemanticPlaneIndex(graph);
 
         // Load domain into engine systems
         var kindRegistry = DomainLoader.LoadKindRegistry(domainConfig);
@@ -176,7 +177,7 @@ public sealed class SimulationRunner
         var detectors = DetectorRegistry.CreateDefault(eventLog);
 
         // World state
-        var worldState = new WorldState(graph, effects, pressure, grid, regionMap, spatialIndex, resources);
+        var worldState = new WorldState(graph, effects, pressure, grid, regionMap, spatialIndex, semanticPlane, resources);
 
         // Wire to tick clock
         var clock = new TickClock();

@@ -48,5 +48,19 @@ public readonly record struct SemanticHexCoord(int Q, int R)
         }
     }
 
+    /// <summary>Get all coordinates within a radius (hex ring fill).</summary>
+    public static IEnumerable<SemanticHexCoord> CoordsInRadius(SemanticHexCoord center, int radius)
+    {
+        for (var q = -radius; q <= radius; q++)
+        {
+            var r1 = Math.Max(-radius, -q - radius);
+            var r2 = Math.Min(radius, -q + radius);
+            for (var r = r1; r <= r2; r++)
+            {
+                yield return new SemanticHexCoord(center.Q + q, center.R + r);
+            }
+        }
+    }
+
     public override string ToString() => $"(autonomy={Q},resonance={R},tradition={S})";
 }

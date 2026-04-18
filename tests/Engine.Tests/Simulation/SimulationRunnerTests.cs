@@ -18,6 +18,7 @@ public class SimulationRunnerTests
         Assert.NotNull(sim.Clock);
         Assert.NotNull(sim.Tableau);
         Assert.NotNull(sim.EventLog);
+        Assert.NotNull(sim.WorldState.SemanticPlane);
         Assert.True(sim.Graph.EntityCount > 0);
     }
 
