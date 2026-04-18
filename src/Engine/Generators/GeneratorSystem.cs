@@ -1,6 +1,5 @@
 namespace Engine.Generators;
 
-using Engine.Attributes;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Graph;
@@ -13,9 +12,6 @@ using Engine.Messages;
 public sealed class GeneratorSystem
 {
     private const string DefaultGeneratedCulture = "none";
-    private const string DefaultInheritedCulture = "culture_a";
-    private const string DriftSourcePrefix = "innate_drift_";
-    private const string LifecycleDrainSourcePrefix = "lifecycle_drain_";
 
     private readonly WorldGraph _graph;
     private readonly GeneratorInstanceRegistry _instances;
@@ -55,7 +51,7 @@ public sealed class GeneratorSystem
             return;
         }
 
-        var applicable = new List<ApplicableGeneratorTarget>();
+        var applicableByGenerator = new Dictionary<string, ApplicableGenerator>(StringComparer.Ordinal);
 
         foreach (var generatorId in activeGeneratorIds)
         {
@@ -76,64 +72,46 @@ public sealed class GeneratorSystem
                 continue;
             }
 
-            foreach (var target in ResolveTargets(instance.Definition))
+            var targets = new List<ResolvedGeneratorTarget>();
+            foreach (var candidate in ResolveTargets(instance.Definition))
             {
-                if (!TriggersPass(instance.Definition, target.TargetEntity))
+                if (!TriggersPass(instance.Definition, candidate.TargetEntity))
                 {
                     continue;
                 }
 
-                applicable.Add(new ApplicableGeneratorTarget(instance, target, weight));
+                targets.Add(candidate);
             }
+
+            if (targets.Count == 0)
+            {
+                continue;
+            }
+
+            applicableByGenerator[generatorId] = new ApplicableGenerator(instance, targets, weight);
         }
 
-        if (applicable.Count == 0)
+        if (applicableByGenerator.Count == 0)
         {
             return;
         }
 
-        var winner = ChooseWeighted(applicable);
-        Fire(winner.Instance.Definition, winner.Target, currentTick);
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1030:Use events where appropriate",
-        Justification = "Ticket-defined API name for generator execution.")]
-    public void Fire(DefinitionGeneratorNode generator, object target, int currentTick)
-    {
-        ArgumentNullException.ThrowIfNull(generator);
-        ArgumentNullException.ThrowIfNull(target);
-
-        Fire(generator, ResolveExecutionTarget(target), currentTick);
+        var winner = ChooseWeightedGenerator(applicableByGenerator.Values);
+        var target = winner.Targets[_random.Next(winner.Targets.Count)];
+        Fire(winner.Instance.Definition, target, currentTick);
     }
 
     private void Fire(DefinitionGeneratorNode generator, ResolvedGeneratorTarget target, int currentTick)
     {
-        ArgumentNullException.ThrowIfNull(generator);
-        ArgumentNullException.ThrowIfNull(target);
-
-        var targetContext = target.ExecutionTarget switch
-        {
-            EntityId entityId => BuildEntityTargetContext(entityId),
-            HexCoord physicalOrigin => new ExecutionTargetContext(
-                target.TargetEntity,
-                physicalOrigin,
-                target.TargetEntity.SemanticPosition,
-                physicalOrigin),
-            _ => throw new ArgumentException("Generator target must be an EntityId or HexCoord.", nameof(target)),
-        };
-        Fire(generator, targetContext, currentTick);
-    }
-
-    private void Fire(DefinitionGeneratorNode generator, ExecutionTargetContext targetContext, int currentTick)
-    {
-        ArgumentNullException.ThrowIfNull(generator);
+        var targetContext = new ExecutionTargetContext(
+            target.TargetEntity,
+            target.PhysicalOrigin,
+            target.TargetEntity.SemanticPosition);
 
         var instance = _instances.GetOrCreate(generator);
         var symbols = new Dictionary<string, EntityId?>(StringComparer.Ordinal)
         {
-            ["$target"] = targetContext.TargetEntity?.Id,
+            ["$target"] = targetContext.TargetEntity.Id,
         };
         var createdEntityIds = new List<EntityId>();
         var createdRelationshipCount = 0;
@@ -146,7 +124,7 @@ public sealed class GeneratorSystem
                 continue;
             }
 
-            var culture = ResolveCulture(produced, symbols, targetContext.TargetEntity);
+            var culture = ResolveCulture(generator, produced, symbols, targetContext.TargetEntity);
             var name = NameSynthesizer.SynthesizeName(produced.Kind, produced.Subtype, culture, _random);
             var (physicalCoord, semanticCoord) = ResolvePlacement(produced, targetContext);
             var entity = _graph.CreateEntity(
@@ -158,8 +136,6 @@ public sealed class GeneratorSystem
                 (physicalCoord.Q, physicalCoord.R));
 
             entity.SemanticPosition = semanticCoord;
-            InitializeGeneratedEntityAttributes(entity);
-            RegisterLifecycleDrain(entity);
             _spatialIndex.PlaceEntity(entity.Id, physicalCoord);
 
             symbols[produced.Ref] = entity.Id;
@@ -184,20 +160,13 @@ public sealed class GeneratorSystem
             createdRelationshipCount++;
         }
 
-        if (targetContext.TargetEntity is { } targetEntity)
-        {
-            instance.RecordRun(currentTick, targetEntity.Id);
-        }
-        else
-        {
-            instance.RecordRun(currentTick);
-        }
+        instance.RecordRun(currentTick, targetContext.TargetEntity.Id);
 
         TotalFired++;
         _messageBus.Publish(new GeneratorFiredMessage(
             currentTick,
             generator.Id,
-            targetContext.TargetEntity?.Id,
+            targetContext.TargetEntity.Id,
             createdEntityIds,
             createdRelationshipCount));
     }
@@ -235,7 +204,7 @@ public sealed class GeneratorSystem
                 continue;
             }
 
-            yield return new ResolvedGeneratorTarget(entity, entity.Id);
+            yield return new ResolvedGeneratorTarget(entity, new HexCoord(entity.Coordinates.Q, entity.Coordinates.R));
         }
     }
 
@@ -303,12 +272,13 @@ public sealed class GeneratorSystem
         };
     }
 
-    private ApplicableGeneratorTarget ChooseWeighted(IReadOnlyList<ApplicableGeneratorTarget> applicable)
+    private ApplicableGenerator ChooseWeightedGenerator(IEnumerable<ApplicableGenerator> applicable)
     {
-        var totalWeight = applicable.Sum(item => item.Weight);
+        var list = applicable.ToList();
+        var totalWeight = list.Sum(item => item.Weight);
         var roll = _random.Next(totalWeight);
 
-        foreach (var item in applicable)
+        foreach (var item in list)
         {
             if (roll < item.Weight)
             {
@@ -318,30 +288,11 @@ public sealed class GeneratorSystem
             roll -= item.Weight;
         }
 
-        return applicable[^1];
-    }
-
-    private ExecutionTargetContext ResolveExecutionTarget(object target) =>
-        target switch
-        {
-            EntityId entityId => BuildEntityTargetContext(entityId),
-            HexCoord physicalOrigin => new ExecutionTargetContext(
-                null,
-                physicalOrigin,
-                SemanticHexCoord.Origin,
-                physicalOrigin),
-            _ => throw new ArgumentException("Generator target must be an EntityId or HexCoord.", nameof(target)),
-        };
-
-    private ExecutionTargetContext BuildEntityTargetContext(EntityId entityId)
-    {
-        var entity = _graph.GetEntity(entityId)
-            ?? throw new ArgumentException($"Generator target entity '{entityId}' was not found.", nameof(entityId));
-        var physicalOrigin = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
-        return new ExecutionTargetContext(entity, physicalOrigin, entity.SemanticPosition, entityId);
+        return list[^1];
     }
 
     private string ResolveCulture(
+        DefinitionGeneratorNode generator,
         DefinitionProducedEntity produced,
         Dictionary<string, EntityId?> symbols,
         Entity? targetEntity)
@@ -351,17 +302,28 @@ public sealed class GeneratorSystem
             return DefaultGeneratedCulture;
         }
 
+        string? resolved;
         if (string.Equals(produced.InheritCultureFrom, "$target", StringComparison.Ordinal))
         {
-            return NormalizeInheritedCulture(targetEntity?.Culture);
+            resolved = targetEntity?.Culture;
         }
-
-        if (!symbols.TryGetValue(produced.InheritCultureFrom, out var entityId) || entityId is null)
+        else
         {
-            return DefaultGeneratedCulture;
+            if (!symbols.TryGetValue(produced.InheritCultureFrom, out var entityId) || entityId is null)
+            {
+                throw new InvalidOperationException(
+                    $"Generator '{generator.Id}' produce '{produced.Ref}' inherits culture from '{produced.InheritCultureFrom}' which has not been created (optional produce that did not roll?).");
+            }
+            resolved = _graph.GetEntity(entityId.Value)?.Culture;
         }
 
-        return NormalizeInheritedCulture(_graph.GetEntity(entityId.Value)?.Culture);
+        if (string.IsNullOrWhiteSpace(resolved))
+        {
+            throw new InvalidOperationException(
+                $"Generator '{generator.Id}' produce '{produced.Ref}' inherits culture from '{produced.InheritCultureFrom}' which has no culture assigned. Explicit culture required — no silent fallback.");
+        }
+
+        return resolved;
     }
 
     private (HexCoord Physical, SemanticHexCoord Semantic) ResolvePlacement(
@@ -410,89 +372,18 @@ public sealed class GeneratorSystem
     private bool IsSemanticOccupied(SemanticHexCoord coord) =>
         _graph.AllEntities.Values.Any(entity => entity.Status == EntityStatus.Active && entity.SemanticPosition == coord);
 
-    private void InitializeGeneratedEntityAttributes(Entity entity)
-    {
-        if (!_definitionGraph.Kinds.TryGetValue(entity.Kind, out var kindNode))
-        {
-            return;
-        }
 
-        foreach (var attribute in kindNode.Attributes.Values)
-        {
-            if (entity.Attributes.Has(attribute.SourceConfig.Name))
-            {
-                continue;
-            }
-
-            IEntityProperty instance;
-            if (attribute.SourceConfig.PlaneDefinition is { } planeDefinition)
-            {
-                instance = new SemanticPlane(
-                    attribute.SourceConfig.Name,
-                    planeDefinition,
-                    attribute.SourceConfig.Min,
-                    attribute.SourceConfig.Max,
-                    attribute.SourceConfig.DefaultX,
-                    attribute.SourceConfig.DefaultY);
-            }
-            else
-            {
-                var scalar = new ScalarValue(
-                    attribute.SourceConfig.Name,
-                    attribute.SourceConfig.Min,
-                    attribute.SourceConfig.Max,
-                    attribute.SourceConfig.Default);
-                if (attribute.SourceConfig.DriftRate != 0f)
-                {
-                    scalar.AddTickEffect(new AttributeEffect(
-                        DriftSourcePrefix + attribute.SourceConfig.Name,
-                        $"Natural {attribute.SourceConfig.Name} drift",
-                        attribute.SourceConfig.DriftRate));
-                }
-
-                instance = scalar;
-            }
-
-            entity.Attributes.Add(instance);
-        }
-    }
-
-    private void RegisterLifecycleDrain(Entity entity)
-    {
-        if (!_definitionGraph.Lifecycles.TryGetValue(entity.Kind, out var lifecycle))
-        {
-            return;
-        }
-
-        var healthAttribute = entity.Attributes.GetScalar(lifecycle.HealthAttribute.Value);
-        if (healthAttribute is null)
-        {
-            return;
-        }
-
-        healthAttribute.AddTickEffect(new AttributeEffect(
-            LifecycleDrainSourcePrefix + lifecycle.HealthAttribute.Value,
-            $"Lifecycle aging drain on {lifecycle.HealthAttribute.Value}",
-            -lifecycle.SourceConfig.BaseRate));
-    }
-
-    private static string NormalizeInheritedCulture(string? culture) =>
-        string.IsNullOrWhiteSpace(culture) || string.Equals(culture, "none", StringComparison.OrdinalIgnoreCase)
-            ? DefaultInheritedCulture
-            : culture;
-
-    private sealed record ApplicableGeneratorTarget(
+    private sealed record ApplicableGenerator(
         GeneratorInstance Instance,
-        ResolvedGeneratorTarget Target,
+        IReadOnlyList<ResolvedGeneratorTarget> Targets,
         int Weight);
 
     private sealed record ResolvedGeneratorTarget(
         Entity TargetEntity,
-        object ExecutionTarget);
+        HexCoord PhysicalOrigin);
 
     private sealed record ExecutionTargetContext(
-        Entity? TargetEntity,
+        Entity TargetEntity,
         HexCoord PhysicalOrigin,
-        SemanticHexCoord SemanticOrigin,
-        object ExecutionTarget);
+        SemanticHexCoord SemanticOrigin);
 }

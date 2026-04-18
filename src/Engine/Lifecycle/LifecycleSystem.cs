@@ -25,11 +25,24 @@ public sealed class LifecycleSystem
 
     public LifecycleSystem(WorldGraph graph, LifecycleConfig config)
     {
+        ArgumentNullException.ThrowIfNull(graph);
         _graph = graph;
         _config = config;
+        _graph.EntityCreated += OnEntityCreated;
     }
 
-    /// <summary>Register lifecycle drain tick effects on all active entities. Call once at startup.</summary>
+    private void OnEntityCreated(object? sender, EntityCreatedEventArgs e)
+    {
+        if (e.Entity.Status == EntityStatus.Active)
+        {
+            RegisterDrainEffect(e.Entity);
+        }
+    }
+
+    /// <summary>Sweep active entities and register any missing drain effects.
+    /// Provided for tests that construct the system after entities already exist.
+    /// Production code should construct the system before entities are created so
+    /// the <see cref="WorldGraph.EntityCreated"/> subscription handles each one.</summary>
     public void InitializeEffects()
     {
         foreach (var (_, entity) in _graph.AllEntities)
@@ -97,7 +110,8 @@ public sealed class LifecycleSystem
         }
     }
 
-    /// <summary>Register a drain tick effect on a new entity's health attribute.</summary>
+    /// <summary>Register a drain tick effect on an entity's health attribute.
+    /// Idempotent — if the effect already exists, does nothing.</summary>
     public void RegisterDrainEffect(Entity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -110,6 +124,8 @@ public sealed class LifecycleSystem
         if (attr is null) return;
 
         var sourceId = DrainSourcePrefix + healthAttr;
+        if (FindEffect(attr, sourceId) is not null) return;
+
         var initialDrain = aging.ComputeDrain(0);
         attr.AddTickEffect(new AttributeEffect(
             sourceId, $"Lifecycle aging drain on {healthAttr}", -initialDrain));

@@ -40,9 +40,10 @@ public sealed class CardInstance
         return (currentTick - LastFiredTick.Value) >= Definition.Cooldown;
     }
 
-    /// <summary>Check if the card should run on this tick (cadence check).</summary>
+    /// <summary>Check if the card should run on this tick (cadence check). Cadence 0 means every tick.</summary>
     public bool IsOnCadence(int currentTick)
     {
+        if (Definition.Cadence <= 0) return true;
         return currentTick % Definition.Cadence == 0;
     }
 

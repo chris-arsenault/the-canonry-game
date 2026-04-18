@@ -17,21 +17,39 @@ public sealed class TestMapBuilder
     /// </summary>
     public static TestWorld BuildDefault(int? seed = null)
     {
+        var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var world = BuildEmpty(random);
+        Populate(world, random);
+        return world;
+    }
+
+    /// <summary>
+    /// Build an empty world (grid + terrain + empty graph) so callers can
+    /// subscribe systems to <see cref="WorldGraph.EntityCreated"/> before any
+    /// entity exists. Follow with <see cref="Populate"/>.
+    /// </summary>
+    public static TestWorld BuildEmpty(Random random)
+    {
+        ArgumentNullException.ThrowIfNull(random);
         var grid = new HexGrid(5);
         var regionMap = new RegionMap();
         var graph = new WorldGraph();
-        var random = seed.HasValue ? new Random(seed.Value) : new Random();
-
-        // --- Terrain setup ---
         PaintTerrain(grid, random);
-
-        // --- Region setup ---
-        var regions = CreateRegions(grid, regionMap, graph);
-
-        // --- Entity setup ---
-        CreateEntities(graph, grid, regions, random);
-
         return new TestWorld(grid, regionMap, graph);
+    }
+
+    /// <summary>
+    /// Populate the world with regions, factions, settlements, NPCs, and the
+    /// starter artifact. Every <c>graph.CreateEntity</c> invocation fires
+    /// <see cref="WorldGraph.EntityCreated"/>, so any subscribers wired on the
+    /// empty graph will initialize these entities as they are created.
+    /// </summary>
+    public static void Populate(TestWorld world, Random random)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(random);
+        var regions = CreateRegions(world.Grid, world.RegionMap, world.Graph);
+        CreateEntities(world.Graph, world.Grid, regions, random);
     }
 
     private static void PaintTerrain(HexGrid grid, Random random)

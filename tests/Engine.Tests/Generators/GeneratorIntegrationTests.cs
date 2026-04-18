@@ -118,22 +118,94 @@ public class GeneratorIntegrationTests
     }
 
     [Fact]
+    public void WeightedPick_IsPerGenerator_NotPerApplicableTargetCount()
+    {
+        // Regression: earlier weighting multiplied by applicable-target count, so a
+        // generator with many eligible targets unfairly outvoted one with fewer.
+        // Here both generators have pulseWeight=1 but different target kinds with
+        // different counts (5 settlements vs 3 regions in the test map). Expected
+        // share: 50/50. Buggy share would be 5/8 vs 3/8.
+        var settlementGen = CreateSettlementGenerator("gen_settlement", pulseWeight: 1, triggers: [AnySettlementTrigger()]);
+        var regionGen = new SemanticGeneratorConfig
+        {
+            Id = "gen_region",
+            Name = "gen_region",
+            Target = new SemanticGeneratorTarget { Kind = EntityKind.Region },
+            Produces =
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                },
+            ],
+            Relationships =
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+            ],
+            Triggers =
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = EntityKind.Region,
+                    Direction = TriggerDirection.Any,
+                },
+            ],
+            PulseWeight = 1,
+        };
+        var (sim, system) = CreateGeneratorOnlySystem(new Random(42), settlementGen, regionGen);
+        var active = new HashSet<string>(StringComparer.Ordinal) { "gen_settlement", "gen_region" };
+
+        for (var pulse = 1; pulse <= 500; pulse++)
+        {
+            system.Tick(pulse * system.PulseInterval, active);
+        }
+
+        var settlementFires = sim.WorldState.Generators.ById["gen_settlement"].TotalRuns;
+        var regionFires = sim.WorldState.Generators.ById["gen_region"].TotalRuns;
+
+        Assert.Equal(500, settlementFires + regionFires);
+        var settlementShare = settlementFires / 500f;
+        Assert.InRange(settlementShare, 0.40f, 0.60f);
+    }
+
+    [Fact]
     public void Generator_TargetingSettlement_FiresWhenAnySettlementMatchesTrigger()
     {
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateSettlementGenerator("hero_emergence")));
-        var targetId = SetSingleSettlementSanitationLow(sim);
+        SetSingleSettlementSanitationLow(sim);
 
         RunTicks(sim, 25);
 
+        var instance = sim.WorldState.Generators.ById["hero_emergence"];
         Assert.Equal(1, sim.GeneratorSystem.TotalFired);
-        Assert.Equal(1, sim.WorldState.Generators.ById["hero_emergence"].TotalRuns);
-        Assert.Equal(targetId, sim.WorldState.Generators.ById["hero_emergence"].RecentTargets.Single());
+        Assert.Equal(1, instance.TotalRuns);
+        var firedTargetId = Assert.Single(instance.RecentTargets);
+        Assert.Equal(EntityKind.Settlement, sim.Graph.GetEntity(firedTargetId)!.Kind);
+    }
 
-        SetAllSettlementSanitation(sim, 90f);
-        RunTicks(sim, 25);
+    [Fact]
+    public void Generator_TargetingSettlement_DoesNotFireWhenNoSettlementMatchesTrigger()
+    {
+        var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateSettlementGenerator("hero_emergence")));
 
-        Assert.Equal(1, sim.GeneratorSystem.TotalFired);
-        Assert.Equal(1, sim.WorldState.Generators.ById["hero_emergence"].TotalRuns);
+        // Sanitation is drifted by both the aging drift and cross-entity processes;
+        // pin it high every tick so the Low trigger never passes during the window.
+        for (var i = 0; i < 25; i++)
+        {
+            SetAllSettlementSanitation(sim, 100f);
+            sim.Tick();
+        }
+
+        Assert.Equal(0, sim.GeneratorSystem.TotalFired);
+        Assert.Equal(0, sim.WorldState.Generators.ById["hero_emergence"].TotalRuns);
     }
 
     [Fact]
@@ -191,24 +263,23 @@ public class GeneratorIntegrationTests
     }
 
     [Fact]
-    public void Generator_ResetSim_ClearsGeneratorInstanceState()
+    public void GeneratorInstanceRegistry_Reset_ClearsAllRecordedRuns()
     {
-        var domain = WithGenerators(CreateSettlementGenerator("one_shot", maxRunsPerSim: 1));
-        var firstRun = SimulationRunner.CreateFromDomain(domain);
+        var sim = SimulationRunner.CreateFromDomain(
+            WithGenerators(CreateSettlementGenerator("one_shot", maxRunsPerSim: 1)));
+        SetSingleSettlementSanitationLow(sim);
+        RunTicks(sim, 25);
 
-        SetSingleSettlementSanitationLow(firstRun);
-        RunTicks(firstRun, 25);
+        var instance = sim.WorldState.Generators.ById["one_shot"];
+        Assert.Equal(1, instance.TotalRuns);
+        Assert.Equal(25, instance.LastFiredTick);
+        Assert.Single(instance.RecentTargets);
 
-        Assert.Equal(1, firstRun.WorldState.Generators.ById["one_shot"].TotalRuns);
+        sim.WorldState.Generators.Reset();
 
-        var resetRun = SimulationRunner.CreateFromDomain(domain);
-
-        Assert.Equal(0, resetRun.WorldState.Generators.ById["one_shot"].TotalRuns);
-        SetSingleSettlementSanitationLow(resetRun);
-        RunTicks(resetRun, 25);
-
-        Assert.Equal(1, resetRun.WorldState.Generators.ById["one_shot"].TotalRuns);
-        Assert.Equal(1, resetRun.GeneratorSystem.TotalFired);
+        Assert.Equal(0, instance.TotalRuns);
+        Assert.Null(instance.LastFiredTick);
+        Assert.Empty(instance.RecentTargets);
     }
 
     private static SemanticGeneratorConfig CreateSettlementGenerator(

@@ -117,14 +117,18 @@ public sealed class SimulationRunner
     /// entity kinds, subtypes, attributes, relationships, pressures, and lifecycles.
     /// The engine provides the framework; the domain provides the content.
     /// </summary>
-    public static SimulationRunner CreateFromDomain(DomainConfig domainConfig)
+    public static SimulationRunner CreateFromDomain(DomainConfig domainConfig, Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(domainConfig);
 
         var definitionGraph = DomainLoader.BuildDefinitionGraph(domainConfig);
 
-        // Build world
-        var testWorld = TestMapBuilder.BuildDefault();
+        // Build an empty world first so we can wire per-entity subscribers (attribute
+        // init, lifecycle drain) BEFORE any entity is created. Subsequent Populate
+        // triggers WorldGraph.EntityCreated for each entity, and every subscriber
+        // initializes that entity exactly once — no init-time sweeps.
+        random ??= new Random();
+        var testWorld = TestMapBuilder.BuildEmpty(random);
         var graph = testWorld.Graph;
         var grid = testWorld.Grid;
         var regionMap = testWorld.RegionMap;
@@ -132,12 +136,11 @@ public sealed class SimulationRunner
         // Core systems
         var effects = new EffectSystem();
         var spatialIndex = new SpatialIndex(grid, regionMap, graph);
-        spatialIndex.RebuildFromGraph();
         var semanticPlane = new SemanticPlaneIndex(graph);
 
         // Load domain into engine systems
         var kindRegistry = DomainLoader.LoadKindRegistry(domainConfig);
-        DomainLoader.InitializeEntityAttributes(graph, domainConfig);
+        var attributeInitializer = new DomainEntityInitializer(graph, domainConfig, random);
 
         // Message bus
         var messageBus = new MessageBus();
@@ -163,16 +166,23 @@ public sealed class SimulationRunner
         relationships.AddModifier(new SharedCultureModifier());
         relationships.AddModifier(new NeglectModifier());
 
-        // Lifecycle from domain config — register drain tick effects on all entities
+        // Lifecycle from domain config — ctor subscribes to EntityCreated so every
+        // entity created during Populate (and later by generators) gets its drain
+        // effect without a retroactive sweep.
         var lifecycleConfig = DomainLoader.LoadLifecycleConfig(domainConfig);
         var lifecycle = new LifecycleSystem(graph, lifecycleConfig);
-        lifecycle.InitializeEffects();
 
         // Resources
         var resources = new ResourceSystem(graph, grid);
         var locationDrift = new LocationResourceDriftSystem(graph, domainConfig.Kinds, resources);
-        locationDrift.InitializeEffects();
         var criticalEffects = new Lifecycle.CriticalAttributeEffectSystem(graph, domainConfig.Kinds);
+
+        // With all per-entity subscribers wired, populate the world. Entities get
+        // their attributes + lifecycle drain + critical-effect hooks as they are
+        // created. Spatial index catches up afterwards.
+        TestMapBuilder.Populate(testWorld, random);
+        spatialIndex.RebuildFromGraph();
+        locationDrift.InitializeEffects();
 
         // Pressure from domain config
         var pressure = new PressureSystem();
@@ -212,7 +222,7 @@ public sealed class SimulationRunner
             spatialIndex,
             semanticPlane,
             messageBus,
-            new Random(42));
+            random);
         var spawnCards = new Dictionary<string, CardDefinition>(StringComparer.Ordinal);
 
         foreach (var generator in definitionGraph.Generators.Values)

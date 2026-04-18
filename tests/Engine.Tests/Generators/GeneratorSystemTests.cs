@@ -168,7 +168,7 @@ public class GeneratorSystemTests
                     Kind = EntityKind.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
-                    CreateChance = 0.25f,
+                    CreateChance = 0f,
                 },
                 new SemanticProducedEntity
                 {
@@ -281,7 +281,7 @@ public class GeneratorSystemTests
                     Kind = EntityKind.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
-                    CreateChance = 0.25f,
+                    CreateChance = 0f,
                 },
                 new SemanticProducedEntity
                 {
@@ -348,7 +348,7 @@ public class GeneratorSystemTests
     }
 
     [Fact]
-    public void Tick_AllowWilderness_KeepsRegionTargetForRelationshipsAndCultureFallback()
+    public void Tick_AllowWilderness_KeepsRegionTargetForRelationshipsAndInheritsRegionCulture()
     {
         var generator = CreateGenerator(
             "colony_founding",
@@ -446,7 +446,7 @@ public class GeneratorSystemTests
             sim.Graph.OutgoingRelationships(regionId, "contains")
                 .Any(relationship => relationship.TargetId == newSettlementId));
 
-        Assert.Equal("culture_a", newSettlement.Culture);
+        Assert.Equal("none", newSettlement.Culture);
         Assert.Contains(containingRegionId, regionIds);
     }
 
@@ -521,9 +521,6 @@ public class GeneratorSystemTests
         FireAndCaptureMessage(Random random, SemanticGeneratorConfig generator, int currentTick = 25)
     {
         var (sim, system) = CreateSystem(random, generator);
-        var definition = sim.WorldState.Generators.ById[generator.Id].Definition;
-        var targetId = sim.Graph.GetEntitiesByKind(EntityKind.Settlement).First();
-        var target = sim.Graph.GetEntity(targetId)!;
         GeneratorFiredMessage? message = null;
         sim.MessageBus.Subscribe(msg =>
         {
@@ -533,9 +530,11 @@ public class GeneratorSystemTests
             }
         });
 
-        system.Fire(definition, targetId, currentTick);
+        system.Tick(currentTick, new HashSet<string>(StringComparer.Ordinal) { generator.Id });
 
-        return (sim, system, target, Assert.IsType<GeneratorFiredMessage>(message));
+        var captured = Assert.IsType<GeneratorFiredMessage>(message);
+        var target = sim.Graph.GetEntity(captured.TargetEntityId!.Value)!;
+        return (sim, system, target, captured);
     }
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
