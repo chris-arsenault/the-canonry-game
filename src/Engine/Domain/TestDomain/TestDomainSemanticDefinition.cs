@@ -34,8 +34,8 @@ public static class TestDomainSemanticDefinition
             "0..100", "anchor", "Health (integrity). Dies at 0."),
         Stock(EntityKind.Artifact, Attr.Power, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100", "free", "Capacity — tangible working stock spent on outward actions."),
-        Stock(EntityKind.Artifact, Attr.Containment, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
-            "0..100", "free", "Drive — inner sacred charge; fuels the artifact's outward effects."),
+        Stock(EntityKind.Artifact, Attr.Aura, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
+            "0..100", "free", "Drive — diffuse sacred/cursed charge; bleeds into the world, accumulates from corrupted land, consecrates settlements."),
 
         // Faction: H + P + N
         Stock(EntityKind.Faction, Attr.Cohesion, SemanticStockClass.Anchor, SemanticFeedbackClass.Anchor,
@@ -87,8 +87,8 @@ public static class TestDomainSemanticDefinition
             notes: "An NPC pushes through hunger at the cost of their body."),
         EntityVerb(Verb.RegionCleanse, EntityKind.Region,
             notes: "Slow geological calm purifies the land — the region settles and cleans itself."),
-        EntityVerb(Verb.SettlementMobilize, EntityKind.Settlement,
-            notes: "The settlement conscripts its residents into extending reach — soldiers, emissaries, missionaries."),
+        EntityVerb(Verb.SettlementOverreach, EntityKind.Settlement,
+            notes: "The settlement overreaches — residents are spent on ambition that exceeds their capacity. Soldiers march too far, builders work to ruin, missionaries die in the wilderness; the city's reach grows at the cost of its people."),
 
         // Hex → Health inflow verbs (food / wealth / population feed each kind's lifecycle).
         EntityVerb(Verb.NpcEat, EntityKind.Npc, Proc.NpcEat,
@@ -102,31 +102,63 @@ public static class TestDomainSemanticDefinition
         EntityVerb(Verb.SettlementGrow, EntityKind.Settlement, Proc.SettlementGrow,
             notes: "Settlements absorb population from their hex as immigrants join."),
 
-        // Untouched → hex outflow verbs (each kind returns something to its local hex).
+        // Untouched → hex outflow verbs (each kind expands the local hex's possibility space at the cost of an attribute).
         EntityVerb(Verb.NpcInspire, EntityKind.Npc,
-            notes: "Motivated NPCs draw migrants — role models and social magnets seed the hex's population."),
-        EntityVerb(Verb.ArtifactEmanate, EntityKind.Artifact,
-            notes: "The artifact's contained spiritual charge bleeds into the land, fertilizing it."),
+            notes: "Motivated NPCs draw migrants — role models and social magnets expand the hex's population capacity. Drive spends as they evangelize, lead, and rally."),
+        EntityVerb(Verb.ArtifactVivify, EntityKind.Artifact,
+            notes: "The artifact vivifies the land — its aura is spent as lifeforce, quickening soil and seed; the hex's food possibility grows as the aura drains."),
         EntityVerb(Verb.FactionDistribute, EntityKind.Faction,
-            notes: "Faction stockpiles fed back into the local food supply — alms, charity, military rations."),
-        EntityVerb(Verb.RegionSettle, EntityKind.Region,
-            notes: "Safe regions draw migrants — fearless settlers follow the protective aura."),
-        EntityVerb(Verb.SettlementMarket, EntityKind.Settlement,
-            notes: "Clean settlements anchor commerce — sanitation enables markets, storage, and disease-free trade."),
+            notes: "Faction stockpiles fed back into the local food supply — alms, charity, military rations. Provisions transfer directly into the hex."),
+        EntityVerb(Verb.RegionMine, EntityKind.Region,
+            notes: "The region is mined — its safe interior gets dug up for ore, lumber, gold. Regional safety drains as extraction takes hold; the hex's wealth possibility grows."),
+        EntityVerb(Verb.SettlementIndustrialize, EntityKind.Settlement,
+            notes: "The settlement industrializes — smokestacks, mills, slums. Sanitation drains as the settlement gets dirty and crowded; the hex's wealth possibility grows."),
 
         // RPS ring conversion verbs (cross-entity drain).
-        EntityVerb(Verb.SettlementLevy, EntityKind.Settlement,
-            notes: "The settlement levies labor from its NPCs — their satiety is spent on civic projects, converting into the city's projected reach."),
-        EntityVerb(Verb.FactionMuster, EntityKind.Faction,
-            notes: "The faction musters its followers — NPC motivation is spent and stockpiled as material: enlistments, tithes, foraging parties."),
-        EntityVerb(Verb.FactionRacket, EntityKind.Faction,
-            notes: "The faction runs a protection racket — settlement sanitation is skimmed off the top as kickbacks, palm-greasing, and 'arrangements,' converting civic order into projected influence."),
+        EntityVerb(Verb.SettlementEmploy, EntityKind.Settlement,
+            notes: "The settlement employs motivated NPCs in its administrative machinery — civic labor: builders, clerks, marshals, emissaries. NPC drive is spent and the city's projected reach grows."),
+        EntityVerb(Verb.FactionStarve, EntityKind.Faction,
+            notes: "The faction starves its followers — NPC bellies empty into faction stockpiles. Rationing, tithe-in-kind, requisitioned reserves: satiety converts into provisions."),
+        EntityVerb(Verb.FactionExtort, EntityKind.Faction,
+            notes: "The faction extorts the orderly city — settlement sanitation is skimmed off the top as kickbacks, palm-greasing, and 'arrangements,' converting civic order into projected influence."),
         EntityVerb(Verb.RegionReclaim, EntityKind.Region,
             notes: "The region reclaims its pristine character from encroaching settlement dominion — cycles of erosion and renewal thin the settlement's footprint and restore untouched land."),
         EntityVerb(Verb.RegionGarrison, EntityKind.Region,
             notes: "The region keeps its defenses funded by faction provisions — stockpiles converted into standing watch, supply drops, and kept roads."),
         EntityVerb(Verb.ArtifactEnthrall, EntityKind.Artifact,
-            notes: "The artifact enthralls its faction — it bends their devotion inward, feeds on their veneration, and their influence drains into its bounded charge."),
+            notes: "The artifact enthralls its faction — their veneration thickens its aura. Worship feeds the numinous; influence drains into the diffuse sacred/cursed charge around the thing."),
+        EntityVerb(Verb.ArtifactCorrupt, EntityKind.Artifact,
+            notes: "The artifact corrupts the land — it drinks the region's pristineness, turning unspoiled character into its own raw power. (Corruption is a specific condition in the world; cards will interact with it.)"),
+        EntityVerb(Verb.NpcForage, EntityKind.Npc,
+            notes: "NPCs forage safe regions — protected hexes yield game, water, and edible flora straight to belly-fill. Regional safety converts into NPC satiety."),
+        EntityVerb(Verb.NpcWield, EntityKind.Npc,
+            notes: "The NPC wields the artifact — holding the thing, they draw its working power into their own drive. The artifact's power converts into the wielder's motivation."),
+        EntityVerb(Verb.SettlementSanctify, EntityKind.Settlement,
+            notes: "The settlement sanctifies itself in the artifact's aura — wards, blessed wells, sanctified ground, intimidation of the unclean. The aura's diffuse sacred charge spends into civic order."),
+
+        // Mobility verbs — enablement: each kind's act of repositioning into range of its targets.
+        PositioningVerb(Verb.NpcTravel, EntityKind.Npc, SemanticVerbRole.Mobility,
+            "The NPC travels — walking, riding, marching across the map hex grid toward a target."),
+        PositioningVerb(Verb.ArtifactCompel, EntityKind.Artifact, SemanticVerbRole.Mobility,
+            "The artifact compels a bearer — its will draws someone to carry it. Bearers do not choose freely; the thing moves through the hands it has claimed."),
+        PositioningVerb(Verb.SettlementDebate, EntityKind.Settlement, SemanticVerbRole.Mobility,
+            "The settlement debates its future — councils argue, guilds maneuver, factions within the city win and lose on the public floor. The settlement's civic identity shifts on the semantic plane as positions are settled."),
+        PositioningVerb(Verb.FactionEvangelize, EntityKind.Faction, SemanticVerbRole.Mobility,
+            "The faction evangelizes — preachers, pamphlets, oaths-at-the-gates. The faction moves on the autonomy/resonance/tradition plane by spreading its doctrine and drawing targets closer to its position (or repositioning itself toward them)."),
+        PositioningVerb(Verb.RegionCommune, EntityKind.Region, SemanticVerbRole.Mobility,
+            "The region communes — the land's spirit stirs, takes counsel with itself, shifts its animist alignment. This is the region as a living place moving on the semantic plane; not the people within it, but the genius loci."),
+
+        // Drift verbs — downtime: random one-step movement on the assigned grid when nothing else is happening.
+        PositioningVerb(Verb.NpcWander, EntityKind.Npc, SemanticVerbRole.Drift,
+            "The NPC wanders — idle footsteps across the map hex grid when no goal demands them."),
+        PositioningVerb(Verb.ArtifactCirculate, EntityKind.Artifact, SemanticVerbRole.Drift,
+            "The artifact circulates — slow passage through hands over time: lost, found, stolen, inherited. No single will drives it; the thing moves because things of its weight always end up somewhere new."),
+        PositioningVerb(Verb.SettlementGossip, EntityKind.Settlement, SemanticVerbRole.Drift,
+            "The settlement gossips — taverns, markets, pulpits, alleys. Rumor and talk nudge civic identity slightly, slowly, without any formal decision. The city drifts on the semantic plane as mood does."),
+        PositioningVerb(Verb.FactionQuarrel, EntityKind.Faction, SemanticVerbRole.Drift,
+            "The faction quarrels — internal bickering, petty doctrinal drift, the slow slippage of alignment when no new oath holds the line. The faction wobbles on the semantic plane as its members argue among themselves."),
+        PositioningVerb(Verb.RegionDream, EntityKind.Region, SemanticVerbRole.Drift,
+            "The region dreams — the land's spirit drifts in reverie, its animist alignment shifting with the seasons, the weather, the weight of what has passed. The genius loci dreams when not actively communing."),
     ];
 
     private static IReadOnlyList<SemanticFlowConfig> CreateFlows() =>
@@ -134,7 +166,7 @@ public static class TestDomainSemanticDefinition
         // Engine decay — one per scalar stock.
         Decay(EntityKind.Artifact, Attr.Condition),
         Decay(EntityKind.Artifact, Attr.Power),
-        Decay(EntityKind.Artifact, Attr.Containment),
+        Decay(EntityKind.Artifact, Attr.Aura),
 
         Decay(EntityKind.Faction, Attr.Cohesion),
         Decay(EntityKind.Faction, Attr.Influence),
@@ -161,8 +193,8 @@ public static class TestDomainSemanticDefinition
             "An NPC pushes through hunger at the cost of their body."),
         ..SelfSac(EntityKind.Region, Attr.GeologicStability, Attr.Pristineness, Verb.RegionCleanse,
             "Slow geological calm purifies the land — the region settles and cleans itself."),
-        ..SelfSac(EntityKind.Settlement, Attr.Residents, Attr.Dominion, Verb.SettlementMobilize,
-            "The settlement conscripts its residents into extending reach — soldiers, emissaries, missionaries."),
+        ..SelfSac(EntityKind.Settlement, Attr.Residents, Attr.Dominion, Verb.SettlementOverreach,
+            "The settlement overreaches — residents are spent on ambition: soldiers march too far, builders work to ruin, missionaries die in the wilderness."),
 
         // Hex → Health inflows (every kind's lifecycle anchor feeds from a hex resource).
         HexToHealth(EntityKind.Npc, Attr.Vitality, Res.Food, Verb.NpcEat,
@@ -176,33 +208,41 @@ public static class TestDomainSemanticDefinition
         HexToHealth(EntityKind.Settlement, Attr.Residents, Res.Population, Verb.SettlementGrow,
             "Settlements absorb population from their hex as immigrants join."),
 
-        // Untouched → hex outflows (each kind returns something to its local hex).
+        // Untouched → hex outflows (each kind spends an attribute to expand the local hex's possibility space).
         UntouchedToHex(EntityKind.Npc, Attr.Motivation, Res.Population, Verb.NpcInspire,
-            "Motivated NPCs draw migrants — role models and social magnets seed the hex's population."),
-        UntouchedToHex(EntityKind.Artifact, Attr.Containment, Res.Food, Verb.ArtifactEmanate,
-            "The artifact's contained spiritual charge bleeds into the land, fertilizing it."),
+            "Motivated NPCs draw migrants — role models, evangelists, social magnets. Drive spends as they rally; the hex's population capacity grows."),
+        UntouchedToHex(EntityKind.Artifact, Attr.Aura, Res.Food, Verb.ArtifactVivify,
+            "The artifact vivifies the land — aura spent as lifeforce, quickening soil and seed; the hex's food possibility grows."),
         UntouchedToHex(EntityKind.Faction, Attr.Provisions, Res.Food, Verb.FactionDistribute,
             "Faction stockpiles fed back into the local food supply — alms, charity, military rations."),
-        UntouchedToHex(EntityKind.Region, Attr.RegionalSafety, Res.Population, Verb.RegionSettle,
-            "Safe regions draw migrants — fearless settlers follow the protective aura."),
-        UntouchedToHex(EntityKind.Settlement, Attr.Sanitation, Res.Wealth, Verb.SettlementMarket,
-            "Clean settlements anchor commerce — sanitation enables markets, storage, and disease-free trade."),
+        UntouchedToHex(EntityKind.Region, Attr.RegionalSafety, Res.Wealth, Verb.RegionMine,
+            "The region is mined — secure interior dug up for ore, lumber, gold. Safety drains as extraction takes hold; the hex's wealth possibility grows."),
+        UntouchedToHex(EntityKind.Settlement, Attr.Sanitation, Res.Wealth, Verb.SettlementIndustrialize,
+            "The settlement industrializes — smokestacks, mills, slums. Sanitation drains; the hex's wealth possibility grows."),
 
-        // RPS ring conversions (batch 3).
-        ..Conversion(EntityKind.Npc, Attr.Satiety, EntityKind.Settlement, Attr.Dominion, Verb.SettlementLevy,
-            "The settlement levies labor from its NPCs — their satiety is spent on civic projects, converting into projected reach."),
-        ..Conversion(EntityKind.Npc, Attr.Motivation, EntityKind.Faction, Attr.Provisions, Verb.FactionMuster,
-            "The faction musters its followers — NPC motivation is spent and stockpiled as material: enlistments, tithes, foraging parties."),
-        ..Conversion(EntityKind.Settlement, Attr.Sanitation, EntityKind.Faction, Attr.Influence, Verb.FactionRacket,
-            "The faction runs a protection racket — settlement sanitation is skimmed off the top as kickbacks and palm-greasing, converting civic order into projected influence."),
-
-        // RPS ring conversions (batch 4).
-        ..Conversion(EntityKind.Settlement, Attr.Dominion, EntityKind.Region, Attr.Pristineness, Verb.RegionReclaim,
-            "The region reclaims its pristine character from encroaching settlement dominion — cycles of erosion and renewal thin the settlement's footprint."),
+        // RPS +1 edges (K_N → K_{N+1}).
+        ..Conversion(EntityKind.Npc, Attr.Motivation, EntityKind.Settlement, Attr.Dominion, Verb.SettlementEmploy,
+            "The settlement employs motivated NPCs — their drive spends into civic projection: builders, clerks, marshals, emissaries."),
+        ..Conversion(EntityKind.Settlement, Attr.Sanitation, EntityKind.Faction, Attr.Influence, Verb.FactionExtort,
+            "The faction extorts the orderly city — settlement sanitation is skimmed off the top as kickbacks and palm-greasing, converting civic order into projected influence."),
         ..Conversion(EntityKind.Faction, Attr.Provisions, EntityKind.Region, Attr.RegionalSafety, Verb.RegionGarrison,
             "The region keeps its defenses funded by faction provisions — stockpiles become standing watch, supply drops, and kept roads."),
-        ..Conversion(EntityKind.Faction, Attr.Influence, EntityKind.Artifact, Attr.Containment, Verb.ArtifactEnthrall,
-            "The artifact enthralls its faction — it bends their devotion inward and feeds on their veneration; their influence drains into its bounded charge."),
+        ..Conversion(EntityKind.Region, Attr.Pristineness, EntityKind.Artifact, Attr.Power, Verb.ArtifactCorrupt,
+            "The artifact corrupts the land — drinks unspoiled character, converting pristineness into its own raw power."),
+        ..Conversion(EntityKind.Artifact, Attr.Power, EntityKind.Npc, Attr.Motivation, Verb.NpcWield,
+            "The NPC wields the artifact — pulls its working power into their own drive; artifact power converts into motivation."),
+
+        // RPS +2 edges (K_N → K_{N+2}).
+        ..Conversion(EntityKind.Npc, Attr.Satiety, EntityKind.Faction, Attr.Provisions, Verb.FactionStarve,
+            "The faction starves its followers — NPC bellies empty into faction stockpiles: rationing, tithe-in-kind, requisitioned reserves."),
+        ..Conversion(EntityKind.Settlement, Attr.Dominion, EntityKind.Region, Attr.Pristineness, Verb.RegionReclaim,
+            "The region reclaims its pristine character from encroaching settlement dominion — cycles of erosion and renewal thin the settlement's footprint."),
+        ..Conversion(EntityKind.Faction, Attr.Influence, EntityKind.Artifact, Attr.Aura, Verb.ArtifactEnthrall,
+            "The artifact enthralls its faction — veneration thickens its aura; influence drains into the diffuse sacred/cursed charge around the thing."),
+        ..Conversion(EntityKind.Region, Attr.RegionalSafety, EntityKind.Npc, Attr.Satiety, Verb.NpcForage,
+            "NPCs forage safe regions — protected hexes yield game, water, and edible flora; regional safety converts into satiety."),
+        ..Conversion(EntityKind.Artifact, Attr.Aura, EntityKind.Settlement, Attr.Sanitation, Verb.SettlementSanctify,
+            "The settlement sanctifies itself in the artifact's aura — wards, blessed wells, sanctified ground; aura spends into civic order."),
     ];
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
@@ -251,6 +291,23 @@ public static class TestDomainSemanticDefinition
             OwnerKind = ownerKind,
             ImplementedProcessId = implementedProcess is Proc process ? ProcId(process) : null,
             Notes = notes,
+        };
+
+    // Mobility/drift verbs are positioning-only: flowless, tagged with their role so
+    // the invariant can check that each kind has exactly one of each.
+    private static SemanticVerbConfig PositioningVerb(
+        Verb verb,
+        EntityKind ownerKind,
+        SemanticVerbRole role,
+        string notes) =>
+        new()
+        {
+            Id = VerbId(verb),
+            OwnerType = SemanticOwnerType.Entity,
+            OwnerKind = ownerKind,
+            Role = role,
+            Notes = notes,
+            IsFlowless = true,
         };
 
     private static SemanticVerbConfig EngineVerb(Verb verb, string? notes = null) =>

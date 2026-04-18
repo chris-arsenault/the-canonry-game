@@ -40,6 +40,7 @@ public sealed class DefinitionKindNode
     public required IReadOnlyDictionary<DefinitionAttributeId, DefinitionAttributeNode> Attributes { get; init; }
     public DefinitionAttributeId? HealthAttribute { get; init; }
     public required IReadOnlyList<DefinitionStandingDriveNode> StandingDrives { get; init; }
+    public string? Description { get; init; }
 }
 
 public sealed class DefinitionAttributeNode
@@ -213,6 +214,26 @@ public enum SemanticOwnerType
     Engine,
 }
 
+public enum SemanticVerbRole
+{
+    /// <summary>Default: authored cross-stock action (conversion, self-sac, hex-exchange, etc.).</summary>
+    Action,
+
+    /// <summary>
+    /// Enablement verb: gets the entity into position to act. Physical entities
+    /// (NPC, Artifact) move on the map hex grid. Abstract entities (Settlement,
+    /// Faction, Region) move on the semantic-coord plane toward targets.
+    /// Exactly one per entity kind.
+    /// </summary>
+    Mobility,
+
+    /// <summary>
+    /// Downtime verb: a random one-step movement on the entity's assigned grid
+    /// when no other action is chosen. Exactly one per entity kind.
+    /// </summary>
+    Drift,
+}
+
 public enum SemanticModifierDirection
 {
     Unknown,
@@ -262,6 +283,7 @@ public sealed class SemanticVerbNode
     public SemanticOwnerType OwnerType { get; init; } = SemanticOwnerType.Unknown;
     public EntityKind? OwnerKind { get; init; }
     public DefinitionProcessNode? ImplementedProcess { get; init; }
+    public SemanticVerbRole Role { get; init; } = SemanticVerbRole.Action;
     public string? Notes { get; init; }
     public bool IsFlowless { get; init; }
     public bool IsImplementedProcess => ImplementedProcess is not null;

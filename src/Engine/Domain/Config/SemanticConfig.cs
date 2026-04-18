@@ -46,6 +46,7 @@ public sealed class SemanticVerbConfig
     public required SemanticOwnerType OwnerType { get; init; }
     public EntityKind? OwnerKind { get; init; }
     public string? ImplementedProcessId { get; init; }
+    public SemanticVerbRole Role { get; init; } = SemanticVerbRole.Action;
     public string? Notes { get; init; }
 
     /// <summary>

@@ -219,6 +219,7 @@ public static class DefinitionSemanticGraphBuilder
                 OwnerType = config.OwnerType,
                 OwnerKind = config.OwnerKind,
                 ImplementedProcess = implementedProcess,
+                Role = config.Role,
                 Notes = config.Notes,
                 IsFlowless = config.IsFlowless,
             };

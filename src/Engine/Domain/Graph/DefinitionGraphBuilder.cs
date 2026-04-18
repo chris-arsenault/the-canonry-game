@@ -135,6 +135,7 @@ public static class DefinitionGraphBuilder
             Attributes = attributes,
             HealthAttribute = healthAttribute,
             StandingDrives = standingDrives,
+            Description = kindConfig.Description,
         };
     }
 

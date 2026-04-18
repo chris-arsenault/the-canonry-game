@@ -47,6 +47,13 @@ public sealed class KindConfig
     public required IReadOnlyList<AttributeConfig> Attributes { get; init; }
     public string? HealthAttribute { get; init; }
     public IReadOnlyList<StandingDriveConfig> StandingDrives { get; init; } = [];
+
+    /// <summary>
+    /// Design-time prose: what this kind represents in the world — distinct from
+    /// its attributes and mechanics. Used by tooling, UI flavor, and downstream
+    /// readers to understand the kind's semantic identity.
+    /// </summary>
+    public string? Description { get; init; }
 }
 
 /// <summary>Low-urgency standing drive that participates in normal goal generation.</summary>

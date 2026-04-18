@@ -74,9 +74,17 @@ public class DefinitionGraphTests
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        Assert.Equal(15, graph.SemanticFlows.Stocks.Count);
-        Assert.Single(graph.SemanticFlows.Verbs);
-        Assert.Equal(15, graph.SemanticFlows.Flows.Count);
+        // 5 kinds * 3 attributes = 15 attribute stocks, plus 3 hex resource stocks.
+        Assert.Equal(18, graph.SemanticFlows.Stocks.Count);
+
+        // engine_decay + 5 self-sacrifice + 5 hex-to-health + 5 untouched-to-hex
+        // + 10 RPS ring + 5 mobility + 5 drift = 36 verbs.
+        Assert.Equal(36, graph.SemanticFlows.Verbs.Count);
+
+        // Flows unchanged: mobility/drift verbs are flowless.
+        // 15 decay + 10 self-sac halves + 5 hex-to-health + 5 untouched-to-hex + 20 conversion halves = 55.
+        Assert.Equal(55, graph.SemanticFlows.Flows.Count);
+
         Assert.Empty(graph.SemanticFlows.Modifiers);
         Assert.Empty(graph.SemanticFlows.ProcessReferences);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
@@ -144,15 +152,43 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_FromTestDomain_ProjectionIsEmptyUntilVerbsReauthored()
+    public void Build_FromTestDomain_ProjectsRpsRingEdges()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
         var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
 
-        // Reconstruction phase: only engine_decay flows exist and they carry no source refs,
-        // so the projected stock graph is empty. This test will grow assertions back in when
-        // non-decay verbs are re-authored.
-        Assert.Empty(projected);
+        var attributeEdges = projected
+            .Where(edge =>
+                edge.SourceId is AttributeStockId &&
+                edge.TargetId is AttributeStockId)
+            .Select(edge => (
+                Source: ((AttributeStockId)edge.SourceId).Key,
+                Target: ((AttributeStockId)edge.TargetId).Key))
+            .ToHashSet();
+
+        DefinitionAttributeKey Key(EntityKind kind, TestDomainAttributeId attr) =>
+            new(kind, new DefinitionAttributeId(attr.ToDomainName()));
+
+        (DefinitionAttributeKey, DefinitionAttributeKey)[] expectedRingEdges =
+        [
+            // +1 edges (K_N → K_{N+1}).
+            (Key(EntityKind.Npc, TestDomainAttributeId.Motivation), Key(EntityKind.Settlement, TestDomainAttributeId.Dominion)),
+            (Key(EntityKind.Settlement, TestDomainAttributeId.Sanitation), Key(EntityKind.Faction, TestDomainAttributeId.Influence)),
+            (Key(EntityKind.Faction, TestDomainAttributeId.Provisions), Key(EntityKind.Region, TestDomainAttributeId.RegionalSafety)),
+            (Key(EntityKind.Region, TestDomainAttributeId.Pristineness), Key(EntityKind.Artifact, TestDomainAttributeId.Power)),
+            (Key(EntityKind.Artifact, TestDomainAttributeId.Power), Key(EntityKind.Npc, TestDomainAttributeId.Motivation)),
+            // +2 edges (K_N → K_{N+2}).
+            (Key(EntityKind.Npc, TestDomainAttributeId.Satiety), Key(EntityKind.Faction, TestDomainAttributeId.Provisions)),
+            (Key(EntityKind.Settlement, TestDomainAttributeId.Dominion), Key(EntityKind.Region, TestDomainAttributeId.Pristineness)),
+            (Key(EntityKind.Faction, TestDomainAttributeId.Influence), Key(EntityKind.Artifact, TestDomainAttributeId.Aura)),
+            (Key(EntityKind.Region, TestDomainAttributeId.RegionalSafety), Key(EntityKind.Npc, TestDomainAttributeId.Satiety)),
+            (Key(EntityKind.Artifact, TestDomainAttributeId.Aura), Key(EntityKind.Settlement, TestDomainAttributeId.Sanitation)),
+        ];
+
+        foreach (var expected in expectedRingEdges)
+        {
+            Assert.Contains(expected, attributeEdges);
+        }
     }
 
     [Fact]
@@ -276,12 +312,15 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void FindClosedLoops_FromTestDomain_EmptyUntilVerbsReauthored()
+    public void FindClosedLoops_FromTestDomain_DetectsRpsRingStructure()
     {
         var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
 
-        var loops = SemanticLoopAnalyzer.FindClosedLoops(graph, minDistinctKinds: 3, maxLength: 6);
+        var loops = SemanticLoopAnalyzer.FindClosedLoops(graph, minDistinctKinds: 3, maxLength: 8);
 
-        Assert.Empty(loops);
+        // The RPS ring creates closed loops across multiple kinds; at least one loop
+        // should span ≥4 distinct kinds (ring arcs touch ≥4 kinds before returning).
+        Assert.NotEmpty(loops);
+        Assert.Contains(loops, loop => loop.DistinctKinds >= 4);
     }
 }

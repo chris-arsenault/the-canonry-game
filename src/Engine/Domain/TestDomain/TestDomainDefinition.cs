@@ -202,6 +202,7 @@ public static class TestDomainDefinition
                     new() { Name = A(Attr.Pristineness), Category = AttributeCategory.Need, Min = 0f, Max = 100f, Default = 70f },
                 ],
                 HealthAttribute = A(Attr.GeologicStability),
+                Description = "A geographically connected area of the world. A region's semantic alignment is the spirit or animist ideals of the place itself — the land's own tendencies — distinct from the people, factions, or settlements that happen to occupy it.",
             },
             [EntityKind.Settlement] = new()
             {
@@ -277,7 +278,7 @@ public static class TestDomainDefinition
                 [
                     new() { Name = A(Attr.Condition), Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 100f, DriftRate = -0.01f },
                     new() { Name = A(Attr.Power), Category = AttributeCategory.Capacity, Min = 0f, Max = 100f, Default = 10f },
-                    new() { Name = A(Attr.Containment), Category = AttributeCategory.Drive, Min = 0f, Max = 100f, Default = 90f, DriftRate = -0.05f },
+                    new() { Name = A(Attr.Aura), Category = AttributeCategory.Drive, Min = 0f, Max = 100f, Default = 90f, DriftRate = -0.05f },
                 ],
                 HealthAttribute = A(Attr.Condition),
             },

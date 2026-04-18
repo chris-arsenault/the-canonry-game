@@ -86,6 +86,7 @@ public static class DefinitionGraphValidator
         ValidateSelfSacrificeFromHealth(graph, errors);
         ValidateRpsRing(graph, errors);
         ValidateUntouchedAttributeOutflowToHex(graph, errors);
+        ValidateMobilityAndDriftVerbs(graph, errors);
 
         return errors;
     }
@@ -160,8 +161,11 @@ public static class DefinitionGraphValidator
 
     /// <summary>
     /// RPS ring invariant. Given the fixed RpsOrder ordering:
-    ///   For every K_N in the ring: K_N.I → K_{N+1}.O and K_N.O → K_{N+2}.I
-    /// Both projected edges must exist. Ring wraps modulo 5.
+    ///   For every K_N in the ring there must be at least one mass-flow projected edge
+    ///   from K_N to K_{N+1} (the +1 edge) and at least one from K_N to K_{N+2} (the +2
+    ///   edge). Endpoints must be non-Health attributes on each side. Authors are free
+    ///   to choose which non-Health attribute on each side carries the edge — the ring
+    ///   only constrains kind-pair connectivity, not attribute roles.
     /// </summary>
     private static void ValidateRpsRing(DefinitionGraph graph, List<string> errors)
     {
@@ -172,8 +176,15 @@ public static class DefinitionGraphValidator
         }
 
         var projectedEdges = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows)
-            .Where(edge => edge.SourceId is AttributeStockId && edge.TargetId is AttributeStockId)
-            .Select(edge => (Source: ((AttributeStockId)edge.SourceId).Key, Target: ((AttributeStockId)edge.TargetId).Key))
+            .Where(edge =>
+                !edge.IsGateOnly &&
+                edge.SourceId is AttributeStockId &&
+                edge.TargetId is AttributeStockId)
+            .Select(edge => (
+                SourceKind: ((AttributeStockId)edge.SourceId).Key.Kind,
+                SourceAttr: ((AttributeStockId)edge.SourceId).Key.AttributeId,
+                TargetKind: ((AttributeStockId)edge.TargetId).Key.Kind,
+                TargetAttr: ((AttributeStockId)edge.TargetId).Key.AttributeId))
             .ToHashSet();
 
         for (var n = 0; n < RpsOrder.Length; n++)
@@ -182,33 +193,73 @@ public static class DefinitionGraphValidator
             var kNext = RpsOrder[(n + 1) % RpsOrder.Length];
             var kSkip = RpsOrder[(n + 2) % RpsOrder.Length];
 
-            var outward = OutwardAttribute(graph, kN);
-            var internalAttr = InternalAttribute(graph, kN);
-            var nextOutward = OutwardAttribute(graph, kNext);
-            var skipInternal = InternalAttribute(graph, kSkip);
+            var nHealth = graph.Kinds[kN].HealthAttribute;
+            var nextHealth = graph.Kinds[kNext].HealthAttribute;
+            var skipHealth = graph.Kinds[kSkip].HealthAttribute;
 
-            if (outward is null || internalAttr is null || nextOutward is null || skipInternal is null)
-            {
-                continue;
-            }
-
-            var iEdge = (new DefinitionAttributeKey(kN, internalAttr.Value),
-                         new DefinitionAttributeKey(kNext, nextOutward.Value));
-            if (!projectedEdges.Contains(iEdge))
+            if (!HasNonHealthEdge(projectedEdges, kN, kNext, nHealth, nextHealth))
             {
                 errors.Add(
-                    $"RPS ring: flow {kN}.{internalAttr.Value.Value} → {kNext}.{nextOutward.Value.Value} is missing.");
+                    $"RPS ring: missing +1 edge from {kN} to {kNext} (need at least one non-Health attribute pair).");
             }
 
-            var oEdge = (new DefinitionAttributeKey(kN, outward.Value),
-                         new DefinitionAttributeKey(kSkip, skipInternal.Value));
-            if (!projectedEdges.Contains(oEdge))
+            if (!HasNonHealthEdge(projectedEdges, kN, kSkip, nHealth, skipHealth))
             {
                 errors.Add(
-                    $"RPS ring: flow {kN}.{outward.Value.Value} → {kSkip}.{skipInternal.Value.Value} is missing.");
+                    $"RPS ring: missing +2 edge from {kN} to {kSkip} (need at least one non-Health attribute pair).");
             }
         }
     }
+
+    /// <summary>
+    /// Every entity kind must declare exactly one mobility verb (enablement: physical
+    /// or semantic-plane movement into position) and exactly one drift verb (downtime
+    /// random-step behavior on its assigned grid).
+    /// </summary>
+    private static void ValidateMobilityAndDriftVerbs(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var kind in graph.Kinds.Keys)
+        {
+            ValidateVerbRoleCount(graph, kind, SemanticVerbRole.Mobility, errors);
+            ValidateVerbRoleCount(graph, kind, SemanticVerbRole.Drift, errors);
+        }
+    }
+
+    private static void ValidateVerbRoleCount(
+        DefinitionGraph graph,
+        EntityKind kind,
+        SemanticVerbRole role,
+        List<string> errors)
+    {
+        var count = graph.SemanticFlows.Verbs
+            .Count(verb =>
+                verb.OwnerType == SemanticOwnerType.Entity &&
+                verb.OwnerKind == kind &&
+                verb.Role == role);
+
+        if (count == 0)
+        {
+            errors.Add(
+                $"Kind '{kind}' has no {role} verb. Declare exactly one entity-owned verb with Role = SemanticVerbRole.{role}.");
+        }
+        else if (count > 1)
+        {
+            errors.Add(
+                $"Kind '{kind}' declares {count} {role} verbs; exactly one is required.");
+        }
+    }
+
+    private static bool HasNonHealthEdge(
+        HashSet<(EntityKind SourceKind, DefinitionAttributeId SourceAttr, EntityKind TargetKind, DefinitionAttributeId TargetAttr)> edges,
+        EntityKind sourceKind,
+        EntityKind targetKind,
+        DefinitionAttributeId? sourceHealth,
+        DefinitionAttributeId? targetHealth) =>
+        edges.Any(edge =>
+            edge.SourceKind == sourceKind &&
+            edge.TargetKind == targetKind &&
+            (sourceHealth is null || !edge.SourceAttr.Equals(sourceHealth.Value)) &&
+            (targetHealth is null || !edge.TargetAttr.Equals(targetHealth.Value)));
 
     /// <summary>
     /// The attribute not involved in the self-sacrifice (the untouched one) must
@@ -264,24 +315,6 @@ public static class DefinitionGraphValidator
                     $"Kind '{kind}' untouched attribute '{untouched.Value}' has no outflow to a hex resource. Author an outflow on {kind}.{untouched.Value} whose source ref is a hex resource.");
             }
         }
-    }
-
-    private static DefinitionAttributeId? OutwardAttribute(DefinitionGraph graph, EntityKind kind)
-    {
-        return graph.Kinds[kind].Attributes.Values
-            .FirstOrDefault(a =>
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Capacity ||
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Projection)?
-            .Key.AttributeId;
-    }
-
-    private static DefinitionAttributeId? InternalAttribute(DefinitionGraph graph, EntityKind kind)
-    {
-        return graph.Kinds[kind].Attributes.Values
-            .FirstOrDefault(a =>
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Need ||
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Drive)?
-            .Key.AttributeId;
     }
 
     private static void ValidateKindAttributeCategoryShape(DefinitionGraph graph, List<string> errors)
