@@ -121,6 +121,12 @@ public static class TestDomainSemanticDefinition
             notes: "The faction musters its followers — NPC motivation is spent and stockpiled as material: enlistments, tithes, foraging parties."),
         EntityVerb(Verb.FactionRacket, EntityKind.Faction,
             notes: "The faction runs a protection racket — settlement sanitation is skimmed off the top as kickbacks, palm-greasing, and 'arrangements,' converting civic order into projected influence."),
+        EntityVerb(Verb.RegionReclaim, EntityKind.Region,
+            notes: "The region reclaims its pristine character from encroaching settlement dominion — cycles of erosion and renewal thin the settlement's footprint and restore untouched land."),
+        EntityVerb(Verb.RegionGarrison, EntityKind.Region,
+            notes: "The region keeps its defenses funded by faction provisions — stockpiles converted into standing watch, supply drops, and kept roads."),
+        EntityVerb(Verb.ArtifactEnthrall, EntityKind.Artifact,
+            notes: "The artifact enthralls its faction — it bends their devotion inward, feeds on their veneration, and their influence drains into its bounded charge."),
     ];
 
     private static IReadOnlyList<SemanticFlowConfig> CreateFlows() =>
@@ -189,6 +195,14 @@ public static class TestDomainSemanticDefinition
             "The faction musters its followers — NPC motivation is spent and stockpiled as material: enlistments, tithes, foraging parties."),
         ..Conversion(EntityKind.Settlement, Attr.Sanitation, EntityKind.Faction, Attr.Influence, Verb.FactionRacket,
             "The faction runs a protection racket — settlement sanitation is skimmed off the top as kickbacks and palm-greasing, converting civic order into projected influence."),
+
+        // RPS ring conversions (batch 4).
+        ..Conversion(EntityKind.Settlement, Attr.Dominion, EntityKind.Region, Attr.Pristineness, Verb.RegionReclaim,
+            "The region reclaims its pristine character from encroaching settlement dominion — cycles of erosion and renewal thin the settlement's footprint."),
+        ..Conversion(EntityKind.Faction, Attr.Provisions, EntityKind.Region, Attr.RegionalSafety, Verb.RegionGarrison,
+            "The region keeps its defenses funded by faction provisions — stockpiles become standing watch, supply drops, and kept roads."),
+        ..Conversion(EntityKind.Faction, Attr.Influence, EntityKind.Artifact, Attr.Containment, Verb.ArtifactEnthrall,
+            "The artifact enthralls its faction — it bends their devotion inward and feeds on their veneration; their influence drains into its bounded charge."),
     ];
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
