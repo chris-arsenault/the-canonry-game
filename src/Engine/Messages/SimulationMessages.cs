@@ -135,3 +135,26 @@ public sealed class DegeneracyWarningMessage : SimulationMessage
         Description = description;
     }
 }
+
+/// <summary>A generator fired and created a package of entities/relationships.</summary>
+public sealed class GeneratorFiredMessage : SimulationMessage
+{
+    public string GeneratorId { get; }
+    public EntityId? TargetEntityId { get; }
+    public IReadOnlyList<EntityId> CreatedEntityIds { get; }
+    public int CreatedRelationshipCount { get; }
+
+    public GeneratorFiredMessage(
+        int tick,
+        string generatorId,
+        EntityId? targetEntityId,
+        IReadOnlyList<EntityId>? createdEntityIds,
+        int createdRelationshipCount)
+        : base(tick)
+    {
+        GeneratorId = generatorId;
+        TargetEntityId = targetEntityId;
+        CreatedEntityIds = createdEntityIds ?? [];
+        CreatedRelationshipCount = createdRelationshipCount;
+    }
+}

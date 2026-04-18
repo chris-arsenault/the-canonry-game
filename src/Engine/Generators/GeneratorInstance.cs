@@ -25,10 +25,15 @@ public sealed class GeneratorInstance
     public int? LastFiredTick { get; private set; }
     public Queue<EntityId> RecentTargets { get; } = new();
 
-    public void RecordRun(int tick, EntityId target)
+    public void RecordRun(int tick)
     {
         TotalRuns++;
         LastFiredTick = tick;
+    }
+
+    public void RecordRun(int tick, EntityId target)
+    {
+        RecordRun(tick);
         RememberTarget(target);
     }
 

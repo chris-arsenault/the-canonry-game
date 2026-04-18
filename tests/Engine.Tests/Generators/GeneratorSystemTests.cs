@@ -4,9 +4,16 @@ using Engine.Domain.Config;
 using Engine.Domain.Loader;
 using Engine.Domain.TestDomain;
 using Engine.Generators;
+using Engine.Graph;
 using Engine.Kinds;
+using Engine.Map;
+using Engine.Messages;
 using Engine.Simulation;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Design",
+    "CA1030:Use events where appropriate",
+    Justification = "Test names intentionally mirror the ticket acceptance criteria.")]
 public class GeneratorSystemTests
 {
     [Fact]
@@ -102,6 +109,244 @@ public class GeneratorSystemTests
         Assert.True(commonRuns > rareRuns);
     }
 
+    [Fact]
+    public void Fire_CreatesAllEntitiesInProducesList()
+    {
+        var generator = CreateGenerator(
+            "hero_package",
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$weapon",
+                    Kind = EntityKind.Artifact,
+                    Subtype = "weapon",
+                    Role = "weapon",
+                    InheritCultureFrom = "$hero",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$weapon",
+                    DestinationRef = "$hero",
+                    Kind = "stored_at",
+                },
+            ]);
+
+        var (_, _, _, message) = FireAndCaptureMessage(new Random(42), generator);
+
+        Assert.Equal(2, message.CreatedEntityIds.Count);
+        Assert.Contains(message.CreatedEntityIds, id => id.Value >= 0);
+    }
+
+    [Fact]
+    public void Fire_AppliesCreateChance_SomeEntitiesOptionallyAbsent()
+    {
+        var generator = CreateGenerator(
+            "optional_weapon",
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$weapon",
+                    Kind = EntityKind.Artifact,
+                    Subtype = "weapon",
+                    Role = "weapon",
+                    CreateChance = 0.25f,
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$weapon",
+                    DestinationRef = "$hero",
+                    Kind = "stored_at",
+                },
+            ]);
+
+        var (sim, _, _, message) = FireAndCaptureMessage(new Random(42), generator);
+
+        Assert.Single(message.CreatedEntityIds);
+        Assert.Equal(EntityKind.Npc, sim.Graph.GetEntity(message.CreatedEntityIds[0])!.Kind);
+    }
+
+    [Fact]
+    public void Fire_CultureInheritance_FromTarget_Works()
+    {
+        var generator = CreateGenerator("culture_inheritance");
+
+        var (sim, _, target, message) = FireAndCaptureMessage(new Random(42), generator);
+
+        var created = sim.Graph.GetEntity(message.CreatedEntityIds[0])!;
+        Assert.Equal(target.Culture, created.Culture);
+    }
+
+    [Fact]
+    public void Fire_Relationships_WiredCorrectly_WhenAllEntitiesPresent()
+    {
+        var generator = CreateGenerator(
+            "relationship_package",
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$weapon",
+                    Kind = EntityKind.Artifact,
+                    Subtype = "weapon",
+                    Role = "weapon",
+                    InheritCultureFrom = "$hero",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$weapon",
+                    DestinationRef = "$hero",
+                    Kind = "stored_at",
+                },
+            ]);
+
+        var (sim, _, target, message) = FireAndCaptureMessage(new Random(42), generator);
+        var createdEntities = message.CreatedEntityIds
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .ToDictionary(entity => entity.Kind);
+        var hero = createdEntities[EntityKind.Npc];
+        var weapon = createdEntities[EntityKind.Artifact];
+
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(hero.Id, "located_at"),
+            relationship => relationship.TargetId == target.Id);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(weapon.Id, "stored_at"),
+            relationship => relationship.TargetId == hero.Id);
+        Assert.Equal(2, message.CreatedRelationshipCount);
+    }
+
+    [Fact]
+    public void Fire_Relationships_AutoSkipWhenOptionalRefMissing()
+    {
+        var generator = CreateGenerator(
+            "optional_relationship_skip",
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$weapon",
+                    Kind = EntityKind.Artifact,
+                    Subtype = "weapon",
+                    Role = "weapon",
+                    CreateChance = 0.25f,
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$weapon",
+                    DestinationRef = "$hero",
+                    Kind = "stored_at",
+                },
+            ]);
+
+        var (sim, _, target, message) = FireAndCaptureMessage(new Random(42), generator);
+        var heroId = Assert.Single(message.CreatedEntityIds);
+
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(heroId, "located_at"),
+            relationship => relationship.TargetId == target.Id);
+        Assert.DoesNotContain(
+            sim.Graph.GetEntitiesByKind(EntityKind.Artifact),
+            entityId => message.CreatedEntityIds.Contains(entityId));
+        Assert.Equal(1, message.CreatedRelationshipCount);
+    }
+
+    [Fact]
+    public void Fire_EntitiesPlacedNearTarget_OnBothPlanes()
+    {
+        var generator = CreateGenerator("near_placement");
+
+        var (sim, _, target, message) = FireAndCaptureMessage(new Random(42), generator);
+        var created = sim.Graph.GetEntity(message.CreatedEntityIds[0])!;
+        var targetPhysical = new HexCoord(target.Coordinates.Q, target.Coordinates.R);
+
+        Assert.Equal(1, HexCoord.Distance(targetPhysical, new HexCoord(created.Coordinates.Q, created.Coordinates.R)));
+        Assert.Equal(1, SemanticHexCoord.Distance(target.SemanticPosition, created.SemanticPosition));
+    }
+
+    [Fact]
+    public void Fire_EmitsGeneratorFiredMessage()
+    {
+        var generator = CreateGenerator("message_emission");
+
+        var (_, _, target, message) = FireAndCaptureMessage(new Random(42), generator, currentTick: 25);
+
+        Assert.Equal("message_emission", message.GeneratorId);
+        Assert.Equal(target.Id, message.TargetEntityId);
+        Assert.Single(message.CreatedEntityIds);
+        Assert.Equal(1, message.CreatedRelationshipCount);
+        Assert.Equal(25, message.Tick);
+    }
+
     private static (SimulationRunner Sim, GeneratorSystem System) CreateSystem(
         Random random,
         params SemanticGeneratorConfig[] generators)
@@ -125,16 +370,19 @@ public class GeneratorSystemTests
         string id,
         int pulseWeight = 1,
         int? maxRunsPerSim = null,
+        SemanticGeneratorTarget? target = null,
+        IReadOnlyList<SemanticProducedEntity>? produces = null,
+        IReadOnlyList<SemanticGeneratorRelationship>? relationships = null,
         IReadOnlyList<SemanticGeneratorTrigger>? triggers = null) =>
         new()
         {
             Id = id,
             Name = id,
-            Target = new SemanticGeneratorTarget
+            Target = target ?? new SemanticGeneratorTarget
             {
                 Kind = EntityKind.Settlement,
             },
-            Produces =
+            Produces = produces ??
             [
                 new SemanticProducedEntity
                 {
@@ -145,7 +393,7 @@ public class GeneratorSystemTests
                     InheritCultureFrom = "$target",
                 },
             ],
-            Relationships =
+            Relationships = relationships ??
             [
                 new SemanticGeneratorRelationship
                 {
@@ -165,6 +413,27 @@ public class GeneratorSystemTests
             PulseWeight = pulseWeight,
             MaxRunsPerSim = maxRunsPerSim,
         };
+
+    private static (SimulationRunner Sim, GeneratorSystem System, Entity Target, GeneratorFiredMessage Message)
+        FireAndCaptureMessage(Random random, SemanticGeneratorConfig generator, int currentTick = 25)
+    {
+        var (sim, system) = CreateSystem(random, generator);
+        var definition = sim.WorldState.Generators.ById[generator.Id].Definition;
+        var targetId = sim.Graph.GetEntitiesByKind(EntityKind.Settlement).First();
+        var target = sim.Graph.GetEntity(targetId)!;
+        GeneratorFiredMessage? message = null;
+        sim.MessageBus.Subscribe(msg =>
+        {
+            if (msg is GeneratorFiredMessage fired)
+            {
+                message = fired;
+            }
+        });
+
+        system.Fire(definition, targetId, currentTick);
+
+        return (sim, system, target, Assert.IsType<GeneratorFiredMessage>(message));
+    }
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
     {

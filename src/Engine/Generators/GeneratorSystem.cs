@@ -1,5 +1,6 @@
 namespace Engine.Generators;
 
+using Engine.Attributes;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Graph;
@@ -7,11 +8,14 @@ using Engine.Map;
 using Engine.Messages;
 
 /// <summary>
-/// Selects one applicable generator/target pair on each generator pulse.
-/// Execution is added in a later ticket.
+/// Selects one applicable generator/target pair on each generator pulse and executes it.
 /// </summary>
 public sealed class GeneratorSystem
 {
+    private const string DefaultGeneratedCulture = "none";
+    private const string DriftSourcePrefix = "innate_drift_";
+    private const string LifecycleDrainSourcePrefix = "lifecycle_drain_";
+
     private readonly WorldGraph _graph;
     private readonly GeneratorInstanceRegistry _instances;
     private readonly DefinitionGraph _definitionGraph;
@@ -87,7 +91,88 @@ public sealed class GeneratorSystem
         }
 
         var winner = ChooseWeighted(applicable);
-        winner.Instance.RecordRun(currentTick, winner.Target.TargetEntity.Id);
+        Fire(winner.Instance.Definition, winner.Target.ExecutionTarget, currentTick);
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design",
+        "CA1030:Use events where appropriate",
+        Justification = "Ticket-defined API name for generator execution.")]
+    public void Fire(DefinitionGeneratorNode generator, object target, int currentTick)
+    {
+        ArgumentNullException.ThrowIfNull(generator);
+        ArgumentNullException.ThrowIfNull(target);
+
+        var instance = _instances.GetOrCreate(generator);
+        var targetContext = ResolveExecutionTarget(target);
+        var symbols = new Dictionary<string, EntityId?>(StringComparer.Ordinal)
+        {
+            ["$target"] = targetContext.TargetEntity?.Id,
+        };
+        var createdEntityIds = new List<EntityId>();
+        var createdRelationshipCount = 0;
+
+        foreach (var produced in generator.Produces)
+        {
+            if (produced.CreateChance < 1f && _random.NextSingle() > produced.CreateChance)
+            {
+                symbols[produced.Ref] = null;
+                continue;
+            }
+
+            var culture = ResolveCulture(produced, symbols, targetContext.TargetEntity);
+            var name = NameSynthesizer.SynthesizeName(produced.Kind, produced.Subtype, culture, _random);
+            var (physicalCoord, semanticCoord) = ResolvePlacement(produced, targetContext);
+            var entity = _graph.CreateEntity(
+                produced.Kind,
+                produced.Subtype,
+                name,
+                culture,
+                currentTick,
+                (physicalCoord.Q, physicalCoord.R));
+
+            entity.SemanticPosition = semanticCoord;
+            InitializeGeneratedEntityAttributes(entity);
+            RegisterLifecycleDrain(entity);
+            _spatialIndex.PlaceEntity(entity.Id, physicalCoord);
+
+            symbols[produced.Ref] = entity.Id;
+            createdEntityIds.Add(entity.Id);
+        }
+
+        foreach (var relationship in generator.Relationships)
+        {
+            if (!symbols.TryGetValue(relationship.SourceRef, out var sourceId) || sourceId is null ||
+                !symbols.TryGetValue(relationship.DestinationRef, out var destinationId) || destinationId is null)
+            {
+                continue;
+            }
+
+            _graph.CreateRelationship(
+                relationship.RelationshipId.Value,
+                RelationshipPolarity.Neutral,
+                sourceId.Value,
+                destinationId.Value,
+                relationship.Strength,
+                currentTick);
+            createdRelationshipCount++;
+        }
+
+        if (targetContext.TargetEntity is { } targetEntity)
+        {
+            instance.RecordRun(currentTick, targetEntity.Id);
+        }
+        else
+        {
+            instance.RecordRun(currentTick);
+        }
+
+        _messageBus.Publish(new GeneratorFiredMessage(
+            currentTick,
+            generator.Id,
+            targetContext.TargetEntity?.Id,
+            createdEntityIds,
+            createdRelationshipCount));
     }
 
     private IEnumerable<ResolvedGeneratorTarget> ResolveTargets(DefinitionGeneratorNode generator)
@@ -123,7 +208,7 @@ public sealed class GeneratorSystem
                 continue;
             }
 
-            yield return new ResolvedGeneratorTarget(entity, null);
+            yield return new ResolvedGeneratorTarget(entity, entity.Id);
         }
     }
 
@@ -209,6 +294,164 @@ public sealed class GeneratorSystem
         return applicable[^1];
     }
 
+    private ExecutionTargetContext ResolveExecutionTarget(object target) =>
+        target switch
+        {
+            EntityId entityId => BuildEntityTargetContext(entityId),
+            HexCoord physicalOrigin => new ExecutionTargetContext(
+                null,
+                physicalOrigin,
+                SemanticHexCoord.Origin,
+                physicalOrigin),
+            _ => throw new ArgumentException("Generator target must be an EntityId or HexCoord.", nameof(target)),
+        };
+
+    private ExecutionTargetContext BuildEntityTargetContext(EntityId entityId)
+    {
+        var entity = _graph.GetEntity(entityId)
+            ?? throw new ArgumentException($"Generator target entity '{entityId}' was not found.", nameof(entityId));
+        var physicalOrigin = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
+        return new ExecutionTargetContext(entity, physicalOrigin, entity.SemanticPosition, entityId);
+    }
+
+    private string ResolveCulture(
+        DefinitionProducedEntity produced,
+        Dictionary<string, EntityId?> symbols,
+        Entity? targetEntity)
+    {
+        if (string.IsNullOrWhiteSpace(produced.InheritCultureFrom))
+        {
+            return DefaultGeneratedCulture;
+        }
+
+        if (string.Equals(produced.InheritCultureFrom, "$target", StringComparison.Ordinal))
+        {
+            return NormalizeCulture(targetEntity?.Culture);
+        }
+
+        if (!symbols.TryGetValue(produced.InheritCultureFrom, out var entityId) || entityId is null)
+        {
+            return DefaultGeneratedCulture;
+        }
+
+        return NormalizeCulture(_graph.GetEntity(entityId.Value)?.Culture);
+    }
+
+    private (HexCoord Physical, SemanticHexCoord Semantic) ResolvePlacement(
+        DefinitionProducedEntity produced,
+        ExecutionTargetContext target)
+    {
+        return produced.Placement switch
+        {
+            SemanticPlacement.On => ResolveOnPlacement(target),
+            SemanticPlacement.Across => ResolveAcrossPlacement(produced, target),
+            _ => ResolveNearPlacement(target),
+        };
+    }
+
+    private (HexCoord Physical, SemanticHexCoord Semantic) ResolveAcrossPlacement(
+        DefinitionProducedEntity produced,
+        ExecutionTargetContext target)
+    {
+        System.Diagnostics.Debug.WriteLine(
+            $"Generator placement '{produced.Placement}' is not implemented; falling back to Near.");
+        return ResolveNearPlacement(target);
+    }
+
+    private (HexCoord Physical, SemanticHexCoord Semantic) ResolveOnPlacement(ExecutionTargetContext target)
+    {
+        if (IsPhysicalOccupied(target.PhysicalOrigin) || IsSemanticOccupied(target.SemanticOrigin))
+        {
+            return ResolveNearPlacement(target);
+        }
+
+        return (target.PhysicalOrigin, target.SemanticOrigin);
+    }
+
+    private (HexCoord Physical, SemanticHexCoord Semantic) ResolveNearPlacement(ExecutionTargetContext target)
+    {
+        var physical = _spatialIndex.FindFreePhysicalHex(target.PhysicalOrigin) ?? target.PhysicalOrigin;
+        var semantic = _semanticPlaneIndex.FindFreeSemanticHex(target.SemanticOrigin) ?? target.SemanticOrigin;
+        return (physical, semantic);
+    }
+
+    private bool IsPhysicalOccupied(HexCoord coord) =>
+        _spatialIndex.EntitiesAtCell(coord)
+            .Select(entityId => _graph.GetEntity(entityId))
+            .Any(entity => entity?.Status == EntityStatus.Active);
+
+    private bool IsSemanticOccupied(SemanticHexCoord coord) =>
+        _graph.AllEntities.Values.Any(entity => entity.Status == EntityStatus.Active && entity.SemanticPosition == coord);
+
+    private void InitializeGeneratedEntityAttributes(Entity entity)
+    {
+        if (!_definitionGraph.Kinds.TryGetValue(entity.Kind, out var kindNode))
+        {
+            return;
+        }
+
+        foreach (var attribute in kindNode.Attributes.Values)
+        {
+            if (entity.Attributes.Has(attribute.SourceConfig.Name))
+            {
+                continue;
+            }
+
+            IEntityProperty instance;
+            if (attribute.SourceConfig.PlaneDefinition is { } planeDefinition)
+            {
+                instance = new SemanticPlane(
+                    attribute.SourceConfig.Name,
+                    planeDefinition,
+                    attribute.SourceConfig.Min,
+                    attribute.SourceConfig.Max,
+                    attribute.SourceConfig.DefaultX,
+                    attribute.SourceConfig.DefaultY);
+            }
+            else
+            {
+                var scalar = new ScalarValue(
+                    attribute.SourceConfig.Name,
+                    attribute.SourceConfig.Min,
+                    attribute.SourceConfig.Max,
+                    attribute.SourceConfig.Default);
+                if (attribute.SourceConfig.DriftRate != 0f)
+                {
+                    scalar.AddTickEffect(new AttributeEffect(
+                        DriftSourcePrefix + attribute.SourceConfig.Name,
+                        $"Natural {attribute.SourceConfig.Name} drift",
+                        attribute.SourceConfig.DriftRate));
+                }
+
+                instance = scalar;
+            }
+
+            entity.Attributes.Add(instance);
+        }
+    }
+
+    private void RegisterLifecycleDrain(Entity entity)
+    {
+        if (!_definitionGraph.Lifecycles.TryGetValue(entity.Kind, out var lifecycle))
+        {
+            return;
+        }
+
+        var healthAttribute = entity.Attributes.GetScalar(lifecycle.HealthAttribute.Value);
+        if (healthAttribute is null)
+        {
+            return;
+        }
+
+        healthAttribute.AddTickEffect(new AttributeEffect(
+            LifecycleDrainSourcePrefix + lifecycle.HealthAttribute.Value,
+            $"Lifecycle aging drain on {lifecycle.HealthAttribute.Value}",
+            -lifecycle.SourceConfig.BaseRate));
+    }
+
+    private static string NormalizeCulture(string? culture) =>
+        string.IsNullOrWhiteSpace(culture) ? DefaultGeneratedCulture : culture;
+
     private sealed record ApplicableGeneratorTarget(
         GeneratorInstance Instance,
         ResolvedGeneratorTarget Target,
@@ -216,5 +459,11 @@ public sealed class GeneratorSystem
 
     private sealed record ResolvedGeneratorTarget(
         Entity TargetEntity,
-        HexCoord? WildernessOrigin);
+        object ExecutionTarget);
+
+    private sealed record ExecutionTargetContext(
+        Entity? TargetEntity,
+        HexCoord PhysicalOrigin,
+        SemanticHexCoord SemanticOrigin,
+        object ExecutionTarget);
 }
