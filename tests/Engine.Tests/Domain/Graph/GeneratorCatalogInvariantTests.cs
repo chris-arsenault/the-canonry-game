@@ -38,6 +38,40 @@ public class GeneratorCatalogInvariantTests
     }
 
     [Fact]
+    public void Validate_GeneratorTargetSubtypeUnknown_ThrowsActionableMessage()
+    {
+        var generator = CreateBaseGenerator(
+            target: new SemanticGeneratorTarget
+            {
+                Kind = EntityKind.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "missing_subtype" },
+            });
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
+
+        Assert.Contains("target references unknown subtype 'missing_subtype'", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_GeneratorTriggerAttributeMissingOnKind_ThrowsActionableMessage()
+    {
+        var generator = CreateBaseGenerator(
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = EntityKind.Settlement,
+                    AttributeName = "missing_attribute",
+                    Direction = TriggerDirection.Low,
+                },
+            ]);
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
+
+        Assert.Contains("unknown attribute 'missing_attribute'", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Validate_OptionalProduceWithTooManyRelationshipAnchors_ThrowsActionableMessage()
     {
         var generator = CreateBaseGenerator(
@@ -91,6 +125,51 @@ public class GeneratorCatalogInvariantTests
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
 
         Assert.Contains("optional produce '$artifact' is referenced by 3 relationships", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_ProbabilisticProduceWithRequiredRelationshipToMandatoryProduce_IsAllowed()
+    {
+        var generator = CreateBaseGenerator(
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = EntityKind.Npc,
+                    Subtype = "hero",
+                    Role = "hero",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$artifact",
+                    Kind = EntityKind.Artifact,
+                    Subtype = "weapon",
+                    Role = "weapon",
+                    CreateChance = 0.25f,
+                    InheritCultureFrom = "$hero",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "located_at",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$artifact",
+                    DestinationRef = "$hero",
+                    Kind = "stored_at",
+                },
+            ]);
+
+        var graph = DomainLoader.BuildDefinitionGraph(WithGenerators(generator));
+
+        Assert.Contains("hero_emergence", graph.Generators.Keys);
     }
 
     [Fact]
@@ -188,6 +267,7 @@ public class GeneratorCatalogInvariantTests
     }
 
     private static SemanticGeneratorConfig CreateBaseGenerator(
+        SemanticGeneratorTarget? target = null,
         IReadOnlyList<SemanticProducedEntity>? produces = null,
         IReadOnlyList<SemanticGeneratorRelationship>? relationships = null,
         IReadOnlyList<SemanticGeneratorTrigger>? triggers = null) =>
@@ -195,7 +275,7 @@ public class GeneratorCatalogInvariantTests
         {
             Id = "hero_emergence",
             Name = "Hero Emergence",
-            Target = new SemanticGeneratorTarget
+            Target = target ?? new SemanticGeneratorTarget
             {
                 Kind = EntityKind.Settlement,
             },
