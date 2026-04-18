@@ -276,6 +276,7 @@ public sealed class SemanticFlowEdge
     public SemanticPlaneAxis PlaneAxis { get; init; } = SemanticPlaneAxis.None;
     public string? RawSignature { get; init; }
     public string? RawForm { get; init; }
+    public string? Reasoning { get; init; }
     public string? SourceWorksheet { get; init; }
     public int SourceRow { get; init; }
     public SemanticMechanism Mechanism { get; init; } = SemanticMechanism.Unknown;

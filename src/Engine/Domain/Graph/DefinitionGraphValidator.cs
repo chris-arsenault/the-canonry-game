@@ -137,12 +137,12 @@ public static class DefinitionGraphValidator
                     flow.Role == SemanticFlowRole.Inflow &&
                     flow.TargetStock.Id is AttributeStockId targetId &&
                     targetId.Key.Kind == kind &&
-                    targetId.Key.AttributeId != healthId &&
+                    !targetId.Key.AttributeId.Equals(healthId) &&
                     flow.SourceRefs.Any(src =>
                         src.Scope == RefScope.Self &&
                         src.Kind == kind &&
                         src.ValueId is AttributeValueId healthVal &&
-                        healthVal.AttributeId == healthId))
+                        healthVal.AttributeId.Equals(healthId)))
                 .ToList();
 
             if (selfSacFlows.Count == 0)

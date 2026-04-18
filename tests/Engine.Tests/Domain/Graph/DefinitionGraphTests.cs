@@ -95,6 +95,7 @@ public class DefinitionGraphTests
             Lifecycles = config.Lifecycles,
             Resources = [.. config.Resources, new ResourceConfig { Name = "manna", DisplayName = "Manna" }],
             Cultures = config.Cultures,
+            Semantics = config.Semantics,
         };
 
         var graph = DomainLoader.BuildDefinitionGraph(badConfig);

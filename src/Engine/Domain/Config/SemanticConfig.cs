@@ -67,6 +67,14 @@ public sealed class SemanticFlowConfig
     public SemanticFunctionalForm FunctionalForm { get; init; } = SemanticFunctionalForm.Unknown;
     public string? SignatureLabel { get; init; }
     public string? FormLabel { get; init; }
+
+    /// <summary>
+    /// In-game narrative reason this flow exists. One sentence, authored.
+    /// Not a technical annotation (don't explain the schema) — the *why* of the
+    /// flow as a player would read it. Optional for structural flows like decay.
+    /// </summary>
+    public string? Reasoning { get; init; }
+
     public IReadOnlyList<AttributeRef> SourceRefs { get; init; } = [];
 }
 

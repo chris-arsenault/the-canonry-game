@@ -41,6 +41,7 @@ public static class DefinitionSemanticGraphBuilder
                 PlaneAxis = flow.PlaneAxis,
                 RawSignature = flow.SignatureLabel,
                 RawForm = flow.FormLabel,
+                Reasoning = flow.Reasoning,
                 Mechanism = flow.Mechanism,
                 FunctionalForm = flow.FunctionalForm,
                 SourceRefs = ConvertRefs(flow.SourceRefs, graph),

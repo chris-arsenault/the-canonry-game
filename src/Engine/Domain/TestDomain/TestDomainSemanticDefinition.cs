@@ -77,12 +77,23 @@ public static class TestDomainSemanticDefinition
     private static IReadOnlyList<SemanticVerbConfig> CreateVerbs() =>
     [
         EngineVerb(Verb.EngineDecay),
+
+        // Self-sacrifice verbs (H → X within each kind).
+        EntityVerb(Verb.ArtifactChannel, EntityKind.Artifact,
+            notes: "The artifact burns its physical integrity to fuel power projection."),
+        EntityVerb(Verb.FactionRadicalize, EntityKind.Faction,
+            notes: "A faction spends internal unity on a zealous outward projection of influence."),
+        EntityVerb(Verb.NpcEndure, EntityKind.Npc,
+            notes: "An NPC pushes through hunger at the cost of their body."),
+        EntityVerb(Verb.RegionCleanse, EntityKind.Region,
+            notes: "Slow geological calm purifies the land — the region settles and cleans itself."),
+        EntityVerb(Verb.SettlementMobilize, EntityKind.Settlement,
+            notes: "The settlement conscripts its residents into extending reach — soldiers, emissaries, missionaries."),
     ];
 
     private static IReadOnlyList<SemanticFlowConfig> CreateFlows() =>
     [
-        // Clean slate: the only authored flows are engine_decay outflows on every scalar stock.
-        // Entity-level verbs and their inflow/outflow wiring will be re-authored per design.
+        // Engine decay — one per scalar stock.
         Decay(EntityKind.Artifact, Attr.Condition),
         Decay(EntityKind.Artifact, Attr.Power),
         Decay(EntityKind.Artifact, Attr.Containment),
@@ -102,6 +113,18 @@ public static class TestDomainSemanticDefinition
         Decay(EntityKind.Settlement, Attr.Residents),
         Decay(EntityKind.Settlement, Attr.Dominion),
         Decay(EntityKind.Settlement, Attr.Sanitation),
+
+        // Self-sacrifice (H → X within each kind).
+        ..SelfSac(EntityKind.Artifact, Attr.Condition, Attr.Power, Verb.ArtifactChannel,
+            "The artifact burns its physical integrity to fuel power projection."),
+        ..SelfSac(EntityKind.Faction, Attr.Cohesion, Attr.Influence, Verb.FactionRadicalize,
+            "A faction spends internal unity on a zealous outward projection of influence."),
+        ..SelfSac(EntityKind.Npc, Attr.Vitality, Attr.Satiety, Verb.NpcEndure,
+            "An NPC pushes through hunger at the cost of their body."),
+        ..SelfSac(EntityKind.Region, Attr.GeologicStability, Attr.Pristineness, Verb.RegionCleanse,
+            "Slow geological calm purifies the land — the region settles and cleans itself."),
+        ..SelfSac(EntityKind.Settlement, Attr.Residents, Attr.Dominion, Verb.SettlementMobilize,
+            "The settlement conscripts its residents into extending reach — soldiers, emissaries, missionaries."),
     ];
 
     private static IReadOnlyList<SemanticModifierConfig> CreateModifiers() => [];
@@ -207,6 +230,42 @@ public static class TestDomainSemanticDefinition
             TargetAttribute = A(attribute),
             Mechanism = SemanticMechanism.Decay,
         };
+
+    // Emits both halves of a self-sacrifice flow (Health → X): an outflow on H
+    // with source ref Self(kind, target), and an inflow on target with source ref
+    // Self(kind, Health). Both halves carry the same narrative reasoning.
+    private static IEnumerable<SemanticFlowConfig> SelfSac(
+        EntityKind kind,
+        Attr source,
+        Attr target,
+        Verb verb,
+        string reasoning)
+    {
+        yield return new SemanticFlowConfig
+        {
+            VerbId = VerbId(verb),
+            Role = SemanticFlowRole.Outflow,
+            TargetKind = kind,
+            TargetAttribute = A(source),
+            Mechanism = SemanticMechanism.Sacrifice,
+            SignatureLabel = $"self; sacrifice into {A(target)}",
+            FormLabel = $"self; sacrifice into {A(target)}",
+            Reasoning = reasoning,
+            SourceRefs = [Self(kind, target)],
+        };
+        yield return new SemanticFlowConfig
+        {
+            VerbId = VerbId(verb),
+            Role = SemanticFlowRole.Inflow,
+            TargetKind = kind,
+            TargetAttribute = A(target),
+            Mechanism = SemanticMechanism.Sacrifice,
+            SignatureLabel = $"self; sacrifice from {A(source)}",
+            FormLabel = $"self; sacrifice from {A(source)}",
+            Reasoning = reasoning,
+            SourceRefs = [Self(kind, source)],
+        };
+    }
 
     private static SemanticFlowConfig Flow(
         EntityKind kind,
