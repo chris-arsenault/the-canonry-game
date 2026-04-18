@@ -30,6 +30,11 @@ public sealed class CardExecutor
             return false;
         }
 
+        if (instance.Definition.Type == CardType.Generator)
+        {
+            return false;
+        }
+
         if (!instance.IsOnCadence(context.CurrentTick))
         {
             return false;

@@ -31,14 +31,54 @@ public class SimulationRunnerTests
     public void CreateFromDomain_SeedsGeneratorRegistry()
     {
         var domain = WithGenerators(CreateValidGenerator());
-        var definitionGraph = DomainLoader.BuildDefinitionGraph(domain);
 
         var sim = SimulationRunner.CreateFromDomain(domain);
 
-        Assert.Equal(definitionGraph.Generators.Count, sim.WorldState.Generators.Count);
+        Assert.Equal(sim.DefinitionGraph.Generators.Count, sim.WorldState.Generators.Count);
         var instance = Assert.Single(sim.WorldState.Generators.ById.Values);
         Assert.Equal("hero_emergence", instance.GeneratorId);
-        Assert.Equal(definitionGraph.Generators["hero_emergence"].Id, instance.Definition.Id);
+        Assert.Equal(sim.DefinitionGraph.Generators["hero_emergence"].Id, instance.Definition.Id);
+    }
+
+    [Fact]
+    public void CreateFromDomain_AutoPlacesGeneratorCards()
+    {
+        var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
+
+        var card = Assert.Single(sim.Tableau.ActiveCards);
+        Assert.Equal(sim.DefinitionGraph.Generators.Count, sim.Tableau.ActiveCards.Count);
+        Assert.Equal(CardType.Generator, card.Definition.Type);
+        Assert.Equal("hero_emergence", card.Definition.GeneratorId);
+        Assert.Equal(0, card.Definition.ManaCost);
+    }
+
+    [Fact]
+    public void Tick_AfterGeneratorPulse_FiresApplicableGenerator()
+    {
+        var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
+
+        for (var i = 0; i < 25; i++)
+        {
+            sim.Tick();
+        }
+
+        Assert.True(sim.GeneratorSystem.TotalFired >= 1);
+    }
+
+    [Fact]
+    public void RemoveGeneratorCard_StopsThatGeneratorFromFiring()
+    {
+        var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
+        var card = Assert.Single(sim.Tableau.ActiveCards);
+
+        sim.Tableau.RemoveCard(card);
+
+        for (var i = 0; i < 25; i++)
+        {
+            sim.Tick();
+        }
+
+        Assert.Equal(0, sim.GeneratorSystem.TotalFired);
     }
 
     [Fact]

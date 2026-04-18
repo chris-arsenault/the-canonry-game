@@ -2,9 +2,7 @@ namespace Engine.Tests.Observability;
 
 using System.IO;
 using Engine.Domain.Config;
-using Engine.Domain.Loader;
 using Engine.Domain.TestDomain;
-using Engine.Generators;
 using Engine.Kinds;
 using Engine.Observability;
 using Engine.Simulation;
@@ -21,24 +19,13 @@ public class RunLoggerGeneratorTests
         try
         {
             var domain = WithGenerators(CreateAlwaysApplicableGenerator());
-            var definitionGraph = DomainLoader.BuildDefinitionGraph(domain);
             var sim = SimulationRunner.CreateFromDomain(domain);
-            var generatorSystem = new GeneratorSystem(
-                sim.Graph,
-                sim.WorldState.Generators,
-                definitionGraph,
-                sim.SpatialIndex,
-                sim.WorldState.SemanticPlane,
-                sim.MessageBus,
-                new Random(42));
-            var activeIds = new HashSet<string>(StringComparer.Ordinal) { "hero_emergence" };
 
             using (var logger = new RunLogger(logPath, sim))
             {
                 for (var i = 0; i < 50; i++)
                 {
                     sim.Tick();
-                    generatorSystem.Tick(sim.Clock.CurrentTick, activeIds);
                     logger.OnTickEnded();
                 }
             }

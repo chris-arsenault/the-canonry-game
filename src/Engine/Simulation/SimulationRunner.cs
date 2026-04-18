@@ -7,6 +7,7 @@ using Engine.Processes;
 using Engine.Clock;
 using Engine.Degeneracy;
 using Engine.Domain.Config;
+using Engine.Domain.Graph;
 using Engine.Domain.Loader;
 using Engine.Domain.TestDomain;
 using Engine.Events;
@@ -60,10 +61,12 @@ public sealed class SimulationRunner
 
     // State
     public WorldState WorldState { get; }
+    public DefinitionGraph DefinitionGraph { get; }
 
     // Registries
     public KindRegistry KindRegistry { get; }
     public BehaviorDefinitionIndex BehaviorDefinitions { get; }
+    public GeneratorSystem GeneratorSystem { get; }
 
     private SimulationRunner(
         WorldGraph graph, EffectSystem effects,
@@ -71,7 +74,8 @@ public sealed class SimulationRunner
         TickClock clock, EntityEvaluator evaluator, RelationshipSystem relationships,
         LifecycleSystem lifecycle, ResourceSystem resources, PressureSystem pressure,
         TableauManager tableau, EventLog eventLog, DetectorRegistry detectors,
-        WorldState worldState, KindRegistry kindRegistry, BehaviorDefinitionIndex behaviorDefinitions,
+        WorldState worldState, DefinitionGraph definitionGraph, KindRegistry kindRegistry,
+        BehaviorDefinitionIndex behaviorDefinitions, GeneratorSystem generatorSystem,
         MessageBus messageBus)
     {
         Graph = graph;
@@ -90,8 +94,10 @@ public sealed class SimulationRunner
         EventLog = eventLog;
         Detectors = detectors;
         WorldState = worldState;
+        DefinitionGraph = definitionGraph;
         KindRegistry = kindRegistry;
         BehaviorDefinitions = behaviorDefinitions;
+        GeneratorSystem = generatorSystem;
     }
 
     /// <summary>
@@ -196,6 +202,30 @@ public sealed class SimulationRunner
             semanticPlane,
             generators,
             resources);
+        var generatorSystem = new GeneratorSystem(
+            graph,
+            generators,
+            definitionGraph,
+            spatialIndex,
+            semanticPlane,
+            messageBus,
+            new Random(42));
+
+        foreach (var generator in definitionGraph.Generators.Values)
+        {
+            var definition = new CardDefinition(
+                $"generator_{generator.Id}",
+                generator.Name,
+                CardType.Generator,
+                new AlwaysTrue(),
+                manaCost: 0,
+                cooldown: 0,
+                cadence: 0,
+                lifespan: int.MaxValue,
+                generatorId: generator.Id);
+            _ = tableau.PlaceCard(definition, currentTick: 0)
+                ?? throw new InvalidOperationException($"Failed to place generator card '{generator.Id}'.");
+        }
 
         // Wire to tick clock
         var clock = new TickClock();
@@ -252,6 +282,12 @@ public sealed class SimulationRunner
             {
                 var cardContext = new CardMutationContext(graph, pressure, worldState);
                 tableau.Tick(tick, cardContext);
+                var activeGeneratorIds = tableau.ActiveCards
+                    .Select(card => card.Definition.GeneratorId)
+                    .Where(generatorId => !string.IsNullOrWhiteSpace(generatorId))
+                    .Select(generatorId => generatorId!)
+                    .ToHashSet(StringComparer.Ordinal);
+                generatorSystem.Tick(tick, activeGeneratorIds);
             });
 
         // Phase 5: Degeneracy detection (every 10 ticks)
@@ -265,8 +301,8 @@ public sealed class SimulationRunner
         return new SimulationRunner(
             graph, effects, grid, regionMap, spatialIndex,
             clock, evaluator, relationships, lifecycle, resources, pressure,
-            tableau, eventLog, detectors, worldState, kindRegistry, behaviorDefinitions,
-            messageBus);
+            tableau, eventLog, detectors, worldState, definitionGraph, kindRegistry,
+            behaviorDefinitions, generatorSystem, messageBus);
     }
 
     /// <summary>Advance the simulation by one frame (speed-dependent tick count).</summary>

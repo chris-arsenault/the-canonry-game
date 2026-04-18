@@ -21,6 +21,7 @@ public sealed class CardDefinition
     public string Id { get; }
     public string Name { get; set; }
     public CardType Type { get; }
+    public string? GeneratorId { get; }
     public int ManaCost { get; set; }
     public int Cooldown { get; set; }
     public int Cadence { get; set; }
@@ -52,11 +53,13 @@ public sealed class CardDefinition
         int manaCost = 2,
         int cooldown = 10,
         int cadence = 1,
-        int lifespan = 100)
+        int lifespan = 100,
+        string? generatorId = null)
     {
         Id = id;
         Name = name;
         Type = type;
+        GeneratorId = generatorId;
         Precondition = precondition;
         ManaCost = manaCost;
         Cooldown = cooldown;

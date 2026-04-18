@@ -49,6 +49,31 @@ public class CardExecutorTests
         Assert.False(_executor.TryFire(instance, ctx));
     }
 
+    [Fact]
+    public void TryFire_GeneratorCard_SkipsNormalExecution()
+    {
+        var card = new CardDefinition(
+            "generator_card",
+            "Generator Card",
+            CardType.Generator,
+            new AlwaysTrue(),
+            manaCost: 0,
+            cooldown: 0,
+            cadence: 0,
+            lifespan: int.MaxValue,
+            generatorId: "hero_emergence");
+        card.Mutations.Add(new ModifyAttributeMutation(new EntityId(1), "stability", 10f));
+        var instance = new CardInstance(card, placedAtTick: 0);
+        var ctx = new TrackingContext { CurrentTickValue = 1 };
+
+        var result = _executor.TryFire(instance, ctx);
+
+        Assert.False(result);
+        Assert.Equal(0, instance.FireCount);
+        Assert.Empty(ctx.AttributeModifications);
+        Assert.Null(instance.LastFiredTick);
+    }
+
     // --- Cooldown ---
 
     [Fact]

@@ -43,6 +43,7 @@ public sealed class GeneratorSystem
     }
 
     public int PulseInterval { get; init; } = 25;
+    public int TotalFired { get; private set; }
 
     public void Tick(int currentTick, IReadOnlySet<string> activeGeneratorIds)
     {
@@ -167,6 +168,7 @@ public sealed class GeneratorSystem
             instance.RecordRun(currentTick);
         }
 
+        TotalFired++;
         _messageBus.Publish(new GeneratorFiredMessage(
             currentTick,
             generator.Id,
