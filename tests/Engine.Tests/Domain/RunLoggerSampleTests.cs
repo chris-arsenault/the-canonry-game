@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 /// <summary>
 /// Generates a sample run log under <c>.artifacts/logs/sample-*.log</c> so the
 /// format can be inspected manually. Runs long enough to include generator
-/// firings (150 ticks) and is safe to keep in CI: the file just accumulates
+/// firings (250 ticks) and is safe to keep in CI: the file just accumulates
 /// artifacts we can delete anytime.
 /// </summary>
 public class RunLoggerSampleTests(ITestOutputHelper output)
@@ -23,7 +23,7 @@ public class RunLoggerSampleTests(ITestOutputHelper output)
 
         using (var logger = new RunLogger(logPath, sim))
         {
-            for (var i = 0; i < 150; i++)
+            for (var i = 0; i < 250; i++)
             {
                 sim.Tick();
                 logger.OnTickEnded();

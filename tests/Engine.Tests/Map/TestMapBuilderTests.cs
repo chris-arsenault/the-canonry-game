@@ -221,6 +221,55 @@ public class TestMapBuilderTests
         Assert.NotEmpty(_world.CoverageMap.ComputeAdjacency());
     }
 
+    [Fact]
+    public void SeedSettlements_SpanAMeaningfulArea()
+    {
+        var coords = _world.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => _world.Graph.GetEntity(id)!)
+            .Select(entity => new HexCoord(entity.Coordinates.Q, entity.Coordinates.R))
+            .ToList();
+
+        var qSpan = coords.Max(coord => coord.Q) - coords.Min(coord => coord.Q);
+        var rSpan = coords.Max(coord => coord.R) - coords.Min(coord => coord.R);
+
+        Assert.True(qSpan >= 8, $"Expected settlement q-span >= 8, got {qSpan}");
+        Assert.True(rSpan >= 8, $"Expected settlement r-span >= 8, got {rSpan}");
+    }
+
+    [Fact]
+    public void MaritimeSettlements_ArePlacedOnOrNearMaritimeTerrain()
+    {
+        foreach (var settlementName in new[] { "Driftwatch", "Wavecrest" })
+        {
+            var settlement = _world.Graph.GetEntitiesByKind(TestKinds.Settlement)
+                .Select(id => _world.Graph.GetEntity(id)!)
+                .Single(entity => entity.Name == settlementName);
+            var coord = new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R);
+            var cell = _world.Grid.GetCell(coord)!;
+            var adjacentMaritime = coord.Neighbors()
+                .Where(_world.Grid.ContainsCoord)
+                .Select(_world.Grid.GetCell)
+                .Any(neighbor => neighbor is not null &&
+                                 neighbor.Terrain is TerrainType.Ocean or TerrainType.Reef or TerrainType.Shelf);
+
+            Assert.True(
+                cell.Terrain is TerrainType.Reef or TerrainType.Shelf || adjacentMaritime,
+                $"{settlementName} should be on or next to maritime terrain, got {cell.Terrain} at {coord}");
+        }
+    }
+
+    [Fact]
+    public void ColdSettlement_IsPlacedOnColdTerrain()
+    {
+        var frosthaven = _world.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => _world.Graph.GetEntity(id)!)
+            .Single(entity => entity.Name == "Frosthaven");
+        var coord = new HexCoord(frosthaven.Coordinates.Q, frosthaven.Coordinates.R);
+        var cell = _world.Grid.GetCell(coord)!;
+
+        Assert.Contains(cell.Terrain, new[] { TerrainType.Ice, TerrainType.Tundra, TerrainType.Shelf });
+    }
+
     // --- No orphans ---
 
     [Fact]

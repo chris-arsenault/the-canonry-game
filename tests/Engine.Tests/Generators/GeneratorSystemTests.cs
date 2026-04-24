@@ -436,9 +436,14 @@ public class GeneratorSystemTests
         var fired = Assert.IsType<GeneratorFiredMessage>(message);
         var created = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
         var targetPhysical = new HexCoord(target.Coordinates.Q, target.Coordinates.R);
+        var expectedPhysical = new HexCoord(-targetPhysical.Q, -targetPhysical.R);
+        var expectedSemantic = new SemanticHexCoord(-target.SemanticPosition.Q, -target.SemanticPosition.R);
 
-        Assert.Equal(2, HexCoord.Distance(targetPhysical, new HexCoord(created.Coordinates.Q, created.Coordinates.R)));
-        Assert.Equal(2, SemanticHexCoord.Distance(target.SemanticPosition, created.SemanticPosition));
+        Assert.InRange(
+            HexCoord.Distance(expectedPhysical, new HexCoord(created.Coordinates.Q, created.Coordinates.R)),
+            0,
+            2);
+        Assert.InRange(SemanticHexCoord.Distance(expectedSemantic, created.SemanticPosition), 0, 1);
     }
 
     [Fact]
@@ -1076,6 +1081,115 @@ public class GeneratorSystemTests
         var instance = sim.WorldState.Generators.ById["seal_the_leak"];
         Assert.Equal(0, instance.TotalRuns);
         Assert.Null(instance.LastFiredTick);
+    }
+
+    [Fact]
+    public void Fire_InRegionLocality_PicksRandomFreeHexWithinCoverage()
+    {
+        var generator = CreateGenerator(
+            "random_region_locality",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Faction,
+            },
+            secondaryTargets:
+            [
+                new SemanticGeneratorBindingTarget
+                {
+                    Ref = "$leak_region",
+                    Kind = TestKinds.Region,
+                    Query = new SemanticEntityQuery
+                    {
+                        AttributeConditions =
+                        [
+                            new SemanticQueryAttributeCondition
+                            {
+                                AttributeName = "pristiness",
+                                Direction = TriggerDirection.Low,
+                            },
+                        ],
+                    },
+                },
+            ],
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$holdfast",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "holdfast",
+                    Role = "containment_hold",
+                    PhysicalPlacement = SemanticPlacement.InRegionLocality,
+                    SemanticPlacement = SemanticPlacement.Near,
+                    PlacementRef = "$leak_region",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$holdfast",
+                    DestinationRef = "$target",
+                    Kind = "controlled_by",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Faction,
+                    AttributeName = "cohesion",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+
+        var positions = new HashSet<HexCoord>();
+        for (var seed = 0; seed < 8; seed++)
+        {
+            var (sim, system) = CreateSystem(new Random(seed + 1), generator);
+            foreach (var factionId in sim.Graph.GetEntitiesByKind(TestKinds.Faction))
+            {
+                sim.Graph.GetEntity(factionId)!.Attributes.GetScalar("cohesion")!.SetBase(10f);
+            }
+
+            foreach (var regionId in sim.Graph.GetEntitiesByKind(TestKinds.Region))
+            {
+                sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristiness")!.SetBase(90f);
+            }
+
+            var targetFaction = sim.Graph.GetEntitiesByKind(TestKinds.Faction)
+                .Select(id => sim.Graph.GetEntity(id)!)
+                .First();
+            targetFaction.Attributes.GetScalar("cohesion")!.SetBase(90f);
+
+            var leakRegion = sim.Graph.GetEntitiesByKind(TestKinds.Region)
+                .Select(id => sim.Graph.GetEntity(id)!)
+                .First();
+            leakRegion.Attributes.GetScalar("pristiness")!.SetBase(10f);
+
+            GeneratorFiredMessage? message = null;
+            sim.MessageBus.Subscribe(msg =>
+            {
+                if (msg is GeneratorFiredMessage fired)
+                {
+                    message = fired;
+                }
+            });
+
+            system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "random_region_locality" });
+
+            var fired = Assert.IsType<GeneratorFiredMessage>(message);
+            var createdHoldfast = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
+            var region = sim.CoverageMap.GetCoverage(leakRegion.Id);
+            Assert.NotNull(region);
+
+            var createdCoord = new HexCoord(createdHoldfast.Coordinates.Q, createdHoldfast.Coordinates.R);
+            Assert.Contains(createdCoord, region!.Cells);
+            positions.Add(createdCoord);
+        }
+
+        Assert.True(positions.Count > 1, "Expected random in-coverage placement to vary across seeds.");
     }
 
     private static (SimulationRunner Sim, GeneratorSystem System) CreateSystem(

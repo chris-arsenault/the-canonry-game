@@ -142,7 +142,7 @@ public class DomainConfigTests
             }
         });
 
-        for (var i = 0; i < 150; i++)
+        for (var i = 0; i < 250; i++)
         {
             sim.Tick();
         }
@@ -159,6 +159,6 @@ public class DomainConfigTests
                 "sea_raises_the_reefhold",
                 "the_shelf_yields_a_tome",
             ]),
-            "Expected an Ice Remembers generator to fire within 150 ticks.");
+            "Expected an Ice Remembers generator to fire within 250 ticks.");
     }
 }

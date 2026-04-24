@@ -54,10 +54,13 @@ public class SpatialIndexTests
     [Fact]
     public void EntitiesInRadius_FindsNearbyEntities()
     {
-        var (index, _) = CreateTestSetup();
-
-        // Center of the map (0,0) should have Midpoint settlement nearby
-        var nearby = index.EntitiesInRadius(new HexCoord(0, 0), 1).ToList();
+        var (index, world) = CreateTestSetup();
+        var settlement = world.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => world.Graph.GetEntity(id)!)
+            .First();
+        var nearby = index.EntitiesInRadius(
+            new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R),
+            1).ToList();
         Assert.NotEmpty(nearby);
     }
 
@@ -94,7 +97,6 @@ public class SpatialIndexTests
     {
         var (index, world) = CreateTestSetup();
 
-        // Frosthaven is at (0,-2) which is in Northlands
         var northlands = world.CoverageMap.GetCoverageByName("Northlands");
         Assert.NotNull(northlands);
 
