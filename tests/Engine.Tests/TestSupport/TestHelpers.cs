@@ -175,6 +175,15 @@ internal sealed class TestMutationContext : IMutationContext, IWorldStateAccesso
         _worldState.SpatialIndex.PlaceEntity(entityId, new Engine.Map.HexCoord(q, r));
     }
 
+    public void SetSemanticCoordinates(EntityId entityId, int q, int r)
+    {
+        var entity = _worldState.Graph.GetEntity(entityId);
+        if (entity is not null)
+        {
+            entity.SemanticPosition = new Engine.Map.SemanticHexCoord(q, r);
+        }
+    }
+
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {
         var relationship = _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();

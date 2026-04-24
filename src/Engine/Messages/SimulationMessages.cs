@@ -87,6 +87,26 @@ public sealed class EntityMovedMessage : SimulationMessage
     }
 }
 
+/// <summary>An entity moved on the semantic plane.</summary>
+public sealed class EntitySemanticMovedMessage : SimulationMessage
+{
+    public EntityId EntityId { get; }
+    public (int Q, int R, int S) From { get; }
+    public (int Q, int R, int S) To { get; }
+
+    public EntitySemanticMovedMessage(
+        int tick,
+        EntityId entityId,
+        (int Q, int R, int S) from,
+        (int Q, int R, int S) to)
+        : base(tick)
+    {
+        EntityId = entityId;
+        From = from;
+        To = to;
+    }
+}
+
 /// <summary>An entity was created in the world graph.</summary>
 public sealed class EntityCreatedMessage : SimulationMessage
 {

@@ -305,7 +305,7 @@ public sealed class SimulationRunner
         clock.Register("tableau", TickPhase.CardExecution, cadence: 1,
             tick =>
             {
-                var cardContext = new CardMutationContext(graph, pressure, worldState);
+                var cardContext = new CardMutationContext(graph, pressure, worldState, messageBus);
                 tableau.Tick(tick, cardContext);
                 var activeGeneratorIds = tableau.ActiveCards
                     .Select(card => card.Definition.GeneratorId)
@@ -401,7 +401,7 @@ internal sealed class SimplePressureContext(
 }
 
 internal sealed class CardMutationContext(
-    WorldGraph graph, PressureSystem pressure, WorldState worldState,
+    WorldGraph graph, PressureSystem pressure, WorldState worldState, MessageBus messageBus,
     Random? random = null)
     : IMutationContext
 {
@@ -450,7 +450,23 @@ internal sealed class CardMutationContext(
 
     public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
     {
-        graph.GetEntity(entityId)?.Attributes.Modify(attributeName, delta);
+        var entity = graph.GetEntity(entityId);
+        var oldValue = entity?.Attributes.GetValue(attributeName);
+        entity?.Attributes.Modify(attributeName, delta);
+        if (entity is not null && oldValue is { } before)
+        {
+            var after = entity.Attributes.GetValue(attributeName);
+            if (Math.Abs(after - before) > float.Epsilon)
+            {
+                messageBus.Publish(new AttributeChangedMessage(
+                    CurrentTick,
+                    entityId,
+                    attributeName,
+                    before,
+                    after,
+                    "card"));
+            }
+        }
     }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
@@ -467,7 +483,20 @@ internal sealed class CardMutationContext(
             Resources.ResourceType.Population => worldState.Resources.PopulationLayer,
             _ => null,
         };
-        layer?.AddToStockpile(coord, delta);
+        if (layer is null) return;
+        var before = layer.GetStockpile(coord);
+        layer.AddToStockpile(coord, delta);
+        var after = layer.GetStockpile(coord);
+        if (Math.Abs(after - before) > float.Epsilon)
+        {
+            messageBus.Publish(new ResourceChangedMessage(
+                CurrentTick,
+                resourceType.ToString(),
+                coordinates,
+                before,
+                after,
+                "card"));
+        }
     }
 
     public void SetTag(EntityId entityId, string key, string value)
@@ -493,11 +522,49 @@ internal sealed class CardMutationContext(
         var available = layer.GetStockpile(coord);
         var consumed = Math.Min(amount, available);
         layer.AddToStockpile(coord, -consumed);
+        if (consumed > 0f)
+        {
+            messageBus.Publish(new ResourceChangedMessage(
+                CurrentTick,
+                resourceType.ToString(),
+                coordinates,
+                available,
+                available - consumed,
+                "card"));
+        }
         return consumed;
     }
 
-    public void SetCoordinates(EntityId entityId, int q, int r) =>
+    public void SetCoordinates(EntityId entityId, int q, int r)
+    {
+        var entity = graph.GetEntity(entityId);
+        var previous = entity?.Coordinates;
         graph.SetCoordinates(entityId, q, r);
+        if (previous is { } from && from != (q, r))
+        {
+            messageBus.Publish(new EntityMovedMessage(CurrentTick, entityId, from, (q, r)));
+        }
+    }
+
+    public void SetSemanticCoordinates(EntityId entityId, int q, int r)
+    {
+        var entity = graph.GetEntity(entityId);
+        if (entity is null)
+        {
+            return;
+        }
+
+        var previous = entity.SemanticPosition;
+        entity.SemanticPosition = new SemanticHexCoord(q, r);
+        if (previous != entity.SemanticPosition)
+        {
+            messageBus.Publish(new EntitySemanticMovedMessage(
+                CurrentTick,
+                entityId,
+                (previous.Q, previous.R, previous.S),
+                (entity.SemanticPosition.Q, entity.SemanticPosition.R, entity.SemanticPosition.S)));
+        }
+    }
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {

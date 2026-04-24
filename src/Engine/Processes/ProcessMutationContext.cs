@@ -205,6 +205,26 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         }
     }
 
+    public void SetSemanticCoordinates(EntityId entityId, int q, int r)
+    {
+        var entity = _worldState.Graph.GetEntity(entityId);
+        if (entity is null)
+        {
+            return;
+        }
+
+        var previous = entity.SemanticPosition;
+        entity.SemanticPosition = new Engine.Map.SemanticHexCoord(q, r);
+        if (previous != entity.SemanticPosition)
+        {
+            _messageBus?.Publish(new EntitySemanticMovedMessage(
+                CurrentTick,
+                entityId,
+                (previous.Q, previous.R, previous.S),
+                (entity.SemanticPosition.Q, entity.SemanticPosition.R, entity.SemanticPosition.S)));
+        }
+    }
+
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {
         var rel = _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();

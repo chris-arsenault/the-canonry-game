@@ -3,9 +3,11 @@ namespace Engine.Tests.Processes;
 using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Messages;
 using Engine.Processes;
 using Engine.Tests;
 using Engine.Tests.Behaviors;
+using Engine.Wiring;
 
 public class MutationTests
 {
@@ -97,6 +99,43 @@ public class MutationTests
     }
 
     [Fact]
+    public void ModifyTargetByVariableMutation_PublishesAttributeChangedMessageThroughProcessContext()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 8f);
+        var target = CreateSettlement(world, "Target", (1, 0), population: 6f, fame: 3f);
+        var bus = new MessageBus();
+        AttributeChangedMessage? changed = null;
+        bus.Subscribe(message =>
+        {
+            if (message is AttributeChangedMessage attr)
+            {
+                changed = attr;
+            }
+        });
+
+        var goal = new EntityGoal(AttributeRef.Target("population", TestKinds.Settlement), target.Id, urgency: 1f);
+        var context = new ProcessMutationContext(
+            self,
+            world,
+            random: new FixedRandom(0.5),
+            goal: goal,
+            definitionId: "test_process",
+            messageBus: bus);
+
+        new CalculateMutation("delta", Expr.Lit(4f)).Execute(context);
+        new ModifyTargetByVariableMutation("population", "delta").Execute(context);
+
+        Assert.Equal(10f, target.Attributes.GetValue("population"));
+        Assert.NotNull(changed);
+        Assert.Equal(target.Id, changed!.EntityId);
+        Assert.Equal("population", changed.AttributeName);
+        Assert.Equal(6f, changed.OldValue);
+        Assert.Equal(10f, changed.NewValue);
+        Assert.Equal("test_process", changed.Source);
+    }
+
+    [Fact]
     public void RemovedDomainSpecificMutations_DoNotExist()
     {
         var mutationTypeNames = typeof(IMutation).Assembly.GetTypes().Select(t => t.Name).ToHashSet();
@@ -157,6 +196,41 @@ public class MutationTests
         Assert.Empty(world.Graph.OutgoingRelationships(self.Id, "located_at"));
         Assert.DoesNotContain(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(0, 0)));
         Assert.Contains(self.Id, world.SpatialIndex.EntitiesAtCell(new Engine.Map.HexCoord(1, 0)));
+    }
+
+    [Fact]
+    public void MoveTowardTargetOnSemanticPlaneMutation_PublishesSemanticMovementMessage()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateFaction(world, "Self");
+        var target = CreateFaction(world, "Target");
+        self.SemanticPosition = new Engine.Map.SemanticHexCoord(0, 0);
+        target.SemanticPosition = new Engine.Map.SemanticHexCoord(2, 0);
+        var bus = new MessageBus();
+        EntitySemanticMovedMessage? moved = null;
+        bus.Subscribe(message =>
+        {
+            if (message is EntitySemanticMovedMessage semanticMoved)
+            {
+                moved = semanticMoved;
+            }
+        });
+
+        var goal = new EntityGoal(AttributeRef.Target("reach", TestKinds.Faction), target.Id, urgency: 1f);
+        var context = new ProcessMutationContext(
+            self,
+            world,
+            goal: goal,
+            definitionId: "semantic_move",
+            messageBus: bus);
+
+        new MoveTowardTargetOnSemanticPlaneMutation().Execute(context);
+
+        Assert.NotNull(moved);
+        Assert.Equal(self.Id, moved!.EntityId);
+        Assert.Equal((0, 0, 0), moved.From);
+        Assert.Equal((1, 0, -1), moved.To);
+        Assert.Equal(new Engine.Map.SemanticHexCoord(1, 0), self.SemanticPosition);
     }
 
     [Fact]

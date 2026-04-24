@@ -62,6 +62,9 @@ public interface IMutationContext
     /// <summary>Update an entity's hex position.</summary>
     void SetCoordinates(EntityId entityId, int q, int r);
 
+    /// <summary>Update an entity's semantic-plane position.</summary>
+    void SetSemanticCoordinates(EntityId entityId, int q, int r);
+
     /// <summary>Cull an exclusive relationship from a source entity (e.g., NPC leaving a settlement).</summary>
     void CullRelationship(EntityId sourceId, string relationshipKind);
 }

@@ -19,6 +19,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
     private readonly int _entitySnapshotCadence;
     private readonly Dictionary<EntityId, EntityStateSnapshot> _lastEntityState = [];
     private readonly HashSet<(int Tick, int EntityId, string AttributeName)> _attributeEventsSeen = [];
+    private readonly HashSet<(int Tick, int EntityId, string Plane)> _movementEventsSeen = [];
     private bool _disposed;
 
     public string RunId { get; }
@@ -164,6 +165,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                 break;
 
             case EntityMovedMessage moved:
+                _movementEventsSeen.Add((moved.Tick, moved.EntityId.Value, "physical"));
                 Batch.MovementEvents.Add(new MovementEventRow(
                     RunId,
                     moved.Tick,
@@ -176,6 +178,24 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                     moved.To.R,
                     null,
                     HexCoord.Distance(new HexCoord(moved.From.Q, moved.From.R), new HexCoord(moved.To.Q, moved.To.R))));
+                break;
+
+            case EntitySemanticMovedMessage moved:
+                _movementEventsSeen.Add((moved.Tick, moved.EntityId.Value, "semantic"));
+                Batch.MovementEvents.Add(new MovementEventRow(
+                    RunId,
+                    moved.Tick,
+                    moved.EntityId.Value,
+                    "semantic",
+                    moved.From.Q,
+                    moved.From.R,
+                    moved.From.S,
+                    moved.To.Q,
+                    moved.To.R,
+                    moved.To.S,
+                    SemanticDistance(
+                        new SemanticHexCoord(moved.From.Q, moved.From.R),
+                        new SemanticHexCoord(moved.To.Q, moved.To.R))));
                 break;
 
             case ResourceChangedMessage resource:
@@ -313,6 +333,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
 
         UpdateEntityStateSnapshots(entities);
         _attributeEventsSeen.RemoveWhere(entry => entry.Tick < tick);
+        _movementEventsSeen.RemoveWhere(entry => entry.Tick < tick);
     }
 
     private void RecordSnapshotDerivedEvents(int tick, IReadOnlyCollection<Entity> entities)
@@ -352,6 +373,11 @@ public sealed class SimulationTelemetryRecorder : IDisposable
 
             if (previous.Semantic != entity.SemanticPosition)
             {
+                if (_movementEventsSeen.Contains((tick, entity.Id.Value, "semantic")))
+                {
+                    continue;
+                }
+
                 Batch.MovementEvents.Add(new MovementEventRow(
                     RunId,
                     tick,

@@ -328,10 +328,7 @@ public sealed class ModifySelfByVariableMutation(string attributeName, string va
     {
         ArgumentNullException.ThrowIfNull(context);
         var delta = Variance.Scale(context.GetVariable(variableName), variance, context.Random);
-        var entity = context.GetEntity(context.SelfEntityId);
-        if (entity is null) return;
-
-        entity.Attributes.Modify(attributeName, delta);
+        context.ModifyAttribute(context.SelfEntityId, attributeName, delta);
     }
 
     public string Describe() => $"modify_self_by_var({attributeName}, ${variableName}, var={variance})";
@@ -349,10 +346,7 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
         if (context.ResolvedTargetId is null) return;
 
         var delta = Variance.Scale(context.GetVariable(variableName), variance, context.Random);
-        var entity = context.GetEntity(context.ResolvedTargetId.Value);
-        if (entity is null) return;
-
-        entity.Attributes.Modify(attributeName, delta);
+        context.ModifyAttribute(context.ResolvedTargetId.Value, attributeName, delta);
     }
 
     public string Describe() => $"modify_target_by_var({attributeName}, ${variableName}, var={variance})";
@@ -516,7 +510,7 @@ public sealed class MoveTowardTargetOnSemanticPlaneMutation : IMutation
 
         if (best.HasValue)
         {
-            self.SemanticPosition = best.Value;
+            context.SetSemanticCoordinates(context.SelfEntityId, best.Value.Q, best.Value.R);
         }
     }
 
@@ -536,7 +530,8 @@ public sealed class WanderOnSemanticPlaneMutation : IMutation
         if (self is null) return;
 
         var direction = Math.Clamp((int)(context.Random.NextDouble() * 6), 0, 5);
-        self.SemanticPosition = self.SemanticPosition.Neighbor(direction);
+        var next = self.SemanticPosition.Neighbor(direction);
+        context.SetSemanticCoordinates(context.SelfEntityId, next.Q, next.R);
     }
 
     public string Describe() => "wander_semantic";
