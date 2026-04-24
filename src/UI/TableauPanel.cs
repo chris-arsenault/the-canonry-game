@@ -29,12 +29,18 @@ public partial class TableauPanel : PanelContainer
     private SimulationRunner? _sim;
     private Label? _summaryLabel;
     private Label? _recentLabel;
+    private TextureRect? _detailArt;
+    private Label? _detailPlaceholder;
+    private Label? _detailNameLabel;
+    private Label? _detailTypeLabel;
+    private Label? _detailDescLabel;
+    private VBoxContainer? _detailSections;
+    private Control? _detailContent;
     private GridContainer? _rows;
     private readonly Queue<string> _recentFires = [];
-    private readonly Dictionary<string, CheckBox> _checkBoxes = [];
     private readonly Dictionary<string, GeneratorRowRefs> _rowRefs = [];
     private string? _lastFiredGeneratorId;
-    private bool _suppressSignals;
+    private string? _hoveredGeneratorId;
 
     public void Initialize(SimulationRunner sim)
     {
@@ -67,28 +73,24 @@ public partial class TableauPanel : PanelContainer
 
         foreach (var (generatorId, generator) in _sim.DefinitionGraph.Generators.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
-            if (!_rowRefs.TryGetValue(generatorId, out var row) || !_checkBoxes.TryGetValue(generatorId, out var checkBox))
+            if (!_rowRefs.TryGetValue(generatorId, out var row))
             {
                 continue;
             }
 
             var isActive = HasActiveGeneratorCard(generatorId);
-            SetCheckBoxState(checkBox, isActive);
             var instance = _sim.WorldState.Generators.ById[generatorId];
             var isLastFired = string.Equals(generatorId, _lastFiredGeneratorId, StringComparison.Ordinal);
             var accent = UiTokens.KindAccent(generator.Target.Kind.Value);
             var chipTone = GetChipTone(instance, isLastFired);
             row.StatusLabel.Text = BuildStatusText(generatorId, instance);
-            row.StatsLabel.Text = BuildStatsText(instance);
-            row.OutputsLabel.Text = BuildOutputs(generator);
-            row.PreconditionsLabel.Text = BuildPreconditions(generator);
             row.NameLabel.AddThemeColorOverride("font_color", isActive ? UiTokens.Vellum : UiTokens.Parchment);
             row.ActivePip.Color = isActive ? ActivePip : InactivePip;
             row.CardPanel.AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent, selected: isActive, highlighted: isLastFired));
             row.HeaderPanel.AddThemeStyleboxOverride("panel", UiTheme.HeaderStripStyle(accent));
             row.KindBadgePanel.AddThemeStyleboxOverride("panel", UiTheme.BadgeStyle(accent));
             row.StatusPanel.AddThemeStyleboxOverride("panel", UiTheme.ChipStyle(chipTone));
-            row.TypeLineLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
+            row.TypeLineLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
             row.KindBadgeLabel.AddThemeColorOverride("font_color", accent);
             row.StatusLabel.AddThemeColorOverride("font_color", UiTheme.ChipTextColor(chipTone));
         }
@@ -96,16 +98,35 @@ public partial class TableauPanel : PanelContainer
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(680, 440);
-        AddThemeStyleboxOverride("panel", UiTheme.FloatingPanelStyle());
+        // Floor on the panel's min size — 4 cards @ 232 wide + gutters
+        // + 16px padding margins + ~24 stylebox = ~1000. Height fits one
+        // full row of 340-tall cards plus title/detail/footer bands.
+        // PositionFloatingHud in Main.cs bumps this up at runtime.
+        CustomMinimumSize = new Vector2(1000, 640);
+
+        // Stylebox with 0 content margins so the backdrop TextureRect can
+        // reach the panel's visible edge. Visual padding is restored below
+        // via a MarginContainer around the content VBox.
+        var panelStyle = UiTheme.FloatingPanelStyle();
+        panelStyle.ContentMarginTop = 0;
+        panelStyle.ContentMarginBottom = 0;
+        panelStyle.ContentMarginLeft = 0;
+        panelStyle.ContentMarginRight = 0;
+        AddThemeStyleboxOverride("panel", panelStyle);
+
+        // Stop mouse/scroll events so they don't leak through to the map
+        // underneath when the cursor is over the panel (including empty
+        // gaps between cards).
+        MouseFilter = MouseFilterEnum.Stop;
+        // Clip any child bleed (backdrop TextureRect in particular) so the
+        // panel's visible edge IS its edge, regardless of ambient size.
+        ClipContents = true;
 
         // Layered root: backdrop illustration behind the cards, VBox content
-        // on top. PanelContainer manages one child, so the Control here holds
-        // both via FullRect anchors.
+        // on top. With 0 stylebox margins, layers fills the full panel rect.
         var layers = new Control
         {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
         };
         AddChild(layers);
 
@@ -114,18 +135,31 @@ public partial class TableauPanel : PanelContainer
             var bg = new TextureRect
             {
                 Texture = backdrop,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
-                Modulate = new Color(1f, 1f, 1f, 0.12f),
+                Modulate = new Color(1f, 1f, 1f, 0.18f),
                 MouseFilter = MouseFilterEnum.Ignore,
             };
-            bg.SetAnchorsPreset(LayoutPreset.FullRect);
+            bg.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             layers.AddChild(bg);
         }
 
+        // Margins push the content VBox inward while the backdrop behind
+        // continues edge-to-edge.
+        var padding = new MarginContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        padding.AddThemeConstantOverride("margin_top", UiTokens.Space4);
+        padding.AddThemeConstantOverride("margin_bottom", UiTokens.Space4);
+        padding.AddThemeConstantOverride("margin_left", UiTokens.Space4);
+        padding.AddThemeConstantOverride("margin_right", UiTokens.Space4);
+        padding.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        layers.AddChild(padding);
+
         var outer = new VBoxContainer();
-        outer.SetAnchorsPreset(LayoutPreset.FullRect);
         outer.AddThemeConstantOverride("separation", UiTokens.Space3);
-        layers.AddChild(outer);
+        padding.AddChild(outer);
 
         var title = new Label
         {
@@ -163,19 +197,128 @@ public partial class TableauPanel : PanelContainer
         var scroll = new ScrollContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            CustomMinimumSize = new Vector2(0, 280),
         };
         outer.AddChild(scroll);
 
         _rows = new GridContainer
         {
-            Columns = 2,
+            Columns = 4,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _rows.AddThemeConstantOverride("h_separation", UiTokens.Space3);
-        _rows.AddThemeConstantOverride("v_separation", UiTokens.Space3);
+        _rows.AddThemeConstantOverride("h_separation", UiTokens.Space2);
+        _rows.AddThemeConstantOverride("v_separation", UiTokens.Space2);
         scroll.AddChild(_rows);
+
+        outer.AddChild(BuildHairline());
+
+        // Detail blowup — when hovering a card, show an enlarged version:
+        // big card-face image on the left + full details on the right.
+        // Hidden placeholder text when nothing is hovered.
+        var detailPanel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(0, 300),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        detailPanel.AddThemeStyleboxOverride("panel", UiTheme.InsetStyle());
+        outer.AddChild(detailPanel);
+
+        // Swap-view root: shows either a placeholder or the content hbox.
+        _detailContent = new Control
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        detailPanel.AddChild(_detailContent);
+
+        _detailPlaceholder = new Label
+        {
+            Text = "HOVER A CARD FOR DETAIL",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _detailPlaceholder.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _detailPlaceholder.AddThemeFontOverride("font", UiTheme.BodyFont);
+        _detailPlaceholder.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _detailPlaceholder.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        _detailContent.AddChild(_detailPlaceholder);
+
+        var detailRow = new HBoxContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        detailRow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        detailRow.AddThemeConstantOverride("separation", UiTokens.Space3);
+        _detailContent.AddChild(detailRow);
+
+        // Left: enlarged card-face art (2:3 aspect, like the card source).
+        var artFrame = new Control
+        {
+            CustomMinimumSize = new Vector2(200, 280),
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+            MouseFilter = MouseFilterEnum.Ignore,
+            ClipContents = true,
+        };
+        detailRow.AddChild(artFrame);
+
+        _detailArt = new TextureRect
+        {
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _detailArt.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        artFrame.AddChild(_detailArt);
+
+        // Right: full textual breakdown — name, type line, description,
+        // then the mono preconditions/outputs/tracking block.
+        var textColumn = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        textColumn.AddThemeConstantOverride("separation", UiTokens.Space1);
+        detailRow.AddChild(textColumn);
+
+        _detailNameLabel = new Label
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _detailNameLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        _detailNameLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        _detailNameLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        textColumn.AddChild(_detailNameLabel);
+
+        _detailTypeLabel = new Label
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _detailTypeLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        _detailTypeLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _detailTypeLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        textColumn.AddChild(_detailTypeLabel);
+
+        _detailDescLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _detailDescLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        _detailDescLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _detailDescLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
+        textColumn.AddChild(_detailDescLabel);
+
+        // Iconographic sections — cleared and rebuilt per hovered card.
+        _detailSections = new VBoxContainer
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _detailSections.AddThemeConstantOverride("separation", UiTokens.Space2);
+        textColumn.AddChild(_detailSections);
 
         outer.AddChild(BuildHairline());
         _recentLabel = new Label
@@ -215,175 +358,220 @@ public partial class TableauPanel : PanelContainer
             child.QueueFree();
         }
 
-        _checkBoxes.Clear();
         _rowRefs.Clear();
-        _suppressSignals = true;
 
         foreach (var entry in _sim.DefinitionGraph.Generators.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
             var generatorId = entry.Key;
             var generator = entry.Value;
             var accent = UiTokens.KindAccent(generator.Target.Kind.Value);
+
+            // Card: portrait MTG-style at ~30% larger than the earlier pass,
+            // with fixed internal heights so every card is the same size
+            // regardless of description length. MouseFilter Stop lets the
+            // PanelContainer receive GuiInput; children Ignore so clicks
+            // land here. MouseEntered/Exited drive the detail footer.
             var card = new PanelContainer
             {
-                CustomMinimumSize = new Vector2(308, 260),
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                CustomMinimumSize = new Vector2(232, 340),
+                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                SizeFlagsVertical = SizeFlags.ShrinkBegin,
+                MouseFilter = MouseFilterEnum.Stop,
+                ClipContents = true,
             };
             card.AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent, selected: HasActiveGeneratorCard(generatorId)));
-
-            // Layered root so the illustrated card-face can sit behind the
-            // content. PanelContainer manages ONE child, so we stack a
-            // Control here and put both the background and the content
-            // inside it as FullRect overlays.
-            var layers = new Control
+            var localGeneratorId = generatorId;
+            card.GuiInput += evt =>
             {
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                SizeFlagsVertical = SizeFlags.ExpandFill,
-            };
-            card.AddChild(layers);
-
-            var cardFace = AssetLibrary.CardFace(generator.Target.Kind.Value);
-            if (cardFace is not null)
-            {
-                var bg = new TextureRect
+                if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
                 {
-                    Texture = cardFace,
-                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
-                    // Dimmed so overlaid text stays readable on the dark card.
-                    Modulate = new Color(1f, 1f, 1f, 0.28f),
-                    MouseFilter = MouseFilterEnum.Ignore,
-                };
-                bg.SetAnchorsPreset(LayoutPreset.FullRect);
-                layers.AddChild(bg);
-            }
-
-            var row = new VBoxContainer
-            {
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                    OnGeneratorToggled(localGeneratorId, !HasActiveGeneratorCard(localGeneratorId));
+                }
             };
-            row.SetAnchorsPreset(LayoutPreset.FullRect);
-            row.AddThemeConstantOverride("separation", UiTokens.Space2);
-            layers.AddChild(row);
+            card.MouseEntered += () => ShowCardDetail(localGeneratorId);
+            card.MouseExited += () => ClearCardDetailIf(localGeneratorId);
 
-            var headerPanel = new PanelContainer();
+            // Root VBox stacks the MTG bands top-down. No FullRect layered
+            // Control — straightforward sized children, so the panel's
+            // sizing is predictable and nothing leaks past its bounds.
+            var stack = new VBoxContainer
+            {
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            stack.AddThemeConstantOverride("separation", 0);
+            card.AddChild(stack);
+
+            // 1. Name banner — accent-colored strip, top band.
+            var headerPanel = new PanelContainer
+            {
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
             headerPanel.AddThemeStyleboxOverride("panel", UiTheme.HeaderStripStyle(accent));
-            row.AddChild(headerPanel);
+            stack.AddChild(headerPanel);
 
-            var headerColumn = new VBoxContainer();
-            headerColumn.AddThemeConstantOverride("separation", UiTokens.Space1);
-            headerPanel.AddChild(headerColumn);
-
-            var banner = new HBoxContainer
+            var headerRow = new HBoxContainer
             {
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
             };
-            headerColumn.AddChild(banner);
-
-            var typeLine = new Label
-            {
-                Text = BuildTypeLine(generator),
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            };
-            typeLine.AddThemeFontOverride("font", UiTheme.BodyFont);
-            typeLine.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
-            typeLine.AddThemeColorOverride("font_color", UiTokens.Parchment);
-            banner.AddChild(typeLine);
-
-            var kindBadgePanel = new PanelContainer();
-            kindBadgePanel.AddThemeStyleboxOverride("panel", UiTheme.BadgeStyle(accent));
-            banner.AddChild(kindBadgePanel);
-
-            var kindBadgeLabel = new Label
-            {
-                Text = generator.Target.Kind.Value.ToUpperInvariant(),
-            };
-            kindBadgeLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
-            kindBadgeLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
-            kindBadgeLabel.AddThemeColorOverride("font_color", accent);
-            kindBadgePanel.AddChild(kindBadgeLabel);
-
-            var head = new HBoxContainer
-            {
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            };
-            head.AddThemeConstantOverride("separation", UiTokens.Space2);
-            headerColumn.AddChild(head);
+            headerRow.AddThemeConstantOverride("separation", UiTokens.Space1);
+            headerPanel.AddChild(headerRow);
 
             var activePip = new ColorRect
             {
                 CustomMinimumSize = new Vector2(8, 8),
                 Color = HasActiveGeneratorCard(generatorId) ? ActivePip : InactivePip,
                 SizeFlagsVertical = SizeFlags.ShrinkCenter,
+                MouseFilter = MouseFilterEnum.Ignore,
             };
-            head.AddChild(activePip);
-
-            var checkBox = new CheckBox
-            {
-                ButtonPressed = HasActiveGeneratorCard(generatorId),
-                SizeFlagsVertical = SizeFlags.ShrinkCenter,
-                Text = string.Empty,
-            };
-            checkBox.Toggled += enabled => OnGeneratorToggled(generatorId, enabled);
-            head.AddChild(checkBox);
+            headerRow.AddChild(activePip);
 
             var nameLabel = new Label
             {
                 Text = generator.Name,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                ClipText = true,
+                MouseFilter = MouseFilterEnum.Ignore,
             };
             nameLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
             nameLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleSmall);
             nameLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
-            head.AddChild(nameLabel);
+            headerRow.AddChild(nameLabel);
 
-            var initialInstance = _sim.WorldState.Generators.ById[generatorId];
-            var initialTone = GetChipTone(initialInstance, isLastFired: false);
-            var statusPanel = new PanelContainer();
-            statusPanel.AddThemeStyleboxOverride("panel", UiTheme.ChipStyle(initialTone));
-            head.AddChild(statusPanel);
-
-            var statusLabel = new Label
+            // 2. Card-face art — full-alpha, wide, prominent. Taller frame
+            //    than the earlier pass so less of the 1024×1536 source is
+            //    cropped away (was showing ~37% of source height, now ~60%).
+            var artFrame = new Control
             {
-                HorizontalAlignment = HorizontalAlignment.Right,
+                CustomMinimumSize = new Vector2(0, 200),
+                MouseFilter = MouseFilterEnum.Ignore,
+                ClipContents = true,
             };
-            statusLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
-            statusLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
-            statusLabel.AddThemeColorOverride("font_color", UiTheme.ChipTextColor(initialTone));
-            statusPanel.AddChild(statusLabel);
+            stack.AddChild(artFrame);
 
-            var descriptionLabel = CreateBodyLabel(fontSize: UiTokens.SizeBodySmall);
+            var cardFace = AssetLibrary.CardFace(generator.Target.Kind.Value);
+            if (cardFace is not null)
+            {
+                var art = new TextureRect
+                {
+                    Texture = cardFace,
+                    // IgnoreSize: without this, TextureRect's default
+                    // ExpandMode = KeepSize makes its minimum = the
+                    // texture's native size (1776×2368). The anchored
+                    // FullRect can't shrink it, so the rect ends up huge
+                    // and ClipContents shows only the top-left corner.
+                    // IgnoreSize lets the anchors actually size the rect.
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                };
+                art.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+                artFrame.AddChild(art);
+            }
+
+            // 3. Type line + kind badge — below the art, before the rules.
+            var typeRow = new HBoxContainer
+            {
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            typeRow.AddThemeConstantOverride("separation", UiTokens.Space1);
+            stack.AddChild(typeRow);
+
+            var typeLine = new Label
+            {
+                Text = BuildTypeLine(generator),
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                ClipText = true,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            typeLine.AddThemeFontOverride("font", UiTheme.BodyFont);
+            typeLine.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+            typeLine.AddThemeColorOverride("font_color", UiTokens.Whisper);
+            typeRow.AddChild(typeLine);
+
+            var kindBadgePanel = new PanelContainer
+            {
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            kindBadgePanel.AddThemeStyleboxOverride("panel", UiTheme.BadgeStyle(accent));
+            typeRow.AddChild(kindBadgePanel);
+
+            var kindBadgeLabel = new Label
+            {
+                Text = generator.Target.Kind.Value.ToUpperInvariant(),
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            kindBadgeLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+            kindBadgeLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+            kindBadgeLabel.AddThemeColorOverride("font_color", accent);
+            kindBadgePanel.AddChild(kindBadgeLabel);
+
+            // 4. Rules text box — fixed height so every card is the same
+            //    total height regardless of description length.
+            var rulesPanel = new PanelContainer
+            {
+                CustomMinimumSize = new Vector2(0, 56),
+                SizeFlagsVertical = SizeFlags.ShrinkBegin,
+                MouseFilter = MouseFilterEnum.Ignore,
+                ClipContents = true,
+            };
+            rulesPanel.AddThemeStyleboxOverride("panel", UiTheme.InsetStyle());
+            stack.AddChild(rulesPanel);
+
+            var descriptionLabel = CreateBodyLabel(fontSize: UiTokens.SizeCaption);
             descriptionLabel.Text = string.IsNullOrWhiteSpace(generator.Description)
                 ? generator.Id
                 : generator.Description!;
             descriptionLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
-            row.AddChild(descriptionLabel);
+            descriptionLabel.MouseFilter = MouseFilterEnum.Ignore;
+            rulesPanel.AddChild(descriptionLabel);
 
-            var preconditionsPanel = CreateSectionPanel();
+            // 5. Status chip — bottom-right, like MTG's power/toughness.
+            var statusRow = new HBoxContainer
+            {
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            stack.AddChild(statusRow);
+
+            var statusSpacer = new Control
+            {
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            statusRow.AddChild(statusSpacer);
+
+            var initialInstance = _sim.WorldState.Generators.ById[generatorId];
+            var initialTone = GetChipTone(initialInstance, isLastFired: false);
+            var statusPanel = new PanelContainer
+            {
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            statusPanel.AddThemeStyleboxOverride("panel", UiTheme.ChipStyle(initialTone));
+            statusRow.AddChild(statusPanel);
+
+            var statusLabel = new Label
+            {
+                HorizontalAlignment = HorizontalAlignment.Right,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            statusLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+            statusLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+            statusLabel.AddThemeColorOverride("font_color", UiTheme.ChipTextColor(initialTone));
+            statusPanel.AddChild(statusLabel);
+
+            // Detailed preconditions/outputs/tracking live in the tooltip
+            // and in the bottom detail bar (updated on hover). Unused
+            // labels remain in GeneratorRowRefs for now.
             var preconditionsLabel = CreateBodyLabel();
-            preconditionsPanel.AddChild(WrapSection("Preconditions", preconditionsLabel));
-            row.AddChild(preconditionsPanel);
-
-            var outputsPanel = CreateSectionPanel();
             var outputsLabel = CreateBodyLabel();
-            outputsPanel.AddChild(WrapSection("Outputs", outputsLabel));
-            row.AddChild(outputsPanel);
-
-            var statsPanel = CreateSectionPanel();
             var statsLabel = CreateBodyLabel();
-            statsPanel.AddChild(WrapSection("Tracking", statsLabel));
-            row.AddChild(statsPanel);
 
             var tooltip = BuildTooltip(generator);
             card.TooltipText = tooltip;
-            checkBox.TooltipText = tooltip;
-            nameLabel.TooltipText = tooltip;
-            descriptionLabel.TooltipText = tooltip;
-            preconditionsLabel.TooltipText = tooltip;
-            outputsLabel.TooltipText = tooltip;
-            statsLabel.TooltipText = tooltip;
 
             _rows.AddChild(card);
-            _checkBoxes[generatorId] = checkBox;
             _rowRefs[generatorId] = new GeneratorRowRefs(
                 card,
                 headerPanel,
@@ -399,13 +587,12 @@ public partial class TableauPanel : PanelContainer
                 activePip);
         }
 
-        _suppressSignals = false;
         Refresh();
     }
 
     private void OnGeneratorToggled(string generatorId, bool enabled)
     {
-        if (_suppressSignals || _sim is null || !_checkBoxes.TryGetValue(generatorId, out var checkBox))
+        if (_sim is null)
         {
             return;
         }
@@ -417,26 +604,219 @@ public partial class TableauPanel : PanelContainer
                 return;
             }
 
-            if (!_sim.SpawnCards.TryGetValue(generatorId, out var cardDefinition) ||
-                _sim.Tableau.PlaceCard(cardDefinition, _sim.Clock.CurrentTick) is null)
+            if (_sim.SpawnCards.TryGetValue(generatorId, out var cardDefinition))
             {
-                SetCheckBoxState(checkBox, false);
+                _sim.Tableau.PlaceCard(cardDefinition, _sim.Clock.CurrentTick);
             }
 
+            Refresh();
             return;
         }
 
         var activeCard = _sim.Tableau.ActiveCards.FirstOrDefault(card => card.Definition.GeneratorId == generatorId);
-        if (activeCard is null)
+        if (activeCard is not null)
         {
-            return;
+            _sim.Tableau.RemoveCard(activeCard);
         }
 
-        _sim.Tableau.RemoveCard(activeCard);
+        Refresh();
     }
 
     private bool HasActiveGeneratorCard(string generatorId) =>
         _sim is not null && _sim.Tableau.ActiveCards.Any(card => card.Definition.GeneratorId == generatorId);
+
+    private void ShowCardDetail(string generatorId)
+    {
+        if (_sim is null || _detailArt is null || _detailNameLabel is null ||
+            _detailTypeLabel is null || _detailDescLabel is null ||
+            _detailSections is null || _detailPlaceholder is null ||
+            _detailContent is null)
+        {
+            return;
+        }
+
+        if (!_sim.DefinitionGraph.Generators.TryGetValue(generatorId, out var generator))
+        {
+            return;
+        }
+
+        _hoveredGeneratorId = generatorId;
+        var instance = _sim.WorldState.Generators.ById[generatorId];
+        _detailArt.Texture = AssetLibrary.CardFace(generator.Target.Kind.Value);
+        _detailNameLabel.Text = generator.Name;
+        _detailTypeLabel.Text = BuildTypeLine(generator);
+        _detailDescLabel.Text = string.IsNullOrWhiteSpace(generator.Description)
+            ? generator.Id
+            : generator.Description!;
+
+        RebuildDetailSections(generator, instance);
+
+        _detailPlaceholder.Visible = false;
+        if (_detailContent.GetChildCount() >= 2 && _detailContent.GetChild(1) is Control row)
+        {
+            row.Visible = true;
+        }
+    }
+
+    private void ClearCardDetailIf(string generatorId)
+    {
+        if (_detailPlaceholder is null || _detailContent is null) return;
+        if (!string.Equals(_hoveredGeneratorId, generatorId, StringComparison.Ordinal)) return;
+        _hoveredGeneratorId = null;
+        _detailPlaceholder.Visible = true;
+        if (_detailContent.GetChildCount() >= 2 && _detailContent.GetChild(1) is Control row)
+        {
+            row.Visible = false;
+        }
+    }
+
+    private void RebuildDetailSections(DefinitionGeneratorNode generator, GeneratorInstance instance)
+    {
+        if (_detailSections is null) return;
+
+        foreach (var child in _detailSections.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        // WHEN — what makes the card fire. Attribute-name + direction glyph,
+        // human-readable. No "any" fallback row; if there's no trigger just
+        // omit the section.
+        if (generator.Triggers.Count > 0)
+        {
+            var triggerRows = generator.Triggers
+                .Where(t => t.AttributeId is not null)
+                .Select<DefinitionGeneratorTrigger, (Texture2D?, string)>(trigger =>
+                {
+                    var attrName = trigger.AttributeId!.Value.Value;
+                    var icon = AssetLibrary.AttributeIcon(attrName) ?? AssetLibrary.EventIcon("notice");
+                    var arrow = trigger.Direction switch
+                    {
+                        TriggerDirection.High => "↑",
+                        TriggerDirection.Low => "↓",
+                        TriggerDirection.Critical => "⚠",
+                        _ => string.Empty,
+                    };
+                    return (icon, $"{Capitalize(attrName)} {arrow}".TrimEnd());
+                })
+                .ToArray();
+            if (triggerRows.Length > 0)
+            {
+                AddDetailSection("WHEN", triggerRows);
+            }
+        }
+
+        // CREATES — what the card makes. Just "Kind Subtype" with an
+        // optional chance suffix. No refs, no resolution keywords.
+        if (generator.Produces.Count > 0)
+        {
+            var rows = generator.Produces.Select<DefinitionProducedEntity, (Texture2D?, string)>(produced =>
+            {
+                var subtypeDisplay = !string.IsNullOrWhiteSpace(produced.Subtype)
+                    ? Capitalize(produced.Subtype)
+                    : produced.Subtypes is { Count: > 0 }
+                        ? string.Join(" or ", produced.Subtypes.OrderBy(v => v, StringComparer.Ordinal).Select(Capitalize))
+                        : string.Empty;
+                var icon = AssetLibrary.SubtypeMapIcon(produced.Kind.Value, produced.Subtype)
+                    ?? AssetLibrary.KindMapIcon(produced.Kind.Value);
+                var label = string.IsNullOrEmpty(subtypeDisplay)
+                    ? Capitalize(produced.Kind.Value)
+                    : $"{Capitalize(produced.Kind.Value)} {subtypeDisplay}";
+                if (produced.CreateChance < 1f)
+                {
+                    label += $"  ({Mathf.RoundToInt(produced.CreateChance * 100f)}%)";
+                }
+                return (icon, label);
+            }).ToArray();
+            AddDetailSection("CREATES", rows);
+        }
+
+        // HISTORY — runtime stats.
+        var trackingRows = new List<(Texture2D?, string)>
+        {
+            (AssetLibrary.EventIcon("creation"), $"{instance.TotalRuns} fires"),
+        };
+        if (instance.FailedRuns > 0)
+        {
+            trackingRows.Add((AssetLibrary.EventIcon("threshold"), $"{instance.FailedRuns} blocked"));
+        }
+        if (instance.LastFiredTick is { } run)
+        {
+            trackingRows.Add((AssetLibrary.EventIcon("card"), $"Last at tick {run}"));
+        }
+        AddDetailSection("HISTORY", trackingRows.ToArray());
+    }
+
+    private static string Capitalize(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        if (char.IsUpper(value[0])) return value;
+        return char.ToUpperInvariant(value[0]) + value[1..];
+    }
+
+    private void AddDetailSection(string title, params (Texture2D? Icon, string Text)[] rows)
+    {
+        if (_detailSections is null) return;
+
+        var section = new VBoxContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        section.AddThemeConstantOverride("separation", 2);
+        _detailSections.AddChild(section);
+
+        var header = new Label
+        {
+            Text = title,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        header.AddThemeFontOverride("font", UiTheme.BodyFont);
+        header.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        header.AddThemeColorOverride("font_color", UiTokens.Ember);
+        section.AddChild(header);
+
+        foreach (var (icon, text) in rows)
+        {
+            var row = new HBoxContainer
+            {
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            row.AddThemeConstantOverride("separation", UiTokens.Space1);
+            section.AddChild(row);
+
+            var iconFrame = new Control
+            {
+                CustomMinimumSize = new Vector2(20, 20),
+                SizeFlagsVertical = SizeFlags.ShrinkCenter,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            row.AddChild(iconFrame);
+
+            if (icon is not null)
+            {
+                var iconRect = new TextureRect
+                {
+                    Texture = icon,
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                };
+                iconRect.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+                iconFrame.AddChild(iconRect);
+            }
+
+            var label = new Label
+            {
+                Text = text,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            label.AddThemeFontOverride("font", UiTheme.BodyFont);
+            label.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+            label.AddThemeColorOverride("font_color", UiTokens.Vellum);
+            row.AddChild(label);
+        }
+    }
 
     private void OnMessageReceived(SimulationMessage message)
     {
@@ -482,13 +862,6 @@ public partial class TableauPanel : PanelContainer
             _ => "changes",
         };
         return $"{trigger.AttributeId.Value.Value} {band}";
-    }
-
-    private void SetCheckBoxState(CheckBox checkBox, bool pressed)
-    {
-        _suppressSignals = true;
-        checkBox.ButtonPressed = pressed;
-        _suppressSignals = false;
     }
 
     private static Label CreateBodyLabel(int fontSize = UiTokens.SizeCaption)

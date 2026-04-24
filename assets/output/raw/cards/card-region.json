@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-region",
+  "file": "cards/card-region.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "gpt-image-1.5",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: a broad icebound region seen from a high vantage — a wide\nsweep of Aurora Berg terrain, meltwater channels cutting across blue\nshelf ice, distant crags silhouetted against a cold horizon, a lone\ncairn on a ridge in the foreground marking the boundary. Aurora\nribbons faintly overhead. The land itself is the subject; no figures\ndominate the scene. Civilizational scale in the geography.\nLower half: warm dark surface for overlaid text with a faint ghosted\ncairn-and-horizon watermark. Warm cream parchment frame.",
+  "formatted_prompt": "STYLE: editorial field-journal illustration in richly pigmented ink and watercolor on aged parchment; 19th-century naturalist plate aesthetic with confident game-poster saturation; fine nib-pen linework anchoring loose, heavily pigmented watercolor fills; composition split vertically — upper two-thirds landscape panorama, lower one-third warm dark zone for text overlay; civilizational-scale geography fills the frame\n\nSUBJECT: a broad icebound region of Aurora Berg seen from elevated vantage — wide sweeping terrain of blue shelf ice (#4A90C5) cut by sinuous meltwater channels catching pale sky reflection; distant frost crags silhouetted in warm brown (#6B5548) against a cold horizon; a lone cairn of stacked ice-stone on a foreground ridge marking a territorial boundary; aurora ribbons in luminous emerald green (#2DB56B) arcing faintly across the upper sky; the land itself is the dominant subject — no figures, geography rendered at civilizational scale\n\nCONTEXT: vertical 3:4 card face; upper half panoramic landscape; lower half warm deep slate-navy (#0D1A2D) surface carrying a faint ghosted watermark of the cairn and horizon silhouette; cream parchment frame border in (#F5EDD8) with fine inked edge rule\n\nCOLOR: shelf ice in clean bright (#4A90C5); meltwater channels in deep ocean blue (#1E4A85) reflections; crags in saturated warm brown (#6B5548); aurora ribbons vivid emerald (#2DB56B); sky in pale cold cream (#E0D4A8); lower text zone deep (#0D1A2D); parchment frame (#F5EDD8)\n\nDETAILS: high color separation between luminous ice foreground, midground channel network, and silhouetted crag horizon; aurora light casts cool prismatic shimmer across ice surfaces; cairn stones rendered in crisp nib-pen linework with watercolor shadow; paper grain and faint foxing visible at parchment edges; muted atmospheric perspective deepens toward horizon while foreground ice remains vivid and saturated",
+  "bfl_task_id": "req_508c9a09eafd4f5fab79f8bf0815f8e1",
+  "cost_usd": 0.08395000000000001,
+  "claude_cost_usd": 0.012498,
+  "duration_ms": 21531,
+  "generated_at": "2026-04-24T21:25:01.799Z"
+}

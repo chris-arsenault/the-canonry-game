@@ -43,6 +43,7 @@ public static class AssetLibrary
     public static Texture2D? CardFaction { get; private set; }
     public static Texture2D? CardArtifact { get; private set; }
     public static Texture2D? CardOrca { get; private set; }
+    public static Texture2D? CardRegion { get; private set; }
     public static Texture2D? CardBack { get; private set; }
 
     public static Texture2D? TitleArt { get; private set; }
@@ -71,6 +72,8 @@ public static class AssetLibrary
     private static readonly Dictionary<string, Texture2D?> _cardFaces = [];
     private static readonly Dictionary<string, Texture2D?> _mapIcons = [];
     private static readonly Dictionary<string, Texture2D?> _subtypeIcons = [];
+    private static readonly Dictionary<string, Texture2D?> _attributeIcons = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Texture2D?> _eventIcons = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Whether Load() has completed successfully. Accessors return null until then.</summary>
     public static bool Loaded { get; private set; }
@@ -116,11 +119,26 @@ public static class AssetLibrary
         LoadSubtypeIcons("artifact",   "relic", "instrument", "weapon", "tome", "seal");
         LoadSubtypeIcons("region",     "face", "shelf", "depths", "reach", "sea", "scar");
 
+        // Attribute icons — used in the tableau detail view to visualize
+        // trigger attributes. Loaded at @32 for inline use.
+        foreach (var attr in new[] { "dominion", "echo", "food", "holding", "population", "power", "provisions", "warmth", "wealth" })
+        {
+            _attributeIcons[attr] = LoadTexture($"icons/attr-{attr}@32.png");
+        }
+
+        // Event-type icons — generic symbols for creation / lifecycle /
+        // threshold crossings / notices. Used in the detail view.
+        foreach (var ev in new[] { "card", "creation", "lifecycle", "notice", "threshold" })
+        {
+            _eventIcons[ev] = LoadTexture($"icons/{ev}@32.png");
+        }
+
         CardPenguin    = LoadTexture("cards/card-penguin.png");
         CardSettlement = LoadTexture("cards/card-settlement.png");
         CardFaction    = LoadTexture("cards/card-faction.png");
         CardArtifact   = LoadTexture("cards/card-artifact.png");
         CardOrca       = LoadTexture("cards/card-orca.png");
+        CardRegion     = LoadTexture("cards/card-region.png");
         CardBack       = LoadTexture("cards/card-back.png");
 
         _cardFaces["penguin"]    = CardPenguin;
@@ -128,6 +146,7 @@ public static class AssetLibrary
         _cardFaces["faction"]    = CardFaction;
         _cardFaces["artifact"]   = CardArtifact;
         _cardFaces["orca"]       = CardOrca;
+        _cardFaces["region"]     = CardRegion;
 
         TitleArt        = LoadTexture("backgrounds/title.png");
         TableauBackdrop = LoadTexture("backgrounds/tableau.png");
@@ -198,6 +217,20 @@ public static class AssetLibrary
     /// <summary>Get a terrain texture, or null if not available.</summary>
     public static Texture2D? Terrain(TerrainType terrain) =>
         _terrain.TryGetValue(terrain, out var tex) ? tex : null;
+
+    /// <summary>Get a per-attribute glyph icon (dominion, echo, food, etc.).</summary>
+    public static Texture2D? AttributeIcon(string attributeName)
+    {
+        ArgumentNullException.ThrowIfNull(attributeName);
+        return _attributeIcons.TryGetValue(attributeName, out var tex) ? tex : null;
+    }
+
+    /// <summary>Get an event-type icon (creation, lifecycle, threshold, ...).</summary>
+    public static Texture2D? EventIcon(string eventName)
+    {
+        ArgumentNullException.ThrowIfNull(eventName);
+        return _eventIcons.TryGetValue(eventName, out var tex) ? tex : null;
+    }
 
     private static void LoadSubtypeIcons(string kindId, params string[] subtypes)
     {

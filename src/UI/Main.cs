@@ -754,12 +754,21 @@ public partial class Main : Node2D
 
         if (_tableauPanel is not null)
         {
-            // Tableau: center-top of the map area, below the plane/legend overlays.
-            var tableauSize = _tableauPanel.GetCombinedMinimumSize();
-            var tableauX = mapRect.Position.X + (mapRect.Size.X - tableauSize.X) * 0.5f;
+            // Tableau: floating overlay centered in the map area. We drive
+            // CustomMinimumSize here (not Size) because PanelContainer auto-
+            // clamps to its combined min — setting Size directly gets
+            // overridden on the next layout pass and leaks the backdrop
+            // past the map bounds. Tune up to a preferred ceiling but
+            // never exceed the available map space.
+            var padding = UiTokens.Space4 * 2f;
+            var availableW = Mathf.Max(1000f, mapRect.Size.X - padding);
+            var availableH = Mathf.Max(640f, mapRect.Size.Y - padding);
+            var width = Mathf.Min(availableW, 1080f);
+            var height = Mathf.Min(availableH, 780f);
+            _tableauPanel.CustomMinimumSize = new Vector2(width, height);
             _tableauPanel.Position = new Vector2(
-                Mathf.Max(mapRect.Position.X + UiTokens.Space4, tableauX),
-                mapRect.Position.Y + UiTokens.Space4);
+                mapRect.Position.X + (mapRect.Size.X - width) * 0.5f,
+                mapRect.Position.Y + (mapRect.Size.Y - height) * 0.5f);
         }
 
         if (_legendPanel is not null)

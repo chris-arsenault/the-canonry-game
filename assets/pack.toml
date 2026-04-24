@@ -620,6 +620,14 @@ identity = "orca"
 prompt = "prompts/3-tableau-card-faces/card-orca.md"
 
 [[section.asset]]
+id = "card-region"
+file = "cards/card-region.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-region.md"
+
+[[section.asset]]
 id = "card-back"
 file = "cards/card-back.png"
 type = "card-face"
