@@ -67,12 +67,16 @@ Culture is a static, domain-defined classification. It is NOT an entity kind. En
 
 ### 10. Typed Effect System
 
-Relationship-derived attribute effects follow the Pathfinder 2e typed bonus pattern:
+Attribute effects are **emitted by source entities** (e.g., an artifact granting a buff to its wielder, a region granting effects to agents at its hexes) and flow to affected entities along topological connections (a `Holds` edge, hex containment, etc.). Relationships and positional connections are the **paths effects flow along — not the carriers of effect data.** Effect magnitudes and types are defined on the source entity; relationship kinds themselves do not carry typed-effect data as edge properties.
+
+Stacking follows the Pathfinder 2e typed bonus pattern:
 - Effects are categorized by type (political, cultural, artifact, environmental, etc.)
 - Same-type effects do NOT stack (take best bonus / worst penalty)
 - Cross-type effects always stack
-- Every effect carries source metadata (which relationship, which entity)
+- Every effect carries source metadata (which source entity, via which connection)
 - Effective attribute values are computed as: base + sum(filtered effects)
+
+**Relationships are used separately — as graph topology for action/generator targeting, variable resolution, wiring, and mutation (filters like `has_relationship`, `lacks_relationship`, `graph_path`, etc.). Do not confuse the typed-effect system with the relationship catalog.**
 
 ### 11. Strict Tick Phase Ordering
 

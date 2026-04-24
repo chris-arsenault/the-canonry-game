@@ -4,6 +4,7 @@ using System.Linq;
 
 using Godot;
 
+using Engine.Domain.IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -168,7 +169,7 @@ public partial class HexMapRenderer : Node2D
 
         var factionColors = AssignFactionColors();
 
-        // Factions manifest through relationships (controlled_by, loyal_to, member_of, ...).
+        // Factions manifest through relationships (controlled_by, member_of, ...).
         // Rather than hardcoding a whitelist of relationship kinds, we shade any hex whose
         // resident entity has an outgoing relationship to a Faction-kind target.
         // Dominant-by-strength per hex: if two entities on one hex point at different factions,
@@ -183,7 +184,7 @@ public partial class HexMapRenderer : Node2D
             foreach (var rel in _sim.Graph.OutgoingRelationships(entityId))
             {
                 var target = _sim.Graph.GetEntity(rel.TargetId);
-                if (target?.Kind != EntityKind.Faction) continue;
+                if (target?.Kind != IceRemembersKinds.Faction) continue;
 
                 var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
                 if (!hexFaction.TryGetValue(coord, out var current) || rel.Strength > current.Strength)
@@ -213,7 +214,7 @@ public partial class HexMapRenderer : Node2D
 
         foreach (var cell in _sim.Grid.AllCells)
         {
-            var region = _sim.RegionMap.GetRegionForCell(cell.Coord);
+            var region = _sim.CoverageMap.GetCoverageForCell(cell.Coord);
             var center = HexToPixel(cell.Coord);
             var points = GetHexPoints(center);
 
@@ -228,7 +229,7 @@ public partial class HexMapRenderer : Node2D
                     if (!IsCanonicalEdgeOwner(cell.Coord, neighborCoord)) continue;
                 }
 
-                var neighborRegion = _sim.RegionMap.GetRegionForCell(neighborCoord);
+                var neighborRegion = _sim.CoverageMap.GetCoverageForCell(neighborCoord);
                 if (ReferenceEquals(region, neighborRegion)) continue;
 
                 // Edge `d` (direction index) sits between hex vertices (6-d)%6 and (7-d)%6.
@@ -260,23 +261,21 @@ public partial class HexMapRenderer : Node2D
             var coord = EntityCoordForCurrentPlane(entity);
             var center = HexToPixel(coord);
 
-            switch (entity.Kind)
+            if (entity.Kind == IceRemembersKinds.Settlement)
             {
-                case EntityKind.Settlement:
-                    var residents = entity.Attributes.GetValue("residents");
-                    var radius = Mathf.Clamp(residents / 100f * 3f, 3f, 12f);
-                    DrawCircle(center, radius, new Color(0.9f, 0.85f, 0.3f));
-                    DrawCircle(center, radius, new Color(0.1f, 0.1f, 0.1f), filled: false);
-                    break;
-
-                case EntityKind.Npc:
-                    DrawCircle(center + new Vector2(5, -5), 4f, new Color(0.3f, 0.8f, 0.3f));
-                    break;
-
-                case EntityKind.Artifact:
-                    DrawRect(new Rect2(center.X - 3 + 8, center.Y - 3 + 5, 6, 6),
-                        new Color(0.8f, 0.2f, 0.8f));
-                    break;
+                var residents = entity.Attributes.GetValue("residents");
+                var radius = Mathf.Clamp(residents / 100f * 3f, 3f, 12f);
+                DrawCircle(center, radius, new Color(0.9f, 0.85f, 0.3f));
+                DrawCircle(center, radius, new Color(0.1f, 0.1f, 0.1f), filled: false);
+            }
+            else if (entity.Kind == IceRemembersKinds.Penguin)
+            {
+                DrawCircle(center + new Vector2(5, -5), 4f, new Color(0.3f, 0.8f, 0.3f));
+            }
+            else if (entity.Kind == IceRemembersKinds.Artifact)
+            {
+                DrawRect(new Rect2(center.X - 3 + 8, center.Y - 3 + 5, 6, 6),
+                    new Color(0.8f, 0.2f, 0.8f));
             }
 
             if (ShowEntityNames && font is not null)
@@ -313,14 +312,14 @@ public partial class HexMapRenderer : Node2D
 
     private static Color GetTerrainColor(TerrainType terrain) => terrain switch
     {
-        TerrainType.Plains => new Color(0.45f, 0.7f, 0.3f),
-        TerrainType.Mountain => new Color(0.55f, 0.5f, 0.45f),
-        TerrainType.Forest => new Color(0.2f, 0.5f, 0.2f),
-        TerrainType.Desert => new Color(0.85f, 0.75f, 0.5f),
-        TerrainType.Water => new Color(0.2f, 0.35f, 0.7f),
-        TerrainType.Coastal => new Color(0.5f, 0.65f, 0.75f),
-        TerrainType.Swamp => new Color(0.35f, 0.45f, 0.3f),
-        TerrainType.Tundra => new Color(0.75f, 0.8f, 0.85f),
+        TerrainType.Wastes => new Color(0.62f, 0.63f, 0.58f),
+        TerrainType.Crags => new Color(0.42f, 0.42f, 0.45f),
+        TerrainType.Tundra => new Color(0.72f, 0.79f, 0.83f),
+        TerrainType.Ice => new Color(0.84f, 0.9f, 0.95f),
+        TerrainType.HotSprings => new Color(0.65f, 0.8f, 0.6f),
+        TerrainType.Shelf => new Color(0.58f, 0.72f, 0.82f),
+        TerrainType.Reef => new Color(0.28f, 0.54f, 0.68f),
+        TerrainType.Ocean => new Color(0.15f, 0.27f, 0.52f),
         _ => new Color(0.5f, 0.5f, 0.5f),
     };
 
@@ -340,7 +339,7 @@ public partial class HexMapRenderer : Node2D
 
         // Order by EntityId value so each faction gets the same color every run.
         // The underlying kind index is a HashSet — enumeration order is not stable.
-        var factionIds = _sim.Graph.GetEntitiesByKind(EntityKind.Faction)
+        var factionIds = _sim.Graph.GetEntitiesByKind(IceRemembersKinds.Faction)
             .OrderBy(id => id.Value)
             .ToList();
 

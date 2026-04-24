@@ -108,7 +108,7 @@ Examples:
 - A hero traveling from one settlement to another
 - A merchant completing a trade route (increasing prosperity of connected settlements)
 - An artifact changing hands (its "holder" relationship changes, but no new entities created)
-- A faction leader making a speech (increasing faction influence, possibly swaying hero loyalty)
+- A faction leader making a speech (increasing faction reach, possibly swaying hero loyalty)
 - A spy gathering intelligence (discovering hidden relationships or states)
 
 Actor ticks are frequent and cheap. They are the heartbeat of the micro-simulation.
@@ -280,7 +280,7 @@ Drawing from Pandemic's outbreak chains and RimWorld's mood cascades, the simula
 
 - A famine in one region (low prosperity) reduces food supply to connected settlements
 - Settlements with unmet needs generate unrest (low stability in controlling nation)
-- National instability emboldens rival factions (faction influence increases)
+- National instability emboldens rival factions (faction reach increases)
 - Faction actions may trigger a succession crisis (generation tick: nation splits)
 - The split nation is weaker, inviting aggression from neighbors
 - War destroys settlements, reducing regional prosperity, potentially starting the cycle elsewhere

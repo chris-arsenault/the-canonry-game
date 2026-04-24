@@ -43,7 +43,7 @@ public class PreconditionResultTests
     public void SelfAttributeThreshold_DiagnosticShowsValues()
     {
         var graph = new WorldGraph();
-        var entity = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", tick: 0);
+        var entity = graph.CreateEntity(TestKinds.Settlement, "village", "Town", "c", tick: 0);
         entity.Attributes.Add(new Engine.Attributes.ScalarValue("sustenance", 0, 100, 2));
 
         var ctx = CreateContextWithEntity(entity);
@@ -52,14 +52,14 @@ public class PreconditionResultTests
         Assert.False(result.Passed);
         Assert.Contains("sustenance", result.Diagnostic, System.StringComparison.Ordinal);
         Assert.Contains("2.0", result.Diagnostic, System.StringComparison.Ordinal);
-        Assert.Contains(AttributeRef.Self("sustenance", EntityKind.Settlement), result.Blockers);
+        Assert.Contains(AttributeRef.Self("sustenance", TestKinds.Settlement), result.Blockers);
     }
 
     [Fact]
     public void AndPrecondition_CollectsAllBlockers()
     {
         var graph = new WorldGraph();
-        var entity = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", tick: 0);
+        var entity = graph.CreateEntity(TestKinds.Settlement, "village", "Town", "c", tick: 0);
         entity.Attributes.Add(new Engine.Attributes.ScalarValue("fame", 0, 100, 0));
         entity.Attributes.Add(new Engine.Attributes.ScalarValue("sustenance", 0, 100, 1));
 
@@ -72,8 +72,8 @@ public class PreconditionResultTests
         var result = and.Evaluate(ctx);
 
         Assert.False(result.Passed);
-        Assert.Contains(AttributeRef.Self("fame", EntityKind.Settlement), result.Blockers);
-        Assert.Contains(AttributeRef.Self("sustenance", EntityKind.Settlement), result.Blockers);
+        Assert.Contains(AttributeRef.Self("fame", TestKinds.Settlement), result.Blockers);
+        Assert.Contains(AttributeRef.Self("sustenance", TestKinds.Settlement), result.Blockers);
     }
 
     private static StubMutationContext CreateContext(int selfId, int targetId)

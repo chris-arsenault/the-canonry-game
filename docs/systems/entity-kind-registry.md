@@ -75,9 +75,9 @@ A named individual with agency. The fine-grained actor in the simulation. Heroes
 
 - **Examples:** Captain Thornfin the Scarred, Elder Whisperstone, The Nameless Drifter
 - **Subtypes (domain-defined):** hero, merchant, scholar, warrior, spy, elder, prophet, artisan, criminal, etc.
-- **Key attributes:** health, hunger, ambition, skill, age. Semantic planes: personality/temperament, ideology.
+- **Key attributes:** health, warmth, echo, skill, age. Semantic planes: personality/temperament, ideology.
 - **Key relationships:** loyal_to (nation/faction), located_at (settlement), mentor_of / rival_of (NPC), holds (asset)
-- **Low-altitude behaviors:** need evaluation (hunger, safety, ambition) driving movement and goal selection. Response to goal tags from nations and factions. Aging toward death.
+- **Low-altitude behaviors:** need evaluation (warmth, safety, echo) driving movement and goal selection. Response to goal tags from nations and factions. Aging toward death.
 - **Lifecycle:** health metric is HP. Aging function increases mortality risk and decreases proficiency. NPCs reaching zero HP die (transition to historical status).
 
 ### Monster
@@ -86,7 +86,7 @@ A non-civilized entity with agency. Threats, wildlife, supernatural creatures. O
 
 - **Examples:** Grandmother Orca, A Frost Wyrm, The Swarm of the Deep Shelf
 - **Subtypes (domain-defined):** predator, beast, spirit, swarm, titan, etc.
-- **Key attributes:** ferocity, territory size, hunger, power
+- **Key attributes:** ferocity, territory size, warmth, power
 - **Key relationships:** inhabits (region/point_of_interest), threatens (settlements/nations), hunted_by (NPCs)
 - **Low-altitude behaviors:** territorial behavior, predation dynamics (threatening nearby settlements), migration patterns, breeding/spawning. Monsters create environmental pressure that nations and NPCs respond to.
 - **Lifecycle:** health metric is HP or vitality. Aging depends on subtype (some are ageless, some are mortal). Monsters reaching zero HP are killed (historical status).

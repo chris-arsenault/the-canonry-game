@@ -11,8 +11,8 @@ public class MaintenanceSystemTests
     public void Tick_AppliesTickEffectsToAllActiveEntities()
     {
         var graph = new WorldGraph();
-        var a = graph.CreateEntity(EntityKind.Settlement, "village", "A", "c", 0, (0, 0));
-        var b = graph.CreateEntity(EntityKind.Settlement, "village", "B", "c", 0, (1, 0));
+        var a = graph.CreateEntity(TestKinds.Settlement, "village", "A", "c", 0, (0, 0));
+        var b = graph.CreateEntity(TestKinds.Settlement, "village", "B", "c", 0, (1, 0));
 
         var aPopulation = new ScalarValue("population", 0f, 100f, 10f);
         aPopulation.AddTickEffect(new AttributeEffect("tick", "tick", 2f));
@@ -33,8 +33,8 @@ public class MaintenanceSystemTests
     public void Tick_SkipsHistoricalEntities()
     {
         var graph = new WorldGraph();
-        var active = graph.CreateEntity(EntityKind.Settlement, "village", "Active", "c", 0, (0, 0));
-        var historical = graph.CreateEntity(EntityKind.Settlement, "village", "Historical", "c", 0, (1, 0));
+        var active = graph.CreateEntity(TestKinds.Settlement, "village", "Active", "c", 0, (0, 0));
+        var historical = graph.CreateEntity(TestKinds.Settlement, "village", "Historical", "c", 0, (1, 0));
 
         var activePopulation = new ScalarValue("population", 0f, 100f, 10f);
         activePopulation.AddTickEffect(new AttributeEffect("tick", "tick", 2f));

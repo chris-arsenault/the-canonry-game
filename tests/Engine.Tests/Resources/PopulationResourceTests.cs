@@ -74,24 +74,24 @@ public class PopulationResourceTests
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
 
-        var nation = graph.CreateEntity(EntityKind.Faction, "generic_faction", "N", "c", 0);
+        var nation = graph.CreateEntity(TestKinds.Faction, "order", "N", "c", 0);
 
         // Rich cell
-        var rich = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
+        var rich = graph.CreateEntity(TestKinds.Settlement, "village", "Rich", "c", 0, (0, 0));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 1000));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         rich.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, rich.Id, nation.Id, 1f, 0);
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
+        grid.SetCell(new HexCoord(0, 0), TerrainType.Tundra, fertility: 0.9f);
         grid.GetCell(new HexCoord(0, 0))!.AmbientPopulation = 8f;
 
         // Poor cell
-        var poor = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (1, 0));
+        var poor = graph.CreateEntity(TestKinds.Settlement, "village", "Poor", "c", 0, (1, 0));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 50));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         poor.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, poor.Id, nation.Id, 1f, 0);
-        grid.SetCell(new HexCoord(1, 0), TerrainType.Desert, fertility: 0.1f);
+        grid.SetCell(new HexCoord(1, 0), TerrainType.Wastes, fertility: 0.1f);
         grid.GetCell(new HexCoord(1, 0))!.AmbientPopulation = 1f;
 
         var system = new ResourceSystem(graph, grid);
@@ -112,23 +112,23 @@ public class PopulationResourceTests
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
 
-        var nationA = graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
-        var nationB = graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
+        var nationA = graph.CreateEntity(TestKinds.Faction, "order", "A", "c", 0);
+        var nationB = graph.CreateEntity(TestKinds.Faction, "order", "B", "c", 0);
 
-        var sA = graph.CreateEntity(EntityKind.Settlement, "village", "SA", "c", 0, (0, 0));
+        var sA = graph.CreateEntity(TestKinds.Settlement, "village", "SA", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 1000));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
+        grid.SetCell(new HexCoord(0, 0), TerrainType.Tundra, fertility: 0.9f);
         grid.GetCell(new HexCoord(0, 0))!.AmbientPopulation = 8f;
 
-        var sB = graph.CreateEntity(EntityKind.Settlement, "village", "SB", "c", 0, (2, 0));
+        var sB = graph.CreateEntity(TestKinds.Settlement, "village", "SB", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
-        grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
+        grid.SetCell(new HexCoord(2, 0), TerrainType.Wastes, fertility: 0.1f);
         grid.GetCell(new HexCoord(2, 0))!.AmbientPopulation = 1f;
 
         var system = new ResourceSystem(graph, grid);
@@ -148,14 +148,14 @@ public class PopulationResourceTests
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
 
-        var nation = graph.CreateEntity(EntityKind.Faction, "generic_faction", "N", "c", 0);
-        var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
+        var nation = graph.CreateEntity(TestKinds.Faction, "order", "N", "c", 0);
+        var settlement = graph.CreateEntity(TestKinds.Settlement, "village", "Town", "c", 0, (0, 0));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 10f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 10));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, nation.Id, 1f, 0);
         var coord = new HexCoord(0, 0);
-        grid.SetCell(coord, TerrainType.Plains, fertility: 0.5f);
+        grid.SetCell(coord, TerrainType.Tundra, fertility: 0.5f);
         grid.GetCell(coord)!.AmbientPopulation = ambientPopulation;
 
         var system = new ResourceSystem(graph, grid);

@@ -11,18 +11,20 @@ using Engine.Kinds;
 public sealed class SpatialIndex
 {
     private readonly HexGrid _grid;
-    private readonly RegionMap _regionMap;
+    private readonly MapCoverageMap _coverageMap;
     private readonly WorldGraph _graph;
 
     // Entity -> cell mapping (mirrors Entity.Coordinates but indexed for reverse lookup)
     private readonly Dictionary<HexCoord, HashSet<EntityId>> _entitiesAtCell = [];
 
-    public SpatialIndex(HexGrid grid, RegionMap regionMap, WorldGraph graph)
+    public SpatialIndex(HexGrid grid, MapCoverageMap coverageMap, WorldGraph graph)
     {
         _grid = grid;
-        _regionMap = regionMap;
+        _coverageMap = coverageMap;
         _graph = graph;
     }
+
+    public HexGrid Grid => _grid;
 
     /// <summary>
     /// Register an entity at a cell. Call when entities are created or move.
@@ -117,15 +119,15 @@ public sealed class SpatialIndex
     }
 
     /// <summary>Get all entities in a region, optionally filtered by kind.</summary>
-    public IEnumerable<EntityId> EntitiesInRegion(EntityId regionEntityId, EntityKind? kindFilter = null)
+    public IEnumerable<EntityId> EntitiesInCoverage(EntityId regionEntityId, EntityKind? kindFilter = null)
     {
-        var region = _regionMap.GetRegion(regionEntityId);
-        if (region is null)
+        var coverage = _coverageMap.GetCoverage(regionEntityId);
+        if (coverage is null)
         {
             yield break;
         }
 
-        foreach (var coord in region.Cells)
+        foreach (var coord in coverage.Cells)
         {
             if (!_entitiesAtCell.TryGetValue(coord, out var set))
             {
@@ -195,6 +197,36 @@ public sealed class SpatialIndex
                 {
                     return coord;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    public HexCoord? FindFreePhysicalHexInCoverage(EntityId regionEntityId)
+    {
+        var coverage = _coverageMap.GetCoverage(regionEntityId);
+        if (coverage is null || coverage.Cells.Count == 0)
+        {
+            return null;
+        }
+
+        var regionEntity = _graph.GetEntity(regionEntityId);
+        var origin = regionEntity is null
+            ? coverage.Cells.First()
+            : new HexCoord(regionEntity.Coordinates.Q, regionEntity.Coordinates.R);
+
+        foreach (var coord in coverage.Cells.OrderBy(cell => HexCoord.Distance(origin, cell)))
+        {
+            var cell = _grid.GetCell(coord);
+            if (cell is null || float.IsPositiveInfinity(cell.MovementCost))
+            {
+                continue;
+            }
+
+            if (!_entitiesAtCell.TryGetValue(coord, out var occupants) || occupants.Count == 0)
+            {
+                return coord;
             }
         }
 

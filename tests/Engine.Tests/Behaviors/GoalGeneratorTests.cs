@@ -3,8 +3,11 @@ namespace Engine.Tests.Behaviors;
 using Engine.Attributes;
 using Engine.Behaviors;
 using Engine.Domain.Config;
+using Engine.Domain.IceRemembers;
+using Engine.Domain.Loader;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Map;
 using Engine.Pressure;
 using Engine.Processes;
 using Engine.Resources;
@@ -26,7 +29,7 @@ public class GoalGeneratorTests
 
         var goal = Assert.Single(generator.Generate(entity, world), g => !g.IsSubGoal);
 
-        Assert.Equal(AttributeRef.Self("population", EntityKind.Settlement), goal.DesiredEffect);
+        Assert.Equal(AttributeRef.Self("population", TestKinds.Settlement), goal.DesiredEffect);
         Assert.Equal(entity.Id, goal.TargetEntityId);
         Assert.InRange(goal.Urgency, expectedUrgency - 0.02f, expectedUrgency + 0.02f);
     }
@@ -37,7 +40,7 @@ public class GoalGeneratorTests
         var world = new StubWorldState(gridRadius: 5);
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [new AttributeConfig { Name = "morale", Min = 0f, Max = 100f, Default = 100f }],
@@ -46,7 +49,7 @@ public class GoalGeneratorTests
             },
         };
 
-        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Self", "c", 0, (0, 0));
+        var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", "Self", "c", 0, (0, 0));
         entity.Attributes.Add(new ScalarValue("morale", 0f, 100f, 100f));
 
         var process = CreateProcess("celebrate", "morale");
@@ -63,7 +66,7 @@ public class GoalGeneratorTests
         var world = new StubWorldState(gridRadius: 5);
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes =
@@ -78,7 +81,7 @@ public class GoalGeneratorTests
             },
         };
 
-        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", "Self", "c", 0, (0, 0));
+        var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", "Self", "c", 0, (0, 0));
         entity.Attributes.Add(new ScalarValue("a", 0f, 100f, 1f));
         entity.Attributes.Add(new ScalarValue("b", 0f, 100f, 10f));
         entity.Attributes.Add(new ScalarValue("c", 0f, 100f, 20f));
@@ -110,7 +113,7 @@ public class GoalGeneratorTests
 
         var goals = generator.Generate(entity, world);
 
-        Assert.DoesNotContain(goals, g => g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)));
+        Assert.DoesNotContain(goals, g => g.DesiredEffect.Equals(AttributeRef.Self("population", TestKinds.Settlement)));
     }
 
     [Fact]
@@ -125,7 +128,7 @@ public class GoalGeneratorTests
         var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [process]);
 
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
+            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", TestKinds.Settlement)))
             .ToList();
 
         var goal = Assert.Single(goals);
@@ -145,12 +148,12 @@ public class GoalGeneratorTests
         var extra = CreateSettlement(world, "Extra", population: 30f, fame: 25f, coordinates: (5, 0));
 
         var process = CreateProcess("attract", "population");
-        process.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        process.ProviderSelectors.Add(AttributeRef.Target("population", TestKinds.Settlement));
         process.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
         var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [process]);
 
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
+            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", TestKinds.Settlement)))
             .ToList();
 
         var goal = Assert.Single(goals);
@@ -175,9 +178,9 @@ public class GoalGeneratorTests
         var goals = generator.Generate(entity, world);
 
         Assert.Contains(goals, g => !g.IsSubGoal && !g.IsActionable &&
-            g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)));
+            g.DesiredEffect.Equals(AttributeRef.Self("population", TestKinds.Settlement)));
         var subGoal = Assert.Single(goals, g => g.IsSubGoal && g.IsActionable);
-        Assert.Equal(AttributeRef.Self("sustenance", EntityKind.Settlement), subGoal.DesiredEffect);
+        Assert.Equal(AttributeRef.Self("sustenance", TestKinds.Settlement), subGoal.DesiredEffect);
         Assert.Equal(entity.Id, subGoal.TargetEntityId);
     }
 
@@ -202,12 +205,37 @@ public class GoalGeneratorTests
     }
 
     [Fact]
+    public void Generate_IceRemembersHexToHealth_BuildsMoveSubGoalTowardRecoveryHost()
+    {
+        var config = IceRemembersDefinition.Create();
+        var world = new StubWorldState(gridRadius: 5, withResources: true);
+        var penguin = world.Graph.CreateEntity(IceRemembersKinds.Penguin, "warden", "Self", "aurora-stack", 0, (0, 0));
+        var settlement = world.Graph.CreateEntity(IceRemembersKinds.Settlement, "rookery", "Host", "aurora-stack", 0, (2, 0));
+        DomainLoader.InitializeEntityAttributes(world.Graph, config, new Random(42));
+        world.Resources!.Food.SetStockpile(new HexCoord(2, 0), 5f);
+        world.SpatialIndex.RebuildFromGraph();
+
+        var vitality = Assert.IsType<ScalarValue>(penguin.Attributes["vitality"]);
+        vitality.SetBase(20f);
+
+        var generator = new GoalGenerator(config.Kinds, config.Processes);
+        var goals = generator.Generate(penguin, world);
+
+        var recoverGoal = Assert.Single(goals, g => g.PlannedProcessId == "penguin_warm" && !g.IsSubGoal);
+        var moveGoal = Assert.Single(goals, g => g.PlannedProcessId == "penguin_travel" && g.IsSubGoal);
+
+        Assert.Equal(settlement.Id, recoverGoal.TargetEntityId);
+        Assert.Equal(settlement.Id, moveGoal.TargetEntityId);
+        Assert.Equal(recoverGoal.Id, moveGoal.ParentGoalId);
+    }
+
+    [Fact]
     public void Generate_TargetIsSelfOnlyCreatesBlockingSubGoalsForSelfProvider()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, sustenance: 0f, coordinates: (0, 0));
         var other = CreateSettlement(world, "Other", population: 10f, sustenance: 10f, coordinates: (2, 0));
-        var aid = CreateProcessServingEffect("aid", AttributeRef.Target("sustenance", EntityKind.Settlement));
+        var aid = CreateProcessServingEffect("aid", AttributeRef.Target("sustenance", TestKinds.Settlement));
 
         var process = CreateExternalProcess("grow", "population",
             new AndPrecondition([new TargetIsSelf(), new TargetAttributeThreshold("sustenance", min: 3f, max: null)]));
@@ -217,7 +245,7 @@ public class GoalGeneratorTests
 
         var selfGoal = Assert.Single(goals, g => !g.IsSubGoal && g.TargetEntityId == self.Id);
         Assert.Contains(goals, g => g.ParentGoalId == selfGoal.Id &&
-            g.DesiredEffect.Equals(AttributeRef.Target("sustenance", EntityKind.Settlement)));
+            g.DesiredEffect.Equals(AttributeRef.Target("sustenance", TestKinds.Settlement)));
         Assert.DoesNotContain(goals, g => !g.IsSubGoal && g.TargetEntityId == other.Id);
     }
 
@@ -227,7 +255,7 @@ public class GoalGeneratorTests
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", population: 10f, sustenance: 10f, coordinates: (0, 0));
         var other = CreateSettlement(world, "Other", population: 10f, sustenance: 0f, coordinates: (2, 0));
-        var aid = CreateProcessServingEffect("aid", AttributeRef.Target("sustenance", EntityKind.Settlement));
+        var aid = CreateProcessServingEffect("aid", AttributeRef.Target("sustenance", TestKinds.Settlement));
 
         var process = CreateExternalProcess("attract", "population",
             new AndPrecondition([new TargetIsNotSelf(), new TargetAttributeThreshold("sustenance", min: 3f, max: null)]));
@@ -238,7 +266,7 @@ public class GoalGeneratorTests
         var otherGoal = Assert.Single(goals, g => !g.IsSubGoal && g.TargetEntityId == other.Id);
         Assert.DoesNotContain(goals, g => !g.IsSubGoal && g.TargetEntityId == self.Id);
         Assert.Contains(goals, g => g.ParentGoalId == otherGoal.Id &&
-            g.DesiredEffect.Equals(AttributeRef.Target("sustenance", EntityKind.Settlement)));
+            g.DesiredEffect.Equals(AttributeRef.Target("sustenance", TestKinds.Settlement)));
     }
 
     [Fact]
@@ -260,7 +288,7 @@ public class GoalGeneratorTests
 
         Assert.Contains(goals, g => g.IsActionable &&
             g.PlannedProcessId == "stockpile" &&
-            g.DesiredEffect.Equals(AttributeRef.Self("sustenance", EntityKind.Settlement)));
+            g.DesiredEffect.Equals(AttributeRef.Self("sustenance", TestKinds.Settlement)));
     }
 
     [Fact]
@@ -275,14 +303,14 @@ public class GoalGeneratorTests
             "grow",
             "Grow",
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             new AndPrecondition([
                 new TargetIsSelf(),
                 new LocationResourceThreshold(ResourceType.Population, min: 1f, max: null, plannerRelevant: false),
             ]),
             Expr.Score(Expr.Div(Expr.SelfLocationResource(ResourceType.Food), Expr.Lit(4f))));
-        grow.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        grow.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        grow.GoalEffects.Add(AttributeRef.Self("population", TestKinds.Settlement));
+        grow.Writes.Add(AttributeRef.Self("population", TestKinds.Settlement));
         grow.Reads.Add(AttributeRef.Resource("food"));
         grow.Reads.Add(AttributeRef.Resource("population"));
         grow.SupportRules.Add(new PlannerSupportRule(
@@ -294,7 +322,7 @@ public class GoalGeneratorTests
             "irrigate",
             "Irrigate",
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             new TargetIsSelf(),
             Expr.Score(
                 Expr.Div(
@@ -383,7 +411,7 @@ public class GoalGeneratorTests
         var entity = CreateSettlement(world, "Self", population: 25f, sustenance: 5f);
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes =
@@ -396,7 +424,7 @@ public class GoalGeneratorTests
                 [
                     new StandingDriveConfig
                     {
-                        DesiredEffect = AttributeRef.Self("population", EntityKind.Settlement),
+                        DesiredEffect = AttributeRef.Self("population", TestKinds.Settlement),
                         BaseUrgency = 0.08f,
                     },
                 ],
@@ -417,9 +445,9 @@ public class GoalGeneratorTests
     public void Generate_StandingDriveUsesOnlyOneRootSlotAcrossTargets()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
-        self.Attributes.Add(new ScalarValue("satiety", 0f, 100f, 100f));
-        self.Attributes.Add(new ScalarValue("ambition", 0f, 100f, 50f));
+        var self = world.Graph.CreateEntity(TestKinds.Penguin, "warrior", "Self", "c", 0, (0, 0));
+        self.Attributes.Add(new ScalarValue("warmth", 0f, 100f, 100f));
+        self.Attributes.Add(new ScalarValue("echo", 0f, 100f, 50f));
         self.Attributes.Add(new ScalarValue("vitality", 0f, 100f, 100f));
         var near = CreateSettlement(world, "Near", population: 20f, coordinates: (0, 0));
         var far = CreateSettlement(world, "Far", population: 40f, coordinates: (3, 0));
@@ -428,22 +456,22 @@ public class GoalGeneratorTests
             "attend",
             "Attend",
             DefinitionRole.Process,
-            EntityKind.Npc,
+            TestKinds.Penguin,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)));
-        attend.GoalEffects.Add(AttributeRef.StructuralFact("presence", EntityKind.Npc));
-        attend.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attend.GoalEffects.Add(AttributeRef.StructuralFact("presence", TestKinds.Penguin));
+        attend.ProviderSelectors.Add(AttributeRef.Target("population", TestKinds.Settlement));
         attend.RewardExpression = Expr.Div(Expr.Target("population"), Expr.Add(Expr.Distance(), Expr.Lit(1f)));
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Npc] = new()
+            [TestKinds.Penguin] = new()
             {
                 Subtypes = new HashSet<string> { "warrior" },
                 Attributes =
                 [
-                    new AttributeConfig { Name = "satiety", Min = 0f, Max = 100f, Default = 100f },
-                    new AttributeConfig { Name = "ambition", Min = 0f, Max = 100f, Default = 50f },
+                    new AttributeConfig { Name = "warmth", Min = 0f, Max = 100f, Default = 100f },
+                    new AttributeConfig { Name = "echo", Min = 0f, Max = 100f, Default = 50f },
                     new AttributeConfig { Name = "vitality", Min = 0f, Max = 100f, Default = 100f },
                 ],
                 HealthAttribute = "vitality",
@@ -452,12 +480,12 @@ public class GoalGeneratorTests
                 [
                     new StandingDriveConfig
                     {
-                        DesiredEffect = AttributeRef.StructuralFact("presence", EntityKind.Npc),
+                        DesiredEffect = AttributeRef.StructuralFact("presence", TestKinds.Penguin),
                         BaseUrgency = 0.04f,
                     },
                 ],
             },
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [new AttributeConfig { Name = "population", Min = 0f, Max = 1000f, Default = 10f }],
@@ -484,11 +512,11 @@ public class GoalGeneratorTests
         var challenger = CreateSettlement(world, "Challenger", population: 30f, fame: 20f, coordinates: (2, 1));
 
         var attract = CreateProcess("attract", "population");
-        attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.ProviderSelectors.Add(AttributeRef.Target("population", TestKinds.Settlement));
         attract.RewardExpression = Expr.Sub(Expr.Target("fame"), Expr.Self("fame"));
 
         self.Goals.Add(new EntityGoal(
-            AttributeRef.Self("population", EntityKind.Settlement),
+            AttributeRef.Self("population", TestKinds.Settlement),
             current.Id,
             urgency: 1f,
             plannedProcessId: "attract",
@@ -509,39 +537,39 @@ public class GoalGeneratorTests
     public void Generate_RelationalBlockerInheritsParentTarget()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Self", "c", 0, (0, 0));
-        self.Attributes.Add(new ScalarValue("satiety", 0f, 100f, 20f));
+        var self = world.Graph.CreateEntity(TestKinds.Penguin, "warrior", "Self", "c", 0, (0, 0));
+        self.Attributes.Add(new ScalarValue("warmth", 0f, 100f, 20f));
         var settlement = CreateSettlement(world, "Target", population: 25f, sustenance: 10f, coordinates: (2, 0));
 
         var eat = new ProcessDefinition(
             "eat",
             "Eat",
             DefinitionRole.Process,
-            EntityKind.Npc,
+            TestKinds.Penguin,
             new AndPrecondition([
                 new TargetIsNotSelf(),
                 new RelatedEntityMatchesTarget("located_at"),
             ]),
             Expr.Score(Expr.Lit(1f)));
-        eat.GoalEffects.Add(AttributeRef.Self("satiety", EntityKind.Npc));
-        eat.ProviderSelectors.Add(AttributeRef.Target("sustenance", EntityKind.Settlement));
-        eat.Writes.Add(AttributeRef.Self("satiety", EntityKind.Npc));
+        eat.GoalEffects.Add(AttributeRef.Self("warmth", TestKinds.Penguin));
+        eat.ProviderSelectors.Add(AttributeRef.Target("sustenance", TestKinds.Settlement));
+        eat.Writes.Add(AttributeRef.Self("warmth", TestKinds.Penguin));
 
         var move = new ProcessDefinition(
             "move",
             "Move",
             DefinitionRole.Process,
-            EntityKind.Npc,
+            TestKinds.Penguin,
             new TargetIsNotSelf(),
             Expr.Score(Expr.Lit(1f)));
-        move.GoalEffects.Add(AttributeRef.TargetRelation("located_at", EntityKind.Settlement));
+        move.GoalEffects.Add(AttributeRef.TargetRelation("located_at", TestKinds.Settlement));
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Npc] = new()
+            [TestKinds.Penguin] = new()
             {
                 Subtypes = new HashSet<string> { "warrior" },
-                Attributes = [new AttributeConfig { Name = "satiety", Min = 0f, Max = 100f, Default = 100f }],
+                Attributes = [new AttributeConfig { Name = "warmth", Min = 0f, Max = 100f, Default = 100f }],
                 HealthAttribute = null,
                 PrimaryPlane = PrimaryPlane.Physical,
             },
@@ -554,7 +582,7 @@ public class GoalGeneratorTests
         var child = Assert.Single(goals, g => g.IsSubGoal);
         Assert.Equal(settlement.Id, parent.TargetEntityId);
         Assert.Equal(settlement.Id, child.TargetEntityId);
-        Assert.Equal(AttributeRef.TargetRelation("located_at", EntityKind.Settlement), child.DesiredEffect);
+        Assert.Equal(AttributeRef.TargetRelation("located_at", TestKinds.Settlement), child.DesiredEffect);
     }
 
     private static Dictionary<EntityKind, KindConfig> CreateSettlementKinds(params string[] attributes)
@@ -573,7 +601,7 @@ public class GoalGeneratorTests
 
         return new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = configs,
@@ -592,7 +620,7 @@ public class GoalGeneratorTests
         (int Q, int R)? coordinates = null)
     {
         var entity = world.Graph.CreateEntity(
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             "village",
             name,
             "c",
@@ -612,19 +640,19 @@ public class GoalGeneratorTests
             id,
             id,
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             precondition ?? new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)));
 
-        process.GoalEffects.Add(AttributeRef.Self(attribute, EntityKind.Settlement));
-        process.Writes.Add(AttributeRef.Self(attribute, EntityKind.Settlement));
+        process.GoalEffects.Add(AttributeRef.Self(attribute, TestKinds.Settlement));
+        process.Writes.Add(AttributeRef.Self(attribute, TestKinds.Settlement));
         return process;
     }
 
     private static ProcessDefinition CreateExternalProcess(string id, string attribute, IPrecondition? precondition = null)
     {
         var process = CreateProcess(id, attribute, precondition);
-        process.ProviderSelectors.Add(AttributeRef.Target(attribute, EntityKind.Settlement));
+        process.ProviderSelectors.Add(AttributeRef.Target(attribute, TestKinds.Settlement));
         return process;
     }
 
@@ -634,7 +662,7 @@ public class GoalGeneratorTests
             id,
             id,
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)));
 

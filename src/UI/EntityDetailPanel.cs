@@ -6,6 +6,7 @@ using System.Text;
 
 using Godot;
 
+using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Simulation;
 
@@ -103,7 +104,7 @@ public partial class EntityDetailPanel : PanelContainer
         sb.AppendLine($"[b]Kind:[/b] {entity.Kind}");
         sb.AppendLine($"[b]Subtype:[/b] {entity.Subtype}");
         sb.AppendLine($"[b]Status:[/b] {entity.Status}");
-        sb.AppendLine($"[b]Culture:[/b] {entity.Culture}");
+        sb.AppendLine($"[b]Culture:[/b] {_sim.DomainConfig.GetCultureDisplayName(entity.Culture)}");
         sb.AppendLine($"[b]Age:[/b] {_sim.Clock.CurrentTick - entity.CreatedAt} ticks");
         sb.AppendLine($"[b]Position:[/b] ({entity.Coordinates.Q}, {entity.Coordinates.R})");
 
@@ -121,11 +122,11 @@ public partial class EntityDetailPanel : PanelContainer
 
             if (System.Math.Abs(effectMod) > 0.01f)
             {
-                sb.AppendLine($"  {attrName}: [b]{baseValue:F1}[/b] (+{effectMod:F1} effects) {trendArrow}");
+                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, attrName)}: [b]{baseValue:F1}[/b] (+{effectMod:F1} effects) {trendArrow}");
             }
             else
             {
-                sb.AppendLine($"  {attrName}: [b]{baseValue:F1}[/b] {trendArrow}");
+                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, attrName)}: [b]{baseValue:F1}[/b] {trendArrow}");
             }
         }
 
@@ -163,7 +164,7 @@ public partial class EntityDetailPanel : PanelContainer
             foreach (var effect in effects)
             {
                 var sign = effect.Value >= 0 ? "+" : "";
-                sb.AppendLine($"  {effect.AttributeName}: {sign}{effect.Value:F1} [{effect.EffectType}] from {effect.SourceDescription}");
+                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, effect.AttributeName)}: {sign}{effect.Value:F1} [{effect.EffectType}] from {effect.SourceDescription}");
             }
         }
 

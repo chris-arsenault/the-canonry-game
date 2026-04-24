@@ -275,7 +275,7 @@ src/
     Cards/          CardDefinition, CardInstance, CardExecutor
     Tableau/        TableauManager
     Wiring/         AttributeRef (Self/Target scope), WiringContract, WiringValidator
-    Domain/         DomainConfig, DomainLoader, TestDomain
+    Domain/         DomainConfig, DomainLoader, IceRemembers
     Messages/       MessageBus, SimulationMessage
     Events/         GameEventArgs, EventLog
     Degeneracy/     IDegeneracyDetector, DefaultDetectors, DetectorRegistry

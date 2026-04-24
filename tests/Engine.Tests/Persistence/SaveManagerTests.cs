@@ -13,8 +13,8 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        graph.CreateEntity(EntityKind.Faction, "monarchy", "Kesh", "culture_a", tick: 0);
-        graph.CreateEntity(EntityKind.Settlement, "city", "Capital", "culture_a", tick: 0, (1, 2));
+        graph.CreateEntity(TestKinds.Faction, "monarchy", "Kesh", "culture_a", tick: 0);
+        graph.CreateEntity(TestKinds.Settlement, "city", "Capital", "culture_a", tick: 0, (1, 2));
 
         var state = SaveManager.Capture(graph, currentTick: 50);
 
@@ -27,8 +27,8 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        var nation = graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", 0);
-        var settlement = graph.CreateEntity(EntityKind.Settlement, "generic", "S", "c", 0);
+        var nation = graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", 0);
+        var settlement = graph.CreateEntity(TestKinds.Settlement, "generic", "S", "c", 0);
         graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, settlement.Id, 0.9f, 0);
 
         var state = SaveManager.Capture(graph, currentTick: 10);
@@ -43,9 +43,9 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        var entity = graph.CreateEntity(EntityKind.Npc, "hero", "Captain", "c", 0);
+        var entity = graph.CreateEntity(TestKinds.Penguin, "warden", "Captain", "c", 0);
         entity.Attributes.Add(new ScalarValue("hp", 0, 100, 85));
-        entity.Attributes.Add(new ScalarValue("hunger", 0, 100, 15));
+        entity.Attributes.Add(new ScalarValue("warmth", 0, 100, 15));
 
         var state = SaveManager.Capture(graph, currentTick: 20);
 
@@ -57,7 +57,7 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (3, -1));
+        graph.CreateEntity(TestKinds.Settlement, "village", "Town", "c", 0, (3, -1));
 
         var state = SaveManager.Capture(graph, currentTick: 0);
 
@@ -70,7 +70,7 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        graph.CreateEntity(EntityKind.Faction, "generic", "N", "c", 0);
+        graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", 0);
 
         var state = SaveManager.Capture(graph, currentTick: 0);
 
@@ -85,8 +85,8 @@ public class SaveManagerTests
     {
         var graph = new WorldGraph();
 
-        var nation = graph.CreateEntity(EntityKind.Faction, "monarchy", "Kesh", "culture_a", tick: 0);
-        var settlement = graph.CreateEntity(EntityKind.Settlement, "city", "Capital", "culture_a", tick: 5, (1, 2));
+        var nation = graph.CreateEntity(TestKinds.Faction, "monarchy", "Kesh", "culture_a", tick: 0);
+        var settlement = graph.CreateEntity(TestKinds.Settlement, "city", "Capital", "culture_a", tick: 5, (1, 2));
         nation.Attributes.Add(new ScalarValue("stability", 0, 100, 75));
         settlement.Attributes.Add(new ScalarValue("population", 0, 10000, 500));
         graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, settlement.Id, 0.9f, 5);
@@ -107,12 +107,12 @@ public class SaveManagerTests
         Assert.Equal(1, restored.Version);
 
         // Entity details
-        var nationData = restored.Entities.First(e => e.Kind == EntityKind.Faction);
+        var nationData = restored.Entities.First(e => e.Kind == TestKinds.Faction);
         Assert.Equal("monarchy", nationData.Subtype);
         Assert.Equal("Kesh", nationData.Name);
         Assert.Equal("culture_a", nationData.Culture);
 
-        var settlementData = restored.Entities.First(e => e.Kind == EntityKind.Settlement);
+        var settlementData = restored.Entities.First(e => e.Kind == TestKinds.Settlement);
         Assert.Equal(1, settlementData.CoordQ);
         Assert.Equal(2, settlementData.CoordR);
         Assert.Equal(0, settlementData.SemanticQ);
@@ -135,7 +135,7 @@ public class SaveManagerTests
         // Create a moderate world
         for (var i = 0; i < 50; i++)
         {
-            var e = graph.CreateEntity(EntityKind.Settlement, "village", $"S{i}", "c", 0, (i % 10, i / 10));
+            var e = graph.CreateEntity(TestKinds.Settlement, "village", $"S{i}", "c", 0, (i % 10, i / 10));
             e.Attributes.Add(new ScalarValue("population", 0, 10000, 100 + i));
             e.Attributes.Add(new ScalarValue("development", 0, 100, 10));
         }
@@ -154,7 +154,7 @@ public class SaveManagerTests
     public void SaveAndLoad_FileRoundTrip()
     {
         var graph = new WorldGraph();
-        graph.CreateEntity(EntityKind.Faction, "generic", "TestNation", "c", 0);
+        graph.CreateEntity(TestKinds.Faction, "generic", "TestNation", "c", 0);
 
         var state = SaveManager.Capture(graph, currentTick: 99);
         var path = Path.GetTempFileName();

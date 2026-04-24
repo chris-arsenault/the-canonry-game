@@ -29,8 +29,8 @@ The important formalization is:
 - relationships and spatial adjacency define legal flow paths
 - actions should be derived from that structure, not brainstormed first and justified later
 
-This project does **not** need a goods economy for formal design to apply. `satiety`,
-`security`, `cohesion`, `regional_safety`, `prestige`, and similar bounded scalars are
+This project does **not** need a goods economy for formal design to apply. `warmth`,
+`security`, `cohesion`, `holding`, `prestige`, and similar bounded scalars are
 already the stock layer.
 
 ---

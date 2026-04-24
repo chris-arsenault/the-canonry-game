@@ -10,9 +10,9 @@ public class WiringValidatorTests
     [Fact]
     public void AttributeRef_EqualityWorks()
     {
-        var a = AttributeRef.Self("hp", EntityKind.Npc);
-        var b = AttributeRef.Self("hp", EntityKind.Npc);
-        var c = AttributeRef.Self("hunger", EntityKind.Npc);
+        var a = AttributeRef.Self("hp", TestKinds.Penguin);
+        var b = AttributeRef.Self("hp", TestKinds.Penguin);
+        var c = AttributeRef.Self("warmth", TestKinds.Penguin);
 
         Assert.Equal(a, b);
         Assert.NotEqual(a, c);
@@ -23,9 +23,9 @@ public class WiringValidatorTests
     {
         var set = new HashSet<AttributeRef>
         {
-            AttributeRef.Self("hp", EntityKind.Npc),
-            AttributeRef.Self("hp", EntityKind.Npc), // duplicate
-            AttributeRef.Self("hunger", EntityKind.Npc),
+            AttributeRef.Self("hp", TestKinds.Penguin),
+            AttributeRef.Self("hp", TestKinds.Penguin), // duplicate
+            AttributeRef.Self("warmth", TestKinds.Penguin),
         };
 
         Assert.Equal(2, set.Count);
@@ -34,8 +34,8 @@ public class WiringValidatorTests
     [Fact]
     public void AttributeRef_DifferentScopes_NotEqual()
     {
-        var selfHp = AttributeRef.Self("hp", EntityKind.Npc);
-        var locationHp = new AttributeRef(RefScope.Location, "hp", EntityKind.Npc);
+        var selfHp = AttributeRef.Self("hp", TestKinds.Penguin);
+        var locationHp = new AttributeRef(RefScope.Location, "hp", TestKinds.Penguin);
 
         Assert.NotEqual(selfHp, locationHp);
     }
@@ -43,9 +43,9 @@ public class WiringValidatorTests
     [Fact]
     public void AttributeRef_ToString_Readable()
     {
-        var selfHp = AttributeRef.Self("hp", EntityKind.Npc);
+        var selfHp = AttributeRef.Self("hp", TestKinds.Penguin);
         Assert.Contains("hp", selfHp.ToString(), StringComparison.Ordinal);
-        Assert.Contains("Npc", selfHp.ToString(), StringComparison.Ordinal);
+        Assert.Contains("penguin", selfHp.ToString(), StringComparison.Ordinal);
     }
 
     // --- Validator: no errors when wiring is complete ---
@@ -54,17 +54,17 @@ public class WiringValidatorTests
     public void Validate_PassesWithCompleteFeedbackLoop()
     {
         var validator = new WiringValidator();
-        validator.RegisterHealthAttribute(EntityKind.Npc, "hp");
+        validator.RegisterHealthAttribute(TestKinds.Penguin, "hp");
 
-        // Process A reads hunger, writes hp (sustaining)
+        // Process A reads warmth, writes hp (sustaining)
         validator.RegisterContract(new WiringContract("eat",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) }));
 
-        // Process B reads hp, writes hunger (creating a cycle)
+        // Process B reads hp, writes warmth (creating a cycle)
         validator.RegisterContract(new WiringContract("metabolize",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) }));
 
         var errors = validator.Validate();
         Assert.Empty(errors);
@@ -79,7 +79,7 @@ public class WiringValidatorTests
             "phantom_growth",
             reads: new HashSet<AttributeRef>(),
             writes: new HashSet<AttributeRef>(),
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) }));
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.GoalEffectNotWritten &&
@@ -93,9 +93,9 @@ public class WiringValidatorTests
 
         validator.RegisterContract(new WiringContract(
             "move_to_target",
-            reads: new HashSet<AttributeRef> { AttributeRef.Coordinates(EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Coordinates(EntityKind.Npc) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.TargetRelation("located_at", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Coordinates(TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Coordinates(TestKinds.Penguin) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.TargetRelation("located_at", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
 
@@ -109,10 +109,10 @@ public class WiringValidatorTests
 
         validator.RegisterContract(new WiringContract(
             "grow",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableBlocker &&
@@ -128,17 +128,17 @@ public class WiringValidatorTests
 
         validator.RegisterContract(new WiringContract(
             "grow",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         validator.RegisterContract(new WiringContract(
             "stockpile",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
-            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableGoalEffect &&
@@ -154,16 +154,16 @@ public class WiringValidatorTests
 
         validator.RegisterContract(new WiringContract(
             "grow",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            plannerBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         validator.RegisterContract(new WiringContract(
             "stockpile",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Empty(errors);
@@ -177,8 +177,8 @@ public class WiringValidatorTests
         validator.RegisterContract(new WiringContract(
             "grow",
             reads: new HashSet<AttributeRef> { AttributeRef.Resource("food") },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             plannerSupportEffects: new HashSet<AttributeRef> { AttributeRef.Resource("food") }));
 
         var errors = validator.Validate();
@@ -196,17 +196,40 @@ public class WiringValidatorTests
 
         // Writes to "development" but nothing reads it
         validator.RegisterContract(new WiringContract("develop",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("development", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("development", TestKinds.Settlement) }));
 
         // Something writes to prosperity so it's not orphaned
         validator.RegisterContract(new WiringContract("produce",
             reads: new HashSet<AttributeRef> { AttributeRef.MapCell("fertility") },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) }));
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.DeadEnd &&
             e.Message.Contains("development", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_TreatsSelfAndTargetRefsAsSameEntityStockForConnectivity()
+    {
+        var validator = new WiringValidator();
+
+        validator.RegisterContract(new WiringContract("produce_power",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("condition", TestKinds.Artifact) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("power", TestKinds.Artifact) }));
+
+        validator.RegisterContract(new WiringContract("consume_power",
+            reads: new HashSet<AttributeRef> { AttributeRef.Target("power", TestKinds.Artifact) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("echo", TestKinds.Penguin) }));
+
+        var errors = validator.Validate();
+
+        Assert.DoesNotContain(errors, e =>
+            e.Type == WiringErrorType.DeadEnd &&
+            e.Message.Contains("artifact.power", StringComparison.Ordinal));
+        Assert.DoesNotContain(errors, e =>
+            e.Type == WiringErrorType.Orphan &&
+            e.Message.Contains("artifact.power", StringComparison.Ordinal));
     }
 
     // --- Orphan detection ---
@@ -216,19 +239,19 @@ public class WiringValidatorTests
     {
         var validator = new WiringValidator();
 
-        // Reads "ambition" but nothing writes to it
+        // Reads "echo" but nothing writes to it
         validator.RegisterContract(new WiringContract("seek_glory",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("ambition", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("echo", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) }));
 
         // Something reads hp
         validator.RegisterContract(new WiringContract("check_health",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.Orphan &&
-            e.Message.Contains("ambition", StringComparison.Ordinal));
+            e.Message.Contains("echo", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -239,17 +262,17 @@ public class WiringValidatorTests
         // Reads from map cell (external input, not written by processes)
         validator.RegisterContract(new WiringContract("harvest",
             reads: new HashSet<AttributeRef> { AttributeRef.MapCell("fertility") },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) }));
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) }));
 
         // Something reads prosperity
         validator.RegisterContract(new WiringContract("grow",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) }));
 
         // Something reads population
         validator.RegisterContract(new WiringContract("consume",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         // Map cell reads should NOT be flagged as orphans
@@ -262,12 +285,12 @@ public class WiringValidatorTests
     public void Validate_DetectsMissingSustainingPath()
     {
         var validator = new WiringValidator();
-        validator.RegisterHealthAttribute(EntityKind.Npc, "hp");
+        validator.RegisterHealthAttribute(TestKinds.Penguin, "hp");
 
-        // Process that reads and writes hunger but NOT hp
+        // Process that reads and writes warmth but NOT hp
         validator.RegisterContract(new WiringContract("starve",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.NoSustainingPath &&
@@ -278,12 +301,12 @@ public class WiringValidatorTests
     public void Validate_PermanentKind_NoSustainingRequired()
     {
         var validator = new WiringValidator();
-        validator.RegisterHealthAttribute(EntityKind.Region, null); // No health = permanent
+        validator.RegisterHealthAttribute(TestKinds.Region, null); // No health = permanent
 
         // Region only reads, never written to
         validator.RegisterContract(new WiringContract("provide_fertility",
             reads: new HashSet<AttributeRef> { AttributeRef.MapCell("fertility") },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("habitability", EntityKind.Region) }));
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("habitability", TestKinds.Region) }));
 
         var errors = validator.Validate();
         Assert.DoesNotContain(errors, e => e.Type == WiringErrorType.NoSustainingPath &&
@@ -296,12 +319,12 @@ public class WiringValidatorTests
     public void ValidateOrThrow_ThrowsWithErrors()
     {
         var validator = new WiringValidator();
-        validator.RegisterHealthAttribute(EntityKind.Npc, "hp");
+        validator.RegisterHealthAttribute(TestKinds.Penguin, "hp");
 
         // Incomplete wiring: writes hp but nothing reads it
         validator.RegisterContract(new WiringContract("heal",
             reads: new HashSet<AttributeRef> { AttributeRef.MapCell("fertility") },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) }));
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) }));
 
         var ex = Assert.Throws<WiringValidationException>(() => validator.ValidateOrThrow());
         Assert.True(ex.Errors.Count > 0);
@@ -314,22 +337,22 @@ public class WiringValidatorTests
 
         // Complete simple loop
         validator.RegisterContract(new WiringContract("a",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("x", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("y", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("x", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("y", TestKinds.Penguin) }));
         validator.RegisterContract(new WiringContract("b",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("y", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("x", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("y", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("x", TestKinds.Penguin) }));
 
         // Should not throw
         validator.ValidateOrThrow();
     }
 
-    // --- TestDomain integration ---
+    // --- IceRemembers integration ---
 
     [Fact]
-    public void TestDomain_WiringValidation_ReportsKnownGaps()
+    public void IceRemembers_WiringValidation_ReportsKnownGaps()
     {
-        var config = Engine.Domain.TestDomain.TestDomainDefinition.Create();
+        var config = Engine.Domain.IceRemembers.IceRemembersDefinition.Create();
         var validator = Engine.Domain.Loader.DomainLoader.LoadAndValidateWiring(config);
         var errors = validator.Validate();
 
@@ -348,24 +371,24 @@ public class WiringValidatorTests
     public void Validate_MultipleKinds_IndependentValidation()
     {
         var validator = new WiringValidator();
-        validator.RegisterHealthAttribute(EntityKind.Npc, "hp");
-        validator.RegisterHealthAttribute(EntityKind.Settlement, "population");
+        validator.RegisterHealthAttribute(TestKinds.Penguin, "hp");
+        validator.RegisterHealthAttribute(TestKinds.Settlement, "population");
 
         // NPC has complete wiring
         validator.RegisterContract(new WiringContract("npc_sustain",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) }));
-        validator.RegisterContract(new WiringContract("npc_hunger",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", EntityKind.Npc) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("hunger", EntityKind.Npc) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) }));
+        validator.RegisterContract(new WiringContract("npc_warmth",
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) }));
 
         // Settlement has complete wiring
         validator.RegisterContract(new WiringContract("settle_grow",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) }));
         validator.RegisterContract(new WiringContract("settle_produce",
-            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", EntityKind.Settlement) },
-            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", EntityKind.Settlement) }));
+            reads: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
+            writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Empty(errors);

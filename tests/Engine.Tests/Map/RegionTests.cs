@@ -5,19 +5,19 @@ using Engine.Map;
 
 public class RegionTests
 {
-    private static (HexGrid Grid, RegionMap Map) CreateTestSetup()
+    private static (HexGrid Grid, MapCoverageMap Map) CreateTestSetup()
     {
         var grid = new HexGrid(3);
-        var regionMap = new RegionMap();
+        var regionMap = new MapCoverageMap();
 
         // Create 3 regions splitting the grid roughly into thirds
-        var regionA = new Region("Highlands", new EntityId(100));
-        var regionB = new Region("Lowlands", new EntityId(101));
-        var regionC = new Region("Coast", new EntityId(102));
+        var regionA = new MapCoverage("Highlands", new EntityId(100));
+        var regionB = new MapCoverage("Lowlands", new EntityId(101));
+        var regionC = new MapCoverage("Coast", new EntityId(102));
 
-        regionMap.RegisterRegion(regionA);
-        regionMap.RegisterRegion(regionB);
-        regionMap.RegisterRegion(regionC);
+        regionMap.RegisterCoverage(regionA);
+        regionMap.RegisterCoverage(regionB);
+        regionMap.RegisterCoverage(regionC);
 
         // Assign cells: positive Q = Highlands, negative Q = Coast, center = Lowlands
         foreach (var cell in grid.AllCells)
@@ -48,7 +48,7 @@ public class RegionTests
 
         foreach (var cell in grid.AllCells)
         {
-            var region = regionMap.GetRegionForCell(cell.Coord);
+            var region = regionMap.GetCoverageForCell(cell.Coord);
             Assert.NotNull(region);
         }
     }
@@ -56,11 +56,11 @@ public class RegionTests
     [Fact]
     public void AssignCell_RejectsDoubleAssignment()
     {
-        var regionMap = new RegionMap();
-        var regionA = new Region("A", new EntityId(1));
-        var regionB = new Region("B", new EntityId(2));
-        regionMap.RegisterRegion(regionA);
-        regionMap.RegisterRegion(regionB);
+        var regionMap = new MapCoverageMap();
+        var regionA = new MapCoverage("A", new EntityId(1));
+        var regionB = new MapCoverage("B", new EntityId(2));
+        regionMap.RegisterCoverage(regionA);
+        regionMap.RegisterCoverage(regionB);
 
         var coord = new HexCoord(0, 0);
         regionMap.AssignCell(coord, regionA);
@@ -72,9 +72,9 @@ public class RegionTests
     [Fact]
     public void AssignCell_SameRegionTwice_Succeeds()
     {
-        var regionMap = new RegionMap();
-        var region = new Region("A", new EntityId(1));
-        regionMap.RegisterRegion(region);
+        var regionMap = new MapCoverageMap();
+        var region = new MapCoverage("A", new EntityId(1));
+        regionMap.RegisterCoverage(region);
 
         var coord = new HexCoord(0, 0);
         regionMap.AssignCell(coord, region);
@@ -88,7 +88,7 @@ public class RegionTests
     {
         var (_, regionMap) = CreateTestSetup();
 
-        var region = regionMap.GetRegionForCell(new HexCoord(2, 0));
+        var region = regionMap.GetCoverageForCell(new HexCoord(2, 0));
         Assert.NotNull(region);
         Assert.Equal("Highlands", region.Name);
     }
@@ -96,8 +96,8 @@ public class RegionTests
     [Fact]
     public void GetRegionForCell_ReturnsNullForUnassigned()
     {
-        var regionMap = new RegionMap();
-        Assert.Null(regionMap.GetRegionForCell(new HexCoord(99, 99)));
+        var regionMap = new MapCoverageMap();
+        Assert.Null(regionMap.GetCoverageForCell(new HexCoord(99, 99)));
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class RegionTests
     {
         var (_, regionMap) = CreateTestSetup();
 
-        var region = regionMap.GetRegion(new EntityId(100));
+        var region = regionMap.GetCoverage(new EntityId(100));
         Assert.NotNull(region);
         Assert.Equal("Highlands", region.Name);
     }
@@ -115,9 +115,9 @@ public class RegionTests
     {
         var (_, regionMap) = CreateTestSetup();
 
-        var region = regionMap.GetRegionByName("Coast");
+        var region = regionMap.GetCoverageByName("Coast");
         Assert.NotNull(region);
-        Assert.Equal(new EntityId(102), region.EntityId);
+        Assert.Equal(new EntityId(102), region.OwnerEntityId);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class RegionTests
     {
         var (grid, regionMap) = CreateTestSetup();
 
-        var total = regionMap.AllRegions.Sum(r => r.CellCount);
+        var total = regionMap.AllCoverages.Sum(r => r.CellCount);
         Assert.Equal(grid.CellCount, total);
     }
 
@@ -143,8 +143,8 @@ public class RegionTests
         Assert.True(adjacency.Count >= 2); // At least Highlands-Lowlands and Lowlands-Coast
 
         var idPairs = adjacency.Select(p => (
-            regionMap.GetRegion(p.A)!.Name,
-            regionMap.GetRegion(p.B)!.Name)).ToList();
+            regionMap.GetCoverage(p.A)!.Name,
+            regionMap.GetCoverage(p.B)!.Name)).ToList();
 
         // Lowlands should border both Highlands and Coast
         Assert.Contains(idPairs, p =>
@@ -168,9 +168,9 @@ public class RegionTests
     public void ComputeAggregates_CorrectAverageFertility()
     {
         var grid = new HexGrid(2);
-        var regionMap = new RegionMap();
-        var region = new Region("Test", new EntityId(1));
-        regionMap.RegisterRegion(region);
+        var regionMap = new MapCoverageMap();
+        var region = new MapCoverage("Test", new EntityId(1));
+        regionMap.RegisterCoverage(region);
 
         // Assign all cells to one region, set varied fertility
         var cells = grid.AllCells.ToList();
@@ -180,8 +180,8 @@ public class RegionTests
         }
 
         // Set some cells to different fertility
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 1.0f);
-        grid.SetCell(new HexCoord(1, 0), TerrainType.Plains, fertility: 0.0f);
+        grid.SetCell(new HexCoord(0, 0), TerrainType.Tundra, fertility: 1.0f);
+        grid.SetCell(new HexCoord(1, 0), TerrainType.Tundra, fertility: 0.0f);
 
         var agg = regionMap.ComputeAggregates(region, grid);
         Assert.True(agg.AverageFertility > 0f);
@@ -193,30 +193,30 @@ public class RegionTests
     public void ComputeAggregates_DominantTerrain()
     {
         var grid = new HexGrid(2);
-        var regionMap = new RegionMap();
-        var region = new Region("Mountains", new EntityId(1));
-        regionMap.RegisterRegion(region);
+        var regionMap = new MapCoverageMap();
+        var region = new MapCoverage("Crags", new EntityId(1));
+        regionMap.RegisterCoverage(region);
 
         foreach (var cell in grid.AllCells)
         {
             regionMap.AssignCell(cell.Coord, region);
-            grid.SetCell(cell.Coord, TerrainType.Mountain);
+            grid.SetCell(cell.Coord, TerrainType.Crags);
         }
 
-        // Set one cell to plains
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains);
+        // Set one cell to tundra
+        grid.SetCell(new HexCoord(0, 0), TerrainType.Tundra);
 
         var agg = regionMap.ComputeAggregates(region, grid);
-        Assert.Equal(TerrainType.Mountain, agg.DominantTerrain);
+        Assert.Equal(TerrainType.Crags, agg.DominantTerrain);
     }
 
     [Fact]
     public void ComputeAggregates_CollectsResources()
     {
         var grid = new HexGrid(2);
-        var regionMap = new RegionMap();
-        var region = new Region("Rich", new EntityId(1));
-        regionMap.RegisterRegion(region);
+        var regionMap = new MapCoverageMap();
+        var region = new MapCoverage("Rich", new EntityId(1));
+        regionMap.RegisterCoverage(region);
 
         foreach (var cell in grid.AllCells)
         {

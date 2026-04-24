@@ -43,10 +43,12 @@ public sealed class DomainConfig
 /// <summary>Per-kind configuration: subtypes, attributes, health metric.</summary>
 public sealed class KindConfig
 {
+    public EntityCategory Category { get; init; } = EntityCategory.Agency;
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required IReadOnlyList<AttributeConfig> Attributes { get; init; }
     public string? HealthAttribute { get; init; }
     public IReadOnlyList<StandingDriveConfig> StandingDrives { get; init; } = [];
+    public IReadOnlyList<RecoveryHostQueryConfig> HexToHealthRecoveryHosts { get; init; } = [];
 
     /// <summary>
     /// Design-time prose: what this kind represents in the world — distinct from
@@ -57,12 +59,22 @@ public sealed class KindConfig
 
     /// <summary>
     /// The plane on which this kind primarily positions itself. Physical-plane kinds
-    /// (Npc, Artifact) use the map hex grid and measure proximity via HexCoord.Distance.
-    /// Semantic-plane kinds (Settlement, Faction, Region) use SemanticHexCoord on the
+    /// (such as penguins and artifacts in Ice Remembers) use the map hex grid and
+    /// measure proximity via HexCoord.Distance. Semantic-plane kinds use SemanticHexCoord on the
     /// autonomy/resonance/tradition axes. Mobility/drift verbs and cross-entity verb
     /// proximity checks pick their metric from the owner's primary plane.
     /// </summary>
     public required PrimaryPlane PrimaryPlane { get; init; }
+}
+
+/// <summary>
+/// Planner-visible host query for recovery verbs that heal from ambient hex
+/// resources. `AnyOfKinds` is a disjunction: any matching named entity kind can
+/// serve as the recovery site.
+/// </summary>
+public sealed class RecoveryHostQueryConfig
+{
+    public required IReadOnlySet<EntityKind> AnyOfKinds { get; init; }
 }
 
 public enum PrimaryPlane
@@ -105,6 +117,8 @@ public enum AttributeCategory
 public sealed class AttributeConfig
 {
     public required string Name { get; init; }
+    public string? DisplayName { get; init; }
+    public IReadOnlyDictionary<string, string>? CultureDisplayNames { get; init; }
 
     /// <summary>
     /// Category slot. Every kind must declare exactly 3 attributes: one Health,
@@ -132,12 +146,12 @@ public sealed class AttributeConfig
     public float Baseline { get; init; }
 
     /// <summary>Per-tick drift rate. Positive = increases each tick, negative = decreases.
-    /// Zero (default) = no drift. e.g., satiety drifts -0.35/tick, condition drifts -0.01/tick.</summary>
+    /// Zero (default) = no drift. e.g., warmth drifts -0.35/tick, condition drifts -0.01/tick.</summary>
     public float DriftRate { get; init; }
 
     /// <summary>
     /// Optional ambient location resource that adds a dynamic offset to this attribute's
-    /// per-tick drift. Useful for sustainment behaviors like satiety falling more slowly
+    /// per-tick drift. Useful for sustainment behaviors like warmth falling more slowly
     /// on food-rich hexes than on barren ones.
     /// </summary>
     public ResourceType? LocationResourceDriftResource { get; init; }

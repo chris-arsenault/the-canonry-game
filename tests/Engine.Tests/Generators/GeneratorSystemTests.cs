@@ -2,7 +2,7 @@ namespace Engine.Tests.Generators;
 
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Generators;
 using Engine.Graph;
 using Engine.Kinds;
@@ -51,13 +51,13 @@ public class GeneratorSystemTests
                 [
                     new SemanticGeneratorTrigger
                     {
-                        OnKind = EntityKind.Settlement,
+                        OnKind = TestKinds.Settlement,
                         AttributeName = "residents",
                         Direction = TriggerDirection.High,
                     },
                 ]));
 
-        foreach (var settlementId in sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement))
         {
             sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("residents")!.SetBase(10f);
         }
@@ -110,6 +110,54 @@ public class GeneratorSystemTests
     }
 
     [Fact]
+    public void Tick_WhenChosenGeneratorFailsPlacement_RetriesOtherApplicableGenerators()
+    {
+        var impossibleCoverage = CreateGenerator(
+            "impossible_coverage",
+            pulseWeight: 100,
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$impossible_region",
+                    Kind = TestKinds.Region,
+                    Subtype = "scar",
+                    Role = "impossible_region",
+                    InheritCultureFrom = "$target",
+                    Coverage = new SemanticRegionCoverage
+                    {
+                        Mode = CoveragePlacementMode.CreateNew,
+                        DesiredCellCount = 500,
+                        MinimumCellCount = 500,
+                        AllowedTerrains = new HashSet<TerrainType> { TerrainType.HotSprings },
+                        PreferredTerrains = new HashSet<TerrainType> { TerrainType.HotSprings },
+                    },
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$impossible_region",
+                    DestinationRef = "$target",
+                    Kind = "founded_from",
+                },
+            ]);
+        var valid = CreateGenerator("still_valid", pulseWeight: 1);
+        var (sim, system) = CreateSystem(new Random(42), impossibleCoverage, valid);
+        var active = new HashSet<string>(StringComparer.Ordinal) { "impossible_coverage", "still_valid" };
+
+        for (var pulse = 1; pulse <= 20; pulse++)
+        {
+            system.Tick(pulse * system.PulseInterval, active);
+        }
+
+        Assert.Equal(20, system.TotalFired);
+        Assert.Equal(20, sim.WorldState.Generators.ById["still_valid"].TotalRuns);
+        Assert.True(sim.WorldState.Generators.ById["impossible_coverage"].FailedRuns > 0);
+    }
+
+    [Fact]
     public void Fire_CreatesAllEntitiesInProducesList()
     {
         var generator = CreateGenerator(
@@ -119,15 +167,15 @@ public class GeneratorSystemTests
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$weapon",
-                    Kind = EntityKind.Artifact,
+                    Kind = TestKinds.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
                     InheritCultureFrom = "$hero",
@@ -139,13 +187,13 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
                 new SemanticGeneratorRelationship
                 {
                     SourceRef = "$weapon",
                     DestinationRef = "$hero",
-                    Kind = "stored_at",
+                    Kind = "anchored",
                 },
             ]);
 
@@ -165,16 +213,17 @@ public class GeneratorSystemTests
                 new SemanticProducedEntity
                 {
                     Ref = "$weapon",
-                    Kind = EntityKind.Artifact,
+                    Kind = TestKinds.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
                     CreateChance = 0f,
+                    InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -185,20 +234,20 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
                 new SemanticGeneratorRelationship
                 {
                     SourceRef = "$weapon",
                     DestinationRef = "$hero",
-                    Kind = "stored_at",
+                    Kind = "anchored",
                 },
             ]);
 
         var (sim, _, _, message) = FireAndCaptureMessage(new Random(42), generator);
 
         Assert.Single(message.CreatedEntityIds);
-        Assert.Equal(EntityKind.Npc, sim.Graph.GetEntity(message.CreatedEntityIds[0])!.Kind);
+        Assert.Equal(TestKinds.Penguin, sim.Graph.GetEntity(message.CreatedEntityIds[0])!.Kind);
     }
 
     [Fact]
@@ -222,15 +271,15 @@ public class GeneratorSystemTests
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$weapon",
-                    Kind = EntityKind.Artifact,
+                    Kind = TestKinds.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
                     InheritCultureFrom = "$hero",
@@ -242,13 +291,13 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
                 new SemanticGeneratorRelationship
                 {
                     SourceRef = "$weapon",
                     DestinationRef = "$hero",
-                    Kind = "stored_at",
+                    Kind = "anchored",
                 },
             ]);
 
@@ -256,14 +305,14 @@ public class GeneratorSystemTests
         var createdEntities = message.CreatedEntityIds
             .Select(id => sim.Graph.GetEntity(id)!)
             .ToDictionary(entity => entity.Kind);
-        var hero = createdEntities[EntityKind.Npc];
-        var weapon = createdEntities[EntityKind.Artifact];
+        var hero = createdEntities[TestKinds.Penguin];
+        var weapon = createdEntities[TestKinds.Artifact];
 
         Assert.Contains(
-            sim.Graph.OutgoingRelationships(hero.Id, "located_at"),
+            sim.Graph.OutgoingRelationships(hero.Id, "home_base"),
             relationship => relationship.TargetId == target.Id);
         Assert.Contains(
-            sim.Graph.OutgoingRelationships(weapon.Id, "stored_at"),
+            sim.Graph.OutgoingRelationships(weapon.Id, "anchored"),
             relationship => relationship.TargetId == hero.Id);
         Assert.Equal(2, message.CreatedRelationshipCount);
     }
@@ -278,16 +327,17 @@ public class GeneratorSystemTests
                 new SemanticProducedEntity
                 {
                     Ref = "$weapon",
-                    Kind = EntityKind.Artifact,
+                    Kind = TestKinds.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
                     CreateChance = 0f,
+                    InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -298,13 +348,13 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
                 new SemanticGeneratorRelationship
                 {
                     SourceRef = "$weapon",
                     DestinationRef = "$hero",
-                    Kind = "stored_at",
+                    Kind = "anchored",
                 },
             ]);
 
@@ -312,10 +362,10 @@ public class GeneratorSystemTests
         var heroId = Assert.Single(message.CreatedEntityIds);
 
         Assert.Contains(
-            sim.Graph.OutgoingRelationships(heroId, "located_at"),
+            sim.Graph.OutgoingRelationships(heroId, "home_base"),
             relationship => relationship.TargetId == target.Id);
         Assert.DoesNotContain(
-            sim.Graph.GetEntitiesByKind(EntityKind.Artifact),
+            sim.Graph.GetEntitiesByKind(TestKinds.Artifact),
             entityId => message.CreatedEntityIds.Contains(entityId));
         Assert.Equal(1, message.CreatedRelationshipCount);
     }
@@ -334,6 +384,64 @@ public class GeneratorSystemTests
     }
 
     [Fact]
+    public void Fire_EntitiesPlacedAcrossTarget_OnBothPlanes()
+    {
+        var generator = CreateGenerator(
+            "across_placement",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "rookery" },
+            },
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
+                    Role = "hero",
+                    PhysicalPlacement = SemanticPlacement.Across,
+                    SemanticPlacement = SemanticPlacement.Across,
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Settlement,
+                    AttributeName = "shelter",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .Single(entity => entity.Subtype == "rookery");
+        target.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        GeneratorFiredMessage? message = null;
+        sim.MessageBus.Subscribe(msg =>
+        {
+            if (msg is GeneratorFiredMessage fired)
+            {
+                message = fired;
+            }
+        });
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "across_placement" });
+
+        var fired = Assert.IsType<GeneratorFiredMessage>(message);
+        var created = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
+        var targetPhysical = new HexCoord(target.Coordinates.Q, target.Coordinates.R);
+
+        Assert.Equal(2, HexCoord.Distance(targetPhysical, new HexCoord(created.Coordinates.Q, created.Coordinates.R)));
+        Assert.Equal(2, SemanticHexCoord.Distance(target.SemanticPosition, created.SemanticPosition));
+    }
+
+    [Fact]
     public void Fire_EmitsGeneratorFiredMessage()
     {
         var generator = CreateGenerator("message_emission");
@@ -348,19 +456,353 @@ public class GeneratorSystemTests
     }
 
     [Fact]
+    public void Fire_QueryBoundAdjacentProducedEntity_BindsExistingInsteadOfCreatingDuplicate()
+    {
+        var generator = CreateGenerator(
+            "sea_reefhold",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "harbor" },
+            },
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$sea",
+                    Kind = TestKinds.Region,
+                    Subtype = "sea",
+                    Role = "named_water",
+                    Query = new SemanticEntityQuery
+                    {
+                        Subtypes = new HashSet<string>(StringComparer.Ordinal) { "sea" },
+                        AdjacentToTarget = true,
+                    },
+                    InheritCultureFrom = "$target",
+                    Coverage = new SemanticRegionCoverage
+                    {
+                        Mode = CoveragePlacementMode.CreateNew,
+                        DesiredCellCount = 12,
+                        MinimumCellCount = 6,
+                    },
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$reefhold",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "reefhold",
+                    Role = "offshore_hold",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$reefhold",
+                    DestinationRef = "$sea",
+                    Kind = "founded_from",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Settlement,
+                    AttributeName = "shelter",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var harborId = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .Single(entity => entity.Subtype == "harbor")
+            .Id;
+        var harbor = sim.Graph.GetEntity(harborId)!;
+        harbor.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        var existingSea = sim.Graph.CreateEntity(
+            TestKinds.Region,
+            "sea",
+            "Near Sea",
+            harbor.Culture,
+            tick: 0,
+            coordinates: (harbor.Coordinates.Q + 1, harbor.Coordinates.R));
+        existingSea.SemanticPosition = harbor.SemanticPosition;
+        var regionCountBefore = sim.Graph.GetEntitiesByKind(TestKinds.Region).Count;
+        GeneratorFiredMessage? message = null;
+        sim.MessageBus.Subscribe(msg =>
+        {
+            if (msg is GeneratorFiredMessage fired)
+            {
+                message = fired;
+            }
+        });
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "sea_reefhold" });
+
+        var firedMessage = Assert.IsType<GeneratorFiredMessage>(message);
+        Assert.Equal(regionCountBefore, sim.Graph.GetEntitiesByKind(TestKinds.Region).Count);
+        Assert.DoesNotContain(existingSea.Id, firedMessage.CreatedEntityIds);
+
+        var reefholdId = firedMessage.CreatedEntityIds
+            .Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Settlement);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(reefholdId, "founded_from"),
+            relationship => relationship.TargetId == existingSea.Id);
+    }
+
+    [Fact]
+    public void Fire_QueryBoundFollower_ReassignsMemberOfAndSkipsFactionLeader()
+    {
+        var generator = CreateGenerator(
+            "unhuddled_with_third",
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$refuge",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "sanctuary",
+                    Role = "refuge",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$compact",
+                    Kind = TestKinds.Faction,
+                    Subtype = "compact",
+                    Role = "compact",
+                    InheritCultureFrom = "$target",
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$third_follower",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "exile",
+                    Role = "third_follower",
+                    CreateIfMissing = false,
+                    Query = new SemanticEntityQuery
+                    {
+                        AdjacentToTarget = true,
+                        WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { "led_by" },
+                    },
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$refuge",
+                    DestinationRef = "$compact",
+                    Kind = "controlled_by",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$third_follower",
+                    DestinationRef = "$compact",
+                    Kind = "member_of",
+                    ReplaceExistingOutgoingOfSameKind = true,
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$third_follower",
+                    DestinationRef = "$refuge",
+                    Kind = "home_base",
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .Single(entity => entity.Subtype == "rookery");
+        target.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        var oldFaction = sim.Graph.CreateEntity(TestKinds.Faction, "order", "Old Order", target.Culture, 0);
+        var oldHome = sim.Graph.CreateEntity(
+            TestKinds.Settlement,
+            "holdfast",
+            "Old Home",
+            target.Culture,
+            0,
+            (target.Coordinates.Q + 2, target.Coordinates.R));
+
+        var candidate = sim.Graph.CreateEntity(
+            TestKinds.Penguin,
+            "exile",
+            "Nearby Exile",
+            target.Culture,
+            0,
+            (target.Coordinates.Q + 1, target.Coordinates.R));
+        sim.Graph.CreateRelationship("member_of", RelationshipPolarity.Neutral, candidate.Id, oldFaction.Id, 1f, 0);
+        sim.Graph.CreateRelationship("home_base", RelationshipPolarity.Neutral, candidate.Id, oldHome.Id, 1f, 0);
+
+        var rivalFaction = sim.Graph.CreateEntity(TestKinds.Faction, "order", "Rival Order", target.Culture, 0);
+        var leader = sim.Graph.CreateEntity(
+            TestKinds.Penguin,
+            "warden",
+            "Faction Leader",
+            target.Culture,
+            0,
+            (target.Coordinates.Q, target.Coordinates.R + 1));
+        sim.Graph.CreateRelationship("led_by", RelationshipPolarity.Neutral, rivalFaction.Id, leader.Id, 1f, 0);
+
+        GeneratorFiredMessage? message = null;
+        sim.MessageBus.Subscribe(msg =>
+        {
+            if (msg is GeneratorFiredMessage fired)
+            {
+                message = fired;
+            }
+        });
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "unhuddled_with_third" });
+
+        var fired = Assert.IsType<GeneratorFiredMessage>(message);
+        Assert.DoesNotContain(candidate.Id, fired.CreatedEntityIds);
+        Assert.DoesNotContain(leader.Id, fired.CreatedEntityIds);
+
+        var newCompactId = fired.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Faction);
+        var newRefugeId = fired.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Settlement);
+
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(candidate.Id, "member_of"),
+            relationship => relationship.TargetId == newCompactId);
+        Assert.DoesNotContain(
+            sim.Graph.OutgoingRelationships(candidate.Id, "member_of"),
+            relationship => relationship.TargetId == oldFaction.Id);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(candidate.Id, "home_base"),
+            relationship => relationship.TargetId == newRefugeId);
+        Assert.DoesNotContain(
+            sim.Graph.OutgoingRelationships(candidate.Id, "home_base"),
+            relationship => relationship.TargetId == oldHome.Id);
+        Assert.Contains(
+            sim.Graph.IncomingRelationships(leader.Id, "led_by"),
+            relationship => relationship.SourceId == rivalFaction.Id);
+    }
+
+    [Fact]
+    public void Fire_QueryBoundEntity_CanFilterByTargetCulture()
+    {
+        var generator = CreateGenerator(
+            "culture_bound_follower",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "rookery" },
+            },
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$same_culture",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "exile",
+                    Role = "same_culture",
+                    CreateIfMissing = false,
+                    InheritCultureFrom = "$target",
+                    Query = new SemanticEntityQuery
+                    {
+                        AdjacentToTarget = true,
+                        TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget,
+                    },
+                },
+                new SemanticProducedEntity
+                {
+                    Ref = "$different_culture",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "exile",
+                    Role = "different_culture",
+                    CreateIfMissing = false,
+                    InheritCultureFrom = "$target",
+                    Query = new SemanticEntityQuery
+                    {
+                        AdjacentToTarget = true,
+                        TargetCultureMatch = QueryTargetCultureMatch.DifferentFromTarget,
+                    },
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$same_culture",
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                },
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$different_culture",
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Settlement,
+                    AttributeName = "shelter",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .Single(entity => entity.Subtype == "rookery");
+        target.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        var sameCulture = sim.Graph.CreateEntity(
+            TestKinds.Penguin,
+            "exile",
+            "Same Culture",
+            target.Culture,
+            0,
+            (target.Coordinates.Q + 1, target.Coordinates.R));
+        var differentCulture = sim.Graph.CreateEntity(
+            TestKinds.Penguin,
+            "exile",
+            "Different Culture",
+            "wake-singers",
+            0,
+            (target.Coordinates.Q, target.Coordinates.R + 1));
+
+        GeneratorFiredMessage? message = null;
+        sim.MessageBus.Subscribe(msg =>
+        {
+            if (msg is GeneratorFiredMessage fired)
+            {
+                message = fired;
+            }
+        });
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "culture_bound_follower" });
+
+        Assert.IsType<GeneratorFiredMessage>(message);
+        Assert.Empty(message!.CreatedEntityIds);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(sameCulture.Id, "home_base"),
+            relationship => relationship.TargetId == target.Id);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(differentCulture.Id, "home_base"),
+            relationship => relationship.TargetId == target.Id);
+    }
+
+    [Fact]
     public void Tick_AllowWilderness_KeepsRegionTargetForRelationshipsAndInheritsRegionCulture()
     {
         var generator = CreateGenerator(
-            "colony_founding",
+            "region_opens_the_old_holding",
             target: new SemanticGeneratorTarget
             {
-                Kind = EntityKind.Region,
+                Kind = TestKinds.Region,
                 AllowWilderness = true,
                 SaturationLimits =
                 [
                     new SemanticSaturationLimit
                     {
-                        RelationshipKind = "contains",
+                        RelationshipKind = "founded_from",
                         Direction = "out",
                         MaxCount = 3,
                     },
@@ -371,24 +813,24 @@ public class GeneratorSystemTests
                 new SemanticProducedEntity
                 {
                     Ref = "$settlement",
-                    Kind = EntityKind.Settlement,
-                    Subtype = "village",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "rookery",
                     Role = "primary",
                     InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$leader",
-                    Kind = EntityKind.Npc,
-                    Subtype = "warrior",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "leader",
                     InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$faction",
-                    Kind = EntityKind.Faction,
-                    Subtype = "generic_faction",
+                    Kind = TestKinds.Faction,
+                    Subtype = "order",
                     Role = "founding_faction",
                     InheritCultureFrom = "$target",
                 },
@@ -399,7 +841,7 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$leader",
                     DestinationRef = "$settlement",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -411,43 +853,229 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$leader",
                     DestinationRef = "$faction",
-                    Kind = "loyal_to",
+                    Kind = "member_of",
                 },
                 new SemanticGeneratorRelationship
                 {
-                    SourceRef = "$target",
-                    DestinationRef = "$settlement",
-                    Kind = "contains",
+                    SourceRef = "$settlement",
+                    DestinationRef = "$target",
+                    Kind = "founded_from",
                 },
             ],
             triggers:
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Region,
-                    AttributeName = "pristineness",
+                    OnKind = TestKinds.Region,
+                    AttributeName = "pristiness",
                     Direction = TriggerDirection.High,
                 },
             ]);
         var (sim, system) = CreateSystem(new Random(42), generator);
-        var regionIds = sim.Graph.GetEntitiesByKind(EntityKind.Region).ToHashSet();
-        var settlementIds = sim.Graph.GetEntitiesByKind(EntityKind.Settlement).ToHashSet();
+        var regionIds = sim.Graph.GetEntitiesByKind(TestKinds.Region).ToHashSet();
+        var settlementIds = sim.Graph.GetEntitiesByKind(TestKinds.Settlement).ToHashSet();
 
         foreach (var regionId in regionIds)
         {
-            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristineness")!.SetBase(90f);
+            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristiness")!.SetBase(90f);
         }
 
-        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "colony_founding" });
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "region_opens_the_old_holding" });
 
-        var newSettlementId = sim.Graph.GetEntitiesByKind(EntityKind.Settlement).Single(id => !settlementIds.Contains(id));
+        var newSettlementId = sim.Graph.GetEntitiesByKind(TestKinds.Settlement).Single(id => !settlementIds.Contains(id));
         var newSettlement = sim.Graph.GetEntity(newSettlementId)!;
-        var containingRegionId = regionIds.Single(regionId =>
-            sim.Graph.OutgoingRelationships(regionId, "contains")
-                .Any(relationship => relationship.TargetId == newSettlementId));
+        var foundedFrom = Assert.Single(sim.Graph.OutgoingRelationships(newSettlementId, "founded_from"));
+        var containingRegionId = foundedFrom.TargetId;
 
         Assert.Equal("none", newSettlement.Culture);
         Assert.Contains(containingRegionId, regionIds);
+    }
+
+    [Fact]
+    public void Fire_SecondaryRegionBinding_PlacesCreatedSettlementInThatRegion()
+    {
+        var generator = CreateGenerator(
+            "seal_the_leak",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Faction,
+            },
+            secondaryTargets:
+            [
+                new SemanticGeneratorBindingTarget
+                {
+                    Ref = "$leak_region",
+                    Kind = TestKinds.Region,
+                    Query = new SemanticEntityQuery
+                    {
+                        AttributeConditions =
+                        [
+                            new SemanticQueryAttributeCondition
+                            {
+                                AttributeName = "pristiness",
+                                Direction = TriggerDirection.Low,
+                            },
+                        ],
+                    },
+                },
+            ],
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$holdfast",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "holdfast",
+                    Role = "containment_hold",
+                    PhysicalPlacement = SemanticPlacement.InRegionLocality,
+                    SemanticPlacement = SemanticPlacement.Near,
+                    PlacementRef = "$leak_region",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$holdfast",
+                    DestinationRef = "$target",
+                    Kind = "controlled_by",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Faction,
+                    AttributeName = "cohesion",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        foreach (var factionId in sim.Graph.GetEntitiesByKind(TestKinds.Faction))
+        {
+            sim.Graph.GetEntity(factionId)!.Attributes.GetScalar("cohesion")!.SetBase(10f);
+        }
+
+        foreach (var regionId in sim.Graph.GetEntitiesByKind(TestKinds.Region))
+        {
+            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristiness")!.SetBase(90f);
+        }
+
+        var targetFaction = sim.Graph.GetEntitiesByKind(TestKinds.Faction)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .First();
+        targetFaction.Attributes.GetScalar("cohesion")!.SetBase(90f);
+
+        var leakRegion = sim.Graph.GetEntitiesByKind(TestKinds.Region)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .First();
+        leakRegion.Attributes.GetScalar("pristiness")!.SetBase(10f);
+
+        GeneratorFiredMessage? message = null;
+        sim.MessageBus.Subscribe(msg =>
+        {
+            if (msg is GeneratorFiredMessage fired)
+            {
+                message = fired;
+            }
+        });
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "seal_the_leak" });
+
+        var fired = Assert.IsType<GeneratorFiredMessage>(message);
+        var createdHoldfast = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
+        var region = sim.CoverageMap.GetCoverage(leakRegion.Id);
+        Assert.NotNull(region);
+        var createdCoord = new HexCoord(createdHoldfast.Coordinates.Q, createdHoldfast.Coordinates.R);
+
+        Assert.Contains(createdCoord, region!.Cells);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(createdHoldfast.Id, "controlled_by"),
+            relationship => relationship.TargetId == targetFaction.Id);
+    }
+
+    [Fact]
+    public void Tick_SecondaryRegionBinding_WhenNoMatchExists_DoesNotFire()
+    {
+        var generator = CreateGenerator(
+            "seal_the_leak",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Faction,
+            },
+            secondaryTargets:
+            [
+                new SemanticGeneratorBindingTarget
+                {
+                    Ref = "$leak_region",
+                    Kind = TestKinds.Region,
+                    Query = new SemanticEntityQuery
+                    {
+                        AttributeConditions =
+                        [
+                            new SemanticQueryAttributeCondition
+                            {
+                                AttributeName = "pristiness",
+                                Direction = TriggerDirection.Low,
+                            },
+                        ],
+                    },
+                },
+            ],
+            produces:
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$holdfast",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "holdfast",
+                    Role = "containment_hold",
+                    PhysicalPlacement = SemanticPlacement.InRegionLocality,
+                    SemanticPlacement = SemanticPlacement.Near,
+                    PlacementRef = "$leak_region",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$holdfast",
+                    DestinationRef = "$target",
+                    Kind = "controlled_by",
+                },
+            ],
+            triggers:
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Faction,
+                    AttributeName = "cohesion",
+                    Direction = TriggerDirection.High,
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        foreach (var factionId in sim.Graph.GetEntitiesByKind(TestKinds.Faction))
+        {
+            sim.Graph.GetEntity(factionId)!.Attributes.GetScalar("cohesion")!.SetBase(10f);
+        }
+
+        foreach (var regionId in sim.Graph.GetEntitiesByKind(TestKinds.Region))
+        {
+            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristiness")!.SetBase(90f);
+        }
+
+        var targetFaction = sim.Graph.GetEntitiesByKind(TestKinds.Faction)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .First();
+        targetFaction.Attributes.GetScalar("cohesion")!.SetBase(90f);
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "seal_the_leak" });
+
+        var instance = sim.WorldState.Generators.ById["seal_the_leak"];
+        Assert.Equal(0, instance.TotalRuns);
+        Assert.Null(instance.LastFiredTick);
     }
 
     private static (SimulationRunner Sim, GeneratorSystem System) CreateSystem(
@@ -463,6 +1091,7 @@ public class GeneratorSystemTests
             definitionGraph,
             sim.SpatialIndex,
             sim.WorldState.SemanticPlane,
+            sim.CoverageMap,
             sim.MessageBus,
             random);
 
@@ -474,6 +1103,7 @@ public class GeneratorSystemTests
         int pulseWeight = 1,
         int? maxRunsPerSim = null,
         SemanticGeneratorTarget? target = null,
+        IReadOnlyList<SemanticGeneratorBindingTarget>? secondaryTargets = null,
         IReadOnlyList<SemanticProducedEntity>? produces = null,
         IReadOnlyList<SemanticGeneratorRelationship>? relationships = null,
         IReadOnlyList<SemanticGeneratorTrigger>? triggers = null) =>
@@ -483,15 +1113,16 @@ public class GeneratorSystemTests
             Name = id,
             Target = target ?? new SemanticGeneratorTarget
             {
-                Kind = EntityKind.Settlement,
+                Kind = TestKinds.Settlement,
             },
+            SecondaryTargets = secondaryTargets ?? [],
             Produces = produces ??
             [
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -502,14 +1133,14 @@ public class GeneratorSystemTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
             ],
             Triggers = triggers ??
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Settlement,
+                    OnKind = TestKinds.Settlement,
                     Direction = TriggerDirection.Any,
                 },
             ],
@@ -539,7 +1170,7 @@ public class GeneratorSystemTests
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
 
         return new DomainConfig

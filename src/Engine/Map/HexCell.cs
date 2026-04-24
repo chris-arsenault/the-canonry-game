@@ -37,14 +37,14 @@ public sealed class HexCell
     {
         return Terrain switch
         {
-            TerrainType.Water => 0f,
-            TerrainType.Mountain => 0.1f * Fertility,
-            TerrainType.Desert => 0.2f * Fertility,
-            TerrainType.Swamp => 0.3f * Fertility,
-            TerrainType.Tundra => 0.3f * Fertility,
-            TerrainType.Forest => 0.6f * Fertility,
-            TerrainType.Coastal => 0.7f * Fertility,
-            TerrainType.Plains => 0.9f * Fertility,
+            TerrainType.Ocean => 0f,
+            TerrainType.Crags => 0.1f * Fertility,
+            TerrainType.Wastes => 0.2f * Fertility,
+            TerrainType.Ice => 0.3f * Fertility,
+            TerrainType.Shelf => 0.45f * Fertility,
+            TerrainType.Reef => 0.55f * Fertility,
+            TerrainType.Tundra => 0.75f * Fertility,
+            TerrainType.HotSprings => 0.95f * Fertility,
             _ => 0.5f * Fertility,
         };
     }
@@ -53,14 +53,14 @@ public sealed class HexCell
     {
         return Terrain switch
         {
-            TerrainType.Water => float.PositiveInfinity,
-            TerrainType.Mountain => 4f,
-            TerrainType.Swamp => 3f,
-            TerrainType.Forest => 2f,
-            TerrainType.Desert => 2f,
-            TerrainType.Tundra => 2f,
-            TerrainType.Coastal => 1.2f,
-            TerrainType.Plains => 1f,
+            TerrainType.Ocean => float.PositiveInfinity,
+            TerrainType.Crags => 4f,
+            TerrainType.Ice => 2.5f,
+            TerrainType.Shelf => 1.8f,
+            TerrainType.Reef => 1.6f,
+            TerrainType.Wastes => 1.4f,
+            TerrainType.Tundra => 1.1f,
+            TerrainType.HotSprings => 1f,
             _ => 1.5f,
         };
     }

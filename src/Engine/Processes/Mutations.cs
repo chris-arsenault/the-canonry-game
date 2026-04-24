@@ -367,20 +367,28 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
 public sealed class HexToHealthMutation(
     string attributeName,
     ResourceType resource,
-    float ratePerHexValue = 2f) : IMutation
+    float ratePerHexValue = 2f,
+    bool targetLocation = false) : IMutation
 {
     public string AttributeName { get; } = attributeName;
     public ResourceType Resource { get; } = resource;
     public float RatePerHexValue { get; } = ratePerHexValue;
+    public bool TargetLocation { get; } = targetLocation;
 
     public void Execute(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var self = context.GetEntity(context.SelfEntityId);
-        if (self is null) return;
+        var sourceEntityId = TargetLocation ? context.ResolvedTargetId : context.SelfEntityId;
+        if (sourceEntityId is null)
+        {
+            return;
+        }
+
+        var sourceEntity = context.GetEntity(sourceEntityId.Value);
+        if (sourceEntity is null) return;
 
         var hexValue = context.GetResource(
-            (self.Coordinates.Q, self.Coordinates.R),
+            (sourceEntity.Coordinates.Q, sourceEntity.Coordinates.R),
             Resource);
         if (hexValue <= 0f) return;
 
@@ -389,19 +397,19 @@ public sealed class HexToHealthMutation(
     }
 
     public string Describe() =>
-        $"hex_to_health({AttributeName}, hex.{Resource.ToDomainName()}, rate={RatePerHexValue})";
+        $"hex_to_health({AttributeName}, {(TargetLocation ? "target" : "self")}.hex.{Resource.ToDomainName()}, rate={RatePerHexValue})";
 }
 
 /// <summary>
 /// Moves self one step along a path toward the resolved target.
-/// Optionally maintains an exclusive location-style relationship such as located_at.
+/// Optionally maintains an exclusive location-style relationship supplied by the domain.
 /// TODO: This is the first reusable movement primitive, not the final planner shape.
 /// Keep future work focused on generalizing the arrival/presence fact rather than
 /// proliferating target-specific movement mutations.
 /// </summary>
 public sealed class MoveTowardTargetMutation(
-    string? locationRelationshipKind = "located_at",
-    EntityKind? locationEntityKind = EntityKind.Settlement) : IMutation
+    string? locationRelationshipKind = null,
+    EntityKind? locationEntityKind = null) : IMutation
 {
     public void Execute(IMutationContext context)
     {
@@ -438,11 +446,11 @@ public sealed class MoveTowardTargetMutation(
 
 /// <summary>
 /// Moves self to a random walkable neighboring cell. Useful for ambient movement processes.
-/// Optionally maintains an exclusive location-style relationship such as located_at.
+/// Optionally maintains an exclusive location-style relationship supplied by the domain.
 /// </summary>
 public sealed class WanderMutation(
-    string? locationRelationshipKind = "located_at",
-    EntityKind? locationEntityKind = EntityKind.Settlement) : IMutation
+    string? locationRelationshipKind = null,
+    EntityKind? locationEntityKind = null) : IMutation
 {
     public void Execute(IMutationContext context)
     {
@@ -562,7 +570,7 @@ internal static class MovementHelper
         EntityKind? locationEntityKind,
         EntityId? preferredEntityId = null)
     {
-        if (string.IsNullOrWhiteSpace(relationshipKind) || locationEntityKind is null)
+        if (string.IsNullOrWhiteSpace(relationshipKind))
         {
             return;
         }
@@ -574,11 +582,21 @@ internal static class MovementHelper
         }
 
         var currentRelatedEntityId = context.FindRelatedEntity(context.SelfEntityId, relationshipKind);
+        var resolvedLocationKind = ResolveLocationKind(
+            context,
+            locationEntityKind,
+            preferredEntityId,
+            currentRelatedEntityId);
+        if (resolvedLocationKind is null)
+        {
+            return;
+        }
+
         var coord = new HexCoord(self.Coordinates.Q, self.Coordinates.R);
         var desiredEntityId = ResolveLocationEntityAtCell(
             worldState,
             coord,
-            locationEntityKind.Value,
+            resolvedLocationKind.Value,
             preferredEntityId);
 
         if (currentRelatedEntityId == desiredEntityId)
@@ -600,6 +618,30 @@ internal static class MovementHelper
                 desiredEntityId.Value,
                 1f);
         }
+    }
+
+    private static EntityKind? ResolveLocationKind(
+        IMutationContext context,
+        EntityKind? locationEntityKind,
+        EntityId? preferredEntityId,
+        EntityId? currentRelatedEntityId)
+    {
+        if (locationEntityKind is not null)
+        {
+            return locationEntityKind;
+        }
+
+        if (preferredEntityId is not null)
+        {
+            return context.GetEntity(preferredEntityId.Value)?.Kind;
+        }
+
+        if (currentRelatedEntityId is not null)
+        {
+            return context.GetEntity(currentRelatedEntityId.Value)?.Kind;
+        }
+
+        return null;
     }
 
     private static EntityId? ResolveLocationEntityAtCell(

@@ -6,7 +6,7 @@ using Engine.Resources;
 
 /// <summary>
 /// A composable expression that evaluates to a float given entity state.
-/// Resolves attribute paths (self.hunger, target.ideology.x) and supports
+/// Resolves attribute paths (self.warmth, target.ideology.x) and supports
 /// arithmetic and built-in functions.
 /// </summary>
 public interface IExpression
@@ -75,7 +75,7 @@ public sealed class Literal(float value) : IExpression
     public float Evaluate(ExpressionContext ctx) => value;
 }
 
-/// <summary>Resolve an attribute path: self.hunger, target.ideology.x, etc.</summary>
+/// <summary>Resolve an attribute path: self.warmth, target.ideology.x, etc.</summary>
 public sealed class AttributePath(string entityRef, string attributeName, string? component = null) : IExpression
 {
     public float Evaluate(ExpressionContext ctx)

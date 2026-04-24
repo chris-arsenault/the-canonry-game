@@ -278,7 +278,7 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ### Tests needed:
 
-**Settlement lifecycle (TestDomain):**
+**Settlement lifecycle (IceRemembers):**
 - Settlement starts with population=10
 - Stockpile fires (produces sustenance)
 - Grow fires when sustenance ≥ 3 (converts to population)

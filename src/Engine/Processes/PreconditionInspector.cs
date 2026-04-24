@@ -105,7 +105,7 @@ public static class PreconditionInspector
     private static HashSet<EntityKind> InferTargetKinds(ProcessDefinition definition)
     {
         var targetKinds = definition.ProviderSelectors
-            .Where(selector => selector.Scope == RefScope.Target && selector.Kind.HasValue)
+            .Where(selector => selector.Kind.HasValue)
             .Select(selector => selector.Kind!.Value)
             .ToHashSet();
 

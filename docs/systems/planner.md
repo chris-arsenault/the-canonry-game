@@ -146,8 +146,8 @@ This is why blocked parent goals remain in the tree: they explain what the entit
 ### 1. Blocker Resolution
 
 ```text
-Want: lower npc hunger
-  -> Eat serves hunger
+Want: lower npc warmth
+  -> Eat serves warmth
   -> Eat blocked on Relational.located_at.matched
   -> Move To Target serves that relational blocker
   -> NPC moves, replans, then can Eat
@@ -182,7 +182,7 @@ The current planner keeps one committed root per desired effect.
 
 That means:
 
-- one hunger plan, not three simultaneous hunger destination plans
+- one warmth plan, not three simultaneous warmth destination plans
 - one roam plan, not several equivalent roam destinations
 - replanning can replace the committed root, but only when the old plan disappears or a challenger is materially better
 
@@ -195,7 +195,7 @@ Without this rule, one need can fragment into several simultaneously competing d
 Example problem:
 
 ```text
-hunger
+warmth
   -> Eat at target A
   -> Eat at target B
   -> Eat at target C
@@ -219,7 +219,7 @@ That matters in two ways:
 
 Examples:
 
-- ambient food slows NPC hunger drift
+- ambient food slows NPC warmth drift
 - `Eat` still requires a named settlement
 - `Grow` depends on ambient food and ambient population
 - `Irrigate` improves ambient food, which strengthens later growth

@@ -9,7 +9,7 @@ public class SpatialIndexTests
     private static (SpatialIndex Index, TestWorld World) CreateTestSetup()
     {
         var world = TestMapBuilder.BuildDefault(seed: 42);
-        var index = new SpatialIndex(world.Grid, world.RegionMap, world.Graph);
+        var index = new SpatialIndex(world.Grid, world.CoverageMap, world.Graph);
         index.RebuildFromGraph();
         return (index, world);
     }
@@ -22,7 +22,7 @@ public class SpatialIndexTests
         var (index, world) = CreateTestSetup();
 
         // Test map has settlements and NPCs with coordinates
-        var settlements = world.Graph.GetEntitiesByKind(EntityKind.Settlement);
+        var settlements = world.Graph.GetEntitiesByKind(TestKinds.Settlement);
         foreach (var sid in settlements)
         {
             var entity = world.Graph.GetEntity(sid)!;
@@ -43,7 +43,7 @@ public class SpatialIndexTests
     {
         var (index, world) = CreateTestSetup();
         var newEntity = world.Graph.CreateEntity(
-            EntityKind.Npc, "generic_npc", "Test", "c", 0, coordinates: (3, -3));
+            TestKinds.Penguin, "warden", "Test", "c", 0, coordinates: (3, -3));
         index.PlaceEntity(newEntity.Id, new HexCoord(3, -3));
 
         Assert.Contains(newEntity.Id, index.EntitiesAtCell(new HexCoord(3, -3)));
@@ -67,8 +67,8 @@ public class SpatialIndexTests
         var (index, _) = CreateTestSetup();
 
         // Wide radius should find entities, filter to NPCs only
-        var npcs = index.EntitiesInRadius(new HexCoord(0, 0), 5, EntityKind.Npc).ToList();
-        var all = index.EntitiesInRadius(new HexCoord(0, 0), 5).ToList();
+        var npcs = index.EntitiesInRadius(new HexCoord(0, 0), 20, TestKinds.Penguin).ToList();
+        var all = index.EntitiesInRadius(new HexCoord(0, 0), 20).ToList();
 
         Assert.True(npcs.Count <= all.Count);
         Assert.True(npcs.Count > 0);
@@ -80,7 +80,7 @@ public class SpatialIndexTests
         var (index, world) = CreateTestSetup();
 
         // Place entity at (2,0) and query radius 0 from there
-        var entity = world.Graph.CreateEntity(EntityKind.Npc, "generic_npc", "Solo", "c", 0, coordinates: (2, 0));
+        var entity = world.Graph.CreateEntity(TestKinds.Penguin, "warden", "Solo", "c", 0, coordinates: (2, 0));
         index.PlaceEntity(entity.Id, new HexCoord(2, 0));
 
         var atCenter = index.EntitiesInRadius(new HexCoord(2, 0), 0).ToList();
@@ -90,28 +90,28 @@ public class SpatialIndexTests
     // --- Region queries ---
 
     [Fact]
-    public void EntitiesInRegion_ReturnsEntitiesInCorrectRegion()
+    public void EntitiesInCoverage_ReturnsEntitiesInCorrectRegion()
     {
         var (index, world) = CreateTestSetup();
 
         // Frosthaven is at (0,-2) which is in Northlands
-        var northlands = world.RegionMap.GetRegionByName("Northlands");
+        var northlands = world.CoverageMap.GetCoverageByName("Northlands");
         Assert.NotNull(northlands);
 
-        var entities = index.EntitiesInRegion(northlands.EntityId).ToList();
+        var entities = index.EntitiesInCoverage(northlands.OwnerEntityId).ToList();
         Assert.NotEmpty(entities);
     }
 
     [Fact]
-    public void EntitiesInRegion_FilterByKind()
+    public void EntitiesInCoverage_FilterByKind()
     {
         var (index, world) = CreateTestSetup();
 
-        var heartlands = world.RegionMap.GetRegionByName("Heartlands");
+        var heartlands = world.CoverageMap.GetCoverageByName("Heartlands");
         Assert.NotNull(heartlands);
 
-        var settlements = index.EntitiesInRegion(heartlands.EntityId, EntityKind.Settlement).ToList();
-        var all = index.EntitiesInRegion(heartlands.EntityId).ToList();
+        var settlements = index.EntitiesInCoverage(heartlands.OwnerEntityId, TestKinds.Settlement).ToList();
+        var all = index.EntitiesInCoverage(heartlands.OwnerEntityId).ToList();
 
         Assert.True(settlements.Count <= all.Count);
     }
@@ -124,12 +124,12 @@ public class SpatialIndexTests
         var (index, world) = CreateTestSetup();
 
         // From the center, should find a nearby settlement
-        var nearest = index.NearestEntity(new HexCoord(0, 0), EntityKind.Settlement);
+        var nearest = index.NearestEntity(new HexCoord(0, 0), TestKinds.Settlement);
         Assert.NotNull(nearest);
 
         var entity = world.Graph.GetEntity(nearest.Value);
         Assert.NotNull(entity);
-        Assert.Equal(EntityKind.Settlement, entity.Kind);
+        Assert.Equal(TestKinds.Settlement, entity.Kind);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class SpatialIndexTests
         var (index, _) = CreateTestSetup();
 
         // No monsters exist in the test map
-        var nearest = index.NearestEntity(new HexCoord(0, 0), EntityKind.Monster, maxRadius: 5);
+        var nearest = index.NearestEntity(new HexCoord(0, 0), TestKinds.Monster, maxRadius: 5);
         Assert.Null(nearest);
     }
 
@@ -185,7 +185,7 @@ public class SpatialIndexTests
             {
                 var cell = world.Grid.GetCell(coord);
                 Assert.NotNull(cell);
-                Assert.NotEqual(TerrainType.Water, cell.Terrain);
+                Assert.NotEqual(TerrainType.Ocean, cell.Terrain);
             }
         }
     }
@@ -196,7 +196,7 @@ public class SpatialIndexTests
         var (index, _) = CreateTestSetup();
 
         // Destination in water (impassable)
-        var path = index.FindPath(new HexCoord(0, 0), new HexCoord(0, 5));
+        var path = index.FindPath(new HexCoord(0, 0), new HexCoord(0, 17));
         Assert.Null(path);
     }
 

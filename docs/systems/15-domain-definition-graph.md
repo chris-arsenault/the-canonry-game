@@ -59,11 +59,11 @@ Entry point:
 
 The definition graph is fed by the domain package, not by ad hoc text files.
 
-For the current test domain, the typed authoring surface is:
+For the current Ice Remembers domain, the typed authoring surface is:
 
-- `Engine.Domain.TestDomain.TestDomainDefinition`
-- `Engine.Domain.TestDomain.TestDomainSemanticDefinition`
-- `Engine.Domain.TestDomain.TestDomainSchema`
+- `Engine.Domain.IceRemembers.IceRemembersDefinition`
+- `Engine.Domain.IceRemembers.IceRemembersSemanticDefinition`
+- `Engine.Domain.IceRemembers.IceRemembersSchema`
 
 The important distinction is:
 
@@ -96,7 +96,7 @@ These are the typed runtime declarations derived from `DomainConfig`:
 This is the part that answers questions like:
 
 - does `Settlement.security` exist?
-- is `Npc.satiety` scalar or 2D?
+- is `Npc.warmth` scalar or 2D?
 - which process definitions read/write a given typed ref?
 
 ### 2. Semantic flow layer
@@ -130,8 +130,8 @@ Examples:
 
 - `Settlement.residents`
 - `Settlement.security`
-- `Npc.satiety`
-- `Region.regional_safety`
+- `Npc.warmth`
+- `Region.holding`
 
 Each stock carries metadata such as:
 
@@ -155,7 +155,7 @@ A verb may:
 Examples:
 
 - `settlement_grow`
-- `npc_eat`
+- `penguin_warm`
 - `faction_patrol`
 - `engine_decay`
 
@@ -188,7 +188,7 @@ It says that one stock changes the effectiveness or legality of a verb.
 Examples:
 
 - `Settlement.prestige` gating `settlement_attract`
-- `Region.regional_safety` gating `region_shelter`
+- `Region.holding` gating `region_shelter`
 
 These matter to the semantic model, but they are not the same thing as first-order inflow/outflow.
 

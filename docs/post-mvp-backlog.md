@@ -16,7 +16,7 @@ Cards that temporarily modify low-altitude (always-on) entity behaviors. These b
 - "Accelerate Growth" -- settlement population attraction multiplied for N ticks. Rapid urbanization, but may overshoot carrying capacity.
 - "Freeze Trade" -- goods flow between settlements halted for N ticks. Settlements rely on stockpiles. Tests economic resilience.
 - "Preserve Artifact" -- artifact degradation paused for N ticks. Keeps a powerful artifact in play longer but costs a card slot.
-- "Suppress Hunger" -- entities don't consume food for N ticks. Removes hunger-driven movement, letting mobile entities stay where they are. Trade-off: entities stop seeking food, so they're suddenly starving when the effect expires.
+- "Suppress Warmth" -- entities don't consume food for N ticks. Removes warmth-driven movement, letting mobile entities stay where they are. Trade-off: entities stop seeking food, so they're suddenly starving when the effect expires.
 - "Extended Lifespan" -- mortal entities age slower for N ticks. Keeps valuable leaders alive longer but blocks succession.
 - "Faction Truce" -- internal faction politics within a nation are suppressed for N ticks. Stability is artificially maintained. When the truce expires, pent-up political pressure releases at once.
 
@@ -227,8 +227,8 @@ The existing `SupportRules` concept is attached to specific processes (settlemen
 
 **What this unlocks:**
 - Factions naturally interleave building-up NPCs (distribute food, protect) with extracting from them (starve, extort) — pastoral / parasitic cycles rather than pure extraction.
-- Regions pre-seed pristineness before settlement growth hits the threshold where it becomes relevant.
-- Settlements invest in sanitation now because sanctify scales better with it later.
+- Regions pre-seed pristiness before settlement growth hits the threshold where it becomes relevant.
+- Settlements invest in shelter now because sanctify scales better with it later.
 - Reads as long-form strategy rather than hammering.
 
 **Design questions:**

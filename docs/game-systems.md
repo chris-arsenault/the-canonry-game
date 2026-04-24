@@ -48,7 +48,7 @@ Per-entity continuous variables. The numeric state that game systems modify and 
 
 **What it is:**
 - Named numeric values attached to entities
-- Kind-specific: regions track slow world-state, settlements track integrity and projection, factions track cohesion/support/influence, NPCs track vitality and drives, artifacts track condition/power/containment
+- Kind-specific: regions track slow world-state, settlements track integrity and projection, factions track cohesion/reach/provisions, NPCs track vitality and drives, artifacts track condition/power/containment
 - Bounded: each attribute has a min/max range
 - Change tracking: current value, rate of change, recent delta history (for trend display)
 - Attribute selection follows a shared design model. See `docs/systems/attribute-model.md`.
@@ -171,7 +171,7 @@ Each entity kind participates in a three-layer behavioral model that runs per en
 
 #### Process Examples (Domain-Defined, Not Engine-Level)
 
-These are examples of how the TestDomain defines processes. They are data, not engine code:
+These are examples of how the IceRemembers defines processes. They are data, not engine code:
 - **Grow** (Settlement): increases `residents` using ambient local `food` and `population`
 - **Irrigate** (Settlement): increases ambient local `food`, often as a support action for later growth
 - **Propaganda** (Settlement): shifts a target settlement's ideology
@@ -253,12 +253,12 @@ Dynamic visual representation of simulation state on the map. This is NOT a simu
 **What it renders:**
 - Entity positions and movement (heroes traveling, settlements growing/shrinking, national territory shifting)
 - Relationship state spatially (alliance/rivalry lines, control territories, factional presence)
-- Attribute gradients as overlays (settlement prosperity, cultural influence, pressure heatmaps)
+- Attribute gradients as overlays (settlement prosperity, cultural reach, pressure heatmaps)
 - Seasonal terrain variation (cyclic appearance changes)
 - Status transitions (ruins where settlements once stood, faded borders of former nations)
 
 **Overlay modes** (toggle between, Cities Skylines pattern):
-- Political (nation territory), Cultural (influence gradients), Pressure (heatmap per type), Entity density, Relationship network, Terrain
+- Political (nation territory), Cultural (reach gradients), Pressure (heatmap per type), Entity density, Relationship network, Terrain
 
 **Design principle:** The map must be dynamic and correlate to game state. The player learns by looking. Spatial patterns that aren't obvious from entity panels become visible on the map.
 
@@ -466,7 +466,7 @@ For a first playable vertical slice, build in this order:
 1. **Entity Graph + Entity Kinds + Attributes** -- the data foundation
 2. **Map / Spatial** -- regions, positions, procedural map generation
 3. **Tick Clock** -- time advancement with speed control
-4. **Entity Behaviors (all kinds)** -- nation border tension/resource flow, cultural influence/pressure, settlement growth/decline, faction politics, artifact degradation/resonance, hero needs/movement
+4. **Entity Behaviors (all kinds)** -- nation border tension/resource flow, cultural pressure, settlement growth/decline, faction politics, artifact degradation/resonance, hero needs/movement
 5. **Relationships + Lifecycle** -- basic game physics
 6. **Map Visualization** -- render low-altitude state on the map (overlays, entity markers, territory)
 7. **Pressure** -- a few computed aggregate pressures bridging low to mid altitude
@@ -499,7 +499,7 @@ See `docs/systems/19-narrative-domain.md` for full design.
 2. **Map / Spatial** -- hex grid, fixed test map (procedural generation post-Phase 1)
 3. **Tick Clock** -- time advancement with speed control
 4. **Resources (ambient hex fields)** -- `food`, `wealth`, and `population` as map-state possibility space
-5. **Entity Behaviors (MVP kinds)** -- settlement growth/support actions, faction cohesion/influence, NPC needs/movement, artifact degradation/compulsion
+5. **Entity Behaviors (MVP kinds)** -- settlement growth/support actions, faction cohesion/reach, NPC needs/movement, artifact degradation/compulsion
 6. **Relationships + Lifecycle** -- basic game physics with generic relationship kinds
 7. **Pressure** -- a few generic pressure types bridging low to mid altitude
 8. **Tableau + Mana (stub)** -- active card slots and mana pool. Cards placed programmatically for testing.

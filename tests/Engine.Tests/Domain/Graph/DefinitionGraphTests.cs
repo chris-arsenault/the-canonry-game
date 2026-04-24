@@ -3,7 +3,7 @@ namespace Engine.Tests.Domain.Graph;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Wiring;
@@ -11,44 +11,44 @@ using Engine.Wiring;
 public class DefinitionGraphTests
 {
     [Fact]
-    public void Build_FromTestDomain_CreatesTypedGraph()
+    public void Build_FromIceRemembers_CreatesTypedGraph()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
-        var residents = new DefinitionAttributeId(TestDomainAttributeId.Residents.ToDomainName());
-        var dominion = new DefinitionAttributeId(TestDomainAttributeId.Dominion.ToDomainName());
-        var satiety = new DefinitionAttributeId(TestDomainAttributeId.Satiety.ToDomainName());
-        var vitality = new DefinitionAttributeId(TestDomainAttributeId.Vitality.ToDomainName());
-        var food = new DefinitionResourceId(TestDomainResource.Food.ToDomainName());
-        var controlledBy = new DefinitionRelationshipId(TestDomainRelationship.ControlledBy.ToDomainName());
-        var culturalFriction = new DefinitionPressureId(TestDomainPressure.CulturalFriction.ToDomainName());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
+        var residents = new DefinitionAttributeId(IceRemembersAttributeId.Residents.ToDomainName());
+        var dominion = new DefinitionAttributeId(IceRemembersAttributeId.Dominion.ToDomainName());
+        var warmth = new DefinitionAttributeId(IceRemembersAttributeId.Warmth.ToDomainName());
+        var vitality = new DefinitionAttributeId(IceRemembersAttributeId.Vitality.ToDomainName());
+        var food = new DefinitionResourceId(IceRemembersResource.Food.ToDomainName());
+        var controlledBy = new DefinitionRelationshipId(IceRemembersRelationship.ControlledBy.ToDomainName());
+        var culturalFriction = new DefinitionPressureId(IceRemembersPressure.CulturalFriction.ToDomainName());
 
-        var settlement = Assert.Contains(EntityKind.Settlement, graph.Kinds);
+        var settlement = Assert.Contains(TestKinds.Settlement, graph.Kinds);
         Assert.Contains(residents, settlement.Attributes.Keys);
         Assert.Contains(dominion, settlement.Attributes.Keys);
         Assert.Equal(residents, settlement.HealthAttribute);
         Assert.Contains(food, graph.Resources.Keys);
         Assert.Contains(controlledBy, graph.Relationships.Keys);
         Assert.Contains(culturalFriction, graph.Pressures.Keys);
-        Assert.Contains(EntityKind.Npc, graph.Lifecycles.Keys);
+        Assert.Contains(TestKinds.Penguin, graph.Lifecycles.Keys);
 
         Assert.Contains(
             graph.Attributes.Values,
-            attribute => attribute.Key == new DefinitionAttributeKey(EntityKind.Npc, satiety) &&
+            attribute => attribute.Key == new DefinitionAttributeKey(TestKinds.Penguin, warmth) &&
                          attribute.CriticalEffect is { TargetAttributeId: var targetId } && targetId == vitality);
     }
 
     [Fact]
     public void Build_ProcessWithUnknownAttributeRef_Throws()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var process = new ProcessDefinition(
             "bad_process",
             "Bad Process",
             DefinitionRole.Process,
-            EntityKind.Npc,
+            TestKinds.Penguin,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)));
-        process.Reads.Add(AttributeRef.Self("not_a_real_attribute", EntityKind.Npc));
+        process.Reads.Add(AttributeRef.Self("not_a_real_attribute", TestKinds.Penguin));
 
         var badConfig = new DomainConfig
         {
@@ -66,9 +66,9 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_FromTestDomain_PopulatesTypedSemanticGraph()
+    public void Build_FromIceRemembers_PopulatesTypedSemanticGraph()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
         // 5 kinds * 3 attributes = 15 attribute stocks, plus 3 hex resource stocks.
         Assert.Equal(18, graph.SemanticFlows.Stocks.Count);
@@ -88,7 +88,7 @@ public class DefinitionGraphTests
     [Fact]
     public void Build_DomainWithNewDeclaredResource_AcceptsItAsDomainData()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var badConfig = new DomainConfig
         {
             Kinds = config.Kinds,
@@ -107,20 +107,20 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_FromTestDomain_HasEngineDecayVerb()
+    public void Build_FromIceRemembers_HasEngineDecayVerb()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
         Assert.Contains(
             graph.SemanticFlows.Verbs,
-            verb => verb.Id == TestDomainVerbId.EngineDecay.ToVerbId() &&
+            verb => verb.Id == IceRemembersVerbId.EngineDecay.ToVerbId() &&
                     verb.OwnerType == SemanticOwnerType.Engine);
     }
 
     [Fact]
-    public void Build_FromTestDomain_AllSemanticStocksSatisfyRequiredFlowCoverage()
+    public void Build_FromIceRemembers_AllSemanticStocksSatisfyRequiredFlowCoverage()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
         var uncovered = graph.SemanticFlows.Stocks
             .Select(stock => new
@@ -147,9 +147,9 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_FromTestDomain_ProjectsRpsRingEdges()
+    public void Build_FromIceRemembers_ProjectsRpsRingEdges()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
 
         var attributeEdges = projected
@@ -161,23 +161,23 @@ public class DefinitionGraphTests
                 Target: ((AttributeStockId)edge.TargetId).Key))
             .ToHashSet();
 
-        DefinitionAttributeKey Key(EntityKind kind, TestDomainAttributeId attr) =>
+        DefinitionAttributeKey Key(EntityKind kind, IceRemembersAttributeId attr) =>
             new(kind, new DefinitionAttributeId(attr.ToDomainName()));
 
         (DefinitionAttributeKey, DefinitionAttributeKey)[] expectedRingEdges =
         [
             // +1 edges (K_N → K_{N+1}).
-            (Key(EntityKind.Npc, TestDomainAttributeId.Motivation), Key(EntityKind.Settlement, TestDomainAttributeId.Dominion)),
-            (Key(EntityKind.Settlement, TestDomainAttributeId.Sanitation), Key(EntityKind.Faction, TestDomainAttributeId.Influence)),
-            (Key(EntityKind.Faction, TestDomainAttributeId.Provisions), Key(EntityKind.Region, TestDomainAttributeId.RegionalSafety)),
-            (Key(EntityKind.Region, TestDomainAttributeId.Pristineness), Key(EntityKind.Artifact, TestDomainAttributeId.Power)),
-            (Key(EntityKind.Artifact, TestDomainAttributeId.Power), Key(EntityKind.Npc, TestDomainAttributeId.Motivation)),
+            (Key(TestKinds.Penguin, IceRemembersAttributeId.Echo), Key(TestKinds.Settlement, IceRemembersAttributeId.Dominion)),
+            (Key(TestKinds.Settlement, IceRemembersAttributeId.Shelter), Key(TestKinds.Faction, IceRemembersAttributeId.Reach)),
+            (Key(TestKinds.Faction, IceRemembersAttributeId.Provisions), Key(TestKinds.Region, IceRemembersAttributeId.Holding)),
+            (Key(TestKinds.Region, IceRemembersAttributeId.Pristiness), Key(TestKinds.Artifact, IceRemembersAttributeId.Power)),
+            (Key(TestKinds.Artifact, IceRemembersAttributeId.Power), Key(TestKinds.Penguin, IceRemembersAttributeId.Echo)),
             // +2 edges (K_N → K_{N+2}).
-            (Key(EntityKind.Npc, TestDomainAttributeId.Satiety), Key(EntityKind.Faction, TestDomainAttributeId.Provisions)),
-            (Key(EntityKind.Settlement, TestDomainAttributeId.Dominion), Key(EntityKind.Region, TestDomainAttributeId.Pristineness)),
-            (Key(EntityKind.Faction, TestDomainAttributeId.Influence), Key(EntityKind.Artifact, TestDomainAttributeId.Aura)),
-            (Key(EntityKind.Region, TestDomainAttributeId.RegionalSafety), Key(EntityKind.Npc, TestDomainAttributeId.Satiety)),
-            (Key(EntityKind.Artifact, TestDomainAttributeId.Aura), Key(EntityKind.Settlement, TestDomainAttributeId.Sanitation)),
+            (Key(TestKinds.Penguin, IceRemembersAttributeId.Warmth), Key(TestKinds.Faction, IceRemembersAttributeId.Provisions)),
+            (Key(TestKinds.Settlement, IceRemembersAttributeId.Dominion), Key(TestKinds.Region, IceRemembersAttributeId.Pristiness)),
+            (Key(TestKinds.Faction, IceRemembersAttributeId.Reach), Key(TestKinds.Artifact, IceRemembersAttributeId.Resonance)),
+            (Key(TestKinds.Region, IceRemembersAttributeId.Holding), Key(TestKinds.Penguin, IceRemembersAttributeId.Warmth)),
+            (Key(TestKinds.Artifact, IceRemembersAttributeId.Resonance), Key(TestKinds.Settlement, IceRemembersAttributeId.Shelter)),
         ];
 
         foreach (var expected in expectedRingEdges)
@@ -187,17 +187,17 @@ public class DefinitionGraphTests
     }
 
     [Fact]
-    public void Build_FromTestDomain_HasNoGateFlows()
+    public void Build_FromIceRemembers_HasNoGateFlows()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
         Assert.DoesNotContain(graph.SemanticFlows.Flows, flow => flow.IsGate);
     }
 
     [Fact]
-    public void Build_FromTestDomain_HasNoDirectTwoNodeReversals()
+    public void Build_FromIceRemembers_HasNoDirectTwoNodeReversals()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
         var edgeSet = projected
             .Select(edge => (edge.SourceId, edge.TargetId))
@@ -219,13 +219,13 @@ public class DefinitionGraphTests
     [Fact]
     public void Build_SemanticStockMissingRequiredOutflow_Throws()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
         var brokenStocks = semantics.Stocks
             .Select(stock =>
                 stock is SemanticAttributeStockConfig attr &&
-                attr.Kind == EntityKind.Npc &&
-                attr.AttributeName == TestDomainAttributeId.Motivation.ToDomainName()
+                attr.Kind == TestKinds.Penguin &&
+                attr.AttributeName == IceRemembersAttributeId.Echo.ToDomainName()
                     ? (SemanticStockConfig)new SemanticAttributeStockConfig
                     {
                         Kind = attr.Kind,
@@ -242,8 +242,8 @@ public class DefinitionGraphTests
             .ToList();
         var brokenFlows = semantics.Flows
             .Where(flow =>
-                !(flow.TargetKind == EntityKind.Npc &&
-                  flow.TargetAttribute == TestDomainAttributeId.Motivation.ToDomainName() &&
+                !(flow.TargetKind == TestKinds.Penguin &&
+                  flow.TargetAttribute == IceRemembersAttributeId.Echo.ToDomainName() &&
                   flow.Role == SemanticFlowRole.Outflow))
             .ToList();
 
@@ -266,19 +266,19 @@ public class DefinitionGraphTests
         };
 
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
-        Assert.Contains("Npc.motivation", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("penguin.echo", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("outflow", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Build_ScalarStockMissingDecayOutflow_Throws()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
         var withoutAmbitionDecay = semantics.Flows
-            .Where(flow => !(flow.TargetKind == EntityKind.Npc &&
-                             flow.TargetAttribute == TestDomainAttributeId.Motivation.ToDomainName() &&
-                             flow.VerbId == TestDomainVerbId.EngineDecay.ToVerbId()))
+            .Where(flow => !(flow.TargetKind == TestKinds.Penguin &&
+                             flow.TargetAttribute == IceRemembersAttributeId.Echo.ToDomainName() &&
+                             flow.VerbId == IceRemembersVerbId.EngineDecay.ToVerbId()))
             .ToList();
 
         var brokenConfig = new DomainConfig
@@ -300,14 +300,14 @@ public class DefinitionGraphTests
         };
 
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
-        Assert.Contains("Npc.motivation", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("penguin.echo", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("engine_decay", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void FindClosedLoops_FromTestDomain_DetectsRpsRingStructure()
+    public void FindClosedLoops_FromIceRemembers_DetectsRpsRingStructure()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
         var loops = SemanticLoopAnalyzer.FindClosedLoops(graph, minDistinctKinds: 3, maxLength: 8);
 

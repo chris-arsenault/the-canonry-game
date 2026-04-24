@@ -1,4 +1,5 @@
 #pragma warning disable CA2000 // Godot nodes managed by scene tree
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -30,6 +31,7 @@ public partial class Main : Node2D
     private AttributeGraphPanel? _attributeGraph;
     private Label? _tickLabel;
     private Button? _planeToggleButton;
+    private Button? _tableauToggleButton;
     private TableauPanel? _tableauPanel;
     private RunLogger? _runLogger;
     private PanelContainer? _hexTooltipPanel;
@@ -157,11 +159,24 @@ public partial class Main : Node2D
         _planeToggleButton.Pressed += OnTogglePlanePressed;
         _uiLayer.AddChild(_planeToggleButton);
 
+        var controlsPanel = BuildSimulationControls();
+        _uiLayer.AddChild(controlsPanel);
+
         _tableauPanel = new TableauPanel();
         _tableauPanel.Initialize(_sim);
         _uiLayer.AddChild(_tableauPanel);
-        _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
-        _tableauPanel.Position = new Vector2(-140, -312);
+        _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _tableauPanel.Visible = false;
+
+        _tableauToggleButton = new Button
+        {
+            Text = "Show Tableau",
+            CustomMinimumSize = new Vector2(160, 36),
+        };
+        _tableauToggleButton.AddThemeFontSizeOverride("font_size", 13);
+        _tableauToggleButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _tableauToggleButton.Pressed += ToggleTableauVisibility;
+        _uiLayer.AddChild(_tableauToggleButton);
 
         _hexTooltipPanel = new PanelContainer
         {
@@ -224,14 +239,16 @@ public partial class Main : Node2D
             _browser?.Refresh();
             RefreshOpenCards();
             _attributeGraph?.Refresh();
+            _tableauPanel?.Refresh();
         }
 
         if (_tickLabel is not null)
         {
             var speedText = _sim.Clock.Speed == SimulationSpeed.Paused ? "PAUSED" : $"{_sim.Clock.Speed}";
-            _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | {speedText}";
+            _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | {speedText} | Entities: {_sim.Graph.EntityCount} | Generator fires: {_sim.GeneratorSystem.TotalFired}";
         }
 
+        PositionFloatingHud();
         HandleCameraMovement((float)delta);
         UpdateHexHoverTooltip();
     }
@@ -374,6 +391,7 @@ public partial class Main : Node2D
         _browser?.Initialize(_sim);
         _browser?.Refresh();
         _tableauPanel?.Initialize(_sim);
+        _tableauPanel?.Refresh();
 
         if (_eventLogLabel is not null) _eventLogLabel.Text = "";
 
@@ -383,6 +401,85 @@ public partial class Main : Node2D
     private void OnBrowserEntitySelected(int entityIdValue)
     {
         OpenEntityCard(new EntityId(entityIdValue), new Vector2(300, 100));
+    }
+
+    private PanelContainer BuildSimulationControls()
+    {
+        var panel = new PanelContainer();
+        panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        panel.Position = new Vector2(-370, 12);
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 6);
+        panel.AddChild(row);
+
+        row.AddChild(CreateControlButton("Pause", () => SetSimulationSpeed(SimulationSpeed.Paused)));
+        row.AddChild(CreateControlButton("Step", () => _stepOneTick = true));
+        row.AddChild(CreateControlButton("1x", () => SetSimulationSpeed(SimulationSpeed.Normal)));
+        row.AddChild(CreateControlButton("4x", () => SetSimulationSpeed(SimulationSpeed.Fast)));
+        row.AddChild(CreateControlButton("10x", () => SetSimulationSpeed(SimulationSpeed.VeryFast)));
+        row.AddChild(CreateControlButton("Reset", ResetSimulation));
+
+        return panel;
+    }
+
+    private Button CreateControlButton(string text, Action onPressed)
+    {
+        var button = new Button
+        {
+            Text = text,
+            CustomMinimumSize = new Vector2(56, 32),
+        };
+        button.Pressed += onPressed;
+        return button;
+    }
+
+    private void SetSimulationSpeed(SimulationSpeed speed)
+    {
+        if (_sim is null)
+        {
+            return;
+        }
+
+        _sim.Clock.Speed = speed;
+        _tickAccumulator = 0;
+    }
+
+    private void ToggleTableauVisibility()
+    {
+        if (_tableauPanel is null || _tableauToggleButton is null)
+        {
+            return;
+        }
+
+        _tableauPanel.Visible = !_tableauPanel.Visible;
+        _tableauToggleButton.Text = _tableauPanel.Visible ? "Hide Tableau" : "Show Tableau";
+        if (_tableauPanel.Visible)
+        {
+            _tableauPanel.Refresh();
+        }
+    }
+
+    private void PositionFloatingHud()
+    {
+        if (_mapSpacer is null || _tableauPanel is null || _tableauToggleButton is null)
+        {
+            return;
+        }
+
+        var mapRect = _mapSpacer.GetGlobalRect();
+        var tableauSize = _tableauPanel.GetCombinedMinimumSize();
+        var tableauX = mapRect.Position.X + (mapRect.Size.X - tableauSize.X) * 0.5f;
+        var tableauY = mapRect.End.Y - tableauSize.Y - 24f;
+
+        _tableauPanel.Position = new Vector2(
+            Mathf.Max(mapRect.Position.X + 16f, tableauX),
+            Mathf.Max(16f, tableauY));
+
+        var buttonSize = _tableauToggleButton.GetCombinedMinimumSize();
+        _tableauToggleButton.Position = new Vector2(
+            mapRect.End.X - buttonSize.X - 12f,
+            mapRect.Position.Y + 12f);
     }
 
     private void HandleMapClick(Vector2 screenPos)
@@ -501,7 +598,7 @@ public partial class Main : Node2D
 
         var cell = _sim.Grid.GetCell(coord);
         var terrain = cell?.Terrain.ToString() ?? "Unknown";
-        var regionName = _sim.RegionMap.GetRegionForCell(coord)?.Name ?? "Unassigned";
+        var regionName = _sim.CoverageMap.GetCoverageForCell(coord)?.Name ?? "Unassigned";
         var food = _sim.Resources.Food.GetStockpile(coord);
         var wealth = _sim.Resources.Wealth.GetStockpile(coord);
         var population = _sim.Resources.PopulationLayer.GetStockpile(coord);

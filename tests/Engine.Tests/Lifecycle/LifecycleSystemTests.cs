@@ -85,7 +85,7 @@ public class LifecycleSystemTests
     public void InitializeEffects_AndCheckDeaths_SkipEntitiesWithoutLifecycleConfig()
     {
         var graph = new WorldGraph();
-        var region = graph.CreateEntity(EntityKind.Region, "generic_region", "Region", "c", 0, (0, 0));
+        var region = graph.CreateEntity(TestKinds.Region, "generic_region", "Region", "c", 0, (0, 0));
         region.Attributes.Add(new ScalarValue("fertility", 0f, 1f, 0.5f));
 
         var system = new LifecycleSystem(graph, CreateConfig());
@@ -118,7 +118,7 @@ public class LifecycleSystemTests
     {
         var config = new LifecycleConfig();
         config.Register(
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             "population",
             new LinearAging(new Random(42)) { BaseRate = 0.1f, AgeCoefficient = 0.01f, Variance = 0f });
         return config;
@@ -126,7 +126,7 @@ public class LifecycleSystemTests
 
     private static Entity CreateSettlement(WorldGraph graph, string name, float population, int createdAt)
     {
-        var entity = graph.CreateEntity(EntityKind.Settlement, "village", name, "c", createdAt, (0, 0));
+        var entity = graph.CreateEntity(TestKinds.Settlement, "village", name, "c", createdAt, (0, 0));
         entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
         return entity;
     }

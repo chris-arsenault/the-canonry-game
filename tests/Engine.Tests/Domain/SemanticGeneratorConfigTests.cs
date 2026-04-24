@@ -22,23 +22,24 @@ public class SemanticGeneratorConfigTests
             Name = "Hero Emergence",
             Target = new SemanticGeneratorTarget
             {
-                Kind = EntityKind.Settlement,
+                Kind = TestKinds.Settlement,
             },
             Produces =
             [
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
+                    InheritCultureFrom = "$target",
                 },
             ],
             Triggers =
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Settlement,
+                    OnKind = TestKinds.Settlement,
                 },
             ],
         };
@@ -48,7 +49,19 @@ public class SemanticGeneratorConfigTests
         Assert.Empty(config.Relationships);
         Assert.Empty(config.Target.SaturationLimits);
         Assert.Equal(1f, config.Produces[0].CreateChance);
-        Assert.Equal(SemanticPlacement.Near, config.Produces[0].Placement);
+        Assert.True(config.Produces[0].CreateIfMissing);
+        Assert.Equal(SemanticPlacement.Near, config.Produces[0].PhysicalPlacement);
+        Assert.Equal(SemanticPlacement.Near, config.Produces[0].SemanticPlacement);
+        Assert.Null(config.Produces[0].Subtypes);
+        Assert.Null(config.Produces[0].Query);
         Assert.Equal(TriggerDirection.Any, config.Triggers[0].Direction);
+    }
+
+    [Fact]
+    public void SemanticEntityQuery_DefaultsToAnyCultureMatch()
+    {
+        var query = new SemanticEntityQuery();
+
+        Assert.Equal(QueryTargetCultureMatch.Any, query.TargetCultureMatch);
     }
 }

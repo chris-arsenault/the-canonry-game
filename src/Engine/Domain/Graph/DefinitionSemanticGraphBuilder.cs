@@ -212,7 +212,7 @@ public static class DefinitionSemanticGraphBuilder
     private static TypedDefinitionRef ConvertAttributeScopedRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph)
     {
         var attributeId = new DefinitionAttributeId(attrRef.Name);
-        if (attrRef.Kind is Engine.Kinds.EntityKind kind)
+        if (attrRef.Kind is EntityKind kind)
         {
             var key = new DefinitionAttributeKey(kind, attributeId);
             if (!graph.Attributes.ContainsKey(key))

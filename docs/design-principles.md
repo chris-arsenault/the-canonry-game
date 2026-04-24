@@ -18,9 +18,9 @@ A world's nature is expressed through three card types, each defining a differen
 
 ### Generators: What the World Becomes
 
-Generators define the world's evolutionary potential. When simulation conditions are right -- a frontier fills with people, a nation's ideology fractures, a faction gains enough influence to break away -- generators determine what emerges. A new nation. A splinter faction. A legendary artifact. A monstrous threat.
+Generators define the world's evolutionary potential. When simulation conditions are right -- a frontier fills with people, a nation's ideology fractures, a faction gains enough reach to break away -- generators determine what emerges. A new nation. A splinter faction. A legendary artifact. A monstrous threat.
 
-Generators are not pressure release. They are creation. They respond to simulation conditions (population density, political instability, faction influence) and produce new entities that reshape the graph. The player's choice of generators defines the trajectory of the world: a deck heavy on faction generators produces a world of competing organizations vying for power within nations. A deck heavy on political generators produces a world of rising and falling empires.
+Generators are not pressure release. They are creation. They respond to simulation conditions (population density, political instability, faction reach) and produce new entities that reshape the graph. The player's choice of generators defines the trajectory of the world: a deck heavy on faction generators produces a world of competing organizations vying for power within nations. A deck heavy on political generators produces a world of rising and falling empires.
 
 ### Systems: How Forces Behave
 

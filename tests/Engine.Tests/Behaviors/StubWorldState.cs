@@ -14,7 +14,7 @@ internal sealed class StubWorldState : IWorldState
     public EffectSystem Effects { get; } = new();
     public Engine.Pressure.PressureSystem? Pressure { get; } = new();
     public HexGrid Grid { get; }
-    public RegionMap RegionMap { get; } = new();
+    public MapCoverageMap CoverageMap { get; } = new();
     public SpatialIndex SpatialIndex { get; }
     public Engine.Resources.ResourceSystem? Resources { get; }
     public int CurrentTick { get; set; }
@@ -22,7 +22,7 @@ internal sealed class StubWorldState : IWorldState
     public StubWorldState(int gridRadius = 1, bool withResources = false)
     {
         Grid = new HexGrid(gridRadius);
-        SpatialIndex = new SpatialIndex(Grid, RegionMap, Graph);
+        SpatialIndex = new SpatialIndex(Grid, CoverageMap, Graph);
         if (withResources)
         {
             Resources = new Engine.Resources.ResourceSystem(Graph, Grid);

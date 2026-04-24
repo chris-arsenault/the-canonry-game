@@ -24,13 +24,13 @@ public class PreconditionTests
     public void PreconditionResult_FailContainsDiagnosticAndBlockers()
     {
         var result = PreconditionResult.Fail("blocked",
-            AttributeRef.Self("sustenance", EntityKind.Settlement),
-            AttributeRef.Self("fame", EntityKind.Settlement));
+            AttributeRef.Self("sustenance", TestKinds.Settlement),
+            AttributeRef.Self("fame", TestKinds.Settlement));
 
         Assert.False(result.Passed);
         Assert.Equal("blocked", result.Diagnostic);
         Assert.Equal(
-            [AttributeRef.Self("sustenance", EntityKind.Settlement), AttributeRef.Self("fame", EntityKind.Settlement)],
+            [AttributeRef.Self("sustenance", TestKinds.Settlement), AttributeRef.Self("fame", TestKinds.Settlement)],
             result.Blockers);
     }
 
@@ -74,7 +74,7 @@ public class PreconditionTests
         Assert.False(result.Passed);
         Assert.Contains("self.sustenance=2.0", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains(">= 3", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal([AttributeRef.Self("sustenance", EntityKind.Settlement)], result.Blockers);
+        Assert.Equal([AttributeRef.Self("sustenance", TestKinds.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class PreconditionTests
 
         Assert.False(result.Passed);
         Assert.Contains("target.sustenance=2.0", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal([AttributeRef.Target("sustenance", EntityKind.Settlement)], result.Blockers);
+        Assert.Equal([AttributeRef.Target("sustenance", TestKinds.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class PreconditionTests
         var result = new SemanticDistanceThreshold("ideology", 0.5f).Evaluate(context);
 
         Assert.False(result.Passed);
-        Assert.Equal([AttributeRef.Target("ideology", EntityKind.Settlement)], result.Blockers);
+        Assert.Equal([AttributeRef.Target("ideology", TestKinds.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class PreconditionTests
 
         Assert.False(result.Passed);
         Assert.Contains("not a semantic plane", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal([AttributeRef.Target("sustenance", EntityKind.Settlement)], result.Blockers);
+        Assert.Equal([AttributeRef.Target("sustenance", TestKinds.Settlement)], result.Blockers);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class PreconditionTests
 
         Assert.False(result.Passed);
         Assert.Equal(
-            [AttributeRef.Self("sustenance", EntityKind.Settlement), AttributeRef.Target("ideology", EntityKind.Settlement)],
+            [AttributeRef.Self("sustenance", TestKinds.Settlement), AttributeRef.Target("ideology", TestKinds.Settlement)],
             result.Blockers.OrderBy(x => x.Scope).ThenBy(x => x.Name).ToArray());
         Assert.Contains("; ", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("self.sustenance", result.Diagnostic, StringComparison.Ordinal);
@@ -207,7 +207,7 @@ public class PreconditionTests
         Assert.False(result.Passed);
         Assert.Contains("located_at", result.Diagnostic, StringComparison.Ordinal);
         Assert.Equal(
-            [AttributeRef.TargetRelation("located_at", EntityKind.Settlement)],
+            [AttributeRef.TargetRelation("located_at", TestKinds.Settlement)],
             result.Blockers);
     }
 
@@ -230,7 +230,7 @@ public class PreconditionTests
     public void TargetHasRelationshipToSelf_PassesWhenTargetPointsBackToSelf()
     {
         var world = CreateWorld();
-        var faction = world.Graph.CreateEntity(EntityKind.Faction, "order", "Faction", "c", 0, null);
+        var faction = world.Graph.CreateEntity(TestKinds.Faction, "order", "Faction", "c", 0, null);
         var settlement = CreateSettlement(world, "Target", (1, 0));
         world.Graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, faction.Id, 1f, 0);
 
@@ -245,8 +245,8 @@ public class PreconditionTests
     public void SelfHasRelationshipToTarget_FailsWhenRelationshipMissing()
     {
         var world = CreateWorld();
-        var npc = world.Graph.CreateEntity(EntityKind.Npc, "warrior", "Npc", "c", 0, (0, 0));
-        var faction = world.Graph.CreateEntity(EntityKind.Faction, "order", "Faction", "c", 0, null);
+        var npc = world.Graph.CreateEntity(TestKinds.Penguin, "warrior", "Npc", "c", 0, (0, 0));
+        var faction = world.Graph.CreateEntity(TestKinds.Faction, "order", "Faction", "c", 0, null);
 
         var result = new SelfHasRelationshipToTarget("loyal_to").Evaluate(
             new TestMutationContext(npc, faction, worldState: world));
@@ -277,7 +277,7 @@ public class PreconditionTests
         float fame = 0f,
         (float X, float Y)? ideology = null)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", name, "c", 0, coordinates);
+        var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("sustenance", 0f, 100f, sustenance));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
         var (x, y) = ideology ?? (0.5f, 0.5f);

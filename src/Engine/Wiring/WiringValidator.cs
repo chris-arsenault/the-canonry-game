@@ -42,11 +42,13 @@ public sealed class WiringValidator
         var allWrites = CollectAllRefs(c => c.Writes);
         var allReads = CollectAllRefs(c => c.Reads);
         var allGoalEffects = CollectAllRefs(c => c.GoalEffects);
+        var canonicalWrites = CanonicalizeRefs(allWrites);
+        var canonicalReads = CanonicalizeRefs(allReads);
 
         // 1. Dead-end attributes: written but never read
-        foreach (var (attrRef, writers) in allWrites)
+        foreach (var (attrRef, writers) in canonicalWrites)
         {
-            if (!allReads.ContainsKey(attrRef))
+            if (!canonicalReads.ContainsKey(attrRef))
             {
                 errors.Add(new WiringError(
                     WiringErrorType.DeadEnd,
@@ -55,7 +57,7 @@ public sealed class WiringValidator
         }
 
         // 2. Orphan attributes: read but never written
-        foreach (var (attrRef, readers) in allReads)
+        foreach (var (attrRef, readers) in canonicalReads)
         {
             // Skip map cell and pressure refs (these are external inputs, not written by processes)
             if (attrRef.Scope is RefScope.MapCell or RefScope.Pressure or RefScope.Resource)
@@ -63,7 +65,7 @@ public sealed class WiringValidator
                 continue;
             }
 
-            if (!allWrites.ContainsKey(attrRef))
+            if (!canonicalWrites.ContainsKey(attrRef))
             {
                 errors.Add(new WiringError(
                     WiringErrorType.Orphan,
@@ -82,7 +84,7 @@ public sealed class WiringValidator
             var healthRef = AttributeRef.Self(healthAttr, kind);
 
             // 4. Sustaining path: something writes positively to health
-            var hasSustaining = allWrites.ContainsKey(healthRef);
+            var hasSustaining = canonicalWrites.ContainsKey(NormalizeForAttributeConnectivity(healthRef));
             if (!hasSustaining)
             {
                 errors.Add(new WiringError(
@@ -96,11 +98,11 @@ public sealed class WiringValidator
         }
 
         // 6. Check for cycles: every kind that has writes should also have reads (basic connectivity)
-        var kindsWithWrites = allWrites.Keys
+        var kindsWithWrites = canonicalWrites.Keys
             .Where(r => r.Kind.HasValue)
             .Select(r => r.Kind!.Value)
             .ToHashSet();
-        var kindsWithReads = allReads.Keys
+        var kindsWithReads = canonicalReads.Keys
             .Where(r => r.Kind.HasValue)
             .Select(r => r.Kind!.Value)
             .ToHashSet();
@@ -211,6 +213,42 @@ public sealed class WiringValidator
         }
 
         return result;
+    }
+
+    private static Dictionary<AttributeRef, List<string>> CanonicalizeRefs(
+        Dictionary<AttributeRef, List<string>> refs)
+    {
+        var result = new Dictionary<AttributeRef, List<string>>();
+
+        foreach (var (attrRef, owners) in refs)
+        {
+            var normalized = NormalizeForAttributeConnectivity(attrRef);
+            if (!result.TryGetValue(normalized, out var combinedOwners))
+            {
+                combinedOwners = [];
+                result[normalized] = combinedOwners;
+            }
+
+            foreach (var owner in owners)
+            {
+                if (!combinedOwners.Contains(owner, StringComparer.Ordinal))
+                {
+                    combinedOwners.Add(owner);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static AttributeRef NormalizeForAttributeConnectivity(AttributeRef attrRef)
+    {
+        if (attrRef.Kind.HasValue && attrRef.Scope is RefScope.Self or RefScope.Target or RefScope.Location or RefScope.Related)
+        {
+            return AttributeRef.Self(attrRef.Name, attrRef.Kind.Value);
+        }
+
+        return attrRef;
     }
 
     private bool HasReachablePlannerPath(

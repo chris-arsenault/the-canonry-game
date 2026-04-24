@@ -126,7 +126,7 @@ public class MutationTests
     public void MoveTowardTargetMutation_MovesOneStepAndUpdatesSpatialIndex()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = CreateNpc(world, "Self", (0, 0));
+        var self = CreatePenguin(world, "Self", (0, 0));
         var target = CreateSettlement(world, "Target", (2, 0), population: 10f);
         world.SpatialIndex.RebuildFromGraph();
 
@@ -144,11 +144,12 @@ public class MutationTests
         var world = new StubWorldState(gridRadius: 5);
         var currentSettlement = CreateSettlement(world, "Current", (0, 0), population: 10f);
         var targetSettlement = CreateSettlement(world, "Target", (1, 0), population: 10f);
-        var self = CreateNpc(world, "Self", (0, 0));
+        var self = CreatePenguin(world, "Self", (0, 0));
         world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, self.Id, currentSettlement.Id, 1f, 0);
         world.SpatialIndex.RebuildFromGraph();
 
-        new MoveTowardTargetMutation().Execute(new TestMutationContext(self, targetSettlement, worldState: world));
+        new MoveTowardTargetMutation("located_at", TestKinds.Settlement)
+            .Execute(new TestMutationContext(self, targetSettlement, worldState: world));
 
         Assert.Equal((1, 0), self.Coordinates);
         var activeLocatedAt = Assert.Single(world.Graph.OutgoingRelationships(self.Id, "located_at"));
@@ -160,11 +161,11 @@ public class MutationTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var settlement = CreateSettlement(world, "Home", (0, 0), population: 10f);
-        var self = CreateNpc(world, "Self", (0, 0));
+        var self = CreatePenguin(world, "Self", (0, 0));
         world.Graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, self.Id, settlement.Id, 1f, 0);
         world.SpatialIndex.RebuildFromGraph();
 
-        new WanderMutation().Execute(new TestMutationContext(
+        new WanderMutation("located_at", TestKinds.Settlement).Execute(new TestMutationContext(
             self,
             worldState: world,
             random: new FixedRandom(0.0)));
@@ -179,10 +180,10 @@ public class MutationTests
     public void ModifyRelatedEntitiesAttributeMutation_ModifiesOutgoingRelatedEntitiesFromSelf()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var npc = CreateNpc(world, "Npc", (0, 0));
+        var penguin = CreatePenguin(world, "Npc", (0, 0));
         var faction = CreateFaction(world, "Faction");
-        world.Graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, faction.Id, 1f, 0);
-        var context = new TestMutationContext(npc, worldState: world, random: new FixedRandom(0.5));
+        world.Graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, penguin.Id, faction.Id, 1f, 0);
+        var context = new TestMutationContext(penguin, worldState: world, random: new FixedRandom(0.5));
 
         new ModifyRelatedEntitiesAttributeMutation(
             "loyal_to",
@@ -208,12 +209,12 @@ public class MutationTests
         new ModifyRelatedEntitiesAttributeMutation(
             "contains",
             RelationshipTraversalDirection.Incoming,
-            "regional_safety",
+            "holding",
             3f,
             useTargetEntity: true,
             variance: 0f).Execute(context);
 
-        Assert.Equal(53f, region.Attributes.GetValue("regional_safety"));
+        Assert.Equal(53f, region.Attributes.GetValue("holding"));
     }
 
     private static Entity CreateSettlement(
@@ -224,7 +225,7 @@ public class MutationTests
         float fame = 0f,
         (float X, float Y)? ideology = null)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", name, "c", 0, coordinates);
+        var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
         var (x, y) = ideology ?? (0.5f, 0.5f);
@@ -232,27 +233,27 @@ public class MutationTests
         return entity;
     }
 
-    private static Entity CreateNpc(StubWorldState world, string name, (int Q, int R) coordinates)
+    private static Entity CreatePenguin(StubWorldState world, string name, (int Q, int R) coordinates)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Npc, "warrior", name, "c", 0, coordinates);
+        var entity = world.Graph.CreateEntity(TestKinds.Penguin, "warrior", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("hp", 0f, 100f, 100f));
-        entity.Attributes.Add(new ScalarValue("hunger", 0f, 100f, 0f));
+        entity.Attributes.Add(new ScalarValue("warmth", 0f, 100f, 0f));
         return entity;
     }
 
     private static Entity CreateFaction(StubWorldState world, string name)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Faction, "order", name, "c", 0, null);
+        var entity = world.Graph.CreateEntity(TestKinds.Faction, "order", name, "c", 0, null);
         entity.Attributes.Add(new ScalarValue("support", 0f, 100f, 40f));
-        entity.Attributes.Add(new ScalarValue("influence", 0f, 100f, 30f));
+        entity.Attributes.Add(new ScalarValue("reach", 0f, 100f, 30f));
         return entity;
     }
 
     private static Entity CreateRegion(StubWorldState world, string name)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Region, "plains", name, "c", 0, null);
-        entity.Attributes.Add(new ScalarValue("regional_safety", 0f, 100f, 50f));
-        entity.Attributes.Add(new ScalarValue("geologic_stability", 0f, 100f, 80f));
+        var entity = world.Graph.CreateEntity(TestKinds.Region, "plains", name, "c", 0, null);
+        entity.Attributes.Add(new ScalarValue("holding", 0f, 100f, 50f));
+        entity.Attributes.Add(new ScalarValue("stability", 0f, 100f, 80f));
         return entity;
     }
 }

@@ -22,7 +22,7 @@ public sealed class HexGrid
         // Generate all cells in the hex radius
         foreach (var coord in HexCoord.CoordsInRadius(new HexCoord(0, 0), radius))
         {
-            _cells[coord] = new HexCell(coord, TerrainType.Plains);
+            _cells[coord] = new HexCell(coord, TerrainType.Wastes);
         }
     }
 

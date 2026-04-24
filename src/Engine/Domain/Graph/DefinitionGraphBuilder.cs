@@ -51,6 +51,7 @@ public static class DefinitionGraphBuilder
 
         var graph = new DefinitionGraph
         {
+            RingOrder = config.Semantics?.RingOrder ?? [],
             Kinds = kindNodes,
             Processes = processNodes,
             Generators = generatorNodes,

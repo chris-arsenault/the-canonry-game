@@ -2,6 +2,7 @@ namespace Engine.Domain.Graph;
 
 using Engine.Domain.Config;
 using Engine.Kinds;
+using Engine.Map;
 
 public static class RuntimeGeneratorBuilder
 {
@@ -30,11 +31,72 @@ public static class RuntimeGeneratorBuilder
                 "$target",
             };
 
+            var secondaryTargets = new List<DefinitionGeneratorBindingTarget>(config.SecondaryTargets.Count);
+            foreach (var binding in config.SecondaryTargets)
+            {
+                EnsureKindDeclared(partialGraph, binding.Kind, $"Generator '{config.Id}' binding '{binding.Ref}'");
+                ValidateSubtypes(
+                    partialGraph,
+                    binding.Kind,
+                    binding.Query?.Subtypes,
+                    $"Generator '{config.Id}' binding '{binding.Ref}' query");
+                ValidateRelationshipNames(
+                    partialGraph,
+                    binding.Query?.WithoutOutgoingRelationships,
+                    $"Generator '{config.Id}' binding '{binding.Ref}' query");
+                ValidateRelationshipNames(
+                    partialGraph,
+                    binding.Query?.WithoutIncomingRelationships,
+                    $"Generator '{config.Id}' binding '{binding.Ref}' query");
+                ValidateQueryAttributeConditions(
+                    partialGraph,
+                    binding.Kind,
+                    binding.Query?.AttributeConditions,
+                    $"Generator '{config.Id}' binding '{binding.Ref}' query");
+
+                if (!declaredRefs.Add(binding.Ref))
+                {
+                    throw new DefinitionGraphException(
+                        $"Generator '{config.Id}' declares duplicate ref '{binding.Ref}'.");
+                }
+
+                secondaryTargets.Add(new DefinitionGeneratorBindingTarget
+                {
+                    Ref = binding.Ref,
+                    Kind = binding.Kind,
+                    Query = BuildQuery(partialGraph, binding.Kind, binding.Query),
+                });
+            }
+
             var produces = new List<DefinitionProducedEntity>(config.Produces.Count);
             foreach (var produced in config.Produces)
             {
                 EnsureKindDeclared(partialGraph, produced.Kind, $"Generator '{config.Id}' produce '{produced.Ref}'");
-                ValidateSubtype(partialGraph, produced.Kind, produced.Subtype, $"Generator '{config.Id}' produce '{produced.Ref}'");
+                ValidateProducedSubtypeChoice(partialGraph, produced, $"Generator '{config.Id}' produce '{produced.Ref}'");
+                ValidateCoverage(partialGraph, config.Id, produced);
+                if (string.IsNullOrWhiteSpace(produced.InheritCultureFrom))
+                {
+                    throw new DefinitionGraphException(
+                        $"Generator '{config.Id}' produce '{produced.Ref}' must declare InheritCultureFrom.");
+                }
+                ValidateSubtypes(
+                    partialGraph,
+                    produced.Kind,
+                    produced.Query?.Subtypes,
+                    $"Generator '{config.Id}' produce '{produced.Ref}' query");
+                ValidateRelationshipNames(
+                    partialGraph,
+                    produced.Query?.WithoutOutgoingRelationships,
+                    $"Generator '{config.Id}' produce '{produced.Ref}' query");
+                ValidateRelationshipNames(
+                    partialGraph,
+                    produced.Query?.WithoutIncomingRelationships,
+                    $"Generator '{config.Id}' produce '{produced.Ref}' query");
+                ValidateQueryAttributeConditions(
+                    partialGraph,
+                    produced.Kind,
+                    produced.Query?.AttributeConditions,
+                    $"Generator '{config.Id}' produce '{produced.Ref}' query");
 
                 if (!declaredRefs.Add(produced.Ref))
                 {
@@ -47,16 +109,29 @@ public static class RuntimeGeneratorBuilder
                     Ref = produced.Ref,
                     Kind = produced.Kind,
                     Subtype = produced.Subtype,
+                    Subtypes = produced.Subtypes is null
+                        ? null
+                        : new HashSet<string>(produced.Subtypes, StringComparer.Ordinal),
                     Role = produced.Role,
                     CreateChance = produced.CreateChance,
-                    Placement = produced.Placement,
+                    CreateIfMissing = produced.CreateIfMissing,
+                    PhysicalPlacement = produced.PhysicalPlacement,
+                    SemanticPlacement = produced.SemanticPlacement,
+                    PlacementRef = produced.PlacementRef,
                     InheritCultureFrom = produced.InheritCultureFrom,
+                    Query = BuildQuery(partialGraph, produced.Kind, produced.Query),
+                    Coverage = BuildCoverage(produced.Coverage),
                 });
             }
 
             foreach (var produced in produces)
             {
                 EnsureDeclaredRef(config.Id, produced.InheritCultureFrom, declaredRefs, "InheritCultureFrom");
+                EnsureDeclaredRef(config.Id, produced.PlacementRef, declaredRefs, "PlacementRef");
+                if (!string.IsNullOrWhiteSpace(produced.Coverage?.SourceRef))
+                {
+                    EnsureDeclaredRef(config.Id, produced.Coverage.SourceRef, declaredRefs, "Coverage.SourceRef");
+                }
             }
 
             var relationships = config.Relationships
@@ -75,6 +150,7 @@ public static class RuntimeGeneratorBuilder
                         DestinationRef = relationship.DestinationRef,
                         RelationshipId = relationshipId,
                         Strength = relationship.Strength,
+                        ReplaceExistingOutgoingOfSameKind = relationship.ReplaceExistingOutgoingOfSameKind,
                     };
                 })
                 .ToList();
@@ -128,6 +204,7 @@ public static class RuntimeGeneratorBuilder
                 Name = config.Name,
                 Description = config.Description,
                 Target = target,
+                SecondaryTargets = secondaryTargets,
                 Produces = produces,
                 Relationships = relationships,
                 Triggers = triggers,
@@ -177,6 +254,151 @@ public static class RuntimeGeneratorBuilder
             throw new DefinitionGraphException(
                 $"{context} references unknown subtype '{subtype}' for kind '{kind}'.");
         }
+    }
+
+    private static void ValidateProducedSubtypeChoice(
+        DefinitionGraph graph,
+        SemanticProducedEntity produced,
+        string context)
+    {
+        var hasSingle = !string.IsNullOrWhiteSpace(produced.Subtype);
+        var hasMany = produced.Subtypes is { Count: > 0 };
+
+        if (hasSingle == hasMany)
+        {
+            throw new DefinitionGraphException(
+                $"{context} must declare exactly one of Subtype or Subtypes.");
+        }
+
+        if (hasSingle)
+        {
+            ValidateSubtype(graph, produced.Kind, produced.Subtype!, context);
+            return;
+        }
+
+        ValidateSubtypes(graph, produced.Kind, produced.Subtypes, context);
+    }
+
+    private static void ValidateCoverage(
+        DefinitionGraph graph,
+        string generatorId,
+        SemanticProducedEntity produced)
+    {
+        _ = graph;
+        if (string.Equals(produced.Kind.Value, "region", StringComparison.Ordinal))
+        {
+            if (produced.Coverage is null)
+            {
+                throw new DefinitionGraphException(
+                    $"Generator '{generatorId}' region produce '{produced.Ref}' must declare Coverage.");
+            }
+
+            return;
+        }
+
+        if (produced.Coverage is not null)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' non-region produce '{produced.Ref}' may not declare Coverage.");
+        }
+    }
+
+    private static void ValidateRelationshipNames(
+        DefinitionGraph graph,
+        IReadOnlySet<string>? relationshipKinds,
+        string context)
+    {
+        if (relationshipKinds is null)
+        {
+            return;
+        }
+
+        foreach (var relationshipKind in relationshipKinds)
+        {
+            ResolveRelationshipId(graph, relationshipKind, context);
+        }
+    }
+
+    private static void ValidateQueryAttributeConditions(
+        DefinitionGraph graph,
+        EntityKind kind,
+        IReadOnlyList<SemanticQueryAttributeCondition>? conditions,
+        string context)
+    {
+        if (conditions is null)
+        {
+            return;
+        }
+
+        foreach (var condition in conditions)
+        {
+            var attributeId = new DefinitionAttributeId(condition.AttributeName);
+            if (!graph.Kinds[kind].Attributes.ContainsKey(attributeId))
+            {
+                throw new DefinitionGraphException(
+                    $"{context} references unknown attribute '{condition.AttributeName}' on kind '{kind}'.");
+            }
+        }
+    }
+
+    private static DefinitionEntityQuery? BuildQuery(
+        DefinitionGraph graph,
+        EntityKind kind,
+        SemanticEntityQuery? query)
+    {
+        _ = graph;
+        _ = kind;
+        if (query is null)
+        {
+            return null;
+        }
+
+        return new DefinitionEntityQuery
+        {
+            Subtypes = query.Subtypes is null
+                ? null
+                : new HashSet<string>(query.Subtypes, StringComparer.Ordinal),
+            AdjacentToTarget = query.AdjacentToTarget,
+            WithoutOutgoingRelationships = query.WithoutOutgoingRelationships is null
+                ? null
+                : new HashSet<string>(query.WithoutOutgoingRelationships, StringComparer.Ordinal),
+            WithoutIncomingRelationships = query.WithoutIncomingRelationships is null
+                ? null
+                : new HashSet<string>(query.WithoutIncomingRelationships, StringComparer.Ordinal),
+            TargetCultureMatch = query.TargetCultureMatch,
+            AttributeConditions = query.AttributeConditions
+                .Select(condition => new DefinitionQueryAttributeCondition
+                {
+                    AttributeId = new DefinitionAttributeId(condition.AttributeName),
+                    Direction = condition.Direction,
+                })
+                .ToList(),
+        };
+    }
+
+    private static DefinitionRegionCoverage? BuildCoverage(SemanticRegionCoverage? coverage)
+    {
+        if (coverage is null)
+        {
+            return null;
+        }
+
+        return new DefinitionRegionCoverage
+        {
+            Mode = coverage.Mode,
+            SourceRef = coverage.SourceRef,
+            DesiredCellCount = coverage.DesiredCellCount,
+            MinimumCellCount = coverage.MinimumCellCount,
+            MinimumSourceRemainingCellCount = coverage.MinimumSourceRemainingCellCount,
+            PreferredTerrains = coverage.PreferredTerrains is null
+                ? null
+                : new HashSet<TerrainType>(coverage.PreferredTerrains),
+            AllowedTerrains = coverage.AllowedTerrains is null
+                ? null
+                : new HashSet<TerrainType>(coverage.AllowedTerrains),
+            RespectTerrainBoundaries = coverage.RespectTerrainBoundaries,
+            TransformTerrain = coverage.TransformTerrain,
+        };
     }
 
     private static DefinitionRelationshipId ResolveRelationshipId(

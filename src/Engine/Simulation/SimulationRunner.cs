@@ -9,7 +9,7 @@ using Engine.Degeneracy;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Events;
 using Engine.Generators;
 using Engine.Graph;
@@ -29,12 +29,13 @@ using Engine.Tableau;
 public sealed class SimulationRunner
 {
     // Core data
+    public DomainConfig DomainConfig { get; }
     public WorldGraph Graph { get; }
     public EffectSystem Effects { get; }
 
     // Map
     public HexGrid Grid { get; }
-    public RegionMap RegionMap { get; }
+    public MapCoverageMap CoverageMap { get; }
     public SpatialIndex SpatialIndex { get; }
 
     // Clock
@@ -70,8 +71,9 @@ public sealed class SimulationRunner
     public IReadOnlyDictionary<string, CardDefinition> SpawnCards { get; }
 
     private SimulationRunner(
+        DomainConfig domainConfig,
         WorldGraph graph, EffectSystem effects,
-        HexGrid grid, RegionMap regionMap, SpatialIndex spatialIndex,
+        HexGrid grid, MapCoverageMap coverageMap, SpatialIndex spatialIndex,
         TickClock clock, EntityEvaluator evaluator, RelationshipSystem relationships,
         LifecycleSystem lifecycle, ResourceSystem resources, PressureSystem pressure,
         TableauManager tableau, EventLog eventLog, DetectorRegistry detectors,
@@ -80,10 +82,11 @@ public sealed class SimulationRunner
         IReadOnlyDictionary<string, CardDefinition> spawnCards,
         MessageBus messageBus)
     {
+        DomainConfig = domainConfig;
         Graph = graph;
         Effects = effects;
         Grid = grid;
-        RegionMap = regionMap;
+        CoverageMap = coverageMap;
         SpatialIndex = spatialIndex;
         Clock = clock;
         Evaluator = evaluator;
@@ -105,11 +108,11 @@ public sealed class SimulationRunner
 
     /// <summary>
     /// Build a simulation from the test map with all systems wired together.
-    /// Uses TestDomain for all domain-specific configuration.
+    /// Uses IceRemembers for all domain-specific configuration.
     /// </summary>
     public static SimulationRunner CreateFromTestMap()
     {
-        return CreateFromDomain(TestDomainDefinition.Create());
+        return CreateFromDomain(IceRemembersDefinition.Create());
     }
 
     /// <summary>
@@ -120,6 +123,7 @@ public sealed class SimulationRunner
     public static SimulationRunner CreateFromDomain(DomainConfig domainConfig, Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(domainConfig);
+        KindId.RegisterAll(domainConfig.Kinds.Keys);
 
         var definitionGraph = DomainLoader.BuildDefinitionGraph(domainConfig);
 
@@ -131,11 +135,11 @@ public sealed class SimulationRunner
         var testWorld = TestMapBuilder.BuildEmpty(random);
         var graph = testWorld.Graph;
         var grid = testWorld.Grid;
-        var regionMap = testWorld.RegionMap;
+        var coverageMap = testWorld.CoverageMap;
 
         // Core systems
         var effects = new EffectSystem();
-        var spatialIndex = new SpatialIndex(grid, regionMap, graph);
+        var spatialIndex = new SpatialIndex(grid, coverageMap, graph);
         var semanticPlane = new SemanticPlaneIndex(graph);
 
         // Load domain into engine systems
@@ -148,7 +152,7 @@ public sealed class SimulationRunner
         // Wiring validation: check domain coherence before starting
         var wiringValidator = DomainLoader.LoadAndValidateWiring(domainConfig);
         var wiringErrors = wiringValidator.Validate();
-        // Log warnings but don't block startup (test domain has minimal wiring)
+        // Log warnings but don't block startup (IceRemembers still has minimal wiring)
         foreach (var error in wiringErrors)
         {
             System.Diagnostics.Debug.WriteLine($"[WIRING] {error.Type}: {error.Message}");
@@ -210,7 +214,7 @@ public sealed class SimulationRunner
             effects,
             pressure,
             grid,
-            regionMap,
+            coverageMap,
             spatialIndex,
             semanticPlane,
             generators,
@@ -221,6 +225,7 @@ public sealed class SimulationRunner
             definitionGraph,
             spatialIndex,
             semanticPlane,
+            coverageMap,
             messageBus,
             random);
         var spawnCards = new Dictionary<string, CardDefinition>(StringComparer.Ordinal);
@@ -287,7 +292,7 @@ public sealed class SimulationRunner
         clock.Register("pressure", TickPhase.Pressure, cadence: 5,
             _ =>
             {
-                var contexts = BuildPressureContexts(graph, regionMap);
+                var contexts = BuildPressureContexts(graph, coverageMap);
                 pressure.Compute(contexts);
             });
 
@@ -314,7 +319,7 @@ public sealed class SimulationRunner
             });
 
         return new SimulationRunner(
-            graph, effects, grid, regionMap, spatialIndex,
+            domainConfig, graph, effects, grid, coverageMap, spatialIndex,
             clock, evaluator, relationships, lifecycle, resources, pressure,
             tableau, eventLog, detectors, worldState, definitionGraph, kindRegistry,
             behaviorDefinitions, generatorSystem, spawnCards, messageBus);
@@ -327,21 +332,21 @@ public sealed class SimulationRunner
     public bool Tick() => Clock.Tick();
 
     private static Dictionary<EntityId, IPressureContext> BuildPressureContexts(
-        WorldGraph graph, RegionMap regionMap)
+        WorldGraph graph, MapCoverageMap coverageMap)
     {
         var contexts = new Dictionary<EntityId, IPressureContext>();
-        foreach (var region in regionMap.AllRegions)
+        foreach (var coverage in coverageMap.AllCoverages)
         {
             var entitiesInRegion = new List<EntityId>();
             foreach (var (eid, entity) in graph.AllEntities)
             {
-                if (region.ContainsCell(new Map.HexCoord(entity.Coordinates.Q, entity.Coordinates.R)))
+                if (coverage.ContainsCell(new Map.HexCoord(entity.Coordinates.Q, entity.Coordinates.R)))
                 {
                     entitiesInRegion.Add(eid);
                 }
             }
 
-            contexts[region.EntityId] = new SimplePressureContext(graph, entitiesInRegion);
+            contexts[coverage.OwnerEntityId] = new SimplePressureContext(graph, entitiesInRegion);
         }
 
         return contexts;
@@ -504,15 +509,15 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph)
     : IDegeneracyContext
 {
     public int ActiveSettlementCount =>
-        graph.GetEntitiesByKind(EntityKind.Settlement).Count(id =>
+        graph.GetEntitiesByKind(IceRemembersKinds.Settlement).Count(id =>
             graph.GetEntity(id)?.Status == EntityStatus.Active);
 
     public int DecliningSettlementCount =>
-        graph.GetEntitiesByKind(EntityKind.Settlement).Count(id =>
+        graph.GetEntitiesByKind(IceRemembersKinds.Settlement).Count(id =>
             graph.GetEntity(id)?.Attributes.GetScalar("residents")?.Trend < 0);
 
     public int ActiveFactionCount =>
-        graph.GetEntitiesByKind(EntityKind.Faction).Count(id =>
+        graph.GetEntitiesByKind(IceRemembersKinds.Faction).Count(id =>
             graph.GetEntity(id)?.Status == EntityStatus.Active);
 
     public int MaxFactionSettlementCount
@@ -520,9 +525,9 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph)
         get
         {
             var max = 0;
-            foreach (var factionId in graph.GetEntitiesByKind(EntityKind.Faction))
+            foreach (var factionId in graph.GetEntitiesByKind(IceRemembersKinds.Faction))
             {
-                var count = graph.GetEntitiesByKind(EntityKind.Settlement)
+                var count = graph.GetEntitiesByKind(IceRemembersKinds.Settlement)
                     .Count(sid => graph.OutgoingRelationships(sid, "controlled_by")
                         .Any(r => r.TargetId == factionId));
                 max = Math.Max(max, count);
@@ -532,9 +537,9 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph)
         }
     }
 
-    public int TotalSettlementCount => graph.GetEntitiesByKind(EntityKind.Settlement).Count;
+    public int TotalSettlementCount => graph.GetEntitiesByKind(IceRemembersKinds.Settlement).Count;
 
     public int ActiveNpcCount =>
-        graph.GetEntitiesByKind(EntityKind.Npc).Count(id =>
+        graph.GetEntitiesByKind(IceRemembersKinds.Penguin).Count(id =>
             graph.GetEntity(id)?.Status == EntityStatus.Active);
 }

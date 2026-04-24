@@ -1,7 +1,7 @@
 namespace Engine.Tests.Resources;
 
 using Engine.Domain.Loader;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -97,8 +97,8 @@ public class ResourceSystemTests
         var graph = new WorldGraph();
         var grid = new HexGrid(3);
         var coord = new HexCoord(0, 0);
-        grid.SetCell(coord, TerrainType.Plains, fertility: 0.7f);
-        var settlement = graph.CreateEntity(EntityKind.Settlement, "village", "Town", "c", 0, (0, 0));
+        grid.SetCell(coord, TerrainType.Tundra, fertility: 0.7f);
+        var settlement = graph.CreateEntity(TestKinds.Settlement, "village", "Town", "c", 0, (0, 0));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0f, 100000f, 10f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0f, 100f, 20f));
         settlement.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0f, 1000f, 5f));
@@ -135,25 +135,25 @@ public class ResourceSystemTests
         var grid = new HexGrid(3);
 
         // Two factions, one settlement each
-        var nationA = graph.CreateEntity(EntityKind.Faction, "generic_faction", "A", "c", 0);
-        var nationB = graph.CreateEntity(EntityKind.Faction, "generic_faction", "B", "c", 0);
+        var nationA = graph.CreateEntity(TestKinds.Faction, "order", "A", "c", 0);
+        var nationB = graph.CreateEntity(TestKinds.Faction, "order", "B", "c", 0);
 
         // Settlement A on fertile land
-        var sA = graph.CreateEntity(EntityKind.Settlement, "village", "Rich", "c", 0, (0, 0));
+        var sA = graph.CreateEntity(TestKinds.Settlement, "village", "Rich", "c", 0, (0, 0));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 200));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sA.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 20));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sA.Id, nationA.Id, 1f, 0);
-        grid.SetCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 0.9f);
+        grid.SetCell(new HexCoord(0, 0), TerrainType.Tundra, fertility: 0.9f);
         grid.GetCell(new HexCoord(0, 0))!.AmbientFood = 5f;
 
         // Settlement B on poor land
-        var sB = graph.CreateEntity(EntityKind.Settlement, "village", "Poor", "c", 0, (2, 0));
+        var sB = graph.CreateEntity(TestKinds.Settlement, "village", "Poor", "c", 0, (2, 0));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("residents", 0, 100000, 200));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("security", 0, 100, 20));
         sB.Attributes.Add(new Engine.Attributes.ScalarValue("prestige", 0, 1000, 5));
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, sB.Id, nationB.Id, 1f, 0);
-        grid.SetCell(new HexCoord(2, 0), TerrainType.Desert, fertility: 0.1f);
+        grid.SetCell(new HexCoord(2, 0), TerrainType.Wastes, fertility: 0.1f);
         grid.GetCell(new HexCoord(2, 0))!.AmbientFood = 1f;
 
         var system = new ResourceSystem(graph, grid);
@@ -170,7 +170,7 @@ public class ResourceSystemTests
     {
         var world = TestMapBuilder.BuildDefault(seed: 42);
 
-        DomainLoader.InitializeEntityAttributes(world.Graph, TestDomainDefinition.Create(), new Random(42));
+        DomainLoader.InitializeEntityAttributes(world.Graph, IceRemembersDefinition.Create(), new Random(42));
 
         var system = new ResourceSystem(world.Graph, world.Grid);
         return (system, world.Graph, world.Grid);

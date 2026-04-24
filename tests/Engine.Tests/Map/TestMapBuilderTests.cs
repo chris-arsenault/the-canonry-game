@@ -18,8 +18,8 @@ public class TestMapBuilderTests
         Assert.Equal(_world.Graph.EntityCount, world2.Graph.EntityCount);
 
         // NPC coordinates should match with same seed
-        var npcs1 = _world.Graph.GetEntitiesByKind(EntityKind.Npc).ToList();
-        var npcs2 = world2.Graph.GetEntitiesByKind(EntityKind.Npc).ToList();
+        var npcs1 = _world.Graph.GetEntitiesByKind(TestKinds.Penguin).ToList();
+        var npcs2 = world2.Graph.GetEntitiesByKind(TestKinds.Penguin).ToList();
         for (var i = 0; i < npcs1.Count; i++)
         {
             var e1 = _world.Graph.GetEntity(npcs1[i])!;
@@ -42,7 +42,7 @@ public class TestMapBuilderTests
     [Fact]
     public void Grid_HasCorrectSize()
     {
-        Assert.Equal(91, _world.Grid.CellCount); // radius 5
+        Assert.Equal(1261, _world.Grid.CellCount); // radius 20
     }
 
     [Fact]
@@ -54,9 +54,9 @@ public class TestMapBuilderTests
             .ToHashSet();
 
         Assert.True(terrainTypes.Count >= 4, $"Only {terrainTypes.Count} terrain types found");
-        Assert.Contains(TerrainType.Plains, terrainTypes);
-        Assert.Contains(TerrainType.Mountain, terrainTypes);
-        Assert.Contains(TerrainType.Water, terrainTypes);
+        Assert.Contains(TerrainType.Tundra, terrainTypes);
+        Assert.Contains(TerrainType.Crags, terrainTypes);
+        Assert.Contains(TerrainType.Ocean, terrainTypes);
     }
 
     [Fact]
@@ -78,32 +78,29 @@ public class TestMapBuilderTests
     [Fact]
     public void TerrainProfiles_UseExpectedPopulationBands()
     {
-        Assert.Equal(new AmbientValueRange(0f, 3f), TerrainAmbientResources.GetProfile(TerrainType.Tundra).Population);
-        Assert.Equal(new AmbientValueRange(0f, 1f), TerrainAmbientResources.GetProfile(TerrainType.Water).Population);
-        Assert.Equal(new AmbientValueRange(3f, 5f), TerrainAmbientResources.GetProfile(TerrainType.Plains).Population);
+        Assert.Equal(new AmbientValueRange(0f, 3f), TerrainAmbientResources.GetProfile(TerrainType.Ice).Population);
+        Assert.Equal(new AmbientValueRange(0f, 1f), TerrainAmbientResources.GetProfile(TerrainType.Ocean).Population);
+        Assert.Equal(new AmbientValueRange(3f, 5f), TerrainAmbientResources.GetProfile(TerrainType.Tundra).Population);
     }
 
     // --- Regions ---
 
     [Fact]
-    public void AllCells_AssignedToRegions()
+    public void SomeCells_AreIntentionallyUncovered()
     {
-        foreach (var cell in _world.Grid.AllCells)
-        {
-            Assert.NotNull(_world.RegionMap.GetRegionForCell(cell.Coord));
-        }
+        Assert.Contains(_world.Grid.AllCells, cell => _world.CoverageMap.GetCoverageForCell(cell.Coord) is null);
     }
 
     [Fact]
     public void HasThreeRegions()
     {
-        Assert.Equal(3, _world.RegionMap.AllRegions.Count);
+        Assert.Equal(3, _world.CoverageMap.AllCoverages.Count);
     }
 
     [Fact]
     public void Regions_HaveDistinctNames()
     {
-        var names = _world.RegionMap.AllRegions.Select(r => r.Name).ToHashSet();
+        var names = _world.CoverageMap.AllCoverages.Select(r => r.Name).ToHashSet();
         Assert.Equal(3, names.Count);
     }
 
@@ -112,31 +109,31 @@ public class TestMapBuilderTests
     [Fact]
     public void Has2Nations()
     {
-        Assert.Equal(2, _world.Graph.GetEntitiesByKind(EntityKind.Faction).Count);
+        Assert.Equal(2, _world.Graph.GetEntitiesByKind(TestKinds.Faction).Count);
     }
 
     [Fact]
     public void Has5Settlements()
     {
-        Assert.Equal(5, _world.Graph.GetEntitiesByKind(EntityKind.Settlement).Count);
+        Assert.Equal(5, _world.Graph.GetEntitiesByKind(TestKinds.Settlement).Count);
     }
 
     [Fact]
     public void Has3Npcs()
     {
-        Assert.Equal(3, _world.Graph.GetEntitiesByKind(EntityKind.Npc).Count);
+        Assert.Equal(3, _world.Graph.GetEntitiesByKind(TestKinds.Penguin).Count);
     }
 
     [Fact]
     public void Has1Artifact()
     {
-        Assert.Single(_world.Graph.GetEntitiesByKind(EntityKind.Artifact));
+        Assert.Single(_world.Graph.GetEntitiesByKind(TestKinds.Artifact));
     }
 
     [Fact]
     public void Has3Regions()
     {
-        Assert.Equal(3, _world.Graph.GetEntitiesByKind(EntityKind.Region).Count);
+        Assert.Equal(3, _world.Graph.GetEntitiesByKind(TestKinds.Region).Count);
     }
 
     // --- Relationships ---
@@ -144,7 +141,7 @@ public class TestMapBuilderTests
     [Fact]
     public void AllSettlements_HaveControlledBy()
     {
-        foreach (var settlementId in _world.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var settlementId in _world.Graph.GetEntitiesByKind(TestKinds.Settlement))
         {
             var controlledBy = _world.Graph.OutgoingRelationships(settlementId, "controlled_by").ToList();
             Assert.Single(controlledBy);
@@ -154,7 +151,7 @@ public class TestMapBuilderTests
     [Fact]
     public void AllNpcs_HaveLoyalty()
     {
-        foreach (var npcId in _world.Graph.GetEntitiesByKind(EntityKind.Npc))
+        foreach (var npcId in _world.Graph.GetEntitiesByKind(TestKinds.Penguin))
         {
             var loyalty = _world.Graph.OutgoingRelationships(npcId, "loyal_to").ToList();
             Assert.Single(loyalty);
@@ -164,7 +161,7 @@ public class TestMapBuilderTests
     [Fact]
     public void AllNpcs_HaveCoordinates()
     {
-        foreach (var npcId in _world.Graph.GetEntitiesByKind(EntityKind.Npc))
+        foreach (var npcId in _world.Graph.GetEntitiesByKind(TestKinds.Penguin))
         {
             var npc = _world.Graph.GetEntity(npcId);
             Assert.NotNull(npc);
@@ -174,7 +171,7 @@ public class TestMapBuilderTests
     [Fact]
     public void AllNpcs_SpawnOnWalkableHexes()
     {
-        foreach (var npcId in _world.Graph.GetEntitiesByKind(EntityKind.Npc))
+        foreach (var npcId in _world.Graph.GetEntitiesByKind(TestKinds.Penguin))
         {
             var npc = _world.Graph.GetEntity(npcId)!;
             var coord = new HexCoord(npc.Coordinates.Q, npc.Coordinates.R);
@@ -186,29 +183,42 @@ public class TestMapBuilderTests
     }
 
     [Fact]
+    public void AllNpcs_SpawnWithinTwoHexesOfASettlement()
+    {
+        var settlementCoords = _world.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => _world.Graph.GetEntity(id)!)
+            .Select(entity => new HexCoord(entity.Coordinates.Q, entity.Coordinates.R))
+            .ToList();
+
+        foreach (var npcId in _world.Graph.GetEntitiesByKind(TestKinds.Penguin))
+        {
+            var npc = _world.Graph.GetEntity(npcId)!;
+            var npcCoord = new HexCoord(npc.Coordinates.Q, npc.Coordinates.R);
+            var nearestSettlementDistance = settlementCoords.Min(coord => HexCoord.Distance(coord, npcCoord));
+
+            Assert.InRange(
+                nearestSettlementDistance,
+                1,
+                2);
+        }
+    }
+
+    [Fact]
     public void Artifact_IsStoredAtSettlement()
     {
-        var artifactId = _world.Graph.GetEntitiesByKind(EntityKind.Artifact).First();
+        var artifactId = _world.Graph.GetEntitiesByKind(TestKinds.Artifact).First();
         var storedAt = _world.Graph.OutgoingRelationships(artifactId, "stored_at").ToList();
         Assert.Single(storedAt);
 
         var location = _world.Graph.GetEntity(storedAt[0].TargetId);
         Assert.NotNull(location);
-        Assert.Equal(EntityKind.Settlement, location.Kind);
+        Assert.Equal(TestKinds.Settlement, location.Kind);
     }
 
     [Fact]
-    public void Regions_HaveBorderRelationships()
+    public void Coverages_HaveAdjacency()
     {
-        var regionIds = _world.Graph.GetEntitiesByKind(EntityKind.Region);
-        var totalBorders = 0;
-        foreach (var regionId in regionIds)
-        {
-            totalBorders += _world.Graph.OutgoingRelationships(regionId, "borders").Count();
-        }
-
-        // Should have border relationships (at least some regions border each other)
-        Assert.True(totalBorders > 0);
+        Assert.NotEmpty(_world.CoverageMap.ComputeAdjacency());
     }
 
     // --- No orphans ---
@@ -216,7 +226,7 @@ public class TestMapBuilderTests
     [Fact]
     public void NoOrphanedSettlements()
     {
-        foreach (var sid in _world.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var sid in _world.Graph.GetEntitiesByKind(TestKinds.Settlement))
         {
             var entity = _world.Graph.GetEntity(sid);
             Assert.NotNull(entity);

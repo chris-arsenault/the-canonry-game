@@ -5,7 +5,7 @@ using Engine.Processes;
 using Engine.Clock;
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Simulation;
@@ -16,7 +16,7 @@ public class SimulationRunnerTests
     public void CreateFromTestMap_Initializes()
     {
         var sim = SimulationRunner.CreateFromTestMap();
-        var definitionGraph = DomainLoader.BuildDefinitionGraph(TestDomainDefinition.Create());
+        var definitionGraph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
         Assert.NotNull(sim.Graph);
         Assert.NotNull(sim.Clock);
@@ -57,9 +57,9 @@ public class SimulationRunnerTests
     {
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
 
-        foreach (var settlementId in sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement))
         {
-            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("sanitation")!.SetBase(10f);
+            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("shelter")!.SetBase(10f);
         }
 
         for (var i = 0; i < 25; i++)
@@ -92,9 +92,9 @@ public class SimulationRunnerTests
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateValidGenerator()));
         var card = Assert.Single(sim.Tableau.ActiveCards);
 
-        foreach (var settlementId in sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement))
         {
-            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("sanitation")!.SetBase(10f);
+            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("shelter")!.SetBase(10f);
         }
 
         sim.Tableau.RemoveCard(card);
@@ -148,7 +148,7 @@ public class SimulationRunnerTests
         var sim = SimulationRunner.CreateFromTestMap();
 
         // Get an NPC and record initial vitality
-        var npcId = sim.Graph.GetEntitiesByKind(EntityKind.Npc).First();
+        var npcId = sim.Graph.GetEntitiesByKind(TestKinds.Penguin).First();
         var npc = sim.Graph.GetEntity(npcId)!;
         var initialVitality = npc.Attributes.GetValue("vitality");
 
@@ -194,7 +194,7 @@ public class SimulationRunnerTests
         var sim = SimulationRunner.CreateFromTestMap();
 
         // Create a simple system card that modifies an attribute
-        var npcId = sim.Graph.GetEntitiesByKind(EntityKind.Npc).First();
+        var npcId = sim.Graph.GetEntitiesByKind(TestKinds.Penguin).First();
         var card = new CardDefinition("test_boost", "Test Boost", CardType.System,
             new AlwaysTrue(), manaCost: 1, cooldown: 0, cadence: 1, lifespan: 50);
         card.Mutations.Add(new ModifyAttributeMutation(npcId, "vitality", 1f));
@@ -246,11 +246,30 @@ public class SimulationRunnerTests
     }
 
     [Fact]
+    public void LongRun_IceRemembers_FiresAtLeastTenGenerators()
+    {
+        var sim = SimulationRunner.CreateFromDomain(IceRemembersDefinition.Create(), new Random(42));
+
+        for (var i = 0; i < 500; i++)
+        {
+            sim.Tick();
+        }
+
+        var totalRuns = sim.WorldState.Generators.ById.Values.Sum(instance => instance.TotalRuns);
+        var counts = string.Join(
+            ", ",
+            sim.WorldState.Generators.ById.Values
+                .OrderByDescending(instance => instance.TotalRuns)
+                .Select(instance => $"{instance.GeneratorId}=ok:{instance.TotalRuns}/fail:{instance.FailedRuns}"));
+        Assert.True(totalRuns >= 10, $"Expected at least 10 generator fires in 500 ticks, got {totalRuns}. Counts: {counts}");
+    }
+
+    [Fact]
     public void AllEntityKinds_HaveAttributes()
     {
         var sim = SimulationRunner.CreateFromTestMap();
 
-        foreach (var kind in new[] { EntityKind.Settlement, EntityKind.Faction, EntityKind.Npc, EntityKind.Artifact })
+        foreach (var kind in new[] { TestKinds.Settlement, TestKinds.Faction, TestKinds.Penguin, TestKinds.Artifact })
         {
             foreach (var entityId in sim.Graph.GetEntitiesByKind(kind))
             {
@@ -269,15 +288,15 @@ public class SimulationRunnerTests
             Name = "Hero Emergence",
             Target = new SemanticGeneratorTarget
             {
-                Kind = EntityKind.Settlement,
+                Kind = TestKinds.Settlement,
             },
             Produces =
             [
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -288,15 +307,15 @@ public class SimulationRunnerTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
             ],
             Triggers =
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Settlement,
-                    AttributeName = "sanitation",
+                    OnKind = TestKinds.Settlement,
+                    AttributeName = "shelter",
                     Direction = TriggerDirection.Low,
                 },
             ],
@@ -304,7 +323,7 @@ public class SimulationRunnerTests
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
 
         return new DomainConfig

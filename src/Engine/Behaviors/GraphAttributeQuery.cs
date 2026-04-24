@@ -29,6 +29,10 @@ public static class GraphAttributeQuery
         {
             FindResourceCandidates(selector.Name, worldState, candidates);
         }
+        else if (selector.Scope == RefScope.Structural && selector.Kind.HasValue)
+        {
+            FindKindCandidates(selector.Kind.Value, worldState, candidates);
+        }
         else if (selector.Kind.HasValue)
         {
             FindAttributeCandidates(selector.Name, selector.Kind.Value, worldState, candidates);
@@ -60,9 +64,8 @@ public static class GraphAttributeQuery
 
         if (layer is null) return;
 
-        foreach (var entityId in worldState.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var (entityId, entity) in worldState.Graph.AllEntities)
         {
-            var entity = worldState.Graph.GetEntity(entityId);
             if (entity is null || entity.Status != EntityStatus.Active)
                 continue;
 
@@ -83,6 +86,23 @@ public static class GraphAttributeQuery
 
             if (entity.Attributes.Has(attributeName))
                 candidates.Add(entityId);
+        }
+    }
+
+    private static void FindKindCandidates(
+        EntityKind kind,
+        IWorldState worldState,
+        List<EntityId> candidates)
+    {
+        foreach (var entityId in worldState.Graph.GetEntitiesByKind(kind))
+        {
+            var entity = worldState.Graph.GetEntity(entityId);
+            if (entity is null || entity.Status != EntityStatus.Active)
+            {
+                continue;
+            }
+
+            candidates.Add(entityId);
         }
     }
 }

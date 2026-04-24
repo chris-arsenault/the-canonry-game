@@ -1,12 +1,9 @@
-namespace Engine.Kinds;
+namespace Engine.Tests;
 
 using Engine.Graph;
+using Engine.Kinds;
 
-/// <summary>
-/// Creates a KindRegistry with the 5 MVP entity kinds and category-level relationship definitions.
-/// Uses generic Phase 1 subtypes. Domain-specific subtypes replace these in Phase 2.
-/// </summary>
-public static class DefaultRegistry
+internal static class TestDefaultRegistry
 {
     public static KindRegistry Create()
     {
@@ -21,18 +18,20 @@ public static class DefaultRegistry
     private static void RegisterKinds(KindRegistry registry)
     {
         registry.RegisterKind(new KindDefinition(
-            EntityKind.Region,
+            TestKinds.Region,
+            EntityCategory.Spatial,
             validSubtypes: new HashSet<string> { "generic_region", "tundra", "coastal", "mountain", "plains" },
             attributes:
             [
                 new AttributeDefinition("fertility", 0f, 1f, 0.5f),
-                new AttributeDefinition("regional_safety", 0f, 100f, 50f),
-                new AttributeDefinition("geologic_stability", 0f, 100f, 80f),
+                new AttributeDefinition("holding", 0f, 100f, 50f),
+                new AttributeDefinition("stability", 0f, 100f, 80f),
             ],
-            healthAttribute: null)); // Regions are permanent
+            healthAttribute: null));
 
         registry.RegisterKind(new KindDefinition(
-            EntityKind.Settlement,
+            TestKinds.Settlement,
+            EntityCategory.Spatial,
             validSubtypes: new HashSet<string> { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
             attributes:
             [
@@ -43,29 +42,32 @@ public static class DefaultRegistry
             healthAttribute: "residents"));
 
         registry.RegisterKind(new KindDefinition(
-            EntityKind.Faction,
-            validSubtypes: new HashSet<string> { "generic_faction", "order", "cult", "company", "league" },
+            TestKinds.Faction,
+            EntityCategory.Agency,
+            validSubtypes: new HashSet<string> { "order", "compact", "cell", "choir" },
             attributes:
             [
                 new AttributeDefinition("cohesion", 0f, 100f, 70f),
-                new AttributeDefinition("support", 0f, 100f, 40f),
-                new AttributeDefinition("influence", 0f, 100f, 30f),
+                new AttributeDefinition("reach", 0f, 100f, 30f),
+                new AttributeDefinition("provisions", 0f, 100f, 50f),
             ],
             healthAttribute: "cohesion"));
 
         registry.RegisterKind(new KindDefinition(
-            EntityKind.Npc,
-            validSubtypes: new HashSet<string> { "generic_npc", "hero", "merchant", "scholar", "warrior" },
+            TestKinds.Penguin,
+            EntityCategory.Agency,
+            validSubtypes: new HashSet<string> { "merchant", "scholar", "warrior", "warden" },
             attributes:
             [
                 new AttributeDefinition("vitality", 0f, 100f, 100f),
-                new AttributeDefinition("satiety", 0f, 100f, 100f),
-                new AttributeDefinition("ambition", 0f, 100f, 50f),
+                new AttributeDefinition("warmth", 0f, 100f, 100f),
+                new AttributeDefinition("echo", 0f, 100f, 50f),
             ],
             healthAttribute: "vitality"));
 
         registry.RegisterKind(new KindDefinition(
-            EntityKind.Artifact,
+            TestKinds.Artifact,
+            EntityCategory.Asset,
             validSubtypes: new HashSet<string> { "generic_artifact", "weapon", "armor", "instrument", "relic", "scroll" },
             attributes:
             [
@@ -81,24 +83,18 @@ public static class DefaultRegistry
         var spatial = new HashSet<EntityCategory> { EntityCategory.Spatial };
         var agency = new HashSet<EntityCategory> { EntityCategory.Agency };
         var asset = new HashSet<EntityCategory> { EntityCategory.Asset };
-        var spatialAgency = new HashSet<EntityCategory> { EntityCategory.Spatial, EntityCategory.Agency };
         var all = new HashSet<EntityCategory> { EntityCategory.Spatial, EntityCategory.Agency, EntityCategory.Asset, EntityCategory.Record };
 
-        // Spatial x Spatial
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "borders", RelationshipPolarity.Neutral, spatial, spatial, isSymmetric: true));
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "contains", RelationshipPolarity.Neutral, spatial, spatial));
-
-        // Spatial x Agency (Agency -> Spatial)
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "controlled_by", RelationshipPolarity.Neutral, spatial, agency, isExclusive: true));
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "located_at", RelationshipPolarity.Neutral, agency, spatial, isExclusive: true));
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "home_base", RelationshipPolarity.Neutral, agency, spatial, isExclusive: true));
-
-        // Agency x Agency
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "allied_with", RelationshipPolarity.Positive, agency, agency, isSymmetric: true, cullThreshold: 0.1f));
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
@@ -109,18 +105,12 @@ public static class DefaultRegistry
             "member_of", RelationshipPolarity.Neutral, agency, agency));
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "loyal_to", RelationshipPolarity.Positive, agency, agency));
-
-        // Agency x Asset
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "holds", RelationshipPolarity.Neutral, agency, asset));
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "created_by", RelationshipPolarity.Neutral, asset, agency));
-
-        // Spatial x Asset
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "stored_at", RelationshipPolarity.Neutral, asset, spatial, isExclusive: true));
-
-        // Broad relationships
         registry.RegisterRelationshipKind(new RelationshipKindDefinition(
             "involved_in", RelationshipPolarity.Neutral, all, all));
     }

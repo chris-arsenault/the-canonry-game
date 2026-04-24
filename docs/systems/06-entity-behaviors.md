@@ -106,8 +106,8 @@ Settlement wants residents
 
 The current NPC loop is intentionally simple but structurally aligned:
 
-- ambient food slows hunger growth by location
-- `Eat` is the strong negative-hunger action
+- ambient food slows warmth loss by location
+- `Eat` is the strong warmth-recovery action
 - `Eat` must happen at a named settlement
 - `Move To Target` satisfies the relational blocker for getting to that settlement
 - `Wander` is the low-urgency fallback when no stronger motive dominates

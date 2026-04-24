@@ -362,14 +362,14 @@ public class EntityEvaluatorTests
             "attract",
             "Attract",
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)))
         {
             Cooldown = 3,
         };
-        definition.GoalEffects.Add(AttributeRef.Self("population", EntityKind.Settlement));
-        definition.Writes.Add(AttributeRef.Self("population", EntityKind.Settlement));
+        definition.GoalEffects.Add(AttributeRef.Self("population", TestKinds.Settlement));
+        definition.Writes.Add(AttributeRef.Self("population", TestKinds.Settlement));
         definition.Mutations.Add(new ModifySelfAttributeMutation("population", 1f));
         definition.Mutations.Add(new ModifyTargetAttributeMutation("population", -2f));
 
@@ -434,7 +434,7 @@ public class EntityEvaluatorTests
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [
@@ -464,7 +464,7 @@ public class EntityEvaluatorTests
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [
@@ -476,7 +476,7 @@ public class EntityEvaluatorTests
                 [
                     new StandingDriveConfig
                     {
-                        DesiredEffect = AttributeRef.Self("population", EntityKind.Settlement),
+                        DesiredEffect = AttributeRef.Self("population", TestKinds.Settlement),
                         BaseUrgency = 0.08f,
                     },
                 ],
@@ -566,13 +566,13 @@ public class EntityEvaluatorTests
         var strong = CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
 
         var process = CreateProcess("Attract", "population");
-        process.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        process.ProviderSelectors.Add(AttributeRef.Target("population", TestKinds.Settlement));
         // Provider score: fame difference (higher self fame relative to target = better target)
         process.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [
@@ -586,7 +586,7 @@ public class EntityEvaluatorTests
 
         var generator = new GoalGenerator(kinds, [process]);
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", EntityKind.Settlement)))
+            .Where(g => !g.IsSubGoal && g.DesiredEffect.Equals(AttributeRef.Self("population", TestKinds.Settlement)))
             .ToList();
 
         // Weak has fame 5, self has 10 → fame diff = 5 (good target)
@@ -623,7 +623,7 @@ public class EntityEvaluatorTests
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [
@@ -652,14 +652,14 @@ public class EntityEvaluatorTests
         var strong = CreateSettlement(world, "Strong", (2, 0), population: 10f, fame: 20f);
 
         var attract = CreateProcess("Attract", "population", new TargetIsNotSelf());
-        attract.ProviderSelectors.Add(AttributeRef.Target("population", EntityKind.Settlement));
+        attract.ProviderSelectors.Add(AttributeRef.Target("population", TestKinds.Settlement));
         attract.RewardExpression = Expr.Sub(Expr.Self("fame"), Expr.Target("fame"));
 
         var grow = CreateProcess("Grow", "population", new TargetIsSelf());
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [
@@ -694,7 +694,7 @@ public class EntityEvaluatorTests
 
         var kinds = new Dictionary<EntityKind, KindConfig>
         {
-            [EntityKind.Settlement] = new()
+            [TestKinds.Settlement] = new()
             {
                 Subtypes = new HashSet<string> { "village" },
                 Attributes = [
@@ -726,15 +726,15 @@ public class EntityEvaluatorTests
             name.ToUpperInvariant(),
             name,
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             precondition ?? new AlwaysTrue(),
             scoreExpression ?? Expr.Score(Expr.Lit(1f)))
         {
             Cooldown = cooldown,
             EntityCooldown = entityCooldown,
         };
-        definition.GoalEffects.Add(AttributeRef.Self(writesAttribute, EntityKind.Settlement));
-        definition.Writes.Add(AttributeRef.Self(writesAttribute, EntityKind.Settlement));
+        definition.GoalEffects.Add(AttributeRef.Self(writesAttribute, TestKinds.Settlement));
+        definition.Writes.Add(AttributeRef.Self(writesAttribute, TestKinds.Settlement));
         return definition;
     }
 
@@ -743,7 +743,7 @@ public class EntityEvaluatorTests
             name.ToUpperInvariant(),
             name,
             DefinitionRole.Process,
-            EntityKind.Settlement,
+            TestKinds.Settlement,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(1f)));
 
@@ -756,8 +756,8 @@ public class EntityEvaluatorTests
     {
         var effect = scope switch
         {
-            RefScope.Target => AttributeRef.Target(attribute, EntityKind.Settlement),
-            _ => AttributeRef.Self(attribute, EntityKind.Settlement),
+            RefScope.Target => AttributeRef.Target(attribute, TestKinds.Settlement),
+            _ => AttributeRef.Self(attribute, TestKinds.Settlement),
         };
 
         return new EntityGoal(effect, targetEntityId, urgency, parentGoalId: parentGoalId);
@@ -772,7 +772,7 @@ public class EntityEvaluatorTests
         float sustenance = 5f,
         (float X, float Y)? ideology = null)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", name, "c", 0, coordinates);
+        var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
         entity.Attributes.Add(new ScalarValue("sustenance", 0f, 100f, sustenance));

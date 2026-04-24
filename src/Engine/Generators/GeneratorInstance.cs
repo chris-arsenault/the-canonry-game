@@ -22,7 +22,9 @@ public sealed class GeneratorInstance
     public string GeneratorId { get; }
     public DefinitionGeneratorNode Definition { get; }
     public int TotalRuns { get; private set; }
+    public int FailedRuns { get; private set; }
     public int? LastFiredTick { get; private set; }
+    public int? LastFailedTick { get; private set; }
     public Queue<EntityId> RecentTargets { get; } = new();
 
     public void RecordRun(int tick)
@@ -34,6 +36,13 @@ public sealed class GeneratorInstance
     public void RecordRun(int tick, EntityId target)
     {
         RecordRun(tick);
+        RememberTarget(target);
+    }
+
+    public void RecordFailure(int tick, EntityId target)
+    {
+        FailedRuns++;
+        LastFailedTick = tick;
         RememberTarget(target);
     }
 
@@ -49,7 +58,9 @@ public sealed class GeneratorInstance
     public void Reset()
     {
         TotalRuns = 0;
+        FailedRuns = 0;
         LastFiredTick = null;
+        LastFailedTick = null;
         RecentTargets.Clear();
     }
 }

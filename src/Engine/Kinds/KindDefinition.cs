@@ -20,12 +20,13 @@ public sealed class KindDefinition
 
     public KindDefinition(
         EntityKind kind,
+        EntityCategory category,
         IReadOnlySet<string> validSubtypes,
         IReadOnlyList<AttributeDefinition> attributes,
         string? healthAttribute = null)
     {
         Kind = kind;
-        Category = kind.GetCategory();
+        Category = category;
         ValidSubtypes = validSubtypes;
         Attributes = attributes;
         HealthAttribute = healthAttribute;

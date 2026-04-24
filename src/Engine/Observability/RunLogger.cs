@@ -303,15 +303,11 @@ public sealed class RunLogger : IDisposable
     private static string FormatSemantic(SemanticHexCoord coord)
         => FormattableString.Invariant($"({coord.Q,3},{coord.R,3},{coord.S,3})");
 
-    private static string Abbrev(EntityKind kind) => kind switch
+    private static string Abbrev(EntityKind kind)
     {
-        EntityKind.Npc => "Npc",
-        EntityKind.Artifact => "Art",
-        EntityKind.Settlement => "Set",
-        EntityKind.Faction => "Fac",
-        EntityKind.Region => "Reg",
-        _ => kind.ToString(),
-    };
+        var value = kind.Value;
+        return value.Length <= 3 ? value : value[..3];
+    }
 
     private sealed record Snapshot(
         (int Q, int R) Physical,

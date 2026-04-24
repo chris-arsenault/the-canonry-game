@@ -2,7 +2,7 @@ namespace Engine.Tests.Observability;
 
 using System.IO;
 using Engine.Domain.Config;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Kinds;
 using Engine.Observability;
 using Engine.Simulation;
@@ -56,15 +56,15 @@ public class RunLoggerGeneratorTests
             Name = "Hero Emergence",
             Target = new SemanticGeneratorTarget
             {
-                Kind = EntityKind.Settlement,
+                Kind = TestKinds.Settlement,
             },
             Produces =
             [
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -75,14 +75,14 @@ public class RunLoggerGeneratorTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
             ],
             Triggers =
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Settlement,
+                    OnKind = TestKinds.Settlement,
                     Direction = TriggerDirection.Any,
                 },
             ],
@@ -90,7 +90,7 @@ public class RunLoggerGeneratorTests
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
 
         return new DomainConfig

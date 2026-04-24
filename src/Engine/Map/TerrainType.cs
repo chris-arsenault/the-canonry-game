@@ -6,12 +6,12 @@ namespace Engine.Map;
 /// </summary>
 public enum TerrainType
 {
-    Plains,
-    Mountain,
-    Forest,
-    Desert,
-    Water,
-    Coastal,
-    Swamp,
+    Wastes,
+    Crags,
     Tundra,
+    Ice,
+    HotSprings,
+    Shelf,
+    Reef,
+    Ocean,
 }

@@ -162,14 +162,14 @@ public class PressureSystemTests
     public void MilitaryTension_HigherWith2Nations()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(DefaultPressures.MilitaryTension());
+        system.RegisterDefinition(TestDefaultPressures.MilitaryTension());
 
         var scopeId = new EntityId(100);
 
         // Context with 2 nations
         var graph = new WorldGraph();
-        var n1 = graph.CreateEntity(EntityKind.Faction, "generic", "N1", "c", 0);
-        var n2 = graph.CreateEntity(EntityKind.Faction, "generic", "N2", "c", 0);
+        var n1 = graph.CreateEntity(TestKinds.Faction, "generic", "N1", "c", 0);
+        var n2 = graph.CreateEntity(TestKinds.Faction, "generic", "N2", "c", 0);
 
         var context = new StubPressureContext(graph, [n1.Id, n2.Id]);
         system.Compute(new Dictionary<EntityId, IPressureContext> { [scopeId] = context });
@@ -181,7 +181,7 @@ public class PressureSystemTests
     public void MilitaryTension_ZeroWithNoNations()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(DefaultPressures.MilitaryTension());
+        system.RegisterDefinition(TestDefaultPressures.MilitaryTension());
 
         var scopeId = new EntityId(100);
         var graph = new WorldGraph();
@@ -197,11 +197,11 @@ public class PressureSystemTests
     public void CulturalFriction_HigherWithMultipleCultures()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(DefaultPressures.CulturalFriction());
+        system.RegisterDefinition(TestDefaultPressures.CulturalFriction());
 
         var graph = new WorldGraph();
-        var e1 = graph.CreateEntity(EntityKind.Settlement, "village", "S1", "culture_a", 0);
-        var e2 = graph.CreateEntity(EntityKind.Settlement, "village", "S2", "culture_b", 0);
+        var e1 = graph.CreateEntity(TestKinds.Settlement, "village", "S1", "culture_a", 0);
+        var e2 = graph.CreateEntity(TestKinds.Settlement, "village", "S2", "culture_b", 0);
 
         var scopeId = new EntityId(100);
         var context = new StubPressureContext(graph, [e1.Id, e2.Id]);
@@ -214,11 +214,11 @@ public class PressureSystemTests
     public void CulturalFriction_ZeroWithSingleCulture()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(DefaultPressures.CulturalFriction());
+        system.RegisterDefinition(TestDefaultPressures.CulturalFriction());
 
         var graph = new WorldGraph();
-        var e1 = graph.CreateEntity(EntityKind.Settlement, "village", "S1", "same_culture", 0);
-        var e2 = graph.CreateEntity(EntityKind.Settlement, "village", "S2", "same_culture", 0);
+        var e1 = graph.CreateEntity(TestKinds.Settlement, "village", "S1", "same_culture", 0);
+        var e2 = graph.CreateEntity(TestKinds.Settlement, "village", "S2", "same_culture", 0);
 
         var scopeId = new EntityId(100);
         var context = new StubPressureContext(graph, [e1.Id, e2.Id]);
@@ -234,7 +234,7 @@ public class PressureSystemTests
     public void DefinitionNames_ListsAll()
     {
         var system = new PressureSystem();
-        foreach (var def in DefaultPressures.All())
+        foreach (var def in TestDefaultPressures.All())
         {
             system.RegisterDefinition(def);
         }

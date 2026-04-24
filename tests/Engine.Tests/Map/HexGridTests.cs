@@ -37,21 +37,21 @@ public class HexGridTests
     }
 
     [Fact]
-    public void AllCells_DefaultToPlains()
+    public void AllCells_DefaultToWastes()
     {
         var grid = new HexGrid(2);
-        Assert.All(grid.AllCells, c => Assert.Equal(TerrainType.Plains, c.Terrain));
+        Assert.All(grid.AllCells, c => Assert.Equal(TerrainType.Wastes, c.Terrain));
     }
 
     [Fact]
     public void SetCell_ChangesTerrainAndAttributes()
     {
         var grid = new HexGrid(3);
-        grid.SetCell(new HexCoord(1, 0), TerrainType.Mountain, elevation: 500f, fertility: 0.1f);
+        grid.SetCell(new HexCoord(1, 0), TerrainType.Crags, elevation: 500f, fertility: 0.1f);
 
         var cell = grid.GetCell(new HexCoord(1, 0));
         Assert.NotNull(cell);
-        Assert.Equal(TerrainType.Mountain, cell.Terrain);
+        Assert.Equal(TerrainType.Crags, cell.Terrain);
         Assert.Equal(500f, cell.Elevation);
         Assert.Equal(0.1f, cell.Fertility);
     }
@@ -96,9 +96,9 @@ public class HexGridTests
 public class HexCellTests
 {
     [Theory]
-    [InlineData(TerrainType.Plains, 1f)]
-    [InlineData(TerrainType.Mountain, 4f)]
-    [InlineData(TerrainType.Forest, 2f)]
+    [InlineData(TerrainType.Tundra, 1.1f)]
+    [InlineData(TerrainType.Crags, 4f)]
+    [InlineData(TerrainType.Shelf, 1.8f)]
     public void MovementCost_VariesByTerrain(TerrainType terrain, float expected)
     {
         var cell = new HexCell(new HexCoord(0, 0), terrain);
@@ -106,44 +106,44 @@ public class HexCellTests
     }
 
     [Fact]
-    public void MovementCost_WaterIsInfinity()
+    public void MovementCost_OceanIsInfinity()
     {
-        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Water);
+        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Ocean);
         Assert.Equal(float.PositiveInfinity, cell.MovementCost);
     }
 
     [Fact]
-    public void Habitability_WaterIsZero()
+    public void Habitability_OceanIsZero()
     {
-        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Water, fertility: 1f);
+        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Ocean, fertility: 1f);
         Assert.Equal(0f, cell.Habitability);
     }
 
     [Fact]
-    public void Habitability_PlainsWithHighFertilityIsHigh()
+    public void Habitability_HotSpringsWithHighFertilityIsHigh()
     {
-        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 1f);
+        var cell = new HexCell(new HexCoord(0, 0), TerrainType.HotSprings, fertility: 1f);
         Assert.True(cell.Habitability > 0.8f);
     }
 
     [Fact]
-    public void Habitability_MountainWithLowFertilityIsLow()
+    public void Habitability_CragsWithLowFertilityIsLow()
     {
-        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Mountain, fertility: 0.2f);
+        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Crags, fertility: 0.2f);
         Assert.True(cell.Habitability < 0.1f);
     }
 
     [Fact]
     public void Fertility_ClampedToRange()
     {
-        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Plains, fertility: 2f);
+        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Tundra, fertility: 2f);
         Assert.Equal(1f, cell.Fertility);
     }
 
     [Fact]
     public void Resources_CanBeAdded()
     {
-        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Mountain);
+        var cell = new HexCell(new HexCoord(0, 0), TerrainType.Crags);
         cell.Resources.Add("iron");
         cell.Resources.Add("gold_ore");
 

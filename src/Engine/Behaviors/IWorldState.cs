@@ -12,7 +12,7 @@ public interface IWorldState
     Engine.Attributes.EffectSystem Effects { get; }
     Engine.Pressure.PressureSystem? Pressure { get; }
     Engine.Map.HexGrid Grid { get; }
-    Engine.Map.RegionMap RegionMap { get; }
+    Engine.Map.MapCoverageMap CoverageMap { get; }
     Engine.Map.SpatialIndex SpatialIndex { get; }
     Engine.Resources.ResourceSystem? Resources { get; }
     int CurrentTick { get; }

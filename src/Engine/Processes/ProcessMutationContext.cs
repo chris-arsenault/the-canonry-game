@@ -51,7 +51,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         return entity?.Attributes.GetValue(attributeName) ?? 0f;
     }
 
-    public int CountEntitiesByKind(Kinds.EntityKind kind) =>
+    public int CountEntitiesByKind(EntityKind kind) =>
         _worldState.Graph.GetEntitiesByKind(kind).Count;
 
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
@@ -71,7 +71,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         return rel?.TargetId;
     }
 
-    public IReadOnlyCollection<EntityId> GetEntitiesByKind(Kinds.EntityKind kind) =>
+    public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) =>
         _worldState.Graph.GetEntitiesByKind(kind);
 
     public float GetResource((int Q, int R) coordinates, Resources.ResourceType resourceType)
@@ -87,7 +87,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         };
     }
 
-    public Entity CreateEntity(Kinds.EntityKind kind, string subtype, string name, string culture,
+    public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture,
         (int Q, int R)? coordinates)
     {
         var entity = _worldState.Graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);

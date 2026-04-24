@@ -40,7 +40,7 @@ regional ambient food/population/safety
   -> NPCs circulate through those settlements to Eat and Create Works
   -> NPC works increase settlement prestige and loyal faction support
   -> factions spend support to Patrol their settlements
-  -> patrol raises settlement security and regional safety
+  -> patrol raises settlement security and holding
   -> better safety improves the same places as future anchors
 ```
 
@@ -59,11 +59,11 @@ Patrol consumes faction support
 
 Additional bounds:
 
-- `regional_safety` and `security` are capped bounded attributes
-- `Create Works` requires high `satiety`
+- `holding` and `security` are capped bounded attributes
+- `Create Works` requires high `warmth`
 - `Create Works` only fires in safe enough named places
 - `Patrol` only fires on controlled settlements and stops mattering once security is already high
-- `Form Militia` only matters when regional safety is meaningfully below its upper band
+- `Form Militia` only matters when holding is meaningfully below its upper band
 
 The loop should stabilize through support expenditure and bounded values, not through
 ambient-resource exhaustion.
@@ -90,7 +90,7 @@ ambient-resource exhaustion.
   - only fires when already at a settlement
   - increases settlement prestige
   - increases the loyal faction's support
-  - costs some satiety, so contribution is not free
+  - costs some warmth, so contribution is not free
 
 - `Patrol` (`Faction -> Settlement -> Region`)
   - targets a controlled settlement
@@ -100,7 +100,7 @@ ambient-resource exhaustion.
 
 - `Form Militia` (`Region -> Settlement`)
   - region-side safety response
-  - raises regional safety
+  - raises holding
   - raises security on contained settlements
 
 ## Interface Map
@@ -119,7 +119,7 @@ Faction <-> Settlement
   Patrol protects controlled settlements
 
 Faction <-> Region
-  Patrol improves regional safety through the protected settlement
+  Patrol improves holding through the protected settlement
 ```
 
 ## Why This Loop Exists

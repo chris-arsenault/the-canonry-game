@@ -135,7 +135,7 @@ public class ExpressionTests
         float fame,
         (float X, float Y) ideology)
     {
-        var entity = world.Graph.CreateEntity(EntityKind.Settlement, "village", name, "c", 0, coordinates);
+        var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
         entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, ideology.X, ideology.Y));
         return entity;

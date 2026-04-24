@@ -9,7 +9,7 @@ A generator isn't just "spawn an NPC" — it spawns **a bundle** (entities + rel
 Each generator names:
 
 - **A target kind** — what kind of existing entity it looks at to decide "am I applicable here right now?" (e.g. Region, Settlement, Faction)
-- **One or more triggers** — attribute thresholds on the target that gate applicability (Low / High / Critical / Any), e.g. *"Pristineness is High"*
+- **One or more triggers** — attribute thresholds on the target that gate applicability (Low / High / Critical / Any), e.g. *"Pristiness is High"*
 - **A produce list** — the entities that get spawned, each with a role and optional create-chance
 - **A relationship list** — how the produced entities wire to each other and to the trigger target
 - **A pulse weight** — relative likelihood this generator wins the pulse lottery
@@ -45,19 +45,19 @@ These fail the build if violated — they're not runtime checks, they're schema 
 
 | Id | Target | Trigger | Produces | Weight |
 |---|---|---|---|---|
-| `colony_founding` | Region (wilderness) | Pristineness High | village + warrior-leader + founding faction, plus `contains`/`located_at`/`controlled_by`/`loyal_to` wiring | 2 |
-| `hero_emergence` | Settlement | Sanitation Low | hero NPC, optionally (25%) a weapon artifact `stored_at` the hero | 3 |
+| `colony_founding` | Region (wilderness) | Pristiness High | settlement + leader + founding faction, plus `contains`/`located_at`/`controlled_by`/`loyal_to` wiring | 2 |
+| `hero_emergence` | Settlement | Shelter Low | hero NPC, optionally (25%) a weapon artifact `stored_at` the hero | 3 |
 | `faction_splinter` | Faction | Cohesion High | new faction + warrior leader, both `rival_of` the parent | 1 |
-| `artifact_discovery` | Region (wilderness) | Pristineness High | instrument artifact (no wiring) | 1 |
+| `artifact_discovery` | Region (wilderness) | Pristiness High | instrument artifact (no wiring) | 1 |
 
-Read in aggregate: **wilderness with high pristineness attracts colonies and artifacts; strained settlements produce heroes; overly cohesive factions tear themselves apart.** That's the authored worldview right now.
+Read in aggregate: **wilderness with high pristiness attracts colonies and artifacts; strained settlements produce heroes; overly cohesive factions tear themselves apart.** That's the authored worldview right now.
 
 ## Recommendations (for when you do the real design pass)
 
 **Gameplay-shaped:**
 
 1. **The current set is scaffolding, not a designed world.** Four generators is too few to feel like a living world over a 4-hour session. Expect to author 15–30 before it breathes. The bones are fine; the content isn't.
-2. **The triggers are too on-the-nose.** "Sanitation Low → hero appears" is a direct translation of one attribute to one outcome. Interesting generators read sideways: e.g. *"a settlement with high sanitation AND a neighboring rival faction produces a diplomat."* Multi-attribute triggers would give the semantic model more to chew on.
+2. **The triggers are too on-the-nose.** "Shelter Low → hero appears" is a direct translation of one attribute to one outcome. Interesting generators read sideways: e.g. *"a settlement with high shelter AND a neighboring rival faction produces a diplomat."* Multi-attribute triggers would give the semantic model more to chew on.
 3. **Every current generator is additive.** None remove or transform entities. A healthy catalog has generators that *collapse* state — famine, exile, dissolution of factions into NPCs. Spawn-only generators tend toward demographic explosion and are the main reason sims get boring after hour 2.
 4. **`hero_emergence` with CreateChance=0.25 on weapon is fine, but the weapon is orphaned culturally** — it inherits from `$hero`, who inherits from `$target` (the settlement). When the hero isn't created (well, in this case hero is always created, but in other future generators)... watch for this. Consider whether optional produces should inherit from `$target` directly to survive anchor loss.
 5. **No generator has relationships pointing back to the world that *mutate* existing entities.** Every relationship is new-entity-to-new-entity or new-entity-to-target. That means generators feel like "stuff gets added" rather than "the world reacts." Consider authoring generators that grant a new buff/effect to the target (e.g. a heroic emergence bumps the settlement's morale for N ticks).

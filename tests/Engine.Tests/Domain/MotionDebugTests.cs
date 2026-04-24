@@ -22,7 +22,11 @@ public class MotionDebugTests
         var sim = SimulationRunner.CreateFromTestMap();
         var entities = sim.Graph.AllEntities
             .Select(kv => kv.Value)
-            .Where(entity => entity.Kind is EntityKind.Npc or EntityKind.Settlement or EntityKind.Faction or EntityKind.Artifact)
+            .Where(entity =>
+                entity.Kind == TestKinds.Penguin ||
+                entity.Kind == TestKinds.Settlement ||
+                entity.Kind == TestKinds.Faction ||
+                entity.Kind == TestKinds.Artifact)
             .ToList();
 
         var physical = entities.Select(e => e.Coordinates).ToList();
@@ -62,7 +66,7 @@ public class MotionDebugTests
             sim.Tick();
         }
 
-        foreach (var kind in new[] { EntityKind.Npc, EntityKind.Faction, EntityKind.Settlement, EntityKind.Artifact })
+        foreach (var kind in new[] { TestKinds.Penguin, TestKinds.Faction, TestKinds.Settlement, TestKinds.Artifact })
         {
             Assert.True(
                 actionsByKind.TryGetValue(kind, out var acted) && acted > 0,
@@ -70,12 +74,12 @@ public class MotionDebugTests
         }
 
         var factionMovedSemantically = sim.Graph
-            .GetEntitiesByKind(EntityKind.Faction)
+            .GetEntitiesByKind(TestKinds.Faction)
             .Any(id =>
             {
                 var entity = sim.Graph.GetEntity(id);
                 if (entity is null) return false;
-                var start = startSemanticByKind[EntityKind.Faction][id];
+                var start = startSemanticByKind[TestKinds.Faction][id];
                 return entity.SemanticPosition != start;
             });
         Assert.True(factionMovedSemantically,

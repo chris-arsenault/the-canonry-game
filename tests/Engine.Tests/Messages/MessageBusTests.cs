@@ -14,7 +14,7 @@ public class MessageBusTests
         SimulationMessage? received = null;
         _bus.Subscribe(m => received = m);
 
-        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "NPC ate"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), TestKinds.Penguin, "eat", "NPC ate"));
 
         Assert.NotNull(received);
         Assert.IsType<ProcessExecutedMessage>(received);
@@ -26,9 +26,9 @@ public class MessageBusTests
         var messages = new List<SimulationMessage>();
         _bus.Subscribe(m => messages.Add(m));
 
-        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
-        _bus.Publish(new DecisionExecutedMessage(2, new EntityId(2), EntityKind.Faction, "expand", "expanded"));
-        _bus.Publish(new EntityDiedMessage(3, new EntityId(3), EntityKind.Npc, "Hero"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), TestKinds.Penguin, "eat", "ate"));
+        _bus.Publish(new DecisionExecutedMessage(2, new EntityId(2), TestKinds.Faction, "expand", "expanded"));
+        _bus.Publish(new EntityDiedMessage(3, new EntityId(3), TestKinds.Penguin, "Hero"));
 
         Assert.Equal(3, messages.Count);
     }
@@ -45,9 +45,9 @@ public class MessageBusTests
             }
         });
 
-        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
-        _bus.Publish(new EntityDiedMessage(2, new EntityId(2), EntityKind.Npc, "Hero"));
-        _bus.Publish(new ProcessExecutedMessage(3, new EntityId(3), EntityKind.Settlement, "harvest", "harvested"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), TestKinds.Penguin, "eat", "ate"));
+        _bus.Publish(new EntityDiedMessage(2, new EntityId(2), TestKinds.Penguin, "Hero"));
+        _bus.Publish(new ProcessExecutedMessage(3, new EntityId(3), TestKinds.Settlement, "harvest", "harvested"));
 
         Assert.Single(deaths);
         Assert.Equal("Hero", deaths[0].Name);
@@ -60,7 +60,7 @@ public class MessageBusTests
         _bus.Subscribe(_ => count++);
         _bus.Subscribe(_ => count++);
 
-        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), TestKinds.Penguin, "eat", "ate"));
 
         Assert.Equal(2, count);
     }
@@ -73,7 +73,7 @@ public class MessageBusTests
 
         _bus.Clear();
 
-        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), TestKinds.Penguin, "eat", "ate"));
 
         Assert.False(received);
     }
@@ -84,12 +84,12 @@ public class MessageBusTests
     public void ProcessExecutedMessage_CarriesAllData()
     {
         var affected = new List<EntityId> { new(10), new(20) };
-        var msg = new ProcessExecutedMessage(42, new EntityId(1), EntityKind.Settlement,
+        var msg = new ProcessExecutedMessage(42, new EntityId(1), TestKinds.Settlement,
             "harvest", "Settlement harvested crops", affected);
 
         Assert.Equal(42, msg.Tick);
         Assert.Equal(new EntityId(1), msg.ActorId);
-        Assert.Equal(EntityKind.Settlement, msg.ActorKind);
+        Assert.Equal(TestKinds.Settlement, msg.ActorKind);
         Assert.Equal("harvest", msg.ProcessName);
         Assert.Equal(2, msg.AffectedEntities.Count);
     }
@@ -97,7 +97,7 @@ public class MessageBusTests
     [Fact]
     public void DecisionExecutedMessage_CarriesCardInfo()
     {
-        var msg = new DecisionExecutedMessage(10, new EntityId(5), EntityKind.Faction,
+        var msg = new DecisionExecutedMessage(10, new EntityId(5), TestKinds.Faction,
             "expand_borders", "Northern Compact expanded east",
             cardId: "card_expand", succeeded: true);
 
@@ -108,9 +108,9 @@ public class MessageBusTests
     [Fact]
     public void EntityDiedMessage_CarriesIdentity()
     {
-        var msg = new EntityDiedMessage(500, new EntityId(7), EntityKind.Npc, "Captain Greyfeather");
+        var msg = new EntityDiedMessage(500, new EntityId(7), TestKinds.Penguin, "Captain Greyfeather");
 
-        Assert.Equal(EntityKind.Npc, msg.Kind);
+        Assert.Equal(TestKinds.Penguin, msg.Kind);
         Assert.Equal("Captain Greyfeather", msg.Name);
     }
 
@@ -130,8 +130,8 @@ public class MessageBusTests
             }
         });
 
-        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), EntityKind.Npc, "eat", "ate"));
-        _bus.Publish(new EntityDiedMessage(42, new EntityId(5), EntityKind.Npc, "Hero"));
+        _bus.Publish(new ProcessExecutedMessage(1, new EntityId(1), TestKinds.Penguin, "eat", "ate"));
+        _bus.Publish(new EntityDiedMessage(42, new EntityId(5), TestKinds.Penguin, "Hero"));
 
         var events = eventLog.ByType(Engine.Events.EventType.Lifecycle).ToList();
         Assert.Single(events);

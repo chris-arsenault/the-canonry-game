@@ -34,6 +34,7 @@ public static class DomainLoader
 
             registry.RegisterKind(new KindDefinition(
                 kind,
+                kindConfig.Category,
                 new HashSet<string>(kindConfig.Subtypes),
                 attributes,
                 kindConfig.HealthAttribute));

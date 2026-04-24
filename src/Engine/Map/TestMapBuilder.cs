@@ -1,7 +1,9 @@
 namespace Engine.Map;
 
+using Engine.Domain.IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
+using K = Engine.Domain.IceRemembers.IceRemembersKinds;
 
 /// <summary>
 /// Builds a fixed test map with varied terrain, regions, and starting entities.
@@ -10,8 +12,10 @@ using Engine.Kinds;
 /// </summary>
 public sealed class TestMapBuilder
 {
+    private static string C(IceRemembersCulture culture) => culture.ToDomainName();
+
     /// <summary>
-    /// Build the default test world: a radius-5 hex grid with 3 regions,
+    /// Build the default test world: a radius-20 hex grid with 3 regions,
     /// 2 factions, 5 settlements, 3 NPCs, 1 artifact, and relationships.
     /// NPCs spawn at random walkable hex locations.
     /// </summary>
@@ -31,11 +35,11 @@ public sealed class TestMapBuilder
     public static TestWorld BuildEmpty(Random random)
     {
         ArgumentNullException.ThrowIfNull(random);
-        var grid = new HexGrid(5);
-        var regionMap = new RegionMap();
+        var grid = new HexGrid(20);
+        var coverageMap = new MapCoverageMap();
         var graph = new WorldGraph();
         PaintTerrain(grid, random);
-        return new TestWorld(grid, regionMap, graph);
+        return new TestWorld(grid, coverageMap, graph);
     }
 
     /// <summary>
@@ -48,8 +52,8 @@ public sealed class TestMapBuilder
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(random);
-        var regions = CreateRegions(world.Grid, world.RegionMap, world.Graph);
-        CreateEntities(world.Graph, world.Grid, regions, random);
+        var regions = CreateRegionEntities(world.Graph);
+        CreateEntities(world.Graph, world.Grid, world.CoverageMap, regions, random);
     }
 
     private static void PaintTerrain(HexGrid grid, Random random)
@@ -58,48 +62,64 @@ public sealed class TestMapBuilder
         {
             var (q, r) = (cell.Coord.Q, cell.Coord.R);
 
-            // Mountains along the diagonal (natural region boundary)
-            if (q + r is >= 2 and <= 3 && q >= 0)
+            // Crags along the diagonal (natural region boundary)
+            if (q + r is >= 8 and <= 12 && q >= 0)
             {
-                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Mountain,
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Crags,
                     elevation: 300f, fertility: 0.1f, random);
                 continue;
             }
 
-            // Water in the far south
-            if (r >= 4)
+            // Deep ocean in the far south
+            if (r >= 17)
             {
-                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Water,
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Ocean,
                     elevation: 0f, fertility: 0f, random);
                 continue;
             }
 
-            // Coastal near the water
-            if (r == 3 && q <= 0)
+            // Reef belt where the sea starts to break up.
+            if (r >= 13 && q <= 2)
             {
-                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Coastal,
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Reef,
                     elevation: 5f, fertility: 0.6f, random);
                 continue;
             }
 
-            // Forest in the northwest
-            if (q <= -2 && r <= 0)
+            // Shelves where coast and ice grind together.
+            if (r >= 10 && q <= -4)
             {
-                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Forest,
-                    elevation: 50f, fertility: 0.4f, random);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Shelf,
+                    elevation: 10f, fertility: 0.35f, random);
                 continue;
             }
 
-            // Tundra in the far north
-            if (r <= -3)
+            // Ancient ice in the far north.
+            if (r <= -12)
             {
-                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Tundra,
-                    elevation: 100f, fertility: 0.2f, random);
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Ice,
+                    elevation: 100f, fertility: 0.15f, random);
                 continue;
             }
 
-            // Everything else is plains with good fertility
-            SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Plains,
+            // Wastes in the northwest interior.
+            if (q <= -8 && r <= 2)
+            {
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Wastes,
+                    elevation: 30f, fertility: 0.25f, random);
+                continue;
+            }
+
+            // Small warm pockets where habitation can really gather.
+            if (q is >= -2 and <= 2 && r is >= 4 and <= 8)
+            {
+                SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.HotSprings,
+                    elevation: 15f, fertility: 0.9f, random);
+                continue;
+            }
+
+            // Everything else is workable tundra.
+            SetTerrainAndAmbientResources(grid, cell.Coord, TerrainType.Tundra,
                 elevation: 20f, fertility: 0.7f, random);
         }
     }
@@ -117,45 +137,16 @@ public sealed class TestMapBuilder
         TerrainAmbientResources.Seed(cell, random);
     }
 
-    private static Dictionary<string, Region> CreateRegions(
-        HexGrid grid, RegionMap regionMap, WorldGraph graph)
+    private static Dictionary<string, MapCoverage> CreateRegionEntities(WorldGraph graph)
     {
-        var northlands = new Region("Northlands",
-            graph.CreateEntity(EntityKind.Region, "generic_region", "Northlands", "none", tick: 0).Id);
-        var heartlands = new Region("Heartlands",
-            graph.CreateEntity(EntityKind.Region, "generic_region", "Heartlands", "none", tick: 0).Id);
-        var coastlands = new Region("Coastlands",
-            graph.CreateEntity(EntityKind.Region, "generic_region", "Coastlands", "none", tick: 0).Id);
+        var northlands = new MapCoverage("Northlands",
+            graph.CreateEntity(K.Region, "generic_region", "Northlands", "none", tick: 0).Id);
+        var heartlands = new MapCoverage("Heartlands",
+            graph.CreateEntity(K.Region, "generic_region", "Heartlands", "none", tick: 0).Id);
+        var coastlands = new MapCoverage("Coastlands",
+            graph.CreateEntity(K.Region, "generic_region", "Coastlands", "none", tick: 0).Id);
 
-        regionMap.RegisterRegion(northlands);
-        regionMap.RegisterRegion(heartlands);
-        regionMap.RegisterRegion(coastlands);
-
-        foreach (var cell in grid.AllCells)
-        {
-            var (q, r) = (cell.Coord.Q, cell.Coord.R);
-
-            if (r <= -1)
-            {
-                regionMap.AssignCell(cell.Coord, northlands);
-            }
-            else if (r >= 3 || (q <= -2 && r >= 1))
-            {
-                regionMap.AssignCell(cell.Coord, coastlands);
-            }
-            else
-            {
-                regionMap.AssignCell(cell.Coord, heartlands);
-            }
-        }
-
-        // Create borders relationships between adjacent regions
-        foreach (var (a, b) in regionMap.ComputeAdjacency())
-        {
-            graph.CreateRelationship("borders", RelationshipPolarity.Neutral, a, b, 1f, tick: 0);
-        }
-
-        return new Dictionary<string, Region>
+        return new Dictionary<string, MapCoverage>
         {
             ["northlands"] = northlands,
             ["heartlands"] = heartlands,
@@ -163,8 +154,8 @@ public sealed class TestMapBuilder
         };
     }
 
-    private static void CreateEntities(WorldGraph graph, HexGrid grid,
-        Dictionary<string, Region> regions, Random random)
+    private static void CreateEntities(WorldGraph graph, HexGrid grid, MapCoverageMap coverageMap,
+        Dictionary<string, MapCoverage> regions, Random random)
     {
         // Every entity gets a distinct starting position on BOTH the physical hex
         // grid and the semantic (autonomy/resonance/tradition) plane. No two
@@ -174,69 +165,82 @@ public sealed class TestMapBuilder
 
         // --- Factions ---
         var factionA = graph.CreateEntity(
-            EntityKind.Faction, "generic_faction", "Northern Compact", "culture_a", tick: 0);
+            K.Faction, "compact", "Northern Compact", C(IceRemembersCulture.AuroraStack), tick: 0);
         var factionB = graph.CreateEntity(
-            EntityKind.Faction, "generic_faction", "Southern League", "culture_b", tick: 0);
+            K.Faction, "order", "Southern Order", C(IceRemembersCulture.Nightshelf), tick: 0);
 
-        SetPhysical(factionA, new HexCoord(-2, -2), takenPhysical);
-        SetPhysical(factionB, new HexCoord(3, 1), takenPhysical);
+        SetPhysical(factionA, new HexCoord(-8, -8), takenPhysical);
+        SetPhysical(factionB, new HexCoord(12, 4), takenPhysical);
         // Opposite corners of the semantic plane so mobility verbs visibly chase
         // across autonomy × resonance × tradition space.
-        SetSemantic(factionA, new SemanticHexCoord(-3, 3), takenSemantic);
-        SetSemantic(factionB, new SemanticHexCoord(3, -3), takenSemantic);
+        SetSemantic(factionA, new SemanticHexCoord(-12, 12), takenSemantic);
+        SetSemantic(factionB, new SemanticHexCoord(12, -12), takenSemantic);
 
         // --- Settlements (fixed physical positions — they define the geography) ---
         var s1 = graph.CreateEntity(
-            EntityKind.Settlement, "village", "Frosthaven", "culture_a", tick: 0,
-            coordinates: (0, -2));
+            K.Settlement, "rookery", "Frosthaven", C(IceRemembersCulture.AuroraStack), tick: 0,
+            coordinates: (0, -8));
         var s2 = graph.CreateEntity(
-            EntityKind.Settlement, "town", "Ironhold", "culture_a", tick: 0,
-            coordinates: (-1, 0));
+            K.Settlement, "colony", "Ironhold", C(IceRemembersCulture.AuroraStack), tick: 0,
+            coordinates: (-4, 0));
         var s3 = graph.CreateEntity(
-            EntityKind.Settlement, "village", "Driftwatch", "culture_b", tick: 0,
-            coordinates: (1, 1));
+            K.Settlement, "harbor", "Driftwatch", C(IceRemembersCulture.Nightshelf), tick: 0,
+            coordinates: (4, 4));
         var s4 = graph.CreateEntity(
-            EntityKind.Settlement, "village", "Wavecrest", "culture_b", tick: 0,
-            coordinates: (-2, 2));
+            K.Settlement, "reefhold", "Wavecrest", C(IceRemembersCulture.Nightshelf), tick: 0,
+            coordinates: (-8, 8));
         var s5 = graph.CreateEntity(
-            EntityKind.Settlement, "town", "Midpoint", "culture_a", tick: 0,
+            K.Settlement, "colony", "Midpoint", C(IceRemembersCulture.AuroraStack), tick: 0,
             coordinates: (0, 0));
 
         // Settlement physical coords are implicit from the coordinates above; record
         // them as taken so later entities don't collide.
-        takenPhysical.Add(new HexCoord(0, -2));
-        takenPhysical.Add(new HexCoord(-1, 0));
-        takenPhysical.Add(new HexCoord(1, 1));
-        takenPhysical.Add(new HexCoord(-2, 2));
+        takenPhysical.Add(new HexCoord(0, -8));
+        takenPhysical.Add(new HexCoord(-4, 0));
+        takenPhysical.Add(new HexCoord(4, 4));
+        takenPhysical.Add(new HexCoord(-8, 8));
         takenPhysical.Add(new HexCoord(0, 0));
 
         // Distinct semantic anchors per settlement so all five don't cluster at
         // origin on the semantic plane. Chosen for flavor: Midpoint at the
         // neutral center, Frosthaven on the tradition axis, etc.
         SetSemantic(s5, new SemanticHexCoord(0, 0), takenSemantic);
-        SetSemantic(s1, new SemanticHexCoord(0, -2), takenSemantic);
-        SetSemantic(s2, new SemanticHexCoord(-2, 0), takenSemantic);
-        SetSemantic(s3, new SemanticHexCoord(1, -2), takenSemantic);
-        SetSemantic(s4, new SemanticHexCoord(-2, 1), takenSemantic);
+        SetSemantic(s1, new SemanticHexCoord(0, -8), takenSemantic);
+        SetSemantic(s2, new SemanticHexCoord(-8, 0), takenSemantic);
+        SetSemantic(s3, new SemanticHexCoord(4, -8), takenSemantic);
+        SetSemantic(s4, new SemanticHexCoord(-8, 4), takenSemantic);
 
-        // --- Regions: give each a representative physical hex (central-ish cell of
-        //     its region) and a semantic anchor. Region.Coordinates defaults to
-        //     (0,0) which collides with other entities; set distinct positions. ---
-        SetPhysical(graph.GetEntity(regions["northlands"].EntityId)!, new HexCoord(0, -4), takenPhysical);
-        SetPhysical(graph.GetEntity(regions["heartlands"].EntityId)!, new HexCoord(2, -1), takenPhysical);
-        SetPhysical(graph.GetEntity(regions["coastlands"].EntityId)!, new HexCoord(-3, 4), takenPhysical);
-        SetSemantic(graph.GetEntity(regions["northlands"].EntityId)!, new SemanticHexCoord(1, 1), takenSemantic);
-        SetSemantic(graph.GetEntity(regions["heartlands"].EntityId)!, new SemanticHexCoord(-1, 2), takenSemantic);
-        SetSemantic(graph.GetEntity(regions["coastlands"].EntityId)!, new SemanticHexCoord(2, 2), takenSemantic);
+        // --- Region seeds: sparse named coverage, not full-map ownership. The
+        //     region entity position is the seed/anchor for terrain-aware coverage
+        //     growth, and the same coverage system is used later by generators. ---
+        SetPhysical(graph.GetEntity(regions["northlands"].OwnerEntityId)!, new HexCoord(0, -10), takenPhysical);
+        SetPhysical(graph.GetEntity(regions["heartlands"].OwnerEntityId)!, new HexCoord(0, 2), takenPhysical);
+        SetPhysical(graph.GetEntity(regions["coastlands"].OwnerEntityId)!, new HexCoord(-4, 12), takenPhysical);
+        SetSemantic(graph.GetEntity(regions["northlands"].OwnerEntityId)!, new SemanticHexCoord(4, 4), takenSemantic);
+        SetSemantic(graph.GetEntity(regions["heartlands"].OwnerEntityId)!, new SemanticHexCoord(-4, 8), takenSemantic);
+        SetSemantic(graph.GetEntity(regions["coastlands"].OwnerEntityId)!, new SemanticHexCoord(8, 8), takenSemantic);
+
+        CreateSeedCoverage(grid, coverageMap, graph, regions["northlands"], new HexCoord(0, -10),
+            desiredCellCount: 96, minimumCellCount: 72, preferredTerrains: new HashSet<TerrainType> { TerrainType.Ice, TerrainType.Tundra });
+        CreateSeedCoverage(grid, coverageMap, graph, regions["heartlands"], new HexCoord(0, 2),
+            desiredCellCount: 144, minimumCellCount: 110, preferredTerrains: new HashSet<TerrainType> { TerrainType.Tundra, TerrainType.HotSprings });
+        CreateSeedCoverage(grid, coverageMap, graph, regions["coastlands"], new HexCoord(-4, 12),
+            desiredCellCount: 88, minimumCellCount: 64, preferredTerrains: new HashSet<TerrainType> { TerrainType.Shelf, TerrainType.Reef, TerrainType.Ocean });
 
         // Build settlement coordinate lookup for NPC located_at checks
         var settlementsByCoord = new Dictionary<HexCoord, EntityId>
         {
-            [new HexCoord(0, -2)] = s1.Id,
-            [new HexCoord(-1, 0)] = s2.Id,
-            [new HexCoord(1, 1)] = s3.Id,
-            [new HexCoord(-2, 2)] = s4.Id,
+            [new HexCoord(0, -8)] = s1.Id,
+            [new HexCoord(-4, 0)] = s2.Id,
+            [new HexCoord(4, 4)] = s3.Id,
+            [new HexCoord(-8, 8)] = s4.Id,
             [new HexCoord(0, 0)] = s5.Id,
+        };
+        var npcHostSettlements = new[]
+        {
+            s1,
+            s3,
+            s5,
         };
 
         // Faction A controls northern settlements
@@ -248,24 +252,12 @@ public sealed class TestMapBuilder
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s3.Id, factionB.Id, 1f, 0);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s4.Id, factionB.Id, 1f, 0);
 
-        // Settlement -> Region (contains)
-        graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
-            regions["northlands"].EntityId, s1.Id, 1f, 0);
-        graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
-            regions["heartlands"].EntityId, s2.Id, 1f, 0);
-        graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
-            regions["heartlands"].EntityId, s3.Id, 1f, 0);
-        graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
-            regions["coastlands"].EntityId, s4.Id, 1f, 0);
-        graph.CreateRelationship("contains", RelationshipPolarity.Neutral,
-            regions["heartlands"].EntityId, s5.Id, 1f, 0);
-
         // --- NPCs (random walkable hex, excluding already-taken positions) ---
         var npcDefs = new (string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)[]
         {
-            ("warrior", "Captain Greyfeather", "culture_a", factionA.Id, 0.9f),
-            ("merchant", "Trader Shellback", "culture_b", factionB.Id, 0.7f),
-            ("scholar", "Elder Deepcurrent", "culture_a", factionA.Id, 0.8f),
+            ("warden", "Captain Greyfeather", C(IceRemembersCulture.AuroraStack), factionA.Id, 0.9f),
+            ("broker", "Trader Shellback", C(IceRemembersCulture.Nightshelf), factionB.Id, 0.7f),
+            ("witness", "Elder Deepcurrent", C(IceRemembersCulture.AuroraStack), factionA.Id, 0.8f),
         };
 
         // NPCs get distinct semantic positions so factions have to pick among
@@ -273,31 +265,49 @@ public sealed class TestMapBuilder
         // semantically (their primary plane is physical), so these anchors stay put.
         var npcSemanticSeeds = new[]
         {
-            new SemanticHexCoord(2, 0),
-            new SemanticHexCoord(0, 2),
-            new SemanticHexCoord(-2, -1),
+            new SemanticHexCoord(8, 0),
+            new SemanticHexCoord(0, 8),
+            new SemanticHexCoord(-8, -4),
         };
 
         var npcIndex = 0;
         foreach (var (subtype, name, culture, factionId, loyalty) in npcDefs)
         {
-            // Pick from walkable hexes minus anything we've already placed, so no two
-            // entities start on the same physical hex.
-            var availableHexes = grid.AllCells
-                .Where(c => !float.IsPositiveInfinity(c.MovementCost))
-                .Select(c => c.Coord)
-                .Where(c => !takenPhysical.Contains(c))
+            // On the expanded map, fully random agency placement collapses the
+            // local process graph: penguins stop interacting with settlements and
+            // factions because they spawn in unrelated wilderness. Seed them in
+            // the orbit of named places so the initial world remains legible and
+            // generator preconditions can actually emerge.
+            var hostSettlement = npcHostSettlements[npcIndex % npcHostSettlements.Length];
+            var hostCoord = new HexCoord(hostSettlement.Coordinates.Q, hostSettlement.Coordinates.R);
+            var nearbyHexes = HexCoord.CoordsInRadius(hostCoord, radius: 2)
+                .Where(coord => grid.ContainsCoord(coord))
+                .Where(coord => HexCoord.Distance(hostCoord, coord) is > 0 and <= 2)
+                .Select(coord => grid.GetCell(coord))
+                .Where(cell => cell is not null && !float.IsPositiveInfinity(cell.MovementCost))
+                .Select(cell => cell!.Coord)
+                .Where(coord => !takenPhysical.Contains(coord))
+                .OrderBy(coord => HexCoord.Distance(hostCoord, coord))
                 .ToList();
+
+            var availableHexes = nearbyHexes.Count > 0
+                ? nearbyHexes
+                : grid.AllCells
+                    .Where(c => !float.IsPositiveInfinity(c.MovementCost))
+                    .Select(c => c.Coord)
+                    .Where(c => !takenPhysical.Contains(c))
+                    .ToList();
             if (availableHexes.Count == 0)
             {
                 throw new InvalidOperationException(
                     "No free walkable hexes remain for NPC placement; grid may be too small or too many fixed entities.");
             }
+
             var hex = availableHexes[random.Next(availableHexes.Count)];
             takenPhysical.Add(hex);
 
             var npc = graph.CreateEntity(
-                EntityKind.Npc, subtype, name, culture, tick: 0,
+                K.Penguin, subtype, name, culture, tick: 0,
                 coordinates: (hex.Q, hex.R));
 
             if (npcIndex < npcSemanticSeeds.Length)
@@ -317,14 +327,14 @@ public sealed class TestMapBuilder
         }
 
         // --- Artifacts ---
-        // Physical hex (1, -3) is adjacent to Frosthaven (0, -2) — close enough for
+        // Physical hex (4, -12) sits in Frosthaven's wider orbit without overlapping
         // the stored_at story to read as "kept in Frosthaven's treasury one hex over"
         // without overlapping another entity.
         var artifact = graph.CreateEntity(
-            EntityKind.Artifact, "weapon", "Stormcleaver", "culture_a", tick: 0,
-            coordinates: (1, -3));
-        takenPhysical.Add(new HexCoord(1, -3));
-        SetSemantic(artifact, new SemanticHexCoord(3, 0), takenSemantic);
+            K.Artifact, "weapon", "Stormcleaver", C(IceRemembersCulture.AuroraStack), tick: 0,
+            coordinates: (4, -12));
+        takenPhysical.Add(new HexCoord(4, -12));
+        SetSemantic(artifact, new SemanticHexCoord(12, 0), takenSemantic);
 
         // Artifact stored at Frosthaven (not held by a specific NPC since NPCs are randomly placed)
         graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0);
@@ -349,6 +359,35 @@ public sealed class TestMapBuilder
         }
         entity.SemanticPosition = coord;
     }
+
+    private static void CreateSeedCoverage(
+        HexGrid grid,
+        MapCoverageMap coverageMap,
+        WorldGraph graph,
+        MapCoverage seed,
+        HexCoord origin,
+        int desiredCellCount,
+        int minimumCellCount,
+        IReadOnlySet<TerrainType> preferredTerrains)
+    {
+        var result = coverageMap.CreateCoverage(
+            grid,
+            new MapCoveragePlacementRequest
+            {
+                Name = seed.Name,
+                OwnerEntityId = seed.OwnerEntityId,
+                Origin = origin,
+                Mode = CoveragePlacementMode.CreateNew,
+                DesiredCellCount = desiredCellCount,
+                MinimumCellCount = minimumCellCount,
+                PreferredTerrains = preferredTerrains,
+                AllowedTerrains = preferredTerrains,
+                RespectTerrainBoundaries = true,
+            });
+
+        var regionEntity = graph.GetEntity(seed.OwnerEntityId)!;
+        regionEntity.Coordinates = (result.Anchor.Q, result.Anchor.R);
+    }
 }
 
 /// <summary>
@@ -357,13 +396,13 @@ public sealed class TestMapBuilder
 public sealed class TestWorld
 {
     public HexGrid Grid { get; }
-    public RegionMap RegionMap { get; }
+    public MapCoverageMap CoverageMap { get; }
     public WorldGraph Graph { get; }
 
-    public TestWorld(HexGrid grid, RegionMap regionMap, WorldGraph graph)
+    public TestWorld(HexGrid grid, MapCoverageMap coverageMap, WorldGraph graph)
     {
         Grid = grid;
-        RegionMap = regionMap;
+        CoverageMap = coverageMap;
         Graph = graph;
     }
 }

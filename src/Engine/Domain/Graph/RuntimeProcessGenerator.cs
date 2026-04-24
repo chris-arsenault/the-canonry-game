@@ -139,7 +139,7 @@ public static class RuntimeProcessGenerator
             f.SourceRefs[0].Scope == RefScope.Resource);
         if (hexInflow is not null && flows.Count == 1)
         {
-            return BuildHexToHealth(verb, ownerKind, hexInflow);
+            return BuildHexToHealth(verb, ownerKind, hexInflow, kindConfig);
         }
 
         // Untouched→Hex: single Outflow with a Resource source ref.
@@ -216,10 +216,44 @@ public static class RuntimeProcessGenerator
     private static ProcessDefinition BuildHexToHealth(
         SemanticVerbConfig verb,
         EntityKind ownerKind,
-        SemanticFlowConfig flow)
+        SemanticFlowConfig flow,
+        KindConfig kindConfig)
     {
         var healthAttr = flow.TargetAttribute;
         var resource = ResolveResource(flow.SourceRefs[0]);
+        var recoveryHosts = kindConfig.HexToHealthRecoveryHosts;
+
+        if (recoveryHosts.Count == 0)
+        {
+            var selfDirectedProcess = new ProcessDefinition(
+                verb.Id,
+                Titleize(verb.Id),
+                DefinitionRole.Process,
+                ownerKind,
+                new AndPrecondition(
+                [
+                    new TargetIsSelf(),
+                    new LocationResourceThreshold(resource, min: 1f, max: null, targetLocation: false, plannerRelevant: false),
+                    new SelfAttributeThreshold(healthAttr, min: null, max: 95f, plannerRelevant: false),
+                ]),
+                Expr.Score(
+                    Expr.Div(
+                        Expr.Sub(Expr.Lit(100f), Expr.Self(healthAttr)),
+                        Expr.Lit(20f))))
+            {
+                Cooldown = 3,
+                EntityCooldown = 1,
+                RewardExpression = Expr.Mul(
+                    Expr.SelfLocationResource(resource),
+                    Expr.Lit(HexToHealthRate)),
+            };
+            selfDirectedProcess.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate));
+            selfDirectedProcess.GoalEffects.Add(AttributeRef.Self(healthAttr, ownerKind));
+            selfDirectedProcess.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
+            selfDirectedProcess.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
+            selfDirectedProcess.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
+            return selfDirectedProcess;
+        }
 
         var process = new ProcessDefinition(
             verb.Id,
@@ -228,27 +262,38 @@ public static class RuntimeProcessGenerator
             ownerKind,
             new AndPrecondition(
             [
-                new TargetIsSelf(),
-                new HasColocatedNamedEntityPrecondition(),
-                new LocationResourceThreshold(resource, min: 1f, max: null, targetLocation: false, plannerRelevant: false),
+                new TargetIsNotSelf(),
+                new WithinPlaneDistancePrecondition(0, kindConfig.PrimaryPlane),
+                new LocationResourceThreshold(resource, min: 1f, max: null, targetLocation: true, plannerRelevant: false),
                 new SelfAttributeThreshold(healthAttr, min: null, max: 95f, plannerRelevant: false),
             ]),
             Expr.Score(
-                Expr.Div(
-                    Expr.Sub(Expr.Lit(100f), Expr.Self(healthAttr)),
-                    Expr.Lit(20f))))
+                Expr.Min(
+                    Expr.Lit(1f),
+                    Expr.Div(
+                        Expr.Mul(
+                            Expr.TargetLocationResource(resource),
+                            Expr.Sub(Expr.Lit(100f), Expr.Self(healthAttr))),
+                        Expr.Lit(100f)))))
         {
             Cooldown = 3,
             EntityCooldown = 1,
             RewardExpression = Expr.Mul(
-                Expr.SelfLocationResource(resource),
+                Expr.TargetLocationResource(resource),
                 Expr.Lit(HexToHealthRate)),
         };
-        process.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate));
+        process.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate, targetLocation: true));
         process.GoalEffects.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
+        foreach (var hostQuery in recoveryHosts)
+        {
+            foreach (var hostKind in hostQuery.AnyOfKinds)
+            {
+                process.ProviderSelectors.Add(AttributeRef.Coordinates(hostKind));
+            }
+        }
         return process;
     }
 

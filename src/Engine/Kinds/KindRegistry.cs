@@ -40,6 +40,16 @@ public sealed class KindRegistry
         return _kindDefs.GetValueOrDefault(kind);
     }
 
+    public EntityCategory GetCategory(EntityKind kind)
+    {
+        if (!_kindDefs.TryGetValue(kind, out var definition))
+        {
+            throw new InvalidOperationException($"Unknown kind '{kind}'.");
+        }
+
+        return definition.Category;
+    }
+
     public RelationshipKindDefinition? GetRelationshipKindDefinition(string name)
     {
         return _relKindDefs.GetValueOrDefault(name);
@@ -73,8 +83,8 @@ public sealed class KindRegistry
             return $"Unknown relationship kind: {relationshipKind}";
         }
 
-        var sourceCategory = sourceKind.GetCategory();
-        var targetCategory = targetKind.GetCategory();
+        var sourceCategory = GetCategory(sourceKind);
+        var targetCategory = GetCategory(targetKind);
 
         if (!relDef.ValidSourceCategories.Contains(sourceCategory))
         {

@@ -29,10 +29,6 @@ public sealed class WorldGraph
 
     public WorldGraph()
     {
-        foreach (EntityKind kind in Enum.GetValues<EntityKind>())
-        {
-            _kindIndex[kind] = [];
-        }
     }
 
     // --- Entity CRUD ---
@@ -43,13 +39,24 @@ public sealed class WorldGraph
         string name,
         string culture,
         int tick,
-        (int Q, int R)? coordinates = null)
+        (int Q, int R)? coordinates = null,
+        Engine.Map.SemanticHexCoord? semanticPosition = null)
     {
         var id = new EntityId(_nextId++);
         var entity = new Entity(id, kind, subtype, name, culture, tick, coordinates);
+        if (semanticPosition is { } semanticCoord)
+        {
+            entity.SemanticPosition = semanticCoord;
+        }
 
         _entities[id] = entity;
-        _kindIndex[kind].Add(id);
+        if (!_kindIndex.TryGetValue(kind, out var entitiesByKind))
+        {
+            entitiesByKind = [];
+            _kindIndex[kind] = entitiesByKind;
+        }
+
+        entitiesByKind.Add(id);
         _graph.AddVertex(id);
 
         EntityCreated?.Invoke(this, new EntityCreatedEventArgs(entity));
@@ -63,7 +70,7 @@ public sealed class WorldGraph
 
     public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind)
     {
-        return _kindIndex[kind];
+        return _kindIndex.TryGetValue(kind, out var entities) ? entities : [];
     }
 
     public IReadOnlyDictionary<EntityId, Entity> AllEntities => _entities;

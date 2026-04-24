@@ -6,20 +6,6 @@ using Engine.Wiring;
 
 public static class DefinitionGraphValidator
 {
-    /// <summary>
-    /// Fixed RPS ring ordering. Flows: K_N.I → K_{N+1}.O and K_N.O → K_{N+2}.I.
-    /// Order reads "mundane → metaphysical": NPCs work the land, Settlements organize them,
-    /// Factions organize Settlements, Regions contain everything, Artifacts transcend.
-    /// </summary>
-    private static readonly EntityKind[] RpsOrder =
-    [
-        EntityKind.Npc,
-        EntityKind.Settlement,
-        EntityKind.Faction,
-        EntityKind.Region,
-        EntityKind.Artifact,
-    ];
-
     public static IReadOnlyList<string> Validate(DefinitionGraph graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
@@ -119,8 +105,7 @@ public static class DefinitionGraphValidator
 
             foreach (var produced in generator.Produces)
             {
-                if (!referencedRefs.Contains(produced.Ref) &&
-                    produced.Kind != EntityKind.Artifact)
+                if (!referencedRefs.Contains(produced.Ref))
                 {
                     errors.Add(
                         $"Generator '{generator.Id}' produces '{produced.Ref}' but no relationship references it.");
@@ -211,7 +196,7 @@ public static class DefinitionGraphValidator
     }
 
     /// <summary>
-    /// RPS ring invariant. Given the fixed RpsOrder ordering:
+    /// RPS ring invariant. Given a domain-authored ring ordering:
     ///   For every K_N in the ring there must be at least one mass-flow projected edge
     ///   from K_N to K_{N+1} (the +1 edge) and at least one from K_N to K_{N+2} (the +2
     ///   edge). Endpoints must be non-Health attributes on each side. Authors are free
@@ -220,8 +205,13 @@ public static class DefinitionGraphValidator
     /// </summary>
     private static void ValidateRpsRing(DefinitionGraph graph, List<string> errors)
     {
+        if (graph.RingOrder.Count == 0)
+        {
+            return;
+        }
+
         var kindsInGraph = new HashSet<EntityKind>(graph.Kinds.Keys);
-        if (!RpsOrder.All(kindsInGraph.Contains))
+        if (!graph.RingOrder.All(kindsInGraph.Contains))
         {
             return;
         }
@@ -238,11 +228,11 @@ public static class DefinitionGraphValidator
                 TargetAttr: ((AttributeStockId)edge.TargetId).Key.AttributeId))
             .ToHashSet();
 
-        for (var n = 0; n < RpsOrder.Length; n++)
+        for (var n = 0; n < graph.RingOrder.Count; n++)
         {
-            var kN = RpsOrder[n];
-            var kNext = RpsOrder[(n + 1) % RpsOrder.Length];
-            var kSkip = RpsOrder[(n + 2) % RpsOrder.Length];
+            var kN = graph.RingOrder[n];
+            var kNext = graph.RingOrder[(n + 1) % graph.RingOrder.Count];
+            var kSkip = graph.RingOrder[(n + 2) % graph.RingOrder.Count];
 
             var nHealth = graph.Kinds[kN].HealthAttribute;
             var nextHealth = graph.Kinds[kNext].HealthAttribute;

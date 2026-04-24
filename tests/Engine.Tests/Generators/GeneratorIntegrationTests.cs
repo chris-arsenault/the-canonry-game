@@ -3,7 +3,7 @@ namespace Engine.Tests.Generators;
 using System.Diagnostics.CodeAnalysis;
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Generators;
 using Engine.Graph;
 using Engine.Kinds;
@@ -27,15 +27,15 @@ public class GeneratorIntegrationTests
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
                 new SemanticProducedEntity
                 {
                     Ref = "$weapon",
-                    Kind = EntityKind.Artifact,
+                    Kind = TestKinds.Artifact,
                     Subtype = "weapon",
                     Role = "weapon",
                     InheritCultureFrom = "$hero",
@@ -47,18 +47,18 @@ public class GeneratorIntegrationTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
                 new SemanticGeneratorRelationship
                 {
                     SourceRef = "$weapon",
                     DestinationRef = "$hero",
-                    Kind = "stored_at",
+                    Kind = "anchored",
                 },
             ]);
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(generator));
         var initialEntityCount = sim.Graph.EntityCount;
-        _ = SetSingleSettlementSanitationLow(sim);
+        _ = SetSingleSettlementShelterLow(sim);
         GeneratorFiredMessage? fired = null;
         sim.MessageBus.Subscribe(message =>
         {
@@ -80,14 +80,14 @@ public class GeneratorIntegrationTests
         var created = message.CreatedEntityIds
             .Select(id => sim.Graph.GetEntity(id)!)
             .ToDictionary(entity => entity.Kind);
-        var hero = created[EntityKind.Npc];
-        var weapon = created[EntityKind.Artifact];
+        var hero = created[TestKinds.Penguin];
+        var weapon = created[TestKinds.Artifact];
 
         Assert.Contains(
-            sim.Graph.OutgoingRelationships(hero.Id, "located_at"),
+            sim.Graph.OutgoingRelationships(hero.Id, "home_base"),
             relationship => relationship.TargetId == actualTargetId);
         Assert.Contains(
-            sim.Graph.OutgoingRelationships(weapon.Id, "stored_at"),
+            sim.Graph.OutgoingRelationships(weapon.Id, "anchored"),
             relationship => relationship.TargetId == hero.Id);
     }
 
@@ -130,15 +130,16 @@ public class GeneratorIntegrationTests
         {
             Id = "gen_region",
             Name = "gen_region",
-            Target = new SemanticGeneratorTarget { Kind = EntityKind.Region },
+            Target = new SemanticGeneratorTarget { Kind = TestKinds.Region },
             Produces =
             [
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
+                    InheritCultureFrom = "$target",
                 },
             ],
             Relationships =
@@ -147,14 +148,14 @@ public class GeneratorIntegrationTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
             ],
             Triggers =
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Region,
+                    OnKind = TestKinds.Region,
                     Direction = TriggerDirection.Any,
                 },
             ],
@@ -180,7 +181,7 @@ public class GeneratorIntegrationTests
     public void Generator_TargetingSettlement_FiresWhenAnySettlementMatchesTrigger()
     {
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateSettlementGenerator("hero_emergence")));
-        SetSingleSettlementSanitationLow(sim);
+        SetSingleSettlementShelterLow(sim);
 
         RunTicks(sim, 25);
 
@@ -188,7 +189,7 @@ public class GeneratorIntegrationTests
         Assert.Equal(1, sim.GeneratorSystem.TotalFired);
         Assert.Equal(1, instance.TotalRuns);
         var firedTargetId = Assert.Single(instance.RecentTargets);
-        Assert.Equal(EntityKind.Settlement, sim.Graph.GetEntity(firedTargetId)!.Kind);
+        Assert.Equal(TestKinds.Settlement, sim.Graph.GetEntity(firedTargetId)!.Kind);
     }
 
     [Fact]
@@ -196,11 +197,11 @@ public class GeneratorIntegrationTests
     {
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateSettlementGenerator("hero_emergence")));
 
-        // Sanitation is drifted by both the aging drift and cross-entity processes;
+        // Shelter is drifted by both the aging drift and cross-entity processes;
         // pin it high every tick so the Low trigger never passes during the window.
         for (var i = 0; i < 25; i++)
         {
-            SetAllSettlementSanitation(sim, 100f);
+            SetAllSettlementShelter(sim, 100f);
             sim.Tick();
         }
 
@@ -209,17 +210,14 @@ public class GeneratorIntegrationTests
     }
 
     [Fact]
-    public void Generator_Wilderness_PlacesOnFreeHexInRegion()
+    public void Generator_RegionOpening_CreatesRelicAndWitnessBoundToTargetRegion()
     {
-        var colonyFounding = TestDomainGeneratorDefinition.Create()
-            .Single(generator => generator.Id == "colony_founding");
-        var (sim, system) = CreateGeneratorOnlySystem(new Random(42), colonyFounding);
-        var targetRegionId = FindRegionWithSaturationCapacityAndFreeHex(sim);
-        var occupiedBefore = sim.Graph.AllEntities
-            .Values
-            .Where(entity => entity.Status == EntityStatus.Active)
-            .Select(entity => new HexCoord(entity.Coordinates.Q, entity.Coordinates.R))
-            .ToHashSet();
+        var regionHolding = IceRemembersGeneratorDefinition.Create()
+            .Single(generator => generator.Id == "region_opens_the_old_holding");
+        var (sim, system) = CreateGeneratorOnlySystem(new Random(42), regionHolding);
+        var targetRegionId = sim.Graph.GetEntitiesByKind(TestKinds.Region)
+            .OrderBy(id => id.Value)
+            .First();
         GeneratorFiredMessage? fired = null;
         sim.MessageBus.Subscribe(message =>
         {
@@ -229,23 +227,21 @@ public class GeneratorIntegrationTests
             }
         });
 
-        SetRegionPristineness(sim, targetRegionId, highValue: 90f, lowValue: 10f);
-        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "colony_founding" });
+        SetRegionHolding(sim, targetRegionId, highValue: 90f, lowValue: 10f);
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "region_opens_the_old_holding" });
 
         var message = Assert.IsType<GeneratorFiredMessage>(fired);
-        var settlementId = message.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == EntityKind.Settlement);
-        var settlement = sim.Graph.GetEntity(settlementId)!;
-        var coord = new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R);
-        var cell = sim.Grid.GetCell(coord);
+        var relicId = message.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Artifact);
+        var witnessId = message.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Penguin);
 
-        Assert.Equal("colony_founding", message.GeneratorId);
+        Assert.Equal("region_opens_the_old_holding", message.GeneratorId);
         Assert.Equal(targetRegionId, message.TargetEntityId);
-        Assert.DoesNotContain(coord, occupiedBefore);
-        Assert.NotNull(cell);
-        Assert.False(float.IsPositiveInfinity(cell!.MovementCost));
         Assert.Contains(
-            sim.Graph.OutgoingRelationships(targetRegionId, "contains"),
-            relationship => relationship.TargetId == settlementId);
+            sim.Graph.OutgoingRelationships(relicId, "native_to"),
+            relationship => relationship.TargetId == targetRegionId);
+        Assert.Contains(
+            sim.Graph.OutgoingRelationships(witnessId, "holds"),
+            relationship => relationship.TargetId == relicId);
     }
 
     [Fact]
@@ -254,7 +250,7 @@ public class GeneratorIntegrationTests
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(CreateSettlementGenerator("hero_emergence")));
         var card = Assert.Single(sim.Tableau.ActiveCards);
 
-        SetSingleSettlementSanitationLow(sim);
+        SetSingleSettlementShelterLow(sim);
         sim.Tableau.RemoveCard(card);
         RunTicks(sim, 50);
 
@@ -267,7 +263,7 @@ public class GeneratorIntegrationTests
     {
         var sim = SimulationRunner.CreateFromDomain(
             WithGenerators(CreateSettlementGenerator("one_shot", maxRunsPerSim: 1)));
-        SetSingleSettlementSanitationLow(sim);
+        SetSingleSettlementShelterLow(sim);
         RunTicks(sim, 25);
 
         var instance = sim.WorldState.Generators.ById["one_shot"];
@@ -295,15 +291,15 @@ public class GeneratorIntegrationTests
             Name = id,
             Target = new SemanticGeneratorTarget
             {
-                Kind = EntityKind.Settlement,
+                Kind = TestKinds.Settlement,
             },
             Produces = produces ??
             [
                 new SemanticProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -314,15 +310,15 @@ public class GeneratorIntegrationTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    Kind = "located_at",
+                    Kind = "home_base",
                 },
             ],
             Triggers = triggers ??
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = EntityKind.Settlement,
-                    AttributeName = "sanitation",
+                    OnKind = TestKinds.Settlement,
+                    AttributeName = "shelter",
                     Direction = TriggerDirection.Low,
                 },
             ],
@@ -333,13 +329,13 @@ public class GeneratorIntegrationTests
     private static SemanticGeneratorTrigger AnySettlementTrigger() =>
         new()
         {
-            OnKind = EntityKind.Settlement,
+            OnKind = TestKinds.Settlement,
             Direction = TriggerDirection.Any,
         };
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
 
         return new DomainConfig
@@ -375,6 +371,7 @@ public class GeneratorIntegrationTests
             definitionGraph,
             sim.SpatialIndex,
             sim.WorldState.SemanticPlane,
+            sim.CoverageMap,
             sim.MessageBus,
             random);
 
@@ -389,57 +386,39 @@ public class GeneratorIntegrationTests
         }
     }
 
-    private static EntityId SetSingleSettlementSanitationLow(SimulationRunner sim, float lowValue = 10f, float highValue = 90f)
+    private static EntityId SetSingleSettlementShelterLow(SimulationRunner sim, float lowValue = 10f, float highValue = 90f)
     {
-        var settlements = sim.Graph.GetEntitiesByKind(EntityKind.Settlement)
+        var settlements = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
             .OrderBy(id => id.Value)
             .ToList();
         var targetId = settlements[0];
 
         foreach (var settlementId in settlements)
         {
-            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("sanitation")!.SetBase(
+            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("shelter")!.SetBase(
                 settlementId == targetId ? lowValue : highValue);
         }
 
         return targetId;
     }
 
-    private static void SetAllSettlementSanitation(SimulationRunner sim, float value)
+    private static void SetAllSettlementShelter(SimulationRunner sim, float value)
     {
-        foreach (var settlementId in sim.Graph.GetEntitiesByKind(EntityKind.Settlement))
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement))
         {
-            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("sanitation")!.SetBase(value);
+            sim.Graph.GetEntity(settlementId)!.Attributes.GetScalar("shelter")!.SetBase(value);
         }
     }
 
-    private static EntityId FindRegionWithSaturationCapacityAndFreeHex(SimulationRunner sim)
-    {
-        return sim.Graph.GetEntitiesByKind(EntityKind.Region)
-            .OrderBy(id => id.Value)
-            .First(regionId =>
-            {
-                var hasCapacity = sim.Graph.OutgoingRelationships(regionId, "contains").Count() < 3;
-                if (!hasCapacity)
-                {
-                    return false;
-                }
-
-                var region = sim.Graph.GetEntity(regionId)!;
-                var regionOrigin = new HexCoord(region.Coordinates.Q, region.Coordinates.R);
-                return sim.SpatialIndex.FindFreePhysicalHex(regionOrigin) is not null;
-            });
-    }
-
-    private static void SetRegionPristineness(
+    private static void SetRegionHolding(
         SimulationRunner sim,
         EntityId targetRegionId,
         float highValue,
         float lowValue)
     {
-        foreach (var regionId in sim.Graph.GetEntitiesByKind(EntityKind.Region))
+        foreach (var regionId in sim.Graph.GetEntitiesByKind(TestKinds.Region))
         {
-            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("pristineness")!.SetBase(
+            sim.Graph.GetEntity(regionId)!.Attributes.GetScalar("holding")!.SetBase(
                 regionId == targetRegionId ? highValue : lowValue);
         }
     }

@@ -1,71 +1,70 @@
-# NPC
+# Penguin
 
-A named individual with agency. Heroes, merchants, scholars, warriors. NPCs are the visible face of the simulation — their movements, choices, and fates create the stories that the player remembers.
+A named penguin with agency. Wardens, brokers, witnesses, exiles. Penguins are the visible face of the simulation — their movements, choices, and fates create the stories that the player remembers.
 
 ## Subtypes
 
-- **Hero** — exceptional individuals who shape history
-- **Merchant** — trade-oriented, seek economic opportunity
-- **Scholar** — knowledge-oriented, seek developed settlements
-- **Warrior** — conflict-oriented, seek military opportunity
+- **Warden** — defenders, patrol leaders, keepers of routes, and watch-commanders
+- **Broker** — traders, couriers, fixers, negotiators, and keepers of exchange
+- **Witness** — record-keepers, memory-bearers, interpreters of signs, and ritual speakers
+- **Exile** — the displaced, severed, gathered, cast-out, and socially unmoored
 
 ## Key Attributes
 
 | Attribute | Description |
 |-----------|-------------|
-| HP | Health points. The NPC's health metric — reaches zero and the NPC dies. |
-| Hunger | Current hunger level. Increases over time, reduced by eating. Drives movement toward food. |
-| Ambition | Drive to seek opportunity. Influences goal selection — high ambition NPCs seek high-value locations. |
-| Age | Time since creation. Increases lifecycle drain as NPC ages. |
+| Vitality | The penguin's health metric — reaches zero and the penguin dies. |
+| Warmth | The penguin's sustaining condition. Falls over time and drives movement toward food and shelter. |
+| Echo | The remembered interior force that drives outward action. |
 
 ## Processes
 
 ### Eat
-Consume food at the current settlement, reducing hunger and slightly healing.
-- **Reads:** self hunger, location settlement food availability
-- **Writes:** self hunger (decreases), self HP (small increase), settlement sustenance (decreases)
-- **Precondition:** at a settlement with food available, hunger above threshold
-- **Cross-entity:** reduces food at the settlement — NPCs compete for food
+Consume food at the current settlement, restoring warmth and preserving vitality.
+- **Reads:** self warmth, location settlement food availability
+- **Writes:** self warmth (increases), self vitality (small increase), settlement sustenance (decreases)
+- **Precondition:** at a settlement with food available, warmth below threshold
+- **Cross-entity:** reduces food at the settlement — penguins compete for food
 
 ### Move Toward Target
-Pathfind one hex step toward the NPC's current movement target.
+Pathfind one hex step toward the penguin's current movement target.
 - **Reads:** self movement target, self coordinates, map cell movement costs
 - **Writes:** self coordinates (changes position)
 - **Precondition:** has a movement target, not already at target
-- **Note:** the movement target is set by OTHER processes (eat sets target toward food, ambition sets target toward opportunity)
+- **Note:** the movement target is set by OTHER processes
 
 ### Rest
-Stay in place, recovering HP. The default when no other process scores highly.
-- **Reads:** self HP
-- **Writes:** self HP (small increase)
+Stay in place, recovering vitality. The default when no other process scores highly.
+- **Reads:** self vitality
+- **Writes:** self vitality (small increase)
 - **Precondition:** none (always available, but scores low when other needs are pressing)
 
 ### Forage
 Search for food outside settlements. Less efficient than eating at a settlement but doesn't consume settlement food.
-- **Reads:** self hunger, map cell fertility
-- **Writes:** self hunger (small decrease based on fertility)
+- **Reads:** self warmth, map cell fertility
+- **Writes:** self warmth (small increase based on fertility)
 - **Precondition:** not at a settlement, or settlement has no food
 - **Note:** foraging in infertile terrain provides almost no relief
 
 ### Train
-Invest time in improving skills. Costs hunger (training is hard work) but builds capability.
-- **Reads:** self ambition, self hunger
-- **Writes:** self skill (increases), self hunger (increases)
-- **Precondition:** hunger below threshold (can't train while starving)
+Invest time in sharpening capability. Costs warmth but deepens the penguin's ability to act.
+- **Reads:** self echo, self warmth
+- **Writes:** self skill (increases), self warmth (decreases)
+- **Precondition:** warmth above threshold
 
 ## Decisions (Card-Gated)
 
-*See the card encyclopedia for NPC-targeting decisions like Wield Artifact, Challenge Rival, Mentor, and Swear Loyalty.*
+*See the card encyclopedia for penguin-targeting decisions like Wield Artifact, Challenge Rival, Mentor, and Swear Loyalty.*
 
-## What Sustains an NPC
+## What Sustains a Penguin
 
-HP is the NPC's health metric. It is sustained by:
-- Eating at prosperous settlements (food reduces hunger, hunger reduction preserves HP)
-- Resting (direct HP recovery)
-- Effect transfer from held artifacts (artifact bonuses to holder)
+Vitality is the penguin's health metric. It is sustained by:
+- Eating at prosperous settlements
+- Resting
+- Effect transfer from held artifacts
 
 It is threatened by:
 - Lifecycle aging drain (old NPCs lose HP faster)
-- Hunger (sustained hunger drains HP indirectly)
+- Loss of warmth (sustained deprivation drains vitality indirectly)
 - Combat and hazards (future: decisions that cost HP)
 - Starvation (no food available anywhere)

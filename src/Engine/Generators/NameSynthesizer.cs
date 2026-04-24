@@ -1,5 +1,6 @@
 namespace Engine.Generators;
 
+using Engine.Domain.IceRemembers;
 using Engine.Kinds;
 
 public static class NameSynthesizer
@@ -91,6 +92,52 @@ public static class NameSynthesizer
         "chain",
     ];
 
+    private static readonly string[] RegionDescriptors =
+    [
+        "hush",
+        "ember",
+        "pale",
+        "broken",
+        "deep",
+        "old",
+        "black",
+        "white",
+        "salt",
+        "cold",
+    ];
+
+    private static readonly string[] SeaSuffixes =
+    [
+        "sea",
+        "reach",
+        "sound",
+        "water",
+    ];
+
+    private static readonly string[] ShelfSuffixes =
+    [
+        "shelf",
+        "ledge",
+        "face",
+        "wall",
+    ];
+
+    private static readonly string[] ScarSuffixes =
+    [
+        "scar",
+        "rent",
+        "breach",
+        "wound",
+    ];
+
+    private static readonly string[] GenericRegionSuffixes =
+    [
+        "march",
+        "waste",
+        "expanse",
+        "reach",
+    ];
+
     private static readonly string[] HeroPrefixes = ["Captain", "Sir"];
     private static readonly string[] ScholarPrefixes = ["Elder", "Master"];
     private static readonly string[] WarriorPrefixes = ["Captain", "Warden"];
@@ -102,23 +149,20 @@ public static class NameSynthesizer
 
         _ = culture;
 
-        return kind switch
-        {
-            EntityKind.Npc => BuildNpcName(subtype, rng),
-            EntityKind.Settlement => BuildSettlementName(rng),
-            EntityKind.Faction => $"The {Pick(FactionAdjectives, rng)} {Pick(FactionNouns, rng)}",
-            EntityKind.Artifact => BuildArtifactName(rng),
-            EntityKind.Region => "Unnamed Region",
-            _ => "Unnamed",
-        };
+        if (kind == IceRemembersKinds.Penguin) return BuildPenguinName(subtype, rng);
+        if (kind == IceRemembersKinds.Settlement) return BuildSettlementName(rng);
+        if (kind == IceRemembersKinds.Faction) return $"The {Pick(FactionAdjectives, rng)} {Pick(FactionNouns, rng)}";
+        if (kind == IceRemembersKinds.Artifact) return BuildArtifactName(rng);
+        if (kind == IceRemembersKinds.Region) return BuildRegionName(subtype, rng);
+        return "Unnamed";
     }
 
-    private static string BuildNpcName(string subtype, Random rng)
+    private static string BuildPenguinName(string subtype, Random rng)
     {
         var core = Capitalize(Pick(NpcSyllables, rng) + Pick(NpcSyllables, rng));
         var prefix = subtype switch
         {
-            "hero" => Pick(HeroPrefixes, rng),
+            "warden" => Pick(HeroPrefixes, rng),
             "scholar" => Pick(ScholarPrefixes, rng),
             "warrior" => Pick(WarriorPrefixes, rng),
             "merchant" => null,
@@ -152,6 +196,20 @@ public static class NameSynthesizer
 
         parts.Add(Pick(ArtifactSuffixes, rng));
         return Capitalize(string.Concat(parts));
+    }
+
+    private static string BuildRegionName(string subtype, Random rng)
+    {
+        var descriptor = Capitalize(Pick(RegionDescriptors, rng));
+        var suffixes = subtype switch
+        {
+            "sea" => SeaSuffixes,
+            "shelf" => ShelfSuffixes,
+            "scar" => ScarSuffixes,
+            _ => GenericRegionSuffixes,
+        };
+
+        return $"{descriptor} {Capitalize(Pick(suffixes, rng))}";
     }
 
     private static string Pick(string[] values, Random rng) =>

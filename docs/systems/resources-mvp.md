@@ -43,7 +43,7 @@ Examples:
 
 - a settlement grows because local `food` and `population` make growth possible
 - `Irrigate` raises ambient `food` so later growth becomes better
-- an NPC can remain in rich terrain longer because hunger grows more slowly there
+- an NPC can remain in rich terrain longer because warmth drains more slowly there
 - an artifact may eventually move only through hexes with enough ambient `population`
 
 ### 3. Resources should bias and gate, not dominate
@@ -127,10 +127,10 @@ Want residents
 
 ### NPCs
 
-NPC hunger now uses ambient food in two different ways:
+NPC warmth now uses ambient food in two different ways:
 
-- ambient `food` at the NPC's location slows hunger growth
-- `Eat` must still happen at a named settlement and provides the strong negative hunger correction
+- ambient `food` at the NPC's location slows warmth loss
+- `Eat` must still happen at a named settlement and provides the strong warmth-recovery correction
 
 So a rich grassland lets an NPC stay out longer, but it does not replace the need to return to a named place eventually.
 
@@ -194,7 +194,7 @@ Those may become useful later, but they should only be added if they serve actua
 | Map / Spatial | Terrain seeds ambient resource values per hex. |
 | Entity Behaviors | Processes read and mutate ambient resources as thresholds, utility inputs, and support targets. |
 | Planner | Resource refs can appear in goal effects, preconditions, and support rules. |
-| Lifecycle | Ambient food currently influences hunger drift through a dedicated location-resource drift system. |
+| Lifecycle | Ambient food currently influences warmth drift through a dedicated location-resource drift system. |
 | UI | Hover tooltip shows live per-hex ambient resource values. |
 
 ---

@@ -80,8 +80,8 @@ public class SemanticPlaneIndexTests
     private static Entity PlaceEntity(WorldGraph graph, SemanticHexCoord coord)
     {
         var entity = graph.CreateEntity(
-            EntityKind.Npc,
-            "generic_npc",
+            TestKinds.Penguin,
+            "warden",
             $"entity_{coord.Q}_{coord.R}",
             "culture_a",
             tick: 0);

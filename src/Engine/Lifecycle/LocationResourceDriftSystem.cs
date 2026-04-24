@@ -13,14 +13,14 @@ using Engine.Resources;
 public sealed class LocationResourceDriftSystem
 {
     private readonly WorldGraph _graph;
-    private readonly IReadOnlyDictionary<Engine.Kinds.EntityKind, KindConfig> _kindConfigs;
+    private readonly IReadOnlyDictionary<EntityKind, KindConfig> _kindConfigs;
     private readonly ResourceSystem _resources;
 
     private const string DriftSourcePrefix = "location_resource_drift_";
 
     public LocationResourceDriftSystem(
         WorldGraph graph,
-        IReadOnlyDictionary<Engine.Kinds.EntityKind, KindConfig> kindConfigs,
+        IReadOnlyDictionary<EntityKind, KindConfig> kindConfigs,
         ResourceSystem resources)
     {
         _graph = graph;

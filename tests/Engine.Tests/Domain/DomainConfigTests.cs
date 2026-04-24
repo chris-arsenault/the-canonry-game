@@ -2,42 +2,42 @@ namespace Engine.Tests.Domain;
 
 using Engine.Domain.Loader;
 using Engine.Messages;
-using Engine.Domain.TestDomain;
+using Engine.Domain.IceRemembers;
 using Engine.Kinds;
 using Engine.Simulation;
 
 public class DomainConfigTests
 {
     [Fact]
-    public void TestDomain_CreatesValidConfig()
+    public void IceRemembers_CreatesValidConfig()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
 
         Assert.Equal(5, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
         Assert.Equal(4, config.Pressures.Count);
         Assert.Equal(5, config.Lifecycles.Count);
         Assert.Equal(3, config.Resources.Count);
-        Assert.Equal(2, config.Cultures.Count);
-        Assert.Equal(4, config.Semantics!.Generators.Count);
+        Assert.Equal(3, config.Cultures.Count);
+        Assert.Equal(7, config.Semantics!.Generators.Count);
     }
 
     [Fact]
-    public void TestDomain_AllMvpKindsPresent()
+    public void IceRemembers_AllMvpKindsPresent()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
 
-        Assert.Contains(EntityKind.Region, config.Kinds.Keys);
-        Assert.Contains(EntityKind.Settlement, config.Kinds.Keys);
-        Assert.Contains(EntityKind.Faction, config.Kinds.Keys);
-        Assert.Contains(EntityKind.Npc, config.Kinds.Keys);
-        Assert.Contains(EntityKind.Artifact, config.Kinds.Keys);
+        Assert.Contains(TestKinds.Region, config.Kinds.Keys);
+        Assert.Contains(TestKinds.Settlement, config.Kinds.Keys);
+        Assert.Contains(TestKinds.Faction, config.Kinds.Keys);
+        Assert.Contains(TestKinds.Penguin, config.Kinds.Keys);
+        Assert.Contains(TestKinds.Artifact, config.Kinds.Keys);
     }
 
     [Fact]
-    public void TestDomain_KindsHaveSubtypes()
+    public void IceRemembers_KindsHaveSubtypes()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
@@ -46,9 +46,9 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void TestDomain_KindsHaveAttributes()
+    public void IceRemembers_KindsHaveAttributes()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
@@ -57,9 +57,9 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void TestDomain_AllKindsHaveHealthAttribute()
+    public void IceRemembers_AllKindsHaveHealthAttribute()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
@@ -70,29 +70,29 @@ public class DomainConfigTests
     [Fact]
     public void DomainLoader_CreatesKindRegistry()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var registry = DomainLoader.LoadKindRegistry(config);
 
-        Assert.NotNull(registry.GetKindDefinition(EntityKind.Settlement));
+        Assert.NotNull(registry.GetKindDefinition(TestKinds.Settlement));
         Assert.NotNull(registry.GetRelationshipKindDefinition("controlled_by"));
-        Assert.True(registry.IsValidSubtype(EntityKind.Npc, "warrior"));
+        Assert.True(registry.IsValidSubtype(TestKinds.Penguin, "warden"));
     }
 
     [Fact]
     public void DomainLoader_CreatesLifecycleConfig()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var lifecycleConfig = DomainLoader.LoadLifecycleConfig(config);
 
-        Assert.True(lifecycleConfig.HasConfig(EntityKind.Npc));
-        Assert.True(lifecycleConfig.HasConfig(EntityKind.Settlement));
-        Assert.True(lifecycleConfig.HasConfig(EntityKind.Region));
+        Assert.True(lifecycleConfig.HasConfig(TestKinds.Penguin));
+        Assert.True(lifecycleConfig.HasConfig(TestKinds.Settlement));
+        Assert.True(lifecycleConfig.HasConfig(TestKinds.Region));
     }
 
     [Fact]
     public void DomainLoader_CreatesPressureDefinitions()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var pressures = DomainLoader.LoadPressureDefinitions(config).ToList();
 
         Assert.Equal(4, pressures.Count);
@@ -101,7 +101,7 @@ public class DomainConfigTests
     [Fact]
     public void SimulationRunner_CreateFromDomain_Works()
     {
-        var config = TestDomainDefinition.Create();
+        var config = IceRemembersDefinition.Create();
         var sim = SimulationRunner.CreateFromDomain(config);
 
         Assert.NotNull(sim);
@@ -142,14 +142,23 @@ public class DomainConfigTests
             }
         });
 
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < 150; i++)
         {
             sim.Tick();
         }
 
         Assert.True(sim.Graph.EntityCount >= initialEntityCount + 2);
         Assert.True(
-            firedGeneratorIds.Contains("colony_founding") || firedGeneratorIds.Contains("hero_emergence"),
-            "Expected colony_founding or hero_emergence to fire within 100 ticks.");
+            firedGeneratorIds.Overlaps(
+            [
+                "penguin_calls_the_unhuddled",
+                "faction_seals_the_edge",
+                "region_opens_the_old_holding",
+                "artifact_cracks_the_berg",
+                "settlement_names_the_office",
+                "sea_raises_the_reefhold",
+                "the_shelf_yields_a_tome",
+            ]),
+            "Expected an Ice Remembers generator to fire within 150 ticks.");
     }
 }

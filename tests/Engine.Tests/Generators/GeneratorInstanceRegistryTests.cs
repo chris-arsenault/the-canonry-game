@@ -61,16 +61,17 @@ public class GeneratorInstanceRegistryTests
             Name = "Hero Emergence",
             Target = new DefinitionGeneratorTarget
             {
-                Kind = EntityKind.Settlement,
+                Kind = TestKinds.Settlement,
                 SaturationLimits = [],
             },
+            SecondaryTargets = [],
             Produces =
             [
                 new DefinitionProducedEntity
                 {
                     Ref = "$hero",
-                    Kind = EntityKind.Npc,
-                    Subtype = "hero",
+                    Kind = TestKinds.Penguin,
+                    Subtype = "warden",
                     Role = "hero",
                     InheritCultureFrom = "$target",
                 },
@@ -81,15 +82,15 @@ public class GeneratorInstanceRegistryTests
                 {
                     SourceRef = "$hero",
                     DestinationRef = "$target",
-                    RelationshipId = new DefinitionRelationshipId("located_at"),
+                    RelationshipId = new DefinitionRelationshipId("home_base"),
                 },
             ],
             Triggers =
             [
                 new DefinitionGeneratorTrigger
                 {
-                    OnKind = EntityKind.Settlement,
-                    AttributeId = new DefinitionAttributeId("sanitation"),
+                    OnKind = TestKinds.Settlement,
+                    AttributeId = new DefinitionAttributeId("shelter"),
                 },
             ],
             SourceConfig = new Engine.Domain.Config.SemanticGeneratorConfig
@@ -98,15 +99,15 @@ public class GeneratorInstanceRegistryTests
                 Name = "Hero Emergence",
                 Target = new Engine.Domain.Config.SemanticGeneratorTarget
                 {
-                    Kind = EntityKind.Settlement,
+                    Kind = TestKinds.Settlement,
                 },
                 Produces =
                 [
                     new Engine.Domain.Config.SemanticProducedEntity
                     {
                         Ref = "$hero",
-                        Kind = EntityKind.Npc,
-                        Subtype = "hero",
+                        Kind = TestKinds.Penguin,
+                        Subtype = "warden",
                         Role = "hero",
                         InheritCultureFrom = "$target",
                     },
@@ -117,15 +118,15 @@ public class GeneratorInstanceRegistryTests
                     {
                         SourceRef = "$hero",
                         DestinationRef = "$target",
-                        Kind = "located_at",
+                        Kind = "home_base",
                     },
                 ],
                 Triggers =
                 [
                     new Engine.Domain.Config.SemanticGeneratorTrigger
                     {
-                        OnKind = EntityKind.Settlement,
-                        AttributeName = "sanitation",
+                        OnKind = TestKinds.Settlement,
+                        AttributeName = "shelter",
                     },
                 ],
             },

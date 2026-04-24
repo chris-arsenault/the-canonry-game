@@ -13,7 +13,7 @@ The point is not that every kind must fill every bucket evenly. The point is tha
 What keeps the entity present in the world. If integrity reaches zero, the entity dies, collapses, breaks, or otherwise exits active play.
 
 Examples:
-- `geologic_stability`
+- `stability`
 - `residents`
 - `cohesion`
 - `vitality`
@@ -24,8 +24,8 @@ Examples:
 What creates ongoing pressure and motivates behavior even when nothing external happens.
 
 Examples:
-- `satiety`
-- `ambition`
+- `warmth`
+- `echo`
 - `containment`
 
 Not every kind needs a strong explicit drive scalar. Regions, for example, are mostly slow world-state rather than self-motivated actors.
@@ -47,8 +47,8 @@ What lets the entity affect other entities or shape the world around it.
 
 Examples:
 - `prestige`
-- `influence`
-- `regional_safety`
+- `reach`
+- `holding`
 
 Projection is outward-facing: attraction, reach, control, or ambient influence.
 
@@ -68,39 +68,38 @@ Alignment is usually modeled as a plane rather than a scalar.
 
 ### Region
 
-- `geologic_stability` -> Integrity
-- `regional_safety` -> Projection / world-condition quality
-- `mystic_resonance` -> Alignment
+- `stability` -> Integrity
+- `holding` -> Projection / world-condition quality
+- `pristiness` -> Need / land-wholeness pressure
 
 Regions intentionally do not fill all 5 buckets. They are slow world forces, not person-like actors.
 
 ### Settlement
 
 - `residents` -> Integrity
-- `security` -> Capacity
-- `prestige` -> Projection
+- `shelter` -> Need
+- `dominion` -> Projection
 - `civic_ideology` -> Alignment
 
 ### Faction
 
 - `cohesion` -> Integrity
-- `support` -> Capacity
-- `influence` -> Projection
+- `provisions` -> Need
+- `reach` -> Projection
 - `civic_ideology` -> Alignment
 
 ### NPC
 
 - `vitality` -> Integrity
-- `satiety` -> Need
-- `ambition` -> Drive
+- `warmth` -> Need
+- `echo` -> Capacity
 - `civic_ideology` -> Alignment
 
 ### Artifact
 
 - `condition` -> Integrity
-- `containment` -> Drive / pressure
 - `power` -> Capacity / Projection
-- `mystic_resonance` -> Alignment
+- `resonance` -> Drive / pressure
 
 ---
 

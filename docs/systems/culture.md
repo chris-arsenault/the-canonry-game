@@ -42,7 +42,7 @@ Each narrative domain defines its culture list. For The Ice Remembers, this migh
 
 - **Name and identity:** the culture's name, descriptive flavor
 - **Attribute tendencies:** default positions on semantic planes, baseline scalar modifiers. "This culture tends toward collectivism, martial discipline, and spiritual practice."
-- **Ongoing modifiers:** small persistent effects on entities of this culture (e.g., +1 to cohesion, -1 to ambition). Using the Pathfinder 2e-style typed bonus system, these would be "cultural type" effects.
+- **Ongoing modifiers:** small persistent effects on entities of this culture (e.g., +1 to cohesion, -1 to echo). Using the Pathfinder 2e-style typed bonus system, these would be "cultural type" effects.
 - **Naming rules:** patterns, phonemes, syllable structures, title conventions for generating entity names. Simplified from the canonry's Name Forge.
 - **Ground truths:** culture-specific facts that affect generation and description ("this culture builds with ice, not wood" affects settlement descriptions and potentially subtype availability).
 

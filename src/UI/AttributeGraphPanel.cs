@@ -5,6 +5,7 @@ using System.Linq;
 
 using Godot;
 
+using Engine.Domain.Config;
 using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
@@ -44,6 +45,7 @@ public partial class AttributeGraphPanel : PanelContainer
         public Label CountLabel { get; init; } = null!;
         public EntityKind? Kind { get; set; }
         public string? AttributeName { get; set; }
+        public List<string> AvailableAttributeNames { get; } = [];
 
         /// <summary>Per-entity sample history for this slot. Entries pruned when entity no longer matches.</summary>
         public Dictionary<EntityId, Queue<(int Tick, float Value)>> History { get; } = [];
@@ -55,6 +57,7 @@ public partial class AttributeGraphPanel : PanelContainer
             Kind = null;
             AttributeName = null;
             History.Clear();
+            AvailableAttributeNames.Clear();
         }
     }
 
@@ -189,7 +192,7 @@ public partial class AttributeGraphPanel : PanelContainer
         // Cheap structural hash: count active entities per kind. Changes when entities are
         // added, removed, or die — enough to trigger a dropdown rebuild.
         var hash = 17;
-        foreach (EntityKind kind in System.Enum.GetValues<EntityKind>())
+        foreach (var kind in _sim.DomainConfig.Kinds.Keys.OrderBy(kind => kind.Value, System.StringComparer.Ordinal))
         {
             var ids = _sim.Graph.GetEntitiesByKind(kind);
             var alive = 0;
@@ -198,7 +201,7 @@ public partial class AttributeGraphPanel : PanelContainer
                 if (_sim.Graph.GetEntity(id)?.Status == EntityStatus.Active) alive++;
             }
 
-            hash = hash * 31 + ((int)kind) * 1009 + alive;
+            hash = hash * 31 + System.StringComparer.Ordinal.GetHashCode(kind.Value) * 1009 + alive;
         }
 
         return hash;
@@ -209,7 +212,7 @@ public partial class AttributeGraphPanel : PanelContainer
         if (_sim is null) return;
 
         var kindsWithActive = new List<EntityKind>();
-        foreach (EntityKind kind in System.Enum.GetValues<EntityKind>())
+        foreach (var kind in _sim.DomainConfig.Kinds.Keys.OrderBy(kind => kind.Value, System.StringComparer.Ordinal))
         {
             if (HasAnyActive(kind)) kindsWithActive.Add(kind);
         }
@@ -226,7 +229,7 @@ public partial class AttributeGraphPanel : PanelContainer
             for (var i = 0; i < kindsWithActive.Count; i++)
             {
                 var kind = kindsWithActive[i];
-                slot.KindPicker.AddItem(kind.ToString(), (int)kind);
+                slot.KindPicker.AddItem(kind.ToString(), i);
                 if (previous == kind)
                 {
                     selectedIdx = i + 1;
@@ -270,11 +273,14 @@ public partial class AttributeGraphPanel : PanelContainer
 
         slot.AttributePicker.Disabled = false;
         var names = CollectScalarAttributeNames(slot.Kind.Value);
+        slot.AvailableAttributeNames.Clear();
+        slot.AvailableAttributeNames.AddRange(names);
 
         var selectedIdx = 0;
         for (var i = 0; i < names.Count; i++)
         {
-            slot.AttributePicker.AddItem(names[i], i);
+            var displayName = _sim.DomainConfig.GetAttributeDisplayName(slot.Kind.Value, cultureId: null, names[i]);
+            slot.AttributePicker.AddItem(displayName, i);
             if (slot.AttributeName == names[i])
             {
                 selectedIdx = i + 1;
@@ -312,9 +318,13 @@ public partial class AttributeGraphPanel : PanelContainer
     {
         if (_sim is null) return;
         var slot = _slots[slotIndex];
+        var kindsWithActive = _sim.DomainConfig.Kinds.Keys
+            .Where(HasAnyActive)
+            .OrderBy(kind => kind.Value, System.StringComparer.Ordinal)
+            .ToList();
 
         EntityKind? newKind = itemIndex > 0
-            ? (EntityKind)slot.KindPicker.GetItemId(itemIndex)
+            ? kindsWithActive[itemIndex - 1]
             : null;
 
         if (newKind == slot.Kind) return;
@@ -335,7 +345,15 @@ public partial class AttributeGraphPanel : PanelContainer
             return;
         }
 
-        var newName = slot.AttributePicker.GetItemText(itemIndex);
+        var nameIndex = itemIndex - 1;
+        if (nameIndex < 0 || nameIndex >= slot.AvailableAttributeNames.Count)
+        {
+            slot.AttributeName = null;
+            slot.History.Clear();
+            return;
+        }
+
+        var newName = slot.AvailableAttributeNames[nameIndex];
         if (newName == slot.AttributeName) return;
 
         slot.AttributeName = newName;
@@ -472,7 +490,8 @@ public partial class AttributeGraphPanel : PanelContainer
             if (!slot.IsConfigured) continue;
 
             var color = Palette[i];
-            var legendText = $"{slot.Kind}.{slot.AttributeName}";
+            var displayName = _sim.DomainConfig.GetAttributeDisplayName(slot.Kind!.Value, cultureId: null, slot.AttributeName!);
+            var legendText = $"{slot.Kind}.{displayName}";
             if (font is not null)
             {
                 _graphArea.DrawString(font, new Vector2(margin + 6 + i * 160, margin + 14),

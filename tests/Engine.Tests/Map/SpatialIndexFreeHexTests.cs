@@ -64,7 +64,7 @@ public class SpatialIndexFreeHexTests
     {
         var origin = new HexCoord(0, 0);
         var (index, _, grid) = CreateIndex(radius: 3);
-        grid.SetCell(origin, TerrainType.Water);
+        grid.SetCell(origin, TerrainType.Ocean);
 
         var result = index.FindFreePhysicalHex(origin);
 
@@ -76,7 +76,7 @@ public class SpatialIndexFreeHexTests
     private static (SpatialIndex Index, WorldGraph Graph, HexGrid Grid) CreateIndex(int radius)
     {
         var grid = new HexGrid(radius);
-        var regionMap = new RegionMap();
+        var regionMap = new MapCoverageMap();
         var graph = new WorldGraph();
         var index = new SpatialIndex(grid, regionMap, graph);
         return (index, graph, grid);
@@ -85,8 +85,8 @@ public class SpatialIndexFreeHexTests
     private static void PlaceEntity(WorldGraph graph, SpatialIndex index, HexCoord coord)
     {
         var entity = graph.CreateEntity(
-            EntityKind.Npc,
-            "generic_npc",
+            TestKinds.Penguin,
+            "warden",
             $"entity_{coord.Q}_{coord.R}",
             "culture_a",
             tick: 0,

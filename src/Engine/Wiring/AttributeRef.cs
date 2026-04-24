@@ -31,7 +31,7 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
 
     // --- Factory methods for common patterns ---
 
-    /// <summary>Attribute on the entity being evaluated: self.hp, self.hunger</summary>
+    /// <summary>Attribute on the entity being evaluated: self.hp, self.warmth</summary>
     public static AttributeRef Self(string name, EntityKind kind) =>
         new(RefScope.Self, name, kind);
 
@@ -39,9 +39,9 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Target(string name, EntityKind? kind = null) =>
         new(RefScope.Target, name, kind);
 
-    /// <summary>Attribute on the settlement at this entity's location</summary>
-    public static AttributeRef LocationSettlement(string name) =>
-        new(RefScope.Location, name, EntityKind.Settlement);
+    /// <summary>Attribute on an entity at this entity's location.</summary>
+    public static AttributeRef Location(string name, EntityKind kind) =>
+        new(RefScope.Location, name, kind);
 
     /// <summary>Attribute on an entity related via a specific relationship kind</summary>
     public static AttributeRef Related(string relationshipKind, string attributeName, EntityKind targetKind) =>

@@ -11,35 +11,35 @@ public static class TerrainAmbientResources
     {
         return terrain switch
         {
-            TerrainType.Plains => new TerrainAmbientProfile(
+            TerrainType.Tundra => new TerrainAmbientProfile(
                 Food: new AmbientValueRange(4f, 6f),
                 Wealth: new AmbientValueRange(2f, 4f),
                 Population: new AmbientValueRange(3f, 5f)),
-            TerrainType.Forest => new TerrainAmbientProfile(
-                Food: new AmbientValueRange(2f, 4f),
-                Wealth: new AmbientValueRange(1f, 3f),
-                Population: new AmbientValueRange(1f, 3f)),
-            TerrainType.Mountain => new TerrainAmbientProfile(
+            TerrainType.HotSprings => new TerrainAmbientProfile(
+                Food: new AmbientValueRange(5f, 7f),
+                Wealth: new AmbientValueRange(2f, 4f),
+                Population: new AmbientValueRange(4f, 6f)),
+            TerrainType.Shelf => new TerrainAmbientProfile(
+                Food: new AmbientValueRange(1f, 3f),
+                Wealth: new AmbientValueRange(1f, 2f),
+                Population: new AmbientValueRange(1f, 2f)),
+            TerrainType.Crags => new TerrainAmbientProfile(
                 Food: new AmbientValueRange(0f, 2f),
                 Wealth: new AmbientValueRange(2f, 5f),
                 Population: new AmbientValueRange(0f, 2f)),
-            TerrainType.Desert => new TerrainAmbientProfile(
+            TerrainType.Wastes => new TerrainAmbientProfile(
                 Food: new AmbientValueRange(0f, 1f),
                 Wealth: new AmbientValueRange(1f, 3f),
                 Population: new AmbientValueRange(0f, 2f)),
-            TerrainType.Water => new TerrainAmbientProfile(
+            TerrainType.Ocean => new TerrainAmbientProfile(
                 Food: new AmbientValueRange(0f, 1f),
                 Wealth: new AmbientValueRange(0f, 1f),
                 Population: new AmbientValueRange(0f, 1f)),
-            TerrainType.Coastal => new TerrainAmbientProfile(
+            TerrainType.Reef => new TerrainAmbientProfile(
                 Food: new AmbientValueRange(2f, 5f),
                 Wealth: new AmbientValueRange(3f, 5f),
                 Population: new AmbientValueRange(2f, 4f)),
-            TerrainType.Swamp => new TerrainAmbientProfile(
-                Food: new AmbientValueRange(1f, 3f),
-                Wealth: new AmbientValueRange(0f, 2f),
-                Population: new AmbientValueRange(0f, 2f)),
-            TerrainType.Tundra => new TerrainAmbientProfile(
+            TerrainType.Ice => new TerrainAmbientProfile(
                 Food: new AmbientValueRange(0f, 2f),
                 Wealth: new AmbientValueRange(0f, 2f),
                 Population: new AmbientValueRange(0f, 3f)),

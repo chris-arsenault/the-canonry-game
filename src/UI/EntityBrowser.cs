@@ -86,7 +86,7 @@ public partial class EntityBrowser : PanelContainer
         _entityButtons.Clear();
 
         // Add entities grouped by kind
-        foreach (EntityKind kind in System.Enum.GetValues<EntityKind>())
+        foreach (var kind in _sim.DomainConfig.Kinds.Keys.OrderBy(kind => kind.Value, System.StringComparer.Ordinal))
         {
             var entities = _sim.Graph.GetEntitiesByKind(kind);
             if (entities.Count == 0) continue;

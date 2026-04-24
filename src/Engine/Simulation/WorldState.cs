@@ -16,7 +16,7 @@ public sealed class WorldState : IWorldState
     public EffectSystem Effects { get; }
     public Engine.Pressure.PressureSystem? Pressure { get; }
     public HexGrid Grid { get; }
-    public RegionMap RegionMap { get; }
+    public MapCoverageMap CoverageMap { get; }
     public SpatialIndex SpatialIndex { get; }
     public SemanticPlaneIndex SemanticPlane { get; }
     public GeneratorInstanceRegistry Generators { get; }
@@ -28,7 +28,7 @@ public sealed class WorldState : IWorldState
         EffectSystem effects,
         Engine.Pressure.PressureSystem? pressure,
         HexGrid grid,
-        RegionMap regionMap,
+        MapCoverageMap coverageMap,
         SpatialIndex spatialIndex,
         SemanticPlaneIndex semanticPlane,
         GeneratorInstanceRegistry generators,
@@ -38,7 +38,7 @@ public sealed class WorldState : IWorldState
         Effects = effects;
         Pressure = pressure;
         Grid = grid;
-        RegionMap = regionMap;
+        CoverageMap = coverageMap;
         SpatialIndex = spatialIndex;
         SemanticPlane = semanticPlane;
         Generators = generators;
