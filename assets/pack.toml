@@ -1,0 +1,366 @@
+title = "The Canonry Game"
+preset = "glacial-archive"
+model = "flux-2-pro"
+default_style = "archive"
+default_palette = "polar"
+
+[defaults]
+size = "1024x1024"
+aspect = "1:1"
+
+[style.archive]
+name = "Archive Plate"
+composition = "centered subject with generous negative space and a museum-plate feel"
+
+[style.cinematic]
+name = "Cinematic Plate"
+composition = "broader framing, deeper atmosphere, and a stronger sense of scale"
+
+[palette.polar]
+name = "Polar"
+primary = ["#E7E3D5", "#B8B5A6", "#D97742", "#C9A96B"]
+secondary = ["#0B0F14", "#19202C", "#2E3A4F", "#78C9B2", "#B04646"]
+notes = "Warm vellum backgrounds, slate shadows, ember as a rare hot accent."
+
+[palette.signal]
+name = "Signal"
+primary = ["#D97742", "#B04646", "#C9A96B"]
+secondary = ["#0B0F14", "#19202C", "#E7E3D5"]
+notes = "Higher-contrast palette for UI and iconography."
+
+[type_prompt_fragment]
+icon = "Keep the icon silhouette bold, crisp, and readable at 16px."
+chrome = "Keep decorative edges controlled and production-friendly for UI extraction."
+
+[[section]]
+id = "1-entity-sprites"
+title = "1 · Entity sprites"
+
+[[section.asset]]
+id = "penguin"
+file = "sprites/penguin.png"
+type = "sprite"
+prompt = "prompts/1-entity-sprites/penguin.md"
+
+[[section.asset]]
+id = "settlement"
+file = "sprites/settlement.png"
+type = "sprite"
+prompt = "prompts/1-entity-sprites/settlement.md"
+
+[[section.asset]]
+id = "faction-banner"
+file = "sprites/faction.png"
+type = "sprite"
+prompt = "prompts/1-entity-sprites/faction-banner.md"
+
+[[section.asset]]
+id = "artifact"
+file = "sprites/artifact.png"
+type = "sprite"
+prompt = "prompts/1-entity-sprites/artifact.md"
+
+[[section.asset]]
+id = "orca"
+file = "sprites/orca.png"
+type = "sprite"
+prompt = "prompts/1-entity-sprites/orca.md"
+
+[[section.asset]]
+id = "region-cairn"
+file = "sprites/region.png"
+type = "sprite"
+prompt = "prompts/1-entity-sprites/region-cairn.md"
+
+[[section]]
+id = "2-terrain-hex-tiles"
+title = "2 · Terrain hex tiles"
+
+[[section.asset]]
+id = "terrain-wastes"
+file = "terrain/wastes.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-wastes.md"
+
+[[section.asset]]
+id = "terrain-crags"
+file = "terrain/crags.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-crags.md"
+
+[[section.asset]]
+id = "terrain-tundra"
+file = "terrain/tundra.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-tundra.md"
+
+[[section.asset]]
+id = "terrain-ice"
+file = "terrain/ice.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-ice.md"
+
+[[section.asset]]
+id = "terrain-hotsprings"
+file = "terrain/hotsprings.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-hotsprings.md"
+
+[[section.asset]]
+id = "terrain-shelf"
+file = "terrain/shelf.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-shelf.md"
+
+[[section.asset]]
+id = "terrain-reef"
+file = "terrain/reef.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-reef.md"
+
+[[section.asset]]
+id = "terrain-ocean"
+file = "terrain/ocean.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-ocean.md"
+
+[[section]]
+id = "3-tableau-card-faces"
+title = "3 · Tableau card faces"
+
+[[section.asset]]
+id = "card-penguin"
+file = "cards/card-penguin.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-penguin.md"
+
+[[section.asset]]
+id = "card-settlement"
+file = "cards/card-settlement.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-settlement.md"
+
+[[section.asset]]
+id = "card-faction"
+file = "cards/card-faction.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-faction.md"
+
+[[section.asset]]
+id = "card-artifact"
+file = "cards/card-artifact.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-artifact.md"
+
+[[section.asset]]
+id = "card-orca"
+file = "cards/card-orca.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-orca.md"
+
+[[section.asset]]
+id = "card-back"
+file = "cards/card-back.png"
+type = "card-face"
+aspect = "3:4"
+size = "1024x1536"
+prompt = "prompts/3-tableau-card-faces/card-back.md"
+
+[[section]]
+id = "4-ui-chrome-decoration"
+title = "4 · UI chrome & decoration"
+
+[[section.asset]]
+id = "divider-flourish"
+file = "chrome/divider-flourish.png"
+type = "chrome"
+aspect = "16:9"
+size = "1536x1024"
+prompt = "prompts/4-ui-chrome-decoration/divider-flourish.md"
+
+[[section.asset]]
+id = "corner-ornament"
+file = "chrome/corner-ornament.png"
+type = "chrome"
+prompt = "prompts/4-ui-chrome-decoration/corner-ornament.md"
+
+[[section.asset]]
+id = "compass-rose"
+file = "chrome/compass-rose.png"
+type = "chrome"
+prompt = "prompts/4-ui-chrome-decoration/compass-rose.md"
+
+[[section.asset]]
+id = "scale-bar"
+file = "chrome/scale-bar.png"
+type = "chrome"
+aspect = "16:9"
+size = "1536x1024"
+prompt = "prompts/4-ui-chrome-decoration/scale-bar.md"
+
+[[section.asset]]
+id = "texture-parchment"
+file = "chrome/texture-parchment.png"
+type = "background"
+prompt = "prompts/4-ui-chrome-decoration/texture-parchment.md"
+
+[[section.asset]]
+id = "texture-slate"
+file = "chrome/texture-slate.png"
+type = "background"
+prompt = "prompts/4-ui-chrome-decoration/texture-slate.md"
+
+[[section]]
+id = "5-event-type-icons"
+title = "5 · Event-type icons"
+palette = "signal"
+
+[[section.asset]]
+id = "icon-lifecycle"
+file = "icons/lifecycle.png"
+type = "icon"
+prompt = "prompts/5-event-type-icons/icon-lifecycle.md"
+
+[[section.asset]]
+id = "icon-threshold"
+file = "icons/threshold.png"
+type = "icon"
+prompt = "prompts/5-event-type-icons/icon-threshold.md"
+
+[[section.asset]]
+id = "icon-creation"
+file = "icons/creation.png"
+type = "icon"
+prompt = "prompts/5-event-type-icons/icon-creation.md"
+
+[[section.asset]]
+id = "icon-card"
+file = "icons/card.png"
+type = "icon"
+prompt = "prompts/5-event-type-icons/icon-card.md"
+
+[[section.asset]]
+id = "icon-notice"
+file = "icons/notice.png"
+type = "icon"
+prompt = "prompts/5-event-type-icons/icon-notice.md"
+
+[[section]]
+id = "6-attribute-icons"
+title = "6 · Attribute icons"
+palette = "signal"
+
+[[section.asset]]
+id = "attr-food"
+file = "icons/attr-food.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-food.md"
+
+[[section.asset]]
+id = "attr-wealth"
+file = "icons/attr-wealth.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-wealth.md"
+
+[[section.asset]]
+id = "attr-population"
+file = "icons/attr-population.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-population.md"
+
+[[section.asset]]
+id = "attr-warmth"
+file = "icons/attr-warmth.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-warmth.md"
+
+[[section.asset]]
+id = "attr-echo"
+file = "icons/attr-echo.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-echo.md"
+
+[[section.asset]]
+id = "attr-dominion"
+file = "icons/attr-dominion.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-dominion.md"
+
+[[section.asset]]
+id = "attr-power"
+file = "icons/attr-power.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-power.md"
+
+[[section.asset]]
+id = "attr-holding"
+file = "icons/attr-holding.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-holding.md"
+
+[[section.asset]]
+id = "attr-provisions"
+file = "icons/attr-provisions.png"
+type = "icon"
+prompt = "prompts/6-attribute-icons/attr-provisions.md"
+
+[[section]]
+id = "7-atmospheric-art"
+title = "7 · Atmospheric art"
+style = "cinematic"
+
+[[section.asset]]
+id = "title-ice-remembers"
+file = "backgrounds/title.png"
+type = "background"
+aspect = "16:9"
+size = "1536x1024"
+prompt = "prompts/7-atmospheric-art/title-ice-remembers.md"
+
+[[section.asset]]
+id = "tableau-backdrop"
+file = "backgrounds/tableau.png"
+type = "background"
+aspect = "16:9"
+size = "1536x1024"
+prompt = "prompts/7-atmospheric-art/tableau-backdrop.md"
+
+[[section.asset]]
+id = "aurora-band"
+file = "backgrounds/aurora.png"
+type = "background"
+aspect = "16:9"
+size = "1536x1024"
+prompt = "prompts/7-atmospheric-art/aurora-band.md"
+
+[[section]]
+id = "8-playback-control-icons"
+title = "8 · Playback control icons"
+
+[[section.asset]]
+id = "ctrl-pause"
+file = "chrome/ctrl-pause.png"
+type = "icon"
+prompt = "prompts/8-playback-control-icons/ctrl-pause.md"
+
+[[section.asset]]
+id = "ctrl-step"
+file = "chrome/ctrl-step.png"
+type = "icon"
+prompt = "prompts/8-playback-control-icons/ctrl-step.md"
+
+[[section.asset]]
+id = "ctrl-reset"
+file = "chrome/ctrl-reset.png"
+type = "icon"
+prompt = "prompts/8-playback-control-icons/ctrl-reset.md"
