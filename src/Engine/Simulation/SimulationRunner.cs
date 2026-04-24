@@ -177,6 +177,10 @@ public sealed class SimulationRunner
         var lifecycleConfig = DomainLoader.LoadLifecycleConfig(domainConfig);
         var lifecycle = new LifecycleSystem(graph, lifecycleConfig);
 
+        // Bridge graph/lifecycle mutations onto the single simulation message bus.
+        // Observers should subscribe here instead of wiring directly to subsystems.
+        SimulationMessageBridge.Wire(graph, lifecycle, messageBus);
+
         // Resources
         var resources = new ResourceSystem(graph, grid);
         var locationDrift = new LocationResourceDriftSystem(graph, domainConfig.Kinds, resources);

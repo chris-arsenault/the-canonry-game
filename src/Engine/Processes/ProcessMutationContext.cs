@@ -2,6 +2,7 @@ namespace Engine.Processes;
 
 using Engine.Behaviors;
 using Engine.Graph;
+using Engine.Messages;
 
 /// <summary>
 /// Bridges IWorldState to IMutationContext for data-driven precondition and mutation evaluation.
@@ -12,6 +13,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     private readonly Entity _entity;
     private readonly IWorldState _worldState;
     private readonly string? _definitionId;
+    private readonly MessageBus? _messageBus;
     private Dictionary<string, float>? _variables;
 
     public int CurrentTick => _worldState.CurrentTick;
@@ -24,12 +26,14 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public EntityGoal? Goal { get; }
 
     public ProcessMutationContext(Entity entity, IWorldState worldState,
-        Random? random = null, EntityGoal? goal = null, string? definitionId = null)
+        Random? random = null, EntityGoal? goal = null, string? definitionId = null,
+        MessageBus? messageBus = null)
     {
         _entity = entity;
         _worldState = worldState;
         Goal = goal;
         _definitionId = definitionId;
+        _messageBus = messageBus;
         Random = random ?? System.Random.Shared;
     }
 
@@ -106,7 +110,22 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
     {
         var entity = _worldState.Graph.GetEntity(entityId);
+        var oldValue = entity?.Attributes.GetValue(attributeName);
         entity?.Attributes.Modify(attributeName, delta);
+        if (entity is not null && oldValue is { } before)
+        {
+            var after = entity.Attributes.GetValue(attributeName);
+            if (Math.Abs(after - before) > float.Epsilon)
+            {
+                _messageBus?.Publish(new AttributeChangedMessage(
+                    CurrentTick,
+                    entityId,
+                    attributeName,
+                    before,
+                    after,
+                    _definitionId ?? "process"));
+            }
+        }
     }
 
     public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { } // TODO: wire pressure
@@ -121,7 +140,20 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
             Resources.ResourceType.Population => _worldState.Resources.PopulationLayer,
             _ => null,
         };
-        layer?.AddToStockpile(coord, delta);
+        if (layer is null) return;
+        var before = layer.GetStockpile(coord);
+        layer.AddToStockpile(coord, delta);
+        var after = layer.GetStockpile(coord);
+        if (Math.Abs(after - before) > float.Epsilon)
+        {
+            _messageBus?.Publish(new ResourceChangedMessage(
+                CurrentTick,
+                resourceType.ToString(),
+                coordinates,
+                before,
+                after,
+                _definitionId ?? "process"));
+        }
     }
 
     public void SetTag(EntityId entityId, string key, string value) { }
@@ -147,14 +179,30 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         var available = layer.GetStockpile(coord);
         var consumed = Math.Min(amount, available);
         layer.AddToStockpile(coord, -consumed);
+        if (consumed > 0f)
+        {
+            _messageBus?.Publish(new ResourceChangedMessage(
+                CurrentTick,
+                resourceType.ToString(),
+                coordinates,
+                available,
+                available - consumed,
+                _definitionId ?? "process"));
+        }
         return consumed;
     }
 
     public void SetCoordinates(EntityId entityId, int q, int r)
     {
+        var entity = _worldState.Graph.GetEntity(entityId);
+        var previous = entity?.Coordinates;
         _worldState.SpatialIndex.RemoveEntity(entityId);
         _worldState.Graph.SetCoordinates(entityId, q, r);
         _worldState.SpatialIndex.PlaceEntity(entityId, new Map.HexCoord(q, r));
+        if (previous is { } from && from != (q, r))
+        {
+            _messageBus?.Publish(new EntityMovedMessage(CurrentTick, entityId, from, (q, r)));
+        }
     }
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)

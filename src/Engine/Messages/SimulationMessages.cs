@@ -87,6 +87,67 @@ public sealed class EntityMovedMessage : SimulationMessage
     }
 }
 
+/// <summary>An entity was created in the world graph.</summary>
+public sealed class EntityCreatedMessage : SimulationMessage
+{
+    public EntityId EntityId { get; }
+    public EntityKind Kind { get; }
+    public string Subtype { get; }
+    public string Name { get; }
+    public string Culture { get; }
+    public (int Q, int R) Physical { get; }
+    public (int Q, int R, int S) Semantic { get; }
+
+    public EntityCreatedMessage(
+        int tick,
+        EntityId entityId,
+        EntityKind kind,
+        string subtype,
+        string name,
+        string culture,
+        (int Q, int R) physical,
+        (int Q, int R, int S) semantic)
+        : base(tick)
+    {
+        EntityId = entityId;
+        Kind = kind;
+        Subtype = subtype;
+        Name = name;
+        Culture = culture;
+        Physical = physical;
+        Semantic = semantic;
+    }
+}
+
+/// <summary>An entity changed active/historical state.</summary>
+public sealed class EntityStatusChangedMessage : SimulationMessage
+{
+    public EntityId EntityId { get; }
+    public EntityKind Kind { get; }
+    public string Subtype { get; }
+    public string Name { get; }
+    public string PreviousStatus { get; }
+    public string CurrentStatus { get; }
+
+    public EntityStatusChangedMessage(
+        int tick,
+        EntityId entityId,
+        EntityKind kind,
+        string subtype,
+        string name,
+        string previousStatus,
+        string currentStatus)
+        : base(tick)
+    {
+        EntityId = entityId;
+        Kind = kind;
+        Subtype = subtype;
+        Name = name;
+        PreviousStatus = previousStatus;
+        CurrentStatus = currentStatus;
+    }
+}
+
 /// <summary>An entity's subtype changed.</summary>
 public sealed class SubtypeChangedMessage : SimulationMessage
 {
@@ -100,6 +161,67 @@ public sealed class SubtypeChangedMessage : SimulationMessage
         EntityId = entityId;
         OldSubtype = oldSubtype;
         NewSubtype = newSubtype;
+    }
+}
+
+/// <summary>A resource stockpile changed at a map coordinate.</summary>
+public sealed class ResourceChangedMessage : SimulationMessage
+{
+    public string ResourceType { get; }
+    public (int Q, int R) Coordinates { get; }
+    public float OldValue { get; }
+    public float NewValue { get; }
+    public string Source { get; }
+
+    public ResourceChangedMessage(
+        int tick,
+        string resourceType,
+        (int Q, int R) coordinates,
+        float oldValue,
+        float newValue,
+        string source)
+        : base(tick)
+    {
+        ResourceType = resourceType;
+        Coordinates = coordinates;
+        OldValue = oldValue;
+        NewValue = newValue;
+        Source = source;
+    }
+}
+
+/// <summary>A relationship was created, culled, or changed.</summary>
+public sealed class RelationshipChangedMessage : SimulationMessage
+{
+    public string ChangeType { get; }
+    public string RelationshipKind { get; }
+    public string Polarity { get; }
+    public EntityId SourceId { get; }
+    public EntityId TargetId { get; }
+    public float PreviousStrength { get; }
+    public float NewStrength { get; }
+    public IReadOnlyList<string> Facts { get; }
+
+    public RelationshipChangedMessage(
+        int tick,
+        string changeType,
+        string relationshipKind,
+        string polarity,
+        EntityId sourceId,
+        EntityId targetId,
+        float previousStrength,
+        float newStrength,
+        IReadOnlyList<string>? facts = null)
+        : base(tick)
+    {
+        ChangeType = changeType;
+        RelationshipKind = relationshipKind;
+        Polarity = polarity;
+        SourceId = sourceId;
+        TargetId = targetId;
+        PreviousStrength = previousStrength;
+        NewStrength = newStrength;
+        Facts = facts ?? [];
     }
 }
 
@@ -119,6 +241,84 @@ public sealed class EntityDiedMessage : SimulationMessage
     }
 }
 
+/// <summary>Planner goals were regenerated for an entity.</summary>
+public sealed class GoalGenerationMessage : SimulationMessage
+{
+    public EntityId EntityId { get; }
+    public EntityKind Kind { get; }
+    public int GoalCount { get; }
+    public int ActionableGoalCount { get; }
+    public IReadOnlyList<GoalSnapshot> Goals { get; }
+
+    public GoalGenerationMessage(
+        int tick,
+        EntityId entityId,
+        EntityKind kind,
+        int goalCount,
+        int actionableGoalCount,
+        IReadOnlyList<GoalSnapshot>? goals = null)
+        : base(tick)
+    {
+        EntityId = entityId;
+        Kind = kind;
+        GoalCount = goalCount;
+        ActionableGoalCount = actionableGoalCount;
+        Goals = goals ?? [];
+    }
+}
+
+public sealed record GoalSnapshot(
+    string GoalId,
+    string DesiredEffect,
+    EntityId TargetEntityId,
+    float Urgency,
+    string? PlannedProcessId,
+    string? ParentGoalId,
+    bool IsActionable,
+    int Depth);
+
+/// <summary>Process/planner evaluation result for one entity on one tick.</summary>
+public sealed class ProcessEvaluationMessage : SimulationMessage
+{
+    public EntityId EntityId { get; }
+    public EntityKind Kind { get; }
+    public string? SelectedGoalId { get; }
+    public string? ExecutedProcessName { get; }
+    public bool IsStale { get; }
+    public string? StatusNote { get; }
+    public IReadOnlyList<ProcessCandidateSnapshot> Candidates { get; }
+
+    public ProcessEvaluationMessage(
+        int tick,
+        EntityId entityId,
+        EntityKind kind,
+        string? selectedGoalId,
+        string? executedProcessName,
+        bool isStale,
+        string? statusNote,
+        IReadOnlyList<ProcessCandidateSnapshot>? candidates = null)
+        : base(tick)
+    {
+        EntityId = entityId;
+        Kind = kind;
+        SelectedGoalId = selectedGoalId;
+        ExecutedProcessName = executedProcessName;
+        IsStale = isStale;
+        StatusNote = statusNote;
+        Candidates = candidates ?? [];
+    }
+}
+
+public sealed record ProcessCandidateSnapshot(
+    string ProcessName,
+    string GoalId,
+    string ProviderName,
+    float Score,
+    bool PreconditionPassed,
+    string PreconditionDiagnostic,
+    bool OnCooldown,
+    bool WasSelected);
+
 /// <summary>A degeneracy warning was triggered or resolved.</summary>
 public sealed class DegeneracyWarningMessage : SimulationMessage
 {
@@ -133,6 +333,53 @@ public sealed class DegeneracyWarningMessage : SimulationMessage
         DetectorName = detectorName;
         Severity = severity;
         Description = description;
+    }
+}
+
+/// <summary>A generator was evaluated during a pulse, whether or not it fired.</summary>
+public sealed class GeneratorPulseMessage : SimulationMessage
+{
+    public string GeneratorId { get; }
+    public string Status { get; }
+    public int TargetPoolCount { get; }
+    public int InactiveRejectedCount { get; }
+    public int SubtypeRejectedCount { get; }
+    public int SaturationRejectedCount { get; }
+    public int SecondaryTargetRejectedCount { get; }
+    public int WildernessRejectedCount { get; }
+    public int TriggerRejectedCount { get; }
+    public int CandidateCount { get; }
+    public int FailedFireCount { get; }
+    public EntityId? SelectedTargetEntityId { get; }
+
+    public GeneratorPulseMessage(
+        int tick,
+        string generatorId,
+        string status,
+        int targetPoolCount,
+        int inactiveRejectedCount,
+        int subtypeRejectedCount,
+        int saturationRejectedCount,
+        int secondaryTargetRejectedCount,
+        int wildernessRejectedCount,
+        int triggerRejectedCount,
+        int candidateCount,
+        int failedFireCount,
+        EntityId? selectedTargetEntityId)
+        : base(tick)
+    {
+        GeneratorId = generatorId;
+        Status = status;
+        TargetPoolCount = targetPoolCount;
+        InactiveRejectedCount = inactiveRejectedCount;
+        SubtypeRejectedCount = subtypeRejectedCount;
+        SaturationRejectedCount = saturationRejectedCount;
+        SecondaryTargetRejectedCount = secondaryTargetRejectedCount;
+        WildernessRejectedCount = wildernessRejectedCount;
+        TriggerRejectedCount = triggerRejectedCount;
+        CandidateCount = candidateCount;
+        FailedFireCount = failedFireCount;
+        SelectedTargetEntityId = selectedTargetEntityId;
     }
 }
 

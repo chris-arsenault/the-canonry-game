@@ -121,7 +121,7 @@ public sealed class WorldGraph
         return relationship;
     }
 
-    public void UpdateRelationshipStrength(Relationship relationship, float newStrength)
+    public void UpdateRelationshipStrength(Relationship relationship, float newStrength, int tick = 0)
     {
         ArgumentNullException.ThrowIfNull(relationship);
 
@@ -131,7 +131,7 @@ public sealed class WorldGraph
         if (Math.Abs(previousStrength - relationship.Strength) > float.Epsilon)
         {
             RelationshipStrengthChanged?.Invoke(
-                this, new RelationshipStrengthChangedEventArgs(relationship, previousStrength));
+                this, new RelationshipStrengthChangedEventArgs(relationship, previousStrength, tick));
         }
     }
 

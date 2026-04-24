@@ -58,7 +58,7 @@ public sealed class RelationshipSystem
 
             if (Math.Abs(totalDelta) > float.Epsilon)
             {
-                _graph.UpdateRelationshipStrength(rel, rel.Strength + totalDelta);
+                _graph.UpdateRelationshipStrength(rel, rel.Strength + totalDelta, currentTick);
             }
 
             // Check cull threshold

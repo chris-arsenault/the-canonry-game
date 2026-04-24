@@ -35,6 +35,7 @@ public sealed class RunLogger : IDisposable
     private readonly Dictionary<EntityId, List<ActionEntry>> _tickActions = [];
     private readonly List<EntityId> _tickDeaths = [];
     private readonly List<string> _tickGeneratorLines = [];
+    private readonly IDisposable _messageSubscription;
     private bool _disposed;
 
     public string LogPath { get; }
@@ -54,7 +55,7 @@ public sealed class RunLogger : IDisposable
         _sim = sim;
         _writer = new StreamWriter(logPath) { AutoFlush = true };
 
-        sim.MessageBus.Subscribe(OnMessage);
+        _messageSubscription = sim.MessageBus.Subscribe(OnMessage);
         sim.Lifecycle.EntityDied += OnEntityDied;
 
         WriteHeader();
@@ -167,6 +168,7 @@ public sealed class RunLogger : IDisposable
             _sim.Lifecycle.EntityDied -= OnEntityDied;
         }
         catch (ObjectDisposedException) { /* sim shutdown order isn't guaranteed */ }
+        _messageSubscription.Dispose();
         _writer.Flush();
         _writer.Dispose();
     }

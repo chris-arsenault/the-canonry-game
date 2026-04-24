@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
 
     <!-- Only include UI scripts, not the Engine source (Engine is a separate project) -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;tests/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;tests/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -53,48 +53,68 @@ public sealed class GeneratorSystem
             return;
         }
 
+        var pulseStats = new Dictionary<string, GeneratorPulseStats>(StringComparer.Ordinal);
         var applicableByGenerator = new Dictionary<string, ApplicableGenerator>(StringComparer.Ordinal);
 
         foreach (var generatorId in activeGeneratorIds)
         {
+            var stats = new GeneratorPulseStats(generatorId);
+            pulseStats[generatorId] = stats;
+
             if (!_definitionGraph.Generators.TryGetValue(generatorId, out var definition))
             {
+                stats.Status = "missing_definition";
                 continue;
             }
 
             var instance = _instances.GetOrCreate(definition);
             if (instance.Definition.MaxRunsPerSim is { } maxRuns && instance.TotalRuns >= maxRuns)
             {
+                stats.Status = "max_runs";
                 continue;
             }
 
             var weight = Math.Max(instance.Definition.PulseWeight, 0);
             if (weight == 0)
             {
+                stats.Status = "zero_weight";
                 continue;
             }
 
+            var resolution = ResolveTargets(instance.Definition);
+            stats.TargetPoolCount = resolution.TargetPoolCount;
+            stats.InactiveRejectedCount = resolution.InactiveRejectedCount;
+            stats.SubtypeRejectedCount = resolution.SubtypeRejectedCount;
+            stats.SaturationRejectedCount = resolution.SaturationRejectedCount;
+            stats.SecondaryTargetRejectedCount = resolution.SecondaryTargetRejectedCount;
+            stats.WildernessRejectedCount = resolution.WildernessRejectedCount;
+
             var targets = new List<ResolvedGeneratorTarget>();
-            foreach (var candidate in ResolveTargets(instance.Definition))
+            foreach (var candidate in resolution.Targets)
             {
                 if (!TriggersPass(instance.Definition, candidate.TargetEntity))
                 {
+                    stats.TriggerRejectedCount++;
                     continue;
                 }
 
                 targets.Add(candidate);
             }
 
+            stats.CandidateCount = targets.Count;
             if (targets.Count == 0)
             {
+                stats.Status = "blocked";
                 continue;
             }
 
-            applicableByGenerator[generatorId] = new ApplicableGenerator(instance, targets, weight);
+            stats.Status = "eligible";
+            applicableByGenerator[generatorId] = new ApplicableGenerator(instance, targets, weight, stats);
         }
 
         if (applicableByGenerator.Count == 0)
         {
+            PublishGeneratorPulseStats(currentTick, pulseStats.Values);
             return;
         }
 
@@ -102,17 +122,32 @@ public sealed class GeneratorSystem
         {
             var winner = ChooseWeightedGenerator(applicableByGenerator.Values);
             var target = winner.Targets[_random.Next(winner.Targets.Count)];
+            winner.Stats.SelectedTargetEntityId = target.TargetEntity.Id;
             if (Fire(winner.Instance, target, currentTick))
             {
+                winner.Stats.Status = "fired";
+                foreach (var stats in pulseStats.Values)
+                {
+                    if (stats.Status == "eligible")
+                    {
+                        stats.Status = "eligible_not_selected";
+                    }
+                }
+
+                PublishGeneratorPulseStats(currentTick, pulseStats.Values);
                 return;
             }
 
+            winner.Stats.FailedFireCount++;
             winner.Targets.Remove(target);
             if (winner.Targets.Count == 0)
             {
+                winner.Stats.Status = "fire_failed";
                 applicableByGenerator.Remove(winner.Instance.GeneratorId);
             }
         }
+
+        PublishGeneratorPulseStats(currentTick, pulseStats.Values);
     }
 
     private bool Fire(GeneratorInstance instance, ResolvedGeneratorTarget target, int currentTick)
@@ -264,23 +299,28 @@ public sealed class GeneratorSystem
         return true;
     }
 
-    private IEnumerable<ResolvedGeneratorTarget> ResolveTargets(DefinitionGeneratorNode generator)
+    private GeneratorTargetResolution ResolveTargets(DefinitionGeneratorNode generator)
     {
+        var result = new GeneratorTargetResolution();
         foreach (var targetId in _graph.GetEntitiesByKind(generator.Target.Kind))
         {
+            result.TargetPoolCount++;
             var entity = _graph.GetEntity(targetId);
             if (entity is null || entity.Status != EntityStatus.Active)
             {
+                result.InactiveRejectedCount++;
                 continue;
             }
 
             if (!MatchesSubtypeFilter(entity, generator.Target.Subtypes))
             {
+                result.SubtypeRejectedCount++;
                 continue;
             }
 
             if (ExceedsTargetSaturation(generator.TargetSaturation, entity.Id))
             {
+                result.SaturationRejectedCount++;
                 continue;
             }
 
@@ -293,6 +333,7 @@ public sealed class GeneratorSystem
             var secondaryBindings = ResolveSecondaryTargets(generator, targetContext);
             if (secondaryBindings is null)
             {
+                result.SecondaryTargetRejectedCount++;
                 continue;
             }
 
@@ -301,14 +342,38 @@ public sealed class GeneratorSystem
                 var wildernessOrigin = _spatialIndex.FindFreePhysicalHex(targetOrigin);
                 if (wildernessOrigin is not HexCoord freeHex)
                 {
+                    result.WildernessRejectedCount++;
                     continue;
                 }
 
-                yield return new ResolvedGeneratorTarget(entity, freeHex, secondaryBindings);
+                result.Targets.Add(new ResolvedGeneratorTarget(entity, freeHex, secondaryBindings));
                 continue;
             }
 
-            yield return new ResolvedGeneratorTarget(entity, targetOrigin, secondaryBindings);
+            result.Targets.Add(new ResolvedGeneratorTarget(entity, targetOrigin, secondaryBindings));
+        }
+
+        return result;
+    }
+
+    private void PublishGeneratorPulseStats(int currentTick, IEnumerable<GeneratorPulseStats> stats)
+    {
+        foreach (var item in stats)
+        {
+            _messageBus.Publish(new GeneratorPulseMessage(
+                currentTick,
+                item.GeneratorId,
+                item.Status,
+                item.TargetPoolCount,
+                item.InactiveRejectedCount,
+                item.SubtypeRejectedCount,
+                item.SaturationRejectedCount,
+                item.SecondaryTargetRejectedCount,
+                item.WildernessRejectedCount,
+                item.TriggerRejectedCount,
+                item.CandidateCount,
+                item.FailedFireCount,
+                item.SelectedTargetEntityId));
         }
     }
 
@@ -762,7 +827,35 @@ public sealed class GeneratorSystem
     private sealed record ApplicableGenerator(
         GeneratorInstance Instance,
         List<ResolvedGeneratorTarget> Targets,
-        int Weight);
+        int Weight,
+        GeneratorPulseStats Stats);
+
+    private sealed class GeneratorTargetResolution
+    {
+        public int TargetPoolCount { get; set; }
+        public int InactiveRejectedCount { get; set; }
+        public int SubtypeRejectedCount { get; set; }
+        public int SaturationRejectedCount { get; set; }
+        public int SecondaryTargetRejectedCount { get; set; }
+        public int WildernessRejectedCount { get; set; }
+        public List<ResolvedGeneratorTarget> Targets { get; } = [];
+    }
+
+    private sealed class GeneratorPulseStats(string generatorId)
+    {
+        public string GeneratorId { get; } = generatorId;
+        public string Status { get; set; } = "not_evaluated";
+        public int TargetPoolCount { get; set; }
+        public int InactiveRejectedCount { get; set; }
+        public int SubtypeRejectedCount { get; set; }
+        public int SaturationRejectedCount { get; set; }
+        public int SecondaryTargetRejectedCount { get; set; }
+        public int WildernessRejectedCount { get; set; }
+        public int TriggerRejectedCount { get; set; }
+        public int CandidateCount { get; set; }
+        public int FailedFireCount { get; set; }
+        public EntityId? SelectedTargetEntityId { get; set; }
+    }
 
     private sealed record ResolvedGeneratorTarget(
         Entity TargetEntity,

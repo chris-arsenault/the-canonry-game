@@ -126,6 +126,21 @@ public sealed class EntityEvaluator
         }
 
         entity.GoalsGeneratedAt = worldState.CurrentTick;
+        _messageBus.Publish(new GoalGenerationMessage(
+            worldState.CurrentTick,
+            entity.Id,
+            entity.Kind,
+            entity.Goals.Count,
+            entity.Goals.Count(goal => goal.IsActionable),
+            entity.Goals.Select(goal => new GoalSnapshot(
+                goal.Id,
+                goal.DesiredEffect.ToString(),
+                goal.TargetEntityId,
+                goal.Urgency,
+                goal.PlannedProcessId,
+                goal.ParentGoalId,
+                goal.IsActionable,
+                goal.Depth)).ToList()));
     }
 
     private void EvaluateProcesses(Entity entity, IWorldState worldState)
@@ -148,6 +163,7 @@ public sealed class EntityEvaluator
                 trace,
                 $"entity cooldown active until tick {entity.EntityCooldownUntil}; reusing report from tick {entity.LastEvaluation.SourceTick} age={staleAge}");
             entity.EvaluationTrace = trace.ToString();
+            PublishEvaluation(entity, entity.LastEvaluation);
             return;
         }
 
@@ -168,6 +184,7 @@ public sealed class EntityEvaluator
                 reportCandidates);
             trace.AppendLine("No planner goals present; idling.");
             entity.EvaluationTrace = trace.ToString();
+            PublishEvaluation(entity, entity.LastEvaluation);
             return;
         }
 
@@ -185,6 +202,7 @@ public sealed class EntityEvaluator
                 reportCandidates);
             trace.AppendLine("No actionable goals; forcing replanning.");
             entity.EvaluationTrace = trace.ToString();
+            PublishEvaluation(entity, entity.LastEvaluation);
             return;
         }
 
@@ -375,6 +393,7 @@ public sealed class EntityEvaluator
             statusNote: !executed && shouldReplan ? "no viable actionable process; replanning next tick" : null,
             reportCandidates);
         entity.EvaluationTrace = trace.ToString();
+        PublishEvaluation(entity, entity.LastEvaluation);
     }
 
     private EntityGoal? SelectGoal(List<EntityGoal> goals, HashSet<string>? exclude = null)
@@ -412,10 +431,15 @@ public sealed class EntityEvaluator
         return process.GoalEffects.Contains(goal.DesiredEffect);
     }
 
-    private static ProcessExecutedMessage ExecuteProcess(
+    private ProcessExecutedMessage ExecuteProcess(
         ProcessDefinition definition, Entity entity, IWorldState worldState, EntityGoal? goal)
     {
-        var context = new ProcessMutationContext(entity, worldState, goal: goal, definitionId: definition.Id);
+        var context = new ProcessMutationContext(
+            entity,
+            worldState,
+            goal: goal,
+            definitionId: definition.Id,
+            messageBus: _messageBus);
         foreach (var mutation in definition.Mutations)
         {
             mutation.Execute(context);
@@ -429,10 +453,14 @@ public sealed class EntityEvaluator
             worldState.CurrentTick, entity.Id, entity.Kind, definition.Name, description);
     }
 
-    private static DecisionExecutedMessage ExecuteDecision(
+    private DecisionExecutedMessage ExecuteDecision(
         ProcessDefinition definition, Entity entity, IWorldState worldState)
     {
-        var context = new ProcessMutationContext(entity, worldState, definitionId: definition.Id);
+        var context = new ProcessMutationContext(
+            entity,
+            worldState,
+            definitionId: definition.Id,
+            messageBus: _messageBus);
         foreach (var mutation in definition.Mutations)
         {
             mutation.Execute(context);
@@ -465,6 +493,27 @@ public sealed class EntityEvaluator
         }
 
         return candidates[^1];
+    }
+
+    private void PublishEvaluation(Entity entity, EvaluationReport report)
+    {
+        _messageBus.Publish(new ProcessEvaluationMessage(
+            report.Tick,
+            entity.Id,
+            entity.Kind,
+            report.SelectedGoalId,
+            report.ExecutedProcessName,
+            report.IsStale,
+            report.StatusNote,
+            report.Candidates.Select(candidate => new ProcessCandidateSnapshot(
+                candidate.ProcessName,
+                candidate.GoalId,
+                candidate.ProviderName,
+                candidate.Score,
+                candidate.PreconditionPassed,
+                candidate.PreconditionDiagnostic,
+                candidate.OnCooldown,
+                candidate.WasSelected)).ToList()));
     }
 
     private bool GoalsRequireInvalidation(Entity entity, IWorldState worldState)

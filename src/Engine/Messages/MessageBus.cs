@@ -16,16 +16,17 @@ public sealed class MessageBus
 {
     private readonly List<Action<SimulationMessage>> _subscribers = [];
 
-    public void Subscribe(Action<SimulationMessage> handler)
+    public IDisposable Subscribe(Action<SimulationMessage> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
         _subscribers.Add(handler);
+        return new Subscription(_subscribers, handler);
     }
 
     public void Publish(SimulationMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        foreach (var handler in _subscribers)
+        foreach (var handler in _subscribers.ToArray())
         {
             handler(message);
         }
@@ -34,5 +35,18 @@ public sealed class MessageBus
     public void Clear()
     {
         _subscribers.Clear();
+    }
+
+    private sealed class Subscription(List<Action<SimulationMessage>> subscribers, Action<SimulationMessage> handler)
+        : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            subscribers.Remove(handler);
+        }
     }
 }

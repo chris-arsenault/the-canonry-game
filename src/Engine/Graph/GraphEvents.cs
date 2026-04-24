@@ -26,8 +26,9 @@ public sealed class RelationshipCulledEventArgs(Relationship relationship, int e
     public int EndTick { get; } = endTick;
 }
 
-public sealed class RelationshipStrengthChangedEventArgs(Relationship relationship, float previousStrength) : EventArgs
+public sealed class RelationshipStrengthChangedEventArgs(Relationship relationship, float previousStrength, int tick) : EventArgs
 {
     public Relationship Relationship { get; } = relationship;
     public float PreviousStrength { get; } = previousStrength;
+    public int Tick { get; } = tick;
 }
