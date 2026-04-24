@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-sea-icon",
+  "file": "map-icons/region-sea.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized open-sea region marker. Flat app-icon geometry. A field of\nthree or four symmetric wave shapes — each a simple curved tilde /\nrounded-M shape — stacked in rows, all in saturated palette blues\n(alternating shades of navy and sky-blue between rows). No shore, no\nhorizon, no boundary — just stylized waves filling the icon area.",
+  "formatted_prompt": "Flat app icon, centered on a plain off-white canvas with generous padding, crisp vector geometry, modern UI register. Three stacked symmetric wave shapes — each a bold rounded-M tilde curve — filling the icon field in alternating saturated cobalt blue (#0000FF) and bright sky-blue rows, evenly spaced with strong color separation. Each wave is a single clean filled shape with sharp precise edges, no outlines, no gradients, no texture. The two-tone blue pattern reads as open sea at a glance. Pure flat fills, high contrast between alternating rows, every curve identical and deliberate, fully legible at 16px.",
+  "bfl_task_id": "5a829987-dbf9-4fc1-acc2-d49153c532f2",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005778,
+  "duration_ms": 7409,
+  "generated_at": "2026-04-24T17:33:25.451Z"
+}

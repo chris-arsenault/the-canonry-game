@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin-warden-icon",
+  "file": "map-icons/penguin-warden.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "An adult emperor penguin warden, front view, tall and lean with a\nlong straight beak and dignified upright stance. Holding a short\nsword point-down at one side. A small three-point crown on the head.\nA short cape draped from the shoulders. Saturated colored belly\n(red), dark body.",
+  "formatted_prompt": "STYLE: flat vector app icon; modern UI icon register in the manner of SF Symbols Filled and Material Symbols Fill; bold geometric silhouette, crisp sharp edges, zero gradients, zero brushwork, zero texture; centered single subject on plain off-white canvas with generous padding\n\nSUBJECT: adult emperor penguin warden, front view; tall lean upright posture; narrow pointed beak, small dark eyes proportional to skull, sleek plumage; #000000 body and wings; #FF0000 saturated belly panel as a bold flat interior shape; small three-point crown on head rendered as a flat #FFFF00 geometric shape; short cape draped from shoulders as a flat #0000FF shape; short sword held point-down at one side, blade as a flat #FFFFFF shape with #000000 outline\n\nCONTEXT: isolated icon asset, no background scene, plain off-white canvas\n\nCOLOR: #000000 body, head, and wings; #FF0000 belly; #FFFF00 three-point crown; #0000FF short cape; #FFFFFF sword blade; all fills flat and fully saturated with strong contrast between adjacent areas\n\nDETAILS: every interior element — crown points, cape hem, sword guard and grip — resolved as distinct flat secondary-color shapes readable at 16px; no gradients, no ink strokes, no brushwork, no worn edges; clean 2026-era vector icon geometry throughout\n\nCONSTRAINTS: adult anatomical proportions enforced; no cartoon or juvenile scaling; no oversized eyes; no parchment, no stamp frame, no aging effects",
+  "bfl_task_id": "req_ae07f0ac6b6f4a12abbfae0b281eaf4a",
+  "cost_usd": 0.056830000000000006,
+  "claude_cost_usd": 0.009552000000000001,
+  "duration_ms": 29973,
+  "generated_at": "2026-04-24T18:02:53.347Z"
+}

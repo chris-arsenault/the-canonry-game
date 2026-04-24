@@ -132,7 +132,8 @@ public sealed class SimulationRunner
         // triggers WorldGraph.EntityCreated for each entity, and every subscriber
         // initializes that entity exactly once — no init-time sweeps.
         random ??= new Random();
-        var testWorld = TestMapBuilder.BuildEmpty(random);
+        var worldSeed = TestMapBuilder.SelectAcceptedSeed(random);
+        var testWorld = TestMapBuilder.BuildEmpty(worldSeed);
         var graph = testWorld.Graph;
         var grid = testWorld.Grid;
         var coverageMap = testWorld.CoverageMap;
@@ -184,7 +185,7 @@ public sealed class SimulationRunner
         // With all per-entity subscribers wired, populate the world. Entities get
         // their attributes + lifecycle drain + critical-effect hooks as they are
         // created. Spatial index catches up afterwards.
-        TestMapBuilder.Populate(testWorld, random);
+        TestMapBuilder.Populate(testWorld, worldSeed);
         spatialIndex.RebuildFromGraph();
         locationDrift.InitializeEffects();
 
@@ -367,7 +368,6 @@ internal sealed class RelationshipContextAdapter(WorldGraph graph)
     public float GetAttribute(EntityId entityId, string attributeName) =>
         graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
     public (int Q, int R)? GetCoordinates(EntityId entityId) => graph.GetEntity(entityId)?.Coordinates;
-    public float? GetSemanticDistance(EntityId a, EntityId b, string planeName) => null; // TODO: wire semantic planes
 }
 
 internal sealed class SimplePressureContext(

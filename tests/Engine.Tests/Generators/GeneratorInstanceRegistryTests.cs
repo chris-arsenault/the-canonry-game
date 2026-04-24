@@ -62,7 +62,6 @@ public class GeneratorInstanceRegistryTests
             Target = new DefinitionGeneratorTarget
             {
                 Kind = TestKinds.Settlement,
-                SaturationLimits = [],
             },
             SecondaryTargets = [],
             Produces =
@@ -83,6 +82,7 @@ public class GeneratorInstanceRegistryTests
                     SourceRef = "$hero",
                     DestinationRef = "$target",
                     RelationshipId = new DefinitionRelationshipId("home_base"),
+                    FactIds = new HashSet<DefinitionRelationshipFactId>(),
                 },
             ],
             Triggers =

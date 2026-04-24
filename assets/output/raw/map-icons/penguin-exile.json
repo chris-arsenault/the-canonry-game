@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin-exile-icon",
+  "file": "map-icons/penguin-exile.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "An adult emperor penguin outcast, front view, tall and lean with a\nlong straight beak, standing slightly hunched in a solitary posture.\nEnveloped in a simple hooded cloak in a muted neutral color that\ndrapes from the head to the feet. One plain walking stave held at\nthe side. Saturated colored belly peeking out, dark body.",
+  "formatted_prompt": "STYLE: flat modern app icon; bold vector geometry; centered single subject on plain off-white canvas; SF Symbols Filled register; crisp sharp edges readable at 16px; no gradients, no textures, no painterly marks\n\nSUBJECT: adult emperor penguin, tall and lean with narrow pointed beak, small dark eyes proportional to skull, upright but slightly hunched solitary posture, front view; draped in a full hooded cloak falling from crown to feet in flat warm neutral tone (#FFFFFF tinted warm gray); saturated vivid yellow-orange belly patch visible where cloak parts at center (#FF6600); sleek dark body (#000000) visible at face and feet; one plain vertical walking stave held at the side, rendered as a clean rectangular rod in flat black\n\nCONTEXT: isolated icon subject, no background scene, generous padding around figure, plain off-white canvas\n\nCOLOR: cloak in warm light gray-white (#FFFFFF); belly accent in bold orange (#FF6600); body and beak in flat black (#000000); stave in flat black (#000000); eye as a small white dot on black; hood interior shadow as a single flat dark shape\n\nDETAILS: every edge crisp and deliberate; cloak rendered as three flat shapes — hood ovoid, left drape, right drape; belly as one centered elliptical flat shape; stave as a single slim vertical rectangle; no brush marks, no ink texture, no aging\n\nCONSTRAINTS: adult anatomical proportions strictly enforced; no cartoon or juvenile features; no oversized eyes; no scene elements; no frame or border",
+  "bfl_task_id": "req_8b8af71310404c1a8e60876fe0031182",
+  "cost_usd": 0.055175,
+  "claude_cost_usd": 0.009543,
+  "duration_ms": 24716,
+  "generated_at": "2026-04-24T18:03:17.186Z"
+}

@@ -16,6 +16,13 @@ public class TestMapBuilderTests
         var world2 = TestMapBuilder.BuildDefault(seed: 42);
         Assert.Equal(_world.Grid.CellCount, world2.Grid.CellCount);
         Assert.Equal(_world.Graph.EntityCount, world2.Graph.EntityCount);
+        Assert.Equal(_world.Seed, world2.Seed);
+        Assert.Equal(
+            SeedWorldQualityValidator.TerrainFingerprint(_world),
+            SeedWorldQualityValidator.TerrainFingerprint(world2));
+        Assert.Equal(
+            SeedWorldQualityValidator.EntityPlacementFingerprint(_world),
+            SeedWorldQualityValidator.EntityPlacementFingerprint(world2));
 
         // NPC coordinates should match with same seed
         var npcs1 = _world.Graph.GetEntitiesByKind(TestKinds.Penguin).ToList();
@@ -35,6 +42,63 @@ public class TestMapBuilderTests
             Assert.Equal(cells1[i].AmbientWealth, cells2[i].AmbientWealth);
             Assert.Equal(cells1[i].AmbientPopulation, cells2[i].AmbientPopulation);
         }
+    }
+
+    [Fact]
+    public void BuildDefault_ProducesMeaningfullyDifferentWorldsAcrossSeeds()
+    {
+        var worldA = TestMapBuilder.BuildDefault(seed: 42);
+        var worldB = TestMapBuilder.BuildDefault(seed: 43);
+
+        Assert.NotEqual(worldA.Seed, worldB.Seed);
+        Assert.NotEqual(
+            SeedWorldQualityValidator.TerrainFingerprint(worldA),
+            SeedWorldQualityValidator.TerrainFingerprint(worldB));
+        Assert.NotEqual(
+            SeedWorldQualityValidator.EntityPlacementFingerprint(worldA),
+            SeedWorldQualityValidator.EntityPlacementFingerprint(worldB));
+    }
+
+    [Fact]
+    public void BuildDefault_PassesSeedQualityValidation()
+    {
+        var report = SeedWorldQualityValidator.Validate(_world);
+
+        Assert.True(report.IsValid, string.Join(Environment.NewLine, report.Issues));
+    }
+
+    [Fact]
+    public void BuildDefault_PassesSeedQualityValidationAcrossManySeeds()
+    {
+        var issues = new List<string>();
+        for (var seed = 0; seed < 50; seed++)
+        {
+            var world = TestMapBuilder.BuildDefault(seed);
+            var report = SeedWorldQualityValidator.Validate(world);
+            if (!report.IsValid)
+            {
+                issues.Add($"seed {seed}, accepted {world.Seed}: {string.Join("; ", report.Issues)}");
+            }
+        }
+
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void AcceptedSeed_ReplaysThroughEmptyThenPopulate()
+    {
+        var accepted = TestMapBuilder.SelectAcceptedSeed(42);
+        var direct = TestMapBuilder.BuildDefault(seed: 42);
+        var replayed = TestMapBuilder.BuildEmpty(accepted);
+
+        TestMapBuilder.Populate(replayed, accepted);
+
+        Assert.Equal(
+            SeedWorldQualityValidator.TerrainFingerprint(direct),
+            SeedWorldQualityValidator.TerrainFingerprint(replayed));
+        Assert.Equal(
+            SeedWorldQualityValidator.EntityPlacementFingerprint(direct),
+            SeedWorldQualityValidator.EntityPlacementFingerprint(replayed));
     }
 
     // --- Grid ---
@@ -115,25 +179,43 @@ public class TestMapBuilderTests
     [Fact]
     public void Has5Settlements()
     {
-        Assert.Equal(5, _world.Graph.GetEntitiesByKind(TestKinds.Settlement).Count);
+        Assert.InRange(_world.Graph.GetEntitiesByKind(TestKinds.Settlement).Count, 7, 8);
     }
 
     [Fact]
     public void Has3Npcs()
     {
-        Assert.Equal(3, _world.Graph.GetEntitiesByKind(TestKinds.Penguin).Count);
+        Assert.InRange(_world.Graph.GetEntitiesByKind(TestKinds.Penguin).Count, 5, 7);
     }
 
     [Fact]
     public void Has1Artifact()
     {
-        Assert.Single(_world.Graph.GetEntitiesByKind(TestKinds.Artifact));
+        Assert.InRange(_world.Graph.GetEntitiesByKind(TestKinds.Artifact).Count, 2, 3);
     }
 
     [Fact]
     public void Has3Regions()
     {
         Assert.Equal(3, _world.Graph.GetEntitiesByKind(TestKinds.Region).Count);
+    }
+
+    [Fact]
+    public void KeepsFixedLegendaryAnchors()
+    {
+        var names = _world.Graph.AllEntities.Values.Select(entity => entity.Name).ToHashSet();
+
+        Assert.Contains("Northlands", names);
+        Assert.Contains("Heartlands", names);
+        Assert.Contains("Coastlands", names);
+        Assert.Contains("Frosthaven", names);
+        Assert.Contains("Ironhold", names);
+        Assert.Contains("Driftwatch", names);
+        Assert.Contains("Wavecrest", names);
+        Assert.Contains("Midpoint", names);
+        Assert.Contains("Northern Compact", names);
+        Assert.Contains("Southern Order", names);
+        Assert.Contains("Stormcleaver", names);
     }
 
     // --- Relationships ---
@@ -206,13 +288,15 @@ public class TestMapBuilderTests
     [Fact]
     public void Artifact_IsStoredAtSettlement()
     {
-        var artifactId = _world.Graph.GetEntitiesByKind(TestKinds.Artifact).First();
-        var storedAt = _world.Graph.OutgoingRelationships(artifactId, "stored_at").ToList();
-        Assert.Single(storedAt);
+        foreach (var artifactId in _world.Graph.GetEntitiesByKind(TestKinds.Artifact))
+        {
+            var storedAt = _world.Graph.OutgoingRelationships(artifactId, "stored_at").ToList();
+            Assert.Single(storedAt);
 
-        var location = _world.Graph.GetEntity(storedAt[0].TargetId);
-        Assert.NotNull(location);
-        Assert.Equal(TestKinds.Settlement, location.Kind);
+            var location = _world.Graph.GetEntity(storedAt[0].TargetId);
+            Assert.NotNull(location);
+            Assert.Equal(TestKinds.Settlement, location.Kind);
+        }
     }
 
     [Fact]

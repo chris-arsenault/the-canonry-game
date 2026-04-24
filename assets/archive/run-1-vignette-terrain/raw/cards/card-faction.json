@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-faction",
+  "file": "cards/card-faction.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "nightshelf",
+  "model": "flux-2-pro",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: a Shadow Parliament gathering in a fire-core-lit cave-chamber\nbeneath the permanent ice shelf. Three hooded figures stand around a\nstone table; bioluminescent ice glyphs pulse cold blue-green along the\nwalls. A tattered faction banner with a ☽-marked sigil hangs behind them.\nSmoke from venting picks curls upward. Conspiracy and rank, not ceremony.\nLower half: warm dark surface for overlaid text, ghosted banner\nwatermark. Warm cream parchment frame.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor on aged parchment, three hooded penguin figures gathered around a stone table in a fire-core-lit ice cavern, walls pulsing cold teal bioluminescence against charcoal shadow, ember orange heat cutting through deep slate dark.",
+    "subjects": [
+      {
+        "type": "three adult emperor penguins, robed council figures",
+        "description": "Tall lean silhouettes in charcoal wraps and volcanic-glass masks, ember-thread embroidery faintly aglow, hooded; venting-pick tools resting on stone table, posture conspiratorial and ranked",
+        "position": "upper half center, arranged around stone table",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "cave-chamber architecture and faction banner",
+        "description": "Tattered hanging banner bearing a ☽-marked sigil, blackened and soot-frayed; bioluminescent ice glyphs lining tunnel walls, curling smoke from venting picks rising toward vaulted ice ceiling",
+        "position": "upper background, full width",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "lower card surface",
+        "description": "Warm vellum parchment ground, ghosted ☽ watermark banner sigil faintly pressed beneath surface, aged foxing at edges, empty for text overlay",
+        "position": "lower third",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "aecad3d2-8ffe-45f6-a508-c38784ef5b63",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.010608,
+  "duration_ms": 9475,
+  "generated_at": "2026-04-24T09:14:37.988Z"
+}

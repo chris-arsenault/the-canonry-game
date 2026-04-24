@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-reef",
+  "file": "terrain/reef.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of a cold-water reef — dense kelp-black and\nrust tones over deep blue water, skeletal coral structures, pale stone\nglimpsed between. Dense and slightly forbidding.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, orthographic top-down view of a cold-water reef, dense skeletal coral and kelp mats over deep blue-slate water, ember rust and pale vellum stone glimpsed between dark fronds.",
+    "subjects": [
+      {
+        "type": "reef surface",
+        "description": "Dense top-down kelp canopy, tangled dark fronds layered over skeletal branching coral structures, matte and forbidding, filling the hex frame evenly",
+        "position": "center fill",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "coral skeleton",
+        "description": "Pale fractured coral branches and exposed stone fragments visible between kelp, thin nib-pen linework, cold and angular",
+        "position": "distributed across frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "deep water shadow",
+        "description": "Cold deep water pooling between structures, dense gravitational shadow pressing up between reef formations",
+        "position": "background fill",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "0b51d0c8-94cf-4546-a503-fa7b186343fa",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008313000000000001,
+  "duration_ms": 5407,
+  "generated_at": "2026-04-24T09:14:19.085Z"
+}

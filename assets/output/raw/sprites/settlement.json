@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "settlement",
+  "file": "sprites/settlement.png",
+  "spec_type": "background",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "An Aurora Stack city rising in tiers against a darkening sky — many\ncrystalline ice spires, not few, reading at civilizational scale: a\npopulation of thousands evident in bridges, ledges, council platforms at\nthe top, dense Huddle Warren terraces in the middle, Foundation Depths\nvents glowing warm ember at the base. Aurora above. Seen from a slight\n3/4 elevated angle. Never a hut, never a few domes.",
+  "formatted_prompt": "Painterly ink-and-watercolor illustration, richly pigmented, game-poster saturation, single cohesive background panel at 1:1 filling the frame edge to edge. A vast Aurora Stack city rises in tiered civilizational scale against a deep slate-blue darkening sky (#0D1A2D), dozens of crystalline ice spires clustered in vertical formation, prismatic lenses catching aurora-green light and fracturing it across pale blue-white facades. Topmost council platforms and ceremonial halls glow with cool prismatic shimmer, aurora ribbons burning vivid emerald overhead. Middle tiers show dense terraced Huddle Warren ledges connected by arching ice bridges, hundreds of inhabited windows implied by warm prismatic light. Foundation Depths vents at the base pulse bright ember-orange through ancient pale ice-plate masonry. Rank-script carved deep into spire flanks. 3/4 elevated angle, full atmosphere, aurora-crystal luminous cyan highlights catching every polished surface rim, deep slate shadow pooling between towers.",
+  "bfl_task_id": "5fdee058-6faf-49da-b43b-a16f6cdc1117",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.007959,
+  "duration_ms": 8927,
+  "generated_at": "2026-04-24T16:35:55.861Z"
+}

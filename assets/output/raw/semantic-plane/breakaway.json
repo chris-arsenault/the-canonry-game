@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "pane-breakaway",
+  "file": "semantic-plane/breakaway.png",
+  "spec_type": "background",
+  "section_id": "1e-semantic-plane-panes",
+  "section": "1e · Semantic-plane stained-glass panes",
+  "style_id": "stained-glass",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A cathedral stained-glass window pane. An adult emperor penguin mid-\nstride, ice chains snapping apart around its flippers, arms raised\ntoward an aurora crown overhead. Rich cobalt-blue sky panels behind,\ngold rays radiating outward. Lead-divided jewel-toned glass, ornate\nborders. Symbol of sovereignty and breakaway freedom.",
+  "formatted_prompt": "STYLE: Cathedral stained-glass window pane; lead-divided jewel-toned glass panels with thick black lead lines; Gothic altarpiece composition centered for hex-wedge cropping; painterly glass-on-light register with rich saturated color; ornate Gothic border framing all four edges; rose-window grandeur with editorial restraint\n\nSUBJECT: Adult emperor penguin mid-stride, tall and lean with narrow pointed beak, small dark eyes proportional to skull, sleek upright plumage; both flippers raised outward as fractured ice chains snap apart mid-air around them; fragments of shattered chain scatter in radiating arcs; above the penguin's head, an aurora crown rendered in arcing glass panels of emerald and gold\n\nCONTEXT: Sovereign breakaway moment frozen in glass; the penguin occupies the vertical center of the pane; gold rays radiate outward from the figure like a halo or sunburst, dividing the background into faceted cobalt-blue sky panels; the scene reads as icon, altar, and proclamation\n\nCOLOR: Deep cobalt-blue (#1E4A85) for sky panels behind the figure; hot-springs emerald (#2DB56B) in aurora crown arcs overhead; warm ochre-gold (#C18A63) for radiating light rays and chain fragment highlights; shelf light blue (#4A90C5) for ice-chain glass pieces; warm brown (#6B5548) in ornate Gothic border tracery; aged parchment (#F5EDD8) as the ambient light behind the glass\n\nDETAILS: Thick black lead lines divide every panel; glass surface luminous as if backlit by cathedral light; ornate interlocking Gothic knotwork at all four border edges; adult anatomical proportions throughout — lean, tall, no cartoon rounding",
+  "bfl_task_id": "req_9ab1b043f9654a2980fd01b95b83b268",
+  "cost_usd": 0.059430000000000004,
+  "claude_cost_usd": 0.009903,
+  "duration_ms": 18685,
+  "generated_at": "2026-04-24T18:37:02.094Z"
+}

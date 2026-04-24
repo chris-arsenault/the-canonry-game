@@ -1,0 +1,321 @@
+{
+  "schema": "illuminator/atlas@1",
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "type": "icon",
+  "group": "map-icons",
+  "variant": "size:16",
+  "image": "atlases/map-icons@16.png",
+  "width": 616,
+  "height": 20,
+  "padding": 2,
+  "generated_at": "2026-04-24T18:39:41+00:00",
+  "entries": [
+    {
+      "spec_id": "artifact-instrument-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/artifact-instrument@16.png",
+      "x": 2,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "artifact-relic-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/artifact-relic@16.png",
+      "x": 20,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "artifact-seal-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/artifact-seal@16.png",
+      "x": 38,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "artifact-tome-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/artifact-tome@16.png",
+      "x": 56,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "artifact-weapon-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/artifact-weapon@16.png",
+      "x": 74,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "artifact-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/artifact@16.png",
+      "x": 92,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "faction-cell-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/faction-cell@16.png",
+      "x": 110,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "faction-choir-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/faction-choir@16.png",
+      "x": 128,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "faction-compact-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/faction-compact@16.png",
+      "x": 146,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "faction-order-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/faction-order@16.png",
+      "x": 164,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "faction-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/faction@16.png",
+      "x": 182,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "orca-cripple-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/orca-cripple@16.png",
+      "x": 200,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "orca-shamen-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/orca-shamen@16.png",
+      "x": 218,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "orca-war-leader-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/orca-war-leader@16.png",
+      "x": 236,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "orca-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/orca@16.png",
+      "x": 254,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "penguin-broker-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/penguin-broker@16.png",
+      "x": 272,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "penguin-exile-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/penguin-exile@16.png",
+      "x": 290,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "penguin-warden-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/penguin-warden@16.png",
+      "x": 308,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "penguin-witness-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/penguin-witness@16.png",
+      "x": 326,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "penguin-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/penguin@16.png",
+      "x": 344,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-depths-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region-depths@16.png",
+      "x": 362,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-face-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region-face@16.png",
+      "x": 380,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-reach-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region-reach@16.png",
+      "x": 398,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-scar-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region-scar@16.png",
+      "x": 416,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-sea-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region-sea@16.png",
+      "x": 434,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-shelf-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region-shelf@16.png",
+      "x": 452,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "region-cairn-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/region@16.png",
+      "x": 470,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-colony-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement-colony@16.png",
+      "x": 488,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-harbor-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement-harbor@16.png",
+      "x": 506,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-holdfast-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement-holdfast@16.png",
+      "x": 524,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-reefhold-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement-reefhold@16.png",
+      "x": 542,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-rookery-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement-rookery@16.png",
+      "x": 560,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-sanctuary-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement-sanctuary@16.png",
+      "x": 578,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "settlement-icon",
+      "spec_type": "icon",
+      "source_file": "map-icons/settlement@16.png",
+      "x": 596,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    }
+  ]
+}

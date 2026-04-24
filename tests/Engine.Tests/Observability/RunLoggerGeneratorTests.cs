@@ -98,6 +98,7 @@ public class RunLoggerGeneratorTests
             Kinds = config.Kinds,
             Processes = config.Processes,
             Relationships = config.Relationships,
+            RelationshipFacts = config.RelationshipFacts,
             Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,

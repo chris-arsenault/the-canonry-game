@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "tableau-backdrop",
+  "file": "backgrounds/tableau.png",
+  "spec_type": "background",
+  "section_id": "7-atmospheric-art",
+  "section": "7 · Atmospheric art",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A subdued cartographic map of Aurora Berg, rendered as an archival chart\non warm-cream parchment. The Aurora Stack crystalline spire colony\nsketched on one tier of the Berg, Nightshelf tunnel labyrinths\ncrosshatched beneath, the Corpse Current marked as a dark arc of warm\nwater tracking below the sea-ice. Compass rose in one corner. Faint\nhex-grid overlaying the landmass. Echo-script annotations in the margins.\nMuted enough that white text overlaid on it stays fully legible — this\nis a backdrop, not a feature. Antique atlas aesthetic, civilizationally\naware.",
+  "formatted_prompt": "Editorial ink-and-watercolor field-journal illustration on aged warm-cream parchment (#F5EDD8), rendered as an antique atlas chart in 16:9 landscape. A subdued cartographic spread of a great polar iceberg-continent fills the frame: one elevated tier sketched with slender crystalline spires and prismatic lens towers in pale ice-blue (#4A90C5) linework, representing the sunlit vertical colony — tiered ceremonial halls, coronet arches, faint aurora-green shimmer traced along polished surfaces. Beneath, crosshatched tunnel labyrinths in warm brown (#6B5548) suggest underground passages. A dark arc of deep ocean blue (#1E4A85) curves below the sea-ice margin, annotated as a warm-water current. Faint hex-grid overlays the landmass in translucent ochre (#C18A63). A decorative compass rose occupies one corner in fine nib-pen linework. Chinese-influenced echo-script annotations crowd the parchment margins. Tonal values kept deliberately low-contrast and muted — soft washes, restrained saturation — so white overlay text reads cleanly against the surface. Foxed parchment edges, aged paper grain, civilizationally aware cartographic calm.",
+  "bfl_task_id": "3a902c39-5104-4940-8b8c-b4decad0a634",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008948999999999999,
+  "duration_ms": 12061,
+  "generated_at": "2026-04-24T16:38:06.482Z"
+}

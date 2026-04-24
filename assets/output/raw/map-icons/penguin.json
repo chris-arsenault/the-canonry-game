@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin-icon",
+  "file": "map-icons/penguin.png",
+  "spec_type": "icon",
+  "section_id": "1b-entity-map-icons",
+  "section": "1b · Entity map icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "An adult emperor penguin warlord, front view, tall and lean with a\nlong straight beak and upright dignified stance. A small three-point\ncrown on the head. Holding a short sword point-down at the side.\nSaturated colored belly, dark body.",
+  "formatted_prompt": "STYLE: flat modern app icon; bold vector geometry with crisp hard edges; single centered subject on plain off-white canvas; generous padding all sides; Phosphor Fill / SF Symbols Filled register; every shape readable at 16px\n\nSUBJECT: adult emperor penguin, front-facing, tall and lean with narrow pointed straight beak, small dark eyes proportional to skull, upright dignified posture, sleek plumage; small three-point crown centered on head; short sword held point-down at one side, gripped at the handle; dark body plumage, saturated colored belly panel\n\nCONTEXT: isolated app icon, no scene, no background elements, centered on plain off-white canvas\n\nCOLOR: body and wings in #0000FF deep flat blue-black; belly panel in #FFFF00 saturated yellow; three-point crown in #FF6600 vivid orange; sword blade in #FFFFFF white; sword handle in #FF0000 red; beak in #FF6600 orange; feet in #FF6600; crown and sword read as distinct flat secondary shapes against the body\n\nDETAILS: all edges sharp and deliberate vector geometry; interior details rendered as flat secondary-color shapes; belly panel, crown points, and sword hilt each a distinct flat fill; no gradients, no textures, no brushwork, no ink strokes; clean crisp silhouette bold enough to read as a closed shape at 16px; adult anatomical proportions throughout, lean and tall\n\nCONSTRAINTS: flat icon only; zero painterly rendering; zero grain or weathering; no cartoon proportions; no oversized eyes; no juvenile anatomy",
+  "bfl_task_id": "req_73d2228682d24d07b375e266094f2f32",
+  "cost_usd": 0.056965,
+  "claude_cost_usd": 0.009615,
+  "duration_ms": 28977,
+  "generated_at": "2026-04-24T18:01:45.454Z"
+}

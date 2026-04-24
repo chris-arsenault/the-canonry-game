@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-penguin",
+  "file": "cards/card-penguin.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: a High-Beak Auditor mid-ceremony at the Apex of the spire\ncolony, long ice-bladed sword held vertical before him, pale prismatic\nglyph script hanging in the air around his palms as he reads the\nice-memory. Aurora band across a dark sky behind. Lower half: a plain warm\ndark surface reserved for overlaid text, with a faint ghosted echo-script\nwatermark. Warm cream parchment frame.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration on aged cream parchment, 3:4 vertical card face, richly pigmented Mary Blair–saturated palette. Upper two-thirds: a lean adult emperor penguin — tall upright posture, narrow pointed beak, small watchful dark eyes, sleek plumage — dressed as a High-Beak Auditor in pale ice-plate armor over flowing white robes, segmented silvered pauldrons etched with Chinese-influenced rank script, aurora-crystal coronet glinting luminous cyan at the brow. He holds a long ice-bladed sword vertical before him, the prismatic blade tip faintly glowing cool green. Pale prismatic glyph-script floats in the air around his open palms, cool aquamarine shimmer, meditative and slow. Behind him: a luminous deep-cobalt aurora band burns across a near-black #0D1A2D sky above crystalline spire architecture catching clean blue-white light. Lower third: flat warm #C18A63-toned dark ground reserved for text overlay, bearing a ghosted watermark of echo-script in deep slate. Cream parchment border frames the card. Lighting is cool and frontal from the aurora above, silvered highlights on every polished surface edge.",
+  "bfl_task_id": "c146a4a4-78f2-49c2-8ada-0f738a331a10",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008871,
+  "duration_ms": 8788,
+  "generated_at": "2026-04-24T16:37:21.077Z"
+}

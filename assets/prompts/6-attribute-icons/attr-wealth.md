@@ -1,2 +1,3 @@
 Three stacked coins viewed from the edge — three narrow horizontal
-ellipses, faint gilt wash on the topmost coin only.
+ellipses in flat saturated fill, the topmost coin in a warmer gold-
+tone color for differentiation.

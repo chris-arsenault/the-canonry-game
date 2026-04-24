@@ -84,23 +84,6 @@ public class MutationTests
     }
 
     [Fact]
-    public void ModifySelfByVariableMutation_CanWriteSemanticPlaneComponents()
-    {
-        var world = new StubWorldState(gridRadius: 5);
-        var self = CreateSettlement(world, "Self", (0, 0), ideology: (0.2f, 0.8f));
-        var context = new TestMutationContext(self, worldState: world, random: new FixedRandom(0.5));
-        context.SetVariable("dx", 0.3f);
-        context.SetVariable("dy", -0.2f);
-
-        new ModifySelfByVariableMutation("ideology", "dx", "x").Execute(context);
-        new ModifySelfByVariableMutation("ideology", "dy", "y").Execute(context);
-
-        var plane = self.Attributes.GetPlane("ideology")!;
-        Assert.Equal(0.5f, plane.X, precision: 3);
-        Assert.Equal(0.6f, plane.Y, precision: 3);
-    }
-
-    [Fact]
     public void ModifyTargetByVariableMutation_UsesZeroWhenVariableIsMissing()
     {
         var world = new StubWorldState(gridRadius: 5);
@@ -222,14 +205,11 @@ public class MutationTests
         string name,
         (int Q, int R) coordinates,
         float population = 0f,
-        float fame = 0f,
-        (float X, float Y)? ideology = null)
+        float fame = 0f)
     {
         var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
-        var (x, y) = ideology ?? (0.5f, 0.5f);
-        entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, x, y));
         return entity;
     }
 

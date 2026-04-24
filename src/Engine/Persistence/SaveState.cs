@@ -98,6 +98,9 @@ public sealed class RelationshipData
 
     [Key(6)]
     public int? EndDate { get; set; }
+
+    [Key(7)]
+    public List<string> Facts { get; set; } = [];
 }
 
 [MessagePackObject]

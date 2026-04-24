@@ -12,19 +12,82 @@ using K = Engine.Domain.IceRemembers.IceRemembersKinds;
 /// </summary>
 public sealed class TestMapBuilder
 {
+    private const int MaxAcceptedSeedAttempts = 64;
+
+    private static readonly IceRemembersCulture[] CoastalCultures =
+    [
+        IceRemembersCulture.Nightshelf,
+        IceRemembersCulture.WakeSingers,
+    ];
+
+    private static readonly IceRemembersCulture[] InteriorCultures =
+    [
+        IceRemembersCulture.AuroraStack,
+        IceRemembersCulture.Nightshelf,
+        IceRemembersCulture.WakeSingers,
+    ];
+
+    private static readonly IceRemembersCulture[] NorthernPenguinCultures =
+    [
+        IceRemembersCulture.AuroraStack,
+        IceRemembersCulture.WakeSingers,
+    ];
+
+    private static readonly IceRemembersCulture[] SouthernPenguinCultures =
+    [
+        IceRemembersCulture.Nightshelf,
+        IceRemembersCulture.WakeSingers,
+    ];
+
+    private static readonly string[] CoastalSettlementSubtypes = ["harbor", "reefhold"];
+    private static readonly string[] InteriorSettlementSubtypes = ["rookery", "colony", "holdfast", "sanctuary"];
+    private static readonly string[] InteriorCoverageKeys = ["northlands", "heartlands"];
+    private static readonly string[] CoastalSettlementNames = ["Brinegate", "Lowwake", "Pearlmark", "Greyreef", "Tidehollow"];
+    private static readonly string[] InteriorSettlementNames = ["Palehollow", "Snowcairn", "Embercrease", "Whitebarrow", "Underbell"];
+    private static readonly string[] PenguinGivenNames = ["Softstep", "Glass-Eye", "Ashbill", "Keelback", "Mourncrest", "Little Thaw"];
+    private static readonly string[] PenguinByNames = ["Underice", "Farcall", "Whitewake", "Coalbeak", "Noonless"];
+    private static readonly string[] PenguinSubtypes = ["warden", "broker", "witness", "exile"];
+    private static readonly string[] SupportingArtifactSubtypes = ["relic", "instrument", "tome", "seal"];
+    private static readonly string[] SupportingArtifactNames = ["Low Bell", "Black Ledger", "Meltglass Needle", "Salted Key", "Moon-Under-Ice"];
+
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
 
     /// <summary>
-    /// Build the default test world: a radius-20 hex grid with 3 regions,
-    /// 2 factions, 5 settlements, 3 NPCs, 1 artifact, and relationships.
-    /// NPCs spawn at random walkable hex locations.
+    /// Build the default test world from an accepted procedural seed. A fixed
+    /// input seed always resolves to the same accepted terrain and seed roster.
     /// </summary>
     public static TestWorld BuildDefault(int? seed = null)
     {
-        var random = seed.HasValue ? new Random(seed.Value) : new Random();
-        var world = BuildEmpty(random);
-        Populate(world, random);
-        return world;
+        var baseSeed = seed ?? Random.Shared.Next();
+        var acceptedSeed = SelectAcceptedSeed(baseSeed);
+        return BuildUnchecked(acceptedSeed);
+    }
+
+    public static WorldGenerationSeed SelectAcceptedSeed(Random random)
+    {
+        ArgumentNullException.ThrowIfNull(random);
+        return SelectAcceptedSeed(random.Next());
+    }
+
+    public static WorldGenerationSeed SelectAcceptedSeed(int baseSeed)
+    {
+        IReadOnlyList<string> lastIssues = [];
+        for (var attempt = 0; attempt < MaxAcceptedSeedAttempts; attempt++)
+        {
+            var seed = WorldGenerationSeed.FromBaseSeed(baseSeed, attempt);
+            var world = BuildUnchecked(seed);
+            var report = SeedWorldQualityValidator.Validate(world);
+            if (report.IsValid)
+            {
+                return seed;
+            }
+
+            lastIssues = report.Issues;
+        }
+
+        throw new InvalidOperationException(
+            $"Could not build an accepted procedural seed for base seed {baseSeed}. " +
+            $"Last issues: {string.Join("; ", lastIssues)}");
     }
 
     /// <summary>
@@ -32,14 +95,13 @@ public sealed class TestMapBuilder
     /// subscribe systems to <see cref="WorldGraph.EntityCreated"/> before any
     /// entity exists. Follow with <see cref="Populate"/>.
     /// </summary>
-    public static TestWorld BuildEmpty(Random random)
+    public static TestWorld BuildEmpty(WorldGenerationSeed seed)
     {
-        ArgumentNullException.ThrowIfNull(random);
         var grid = new HexGrid(20);
         var coverageMap = new MapCoverageMap();
         var graph = new WorldGraph();
-        PaintTerrain(grid, random);
-        return new TestWorld(grid, coverageMap, graph);
+        PaintTerrain(grid, new Random(seed.TerrainSeed));
+        return new TestWorld(grid, coverageMap, graph, seed);
     }
 
     /// <summary>
@@ -48,12 +110,18 @@ public sealed class TestMapBuilder
     /// <see cref="WorldGraph.EntityCreated"/>, so any subscribers wired on the
     /// empty graph will initialize these entities as they are created.
     /// </summary>
-    public static void Populate(TestWorld world, Random random)
+    public static void Populate(TestWorld world, WorldGenerationSeed seed)
     {
         ArgumentNullException.ThrowIfNull(world);
-        ArgumentNullException.ThrowIfNull(random);
         var regions = CreateRegionEntities(world.Graph);
-        CreateEntities(world.Graph, world.Grid, world.CoverageMap, regions, random);
+        CreateEntities(world.Graph, world.Grid, world.CoverageMap, regions, new Random(seed.EntitySeed));
+    }
+
+    private static TestWorld BuildUnchecked(WorldGenerationSeed seed)
+    {
+        var world = BuildEmpty(seed);
+        Populate(world, seed);
+        return world;
     }
 
     private static void PaintTerrain(HexGrid grid, Random random)
@@ -279,30 +347,35 @@ public sealed class TestMapBuilder
             takenPhysical,
             minimumDistance: 5,
             cell => FrosthavenScore(grid, coverageMap, regions["northlands"], cell));
+        ReservePhysical(frosthavenCoord, takenPhysical, "Frosthaven");
         var ironholdCoord = ChooseAnchor(
             grid,
             random,
             takenPhysical,
             minimumDistance: 5,
             cell => IronholdScore(grid, coverageMap, regions["heartlands"], cell));
+        ReservePhysical(ironholdCoord, takenPhysical, "Ironhold");
         var driftwatchCoord = ChooseAnchor(
             grid,
             random,
             takenPhysical,
             minimumDistance: 6,
             cell => DriftwatchScore(grid, coverageMap, regions["coastlands"], cell));
+        ReservePhysical(driftwatchCoord, takenPhysical, "Driftwatch");
         var wavecrestCoord = ChooseAnchor(
             grid,
             random,
             takenPhysical,
             minimumDistance: 6,
             cell => WavecrestScore(grid, coverageMap, regions["coastlands"], cell));
+        ReservePhysical(wavecrestCoord, takenPhysical, "Wavecrest");
         var midpointCoord = ChooseAnchor(
             grid,
             random,
             takenPhysical,
             minimumDistance: 5,
             cell => MidpointScore(grid, coverageMap, regions["heartlands"], cell));
+        ReservePhysical(midpointCoord, takenPhysical, "Midpoint");
 
         var s1 = graph.CreateEntity(
             K.Settlement, "rookery", "Frosthaven", C(IceRemembersCulture.AuroraStack), tick: 0,
@@ -320,17 +393,12 @@ public sealed class TestMapBuilder
             K.Settlement, "colony", "Midpoint", C(IceRemembersCulture.AuroraStack), tick: 0,
             coordinates: (midpointCoord.Q, midpointCoord.R));
 
-        takenPhysical.Add(frosthavenCoord);
-        takenPhysical.Add(ironholdCoord);
-        takenPhysical.Add(driftwatchCoord);
-        takenPhysical.Add(wavecrestCoord);
-        takenPhysical.Add(midpointCoord);
-
         SetSemanticProjected(s1, frosthavenCoord, takenSemantic, bias: new SemanticHexCoord(-1, -2));
         SetSemanticProjected(s2, ironholdCoord, takenSemantic, bias: new SemanticHexCoord(-2, 1));
         SetSemanticProjected(s3, driftwatchCoord, takenSemantic, bias: new SemanticHexCoord(2, -1));
         SetSemanticProjected(s4, wavecrestCoord, takenSemantic, bias: new SemanticHexCoord(1, 2));
         SetSemanticProjected(s5, midpointCoord, takenSemantic, bias: SemanticHexCoord.Origin);
+        var allSettlements = new List<Entity> { s1, s2, s3, s4, s5 };
 
         var factionA = graph.CreateEntity(
             K.Faction, "compact", "Northern Compact", C(IceRemembersCulture.AuroraStack), tick: 0);
@@ -339,22 +407,12 @@ public sealed class TestMapBuilder
 
         var factionACoord = ChooseNearbyFreeCell(grid, takenPhysical, Centroid(frosthavenCoord, ironholdCoord, midpointCoord), searchRadius: 8)
             ?? throw new InvalidOperationException("Could not place Northern Compact near its settlements.");
+        SetPhysical(factionA, factionACoord, takenPhysical);
         var factionBCoord = ChooseNearbyFreeCell(grid, takenPhysical, Centroid(driftwatchCoord, wavecrestCoord), searchRadius: 8)
             ?? throw new InvalidOperationException("Could not place Southern Order near its settlements.");
-        SetPhysical(factionA, factionACoord, takenPhysical);
         SetPhysical(factionB, factionBCoord, takenPhysical);
         SetSemanticProjected(factionA, factionACoord, takenSemantic, bias: new SemanticHexCoord(-3, 3));
         SetSemanticProjected(factionB, factionBCoord, takenSemantic, bias: new SemanticHexCoord(3, -3));
-
-        var settlementsByCoord = new Dictionary<HexCoord, EntityId>
-        {
-            [frosthavenCoord] = s1.Id,
-            [ironholdCoord] = s2.Id,
-            [driftwatchCoord] = s3.Id,
-            [wavecrestCoord] = s4.Id,
-            [midpointCoord] = s5.Id,
-        };
-        var npcHostSettlements = new[] { s1, s3, s5 };
 
         // Faction A controls northern settlements
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s1.Id, factionA.Id, 1f, 0);
@@ -365,13 +423,34 @@ public sealed class TestMapBuilder
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s3.Id, factionB.Id, 1f, 0);
         graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s4.Id, factionB.Id, 1f, 0);
 
+        CreateSupportingSettlements(
+            graph,
+            grid,
+            coverageMap,
+            regions,
+            random,
+            takenPhysical,
+            takenSemantic,
+            allSettlements,
+            factionA,
+            factionB);
+
+        var settlementsByCoord = allSettlements.ToDictionary(
+            settlement => new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R),
+            settlement => settlement.Id);
+        var npcHostSettlements = allSettlements
+            .OrderBy(_ => random.Next())
+            .Take(Math.Min(5, allSettlements.Count))
+            .ToArray();
+
         // --- NPCs (random walkable hex, excluding already-taken positions) ---
-        var npcDefs = new (string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)[]
+        var npcDefs = new List<(string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)>
         {
             ("warden", "Captain Greyfeather", C(IceRemembersCulture.AuroraStack), factionA.Id, 0.9f),
             ("broker", "Trader Shellback", C(IceRemembersCulture.Nightshelf), factionB.Id, 0.7f),
             ("witness", "Elder Deepcurrent", C(IceRemembersCulture.AuroraStack), factionA.Id, 0.8f),
         };
+        npcDefs.AddRange(CreateSupportingPenguinPlans(random, factionA, factionB));
 
         // NPCs get distinct semantic positions so factions have to pick among
         // targets and move between them on the plane. NPCs themselves don't move
@@ -427,6 +506,10 @@ public sealed class TestMapBuilder
             {
                 SetSemantic(npc, FindNearestFreeSemantic(npcSemanticSeeds[npcIndex], takenSemantic), takenSemantic);
             }
+            else
+            {
+                SetSemanticProjected(npc, hex, takenSemantic, RandomSemanticBias(random));
+            }
             npcIndex++;
 
             // Loyalty to faction
@@ -453,6 +536,182 @@ public sealed class TestMapBuilder
 
         // Artifact stored at Frosthaven (not held by a specific NPC since NPCs are randomly placed)
         graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0);
+
+        CreateSupportingArtifacts(
+            graph,
+            grid,
+            random,
+            takenPhysical,
+            takenSemantic,
+            allSettlements);
+    }
+
+    private static void CreateSupportingSettlements(
+        WorldGraph graph,
+        HexGrid grid,
+        MapCoverageMap coverageMap,
+        Dictionary<string, MapCoverage> regions,
+        Random random,
+        HashSet<HexCoord> takenPhysical,
+        HashSet<SemanticHexCoord> takenSemantic,
+        List<Entity> allSettlements,
+        Entity factionA,
+        Entity factionB)
+    {
+        var count = 2 + random.Next(2);
+        var usedNames = allSettlements.Select(settlement => settlement.Name).ToHashSet(StringComparer.Ordinal);
+
+        for (var i = 0; i < count; i++)
+        {
+            var coastal = i == 0 ? random.NextSingle() < 0.65f : random.NextSingle() < 0.35f;
+            var culture = Pick(
+                coastal ? CoastalCultures : InteriorCultures,
+                random);
+            var subtype = coastal
+                ? Pick(CoastalSettlementSubtypes, random)
+                : Pick(InteriorSettlementSubtypes, random);
+            var coverageKey = coastal
+                ? "coastlands"
+                : Pick(InteriorCoverageKeys, random);
+            var controlledBy = coverageKey == "coastlands" || culture == IceRemembersCulture.Nightshelf
+                ? factionB
+                : factionA;
+            var coverage = regions[coverageKey];
+            var coord = ChooseAnchor(
+                grid,
+                random,
+                takenPhysical,
+                minimumDistance: 4,
+                cell => SupportingSettlementScore(grid, coverageMap, coverage, cell, coastal));
+            var name = UniqueName(
+                Pick(
+                    coastal
+                        ? CoastalSettlementNames
+                        : InteriorSettlementNames,
+                    random),
+                usedNames);
+
+            var settlement = graph.CreateEntity(
+                K.Settlement,
+                subtype,
+                name,
+                C(culture),
+                tick: 0,
+                coordinates: (coord.Q, coord.R));
+            takenPhysical.Add(coord);
+            SetSemanticProjected(settlement, coord, takenSemantic, RandomSemanticBias(random));
+            allSettlements.Add(settlement);
+            graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, controlledBy.Id, 0.65f, 0);
+        }
+    }
+
+    private static IEnumerable<(string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)>
+        CreateSupportingPenguinPlans(Random random, Entity factionA, Entity factionB)
+    {
+        var count = 2 + random.Next(3);
+        var names = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Captain Greyfeather",
+            "Trader Shellback",
+            "Elder Deepcurrent",
+        };
+
+        for (var i = 0; i < count; i++)
+        {
+            var faction = random.NextSingle() < 0.55f ? factionA : factionB;
+            var culture = Pick(
+                faction == factionA ? NorthernPenguinCultures : SouthernPenguinCultures,
+                random);
+            var name = UniqueName(
+                $"{Pick(PenguinGivenNames, random)} {Pick(PenguinByNames, random)}",
+                names);
+
+            yield return (
+                Pick(PenguinSubtypes, random),
+                name,
+                C(culture),
+                faction.Id,
+                0.45f + ((float)random.NextDouble() * 0.45f));
+        }
+    }
+
+    private static void CreateSupportingArtifacts(
+        WorldGraph graph,
+        HexGrid grid,
+        Random random,
+        HashSet<HexCoord> takenPhysical,
+        HashSet<SemanticHexCoord> takenSemantic,
+        List<Entity> allSettlements)
+    {
+        var count = 1 + random.Next(2);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal) { "Stormcleaver" };
+
+        for (var i = 0; i < count; i++)
+        {
+            var host = allSettlements[random.Next(allSettlements.Count)];
+            var hostCoord = new HexCoord(host.Coordinates.Q, host.Coordinates.R);
+            var coord = ChooseNearbyFreeCell(grid, takenPhysical, hostCoord, searchRadius: 5)
+                ?? throw new InvalidOperationException($"Could not place supporting artifact near {host.Name}.");
+            var subtype = Pick(SupportingArtifactSubtypes, random);
+            var name = UniqueName(
+                Pick(SupportingArtifactNames, random),
+                usedNames);
+
+            var artifact = graph.CreateEntity(
+                K.Artifact,
+                subtype,
+                name,
+                host.Culture,
+                tick: 0,
+                coordinates: (coord.Q, coord.R));
+            takenPhysical.Add(coord);
+            SetSemanticProjected(artifact, coord, takenSemantic, RandomSemanticBias(random));
+            graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, host.Id, 0.7f, 0);
+        }
+    }
+
+    private static float SupportingSettlementScore(
+        HexGrid grid,
+        MapCoverageMap coverageMap,
+        MapCoverage coverage,
+        HexCell cell,
+        bool coastal)
+    {
+        var affinity = CoverageAffinity(coverageMap, coverage, cell.Coord, 24f, 10f);
+        var terrain = coastal
+            ? TerrainScore(cell.Terrain, TerrainType.Reef, 24f) +
+              TerrainScore(cell.Terrain, TerrainType.Shelf, 22f) +
+              TerrainScore(cell.Terrain, TerrainType.Tundra, 8f) +
+              (CountAdjacentTerrains(grid, cell.Coord, TerrainType.Ocean, TerrainType.Reef, TerrainType.Shelf) * 8f)
+            : TerrainScore(cell.Terrain, TerrainType.Tundra, 20f) +
+              TerrainScore(cell.Terrain, TerrainType.HotSprings, 14f) +
+              TerrainScore(cell.Terrain, TerrainType.Ice, 10f) +
+              TerrainScore(cell.Terrain, TerrainType.Wastes, 8f);
+
+        return affinity + terrain + (cell.Habitability * 18f);
+    }
+
+    private static SemanticHexCoord RandomSemanticBias(Random random) =>
+        new(random.Next(-5, 6), random.Next(-5, 6));
+
+    private static T Pick<T>(IReadOnlyList<T> options, Random random) =>
+        options[random.Next(options.Count)];
+
+    private static string UniqueName(string baseName, HashSet<string> usedNames)
+    {
+        if (usedNames.Add(baseName))
+        {
+            return baseName;
+        }
+
+        for (var i = 2; ; i++)
+        {
+            var candidate = $"{baseName} {i}";
+            if (usedNames.Add(candidate))
+            {
+                return candidate;
+            }
+        }
     }
 
     private static TerrainType DetermineBaseTerrain(
@@ -758,12 +1017,17 @@ public sealed class TestMapBuilder
 
     private static void SetPhysical(Engine.Graph.Entity entity, HexCoord coord, HashSet<HexCoord> taken)
     {
+        ReservePhysical(coord, taken, entity.Name);
+        entity.Coordinates = (coord.Q, coord.R);
+    }
+
+    private static void ReservePhysical(HexCoord coord, HashSet<HexCoord> taken, string label)
+    {
         if (!taken.Add(coord))
         {
             throw new InvalidOperationException(
-                $"Physical position ({coord.Q},{coord.R}) already taken; duplicate starting coords.");
+                $"Physical position ({coord.Q},{coord.R}) already taken while placing {label}; duplicate starting coords.");
         }
-        entity.Coordinates = (coord.Q, coord.R);
     }
 
     private static void SetSemantic(Engine.Graph.Entity entity, SemanticHexCoord coord, HashSet<SemanticHexCoord> taken)
@@ -852,11 +1116,13 @@ public sealed class TestWorld
     public HexGrid Grid { get; }
     public MapCoverageMap CoverageMap { get; }
     public WorldGraph Graph { get; }
+    public WorldGenerationSeed Seed { get; }
 
-    public TestWorld(HexGrid grid, MapCoverageMap coverageMap, WorldGraph graph)
+    public TestWorld(HexGrid grid, MapCoverageMap coverageMap, WorldGraph graph, WorldGenerationSeed seed)
     {
         Grid = grid;
         CoverageMap = coverageMap;
         Graph = graph;
+        Seed = seed;
     }
 }

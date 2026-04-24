@@ -10,6 +10,7 @@ using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Simulation;
+using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
@@ -25,11 +26,13 @@ public partial class AttributeGraphPanel : PanelContainer
     private const int MaxSeries = 3;
     private const int MaxSamples = 200;
 
+    // Three discriminable series colors pulled from the token palette.
+    // Ember is hot (series 1), Aurora is cool (series 2), Gilt is warm-neutral (series 3).
     private static readonly Color[] Palette =
     [
-        new(0.9f, 0.35f, 0.35f),
-        new(0.35f, 0.7f, 0.95f),
-        new(0.4f, 0.9f, 0.5f),
+        UiTokens.Ember,
+        UiTokens.Aurora,
+        UiTokens.Gilt,
     ];
 
     private SimulationRunner? _sim;
@@ -74,40 +77,60 @@ public partial class AttributeGraphPanel : PanelContainer
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(560, 440);
+        CustomMinimumSize = new Vector2(580, 460);
+        AddThemeStyleboxOverride("panel", UiTheme.FloatingPanelStyle());
 
         var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", UiTokens.Space2);
         AddChild(vbox);
 
         var titleBar = new HBoxContainer();
+        titleBar.AddThemeConstantOverride("separation", UiTokens.Space2);
         vbox.AddChild(titleBar);
 
         _titleLabel = new Label
         {
-            Text = "Attribute Graph",
+            Text = "Readings",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _titleLabel.AddThemeFontSizeOverride("font_size", 14);
+        _titleLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        _titleLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        _titleLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
         titleBar.AddChild(_titleLabel);
 
-        var closeBtn = new Button { Text = "X", CustomMinimumSize = new Vector2(28, 28) };
+        var closeBtn = new Button
+        {
+            Text = "×",
+            CustomMinimumSize = new Vector2(26, 26),
+            TooltipText = "Close",
+        };
         closeBtn.Pressed += () => QueueFree();
         titleBar.AddChild(closeBtn);
 
-        vbox.AddChild(new HSeparator());
+        vbox.AddChild(new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
 
         for (var i = 0; i < MaxSeries; i++)
         {
             _slots[i] = BuildSlotRow(vbox, i);
         }
 
-        vbox.AddChild(new HSeparator());
+        vbox.AddChild(new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
 
         _graphArea = new Control
         {
             SizeFlagsVertical = SizeFlags.ExpandFill,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 240),
+            CustomMinimumSize = new Vector2(0, 260),
         };
         _graphArea.Draw += DrawGraph;
         vbox.AddChild(_graphArea);
@@ -131,7 +154,7 @@ public partial class AttributeGraphPanel : PanelContainer
 
         if (_titleLabel is not null)
         {
-            _titleLabel.Text = $"Attribute Graph (tick {_sim.Clock.CurrentTick})";
+            _titleLabel.Text = $"Readings  ·  t{_sim.Clock.CurrentTick}";
         }
 
         _graphArea?.QueueRedraw();
@@ -140,12 +163,13 @@ public partial class AttributeGraphPanel : PanelContainer
     private SeriesSlot BuildSlotRow(VBoxContainer parent, int index)
     {
         var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", UiTokens.Space2);
         parent.AddChild(row);
 
         var swatch = new ColorRect
         {
             Color = Palette[index],
-            CustomMinimumSize = new Vector2(12, 16),
+            CustomMinimumSize = new Vector2(3, 18),
             SizeFlagsVertical = SizeFlags.ShrinkCenter,
         };
         row.AddChild(swatch);
@@ -154,6 +178,7 @@ public partial class AttributeGraphPanel : PanelContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
+        kindPicker.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
         kindPicker.ItemSelected += (selected) => OnKindPicked(index, (int)selected);
         row.AddChild(kindPicker);
 
@@ -161,6 +186,7 @@ public partial class AttributeGraphPanel : PanelContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
+        attrPicker.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
         attrPicker.ItemSelected += (selected) => OnAttrPicked(index, (int)selected);
         row.AddChild(attrPicker);
 
@@ -170,10 +196,18 @@ public partial class AttributeGraphPanel : PanelContainer
             CustomMinimumSize = new Vector2(70, 0),
             HorizontalAlignment = HorizontalAlignment.Right,
         };
+        countLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+        countLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
         countLabel.AddThemeColorOverride("font_color", Palette[index]);
         row.AddChild(countLabel);
 
-        var clearBtn = new Button { Text = "×", CustomMinimumSize = new Vector2(28, 28) };
+        var clearBtn = new Button
+        {
+            Text = "×",
+            CustomMinimumSize = new Vector2(26, 26),
+            TooltipText = "Clear slot",
+        };
+        clearBtn.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
         clearBtn.Pressed += () => ClearSlot(index);
         row.AddChild(clearBtn);
 
@@ -425,24 +459,23 @@ public partial class AttributeGraphPanel : PanelContainer
         if (_sim is null || _graphArea is null) return;
 
         var size = _graphArea.Size;
-        const float margin = 42f;
+        const float margin = 48f;
         var graphW = size.X - margin * 2;
         var graphH = size.Y - margin * 2;
 
-        _graphArea.DrawRect(new Rect2(margin, margin, graphW, graphH), new Color(0.08f, 0.08f, 0.1f));
+        // Plot surface: deepest surface (Ink) with a single hairline frame.
+        _graphArea.DrawRect(new Rect2(margin, margin, graphW, graphH), UiTokens.Ink);
+        _graphArea.DrawRect(new Rect2(margin, margin, graphW, graphH), UiTokens.Hairline, filled: false);
 
-        var font = ThemeDB.FallbackFont;
+        var bodyFont = UiTheme.BodyFont;
+        var monoFont = UiTheme.MonoFont;
         var anyLines = _slots.Any(s => s.History.Any(kv => kv.Value.Count >= 2));
 
         if (!anyLines)
         {
-            if (font is not null)
-            {
-                _graphArea.DrawString(font, new Vector2(margin + 10, margin + graphH / 2),
-                    "Pick a kind and attribute to start plotting.",
-                    HorizontalAlignment.Left, -1, 12, new Color(0.5f, 0.5f, 0.55f));
-            }
-
+            _graphArea.DrawString(bodyFont, new Vector2(margin + UiTokens.Space3, margin + graphH / 2),
+                "Pick a kind and attribute to begin plotting.",
+                HorizontalAlignment.Left, -1, UiTokens.SizeBody, UiTokens.Whisper);
             return;
         }
 
@@ -471,18 +504,23 @@ public partial class AttributeGraphPanel : PanelContainer
         var tickRange = (float)(maxTick - minTick);
         var valueRange = maxVal - minVal;
 
-        if (font is not null)
+        // Faint gridlines at quartiles — Basalt on Ink for subtle tabular feel.
+        for (var q = 1; q <= 3; q++)
         {
-            var axisColor = new Color(0.55f, 0.55f, 0.6f);
-            _graphArea.DrawString(font, new Vector2(4, margin + 4), $"{maxVal:F1}",
-                HorizontalAlignment.Left, -1, 10, axisColor);
-            _graphArea.DrawString(font, new Vector2(4, margin + graphH),
-                $"{minVal:F1}", HorizontalAlignment.Left, -1, 10, axisColor);
-            _graphArea.DrawString(font, new Vector2(margin, margin + graphH + 14),
-                $"t{minTick}", HorizontalAlignment.Left, -1, 10, axisColor);
-            _graphArea.DrawString(font, new Vector2(margin + graphW - 30, margin + graphH + 14),
-                $"t{maxTick}", HorizontalAlignment.Left, -1, 10, axisColor);
+            var y = margin + graphH * q / 4f;
+            _graphArea.DrawLine(new Vector2(margin, y), new Vector2(margin + graphW, y),
+                UiTokens.Hairline, 1f);
         }
+
+        // Axis labels in mono for tabular alignment.
+        _graphArea.DrawString(monoFont, new Vector2(UiTokens.Space2, margin + UiTokens.Space2),
+            $"{maxVal:F1}", HorizontalAlignment.Left, -1, UiTokens.SizeCaption, UiTokens.Parchment);
+        _graphArea.DrawString(monoFont, new Vector2(UiTokens.Space2, margin + graphH),
+            $"{minVal:F1}", HorizontalAlignment.Left, -1, UiTokens.SizeCaption, UiTokens.Parchment);
+        _graphArea.DrawString(monoFont, new Vector2(margin, margin + graphH + 16),
+            $"t{minTick}", HorizontalAlignment.Left, -1, UiTokens.SizeCaption, UiTokens.Whisper);
+        _graphArea.DrawString(monoFont, new Vector2(margin + graphW - 40, margin + graphH + 16),
+            $"t{maxTick}", HorizontalAlignment.Left, -1, UiTokens.SizeCaption, UiTokens.Whisper);
 
         for (var i = 0; i < _slots.Length; i++)
         {
@@ -491,12 +529,9 @@ public partial class AttributeGraphPanel : PanelContainer
 
             var color = Palette[i];
             var displayName = _sim.DomainConfig.GetAttributeDisplayName(slot.Kind!.Value, cultureId: null, slot.AttributeName!);
-            var legendText = $"{slot.Kind}.{displayName}";
-            if (font is not null)
-            {
-                _graphArea.DrawString(font, new Vector2(margin + 6 + i * 160, margin + 14),
-                    legendText, HorizontalAlignment.Left, -1, 10, color);
-            }
+            var legendText = $"{slot.Kind} · {displayName}".ToUpperInvariant();
+            _graphArea.DrawString(bodyFont, new Vector2(margin + UiTokens.Space2 + i * 180, margin + UiTokens.Space3),
+                legendText, HorizontalAlignment.Left, -1, UiTokens.SizeMicro, color);
 
             foreach (var (entityId, queue) in slot.History)
             {
@@ -510,12 +545,12 @@ public partial class AttributeGraphPanel : PanelContainer
                     points.Add(new Vector2(x, y));
                 }
 
-                _graphArea.DrawPolyline(points.ToArray(), color, 1.2f, antialiased: true);
+                _graphArea.DrawPolyline(points.ToArray(), color, 1.5f, antialiased: true);
 
-                if (font is not null && _sim.Graph.GetEntity(entityId) is { } entity)
+                if (_sim.Graph.GetEntity(entityId) is { } entity)
                 {
-                    _graphArea.DrawString(font, points[^1] + new Vector2(4, -2), entity.Name,
-                        HorizontalAlignment.Left, -1, 9, color);
+                    _graphArea.DrawString(bodyFont, points[^1] + new Vector2(UiTokens.Space1, -2), entity.Name,
+                        HorizontalAlignment.Left, -1, UiTokens.SizeMicro, color);
                 }
             }
         }

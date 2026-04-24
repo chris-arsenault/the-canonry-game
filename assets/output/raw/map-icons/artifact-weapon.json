@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact-weapon-icon",
+  "file": "map-icons/artifact-weapon.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized weapon artifact marker. Flat app-icon geometry. Two swords\ncrossed in an X shape, each sword simplified to a long narrow\nrectangle for the blade, a short horizontal rectangle for the\ncrossguard, and a small circle or rectangle for the pommel. The\nblades are in contrasting palette primary colors (one red, one blue,\nor similar). Centered and symmetric.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a plain off-white canvas with generous padding. Two crossed swords forming a bold symmetric X, each sword reduced to three clean flat shapes: a long narrow blade rectangle, a short horizontal crossguard rectangle, and a small circular pommel. Left sword blade in vivid red (#FF0000), right sword blade in vivid blue (#0000FF), crossguards in solid black, pommels in matching blade colors. Shapes overlap precisely at center with crisp sharp edges. No gradients, no textures, no linework, no brushwork. Bold flat vector geometry, high contrast between red and blue blades, every element readable at 16px. Modern UI icon register, Phosphor Fill style, clean 2026-era app iconography.",
+  "bfl_task_id": "44a879b5-c098-4b28-b9e6-6a56b9d11fde",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006201,
+  "duration_ms": 9530,
+  "generated_at": "2026-04-24T17:32:53.035Z"
+}

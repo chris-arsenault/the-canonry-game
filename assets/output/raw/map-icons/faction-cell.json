@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "faction-cell-icon",
+  "file": "map-icons/faction-cell.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized covert / secret-cell faction marker. Flat app-icon\ngeometry. One small dark banner in a muted palette color (near-black\nor very-deep-navy), mounted on a short vertical pole. Across the\nbanner face, a single simple mask-shape (a horizontal rectangle with\ntwo small cutout eye-holes) in a contrasting lighter palette color.\nSecretive, reduced, no ornament — reads at small scale as \"hidden\nfaction\".",
+  "formatted_prompt": "Flat app-icon illustration, single centered subject on a clean off-white canvas with generous padding, bold vector geometry, crisp edges, readable at 16px. A short vertical pole in jet-black topped by a compact rectangular banner in deep near-black (#000000), its face bearing a single flat mask shape — a horizontal rectangle with two small punched-out eye-holes — rendered in bright pure yellow (#FFFF00) for sharp contrast. The silhouette is reduced to three elements: pole, banner, mask. No gradients, no textures, no brushwork, no ornament. Strong color separation between the black banner field and the yellow mask. Bold flat fills, every edge deliberate vector geometry, the whole composition centered with ample negative space, secretive and immediately legible at any small scale.",
+  "bfl_task_id": "7075787a-e981-46af-9828-aebc2ee86096",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006318000000000001,
+  "duration_ms": 8017,
+  "generated_at": "2026-04-24T17:32:29.042Z"
+}

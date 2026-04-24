@@ -62,7 +62,6 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 - `TargetIsNotSelf` opposite
 - `TargetAttributeThreshold` reads the provider entity's attributes
 - `SelfAttributeThreshold` reads the evaluating entity's attributes (not the provider)
-- `SemanticDistanceThreshold` computes distance between self and provider's semantic plane attribute
 
 **Cooldowns:**
 - Process on cooldown → filtered out (not a candidate)
@@ -115,11 +114,6 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 - Target entity with attribute below min → fails
 - No target (ResolvedTargetId null) → fails with "no target" diagnostic
 
-**SemanticDistanceThreshold:**
-- Self and target with ideology distance ≤ threshold → passes
-- Distance > threshold → fails
-- Attribute is not a semantic plane → fails
-
 **AndPrecondition:**
 - All children pass → passes
 - One child fails → fails, collects that child's blockers
@@ -140,8 +134,6 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 **Attribute path resolution:**
 - `Expr.Self("fame")` resolves scalar attribute on self entity
 - `Expr.Target("fame")` resolves scalar attribute on target entity (from ExpressionContext)
-- `Expr.SelfX("ideology")` resolves X component of semantic plane
-- `Expr.SelfY("ideology")` resolves Y component
 - Non-existent attribute → returns 0
 - Null target → target paths return 0
 
@@ -151,8 +143,6 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 **Built-in functions:**
 - `Distance()` → hex distance between self and target coordinates
-- `SemanticDistance("ideology")` → Euclidean distance on semantic plane
-- `SemanticDistance` with non-plane attribute → returns MaxValue
 - Min, Max, Clamp, Abs with known values
 - Jitter → produces variance (run multiple times, verify distinct results)
 
@@ -170,7 +160,7 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 5. Attribute System
 
-**Location:** `src/Engine/Attributes/ScalarValue.cs`, `SemanticPlane.cs`, `AttributeSet.cs`
+**Location:** `src/Engine/Attributes/ScalarValue.cs`, `AttributeSet.cs`
 
 ### Tests needed:
 
@@ -182,19 +172,10 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 - Trend tracks recent deltas (average of last N)
 - AddTickEffect / AddStaticEffect / RemoveEffectsBySource
 
-**SemanticPlane:**
-- X and Y components with independent effects
-- ModifyX / ModifyY clamp to min/max
-- Label reduction via SemanticPlaneDefinition (3x3 grid)
-- DistanceTo computes Euclidean distance
-- ApplyTickEffects applies per-component
-- Per-component tick and static effects independent
-
 **AttributeSet:**
 - GetScalar returns ScalarValue or null
-- GetPlane returns SemanticPlane or null
-- GetValue returns scalar value, 0 for planes
-- Modify modifies scalar, no-op for planes
+- GetValue returns scalar value, 0 for missing attributes
+- Modify modifies scalar values and ignores missing attributes
 - ApplyTickEffects applies to all attributes
 - RemoveEffectsBySource applies to all attributes
 

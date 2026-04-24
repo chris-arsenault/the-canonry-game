@@ -11,17 +11,15 @@ using Engine.Tests.Behaviors;
 public class ExpressionTests
 {
     [Fact]
-    public void AttributePaths_ResolveSelfTargetAndPlaneComponents()
+    public void AttributePaths_ResolveSelfAndTargetScalars()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0.2f, 0.8f));
-        var target = CreateEntity(world, "Target", (2, 0), fame: 11f, ideology: (0.7f, 0.4f));
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f);
+        var target = CreateEntity(world, "Target", (2, 0), fame: 11f);
         var context = new ExpressionContext(self, target, world.Grid);
 
         Assert.Equal(7f, Expr.Self("fame").Evaluate(context));
         Assert.Equal(11f, Expr.Target("fame").Evaluate(context));
-        Assert.Equal(0.2f, Expr.SelfX("ideology").Evaluate(context), precision: 3);
-        Assert.Equal(0.8f, Expr.SelfY("ideology").Evaluate(context), precision: 3);
         Assert.Equal(0f, Expr.Self("missing").Evaluate(context));
         Assert.Equal(0f, Expr.Target("missing").Evaluate(context));
     }
@@ -30,12 +28,10 @@ public class ExpressionTests
     public void TargetPaths_ReturnZeroWhenTargetIsNull()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0.2f, 0.8f));
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f);
         var context = new ExpressionContext(self, target: null, world.Grid);
 
         Assert.Equal(0f, Expr.Target("fame").Evaluate(context));
-        Assert.Equal(0f, Expr.TargetX("ideology").Evaluate(context));
-        Assert.Equal(0f, Expr.TargetY("ideology").Evaluate(context));
     }
 
     [Fact]
@@ -51,16 +47,14 @@ public class ExpressionTests
     }
 
     [Fact]
-    public void BuiltInFunctions_ResolveDistanceSemanticDistanceAndMathHelpers()
+    public void BuiltInFunctions_ResolveDistanceAndMathHelpers()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0f, 0f));
-        var target = CreateEntity(world, "Target", (2, 0), fame: 11f, ideology: (0.3f, 0.4f));
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f);
+        var target = CreateEntity(world, "Target", (2, 0), fame: 11f);
         var context = new ExpressionContext(self, target, world.Grid);
 
         Assert.Equal(2f, Expr.Distance().Evaluate(context));
-        Assert.Equal(0.5f, Expr.SemanticDistance("ideology").Evaluate(context), precision: 3);
-        Assert.Equal(float.MaxValue, Expr.SemanticDistance("fame").Evaluate(context));
         Assert.Equal(2f, Expr.Min(Expr.Lit(2f), Expr.Lit(7f)).Evaluate(context));
         Assert.Equal(7f, Expr.Max(Expr.Lit(2f), Expr.Lit(7f)).Evaluate(context));
         Assert.Equal(5f, Expr.Clamp(Expr.Lit(9f), Expr.Lit(1f), Expr.Lit(5f)).Evaluate(context));
@@ -85,7 +79,7 @@ public class ExpressionTests
     public void VariableRef_ReadsMutationContextVariable()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0f, 0f));
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f);
         var context = new TestMutationContext(self, worldState: world);
         context.SetVariable("delta", 12f);
 
@@ -106,8 +100,8 @@ public class ExpressionTests
     public void LocationResourcePaths_ReadAmbientResourceValuesFromMutationContext()
     {
         var world = new StubWorldState(gridRadius: 5, withResources: true);
-        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0f, 0f));
-        var target = CreateEntity(world, "Target", (2, 0), fame: 11f, ideology: (0.3f, 0.4f));
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f);
+        var target = CreateEntity(world, "Target", (2, 0), fame: 11f);
         var selfCoord = new Engine.Map.HexCoord(0, 0);
         var targetCoord = new Engine.Map.HexCoord(2, 0);
         world.Resources!.Food.SetStockpile(selfCoord, 6f);
@@ -123,8 +117,8 @@ public class ExpressionTests
     private static ExpressionContext CreateContext()
     {
         var world = new StubWorldState(gridRadius: 5);
-        var self = CreateEntity(world, "Self", (0, 0), fame: 7f, ideology: (0f, 0f));
-        var target = CreateEntity(world, "Target", (2, 0), fame: 11f, ideology: (0.3f, 0.4f));
+        var self = CreateEntity(world, "Self", (0, 0), fame: 7f);
+        var target = CreateEntity(world, "Target", (2, 0), fame: 11f);
         return new ExpressionContext(self, target, world.Grid);
     }
 
@@ -132,12 +126,10 @@ public class ExpressionTests
         StubWorldState world,
         string name,
         (int Q, int R) coordinates,
-        float fame,
-        (float X, float Y) ideology)
+        float fame)
     {
         var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
-        entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, ideology.X, ideology.Y));
         return entity;
     }
 }

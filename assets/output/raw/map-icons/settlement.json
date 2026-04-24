@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "settlement-icon",
+  "file": "map-icons/settlement.png",
+  "spec_type": "icon",
+  "section_id": "1b-entity-map-icons",
+  "section": "1b · Entity map icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized city / settlement marker. Three conical spires of decreasing\nheight sitting on a simple rectangular base block — center spire\ntallest, two flanking spires shorter. Simplified app-icon geometry:\nflat saturated color fills, sharp clean edges. Each spire is a simple\ntriangular shape; the base is a solid rectangle. Optional two small\nrectangular \"window\" shapes on the base in a secondary palette color.",
+  "formatted_prompt": "STYLE: flat vector app icon; bold geometric silhouette; centered on plain off-white canvas with generous padding; crisp sharp edges throughout; modern UI icon register — Phosphor Fill style; no gradients, no textures, no brushwork\nSUBJECT: stylized city settlement marker; three conical triangular spires sitting on a solid rectangular base block; center spire tallest, two flanking spires shorter and symmetrical; each spire rendered as a clean flat triangle; base is a solid filled rectangle; two small rectangular window shapes on the base face\nCONTEXT: isolated app icon, map marker asset, readable at 16px minimum\nCOLOR: center spire in bold red #FF0000; two flanking spires in bold blue #0000FF; rectangular base block in bold blue #0000FF; two small window rectangles on the base in yellow #FFFF00; off-white #FFFFFF canvas background\nDETAILS: every edge crisp and deliberate vector geometry; shapes simplified to essential silhouette; window rectangles rendered as flat secondary-color filled shapes; all elements share the same flat fill weight with zero inner shadow or bevel; icon centered with equal padding on all four sides; total composition readable as a strong bold silhouette at 16px\nCONSTRAINTS: flat bold color fills only; no gradients; no textures; no ink strokes; no painterly rendering; no cartoon softening; no drop shadows; no border frame",
+  "bfl_task_id": "req_69d720a09cbd4126ae55a649951df97f",
+  "cost_usd": 0.055670000000000004,
+  "claude_cost_usd": 0.009003,
+  "duration_ms": 20409,
+  "generated_at": "2026-04-24T18:01:37.279Z"
+}

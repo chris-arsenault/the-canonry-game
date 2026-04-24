@@ -28,28 +28,18 @@ A nation doesn't suddenly become theocratic. It migrates there through a gradual
 
 Discrete state (subtype, status, tags) exists but is the exception, reserved for things that genuinely are categorical and don't migrate (an entity's kind, whether it's alive or dead).
 
-### Semantic planes for complex state
+### Attributes are scalar state
 
-Some entity properties are best modeled as positions in a multi-dimensional semantic space rather than as single scalar values. Government type, for example, is not a single number -- it's a position on at least two axes (e.g., authoritarian vs. libertarian, secular vs. theocratic). An entity's position in this space drifts over time as low-altitude systems and card effects push it.
+Entity attributes are scalar values. Multi-axis concepts belong either in domain
+modeling as multiple explicit scalar attributes, or in the engine's separate
+physical/semantic placement coordinates when the concept is location-like. The
+attribute system should not carry hidden reducer grids or per-component state
+that only some systems understand.
 
-**Semantic plane structure:**
-- A semantic plane is a 2D (or potentially higher-dimensional) continuous space
-- An entity has a position in the plane, represented as continuous coordinates
-- The plane is bounded (positions cannot go outside the defined space)
-- Position changes are gradual -- entities drift, they don't teleport
-
-**Reducer functions:**
-- Semantic plane coordinates are continuous, but cards and systems often need categorical labels to evaluate preconditions and effects
-- Reducer functions map continuous positions to discrete labels
-- For a 2D plane, a 3x3 grid of labels (low/mid/high on each axis) produces 9 possible labels
-- Example: a government plane with axes [authoritarian...libertarian] x [secular...theocratic] reduces to labels like "authoritarian-secular" (autocracy), "libertarian-theocratic" (religious commune), "mid-mid" (mixed government), etc.
-- Cards target labels: "this card fires when a nation's government is in the authoritarian-theocratic region"
-
-**Why this matters:**
-- Continuous positions allow gradual migration between states
-- Labels allow card preconditions and system rules to act on categorical state without losing the continuous underlying model
-- The same plane can have different reducer granularities for different purposes (a 3x3 grid for cards, but the full continuous position for display and analysis)
-- New semantic planes can be added per entity kind without changing the attribute system
+This keeps process preconditions, wiring validation, tableau output, and planner
+blockers reading the same graph language. If a generator or process cares about
+two qualities, it should name both qualities directly rather than target an
+implicit label reduced from a coordinate pair.
 
 ### Everything is visible
 
@@ -69,16 +59,6 @@ Single numeric values with a defined range.
 - Prominence (0-5, all entities) -- POST-MVP, listed for illustration
 
 Scalars are the simplest and most common attribute type.
-
-### Semantic Plane Attributes
-
-Position in a multi-dimensional continuous space, with reducer functions producing categorical labels.
-- Government type (2D, political entities)
-- Ideology (2D or 3D, political entities, factions, potentially mortal entities)
-- Economic model (2D, political entities, settlements)
-- Temperament / personality (2D, mortal entities)
-
-Semantic planes are used when the state is inherently multi-dimensional and entities should migrate between regions rather than switch discretely.
 
 ### Tags
 
@@ -106,12 +86,6 @@ Entity behavior systems are the primary writers of attribute values. Each low-al
 
 Card effects can directly modify attribute values (a system card that "increases prosperity in trade-connected settlements" writes to settlement prosperity). Cards can also modify attributes indirectly by creating relationships or entities that cause low-altitude systems to produce different results.
 
-### Semantic plane reducers feed card preconditions
-
-Cards evaluate preconditions against labels produced by reducer functions. "When a nation's government enters the authoritarian region" checks the reduced label, not the raw plane coordinates. This allows cards to be defined in human-readable terms while the underlying simulation operates on continuous values.
-
----
-
 ## Interactions with Other Systems
 
 | System | How Attributes Interacts |
@@ -120,7 +94,7 @@ Cards evaluate preconditions against labels produced by reducer functions. "When
 | Entity Kinds (#2) | Kind defines which attributes an entity has, with ranges and defaults. |
 | Pressure (#11) | Attribute values are inputs to pressure computation. One-way: attributes -> pressure. |
 | Entity Behaviors (#6) | Low-altitude systems are the primary readers and writers of attribute values. |
-| Card Executors (#16-18) | Cards read attributes for preconditions (via reducers for semantic planes). Cards write attributes as effects. |
+| Card Executors (#16-18) | Cards read scalar attributes for preconditions. Cards write scalar attributes as effects. |
 | Lifecycle (#9) | Lifecycle reads attributes (age, health) and may trigger status changes when thresholds are crossed. |
 | Lose Condition Monitor (#14) | Reads aggregate attribute values (total population, diversity metrics) for threshold evaluation. |
 
@@ -129,7 +103,5 @@ Cards evaluate preconditions against labels produced by reducer functions. "When
 ## Open Questions (Deferred)
 
 - **Specific attribute lists per kind.** Which attributes each kind has is TBD pending the entity kind review.
-- **Semantic plane dimensionality.** Are 2D planes sufficient for all cases, or will some properties need 3+ dimensions? Start with 2D and expand if needed.
-- **Reducer granularity.** Is 3x3 (9 labels) the right default? Some planes might need finer granularity (5x5 = 25 labels) for meaningful card targeting. Others might be fine with 2x2 (4 labels).
 - **Rate-of-change tracking.** Should the attribute system track deltas over time (for trend display and system evaluation), or should this be computed on demand? Design preference is to track it, but the cadence of tracking is TBD.
 - **Attribute interactions within an entity.** Can one attribute directly affect another on the same entity (high population reduces per-capita prosperity)? Or must all inter-attribute effects flow through systems? Preference is through systems (keeps attributes as pure state, systems as pure logic), but may be impractical for some basic relationships.

@@ -6,6 +6,7 @@ using Engine.Map;
 using Attr = Engine.Domain.IceRemembers.IceRemembersAttributeId;
 using K = Engine.Domain.IceRemembers.IceRemembersKinds;
 using Rel = Engine.Domain.IceRemembers.IceRemembersRelationship;
+using RelFact = Engine.Domain.IceRemembers.IceRemembersRelationshipFact;
 
 public static class IceRemembersGeneratorDefinition
 {
@@ -19,6 +20,13 @@ public static class IceRemembersGeneratorDefinition
             Target = new SemanticGeneratorTarget
             {
                 Kind = K.Penguin,
+            },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.MemberOf),
+                RequiredFact = LF(RelFact.CalledUnhuddled),
+                Direction = TargetSaturationDirection.OutgoingFromTarget,
+                MaxExisting = 0,
             },
             Produces =
             [
@@ -84,6 +92,7 @@ public static class IceRemembersGeneratorDefinition
                     SourceRef = "$target",
                     DestinationRef = "$compact",
                     Kind = L(Rel.MemberOf),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.CalledUnhuddled) },
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -136,6 +145,13 @@ public static class IceRemembersGeneratorDefinition
             Target = new SemanticGeneratorTarget
             {
                 Kind = K.Faction,
+            },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.ControlledBy),
+                RequiredFact = LF(RelFact.SealedThinPlace),
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
             },
             SecondaryTargets =
             [
@@ -199,6 +215,7 @@ public static class IceRemembersGeneratorDefinition
                     SourceRef = "$holdfast",
                     DestinationRef = "$target",
                     Kind = L(Rel.ControlledBy),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.SealedThinPlace) },
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -251,6 +268,13 @@ public static class IceRemembersGeneratorDefinition
             {
                 Kind = K.Region,
             },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.NativeTo),
+                RequiredFact = LF(RelFact.OpenedOldHolding),
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
+            },
             Produces =
             [
                 new SemanticProducedEntity
@@ -282,6 +306,7 @@ public static class IceRemembersGeneratorDefinition
                     SourceRef = "$relic",
                     DestinationRef = "$target",
                     Kind = L(Rel.NativeTo),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.OpenedOldHolding) },
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -309,6 +334,13 @@ public static class IceRemembersGeneratorDefinition
             Target = new SemanticGeneratorTarget
             {
                 Kind = K.Artifact,
+            },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.CorruptedBy),
+                RequiredFact = LF(RelFact.CrackedBerg),
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
             },
             Produces =
             [
@@ -373,6 +405,7 @@ public static class IceRemembersGeneratorDefinition
                     SourceRef = "$scar",
                     DestinationRef = "$target",
                     Kind = L(Rel.CorruptedBy),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.CrackedBerg) },
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -401,11 +434,19 @@ public static class IceRemembersGeneratorDefinition
         new()
         {
             Id = "settlement_names_the_office",
-            Name = "Settlement Names the Office",
-            Description = "A dominant settlement makes authority explicit by naming an office and binding it to a seal.",
+            Name = "Warden Bears the Office",
+            Description = "A named warden or broker gathers authority around themselves until office hardens into an order and a seal.",
             Target = new SemanticGeneratorTarget
             {
-                Kind = K.Settlement,
+                Kind = K.Penguin,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "warden", "broker" },
+            },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.MemberOf),
+                RequiredFact = LF(RelFact.NamedOffice),
+                Direction = TargetSaturationDirection.OutgoingFromTarget,
+                MaxExisting = 0,
             },
             Produces =
             [
@@ -415,17 +456,6 @@ public static class IceRemembersGeneratorDefinition
                     Kind = K.Faction,
                     Subtype = "order",
                     Role = "named_office",
-                    PhysicalPlacement = SemanticPlacement.On,
-                    SemanticPlacement = SemanticPlacement.Near,
-                    PlacementRef = "$target",
-                    InheritCultureFrom = "$target",
-                },
-                new SemanticProducedEntity
-                {
-                    Ref = "$office_holder",
-                    Kind = K.Penguin,
-                    Subtype = "warden",
-                    Role = "office_holder",
                     PhysicalPlacement = SemanticPlacement.On,
                     SemanticPlacement = SemanticPlacement.Near,
                     PlacementRef = "$target",
@@ -449,31 +479,14 @@ public static class IceRemembersGeneratorDefinition
                 {
                     SourceRef = "$target",
                     DestinationRef = "$office",
-                    Kind = L(Rel.ControlledBy),
-                },
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$office_holder",
-                    DestinationRef = "$office",
                     Kind = L(Rel.MemberOf),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.NamedOffice) },
                 },
                 new SemanticGeneratorRelationship
                 {
-                    SourceRef = "$office_holder",
-                    DestinationRef = "$target",
-                    Kind = L(Rel.HomeBase),
-                },
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$office_holder",
+                    SourceRef = "$target",
                     DestinationRef = "$seal",
                     Kind = L(Rel.Holds),
-                },
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$seal",
-                    DestinationRef = "$target",
-                    Kind = L(Rel.Anchored),
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -486,8 +499,8 @@ public static class IceRemembersGeneratorDefinition
             [
                 new SemanticGeneratorTrigger
                 {
-                    OnKind = K.Settlement,
-                    AttributeName = A(Attr.Dominion),
+                    OnKind = K.Penguin,
+                    AttributeName = A(Attr.Echo),
                     Direction = TriggerDirection.High,
                 },
             ],
@@ -502,6 +515,13 @@ public static class IceRemembersGeneratorDefinition
             {
                 Kind = K.Settlement,
                 Subtypes = new HashSet<string>(StringComparer.Ordinal) { "harbor" },
+            },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.TradeRoute),
+                RequiredFact = LF(RelFact.RaisedReefhold),
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
             },
             Produces =
             [
@@ -570,6 +590,7 @@ public static class IceRemembersGeneratorDefinition
                     SourceRef = "$reefhold",
                     DestinationRef = "$target",
                     Kind = L(Rel.TradeRoute),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.RaisedReefhold) },
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -609,6 +630,13 @@ public static class IceRemembersGeneratorDefinition
             Target = new SemanticGeneratorTarget
             {
                 Kind = K.Region,
+            },
+            TargetSaturation = new SemanticTargetSaturation
+            {
+                RelationshipKind = L(Rel.FoundedFrom),
+                RequiredFact = LF(RelFact.YieldedTome),
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
             },
             Produces =
             [
@@ -677,6 +705,7 @@ public static class IceRemembersGeneratorDefinition
                     SourceRef = "$shelf",
                     DestinationRef = "$target",
                     Kind = L(Rel.FoundedFrom),
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { LF(RelFact.YieldedTome) },
                 },
                 new SemanticGeneratorRelationship
                 {
@@ -724,4 +753,5 @@ public static class IceRemembersGeneratorDefinition
 
     private static string A(Attr attribute) => attribute.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
+    private static string LF(RelFact fact) => fact.ToDomainName();
 }

@@ -95,6 +95,32 @@ public enum IceRemembersRelationship
     BetrayedBy,
 }
 
+public enum IceRemembersRelationshipFact
+{
+    CalledUnhuddled,
+    SealedThinPlace,
+    OpenedOldHolding,
+    CrackedBerg,
+    NamedOffice,
+    RaisedReefhold,
+    YieldedTome,
+}
+
+public static class IceRemembersRelationshipFactExtensions
+{
+    public static string ToDomainName(this IceRemembersRelationshipFact fact) => fact switch
+    {
+        IceRemembersRelationshipFact.CalledUnhuddled => "called_unhuddled",
+        IceRemembersRelationshipFact.SealedThinPlace => "sealed_thin_place",
+        IceRemembersRelationshipFact.OpenedOldHolding => "opened_old_holding",
+        IceRemembersRelationshipFact.CrackedBerg => "cracked_berg",
+        IceRemembersRelationshipFact.NamedOffice => "named_office",
+        IceRemembersRelationshipFact.RaisedReefhold => "raised_reefhold",
+        IceRemembersRelationshipFact.YieldedTome => "yielded_tome",
+        _ => throw new ArgumentOutOfRangeException(nameof(fact), fact, "Unknown Ice Remembers relationship fact"),
+    };
+}
+
 public static class IceRemembersRelationshipExtensions
 {
     public static string ToDomainName(this IceRemembersRelationship relationship) => relationship switch

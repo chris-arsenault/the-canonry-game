@@ -169,6 +169,17 @@ If a task is not yet ticketed and is large enough to matter architecturally, tic
 
 ## Testing Rules
 
+### Tests Are Diagnostics Unless Marked As Invariants
+
+Do not optimize game design or simulation tuning merely to make a broad test suite green.
+
+There are two distinct classes of tests:
+
+- Invariant tests encode hard design constraints. If an invariant test fails, fix the implementation or the domain data so the invariant is true, unless the user explicitly changes the invariant.
+- Ordinary tests are diagnostic probes. If an ordinary test fails, first determine whether it exposes a real intended-behavior bug. If it does not, update, narrow, rename, or remove the test rather than changing game behavior to satisfy it.
+
+When a failure concerns generator frequency, simulation balance, map utilization, death rates, process weighting, or other game-design tuning, do not tune the domain just to satisfy the test. Surface the failure as design data unless the user has already accepted the test as an invariant.
+
 Before declaring a planner change complete:
 
 - default to `make ci` as the single verification pass

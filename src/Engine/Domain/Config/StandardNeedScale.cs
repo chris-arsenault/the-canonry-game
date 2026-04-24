@@ -19,8 +19,7 @@ public static class StandardNeedScale
     public static bool AppliesTo(AttributeConfig attribute)
     {
         ArgumentNullException.ThrowIfNull(attribute);
-        return attribute.PlaneDefinition is null &&
-               attribute.Min == 0f &&
+        return attribute.Min == 0f &&
                attribute.Max == 100f;
     }
 

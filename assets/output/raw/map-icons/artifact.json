@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact-icon",
+  "file": "map-icons/artifact.png",
+  "spec_type": "icon",
+  "section_id": "1b-entity-map-icons",
+  "section": "1b · Entity map icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized artifact / relic marker. A diamond-shaped talisman — an\nouter diamond outline with a smaller concentric inner diamond inside\nit. Simplified app-icon geometry: both diamonds are flat saturated\npalette colors (outer one color, inner a contrasting palette color),\nsharp clean edges. Centered in the icon area. No sparkle, no glow, no\ntexture — flat geometric shapes only.",
+  "formatted_prompt": "STYLE: flat vector app icon; modern UI icon register in the vein of SF Symbols Filled; centered single-subject composition on plain off-white canvas with generous padding; crisp sharp edges throughout; zero brushwork, zero texture, zero gradients\n\nSUBJECT: a concentric double-diamond talisman shape — a large outer diamond and a smaller inner diamond centered within it; both diamonds are solid flat fills with sharp clean geometric edges; the outer diamond is vivid red (#FF0000) and the inner diamond is vivid blue (#0000FF); the gap between the two diamonds reads as white (#FFFFFF) negative space; both shapes are simplified to pure rotated-square geometry\n\nCONTEXT: map marker icon for an artifact or relic location; isolated centered icon asset, no surrounding scene\n\nCOLOR: outer diamond filled vivid red (#FF0000); inner diamond filled vivid blue (#0000FF); separating band pure white (#FFFFFF); icon canvas off-white\n\nDETAILS: every edge is a straight vector line, no rounding; inner diamond scaled to roughly forty percent of the outer diamond's span; the two diamonds share the same center point and the same axis; bold enough to read as a distinct silhouette at 16px; no drop shadow, no outline stroke beyond the shape fills themselves\n\nCONSTRAINTS: flat UI icon only; no parchment, no ink, no painterly marks, no gradients, no glow, no sparkle, no texture, no weathering; clean 2026-era app iconography",
+  "bfl_task_id": "req_b907250ca30342a582af96324cf80e3d",
+  "cost_usd": 0.05485500000000001,
+  "claude_cost_usd": 0.009201,
+  "duration_ms": 19628,
+  "generated_at": "2026-04-24T18:02:11.563Z"
+}

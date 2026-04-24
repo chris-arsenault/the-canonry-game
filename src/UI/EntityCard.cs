@@ -8,6 +8,7 @@ using Godot;
 
 using Engine.Graph;
 using Engine.Simulation;
+using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
@@ -59,16 +60,19 @@ public partial class EntityCard : PanelContainer
         CustomMinimumSize = new Vector2(MinimumWidth, MinimumHeight);
         Size = new Vector2(DefaultWidth, DefaultHeight);
         MouseFilter = MouseFilterEnum.Stop;
+        AddThemeStyleboxOverride("panel", UiTheme.FloatingPanelStyle());
 
         var outerVBox = new VBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
+        outerVBox.AddThemeConstantOverride("separation", UiTokens.Space2);
         AddChild(outerVBox);
 
         // Title bar (draggable)
         var titleBar = new HBoxContainer();
+        titleBar.AddThemeConstantOverride("separation", UiTokens.Space2);
         outerVBox.AddChild(titleBar);
 
         _titleLabel = new Label
@@ -76,26 +80,31 @@ public partial class EntityCard : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             Text = "Entity",
         };
-        _titleLabel.AddThemeFontSizeOverride("font_size", 14);
+        _titleLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        _titleLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        _titleLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
         titleBar.AddChild(_titleLabel);
 
-        // Copy button
-        var copyBtn = new Button { Text = "📋", CustomMinimumSize = new Vector2(28, 28) };
+        // Tiny chrome buttons — body font, minimal.
+        var copyBtn = BuildChromeButton("copy", "Copy details");
         copyBtn.Pressed += OnCopyPressed;
         titleBar.AddChild(copyBtn);
 
-        // Collapse button
-        var collapseBtn = new Button { Text = "_", CustomMinimumSize = new Vector2(28, 28) };
+        var collapseBtn = BuildChromeButton("–", "Collapse");
         collapseBtn.Pressed += OnCollapsePressed;
         titleBar.AddChild(collapseBtn);
 
-        // Close button
-        var closeBtn = new Button { Text = "X", CustomMinimumSize = new Vector2(28, 28) };
+        var closeBtn = BuildChromeButton("×", "Close");
         closeBtn.Pressed += OnClosePressed;
         titleBar.AddChild(closeBtn);
 
-        // Separator
-        outerVBox.AddChild(new HSeparator());
+        // Hairline rule
+        outerVBox.AddChild(new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
 
         // Body (collapsible)
         _body = new VBoxContainer
@@ -119,9 +128,27 @@ public partial class EntityCard : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             ScrollActive = false,
         };
+        _content.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
+        _content.AddThemeFontOverride("mono_font", UiTheme.MonoFont);
+        _content.AddThemeFontSizeOverride("normal_font_size", UiTokens.SizeBodySmall);
+        _content.AddThemeFontSizeOverride("mono_font_size", UiTokens.SizeBodySmall);
+        _content.AddThemeColorOverride("default_color", UiTokens.Vellum);
         scroll.AddChild(_content);
 
         Refresh();
+    }
+
+    private static Button BuildChromeButton(string text, string tooltip)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            CustomMinimumSize = new Vector2(26, 26),
+            TooltipText = tooltip,
+        };
+        btn.AddThemeFontOverride("font", UiTheme.BodyFont);
+        btn.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        return btn;
     }
 
     public override void _GuiInput(InputEvent @event)
@@ -183,24 +210,27 @@ public partial class EntityCard : PanelContainer
             return;
         }
 
-        _titleLabel.Text = $"{entity.Name} ({entity.Kind})";
+        _titleLabel.Text = $"{entity.Name}  ·  {entity.Kind}";
         if (_collapsed) return; // Don't rebuild body when collapsed
 
         CaptureScrollAnchor();
 
         var sb = new StringBuilder();
 
-        // Header
-        sb.AppendLine($"{entity.Subtype}  |  {entity.Culture}  |  {entity.Status}");
-        sb.AppendLine($"({entity.Coordinates.Q}, {entity.Coordinates.R})  |  age {_sim.Clock.CurrentTick - entity.CreatedAt}");
+        // Archival header — subtype/culture/status in small-caps parchment,
+        // coordinates and age in mono for tabular legibility.
+        var secondary = ColorTag(UiTokens.Parchment);
+        var whisper = ColorTag(UiTokens.Whisper);
+        sb.AppendLine($"[color={secondary}]{entity.Subtype}  ·  {entity.Culture}  ·  {entity.Status}[/color]");
+        sb.AppendLine($"[code][color={whisper}]({entity.Coordinates.Q}, {entity.Coordinates.R})  ·  age {_sim.Clock.CurrentTick - entity.CreatedAt}t[/color][/code]");
 
         sb.AppendLine();
 
         // Goals
-        sb.AppendLine("[b][u]Goals[/u][/b]");
+        sb.AppendLine(SectionHeader("Goals"));
         if (entity.Goals.Count == 0)
         {
-            sb.AppendLine("  [i]No goals[/i]");
+            sb.AppendLine($"  [color={whisper}]— no goals —[/color]");
         }
         else
         {
@@ -209,18 +239,19 @@ public partial class EntityCard : PanelContainer
                 var providerName = goal.TargetEntityId == entity.Id ? "self" :
                     (_sim.Graph.GetEntity(goal.TargetEntityId)?.Name ?? goal.TargetEntityId.ToString());
                 var prefix = goal.IsSubGoal ? "  ↳ " : "  ";
+                var stateColor = goal.IsActionable ? ColorTag(UiTokens.Aurora) : ColorTag(UiTokens.Ember);
                 var state = goal.IsActionable ? "next" : "blocked";
                 var attr = goal.IsSubGoal
                     ? $"unblock {DescribeGoalEffect(goal.DesiredEffect)}"
                     : DescribeGoalEffect(goal.DesiredEffect);
-                sb.AppendLine($"{prefix}[b]{attr}[/b] via {providerName} [{state}] (urgency {goal.Urgency:F2})");
+                sb.AppendLine($"{prefix}[b]{attr}[/b] via {providerName}  [color={stateColor}]{state}[/color]  [color={whisper}]u {goal.Urgency:F2}[/color]");
             }
         }
 
         sb.AppendLine();
 
         // Action History (frequency)
-        sb.AppendLine("[b][u]Recent Actions[/u][/b]");
+        sb.AppendLine(SectionHeader("Recent Actions"));
         if (entity.ActionHistory.Count > 0)
         {
             var counts = new Dictionary<string, int>();
@@ -232,24 +263,24 @@ public partial class EntityCard : PanelContainer
 
             foreach (var (name, count) in counts.OrderByDescending(kv => kv.Value))
             {
-                var bar = new string('█', System.Math.Min(count, 20));
-                sb.AppendLine($"  {name}: {count} [color=gray]{bar}[/color]");
+                var bar = new string('▌', System.Math.Min(count, 20));
+                sb.AppendLine($"  {name}: {count} [color={ColorTag(UiTokens.Whisper)}]{bar}[/color]");
             }
 
             if (entity.LastActionName is not null)
             {
-                sb.AppendLine($"  [i]Last: {entity.LastActionName} (tick {entity.LastActionTick})[/i]");
+                sb.AppendLine($"  [i][color={whisper}]Last: {entity.LastActionName} @ t{entity.LastActionTick}[/color][/i]");
             }
         }
         else
         {
-            sb.AppendLine("  [i]None[/i]");
+            sb.AppendLine($"  [color={whisper}]— none —[/color]");
         }
 
         sb.AppendLine();
 
         // Attributes
-        sb.AppendLine("[b][u]Attributes[/u][/b]");
+        sb.AppendLine(SectionHeader("Attributes"));
         foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
         {
             if (attr is Engine.Attributes.ScalarValue scalar)
@@ -259,14 +290,10 @@ public partial class EntityCard : PanelContainer
                 {
                     var tickDelta = scalar.TickEffects.Where(e => !e.IsMultiplier).Sum(e => e.Value);
                     if (System.Math.Abs(tickDelta) > 0.001f)
-                        effectInfo = $" [color=gray]({tickDelta:+0.##;-0.##}/tick)[/color]";
+                        effectInfo = $" [color={whisper}]({tickDelta:+0.##;-0.##}/tick)[/color]";
                 }
 
                 sb.AppendLine($"  {scalar.Name}: [b]{scalar.Value:F1}[/b]{effectInfo}");
-            }
-            else if (attr is Engine.Attributes.SemanticPlane plane)
-            {
-                sb.AppendLine($"  {plane.Name}: [b]({plane.X:F2}, {plane.Y:F2})[/b] [{plane.Label}]");
             }
         }
 
@@ -280,10 +307,10 @@ public partial class EntityCard : PanelContainer
             {
                 foreach (var effect in effects)
                 {
-                    if (!hasEffects) { sb.AppendLine("[b][u]Active Effects[/u][/b]"); hasEffects = true; }
+                    if (!hasEffects) { sb.AppendLine(SectionHeader("Active Effects")); hasEffects = true; }
                     var sign = effect.Value >= 0 ? "+" : "";
                     var kind = effect.IsMultiplier ? "×" : "";
-                    sb.AppendLine($"  {label}: {kind}{sign}{effect.Value:F3}{suffix} [color=gray]{effect.Description}[/color]");
+                    sb.AppendLine($"  {label}: {kind}{sign}{effect.Value:F3}{suffix} [color={whisper}]{effect.Description}[/color]");
                 }
             }
 
@@ -292,77 +319,73 @@ public partial class EntityCard : PanelContainer
                 ShowEffects(scalar.Name, scalar.TickEffects, "/tick");
                 ShowEffects(scalar.Name, scalar.StaticEffects, "");
             }
-            else if (attr is Engine.Attributes.SemanticPlane plane)
-            {
-                ShowEffects($"{plane.Name}.x", plane.TickEffectsX, "/tick");
-                ShowEffects($"{plane.Name}.y", plane.TickEffectsY, "/tick");
-                ShowEffects($"{plane.Name}.x", plane.StaticEffectsX, "");
-                ShowEffects($"{plane.Name}.y", plane.StaticEffectsY, "");
-            }
         }
 
         if (!hasEffects)
         {
-            sb.AppendLine("[b][u]Active Effects[/u][/b]");
-            sb.AppendLine("  [i](none)[/i]");
+            sb.AppendLine(SectionHeader("Active Effects"));
+            sb.AppendLine($"  [color={whisper}]— none —[/color]");
         }
 
         sb.AppendLine();
 
         // Relationships
-        sb.AppendLine("[b][u]Relationships[/u][/b]");
+        sb.AppendLine(SectionHeader("Relationships"));
         var outgoing = _sim.Graph.OutgoingRelationships(_entityId).ToList();
         var incoming = _sim.Graph.IncomingRelationships(_entityId).ToList();
 
         if (outgoing.Count == 0 && incoming.Count == 0)
         {
-            sb.AppendLine("  [i](none)[/i]");
+            sb.AppendLine($"  [color={whisper}]— none —[/color]");
         }
 
         foreach (var rel in outgoing)
         {
             var targetName = _sim.Graph.GetEntity(rel.TargetId)?.Name ?? rel.TargetId.ToString();
-            sb.AppendLine($"  → {rel.Kind} → {targetName} ({rel.Strength:F2})");
+            sb.AppendLine($"  → {rel.Kind} → {targetName} [color={whisper}]({rel.Strength:F2})[/color]");
         }
 
         foreach (var rel in incoming)
         {
             var sourceName = _sim.Graph.GetEntity(rel.SourceId)?.Name ?? rel.SourceId.ToString();
-            sb.AppendLine($"  ← {rel.Kind} ← {sourceName} ({rel.Strength:F2})");
+            sb.AppendLine($"  ← {rel.Kind} ← {sourceName} [color={whisper}]({rel.Strength:F2})[/color]");
         }
 
         // Evaluation Report (engine-produced, read-only)
-        sb.AppendLine("[b][u]Processes[/u][/b]");
+        sb.AppendLine(SectionHeader("Processes"));
         var report = entity.LastEvaluation;
         if (report is null)
         {
-            sb.AppendLine("  [i](no evaluation data)[/i]");
+            sb.AppendLine($"  [color={whisper}]— no evaluation data —[/color]");
         }
         else
         {
             if (!string.IsNullOrWhiteSpace(report.StatusNote) && (report.IsStale || report.Candidates.Count == 0))
             {
-                sb.AppendLine($"  [i][color=gray]{FormatReportStatus(report, _sim.Clock.CurrentTick)}[/color][/i]");
+                sb.AppendLine($"  [i][color={whisper}]{FormatReportStatus(report, _sim.Clock.CurrentTick)}[/color][/i]");
             }
 
             if (report.Candidates.Count == 0)
             {
                 if (string.IsNullOrWhiteSpace(report.StatusNote))
                 {
-                    sb.AppendLine("  [i](no evaluation data)[/i]");
+                    sb.AppendLine($"  [color={whisper}]— no evaluation data —[/color]");
                 }
             }
 
             foreach (var candidate in report.Candidates)
             {
-                var statusColor = candidate.WasSelected ? "cyan"
-                    : candidate.PreconditionPassed ? "green" : "red";
+                var statusColor = candidate.WasSelected
+                    ? ColorTag(UiTokens.Ember)
+                    : candidate.PreconditionPassed
+                        ? ColorTag(UiTokens.Aurora)
+                        : ColorTag(UiTokens.Blood);
                 var statusIcon = candidate.WasSelected ? "★"
                     : candidate.PreconditionPassed ? "✓" : "✗";
-                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {candidate.ProcessName} → {candidate.ProviderName}  score: {candidate.Score:F3}");
+                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {candidate.ProcessName} → {candidate.ProviderName}  [color={whisper}]score {candidate.Score:F3}[/color]");
                 if (!candidate.PreconditionPassed)
                 {
-                    sb.AppendLine($"    [color=gray]{candidate.PreconditionDiagnostic}[/color]");
+                    sb.AppendLine($"    [color={whisper}]{candidate.PreconditionDiagnostic}[/color]");
                 }
             }
         }
@@ -370,6 +393,14 @@ public partial class EntityCard : PanelContainer
         _content.Text = sb.ToString();
         QueueScrollRestore();
     }
+
+    private static string SectionHeader(string title)
+    {
+        var caption = ColorTag(UiTokens.Parchment);
+        return $"\n[color={caption}]{title.ToUpperInvariant()}[/color]";
+    }
+
+    private static string ColorTag(Color color) => Main.ColorHex(color);
 
     private static string DescribeGoalEffect(Engine.Wiring.AttributeRef effect)
     {

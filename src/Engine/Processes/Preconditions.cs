@@ -414,43 +414,6 @@ public sealed class TargetAttributeThreshold(string attributeName, float? min, f
         $"target.{AttributeName} {(Min.HasValue ? $">= {Min}" : "")} {(Max.HasValue ? $"<= {Max}" : "")}";
 }
 
-/// <summary>Checks that the semantic distance between self and target is below a threshold.</summary>
-public sealed class SemanticDistanceThreshold(string attributeName, float maxDistance, bool plannerRelevant = true) : IPrecondition
-{
-    public string AttributeName { get; } = attributeName;
-    public float MaxDistance { get; } = maxDistance;
-    public bool PlannerRelevant { get; } = plannerRelevant;
-
-    public PreconditionResult Evaluate(IMutationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        var targetEntity = context.ResolvedTargetId is not null
-            ? context.GetEntity(context.ResolvedTargetId.Value)
-            : null;
-        var blocker = AttributeRef.Target(AttributeName, targetEntity?.Kind);
-        IReadOnlyList<AttributeRef> blockers = PlannerRelevant
-            ? [blocker]
-            : Array.Empty<AttributeRef>();
-        if (context.ResolvedTargetId is null)
-            return PreconditionResult.Fail("no target", blockers);
-        var selfEntity = context.GetEntity(context.SelfEntityId);
-        if (selfEntity is null || targetEntity is null)
-            return PreconditionResult.Fail("entity not found", blockers);
-
-        var selfPlane = selfEntity.Attributes.GetPlane(AttributeName);
-        var targetPlane = targetEntity.Attributes.GetPlane(AttributeName);
-        if (selfPlane is null || targetPlane is null)
-            return PreconditionResult.Fail($"{AttributeName} not a semantic plane", blockers);
-
-        var dist = selfPlane.DistanceTo(targetPlane);
-        return dist <= MaxDistance
-            ? PreconditionResult.Pass($"{AttributeName} distance={dist:F2} (max={MaxDistance})")
-            : PreconditionResult.Fail($"{AttributeName} distance={dist:F2} (need <= {MaxDistance})", blockers);
-    }
-
-    public string Describe() => $"semantic_distance({AttributeName}) <= {MaxDistance}";
-}
-
 /// <summary>Target must be the entity itself.</summary>
 public sealed class TargetIsSelf : IPrecondition
 {

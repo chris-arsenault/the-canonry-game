@@ -12,6 +12,7 @@ using Engine.Generators;
 using Engine.Kinds;
 using Engine.Messages;
 using Engine.Simulation;
+using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
@@ -22,21 +23,8 @@ namespace TheCanonryGame.UI;
 #pragma warning disable CA2213 // Godot nodes managed by scene tree
 public partial class TableauPanel : PanelContainer
 {
-    private static readonly Color PanelBackground = new(0.05f, 0.08f, 0.11f, 0.84f);
-    private static readonly Color PanelBorder = new(0.70f, 0.83f, 0.89f, 0.45f);
-    private static readonly Color CardBackground = new(0.11f, 0.11f, 0.13f, 0.95f);
-    private static readonly Color CardInset = new(0.17f, 0.17f, 0.18f, 0.82f);
-    private static readonly Color CardBorder = new(0.79f, 0.69f, 0.48f, 0.62f);
-    private static readonly Color CardInnerBorder = new(0.94f, 0.88f, 0.70f, 0.10f);
-    private static readonly Color CardHeader = new(0.18f, 0.18f, 0.19f, 0.94f);
-    private static readonly Color CardFrameShadow = new(0f, 0f, 0f, 0.28f);
-    private static readonly Color ActivePip = new(0.29f, 0.66f, 0.51f, 1.0f);
-    private static readonly Color InactivePip = new(0.41f, 0.18f, 0.18f, 1.0f);
-    private static readonly Color TextPrimary = new(0.97f, 0.95f, 0.92f);
-    private static readonly Color TextMuted = new(0.75f, 0.76f, 0.78f);
-    private static readonly Color TextFlavor = new(0.82f, 0.82f, 0.78f);
-    private static readonly Color TextRuleHeader = new(0.95f, 0.87f, 0.63f);
-    private static readonly Color StatusChipText = new(0.97f, 0.96f, 0.92f);
+    private static readonly Color ActivePip   = UiTokens.Aurora;
+    private static readonly Color InactivePip = UiTokens.Charcoal;
 
     private SimulationRunner? _sim;
     private Label? _summaryLabel;
@@ -88,47 +76,89 @@ public partial class TableauPanel : PanelContainer
             SetCheckBoxState(checkBox, isActive);
             var instance = _sim.WorldState.Generators.ById[generatorId];
             var isLastFired = string.Equals(generatorId, _lastFiredGeneratorId, StringComparison.Ordinal);
-            var accent = GetKindAccent(generator.Target.Kind);
+            var accent = UiTokens.KindAccent(generator.Target.Kind.Value);
+            var chipTone = GetChipTone(instance, isLastFired);
             row.StatusLabel.Text = BuildStatusText(generatorId, instance);
             row.StatsLabel.Text = BuildStatsText(instance);
             row.OutputsLabel.Text = BuildOutputs(generator);
             row.PreconditionsLabel.Text = BuildPreconditions(generator);
-            row.NameLabel.Modulate = isActive ? TextPrimary : new Color(0.72f, 0.72f, 0.72f);
+            row.NameLabel.AddThemeColorOverride("font_color", isActive ? UiTokens.Vellum : UiTokens.Parchment);
             row.ActivePip.Color = isActive ? ActivePip : InactivePip;
-            row.CardPanel.AddThemeStyleboxOverride("panel", BuildGeneratorCardStyle(accent, isActive, isLastFired));
-            row.HeaderPanel.AddThemeStyleboxOverride("panel", BuildHeaderStyle(accent));
-            row.KindBadgePanel.AddThemeStyleboxOverride("panel", BuildBadgeStyle(accent, 0.24f));
-            row.StatusPanel.AddThemeStyleboxOverride("panel", BuildStatusStyle(instance, isLastFired));
-            row.TypeLineLabel.AddThemeColorOverride("font_color", accent.Lightened(0.40f));
-            row.KindBadgeLabel.AddThemeColorOverride("font_color", accent.Lightened(0.55f));
-            row.StatusLabel.AddThemeColorOverride("font_color", StatusChipText);
+            row.CardPanel.AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent, selected: isActive, highlighted: isLastFired));
+            row.HeaderPanel.AddThemeStyleboxOverride("panel", UiTheme.HeaderStripStyle(accent));
+            row.KindBadgePanel.AddThemeStyleboxOverride("panel", UiTheme.BadgeStyle(accent));
+            row.StatusPanel.AddThemeStyleboxOverride("panel", UiTheme.ChipStyle(chipTone));
+            row.TypeLineLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
+            row.KindBadgeLabel.AddThemeColorOverride("font_color", accent);
+            row.StatusLabel.AddThemeColorOverride("font_color", UiTheme.ChipTextColor(chipTone));
         }
     }
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(640, 420);
-        AddThemeStyleboxOverride("panel", BuildPanelStyle());
+        CustomMinimumSize = new Vector2(680, 440);
+        AddThemeStyleboxOverride("panel", UiTheme.FloatingPanelStyle());
+
+        // Layered root: backdrop illustration behind the cards, VBox content
+        // on top. PanelContainer manages one child, so the Control here holds
+        // both via FullRect anchors.
+        var layers = new Control
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        AddChild(layers);
+
+        if (AssetLibrary.TableauBackdrop is { } backdrop)
+        {
+            var bg = new TextureRect
+            {
+                Texture = backdrop,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+                Modulate = new Color(1f, 1f, 1f, 0.12f),
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            bg.SetAnchorsPreset(LayoutPreset.FullRect);
+            layers.AddChild(bg);
+        }
 
         var outer = new VBoxContainer();
-        outer.AddThemeConstantOverride("separation", 8);
-        AddChild(outer);
+        outer.SetAnchorsPreset(LayoutPreset.FullRect);
+        outer.AddThemeConstantOverride("separation", UiTokens.Space3);
+        layers.AddChild(outer);
 
         var title = new Label
         {
             Text = "Tableau",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        title.AddThemeFontSizeOverride("font_size", 16);
+        title.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        title.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleLarge);
+        title.AddThemeColorOverride("font_color", UiTokens.Vellum);
         outer.AddChild(title);
+
+        var subtitle = new Label
+        {
+            Text = "CARDS THAT DEFINE THE WORLD'S NATURE",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        subtitle.AddThemeFontOverride("font", UiTheme.BodyFont);
+        subtitle.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        subtitle.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        outer.AddChild(subtitle);
+
+        outer.AddChild(BuildHairline());
 
         _summaryLabel = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _summaryLabel.AddThemeFontSizeOverride("font_size", 11);
+        _summaryLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+        _summaryLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _summaryLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
         outer.AddChild(_summaryLabel);
-        outer.AddChild(new HSeparator());
+
+        outer.AddChild(BuildHairline());
 
         var scroll = new ScrollContainer
         {
@@ -143,23 +173,34 @@ public partial class TableauPanel : PanelContainer
             Columns = 2,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _rows.AddThemeConstantOverride("h_separation", 12);
-        _rows.AddThemeConstantOverride("v_separation", 12);
+        _rows.AddThemeConstantOverride("h_separation", UiTokens.Space3);
+        _rows.AddThemeConstantOverride("v_separation", UiTokens.Space3);
         scroll.AddChild(_rows);
 
-        outer.AddChild(new HSeparator());
+        outer.AddChild(BuildHairline());
         _recentLabel = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _recentLabel.AddThemeFontSizeOverride("font_size", 10);
-        _recentLabel.AddThemeColorOverride("font_color", new Color(0.78f, 0.78f, 0.78f));
+        _recentLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+        _recentLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        _recentLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
         outer.AddChild(_recentLabel);
 
         if (_sim is not null)
         {
             RebuildRows();
         }
+    }
+
+    private static ColorRect BuildHairline()
+    {
+        return new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
     }
 
     private void RebuildRows()
@@ -182,27 +223,54 @@ public partial class TableauPanel : PanelContainer
         {
             var generatorId = entry.Key;
             var generator = entry.Value;
-            var accent = GetKindAccent(generator.Target.Kind);
+            var accent = UiTokens.KindAccent(generator.Target.Kind.Value);
             var card = new PanelContainer
             {
-                CustomMinimumSize = new Vector2(296, 250),
+                CustomMinimumSize = new Vector2(308, 260),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
-            card.AddThemeStyleboxOverride("panel", BuildGeneratorCardStyle(accent, HasActiveGeneratorCard(generatorId), false));
+            card.AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent, selected: HasActiveGeneratorCard(generatorId)));
+
+            // Layered root so the illustrated card-face can sit behind the
+            // content. PanelContainer manages ONE child, so we stack a
+            // Control here and put both the background and the content
+            // inside it as FullRect overlays.
+            var layers = new Control
+            {
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                SizeFlagsVertical = SizeFlags.ExpandFill,
+            };
+            card.AddChild(layers);
+
+            var cardFace = AssetLibrary.CardFace(generator.Target.Kind.Value);
+            if (cardFace is not null)
+            {
+                var bg = new TextureRect
+                {
+                    Texture = cardFace,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+                    // Dimmed so overlaid text stays readable on the dark card.
+                    Modulate = new Color(1f, 1f, 1f, 0.28f),
+                    MouseFilter = MouseFilterEnum.Ignore,
+                };
+                bg.SetAnchorsPreset(LayoutPreset.FullRect);
+                layers.AddChild(bg);
+            }
 
             var row = new VBoxContainer
             {
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
-            row.AddThemeConstantOverride("separation", 4);
-            card.AddChild(row);
+            row.SetAnchorsPreset(LayoutPreset.FullRect);
+            row.AddThemeConstantOverride("separation", UiTokens.Space2);
+            layers.AddChild(row);
 
             var headerPanel = new PanelContainer();
-            headerPanel.AddThemeStyleboxOverride("panel", BuildHeaderStyle(accent));
+            headerPanel.AddThemeStyleboxOverride("panel", UiTheme.HeaderStripStyle(accent));
             row.AddChild(headerPanel);
 
             var headerColumn = new VBoxContainer();
-            headerColumn.AddThemeConstantOverride("separation", 4);
+            headerColumn.AddThemeConstantOverride("separation", UiTokens.Space1);
             headerPanel.AddChild(headerColumn);
 
             var banner = new HBoxContainer
@@ -216,32 +284,36 @@ public partial class TableauPanel : PanelContainer
                 Text = BuildTypeLine(generator),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
-            typeLine.AddThemeFontSizeOverride("font_size", 9);
-            typeLine.AddThemeColorOverride("font_color", accent.Lightened(0.40f));
+            typeLine.AddThemeFontOverride("font", UiTheme.BodyFont);
+            typeLine.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+            typeLine.AddThemeColorOverride("font_color", UiTokens.Parchment);
             banner.AddChild(typeLine);
 
             var kindBadgePanel = new PanelContainer();
-            kindBadgePanel.AddThemeStyleboxOverride("panel", BuildBadgeStyle(accent, 0.24f));
+            kindBadgePanel.AddThemeStyleboxOverride("panel", UiTheme.BadgeStyle(accent));
             banner.AddChild(kindBadgePanel);
 
             var kindBadgeLabel = new Label
             {
                 Text = generator.Target.Kind.Value.ToUpperInvariant(),
             };
-            kindBadgeLabel.AddThemeFontSizeOverride("font_size", 8);
-            kindBadgeLabel.AddThemeColorOverride("font_color", accent.Lightened(0.55f));
+            kindBadgeLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+            kindBadgeLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+            kindBadgeLabel.AddThemeColorOverride("font_color", accent);
             kindBadgePanel.AddChild(kindBadgeLabel);
 
             var head = new HBoxContainer
             {
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
+            head.AddThemeConstantOverride("separation", UiTokens.Space2);
             headerColumn.AddChild(head);
 
             var activePip = new ColorRect
             {
-                CustomMinimumSize = new Vector2(10, 10),
+                CustomMinimumSize = new Vector2(8, 8),
                 Color = HasActiveGeneratorCard(generatorId) ? ActivePip : InactivePip,
+                SizeFlagsVertical = SizeFlags.ShrinkCenter,
             };
             head.AddChild(activePip);
 
@@ -259,27 +331,31 @@ public partial class TableauPanel : PanelContainer
                 Text = generator.Name,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
-            nameLabel.AddThemeFontSizeOverride("font_size", 15);
-            nameLabel.AddThemeColorOverride("font_color", TextPrimary);
+            nameLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
+            nameLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleSmall);
+            nameLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
             head.AddChild(nameLabel);
 
+            var initialInstance = _sim.WorldState.Generators.ById[generatorId];
+            var initialTone = GetChipTone(initialInstance, isLastFired: false);
             var statusPanel = new PanelContainer();
-            statusPanel.AddThemeStyleboxOverride("panel", BuildStatusStyle(_sim.WorldState.Generators.ById[generatorId], false));
+            statusPanel.AddThemeStyleboxOverride("panel", UiTheme.ChipStyle(initialTone));
             head.AddChild(statusPanel);
 
             var statusLabel = new Label
             {
                 HorizontalAlignment = HorizontalAlignment.Right,
             };
-            statusLabel.AddThemeFontSizeOverride("font_size", 9);
-            statusLabel.AddThemeColorOverride("font_color", StatusChipText);
+            statusLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+            statusLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+            statusLabel.AddThemeColorOverride("font_color", UiTheme.ChipTextColor(initialTone));
             statusPanel.AddChild(statusLabel);
 
-            var descriptionLabel = CreateBodyLabel(fontSize: 11);
+            var descriptionLabel = CreateBodyLabel(fontSize: UiTokens.SizeBodySmall);
             descriptionLabel.Text = string.IsNullOrWhiteSpace(generator.Description)
                 ? generator.Id
                 : generator.Description!;
-            descriptionLabel.AddThemeColorOverride("font_color", TextFlavor);
+            descriptionLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
             row.AddChild(descriptionLabel);
 
             var preconditionsPanel = CreateSectionPanel();
@@ -415,198 +491,49 @@ public partial class TableauPanel : PanelContainer
         _suppressSignals = false;
     }
 
-    private static Label CreateBodyLabel(int fontSize = 10)
+    private static Label CreateBodyLabel(int fontSize = UiTokens.SizeCaption)
     {
         var label = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
+        label.AddThemeFontOverride("font", UiTheme.BodyFont);
         label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", TextMuted);
+        label.AddThemeColorOverride("font_color", UiTokens.Parchment);
         return label;
     }
 
     private static PanelContainer CreateSectionPanel()
     {
         var panel = new PanelContainer();
-        panel.AddThemeStyleboxOverride("panel", BuildSectionStyle());
+        panel.AddThemeStyleboxOverride("panel", UiTheme.InsetStyle());
         return panel;
     }
 
     private static VBoxContainer WrapSection(string title, Label body)
     {
         var box = new VBoxContainer();
-        box.AddThemeConstantOverride("separation", 2);
+        box.AddThemeConstantOverride("separation", UiTokens.Space1);
 
         var titleLabel = new Label
         {
             Text = title.ToUpperInvariant(),
         };
-        titleLabel.AddThemeFontSizeOverride("font_size", 9);
-        titleLabel.AddThemeColorOverride("font_color", TextRuleHeader);
+        titleLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        titleLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        titleLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
         box.AddChild(titleLabel);
         box.AddChild(body);
         return box;
     }
 
-    private static StyleBoxFlat BuildPanelStyle()
+    private static UiTheme.ChipTone GetChipTone(GeneratorInstance instance, bool isLastFired)
     {
-        var style = new StyleBoxFlat
-        {
-            BgColor = PanelBackground,
-            BorderColor = PanelBorder,
-            CornerRadiusTopLeft = 14,
-            CornerRadiusTopRight = 14,
-            CornerRadiusBottomRight = 14,
-            CornerRadiusBottomLeft = 14,
-            BorderWidthTop = 1,
-            BorderWidthRight = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            ShadowColor = new Color(0f, 0f, 0f, 0.24f),
-            ShadowSize = 8,
-        };
-        style.ContentMarginTop = 12;
-        style.ContentMarginRight = 12;
-        style.ContentMarginBottom = 12;
-        style.ContentMarginLeft = 12;
-        return style;
+        if (isLastFired) return UiTheme.ChipTone.Warning;        // Ember — rare, draws the eye
+        if (instance.LastFiredTick is not null) return UiTheme.ChipTone.Active;
+        if (instance.FailedRuns > 0) return UiTheme.ChipTone.Critical;
+        return UiTheme.ChipTone.Neutral;
     }
-
-    private static StyleBoxFlat BuildGeneratorCardStyle(Color accent, bool isActive, bool isHighlighted)
-    {
-        var border = isHighlighted
-            ? accent.Lightened(0.42f)
-            : isActive
-                ? accent.Lightened(0.18f)
-                : CardBorder.Lerp(accent, 0.35f);
-        var style = new StyleBoxFlat
-        {
-            BgColor = CardBackground,
-            BorderColor = border,
-            CornerRadiusTopLeft = 18,
-            CornerRadiusTopRight = 18,
-            CornerRadiusBottomRight = 18,
-            CornerRadiusBottomLeft = 18,
-            BorderWidthTop = 2,
-            BorderWidthRight = 2,
-            BorderWidthBottom = 2,
-            BorderWidthLeft = 2,
-            ShadowColor = CardFrameShadow,
-            ShadowSize = isHighlighted ? 14 : 10,
-        };
-        style.ContentMarginTop = 10;
-        style.ContentMarginRight = 10;
-        style.ContentMarginBottom = 10;
-        style.ContentMarginLeft = 10;
-        return style;
-    }
-
-    private static StyleBoxFlat BuildHeaderStyle(Color accent)
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = CardHeader.Lerp(accent.Darkened(0.70f), 0.30f),
-            CornerRadiusTopLeft = 12,
-            CornerRadiusTopRight = 12,
-            CornerRadiusBottomRight = 8,
-            CornerRadiusBottomLeft = 8,
-            BorderWidthBottom = 1,
-            BorderColor = WithAlpha(accent.Lightened(0.15f), 0.45f),
-        };
-        style.ContentMarginTop = 8;
-        style.ContentMarginRight = 8;
-        style.ContentMarginBottom = 8;
-        style.ContentMarginLeft = 8;
-        return style;
-    }
-
-    private static StyleBoxFlat BuildBadgeStyle(Color accent, float alpha)
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = WithAlpha(accent, alpha),
-            BorderColor = WithAlpha(accent.Lightened(0.10f), 0.55f),
-            CornerRadiusTopLeft = 10,
-            CornerRadiusTopRight = 10,
-            CornerRadiusBottomRight = 10,
-            CornerRadiusBottomLeft = 10,
-            BorderWidthTop = 1,
-            BorderWidthRight = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-        };
-        style.ContentMarginTop = 4;
-        style.ContentMarginRight = 7;
-        style.ContentMarginBottom = 4;
-        style.ContentMarginLeft = 7;
-        return style;
-    }
-
-    private static StyleBoxFlat BuildStatusStyle(GeneratorInstance instance, bool isLastFired)
-    {
-        var color = isLastFired
-            ? new Color(0.74f, 0.56f, 0.20f, 0.95f)
-            : instance.LastFiredTick is not null
-                ? new Color(0.24f, 0.48f, 0.30f, 0.92f)
-                : instance.FailedRuns > 0
-                    ? new Color(0.46f, 0.20f, 0.20f, 0.92f)
-                    : new Color(0.23f, 0.25f, 0.29f, 0.92f);
-        var style = new StyleBoxFlat
-        {
-            BgColor = color,
-            CornerRadiusTopLeft = 10,
-            CornerRadiusTopRight = 10,
-            CornerRadiusBottomRight = 10,
-            CornerRadiusBottomLeft = 10,
-            BorderWidthTop = 1,
-            BorderWidthRight = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderColor = color.Lightened(0.16f),
-        };
-        style.ContentMarginTop = 4;
-        style.ContentMarginRight = 6;
-        style.ContentMarginBottom = 4;
-        style.ContentMarginLeft = 6;
-        return style;
-    }
-
-    private static StyleBoxFlat BuildSectionStyle()
-    {
-        var style = new StyleBoxFlat
-        {
-            BgColor = CardInset,
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomRight = 8,
-            CornerRadiusBottomLeft = 8,
-            BorderWidthTop = 1,
-            BorderWidthRight = 1,
-            BorderWidthBottom = 1,
-            BorderWidthLeft = 1,
-            BorderColor = CardInnerBorder,
-        };
-        style.ContentMarginTop = 6;
-        style.ContentMarginRight = 6;
-        style.ContentMarginBottom = 6;
-        style.ContentMarginLeft = 6;
-        return style;
-    }
-
-    private static Color GetKindAccent(KindId kind) => kind.Value switch
-    {
-        "penguin" => new Color(0.45f, 0.73f, 0.88f),
-        "settlement" => new Color(0.74f, 0.61f, 0.35f),
-        "faction" => new Color(0.69f, 0.35f, 0.35f),
-        "artifact" => new Color(0.60f, 0.80f, 0.67f),
-        "region" => new Color(0.59f, 0.66f, 0.91f),
-        "orca" => new Color(0.55f, 0.71f, 0.84f),
-        _ => new Color(0.72f, 0.68f, 0.56f),
-    };
-
-    private static Color WithAlpha(Color color, float alpha) =>
-        new(color.R, color.G, color.B, alpha);
 
     private static string BuildTypeLine(DefinitionGeneratorNode generator)
     {

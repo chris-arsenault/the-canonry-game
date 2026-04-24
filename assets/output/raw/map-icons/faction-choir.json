@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "faction-choir-icon",
+  "file": "map-icons/faction-choir.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized choir / collective faction marker. Flat app-icon geometry.\nThree small rectangular banners of equal size in a row, each mounted\non a short vertical pole, each a different saturated palette primary\ncolor. All three banners identical in shape and size, reading as a\ncollective / consensus group — many small voices side by side, no\nsingle dominant element.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a plain off-white canvas with generous padding, crisp vector geometry readable at 16px. Three identical rectangular banners in a tight horizontal row, each mounted on a short vertical pole, bold flat fills — vivid red (#FF0000), vivid blue (#0000FF), vivid yellow (#FFFF00) — equal in size and height, no banner larger or more prominent than the others. Poles are solid black, thin and upright. Banners have sharp clean edges, no gradients, no texture, no brushwork. Strong color separation between the three flags, high contrast against the off-white ground. Perfectly centered composition, symmetrical grouping, each banner reading as a distinct flat shape at minimum scale.",
+  "bfl_task_id": "413f4ab7-995e-41b3-bd32-441e9cfcba9d",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006093,
+  "duration_ms": 7448,
+  "generated_at": "2026-04-24T17:32:38.367Z"
+}

@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-crags",
+  "file": "terrain/crags.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED WARM BROWN flat color field — think #6B5548, a\nconfident rocky chocolate-brown with a slight warm earth undertone,\nthe color of a board-game \"mountain/stone\" tile. Clearly BROWN, not\nneutral-grey, not black, not slate. Visibly distinct from the tan\nwastes tile (darker, browner, richer) and from the ocean tile\n(warm, not cool). Fill the ENTIRE 1024x1024 square edge-to-edge with\nthis one warm-brown color corner to corner — NO drawn hex, NO paper\nborder, NO vignette, NO centered composition, NO visible rock\nfeatures. Only the faintest paint-texture variation within the same\nbrown hue. A region-fill swatch, not a tile with a shape drawn on it.",
+  "formatted_prompt": "Saturated flat warm-brown game-map terrain tile, editorial ink illustration register, vivid board-game cartogram aesthetic. The entire 1024x1024 frame filled edge-to-edge, corner-to-corner with one confident chocolate-brown color field — rich rocky brown #6B5548, warm earth undertone, darker and browner than ochre wastes, distinctly warm against cool ocean blue. Uniform saturated hue wall-to-wall with only the faintest brushstroke paint-texture variation within the same warm-brown tone. No hex outline, no border, no vignette, no rock features, no centered subject, no horizon. Pure region-fill swatch in punchy saturated brown, like a Settlers of Catan mountain tile rendered in confident ink-wash.",
+  "bfl_task_id": "ab3daf15-fd5f-41c5-a785-512e1c92197a",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006588,
+  "duration_ms": 10846,
+  "generated_at": "2026-04-24T16:36:30.995Z"
+}

@@ -114,8 +114,6 @@ public sealed class GoalGenerator
         var demands = new List<(AttributeRef Effect, float Urgency, string Source)>();
         foreach (var attrConfig in kindConfig.Attributes)
         {
-            if (attrConfig.PlaneDefinition is not null) continue;
-
             var scalar = entity.Attributes.GetScalar(attrConfig.Name);
             if (scalar is null) continue;
 

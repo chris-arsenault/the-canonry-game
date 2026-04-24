@@ -9,6 +9,7 @@ public sealed class SemanticGeneratorConfig
     public required string Name { get; init; }
     public string? Description { get; init; }
     public required SemanticGeneratorTarget Target { get; init; }
+    public SemanticTargetSaturation? TargetSaturation { get; init; }
     public IReadOnlyList<SemanticGeneratorBindingTarget> SecondaryTargets { get; init; } = [];
     public required IReadOnlyList<SemanticProducedEntity> Produces { get; init; }
     public IReadOnlyList<SemanticGeneratorRelationship> Relationships { get; init; } = [];
@@ -22,14 +23,21 @@ public sealed class SemanticGeneratorTarget
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AllowWilderness { get; init; }
-    public IReadOnlyList<SemanticSaturationLimit> SaturationLimits { get; init; } = [];
 }
 
-public sealed class SemanticSaturationLimit
+public sealed class SemanticTargetSaturation
 {
     public required string RelationshipKind { get; init; }
-    public required string Direction { get; init; }
-    public required int MaxCount { get; init; }
+    public string? RequiredFact { get; init; }
+    public TargetSaturationDirection Direction { get; init; } = TargetSaturationDirection.Symmetric;
+    public int MaxExisting { get; init; }
+}
+
+public enum TargetSaturationDirection
+{
+    OutgoingFromTarget,
+    IncomingToTarget,
+    Symmetric,
 }
 
 public sealed class SemanticProducedEntity
@@ -97,6 +105,7 @@ public sealed class SemanticGeneratorRelationship
     public required string SourceRef { get; init; }
     public required string DestinationRef { get; init; }
     public required string Kind { get; init; }
+    public IReadOnlySet<string> Facts { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public float Strength { get; init; } = 1f;
     public bool ReplaceExistingOutgoingOfSameKind { get; init; }
 }

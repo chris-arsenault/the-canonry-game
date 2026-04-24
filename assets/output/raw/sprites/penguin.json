@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin",
+  "file": "sprites/penguin.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A High-Beak Auditor in full ceremonial warlord regalia, seen in a slight\n3/4 overhead angle. Long ice-bladed sword held low, pale prismatic glyph\nscript hanging in the air around the free hand as he reads the ice-memory.\nBlack eye patch over one eye, a long scar across the beak. Posture of\ncommand — mid-council and mid-campaign at once.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration, richly pigmented, game-poster saturation, single clean sprite silhouette on neutral parchment ground. Adult emperor penguin, tall and lean with narrow pointed beak, small dark eyes proportional to the skull, upright commanding posture — wearing pale ice-plate and segmented silvered armor over flowing white robes, aurora-crystal coronet, prismatic-tipped stave at rest and ice-bladed sword held low. A black eye patch covers one eye; a long healed scar crosses the beak. Rank glyphs in Chinese-influenced script are etched into the breastplate. Cool aurora-green light pulses at polished pauldron rims and floats as prismatic glyph-script around the raised free hand, reading the ice-memory. Slight three-quarter overhead angle, strong silhouette separation, deep slate shadows, clean whites, vivid emerald aurora highlights against silvered steel and pale sky-blue ice-plate.",
+  "bfl_task_id": "8538741f-2cf0-44de-986f-41ee303ba616",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.007797,
+  "duration_ms": 9602,
+  "generated_at": "2026-04-24T16:35:56.585Z"
+}

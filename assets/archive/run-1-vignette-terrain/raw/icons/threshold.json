@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-threshold",
+  "file": "icons/threshold.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A small ink glyph — a single horizontal line broken in the middle by an\nupward-arrow notch, symbolizing crossing a threshold. Ember ink, urgent.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor field-journal plate, a single threshold glyph centered on aged parchment, ember orange punctuating warm vellum cream.",
+    "subjects": [
+      {
+        "type": "glyph",
+        "description": "Horizontal line broken at center by a sharp upward-arrow notch; bold nib-pen strokes, minimal and urgent, high-contrast silhouette readable at icon scale.",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "parchment ground",
+        "description": "Aged vellum surface, faint foxing at edges, subtle grain texture beneath the glyph.",
+        "position": "full field",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "5e370113-9671-4585-8bf0-e0cfcf800b07",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007254,
+  "duration_ms": 8882,
+  "generated_at": "2026-04-24T09:15:28.630Z"
+}

@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "scale-bar",
+  "file": "chrome/scale-bar.png",
+  "spec_type": "chrome",
+  "section_id": "4-ui-chrome-decoration",
+  "section": "4 · UI chrome & decoration",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is UI chrome or ornamentation. Keep it decorative, controlled, and cleanly cuttable from the background.\nKeep decorative edges controlled and production-friendly for UI extraction.",
+  "raw_description": "A horizontal cartographic scale bar — alternating filled and empty\nsegments with small tick marks beneath, labels reading \"0  ·  1  ·  2  ·  3\nhexes\" in small-caps serif.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor horizontal cartographic scale bar on aged vellum cream parchment, alternating filled and hollow segments with fine nib-pen tick marks, ember orange and slate ink accents punctuating the ruled baseline.",
+    "subjects": [
+      {
+        "type": "scale bar segments",
+        "description": "Four alternating rectangular segments, filled and hollow, fine ruled edges with precise tick marks below, small-caps serif labels reading 0 · 1 · 2 · 3 hexes",
+        "position": "centered horizontal, generous negative space above and below",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "baseline rule",
+        "description": "Single continuous ink rule beneath segments, hairline weight, faint foxing and aged texture along the paper surface",
+        "position": "bottom edge of scale bar, full width",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "cafba517-5963-476e-92c8-ca97c4a96426",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.00783,
+  "duration_ms": 6998,
+  "generated_at": "2026-04-24T09:15:09.559Z"
+}

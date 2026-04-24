@@ -109,6 +109,25 @@ public class WorldGraphTests
     }
 
     [Fact]
+    public void CreateRelationship_CapturesRelationshipFacts()
+    {
+        var nation = _graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", tick: 0);
+        var settlement = _graph.CreateEntity(TestKinds.Settlement, "generic", "S", "c", tick: 0);
+
+        var rel = _graph.CreateRelationship(
+            "controls",
+            RelationshipPolarity.Neutral,
+            nation.Id,
+            settlement.Id,
+            0.8f,
+            tick: 0,
+            facts: ["sealed_thin_place"]);
+
+        Assert.Contains("sealed_thin_place", rel.Facts);
+        Assert.True(rel.HasFact("sealed_thin_place"));
+    }
+
+    [Fact]
     public void CreateRelationship_ThrowsForNonexistentEntity()
     {
         var nation = _graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", tick: 0);

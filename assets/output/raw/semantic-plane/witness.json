@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "pane-witness",
+  "file": "semantic-plane/witness.png",
+  "spec_type": "background",
+  "section_id": "1e-semantic-plane-panes",
+  "section": "1e · Semantic-plane stained-glass panes",
+  "style_id": "stained-glass",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A cathedral stained-glass window pane. A single luminous aurora-\ncrystal held aloft, radiating concentric rings of light outward.\nEmerald green and cyan glass panels fill the entire frame edge-to-\nedge corner-to-corner, with a white radiant center. Thick black lead\nlines divide the glass. Symbol of witness, memory, and echoing\ntestimony.",
+  "formatted_prompt": "STYLE: Cathedral stained-glass window pane, editorial field-journal ink and watercolor beneath, 19th-century naturalist plate aesthetic rendered in lead-divided jewel-toned glass panels; Gothic rose-window composition centered in a square frame, thick black lead lines dividing the glass, painterly glass-on-light register; aged parchment grain and faint foxing at the frame edges\n\nSUBJECT: A single luminous aurora-crystal held aloft at the center of the pane, faceted and angular, radiating concentric rings of light outward in expanding arcs; the rings diminish in intensity toward the outer edges of the frame, suggesting echoing testimony and accumulated memory; the crystal itself is white-radiant at its core, transitioning outward through cyan into deep emerald glass panels\n\nCONTEXT: Full-frame background filling edge-to-edge corner-to-corner; the pane functions as atmospheric surface and symbolic field simultaneously; the concentric ring geometry divides the glass into nested bands separated by thick black lead lines in the manner of a Gothic rose window or altarpiece\n\nCOLOR: White radiant core at the crystal center; hot-springs emerald (#2DB56B) saturating the mid-ring glass panels; shelf light blue (#4A90C5) cyan in the inner transitional rings; deep ocean blue (#1E4A85) anchoring the outermost border panels; warm parchment (#F5EDD8) at the aged frame edges\n\nDETAILS: Jewel-toned glass transmitting light; lead lines thick and precise; vibrant clean glass panels; no cracks or breakage; faint foxing at outermost parchment border only",
+  "bfl_task_id": "req_a84bc2de77634a65bfb65ec55b9d1156",
+  "cost_usd": 0.058010000000000006,
+  "claude_cost_usd": 0.009441000000000001,
+  "duration_ms": 23100,
+  "generated_at": "2026-04-24T19:05:15.032Z"
+}

@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-orca",
+  "file": "cards/card-orca.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "orca",
+  "model": "flux-2-pro",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: a Wake-Singer mid-ritual over the Corpse Current. She sings\ninto the deep; the water around her visibly distorts from invoked\npressure-magic. Warm copper-scented current rising from below; the faint\noutline of something vast and two-miles-long in the abyssal shadow\nbeneath her — the dead god. Lower half: warm dark surface for text,\nghosted silhouette watermark. Warm cream parchment frame.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor naturalist plate, a ritual-scarred orca wake-singer suspended vertically in abyssal water over a copper-tinged Corpse Current, ivory scar-lines luminous against blue-black hide, warm vellum cream framing the archival composition.",
+    "subjects": [
+      {
+        "type": "orca wake-singer",
+        "description": "Adult orca oriented vertically, narrow snout latticed with hunt-liturgy scars, resonance-chambers carved into flanks, salt-crust texture across hide, open jaw mid-liturgy song, pressure-depth haze warping surrounding water into dense gravitational rings",
+        "position": "upper half, centered, facing downward into the deep",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "Corpse Current and abyssal shadow",
+        "description": "Warm copper-tinted water column rising from below, water visibly distorting in subsonic concentric pulls; two-mile ghosted silhouette of the dead god in abyssal slate shadow, vast and barely resolved, dissolved into the deep",
+        "position": "full vertical center, deepening from mid-frame to lower edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "parchment card frame",
+        "description": "Aged vellum border with faint foxing at corners, warm cream surface at lower third forming a text-ready panel, ghosted orca silhouette watermark faint beneath",
+        "position": "full frame border and lower third",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "cd15248f-6fa4-4005-adf9-162aa577ed4f",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.010893,
+  "duration_ms": 9918,
+  "generated_at": "2026-04-24T09:14:55.752Z"
+}

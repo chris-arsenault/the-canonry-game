@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-echo",
+  "file": "icons/attr-echo.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "Four concentric expanding wave-rings radiating outward from a center\ndot — symbolic of social resonance.",
+  "formatted_prompt": "Flat app icon on off-white canvas (#E7E3D5), generous padding, centered composition. Four concentric arc-rings radiating outward from a solid central dot, each ring progressively thinner and lighter, rendered as bold flat vector shapes with crisp sharp edges. Central dot in deep burnt sienna (#D97742), inner ring in warm terracotta, middle rings stepping through muted clay and dusty amber (#C9A96B), outermost ring in pale sand fading toward the background. All shapes use solid flat fills, zero gradients, zero texture, zero brushwork. Silhouette reads as a clean signal-pulse or sonar icon. Geometry is precise and deliberate, every arc perfectly concentric, gap spacing even and intentional. Fully legible at 16px. Dark near-black (#0B0F14) reserved for maximum-contrast moments only. Modern UI icon register, 2026-era app design.",
+  "bfl_task_id": "f1f4b657-0b33-46a4-9dd6-c2a139aa7ef9",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006444,
+  "duration_ms": 15394,
+  "generated_at": "2026-04-24T17:12:45.022Z"
+}

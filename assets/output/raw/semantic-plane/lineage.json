@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "pane-lineage",
+  "file": "semantic-plane/lineage.png",
+  "spec_type": "background",
+  "section_id": "1e-semantic-plane-panes",
+  "section": "1e · Semantic-plane stained-glass panes",
+  "style_id": "stained-glass",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A cathedral stained-glass window pane. An elder adult emperor\npenguin passing a cupped ritual flame from its flippers into the\nflippers of a younger adult emperor penguin. Ruby-red and gold glass\npanels dominate, with warm flame-orange center light. Lead-divided\njewel-toned glass, ornate borders. Symbol of lineage, continuity,\nand ritual.",
+  "formatted_prompt": "STYLE: Cathedral stained-glass window pane rendered in the tradition of a Gothic altarpiece panel; lead-divided jewel-toned glass with thick black lead lines, ornate pointed-arch borders at the edges, light transmitting through colored glass panels; rich saturated pigments, contemplative and ceremonial register; single square composition centered for hex clipping\n\nSUBJECT: Two adult emperor penguins in upright lean posture — tall narrow frames, small proportional dark eyes, sleek plumage, pointed beaks — facing each other in a ritual gesture; the elder penguin extends cupped flippers cradling a living flame toward the younger adult penguin whose cupped flippers receive it; both figures rendered with full adult anatomical gravity, no juvenile softness\n\nCONTEXT: A full cathedral stained-glass window pane; the two figures occupy the central medallion, the passing flame glowing at the geometric center; ornate Gothic tracery and bordered arch panels frame the scene as an altarpiece moment of transmission\n\nCOLOR: Ruby-red glass panels (#1E4A85 deep border shadow) dominate the flanking fields; warm flame-orange and amber gold saturate the central medallion around the cupped flippers; elder penguin rendered in deep ocean blue-black plumage; warm ochre (#C18A63) gold tracery borders; secondary warm parchment (#E0D4A8) glow radiates from the flame outward into surrounding panels\n\nDETAILS: Lead lines divide each color field cleanly; flame casts warm transmitted light across both figures' chests; glass surface clean and vibrant with no extraneous weathering",
+  "bfl_task_id": "req_e3373a5c4d8e423fb943b9f1e0174535",
+  "cost_usd": 0.059765000000000006,
+  "claude_cost_usd": 0.009279,
+  "duration_ms": 22332,
+  "generated_at": "2026-04-24T18:37:34.172Z"
+}

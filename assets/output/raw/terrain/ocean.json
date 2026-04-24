@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-ocean",
+  "file": "terrain/ocean.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED DEEP OCEAN BLUE flat color field — think #1E4A85,\nlike a classic board-game deep-water tile, like Catan's sea hex or a\nRisk board ocean region. The color is RICHLY PIGMENTED navy-to-indigo\nblue, clearly readable as DEEP BLUE WATER. NOT black, NOT grey, NOT\ndark-wash neutral — a confident saturated blue. Fill the ENTIRE\n1024x1024 square edge-to-edge with this one blue color corner to\ncorner — NO drawn hex, NO paper border, NO vignette, NO centered\ncomposition, NO waves, NO swell. Only the faintest paint-texture\nvariation within the same blue hue. A region-fill swatch, not a tile\nwith a shape drawn on it.",
+  "formatted_prompt": "Flat editorial game-map terrain tile, saturated region-fill composition covering the entire 1024x1024 square edge-to-edge with no border, no frame, no vignette, no centered motif. The whole image is one richly pigmented deep navy-indigo blue (#1E4A85) color field — confident, punchy, unmistakably deep ocean water, like a Catan sea hex or a Risk board ocean region. Color reads as saturated blue, never black, never grey, never dark-neutral. Only the faintest paint-texture variation within the same blue hue — subtle brushstroke grain suggesting a hand-laid wash — while the hue stays fully saturated and consistent corner to corner. No waves, no swell, no horizon, no illustrated elements.",
+  "bfl_task_id": "3cd8da3c-9261-4383-a690-d8276e3ec156",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006564,
+  "duration_ms": 8675,
+  "generated_at": "2026-04-24T16:37:00.995Z"
+}

@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-artifact",
+  "file": "cards/card-artifact.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: a Before Times relic in a deep vault — impossible shard on a\ncarved volcanic-glass pedestal, serial numbers (\"8H-H1Y0B\") faintly\nphosphorescent on its face. Aurora-crystal shards arranged in a warding\npattern around it. Robed ice-readers watch from a safe distance, one with\na shaking hand raised. A halo of cold wrongness around the relic.\nLower half: warm dark surface for text with a ghosted serial-number\nwatermark. Warm cream parchment frame.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration, richly pigmented, vertical 3:4 card-face composition. A Before Times relic dominates the upper frame — an impossible dark shard resting on a carved volcanic-glass pedestal, its surface etched with faintly phosphorescent serial characters \"8H-H1Y0B\" glowing pale green-white. Aurora-crystal shards arranged in a precise warding ring encircle the pedestal, each prismatic tip catching cool luminous cyan. Two lean adult emperor penguins in pale ice-plate and white ceremonial robes watch from a measured distance — narrow beaks, small attentive eyes, silver coronets, rank script inscribed in Chinese-influenced characters across their segmented plate. One raises a trembling wing-hand. A cold halo of wrongness radiates from the relic in faint prismatic shimmer, distorting the deep slate shadow behind it. Lower quarter: warm ochre-cream parchment ground, ghosted serial watermark beneath. Fine nib linework, saturated aurora-green and deep-ocean blue highlights, blacks clean and confident.",
+  "bfl_task_id": "a1d123a8-35cd-4bbc-978d-6ca68700141d",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008325,
+  "duration_ms": 10077,
+  "generated_at": "2026-04-24T16:37:38.422Z"
+}

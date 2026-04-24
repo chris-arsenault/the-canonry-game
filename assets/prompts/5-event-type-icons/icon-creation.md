@@ -1,2 +1,2 @@
-A small ink glyph — a seed-like teardrop with two tiny outward-radiating
-marks suggesting growth. Aurora cyan-green ink.
+A flat app-icon glyph — a seed-like teardrop with two tiny outward-
+radiating marks suggesting growth. Aurora cyan-green flat fill.

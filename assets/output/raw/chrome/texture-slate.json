@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "texture-slate",
+  "file": "chrome/texture-slate.png",
+  "spec_type": "background",
+  "section_id": "4-ui-chrome-decoration",
+  "section": "4 · UI chrome & decoration",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "Seamless dark slate stone texture — base color slate, subtle variations\nfrom slightly bluer to slightly greyer, very faint mineral veining. A\nquiet background surface.",
+  "formatted_prompt": "Editorial ink-and-watercolor field-journal texture study on aged parchment, centered as a seamless surface plate with museum-archive framing. Dark slate stone rendered in fine nib-pen hatching and loose watercolor wash — deep blue-grey (#2E3A4F) as the dominant field, shifting in subtle tonal variations toward cooler steel-grey and muted slate-blue across the surface. Very faint mineral veining traced in dilute ink, hairline-thin, meandering naturally through the stone face. Aged parchment grain visible beneath the wash, with faint foxing at the margins. Matte, contemplative surface — no gloss, no glow, no hard edges. Warm vellum undertone ghosts through the thinnest wash passages. Lighting flat and diffuse, as though the stone slab is documented under northern overcast light.",
+  "bfl_task_id": "17afb280-c97d-4aa7-b012-8b2404f66b05",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006594,
+  "duration_ms": 13108,
+  "generated_at": "2026-04-24T16:55:42.526Z"
+}

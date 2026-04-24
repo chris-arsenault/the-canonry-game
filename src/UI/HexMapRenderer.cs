@@ -9,6 +9,7 @@ using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
 using Engine.Simulation;
+using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
@@ -133,33 +134,141 @@ public partial class HexMapRenderer : Node2D
         var color = GetTerrainColor(cell.Terrain);
         var points = GetHexPoints(center);
 
-        DrawColoredPolygon(points, color);
-        DrawPolyline([.. points, points[0]], new Color(0.2f, 0.2f, 0.2f, 0.3f), 1f);
+        // Illustrated terrain tile if the asset loaded; colored polygon
+        // otherwise. Godot's DrawColoredPolygon accepts a texture alongside
+        // UVs for clip-masking a tile into the hex shape. The texture's
+        // hex-masked alpha already matches our hex, so the UVs just scale
+        // the texture to fit.
+        var tile = AssetLibrary.Terrain(cell.Terrain);
+        if (tile is not null)
+        {
+            // Build UVs that map each hex vertex to the corresponding point
+            // on the square texture. The texture is square, centered on the
+            // hex, with radius == HexSize.
+            var uvs = new Vector2[points.Length];
+            for (var i = 0; i < points.Length; i++)
+            {
+                var local = points[i] - center;
+                uvs[i] = new Vector2(
+                    0.5f + local.X / (HexSize * 2f),
+                    0.5f + local.Y / (HexSize * 2f));
+            }
+            DrawColoredPolygon(points, Colors.White, uvs, tile);
+        }
+        else
+        {
+            DrawColoredPolygon(points, color);
+        }
+        DrawPolyline([.. points, points[0]], UiTokens.Hairline, 1f);
     }
 
     private void DrawSemanticGrid()
     {
         if (_sim is null) return;
 
-        // Semantic hex grid matches the physical grid's radius so the view has the
-        // same footprint. Cells are purely visual scaffolding on the
-        // autonomy (Q) × resonance (R) × tradition (S) plane — no terrain, no regions.
+        // Rose renders first as the background — the Semantic plane IS the
+        // rose window. The hex grid overlays on top of it as the coordinate
+        // scaffolding for Q/R/S axes.
+        DrawSemanticRoseWindow();
+
+        // Grid outlines drawn as a two-pass halo so they read over arbitrary
+        // jewel-tone glass: a thick dark underlayer provides the "shadow",
+        // a thinner light stroke provides the "line". This same trick keeps
+        // axis highlights legible against both bright and dark glass panels.
         var radius = _sim.Grid.Radius;
-        var fill = new Color(0.18f, 0.19f, 0.22f);
-        var outline = new Color(0.35f, 0.37f, 0.42f, 0.6f);
-        var axisHighlight = new Color(0.55f, 0.55f, 0.60f, 0.85f);
+        var haloColor = UiTokens.Basalt;
+        var lineColor = UiTokens.Whisper;
+        var axisColor = UiTokens.Ember;
 
         foreach (var coord in HexCoord.CoordsInRadius(new HexCoord(0, 0), radius))
         {
             var center = HexToPixel(coord);
             var points = GetHexPoints(center);
+            var closed = new[] { points[0], points[1], points[2], points[3], points[4], points[5], points[0] };
 
-            DrawColoredPolygon(points, fill);
-
-            // Highlight the three axes (Q=0, R=0, S=0) so autonomy/resonance/tradition
-            // are readable at a glance. Origin gets all three.
             var onAxis = coord.Q == 0 || coord.R == 0 || coord.S == 0;
-            DrawPolyline([.. points, points[0]], onAxis ? axisHighlight : outline, onAxis ? 1.5f : 1f);
+
+            // Dark halo underneath
+            DrawPolyline(closed, haloColor, onAxis ? 4f : 3f);
+            // Bright stroke on top
+            DrawPolyline(closed, onAxis ? axisColor : lineColor, onAxis ? 2f : 1f);
+        }
+    }
+
+    /// <summary>
+    /// Stained-glass rose window at the Semantic plane's origin. The origin hex
+    /// (0,0,0) is split into six triangular wedges, each painted with a pane
+    /// whose content maps to one of the six axis poles:
+    ///
+    ///   wedge 0 (E , verts 0→1): +autonomy   → Breakaway
+    ///   wedge 1 (SE, verts 1→2): +resonance  → Witness
+    ///   wedge 2 (SW, verts 2→3): -tradition  → Severance
+    ///   wedge 3 (W , verts 3→4): -autonomy   → Yoke
+    ///   wedge 4 (NW, verts 4→5): -resonance  → Silence
+    ///   wedge 5 (NE, verts 5→0): +tradition  → Lineage
+    ///
+    /// Opposite wedges are the same axis — breakaway ↔ yoke, witness ↔ silence,
+    /// lineage ↔ severance — so the symmetry of the axis shows as symmetry in
+    /// the window.
+    /// </summary>
+    private void DrawSemanticRoseWindow()
+    {
+        if (_sim is null) return;
+
+        var panes = new[]
+        {
+            AssetLibrary.PaneBreakaway, // wedge 0, E,  +Q
+            AssetLibrary.PaneWitness,   // wedge 1, SE, +R
+            AssetLibrary.PaneSeverance, // wedge 2, SW, -S
+            AssetLibrary.PaneYoke,      // wedge 3, W,  -Q
+            AssetLibrary.PaneSilence,   // wedge 4, NW, -R
+            AssetLibrary.PaneLineage,   // wedge 5, NE, +S
+        };
+
+        // Rose spans the full grid radius and uses FLAT-TOP orientation so
+        // the three Q/R/S axes pass through its vertices — each wedge
+        // boundary sits on an axis line. Pointy-top would rotate the rose
+        // 30° off that alignment.
+        //
+        // sqrt(3) multiplier: the grid's widest extent from center is
+        // roughly HexSize * Grid.Radius * sqrt(3) (pointy-top hex centers
+        // stack at √3 stride horizontally), so this puts the rose's
+        // outermost vertex at the edge of the visible grid.
+        var center = HexToPixel(new HexCoord(0, 0));
+        var roseRadius = HexSize * (_sim.Grid.Radius + 1) * Mathf.Sqrt(3f);
+        var verts = new Vector2[6];
+        for (var i = 0; i < 6; i++)
+        {
+            var angle = Mathf.DegToRad(60f * i); // flat-top: vertices at 0°, 60°, ..., 300°
+            verts[i] = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * roseRadius;
+        }
+
+        // UV mapping per wedge: apex (hex center) → bottom-center of image
+        // (0.5, 1), two outer verts → top corners (0, 0) and (1, 0). Pane
+        // "up" points outward from the center so each image reads upright
+        // looking along its radius.
+        var uvs = new Vector2[]
+        {
+            new(0.5f, 1f),
+            new(0f, 0f),
+            new(1f, 0f),
+        };
+        var colors = new[] { Colors.White, Colors.White, Colors.White };
+
+        var drew = 0;
+        for (var i = 0; i < 6; i++)
+        {
+            var pane = panes[i];
+            if (pane is null) continue;
+
+            var triangle = new[] { center, verts[i], verts[(i + 1) % 6] };
+            DrawPolygon(triangle, colors, uvs, pane);
+            drew++;
+        }
+
+        if (drew == 0)
+        {
+            GD.PushWarning("[HexMapRenderer] Rose window drew no panes — pane textures all null. Check assets/game/semantic-plane/*.png.");
         }
     }
 
@@ -209,7 +318,7 @@ public partial class HexMapRenderer : Node2D
     {
         if (_sim is null) return;
 
-        var borderColor = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+        var borderColor = UiTokens.Ink;
         const float borderWidth = 2.5f;
 
         foreach (var cell in _sim.Grid.AllCells)
@@ -252,39 +361,106 @@ public partial class HexMapRenderer : Node2D
     {
         if (_sim is null) return;
 
-        var font = ThemeDB.FallbackFont;
+        var font = UiTheme.BodyFont;
+
+        // When multiple entities occupy the same hex, fan them out radially so all
+        // glyphs remain visible instead of stacking on top of each other.
+        var offsetsByHex = new Dictionary<HexCoord, int>();
 
         foreach (var (entityId, entity) in _sim.Graph.AllEntities)
         {
             if (entity.Status != EntityStatus.Active) continue;
 
             var coord = EntityCoordForCurrentPlane(entity);
-            var center = HexToPixel(coord);
+            var hexCenter = HexToPixel(coord);
 
-            if (entity.Kind == IceRemembersKinds.Settlement)
+            if (!offsetsByHex.TryGetValue(coord, out var index))
             {
-                var residents = entity.Attributes.GetValue("residents");
-                var radius = Mathf.Clamp(residents / 100f * 3f, 3f, 12f);
-                DrawCircle(center, radius, new Color(0.9f, 0.85f, 0.3f));
-                DrawCircle(center, radius, new Color(0.1f, 0.1f, 0.1f), filled: false);
-            }
-            else if (entity.Kind == IceRemembersKinds.Penguin)
-            {
-                DrawCircle(center + new Vector2(5, -5), 4f, new Color(0.3f, 0.8f, 0.3f));
-            }
-            else if (entity.Kind == IceRemembersKinds.Artifact)
-            {
-                DrawRect(new Rect2(center.X - 3 + 8, center.Y - 3 + 5, 6, 6),
-                    new Color(0.8f, 0.2f, 0.8f));
+                index = 0;
             }
 
-            if (ShowEntityNames && font is not null)
+            var offset = FanOffset(index, HexSize * 0.38f);
+            offsetsByHex[coord] = index + 1;
+
+            var center = hexCenter + offset;
+            var glyphSize = GlyphSizeForEntity(entity);
+            var accent = UiTokens.KindAccent(entity.Kind.Value);
+
+            // Preference order for the map marker:
+            //   1. Map icon — flat heraldic stamp, designed for small-scale
+            //      readability over variable terrain (correct register).
+            //   2. Portrait sprite — the painted illustration, works but
+            //      noisy against terrain (this was run 1; kept as fallback).
+            //   3. Polygon glyph — procedural shape, used when neither
+            //      asset is on disk (fresh clone, pre-generation).
+            var mapIcon = AssetLibrary.SubtypeMapIcon(entity.Kind.Value, entity.Subtype);
+            var sprite = mapIcon ?? AssetLibrary.KindSprite(entity.Kind.Value);
+            if (sprite is not null)
             {
-                var labelPos = center + new Vector2(-entity.Name.Length * 2.5f, -HexSize * 0.6f);
-                DrawString(font, labelPos, entity.Name, HorizontalAlignment.Left, -1, 10,
-                    new Color(1f, 1f, 1f, 0.9f));
+                // Map icons are drawn larger than the polygon glyph so the
+                // bold silhouette pops at target zoom without losing
+                // definition to pixel minification.
+                var drawSize = glyphSize * 2.4f;
+                var rect = new Rect2(
+                    center.X - drawSize,
+                    center.Y - drawSize,
+                    drawSize * 2f,
+                    drawSize * 2f);
+                DrawTextureRect(sprite, rect, tile: false);
+            }
+            else
+            {
+                KindGlyph.Draw(this, entity.Kind.Value, center, glyphSize, accent);
+            }
+
+            if (ShowEntityNames)
+            {
+                DrawEntityLabel(font, entity.Name, center, glyphSize);
             }
         }
+    }
+
+    private void DrawEntityLabel(Font font, string name, Vector2 center, float glyphSize)
+    {
+        // Labels need a dark backing or they vanish over light terrain (ice,
+        // tundra). Measure the string, draw a filled Basalt pill with a
+        // Vellum hairline, then the text on top. Padding keeps the text
+        // from pressing against the border.
+        const int padX = 5;
+        const int padY = 2;
+        var textSize = font.GetStringSize(name, HorizontalAlignment.Left, -1, UiTokens.SizeCaption);
+        var labelBottom = -glyphSize - 4f;
+        var labelPos = center + new Vector2(-textSize.X * 0.5f, labelBottom);
+
+        var bgRect = new Rect2(
+            labelPos.X - padX,
+            labelPos.Y - textSize.Y + padY,
+            textSize.X + padX * 2,
+            textSize.Y + padY);
+        DrawRect(bgRect, UiTokens.WithAlpha(UiTokens.Basalt, 0.88f));
+        DrawRect(bgRect, UiTokens.HairlineStrong, filled: false, width: 1f);
+        DrawString(font, labelPos, name, HorizontalAlignment.Left, -1, UiTokens.SizeCaption,
+            UiTokens.Vellum);
+    }
+
+    private float GlyphSizeForEntity(Entity entity)
+    {
+        // Settlements scale with population; other kinds stay at a fixed readable size.
+        if (entity.Kind == IceRemembersKinds.Settlement)
+        {
+            var residents = entity.Attributes.GetValue("residents");
+            return Mathf.Clamp(8f + residents / 40f, 9f, 18f);
+        }
+
+        return 10f;
+    }
+
+    private static Vector2 FanOffset(int index, float radius)
+    {
+        if (index == 0) return Vector2.Zero;
+        // Petal positions around the hex center, starting upper-right and rotating clockwise.
+        var angle = Mathf.DegToRad(-60f + 60f * (index - 1));
+        return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
     }
 
     // --- Hex math ---
@@ -312,30 +488,21 @@ public partial class HexMapRenderer : Node2D
 
     private static Color GetTerrainColor(TerrainType terrain) => terrain switch
     {
-        TerrainType.Wastes => new Color(0.62f, 0.63f, 0.58f),
-        TerrainType.Crags => new Color(0.42f, 0.42f, 0.45f),
-        TerrainType.Tundra => new Color(0.72f, 0.79f, 0.83f),
-        TerrainType.Ice => new Color(0.84f, 0.9f, 0.95f),
-        TerrainType.HotSprings => new Color(0.65f, 0.8f, 0.6f),
-        TerrainType.Shelf => new Color(0.58f, 0.72f, 0.82f),
-        TerrainType.Reef => new Color(0.28f, 0.54f, 0.68f),
-        TerrainType.Ocean => new Color(0.15f, 0.27f, 0.52f),
-        _ => new Color(0.5f, 0.5f, 0.5f),
+        TerrainType.Wastes     => UiTokens.TerrainWastes,
+        TerrainType.Crags      => UiTokens.TerrainCrags,
+        TerrainType.Tundra     => UiTokens.TerrainTundra,
+        TerrainType.Ice        => UiTokens.TerrainIce,
+        TerrainType.HotSprings => UiTokens.TerrainHotSprings,
+        TerrainType.Shelf      => UiTokens.TerrainShelf,
+        TerrainType.Reef       => UiTokens.TerrainReef,
+        TerrainType.Ocean      => UiTokens.TerrainOcean,
+        _                      => UiTokens.Whisper,
     };
 
     private Dictionary<EntityId, Color> AssignFactionColors()
     {
         var colors = new Dictionary<EntityId, Color>();
         if (_sim is null) return colors;
-
-        var palette = new[]
-        {
-            new Color(0.8f, 0.2f, 0.2f),
-            new Color(0.2f, 0.4f, 0.8f),
-            new Color(0.2f, 0.7f, 0.3f),
-            new Color(0.7f, 0.5f, 0.1f),
-            new Color(0.6f, 0.2f, 0.6f),
-        };
 
         // Order by EntityId value so each faction gets the same color every run.
         // The underlying kind index is a HashSet — enumeration order is not stable.
@@ -345,7 +512,7 @@ public partial class HexMapRenderer : Node2D
 
         for (var i = 0; i < factionIds.Count; i++)
         {
-            colors[factionIds[i]] = palette[i % palette.Length];
+            colors[factionIds[i]] = UiTokens.FactionPalette[i % UiTokens.FactionPalette.Length];
         }
 
         return colors;

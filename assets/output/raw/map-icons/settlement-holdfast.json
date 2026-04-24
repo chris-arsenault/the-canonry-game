@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "settlement-holdfast-icon",
+  "file": "map-icons/settlement-holdfast.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized fortified holdfast / keep. Flat app-icon geometry. One\nsquat square fortress tower with a crenellated / battlemented top\nedge (three or four rectangular tooth-shapes), narrow rectangular\nslit-window cutouts in a contrasting palette color, and a simple\ngate opening at the bottom. Flat saturated palette colors, sharp\nedges, clearly reading as fortification at 32px.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a plain off-white canvas with generous padding, no scene, no background. A single squat square fortress tower rendered in bold vivid red (#FF0000) flat fill with sharp crisp vector edges. The tower top features four rectangular crenellation teeth silhouetted cleanly against white. Two narrow vertical slit-window cutouts on the tower face filled in pure yellow (#FFFF00), high contrast against the red. A simple wide rectangular gate opening at the base filled solid black. All edges precise and deliberate, every shape a flat bold fill with zero gradients, zero brushwork, zero texture. Strong color separation between red tower, yellow slits, and black gate. Fully readable as a fortification silhouette at 16px. Modern UI icon register, Phosphor Fill aesthetic, 2026-era app design.",
+  "bfl_task_id": "6c95449c-ec73-4cf2-b00d-9577d4d0877d",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006492,
+  "duration_ms": 7931,
+  "generated_at": "2026-04-24T17:32:00.323Z"
+}

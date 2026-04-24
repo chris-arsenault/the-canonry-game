@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-depths-icon",
+  "file": "map-icons/region-depths.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized depths / submerged region marker. Flat app-icon geometry.\nA downward-pointing arrow or chevron shape in a saturated deep palette\nblue, centered. Around or behind the arrow, three or four horizontal\nwave lines in a contrasting lighter palette blue — simple tilde-like\ncurves in rows, suggesting deep water pressure. Heavy, downward,\nweighted.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a plain off-white canvas with generous padding, bold vector geometry readable at 16px. A single downward-pointing chevron arrow in deep saturated blue (#0000FF), thick bold strokes, crisp sharp edges, centered as the dominant silhouette. Behind and around the chevron, three horizontal tilde-wave lines in a lighter contrasting blue, evenly spaced rows suggesting deep water pressure and descent. All shapes flat filled, no gradients, no textures, no brushwork. Strong color separation between the deep blue chevron and the lighter wave lines against the white ground. Heavy downward visual weight, bold primary blue palette, punchy and unapologetic. Modern UI icon register, Phosphor Fill aesthetic, every edge precise and deliberate.",
+  "bfl_task_id": "63155439-ca16-4f85-a52f-dfb47d12058c",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006225,
+  "duration_ms": 7951,
+  "generated_at": "2026-04-24T17:33:17.717Z"
+}

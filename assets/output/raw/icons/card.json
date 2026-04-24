@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-card",
+  "file": "icons/card.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A flat app-icon glyph — a stylized rectangular card tilted slightly\nwith a corner fold suggested by a single diagonal line. Warm gold\nflat fill.",
+  "formatted_prompt": "Flat app-icon style, centered on an off-white (#E7E3D5) square canvas with generous padding. Single stylized playing-card or ID-card rectangle tilted roughly 10 degrees, warm burnished gold (#C9A96B) flat fill, sharp crisp vector edges. A single diagonal line in deep charcoal (#0B0F14) cuts across the upper-right corner suggesting a folded corner. Interior detail rendered as one flat secondary shape in terracotta (#D97742) — a thin horizontal stripe near the card's lower third for identity. Bold clean silhouette readable at 16px. No gradients, no textures, no brushwork, no shadows, no grain. Modern UI icon register, every edge deliberate vector geometry, flat bold fills only.",
+  "bfl_task_id": "01ba5d8b-8d0f-4a84-a5f9-3e598553e55b",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005952000000000001,
+  "duration_ms": 10402,
+  "generated_at": "2026-04-24T17:12:10.024Z"
+}

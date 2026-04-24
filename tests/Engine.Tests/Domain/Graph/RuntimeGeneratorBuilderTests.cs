@@ -178,8 +178,108 @@ public class RuntimeGeneratorBuilderTests
         Assert.Contains("must declare InheritCultureFrom", ex.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Build_GeneratorWithValidTargetSaturation_ProjectsTypedNode()
+    {
+        var generator = CreateValidGenerator(
+            targetSaturation: new SemanticTargetSaturation
+            {
+                RelationshipKind = "home_base",
+                RequiredFact = "called_unhuddled",
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
+            },
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { "called_unhuddled" },
+                },
+            ]);
+
+        var graph = DomainLoader.BuildDefinitionGraph(WithGenerators(generator));
+
+        var saturation = graph.Generators["test_penguin_package"].TargetSaturation;
+        Assert.NotNull(saturation);
+        Assert.Equal(new DefinitionRelationshipId("home_base"), saturation.RelationshipId);
+        Assert.Equal(new DefinitionRelationshipFactId("called_unhuddled"), saturation.RequiredFactId);
+        Assert.Equal(TargetSaturationDirection.IncomingToTarget, saturation.Direction);
+        Assert.Equal(0, saturation.MaxExisting);
+        Assert.Contains(
+            new DefinitionRelationshipFactId("called_unhuddled"),
+            Assert.Single(graph.Generators["test_penguin_package"].Relationships).FactIds);
+    }
+
+    [Fact]
+    public void Build_GeneratorTargetSaturationWithoutMatchingRelationship_Throws()
+    {
+        var generator = CreateValidGenerator(
+            targetSaturation: new SemanticTargetSaturation
+            {
+                RelationshipKind = "home_base",
+                RequiredFact = "called_unhuddled",
+                Direction = TargetSaturationDirection.Symmetric,
+                MaxExisting = 0,
+            });
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
+
+        Assert.Contains("target saturation must match", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Build_GeneratorTargetSaturationWithWrongDirection_Throws()
+    {
+        var generator = CreateValidGenerator(
+            targetSaturation: new SemanticTargetSaturation
+            {
+                RelationshipKind = "home_base",
+                RequiredFact = "called_unhuddled",
+                Direction = TargetSaturationDirection.OutgoingFromTarget,
+                MaxExisting = 0,
+            },
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { "called_unhuddled" },
+                },
+            ]);
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
+
+        Assert.Contains("target saturation must match", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Build_GeneratorRelationshipWithUnknownFact_Throws()
+    {
+        var generator = CreateValidGenerator(
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { "not_a_real_fact" },
+                },
+            ]);
+
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
+
+        Assert.Contains("not_a_real_fact", ex.Message, StringComparison.Ordinal);
+    }
+
     private static SemanticGeneratorConfig CreateValidGenerator(
         SemanticGeneratorTarget? target = null,
+        SemanticTargetSaturation? targetSaturation = null,
         IReadOnlyList<SemanticProducedEntity>? produces = null,
         IReadOnlyList<SemanticGeneratorRelationship>? relationships = null,
         IReadOnlyList<SemanticGeneratorTrigger>? triggers = null) =>
@@ -195,6 +295,7 @@ public class RuntimeGeneratorBuilderTests
                     "rookery",
                 },
             },
+            TargetSaturation = targetSaturation,
             Produces = produces ??
             [
                 new SemanticProducedEntity
@@ -236,6 +337,7 @@ public class RuntimeGeneratorBuilderTests
             Kinds = config.Kinds,
             Processes = config.Processes,
             Relationships = config.Relationships,
+            RelationshipFacts = config.RelationshipFacts,
             Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,

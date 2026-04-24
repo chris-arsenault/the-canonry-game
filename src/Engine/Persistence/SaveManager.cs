@@ -59,6 +59,7 @@ public static class SaveManager
                     Strength = rel.Strength,
                     StartDate = rel.StartDate,
                     EndDate = rel.EndDate,
+                    Facts = rel.Facts.ToList(),
                 });
             }
         }

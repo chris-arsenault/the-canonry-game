@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "pane-silence",
+  "file": "semantic-plane/silence.png",
+  "spec_type": "background",
+  "section_id": "1e-semantic-plane-panes",
+  "section": "1e · Semantic-plane stained-glass panes",
+  "style_id": "stained-glass",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A cathedral stained-glass window pane. A single cracked and dark\naurora-crystal at center, its light extinguished. Deep violet and\nnear-black glass panels surround it in void-like stillness, with\nmuted grey lead lines. Lead-divided jewel-toned glass, ornate\nborders. Symbol of silence, forgetting, and unmarked loss.",
+  "formatted_prompt": "STYLE: Cathedral stained-glass window pane rendered as a 19th-century naturalist plate on aged parchment; fine nib-pen lead lines with painterly glass-on-light register; Gothic altarpiece composition centered in a square field, faint foxing at parchment edges, archival grain beneath\nSUBJECT: A single aurora-crystal at center, cracked and dark, its inner light fully extinguished; faceted gem form with deep fissures running through it, surfaces opaque and cold, no glow remaining; the crystal occupies the middle of the pane, composed to survive clipping into a hex wedge\nCONTEXT: Full square stained-glass window background; the crystal is the sole focal symbol surrounded by expanding void-like glass panels in deep violet and near-black, the silence radiating outward to ornate Gothic border tracery at the four edges\nCOLOR: The extinguished crystal rendered in midnight blue-black (#0D1A2D) with cold dark violet undertones; surrounding void panels in deep near-black and muted violet, shadow-dark; lead lines in muted grey rather than black, receding into the dark field; Gothic border accents in warm brown (#6B5548) and aged parchment (#E0D4A8)\nDETAILS: Lead lines muted and grey, less assertive than standard cathedral panes, dissolving into the surrounding darkness; cracked crystal surfaces catching no transmitted light; ornate tracery borders intact but somber; glass-on-light register extinguished, producing a lightless, still interior\nCONSTRAINTS: No glow, no warmth, no luminosity from the crystal; void stillness throughout; symbol of silence, forgetting, unmarked loss",
+  "bfl_task_id": "req_4b29113c3f39419fb5fb369f411388d0",
+  "cost_usd": 0.058980000000000005,
+  "claude_cost_usd": 0.009597,
+  "duration_ms": 19804,
+  "generated_at": "2026-04-24T18:37:31.880Z"
+}

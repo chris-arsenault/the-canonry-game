@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "settlement-reefhold-icon",
+  "file": "map-icons/settlement-reefhold.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized reefhold — a settlement built on or around jagged rocks.\nFlat app-icon geometry. Two or three angular jagged spike-shapes\nrising from the bottom like coral or reef rocks in a contrasting\npalette color (darker base). On top of the tallest spike, one small\nsquare building with a triangular roof. Below the reef base, a thin\nhorizontal band of flat palette blue for water.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a clean off-white canvas with generous padding, bold vector geometry readable at 16px. Three angular jagged spike shapes rise from the bottom center — sharp upward-pointing silhouettes in deep black suggesting coral reef rocks, the tallest spike centered and dominant. Atop the tallest spike, one small square building in vivid red (#FF0000) with a solid triangular yellow (#FFFF00) roof rendered as flat geometric shapes. Below the jagged rock base, a single thin horizontal band of bold blue (#0000FF) representing flat water. Crisp hard edges throughout, zero gradients, zero brushwork, zero texture. Bright saturated primaries with strong color separation. Modern filled icon register, every shape simplified to its essential silhouette, fully legible at small sizes.",
+  "bfl_task_id": "cea0e96b-511b-4a30-afa0-e01cbb25c458",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006372000000000001,
+  "duration_ms": 7631,
+  "generated_at": "2026-04-24T17:32:16.363Z"
+}

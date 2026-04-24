@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-dominion",
+  "file": "icons/attr-dominion.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A simple crown-like form — three rounded points over a horizontal band,\nreduced to essential silhouette.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate rendering a simplified crown silhouette centered on aged parchment, ember orange against deep slate ink shadow with warm vellum cream ground.",
+    "subjects": [
+      {
+        "type": "crown icon",
+        "description": "Three rounded points rising from a solid horizontal band, bold reduced silhouette, thick clean linework, high-contrast archival stamp quality.",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "background field",
+        "description": "Aged parchment surface, faint foxing at edges, muted warm vellum texture beneath the icon form.",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "9f1f7b4a-eb74-4d7f-beb0-9487fcda6064",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007116000000000001,
+  "duration_ms": 7682,
+  "generated_at": "2026-04-24T09:16:04.223Z"
+}

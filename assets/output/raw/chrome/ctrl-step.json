@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "ctrl-step",
+  "file": "chrome/ctrl-step.png",
+  "spec_type": "icon",
+  "section_id": "8-playback-control-icons",
+  "section": "8 · Playback control icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A single right-pointing arrowhead followed by a thin vertical bar to\nits right, flat dark fill — the standard \"step forward one frame\"\nglyph.",
+  "formatted_prompt": "Flat app icon centered on an off-white (#E7E3D5) canvas with generous padding. A single bold right-pointing solid arrowhead — filled in deep burnt orange (#D97742) — positioned left of center, paired immediately to its right with a crisp thin vertical bar of equal height, filled in the same deep burnt orange. Both shapes rendered as sharp flat vector geometry with clean hard edges, no gradients, no texture, no brushwork. The two-element glyph reads as a unified \"step forward\" symbol. Minimal composition, high contrast against the pale ground, every edge precise and readable at 16px.",
+  "bfl_task_id": "b60642ce-4965-4c9d-8a27-971be12e0338",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005418,
+  "duration_ms": 10483,
+  "generated_at": "2026-04-24T17:13:16.839Z"
+}

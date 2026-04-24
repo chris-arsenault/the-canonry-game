@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "title-ice-remembers",
+  "file": "backgrounds/title.png",
+  "spec_type": "background",
+  "section_id": "7-atmospheric-art",
+  "section": "7 · Atmospheric art",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A wide cinematic landscape of Aurora Berg under perpetual twilight. An\nAurora Stack vertical crystalline spire colony rises on the horizon, its\nprismatic lenses channeling aurora light down through the tiers. The\naurora itself dominates a cold slate sky, rippling green-white across the\nupper half. In the foreground, a single robed ice-seer stands on a ridge\nof blue glacial ice, looking toward the colony. Below, at the water line,\nthe dark hint of the Corpse Current flows past an orca's dorsal fin\nbarely breaking the surface. Civilizational scale, reverent, grim, quiet.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration on aged parchment, richly pigmented in game-poster saturation, 16:9 cinematic landscape. A towering crystalline spire colony rises at the horizon under perpetual twilight, prismatic lenses stacked in tiered ceremonial halls refracting aurora light into cascading green-white ribbons across a cold slate sky (#0D1A2D). The aurora dominates the upper half, burning intense emerald and luminous cyan against deep blue-black. In the foreground, a lone adult emperor penguin ice-seer stands on a ridge of clean bright blue-white glacial ice, lean upright posture, narrow pointed beak, small attentive dark eyes, wearing flowing white robes over segmented silvered plate, aurora-crystal pendant glowing prismatic at the throat, a glowing ice-bladed staff at rest. Far below at the waterline, the Corpse Current runs dark ocean blue (#1E4A85), a single black dorsal fin barely breaking the surface. Deep slate shadows anchor the ice, hot-springs emerald aurora reflects in every polished crystal surface, civilizational scale, reverent, grim, utterly still.",
+  "bfl_task_id": "9e8ec396-d6aa-42b9-a563-0b6973a31cfb",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008586,
+  "duration_ms": 12312,
+  "generated_at": "2026-04-24T16:38:05.440Z"
+}

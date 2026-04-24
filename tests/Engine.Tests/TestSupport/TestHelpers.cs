@@ -1,6 +1,5 @@
 namespace Engine.Tests;
 
-using Engine.Attributes;
 using Engine.Behaviors;
 using Engine.Graph;
 using Engine.Kinds;
@@ -8,19 +7,6 @@ using Engine.Processes;
 using Engine.Resources;
 using Engine.Simulation;
 using Engine.Tests.Behaviors;
-
-internal static class TestHelpers
-{
-    internal static SemanticPlaneDefinition CreateIdeologyPlane() => new(
-        "ideology",
-        "x",
-        "y",
-        [
-            "low-low", "mid-low", "high-low",
-            "low-mid", "mid-mid", "high-mid",
-            "low-high", "mid-high", "high-high",
-        ]);
-}
 
 internal sealed class FixedRandom(params double[] values) : Random
 {

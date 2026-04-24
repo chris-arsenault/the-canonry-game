@@ -1,0 +1,60 @@
+{
+  "schema": "illuminator/atlas@1",
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "type": "sprite",
+  "group": "sprites",
+  "variant": null,
+  "image": "atlases/sprites.png",
+  "width": 4084,
+  "height": 1004,
+  "padding": 2,
+  "generated_at": "2026-04-24T09:16:50+00:00",
+  "entries": [
+    {
+      "spec_id": "faction-banner",
+      "spec_type": "sprite",
+      "source_file": "sprites/faction.png",
+      "x": 2,
+      "y": 2,
+      "width": 640,
+      "height": 1000
+    },
+    {
+      "spec_id": "orca",
+      "spec_type": "sprite",
+      "source_file": "sprites/orca.png",
+      "x": 644,
+      "y": 2,
+      "width": 1001,
+      "height": 998
+    },
+    {
+      "spec_id": "penguin",
+      "spec_type": "sprite",
+      "source_file": "sprites/penguin.png",
+      "x": 1647,
+      "y": 2,
+      "width": 888,
+      "height": 984
+    },
+    {
+      "spec_id": "artifact",
+      "spec_type": "sprite",
+      "source_file": "sprites/artifact.png",
+      "x": 2537,
+      "y": 2,
+      "width": 922,
+      "height": 961
+    },
+    {
+      "spec_id": "region-cairn",
+      "spec_type": "sprite",
+      "source_file": "sprites/region.png",
+      "x": 3461,
+      "y": 2,
+      "width": 619,
+      "height": 492
+    }
+  ]
+}

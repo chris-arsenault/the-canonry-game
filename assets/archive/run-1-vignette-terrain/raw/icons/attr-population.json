@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-population",
+  "file": "icons/attr-population.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "Three overlapping penguin silhouettes — a huddle reduced to essential\ncurves, no faces, no detail.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate, three overlapping adult emperor penguin silhouettes huddled together on aged parchment, punctuated by warm ember orange against deep slate ink shadow.",
+    "subjects": [
+      {
+        "type": "penguin silhouette trio",
+        "description": "Three overlapping upright adult emperor penguin forms, lean tall proportions, bold solid fill, layered huddle, crisp silhouette edges strictly in color #D97742 ember orange",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "background field",
+        "description": "Flat aged parchment, minimal texture, deep shadow vignette at edges strictly in color #0B0F14 slate ink",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "5a9c3110-8cf6-47bc-a1ed-6e1ed4235398",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.009366,
+  "duration_ms": 7889,
+  "generated_at": "2026-04-24T09:15:52.983Z"
+}

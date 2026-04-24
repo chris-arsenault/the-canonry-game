@@ -629,12 +629,9 @@ public static class DefinitionGraphValidator
                 errors.Add($"Attribute node key mismatch for '{keyKind}.{attributeId}'.");
             }
 
-            var observedShape = attributeNode.SourceConfig.PlaneDefinition is null
-                ? DefinitionAttributeShape.Scalar
-                : DefinitionAttributeShape.Plane2D;
-            if (observedShape != attributeNode.Shape)
+            if (attributeNode.Shape != DefinitionAttributeShape.Scalar)
             {
-                errors.Add($"Attribute '{attributeId}' on kind '{keyKind}' has shape '{observedShape}' but node shape is '{attributeNode.Shape}'.");
+                errors.Add($"Attribute '{attributeId}' on kind '{keyKind}' has non-scalar shape '{attributeNode.Shape}'.");
             }
 
             if (attributeNode.SourceConfig.Name != attributeId.Value)

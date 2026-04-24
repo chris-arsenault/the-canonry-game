@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "faction-compact-icon",
+  "file": "map-icons/faction-compact.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized alliance / compact faction marker. Flat app-icon geometry.\nTwo rectangular banners crossed in an X shape, mounted together at\nthe center. Each banner is a different saturated palette primary color\nso the alliance reads as two parties joined. A simple circular binding\nring at the center where the banners cross, in a contrasting palette\ncolor. No fly-tails, no sigils — the two-color crossed form IS the\nidentity.",
+  "formatted_prompt": "Flat modern app icon centered on a plain off-white canvas with generous padding. Two bold rectangular banner shapes crossed in a symmetrical X, rendered as crisp flat vector geometry with sharp clean edges. Left banner filled vivid red (#FF0000), right banner filled vivid blue (#0000FF), each a solid confident rectangle with no ornamentation or sigils. A bold circular ring at the crossing point filled vivid yellow, reading as the binding element joining both banners. All shapes use flat saturated fills, zero gradients, zero textures, zero brushwork. Strong color separation between red, blue, and yellow elements. Entire composition reduced to three geometric forms readable at 16px. Centered silhouette, white negative space surrounding, crisp 2026-era UI icon register.",
+  "bfl_task_id": "06181923-dd72-4060-b124-ce4b84923640",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006222,
+  "duration_ms": 10037,
+  "generated_at": "2026-04-24T17:32:30.630Z"
+}

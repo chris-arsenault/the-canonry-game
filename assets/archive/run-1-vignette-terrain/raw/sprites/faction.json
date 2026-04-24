@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "faction-banner",
+  "file": "sprites/faction.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "nightshelf",
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A tattered heraldic banner mounted on a bone-and-volcanic-glass pole. The\nsigil carved into the banner is an incomplete name using a ☽ moon-\ntruncation mark. Swallowtail fly torn at the hem; pole blackened with old\nsoot. Small chip-scars from a dozen campaigns. Rendered on warm-cream\nparchment with the banner filling the frame vertically.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate on aged vellum, a tattered Nightshelf heraldic banner on a soot-blackened bone-and-volcanic-glass pole, centered on warm cream parchment, punctuated by ember orange sigil-glow and obsidian black.",
+    "subjects": [
+      {
+        "type": "heraldic banner",
+        "description": "Swallowtail hem torn ragged, charcoal-grey fabric with ember-thread embroidery tracing an incomplete name using a ☽ moon-truncation glyph; chip-scarred pole of blackened bone and volcanic glass",
+        "position": "centered vertical fill",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "faction sigil",
+        "description": "Carved incomplete name in faux-Latin script with ☽ moon-truncation, warm ember glow at the incised edges, mottled soot shadow surrounding the inscription",
+        "position": "center of banner face",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "background field",
+        "description": "Aged parchment with faint foxing at corners, fine ink-wash vignette deepening at edges into slate shadow",
+        "position": "full background",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "82cbad11-1eca-4dff-adc6-ec56bf316fd7",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.010053,
+  "duration_ms": 8900,
+  "generated_at": "2026-04-24T09:13:26.985Z"
+}

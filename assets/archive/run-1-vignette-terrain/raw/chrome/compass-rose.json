@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "compass-rose",
+  "file": "chrome/compass-rose.png",
+  "spec_type": "chrome",
+  "section_id": "4-ui-chrome-decoration",
+  "section": "4 · UI chrome & decoration",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is UI chrome or ornamentation. Keep it decorative, controlled, and cleanly cuttable from the background.\nKeep decorative edges controlled and production-friendly for UI extraction.",
+  "raw_description": "A centered compass rose in the style of an antique nautical chart —\neight-pointed star with elongated N-S axis, fleur-de-lis at north,\nfinely inked concentric degree rings.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor antique nautical chart detail on aged vellum cream parchment, a centered eight-pointed compass rose with elongated north-south axis, rendered in slate ink linework with warm ochre and ember orange accents punctuating the cardinal points.",
+    "subjects": [
+      {
+        "type": "compass rose star form",
+        "description": "Eight-pointed star with dramatically elongated north-south axis, fleur-de-lis finial at north point, fine nib crosshatching on cardinal petals, concentric degree-ring annotations in tight serif numerals",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "degree ring border",
+        "description": "Two thin concentric circles enclosing fine tick-mark gradations, hand-lettered compass bearings in archival ink, faint foxing dots scattered across the vellum field",
+        "position": "surrounding compass star, centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "e2a1006d-f737-4d65-a2c0-de9a41766225",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008172,
+  "duration_ms": 8053,
+  "generated_at": "2026-04-24T09:15:09.528Z"
+}

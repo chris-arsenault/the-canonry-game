@@ -195,10 +195,11 @@ public class SpatialIndexTests
     [Fact]
     public void FindPath_ReturnsNullForUnreachableTarget()
     {
-        var (index, _) = CreateTestSetup();
+        var (index, world) = CreateTestSetup();
+        var ocean = world.Grid.AllCells.First(cell => cell.Terrain == TerrainType.Ocean);
 
-        // Destination in water (impassable)
-        var path = index.FindPath(new HexCoord(0, 0), new HexCoord(0, 17));
+        // Destination is impassable terrain in the procedural seed.
+        var path = index.FindPath(new HexCoord(0, 0), ocean.Coord);
         Assert.Null(path);
     }
 

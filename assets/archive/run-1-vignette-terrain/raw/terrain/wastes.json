@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-wastes",
+  "file": "terrain/wastes.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of an empty bone-grey snow waste — faint wind\nscour patterns, a few dark protruding pebbles, pale cracked surface.\nMuted, almost abstract.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, orthographic top-down view of a bone-grey snow waste on aged vellum parchment, faint wind-scour ridges and cracked pale surface punctuated by slate ink pebbles and warm vellum cream snow-crust.",
+    "subjects": [
+      {
+        "type": "cracked snow surface",
+        "description": "pale fractured crust with hairline cracks radiating across the tile, wind-scour grooves in shallow parallel arcs, filling the frame evenly",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "scattered pebbles",
+        "description": "three or four small angular stones half-buried in snow, casting faint ink shadow, distributed asymmetrically across the field",
+        "position": "scattered mid-frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "4f965d4c-6139-44e9-92b4-b4b810d9aff7",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007815,
+  "duration_ms": 6059,
+  "generated_at": "2026-04-24T09:13:51.176Z"
+}

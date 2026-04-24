@@ -8,7 +8,7 @@ using Engine.Graph;
 
 /// <summary>
 /// Subscribes to <see cref="WorldGraph.EntityCreated"/> and initialises each
-/// new entity's scalar / plane attributes from the domain configuration.
+/// new entity's scalar attributes from the domain configuration.
 /// Replaces the old <c>DomainLoader.InitializeEntityAttributes</c> sweep so
 /// attribute setup happens exactly once, on entity creation, for both initial
 /// entities and generator-spawned entities.
@@ -59,33 +59,20 @@ public sealed class DomainEntityInitializer
                 continue;
             }
 
-            IEntityProperty instance;
-            if (attr.PlaneDefinition is not null)
+            var defaultVal = attr.Default;
+            if (attr.DefaultVariance > 0f)
             {
-                var range = attr.Max - attr.Min;
-                var x = attr.Min + ((float)random.NextDouble() * range);
-                var y = attr.Min + ((float)random.NextDouble() * range);
-                instance = new SemanticPlane(attr.Name, attr.PlaneDefinition, attr.Min, attr.Max, x, y);
+                var jitter = 1f + ((float)(random.NextDouble() * 2.0 - 1.0) * attr.DefaultVariance);
+                defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
             }
-            else
+
+            var instance = new ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
+            if (attr.DriftRate != 0f)
             {
-                var defaultVal = attr.Default;
-                if (attr.DefaultVariance > 0f)
-                {
-                    var jitter = 1f + ((float)(random.NextDouble() * 2.0 - 1.0) * attr.DefaultVariance);
-                    defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
-                }
-
-                var scalar = new ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
-                if (attr.DriftRate != 0f)
-                {
-                    scalar.AddTickEffect(new AttributeEffect(
-                        $"innate_drift_{attr.Name}",
-                        $"Natural {attr.Name} drift",
-                        attr.DriftRate));
-                }
-
-                instance = scalar;
+                instance.AddTickEffect(new AttributeEffect(
+                    $"innate_drift_{attr.Name}",
+                    $"Natural {attr.Name} drift",
+                    attr.DriftRate));
             }
 
             entity.Attributes.Add(instance);

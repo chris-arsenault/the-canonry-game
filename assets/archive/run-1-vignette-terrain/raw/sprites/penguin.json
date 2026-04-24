@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin",
+  "file": "sprites/penguin.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "aurora-stack",
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A High-Beak Auditor in full ceremonial warlord regalia, seen in a slight\n3/4 overhead angle. Long ice-bladed sword held low, pale prismatic glyph\nscript hanging in the air around the free hand as he reads the ice-memory.\nBlack eye patch over one eye, a long scar across the beak. Posture of\ncommand — mid-council and mid-campaign at once.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor plate on aged vellum cream parchment, a lean adult emperor penguin warlord in pale ice-plate armor and white ceremonial robes stands at slight overhead three-quarter angle, aurora-green prismatic light catching polished silver surfaces against deep slate shadow.",
+    "subjects": [
+      {
+        "type": "emperor penguin warlord",
+        "description": "Tall adult emperor penguin, lean upright posture, scarred beak, black eye patch; pale ice-plate segmented armor over floor-length white robes, aurora-crystal coronet, rank glyphs inscribed in Chinese-influenced script across chest plate; long ice-bladed sword held low at right side, commanding downward gaze",
+        "position": "centered, slight overhead three-quarter angle, full figure",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "prismatic glyph field",
+        "description": "Loose constellation of floating calligraphic glyph-script suspended around the raised free hand, painted as cool prismatic shimmer, each character faintly luminous at its ink edge, slow and meditative in arrangement",
+        "position": "left foreground, orbiting the raised hand",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "b53b88ae-4fdb-4eb6-8ae8-2d28923da334",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.009828,
+  "duration_ms": 8231,
+  "generated_at": "2026-04-24T09:13:26.516Z"
+}

@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-hotsprings",
+  "file": "terrain/hotsprings.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of a cluster of hot spring pools in snow-rimmed\nrock — emerald-green water, faint steam wisps rising, warm sulfur-yellow\nand rust mineral deposits ringing each pool. The warmest spot on the map.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, top-down orthographic view of clustered hot spring pools in snow-dusted rock, emerald water and sulfur-yellow mineral rings punctuated by ember-rust deposits on aged vellum.",
+    "subjects": [
+      {
+        "type": "hot spring pools",
+        "description": "Three clustered circular pools, emerald-green water with faint watercolor steam wisps, concentric mineral rings of sulfur-yellow and rust at each rim",
+        "position": "filling frame evenly, centered cluster",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "rock and snow surround",
+        "description": "Fractured volcanic rock between pools, fine nib-pen cracks, snow-white dusting at outer edges bleeding into vellum ground",
+        "position": "surrounding pools, frame edges",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "mineral deposit crust",
+        "description": "Layered mineral crust at pool rims, rough watercolor texture, warm rust and amber banding",
+        "position": "ringing each pool",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "23aec88b-9f47-47dc-a458-42314fafb0cf",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008616,
+  "duration_ms": 7386,
+  "generated_at": "2026-04-24T09:14:08.558Z"
+}

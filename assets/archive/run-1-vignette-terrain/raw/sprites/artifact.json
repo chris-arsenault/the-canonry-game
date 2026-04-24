@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact",
+  "file": "sprites/artifact.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "aurora-stack",
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A Before Times relic held in an Aurora Stack deepest vault — an\nimpossible shard of uncertain material whose surface shifts between\nstates, edges impossibly sharp. Serial numbers (\"8H-H1Y0B\") are incised\ninto its face in faintly phosphorescent script in a language no one alive\ncan read. Resting on a carved volcanic-glass pedestal. Aurora-crystal\nshards arranged in a warding pattern around the pedestal. A cold\nwrongness halo around the relic — the ice-memory itself recoils.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor on aged parchment, a shifting impossible relic shard resting on a carved volcanic-glass pedestal surrounded by aurora-crystal warding shards, vellum cream and slate ink shadow punctuated by cold prismatic ember glints.",
+    "subjects": [
+      {
+        "type": "relic shard",
+        "description": "Impossible angular shard, surface shifting between glassy and matte states, edges razored and precise, incised serial numbers '8H-H1Y0B' in faintly phosphorescent script, cold wrongness rendered as a dense gravitational haze pressing outward from its form",
+        "position": "centered, elevated on pedestal, dominant focal mass",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "volcanic-glass pedestal",
+        "description": "Carved obsidian-dark pedestal with worn ceremonial incisions, aurora-crystal shards arranged in radiating warding pattern at its base, each crystal hairline-cracked",
+        "position": "lower center, anchoring the relic",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "atmospheric halo",
+        "description": "Cool prismatic shimmer at crystal shard edges, slow meditative aurora-light pressing outward, painted as layered translucent watercolor wash rather than glow",
+        "position": "surrounding the relic, bleeding into negative space",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "3a6b8f8d-6ecf-458d-883a-2ac14b3abac4",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.010464000000000001,
+  "duration_ms": 6425,
+  "generated_at": "2026-04-24T09:13:40.131Z"
+}

@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-ice",
+  "file": "terrain/ice.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of a pale glare-ice sheet — faint crackle\npattern, pale blue-white surface, deep slate-blue fracture lines. Looks\ncold and slightly translucent.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, top-down orthographic view, pale glare-ice sheet with crackle fracture patterns across the full frame, cool blue-white surface punctuated by deep slate-blue fracture lines on aged vellum cream ground.",
+    "subjects": [
+      {
+        "type": "ice surface",
+        "description": "Flat glare-ice sheet filling the hex frame, faint translucent sheen, fine crackle network of hairline fractures spreading evenly across the surface.",
+        "position": "full frame, centered, edge to edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "fracture lines",
+        "description": "Deep branching fracture lines pressed into the ice, thin nib-pen linework, slightly irregular, suggesting subsurface depth and cold pressure stress.",
+        "position": "distributed evenly across the tile surface",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "b85c8660-aae3-4026-9458-38e111b58cf7",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007965,
+  "duration_ms": 11438,
+  "generated_at": "2026-04-24T09:14:07.985Z"
+}

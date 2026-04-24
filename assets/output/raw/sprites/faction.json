@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "faction-banner",
+  "file": "sprites/faction.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "nightshelf",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A tattered heraldic banner mounted on a bone-and-volcanic-glass pole. The\nsigil carved into the banner is an incomplete name using a ☽ moon-\ntruncation mark. Swallowtail fly torn at the hem; pole blackened with old\nsoot. Small chip-scars from a dozen campaigns. Rendered on warm-cream\nparchment with the banner filling the frame vertically.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration, richly pigmented, game-poster saturation on warm-cream aged parchment with faint foxing at the edges. A vertical swallowtail heraldic banner mounted on a blackened bone-and-volcanic-glass pole fills the frame, the pole scarred with old soot and small chip-marks from long campaigns. The banner's charcoal-grey field is embroidered with ember-thread stitching that glows vivid orange at the fraying edges; the central sigil is an incomplete name rendered in faux-Latin script with a prominent ☽ moon-truncation mark, carved deep into the cloth in obsidian black linework. The swallowtail fly is torn and ragged at the hem, crimson fire-core lining visible through the splits. Bioluminescent cold blue-green glyphs pulse faintly along the pole's shaft. Deep shadow behind the pole creates strong silhouette separation. Lighting is warm ember-orange from below, cool cyan rim from the ice above.",
+  "bfl_task_id": "a92f2b43-53c0-477d-8318-83c5db46fd2b",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008081999999999999,
+  "duration_ms": 8575,
+  "generated_at": "2026-04-24T16:35:55.056Z"
+}

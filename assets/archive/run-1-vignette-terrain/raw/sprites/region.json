@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-cairn",
+  "file": "sprites/region.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "aurora-stack",
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A small weather-worn stone cairn on a featureless snowfield — three\nstacked slate-grey stones with faint lichen, casting a long cold-blue\nshadow to one side.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor naturalist plate on aged vellum parchment, three stacked slate-grey stones forming a small cairn on a bare snowfield, cold slate shadow stretching sideways across warm cream ground.",
+    "subjects": [
+      {
+        "type": "stone cairn",
+        "description": "Three rough slate stones stacked upright, lowest stone widest, faint ochre-green lichen crusting the surfaces, weathered edges, formal centered silhouette on open snowfield",
+        "position": "center frame, slight lower third anchor",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "cast shadow",
+        "description": "Long cold lateral shadow from cairn base, thin and directional across bare snow, ink-wash gradient dissolving at the far edge",
+        "position": "extending left from cairn base",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "3e223af1-c3c6-4363-807c-5b4b4a4f492b",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008397,
+  "duration_ms": 5293,
+  "generated_at": "2026-04-24T09:13:40.702Z"
+}

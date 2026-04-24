@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-tundra",
+  "file": "terrain/tundra.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of pale tundra — wind-packed snow broken by\nsparse patches of rust-colored lichen and low frozen scrub, faint game\ntrails winding through.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, orthographic top-down view of wind-packed tundra terrain on aged vellum parchment, pale snow broken by rust lichen and frost-scrub, accented with warm ember and slate shadow.",
+    "subjects": [
+      {
+        "type": "terrain surface",
+        "description": "Wind-packed snow field, cracked and slightly uneven, faint winding game trails pressed into the surface as shallow grooves.",
+        "position": "fills entire frame edge to edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "lichen and scrub patches",
+        "description": "Scattered low clusters of rust-colored lichen and frozen woody scrub, irregular organic shapes distributed across the snow, sparse and asymmetric.",
+        "position": "distributed across mid and corner zones",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "6d519e08-bc76-40e5-bf46-2dd59e00eed7",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007731,
+  "duration_ms": 11043,
+  "generated_at": "2026-04-24T09:13:56.633Z"
+}

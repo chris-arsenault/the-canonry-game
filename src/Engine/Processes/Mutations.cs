@@ -322,7 +322,7 @@ public sealed class CalculateMutation(string variableName, IExpression expressio
 /// Modifies self attribute by the value of a named context variable (set by CalculateMutation).
 /// </summary>
 public sealed class ModifySelfByVariableMutation(string attributeName, string variableName,
-    string? component = null, float variance = 0f) : IMutation
+    float variance = 0f) : IMutation
 {
     public void Execute(IMutationContext context)
     {
@@ -331,17 +331,17 @@ public sealed class ModifySelfByVariableMutation(string attributeName, string va
         var entity = context.GetEntity(context.SelfEntityId);
         if (entity is null) return;
 
-        MutationHelper.ModifyByComponent(entity, attributeName, component, delta);
+        entity.Attributes.Modify(attributeName, delta);
     }
 
-    public string Describe() => $"modify_self_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
+    public string Describe() => $"modify_self_by_var({attributeName}, ${variableName}, var={variance})";
 }
 
 /// <summary>
 /// Modifies target attribute by the value of a named context variable.
 /// </summary>
 public sealed class ModifyTargetByVariableMutation(string attributeName, string variableName,
-    string? component = null, float variance = 0f) : IMutation
+    float variance = 0f) : IMutation
 {
     public void Execute(IMutationContext context)
     {
@@ -352,10 +352,10 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
         var entity = context.GetEntity(context.ResolvedTargetId.Value);
         if (entity is null) return;
 
-        MutationHelper.ModifyByComponent(entity, attributeName, component, delta);
+        entity.Attributes.Modify(attributeName, delta);
     }
 
-    public string Describe() => $"modify_target_by_var({attributeName}.{component ?? "value"}, ${variableName}, var={variance})";
+    public string Describe() => $"modify_target_by_var({attributeName}, ${variableName}, var={variance})";
 }
 
 /// <summary>
@@ -540,25 +540,6 @@ public sealed class WanderOnSemanticPlaneMutation : IMutation
     }
 
     public string Describe() => "wander_semantic";
-}
-
-/// <summary>Helper to modify an attribute by component (scalar, x, or y).</summary>
-internal static class MutationHelper
-{
-    internal static void ModifyByComponent(
-        Graph.Entity entity, string attributeName, string? component, float delta)
-    {
-        var attr = entity.Attributes[attributeName];
-        if (attr is Attributes.SemanticPlane plane && component is not null)
-        {
-            if (component is "x") plane.ModifyX(delta);
-            else if (component is "y") plane.ModifyY(delta);
-        }
-        else if (attr is Attributes.ScalarValue scalar)
-        {
-            scalar.Modify(delta);
-        }
-    }
 }
 
 internal static class MovementHelper

@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "corner-ornament",
+  "file": "chrome/corner-ornament.png",
+  "spec_type": "chrome",
+  "section_id": "4-ui-chrome-decoration",
+  "section": "4 · UI chrome & decoration",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is UI chrome or ornamentation. Keep it decorative, controlled, and cleanly cuttable from the background.\nKeep decorative edges controlled and production-friendly for UI extraction.",
+  "raw_description": "A single corner ornament for the top-left corner of a page — elegant\ncartographic flourish with small geometric motifs and a delicate\nvine-like curl extending along both edges of the corner.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor corner ornament on aged vellum cream parchment, a single top-left cartographic flourish with geometric nodes and vine tendrils, punctuated by ember orange accents at junction points.",
+    "subjects": [
+      {
+        "type": "corner ornament",
+        "description": "Top-left L-shaped cartographic border piece, fine nib-pen linework, geometric diamond and dot motifs at the apex, thin vine curl extending rightward and downward along both arms",
+        "position": "top-left corner, centered in frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "vine tendril detail",
+        "description": "Delicate curling botanical scrollwork branching from the geometric apex, sparse small leaf nodes, controlled elegant taper toward each terminus",
+        "position": "along both arms of the corner piece",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "4490baf4-c508-4502-9515-b1d51a950bb8",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007859999999999999,
+  "duration_ms": 5769,
+  "generated_at": "2026-04-24T09:15:02.137Z"
+}

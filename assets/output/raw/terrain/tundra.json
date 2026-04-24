@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-tundra",
+  "file": "terrain/tundra.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED MINT / COOL SAGE-GREEN flat color field — think\n#A8D5BA, a soft-but-clearly-green cool mint color, the kind of pale\ngreen a board-game uses for \"tundra/taiga/grassland\" regions. The\ngreen hue must be UNMISTAKABLE — a viewer should read this as\nGREEN, not grey, not white, not beige. Saturated enough to be a\nconfident hue, clearly distinct from any other tile color. Fill the\nENTIRE 1024x1024 square edge-to-edge with this one mint-green color\ncorner to corner — NO drawn hex, NO paper border, NO vignette, NO\ncentered composition, NO visible foliage or terrain. Only the\nfaintest paint-texture variation within the same mint hue. A region-\nfill swatch, not a tile with a shape drawn on it.",
+  "formatted_prompt": "Flat saturated mint-green comic-map terrain tile, bold game-board region fill edge-to-edge in a 1024x1024 square. The entire image is one confident cool sage-green wash — unmistakably green, the clear board-game tundra hue near #A8D5BA — filling every corner with no horizon, no vignette, no border, no centered focal element, no drawn hex outline. Faint brushstroke texture variation ripples within the same mint register, suggesting paint tooth without breaking the flat read. Vivid, punchy, fresh color — not muted, not grey, not beige. A single saturated region-fill swatch in the manner of a Settlers of Catan grassland tile, bold ink confidence, zero aging or weathering.",
+  "bfl_task_id": "0dce11e0-6824-4631-9e51-0225a1800c9a",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006669,
+  "duration_ms": 9560,
+  "generated_at": "2026-04-24T16:36:30.223Z"
+}

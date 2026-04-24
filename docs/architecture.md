@@ -95,7 +95,6 @@ WorldGraph (QuikGraph BidirectionalGraph)
 
 Entity-Owned Attributes (IEntityProperty)
   ├── ScalarValue: base + tick effects + static effects, trend tracking
-  ├── SemanticPlane: 2D (X,Y) with per-component effects, label reduction, distance
   └── AttributeSet: Dictionary<string, IEntityProperty> per entity
 
 Effect Composition
@@ -259,8 +258,7 @@ src/
   Engine/
     Graph/          WorldGraph, Entity, EntityGoal, Relationship, EntityId
     Kinds/          EntityKind, KindConfig, KindRegistry, RelationshipConfig
-    Attributes/     IEntityProperty, ScalarValue, SemanticPlane, SemanticPlaneDefinition,
-                    AttributeEffect, AttributeSet, EffectSystem
+    Attributes/     IEntityProperty, ScalarValue, AttributeEffect, AttributeSet, EffectSystem
     Processes/      ProcessDefinition, DataDrivenProcess, DataDrivenDecision,
                     IMutationContext, IPrecondition, PreconditionResult, IMutation,
                     IExpression, Expression, Variance
@@ -268,7 +266,7 @@ src/
                     GoalGenerator, GraphAttributeQuery, IWorldState
     Map/            HexCoord, HexCell, HexGrid, TerrainType, Region, SpatialIndex, TestMapBuilder
     Clock/          TickClock, TickPhase, SimulationSpeed
-    Relationships/  StrengthModifier, DefaultModifiers, DispositionCalculator, RelationshipSystem
+    Relationships/  StrengthModifier, DefaultModifiers, RelationshipSystem
     Lifecycle/      AgingDrain, LifecycleSystem, MaintenanceSystem
     Resources/      ResourceType, ResourceLayer, ResourceSystem
     Pressure/       ContributingFactor, PressureDefinition, PressureSystem

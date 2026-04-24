@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "ctrl-pause",
+  "file": "chrome/ctrl-pause.png",
+  "spec_type": "icon",
+  "section_id": "8-playback-control-icons",
+  "section": "8 · Playback control icons",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "Two parallel vertical bars with soft rounded ends in dark ink with the\nfaintest brush-thickness variation.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate, two parallel vertical pause-symbol bars centered on warm vellum cream parchment, dark slate ink with faint ember-warm edges at aged paper grain.",
+    "subjects": [
+      {
+        "type": "geometric symbol",
+        "description": "Two upright parallel rectangles with softly rounded terminals, slight nib-line weight variation, bold readable silhouette at minimal scale.",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "background field",
+        "description": "Aged parchment surface, faint foxing at corners, warm vellum tone, subtle paper grain beneath the ink forms.",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "3cf5ab35-ae6c-4163-8465-94e4cd104713",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007323,
+  "duration_ms": 17066,
+  "generated_at": "2026-04-24T09:16:40.535Z"
+}

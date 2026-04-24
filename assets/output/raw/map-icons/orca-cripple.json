@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "orca-cripple-icon",
+  "file": "map-icons/orca-cripple.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized wounded orca seen from the side, body in profile, centered,\nsilhouette diminished and sorrowful. Flat app-icon geometry. Body in a\nconfident saturated dark palette color. The dorsal fin is broken —\neither bent sharply at an angle or with a visible notch cut from its\ntrailing edge. A tail fluke that hangs slightly lower than a healthy\norca's. Simple white scar-lines across the flank. White eye-patch\noval. Body posture is tired / drifting, not aggressive.",
+  "formatted_prompt": "STYLE: flat app-icon illustration; modern UI icon register, Phosphor Fill aesthetic; bold vector geometry with crisp sharp edges; single centered subject on plain off-white canvas with generous padding; no gradients, no textures, no brushwork\n\nSUBJECT: adult orca in strict side profile, body rendered as a single bold flat shape in deep saturated blue (#0000FF); dorsal fin bent sharply mid-point at a severe downward angle suggesting damage; tail fluke angled slightly downward below the body centerline conveying a tired drifting posture; white oval eye-patch (#FFFFFF) centered on the head region as a clean flat shape; two or three thin white (#FFFFFF) scar lines crossing the flank as simple straight strokes; body silhouette lean and adult-proportioned, not cartoon-stubby\n\nCONTEXT: map icon for a wounded or diminished orca entity; isolated single icon, no scene, no background elements beyond off-white canvas\n\nCOLOR: body in deep saturated blue (#0000FF); eye-patch and scar lines in clean white (#FFFFFF); off-white canvas background\n\nDETAILS: every shape reads as a deliberate flat fill with sharp crisp edges; dorsal fin break is a single angular bend, readable as a distinct notch at 16px scale; tail droop is subtle but legible at small sizes; no interior ink strokes, no gradient shading, no painterly marks\n\nCONSTRAINTS: bold silhouette readable at 16px; flat filled vector geometry only; no scene dressing; no juvenile or cartoon proportions; no aging or wear on canvas",
+  "bfl_task_id": "req_3a0b5cc4da434ca1931ba74de71e9bc9",
+  "cost_usd": 0.05491000000000001,
+  "claude_cost_usd": 0.009672,
+  "duration_ms": 23553,
+  "generated_at": "2026-04-24T18:03:48.133Z"
+}

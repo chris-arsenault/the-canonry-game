@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-lifecycle",
+  "file": "icons/lifecycle.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A flat app-icon glyph — a circle inscribed with a half-filled triangle,\nsymbolizing transition between states. Saturated red flat fill, simple\nenough to read at 16px.",
+  "formatted_prompt": "Flat app-icon glyph centered on an off-white (#E7E3D5) canvas with generous padding. A bold circle filled in burnt sienna (#D97742) contains a precisely centered half-filled triangle — left half solid deep crimson (#B04646), right half transparent showing the circle fill — rendered as crisp vector geometry with sharp edges. Single unified silhouette, no gradients, no strokes, no textures, no interior line detail beyond the flat triangle division. Phosphor Fill icon register, modern 2026 UI style. Every edge mathematically precise, readable at 16px. High contrast between the dark crimson triangle half and the warm sienna ground. Flat bold fills only.",
+  "bfl_task_id": "81ccfb88-00ab-49f5-a6e7-768179122ea4",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005721,
+  "duration_ms": 8838,
+  "generated_at": "2026-04-24T17:11:54.558Z"
+}

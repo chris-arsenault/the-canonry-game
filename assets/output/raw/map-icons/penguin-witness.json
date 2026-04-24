@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin-witness-icon",
+  "file": "map-icons/penguin-witness.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "An adult emperor penguin seer, front view, tall and lean with a long\nstraight beak, standing upright in a calm watchful posture. Holding a\ntall staff vertically in one flipper, topped with a cyan aurora\ncrystal. A small diamond pendant at the throat in the same cyan.\nSaturated colored belly, dark body.",
+  "formatted_prompt": "STYLE: flat vector app icon; editorial field-journal illustration adapted to modern UI icon register; bold crisp shapes with sharp edges; centered single-subject composition on plain off-white canvas with generous padding; Phosphor Fill / SF Symbols Filled register; no brushwork, no gradients, no textures\n\nSUBJECT: adult emperor penguin seer, front-facing, tall and lean with narrow pointed beak, small dark eyes proportional to skull, sleek upright posture; dark body rendered in #000000 with a bold saturated belly panel in #FFFF00; holding a tall vertical staff in one flipper in #000000; staff topped with a faceted aurora crystal in bright cyan; small diamond pendant at the throat in matching bright cyan\n\nCONTEXT: isolated icon asset, centered on canvas, no background scene, pure off-white field behind the figure\n\nCOLOR: body and staff in #000000; belly panel in #FFFF00; beak accent in #FF6600; aurora crystal and throat pendant in vivid cyan; eye detail in #FFFFFF; off-white canvas background\n\nDETAILS: every element reduced to its essential silhouette plus one to three flat interior shapes for identity; penguin anatomy uses adult emperor proportions — tall narrow torso, lean limbs, small head relative to body; crystal rendered as a simple faceted diamond shape, not a brush mark; all edges crisp and deliberate; fully readable at 16px\n\nCONSTRAINTS: flat bold fills only; no worn edges, no ink texture, no aging, no gradients; adult anatomical proportions strictly enforced; no cartoon or juvenile scaling",
+  "bfl_task_id": "req_47bd624edb85451289b77007a468d3c0",
+  "cost_usd": 0.05580000000000001,
+  "claude_cost_usd": 0.009528,
+  "duration_ms": 19656,
+  "generated_at": "2026-04-24T18:02:42.757Z"
+}

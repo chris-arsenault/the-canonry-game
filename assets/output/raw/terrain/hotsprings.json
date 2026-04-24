@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-hotsprings",
+  "file": "terrain/hotsprings.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform VIVID SATURATED EMERALD GREEN flat color field — think\n#2DB56B, a rich punchy jewel-green like a board-game \"oasis\" tile\nor a saturated mineral-pool green. Distinctly MORE SATURATED and\nMORE YELLOW-GREEN than the pale-mint tundra tile — these two must\nbe unmistakably different at a glance. Fully saturated jewel-tone\ngreen, not muted, not pale, not grey-green. Fill the ENTIRE\n1024x1024 square edge-to-edge with this one emerald-green color\ncorner to corner — NO drawn hex, NO paper border, NO vignette, NO\ncentered composition, NO discrete pools, NO steam. Only the\nfaintest paint-texture variation within the same emerald hue. A\nregion-fill swatch, not a tile with a shape drawn on it.",
+  "formatted_prompt": "Flat saturated emerald-green game-map terrain tile filling the entire 1024×1024 square edge-to-edge, corner to corner. Rich jewel-tone green, #2DB56B, a vivid punchy mineral-pool emerald — deeply saturated, yellow-green leaning, unmistakably bold. No horizon line, no vignette, no drawn hex border, no centered object, no steam, no discrete pools, no frame of any kind. The entire square is one continuous vivid emerald wash with only the faintest brushstroke paint-texture variation within the same saturated hue — like a Settlers of Catan forest tile reimagined in hot-springs green. Fully opaque, fully saturated, no grey, no muting, no pale mint, no desaturation. Top-down flat map-fill, graphic and unambiguous.",
+  "bfl_task_id": "f069237d-d051-4068-86b4-6d060e2ab8cc",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006947999999999999,
+  "duration_ms": 13190,
+  "generated_at": "2026-04-24T16:36:49.153Z"
+}

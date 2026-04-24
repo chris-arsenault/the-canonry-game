@@ -1,6 +1,5 @@
 namespace Engine.Tests.Relationships;
 
-using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -10,7 +9,6 @@ public class RelationshipSystemTests
 {
     private readonly WorldGraph _graph = new();
     private readonly KindRegistry _registry = TestDefaultRegistry.Create();
-    private readonly SemanticPlaneStore _planes = new();
 
     private RelationshipSystem CreateSystem()
     {
@@ -19,7 +17,7 @@ public class RelationshipSystemTests
 
     private StubContext CreateContext()
     {
-        return new StubContext(_graph, _planes);
+        return new StubContext(_graph);
     }
 
     // --- Strength Modifiers ---
@@ -183,80 +181,9 @@ public class RelationshipSystemTests
         Assert.Equal(1, _graph.ActiveRelationshipCount);
     }
 
-    // --- Disposition ---
-
-    [Fact]
-    public void Disposition_HighForSimilarEntities()
-    {
-        var a = _graph.CreateEntity(TestKinds.Faction, "order", "A", "c", 0);
-        var b = _graph.CreateEntity(TestKinds.Faction, "order", "B", "c", 0);
-
-        var govPlane = new SemanticPlaneDefinition("government", "x", "y",
-            ["ll", "ml", "hl", "lm", "mm", "hm", "lh", "mh", "hh"]);
-        _planes.RegisterPlane(govPlane);
-        _planes.SetPosition(a.Id, "government", 0.3f, 0.3f);
-        _planes.SetPosition(b.Id, "government", 0.35f, 0.35f); // Very close
-
-        var calc = new DispositionCalculator(CreateContext());
-        calc.RegisterPlane("government");
-
-        var disp = calc.ComputeDisposition(a.Id, b.Id);
-        Assert.True(disp > 0.8f, $"Expected > 0.8, got {disp}");
-    }
-
-    [Fact]
-    public void Disposition_LowForDifferentEntities()
-    {
-        var a = _graph.CreateEntity(TestKinds.Faction, "order", "A", "c", 0);
-        var b = _graph.CreateEntity(TestKinds.Faction, "order", "B", "c", 0);
-
-        var govPlane = new SemanticPlaneDefinition("government", "x", "y",
-            ["ll", "ml", "hl", "lm", "mm", "hm", "lh", "mh", "hh"]);
-        _planes.RegisterPlane(govPlane);
-        _planes.SetPosition(a.Id, "government", 0.1f, 0.1f);
-        _planes.SetPosition(b.Id, "government", 0.9f, 0.9f); // Opposite corners
-
-        var calc = new DispositionCalculator(CreateContext());
-        calc.RegisterPlane("government");
-
-        var disp = calc.ComputeDisposition(a.Id, b.Id);
-        Assert.True(disp < 0.3f, $"Expected < 0.3, got {disp}");
-    }
-
-    [Fact]
-    public void Disposition_DefaultWhenNoPlanesRegistered()
-    {
-        var a = _graph.CreateEntity(TestKinds.Faction, "order", "A", "c", 0);
-        var b = _graph.CreateEntity(TestKinds.Faction, "order", "B", "c", 0);
-
-        var calc = new DispositionCalculator(CreateContext()) { DefaultDisposition = 0.5f };
-
-        Assert.Equal(0.5f, calc.ComputeDisposition(a.Id, b.Id));
-    }
-
-    [Fact]
-    public void Disposition_IsSymmetric()
-    {
-        var a = _graph.CreateEntity(TestKinds.Faction, "order", "A", "c", 0);
-        var b = _graph.CreateEntity(TestKinds.Faction, "order", "B", "c", 0);
-
-        var plane = new SemanticPlaneDefinition("ideology", "x", "y",
-            ["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
-        _planes.RegisterPlane(plane);
-        _planes.SetPosition(a.Id, "ideology", 0.2f, 0.8f);
-        _planes.SetPosition(b.Id, "ideology", 0.7f, 0.3f);
-
-        var calc = new DispositionCalculator(CreateContext());
-        calc.RegisterPlane("ideology");
-
-        Assert.Equal(
-            calc.ComputeDisposition(a.Id, b.Id),
-            calc.ComputeDisposition(b.Id, a.Id));
-    }
-
     // --- Stub context ---
 
-    private sealed class StubContext(WorldGraph graph, SemanticPlaneStore planes) : IRelationshipContext
+    private sealed class StubContext(WorldGraph graph) : IRelationshipContext
     {
         public Entity? GetEntity(EntityId id) => graph.GetEntity(id);
 
@@ -264,8 +191,5 @@ public class RelationshipSystemTests
 
         public (int Q, int R)? GetCoordinates(EntityId entityId) =>
             graph.GetEntity(entityId)?.Coordinates;
-
-        public float? GetSemanticDistance(EntityId a, EntityId b, string planeName) =>
-            planes.GetDistance(a, b, planeName);
     }
 }

@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "divider-flourish",
+  "file": "chrome/divider-flourish.png",
+  "spec_type": "chrome",
+  "section_id": "4-ui-chrome-decoration",
+  "section": "4 · UI chrome & decoration",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is UI chrome or ornamentation. Keep it decorative, controlled, and cleanly cuttable from the background.\nKeep decorative edges controlled and production-friendly for UI extraction.",
+  "raw_description": "A long horizontal ink flourish — central small compass-rose motif\nflanked by thin hairline rules that fade to nothing at either end.\nChapter-break feel from a 19th-century atlas.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor horizontal divider on aged vellum parchment, a compass-rose medallion centered between tapering hairline rules, warm vellum cream ground with slate ink linework fading to silence at both edges.",
+    "subjects": [
+      {
+        "type": "compass-rose medallion",
+        "description": "Small eight-point compass rose, fine nib-pen linework, crisp cardinal points with delicate interstitial rays, centered anchor for the composition",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "hairline rule pair",
+        "description": "Twin tapering ink rules extending left and right from the medallion, pressure-fading to near-invisible at each terminus, atlas chapter-break weight",
+        "position": "flanking center horizontally",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "4ac50ffe-92fd-4d64-9415-e9451bc27978",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.007716,
+  "duration_ms": 7262,
+  "generated_at": "2026-04-24T09:14:57.823Z"
+}

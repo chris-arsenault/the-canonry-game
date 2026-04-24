@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "settlement-sanctuary-icon",
+  "file": "map-icons/settlement-sanctuary.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized sanctuary / ceremonial settlement. Flat app-icon geometry.\nOne tall single spire rising from a simple base block — slender\nvertical triangular shape, taller than wide. Topped with a simple\ngeometric ornament: a circular ring or a diamond-shaped crystal in\na contrasting luminous palette color (cyan, aurora-green, or gold).\nSolemn / ceremonial feel, not defensive or industrial.",
+  "formatted_prompt": "Flat app-icon illustration, crisp vector geometry, centered on a clean off-white canvas with generous padding. A single tall slender spire rising from a low rectangular base block — the spire a sharp vertical triangle, taller than wide, filled in vivid primary red (#FF0000), the base block filled in bold primary blue (#0000FF). Atop the spire, a small geometric diamond-crystal ornament filled in bright primary yellow (#FFFF00), sharply defined, small and precise. All edges razor-crisp, no gradients, no textures, no brushwork. Flat bold fills throughout, strong color separation between red spire, blue base, and yellow crown. Solemn vertical silhouette, ceremonial not defensive. Readable at 16px.",
+  "bfl_task_id": "5ec86ad9-a133-4eb5-ae36-7012e0fb1255",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006258,
+  "duration_ms": 7478,
+  "generated_at": "2026-04-24T17:32:12.303Z"
+}

@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "faction-icon",
+  "file": "map-icons/faction.png",
+  "spec_type": "icon",
+  "section_id": "1b-entity-map-icons",
+  "section": "1b · Entity map icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized faction banner. A rectangular pennant with a swallowtail\nfly (two triangular tails cut into the trailing edge), mounted on a\nsimple vertical pole planted in the ground. Simplified app-icon\ngeometry: the banner is a single saturated palette color (a bold\nprimary), the pole is a thin flat dark line. The ground is implied\nonly by a simple small horizontal bar at the pole's base. No wind\nripple, no cloth folds — flat simple shapes.",
+  "formatted_prompt": "STYLE: flat modern UI icon, Phosphor Fill register, single-subject centered composition on plain off-white canvas, bold vector geometry, crisp edges readable at 16px\n\nSUBJECT: stylized faction banner — a rectangular pennant with a swallowtail fly (two clean triangular notches cut symmetrically into the trailing right edge), mounted on a thin vertical pole; banner rendered as a single flat bold shape; pole as a narrow flat vertical bar; a small horizontal bar at the pole base implies ground; no cloth folds, no ripple, no decorative marks inside the pennant\n\nCONTEXT: isolated app icon, centered with generous padding on off-white canvas, no scene or environment beyond the minimal ground bar\n\nCOLOR: banner filled in bold saturated red (#FF0000); pole and ground bar in flat black (#000000); canvas off-white (#FFFFFF); strong contrast between banner and pole with zero intermediate tones\n\nDETAILS: every edge precise and deliberate; swallowtail notches cut as sharp isosceles triangles from the trailing edge, symmetrical and clean; pole width roughly one-tenth the banner width; ground bar width matches banner width, height minimal; flat fill throughout, zero gradient, zero texture, zero brushwork\n\nCONSTRAINTS: pure flat vector icon geometry; no gradients, no shadows, no textures, no painterly marks, no ink lines, no weathering; silhouette reads instantly at 16px",
+  "bfl_task_id": "req_59a36149e07b4307a012ccb64893c55b",
+  "cost_usd": 0.054435000000000004,
+  "claude_cost_usd": 0.009015,
+  "duration_ms": 22118,
+  "generated_at": "2026-04-24T18:02:07.701Z"
+}

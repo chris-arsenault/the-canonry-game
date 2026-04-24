@@ -107,85 +107,43 @@ public class PreconditionTests
     }
 
     [Fact]
-    public void SemanticDistanceThreshold_PassesWithinThreshold()
-    {
-        var world = CreateWorld();
-        var self = CreateSettlement(world, "Self", (0, 0), ideology: (0.1f, 0.1f));
-        var target = CreateSettlement(world, "Target", (1, 0), ideology: (0.4f, 0.5f));
-        var context = new TestMutationContext(self, target, worldState: world);
-
-        var result = new SemanticDistanceThreshold("ideology", 0.5f).Evaluate(context);
-
-        Assert.True(result.Passed);
-    }
-
-    [Fact]
-    public void SemanticDistanceThreshold_FailsBeyondThreshold()
-    {
-        var world = CreateWorld();
-        var self = CreateSettlement(world, "Self", (0, 0), ideology: (0.0f, 0.0f));
-        var target = CreateSettlement(world, "Target", (1, 0), ideology: (1.0f, 1.0f));
-        var context = new TestMutationContext(self, target, worldState: world);
-
-        var result = new SemanticDistanceThreshold("ideology", 0.5f).Evaluate(context);
-
-        Assert.False(result.Passed);
-        Assert.Equal([AttributeRef.Target("ideology", TestKinds.Settlement)], result.Blockers);
-    }
-
-    [Fact]
-    public void SemanticDistanceThreshold_FailsForNonPlaneAttribute()
-    {
-        var world = CreateWorld();
-        var self = CreateSettlement(world, "Self", (0, 0));
-        var target = CreateSettlement(world, "Target", (1, 0));
-        var context = new TestMutationContext(self, target, worldState: world);
-
-        var result = new SemanticDistanceThreshold("sustenance", 0.5f).Evaluate(context);
-
-        Assert.False(result.Passed);
-        Assert.Contains("not a semantic plane", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Equal([AttributeRef.Target("sustenance", TestKinds.Settlement)], result.Blockers);
-    }
-
-    [Fact]
     public void AndPrecondition_CollectsAllFailuresAndBlockers()
     {
         var world = CreateWorld();
-        var self = CreateSettlement(world, "Self", (0, 0), sustenance: 0f, fame: 1f, ideology: (0f, 0f));
-        var target = CreateSettlement(world, "Target", (1, 0), sustenance: 0f, fame: 1f, ideology: (1f, 1f));
+        var self = CreateSettlement(world, "Self", (0, 0), sustenance: 0f, fame: 1f);
+        var target = CreateSettlement(world, "Target", (1, 0), sustenance: 0f, fame: 1f);
         var context = new TestMutationContext(self, target, worldState: world);
 
         var precondition = new AndPrecondition(
         [
             new SelfAttributeThreshold("sustenance", min: 3f, max: null),
-            new SemanticDistanceThreshold("ideology", 0.1f),
+            new TargetAttributeThreshold("fame", min: 3f, max: null),
         ]);
 
         var result = precondition.Evaluate(context);
 
         Assert.False(result.Passed);
         Assert.Equal(
-            [AttributeRef.Self("sustenance", TestKinds.Settlement), AttributeRef.Target("ideology", TestKinds.Settlement)],
+            [AttributeRef.Self("sustenance", TestKinds.Settlement), AttributeRef.Target("fame", TestKinds.Settlement)],
             result.Blockers.OrderBy(x => x.Scope).ThenBy(x => x.Name).ToArray());
         Assert.Contains("; ", result.Diagnostic, StringComparison.Ordinal);
         Assert.Contains("self.sustenance", result.Diagnostic, StringComparison.Ordinal);
-        Assert.Contains("ideology distance", result.Diagnostic, StringComparison.Ordinal);
+        Assert.Contains("target.fame", result.Diagnostic, StringComparison.Ordinal);
     }
 
     [Fact]
     public void AndPrecondition_PassesWhenAllChildrenPass()
     {
         var world = CreateWorld();
-        var self = CreateSettlement(world, "Self", (0, 0), sustenance: 5f, ideology: (0.2f, 0.2f));
-        var target = CreateSettlement(world, "Target", (1, 0), ideology: (0.3f, 0.3f));
+        var self = CreateSettlement(world, "Self", (0, 0), sustenance: 5f);
+        var target = CreateSettlement(world, "Target", (1, 0), fame: 5f);
         var context = new TestMutationContext(self, target, worldState: world);
 
         var result = new AndPrecondition(
         [
             new AlwaysTrue(),
             new SelfAttributeThreshold("sustenance", min: 3f, max: null),
-            new SemanticDistanceThreshold("ideology", 0.2f),
+            new TargetAttributeThreshold("fame", min: 3f, max: null),
         ]).Evaluate(context);
 
         Assert.True(result.Passed);
@@ -274,14 +232,11 @@ public class PreconditionTests
         string name,
         (int Q, int R) coordinates,
         float sustenance = 0f,
-        float fame = 0f,
-        (float X, float Y)? ideology = null)
+        float fame = 0f)
     {
         var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("sustenance", 0f, 100f, sustenance));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
-        var (x, y) = ideology ?? (0.5f, 0.5f);
-        entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, x, y));
         return entity;
     }
 }

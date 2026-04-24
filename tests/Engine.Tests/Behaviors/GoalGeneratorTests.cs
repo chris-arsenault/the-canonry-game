@@ -630,7 +630,6 @@ public class GoalGeneratorTests
         entity.Attributes.Add(new ScalarValue("population", 0f, 1000f, population));
         entity.Attributes.Add(new ScalarValue("sustenance", 0f, 1000f, sustenance));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 1000f, fame));
-        entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, 0.5f, 0.5f));
         return entity;
     }
 

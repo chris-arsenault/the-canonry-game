@@ -6,8 +6,7 @@ using Engine.Resources;
 
 /// <summary>
 /// A composable expression that evaluates to a float given entity state.
-/// Resolves attribute paths (self.warmth, target.ideology.x) and supports
-/// arithmetic and built-in functions.
+/// Resolves scalar attribute paths and supports arithmetic and built-in functions.
 /// </summary>
 public interface IExpression
 {
@@ -34,7 +33,7 @@ public sealed class ExpressionContext
         MutationContext = mutationContext;
     }
 
-    public float ResolvePath(string entityRef, string attributeName, string? component = null)
+    public float ResolvePath(string entityRef, string attributeName)
     {
         var entity = entityRef switch
         {
@@ -47,16 +46,6 @@ public sealed class ExpressionContext
 
         var attr = entity.Attributes[attributeName];
         if (attr is null) return 0f;
-
-        if (component is not null && attr is Attributes.SemanticPlane plane)
-        {
-            return component switch
-            {
-                "x" => plane.X,
-                "y" => plane.Y,
-                _ => 0f,
-            };
-        }
 
         if (attr is Attributes.ScalarValue scalar)
         {
@@ -75,13 +64,13 @@ public sealed class Literal(float value) : IExpression
     public float Evaluate(ExpressionContext ctx) => value;
 }
 
-/// <summary>Resolve an attribute path: self.warmth, target.ideology.x, etc.</summary>
-public sealed class AttributePath(string entityRef, string attributeName, string? component = null) : IExpression
+/// <summary>Resolve a scalar attribute path, such as self.warmth or target.fame.</summary>
+public sealed class AttributePath(string entityRef, string attributeName) : IExpression
 {
     public float Evaluate(ExpressionContext ctx)
     {
         ArgumentNullException.ThrowIfNull(ctx);
-        return ctx.ResolvePath(entityRef, attributeName, component);
+        return ctx.ResolvePath(entityRef, attributeName);
     }
 }
 
@@ -167,23 +156,6 @@ public sealed class Distance : IExpression
     }
 }
 
-/// <summary>Euclidean distance between self and target on a 2D semantic plane attribute.</summary>
-public sealed class SemanticDistance(string attributeName) : IExpression
-{
-    public float Evaluate(ExpressionContext ctx)
-    {
-        ArgumentNullException.ThrowIfNull(ctx);
-        if (ctx.Target is null) return float.MaxValue;
-
-        var selfPlane = ctx.Self.Attributes.GetPlane(attributeName);
-        var targetPlane = ctx.Target.Attributes.GetPlane(attributeName);
-        if (selfPlane is null || targetPlane is null)
-            return float.MaxValue;
-
-        return selfPlane.DistanceTo(targetPlane);
-    }
-}
-
 public sealed class Min(IExpression a, IExpression b) : IExpression
 {
     public float Evaluate(ExpressionContext ctx) => Math.Min(a.Evaluate(ctx), b.Evaluate(ctx));
@@ -223,16 +195,11 @@ public static class Expr
 {
     public static Literal Lit(float v) => new(v);
     public static AttributePath Self(string attr) => new("self", attr);
-    public static AttributePath SelfX(string attr) => new("self", attr, "x");
-    public static AttributePath SelfY(string attr) => new("self", attr, "y");
     public static AttributePath Target(string attr) => new("target", attr);
-    public static AttributePath TargetX(string attr) => new("target", attr, "x");
-    public static AttributePath TargetY(string attr) => new("target", attr, "y");
     public static LocationResourcePath SelfLocationResource(ResourceType resourceType) => new("self", resourceType);
     public static LocationResourcePath TargetLocationResource(ResourceType resourceType) => new("target", resourceType);
     public static VariableRef Var(string name) => new(name);
     public static Distance Distance() => new();
-    public static SemanticDistance SemanticDistance(string attr) => new(attr);
     public static Add Add(IExpression l, IExpression r) => new(l, r);
     public static Subtract Sub(IExpression l, IExpression r) => new(l, r);
     public static Multiply Mul(IExpression l, IExpression r) => new(l, r);

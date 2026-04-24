@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-reach-icon",
+  "file": "map-icons/region-reach.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized reach / extended-range region marker. Flat app-icon\ngeometry. A wide horizontal vista — a single long horizontal\nrectangular band stretching across the icon, with a thin horizon line\nabove it, and two small angular triangular peak-shapes at either end\nin a contrasting palette color, suggesting distant boundary markers.\nThe long central band reads as open expanse between two edges.",
+  "formatted_prompt": "Flat app-icon illustration, bold vector geometry centered on a plain off-white canvas with generous padding. A wide horizontal rectangular band in vivid red (#FF0000) stretches across the icon center, representing open expanse. A thin crisp black horizon line runs directly above the band. At each far end of the band, a small upright angular triangular peak shape in pure blue (#0000FF) marks the boundary edges — two sharp silhouettes flanking the long central form. All edges razor-crisp, fills flat and solid, zero gradients or texture. Strong color separation: red band against white ground, blue peaks against red. Fully readable at 16px, bold silhouette, modern UI icon register, centered composition, generous surrounding padding.",
+  "bfl_task_id": "e95671bd-089f-4faa-b204-5ce10a9746ce",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006078,
+  "duration_ms": 9299,
+  "generated_at": "2026-04-24T17:33:23.060Z"
+}

@@ -1,2 +1,3 @@
 A counterclockwise circular arrow with an arrowhead pointing to the
-upper-left, in dark ink with faint brush variation.
+upper-left, uniform stroke width, flat dark fill — standard reset /
+undo glyph.

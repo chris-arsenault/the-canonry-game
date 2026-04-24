@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "settlement-rookery-icon",
+  "file": "map-icons/settlement-rookery.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized rookery / breeding-ground settlement. Flat app-icon\ngeometry. Three or four small rounded dome-shaped shelters clustered\ntogether on a simple rectangular base, low and wide — nesting ground\nsilhouette. Each dome is a flat saturated palette color (can alternate\nbetween palette primaries). In front of the domes, two or three small\nrounded egg shapes in a contrasting pale palette color.",
+  "formatted_prompt": "Flat app icon, centered on a plain off-white canvas with generous padding, bold vector geometry readable at 16px. A rookery settlement silhouette: three rounded dome-shaped shelters clustered side by side on a single low wide rectangular base, each dome a flat saturated primary — vivid red (#FF0000), bold blue (#0000FF), and bright yellow (#FFFF00) — filled with sharp crisp edges and zero texture. In front of the base, two small rounded egg shapes in clean white, outlined in solid black for contrast. All shapes simplified to essential silhouettes, flat confident fills, strong color separation between adjacent domes, comic-book color boldness. No gradients, no brushwork, no grain, no weathering. Pure modern UI icon register, every edge precise vector geometry, high contrast against the off-white field.",
+  "bfl_task_id": "5124769d-c7c8-4c95-b3c8-2346237bc8bf",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006432,
+  "duration_ms": 11274,
+  "generated_at": "2026-04-24T17:32:03.647Z"
+}

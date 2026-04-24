@@ -47,7 +47,7 @@ public class SemanticGeneratorConfigTests
         Assert.Equal(1, config.PulseWeight);
         Assert.Null(config.MaxRunsPerSim);
         Assert.Empty(config.Relationships);
-        Assert.Empty(config.Target.SaturationLimits);
+        Assert.Null(config.TargetSaturation);
         Assert.Equal(1f, config.Produces[0].CreateChance);
         Assert.True(config.Produces[0].CreateIfMissing);
         Assert.Equal(SemanticPlacement.Near, config.Produces[0].PhysicalPlacement);

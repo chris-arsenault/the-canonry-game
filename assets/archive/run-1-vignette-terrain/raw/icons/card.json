@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-card",
+  "file": "icons/card.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A small ink glyph — a stylized rectangular card tilted slightly with a\ncorner fold suggested by a single diagonal line. Warm gilt ink.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate on aged parchment — a stylized playing card glyph, rectangular form tilted at a slight angle, rendered in warm gilt ink against vellum cream with slate ink shadow accents.",
+    "subjects": [
+      {
+        "type": "icon glyph — tilted rectangle with corner fold",
+        "description": "Bold rectangular card silhouette, slight clockwise tilt, single diagonal line at upper corner suggesting a folded edge, crisp nib-pen linework, minimal fills",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "surface texture",
+        "description": "Aged parchment ground, faint foxing at margins, warm vellum grain beneath the glyph",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "b2154261-9a1f-4b27-8645-3946d00898a3",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007524,
+  "duration_ms": 7865,
+  "generated_at": "2026-04-24T09:15:34.529Z"
+}

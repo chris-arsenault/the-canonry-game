@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "orca",
+  "file": "sprites/orca.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "orca",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A Wake-Singer cruising at the surface in dark polar water, seen from\ndirectly above. The water around her visibly distorts from invoked\npressure-magic. A ring of copper-smelling warm current (the Corpse\nCurrent) rippling outward from the figure. Ominous civilizational scale\n— a shaman-warrior, not a beast.",
+  "formatted_prompt": "Painterly ink-and-watercolor illustration, richly pigmented, square format with clean silhouette. An adult orca wake-singer rendered from directly overhead, filling the frame — blue-black hide sleek and massive, ivory hunt-liturgy scars crossing the snout and flanks in deliberate ritual lines, carved resonance-chambers visible as grooved depressions along the body's midsection, salt-crust pale along the dorsal ridge. The Dreaming Tooth relic lashed beside the upright dorsal fin, yellowed bone bound with dark cord. She cruises at the polar surface, and the deep ocean water around her visibly warps — a gravitational pressure-haze distorting the water in concentric lens-rings, subsonic weight rendered as shimmering refraction. A ring of copper-warm Corpse Current (#C18A63 tinted water) ripples outward, luminous against the deep ocean-blue (#1E4A85) surrounding dark. Shelf-light blue (#4A90C5) catches the dorsal surface. The figure reads as shaman-warrior, not animal — civilizational scale, deliberate, ominous. Deep blacks, clean ivory scars, saturated ocean depth.",
+  "bfl_task_id": "4e71ffa6-686e-4884-b831-e8c488e620df",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008546999999999999,
+  "duration_ms": 8637,
+  "generated_at": "2026-04-24T16:36:11.512Z"
+}

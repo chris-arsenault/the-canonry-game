@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "orca",
+  "file": "sprites/orca.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": "orca",
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A Wake-Singer cruising at the surface in dark polar water, seen from\ndirectly above. The water around her visibly distorts from invoked\npressure-magic. A ring of copper-smelling warm current (the Corpse\nCurrent) rippling outward from the figure. Ominous civilizational scale\n— a shaman-warrior, not a beast.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor plate on aged parchment, adult orca wake-singer viewed from directly above cruising at the surface, polar water rendered in deep slate and abyssal ink with ember-copper Corpse Current rippling outward in concentric rings.",
+    "subjects": [
+      {
+        "type": "adult orca wake-singer",
+        "description": "Massive sleek adult orca, blue-black hide, ivory hunt-liturgy scar-lines crossing the snout, carved resonance-chambers visible in the flanks, upright dorsal fin with lashed bone relic, salt-crust texture along skin edges, civilizational gravity in posture",
+        "position": "centered, full body, aerial top-down view",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "pressure-depth distortion field",
+        "description": "Dense gravitational haze radiating outward from the orca's flanks, watercolor wash warping in concentric arcs, subsonic weight rendered as compressed ripple-rings pressing outward across the surface plane",
+        "position": "surrounding subject, mid-radius",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "Corpse Current",
+        "description": "Warm copper-ember current blooming outward from the orca in loose organic rings, mottled amber-rust wash bleeding into cold slate water, salt-foam at the edges",
+        "position": "outer ring, full frame edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "5ca760eb-1fec-4ed0-9223-75c0c63c887b",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.010488,
+  "duration_ms": 5636,
+  "generated_at": "2026-04-24T09:13:40.642Z"
+}

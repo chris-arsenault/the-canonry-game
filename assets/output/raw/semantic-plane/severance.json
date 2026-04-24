@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "pane-severance",
+  "file": "semantic-plane/severance.png",
+  "spec_type": "background",
+  "section_id": "1e-semantic-plane-panes",
+  "section": "1e · Semantic-plane stained-glass panes",
+  "style_id": "stained-glass",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A cathedral stained-glass window pane. A tall oath-stone cracked\nvertically down the middle, splitting into two halves. In the\nforeground an adult emperor penguin strides away from the broken\nstone toward open ice. Amber and bronze glass panels dominate, with\nan open pale-cyan horizon behind. Lead-divided jewel-toned glass,\nornate borders. Symbol of severance, reform, and a new path.",
+  "formatted_prompt": "STYLE: Cathedral stained-glass window pane, editorial field-journal illustration translated into lead-divided jewel-toned glass panels; Gothic altarpiece composition with ornate border tracery; rich saturated color separated by thick black lead lines; painterly glass-on-light register; single centered square panel surviving triangular hex clipping\nSUBJECT: A tall monolithic oath-stone split by a single clean vertical crack running crown to base, the two halves fractionally displaced; in the foreground an adult emperor penguin — tall, lean, narrow pointed beak, small dark eyes proportional to the skull, sleek upright plumage — strides deliberately away from the broken stone toward open ice, posture attentive and forward-facing, adult anatomical proportions throughout\nCONTEXT: The broken oath-stone occupies the upper center of the panel; the penguin moves toward the lower foreground, stepping onto open ice shelf; a pale open horizon recedes behind both figures\nCOLOR: Amber and warm bronze glass panels (#C18A63) dominate the stone and mid-ground; deep sapphire blue (#1E4A85) in the penguin's dorsal plumage; pale glacier cyan (#4A90C5) fills the open horizon sky behind; secondary warm parchment tones (#E0D4A8) glow through thinner glass at the edges; deep midnight (#0D1A2D) in the thick lead lines and border tracery\nDETAILS: Ornate Gothic cathedral border at all four edges; jewel-toned glass lit from behind with internal luminosity; lead came thick and deliberate; clean vibrant glass with no extraneous cracking beyond the single vertical split in the oath-stone\nCONSTRAINTS: Stained-glass medium only; adult penguin proportions, never cartoon or juvenile; no invented symbols or faction markers",
+  "bfl_task_id": "req_381b882ccf9a46f7b37f00c7792a52fc",
+  "cost_usd": 0.06142500000000001,
+  "claude_cost_usd": 0.010035,
+  "duration_ms": 22216,
+  "generated_at": "2026-04-24T18:37:39.367Z"
+}

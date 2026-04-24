@@ -2,7 +2,6 @@ namespace Engine.Attributes;
 
 /// <summary>
 /// Collection of IEntityProperty instances owned by an entity.
-/// Stores both ScalarValue and SemanticPlane.
 /// </summary>
 public sealed class AttributeSet
 {
@@ -16,15 +15,11 @@ public sealed class AttributeSet
     public ScalarValue? GetScalar(string name) =>
         _attributes.TryGetValue(name, out var attr) ? attr as ScalarValue : null;
 
-    /// <summary>Get a semantic plane attribute by name. Returns null if not found or not a plane.</summary>
-    public SemanticPlane? GetPlane(string name) =>
-        _attributes.TryGetValue(name, out var attr) ? attr as SemanticPlane : null;
-
-    /// <summary>Get the effective value of a scalar attribute. Returns 0 if not found or not scalar.</summary>
+    /// <summary>Get the effective value of a scalar attribute. Returns 0 if not found.</summary>
     public float GetValue(string name) =>
         GetScalar(name)?.Value ?? 0f;
 
-    /// <summary>Modify a scalar attribute's base value by a delta. No-op if not found or not scalar.</summary>
+    /// <summary>Modify a scalar attribute's base value by a delta. No-op if not found.</summary>
     public void Modify(string name, float delta) =>
         GetScalar(name)?.Modify(delta);
 

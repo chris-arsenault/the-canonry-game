@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "orca-war-leader-icon",
+  "file": "map-icons/orca-war-leader.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized orca war-pod leader seen from the side, body in profile,\ncentered, in an aggressive forward-lunging posture. Flat app-icon\ngeometry. Body in a confident saturated dark palette color. Mouth\nslightly agape with a few simple white triangular teeth showing. A\nsmall bone-tusk relic (simplified elongated triangle) tied beside the\ntall dorsal fin in a contrasting pale or bone-white palette color.\nWhite eye-patch oval. Body posture is dynamic and menacing.",
+  "formatted_prompt": "STYLE: flat vector app icon; modern UI icon register — bold filled shapes, sharp crisp edges, zero gradients, zero textures; centered single-subject composition on plain off-white canvas with generous padding; every shape readable at 16px\n\nSUBJECT: adult orca in strict side profile, body in aggressive forward-lunging diagonal posture; sleek anatomically adult silhouette with tall dorsal fin; body filled in deep saturated blue-black (#000000 leaning into #0000FF for the main mass); mouth slightly agape revealing three to four flat white (#FFFFFF) triangular teeth as simple geometric shapes; a single white oval eye-patch (#FFFFFF) placed precisely at the head; one elongated bone-tusk relic — a simplified narrow triangle in pale bone-white (#FFFFFF) — tied flush beside the base of the tall dorsal fin as a flat secondary shape\n\nCONTEXT: standalone app icon centered on off-white canvas; no scene, no background elements, no frame\n\nCOLOR: body in bold blue-black (#0000FF deep saturation massed with #000000); eye-patch and teeth in clean flat white (#FFFFFF); bone-tusk relic in flat white (#FFFFFF); strong contrast between dark body mass and white accent shapes\n\nDETAILS: every edge sharp and deliberate vector geometry; flat filled shapes only; no brushwork, no gradients, no ink strokes, no textures; interior details rendered as secondary flat color shapes; dynamic diagonal body angle implies momentum and aggression; silhouette reads as a single bold closed shape at small sizes\n\nCONSTRAINTS: adult anatomical proportions; no cartoon scaling; no juvenile features; no painterly rendering; no woodblock texture; no aging or wear",
+  "bfl_task_id": "req_d088f04b6ea54cb3b6e7366758aa2292",
+  "cost_usd": 0.05687000000000001,
+  "claude_cost_usd": 0.009984,
+  "duration_ms": 28428,
+  "generated_at": "2026-04-24T18:03:31.246Z"
+}

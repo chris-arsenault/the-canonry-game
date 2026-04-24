@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-shelf-icon",
+  "file": "map-icons/region-shelf.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized ice-shelf region marker. Flat app-icon geometry. Three\nhorizontal stacked rectangular layers of decreasing length — a flat\nterraced platform seen from the side — each layer a different pale\npalette color (light-cyan on top, mid-blue in the middle, deeper blue\nat the bottom). Wide, flat, stable-feeling — no verticality, no\npeaks.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a plain white square canvas with generous padding, bold vector geometry readable at 16px. Three stacked horizontal rectangular terraces seen in side profile, each layer shorter than the one below — a wide flat ice-shelf silhouette. Top tier in vivid cyan-white (#FFFFFF tinted cool), middle tier in bold pure blue (#0000FF), bottom tier in deep saturated blue-black, each edge crisp and deliberate. Layers decrease in width from bottom to top, creating a stable stepped platform shape. Flat solid fills, zero gradients, zero brushwork, zero texture. Strong color separation between tiers. Centered composition, ample negative space surrounding the form, no scene, no frame, no border.",
+  "bfl_task_id": "feaede8c-5924-4d27-b31b-144053846115",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.00609,
+  "duration_ms": 8556,
+  "generated_at": "2026-04-24T17:33:13.357Z"
+}

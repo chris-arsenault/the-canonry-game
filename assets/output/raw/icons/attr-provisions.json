@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-provisions",
+  "file": "icons/attr-provisions.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A simple sack or bundle tied at the top with a single diagonal line for\nthe tie.",
+  "formatted_prompt": "Flat app icon centered on an off-white (#E7E3D5) canvas with generous padding. A single bold sack silhouette — rounded plump body tapering to a gathered neck — filled in warm burnt sienna (#D97742), with a compact flat knot shape at the top rendered in deep terracotta (#B04646). One diagonal flat bar across the neck in dark near-black (#0B0F14) reads as the tie. All edges crisp vector geometry, no gradients, no texture, no brushwork. Subject occupies roughly sixty percent of the canvas, centered, readable at 16px. Clean 2026-era UI icon register, flat bold fills, sharp silhouette.",
+  "bfl_task_id": "9ac7942c-78cb-4e17-9d4e-637046f8aacf",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.00564,
+  "duration_ms": 11635,
+  "generated_at": "2026-04-24T17:13:01.282Z"
+}

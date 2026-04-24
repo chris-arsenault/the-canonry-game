@@ -152,38 +152,21 @@ public static class DomainLoader
             {
                 if (!entity.Attributes.Has(attr.Name))
                 {
-                    Attributes.IEntityProperty instance;
-                    if (attr.PlaneDefinition is not null)
+                    var rng = random ?? Random.Shared;
+                    var defaultVal = attr.Default;
+                    if (attr.DefaultVariance > 0f)
                     {
-                        var rng = random ?? Random.Shared;
-                        var range = attr.Max - attr.Min;
-                        var x = attr.Min + ((float)rng.NextDouble() * range);
-                        var y = attr.Min + ((float)rng.NextDouble() * range);
-                        instance = new Attributes.SemanticPlane(
-                            attr.Name, attr.PlaneDefinition, attr.Min, attr.Max, x, y);
+                        var jitter = 1f + ((float)(rng.NextDouble() * 2.0 - 1.0) * attr.DefaultVariance);
+                        defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
                     }
-                    else
+
+                    var instance = new Attributes.ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
+                    if (attr.DriftRate != 0f)
                     {
-                        var rng = random ?? Random.Shared;
-                        var defaultVal = attr.Default;
-                        if (attr.DefaultVariance > 0f)
-                        {
-                            var jitter = 1f + ((float)(rng.NextDouble() * 2.0 - 1.0) * attr.DefaultVariance);
-                            defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
-                        }
-
-                        var scalar = new Attributes.ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
-
-                        // Register drift as a tick effect (scalar only for now)
-                        if (attr.DriftRate != 0f)
-                        {
-                            scalar.AddTickEffect(new Attributes.AttributeEffect(
-                                $"innate_drift_{attr.Name}",
-                                $"Natural {attr.Name} drift",
-                                attr.DriftRate));
-                        }
-
-                        instance = scalar;
+                        instance.AddTickEffect(new Attributes.AttributeEffect(
+                            $"innate_drift_{attr.Name}",
+                            $"Natural {attr.Name} drift",
+                            attr.DriftRate));
                     }
 
                     entity.Attributes.Add(instance);

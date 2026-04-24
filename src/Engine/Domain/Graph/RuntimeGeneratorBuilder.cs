@@ -149,11 +149,39 @@ public static class RuntimeGeneratorBuilder
                         SourceRef = relationship.SourceRef,
                         DestinationRef = relationship.DestinationRef,
                         RelationshipId = relationshipId,
+                        FactIds = ResolveRelationshipFactIds(
+                            partialGraph,
+                            relationship.Facts,
+                            $"Generator '{config.Id}' relationship '{relationship.Kind}'"),
                         Strength = relationship.Strength,
                         ReplaceExistingOutgoingOfSameKind = relationship.ReplaceExistingOutgoingOfSameKind,
                     };
                 })
                 .ToList();
+
+            DefinitionTargetSaturation? targetSaturation = null;
+            if (config.TargetSaturation is not null)
+            {
+                var requiredFactId = string.IsNullOrWhiteSpace(config.TargetSaturation.RequiredFact)
+                    ? (DefinitionRelationshipFactId?)null
+                    : ResolveRelationshipFactId(
+                        partialGraph,
+                        config.TargetSaturation.RequiredFact,
+                        $"Generator '{config.Id}' target saturation");
+
+                targetSaturation = new DefinitionTargetSaturation
+                {
+                    RelationshipId = ResolveRelationshipId(
+                        partialGraph,
+                        config.TargetSaturation.RelationshipKind,
+                        $"Generator '{config.Id}' target saturation"),
+                    RequiredFactId = requiredFactId,
+                    Direction = config.TargetSaturation.Direction,
+                    MaxExisting = config.TargetSaturation.MaxExisting,
+                };
+
+                ValidateTargetSaturationHasMatchingGeneratedRelationship(config.Id, targetSaturation, relationships);
+            }
 
             var triggers = config.Triggers
                 .Select(trigger =>
@@ -185,17 +213,6 @@ public static class RuntimeGeneratorBuilder
                 Kind = config.Target.Kind,
                 Subtypes = config.Target.Subtypes is null ? null : new HashSet<string>(config.Target.Subtypes, StringComparer.Ordinal),
                 AllowWilderness = config.Target.AllowWilderness,
-                SaturationLimits = config.Target.SaturationLimits
-                    .Select(limit => new DefinitionSaturationLimit
-                    {
-                        RelationshipId = ResolveRelationshipId(
-                            partialGraph,
-                            limit.RelationshipKind,
-                            $"Generator '{config.Id}' saturation limit"),
-                        Direction = limit.Direction,
-                        MaxCount = limit.MaxCount,
-                    })
-                    .ToList(),
             };
 
             generators[config.Id] = new DefinitionGeneratorNode
@@ -204,6 +221,7 @@ public static class RuntimeGeneratorBuilder
                 Name = config.Name,
                 Description = config.Description,
                 Target = target,
+                TargetSaturation = targetSaturation,
                 SecondaryTargets = secondaryTargets,
                 Produces = produces,
                 Relationships = relationships,
@@ -415,6 +433,63 @@ public static class RuntimeGeneratorBuilder
 
         return relationshipId;
     }
+
+    private static HashSet<DefinitionRelationshipFactId> ResolveRelationshipFactIds(
+        DefinitionGraph graph,
+        IReadOnlySet<string> factNames,
+        string context)
+    {
+        var factIds = new HashSet<DefinitionRelationshipFactId>();
+        foreach (var factName in factNames)
+        {
+            factIds.Add(ResolveRelationshipFactId(graph, factName, context));
+        }
+
+        return factIds;
+    }
+
+    private static DefinitionRelationshipFactId ResolveRelationshipFactId(
+        DefinitionGraph graph,
+        string factName,
+        string context)
+    {
+        var factId = new DefinitionRelationshipFactId(factName);
+        if (!graph.RelationshipFacts.ContainsKey(factId))
+        {
+            throw new DefinitionGraphException(
+                $"{context} references undeclared relationship fact '{factName}'.");
+        }
+
+        return factId;
+    }
+
+    private static void ValidateTargetSaturationHasMatchingGeneratedRelationship(
+        string generatorId,
+        DefinitionTargetSaturation targetSaturation,
+        IReadOnlyList<DefinitionGeneratorRelationship> relationships)
+    {
+        var matches = relationships.Any(relationship =>
+            relationship.RelationshipId == targetSaturation.RelationshipId &&
+            TargetSaturationDirectionMatchesRelationship(targetSaturation.Direction, relationship) &&
+            (targetSaturation.RequiredFactId is null || relationship.FactIds.Contains(targetSaturation.RequiredFactId.Value)));
+
+        if (!matches)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' target saturation must match a generated relationship involving '$target'.");
+        }
+    }
+
+    private static bool TargetSaturationDirectionMatchesRelationship(
+        TargetSaturationDirection direction,
+        DefinitionGeneratorRelationship relationship) =>
+        direction switch
+        {
+            TargetSaturationDirection.OutgoingFromTarget => relationship.SourceRef == "$target",
+            TargetSaturationDirection.IncomingToTarget => relationship.DestinationRef == "$target",
+            TargetSaturationDirection.Symmetric => relationship.SourceRef == "$target" || relationship.DestinationRef == "$target",
+            _ => false,
+        };
 
     private static void EnsureDeclaredRef(
         string generatorId,

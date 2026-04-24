@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-crags",
+  "file": "terrain/crags.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of dark basalt crags breaking through thin\nsnow — jagged rock ridges, deep shadow in the crevasses, pale dusting\nof snow caught in pockets.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, orthographic top-down view of dark basalt crags piercing thin snow cover, jagged ridges radiating from center, slate shadow pooling in crevasses, pale vellum cream snow dusting caught in rock pockets.",
+    "subjects": [
+      {
+        "type": "basalt rock formation",
+        "description": "Fractured angular crags with sharp ridgelines, deep crevasse shadows, rough crystalline texture radiating across tile surface",
+        "position": "center-fill, edge to edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "snow dusting",
+        "description": "Thin pale snow settled in sheltered pockets between ridges, uneven patchy coverage, fine granular ink texture",
+        "position": "distributed across rock faces and crevasse lips",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "1805b25c-2ba1-4cb3-9835-f9e19f1611ca",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.0077610000000000005,
+  "duration_ms": 9429,
+  "generated_at": "2026-04-24T09:13:55.108Z"
+}

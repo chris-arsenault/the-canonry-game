@@ -256,26 +256,6 @@ public class EntityEvaluatorTests
     }
 
     [Fact]
-    public void Evaluate_SemanticDistanceThresholdUsesSelfAndProvider()
-    {
-        var world = new StubWorldState(gridRadius: 5);
-        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, ideology: (0f, 0f));
-        var other = CreateSettlement(world, "Other", (1, 0), population: 10f, ideology: (1f, 1f));
-        self.Goals.Add(CreateGoal("population", other.Id, 1f));
-
-        var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(
-            CreateProcess("Grow", "population", new SemanticDistanceThreshold("ideology", 0.5f)));
-
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
-        evaluator.Evaluate(self, world);
-
-        var candidate = Assert.Single(self.LastEvaluation!.Candidates);
-        Assert.False(candidate.PreconditionPassed);
-        Assert.Contains("ideology distance", candidate.PreconditionDiagnostic, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Evaluate_ProcessCooldownBlocksThenExpires()
     {
         var world = new StubWorldState(gridRadius: 5);
@@ -769,15 +749,12 @@ public class EntityEvaluatorTests
         (int Q, int R) coordinates,
         float population = 0f,
         float fame = 0f,
-        float sustenance = 5f,
-        (float X, float Y)? ideology = null)
+        float sustenance = 5f)
     {
         var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
         entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
         entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
         entity.Attributes.Add(new ScalarValue("sustenance", 0f, 100f, sustenance));
-        var (x, y) = ideology ?? (0.5f, 0.5f);
-        entity.Attributes.Add(new SemanticPlane("ideology", TestHelpers.CreateIdeologyPlane(), 0f, 1f, x, y));
         return entity;
     }
 }

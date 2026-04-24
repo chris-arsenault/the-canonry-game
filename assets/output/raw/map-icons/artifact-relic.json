@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact-relic-icon",
+  "file": "map-icons/artifact-relic.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized legendary relic marker. Flat app-icon geometry. A diamond-\nshaped talisman — an outer diamond outline with a smaller concentric\ninner diamond, and at the very center a small bright luminous dot\n(cyan, gold, or aurora-green palette color) suggesting a glowing\npower core. All shapes are flat saturated palette colors with sharp\nclean edges. Centered and symmetric.",
+  "formatted_prompt": "Flat bold app icon centered on off-white canvas with generous padding. A symmetric diamond-shaped talisman rendered in pure flat vector geometry: a large bold outer diamond filled vivid red (#FF0000), a concentric inner diamond filled vivid blue (#0000FF) with sharp crisp edges, and at the absolute center a small circular dot filled bright yellow (#FFFF00) suggesting a luminous power core. All three shapes precisely centered and geometrically symmetric, each a distinct flat saturated fill with zero gradients, zero textures, zero brushwork. Black outline strokes define each boundary for maximum contrast. Clean 2026-era Material Symbols filled icon register, every element reading clearly at 16px.",
+  "bfl_task_id": "b447f461-b572-4852-b4b2-7ca14ae1431c",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.00597,
+  "duration_ms": 10395,
+  "generated_at": "2026-04-24T17:32:43.974Z"
+}

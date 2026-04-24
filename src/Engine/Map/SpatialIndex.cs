@@ -233,6 +233,37 @@ public sealed class SpatialIndex
         return null;
     }
 
+    public HexCoord? FindRandomFreePhysicalHexInCoverage(EntityId regionEntityId, Random random)
+    {
+        ArgumentNullException.ThrowIfNull(random);
+
+        var coverage = _coverageMap.GetCoverage(regionEntityId);
+        if (coverage is null || coverage.Cells.Count == 0)
+        {
+            return null;
+        }
+
+        var candidates = coverage.Cells
+            .Where(coord =>
+            {
+                var cell = _grid.GetCell(coord);
+                if (cell is null || float.IsPositiveInfinity(cell.MovementCost))
+                {
+                    return false;
+                }
+
+                return !_entitiesAtCell.TryGetValue(coord, out var occupants) || occupants.Count == 0;
+            })
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        return candidates[random.Next(candidates.Count)];
+    }
+
     // --- Pathfinding ---
 
     /// <summary>

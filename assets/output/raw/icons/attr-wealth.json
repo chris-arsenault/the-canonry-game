@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-wealth",
+  "file": "icons/attr-wealth.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "Three stacked coins viewed from the edge — three narrow horizontal\nellipses in flat saturated fill, the topmost coin in a warmer gold-\ntone color for differentiation.",
+  "formatted_prompt": "Flat app icon centered on off-white (#E7E3D5) canvas with generous padding, modern UI register, crisp vector geometry. Three stacked coins viewed from the edge — three bold horizontal ellipses layered in a tight vertical stack, rendered as flat filled shapes with sharp clean edges. The bottom two coins in warm terracotta-amber (#D97742), the topmost coin in pale gold-ochre (#C9A96B) for clear differentiation. Each coin ellipse has a slim flat rectangular side face in deep burnt sienna, giving readable edge-on depth. No gradients, no brushwork, no texture. Adult proportions, bold silhouette legible at 16px, every edge precise and deliberate.",
+  "bfl_task_id": "08b67e6d-f2db-49f4-9046-523520d1780f",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005771999999999999,
+  "duration_ms": 7701,
+  "generated_at": "2026-04-24T17:12:23.221Z"
+}

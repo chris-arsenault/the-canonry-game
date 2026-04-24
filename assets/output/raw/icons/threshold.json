@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-threshold",
+  "file": "icons/threshold.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A flat app-icon glyph — a single horizontal line broken in the middle\nby an upward-arrow notch, symbolizing crossing a threshold. Ember-\norange flat fill, urgent.",
+  "formatted_prompt": "Flat modern app icon, centered on off-white (#E7E3D5) canvas with generous padding. A single bold horizontal line in ember-orange (#D97742) broken at its midpoint by a sharp upward-pointing chevron notch — the line rises to a crisp arrowhead peak then descends, forming a threshold-crossing glyph. The entire mark is one unified flat vector shape, solid ember-orange fill, sharp crisp edges, no gradients, no texture, no detail strokes. Silhouette reads instantly at 16px. Deep near-black (#0B0F14) background alternative version implied by high contrast. Urgent, minimal, geometric — single-color glyph icon in the register of Phosphor Fill or Material Symbols Filled.",
+  "bfl_task_id": "40de9164-3938-4c7b-ba7a-3fc3d0f97df1",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005958,
+  "duration_ms": 10600,
+  "generated_at": "2026-04-24T17:11:55.772Z"
+}

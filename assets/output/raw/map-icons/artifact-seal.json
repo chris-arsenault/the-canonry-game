@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact-seal-icon",
+  "file": "map-icons/artifact-seal.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized seal artifact marker. Flat app-icon geometry. A single\ncircular disc seen face-on, filled with a saturated palette color.\nCentered on the disc, a simple radial sigil: six or eight short\nstraight lines radiating outward from a central dot like spokes of a\nwheel, in a contrasting palette color. Crisp and symmetric — reads\nas an inscribed ceremonial seal.",
+  "formatted_prompt": "Flat app-icon illustration, single centered subject on plain off-white canvas with generous padding, bold crisp vector geometry readable at 16px. A circular disc seen face-on, filled with vivid red (#FF0000), centered precisely on the canvas. Overlaid on the disc, a radial sigil of eight short straight spoke-lines radiating symmetrically outward from a solid central dot, rendered in pure white (#FFFFFF) with sharp clean edges. The spokes are evenly spaced at 45-degree intervals, uniform in width and length, creating a bold symmetric wheel or sun motif. Flat solid fills throughout, zero gradients, zero texture, zero brushwork. Strong color contrast between red disc and white sigil. Entire composition contained within the disc silhouette, silhouette bold and punchy at any scale.",
+  "bfl_task_id": "08abf44c-fb94-4703-9d65-d4f1a407c396",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006399,
+  "duration_ms": 14676,
+  "generated_at": "2026-04-24T17:33:09.232Z"
+}

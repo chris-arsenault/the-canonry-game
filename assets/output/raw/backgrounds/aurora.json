@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "aurora-band",
+  "file": "backgrounds/aurora.png",
+  "spec_type": "background",
+  "section_id": "7-atmospheric-art",
+  "section": "7 · Atmospheric art",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A wide horizontal band of pale aurora cyan-green with faint purple\nundertones, soft-edged and ribbon-like, painterly with suggested wisps\nand fade-outs. Intended as an overlay accent.",
+  "formatted_prompt": "Painterly ink-and-watercolor illustration on aged parchment, wide horizontal composition filling the frame edge to edge. A luminous ribbon of aurora-cyan and cool emerald green sweeps across the full width, soft-edged and atmospheric, with faint violet-purple undertones bleeding through the deeper bands. The aurora dissolves at both ends into pale wisps and feathered fade-outs, layered in richly pigmented watercolor washes — cyan at #4A90C5 intensity in the brightest core, deepening toward slate-shadow margins. Subtle prismatic shimmer traces the ribbon's inner edge, suggesting refracted spectralum-crystal light. Clean whites hold at the upper field, deep midnight-blue shadow anchors the lower register. Loose wet-on-wet brushwork, fine ink hatching at the wisp tips, gentle grain from cold-press paper beneath. No figures, no architecture — pure atmospheric band, coherent and meditative, aurora-light rendered at full luminous saturation.",
+  "bfl_task_id": "07f8a0f4-543f-479b-add8-7aad24f190e0",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.0076560000000000005,
+  "duration_ms": 12475,
+  "generated_at": "2026-04-24T16:38:07.073Z"
+}

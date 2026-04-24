@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "pane-yoke",
+  "file": "semantic-plane/yoke.png",
+  "spec_type": "background",
+  "section_id": "1e-semantic-plane-panes",
+  "section": "1e · Semantic-plane stained-glass panes",
+  "style_id": "stained-glass",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A cathedral stained-glass window pane. Three adult emperor penguins\nlinked together under a single heavy stone yoke resting across their\nshoulders, heads bowed in unison. Iron-grey and dark-red glass panels\ndominate, with muted amber light behind. Lead-divided jewel-toned\nglass, ornate borders. Symbol of conformity and bondage.",
+  "formatted_prompt": "STYLE: Cathedral stained-glass window pane, lead-divided jewel-toned glass panels with thick black lead lines, ornate Gothic cathedral border framing the full square; painterly glass-on-light register; rose-window altarpiece aesthetic; single centered composition surviving crop into a triangular hex wedge\n\nSUBJECT: Three adult emperor penguins standing upright side by side in a row, tall lean anatomically correct proportions, narrow pointed beaks, small dark eyes proportional to the skull, sleek plumage; a single heavy stone yoke rests across all three sets of shoulders simultaneously, heads bowed downward in unison beneath its weight; posture erect but burdened, plumage rendered in iron-grey and deep warm-brown glass panels\n\nCONTEXT: Centered within a cathedral stained-glass window pane, the trio occupying the middle register of the composition, ornate Gothic tracery borders framing all four edges, amber-gold backlight glowing through the glass behind the figures as if lit from within a nave\n\nCOLOR: Iron-grey glass (#6B5548 warm brown shadow tones) for penguin bodies; deep crimson-dark-red glass panels dominating the background registers; muted amber (#C18A63 ochre) warm glow behind the figures; thick #0D1A2D near-black lead lines dividing every panel; deep blue (#1E4A85) accent in border tracery details\n\nDETAILS: Heavy stone yoke rendered in dense opaque grey glass with lead-line texture suggesting carved weight; ornate Gothic cathedral border with interlocking tracery medallions; clean vibrant glass with no cracks; warm transmitted amber backlight saturating the composition\n\nCONSTRAINTS: Adult anatomical penguin proportions only; no cartoon or juvenile features; no oversized eyes; no stubby limbs; stained-glass medium throughout with no photographic or painterly bleed outside the glass register",
+  "bfl_task_id": "req_9cde7792ac034c148779a3eea021fdff",
+  "cost_usd": 0.06083500000000001,
+  "claude_cost_usd": 0.010275,
+  "duration_ms": 22193,
+  "generated_at": "2026-04-24T18:37:07.322Z"
+}

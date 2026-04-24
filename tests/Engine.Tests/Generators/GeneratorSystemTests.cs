@@ -419,8 +419,22 @@ public class GeneratorSystemTests
         var (sim, system) = CreateSystem(new Random(42), generator);
         var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
             .Select(id => sim.Graph.GetEntity(id)!)
-            .Single(entity => entity.Subtype == "rookery");
+            .Single(entity => entity.Name == "Frosthaven");
         target.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement).ToList())
+        {
+            var settlement = sim.Graph.GetEntity(settlementId)!;
+            if (settlement.Id != target.Id && settlement.Subtype == "rookery")
+            {
+                sim.Graph.SetEntityHistorical(settlement.Id, 0);
+            }
+        }
+
+        foreach (var penguinId in sim.Graph.GetEntitiesByKind(TestKinds.Penguin).ToList())
+        {
+            sim.Graph.SetEntityHistorical(penguinId, 0);
+        }
 
         GeneratorFiredMessage? message = null;
         sim.MessageBus.Subscribe(msg =>
@@ -438,11 +452,16 @@ public class GeneratorSystemTests
         var targetPhysical = new HexCoord(target.Coordinates.Q, target.Coordinates.R);
         var expectedPhysical = new HexCoord(-targetPhysical.Q, -targetPhysical.R);
         var expectedSemantic = new SemanticHexCoord(-target.SemanticPosition.Q, -target.SemanticPosition.R);
+        var createdPhysical = new HexCoord(created.Coordinates.Q, created.Coordinates.R);
+        var targetToMirrorDistance = HexCoord.Distance(targetPhysical, expectedPhysical);
+        var targetToCreatedDistance = HexCoord.Distance(targetPhysical, createdPhysical);
 
-        Assert.InRange(
-            HexCoord.Distance(expectedPhysical, new HexCoord(created.Coordinates.Q, created.Coordinates.R)),
-            0,
-            2);
+        Assert.True(
+            targetToCreatedDistance > targetToMirrorDistance / 2,
+            "Across placement should land in the far half of the map, not near the target.");
+        Assert.True(
+            HexCoord.Distance(expectedPhysical, createdPhysical) < targetToCreatedDistance,
+            "Across placement should land closer to the reflected map position than to the target.");
         Assert.InRange(SemanticHexCoord.Distance(expectedSemantic, created.SemanticPosition), 0, 1);
     }
 
@@ -521,7 +540,7 @@ public class GeneratorSystemTests
         var (sim, system) = CreateSystem(new Random(42), generator);
         var harborId = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
             .Select(id => sim.Graph.GetEntity(id)!)
-            .Single(entity => entity.Subtype == "harbor")
+            .Single(entity => entity.Name == "Driftwatch")
             .Id;
         var harbor = sim.Graph.GetEntity(harborId)!;
         harbor.Attributes.GetScalar("shelter")!.SetBase(90f);
@@ -562,6 +581,11 @@ public class GeneratorSystemTests
     {
         var generator = CreateGenerator(
             "unhuddled_with_third",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "rookery" },
+            },
             produces:
             [
                 new SemanticProducedEntity
@@ -620,8 +644,22 @@ public class GeneratorSystemTests
         var (sim, system) = CreateSystem(new Random(42), generator);
         var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
             .Select(id => sim.Graph.GetEntity(id)!)
-            .Single(entity => entity.Subtype == "rookery");
+            .Single(entity => entity.Name == "Frosthaven");
         target.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement).ToList())
+        {
+            var settlement = sim.Graph.GetEntity(settlementId)!;
+            if (settlement.Id != target.Id && settlement.Subtype == "rookery")
+            {
+                sim.Graph.SetEntityHistorical(settlement.Id, 0);
+            }
+        }
+
+        foreach (var penguinId in sim.Graph.GetEntitiesByKind(TestKinds.Penguin).ToList())
+        {
+            sim.Graph.SetEntityHistorical(penguinId, 0);
+        }
 
         var oldFaction = sim.Graph.CreateEntity(TestKinds.Faction, "order", "Old Order", target.Culture, 0);
         var oldHome = sim.Graph.CreateEntity(
@@ -755,8 +793,22 @@ public class GeneratorSystemTests
         var (sim, system) = CreateSystem(new Random(42), generator);
         var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
             .Select(id => sim.Graph.GetEntity(id)!)
-            .Single(entity => entity.Subtype == "rookery");
+            .Single(entity => entity.Name == "Frosthaven");
         target.Attributes.GetScalar("shelter")!.SetBase(90f);
+
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement).ToList())
+        {
+            var settlement = sim.Graph.GetEntity(settlementId)!;
+            if (settlement.Id != target.Id && settlement.Subtype == "rookery")
+            {
+                sim.Graph.SetEntityHistorical(settlement.Id, 0);
+            }
+        }
+
+        foreach (var penguinId in sim.Graph.GetEntitiesByKind(TestKinds.Penguin).ToList())
+        {
+            sim.Graph.SetEntityHistorical(penguinId, 0);
+        }
 
         var sameCulture = sim.Graph.CreateEntity(
             TestKinds.Penguin,
@@ -803,15 +855,6 @@ public class GeneratorSystemTests
             {
                 Kind = TestKinds.Region,
                 AllowWilderness = true,
-                SaturationLimits =
-                [
-                    new SemanticSaturationLimit
-                    {
-                        RelationshipKind = "founded_from",
-                        Direction = "out",
-                        MaxCount = 3,
-                    },
-                ],
             },
             produces:
             [
@@ -894,6 +937,61 @@ public class GeneratorSystemTests
 
         Assert.Equal("none", newSettlement.Culture);
         Assert.Contains(containingRegionId, regionIds);
+    }
+
+    [Fact]
+    public void Tick_TargetSaturation_CountsRelationshipFactAndBlocksRepeatTargeting()
+    {
+        var generator = CreateGenerator(
+            "saturating_generator",
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "harbor" },
+            },
+            targetSaturation: new SemanticTargetSaturation
+            {
+                RelationshipKind = "home_base",
+                RequiredFact = "called_unhuddled",
+                Direction = TargetSaturationDirection.IncomingToTarget,
+                MaxExisting = 0,
+            },
+            relationships:
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$hero",
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { "called_unhuddled" },
+                },
+            ]);
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var target = sim.Graph.GetEntitiesByKind(TestKinds.Settlement)
+            .Select(id => sim.Graph.GetEntity(id)!)
+            .Single(entity => entity.Name == "Driftwatch");
+        foreach (var settlementId in sim.Graph.GetEntitiesByKind(TestKinds.Settlement).ToList())
+        {
+            var settlement = sim.Graph.GetEntity(settlementId)!;
+            if (settlement.Id != target.Id && settlement.Subtype == "harbor")
+            {
+                sim.Graph.SetEntityHistorical(settlement.Id, 0);
+            }
+        }
+        var initialIncomingCount = sim.Graph.IncomingRelationships(target.Id, "home_base").Count();
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "saturating_generator" });
+
+        var createdRelationship = Assert.Single(
+            sim.Graph.IncomingRelationships(target.Id, "home_base"),
+            relationship => relationship.HasFact("called_unhuddled"));
+        Assert.Equal(initialIncomingCount + 1, sim.Graph.IncomingRelationships(target.Id, "home_base").Count());
+        Assert.Contains("called_unhuddled", createdRelationship.Facts);
+
+        system.Tick(50, new HashSet<string>(StringComparer.Ordinal) { "saturating_generator" });
+
+        var instance = sim.WorldState.Generators.ById["saturating_generator"];
+        Assert.Equal(1, instance.TotalRuns);
     }
 
     [Fact]
@@ -1217,6 +1315,7 @@ public class GeneratorSystemTests
         int pulseWeight = 1,
         int? maxRunsPerSim = null,
         SemanticGeneratorTarget? target = null,
+        SemanticTargetSaturation? targetSaturation = null,
         IReadOnlyList<SemanticGeneratorBindingTarget>? secondaryTargets = null,
         IReadOnlyList<SemanticProducedEntity>? produces = null,
         IReadOnlyList<SemanticGeneratorRelationship>? relationships = null,
@@ -1229,6 +1328,7 @@ public class GeneratorSystemTests
             {
                 Kind = TestKinds.Settlement,
             },
+            TargetSaturation = targetSaturation,
             SecondaryTargets = secondaryTargets ?? [],
             Produces = produces ??
             [
@@ -1292,6 +1392,7 @@ public class GeneratorSystemTests
             Kinds = config.Kinds,
             Processes = config.Processes,
             Relationships = config.Relationships,
+            RelationshipFacts = config.RelationshipFacts,
             Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,

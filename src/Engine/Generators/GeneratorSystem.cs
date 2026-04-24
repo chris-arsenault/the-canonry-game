@@ -247,7 +247,8 @@ public sealed class GeneratorSystem
                 sourceId.Value,
                 destinationId.Value,
                 relationship.Strength,
-                currentTick);
+                currentTick,
+                relationship.FactIds.Select(factId => factId.Value));
             createdRelationshipCount++;
         }
 
@@ -278,7 +279,7 @@ public sealed class GeneratorSystem
                 continue;
             }
 
-            if (ExceedsSaturation(generator.Target.SaturationLimits, entity.Id))
+            if (ExceedsTargetSaturation(generator.TargetSaturation, entity.Id))
             {
                 continue;
             }
@@ -321,23 +322,43 @@ public sealed class GeneratorSystem
         return allowedSubtypes.Contains(entity.Subtype);
     }
 
-    private bool ExceedsSaturation(
-        IReadOnlyList<DefinitionSaturationLimit> saturationLimits,
+    private bool ExceedsTargetSaturation(
+        DefinitionTargetSaturation? targetSaturation,
         EntityId targetId)
     {
-        foreach (var limit in saturationLimits)
+        if (targetSaturation is null)
         {
-            var count = limit.Direction.Equals("out", StringComparison.OrdinalIgnoreCase)
-                ? _graph.OutgoingRelationships(targetId, limit.RelationshipId.Value).Count()
-                : _graph.IncomingRelationships(targetId, limit.RelationshipId.Value).Count();
-            if (count >= limit.MaxCount)
-            {
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        var count = CountTargetSaturation(targetSaturation, targetId);
+        return count > targetSaturation.MaxExisting;
     }
+
+    private int CountTargetSaturation(
+        DefinitionTargetSaturation targetSaturation,
+        EntityId targetId)
+    {
+        return targetSaturation.Direction switch
+        {
+            TargetSaturationDirection.OutgoingFromTarget =>
+                _graph.OutgoingRelationships(targetId, targetSaturation.RelationshipId.Value)
+                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactId)),
+            TargetSaturationDirection.IncomingToTarget =>
+                _graph.IncomingRelationships(targetId, targetSaturation.RelationshipId.Value)
+                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactId)),
+            TargetSaturationDirection.Symmetric =>
+                _graph.OutgoingRelationships(targetId, targetSaturation.RelationshipId.Value)
+                    .Concat(_graph.IncomingRelationships(targetId, targetSaturation.RelationshipId.Value))
+                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactId)),
+            _ => 0,
+        };
+    }
+
+    private static bool MatchesRequiredFact(
+        Relationship relationship,
+        DefinitionRelationshipFactId? requiredFactId) =>
+        requiredFactId is null || relationship.HasFact(requiredFactId.Value.Value);
 
     private static bool TriggersPass(DefinitionGeneratorNode generator, Entity target)
     {
@@ -638,9 +659,9 @@ public sealed class GeneratorSystem
         {
             SemanticPlacement.On => ResolveOnPhysicalPlacement(target),
             SemanticPlacement.Across => FindAcrossPhysicalHex(target) ??
-                                        _spatialIndex.FindFreePhysicalHex(target.PhysicalOrigin, maxRadius: 8) ??
+                                        _spatialIndex.FindFreePhysicalHex(ReflectAcrossMapCenter(target.PhysicalOrigin), maxRadius: _spatialIndex.Grid.Radius) ??
                                         target.PhysicalOrigin,
-            SemanticPlacement.InRegionLocality => _spatialIndex.FindFreePhysicalHexInCoverage(target.TargetEntity.Id) ??
+            SemanticPlacement.InRegionLocality => _spatialIndex.FindRandomFreePhysicalHexInCoverage(target.TargetEntity.Id, _random) ??
                                                   _spatialIndex.FindFreePhysicalHex(target.PhysicalOrigin) ??
                                                   target.PhysicalOrigin,
             _ => _spatialIndex.FindFreePhysicalHex(target.PhysicalOrigin) ?? target.PhysicalOrigin,
@@ -653,7 +674,7 @@ public sealed class GeneratorSystem
         {
             SemanticPlacement.On => ResolveOnSemanticPlacement(target),
             SemanticPlacement.Across => FindAcrossSemanticHex(target) ??
-                                        _semanticPlaneIndex.FindFreeSemanticHex(target.SemanticOrigin, maxRadius: 8) ??
+                                        _semanticPlaneIndex.FindFreeSemanticHex(ReflectAcrossMapCenter(target.SemanticOrigin), maxRadius: 24) ??
                                         target.SemanticOrigin,
             SemanticPlacement.InRegionLocality => _semanticPlaneIndex.FindFreeSemanticHex(target.SemanticOrigin) ??
                                                   target.SemanticOrigin,
@@ -683,75 +704,31 @@ public sealed class GeneratorSystem
 
     private HexCoord? FindAcrossPhysicalHex(ExecutionTargetContext anchor)
     {
-        var deltaQ = anchor.PhysicalOrigin.Q - anchor.PrimaryPhysicalOrigin.Q;
-        var deltaR = anchor.PhysicalOrigin.R - anchor.PrimaryPhysicalOrigin.R;
-        if (deltaQ == 0 && deltaR == 0)
+        var mirrored = ReflectAcrossMapCenter(anchor.PhysicalOrigin);
+        if (IsFreePhysical(mirrored))
         {
-            return FindFreePhysicalHexAtExactDistance(anchor.PhysicalOrigin, 2);
+            return mirrored;
         }
 
-        var candidate = new HexCoord(anchor.PhysicalOrigin.Q + deltaQ, anchor.PhysicalOrigin.R + deltaR);
-        if (IsFreePhysical(candidate))
-        {
-            return candidate;
-        }
-
-        return FindFreePhysicalHexAtExactDistance(anchor.PhysicalOrigin, 2);
+        return _spatialIndex.FindFreePhysicalHex(mirrored, maxRadius: _spatialIndex.Grid.Radius);
     }
 
     private SemanticHexCoord? FindAcrossSemanticHex(ExecutionTargetContext anchor)
     {
-        var deltaQ = anchor.SemanticOrigin.Q - anchor.PrimarySemanticOrigin.Q;
-        var deltaR = anchor.SemanticOrigin.R - anchor.PrimarySemanticOrigin.R;
-        if (deltaQ == 0 && deltaR == 0)
+        var mirrored = ReflectAcrossMapCenter(anchor.SemanticOrigin);
+        if (!IsSemanticOccupied(mirrored))
         {
-            return FindFreeSemanticHexAtExactDistance(anchor.SemanticOrigin, 2);
+            return mirrored;
         }
 
-        var candidate = new SemanticHexCoord(anchor.SemanticOrigin.Q + deltaQ, anchor.SemanticOrigin.R + deltaR);
-        if (!IsSemanticOccupied(candidate))
-        {
-            return candidate;
-        }
-
-        return FindFreeSemanticHexAtExactDistance(anchor.SemanticOrigin, 2);
+        return _semanticPlaneIndex.FindFreeSemanticHex(mirrored, maxRadius: 24);
     }
 
-    private HexCoord? FindFreePhysicalHexAtExactDistance(HexCoord origin, int distance)
-    {
-        foreach (var coord in HexCoord.CoordsInRadius(origin, distance))
-        {
-            if (HexCoord.Distance(origin, coord) != distance)
-            {
-                continue;
-            }
+    private static HexCoord ReflectAcrossMapCenter(HexCoord origin) =>
+        new(-origin.Q, -origin.R);
 
-            if (IsFreePhysical(coord))
-            {
-                return coord;
-            }
-        }
-
-        return null;
-    }
-
-    private SemanticHexCoord? FindFreeSemanticHexAtExactDistance(SemanticHexCoord origin, int distance)
-    {
-        foreach (var coord in SemanticHexCoord.CoordsInRadius(origin, distance))
-        {
-            if (SemanticHexCoord.Distance(origin, coord) != distance)
-            {
-                continue;
-            }
-
-            if (!IsSemanticOccupied(coord))
-            {
-                return coord;
-            }
-        }
-
-        return null;
-    }
+    private static SemanticHexCoord ReflectAcrossMapCenter(SemanticHexCoord origin) =>
+        new(-origin.Q, -origin.R);
 
     private bool IsPhysicalOccupied(HexCoord coord) =>
         _spatialIndex.EntitiesAtCell(coord)

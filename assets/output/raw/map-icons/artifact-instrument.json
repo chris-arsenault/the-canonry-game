@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact-instrument-icon",
+  "file": "map-icons/artifact-instrument.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized ceremonial lyre — a small curved harp-frame with three or\nfour taut vertical strings across the opening. Flat app-icon geometry,\nsaturated palette colors, centered.",
+  "formatted_prompt": "Flat app-icon illustration, bold vector geometry centered on a plain off-white canvas with generous padding. A ceremonial lyre rendered as a single crisp silhouette: a vivid red (#FF0000) curved U-shaped frame with a clean crossbar at the top, three bold vertical strings in pure yellow (#FFFF00) spanning the opening as flat rectangular strips. The base of the frame anchors the composition with a slightly thicker flat shape for visual weight. No gradients, no textures, no brushwork — every edge sharp and deliberate. High contrast between the red frame and yellow strings against the white ground. Flat bold fills, comic-book color confidence, fully readable at 16px.",
+  "bfl_task_id": "2e19d8fa-ddc4-4a4d-a115-923afc576db5",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005817,
+  "duration_ms": 10555,
+  "generated_at": "2026-04-24T17:58:44.484Z"
+}

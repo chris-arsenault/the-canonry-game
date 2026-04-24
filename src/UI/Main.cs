@@ -11,6 +11,7 @@ using Engine.Kinds;
 using Engine.Map;
 using Engine.Observability;
 using Engine.Simulation;
+using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
@@ -23,19 +24,23 @@ public partial class Main : Node2D
     private HexMapRenderer? _mapRenderer;
     private Camera2D? _camera;
     private EntityBrowser? _browser;
-    private HBoxContainer? _rootLayout;
-    private Control? _mapSpacer;
+    private VBoxContainer? _rootColumn;
+    private Control? _mapArea;
     private CanvasLayer? _uiLayer;
     private CanvasLayer? _cardLayer;
+    private Control? _uiRoot;
     private RichTextLabel? _eventLogLabel;
     private AttributeGraphPanel? _attributeGraph;
     private Label? _tickLabel;
     private Button? _planeToggleButton;
     private Button? _tableauToggleButton;
+    private Button? _readingsToggleButton;
     private TableauPanel? _tableauPanel;
     private RunLogger? _runLogger;
     private PanelContainer? _hexTooltipPanel;
     private Label? _hexTooltipLabel;
+    private PanelContainer? _legendPanel;
+    private Godot.Theme? _theme;
     private double _tickAccumulator;
     private bool _stepOneTick;
     private HexCoord? _hoveredHex;
@@ -53,6 +58,12 @@ public partial class Main : Node2D
     public override void _Ready()
     {
         GD.Print("The Canonry Game - Initializing simulation...");
+
+        // Illustration assets — load synchronously before any UI is built, so
+        // HexMapRenderer / EntityBrowser / Legend can read the sprite registry
+        // on their first paint instead of starting with polygon fallbacks that
+        // flicker to textures one tick later.
+        AssetLibrary.Load();
 
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Normal;
@@ -74,6 +85,13 @@ public partial class Main : Node2D
         _camera.MakeCurrent();
         AddChild(_camera);
 
+        // Set the viewport clear color to Basalt so the area behind the map
+        // (and any uncovered regions) reads as part of the archive, not Godot default.
+        RenderingServer.SetDefaultClearColor(UiTokens.Basalt);
+
+        // Build shared theme once and hang it off the UI root.
+        _theme = UiTheme.Build();
+
         // UI layer (not affected by camera zoom/pan)
         _uiLayer = new CanvasLayer();
         AddChild(_uiLayer);
@@ -82,43 +100,268 @@ public partial class Main : Node2D
         _cardLayer = new CanvasLayer { Layer = 2 };
         AddChild(_cardLayer);
 
-        // Root layout: browser on left, spacer in middle, event log on right
-        _rootLayout = new HBoxContainer();
-        _rootLayout.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _uiLayer.AddChild(_rootLayout);
-
-        // Left: entity browser
-        _browser = new EntityBrowser();
-        _browser.Initialize(_sim);
-        _browser.EntitySelected += OnBrowserEntitySelected;
-        _rootLayout.AddChild(_browser);
-
-        // Middle spacer (map area -- transparent, passes mouse through)
-        _mapSpacer = new Control
+        // Single Control root under the UI CanvasLayer. Carries the theme so every
+        // descendant inherits it without per-node plumbing.
+        _uiRoot = new Control
         {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Name = "UiRoot",
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _rootLayout.AddChild(_mapSpacer);
+        _uiRoot.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _uiRoot.Theme = _theme;
+        _uiLayer.AddChild(_uiRoot);
 
-        // Right: event log
-        var rightVBox = new VBoxContainer
+        // Subscribe to events BEFORE we start building UI that listens to them,
+        // so anything emitted during setup reaches the chronicle.
+        _sim.EventLog.EventEmitted += OnEventEmitted;
+        _sim.Lifecycle.EntityDied += (_, e) =>
         {
-            CustomMinimumSize = new Vector2(300, 0),
+            _sim.EventLog.Emit(e.DeathTick, Engine.Events.EventType.Lifecycle,
+                $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
         };
-        _rootLayout.AddChild(rightVBox);
 
-        var eventPanel = new PanelContainer
+        // -----------------------------------------------------------------
+        // Root layout: TOP BAR  /  MIDDLE ROW  /  BOTTOM BAR
+        // Mouse filter is "ignore" for transparent wrappers so the map beneath
+        // receives clicks everywhere we didn't explicitly place chrome.
+        // -----------------------------------------------------------------
+        _rootColumn = new VBoxContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _rootColumn.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _rootColumn.AddThemeConstantOverride("separation", 0);
+        _uiRoot.AddChild(_rootColumn);
+
+        _rootColumn.AddChild(BuildTopBar());
+
+        // Middle row: registry | map area | chronicle
+        var middleRow = new HBoxContainer
+        {
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        middleRow.AddThemeConstantOverride("separation", 0);
+        _rootColumn.AddChild(middleRow);
+
+        // --- Left rail: Registry
+        _browser = new EntityBrowser
+        {
+            CustomMinimumSize = new Vector2(260, 0),
+        };
+        _browser.AddThemeStyleboxOverride("panel", UiTheme.RailPanelStyle(onLeft: true));
+        _browser.Initialize(_sim);
+        _browser.EntitySelected += OnBrowserEntitySelected;
+        middleRow.AddChild(_browser);
+
+        // --- Center: transparent map area. Hosts contextual overlays (plane toggle, legend).
+        _mapArea = new Control
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        middleRow.AddChild(_mapArea);
+
+        // Plane toggle — anchored at bottom-left of the map
+        _planeToggleButton = new Button
+        {
+            Text = "⌗  Physical",
+            CustomMinimumSize = new Vector2(150, 30),
+            TooltipText = "Toggle physical ↔ semantic plane",
+        };
+        _planeToggleButton.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _planeToggleButton.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
+        _planeToggleButton.Position = new Vector2(UiTokens.Space4, -UiTokens.Space6 - UiTokens.Space2);
+        _planeToggleButton.Pressed += OnTogglePlanePressed;
+        _mapArea.AddChild(_planeToggleButton);
+
+        // Legend — anchored at bottom-right of the map
+        _legendPanel = BuildLegendPanel();
+        _legendPanel.SetAnchorsPreset(Control.LayoutPreset.BottomRight);
+        // Hold position relative to the bottom-right corner. The Size will
+        // resolve after layout; we'll reposition in PositionFloatingHud.
+        _mapArea.AddChild(_legendPanel);
+
+        // --- Right rail: Chronicle (event log)
+        middleRow.AddChild(BuildChroniclePanel(width: 340));
+
+        _rootColumn.AddChild(BuildBottomBar());
+
+        // -----------------------------------------------------------------
+        // Floating overlays — live above the layout, positioned by code.
+        // -----------------------------------------------------------------
+        _tableauPanel = new TableauPanel();
+        _tableauPanel.Initialize(_sim);
+        _uiRoot.AddChild(_tableauPanel);
+        _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _tableauPanel.Visible = false;
+
+        _hexTooltipPanel = new PanelContainer
+        {
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _hexTooltipPanel.AddThemeStyleboxOverride("panel", UiTheme.OverlayPanelStyle());
+        _hexTooltipLabel = new Label
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+        };
+        _hexTooltipLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+        _hexTooltipLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _hexTooltipLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        _hexTooltipPanel.AddChild(_hexTooltipLabel);
+        _uiRoot.AddChild(_hexTooltipPanel);
+
+        // Initial browser population
+        _browser.Refresh();
+
+        GD.Print("Controls: Space=pause, Right=step, 1/2/3=speed, R=reset, N=names, G=graph, WASD=pan, scroll=zoom");
+    }
+
+    private PanelContainer BuildTopBar()
+    {
+        var bar = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(0, 48),
+        };
+        bar.AddThemeStyleboxOverride("panel", UiTheme.ChromeBarStyle());
+
+        var row = new HBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        row.AddThemeConstantOverride("separation", UiTokens.Space4);
+        bar.AddChild(row);
+
+        // Title cluster
+        var titleColumn = new VBoxContainer
+        {
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        titleColumn.AddThemeConstantOverride("separation", 0);
+        row.AddChild(titleColumn);
+
+        var title = new Label { Text = "The Canonry" };
+        title.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        title.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleSmall);
+        title.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        titleColumn.AddChild(title);
+
+        var subtitle = new Label { Text = "THE ICE REMEMBERS" };
+        subtitle.AddThemeFontOverride("font", UiTheme.BodyFont);
+        subtitle.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        subtitle.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        titleColumn.AddChild(subtitle);
+
+        // Spacer
+        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+
+        // Tick readout (center)
+        _tickLabel = new Label
+        {
+            Text = "t 0",
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        _tickLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
+        _tickLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBody);
+        _tickLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
+        row.AddChild(_tickLabel);
+
+        // Spacer
+        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+
+        // Speed controls
+        row.AddChild(BuildSimulationControls());
+        return bar;
+    }
+
+    private PanelContainer BuildBottomBar()
+    {
+        var bar = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(0, 40),
+        };
+        bar.AddThemeStyleboxOverride("panel", UiTheme.ChromeBarStyle(bottom: true));
+
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", UiTokens.Space2);
+        bar.AddChild(row);
+
+        _tableauToggleButton = new Button
+        {
+            Text = "Tableau",
+            CustomMinimumSize = new Vector2(110, 28),
+        };
+        _tableauToggleButton.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _tableauToggleButton.Pressed += ToggleTableauVisibility;
+        row.AddChild(_tableauToggleButton);
+
+        _readingsToggleButton = new Button
+        {
+            Text = "Readings",
+            CustomMinimumSize = new Vector2(110, 28),
+        };
+        _readingsToggleButton.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _readingsToggleButton.Pressed += ToggleAttributeGraph;
+        row.AddChild(_readingsToggleButton);
+
+        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+
+        var hint = new Label
+        {
+            Text = "SPACE pause   →  step   1 / 4× / 10×   N  names   G  readings   R  reset   WASD  pan   scroll  zoom",
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        hint.AddThemeFontOverride("font", UiTheme.BodyFont);
+        hint.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        hint.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        row.AddChild(hint);
+
+        return bar;
+    }
+
+    private PanelContainer BuildChroniclePanel(float width)
+    {
+        var panel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(width, 0),
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        };
+        panel.AddThemeStyleboxOverride("panel", UiTheme.RailPanelStyle(onLeft: false));
+
+        var outer = new VBoxContainer();
+        outer.AddThemeConstantOverride("separation", UiTokens.Space2);
+        panel.AddChild(outer);
+
+        var title = new Label
+        {
+            Text = "Chronicle",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        title.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        title.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        outer.AddChild(title);
+
+        var subtitle = new Label
+        {
+            Text = "EVENTS, IN THE ORDER THEY HAPPENED",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        subtitle.AddThemeFontOverride("font", UiTheme.BodyFont);
+        subtitle.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        subtitle.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        outer.AddChild(subtitle);
+
+        outer.AddChild(BuildHairlineRule());
+
+        var scroll = new ScrollContainer
         {
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
         };
-        rightVBox.AddChild(eventPanel);
-
-        var eventScroll = new ScrollContainer
-        {
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-        };
-        eventPanel.AddChild(eventScroll);
+        outer.AddChild(scroll);
 
         _eventLogLabel = new RichTextLabel
         {
@@ -127,75 +370,79 @@ public partial class Main : Node2D
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             ScrollActive = false,
         };
-        eventScroll.AddChild(_eventLogLabel);
+        _eventLogLabel.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
+        _eventLogLabel.AddThemeFontOverride("mono_font", UiTheme.MonoFont);
+        _eventLogLabel.AddThemeFontSizeOverride("normal_font_size", UiTokens.SizeBodySmall);
+        _eventLogLabel.AddThemeFontSizeOverride("mono_font_size", UiTokens.SizeBodySmall);
+        _eventLogLabel.AddThemeColorOverride("default_color", UiTokens.Vellum);
+        scroll.AddChild(_eventLogLabel);
 
-        // Subscribe to events
-        _sim.EventLog.EventEmitted += OnEventEmitted;
-        _sim.Lifecycle.EntityDied += (_, e) =>
-        {
-            _sim.EventLog.Emit(e.DeathTick, Engine.Events.EventType.Lifecycle,
-                $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
-        };
+        return panel;
+    }
 
-        // Tick counter label (top center)
-        _tickLabel = new Label
-        {
-            Position = new Vector2(10, 10),
-            Text = "Tick: 0",
-        };
-        _tickLabel.AddThemeFontSizeOverride("font_size", 14);
-        _uiLayer.AddChild(_tickLabel);
-
-        // Lower-left plane toggle: flips renderer between physical hex map and
-        // semantic autonomy/resonance/tradition plane. Camera is preserved.
-        _planeToggleButton = new Button
-        {
-            Text = "View: Physical",
-            CustomMinimumSize = new Vector2(160, 36),
-        };
-        _planeToggleButton.AddThemeFontSizeOverride("font_size", 13);
-        _planeToggleButton.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
-        _planeToggleButton.Position = new Vector2(12, -48);
-        _planeToggleButton.Pressed += OnTogglePlanePressed;
-        _uiLayer.AddChild(_planeToggleButton);
-
-        var controlsPanel = BuildSimulationControls();
-        _uiLayer.AddChild(controlsPanel);
-
-        _tableauPanel = new TableauPanel();
-        _tableauPanel.Initialize(_sim);
-        _uiLayer.AddChild(_tableauPanel);
-        _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        _tableauPanel.Visible = false;
-
-        _tableauToggleButton = new Button
-        {
-            Text = "Show Tableau",
-            CustomMinimumSize = new Vector2(160, 36),
-        };
-        _tableauToggleButton.AddThemeFontSizeOverride("font_size", 13);
-        _tableauToggleButton.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
-        _tableauToggleButton.Pressed += ToggleTableauVisibility;
-        _uiLayer.AddChild(_tableauToggleButton);
-
-        _hexTooltipPanel = new PanelContainer
-        {
-            Visible = false,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        _hexTooltipLabel = new Label
+    private PanelContainer BuildLegendPanel()
+    {
+        var panel = new PanelContainer
         {
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            AutowrapMode = TextServer.AutowrapMode.Off,
         };
-        _hexTooltipLabel.AddThemeFontSizeOverride("font_size", 12);
-        _hexTooltipPanel.AddChild(_hexTooltipLabel);
-        _uiLayer.AddChild(_hexTooltipPanel);
+        panel.AddThemeStyleboxOverride("panel", UiTheme.OverlayPanelStyle());
 
-        // Initial browser population
-        _browser.Refresh();
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", UiTokens.Space1);
+        panel.AddChild(column);
 
-        GD.Print("Controls: Space=pause, Right=step, 1/2/3=speed, R=reset, N=names, G=graph, WASD=pan, scroll=zoom");
+        var title = new Label { Text = "LEGEND" };
+        title.AddThemeFontOverride("font", UiTheme.BodyFont);
+        title.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        title.AddThemeColorOverride("font_color", UiTokens.Parchment);
+        column.AddChild(title);
+
+        AddLegendRow(column, "penguin", UiTokens.KindPenguin, "penguin");
+        AddLegendRow(column, "settlement", UiTokens.KindSettlement, "settlement");
+        AddLegendRow(column, "faction", UiTokens.KindFaction, "faction");
+        AddLegendRow(column, "artifact", UiTokens.KindArtifact, "artifact");
+        AddLegendRow(column, "orca", UiTokens.KindOrca, "orca");
+
+        return panel;
+    }
+
+    private static void AddLegendRow(VBoxContainer parent, string kindId, Color accent, string label)
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", UiTokens.Space2);
+        parent.AddChild(row);
+
+        Control glyph;
+        var sprite = AssetLibrary.KindMapIcon(kindId)
+            ?? AssetLibrary.KindSprite(kindId);
+        if (sprite is not null)
+        {
+            glyph = new TextureRect
+            {
+                Texture = sprite,
+                CustomMinimumSize = new Vector2(22, 22),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+        }
+        else
+        {
+            glyph = new KindGlyphRect
+            {
+                KindId = kindId,
+                Accent = accent,
+                CustomMinimumSize = new Vector2(18, 18),
+            };
+        }
+        row.AddChild(glyph);
+
+        var name = new Label { Text = label };
+        name.AddThemeFontOverride("font", UiTheme.BodyFont);
+        name.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        name.AddThemeColorOverride("font_color", UiTokens.Parchment);
+        row.AddChild(name);
     }
 
     public override void _Process(double delta)
@@ -244,8 +491,16 @@ public partial class Main : Node2D
 
         if (_tickLabel is not null)
         {
-            var speedText = _sim.Clock.Speed == SimulationSpeed.Paused ? "PAUSED" : $"{_sim.Clock.Speed}";
-            _tickLabel.Text = $"Tick: {_sim.Clock.CurrentTick} | {speedText} | Entities: {_sim.Graph.EntityCount} | Generator fires: {_sim.GeneratorSystem.TotalFired}";
+            var speedText = _sim.Clock.Speed switch
+            {
+                SimulationSpeed.Paused   => "paused",
+                SimulationSpeed.Normal   => "1×",
+                SimulationSpeed.Fast     => "4×",
+                SimulationSpeed.VeryFast => "10×",
+                _                        => _sim.Clock.Speed.ToString(),
+            };
+            _tickLabel.Text =
+                $"t{_sim.Clock.CurrentTick,-5}  ·  {speedText,-6}  ·  {_sim.Graph.EntityCount,3} entities  ·  {_sim.GeneratorSystem.TotalFired,3} fires";
         }
 
         PositionFloatingHud();
@@ -333,8 +588,8 @@ public partial class Main : Node2D
             ? PlaneMode.Semantic
             : PlaneMode.Physical;
         _planeToggleButton.Text = _mapRenderer.CurrentPlane == PlaneMode.Physical
-            ? "View: Physical"
-            : "View: Semantic";
+            ? "⌗  Physical"
+            : "✦  Semantic";
         _mapRenderer.Refresh();
         ClearHexHoverTooltip();
     }
@@ -345,14 +600,19 @@ public partial class Main : Node2D
         {
             _attributeGraph.QueueFree();
             _attributeGraph = null;
+            if (_readingsToggleButton is not null) _readingsToggleButton.Text = "Readings";
             return;
         }
 
         if (_sim is null || _cardLayer is null) return;
-        _attributeGraph = new AttributeGraphPanel();
+        _attributeGraph = new AttributeGraphPanel
+        {
+            Theme = _theme,
+        };
         _cardLayer.AddChild(_attributeGraph);
         _attributeGraph.Initialize(_sim);
-        _attributeGraph.Position = new Vector2(300, 50);
+        _attributeGraph.Position = new Vector2(320, UiTokens.Space7);
+        if (_readingsToggleButton is not null) _readingsToggleButton.Text = "Hide Readings";
     }
 
     private void ResetSimulation()
@@ -403,35 +663,58 @@ public partial class Main : Node2D
         OpenEntityCard(new EntityId(entityIdValue), new Vector2(300, 100));
     }
 
-    private PanelContainer BuildSimulationControls()
+    private HBoxContainer BuildSimulationControls()
     {
-        var panel = new PanelContainer();
-        panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        panel.Position = new Vector2(-370, 12);
+        var row = new HBoxContainer
+        {
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        row.AddThemeConstantOverride("separation", UiTokens.Space2);
 
-        var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 6);
-        panel.AddChild(row);
+        row.AddChild(CreateControlButton("⏸", "Pause", () => SetSimulationSpeed(SimulationSpeed.Paused)));
+        row.AddChild(CreateControlButton("▸", "Step one tick", () => _stepOneTick = true));
+        row.AddChild(CreateControlButton("1×", "Normal speed", () => SetSimulationSpeed(SimulationSpeed.Normal)));
+        row.AddChild(CreateControlButton("4×", "Fast", () => SetSimulationSpeed(SimulationSpeed.Fast)));
+        row.AddChild(CreateControlButton("10×", "Very fast", () => SetSimulationSpeed(SimulationSpeed.VeryFast)));
+        row.AddChild(CreateControlButton("↺", "Reset simulation", ResetSimulation));
 
-        row.AddChild(CreateControlButton("Pause", () => SetSimulationSpeed(SimulationSpeed.Paused)));
-        row.AddChild(CreateControlButton("Step", () => _stepOneTick = true));
-        row.AddChild(CreateControlButton("1x", () => SetSimulationSpeed(SimulationSpeed.Normal)));
-        row.AddChild(CreateControlButton("4x", () => SetSimulationSpeed(SimulationSpeed.Fast)));
-        row.AddChild(CreateControlButton("10x", () => SetSimulationSpeed(SimulationSpeed.VeryFast)));
-        row.AddChild(CreateControlButton("Reset", ResetSimulation));
-
-        return panel;
+        return row;
     }
 
-    private Button CreateControlButton(string text, Action onPressed)
+    private Button CreateControlButton(string text, string tooltip, Action onPressed)
     {
         var button = new Button
         {
             Text = text,
-            CustomMinimumSize = new Vector2(56, 32),
+            TooltipText = tooltip,
+            CustomMinimumSize = new Vector2(46, 28),
         };
+        button.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
         button.Pressed += onPressed;
         return button;
+    }
+
+    private static Label BuildPanelTitle(string text)
+    {
+        var label = new Label
+        {
+            Text = text,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        label.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        label.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        label.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        return label;
+    }
+
+    private static ColorRect BuildHairlineRule()
+    {
+        return new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
     }
 
     private void SetSimulationSpeed(SimulationSpeed speed)
@@ -453,7 +736,7 @@ public partial class Main : Node2D
         }
 
         _tableauPanel.Visible = !_tableauPanel.Visible;
-        _tableauToggleButton.Text = _tableauPanel.Visible ? "Hide Tableau" : "Show Tableau";
+        _tableauToggleButton.Text = _tableauPanel.Visible ? "Hide Tableau" : "Tableau";
         if (_tableauPanel.Visible)
         {
             _tableauPanel.Refresh();
@@ -462,24 +745,31 @@ public partial class Main : Node2D
 
     private void PositionFloatingHud()
     {
-        if (_mapSpacer is null || _tableauPanel is null || _tableauToggleButton is null)
+        if (_mapArea is null)
         {
             return;
         }
 
-        var mapRect = _mapSpacer.GetGlobalRect();
-        var tableauSize = _tableauPanel.GetCombinedMinimumSize();
-        var tableauX = mapRect.Position.X + (mapRect.Size.X - tableauSize.X) * 0.5f;
-        var tableauY = mapRect.End.Y - tableauSize.Y - 24f;
+        var mapRect = _mapArea.GetGlobalRect();
 
-        _tableauPanel.Position = new Vector2(
-            Mathf.Max(mapRect.Position.X + 16f, tableauX),
-            Mathf.Max(16f, tableauY));
+        if (_tableauPanel is not null)
+        {
+            // Tableau: center-top of the map area, below the plane/legend overlays.
+            var tableauSize = _tableauPanel.GetCombinedMinimumSize();
+            var tableauX = mapRect.Position.X + (mapRect.Size.X - tableauSize.X) * 0.5f;
+            _tableauPanel.Position = new Vector2(
+                Mathf.Max(mapRect.Position.X + UiTokens.Space4, tableauX),
+                mapRect.Position.Y + UiTokens.Space4);
+        }
 
-        var buttonSize = _tableauToggleButton.GetCombinedMinimumSize();
-        _tableauToggleButton.Position = new Vector2(
-            mapRect.End.X - buttonSize.X - 12f,
-            mapRect.Position.Y + 12f);
+        if (_legendPanel is not null)
+        {
+            // Anchor legend at bottom-right of the map area via explicit offsets.
+            var legendSize = _legendPanel.GetCombinedMinimumSize();
+            _legendPanel.Position = new Vector2(
+                _mapArea.Size.X - legendSize.X - UiTokens.Space4,
+                _mapArea.Size.Y - legendSize.Y - UiTokens.Space6 - UiTokens.Space2);
+        }
     }
 
     private void HandleMapClick(Vector2 screenPos)
@@ -572,7 +862,10 @@ public partial class Main : Node2D
 
         // The root layout spans the whole screen, including the transparent map gap.
         // Treat it as pass-through so hovering the map does not suppress the tooltip.
-        return hoveredControl != _rootLayout && hoveredControl != _mapSpacer;
+        // The map area and the root column are both transparent pass-through containers;
+        // hovering them should not suppress the hex tooltip. Anything else (rails, bars,
+        // overlays) should.
+        return hoveredControl != _rootColumn && hoveredControl != _mapArea;
     }
 
     private string FormatHexTooltip(HexCoord coord)
@@ -590,10 +883,10 @@ public partial class Main : Node2D
                 .Where(pair => pair.Value.Status == EntityStatus.Active &&
                                pair.Value.SemanticPosition.Q == coord.Q &&
                                pair.Value.SemanticPosition.R == coord.R)
-                .Select(pair => $"{pair.Value.Name} ({pair.Value.Kind})")
+                .Select(pair => $"{pair.Value.Name}  {pair.Value.Kind}")
                 .ToList();
-            var occupantsLine = occupants.Count == 0 ? "(empty)" : string.Join(", ", occupants);
-            return $"autonomy={coord.Q}  resonance={coord.R}  tradition={s}\n{occupantsLine}";
+            var occupantsLine = occupants.Count == 0 ? "— uninhabited —" : string.Join("\n", occupants);
+            return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
         }
 
         var cell = _sim.Grid.GetCell(coord);
@@ -602,7 +895,11 @@ public partial class Main : Node2D
         var food = _sim.Resources.Food.GetStockpile(coord);
         var wealth = _sim.Resources.Wealth.GetStockpile(coord);
         var population = _sim.Resources.PopulationLayer.GetStockpile(coord);
-        return $"{coord.Q}, {coord.R}  {terrain}  ·  {regionName}\nfood: {food:0.0}\nwealth: {wealth:0.0}\npopulation: {population:0.0}";
+        return
+            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {regionName}\n" +
+            $"food       {food,7:0.0}\n" +
+            $"wealth     {wealth,7:0.0}\n" +
+            $"population {population,7:0.0}";
     }
 
     private void PositionHexTooltip(Vector2 screenPos)
@@ -634,7 +931,10 @@ public partial class Main : Node2D
             return;
         }
 
-        var card = new EntityCard();
+        var card = new EntityCard
+        {
+            Theme = _theme,
+        };
         card.Initialize(_sim, entityId, position);
         card.CardClosed += OnCardClosed;
         _cardLayer.AddChild(card);
@@ -660,14 +960,24 @@ public partial class Main : Node2D
 
         var color = e.Type switch
         {
-            Engine.Events.EventType.Lifecycle => "red",
-            Engine.Events.EventType.Threshold => "yellow",
-            Engine.Events.EventType.Creation => "green",
-            Engine.Events.EventType.Card => "cyan",
-            _ => "white",
+            Engine.Events.EventType.Lifecycle => UiTokens.Blood,
+            Engine.Events.EventType.Threshold => UiTokens.Ember,
+            Engine.Events.EventType.Creation  => UiTokens.Aurora,
+            Engine.Events.EventType.Card      => UiTokens.Gilt,
+            _                                 => UiTokens.Vellum,
         };
+        var tickColor = UiTokens.Whisper;
+        var tickHex = ColorHex(tickColor);
+        var descHex = ColorHex(color);
+        _eventLogLabel.AppendText($"[color={tickHex}][code]t{e.Tick,5}[/code][/color]  [color={descHex}]{e.Description}[/color]\n");
+    }
 
-        _eventLogLabel.AppendText($"[color={color}][{e.Tick}] {e.Description}[/color]\n");
+    internal static string ColorHex(Color color)
+    {
+        var r = Mathf.RoundToInt(color.R * 255);
+        var g = Mathf.RoundToInt(color.G * 255);
+        var b = Mathf.RoundToInt(color.B * 255);
+        return $"#{r:x2}{g:x2}{b:x2}";
     }
 
     private void HandleCameraMovement(float delta)

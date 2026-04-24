@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "ctrl-pause",
+  "file": "chrome/ctrl-pause.png",
+  "spec_type": "icon",
+  "section_id": "8-playback-control-icons",
+  "section": "8 · Playback control icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "Two parallel vertical bars with soft rounded ends, flat dark fill,\nuniform width — standard pause glyph.",
+  "formatted_prompt": "Flat modern app icon centered on an off-white (#E7E3D5) canvas with generous padding, crisp vector geometry, no textures or gradients. Two parallel vertical rectangles with fully rounded pill-shaped ends, uniform width, equal spacing between them, rendered in deep near-black (#0B0F14) flat fill. The pause glyph is perfectly symmetrical, bold silhouette reduced to its essential two-bar form, sharp clean edges readable at 16px. Centered composition, no background elements, no shadow, no decoration. Muted off-white ground, stark dark bars, high contrast, 2026-era UI icon register.",
+  "bfl_task_id": "b56c0d72-e40a-4233-b5ec-c7eca9c4dad5",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005484,
+  "duration_ms": 9451,
+  "generated_at": "2026-04-24T17:13:15.988Z"
+}

@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-shelf",
+  "file": "terrain/shelf.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of a shallow continental shelf — translucent\npale blue water over a visible bed of stone and sand, faint ripples, the\noccasional dark kelp patch.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, orthographic top-down view of a shallow continental shelf, translucent pale water over sandy stone bed with dark kelp patches, in aged vellum cream and slate shadow with cool teal accents.",
+    "subjects": [
+      {
+        "type": "shallow seafloor",
+        "description": "Sandy stone bed visible through translucent water, faint ripple lines across the surface, warm vellum and buff tones beneath the water layer.",
+        "position": "fills frame evenly, centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "kelp patches",
+        "description": "Two or three irregular dark kelp clusters anchored to the stone bed, loosely rendered with fine nib strokes, scattered across the tile.",
+        "position": "distributed mid-frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "water surface",
+        "description": "Translucent watercolor wash with soft concentric ripple arcs suggesting shallow tidal movement, cool prismatic shimmer at edges.",
+        "position": "full tile overlay",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "dfb30ad8-659e-4eb7-a38b-dac8ddf9788d",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008546999999999999,
+  "duration_ms": 7727,
+  "generated_at": "2026-04-24T09:14:10.865Z"
+}

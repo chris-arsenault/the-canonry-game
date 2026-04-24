@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "texture-slate",
+  "file": "chrome/texture-slate.png",
+  "spec_type": "background",
+  "section_id": "4-ui-chrome-decoration",
+  "section": "4 · UI chrome & decoration",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "Seamless dark slate stone texture — base color slate, subtle variations\nfrom slightly bluer to slightly greyer, very faint mineral veining. A\nquiet background surface.",
+  "formatted_prompt": {
+    "scene": "Ink-and-watercolor study of a flat dark slate stone surface on aged parchment, cool blue-grey tones with faint mineral veining and muted shadow depth.",
+    "subjects": [
+      {
+        "type": "stone surface",
+        "description": "Seamless slate plane, subtle shifts from cool blue-grey to neutral grey, faint hairline mineral veins tracing shallow paths across the face.",
+        "position": "fills entire frame edge to edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "atmospheric wash",
+        "description": "Thin translucent watercolor shadow pooling at irregular intervals, suggesting natural stone depth and slight tonal variation across the slab.",
+        "position": "distributed across surface, denser at corners",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "8f9c8e38-6411-4ff1-8a0a-e9feed07d734",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007467,
+  "duration_ms": 5220,
+  "generated_at": "2026-04-24T09:15:19.606Z"
+}

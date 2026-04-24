@@ -29,13 +29,21 @@ public class SaveManagerTests
 
         var nation = graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", 0);
         var settlement = graph.CreateEntity(TestKinds.Settlement, "generic", "S", "c", 0);
-        graph.CreateRelationship("controls", RelationshipPolarity.Neutral, nation.Id, settlement.Id, 0.9f, 0);
+        graph.CreateRelationship(
+            "controls",
+            RelationshipPolarity.Neutral,
+            nation.Id,
+            settlement.Id,
+            0.9f,
+            0,
+            facts: ["sealed_thin_place"]);
 
         var state = SaveManager.Capture(graph, currentTick: 10);
 
         Assert.Single(state.Relationships);
         Assert.Equal("controls", state.Relationships[0].Kind);
         Assert.Equal(0.9f, state.Relationships[0].Strength);
+        Assert.Equal(["sealed_thin_place"], state.Relationships[0].Facts);
     }
 
     [Fact]

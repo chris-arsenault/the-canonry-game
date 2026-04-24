@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-warmth",
+  "file": "icons/attr-warmth.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A simple flame — three symmetric tongues, ember-orange wash inside a\ndark ink outline.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate, a single stylized flame with three symmetric tongues on aged parchment ground, ember orange and deep slate ink.",
+    "subjects": [
+      {
+        "type": "flame icon",
+        "description": "Three symmetric upward flame tongues, bold crisp nib-pen outline, clean silhouette readable at small scale, warm ember wash filling the interior",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "aged parchment ground",
+        "description": "Flat warm vellum cream surface, subtle grain texture, faint foxing at edges, minimal depth",
+        "position": "background fill",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "685f1d02-e4fd-49c0-bcc7-886807ded651",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007077,
+  "duration_ms": 5420,
+  "generated_at": "2026-04-24T09:15:51.227Z"
+}

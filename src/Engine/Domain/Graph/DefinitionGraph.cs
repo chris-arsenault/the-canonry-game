@@ -14,6 +14,7 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
     public required IReadOnlyDictionary<DefinitionResourceId, DefinitionResourceNode> Resources { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
+    public required IReadOnlyDictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> RelationshipFacts { get; init; }
     public required IReadOnlyDictionary<DefinitionPressureId, DefinitionPressureNode> Pressures { get; init; }
     public required IReadOnlyDictionary<EntityKind, DefinitionLifecycleNode> Lifecycles { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeKey, DefinitionAttributeNode> Attributes { get; init; }
@@ -91,6 +92,12 @@ public sealed class DefinitionRelationshipNode
     public required RelationshipConfig SourceConfig { get; init; }
 }
 
+public sealed class DefinitionRelationshipFactNode
+{
+    public required DefinitionRelationshipFactId Id { get; init; }
+    public required RelationshipFactConfig SourceConfig { get; init; }
+}
+
 public sealed class DefinitionPressureNode
 {
     public required DefinitionPressureId Id { get; init; }
@@ -118,6 +125,7 @@ public sealed class DefinitionGeneratorNode
     public required string Name { get; init; }
     public string? Description { get; init; }
     public required DefinitionGeneratorTarget Target { get; init; }
+    public DefinitionTargetSaturation? TargetSaturation { get; init; }
     public required IReadOnlyList<DefinitionGeneratorBindingTarget> SecondaryTargets { get; init; }
     public required IReadOnlyList<DefinitionProducedEntity> Produces { get; init; }
     public required IReadOnlyList<DefinitionGeneratorRelationship> Relationships { get; init; }
@@ -132,14 +140,14 @@ public sealed class DefinitionGeneratorTarget
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AllowWilderness { get; init; }
-    public IReadOnlyList<DefinitionSaturationLimit> SaturationLimits { get; init; } = [];
 }
 
-public sealed class DefinitionSaturationLimit
+public sealed class DefinitionTargetSaturation
 {
     public required DefinitionRelationshipId RelationshipId { get; init; }
-    public required string Direction { get; init; }
-    public required int MaxCount { get; init; }
+    public DefinitionRelationshipFactId? RequiredFactId { get; init; }
+    public TargetSaturationDirection Direction { get; init; } = TargetSaturationDirection.Symmetric;
+    public int MaxExisting { get; init; }
 }
 
 public sealed class DefinitionProducedEntity
@@ -200,6 +208,7 @@ public sealed class DefinitionGeneratorRelationship
     public required string SourceRef { get; init; }
     public required string DestinationRef { get; init; }
     public required DefinitionRelationshipId RelationshipId { get; init; }
+    public required IReadOnlySet<DefinitionRelationshipFactId> FactIds { get; init; }
     public float Strength { get; init; } = 1f;
     public bool ReplaceExistingOutgoingOfSameKind { get; init; }
 }

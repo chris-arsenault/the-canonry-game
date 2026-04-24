@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-faction",
+  "file": "cards/card-faction.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "nightshelf",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: a Shadow Parliament gathering in a fire-core-lit cave-chamber\nbeneath the permanent ice shelf. Three hooded figures stand around a\nstone table; bioluminescent ice glyphs pulse cold blue-green along the\nwalls. A tattered faction banner with a ☽-marked sigil hangs behind them.\nSmoke from venting picks curls upward. Conspiracy and rank, not ceremony.\nLower half: warm dark surface for overlaid text, ghosted banner\nwatermark. Warm cream parchment frame.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration, richly pigmented, vertical 3:4 card-face composition. Three adult emperor penguins in charcoal-grey hooded robes gather around a rough stone table in a fire-core-lit cavern beneath glacial ice. Each figure wears volcanic-glass-and-blackened-sinew armor with ember-thread embroidery casting faint orange glow at the hems; bone-and-volcanic-glass masks obscure narrow beaks, small dark eyes catching firelight. Bioluminescent ice glyphs pulse cold cyan along curved tunnel walls. A tattered crimson-and-charcoal banner bearing a ☽ moon-truncation sigil hangs behind them, edges frayed. Venting-pick smoke curls upward into blue-dark ice ceiling. Braziers burn vivid ember-orange, separating warm foreground from cold glowing midground. Lower third fades to warm ochre-parchment shadow for text overlay, ghosted sigil watermark beneath. Deep obsidian blacks, saturated ember-orange, luminous cyan-green bioluminescence, aged-cream frame border. Conspiratorial stillness, not ceremony.",
+  "bfl_task_id": "3e78933d-f4b2-438d-a864-057adfbcdc52",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008697,
+  "duration_ms": 13640,
+  "generated_at": "2026-04-24T16:37:25.958Z"
+}

@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "tableau-backdrop",
+  "file": "backgrounds/tableau.png",
+  "spec_type": "background",
+  "section_id": "7-atmospheric-art",
+  "section": "7 · Atmospheric art",
+  "style_id": "cinematic",
+  "palette_id": "polar",
+  "identity_id": "aurora-stack",
+  "model": "flux-2-pro",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A subdued cartographic map of Aurora Berg, rendered as an archival chart\non warm-cream parchment. The Aurora Stack crystalline spire colony\nsketched on one tier of the Berg, Nightshelf tunnel labyrinths\ncrosshatched beneath, the Corpse Current marked as a dark arc of warm\nwater tracking below the sea-ice. Compass rose in one corner. Faint\nhex-grid overlaying the landmass. Echo-script annotations in the margins.\nMuted enough that white text overlaid on it stays fully legible — this\nis a backdrop, not a feature. Antique atlas aesthetic, civilizationally\naware.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival cartographic plate of a polar berg rendered on warm vellum parchment, crystalline spire colony sketched in fine nib linework above crosshatched tunnel labyrinths, a dark thermal current arcing below sea-ice, muted slate and aged cream holding the composition at documentary remove",
+    "subjects": [
+      {
+        "type": "cartographic landmass",
+        "description": "Aurora Berg rendered as antique atlas chart — tiered crystalline spire colony in fine linework at the summit, Nightshelf labyrinths crosshatched in dense parallel strokes below, faint hex-grid overlay across the landmass, echo-script margin annotations in a Chinese-influenced hand",
+        "position": "center, full frame, edge-bled",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "Corpse Current arc",
+        "description": "Dark thermal warm-water current marked as a bold curved cartographic line beneath the sea-ice shelf, labeled in archival script, faint warm watercolor wash bleeding along its course",
+        "position": "lower third, sweeping left to right",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "compass rose and border",
+        "description": "Ornate 19th-century expedition compass rose, foxed parchment border with faint age staining, restrained decorative frame in aged ink",
+        "position": "lower-left corner",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "e740ede5-e7bd-46c7-866e-ce18208d57d3",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.010656,
+  "duration_ms": 7327,
+  "generated_at": "2026-04-24T09:16:23.715Z"
+}

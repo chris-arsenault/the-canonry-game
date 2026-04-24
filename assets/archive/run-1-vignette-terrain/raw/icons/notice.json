@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-notice",
+  "file": "icons/notice.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A small ink glyph — simple open circle with a centered dot, the\nuniversal \"mark, notice\" sigil. Parchment-tone ink.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor on aged parchment, a single minimalist notice glyph centered on warm vellum cream, punctuated by deep slate ink.",
+    "subjects": [
+      {
+        "type": "glyph",
+        "description": "Open circle with centered dot, bold clean stroke weight, notice sigil, crisp ink linework on parchment ground.",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "paper ground",
+        "description": "Aged parchment surface, faint foxing at edges, warm vellum texture beneath the glyph.",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "bb047888-a3c0-456c-b1df-281366af450b",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007065,
+  "duration_ms": 6009,
+  "generated_at": "2026-04-24T09:15:38.157Z"
+}

@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "title-ice-remembers",
+  "file": "backgrounds/title.png",
+  "spec_type": "background",
+  "section_id": "7-atmospheric-art",
+  "section": "7 · Atmospheric art",
+  "style_id": "cinematic",
+  "palette_id": "polar",
+  "identity_id": "aurora-stack",
+  "model": "flux-2-pro",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A wide cinematic landscape of Aurora Berg under perpetual twilight. An\nAurora Stack vertical crystalline spire colony rises on the horizon, its\nprismatic lenses channeling aurora light down through the tiers. The\naurora itself dominates a cold slate sky, rippling green-white across the\nupper half. In the foreground, a single robed ice-seer stands on a ridge\nof blue glacial ice, looking toward the colony. Below, at the water line,\nthe dark hint of the Corpse Current flows past an orca's dorsal fin\nbarely breaking the surface. Civilizational scale, reverent, grim, quiet.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor naturalist plate of a lone robed penguin ice-seer on a glacial ridge facing distant crystalline spires under a twilight sky, aurora rippling warm vellum cream and slate ink above, ember glow threading the colony's prismatic lenses.",
+    "subjects": [
+      {
+        "type": "emperor penguin ice-seer, standing upright on glacial ridge",
+        "description": "Tall lean adult emperor penguin in flowing white robes over segmented silvered plate, aurora-crystal coronet, long ice-bladed staff with prismatic tip, posture contemplative and still, frost-stained hem.",
+        "position": "left-center foreground, back to viewer, facing horizon",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "crystalline spire colony, distant horizon architecture",
+        "description": "Tiered vertical spires with prismatic lenses channeling cool green-white aurora light downward through ceremonial halls, rank inscriptions barely legible at distance, civilizational scale.",
+        "position": "right-center horizon, rising into upper sky",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "dark water with orca dorsal fin",
+        "description": "Corpse Current waterline at base of glacier, near-black water, single dark dorsal fin barely breaking the surface, dense gravitational haze across the water plane.",
+        "position": "lower edge, foreground waterline",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "f9bbf49f-2f12-4649-bae3-3440285e914b",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.010728000000000001,
+  "duration_ms": 6228,
+  "generated_at": "2026-04-24T09:16:18.707Z"
+}

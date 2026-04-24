@@ -27,5 +27,4 @@ public interface IRelationshipContext
     Entity? GetEntity(EntityId id);
     float GetAttribute(EntityId entityId, string attributeName);
     (int Q, int R)? GetCoordinates(EntityId entityId);
-    float? GetSemanticDistance(EntityId a, EntityId b, string planeName);
 }

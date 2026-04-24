@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-holding",
+  "file": "icons/attr-holding.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A hand grasping a small stone, seen in profile silhouette, reduced to\nessential curves.",
+  "formatted_prompt": {
+    "scene": "ink and watercolor on aged parchment, a profile-silhouette hand clutching a small rounded stone, centered on warm vellum cream ground, punctuated by ember orange and slate ink shadow",
+    "subjects": [
+      {
+        "type": "hand silhouette",
+        "description": "closed fist in profile gripping a small stone, bold reduced curves, thick nib-pen outline, essential shape readable at minimal scale",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "stone",
+        "description": "small rounded river stone nestled against curled fingers, slight texture suggestion, compact oval form",
+        "position": "center, held within fist",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "6a60e7a8-1836-4f6d-8637-361a16c179eb",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.0071400000000000005,
+  "duration_ms": 5599,
+  "generated_at": "2026-04-24T09:16:07.911Z"
+}

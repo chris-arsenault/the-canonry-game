@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-ocean",
+  "file": "terrain/ocean.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "Orthographic top-down view of deep polar ocean — abyssal blue-black water\nwith faint swell patterns catching pale slate highlights. Restrained,\ncold, vast.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor hex tile, orthographic top-down view of abyssal polar ocean filling the frame, deep blue-black water with faint swell patterns catching pale slate highlights on aged vellum parchment.",
+    "subjects": [
+      {
+        "type": "water surface",
+        "description": "Abyssal polar ocean, top-down orthographic, loose ink swell lines radiating across the tile, cold slate highlights on dark rolling water.",
+        "position": "fills entire frame edge to edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "swell highlights",
+        "description": "Faint crescent brushstrokes of pale slate catching light across wave ridges, sparse and restrained, watercolor wash barely lifted from darkness.",
+        "position": "scattered evenly across tile surface",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "84ff31a5-6190-42fe-9d82-5b802d5540ca",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007671,
+  "duration_ms": 8185,
+  "generated_at": "2026-04-24T09:14:21.335Z"
+}

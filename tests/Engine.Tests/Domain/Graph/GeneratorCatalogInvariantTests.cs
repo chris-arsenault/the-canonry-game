@@ -19,6 +19,39 @@ public class GeneratorCatalogInvariantTests
     }
 
     [Fact]
+    public void Validate_IceRemembersGeneratorCatalog_UsesFactBackedTargetSaturation()
+    {
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
+        var issues = new List<string>();
+
+        foreach (var generator in graph.Generators.Values)
+        {
+            if (generator.TargetSaturation is not { } saturation)
+            {
+                issues.Add($"{generator.Id} has no target saturation.");
+                continue;
+            }
+
+            if (saturation.RequiredFactId is null)
+            {
+                issues.Add($"{generator.Id} target saturation has no required relationship fact.");
+                continue;
+            }
+
+            var hasMatchingRelationship = generator.Relationships.Any(relationship =>
+                relationship.RelationshipId == saturation.RelationshipId &&
+                relationship.FactIds.Contains(saturation.RequiredFactId.Value) &&
+                TargetSaturationDirectionMatchesRelationship(saturation.Direction, relationship));
+            if (!hasMatchingRelationship)
+            {
+                issues.Add($"{generator.Id} target saturation does not match a generated relationship.");
+            }
+        }
+
+        Assert.Empty(issues);
+    }
+
+    [Fact]
     public void Validate_GeneratorReachability_AllowsGeneratorUnlockedByAnotherGenerator()
     {
         var founder = new SemanticGeneratorConfig
@@ -555,6 +588,7 @@ public class GeneratorCatalogInvariantTests
             Kinds = config.Kinds,
             Processes = config.Processes,
             Relationships = config.Relationships,
+            RelationshipFacts = config.RelationshipFacts,
             Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,
@@ -569,6 +603,17 @@ public class GeneratorCatalogInvariantTests
             },
         };
     }
+
+    private static bool TargetSaturationDirectionMatchesRelationship(
+        TargetSaturationDirection direction,
+        DefinitionGeneratorRelationship relationship) =>
+        direction switch
+        {
+            TargetSaturationDirection.OutgoingFromTarget => relationship.SourceRef == "$target",
+            TargetSaturationDirection.IncomingToTarget => relationship.DestinationRef == "$target",
+            TargetSaturationDirection.Symmetric => relationship.SourceRef == "$target" || relationship.DestinationRef == "$target",
+            _ => false,
+        };
 
     private static List<string> FindSeedReachabilityIssues(IReadOnlyList<SemanticGeneratorConfig> generators)
     {

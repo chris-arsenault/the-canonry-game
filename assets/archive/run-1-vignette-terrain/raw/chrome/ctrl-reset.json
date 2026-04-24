@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "ctrl-reset",
+  "file": "chrome/ctrl-reset.png",
+  "spec_type": "icon",
+  "section_id": "8-playback-control-icons",
+  "section": "8 · Playback control icons",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A counterclockwise circular arrow with an arrowhead pointing to the\nupper-left, in dark ink with faint brush variation.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor naturalist plate, a bold counterclockwise circular arrow with arrowhead on aged vellum cream, dark slate ink with faint ember-warm brush variation at the stroke edges.",
+    "subjects": [
+      {
+        "type": "circular arrow icon",
+        "description": "Bold counterclockwise circular arc, thick dark ink stroke, arrowhead pointing upper-left, slight brush texture variation along the curve, clean legible silhouette",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "paper texture",
+        "description": "Aged parchment ground, faint foxing at edges, warm vellum grain beneath the icon",
+        "position": "full field",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "70878bc5-9a4c-4907-99d2-4527cb91d7a5",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007389,
+  "duration_ms": 5454,
+  "generated_at": "2026-04-24T09:16:39.012Z"
+}

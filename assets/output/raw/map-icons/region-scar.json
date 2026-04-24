@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-scar-icon",
+  "file": "map-icons/region-scar.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized scar / wounded-land region marker. Flat app-icon geometry.\nA jagged lightning-bolt-like zigzag shape running diagonally across\nthe icon, in a contrasting red or ember-orange palette color. Behind\nit, the background is a muted neutral palette color (bone-grey or\npale cream) indicating damaged ground. The jagged shape is the\ndominant element — aggressive angular geometry, not smooth.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a clean off-white canvas with generous padding, single bold icon silhouette readable at 16px. A stark jagged zigzag lightning-bolt shape — aggressive angular geometry with sharp acute points — runs diagonally across the center, rendered in vivid #FF0000 red as a thick filled vector shape. Behind it, a flat bone-grey rectangular ground tile in muted neutral cream anchors the composition as a secondary shape. The zigzag dominates: three to four hard-edged angular teeth, no curves, no softness. Flat bold color fills, crisp vector edges, strong red-on-cream contrast, zero gradients, zero texture, zero brushwork. Modern UI icon register, every angle deliberate and punchy, high contrast, fully readable at tiny scale.",
+  "bfl_task_id": "c6a26049-4cdc-4e96-98f2-af6bfe5ec019",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006354,
+  "duration_ms": 6803,
+  "generated_at": "2026-04-24T17:33:29.340Z"
+}

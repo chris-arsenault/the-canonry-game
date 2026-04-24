@@ -8,13 +8,58 @@ default_palette = "polar"
 size = "1024x1024"
 aspect = "1:1"
 
+# ----------------------------------------------------------------------------
+# Styles — composition and shared wear/magic register. Identity specifics
+# (cultural vocabulary per species) live in [identity.*] blocks below, so
+# styles stay focused on treatment and don't duplicate that material.
+# ----------------------------------------------------------------------------
+
 [style.archive]
 name = "Archive Plate"
-composition = "centered subject with generous negative space and a museum-plate feel"
+composition = "centered subject with generous negative space and a museum-plate feel; the subject reads as a formal archival portrait of a figure, relic, or place of civilizational weight"
+wear_and_weathering = """
+Aurora Berg is at the edge of the Long Dark. Penguin civilizations and orca war-pods spent forty-five years in the Orca Incursion; the peace now is uneasy, the wounds visible. Armor is dented and repaired; fire-core weapons have mottled blackening at the heat-joints; aurora-crystal pendants show hairline cracks. Robes and wraps are frost-stained, soot-smeared, stained with old blood.
+
+Magic lands in ink-and-watercolor, never neon, never CGI: aurora-light as cool prismatic shimmer at crystal edges; captured fire as warm ember glow from braziers and weapon-cores; pressure-depth as a dense gravitational haze. Magic looks painted, not animated.
+
+Register: Travis Louie graphite-and-watercolor portraiture; Ashley Wood's ink-and-wash; Brom's painterly mythic figures; Yuko Shimizu's linework at fantastical scale. Ornate, grim, civilizationally scaled. Obvious wear, obvious rank, atmospheric gravity. Never cute, never pastoral, never zoo-diorama.
+"""
 
 [style.cinematic]
 name = "Cinematic Plate"
-composition = "broader framing, deeper atmosphere, and a stronger sense of scale"
+composition = "broader framing, deeper atmosphere, civilizational scale; landscape or architecture reads as the kind of place where thousands live, wars are waged, and the ice records it all"
+wear_and_weathering = """
+Aurora Berg is at the edge of the Long Dark. Penguin civilizations and orca war-pods spent forty-five years in the Orca Incursion; the peace now is uneasy, the wounds visible. Armor is dented and repaired; fire-core weapons have mottled blackening at the heat-joints; aurora-crystal pendants show hairline cracks. Robes and wraps are frost-stained, soot-smeared, stained with old blood.
+
+Magic lands in ink-and-watercolor, never neon, never CGI: aurora-light as cool prismatic shimmer at crystal edges; captured fire as warm ember glow from braziers and weapon-cores; pressure-depth as a dense gravitational haze. Magic looks painted, not animated.
+
+Register: Travis Louie graphite-and-watercolor portraiture; Ashley Wood's ink-and-wash; Brom's painterly mythic figures; Yuko Shimizu's linework at fantastical scale. Ornate, grim, civilizationally scaled. Obvious wear, obvious rank, atmospheric gravity. Never cute, never pastoral, never zoo-diorama.
+"""
+
+# ----------------------------------------------------------------------------
+# Identities — canonical cultural/factional vocabulary, one per culture.
+# Each is spliced into Claude's user message per asset via the identity_id
+# resolution chain (asset > section > pack default). Keep each under ~150
+# words so the full user prompt stays readable.
+# ----------------------------------------------------------------------------
+
+[identity.aurora-stack]
+name = "Aurora Stack"
+description = """
+Penguins of the sunlit vertical crystalline spire colony on Aurora Berg. LIGHT-BUILT regalia: pale ice-plate and spectralum-lens armor, aurora-crystal pendants at the throat, flowing white robes over segmented silvered plate, coronets of clear aurora-crystal, long ice-bladed swords or staves with faintly glowing prismatic tips. Rank echoes inscribed into their plate in Chinese-influenced script. Figures are High-Beak Auditors, Apex ice-seers, ceremonial warlords — lean, watchful, aurora faintly glowing at the rim of every polished surface. Pure white, silvered steel, aurora-green highlights, deep slate shadow. Architecture: crystalline spires, prismatic lenses, tiered ceremonial halls. Magic: aurora-light — cool prismatic shimmer, meditative, slow.
+"""
+
+[identity.nightshelf]
+name = "Nightshelf"
+description = """
+Penguins of the underground tunnel labyrinth beneath Aurora Berg's permanent ice shelf. DARK, HOT regalia: charcoal-grey wraps with ember-thread embroidery that glows faintly, hooded robes, bone-and-volcanic-glass masks, venting-pick tools, fire-core-heated blades. Forge-master hands are scarred and mottled from fire-lock. Midnight Claw warriors carry sickle-edged knives, armor cast from volcanic glass and bound with blackened sinew. Rank marked by incomplete names in faux-Latin script (☽ moon-truncation, ∴ interior elision, ~ whisper trail). Charcoal, ember, crimson fire-core glow, obsidian black. Architecture: tunnel labyrinths, fire-core braziers, bioluminescent ice glyphs pulsing cold blue-green. Magic: captured fire — warm ember glow, detonation.
+"""
+
+[identity.orca]
+name = "Orca"
+description = """
+Ritual-scarred wake-singers and war-pod leaders of the open waters around Aurora Berg. No clothing, no armor — carved resonance-chambers in the flanks, bone structure altered by deep-pressure ritual, hunt-liturgy scars across the snout. The Dreaming Tooth (a carved relic from the dead god's jaw) when relevant, lashed beside the dorsal fin. Blue-black hide, ivory scar-lines, salt-crust along the skin. Copper-smelling Corpse Current rippling around them when rendered in water; the faint two-mile silhouette of the dead god in the abyssal shadow beneath when applicable. Magic: pressure-depth — a dense gravitational haze around the practitioner, water distorting, subsonic weight. They do not build; their territory is marked by bones-of-kills.
+"""
 
 [palette.polar]
 name = "Polar"
@@ -28,6 +73,69 @@ primary = ["#D97742", "#B04646", "#C9A96B"]
 secondary = ["#0B0F14", "#19202C", "#E7E3D5"]
 notes = "Higher-contrast palette for UI and iconography."
 
+# Comic Bold — imported from the-canonry/packages/world-schema/src/colorPalettes.ts
+# (id: "comic-bold"). Used for map-scale game assets where readability
+# requires saturated primaries, strong separation, and flat confident fills.
+[palette.comic-bold]
+name = "Comic Bold"
+primary = ["#FF0000", "#0000FF", "#FFFF00", "#00CC00", "#FF6600"]
+secondary = ["#000000", "#FFFFFF"]
+notes = "Bright bold distinct colors, strong color separation between elements, saturated primaries and secondaries, each object a clear distinct hue, flat confident color fills, high contrast between adjacent areas, comic book color boldness, every color punchy and unapologetic."
+
+# Vivid World — painted register for game-world scenes (cards,
+# atmospheric art, entity portraits). Same painterly medium as [style.archive]
+# but WITHOUT the archival/aged/faded narrative — game-world assets are
+# seen at close range and need saturated vibrant color so the world
+# feels alive. The Glacial Archive register is reserved for UI chrome.
+[style.vivid-world]
+name = "Vivid World"
+composition = "a richly painted illustration with the subject filling the frame confidently. The palette is SATURATED and VIBRANT — ember glows are bright orange, aurora greens are intense, fire-core reds are vivid, aurora-crystal is luminous cyan. Color separation is HIGH between foreground, midground, background. NOT muted, NOT faded, NOT archival."
+medium_notes = "Painterly ink-and-watercolor, but the watercolor is RICHLY PIGMENTED — think Mary Blair, Sam Weber, or modern illustrated game-key-art, NOT a faded 19th-century field plate. Every color is dialed to game-poster saturation. Whites are clean, blacks are deep, primaries are confident. This is a living painted world, not a dusty archive."
+wear_and_weathering = "Aurora Berg is at war with itself — but the war itself is VIVID, not muted. Fire-core braziers GLOW BRIGHT ORANGE, aurora ribbons BURN GREEN across the sky, banners are DEEP SATURATED RED, ice is CLEAN BRIGHT BLUE-WHITE, blood on armor is CRIMSON not rust. Damage is visible but rendered with saturated color, not desaturated weathering. No sepia. No fade."
+
+# Cartogram — bold vivid terrain register. Glacial Archive is the UI
+# aesthetic (muted, archival); the GAME WORLD needs distinct saturated
+# colors per terrain type so players read the map at a glance. Overrides
+# the preset's painterly/aged-paper composition with a modern board-game
+# tile aesthetic: full-frame uniform saturated fill, no patina, no fade.
+[style.cartogram]
+name = "Cartogram Tile"
+composition = "a bold saturated flat color field filling the ENTIRE 1024x1024 square edge-to-edge, corner to corner. NO drawn hex, NO paper border, NO vignette, NO centered composition, NO visible frame. The whole image is ONE highly-saturated color wash with subtle texture variation — like a modern board-game terrain tile or a vibrant illustrated comic-book map."
+medium_notes = "Bright, punchy, comic-book-map register. Saturated fill with confident ink. NOT watercolor-on-parchment. NOT aged paper. NOT muted historical atlas. NOT archival. Think Settlers of Catan terrain tile or a Risk board region in vivid color — vibrant and unambiguous, not subtle."
+wear_and_weathering = "NO wear, NO patina, NO aging, NO fade, NO sepia, NO foxing. Fresh vibrant saturated colors. This is a game-world tile, not a historical document. The tile must be clearly distinguishable from tiles of other terrain types purely by color."
+
+# Cartogram Palette — saturated natural-world colors tuned for game-map
+# terrain differentiation. Each terrain type gets a clear hue so the map
+# reads at a glance. Separate from comic-bold (which is purer primaries
+# for iconography) because terrain needs naturalistic color relationships.
+[palette.cartogram]
+name = "Cartogram"
+primary = ["#1E4A85", "#2DB56B", "#C18A63", "#4A90C5", "#6B5548"]
+secondary = ["#E0D4A8", "#F5EDD8", "#0D1A2D"]
+notes = "Saturated naturalistic game-map colors. Ocean deep blue (#1E4A85), hot-springs emerald (#2DB56B), wastes ochre (#C18A63), shelf light blue (#4A90C5), crags warm brown (#6B5548). Each terrain type must have a distinct saturated hue — muted/grey is a failure mode, not the target."
+
+# Stained Glass — cathedral rose-window register for the six semantic-plane
+# panes. Each pane is a square that Godot clips into a triangular hex
+# wedge on the Semantic plane view. Lead-divided jewel-tone glass —
+# painterly and ornate, not flat or vector.
+[style.stained-glass]
+name = "Stained Glass"
+composition = "a single cathedral stained-glass window pane, centered subject, composed so the focal symbol lives near the middle of the square and survives clipping into a triangular hex wedge"
+medium_notes = "Lead-divided jewel-toned glass panels, rich saturated colors separated by thick black lead lines, ornate Gothic cathedral borders at the edges. Painterly glass-on-light register. Think rose-window or altarpiece pane."
+wear_and_weathering = "Clean vibrant glass. Only the cracks and breakage the pane's symbolic content explicitly calls for."
+
+# App Icon — unified modern-UI icon register. Replaces the earlier
+# woodblock-stamp / paper-cutout aesthetic with clean filled-flat vector
+# iconography (Phosphor Fill / Material Symbols Fill / SF Symbols Filled
+# family). Used for 1b entity map icons, 5 event-type icons, 6 attribute
+# icons, and 8 playback controls — every small surface that needs to
+# read cleanly at 16–64px without painterly character.
+[style.app-icon]
+name = "App Icon"
+composition = "a single clean app-icon design centered on a plain off-white canvas with generous padding around the subject. The subject is simplified to its essential silhouette plus one to three interior shapes for identity. Every edge is precise and deliberate vector geometry. Centered composition, no scene around it. NO stamp frame, NO parchment, NO paper-cut-out border, NO torn edges, NO grain, NO rough ink, NO woodblock wobble."
+medium_notes = "Modern UI icon register — Phosphor Fill, Material Symbols Fill, SF Symbols Filled. Flat bold color fills with sharp crisp edges. If the icon needs interior detail (windows on a building, a crown on a figure) render those as flat secondary-color shapes, not as ink strokes or brush marks. No gradients, no textures, no brushwork, no painterly rendering. Every element readable at 32px."
+wear_and_weathering = "NO wear, NO weathering, NO patina, NO aging, NO ink spatter, NO rough edges, NO grain, NO foxing, NO frost damage, NO soot, NO scars. Clean fresh modern vector iconography, 2026-era app design — not a historical illustration, not a woodblock print, not a heraldic stamp."
+
 [type_prompt_fragment]
 icon = "Keep the icon silhouette bold, crisp, and readable at 16px."
 chrome = "Keep decorative edges controlled and production-friendly for UI extraction."
@@ -35,46 +143,382 @@ chrome = "Keep decorative edges controlled and production-friendly for UI extrac
 [[section]]
 id = "1-entity-sprites"
 title = "1 · Entity sprites"
+# Entity portraits are GAME WORLD (shown on cards and in the entity
+# inspector) — they need the vivid saturated register, NOT the archival
+# UI aesthetic. Glacial Archive is for chrome, not for the things that
+# live in the world.
+style = "vivid-world"
+palette = "cartogram"
+# Default identity for this section — Aurora Stack. Specific assets below
+# override when they depict Nightshelf subjects, orca, or identity-free
+# props (artifacts, region markers).
+identity = "aurora-stack"
 
 [[section.asset]]
 id = "penguin"
 file = "sprites/penguin.png"
 type = "sprite"
 prompt = "prompts/1-entity-sprites/penguin.md"
+# inherits aurora-stack from section
 
 [[section.asset]]
 id = "settlement"
 file = "sprites/settlement.png"
-type = "sprite"
+# Settlements need their environmental context preserved — a crystalline
+# spire colony without the surrounding ice and aurora is just a tower. We
+# treat these as background assets so rembg doesn't strip the atmosphere.
+type = "background"
 prompt = "prompts/1-entity-sprites/settlement.md"
+# inherits aurora-stack from section
 
 [[section.asset]]
 id = "faction-banner"
 file = "sprites/faction.png"
 type = "sprite"
+identity = "nightshelf"
 prompt = "prompts/1-entity-sprites/faction-banner.md"
 
 [[section.asset]]
 id = "artifact"
 file = "sprites/artifact.png"
 type = "sprite"
+# Before Times relics belong to no culture — they predate all of them.
+# Null identity by overriding the section default with empty string... no,
+# that's not supported. We leave the section default (aurora-stack) since
+# the artifact is held in an Aurora Stack vault and the prompt describes
+# it in that context.
 prompt = "prompts/1-entity-sprites/artifact.md"
 
 [[section.asset]]
 id = "orca"
 file = "sprites/orca.png"
 type = "sprite"
+identity = "orca"
 prompt = "prompts/1-entity-sprites/orca.md"
 
 [[section.asset]]
 id = "region-cairn"
 file = "sprites/region.png"
 type = "sprite"
+# Region cairns are boundary markers — neutral. Inherits aurora-stack
+# which is fine since cairns on the berg read as Aurora-style anyway.
 prompt = "prompts/1-entity-sprites/region-cairn.md"
+
+# ----------------------------------------------------------------------------
+# 1b · Entity MAP ICONS — heraldic stamps used on the hex map.
+#
+# The entity-sprites above (section 1) are painted portraits — used on card
+# faces and in the entity inspector. The hex map itself renders at small
+# scale with variable terrain underneath, so it needs a different register:
+# flat silhouettes with bold outlines that read at 32px.
+#
+# Deliberately no identity — identity text pushes Claude to include
+# ice-plate/ember-thread/ritual-scar detail that defeats the purpose of a
+# map icon. These are supposed to be stripped, iconographic, not
+# culturally-detailed.
+# ----------------------------------------------------------------------------
+
+[[section]]
+id = "1b-entity-map-icons"
+title = "1b · Entity map icons"
+# Clean app-icon register + bold primary palette. No identity (cultural
+# detail defeats icon simplicity); individual prompt files describe
+# the subject silhouette and one or two identity shapes only.
+style = "app-icon"
+palette = "comic-bold"
+
+[[section.asset]]
+id = "penguin-icon"
+file = "map-icons/penguin.png"
+type = "icon"
+prompt = "prompts/1b-entity-map-icons/penguin.md"
+
+[[section.asset]]
+id = "settlement-icon"
+file = "map-icons/settlement.png"
+type = "icon"
+prompt = "prompts/1b-entity-map-icons/settlement.md"
+
+[[section.asset]]
+id = "orca-icon"
+file = "map-icons/orca.png"
+type = "icon"
+prompt = "prompts/1b-entity-map-icons/orca.md"
+
+[[section.asset]]
+id = "faction-icon"
+file = "map-icons/faction.png"
+type = "icon"
+prompt = "prompts/1b-entity-map-icons/faction-banner.md"
+
+[[section.asset]]
+id = "artifact-icon"
+file = "map-icons/artifact.png"
+type = "icon"
+prompt = "prompts/1b-entity-map-icons/artifact.md"
+
+[[section.asset]]
+id = "region-cairn-icon"
+file = "map-icons/region.png"
+type = "icon"
+prompt = "prompts/1b-entity-map-icons/region-cairn.md"
+
+# ----------------------------------------------------------------------------
+# 1c · Agent SUBTYPE map icons — one icon per (species × subtype). Penguin
+# kind has four role subtypes (warden, broker, witness, exile); the future
+# orca kind will have three (shamen, war-leader, cripple). Subtype icons
+# convey role-specific regalia and weapons; the generic map-icons/*.png in
+# section 1b remain as fallbacks for code paths that don't yet dispatch on
+# subtype. Culture variation is ignored — subtype alone drives visuals.
+# ----------------------------------------------------------------------------
+
+[[section]]
+id = "1c-agent-subtype-icons"
+title = "1c · Agent subtype icons"
+style = "app-icon"
+palette = "comic-bold"
+
+[[section.asset]]
+id = "penguin-warden-icon"
+file = "map-icons/penguin-warden.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/penguin-warden.md"
+
+[[section.asset]]
+id = "penguin-broker-icon"
+file = "map-icons/penguin-broker.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/penguin-broker.md"
+
+[[section.asset]]
+id = "penguin-witness-icon"
+file = "map-icons/penguin-witness.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/penguin-witness.md"
+
+[[section.asset]]
+id = "penguin-exile-icon"
+file = "map-icons/penguin-exile.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/penguin-exile.md"
+
+[[section.asset]]
+id = "orca-shamen-icon"
+file = "map-icons/orca-shamen.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/orca-shamen.md"
+
+[[section.asset]]
+id = "orca-war-leader-icon"
+file = "map-icons/orca-war-leader.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/orca-war-leader.md"
+
+[[section.asset]]
+id = "orca-cripple-icon"
+file = "map-icons/orca-cripple.png"
+type = "icon"
+prompt = "prompts/1c-agent-subtype-icons/orca-cripple.md"
+
+# ----------------------------------------------------------------------------
+# 1d · Entity SUBTYPE map icons — non-agent kinds. Settlements, factions,
+# artifacts, and regions each have engine-defined subtypes that warrant
+# visually distinct map markers. Renders stay on app-icon + comic-bold so
+# the set reads as a unified subtype family. Generic icons in section 1b
+# remain as fallbacks for code that doesn't yet dispatch on subtype.
+# ----------------------------------------------------------------------------
+
+[[section]]
+id = "1d-entity-subtype-icons"
+title = "1d · Entity subtype icons"
+style = "app-icon"
+palette = "comic-bold"
+
+[[section.asset]]
+id = "settlement-rookery-icon"
+file = "map-icons/settlement-rookery.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/settlement-rookery.md"
+
+[[section.asset]]
+id = "settlement-colony-icon"
+file = "map-icons/settlement-colony.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/settlement-colony.md"
+
+[[section.asset]]
+id = "settlement-holdfast-icon"
+file = "map-icons/settlement-holdfast.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/settlement-holdfast.md"
+
+[[section.asset]]
+id = "settlement-sanctuary-icon"
+file = "map-icons/settlement-sanctuary.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/settlement-sanctuary.md"
+
+[[section.asset]]
+id = "settlement-harbor-icon"
+file = "map-icons/settlement-harbor.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/settlement-harbor.md"
+
+[[section.asset]]
+id = "settlement-reefhold-icon"
+file = "map-icons/settlement-reefhold.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/settlement-reefhold.md"
+
+[[section.asset]]
+id = "faction-order-icon"
+file = "map-icons/faction-order.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/faction-order.md"
+
+[[section.asset]]
+id = "faction-compact-icon"
+file = "map-icons/faction-compact.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/faction-compact.md"
+
+[[section.asset]]
+id = "faction-cell-icon"
+file = "map-icons/faction-cell.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/faction-cell.md"
+
+[[section.asset]]
+id = "faction-choir-icon"
+file = "map-icons/faction-choir.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/faction-choir.md"
+
+[[section.asset]]
+id = "artifact-relic-icon"
+file = "map-icons/artifact-relic.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/artifact-relic.md"
+
+[[section.asset]]
+id = "artifact-instrument-icon"
+file = "map-icons/artifact-instrument.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/artifact-instrument.md"
+
+[[section.asset]]
+id = "artifact-weapon-icon"
+file = "map-icons/artifact-weapon.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/artifact-weapon.md"
+
+[[section.asset]]
+id = "artifact-tome-icon"
+file = "map-icons/artifact-tome.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/artifact-tome.md"
+
+[[section.asset]]
+id = "artifact-seal-icon"
+file = "map-icons/artifact-seal.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/artifact-seal.md"
+
+[[section.asset]]
+id = "region-face-icon"
+file = "map-icons/region-face.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/region-face.md"
+
+[[section.asset]]
+id = "region-shelf-icon"
+file = "map-icons/region-shelf.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/region-shelf.md"
+
+[[section.asset]]
+id = "region-depths-icon"
+file = "map-icons/region-depths.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/region-depths.md"
+
+[[section.asset]]
+id = "region-reach-icon"
+file = "map-icons/region-reach.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/region-reach.md"
+
+[[section.asset]]
+id = "region-sea-icon"
+file = "map-icons/region-sea.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/region-sea.md"
+
+[[section.asset]]
+id = "region-scar-icon"
+file = "map-icons/region-scar.png"
+type = "icon"
+prompt = "prompts/1d-entity-subtype-icons/region-scar.md"
+
+# ----------------------------------------------------------------------------
+# 1e · Semantic-plane stained-glass panes — six wedge images for the
+# Semantic plane's hex view. Each pane maps to one axis extreme:
+#   breakaway = +autonomy, yoke      = -autonomy
+#   witness   = +resonance, silence  = -resonance
+#   lineage   = +tradition, severance = -tradition
+# Rendered square; Godot clips into triangular hex wedges at display time.
+# ----------------------------------------------------------------------------
+
+[[section]]
+id = "1e-semantic-plane-panes"
+title = "1e · Semantic-plane stained-glass panes"
+style = "stained-glass"
+palette = "cartogram"
+
+[[section.asset]]
+id = "pane-breakaway"
+file = "semantic-plane/breakaway.png"
+type = "background"
+prompt = "prompts/1e-semantic-plane-panes/breakaway.md"
+
+[[section.asset]]
+id = "pane-yoke"
+file = "semantic-plane/yoke.png"
+type = "background"
+prompt = "prompts/1e-semantic-plane-panes/yoke.md"
+
+[[section.asset]]
+id = "pane-witness"
+file = "semantic-plane/witness.png"
+type = "background"
+prompt = "prompts/1e-semantic-plane-panes/witness.md"
+
+[[section.asset]]
+id = "pane-silence"
+file = "semantic-plane/silence.png"
+type = "background"
+prompt = "prompts/1e-semantic-plane-panes/silence.md"
+
+[[section.asset]]
+id = "pane-lineage"
+file = "semantic-plane/lineage.png"
+type = "background"
+prompt = "prompts/1e-semantic-plane-panes/lineage.md"
+
+[[section.asset]]
+id = "pane-severance"
+file = "semantic-plane/severance.png"
+type = "background"
+prompt = "prompts/1e-semantic-plane-panes/severance.md"
 
 [[section]]
 id = "2-terrain-hex-tiles"
 title = "2 · Terrain hex tiles"
+# Terrain is GAME WORLD, not UI chrome. Cartogram style + palette
+# override the Glacial Archive aesthetic with saturated board-game
+# colors so each terrain type is visually distinct at a glance.
+style = "cartogram"
+palette = "cartogram"
 
 [[section.asset]]
 id = "terrain-wastes"
@@ -127,6 +571,11 @@ prompt = "prompts/2-terrain-hex-tiles/terrain-ocean.md"
 [[section]]
 id = "3-tableau-card-faces"
 title = "3 · Tableau card faces"
+# Cards are GAME WORLD surfaces, not UI chrome — the art on a card face
+# is meant to feel alive, saturated, and illustrated-poster vivid.
+style = "vivid-world"
+palette = "cartogram"
+identity = "aurora-stack"
 
 [[section.asset]]
 id = "card-penguin"
@@ -150,6 +599,7 @@ file = "cards/card-faction.png"
 type = "card-face"
 aspect = "3:4"
 size = "1024x1536"
+identity = "nightshelf"
 prompt = "prompts/3-tableau-card-faces/card-faction.md"
 
 [[section.asset]]
@@ -166,6 +616,7 @@ file = "cards/card-orca.png"
 type = "card-face"
 aspect = "3:4"
 size = "1024x1536"
+identity = "orca"
 prompt = "prompts/3-tableau-card-faces/card-orca.md"
 
 [[section.asset]]
@@ -223,6 +674,7 @@ prompt = "prompts/4-ui-chrome-decoration/texture-slate.md"
 [[section]]
 id = "5-event-type-icons"
 title = "5 · Event-type icons"
+style = "app-icon"
 palette = "signal"
 
 [[section.asset]]
@@ -258,6 +710,7 @@ prompt = "prompts/5-event-type-icons/icon-notice.md"
 [[section]]
 id = "6-attribute-icons"
 title = "6 · Attribute icons"
+style = "app-icon"
 palette = "signal"
 
 [[section.asset]]
@@ -317,7 +770,11 @@ prompt = "prompts/6-attribute-icons/attr-provisions.md"
 [[section]]
 id = "7-atmospheric-art"
 title = "7 · Atmospheric art"
-style = "cinematic"
+# Atmospheric backdrops are the WORLD — landscapes, title art, aurora
+# bands. Vivid saturated register, not faded archival.
+style = "vivid-world"
+palette = "cartogram"
+identity = "aurora-stack"
 
 [[section.asset]]
 id = "title-ice-remembers"
@@ -346,6 +803,8 @@ prompt = "prompts/7-atmospheric-art/aurora-band.md"
 [[section]]
 id = "8-playback-control-icons"
 title = "8 · Playback control icons"
+style = "app-icon"
+palette = "signal"
 
 [[section.asset]]
 id = "ctrl-pause"

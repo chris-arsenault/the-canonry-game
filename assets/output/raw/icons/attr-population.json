@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-population",
+  "file": "icons/attr-population.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "Three overlapping penguin silhouettes — a huddle reduced to essential\ncurves, no faces, no detail.",
+  "formatted_prompt": "Flat app icon on off-white canvas (#E7E3D5), generous padding, centered composition. Three overlapping adult emperor penguin silhouettes arranged in a tight huddle — tall, lean, narrow-bodied forms reduced to essential upright curves, no facial features, no interior detail. Front penguin rendered in burnt sienna (#D97742), middle penguin in deep crimson (#B04646), rear penguin in warm sand (#C9A96B). Silhouettes stack with deliberate offset layering, each a clean bold vector shape. Foreground figure reads as the dominant mass; overlapping edges crisp and precise. Flat fills, sharp geometry, zero texture, zero brushwork, fully readable at 16px.",
+  "bfl_task_id": "0adc00a0-b689-4ec9-a815-8dd0b9c69e9d",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005742000000000001,
+  "duration_ms": 8964,
+  "generated_at": "2026-04-24T17:12:23.879Z"
+}

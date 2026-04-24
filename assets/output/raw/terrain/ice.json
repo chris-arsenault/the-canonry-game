@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-ice",
+  "file": "terrain/ice.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform BRIGHT CYAN-WHITE flat color field — think #D6EEF5, a\nglaring very-pale cyan the color of a board-game \"glacier/ice\" tile.\nClearly COOL and faintly BLUE — visibly distinguishable from the\nmint tundra tile (not green), and visibly distinguishable from\nany beige/cream paper background (not yellow-cream, not neutral-\nwhite). Saturated enough that the cyan tint reads immediately.\nFill the ENTIRE 1024x1024 square edge-to-edge with this one cyan-\nwhite color corner to corner — NO drawn hex, NO paper border, NO\nvignette, NO centered composition, NO cracks or ice features. Only\nthe faintest paint-texture variation within the same cyan-white hue.\nA region-fill swatch, not a tile with a shape drawn on it.",
+  "formatted_prompt": "Cartogram tile illustration, vivid game-map register, bold saturated flat color field filling the entire 1024x1024 square edge-to-edge with a single glaring pale cyan wash — the precise hue of a board-game glacier tile, bright cool cyan-white (#D6EEF5), clearly blue-tinted and distinct from any mint or cream. The entire frame is one continuous cool cyan-white color plane with only the faintest brushstroke texture variation within the same icy hue — no cracks, no features, no shapes, no borders, no vignette, no centered composition. Punchy, unambiguous, immediately readable as ice terrain against tundra or ocean tiles. Confident ink register, fresh saturated fill, zero aging or neutralization.",
+  "bfl_task_id": "a75b6ca2-a6b3-4f76-ac0e-97b12b294ad9",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006591,
+  "duration_ms": 12498,
+  "generated_at": "2026-04-24T16:36:47.622Z"
+}

@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "aurora-band",
+  "file": "backgrounds/aurora.png",
+  "spec_type": "background",
+  "section_id": "7-atmospheric-art",
+  "section": "7 · Atmospheric art",
+  "style_id": "cinematic",
+  "palette_id": "polar",
+  "identity_id": "aurora-stack",
+  "model": "flux-2-pro",
+  "size": "1536x1024",
+  "aspect": "16:9",
+  "prompt_fragment": "This asset is a background or texture. Prioritize atmosphere and surface coherence over a single isolated subject.",
+  "raw_description": "A wide horizontal band of pale aurora cyan-green with faint purple\nundertones, soft-edged and ribbon-like, painterly with suggested wisps\nand fade-outs. Intended as an overlay accent.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor wash on aged parchment, a wide horizontal aurora ribbon of pale cyan-green with faint violet undertones drifting across open polar sky, ribboning light punctuated by slate shadow and warm vellum cream at the edges.",
+    "subjects": [
+      {
+        "type": "atmospheric aurora band",
+        "description": "Wide soft-edged horizontal ribbon, painterly wisps fading at both margins, cool prismatic shimmer at the light core, loose wet-on-wet watercolor layering, slow meditative drift.",
+        "position": "center horizontal band spanning full width",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "polar sky field",
+        "description": "Aged parchment grain beneath, faint foxing at corners, deep slate ink at upper and lower margins dissolving into warm vellum mid-field.",
+        "position": "full frame surrounding aurora band",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "52d646aa-0cb2-4069-b1f2-b7c85db0aa0a",
+  "cost_usd": 4.5,
+  "claude_cost_usd": 0.008673,
+  "duration_ms": 9246,
+  "generated_at": "2026-04-24T09:16:29.536Z"
+}

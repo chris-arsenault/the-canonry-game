@@ -33,6 +33,7 @@ public class RuntimeProcessGeneratorTests
             Kinds = config.Kinds,
             Processes = [.. config.Processes, ungated],
             Relationships = config.Relationships,
+            RelationshipFacts = config.RelationshipFacts,
             Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,

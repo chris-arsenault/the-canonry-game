@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "ctrl-step",
+  "file": "chrome/ctrl-step.png",
+  "spec_type": "icon",
+  "section_id": "8-playback-control-icons",
+  "section": "8 · Playback control icons",
+  "style_id": "archive",
+  "palette_id": "polar",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A single right-pointing arrowhead followed by a thin vertical bar to\nits right, in dark ink. \"Advance one frame\" feel.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate on aged vellum cream parchment, a right-pointing solid arrowhead beside a thin vertical bar, rendered in dense slate ink with warm ember accent at the arrowhead tip.",
+    "subjects": [
+      {
+        "type": "geometric icon — solid right-pointing arrowhead",
+        "description": "Bold filled triangular arrowhead pointing right, crisp nib-pen edges, compact and weighty, flush with a thin vertical rule to its right.",
+        "position": "center, slight left of midpoint",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "geometric icon — vertical bar",
+        "description": "Thin upright rectangular bar, same height as arrowhead, firm ink stroke, clean terminals top and bottom.",
+        "position": "center, immediately right of arrowhead",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "806b372b-4c69-4284-a77f-34fddd07b1de",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007785,
+  "duration_ms": 8381,
+  "generated_at": "2026-04-24T09:16:38.006Z"
+}

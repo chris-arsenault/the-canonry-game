@@ -28,6 +28,7 @@ public static class DefinitionGraphBuilder
 
         var resourceNodes = BuildResourceNodes(config.Resources);
         var relationshipNodes = BuildRelationshipNodes(config.Relationships);
+        var relationshipFactNodes = BuildRelationshipFactNodes(config.RelationshipFacts);
         var pressureNodes = BuildPressureNodes(config.Pressures);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
@@ -57,6 +58,7 @@ public static class DefinitionGraphBuilder
             Generators = generatorNodes,
             Resources = resourceNodes,
             Relationships = relationshipNodes,
+            RelationshipFacts = relationshipFactNodes,
             Pressures = pressureNodes,
             Lifecycles = lifecycleNodes,
             Attributes = attributeIndex,
@@ -93,9 +95,7 @@ public static class DefinitionGraphBuilder
             attributes[attributeId] = new DefinitionAttributeNode
             {
                 Key = new DefinitionAttributeKey(kind, attributeId),
-                Shape = attribute.PlaneDefinition is null
-                    ? DefinitionAttributeShape.Scalar
-                    : DefinitionAttributeShape.Plane2D,
+                Shape = DefinitionAttributeShape.Scalar,
                 SourceConfig = attribute,
                 IsHealthAttribute = false,
                 CriticalEffect = BuildCriticalEffect(attribute.CriticalEffect),
@@ -189,6 +189,29 @@ public static class DefinitionGraphBuilder
             {
                 Id = relationshipId,
                 SourceConfig = relationship,
+            };
+        }
+
+        return nodes;
+    }
+
+    private static Dictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> BuildRelationshipFactNodes(
+        IReadOnlyList<RelationshipFactConfig> relationshipFacts)
+    {
+        var nodes = new Dictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode>();
+        foreach (var fact in relationshipFacts)
+        {
+            var factId = new DefinitionRelationshipFactId(fact.Name);
+            if (nodes.ContainsKey(factId))
+            {
+                throw new DefinitionGraphException(
+                    $"Domain declares duplicate relationship fact '{fact.Name}'.");
+            }
+
+            nodes[factId] = new DefinitionRelationshipFactNode
+            {
+                Id = factId,
+                SourceConfig = fact,
             };
         }
 

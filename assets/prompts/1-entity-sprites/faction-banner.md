@@ -1,3 +1,5 @@
-A weathered heraldic banner on a dark pole, dusty rose fabric with a
-swallowtail fly, small black emblem, fluttering in polar wind. Small
-tears and wear along the edge.
+A tattered heraldic banner mounted on a bone-and-volcanic-glass pole. The
+sigil carved into the banner is an incomplete name using a ☽ moon-
+truncation mark. Swallowtail fly torn at the hem; pole blackened with old
+soot. Small chip-scars from a dozen campaigns. Rendered on warm-cream
+parchment with the banner filling the frame vertically.

@@ -1,0 +1,42 @@
+{
+  "schema": "illuminator/atlas@1",
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "type": "icon",
+  "group": "chrome",
+  "variant": "size:16",
+  "image": "atlases/chrome@16.png",
+  "width": 58,
+  "height": 20,
+  "padding": 2,
+  "generated_at": "2026-04-24T18:39:41+00:00",
+  "entries": [
+    {
+      "spec_id": "ctrl-pause",
+      "spec_type": "icon",
+      "source_file": "chrome/ctrl-pause@16.png",
+      "x": 2,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "ctrl-reset",
+      "spec_type": "icon",
+      "source_file": "chrome/ctrl-reset@16.png",
+      "x": 20,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "spec_id": "ctrl-step",
+      "spec_type": "icon",
+      "source_file": "chrome/ctrl-step@16.png",
+      "x": 38,
+      "y": 2,
+      "width": 16,
+      "height": 16
+    }
+  ]
+}

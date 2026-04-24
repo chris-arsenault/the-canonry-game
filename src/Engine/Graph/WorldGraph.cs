@@ -107,12 +107,13 @@ public sealed class WorldGraph
         EntityId sourceId,
         EntityId targetId,
         float strength,
-        int tick)
+        int tick,
+        IEnumerable<string>? facts = null)
     {
         ValidateEntityExists(sourceId);
         ValidateEntityExists(targetId);
 
-        var relationship = new Relationship(kind, polarity, sourceId, targetId, strength, tick);
+        var relationship = new Relationship(kind, polarity, sourceId, targetId, strength, tick, facts);
         var edge = new RelationshipEdge(sourceId, targetId, relationship);
         _graph.AddEdge(edge);
 

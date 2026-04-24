@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-face-icon",
+  "file": "map-icons/region-face.png",
+  "spec_type": "icon",
+  "section_id": "1d-entity-subtype-icons",
+  "section": "1d · Entity subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized glacier-face region marker. Flat app-icon geometry. A\nstepped vertical cliff profile — two or three rectangular steps\ncascading down like a terraced ice wall, each step a different pale\npalette color (cyan-white, light blue, mid-blue) so the stepping\nreads clearly. Below the last step, a short horizontal band in a\ndarker palette blue indicating water or shadow at the base.",
+  "formatted_prompt": "Flat app-icon illustration, centered on a plain off-white canvas with generous padding, bold crisp vector geometry readable at 16px. A stepped vertical glacier-face silhouette composed of two to three stacked rectangular terrace blocks cascading downward — the topmost block filled with bright white (#FFFFFF), the middle block in vivid pure blue (#0000FF), the lowest block in a slightly deeper blue-black tone, each step offset slightly to the right to convey a descending ice cliff profile. Below the final step, a short flat horizontal band in solid black (#000000) representing water or base shadow. Strong color separation between each tier, flat fills with sharp crisp edges, zero gradients, zero brushwork, zero texture. Every block reads as a distinct clean shape at minimum icon size.",
+  "bfl_task_id": "dcee601a-f0f7-45f7-937b-97f81ee09ed3",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.00624,
+  "duration_ms": 7338,
+  "generated_at": "2026-04-24T17:33:04.982Z"
+}

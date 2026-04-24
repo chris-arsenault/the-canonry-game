@@ -13,6 +13,7 @@ using Fact = Engine.Domain.IceRemembers.IceRemembersStructuralFact;
 using K = Engine.Domain.IceRemembers.IceRemembersKinds;
 using Press = Engine.Domain.IceRemembers.IceRemembersPressure;
 using Rel = Engine.Domain.IceRemembers.IceRemembersRelationship;
+using RelFact = Engine.Domain.IceRemembers.IceRemembersRelationshipFact;
 using Res = Engine.Domain.IceRemembers.IceRemembersResource;
 
 /// <summary>
@@ -30,6 +31,7 @@ public static class IceRemembersDefinition
             Kinds = kinds,
             Processes = Engine.Domain.Graph.RuntimeProcessGenerator.Generate(semantics, kinds),
             Relationships = CreateRelationships(),
+            RelationshipFacts = CreateRelationshipFacts(),
             Pressures = CreatePressures(),
             Lifecycles = CreateLifecycles(),
             Resources = CreateResources(),
@@ -42,6 +44,7 @@ public static class IceRemembersDefinition
     private static string C(Culture culture) => culture.ToDomainName();
     private static string F(Fact fact) => fact.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
+    private static string LF(RelFact fact) => fact.ToDomainName();
     private static string P(Press pressure) => pressure.ToDomainName();
     private static string R(Res resource) => resource.ToDomainName();
     private static ResourceType T(Res resource) => resource.ToResourceType();
@@ -267,6 +270,52 @@ public static class IceRemembersDefinition
             new() { Name = L(Rel.BetrayedBy), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agency },
         ];
     }
+
+    private static List<RelationshipFactConfig> CreateRelationshipFacts() =>
+    [
+        new()
+        {
+            Name = LF(RelFact.CalledUnhuddled),
+            DisplayName = "Called Unhuddled",
+            Description = "This relationship was created when an unhuddled refuge gathered around a penguin.",
+        },
+        new()
+        {
+            Name = LF(RelFact.SealedThinPlace),
+            DisplayName = "Sealed Thin Place",
+            Description = "This relationship participates in a faction's sacrifice to contain a thin place.",
+        },
+        new()
+        {
+            Name = LF(RelFact.OpenedOldHolding),
+            DisplayName = "Opened Old Holding",
+            Description = "This relationship marks a region yielding something it had held.",
+        },
+        new()
+        {
+            Name = LF(RelFact.CrackedBerg),
+            DisplayName = "Cracked Berg",
+            Description = "This relationship marks an artifact rupturing the Berg into a scar.",
+        },
+        new()
+        {
+            Name = LF(RelFact.NamedOffice),
+            DisplayName = "Named Office",
+            Description = "This relationship marks authority hardening around a named office.",
+        },
+        new()
+        {
+            Name = LF(RelFact.RaisedReefhold),
+            DisplayName = "Raised Reefhold",
+            Description = "This relationship marks a harbor pushing a reefhold into named existence.",
+        },
+        new()
+        {
+            Name = LF(RelFact.YieldedTome),
+            DisplayName = "Yielded Tome",
+            Description = "This relationship marks a shelf yielding a tome and custody site.",
+        },
+    ];
 
     private static List<PressureConfig> CreatePressures()
     {

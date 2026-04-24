@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-cairn",
+  "file": "sprites/region.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A small weather-worn stone cairn on a featureless snowfield — three\nstacked slate-grey stones with faint lichen, casting a long cold-blue\nshadow to one side.",
+  "formatted_prompt": "Painterly ink-and-watercolor illustration, richly pigmented, single focal subject centered on aged parchment with strong silhouette separation. A small weather-worn stone cairn stands alone on a featureless snowfield — three stacked slate-grey stones crusted with pale ochre lichen, surface pitted and frost-scarred. The cairn casts a long cold shadow in deep midnight blue (#0D1A2D) across clean blue-white snow. Faint aurora-green light grazes the uppermost stone's edge, a whisper of prismatic shimmer catching the polished facets. Sky is open pale ice-blue (#4A90C5). Surrounding snow is luminous white with cool blue undertones. Stark, contemplative composition, strong value contrast, black nib-pen outlines, saturated naturalistic color, square frame.",
+  "bfl_task_id": "37b6eba8-0290-4ff3-8bba-d633421b816e",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.007176,
+  "duration_ms": 12284,
+  "generated_at": "2026-04-24T16:36:14.891Z"
+}

@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-dominion",
+  "file": "icons/attr-dominion.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A simple crown-like form — three rounded points over a horizontal band,\nreduced to essential silhouette.",
+  "formatted_prompt": "Flat bold app icon centered on an off-white (#E7E3D5) canvas with generous padding. A single crown silhouette — three smooth rounded points rising from a solid horizontal band — rendered in burnt-orange (#D97742) as the primary fill, with a deep crimson (#B04646) interior band stripe as the sole secondary detail. Adult anatomical proportions irrelevant here; every edge is sharp crisp vector geometry. No gradients, no textures, no brushwork, no ornamentation beyond the three-point crown form. Flat material-symbols-fill register, fully readable at 16px. Clean 2026-era UI iconography on a pale neutral ground, high contrast against the dark secondary tones.",
+  "bfl_task_id": "6ef74ed3-6875-4b0d-89ce-1704e58dda2b",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.0057269999999999995,
+  "duration_ms": 8478,
+  "generated_at": "2026-04-24T17:12:37.457Z"
+}

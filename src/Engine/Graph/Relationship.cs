@@ -34,8 +34,13 @@ public sealed class Relationship
 
     public bool IsActive => EndDate is null;
 
+    private readonly HashSet<string> _facts;
+    public IReadOnlySet<string> Facts => _facts;
+
     private Dictionary<string, string>? _metadata;
     public IReadOnlyDictionary<string, string>? Metadata => _metadata;
+
+    public bool HasFact(string fact) => _facts.Contains(fact);
 
     public void SetMetadata(string key, string value)
     {
@@ -49,7 +54,8 @@ public sealed class Relationship
         EntityId sourceId,
         EntityId targetId,
         float strength,
-        int startDate)
+        int startDate,
+        IEnumerable<string>? facts = null)
     {
         Kind = kind;
         Polarity = polarity;
@@ -57,5 +63,8 @@ public sealed class Relationship
         TargetId = targetId;
         Strength = Math.Clamp(strength, 0f, 1f);
         StartDate = startDate;
+        _facts = facts is null
+            ? []
+            : new HashSet<string>(facts, StringComparer.Ordinal);
     }
 }

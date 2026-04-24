@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "region-cairn-icon",
+  "file": "map-icons/region.png",
+  "spec_type": "icon",
+  "section_id": "1b-entity-map-icons",
+  "section": "1b · Entity map icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized stone cairn / waypoint marker. Three simple rounded stones\nstacked in a stable pyramidal arrangement — a large stone at the\nbottom, a medium stone on top of that, a small stone at the apex.\nSimplified app-icon geometry: each stone is a flat saturated palette\ncolor (can be slightly different tones of the same hue, or alternating\npalette colors), sharp clean edges. Centered in the icon area. No\nshading, no ground line, no surrounding scene.",
+  "formatted_prompt": "STYLE: flat vector app icon; modern UI icon register matching Phosphor Fill / SF Symbols Filled; bold crisp geometry; single centered subject on plain off-white canvas with generous padding; no gradients, no textures, no brushwork\nSUBJECT: stylized stone cairn of three stacked rounded stones in stable pyramidal arrangement; bottom stone largest and widest, middle stone medium, top stone smallest; each stone a distinct flat bold palette color — bottom stone vivid red (#FF0000), middle stone vivid blue (#0000FF), top stone vivid yellow (#FFFF00); every stone rendered as a clean flat filled shape with sharp precise edges and slightly rounded corners suggesting smooth river stone geometry; stones stacked centered on a vertical axis, touching cleanly with no gaps\nCONTEXT: isolated app icon; no ground line, no shadow, no surrounding scene; centered composition on plain off-white background\nCOLOR: bottom stone vivid red (#FF0000) bold flat fill; middle stone vivid blue (#0000FF) bold flat fill; top stone vivid yellow (#FFFF00) bold flat fill; off-white (#FFFFFF) canvas; strong color separation between each stone layer\nDETAILS: every edge crisp and deliberate; silhouette readable as a cairn waypoint at 16px; interior shapes flat secondary-color fills only; no stroke outlines needed given high contrast between stone colors; adult proportions, clean geometry\nCONSTRAINTS: flat bold fills only; zero gradients; zero textures; zero ink marks; zero weathering; zero background elements; icon must resolve clearly at 16px minimum",
+  "bfl_task_id": "req_a28760b0fd99490a8d47f94d08a5e87c",
+  "cost_usd": 0.055650000000000005,
+  "claude_cost_usd": 0.009561,
+  "duration_ms": 19467,
+  "generated_at": "2026-04-24T18:02:14.020Z"
+}

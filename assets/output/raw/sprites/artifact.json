@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "artifact",
+  "file": "sprites/artifact.png",
+  "spec_type": "sprite",
+  "section_id": "1-entity-sprites",
+  "section": "1 · Entity sprites",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a sprite. Keep the silhouette clean and readable, with one clear focal subject and strong separation from the background.",
+  "raw_description": "A Before Times relic held in an Aurora Stack deepest vault — an\nimpossible shard of uncertain material whose surface shifts between\nstates, edges impossibly sharp. Serial numbers (\"8H-H1Y0B\") are incised\ninto its face in faintly phosphorescent script in a language no one alive\ncan read. Resting on a carved volcanic-glass pedestal. Aurora-crystal\nshards arranged in a warding pattern around the pedestal. A cold\nwrongness halo around the relic — the ice-memory itself recoils.",
+  "formatted_prompt": "Editorial ink-and-watercolor illustration, richly pigmented, game-poster saturation, single artifact centered on a square field with clean silhouette separation. An impossible relic shard rests on a carved volcanic-glass pedestal — the shard's surface shifts between states, glassy one moment, metallic the next, edges geometrically sharp beyond natural fracture. The serial number \"8H-H1Y0B\" is incised across its face in faintly phosphorescent script, cool aurora-green glow (#2DB56B) bleeding from each stroke. Aurora-crystal shards arranged in a precise warding ring around the pedestal base catch prismatic light, scattering thin spectral ribbons. The volcanic-glass pedestal is deep obsidian-black with carved ceremonial linework. A cold distortion halo surrounds the relic — surrounding ice rendered in pale shelf-blue (#4A90C5) pulling subtly away, recoiling. Deep slate shadow grounds the composition. Lighting is cool, diffuse, sourceless — the relic itself the only warm-edged glow.",
+  "bfl_task_id": "e2f45ef6-5183-454c-93d6-1c76eb5f45eb",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008223,
+  "duration_ms": 8691,
+  "generated_at": "2026-04-24T16:36:10.713Z"
+}

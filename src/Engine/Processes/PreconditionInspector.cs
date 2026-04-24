@@ -64,18 +64,6 @@ public static class PreconditionInspector
                 }
 
                 return false;
-            case SemanticDistanceThreshold semanticDistance:
-                if (!semanticDistance.PlannerRelevant)
-                {
-                    return false;
-                }
-
-                foreach (var targetKind in targetKinds)
-                {
-                    blockers.Add(AttributeRef.Target(semanticDistance.AttributeName, targetKind));
-                }
-
-                return false;
             case RelatedEntityMatchesTarget relatedEntityMatchesTarget:
                 if (!relatedEntityMatchesTarget.PlannerRelevant)
                 {

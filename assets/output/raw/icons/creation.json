@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-creation",
+  "file": "icons/creation.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "app-icon",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A flat app-icon glyph — a seed-like teardrop with two tiny outward-\nradiating marks suggesting growth. Aurora cyan-green flat fill.",
+  "formatted_prompt": "Flat app-icon composition centered on an off-white (#E7E3D5) canvas with generous padding. A bold seed-shaped teardrop glyph, tall and slightly tapered to a gentle point at the top, rendered as a single crisp flat fill in aurora cyan-green. Two small symmetric marks radiate outward from the lower sides of the teardrop, suggesting sprouting growth — each mark a compact flat chevron or short dash shape in burnt sienna (#D97742). Interior detail kept to these three total shapes, all edges sharp vector geometry. No gradients, no textures, no brushwork. High contrast silhouette readable at 16px. Clean modern icon register.",
+  "bfl_task_id": "ea787298-358d-419b-ae02-b1c06a7cef5e",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.005622,
+  "duration_ms": 9646,
+  "generated_at": "2026-04-24T17:11:55.232Z"
+}

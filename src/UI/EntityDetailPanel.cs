@@ -9,6 +9,7 @@ using Godot;
 using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Simulation;
+using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
@@ -26,26 +27,30 @@ public partial class EntityDetailPanel : PanelContainer
 
     public override void _Ready()
     {
-        // Panel setup
-        CustomMinimumSize = new Vector2(300, 0);
+        CustomMinimumSize = new Vector2(320, 0);
         SizeFlagsVertical = SizeFlags.ExpandFill;
 
         var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", UiTokens.Space2);
         AddChild(vbox);
 
-        // Title
         _titleLabel = new Label
         {
             Text = "Select an entity",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        _titleLabel.AddThemeFontSizeOverride("font_size", 16);
+        _titleLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        _titleLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        _titleLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
         vbox.AddChild(_titleLabel);
 
-        // Separator
-        vbox.AddChild(new HSeparator());
+        vbox.AddChild(new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
 
-        // Scrollable content
         var scroll = new ScrollContainer
         {
             SizeFlagsVertical = SizeFlags.ExpandFill,
@@ -59,6 +64,11 @@ public partial class EntityDetailPanel : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             ScrollActive = false,
         };
+        _content.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
+        _content.AddThemeFontOverride("mono_font", UiTheme.MonoFont);
+        _content.AddThemeFontSizeOverride("normal_font_size", UiTokens.SizeBodySmall);
+        _content.AddThemeFontSizeOverride("mono_font_size", UiTokens.SizeBodySmall);
+        _content.AddThemeColorOverride("default_color", UiTokens.Vellum);
         scroll.AddChild(_content);
     }
 
@@ -96,33 +106,32 @@ public partial class EntityDetailPanel : PanelContainer
             return;
         }
 
-        _titleLabel.Text = $"{entity.Name} ({entity.Kind})";
+        _titleLabel.Text = $"{entity.Name}  ·  {entity.Kind}";
+
+        var whisper = Main.ColorHex(UiTokens.Whisper);
+        var parchment = Main.ColorHex(UiTokens.Parchment);
+        var aurora = Main.ColorHex(UiTokens.Aurora);
+        var blood = Main.ColorHex(UiTokens.Blood);
 
         var sb = new StringBuilder();
 
-        // Header info
-        sb.AppendLine($"[b]Kind:[/b] {entity.Kind}");
-        sb.AppendLine($"[b]Subtype:[/b] {entity.Subtype}");
-        sb.AppendLine($"[b]Status:[/b] {entity.Status}");
-        sb.AppendLine($"[b]Culture:[/b] {_sim.DomainConfig.GetCultureDisplayName(entity.Culture)}");
-        sb.AppendLine($"[b]Age:[/b] {_sim.Clock.CurrentTick - entity.CreatedAt} ticks");
-        sb.AppendLine($"[b]Position:[/b] ({entity.Coordinates.Q}, {entity.Coordinates.R})");
-
-        sb.AppendLine();
+        // Header info — small-caps ledger block
+        sb.AppendLine($"[color={parchment}]{entity.Subtype}  ·  {_sim.DomainConfig.GetCultureDisplayName(entity.Culture)}  ·  {entity.Status}[/color]");
+        sb.AppendLine($"[code][color={whisper}]({entity.Coordinates.Q}, {entity.Coordinates.R})  ·  age {_sim.Clock.CurrentTick - entity.CreatedAt}t[/color][/code]");
 
         // Attributes
-        sb.AppendLine("[b][u]Attributes[/u][/b]");
+        sb.AppendLine($"\n[color={parchment}]ATTRIBUTES[/color]");
         var attrNames = entity.Attributes.Names.OrderBy(n => n, System.StringComparer.Ordinal);
         foreach (var attrName in attrNames)
         {
             var baseValue = entity.Attributes.GetValue(attrName);
             var effectMod = _sim.Effects.ComputeEffectModifier(_selectedEntityId.Value, attrName);
             var trend = (entity.Attributes[attrName] as Engine.Attributes.ScalarValue)?.Trend ?? 0f;
-            var trendArrow = trend > 0.01f ? "[color=green]▲[/color]" : trend < -0.01f ? "[color=red]▼[/color]" : "—";
+            var trendArrow = trend > 0.01f ? $"[color={aurora}]▲[/color]" : trend < -0.01f ? $"[color={blood}]▼[/color]" : "—";
 
             if (System.Math.Abs(effectMod) > 0.01f)
             {
-                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, attrName)}: [b]{baseValue:F1}[/b] (+{effectMod:F1} effects) {trendArrow}");
+                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, attrName)}: [b]{baseValue:F1}[/b] [color={whisper}](+{effectMod:F1} effects)[/color] {trendArrow}");
             }
             else
             {
@@ -130,41 +139,37 @@ public partial class EntityDetailPanel : PanelContainer
             }
         }
 
-        sb.AppendLine();
-
         // Active Relationships
-        sb.AppendLine("[b][u]Relationships[/u][/b]");
+        sb.AppendLine($"\n[color={parchment}]RELATIONSHIPS[/color]");
         var outgoing = _sim.Graph.OutgoingRelationships(_selectedEntityId.Value).ToList();
         var incoming = _sim.Graph.IncomingRelationships(_selectedEntityId.Value).ToList();
 
         if (outgoing.Count == 0 && incoming.Count == 0)
         {
-            sb.AppendLine("  (none)");
+            sb.AppendLine($"  [color={whisper}]— none —[/color]");
         }
 
         foreach (var rel in outgoing)
         {
             var targetName = _sim.Graph.GetEntity(rel.TargetId)?.Name ?? rel.TargetId.ToString();
-            sb.AppendLine($"  → {rel.Kind} → {targetName} (str: {rel.Strength:F2})");
+            sb.AppendLine($"  → {rel.Kind} → {targetName} [color={whisper}]({rel.Strength:F2})[/color]");
         }
 
         foreach (var rel in incoming)
         {
             var sourceName = _sim.Graph.GetEntity(rel.SourceId)?.Name ?? rel.SourceId.ToString();
-            sb.AppendLine($"  ← {rel.Kind} ← {sourceName} (str: {rel.Strength:F2})");
+            sb.AppendLine($"  ← {rel.Kind} ← {sourceName} [color={whisper}]({rel.Strength:F2})[/color]");
         }
-
-        sb.AppendLine();
 
         // Active Effects
         var effects = _sim.Effects.GetAllEffects(_selectedEntityId.Value);
         if (effects.Count > 0)
         {
-            sb.AppendLine("[b][u]Active Effects[/u][/b]");
+            sb.AppendLine($"\n[color={parchment}]ACTIVE EFFECTS[/color]");
             foreach (var effect in effects)
             {
                 var sign = effect.Value >= 0 ? "+" : "";
-                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, effect.AttributeName)}: {sign}{effect.Value:F1} [{effect.EffectType}] from {effect.SourceDescription}");
+                sb.AppendLine($"  {_sim.DomainConfig.GetAttributeDisplayName(entity, effect.AttributeName)}: {sign}{effect.Value:F1} [color={whisper}][{effect.EffectType}] from {effect.SourceDescription}[/color]");
             }
         }
 

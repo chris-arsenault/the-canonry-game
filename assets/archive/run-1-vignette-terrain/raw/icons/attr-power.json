@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-power",
+  "file": "icons/attr-power.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "An angular lightning-like mark — a single bold zig-zag stroke, no\ngradient.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor naturalist plate, a single bold angular lightning zig-zag stroke centered on aged parchment, ember orange punctuating warm vellum cream.",
+    "subjects": [
+      {
+        "type": "icon mark",
+        "description": "Single bold zig-zag lightning stroke, angular hard corners, thick confident nib-pen line, crisp silhouette readable at small scale",
+        "position": "centered",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "background surface",
+        "description": "Aged parchment field, faint foxing at edges, minimal texture, generous negative space framing the mark",
+        "position": "full field",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "27b32408-90a2-442b-a302-1835323810f6",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007122,
+  "duration_ms": 7211,
+  "generated_at": "2026-04-24T09:16:04.487Z"
+}

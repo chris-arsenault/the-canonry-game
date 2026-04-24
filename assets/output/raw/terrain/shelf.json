@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-shelf",
+  "file": "terrain/shelf.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED BRIGHT LIGHT-BLUE flat color field — think\n#4A90C5, a clear confident medium-sky-blue that reads as SHALLOW\nCOASTAL WATER. Clearly LIGHTER and BRIGHTER than the navy ocean tile\nand visibly DIFFERENT IN HUE from the teal reef tile. Saturated and\nvibrant, not washed out, not grey. Fill the ENTIRE 1024x1024 square\nedge-to-edge with this one light-blue color corner to corner — NO\ndrawn hex, NO paper border, NO vignette, NO centered composition, NO\nripples, NO sea-bed features. Only the faintest paint-texture\nvariation within the same light-blue hue. A region-fill swatch, not a\ntile with a shape drawn on it.",
+  "formatted_prompt": "Saturated flat comic-map terrain tile, edge-to-edge 1024×1024 fill with zero border or frame. Entire square covered in bold confident medium-sky-blue (#4A90C5), bright shallow-coastal-water hue, lighter and warmer than deep navy, distinct from teal. Uniform saturated color field with only the faintest brushstroke paint-texture variation within the same light-blue register — no ripples, no seabed detail, no vignette, no hex outline, no centered motif. Pure vibrant region-fill swatch in the register of a Settlers of Catan water tile or illustrated board-game map, punchy and unambiguous, corner to corner.",
+  "bfl_task_id": "cda82d61-e22e-44f3-8abd-d1abff903380",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.006357,
+  "duration_ms": 9535,
+  "generated_at": "2026-04-24T16:36:47.642Z"
+}

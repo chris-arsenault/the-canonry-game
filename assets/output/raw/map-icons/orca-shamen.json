@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "orca-shamen-icon",
+  "file": "map-icons/orca-shamen.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized orca shaman seen from the side, body in profile, centered.\nFlat app-icon geometry. The body is a confident saturated dark palette\ncolor (deep navy or near-black). White ritual scar-lines carved across\nthe flank and snout, rendered as simple flat white curves (not ink\nmarks) — three to five parallel bands. A small white oval for the eye-\npatch. Body posture is calm / ceremonial, tail fluke level. No\nweapons, no relics — identity comes from the scar markings alone.",
+  "formatted_prompt": "STYLE: flat app-icon illustration; bold vector geometry; modern UI icon register — Phosphor Fill / SF Symbols Filled aesthetic; centered single-subject composition on plain off-white canvas with generous padding; crisp sharp edges readable at 16px\nSUBJECT: adult orca in strict side profile, lean anatomically correct body, calm ceremonial posture with tail fluke held level; body filled solid deep navy (#000000 near-black with blue undertone); a small flat white (#FFFFFF) oval eye-patch shape positioned correctly on the head; three to five flat white (#FFFFFF) parallel curved bands crossing the flank and snout as ritual scar-lines — rendered as clean geometric curves, not brushstrokes; no weapons, no relics, identity from markings alone\nCONTEXT: isolated icon asset, no background scene, no ground plane, no setting elements; subject floats centered on off-white canvas\nCOLOR: body in deep navy-black (#000000); scar-line bands and eye-patch in pure flat white (#FFFFFF); off-white (#FFFFFF near-neutral) canvas ground; strong maximum contrast between orca silhouette and mark shapes\nDETAILS: every edge crisp vector-sharp; scar bands are uniform-weight flat fills, not tapered or brushy; eye-patch a clean filled oval; silhouette bold enough to read as a single confident shape at 32px and 16px; anatomy adult proportions — elongated torpedo body, narrow rostrum, correct dorsal fin placement\nCONSTRAINTS: flat fills only; no gradients; no textures; no brushwork; no grain; no weathering; no painterly rendering; no cartoon or juvenile proportions",
+  "bfl_task_id": "req_727ed49f9e08455ab8d7c4fb70b84348",
+  "cost_usd": 0.05741,
+  "claude_cost_usd": 0.009912,
+  "duration_ms": 14602,
+  "generated_at": "2026-04-24T18:03:12.437Z"
+}

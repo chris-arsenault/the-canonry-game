@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "orca-icon",
+  "file": "map-icons/orca.png",
+  "spec_type": "icon",
+  "section_id": "1b-entity-map-icons",
+  "section": "1b · Entity map icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A stylized orca seen from the side, body in profile, centered and\nfilling the icon area. Simplified app-icon geometry. The body is a\nconfident flat saturated palette color (deep navy or black). A single\nsmall WHITE oval near the head indicates the eye-patch. The dorsal fin\non top and the tail fluke at the back are clearly visible as simple\ngeometric shapes — NOT separate floating pieces, but a single\ncontinuous silhouette. No water, no scene, no frame.",
+  "formatted_prompt": "STYLE: flat vector app icon; bold filled silhouette with crisp geometric edges; single unified continuous shape; modern UI icon register — SF Symbols Filled aesthetic; centered on plain off-white canvas with generous padding; zero texture, zero brushwork, zero gradients\n\nSUBJECT: adult orca in strict side profile; one continuous unified silhouette — torpedo body, upright triangular dorsal fin rising from the back, sweeping tail fluke at the rear, all locked into a single bold geometric shape; body filled in flat #000000 black; one small flat #FFFFFF white oval placed near the head to indicate the eye-patch marking; narrow pointed rostrum, lean adult proportions, no cartoon inflation\n\nCONTEXT: isolated app icon, no water, no scene, no environmental elements, no frame; subject centered with generous padding on all sides against a plain off-white canvas\n\nCOLOR: #000000 flat fill for the entire orca body silhouette; #FFFFFF flat fill for the single small eye-patch oval near the head; off-white plain canvas background\n\nDETAILS: every edge crisp and deliberate vector geometry; dorsal fin and tail fluke read as clear distinct shapes within the unified silhouette; full readability at 16px; interior eye-patch oval is the sole secondary shape; no outlines, no strokes, no shadows, no depth shading\n\nCONSTRAINTS: single continuous silhouette only — no floating parts, no separated fin pieces; flat fills exclusively; no gradients, no textures, no ink marks, no watercolor, no aging",
+  "bfl_task_id": "req_24c7b4f6f9714f47aa694b5c1f134fa0",
+  "cost_usd": 0.05471500000000001,
+  "claude_cost_usd": 0.009423,
+  "duration_ms": 26126,
+  "generated_at": "2026-04-24T18:01:42.896Z"
+}

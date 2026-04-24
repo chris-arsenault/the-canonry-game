@@ -1,0 +1,141 @@
+{
+  "schema": "illuminator/atlas@1",
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "type": "icon",
+  "group": "icons",
+  "variant": "size:64",
+  "image": "atlases/icons@64.png",
+  "width": 928,
+  "height": 68,
+  "padding": 2,
+  "generated_at": "2026-04-24T18:39:41+00:00",
+  "entries": [
+    {
+      "spec_id": "attr-dominion",
+      "spec_type": "icon",
+      "source_file": "icons/attr-dominion@64.png",
+      "x": 2,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-echo",
+      "spec_type": "icon",
+      "source_file": "icons/attr-echo@64.png",
+      "x": 68,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-food",
+      "spec_type": "icon",
+      "source_file": "icons/attr-food@64.png",
+      "x": 134,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-holding",
+      "spec_type": "icon",
+      "source_file": "icons/attr-holding@64.png",
+      "x": 200,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-population",
+      "spec_type": "icon",
+      "source_file": "icons/attr-population@64.png",
+      "x": 266,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-power",
+      "spec_type": "icon",
+      "source_file": "icons/attr-power@64.png",
+      "x": 332,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-provisions",
+      "spec_type": "icon",
+      "source_file": "icons/attr-provisions@64.png",
+      "x": 398,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-warmth",
+      "spec_type": "icon",
+      "source_file": "icons/attr-warmth@64.png",
+      "x": 464,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "attr-wealth",
+      "spec_type": "icon",
+      "source_file": "icons/attr-wealth@64.png",
+      "x": 530,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "icon-card",
+      "spec_type": "icon",
+      "source_file": "icons/card@64.png",
+      "x": 596,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "icon-creation",
+      "spec_type": "icon",
+      "source_file": "icons/creation@64.png",
+      "x": 662,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "icon-lifecycle",
+      "spec_type": "icon",
+      "source_file": "icons/lifecycle@64.png",
+      "x": 728,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "icon-notice",
+      "spec_type": "icon",
+      "source_file": "icons/notice@64.png",
+      "x": 794,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "spec_id": "icon-threshold",
+      "spec_type": "icon",
+      "source_file": "icons/threshold@64.png",
+      "x": 860,
+      "y": 2,
+      "width": 64,
+      "height": 64
+    }
+  ]
+}

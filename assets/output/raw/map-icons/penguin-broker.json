@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "penguin-broker-icon",
+  "file": "map-icons/penguin-broker.png",
+  "spec_type": "icon",
+  "section_id": "1c-agent-subtype-icons",
+  "section": "1c · Agent subtype icons",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "gpt-image-1.5",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "An adult emperor penguin as a heraldic figurehead emblem, front view,\ntall and lean with a long straight beak. A tall formal five-point\ncrown on the head. Behind the figure, a sword and a staff crossed in\nan X. Saturated colored belly (red), dark body. Centered crest\ncomposition.",
+  "formatted_prompt": "STYLE: flat app icon illustration; modern UI vector register — Phosphor Fill / SF Symbols Filled aesthetic; centered crest composition on plain off-white canvas; crisp geometric silhouette with bold flat color fills and sharp clean edges; generous padding; readable at 16px\nSUBJECT: adult emperor penguin, front view, tall and lean with narrow pointed beak, small dark eyes proportional to skull, sleek upright posture, adult anatomical proportions; saturated red (#FF0000) belly panel as a flat bold fill; dark black (#000000) body and head plumage; a flat bright yellow (#FFFF00) tall formal five-point crown centered on the head; behind the figure, a blue (#0000FF) sword and a green (#00CC00) staff crossed in an X, forming a heraldic saltire, tips extending beyond the penguin silhouette\nCONTEXT: isolated app icon; heraldic figurehead crest arrangement; centered on plain off-white (#FFFFFF) canvas with generous padding all around\nCOLOR: body and head in flat black (#000000); belly in saturated red (#FF0000); crown in bright yellow (#FFFF00); crossed sword in blue (#0000FF); crossed staff in green (#00CC00); background plain off-white (#FFFFFF)\nDETAILS: every shape a flat filled vector form; no gradients; no textures; no brushwork; no outlines heavier than a clean 2px weight; interior crown points as flat geometric triangles; sword and staff as simple elongated flat rectangles with minimal tip geometry\nCONSTRAINTS: adult proportions only; no cartoon or juvenile features; no oversized eyes; no weathering; no grain; no ink texture; no parchment",
+  "bfl_task_id": "req_3c83f728fc924ed0b76bb26ac7dc33ff",
+  "cost_usd": 0.05893500000000001,
+  "claude_cost_usd": 0.009987,
+  "duration_ms": 25087,
+  "generated_at": "2026-04-24T18:02:47.816Z"
+}

@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "attr-provisions",
+  "file": "icons/attr-provisions.png",
+  "spec_type": "icon",
+  "section_id": "6-attribute-icons",
+  "section": "6 · Attribute icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A simple sack or bundle tied at the top with a single diagonal line for\nthe tie.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor field-journal plate, a tied provisions sack centered on aged parchment, warm vellum cream ground with slate ink shadow depth.",
+    "subjects": [
+      {
+        "type": "provisions sack",
+        "description": "Rotund cloth sack, bold ink silhouette, single diagonal cord tied at gathered neck, minimal folds for crisp small-scale read.",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "tie cord",
+        "description": "Single diagonal line across sack neck, thick nib-pen stroke, clear contrast against sack body.",
+        "position": "upper center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "4bebdc4b-0a8b-4bf4-b920-b7ead97c20c2",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007059000000000001,
+  "duration_ms": 5409,
+  "generated_at": "2026-04-24T09:16:14.486Z"
+}

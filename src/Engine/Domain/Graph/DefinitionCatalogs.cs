@@ -15,6 +15,11 @@ public readonly record struct DefinitionRelationshipId(string Value)
     public override string ToString() => Value;
 }
 
+public readonly record struct DefinitionRelationshipFactId(string Value)
+{
+    public override string ToString() => Value;
+}
+
 public readonly record struct DefinitionPressureId(string Value)
 {
     public override string ToString() => Value;
@@ -23,7 +28,6 @@ public readonly record struct DefinitionPressureId(string Value)
 public enum DefinitionAttributeShape
 {
     Scalar,
-    Plane2D,
 }
 
 public enum DefinitionConservationClass

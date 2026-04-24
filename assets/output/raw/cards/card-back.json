@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-back",
+  "file": "cards/card-back.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "A single centered compass rose in dark ink on a warm-cream parchment\nfield, faint concentric circle patterns radiating outward, aged paper\ntexture with subtle foxing at the corners. Slate-blue accent on the\ncompass needle. Museum collection cataloging feel.",
+  "formatted_prompt": "Painterly ink-and-watercolor illustration on warm cream parchment (#F5EDD8), richly pigmented in the style of a 19th-century naturalist plate rendered at game-poster saturation. Centered composition: a single large compass rose in deep slate-blue and dark nib-pen ink, needle accent in vivid cobalt, cardinal points rendered in fine linework with confident strokes. Faint concentric circles radiate outward from the rose's center, etched lightly into aged parchment. Subtle foxing dots cluster at the four corners, edges carrying the faintest warm ochre staining. Aurora-green prismatic glints catch the compass needle's tip, hinting at spectralum-crystal influence. Deep midnight (#0D1A2D) shadows anchor the linework. The parchment grain is visible beneath every wash. Museum collection cataloging aesthetic — archival but saturated, contemplative, precise.",
+  "bfl_task_id": "38b5932e-9d7c-4dac-ab41-04f179e44989",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.007527,
+  "duration_ms": 7768,
+  "generated_at": "2026-04-24T16:37:39.814Z"
+}

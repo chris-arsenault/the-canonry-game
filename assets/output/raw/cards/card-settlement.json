@@ -1,0 +1,23 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "card-settlement",
+  "file": "cards/card-settlement.png",
+  "spec_type": "card-face",
+  "section_id": "3-tableau-card-faces",
+  "section": "3 · Tableau card faces",
+  "style_id": "vivid-world",
+  "palette_id": "cartogram",
+  "identity_id": "aurora-stack",
+  "model": "flux-pro-1.1-ultra",
+  "size": "1024x1536",
+  "aspect": "3:4",
+  "prompt_fragment": "This asset is a card face. Compose for a vertical 3:4 frame with a strong focal subject and room for card framing or overlay treatment.",
+  "raw_description": "Upper half: an Aurora Stack city at night — the vertical crystalline\nspire colony rising tier on tier, every prismatic lens catching the\naurora above. Ember glow at the base from the Foundation Depths. Tiny\nsilhouettes of robed figures crossing bridges between spires.\nCivilizational scale: a population of thousands readable in the geometry.\nLower half: plain warm dark surface for overlaid text, with a faint\nghosted silhouette of a spire-city watermark. Warm cream parchment frame.",
+  "formatted_prompt": "Painterly ink-and-watercolor illustration on aged parchment, vivid game-poster pigmentation, vertical 3:4 card-face composition. Upper half: a vast aurora-lit crystalline spire colony ascending tier upon tier into a deep slate night sky — each prismatic tower faceted like cut ice, luminous cyan aurora-crystal catching and refracting ribbons of intense emerald aurora overhead. Spectralum lenses embedded in the spire faces scatter cool prismatic halos across neighboring towers. Hundreds of tiny silhouetted robed penguin figures cross delicate arched bridges between spires, readable as a civilization of thousands in their density and geometry. At the colony's base, deep ocean-blue shadow pools around warm ember-orange glows rising from the Foundation Depths below. Saturated palette: clean blue-white ice, intense aurora-green sky ribbons, deep midnight blue-black void, bright prismatic cyan lens flares, warm ochre ember warmth at ground level. Lower half: a broad warm dark panel in deep parchment cream and midnight tone, carrying a faint ghosted spire-city watermark in translucent silver-grey. Cream foxed-edge parchment border frames the full card. Lighting is cool prismatic overhead with deep shadow contrast.",
+  "bfl_task_id": "9d3c0d18-1534-4a65-a9f4-5111c29c6e4c",
+  "cost_usd": 0,
+  "claude_cost_usd": 0.008829,
+  "duration_ms": 12810,
+  "generated_at": "2026-04-24T16:37:25.768Z"
+}

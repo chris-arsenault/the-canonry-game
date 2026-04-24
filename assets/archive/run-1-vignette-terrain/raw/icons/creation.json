@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "icon-creation",
+  "file": "icons/creation.png",
+  "spec_type": "icon",
+  "section_id": "5-event-type-icons",
+  "section": "5 · Event-type icons",
+  "style_id": "archive",
+  "palette_id": "signal",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "A small ink glyph — a seed-like teardrop with two tiny outward-radiating\nmarks suggesting growth. Aurora cyan-green ink.",
+  "formatted_prompt": {
+    "scene": "Ink and watercolor archival plate, a single seed-glyph teardrop with two radiating growth marks, centered on aged parchment, punctuated by cool cyan-green against warm vellum cream.",
+    "subjects": [
+      {
+        "type": "glyph",
+        "description": "Bold teardrop seed shape, two short outward-radiating strokes at crown, crisp nib-pen ink, reduced archival silhouette readable at smallest scale",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "background field",
+        "description": "Aged parchment ground, faint foxing at corners, warm vellum texture, generous negative space framing glyph",
+        "position": "full frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "5b78d6c8-79b4-4845-9093-82eec4c412c2",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007467,
+  "duration_ms": 6630,
+  "generated_at": "2026-04-24T09:15:30.677Z"
+}
