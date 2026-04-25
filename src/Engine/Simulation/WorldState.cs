@@ -10,7 +10,7 @@ using Engine.Map;
 /// Concrete IWorldState implementation. Bundles all system references
 /// for impulse evaluation and behavior execution.
 /// </summary>
-    public sealed class WorldState : ICachedWorldState
+public sealed class WorldState : ICachedWorldState, IWorldVersionSink
     {
     public WorldGraph Graph { get; }
     public EffectSystem Effects { get; }
@@ -22,6 +22,7 @@ using Engine.Map;
     public GeneratorInstanceRegistry Generators { get; }
     public Resources.ResourceSystem? Resources { get; }
     private int _currentTick;
+    private long _worldVersion;
 
     public int CurrentTick
     {
@@ -30,8 +31,11 @@ using Engine.Map;
         {
             _currentTick = value;
             QueryCache.BeginTick(value);
+            AdvanceWorldVersion();
         }
     }
+
+    public long WorldVersion => _worldVersion;
 
     public WorldStateQueryCache QueryCache { get; }
 
@@ -65,9 +69,35 @@ using Engine.Map;
         Resources = resources;
         QueryCache = new WorldStateQueryCache(this);
 
-        graph.EntityCreated += (_, _) => QueryCache.InvalidateEntities();
-        graph.EntityStatusChanged += (_, _) => QueryCache.InvalidateEntities();
-        graph.RelationshipCreated += (_, _) => QueryCache.InvalidateRelationships();
-        graph.RelationshipCulled += (_, _) => QueryCache.InvalidateRelationships();
+        graph.EntityCreated += (_, _) =>
+        {
+            QueryCache.InvalidateEntities();
+            AdvanceWorldVersion();
+        };
+        graph.EntityStatusChanged += (_, _) =>
+        {
+            QueryCache.InvalidateEntities();
+            AdvanceWorldVersion();
+        };
+        graph.RelationshipCreated += (_, _) =>
+        {
+            QueryCache.InvalidateRelationships();
+            AdvanceWorldVersion();
+        };
+        graph.RelationshipCulled += (_, _) =>
+        {
+            QueryCache.InvalidateRelationships();
+            AdvanceWorldVersion();
+        };
+        graph.RelationshipStrengthChanged += (_, _) =>
+        {
+            QueryCache.InvalidateRelationships();
+            AdvanceWorldVersion();
+        };
+    }
+
+    public void AdvanceWorldVersion()
+    {
+        _worldVersion++;
     }
 }

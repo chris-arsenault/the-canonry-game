@@ -113,4 +113,42 @@ public sealed class ProcessDefinition
         Precondition = precondition;
         ScoreExpression = scoreExpression;
     }
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+
+        Precondition.BindRuntimeIds(runtimeIds);
+        ScoreExpression.BindRuntimeIds(runtimeIds);
+        RewardExpression.BindRuntimeIds(runtimeIds);
+        foreach (var mutation in Mutations)
+        {
+            mutation.BindRuntimeIds(runtimeIds);
+        }
+
+        foreach (var reference in Reads)
+        {
+            reference.BindRuntimeIds(runtimeIds);
+        }
+
+        foreach (var reference in Writes)
+        {
+            reference.BindRuntimeIds(runtimeIds);
+        }
+
+        foreach (var reference in GoalEffects)
+        {
+            reference.BindRuntimeIds(runtimeIds);
+        }
+
+        foreach (var reference in ProviderSelectors)
+        {
+            reference.BindRuntimeIds(runtimeIds);
+        }
+
+        foreach (var rule in SupportRules)
+        {
+            rule.BindRuntimeIds(runtimeIds);
+        }
+    }
 }

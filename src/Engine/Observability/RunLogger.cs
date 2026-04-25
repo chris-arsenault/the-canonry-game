@@ -7,11 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
+using Engine.Domain;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Map;
-using Engine.Messages;
 using Engine.Processes;
 using Engine.Simulation;
 
@@ -36,7 +37,8 @@ public sealed class RunLogger : IDisposable
     private readonly Dictionary<EntityId, List<ActionEntry>> _tickActions = [];
     private readonly List<EntityId> _tickDeaths = [];
     private readonly List<string> _tickGeneratorLines = [];
-    private readonly IDisposable _messageSubscription;
+    private readonly KernelEventCursor _kernelCursor;
+    private readonly SequencedKernelEvent[] _kernelEventBuffer = new SequencedKernelEvent[256];
     private bool _disposed;
 
     public string LogPath { get; }
@@ -56,7 +58,7 @@ public sealed class RunLogger : IDisposable
         _sim = sim;
         _writer = new StreamWriter(logPath) { AutoFlush = true };
 
-        _messageSubscription = sim.MessageBus.Subscribe(OnMessage);
+        _kernelCursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
         sim.Lifecycle.EntityDied += OnEntityDied;
 
         WriteHeader();
@@ -84,6 +86,7 @@ public sealed class RunLogger : IDisposable
         if (_disposed) return;
 
         var tick = _sim.Clock.CurrentTick;
+        DrainKernelEvents(tick);
         _writer.WriteLine();
         _writer.WriteLine(FormattableString.Invariant($"=== t={tick} ==="));
 
@@ -169,30 +172,51 @@ public sealed class RunLogger : IDisposable
             _sim.Lifecycle.EntityDied -= OnEntityDied;
         }
         catch (ObjectDisposedException) { /* sim shutdown order isn't guaranteed */ }
-        _messageSubscription.Dispose();
+        _kernelCursor.Dispose();
         _writer.Flush();
         _writer.Dispose();
     }
 
-    private void OnMessage(SimulationMessage message)
+    private void DrainKernelEvents(int tick)
     {
-        if (message is ProcessExecutedMessage executed)
+        int read;
+        do
         {
-            if (!_tickActions.TryGetValue(executed.ActorId, out var list))
+            read = _sim.KernelEvents.Read(_kernelCursor, _kernelEventBuffer);
+            for (var index = 0; index < read; index++)
             {
-                list = [];
-                _tickActions[executed.ActorId] = list;
+                var kernelEvent = _kernelEventBuffer[index].Event;
+                if (kernelEvent.Tick > tick)
+                {
+                    continue;
+                }
+
+                if (kernelEvent.EventType == KernelEventType.ProcessExecuted)
+                {
+                    OnProcessExecuted(kernelEvent.AsProcessExecuted());
+                }
+                else if (kernelEvent.EventType == KernelEventType.GeneratorFired)
+                {
+                    _tickGeneratorLines.Add(FormatGenerator(kernelEvent.AsGeneratorFired()));
+                }
             }
-            EntityId? target = executed.AffectedEntities.Count > 0 ? executed.AffectedEntities[0] : null;
-            if (target == executed.ActorId) target = null;
-            list.Add(new ActionEntry(ProcessId: executed.ProcessId, Target: target));
-            return;
+        } while (read == _kernelEventBuffer.Length);
+    }
+
+    private void OnProcessExecuted(ProcessExecutedKernelEvent executed)
+    {
+        var actorId = new EntityId(executed.ActorId);
+        if (!_tickActions.TryGetValue(actorId, out var list))
+        {
+            list = [];
+            _tickActions[actorId] = list;
         }
 
-        if (message is GeneratorFiredMessage generatorFired)
-        {
-            _tickGeneratorLines.Add(FormatGenerator(generatorFired));
-        }
+        EntityId? target = executed.AffectedEntityCount > 0
+            ? new EntityId(executed.AffectedEntityId0)
+            : null;
+        if (target == actorId) target = null;
+        list.Add(new ActionEntry(ProcessId: new ProcessRuntimeId(executed.ProcessId), Target: target));
     }
 
     private void OnEntityDied(object? sender, LifecycleDeathEventArgs e)
@@ -276,16 +300,22 @@ public sealed class RunLogger : IDisposable
         return FormattableString.Invariant($"{processName}→E{targetId.Value}:{targetName}");
     }
 
-    private string FormatGenerator(GeneratorFiredMessage message)
+    private string FormatGenerator(GeneratorFiredKernelEvent message)
     {
-        var target = message.TargetEntityId is { } targetId
-            ? FormatEntityTarget(targetId)
+        var target = message.TargetEntityId != 0
+            ? FormatEntityTarget(new EntityId(message.TargetEntityId))
             : "hex(?)";
-        var created = message.CreatedEntityIds.Count > 0
-            ? string.Join(", ", message.CreatedEntityIds.Select(FormatCreatedEntity))
+        var createdEntities = _sim.Graph.AllEntities.Values
+            .Where(entity => entity.CreatedAt == message.Tick)
+            .Take(message.CreatedEntityCount)
+            .Select(entity => FormatCreatedEntity(entity.Id))
+            .ToList();
+        var created = createdEntities.Count > 0
+            ? string.Join(", ", createdEntities)
             : "none";
+        var generatorId = _sim.DomainIds.GeneratorNameOf(new GeneratorRuntimeId(message.GeneratorId));
         return FormattableString.Invariant(
-            $"==  gen: {message.GeneratorId} → {target}  created {created}  relationships={message.CreatedRelationshipCount}  ==");
+            $"==  gen: {generatorId} → {target}  created {created}  relationships={message.CreatedRelationshipCount}  ==");
     }
 
     private string FormatEntityTarget(EntityId entityId)

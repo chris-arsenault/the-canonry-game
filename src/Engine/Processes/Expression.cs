@@ -1,5 +1,6 @@
 namespace Engine.Processes;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Map;
 using Engine.Resources;
@@ -11,6 +12,10 @@ using Engine.Resources;
 public interface IExpression
 {
     float Evaluate(ExpressionContext ctx);
+
+    void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+    }
 }
 
 /// <summary>
@@ -54,6 +59,18 @@ public sealed class ExpressionContext
 
         return 0f;
     }
+
+    public float ResolvePath(string entityRef, AttributeRuntimeId attributeId)
+    {
+        var entity = entityRef switch
+        {
+            "self" => Self,
+            "target" => Target,
+            _ => null,
+        };
+
+        return entity?.Attributes.GetValue(attributeId) ?? 0f;
+    }
 }
 
 // --- Leaf expressions ---
@@ -61,16 +78,29 @@ public sealed class ExpressionContext
 /// <summary>A constant value.</summary>
 public sealed class Literal(float value) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => value;
+    public float Value { get; } = value;
+    public float Evaluate(ExpressionContext ctx) => Value;
 }
 
 /// <summary>Resolve a scalar attribute path, such as self.warmth or target.fame.</summary>
 public sealed class AttributePath(string entityRef, string attributeName) : IExpression
 {
+    private AttributeRuntimeId _attributeId;
+    public string EntityRef { get; } = entityRef;
+    public string AttributeName { get; } = attributeName;
+
     public float Evaluate(ExpressionContext ctx)
     {
         ArgumentNullException.ThrowIfNull(ctx);
-        return ctx.ResolvePath(entityRef, attributeName);
+        return _attributeId.Value > 0
+            ? ctx.ResolvePath(EntityRef, _attributeId)
+            : ctx.ResolvePath(EntityRef, AttributeName);
+    }
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _attributeId = runtimeIds.AttributeIdOf(AttributeName);
     }
 }
 
@@ -94,11 +124,14 @@ public sealed class VariableRef : IExpression
 /// <summary>Read an ambient resource value at self or target location.</summary>
 public sealed class LocationResourcePath(string entityRef, ResourceType resourceType) : IExpression
 {
+    public string EntityRef { get; } = entityRef;
+    public ResourceType ResourceType { get; } = resourceType;
+
     public float Evaluate(ExpressionContext ctx)
     {
         ArgumentNullException.ThrowIfNull(ctx);
 
-        var entity = entityRef switch
+        var entity = EntityRef switch
         {
             "self" => ctx.Self,
             "target" => ctx.Target,
@@ -110,7 +143,7 @@ public sealed class LocationResourcePath(string entityRef, ResourceType resource
             return 0f;
         }
 
-        return ctx.MutationContext.GetResource(entity.Coordinates, resourceType);
+        return ctx.MutationContext.GetResource(entity.Coordinates, ResourceType);
     }
 }
 
@@ -118,25 +151,55 @@ public sealed class LocationResourcePath(string entityRef, ResourceType resource
 
 public sealed class Add(IExpression left, IExpression right) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => left.Evaluate(ctx) + right.Evaluate(ctx);
+    public IExpression Left { get; } = left;
+    public IExpression Right { get; } = right;
+    public float Evaluate(ExpressionContext ctx) => Left.Evaluate(ctx) + Right.Evaluate(ctx);
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Left.BindRuntimeIds(runtimeIds);
+        Right.BindRuntimeIds(runtimeIds);
+    }
 }
 
 public sealed class Subtract(IExpression left, IExpression right) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => left.Evaluate(ctx) - right.Evaluate(ctx);
+    public IExpression Left { get; } = left;
+    public IExpression Right { get; } = right;
+    public float Evaluate(ExpressionContext ctx) => Left.Evaluate(ctx) - Right.Evaluate(ctx);
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Left.BindRuntimeIds(runtimeIds);
+        Right.BindRuntimeIds(runtimeIds);
+    }
 }
 
 public sealed class Multiply(IExpression left, IExpression right) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => left.Evaluate(ctx) * right.Evaluate(ctx);
+    public IExpression Left { get; } = left;
+    public IExpression Right { get; } = right;
+    public float Evaluate(ExpressionContext ctx) => Left.Evaluate(ctx) * Right.Evaluate(ctx);
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Left.BindRuntimeIds(runtimeIds);
+        Right.BindRuntimeIds(runtimeIds);
+    }
 }
 
 public sealed class Divide(IExpression left, IExpression right) : IExpression
 {
+    public IExpression Left { get; } = left;
+    public IExpression Right { get; } = right;
+
     public float Evaluate(ExpressionContext ctx)
     {
-        var divisor = right.Evaluate(ctx);
-        return divisor == 0f ? 0f : left.Evaluate(ctx) / divisor;
+        var divisor = Right.Evaluate(ctx);
+        return divisor == 0f ? 0f : Left.Evaluate(ctx) / divisor;
+    }
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Left.BindRuntimeIds(runtimeIds);
+        Right.BindRuntimeIds(runtimeIds);
     }
 }
 
@@ -158,35 +221,73 @@ public sealed class Distance : IExpression
 
 public sealed class Min(IExpression a, IExpression b) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => Math.Min(a.Evaluate(ctx), b.Evaluate(ctx));
+    public IExpression A { get; } = a;
+    public IExpression B { get; } = b;
+    public float Evaluate(ExpressionContext ctx) => Math.Min(A.Evaluate(ctx), B.Evaluate(ctx));
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        A.BindRuntimeIds(runtimeIds);
+        B.BindRuntimeIds(runtimeIds);
+    }
 }
 
 public sealed class Max(IExpression a, IExpression b) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => Math.Max(a.Evaluate(ctx), b.Evaluate(ctx));
+    public IExpression A { get; } = a;
+    public IExpression B { get; } = b;
+    public float Evaluate(ExpressionContext ctx) => Math.Max(A.Evaluate(ctx), B.Evaluate(ctx));
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        A.BindRuntimeIds(runtimeIds);
+        B.BindRuntimeIds(runtimeIds);
+    }
 }
 
 public sealed class Clamp(IExpression value, IExpression min, IExpression max) : IExpression
 {
+    public IExpression Value { get; } = value;
+    public IExpression Min { get; } = min;
+    public IExpression Max { get; } = max;
+
     public float Evaluate(ExpressionContext ctx) =>
-        Math.Clamp(value.Evaluate(ctx), min.Evaluate(ctx), max.Evaluate(ctx));
+        Math.Clamp(Value.Evaluate(ctx), Min.Evaluate(ctx), Max.Evaluate(ctx));
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Value.BindRuntimeIds(runtimeIds);
+        Min.BindRuntimeIds(runtimeIds);
+        Max.BindRuntimeIds(runtimeIds);
+    }
 }
 
 public sealed class Abs(IExpression value) : IExpression
 {
-    public float Evaluate(ExpressionContext ctx) => Math.Abs(value.Evaluate(ctx));
+    public IExpression Value { get; } = value;
+    public float Evaluate(ExpressionContext ctx) => Math.Abs(Value.Evaluate(ctx));
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Value.BindRuntimeIds(runtimeIds);
+    }
 }
 
 /// <summary>Adds random jitter: value + random(-variance, +variance). For scoring variance.</summary>
 public sealed class Jitter(IExpression value, float variance) : IExpression
 {
+    public IExpression Value { get; } = value;
+    public float Variance { get; } = variance;
+
     public float Evaluate(ExpressionContext ctx)
     {
-        var v = value.Evaluate(ctx);
-        if (variance <= 0f) return v;
+        var v = Value.Evaluate(ctx);
+        if (Variance <= 0f) return v;
         // Use a simple hash-based random since ExpressionContext has no Random
         // This is deterministic per-evaluation which is fine for scoring
-        return v + ((float)(System.Random.Shared.NextDouble() * 2.0 - 1.0) * variance);
+        return v + ((float)(System.Random.Shared.NextDouble() * 2.0 - 1.0) * Variance);
+    }
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Value.BindRuntimeIds(runtimeIds);
     }
 }
 

@@ -1,9 +1,11 @@
 namespace Engine.Tests.Processes;
 
 using Engine.Attributes;
+using Engine.Domain;
+using Engine.Domain.Loader;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Messages;
 using Engine.Processes;
 using Engine.Tests;
 using Engine.Tests.Behaviors;
@@ -99,20 +101,18 @@ public class MutationTests
     }
 
     [Fact]
-    public void ModifyTargetByVariableMutation_PublishesAttributeChangedMessageThroughProcessContext()
+    public void ModifyTargetByVariableMutation_WritesPrimitiveAttributeChangedEventFromNameAdapter()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 8f);
         var target = CreateSettlement(world, "Target", (1, 0), population: 6f, fame: 3f);
-        var bus = new MessageBus();
-        AttributeChangedMessage? changed = null;
-        bus.Subscribe(message =>
-        {
-            if (message is AttributeChangedMessage attr)
-            {
-                changed = attr;
-            }
-        });
+        var kernelEvents = new KernelEventLog(4, KernelEventOverflowPolicy.RejectWrite);
+        var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var domainIds = new DomainIdRegistry();
+        var populationId = domainIds.RegisterAttribute("population");
+        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        target.Attributes.Add(new ScalarValue("population", 0f, 100f, target.Attributes.GetValue("population"), populationId));
 
         var goal = new EntityGoal(AttributeRef.Target("population", TestKinds.Settlement), target.Id, urgency: 1f);
         var processId = ProcessRuntimeId.FromStableName("test_process");
@@ -122,18 +122,58 @@ public class MutationTests
             random: new FixedRandom(0.5),
             goal: goal,
             definitionId: processId,
-            messageBus: bus);
+            kernelEvents: kernelEvents,
+            domainIds: domainIds);
 
         new CalculateMutation("delta", Expr.Lit(4f)).Execute(context);
         new ModifyTargetByVariableMutation("population", "delta").Execute(context);
 
         Assert.Equal(10f, target.Attributes.GetValue("population"));
-        Assert.NotNull(changed);
-        Assert.Equal(target.Id, changed!.EntityId);
-        Assert.Equal("population", changed.AttributeName);
+        Assert.True(kernelEvents.TryRead(cursor, out var eventValue));
+        Assert.Equal(KernelEventType.AttributeChanged, eventValue.Event.EventType);
+        var changed = eventValue.Event.AsAttributeChanged();
+        Assert.Equal(target.Id.Value, changed.EntityId);
+        Assert.Equal(populationId.Value, changed.AttributeId);
         Assert.Equal(6f, changed.OldValue);
         Assert.Equal(10f, changed.NewValue);
-        Assert.Equal(processId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), changed.Source);
+    }
+
+    [Fact]
+    public void ModifyTargetByVariableMutation_WritesPrimitiveAttributeChangedEventThroughProcessContext()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 8f);
+        var target = CreateSettlement(world, "Target", (1, 0), population: 6f, fame: 3f);
+        var kernelEvents = new KernelEventLog(4, KernelEventOverflowPolicy.RejectWrite);
+        var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var domainIds = new DomainIdRegistry();
+        var populationId = domainIds.RegisterAttribute("population");
+        var processSourceId = domainIds.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        target.Attributes.Add(new ScalarValue("population", 0f, 100f, target.Attributes.GetValue("population"), populationId));
+
+        var goal = new EntityGoal(AttributeRef.Target("population", TestKinds.Settlement), target.Id, urgency: 1f);
+        var context = new ProcessMutationContext(
+            self,
+            world,
+            random: new FixedRandom(0.5),
+            goal: goal,
+            definitionId: ProcessRuntimeId.FromStableName("test_process"),
+            kernelEvents: kernelEvents,
+            domainIds: domainIds);
+
+        new CalculateMutation("delta", Expr.Lit(4f)).Execute(context);
+        new ModifyTargetByVariableMutation("population", "delta").Execute(context);
+
+        Assert.True(kernelEvents.TryRead(cursor, out var eventValue));
+        Assert.Equal(KernelEventType.AttributeChanged, eventValue.Event.EventType);
+        var changed = eventValue.Event.AsAttributeChanged();
+        Assert.Equal(target.Id.Value, changed.EntityId);
+        Assert.Equal(populationId.Value, changed.AttributeId);
+        Assert.Equal(processSourceId.Value, changed.SourceCodeId);
+        Assert.Equal(6f, changed.OldValue);
+        Assert.Equal(10f, changed.NewValue);
+        Assert.True(changed.WorldVersion > 0);
     }
 
     [Fact]
@@ -200,22 +240,18 @@ public class MutationTests
     }
 
     [Fact]
-    public void MoveTowardTargetOnSemanticPlaneMutation_PublishesSemanticMovementMessage()
+    public void MoveTowardTargetOnSemanticPlaneMutation_WritesPrimitiveMovementEvent()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateFaction(world, "Self");
         var target = CreateFaction(world, "Target");
         self.SemanticPosition = new Engine.Map.SemanticHexCoord(0, 0);
         target.SemanticPosition = new Engine.Map.SemanticHexCoord(2, 0);
-        var bus = new MessageBus();
-        EntitySemanticMovedMessage? moved = null;
-        bus.Subscribe(message =>
-        {
-            if (message is EntitySemanticMovedMessage semanticMoved)
-            {
-                moved = semanticMoved;
-            }
-        });
+        var kernelEvents = new KernelEventLog(4, KernelEventOverflowPolicy.RejectWrite);
+        var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var domainIds = new DomainIdRegistry();
+        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
 
         var goal = new EntityGoal(AttributeRef.Target("reach", TestKinds.Faction), target.Id, urgency: 1f);
         var context = new ProcessMutationContext(
@@ -223,14 +259,22 @@ public class MutationTests
             world,
             goal: goal,
             definitionId: ProcessRuntimeId.FromStableName("semantic_move"),
-            messageBus: bus);
+            kernelEvents: kernelEvents,
+            domainIds: domainIds);
 
         new MoveTowardTargetOnSemanticPlaneMutation().Execute(context);
 
-        Assert.NotNull(moved);
-        Assert.Equal(self.Id, moved!.EntityId);
-        Assert.Equal((0, 0, 0), moved.From);
-        Assert.Equal((1, 0, -1), moved.To);
+        Assert.True(kernelEvents.TryRead(cursor, out var eventValue));
+        Assert.Equal(KernelEventType.EntityMoved, eventValue.Event.EventType);
+        var moved = eventValue.Event.AsEntityMoved();
+        Assert.Equal(self.Id.Value, moved.EntityId);
+        Assert.Equal(1, moved.PlaneCode);
+        Assert.Equal(0, moved.FromQ);
+        Assert.Equal(0, moved.FromR);
+        Assert.Equal(0, moved.FromS);
+        Assert.Equal(1, moved.ToQ);
+        Assert.Equal(0, moved.ToR);
+        Assert.Equal(-1, moved.ToS);
         Assert.Equal(new Engine.Map.SemanticHexCoord(1, 0), self.SemanticPosition);
     }
 

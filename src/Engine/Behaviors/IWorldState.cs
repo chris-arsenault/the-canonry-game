@@ -17,3 +17,13 @@ public interface IWorldState
     Engine.Resources.ResourceSystem? Resources { get; }
     int CurrentTick { get; }
 }
+
+public interface IWorldVersionSource
+{
+    long WorldVersion { get; }
+}
+
+public interface IWorldVersionSink : IWorldVersionSource
+{
+    void AdvanceWorldVersion();
+}

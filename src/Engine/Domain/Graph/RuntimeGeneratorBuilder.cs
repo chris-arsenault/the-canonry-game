@@ -8,10 +8,12 @@ public static class RuntimeGeneratorBuilder
 {
     public static IReadOnlyDictionary<string, DefinitionGeneratorNode> Build(
         IReadOnlyList<SemanticGeneratorConfig> semantic,
-        DefinitionGraph partialGraph)
+        DefinitionGraph partialGraph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
     {
         ArgumentNullException.ThrowIfNull(semantic);
         ArgumentNullException.ThrowIfNull(partialGraph);
+        ArgumentNullException.ThrowIfNull(runtimeIds);
 
         var generators = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
 
@@ -144,15 +146,21 @@ public static class RuntimeGeneratorBuilder
                         relationship.Kind,
                         $"Generator '{config.Id}' relationship");
 
+                    var relationshipFactIds = ResolveRelationshipFactIds(
+                        partialGraph,
+                        relationship.Facts,
+                        $"Generator '{config.Id}' relationship '{relationship.Kind}'");
+
                     return new DefinitionGeneratorRelationship
                     {
                         SourceRef = relationship.SourceRef,
                         DestinationRef = relationship.DestinationRef,
                         RelationshipId = relationshipId,
-                        FactIds = ResolveRelationshipFactIds(
-                            partialGraph,
-                            relationship.Facts,
-                            $"Generator '{config.Id}' relationship '{relationship.Kind}'"),
+                        RelationshipRuntimeId = runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
+                        FactIds = relationshipFactIds,
+                        FactRuntimeIds = relationshipFactIds
+                            .Select(factId => runtimeIds.RelationshipFactIdOf(factId.Value).Value)
+                            .ToHashSet(),
                         Strength = relationship.Strength,
                         ReplaceExistingOutgoingOfSameKind = relationship.ReplaceExistingOutgoingOfSameKind,
                     };
@@ -169,13 +177,19 @@ public static class RuntimeGeneratorBuilder
                         config.TargetSaturation.RequiredFact,
                         $"Generator '{config.Id}' target saturation");
 
+                var saturationRelationshipId = ResolveRelationshipId(
+                    partialGraph,
+                    config.TargetSaturation.RelationshipKind,
+                    $"Generator '{config.Id}' target saturation");
+
                 targetSaturation = new DefinitionTargetSaturation
                 {
-                    RelationshipId = ResolveRelationshipId(
-                        partialGraph,
-                        config.TargetSaturation.RelationshipKind,
-                        $"Generator '{config.Id}' target saturation"),
+                    RelationshipId = saturationRelationshipId,
+                    RelationshipRuntimeId = runtimeIds.RelationshipKindIdOf(saturationRelationshipId.Value).Value,
                     RequiredFactId = requiredFactId,
+                    RequiredFactRuntimeId = requiredFactId is null
+                        ? 0
+                        : runtimeIds.RelationshipFactIdOf(requiredFactId.Value.Value).Value,
                     Direction = config.TargetSaturation.Direction,
                     MaxExisting = config.TargetSaturation.MaxExisting,
                 };
@@ -218,6 +232,7 @@ public static class RuntimeGeneratorBuilder
             generators[config.Id] = new DefinitionGeneratorNode
             {
                 Id = config.Id,
+                RuntimeId = runtimeIds.GeneratorIdOf(config.Id).Value,
                 Name = config.Name,
                 Description = config.Description,
                 Target = target,

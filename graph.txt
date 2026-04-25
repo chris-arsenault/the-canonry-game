@@ -1,0 +1,122 @@
+Generalizing: the design becomes a **type-partitioned CSR with weighted, sorted adjacencies**, plus SoA node attributes. Same no-alloc discipline.
+
+## Edge model
+
+```
+EdgeId = u32
+TypeId = u8          // 20 types fits in u8; bitmask of types fits in u32
+
+EdgeRecord (AoS, ~hot fields):
+    type:     TypeId
+    strength: f32
+    leader:   NodeId
+    mem_off:  u32    // index into edge_mem_pool (CSR for members)
+    mem_len:  u16    // small lists are common; spill if larger
+    flags:    u8
+```
+
+Cold edge fields (timestamps, provenance, debug names) go into a parallel array indexed by `EdgeId`.
+
+## Adjacency: type-partitioned, strength-sorted CSR
+
+For each direction (member-of, leader-of, plus any other relation you care about), build **per-type** CSR pools:
+
+```
+// One pool per (direction, type). 20 types × 2 directions = 40 CSRs.
+node_memof_off[T]:  [u32; N_cap + 1]
+node_memof_pool[T]: [(NodeId_other, EdgeId, f32 strength); M_T]
+```
+
+Inlining `(NodeId, EdgeId, strength)` as a 12-byte triple in the pool kills the per-edge indirection for the two most common filters (who? how strong?). You only dereference `edges[E]` when you need the cold fields.
+
+**Within each row, sort by strength descending.** Now:
+
+- `neighbors(N, T)` — sequential read, O(deg).
+- `neighbors(N, T) where strength >= θ` — sequential read with early termination.
+- `top_k(N, T)` — prefix of length k, O(k).
+
+If memory pressure from 40 offset arrays is real (20 types × (N+1) × 4 bytes per direction), the alternative is a **single pool per direction with per-type sub-ranges**: store `[type_start; 21]` per node (last entry = end), so row layout is `[type0 edges | type1 edges | ... | type19 edges]`. Same locality, one pool, ~84 bytes/node of type metadata. Pick based on whether per-type access dominates or mixed-type scans dominate.
+
+## Node attributes: SoA with hot/cold split
+
+Nine attributes, accessed in varying combinations, argues against AoS:
+
+```
+// Hot core — touched together, AoS struct
+node_core: [NodeCore; N_cap]    // 3–4 most-queried fields, padded to 16 or 32B
+
+// Each remaining attribute as its own column
+node_attr_5: [u8;  N_cap]       // categorical
+node_attr_6: [f32; N_cap]
+node_attr_7: [u32; N_cap]
+...
+```
+
+For low-cardinality categorical attributes, also build **bitmap indexes**: one `[u64; N_cap/64]` per category value. Filtering "all nodes with attr_5 == X AND attr_6 in range" becomes word-parallel AND across bitmaps with zero branches. Pre-allocate a scratch bitmap pool for query intermediates.
+
+## General traversal primitives (zero-alloc)
+
+Build everything on three composable iterators:
+
+```
+neighbors_typed(N, T)      -> &[(NodeId, EdgeId, f32)]   // one CSR slice
+neighbors_masked(N, mask)  -> chained iterator over set bits in mask
+neighbors_above(N, T, θ)   -> prefix of neighbors_typed until strength < θ
+```
+
+`mask` is a `u32` of TypeIds. `neighbors_masked` is a fused loop:
+
+```
+for T in iter_set_bits(mask):
+    for (M, E, s) in neighbors_typed(N, T):
+        yield (M, E, s, T)
+```
+
+No allocation; the iterator is a state machine over (current_type, current_offset).
+
+## BFS/DFS without allocation
+
+Pre-allocate once at startup, reuse forever:
+
+```
+visited: [u32; N_cap]              // epoch-stamped
+frontier_a, frontier_b: [NodeId; N_cap]
+epoch: u32
+
+bfs(start, type_mask, strength_min, max_depth, visit):
+    epoch += 1
+    a = &mut frontier_a; b = &mut frontier_b
+    a[0] = start; len_a = 1
+    visited[start] = epoch
+    for depth in 0..max_depth:
+        len_b = 0
+        for N in a[..len_a]:
+            for T in iter_set_bits(type_mask):
+                for (M, E, s) in neighbors_typed(N, T):
+                    if s < strength_min: break          // sorted: early exit
+                    if visited[M] == epoch: continue
+                    visited[M] = epoch
+                    visit(M, E, depth + 1)
+                    b[len_b] = M; len_b += 1
+        swap(a, b); len_a = len_b
+        if len_a == 0: break
+```
+
+DFS swaps the FIFO frontier for an explicit stack (same pre-allocated buffer, used as LIFO). Dijkstra-style weighted traversal needs a heap; use a pre-sized indexed binary heap over NodeId with a `pos[NodeId]` decrease-key array — still no per-call allocation.
+
+## k-hop with type-and-strength filter
+
+The structure naturally gives you `k`-hop reachability and path counting via repeated frontier expansion. For dense type-mask queries on small `k`, two further tricks:
+
+**Bitmap frontiers:** represent the frontier as a `[u64; N_cap/64]` bitmap. Expansion becomes "for each set bit, OR in its typed neighbors." Bitmap union is word-parallel; visited-set is the bitmap itself. This wins when frontiers grow large.
+
+**Per-type reachability snapshots:** if certain `(type, depth)` queries are hot, precompute and cache transitive closures as bitmaps. Invalidate on type-T edge mutation only.
+
+## Mutation
+
+Per-type CSR makes mutations isolated: an insert/delete of a type-T edge only touches that one CSR. Two strategies:
+
+- **Slack rows**: pad each row to next power of two; insertions append in place, deletions tombstone. Compact during idle.
+- **Delta overlay**: keep a small per-type append buffer of pending edges; the iterator yields from the frozen CSR slice then the delta slice. Periodic merge rebuilds the affected type's CSR. The hot loop pays one extra slice iteration; that's it.
+
+Generational IDs `(index: u32, gen: u32)` for both nodes and edges handle deletes safely without breaking outstanding handles.

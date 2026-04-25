@@ -1,6 +1,7 @@
 namespace Engine.Kinds;
 
 using System.Collections.Concurrent;
+using System.Threading;
 using MessagePack;
 
 /// <summary>
@@ -12,26 +13,33 @@ public readonly record struct KindId
 {
     private static readonly ConcurrentDictionary<string, KindId> Registered =
         new(StringComparer.Ordinal);
+    private static int _nextId;
 
     [Key(0)]
     public string Value { get; }
+
+    [IgnoreMember]
+    public int Id { get; }
 
     [SerializationConstructor]
     public KindId(string value)
     {
         ArgumentException.ThrowIfNullOrEmpty(value);
-        Value = Registered.GetOrAdd(value, static v => new KindId(v, skipRegistration: true)).Value;
+        var registered = Registered.GetOrAdd(value, static v => new KindId(v, Interlocked.Increment(ref _nextId)));
+        Value = registered.Value;
+        Id = registered.Id;
     }
 
-    private KindId(string value, bool skipRegistration)
+    private KindId(string value, int id)
     {
         Value = value;
+        Id = id;
     }
 
     public static KindId Register(string value)
     {
         ArgumentException.ThrowIfNullOrEmpty(value);
-        return Registered.GetOrAdd(value, static v => new KindId(v, skipRegistration: true));
+        return Registered.GetOrAdd(value, static v => new KindId(v, Interlocked.Increment(ref _nextId)));
     }
 
     public static void RegisterAll(IEnumerable<KindId> kinds)

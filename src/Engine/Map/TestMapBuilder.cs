@@ -1,9 +1,9 @@
 namespace Engine.Map;
 
+using Engine.Domain;
 using Engine.Domain.IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Messages;
 using K = Engine.Domain.IceRemembers.IceRemembersKinds;
 
 /// <summary>
@@ -53,6 +53,43 @@ public sealed class TestMapBuilder
 
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
 
+    private static Entity CreateEntity(
+        WorldGraph graph,
+        EntityKind kind,
+        string subtype,
+        string name,
+        string culture,
+        int tick,
+        DomainIdRegistry? domainIds,
+        (int Q, int R)? coordinates = null) =>
+        graph.CreateEntity(
+            kind,
+            subtype,
+            name,
+            culture,
+            tick,
+            coordinates,
+            subtypeId: domainIds?.SubtypeIdOf(subtype) ?? SubtypeRuntimeId.None,
+            cultureId: domainIds?.CultureIdOf(culture) ?? CultureRuntimeId.None);
+
+    private static Relationship CreateRelationship(
+        WorldGraph graph,
+        string kind,
+        RelationshipPolarity polarity,
+        EntityId sourceId,
+        EntityId targetId,
+        float strength,
+        int tick,
+        DomainIdRegistry? domainIds) =>
+        graph.CreateRelationship(
+            kind,
+            polarity,
+            sourceId,
+            targetId,
+            strength,
+            tick,
+            kindId: domainIds?.RelationshipKindIdOf(kind) ?? RelationshipKindRuntimeId.None);
+
     /// <summary>
     /// Build the default test world from an accepted procedural seed. A fixed
     /// input seed always resolves to the same accepted terrain and seed roster.
@@ -64,25 +101,23 @@ public sealed class TestMapBuilder
         return BuildUnchecked(acceptedSeed);
     }
 
-    public static WorldGenerationSeed SelectAcceptedSeed(Random random, MessageBus? messageBus = null)
+    public static WorldGenerationSeed SelectAcceptedSeed(Random random)
     {
         ArgumentNullException.ThrowIfNull(random);
-        return SelectAcceptedSeed(random.Next(), messageBus);
+        return SelectAcceptedSeed(random.Next());
     }
 
-    public static WorldGenerationSeed SelectAcceptedSeed(int baseSeed, MessageBus? messageBus = null)
+    public static WorldGenerationSeed SelectAcceptedSeed(int baseSeed)
         => SelectAcceptedSeed(
             baseSeed,
             BuildUnchecked,
             SeedWorldQualityValidator.Validate,
-            messageBus,
             MaxAcceptedSeedAttempts);
 
     internal static WorldGenerationSeed SelectAcceptedSeed(
         int baseSeed,
         Func<WorldGenerationSeed, TestWorld> buildWorld,
         Func<TestWorld, SeedWorldQualityReport> validateWorld,
-        MessageBus? messageBus,
         int maxAttempts)
     {
         ArgumentNullException.ThrowIfNull(buildWorld);
@@ -102,13 +137,6 @@ public sealed class TestMapBuilder
                 }
 
                 lastIssues = report.Issues;
-                PublishDegenerate(
-                    messageBus,
-                    seed,
-                    phase: "quality_validation",
-                    description: $"Rejected procedural seed after validation ({report.Issues.Count} issues).",
-                    reasons: report.Issues,
-                    willRetry: attempt < maxAttempts - 1);
             }
 #pragma warning disable CA1031
             catch (Exception ex)
@@ -118,39 +146,12 @@ public sealed class TestMapBuilder
                 [
                     $"{ex.GetType().Name}: {ex.Message}",
                 ];
-                PublishDegenerate(
-                    messageBus,
-                    seed,
-                    phase: "generation_exception",
-                    description: "Procedural seed generation threw before validation.",
-                    reasons: lastIssues,
-                    willRetry: attempt < maxAttempts - 1);
             }
         }
 
         throw new InvalidOperationException(
             $"Could not build an accepted procedural seed for base seed {baseSeed}. " +
             $"Last issues: {string.Join("; ", lastIssues)}");
-    }
-
-    private static void PublishDegenerate(
-        MessageBus? messageBus,
-        WorldGenerationSeed seed,
-        string phase,
-        string description,
-        IReadOnlyList<string> reasons,
-        bool willRetry)
-    {
-        messageBus?.Publish(new MapGenerationDegenerateMessage(
-            tick: 0,
-            baseSeed: seed.BaseSeed,
-            attempt: seed.Attempt,
-            terrainSeed: seed.TerrainSeed,
-            entitySeed: seed.EntitySeed,
-            phase: phase,
-            description: description,
-            reasons: reasons,
-            willRetry: willRetry));
     }
 
     /// <summary>
@@ -173,11 +174,11 @@ public sealed class TestMapBuilder
     /// <see cref="WorldGraph.EntityCreated"/>, so any subscribers wired on the
     /// empty graph will initialize these entities as they are created.
     /// </summary>
-    public static void Populate(TestWorld world, WorldGenerationSeed seed)
+    public static void Populate(TestWorld world, WorldGenerationSeed seed, DomainIdRegistry? domainIds = null)
     {
         ArgumentNullException.ThrowIfNull(world);
-        var regions = CreateRegionEntities(world.Graph);
-        CreateEntities(world.Graph, world.Grid, world.CoverageMap, regions, new Random(seed.EntitySeed));
+        var regions = CreateRegionEntities(world.Graph, domainIds);
+        CreateEntities(world.Graph, world.Grid, world.CoverageMap, regions, new Random(seed.EntitySeed), domainIds);
     }
 
     private static TestWorld BuildUnchecked(WorldGenerationSeed seed)
@@ -318,14 +319,14 @@ public sealed class TestMapBuilder
         TerrainAmbientResources.Seed(cell, random);
     }
 
-    private static Dictionary<string, MapCoverage> CreateRegionEntities(WorldGraph graph)
+    private static Dictionary<string, MapCoverage> CreateRegionEntities(WorldGraph graph, DomainIdRegistry? domainIds)
     {
         var northlands = new MapCoverage("Northlands",
-            graph.CreateEntity(K.Region, "generic_region", "Northlands", "none", tick: 0).Id);
+            CreateEntity(graph, K.Region, "face", "Northlands", "none", tick: 0, domainIds: domainIds).Id);
         var heartlands = new MapCoverage("Heartlands",
-            graph.CreateEntity(K.Region, "generic_region", "Heartlands", "none", tick: 0).Id);
+            CreateEntity(graph, K.Region, "reach", "Heartlands", "none", tick: 0, domainIds: domainIds).Id);
         var coastlands = new MapCoverage("Coastlands",
-            graph.CreateEntity(K.Region, "generic_region", "Coastlands", "none", tick: 0).Id);
+            CreateEntity(graph, K.Region, "shelf", "Coastlands", "none", tick: 0, domainIds: domainIds).Id);
 
         return new Dictionary<string, MapCoverage>
         {
@@ -340,7 +341,8 @@ public sealed class TestMapBuilder
         HexGrid grid,
         MapCoverageMap coverageMap,
         Dictionary<string, MapCoverage> regions,
-        Random random)
+        Random random,
+        DomainIdRegistry? domainIds)
     {
         var takenPhysical = new HashSet<HexCoord>();
         var takenSemantic = new HashSet<SemanticHexCoord>();
@@ -440,20 +442,30 @@ public sealed class TestMapBuilder
             cell => MidpointScore(grid, coverageMap, regions["heartlands"], cell));
         ReservePhysical(midpointCoord, takenPhysical, "Midpoint");
 
-        var s1 = graph.CreateEntity(
+        var s1 = CreateEntity(
+            graph,
             K.Settlement, "rookery", "Frosthaven", C(IceRemembersCulture.AuroraStack), tick: 0,
+            domainIds: domainIds,
             coordinates: (frosthavenCoord.Q, frosthavenCoord.R));
-        var s2 = graph.CreateEntity(
+        var s2 = CreateEntity(
+            graph,
             K.Settlement, "colony", "Ironhold", C(IceRemembersCulture.AuroraStack), tick: 0,
+            domainIds: domainIds,
             coordinates: (ironholdCoord.Q, ironholdCoord.R));
-        var s3 = graph.CreateEntity(
+        var s3 = CreateEntity(
+            graph,
             K.Settlement, "harbor", "Driftwatch", C(IceRemembersCulture.Nightshelf), tick: 0,
+            domainIds: domainIds,
             coordinates: (driftwatchCoord.Q, driftwatchCoord.R));
-        var s4 = graph.CreateEntity(
+        var s4 = CreateEntity(
+            graph,
             K.Settlement, "reefhold", "Wavecrest", C(IceRemembersCulture.Nightshelf), tick: 0,
+            domainIds: domainIds,
             coordinates: (wavecrestCoord.Q, wavecrestCoord.R));
-        var s5 = graph.CreateEntity(
+        var s5 = CreateEntity(
+            graph,
             K.Settlement, "colony", "Midpoint", C(IceRemembersCulture.AuroraStack), tick: 0,
+            domainIds: domainIds,
             coordinates: (midpointCoord.Q, midpointCoord.R));
 
         SetSemanticProjected(s1, frosthavenCoord, takenSemantic, bias: new SemanticHexCoord(-1, -2));
@@ -463,10 +475,12 @@ public sealed class TestMapBuilder
         SetSemanticProjected(s5, midpointCoord, takenSemantic, bias: SemanticHexCoord.Origin);
         var allSettlements = new List<Entity> { s1, s2, s3, s4, s5 };
 
-        var factionA = graph.CreateEntity(
-            K.Faction, "compact", "Northern Compact", C(IceRemembersCulture.AuroraStack), tick: 0);
-        var factionB = graph.CreateEntity(
-            K.Faction, "order", "Southern Order", C(IceRemembersCulture.Nightshelf), tick: 0);
+        var factionA = CreateEntity(
+            graph, K.Faction, "compact", "Northern Compact", C(IceRemembersCulture.AuroraStack), tick: 0,
+            domainIds: domainIds);
+        var factionB = CreateEntity(
+            graph, K.Faction, "order", "Southern Order", C(IceRemembersCulture.Nightshelf), tick: 0,
+            domainIds: domainIds);
 
         var factionACoord = ChooseNearbyFreeCell(grid, takenPhysical, Centroid(frosthavenCoord, ironholdCoord, midpointCoord), searchRadius: 8)
             ?? throw new InvalidOperationException("Could not place Northern Compact near its settlements.");
@@ -478,13 +492,13 @@ public sealed class TestMapBuilder
         SetSemanticProjected(factionB, factionBCoord, takenSemantic, bias: new SemanticHexCoord(3, -3));
 
         // Faction A controls northern settlements
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s1.Id, factionA.Id, 1f, 0);
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s2.Id, factionA.Id, 1f, 0);
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s5.Id, factionA.Id, 0.8f, 0);
+        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s1.Id, factionA.Id, 1f, 0, domainIds);
+        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s2.Id, factionA.Id, 1f, 0, domainIds);
+        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s5.Id, factionA.Id, 0.8f, 0, domainIds);
 
         // Faction B controls southern settlements
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s3.Id, factionB.Id, 1f, 0);
-        graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, s4.Id, factionB.Id, 1f, 0);
+        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s3.Id, factionB.Id, 1f, 0, domainIds);
+        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s4.Id, factionB.Id, 1f, 0, domainIds);
 
         CreateSupportingSettlements(
             graph,
@@ -496,7 +510,8 @@ public sealed class TestMapBuilder
             takenSemantic,
             allSettlements,
             factionA,
-            factionB);
+            factionB,
+            domainIds);
 
         var settlementsByCoord = allSettlements.ToDictionary(
             settlement => new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R),
@@ -561,8 +576,10 @@ public sealed class TestMapBuilder
             var hex = availableHexes[random.Next(availableHexes.Count)];
             takenPhysical.Add(hex);
 
-            var npc = graph.CreateEntity(
+            var npc = CreateEntity(
+                graph,
                 K.Penguin, subtype, name, culture, tick: 0,
+                domainIds: domainIds,
                 coordinates: (hex.Q, hex.R));
 
             if (npcIndex < npcSemanticSeeds.Length)
@@ -576,12 +593,12 @@ public sealed class TestMapBuilder
             npcIndex++;
 
             // Loyalty to faction
-            graph.CreateRelationship("loyal_to", RelationshipPolarity.Positive, npc.Id, factionId, loyalty, 0);
+            CreateRelationship(graph, "member_of", RelationshipPolarity.Neutral, npc.Id, factionId, loyalty, 0, domainIds);
 
             // located_at only if spawning on a settlement hex
             if (settlementsByCoord.TryGetValue(hex, out var settlementId))
             {
-                graph.CreateRelationship("located_at", RelationshipPolarity.Neutral, npc.Id, settlementId, 1f, 0);
+                CreateRelationship(graph, "home_base", RelationshipPolarity.Neutral, npc.Id, settlementId, 1f, 0, domainIds);
             }
         }
 
@@ -591,14 +608,16 @@ public sealed class TestMapBuilder
         // without overlapping another entity.
         var artifactCoord = ChooseNearbyFreeCell(grid, takenPhysical, frosthavenCoord, searchRadius: 5)
             ?? throw new InvalidOperationException("Could not place Stormcleaver near Frosthaven.");
-        var artifact = graph.CreateEntity(
+        var artifact = CreateEntity(
+            graph,
             K.Artifact, "weapon", "Stormcleaver", C(IceRemembersCulture.AuroraStack), tick: 0,
+            domainIds: domainIds,
             coordinates: (artifactCoord.Q, artifactCoord.R));
         takenPhysical.Add(artifactCoord);
         SetSemanticProjected(artifact, artifactCoord, takenSemantic, bias: new SemanticHexCoord(4, -1));
 
         // Artifact stored at Frosthaven (not held by a specific NPC since NPCs are randomly placed)
-        graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0);
+        CreateRelationship(graph, "anchored", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0, domainIds);
 
         CreateSupportingArtifacts(
             graph,
@@ -606,7 +625,8 @@ public sealed class TestMapBuilder
             random,
             takenPhysical,
             takenSemantic,
-            allSettlements);
+            allSettlements,
+            domainIds);
     }
 
     private static void CreateSupportingSettlements(
@@ -619,7 +639,8 @@ public sealed class TestMapBuilder
         HashSet<SemanticHexCoord> takenSemantic,
         List<Entity> allSettlements,
         Entity factionA,
-        Entity factionB)
+        Entity factionB,
+        DomainIdRegistry? domainIds)
     {
         var count = 2 + random.Next(2);
         var usedNames = allSettlements.Select(settlement => settlement.Name).ToHashSet(StringComparer.Ordinal);
@@ -654,17 +675,27 @@ public sealed class TestMapBuilder
                     random),
                 usedNames);
 
-            var settlement = graph.CreateEntity(
+            var settlement = CreateEntity(
+                graph,
                 K.Settlement,
                 subtype,
                 name,
                 C(culture),
                 tick: 0,
+                domainIds: domainIds,
                 coordinates: (coord.Q, coord.R));
             takenPhysical.Add(coord);
             SetSemanticProjected(settlement, coord, takenSemantic, RandomSemanticBias(random));
             allSettlements.Add(settlement);
-            graph.CreateRelationship("controlled_by", RelationshipPolarity.Neutral, settlement.Id, controlledBy.Id, 0.65f, 0);
+            CreateRelationship(
+                graph,
+                "controlled_by",
+                RelationshipPolarity.Neutral,
+                settlement.Id,
+                controlledBy.Id,
+                0.65f,
+                0,
+                domainIds);
         }
     }
 
@@ -704,7 +735,8 @@ public sealed class TestMapBuilder
         Random random,
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
-        List<Entity> allSettlements)
+        List<Entity> allSettlements,
+        DomainIdRegistry? domainIds)
     {
         var count = 1 + random.Next(2);
         var usedNames = new HashSet<string>(StringComparer.Ordinal) { "Stormcleaver" };
@@ -720,16 +752,18 @@ public sealed class TestMapBuilder
                 Pick(SupportingArtifactNames, random),
                 usedNames);
 
-            var artifact = graph.CreateEntity(
+            var artifact = CreateEntity(
+                graph,
                 K.Artifact,
                 subtype,
                 name,
                 host.Culture,
                 tick: 0,
+                domainIds: domainIds,
                 coordinates: (coord.Q, coord.R));
             takenPhysical.Add(coord);
             SetSemanticProjected(artifact, coord, takenSemantic, RandomSemanticBias(random));
-            graph.CreateRelationship("stored_at", RelationshipPolarity.Neutral, artifact.Id, host.Id, 0.7f, 0);
+            CreateRelationship(graph, "anchored", RelationshipPolarity.Neutral, artifact.Id, host.Id, 0.7f, 0, domainIds);
         }
     }
 

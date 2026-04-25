@@ -1,11 +1,13 @@
 namespace Engine.Generators;
 
+using Engine.Behaviors;
+using Engine.Domain;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
-using Engine.Messages;
 
 /// <summary>
 /// Selects one applicable generator/target pair on each generator pulse and executes it.
@@ -18,8 +20,10 @@ public sealed class GeneratorSystem
     private readonly SpatialIndex _spatialIndex;
     private readonly SemanticPlaneIndex _semanticPlaneIndex;
     private readonly MapCoverageMap _coverageMap;
-    private readonly MessageBus _messageBus;
     private readonly Random _random;
+    private readonly IKernelEventWriter? _kernelEvents;
+    private readonly IWorldVersionSink? _worldVersion;
+    private readonly DomainIdRegistry? _domainIds;
 
     public GeneratorSystem(
         WorldGraph graph,
@@ -28,8 +32,10 @@ public sealed class GeneratorSystem
         SpatialIndex spatialIndex,
         SemanticPlaneIndex semanticPlaneIndex,
         MapCoverageMap coverageMap,
-        MessageBus messageBus,
-        Random random)
+        Random random,
+        IKernelEventWriter? kernelEvents = null,
+        IWorldVersionSink? worldVersion = null,
+        DomainIdRegistry? domainIds = null)
     {
         _graph = graph ?? throw new ArgumentNullException(nameof(graph));
         _instances = instances ?? throw new ArgumentNullException(nameof(instances));
@@ -37,8 +43,10 @@ public sealed class GeneratorSystem
         _spatialIndex = spatialIndex ?? throw new ArgumentNullException(nameof(spatialIndex));
         _semanticPlaneIndex = semanticPlaneIndex ?? throw new ArgumentNullException(nameof(semanticPlaneIndex));
         _coverageMap = coverageMap ?? throw new ArgumentNullException(nameof(coverageMap));
-        _messageBus = messageBus ?? throw new ArgumentNullException(nameof(messageBus));
         _random = random ?? throw new ArgumentNullException(nameof(random));
+        _kernelEvents = kernelEvents;
+        _worldVersion = worldVersion;
+        _domainIds = domainIds;
     }
 
     public int PulseInterval { get; init; } = 25;
@@ -67,6 +75,7 @@ public sealed class GeneratorSystem
                 continue;
             }
 
+            stats.RuntimeId = definition.RuntimeId;
             var instance = _instances.GetOrCreate(definition);
             if (instance.Definition.MaxRunsPerSim is { } maxRuns && instance.TotalRuns >= maxRuns)
             {
@@ -204,6 +213,7 @@ public sealed class GeneratorSystem
                 var culture = ResolveCulture(generator, produced, symbols, targetContext.TargetEntity);
                 var name = NameSynthesizer.SynthesizeName(produced.Kind, chosenSubtype, culture, _random);
                 var (physicalCoord, semanticCoord) = ResolvePlacement(produced, targetContext, symbols);
+                var domainIds = DomainIdsOrThrow();
                 var entity = _graph.CreateEntity(
                     produced.Kind,
                     chosenSubtype,
@@ -211,7 +221,9 @@ public sealed class GeneratorSystem
                     culture,
                     currentTick,
                     (physicalCoord.Q, physicalCoord.R),
-                    semanticCoord);
+                    semanticCoord,
+                    domainIds.SubtypeIdOf(chosenSubtype),
+                    domainIds.CultureIdOf(culture));
                 if (produced.Coverage is not null)
                 {
                     var coverageResult = _coverageMap.CreateCoverage(
@@ -254,6 +266,7 @@ public sealed class GeneratorSystem
             }
 
             instance.RecordFailure(currentTick, targetContext.TargetEntity.Id);
+            AdvanceWorldVersion();
             return false;
         }
 
@@ -276,6 +289,7 @@ public sealed class GeneratorSystem
                 }
             }
 
+            var (factId0, factId1, factId2, factId3, factCount) = ResolveFactRuntimeIds(relationship);
             _graph.CreateRelationship(
                 relationship.RelationshipId.Value,
                 RelationshipPolarity.Neutral,
@@ -283,19 +297,26 @@ public sealed class GeneratorSystem
                 destinationId.Value,
                 relationship.Strength,
                 currentTick,
-                relationship.FactIds.Select(factId => factId.Value));
+                relationship.FactIds.Select(factId => factId.Value),
+                new RelationshipKindRuntimeId(relationship.RelationshipRuntimeId),
+                factId0,
+                factId1,
+                factId2,
+                factId3,
+                factCount);
             createdRelationshipCount++;
         }
 
         instance.RecordRun(currentTick, targetContext.TargetEntity.Id);
+        AdvanceWorldVersion();
 
         TotalFired++;
-        _messageBus.Publish(new GeneratorFiredMessage(
+        WriteGeneratorFiredKernelEvent(
             currentTick,
-            generator.Id,
+            generator,
             targetContext.TargetEntity.Id,
-            createdEntityIds,
-            createdRelationshipCount));
+            createdEntityIds.Count,
+            createdRelationshipCount);
         return true;
     }
 
@@ -360,22 +381,106 @@ public sealed class GeneratorSystem
     {
         foreach (var item in stats)
         {
-            _messageBus.Publish(new GeneratorPulseMessage(
-                currentTick,
-                item.GeneratorId,
-                item.Status,
-                item.TargetPoolCount,
-                item.InactiveRejectedCount,
-                item.SubtypeRejectedCount,
-                item.SaturationRejectedCount,
-                item.SecondaryTargetRejectedCount,
-                item.WildernessRejectedCount,
-                item.TriggerRejectedCount,
-                item.CandidateCount,
-                item.FailedFireCount,
-                item.SelectedTargetEntityId));
+            WriteGeneratorEvaluatedKernelEvent(currentTick, item);
         }
     }
+
+    private void WriteGeneratorEvaluatedKernelEvent(int currentTick, GeneratorPulseStats stats)
+    {
+        if (_kernelEvents is null)
+        {
+            return;
+        }
+
+        WriteKernelEventOrThrow(KernelEvent.From(new GeneratorEvaluatedKernelEvent(
+            Tick: currentTick,
+            WorldVersion: WorldVersion,
+            GeneratorId: stats.RuntimeId,
+            StatusCode: GeneratorStatusCode(stats.Status),
+            SelectedTargetEntityId: stats.SelectedTargetEntityId?.Value ?? 0,
+            CandidateCount: stats.CandidateCount,
+            FailedFireCount: stats.FailedFireCount)));
+    }
+
+    private void WriteGeneratorFiredKernelEvent(
+        int currentTick,
+        DefinitionGeneratorNode generator,
+        EntityId targetEntityId,
+        int createdEntityCount,
+        int createdRelationshipCount)
+    {
+        if (_kernelEvents is null)
+        {
+            return;
+        }
+
+        WriteKernelEventOrThrow(KernelEvent.From(new GeneratorFiredKernelEvent(
+            Tick: currentTick,
+            WorldVersion: WorldVersion,
+            GeneratorId: generator.RuntimeId,
+            TargetEntityId: targetEntityId.Value,
+            CreatedEntityCount: createdEntityCount,
+            CreatedRelationshipCount: createdRelationshipCount)));
+    }
+
+    private void WriteKernelEventOrThrow(in KernelEvent kernelEvent)
+    {
+        if (_kernelEvents is null || !_kernelEvents.TryWrite(kernelEvent))
+        {
+            throw new InvalidOperationException("Kernel event writer rejected a generator event.");
+        }
+    }
+
+    private long WorldVersion
+    {
+        get
+        {
+            if (_worldVersion is not null)
+            {
+                return _worldVersion.WorldVersion;
+            }
+
+            throw new InvalidOperationException("Primitive generator events require a versioned world state.");
+        }
+    }
+
+    private void AdvanceWorldVersion()
+    {
+        _worldVersion?.AdvanceWorldVersion();
+    }
+
+    private static int StableRuntimeId(string value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(value);
+        unchecked
+        {
+            const uint offset = 2166136261u;
+            const uint prime = 16777619u;
+            var hash = offset;
+            foreach (var ch in value)
+            {
+                hash ^= ch;
+                hash *= prime;
+            }
+
+            var id = (int)(hash & 0x7fffffffu);
+            return id == 0 ? 1 : id;
+        }
+    }
+
+    private static int GeneratorStatusCode(string status) => status switch
+    {
+        "eligible" => 1,
+        "fired" => 2,
+        "eligible_not_selected" => 3,
+        "blocked" => 4,
+        "fire_failed" => 5,
+        "missing_definition" => 6,
+        "max_runs" => 7,
+        "zero_weight" => 8,
+        "not_evaluated" => 9,
+        _ => throw new InvalidOperationException($"Unknown generator status '{status}'."),
+    };
 
     private static bool MatchesSubtypeFilter(Entity entity, IReadOnlySet<string>? allowedSubtypes)
     {
@@ -407,23 +512,25 @@ public sealed class GeneratorSystem
         return targetSaturation.Direction switch
         {
             TargetSaturationDirection.OutgoingFromTarget =>
-                _graph.OutgoingRelationships(targetId, targetSaturation.RelationshipId.Value)
-                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactId)),
+                _graph.OutgoingRelationships(targetId, new RelationshipKindRuntimeId(targetSaturation.RelationshipRuntimeId))
+                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactRuntimeId)),
             TargetSaturationDirection.IncomingToTarget =>
-                _graph.IncomingRelationships(targetId, targetSaturation.RelationshipId.Value)
-                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactId)),
+                _graph.IncomingRelationships(targetId, new RelationshipKindRuntimeId(targetSaturation.RelationshipRuntimeId))
+                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactRuntimeId)),
             TargetSaturationDirection.Symmetric =>
-                _graph.OutgoingRelationships(targetId, targetSaturation.RelationshipId.Value)
-                    .Concat(_graph.IncomingRelationships(targetId, targetSaturation.RelationshipId.Value))
-                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactId)),
+                _graph.OutgoingRelationships(targetId, new RelationshipKindRuntimeId(targetSaturation.RelationshipRuntimeId))
+                    .Concat(_graph.IncomingRelationships(
+                        targetId,
+                        new RelationshipKindRuntimeId(targetSaturation.RelationshipRuntimeId)))
+                    .Count(relationship => MatchesRequiredFact(relationship, targetSaturation.RequiredFactRuntimeId)),
             _ => 0,
         };
     }
 
     private static bool MatchesRequiredFact(
         Relationship relationship,
-        DefinitionRelationshipFactId? requiredFactId) =>
-        requiredFactId is null || relationship.HasFact(requiredFactId.Value.Value);
+        int requiredFactId) =>
+        requiredFactId == 0 || relationship.HasFact(new RelationshipFactRuntimeId(requiredFactId));
 
     private static bool TriggersPass(DefinitionGeneratorNode generator, Entity target)
     {
@@ -823,6 +930,57 @@ public sealed class GeneratorSystem
         return symbols.TryGetValue(sourceRef, out var entityId) ? entityId : null;
     }
 
+    private DomainIdRegistry DomainIdsOrThrow()
+    {
+        if (_domainIds is not null)
+        {
+            return _domainIds;
+        }
+
+        throw new InvalidOperationException("Generator execution requires registered domain runtime IDs.");
+    }
+
+    private static (
+        RelationshipFactRuntimeId FactId0,
+        RelationshipFactRuntimeId FactId1,
+        RelationshipFactRuntimeId FactId2,
+        RelationshipFactRuntimeId FactId3,
+        int FactCount) ResolveFactRuntimeIds(DefinitionGeneratorRelationship relationship)
+    {
+        RelationshipFactRuntimeId factId0 = default;
+        RelationshipFactRuntimeId factId1 = default;
+        RelationshipFactRuntimeId factId2 = default;
+        RelationshipFactRuntimeId factId3 = default;
+        var factCount = 0;
+
+        foreach (var factRuntimeId in relationship.FactRuntimeIds)
+        {
+            var typed = new RelationshipFactRuntimeId(factRuntimeId);
+            switch (factCount)
+            {
+                case 0:
+                    factId0 = typed;
+                    break;
+                case 1:
+                    factId1 = typed;
+                    break;
+                case 2:
+                    factId2 = typed;
+                    break;
+                case 3:
+                    factId3 = typed;
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        $"Generator relationship '{relationship.RelationshipId.Value}' has more than four primitive facts.");
+            }
+
+            factCount++;
+        }
+
+        return (factId0, factId1, factId2, factId3, factCount);
+    }
+
 
     private sealed record ApplicableGenerator(
         GeneratorInstance Instance,
@@ -844,6 +1002,7 @@ public sealed class GeneratorSystem
     private sealed class GeneratorPulseStats(string generatorId)
     {
         public string GeneratorId { get; } = generatorId;
+        public int RuntimeId { get; set; } = StableRuntimeId(generatorId);
         public string Status { get; set; } = "not_evaluated";
         public int TargetPoolCount { get; set; }
         public int InactiveRejectedCount { get; set; }

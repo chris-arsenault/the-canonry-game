@@ -1,5 +1,7 @@
 namespace Engine.Pressure;
 
+using Engine.Domain;
+
 /// <summary>
 /// Scope type for pressure computation.
 /// </summary>
@@ -19,6 +21,7 @@ public enum PressureScope
 public sealed class PressureDefinition
 {
     public string Name { get; }
+    public PressureRuntimeId RuntimeId { get; }
     public PressureScope Scope { get; }
 
     /// <summary>Value the pressure drifts toward when no contributing factors push it.</summary>
@@ -38,9 +41,11 @@ public sealed class PressureDefinition
         PressureScope scope,
         float baseline = 0f,
         float homeostasisRate = 0.1f,
-        float smoothingFactor = 0.3f)
+        float smoothingFactor = 0.3f,
+        PressureRuntimeId runtimeId = default)
     {
         Name = name;
+        RuntimeId = runtimeId;
         Scope = scope;
         Baseline = baseline;
         HomeostasisRate = homeostasisRate;

@@ -1,6 +1,8 @@
 namespace Engine.Pressure;
 
+using Engine.Domain;
 using Engine.Graph;
+using Engine.Kernel;
 
 /// <summary>
 /// Computes and stores pressure values per scope instance (region or entity).
@@ -9,20 +11,32 @@ using Engine.Graph;
 /// </summary>
 public sealed class PressureSystem
 {
+    private const int DefaultValueCapacity = 65536;
     private readonly List<PressureDefinition> _definitions = [];
 
-    // Stored values: (pressureName, scopeId) -> value
-    // For regional: scopeId is the region EntityId
-    // For entity: scopeId is the entity EntityId
-    private readonly Dictionary<(string PressureName, EntityId ScopeId), float> _values = [];
+    // Stored values: pressure runtime ID + scope entity ID -> value.
+    private readonly PrimitiveFloatTable _values;
+    private readonly Dictionary<string, PressureRuntimeId> _idsByName = new(StringComparer.Ordinal);
 
     // Direct modifications from cards (applied before homeostasis on next compute)
-    private readonly Dictionary<(string PressureName, EntityId ScopeId), float> _pendingDeltas = [];
+    private readonly PrimitiveFloatTable _pendingDeltas;
+
+    public PressureSystem(int valueCapacity = DefaultValueCapacity)
+    {
+        _values = new PrimitiveFloatTable(valueCapacity);
+        _pendingDeltas = new PrimitiveFloatTable(valueCapacity);
+    }
 
     public void RegisterDefinition(PressureDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
+        if (definition.RuntimeId.Value <= 0)
+        {
+            throw new InvalidOperationException($"Pressure '{definition.Name}' must have a registered runtime ID.");
+        }
+
         _definitions.Add(definition);
+        _idsByName.Add(definition.Name, definition.RuntimeId);
     }
 
     /// <summary>
@@ -31,8 +45,11 @@ public sealed class PressureSystem
     /// </summary>
     public float GetValue(string pressureName, EntityId scopeId)
     {
-        return _values.GetValueOrDefault((pressureName, scopeId));
+        return GetValue(ResolvePressureId(pressureName), scopeId);
     }
+
+    public float GetValue(PressureRuntimeId pressureId, EntityId scopeId) =>
+        _values.GetOrDefault(pressureId.Value, scopeId.Value);
 
     /// <summary>
     /// Apply a direct delta to a pressure (from card effects).
@@ -40,8 +57,12 @@ public sealed class PressureSystem
     /// </summary>
     public void ApplyDelta(string pressureName, EntityId scopeId, float delta)
     {
-        var key = (pressureName, scopeId);
-        _pendingDeltas[key] = _pendingDeltas.GetValueOrDefault(key) + delta;
+        ApplyDelta(ResolvePressureId(pressureName), scopeId, delta);
+    }
+
+    public void ApplyDelta(PressureRuntimeId pressureId, EntityId scopeId, float delta)
+    {
+        _pendingDeltas.Add(pressureId.Value, scopeId.Value, delta);
     }
 
     /// <summary>
@@ -70,15 +91,26 @@ public sealed class PressureSystem
     /// <summary>Get all scope IDs that have values for a pressure type.</summary>
     public IEnumerable<EntityId> GetScopeIds(string pressureName)
     {
-        return _values.Keys
-            .Where(k => k.PressureName == pressureName)
-            .Select(k => k.ScopeId);
+        var pressureId = ResolvePressureId(pressureName);
+        var count = _values.CountSecondKeysForFirst(pressureId.Value);
+        if (count == 0)
+        {
+            return [];
+        }
+
+        var scopeIds = new int[count];
+        var copied = _values.CopySecondKeysForFirst(pressureId.Value, scopeIds);
+        if (copied != count)
+        {
+            Array.Resize(ref scopeIds, copied);
+        }
+
+        return scopeIds.Select(static id => new EntityId(id));
     }
 
     private void ComputeForScope(PressureDefinition def, EntityId scopeId, IPressureContext context)
     {
-        var key = (def.Name, scopeId);
-        var previousValue = _values.GetValueOrDefault(key, def.Baseline);
+        var previousValue = _values.GetOrDefault(def.RuntimeId.Value, scopeId.Value, def.Baseline);
 
         // 1. Evaluate all contributing factors
         var rawContribution = 0f;
@@ -88,7 +120,7 @@ public sealed class PressureSystem
         }
 
         // 2. Apply pending direct deltas from cards
-        rawContribution += _pendingDeltas.GetValueOrDefault(key);
+        rawContribution += _pendingDeltas.GetOrDefault(def.RuntimeId.Value, scopeId.Value);
 
         // 3. Target value = baseline + contributions
         var targetValue = def.Baseline + rawContribution;
@@ -100,6 +132,16 @@ public sealed class PressureSystem
         var newValue = previousValue + ((targetValue - previousValue) * def.SmoothingFactor);
 
         // 6. Clamp to range
-        _values[key] = Math.Clamp(newValue, -100f, 100f);
+        _values.Set(def.RuntimeId.Value, scopeId.Value, Math.Clamp(newValue, -100f, 100f));
+    }
+
+    private PressureRuntimeId ResolvePressureId(string pressureName)
+    {
+        if (_idsByName.TryGetValue(pressureName, out var id))
+        {
+            return id;
+        }
+
+        throw new KeyNotFoundException($"Unknown pressure '{pressureName}'.");
     }
 }

@@ -2,6 +2,7 @@ namespace Engine.Tests.Behaviors;
 
 using Engine.Attributes;
 using Engine.Behaviors;
+using Engine.Domain;
 using Engine.Domain.Config;
 using Engine.Domain.IceRemembers;
 using Engine.Domain.Loader;
@@ -697,7 +698,8 @@ public class GoalGeneratorTests
             PressureScope.Entity,
             baseline: 0f,
             homeostasisRate: 0f,
-            smoothingFactor: 1f);
+            smoothingFactor: 1f,
+            runtimeId: new PressureRuntimeId(1));
         world.Pressure.RegisterDefinition(definition);
         world.Pressure.ApplyDelta(pressureName, scopeId, value);
         world.Pressure.Compute(new Dictionary<EntityId, IPressureContext>

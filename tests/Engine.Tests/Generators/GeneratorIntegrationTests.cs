@@ -4,11 +4,11 @@ using System.Diagnostics.CodeAnalysis;
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
 using Engine.Domain.IceRemembers;
+using Engine.Eventing;
 using Engine.Generators;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
-using Engine.Messages;
 using Engine.Simulation;
 
 [SuppressMessage(
@@ -59,18 +59,11 @@ public class GeneratorIntegrationTests
         var sim = SimulationRunner.CreateFromDomain(WithGenerators(generator));
         var initialEntityCount = sim.Graph.EntityCount;
         _ = SetSingleSettlementShelterLow(sim);
-        GeneratorFiredMessage? fired = null;
-        sim.MessageBus.Subscribe(message =>
-        {
-            if (message is GeneratorFiredMessage generatorFired)
-            {
-                fired = generatorFired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         RunTicks(sim, 25);
 
-        var message = Assert.IsType<GeneratorFiredMessage>(fired);
+        var message = CaptureGeneratorFire(sim, cursor);
         Assert.Equal(1, sim.GeneratorSystem.TotalFired);
         Assert.Equal(initialEntityCount + 2, sim.Graph.EntityCount);
         Assert.Equal(2, message.CreatedEntityIds.Count);
@@ -218,19 +211,12 @@ public class GeneratorIntegrationTests
         var targetRegionId = sim.Graph.GetEntitiesByKind(TestKinds.Region)
             .OrderBy(id => id.Value)
             .First();
-        GeneratorFiredMessage? fired = null;
-        sim.MessageBus.Subscribe(message =>
-        {
-            if (message is GeneratorFiredMessage generatorFired)
-            {
-                fired = generatorFired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         SetRegionHolding(sim, targetRegionId, highValue: 90f, lowValue: 10f);
         system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "region_opens_the_old_holding" });
 
-        var message = Assert.IsType<GeneratorFiredMessage>(fired);
+        var message = CaptureGeneratorFire(sim, cursor);
         var relicId = message.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Artifact);
         var witnessId = message.CreatedEntityIds.Single(id => sim.Graph.GetEntity(id)!.Kind == TestKinds.Penguin);
 
@@ -373,8 +359,10 @@ public class GeneratorIntegrationTests
             sim.SpatialIndex,
             sim.WorldState.SemanticPlane,
             sim.CoverageMap,
-            sim.MessageBus,
-            random);
+            random,
+            sim.KernelEvents,
+            sim.WorldState,
+            sim.DomainIds);
 
         return (sim, system);
     }
@@ -385,6 +373,39 @@ public class GeneratorIntegrationTests
         {
             sim.Tick();
         }
+    }
+
+    private static CapturedGeneratorFire CaptureGeneratorFire(
+        SimulationRunner sim,
+        KernelEventCursor cursor)
+    {
+        while (sim.KernelEvents.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType != KernelEventType.GeneratorFired)
+            {
+                continue;
+            }
+
+            var fired = sequenced.Event.AsGeneratorFired();
+            var createdEntityIds = sim.Graph.AllEntities.Values
+                .Where(entity => entity.CreatedAt == fired.Tick)
+                .Select(entity => entity.Id)
+                .ToList();
+            var generatorId = sim.DomainIds.GeneratorNameOf(new global::Engine.Domain.GeneratorRuntimeId(fired.GeneratorId));
+            return new CapturedGeneratorFire(generatorId, fired, createdEntityIds);
+        }
+
+        throw new Xunit.Sdk.XunitException("Expected a primitive GeneratorFired kernel event.");
+    }
+
+    private sealed record CapturedGeneratorFire(
+        string GeneratorId,
+        GeneratorFiredKernelEvent Event,
+        IReadOnlyList<EntityId> CreatedEntityIds)
+    {
+        public EntityId? TargetEntityId => new EntityId(Event.TargetEntityId);
+
+        public int CreatedRelationshipCount => Event.CreatedRelationshipCount;
     }
 
     private static EntityId SetSingleSettlementShelterLow(SimulationRunner sim, float lowValue = 10f, float highValue = 90f)

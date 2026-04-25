@@ -17,7 +17,11 @@ public static class DomainLoader
 {
     /// <summary>Build a typed domain definition graph for validation and higher-order reasoning.</summary>
     public static DefinitionGraph BuildDefinitionGraph(DomainConfig config) =>
-        DefinitionGraphBuilder.Build(config);
+        DefinitionGraphBuilder.Build(config, DomainRuntimeIdLoader.BuildRuntimeIds(config));
+
+    /// <summary>Build registered primitive runtime IDs for the domain.</summary>
+    public static global::Engine.Domain.DomainIdRegistry BuildRuntimeIds(DomainConfig config) =>
+        DomainRuntimeIdLoader.BuildRuntimeIds(config);
 
     /// <summary>Build a KindRegistry from domain config.</summary>
     public static KindRegistry LoadKindRegistry(DomainConfig config)
@@ -75,11 +79,25 @@ public static class DomainLoader
     public static IEnumerable<PressureDefinition> LoadPressureDefinitions(DomainConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
+        return LoadPressureDefinitions(config, DomainRuntimeIdLoader.BuildRuntimeIds(config));
+    }
+
+    public static IEnumerable<PressureDefinition> LoadPressureDefinitions(
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(runtimeIds);
 
         foreach (var pc in config.Pressures)
         {
             yield return new PressureDefinition(
-                pc.Name, pc.Scope, pc.Baseline, pc.HomeostasisRate, pc.SmoothingFactor);
+                pc.Name,
+                pc.Scope,
+                pc.Baseline,
+                pc.HomeostasisRate,
+                pc.SmoothingFactor,
+                runtimeIds.PressureIdOf(pc.Name));
             // Contributing factors will be added via wiring contracts (#35)
         }
     }
@@ -88,10 +106,21 @@ public static class DomainLoader
     public static void LoadProcesses(DomainConfig config, BehaviorDefinitionIndex definitions)
     {
         ArgumentNullException.ThrowIfNull(config);
+        LoadProcesses(config, definitions, DomainRuntimeIdLoader.BuildRuntimeIds(config));
+    }
+
+    public static void LoadProcesses(
+        DomainConfig config,
+        BehaviorDefinitionIndex definitions,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(definitions);
+        ArgumentNullException.ThrowIfNull(runtimeIds);
 
         foreach (var procDef in config.Processes)
         {
+            procDef.BindRuntimeIds(runtimeIds);
             definitions.Register(procDef);
         }
     }

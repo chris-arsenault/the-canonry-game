@@ -5,11 +5,13 @@
     <RootNamespace>TheCanonryGame</RootNamespace>
     <Nullable>enable</Nullable>
 
-    <!-- Only include UI scripts, not the Engine source (Engine is a separate project) -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;tests/**;tools/**</DefaultItemExcludes>
+    <!-- Only include UI scripts, not the engine projects (they are separate projects) -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;src/Engine.Domain/**;src/Engine.Eventing/**;src/Engine.Host/**;src/Engine.Kernel/**;src/Engine.Projection/**;tests/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="src/Engine/Engine.csproj" />
+    <ProjectReference Include="src/Engine.Kernel/Engine.Kernel.csproj" />
+    <ProjectReference Include="src/Engine.Projection/Engine.Projection.csproj" />
   </ItemGroup>
 </Project>

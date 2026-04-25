@@ -1,5 +1,7 @@
 namespace Engine.Attributes;
 
+using Engine.Domain;
+
 /// <summary>
 /// Base interface for all attribute types on an entity.
 /// Scalar attributes have a single float value.
@@ -7,6 +9,7 @@ namespace Engine.Attributes;
 public interface IEntityProperty
 {
     string Name { get; }
+    AttributeRuntimeId RuntimeId { get; }
 
     /// <summary>Apply registered tick effects. Called once per tick by MaintenanceSystem.</summary>
     void ApplyTickEffects();

@@ -1,9 +1,9 @@
 namespace Engine.Tests.Domain;
 
 using System.IO;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Messages;
 using Engine.Observability;
 using Engine.Simulation;
 
@@ -48,12 +48,7 @@ public class MotionDebugTests
         var initialEntityCount = sim.Graph.EntityCount;
 
         var actionsByKind = new Dictionary<EntityKind, int>();
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is not ProcessExecutedMessage pem) return;
-            actionsByKind.TryGetValue(pem.ActorKind, out var count);
-            actionsByKind[pem.ActorKind] = count + 1;
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         var startSemanticByKind = sim.Graph.AllEntities
             .GroupBy(kv => kv.Value.Kind)
@@ -64,6 +59,19 @@ public class MotionDebugTests
         for (var i = 0; i < ticks; i++)
         {
             sim.Tick();
+        }
+
+        while (sim.KernelEvents.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType != KernelEventType.ProcessExecuted)
+            {
+                continue;
+            }
+
+            var executed = sequenced.Event.AsProcessExecuted();
+            var kind = sim.DomainConfig.Kinds.Keys.Single(candidate => candidate.Id == executed.ActorKindId);
+            actionsByKind.TryGetValue(kind, out var count);
+            actionsByKind[kind] = count + 1;
         }
 
         foreach (var kind in new[] { TestKinds.Penguin, TestKinds.Faction, TestKinds.Settlement, TestKinds.Artifact })

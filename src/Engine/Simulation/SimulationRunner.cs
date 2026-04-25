@@ -10,13 +10,14 @@ using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
 using Engine.Domain.IceRemembers;
+using Engine.Eventing;
 using Engine.Events;
 using Engine.Generators;
 using Engine.Graph;
+using Engine.Kernel;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Map;
-using Engine.Messages;
 using Engine.Pressure;
 using Engine.Relationships;
 using Engine.Resources;
@@ -37,6 +38,7 @@ public sealed class SimulationRunner
     public HexGrid Grid { get; }
     public MapCoverageMap CoverageMap { get; }
     public SpatialIndex SpatialIndex { get; }
+    public WorldGenerationSeed WorldSeed { get; }
 
     // Clock
     public TickClock Clock { get; }
@@ -47,8 +49,7 @@ public sealed class SimulationRunner
     public LifecycleSystem Lifecycle { get; }
     public ResourceSystem Resources { get; }
 
-    // Message bus
-    public MessageBus MessageBus { get; }
+    public KernelEventLog KernelEvents { get; }
 
     // Bridge
     public PressureSystem Pressure { get; }
@@ -63,6 +64,7 @@ public sealed class SimulationRunner
     // State
     public WorldState WorldState { get; }
     public DefinitionGraph DefinitionGraph { get; }
+    public global::Engine.Domain.DomainIdRegistry DomainIds { get; }
 
     // Registries
     public KindRegistry KindRegistry { get; }
@@ -73,14 +75,15 @@ public sealed class SimulationRunner
     private SimulationRunner(
         DomainConfig domainConfig,
         WorldGraph graph, EffectSystem effects,
-        HexGrid grid, MapCoverageMap coverageMap, SpatialIndex spatialIndex,
+        HexGrid grid, MapCoverageMap coverageMap, SpatialIndex spatialIndex, WorldGenerationSeed worldSeed,
         TickClock clock, EntityEvaluator evaluator, RelationshipSystem relationships,
         LifecycleSystem lifecycle, ResourceSystem resources, PressureSystem pressure,
         TableauManager tableau, EventLog eventLog, DetectorRegistry detectors,
         WorldState worldState, DefinitionGraph definitionGraph, KindRegistry kindRegistry,
         BehaviorDefinitionIndex behaviorDefinitions, GeneratorSystem generatorSystem,
         IReadOnlyDictionary<string, CardDefinition> spawnCards,
-        MessageBus messageBus)
+        KernelEventLog kernelEvents,
+        global::Engine.Domain.DomainIdRegistry domainIds)
     {
         DomainConfig = domainConfig;
         Graph = graph;
@@ -88,6 +91,7 @@ public sealed class SimulationRunner
         Grid = grid;
         CoverageMap = coverageMap;
         SpatialIndex = spatialIndex;
+        WorldSeed = worldSeed;
         Clock = clock;
         Evaluator = evaluator;
         Relationships = relationships;
@@ -95,11 +99,12 @@ public sealed class SimulationRunner
         Resources = resources;
         Pressure = pressure;
         Tableau = tableau;
-        MessageBus = messageBus;
+        KernelEvents = kernelEvents;
         EventLog = eventLog;
         Detectors = detectors;
         WorldState = worldState;
         DefinitionGraph = definitionGraph;
+        DomainIds = domainIds;
         KindRegistry = kindRegistry;
         BehaviorDefinitions = behaviorDefinitions;
         GeneratorSystem = generatorSystem;
@@ -123,25 +128,21 @@ public sealed class SimulationRunner
     public static SimulationRunner CreateFromDomain(
         DomainConfig domainConfig,
         Random? random = null,
-        MessageBus? messageBus = null,
         SimulationDiagnosticsOptions? diagnosticsOptions = null)
     {
         ArgumentNullException.ThrowIfNull(domainConfig);
         diagnosticsOptions ??= SimulationDiagnosticsOptions.Detailed;
         KindId.RegisterAll(domainConfig.Kinds.Keys);
+        var domainIds = DomainLoader.BuildRuntimeIds(domainConfig);
 
-        var definitionGraph = DomainLoader.BuildDefinitionGraph(domainConfig);
-
-        // Message bus is needed before seed selection so procedural map generation
-        // degeneracy can be observed and handled without crashing the executor.
-        messageBus ??= new MessageBus();
+        var definitionGraph = DefinitionGraphBuilder.Build(domainConfig, domainIds);
 
         // Build an empty world first so we can wire per-entity subscribers (attribute
         // init, lifecycle drain) BEFORE any entity is created. Subsequent Populate
         // triggers WorldGraph.EntityCreated for each entity, and every subscriber
         // initializes that entity exactly once — no init-time sweeps.
         random ??= new Random();
-        var worldSeed = TestMapBuilder.SelectAcceptedSeed(random, messageBus);
+        var worldSeed = TestMapBuilder.SelectAcceptedSeed(random);
         var testWorld = TestMapBuilder.BuildEmpty(worldSeed);
         var graph = testWorld.Graph;
         var grid = testWorld.Grid;
@@ -154,7 +155,7 @@ public sealed class SimulationRunner
 
         // Load domain into engine systems
         var kindRegistry = DomainLoader.LoadKindRegistry(domainConfig);
-        var attributeInitializer = new DomainEntityInitializer(graph, domainConfig, random);
+        var attributeInitializer = new DomainEntityInitializer(graph, domainConfig, domainIds, random);
 
         // Wiring validation: check domain coherence before starting
         var wiringValidator = DomainLoader.LoadAndValidateWiring(domainConfig);
@@ -167,13 +168,15 @@ public sealed class SimulationRunner
 
         // Three-layer behavioral model: ALL processes are data-defined in domain config
         var behaviorDefinitions = new BehaviorDefinitionIndex();
-        DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions);
-        var goalGenerator = new Behaviors.GoalGenerator(domainConfig.Kinds, domainConfig.Processes);
+        DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions, domainIds);
+        var goalGenerator = new Behaviors.GoalGenerator(domainConfig.Kinds, domainConfig.Processes, domainIds);
+        var kernelEvents = new KernelEventLog(capacity: 65536);
         var evaluator = new EntityEvaluator(
             behaviorDefinitions,
-            messageBus,
             goalGenerator: goalGenerator,
-            kindConfigs: domainConfig.Kinds);
+            kindConfigs: domainConfig.Kinds,
+            kernelEvents: kernelEvents,
+            domainIds: domainIds);
         evaluator.CaptureEvaluationCandidates = diagnosticsOptions.CaptureEvaluationCandidates;
         evaluator.PublishGoalDetails = diagnosticsOptions.PublishGoalDetails;
 
@@ -189,25 +192,23 @@ public sealed class SimulationRunner
         var lifecycleConfig = DomainLoader.LoadLifecycleConfig(domainConfig);
         var lifecycle = new LifecycleSystem(graph, lifecycleConfig);
 
-        // Bridge graph/lifecycle mutations onto the single simulation message bus.
-        // Observers should subscribe here instead of wiring directly to subsystems.
-        SimulationMessageBridge.Wire(graph, lifecycle, messageBus);
-
         // Resources
         var resources = new ResourceSystem(graph, grid);
         var locationDrift = new LocationResourceDriftSystem(graph, domainConfig.Kinds, resources);
         var criticalEffects = new Lifecycle.CriticalAttributeEffectSystem(graph, domainConfig.Kinds);
+        var kernelEventWorldVersion = new KernelEventWorldVersionSource();
+        KernelSimulationEventBridge.Wire(graph, kernelEvents, domainIds, kernelEventWorldVersion);
 
         // With all per-entity subscribers wired, populate the world. Entities get
         // their attributes + lifecycle drain + critical-effect hooks as they are
         // created. Spatial index catches up afterwards.
-        TestMapBuilder.Populate(testWorld, worldSeed);
+        TestMapBuilder.Populate(testWorld, worldSeed, domainIds);
         spatialIndex.RebuildFromGraph();
         locationDrift.InitializeEffects();
 
         // Pressure from domain config
         var pressure = new PressureSystem();
-        foreach (var def in DomainLoader.LoadPressureDefinitions(domainConfig))
+        foreach (var def in DomainLoader.LoadPressureDefinitions(domainConfig, domainIds))
         {
             pressure.RegisterDefinition(def);
         }
@@ -236,6 +237,7 @@ public sealed class SimulationRunner
             semanticPlane,
             generators,
             resources);
+        kernelEventWorldVersion.Source = worldState;
         var generatorSystem = new GeneratorSystem(
             graph,
             generators,
@@ -243,8 +245,10 @@ public sealed class SimulationRunner
             spatialIndex,
             semanticPlane,
             coverageMap,
-            messageBus,
-            random);
+            random,
+            kernelEvents,
+            worldState,
+            domainIds);
         var spawnCards = new Dictionary<string, CardDefinition>(StringComparer.Ordinal);
 
         foreach (var generator in definitionGraph.Generators.Values)
@@ -316,7 +320,12 @@ public sealed class SimulationRunner
         clock.Register("tableau", TickPhase.CardExecution, cadence: 1,
             tick =>
             {
-                var cardContext = new CardMutationContext(graph, pressure, worldState, messageBus);
+                var cardContext = new CardMutationContext(
+                    graph,
+                    pressure,
+                    worldState,
+                    kernelEvents,
+                    domainIds);
                 tableau.Tick(tick, cardContext);
                 var activeGeneratorIds = tableau.ActiveCards
                     .Select(card => card.Definition.GeneratorId)
@@ -335,10 +344,10 @@ public sealed class SimulationRunner
             });
 
         return new SimulationRunner(
-            domainConfig, graph, effects, grid, coverageMap, spatialIndex,
+            domainConfig, graph, effects, grid, coverageMap, spatialIndex, worldSeed,
             clock, evaluator, relationships, lifecycle, resources, pressure,
             tableau, eventLog, detectors, worldState, definitionGraph, kindRegistry,
-            behaviorDefinitions, generatorSystem, spawnCards, messageBus);
+            behaviorDefinitions, generatorSystem, spawnCards, kernelEvents, domainIds);
     }
 
     /// <summary>Advance the simulation by one frame (speed-dependent tick count).</summary>
@@ -412,11 +421,16 @@ internal sealed class SimplePressureContext(
 }
 
 internal sealed class CardMutationContext(
-    WorldGraph graph, PressureSystem pressure, WorldState worldState, MessageBus messageBus,
+    WorldGraph graph, PressureSystem pressure, WorldState worldState,
+    KernelEventLog kernelEvents, global::Engine.Domain.DomainIdRegistry domainIds,
     Random? random = null)
     : IMutationContext
 {
     private Dictionary<string, float>? _variables;
+    private readonly MutationEventWriter _kernelMutation = new(
+        kernelEvents,
+        domainIds.SourceCodeIdOf(DomainRuntimeIdLoader.ProcessSourceCode).Value,
+        domainIds.SourceCodeIdOf(DomainRuntimeIdLoader.CardSourceCode).Value);
     public int CurrentTick => worldState.CurrentTick;
     public EntityId SelfEntityId => new EntityId(-1); // Card context has no "self" -- cards target explicitly
     public Random Random { get; } = random ?? System.Random.Shared;
@@ -424,17 +438,32 @@ internal sealed class CardMutationContext(
     public void SetVariable(string name, float value) { _variables ??= []; _variables[name] = value; }
     public float GetVariable(string name) => _variables is not null && _variables.TryGetValue(name, out var v) ? v : 0f;
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
+    public float GetPressure(global::Engine.Domain.PressureRuntimeId pressureId, EntityId scopeId) =>
+        pressure.GetValue(pressureId, scopeId);
     public float GetAttribute(EntityId entityId, string attributeName) =>
-        GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
+        GetAttribute(entityId, domainIds.AttributeIdOf(attributeName));
+    public float GetAttribute(EntityId entityId, global::Engine.Domain.AttributeRuntimeId attributeId) =>
+        GetEntity(entityId)?.Attributes.GetValue(attributeId) ?? 0f;
     public int CountEntitiesByKind(EntityKind kind) => graph.GetEntitiesByKind(kind).Count;
 
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
+        FindRelationship(sourceId, targetId, domainIds.RelationshipKindIdOf(kind));
+
+    public Relationship? FindRelationship(
+        EntityId sourceId,
+        EntityId targetId,
+        global::Engine.Domain.RelationshipKindRuntimeId kind) =>
         worldState.QueryCache.FindRelationship(sourceId, targetId, kind);
 
     public int? GetLastFiredTick() => null; // Per-card, handled by CardInstance
     public Entity? GetEntity(EntityId id) => worldState.QueryCache.GetEntity(id);
 
     public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) =>
+        FindRelatedEntity(sourceId, domainIds.RelationshipKindIdOf(relationshipKind));
+
+    public EntityId? FindRelatedEntity(
+        EntityId sourceId,
+        global::Engine.Domain.RelationshipKindRuntimeId relationshipKind) =>
         worldState.QueryCache.FindRelatedEntity(sourceId, relationshipKind);
 
     public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) =>
@@ -454,34 +483,71 @@ internal sealed class CardMutationContext(
     }
 
     public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) =>
-        graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);
+        graph.CreateEntity(
+            kind,
+            subtype,
+            name,
+            culture,
+            CurrentTick,
+            coordinates,
+            subtypeId: domainIds.SubtypeIdOf(subtype),
+            cultureId: domainIds.CultureIdOf(culture));
 
     public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) =>
-        graph.CreateRelationship(kind, polarity, sourceId, targetId, strength, CurrentTick);
+        CreateRelationship(domainIds.RelationshipKindIdOf(kind), polarity, sourceId, targetId, strength);
+
+    public void CreateRelationship(
+        global::Engine.Domain.RelationshipKindRuntimeId kind,
+        RelationshipPolarity polarity,
+        EntityId sourceId,
+        EntityId targetId,
+        float strength) =>
+        graph.CreateRelationship(
+            domainIds.RelationshipKindNameOf(kind),
+            polarity,
+            sourceId,
+            targetId,
+            strength,
+            CurrentTick,
+            kindId: kind);
 
     public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
     {
+        ModifyAttribute(entityId, domainIds.AttributeIdOf(attributeName), delta);
+    }
+
+    public void ModifyAttribute(EntityId entityId, global::Engine.Domain.AttributeRuntimeId attributeId, float delta)
+    {
         var entity = graph.GetEntity(entityId);
-        var oldValue = entity?.Attributes.GetValue(attributeName);
-        entity?.Attributes.Modify(attributeName, delta);
+        var oldValue = entity?.Attributes.GetValue(attributeId);
+        entity?.Attributes.Modify(attributeId, delta);
         if (entity is not null && oldValue is { } before)
         {
-            var after = entity.Attributes.GetValue(attributeName);
+            var after = entity.Attributes.GetValue(attributeId);
             if (Math.Abs(after - before) > float.Epsilon)
             {
-                messageBus.Publish(new AttributeChangedMessage(
+                AdvanceWorldVersion();
+                _kernelMutation.WriteCardAttributeChanged(
                     CurrentTick,
-                    entityId,
-                    attributeName,
+                    worldState.WorldVersion,
+                    entityId.Value,
+                    attributeId.Value,
                     before,
-                    after,
-                    "card"));
+                    after);
             }
         }
     }
 
-    public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
-        pressure.ApplyDelta(pressureName, scopeId, delta);
+    public void ModifyPressure(string pressureName, EntityId scopeId, float delta)
+    {
+        ModifyPressure(domainIds.PressureIdOf(pressureName), scopeId, delta);
+    }
+
+    public void ModifyPressure(global::Engine.Domain.PressureRuntimeId pressureId, EntityId scopeId, float delta)
+    {
+        pressure.ApplyDelta(pressureId, scopeId, delta);
+        AdvanceWorldVersion();
+    }
 
     public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta)
     {
@@ -501,13 +567,15 @@ internal sealed class CardMutationContext(
         if (Math.Abs(after - before) > float.Epsilon)
         {
             worldState.QueryCache.InvalidateResources();
-            messageBus.Publish(new ResourceChangedMessage(
+            AdvanceWorldVersion();
+            _kernelMutation.WriteCardResourceChanged(
                 CurrentTick,
-                resourceType.ToString(),
-                coordinates,
+                worldState.WorldVersion,
+                domainIds.ResourceIdOf(resourceType.ToDomainName()).Value,
+                coordinates.Q,
+                coordinates.R,
                 before,
-                after,
-                "card"));
+                after);
         }
     }
 
@@ -537,13 +605,15 @@ internal sealed class CardMutationContext(
         if (consumed > 0f)
         {
             worldState.QueryCache.InvalidateResources();
-            messageBus.Publish(new ResourceChangedMessage(
+            AdvanceWorldVersion();
+            _kernelMutation.WriteCardResourceChanged(
                 CurrentTick,
-                resourceType.ToString(),
-                coordinates,
+                worldState.WorldVersion,
+                domainIds.ResourceIdOf(resourceType.ToDomainName()).Value,
+                coordinates.Q,
+                coordinates.R,
                 available,
-                available - consumed,
-                "card"));
+                available - consumed);
         }
         return consumed;
     }
@@ -555,7 +625,18 @@ internal sealed class CardMutationContext(
         graph.SetCoordinates(entityId, q, r);
         if (previous is { } from && from != (q, r))
         {
-            messageBus.Publish(new EntityMovedMessage(CurrentTick, entityId, from, (q, r)));
+            AdvanceWorldVersion();
+            _kernelMutation.WriteEntityMoved(
+                CurrentTick,
+                worldState.WorldVersion,
+                entityId.Value,
+                planeCode: 0,
+                from.Q,
+                from.R,
+                0,
+                q,
+                r,
+                0);
         }
     }
 
@@ -571,23 +652,43 @@ internal sealed class CardMutationContext(
         entity.SemanticPosition = new SemanticHexCoord(q, r);
         if (previous != entity.SemanticPosition)
         {
-            messageBus.Publish(new EntitySemanticMovedMessage(
+            AdvanceWorldVersion();
+            _kernelMutation.WriteEntityMoved(
                 CurrentTick,
-                entityId,
-                (previous.Q, previous.R, previous.S),
-                (entity.SemanticPosition.Q, entity.SemanticPosition.R, entity.SemanticPosition.S)));
+                worldState.WorldVersion,
+                entityId.Value,
+                planeCode: 1,
+                previous.Q,
+                previous.R,
+                previous.S,
+                entity.SemanticPosition.Q,
+                entity.SemanticPosition.R,
+                entity.SemanticPosition.S);
         }
     }
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {
-        var relationships = worldState.QueryCache.OutgoingRelationships(sourceId, relationshipKind);
+        CullRelationship(sourceId, domainIds.RelationshipKindIdOf(relationshipKind));
+    }
+
+    public void CullRelationship(EntityId sourceId, global::Engine.Domain.RelationshipKindRuntimeId relationshipKind)
+    {
+        var relationships = worldState.QueryCache.OutgoingRelationships(
+            sourceId,
+            relationshipKind);
         var rel = relationships.Count == 0 ? null : relationships[0];
         if (rel is not null)
         {
             graph.CullRelationship(rel, CurrentTick);
         }
     }
+
+    private void AdvanceWorldVersion()
+    {
+        worldState.AdvanceWorldVersion();
+    }
+
 }
 
 internal sealed class DegeneracyContextAdapter(WorldGraph graph)
@@ -627,4 +728,11 @@ internal sealed class DegeneracyContextAdapter(WorldGraph graph)
     public int ActiveNpcCount =>
         graph.GetEntitiesByKind(IceRemembersKinds.Penguin).Count(id =>
             graph.GetEntity(id)?.Status == EntityStatus.Active);
+}
+
+internal sealed class KernelEventWorldVersionSource : IWorldVersionSource
+{
+    public IWorldVersionSource? Source { get; set; }
+
+    public long WorldVersion => Source?.WorldVersion ?? 0;
 }

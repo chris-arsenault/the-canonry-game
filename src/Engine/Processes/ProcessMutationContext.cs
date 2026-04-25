@@ -1,9 +1,12 @@
 namespace Engine.Processes;
 
 using Engine.Behaviors;
+using Engine.Domain;
+using Engine.Domain.Loader;
+using Engine.Eventing;
 using Engine.Graph;
-using Engine.Messages;
-using System.Globalization;
+using Engine.Kernel;
+using Engine.Resources;
 
 /// <summary>
 /// Bridges IWorldState to IMutationContext for data-driven precondition and mutation evaluation.
@@ -14,7 +17,8 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     private readonly Entity _entity;
     private readonly IWorldState _worldState;
     private readonly ProcessRuntimeId? _definitionId;
-    private readonly MessageBus? _messageBus;
+    private readonly MutationEventWriter _kernelMutation;
+    private readonly global::Engine.Domain.DomainIdRegistry _domainIds;
     private Dictionary<string, float>? _variables;
 
     public int CurrentTick => _worldState.CurrentTick;
@@ -30,13 +34,19 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 
     public ProcessMutationContext(Entity entity, IWorldState worldState,
         Random? random = null, EntityGoal? goal = null, ProcessRuntimeId? definitionId = null,
-        MessageBus? messageBus = null, bool capturePreconditionDiagnostics = true)
+        bool capturePreconditionDiagnostics = true,
+        IKernelEventWriter? kernelEvents = null,
+        global::Engine.Domain.DomainIdRegistry? domainIds = null)
     {
         _entity = entity;
         _worldState = worldState;
         Goal = goal;
         _definitionId = definitionId;
-        _messageBus = messageBus;
+        _domainIds = domainIds ?? throw new ArgumentNullException(nameof(domainIds));
+        _kernelMutation = new MutationEventWriter(
+            kernelEvents ?? throw new ArgumentNullException(nameof(kernelEvents)),
+            _domainIds.SourceCodeIdOf(DomainRuntimeIdLoader.ProcessSourceCode).Value,
+            _domainIds.SourceCodeIdOf(DomainRuntimeIdLoader.CardSourceCode).Value);
         CapturePreconditionDiagnostics = capturePreconditionDiagnostics;
         CapturePreconditionBlockers = capturePreconditionDiagnostics;
         Random = random ?? System.Random.Shared;
@@ -52,18 +62,29 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         _variables is not null && _variables.TryGetValue(name, out var value) ? value : 0f;
 
     public float GetPressure(string pressureName, EntityId scopeId) =>
-        _worldState.Pressure?.GetValue(pressureName, scopeId) ?? 0f;
+        GetPressure(_domainIds.PressureIdOf(pressureName), scopeId);
+
+    public float GetPressure(global::Engine.Domain.PressureRuntimeId pressureId, EntityId scopeId) =>
+        _worldState.Pressure?.GetValue(pressureId, scopeId) ?? 0f;
 
     public float GetAttribute(EntityId entityId, string attributeName)
     {
-        var entity = GetEntity(entityId);
-        return entity?.Attributes.GetValue(attributeName) ?? 0f;
+        return GetAttribute(entityId, _domainIds.AttributeIdOf(attributeName));
     }
+
+    public float GetAttribute(EntityId entityId, AttributeRuntimeId attributeId) =>
+        GetEntity(entityId)?.Attributes.GetValue(attributeId) ?? 0f;
 
     public int CountEntitiesByKind(EntityKind kind) =>
         _worldState.Graph.GetEntitiesByKind(kind).Count;
 
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
+        FindRelationship(sourceId, targetId, _domainIds.RelationshipKindIdOf(kind));
+
+    public Relationship? FindRelationship(
+        EntityId sourceId,
+        EntityId targetId,
+        RelationshipKindRuntimeId kind) =>
         _worldState is ICachedWorldState cachedWorldState
             ? cachedWorldState.QueryCache.FindRelationship(sourceId, targetId, kind)
             : _worldState.Graph.OutgoingRelationships(sourceId, kind)
@@ -80,6 +101,11 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
             : _worldState.Graph.GetEntity(id);
 
     public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind)
+    {
+        return FindRelatedEntity(sourceId, _domainIds.RelationshipKindIdOf(relationshipKind));
+    }
+
+    public EntityId? FindRelatedEntity(EntityId sourceId, RelationshipKindRuntimeId relationshipKind)
     {
         if (_worldState is ICachedWorldState cachedWorldState)
         {
@@ -108,7 +134,15 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture,
         (int Q, int R)? coordinates)
     {
-        var entity = _worldState.Graph.CreateEntity(kind, subtype, name, culture, CurrentTick, coordinates);
+        var entity = _worldState.Graph.CreateEntity(
+            kind,
+            subtype,
+            name,
+            culture,
+            CurrentTick,
+            coordinates,
+            subtypeId: _domainIds.SubtypeIdOf(subtype),
+            cultureId: _domainIds.CultureIdOf(culture));
         if (coordinates is not null)
         {
             _worldState.SpatialIndex.PlaceEntity(entity.Id, new Map.HexCoord(coordinates.Value.Q, coordinates.Value.R));
@@ -118,31 +152,66 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     }
 
     public void CreateRelationship(string kind, RelationshipPolarity polarity,
-        EntityId sourceId, EntityId targetId, float strength) =>
-        _worldState.Graph.CreateRelationship(kind, polarity, sourceId, targetId, strength, CurrentTick);
+        EntityId sourceId, EntityId targetId, float strength)
+    {
+        CreateRelationship(_domainIds.RelationshipKindIdOf(kind), polarity, sourceId, targetId, strength);
+    }
+
+    public void CreateRelationship(
+        RelationshipKindRuntimeId kind,
+        RelationshipPolarity polarity,
+        EntityId sourceId,
+        EntityId targetId,
+        float strength) =>
+        _worldState.Graph.CreateRelationship(
+            _domainIds.RelationshipKindNameOf(kind),
+            polarity,
+            sourceId,
+            targetId,
+            strength,
+            CurrentTick,
+            kindId: kind);
 
     public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
     {
+        ModifyAttribute(entityId, _domainIds.AttributeIdOf(attributeName), delta);
+    }
+
+    public void ModifyAttribute(EntityId entityId, AttributeRuntimeId attributeId, float delta)
+    {
         var entity = GetEntity(entityId);
-        var oldValue = entity?.Attributes.GetValue(attributeName);
-        entity?.Attributes.Modify(attributeName, delta);
+        var oldValue = entity?.Attributes.GetValue(attributeId);
+        entity?.Attributes.Modify(attributeId, delta);
         if (entity is not null && oldValue is { } before)
         {
-            var after = entity.Attributes.GetValue(attributeName);
+            var after = entity.Attributes.GetValue(attributeId);
             if (Math.Abs(after - before) > float.Epsilon)
             {
-                _messageBus?.Publish(new AttributeChangedMessage(
+                AdvanceWorldVersion();
+                _kernelMutation.WriteProcessAttributeChanged(
                     CurrentTick,
-                    entityId,
-                    attributeName,
+                    WorldVersionOf(),
+                    entityId.Value,
+                    attributeId.Value,
                     before,
-                    after,
-                    DefinitionSourceLabel()));
+                    after);
             }
         }
     }
 
-    public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { } // TODO: wire pressure
+    public void ModifyPressure(string pressureName, EntityId scopeId, float delta) =>
+        ModifyPressure(_domainIds.PressureIdOf(pressureName), scopeId, delta);
+
+    public void ModifyPressure(PressureRuntimeId pressureId, EntityId scopeId, float delta)
+    {
+        if (_worldState.Pressure is null)
+        {
+            return;
+        }
+
+        _worldState.Pressure.ApplyDelta(pressureId, scopeId, delta);
+        AdvanceWorldVersion();
+    }
     public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta)
     {
         if (_worldState.Resources is null) return;
@@ -161,13 +230,15 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         if (Math.Abs(after - before) > float.Epsilon)
         {
             InvalidateResourceQueries();
-            _messageBus?.Publish(new ResourceChangedMessage(
+            AdvanceWorldVersion();
+            _kernelMutation.WriteProcessResourceChanged(
                 CurrentTick,
-                resourceType.ToString(),
-                coordinates,
+                WorldVersionOf(),
+                _domainIds.ResourceIdOf(resourceType.ToDomainName()).Value,
+                coordinates.Q,
+                coordinates.R,
                 before,
-                after,
-                DefinitionSourceLabel()));
+                after);
         }
     }
 
@@ -197,13 +268,15 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         if (consumed > 0f)
         {
             InvalidateResourceQueries();
-            _messageBus?.Publish(new ResourceChangedMessage(
+            AdvanceWorldVersion();
+            _kernelMutation.WriteProcessResourceChanged(
                 CurrentTick,
-                resourceType.ToString(),
-                coordinates,
+                WorldVersionOf(),
+                _domainIds.ResourceIdOf(resourceType.ToDomainName()).Value,
+                coordinates.Q,
+                coordinates.R,
                 available,
-                available - consumed,
-                DefinitionSourceLabel()));
+                available - consumed);
         }
         return consumed;
     }
@@ -217,7 +290,18 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         _worldState.SpatialIndex.PlaceEntity(entityId, new Map.HexCoord(q, r));
         if (previous is { } from && from != (q, r))
         {
-            _messageBus?.Publish(new EntityMovedMessage(CurrentTick, entityId, from, (q, r)));
+            AdvanceWorldVersion();
+            _kernelMutation.WriteEntityMoved(
+                CurrentTick,
+                WorldVersionOf(),
+                entityId.Value,
+                planeCode: 0,
+                from.Q,
+                from.R,
+                0,
+                q,
+                r,
+                0);
         }
     }
 
@@ -233,15 +317,27 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         entity.SemanticPosition = new Engine.Map.SemanticHexCoord(q, r);
         if (previous != entity.SemanticPosition)
         {
-            _messageBus?.Publish(new EntitySemanticMovedMessage(
+            AdvanceWorldVersion();
+            _kernelMutation.WriteEntityMoved(
                 CurrentTick,
-                entityId,
-                (previous.Q, previous.R, previous.S),
-                (entity.SemanticPosition.Q, entity.SemanticPosition.R, entity.SemanticPosition.S)));
+                WorldVersionOf(),
+                entityId.Value,
+                planeCode: 1,
+                previous.Q,
+                previous.R,
+                previous.S,
+                entity.SemanticPosition.Q,
+                entity.SemanticPosition.R,
+                entity.SemanticPosition.S);
         }
     }
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)
+    {
+        CullRelationship(sourceId, _domainIds.RelationshipKindIdOf(relationshipKind));
+    }
+
+    public void CullRelationship(EntityId sourceId, RelationshipKindRuntimeId relationshipKind)
     {
         var rel = _worldState is ICachedWorldState cachedWorldState
             ? FirstOrNull(cachedWorldState.QueryCache.OutgoingRelationships(sourceId, relationshipKind))
@@ -263,6 +359,24 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         }
     }
 
-    private string DefinitionSourceLabel() =>
-        _definitionId?.Value.ToString(CultureInfo.InvariantCulture) ?? "process";
+    private void AdvanceWorldVersion()
+    {
+        if (_worldState is IWorldVersionSink versioned)
+        {
+            versioned.AdvanceWorldVersion();
+            return;
+        }
+
+        throw new InvalidOperationException("Engine state mutations require a versioned world state.");
+    }
+
+    private long WorldVersionOf()
+    {
+        if (_worldState is IWorldVersionSource versioned)
+        {
+            return versioned.WorldVersion;
+        }
+
+        throw new InvalidOperationException("Primitive mutation events require a versioned world state.");
+    }
 }

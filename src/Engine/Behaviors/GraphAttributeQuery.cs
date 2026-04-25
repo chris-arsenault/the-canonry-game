@@ -1,5 +1,6 @@
 namespace Engine.Behaviors;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -40,7 +41,14 @@ public static class GraphAttributeQuery
         }
         else if (selector.Kind.HasValue)
         {
-            FindAttributeCandidates(selector.Name, selector.Kind.Value, worldState, candidates);
+            if (selector.AttributeId.Value > 0)
+            {
+                FindAttributeCandidates(selector.AttributeId, selector.Kind.Value, worldState, candidates);
+            }
+            else
+            {
+                FindAttributeCandidates(selector.Name, selector.Kind.Value, worldState, candidates);
+            }
         }
 
         return candidates;
@@ -90,6 +98,20 @@ public static class GraphAttributeQuery
                 continue;
 
             if (entity.Attributes.Has(attributeName))
+                candidates.Add(entityId);
+        }
+    }
+
+    private static void FindAttributeCandidates(
+        AttributeRuntimeId attributeId, EntityKind kind, IWorldState worldState, List<EntityId> candidates)
+    {
+        foreach (var entityId in worldState.Graph.GetEntitiesByKind(kind))
+        {
+            var entity = worldState.Graph.GetEntity(entityId);
+            if (entity is null || entity.Status != EntityStatus.Active)
+                continue;
+
+            if (entity.Attributes.Has(attributeId))
                 candidates.Add(entityId);
         }
     }

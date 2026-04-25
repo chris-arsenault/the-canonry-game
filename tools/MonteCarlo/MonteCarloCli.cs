@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Globalization;
 
 using Engine.Domain.IceRemembers;
-using Engine.Messages;
 using Engine.Observability;
 using Engine.Simulation;
 
@@ -45,14 +44,10 @@ internal static class MonteCarloCli
             {
                 var seed = options.Seed + runIndex;
                 var runId = $"seed-{seed}";
-                var messageBus = new MessageBus();
-                var bootstrapMessages = new List<SimulationMessage>();
-                using var bootstrapSubscription = messageBus.Subscribe(message => bootstrapMessages.Add(message));
                 var diagnosticsOptions = options.PerformanceMode && !options.CollectStateTelemetry
                     ? SimulationDiagnosticsOptions.LeanPerformance
                     : SimulationDiagnosticsOptions.Detailed;
-                var sim = SimulationRunner.CreateFromDomain(domain, new Random(seed), messageBus, diagnosticsOptions);
-                bootstrapSubscription.Dispose();
+                var sim = SimulationRunner.CreateFromDomain(domain, new Random(seed), diagnosticsOptions: diagnosticsOptions);
 
                 SimulationTelemetryRecorder? recorder = null;
                 SimulationPerformanceRecorder? performanceRecorder = null;
@@ -64,8 +59,7 @@ internal static class MonteCarloCli
                             sim,
                             runId,
                             seed,
-                            entitySnapshotCadence: options.DisableEntitySnapshots ? 0 : options.EntitySnapshotCadence,
-                            bootstrapMessages: bootstrapMessages);
+                            entitySnapshotCadence: options.DisableEntitySnapshots ? 0 : options.EntitySnapshotCadence);
                     }
 
                     if (options.PerformanceMode)
@@ -105,7 +99,7 @@ internal static class MonteCarloCli
                     recorder?.Dispose();
                 }
 
-                var degenerateAttempts = bootstrapMessages.Count(message => message is MapGenerationDegenerateMessage);
+                var degenerateAttempts = sim.WorldSeed.Attempt;
                 Console.WriteLine(FormattableString.Invariant(
                     $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={options.Ticks} fires={sim.GeneratorSystem.TotalFired} map_degenerate={degenerateAttempts}"));
             }

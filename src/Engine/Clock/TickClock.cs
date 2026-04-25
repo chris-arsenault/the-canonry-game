@@ -1,5 +1,6 @@
 namespace Engine.Clock;
 
+using Engine.Kernel;
 using System.Diagnostics;
 
 /// <summary>
@@ -9,8 +10,12 @@ using System.Diagnostics;
 public sealed class TickClock
 {
     private readonly List<SystemRegistration> _registrations = [];
+    private readonly TickScheduler _scheduler =
+        new(capacity: 128, maxPhase: (int)TickPhase.EventNotification);
+    private EventHandler<TickSystemTimingEventArgs>? _systemTimedForCurrentTick;
+    private bool _collectSystemTimingForCurrentTick;
 
-    public int CurrentTick { get; private set; }
+    public int CurrentTick => _scheduler.CurrentTick;
     public SimulationSpeed Speed { get; set; } = SimulationSpeed.Normal;
     public Func<int, bool>? TickTimingSampleFilter { get; set; }
     public Func<int, bool>? SystemTimingSampleFilter { get; set; }
@@ -27,7 +32,9 @@ public sealed class TickClock
         ArgumentNullException.ThrowIfNull(callback);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cadence);
 
-        _registrations.Add(new SystemRegistration(systemName, phase, cadence, callback));
+        var registration = new SystemRegistration(systemName, phase, cadence, callback);
+        registration.SchedulerHandle = _scheduler.Register((int)phase, cadence, tick => ExecuteRegistration(registration, tick));
+        _registrations.Add(registration);
     }
 
     /// <summary>
@@ -35,6 +42,11 @@ public sealed class TickClock
     /// </summary>
     public void Unregister(string systemName)
     {
+        foreach (var registration in _registrations.Where(r => r.SystemName == systemName))
+        {
+            _scheduler.Unregister(registration.SchedulerHandle);
+        }
+
         _registrations.RemoveAll(r => r.SystemName == systemName);
     }
 
@@ -50,14 +62,26 @@ public sealed class TickClock
             return false;
         }
 
-        CurrentTick++;
-        var collectTickTiming = TickTimed is not null && ShouldCollectTickTiming(CurrentTick);
+        var nextTick = CurrentTick + 1;
+        var collectTickTiming = TickTimed is not null && ShouldCollectTickTiming(nextTick);
         var tickStopwatch = collectTickTiming ? Stopwatch.StartNew() : null;
-        ExecutePhases();
+        _systemTimedForCurrentTick = SystemTimed;
+        _collectSystemTimingForCurrentTick =
+            _systemTimedForCurrentTick is not null && ShouldCollectSystemTiming(nextTick);
+        try
+        {
+            _scheduler.Tick();
+        }
+        finally
+        {
+            _systemTimedForCurrentTick = null;
+            _collectSystemTimingForCurrentTick = false;
+        }
+
         if (tickStopwatch is not null)
         {
             tickStopwatch.Stop();
-            TickTimed?.Invoke(this, new TickTimingEventArgs(CurrentTick, tickStopwatch.Elapsed));
+            TickTimed?.Invoke(this, new TickTimingEventArgs(_scheduler.CurrentTick, tickStopwatch.Elapsed));
         }
 
         return true;
@@ -99,55 +123,49 @@ public sealed class TickClock
     public IEnumerable<string> GetSystemsRunningOnTick(int tick)
     {
         return _registrations
-            .Where(r => tick % r.Cadence == 0)
+            .Where(r => _scheduler.WouldRun(r.SchedulerHandle, tick))
             .Select(r => r.SystemName);
     }
 
-    private void ExecutePhases()
+    private void ExecuteRegistration(SystemRegistration registration, int tick)
     {
-        var systemTimed = SystemTimed;
-        var collectSystemTiming = systemTimed is not null && ShouldCollectSystemTiming(CurrentTick);
-
-        // Execute all phases in strict order
-        foreach (TickPhase phase in Enum.GetValues<TickPhase>())
+        if (!_collectSystemTimingForCurrentTick)
         {
-            foreach (var registration in _registrations.Where(r => r.Phase == phase))
-            {
-                if (CurrentTick % registration.Cadence == 0)
-                {
-                    if (!collectSystemTiming)
-                    {
-                        registration.Callback(CurrentTick);
-                        continue;
-                    }
+            registration.Callback(tick);
+            return;
+        }
 
-                    var systemStopwatch = Stopwatch.StartNew();
-                    try
-                    {
-                        registration.Callback(CurrentTick);
-                    }
-                    finally
-                    {
-                        systemStopwatch.Stop();
-                        systemTimed?.Invoke(this, new TickSystemTimingEventArgs(
-                            CurrentTick,
-                            registration.Phase,
-                            registration.SystemName,
-                            systemStopwatch.Elapsed));
-                    }
-                }
-            }
+        var systemStopwatch = Stopwatch.StartNew();
+        try
+        {
+            registration.Callback(tick);
+        }
+        finally
+        {
+            systemStopwatch.Stop();
+            _systemTimedForCurrentTick?.Invoke(this, new TickSystemTimingEventArgs(
+                tick,
+                registration.Phase,
+                registration.SystemName,
+                systemStopwatch.Elapsed));
         }
     }
 
     private bool ShouldCollectTickTiming(int tick) => TickTimingSampleFilter?.Invoke(tick) ?? true;
     private bool ShouldCollectSystemTiming(int tick) => SystemTimingSampleFilter?.Invoke(tick) ?? true;
 
-    private sealed record SystemRegistration(
-        string SystemName,
-        TickPhase Phase,
-        int Cadence,
-        Action<int> Callback);
+    private sealed class SystemRegistration(
+        string systemName,
+        TickPhase phase,
+        int cadence,
+        Action<int> callback)
+    {
+        public string SystemName { get; } = systemName;
+        public TickPhase Phase { get; } = phase;
+        public int Cadence { get; } = cadence;
+        public Action<int> Callback { get; } = callback;
+        public int SchedulerHandle { get; set; }
+    }
 }
 
 public sealed class TickTimingEventArgs(int tick, TimeSpan elapsed) : EventArgs

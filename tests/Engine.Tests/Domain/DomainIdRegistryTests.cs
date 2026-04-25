@@ -1,0 +1,93 @@
+namespace Engine.Tests.Domain;
+
+using Engine.Domain;
+using Engine.Domain.IceRemembers;
+using Engine.Domain.Loader;
+
+public sealed class DomainIdRegistryTests
+{
+    [Fact]
+    public void RegistersStableIdsFromOne()
+    {
+        var registry = new DomainIdRegistry();
+
+        var health = registry.RegisterAttribute("health");
+        var warmth = registry.RegisterAttribute("warmth");
+
+        Assert.Equal(new AttributeRuntimeId(1), health);
+        Assert.Equal(new AttributeRuntimeId(2), warmth);
+        Assert.Equal(health, registry.AttributeIdOf("health"));
+        Assert.Equal("warmth", registry.AttributeNameOf(warmth));
+    }
+
+    [Fact]
+    public void KeepsCategoriesSeparate()
+    {
+        var registry = new DomainIdRegistry();
+
+        var attribute = registry.RegisterAttribute("health");
+        var pressure = registry.RegisterPressure("health");
+        var source = registry.RegisterSourceCode("health");
+
+        Assert.Equal(1, attribute.Value);
+        Assert.Equal(1, pressure.Value);
+        Assert.Equal(1, source.Value);
+        Assert.Equal("health", registry.AttributeNameOf(attribute));
+        Assert.Equal("health", registry.PressureNameOf(pressure));
+        Assert.Equal("health", registry.SourceCodeNameOf(source));
+    }
+
+    [Fact]
+    public void DuplicateRegistrationFails()
+    {
+        var registry = new DomainIdRegistry();
+        registry.RegisterRelationshipKind("located_at");
+
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            registry.RegisterRelationshipKind("located_at"));
+        Assert.Contains("Duplicate relationship kind", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnknownNameFails()
+    {
+        var registry = new DomainIdRegistry();
+
+        var error = Assert.Throws<KeyNotFoundException>(() => registry.ResourceIdOf("food"));
+        Assert.Contains("Unknown resource", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnknownIdFails()
+    {
+        var registry = new DomainIdRegistry();
+
+        var error = Assert.Throws<KeyNotFoundException>(() =>
+            registry.GeneratorNameOf(new GeneratorRuntimeId(1)));
+        Assert.Contains("Unknown generator id", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BlankNameFails()
+    {
+        var registry = new DomainIdRegistry();
+
+        var error = Assert.Throws<ArgumentException>(() => registry.RegisterCulture(" "));
+        Assert.Contains("Stable names must be non-empty", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DomainRuntimeIdLoader_RegistersCanonicalDomainIds()
+    {
+        var registry = DomainRuntimeIdLoader.BuildRuntimeIds(IceRemembersDefinition.Create());
+
+        Assert.True(registry.AttributeIdOf("residents").Value > 0);
+        Assert.True(registry.RelationshipKindIdOf("member_of").Value > 0);
+        Assert.True(registry.RelationshipFactIdOf("called_unhuddled").Value > 0);
+        Assert.True(registry.ResourceIdOf("food").Value > 0);
+        Assert.True(registry.CultureIdOf(DomainRuntimeIdLoader.NoneCultureId).Value > 0);
+        Assert.True(registry.GeneratorIdOf("penguin_calls_the_unhuddled").Value > 0);
+        Assert.True(registry.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipCreatedCode).Value > 0);
+        Assert.True(registry.SourceCodeIdOf(DomainRuntimeIdLoader.ProcessSourceCode).Value > 0);
+    }
+}

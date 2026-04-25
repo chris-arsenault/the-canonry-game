@@ -1,6 +1,11 @@
 <Solution>
   <Project Path="TheCanonryGame.csproj" />
   <Folder Name="/src/">
+    <Project Path="src/Engine.Domain/Engine.Domain.csproj" />
+    <Project Path="src/Engine.Eventing/Engine.Eventing.csproj" />
+    <Project Path="src/Engine.Host/Engine.Host.csproj" />
+    <Project Path="src/Engine.Kernel/Engine.Kernel.csproj" />
+    <Project Path="src/Engine.Projection/Engine.Projection.csproj" />
     <Project Path="src/Engine/Engine.csproj" />
   </Folder>
   <Folder Name="/tests/">

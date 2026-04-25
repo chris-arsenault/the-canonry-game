@@ -3,11 +3,11 @@ namespace Engine.Tests.Generators;
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
 using Engine.Domain.IceRemembers;
+using Engine.Eventing;
 using Engine.Generators;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
-using Engine.Messages;
 using Engine.Simulation;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -436,18 +436,11 @@ public class GeneratorSystemTests
             sim.Graph.SetEntityHistorical(penguinId, 0);
         }
 
-        GeneratorFiredMessage? message = null;
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is GeneratorFiredMessage fired)
-            {
-                message = fired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "across_placement" });
 
-        var fired = Assert.IsType<GeneratorFiredMessage>(message);
+        var fired = CaptureGeneratorFire(sim, cursor);
         var created = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
         var targetPhysical = new HexCoord(target.Coordinates.Q, target.Coordinates.R);
         var expectedPhysical = new HexCoord(-targetPhysical.Q, -targetPhysical.R);
@@ -466,7 +459,7 @@ public class GeneratorSystemTests
     }
 
     [Fact]
-    public void Fire_EmitsGeneratorFiredMessage()
+    public void Fire_WritesGeneratorFiredKernelEvent()
     {
         var generator = CreateGenerator("message_emission");
 
@@ -477,6 +470,48 @@ public class GeneratorSystemTests
         Assert.Single(message.CreatedEntityIds);
         Assert.Equal(1, message.CreatedRelationshipCount);
         Assert.Equal(25, message.Tick);
+    }
+
+    [Fact]
+    public void Fire_WritesPrimitiveKernelEventsForGeneratorFireAndPulseEvaluation()
+    {
+        var generator = CreateGenerator("primitive_emission");
+        var (sim, system) = CreateSystem(new Random(42), generator);
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
+
+        system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "primitive_emission" });
+
+        Assert.True(sim.KernelEvents.TryRead(cursor, out var createdEvent));
+        Assert.Equal(KernelEventType.EntityCreated, createdEvent.Event.EventType);
+        var created = createdEvent.Event.AsEntityCreated();
+        Assert.Equal(25, created.Tick);
+        Assert.True(created.SubtypeId > 0);
+        Assert.True(created.CultureId > 0);
+
+        Assert.True(sim.KernelEvents.TryRead(cursor, out var relationshipEvent));
+        Assert.Equal(KernelEventType.RelationshipChanged, relationshipEvent.Event.EventType);
+        var relationshipChanged = relationshipEvent.Event.AsRelationshipChanged();
+        Assert.Equal(25, relationshipChanged.Tick);
+        Assert.Equal(sim.DomainIds.RelationshipKindIdOf("home_base").Value, relationshipChanged.RelationshipKindId);
+
+        Assert.True(sim.KernelEvents.TryRead(cursor, out var firedEvent));
+        Assert.Equal(KernelEventType.GeneratorFired, firedEvent.Event.EventType);
+        var fired = firedEvent.Event.AsGeneratorFired();
+        Assert.Equal(25, fired.Tick);
+        Assert.True(fired.WorldVersion > 0);
+        Assert.Equal(sim.DomainIds.GeneratorIdOf("primitive_emission").Value, fired.GeneratorId);
+        Assert.True(fired.TargetEntityId >= 0);
+        Assert.Equal(1, fired.CreatedEntityCount);
+        Assert.Equal(1, fired.CreatedRelationshipCount);
+
+        Assert.True(sim.KernelEvents.TryRead(cursor, out var evaluatedEvent));
+        Assert.Equal(KernelEventType.GeneratorEvaluated, evaluatedEvent.Event.EventType);
+        var evaluated = evaluatedEvent.Event.AsGeneratorEvaluated();
+        Assert.Equal(25, evaluated.Tick);
+        Assert.Equal(fired.TargetEntityId, evaluated.SelectedTargetEntityId);
+        Assert.True(evaluated.CandidateCount > 0);
+        Assert.Equal(2, evaluated.StatusCode);
+        Assert.True(evaluated.WorldVersion >= fired.WorldVersion);
     }
 
     [Fact]
@@ -545,7 +580,8 @@ public class GeneratorSystemTests
         var harbor = sim.Graph.GetEntity(harborId)!;
         harbor.Attributes.GetScalar("shelter")!.SetBase(90f);
 
-        var existingSea = sim.Graph.CreateEntity(
+        var existingSea = CreateRegisteredEntity(
+            sim,
             TestKinds.Region,
             "sea",
             "Near Sea",
@@ -554,18 +590,11 @@ public class GeneratorSystemTests
             coordinates: (harbor.Coordinates.Q + 1, harbor.Coordinates.R));
         existingSea.SemanticPosition = harbor.SemanticPosition;
         var regionCountBefore = sim.Graph.GetEntitiesByKind(TestKinds.Region).Count;
-        GeneratorFiredMessage? message = null;
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is GeneratorFiredMessage fired)
-            {
-                message = fired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "sea_reefhold" });
 
-        var firedMessage = Assert.IsType<GeneratorFiredMessage>(message);
+        var firedMessage = CaptureGeneratorFire(sim, cursor);
         Assert.Equal(regionCountBefore, sim.Graph.GetEntitiesByKind(TestKinds.Region).Count);
         Assert.DoesNotContain(existingSea.Id, firedMessage.CreatedEntityIds);
 
@@ -661,8 +690,9 @@ public class GeneratorSystemTests
             sim.Graph.SetEntityHistorical(penguinId, 0);
         }
 
-        var oldFaction = sim.Graph.CreateEntity(TestKinds.Faction, "order", "Old Order", target.Culture, 0);
-        var oldHome = sim.Graph.CreateEntity(
+        var oldFaction = CreateRegisteredEntity(sim, TestKinds.Faction, "order", "Old Order", target.Culture, 0);
+        var oldHome = CreateRegisteredEntity(
+            sim,
             TestKinds.Settlement,
             "holdfast",
             "Old Home",
@@ -670,38 +700,33 @@ public class GeneratorSystemTests
             0,
             (target.Coordinates.Q + 2, target.Coordinates.R));
 
-        var candidate = sim.Graph.CreateEntity(
+        var candidate = CreateRegisteredEntity(
+            sim,
             TestKinds.Penguin,
             "exile",
             "Nearby Exile",
             target.Culture,
             0,
             (target.Coordinates.Q + 1, target.Coordinates.R));
-        sim.Graph.CreateRelationship("member_of", RelationshipPolarity.Neutral, candidate.Id, oldFaction.Id, 1f, 0);
-        sim.Graph.CreateRelationship("home_base", RelationshipPolarity.Neutral, candidate.Id, oldHome.Id, 1f, 0);
+        CreateRegisteredRelationship(sim, "member_of", RelationshipPolarity.Neutral, candidate.Id, oldFaction.Id, 1f, 0);
+        CreateRegisteredRelationship(sim, "home_base", RelationshipPolarity.Neutral, candidate.Id, oldHome.Id, 1f, 0);
 
-        var rivalFaction = sim.Graph.CreateEntity(TestKinds.Faction, "order", "Rival Order", target.Culture, 0);
-        var leader = sim.Graph.CreateEntity(
+        var rivalFaction = CreateRegisteredEntity(sim, TestKinds.Faction, "order", "Rival Order", target.Culture, 0);
+        var leader = CreateRegisteredEntity(
+            sim,
             TestKinds.Penguin,
             "warden",
             "Faction Leader",
             target.Culture,
             0,
             (target.Coordinates.Q, target.Coordinates.R + 1));
-        sim.Graph.CreateRelationship("led_by", RelationshipPolarity.Neutral, rivalFaction.Id, leader.Id, 1f, 0);
+        CreateRegisteredRelationship(sim, "led_by", RelationshipPolarity.Neutral, rivalFaction.Id, leader.Id, 1f, 0);
 
-        GeneratorFiredMessage? message = null;
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is GeneratorFiredMessage fired)
-            {
-                message = fired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "unhuddled_with_third" });
 
-        var fired = Assert.IsType<GeneratorFiredMessage>(message);
+        var fired = CaptureGeneratorFire(sim, cursor);
         Assert.DoesNotContain(candidate.Id, fired.CreatedEntityIds);
         Assert.DoesNotContain(leader.Id, fired.CreatedEntityIds);
 
@@ -810,34 +835,29 @@ public class GeneratorSystemTests
             sim.Graph.SetEntityHistorical(penguinId, 0);
         }
 
-        var sameCulture = sim.Graph.CreateEntity(
+        var sameCulture = CreateRegisteredEntity(
+            sim,
             TestKinds.Penguin,
             "exile",
             "Same Culture",
             target.Culture,
             0,
             (target.Coordinates.Q + 1, target.Coordinates.R));
-        var differentCulture = sim.Graph.CreateEntity(
+        var differentCulture = CreateRegisteredEntity(
+            sim,
             TestKinds.Penguin,
             "exile",
             "Different Culture",
-            "wake-singers",
+            IceRemembersCulture.WakeSingers.ToDomainName(),
             0,
             (target.Coordinates.Q, target.Coordinates.R + 1));
 
-        GeneratorFiredMessage? message = null;
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is GeneratorFiredMessage fired)
-            {
-                message = fired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "culture_bound_follower" });
 
-        Assert.IsType<GeneratorFiredMessage>(message);
-        Assert.Empty(message!.CreatedEntityIds);
+        var message = CaptureGeneratorFire(sim, cursor);
+        Assert.Empty(message.CreatedEntityIds);
         Assert.Contains(
             sim.Graph.OutgoingRelationships(sameCulture.Id, "home_base"),
             relationship => relationship.TargetId == target.Id);
@@ -1075,18 +1095,11 @@ public class GeneratorSystemTests
             .First();
         leakRegion.Attributes.GetScalar("pristiness")!.SetBase(10f);
 
-        GeneratorFiredMessage? message = null;
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is GeneratorFiredMessage fired)
-            {
-                message = fired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "seal_the_leak" });
 
-        var fired = Assert.IsType<GeneratorFiredMessage>(message);
+        var fired = CaptureGeneratorFire(sim, cursor);
         var createdHoldfast = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
         var region = sim.CoverageMap.GetCoverage(leakRegion.Id);
         Assert.NotNull(region);
@@ -1266,18 +1279,11 @@ public class GeneratorSystemTests
                 .First();
             leakRegion.Attributes.GetScalar("pristiness")!.SetBase(10f);
 
-            GeneratorFiredMessage? message = null;
-            sim.MessageBus.Subscribe(msg =>
-            {
-                if (msg is GeneratorFiredMessage fired)
-                {
-                    message = fired;
-                }
-            });
+            var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
             system.Tick(25, new HashSet<string>(StringComparer.Ordinal) { "random_region_locality" });
 
-            var fired = Assert.IsType<GeneratorFiredMessage>(message);
+            var fired = CaptureGeneratorFire(sim, cursor);
             var createdHoldfast = sim.Graph.GetEntity(Assert.Single(fired.CreatedEntityIds))!;
             var region = sim.CoverageMap.GetCoverage(leakRegion.Id);
             Assert.NotNull(region);
@@ -1304,11 +1310,48 @@ public class GeneratorSystemTests
             sim.SpatialIndex,
             sim.WorldState.SemanticPlane,
             sim.CoverageMap,
-            sim.MessageBus,
-            random);
+            random,
+            sim.KernelEvents,
+            sim.WorldState,
+            sim.DomainIds);
 
         return (sim, system);
     }
+
+    private static Entity CreateRegisteredEntity(
+        SimulationRunner sim,
+        EntityKind kind,
+        string subtype,
+        string name,
+        string culture,
+        int tick,
+        (int Q, int R)? coordinates = null) =>
+        sim.Graph.CreateEntity(
+            kind,
+            subtype,
+            name,
+            culture,
+            tick,
+            coordinates,
+            subtypeId: sim.DomainIds.SubtypeIdOf(subtype),
+            cultureId: sim.DomainIds.CultureIdOf(culture));
+
+    private static Relationship CreateRegisteredRelationship(
+        SimulationRunner sim,
+        string kind,
+        RelationshipPolarity polarity,
+        EntityId sourceId,
+        EntityId targetId,
+        float strength,
+        int tick) =>
+        sim.Graph.CreateRelationship(
+            kind,
+            polarity,
+            sourceId,
+            targetId,
+            strength,
+            tick,
+            kindId: sim.DomainIds.RelationshipKindIdOf(kind));
 
     private static SemanticGeneratorConfig CreateGenerator(
         string id,
@@ -1362,24 +1405,52 @@ public class GeneratorSystemTests
             MaxRunsPerSim = maxRunsPerSim,
         };
 
-    private static (SimulationRunner Sim, GeneratorSystem System, Entity Target, GeneratorFiredMessage Message)
+    private static (SimulationRunner Sim, GeneratorSystem System, Entity Target, CapturedGeneratorFire Message)
         FireAndCaptureMessage(Random random, SemanticGeneratorConfig generator, int currentTick = 25)
     {
         var (sim, system) = CreateSystem(random, generator);
-        GeneratorFiredMessage? message = null;
-        sim.MessageBus.Subscribe(msg =>
-        {
-            if (msg is GeneratorFiredMessage fired)
-            {
-                message = fired;
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         system.Tick(currentTick, new HashSet<string>(StringComparer.Ordinal) { generator.Id });
 
-        var captured = Assert.IsType<GeneratorFiredMessage>(message);
+        var captured = CaptureGeneratorFire(sim, cursor);
         var target = sim.Graph.GetEntity(captured.TargetEntityId!.Value)!;
         return (sim, system, target, captured);
+    }
+
+    private static CapturedGeneratorFire CaptureGeneratorFire(
+        SimulationRunner sim,
+        KernelEventCursor cursor)
+    {
+        while (sim.KernelEvents.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType != KernelEventType.GeneratorFired)
+            {
+                continue;
+            }
+
+            var fired = sequenced.Event.AsGeneratorFired();
+            var createdEntityIds = sim.Graph.AllEntities.Values
+                .Where(entity => entity.CreatedAt == fired.Tick)
+                .Select(entity => entity.Id)
+                .ToList();
+            var generatorId = sim.DomainIds.GeneratorNameOf(new global::Engine.Domain.GeneratorRuntimeId(fired.GeneratorId));
+            return new CapturedGeneratorFire(generatorId, fired, createdEntityIds);
+        }
+
+        throw new Xunit.Sdk.XunitException("Expected a primitive GeneratorFired kernel event.");
+    }
+
+    private sealed record CapturedGeneratorFire(
+        string GeneratorId,
+        GeneratorFiredKernelEvent Event,
+        IReadOnlyList<EntityId> CreatedEntityIds)
+    {
+        public int Tick => Event.Tick;
+
+        public EntityId? TargetEntityId => new EntityId(Event.TargetEntityId);
+
+        public int CreatedRelationshipCount => Event.CreatedRelationshipCount;
     }
 
     private static DomainConfig WithGenerators(params SemanticGeneratorConfig[] generators)

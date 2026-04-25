@@ -6,10 +6,15 @@ using System.Linq;
 using Godot;
 
 using Engine.Clock;
+using Engine.Domain.Config;
+using Engine.Domain.Loader;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
 using Engine.Observability;
+using Engine.Projection;
+using Engine.Processes;
+using Engine.Resources;
 using Engine.Simulation;
 using TheCanonryGame.UI.Theme;
 
@@ -37,6 +42,9 @@ public partial class Main : Node2D
     private Button? _readingsToggleButton;
     private TableauPanel? _tableauPanel;
     private RunLogger? _runLogger;
+    private UiProjectionState? _uiProjection;
+    private KernelEventProjectionPump? _uiProjectionPump;
+    private ProjectionSymbolCatalog? _projectionSymbols;
     private PanelContainer? _hexTooltipPanel;
     private Label? _hexTooltipLabel;
     private PanelContainer? _legendPanel;
@@ -50,6 +58,8 @@ public partial class Main : Node2D
 
     public override void _ExitTree()
     {
+        _uiProjectionPump?.Dispose();
+        _uiProjectionPump = null;
         _runLogger?.Dispose();
         _runLogger = null;
         base._ExitTree();
@@ -67,6 +77,7 @@ public partial class Main : Node2D
 
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Normal;
+        InitializeUiProjection();
 
         var logPath = RunLogger.DefaultLogPath();
         _runLogger = new RunLogger(logPath, _sim);
@@ -192,7 +203,7 @@ public partial class Main : Node2D
         // Floating overlays — live above the layout, positioned by code.
         // -----------------------------------------------------------------
         _tableauPanel = new TableauPanel();
-        _tableauPanel.Initialize(_sim);
+        _tableauPanel.Initialize(_sim, _uiProjection, _projectionSymbols);
         _uiRoot.AddChild(_tableauPanel);
         _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _tableauPanel.Visible = false;
@@ -482,6 +493,7 @@ public partial class Main : Node2D
 
         if (ticksProcessed > 0)
         {
+            _uiProjectionPump?.DrainAvailable();
             _mapRenderer?.Refresh();
             _browser?.Refresh();
             RefreshOpenCards();
@@ -628,9 +640,11 @@ public partial class Main : Node2D
         }
 
         _runLogger?.Dispose();
+        _uiProjectionPump?.Dispose();
 
         _sim = SimulationRunner.CreateFromTestMap();
         _sim.Clock.Speed = SimulationSpeed.Paused;
+        InitializeUiProjection();
         _tickAccumulator = 0;
         ClearHexHoverTooltip();
 
@@ -650,12 +664,241 @@ public partial class Main : Node2D
         _attributeGraph?.Initialize(_sim);
         _browser?.Initialize(_sim);
         _browser?.Refresh();
-        _tableauPanel?.Initialize(_sim);
+        _tableauPanel?.Initialize(_sim, _uiProjection, _projectionSymbols);
         _tableauPanel?.Refresh();
 
         if (_eventLogLabel is not null) _eventLogLabel.Text = "";
 
         GD.Print("Simulation reset");
+    }
+
+    private void InitializeUiProjection()
+    {
+        if (_sim is null)
+        {
+            return;
+        }
+
+        _uiProjectionPump?.Dispose();
+        _projectionSymbols = BuildProjectionSymbolCatalog(_sim);
+        _uiProjection = new UiProjectionState();
+        _uiProjectionPump = new KernelEventProjectionPump(
+            _sim.KernelEvents,
+            Engine.Eventing.KernelEventCursorStart.EarliestAvailable,
+            _uiProjection);
+
+        // MIGRATION: The UI projection replays every primitive event currently
+        // available. Any remaining live SimulationRunner reads in panels mark
+        // missing primitive events or startup snapshots, not a fallback bus.
+        _uiProjectionPump.DrainAvailable();
+    }
+
+    private static ProjectionSymbolCatalog BuildProjectionSymbolCatalog(SimulationRunner sim)
+    {
+        var catalog = new ProjectionSymbolCatalog();
+
+        foreach (var (kind, config) in sim.DomainConfig.Kinds.OrderBy(pair => pair.Key.Value, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Kind,
+                kind.Id,
+                kind.Value,
+                description: config.Description);
+
+            foreach (var subtype in config.Subtypes.OrderBy(value => value, StringComparer.Ordinal))
+            {
+                catalog.RegisterSymbol(
+                    ProjectionSymbolKind.Subtype,
+                    sim.DomainIds.SubtypeIdOf(subtype).Value,
+                    subtype);
+            }
+
+            foreach (var attribute in config.Attributes.OrderBy(attr => attr.Name, StringComparer.Ordinal))
+            {
+                catalog.RegisterSymbol(
+                    ProjectionSymbolKind.Attribute,
+                    sim.DomainIds.AttributeIdOf(attribute.Name).Value,
+                    attribute.Name,
+                    attribute.DisplayName,
+                    attribute.CriticalEffect?.Description);
+            }
+        }
+
+        foreach (var culture in sim.DomainConfig.Cultures.OrderBy(culture => culture.Id, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Culture,
+                sim.DomainIds.CultureIdOf(culture.Id).Value,
+                culture.Id,
+                culture.DisplayName);
+        }
+
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.Culture,
+            sim.DomainIds.CultureIdOf(DomainRuntimeIdLoader.NoneCultureId).Value,
+            DomainRuntimeIdLoader.NoneCultureId,
+            "None");
+
+        foreach (var relationship in sim.DomainConfig.Relationships.OrderBy(rel => rel.Name, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.RelationshipKind,
+                sim.DomainIds.RelationshipKindIdOf(relationship.Name).Value,
+                relationship.Name);
+        }
+
+        foreach (var fact in sim.DomainConfig.RelationshipFacts.OrderBy(fact => fact.Name, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.RelationshipFact,
+                sim.DomainIds.RelationshipFactIdOf(fact.Name).Value,
+                fact.Name,
+                fact.DisplayName,
+                fact.Description);
+        }
+
+        foreach (var pressure in sim.DomainConfig.Pressures.OrderBy(pressure => pressure.Name, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Pressure,
+                sim.DomainIds.PressureIdOf(pressure.Name).Value,
+                pressure.Name);
+        }
+
+        foreach (var resourceType in Enum.GetValues<ResourceType>())
+        {
+            var stableName = resourceType.ToDomainName();
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Resource,
+                sim.DomainIds.ResourceIdOf(stableName).Value,
+                stableName);
+        }
+
+        foreach (var resource in sim.DomainConfig.Resources.OrderBy(resource => resource.Name, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Resource,
+                sim.DomainIds.ResourceIdOf(resource.Name).Value,
+                resource.Name,
+                resource.DisplayName);
+        }
+
+        foreach (var terrain in Enum.GetValues<TerrainType>())
+        {
+            var stableName = terrain.ToString();
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Terrain,
+                sim.DomainIds.TerrainIdOf(stableName).Value,
+                stableName);
+        }
+
+        foreach (var generator in sim.DefinitionGraph.Generators.Values.OrderBy(generator => generator.Id, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Generator,
+                generator.RuntimeId,
+                generator.Id,
+                generator.Name,
+                generator.Description);
+        }
+
+        foreach (var process in sim.DefinitionGraph.Processes.Values.OrderBy(process => process.Id, StringComparer.Ordinal))
+        {
+            var symbolKind = process.SourceDefinition.Role == DefinitionRole.Decision
+                ? ProjectionSymbolKind.Decision
+                : ProjectionSymbolKind.Process;
+            catalog.RegisterSymbol(
+                symbolKind,
+                process.SourceDefinition.RuntimeId.Value,
+                process.Id,
+                process.Name);
+        }
+
+        foreach (var card in sim.SpawnCards.Values.OrderBy(card => card.Id, StringComparer.Ordinal))
+        {
+            catalog.RegisterSymbol(
+                ProjectionSymbolKind.Card,
+                card.RuntimeId.Value,
+                card.Id,
+                card.Name,
+                card.Description);
+        }
+
+        RegisterKernelRuntimeSymbols(catalog, sim);
+
+        foreach (var entity in sim.Graph.AllEntities.Values.OrderBy(entity => entity.Id.Value))
+        {
+            // MIGRATION: Initial entity names come from the startup graph until
+            // userspace receives a formal entity-name seed snapshot.
+            catalog.RegisterEntityName(entity.Id.Value, entity.Name);
+
+            if (entity.SubtypeId.Value > 0)
+            {
+                catalog.RegisterSymbol(
+                    ProjectionSymbolKind.Subtype,
+                    entity.SubtypeId.Value,
+                    entity.Subtype);
+            }
+
+            if (entity.CultureId.Value > 0)
+            {
+                catalog.RegisterSymbol(
+                    ProjectionSymbolKind.Culture,
+                    entity.CultureId.Value,
+                    entity.Culture,
+                    sim.DomainConfig.GetCultureDisplayName(entity.Culture));
+            }
+        }
+
+        return catalog;
+    }
+
+    private static void RegisterKernelRuntimeSymbols(ProjectionSymbolCatalog catalog, SimulationRunner sim)
+    {
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.EventCode,
+            sim.DomainIds.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipCreatedCode).Value,
+            DomainRuntimeIdLoader.RelationshipCreatedCode);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.EventCode,
+            sim.DomainIds.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipCulledCode).Value,
+            DomainRuntimeIdLoader.RelationshipCulledCode);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.EventCode,
+            sim.DomainIds.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipStrengthChangedCode).Value,
+            DomainRuntimeIdLoader.RelationshipStrengthChangedCode);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.SourceCode,
+            sim.DomainIds.SourceCodeIdOf(DomainRuntimeIdLoader.ProcessSourceCode).Value,
+            DomainRuntimeIdLoader.ProcessSourceCode);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.SourceCode,
+            sim.DomainIds.SourceCodeIdOf(DomainRuntimeIdLoader.CardSourceCode).Value,
+            DomainRuntimeIdLoader.CardSourceCode);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.Detector,
+            sim.DomainIds.DetectorIdOf(DomainRuntimeIdLoader.SettlementDepopulationDetector).Value,
+            DomainRuntimeIdLoader.SettlementDepopulationDetector);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.Detector,
+            sim.DomainIds.DetectorIdOf(DomainRuntimeIdLoader.PoliticalMonocultureDetector).Value,
+            DomainRuntimeIdLoader.PoliticalMonocultureDetector);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.Detector,
+            sim.DomainIds.DetectorIdOf(DomainRuntimeIdLoader.NpcExtinctionDetector).Value,
+            DomainRuntimeIdLoader.NpcExtinctionDetector);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.ReasonCode,
+            sim.DomainIds.ReasonCodeIdOf(DomainRuntimeIdLoader.SettlementDepopulationReason).Value,
+            DomainRuntimeIdLoader.SettlementDepopulationReason);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.ReasonCode,
+            sim.DomainIds.ReasonCodeIdOf(DomainRuntimeIdLoader.PoliticalMonocultureReason).Value,
+            DomainRuntimeIdLoader.PoliticalMonocultureReason);
+        catalog.RegisterSymbol(
+            ProjectionSymbolKind.ReasonCode,
+            sim.DomainIds.ReasonCodeIdOf(DomainRuntimeIdLoader.NpcExtinctionReason).Value,
+            DomainRuntimeIdLoader.NpcExtinctionReason);
     }
 
     private void OnBrowserEntitySelected(int entityIdValue)
@@ -783,25 +1026,25 @@ public partial class Main : Node2D
 
     private void HandleMapClick(Vector2 screenPos)
     {
-        if (_sim is null || _camera is null || _mapRenderer is null) return;
+        if (_sim is null || _camera is null || _mapRenderer is null || _uiProjection is null) return;
 
         var worldPos = GetCanvasTransform().AffineInverse() * screenPos;
 
         EntityId? nearest = null;
         var nearestDist = _mapRenderer.HexSize * 1.2f;
 
-        foreach (var (entityId, entity) in _sim.Graph.AllEntities)
+        foreach (var entity in _uiProjection.Entities.Values)
         {
-            if (entity.Status != EntityStatus.Active) continue;
+            if (entity.StatusCode != UiProjectionStatusCodes.Active) continue;
 
             var entityPixel = _mapRenderer.GetHexCenter(
-                _mapRenderer.EntityCoordForCurrentPlane(entity));
+                ProjectedEntityCoordForCurrentPlane(entity));
             var dist = worldPos.DistanceTo(entityPixel);
 
             if (dist < nearestDist)
             {
                 nearestDist = dist;
-                nearest = entityId;
+                nearest = new EntityId(entity.EntityId);
             }
         }
 
@@ -888,11 +1131,11 @@ public partial class Main : Node2D
         {
             // Semantic plane: Q = autonomy, R = resonance, S = tradition.
             var s = -coord.Q - coord.R;
-            var occupants = _sim.Graph.AllEntities
-                .Where(pair => pair.Value.Status == EntityStatus.Active &&
-                               pair.Value.SemanticPosition.Q == coord.Q &&
-                               pair.Value.SemanticPosition.R == coord.R)
-                .Select(pair => $"{pair.Value.Name}  {pair.Value.Kind}")
+            var occupants = (_uiProjection?.Entities.Values ?? Enumerable.Empty<UiEntityProjection>())
+                .Where(entity => entity.StatusCode == UiProjectionStatusCodes.Active &&
+                                 entity.SemanticQ == coord.Q &&
+                                 entity.SemanticR == coord.R)
+                .Select(FormatProjectedEntityLine)
                 .ToList();
             var occupantsLine = occupants.Count == 0 ? "— uninhabited —" : string.Join("\n", occupants);
             return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
@@ -909,6 +1152,35 @@ public partial class Main : Node2D
             $"food       {food,7:0.0}\n" +
             $"wealth     {wealth,7:0.0}\n" +
             $"population {population,7:0.0}";
+    }
+
+    private HexCoord ProjectedEntityCoordForCurrentPlane(UiEntityProjection entity)
+    {
+        return _mapRenderer?.CurrentPlane == PlaneMode.Physical
+            ? new HexCoord(entity.PhysicalQ, entity.PhysicalR)
+            : new HexCoord(entity.SemanticQ, entity.SemanticR);
+    }
+
+    private string FormatProjectedEntityLine(UiEntityProjection entity)
+    {
+        var name = ResolveProjectedEntityName(entity);
+        var kind = _projectionSymbols?.ResolveDisplayName(
+            ProjectionSymbolKind.Kind,
+            entity.KindId,
+            $"Kind {entity.KindId}") ?? $"Kind {entity.KindId}";
+        return $"{name}  {kind}";
+    }
+
+    private string ResolveProjectedEntityName(UiEntityProjection entity)
+    {
+        return _projectionSymbols?.ResolveEntityName(
+            new ProjectionEntityNameKey(
+                entity.EntityId,
+                entity.KindId,
+                entity.SubtypeId,
+                entity.CultureId,
+                entity.NameSeed),
+            $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
     }
 
     private void PositionHexTooltip(Vector2 screenPos)

@@ -1,5 +1,6 @@
 namespace Engine.Behaviors;
 
+using Engine.Domain;
 using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Kinds;
@@ -19,6 +20,7 @@ public sealed class GoalGenerator
 {
     private readonly IReadOnlyDictionary<EntityKind, KindConfig> _kindConfigs;
     private readonly IReadOnlyList<ProcessDefinition> _processes;
+    private readonly DomainIdRegistry? _domainIds;
     private readonly Dictionary<(EntityKind Kind, AttributeRef Effect), List<ProcessDefinition>> _servingProcessCache = [];
 
     /// <summary>Max primary plan roots persisted per entity.</summary>
@@ -57,10 +59,16 @@ public sealed class GoalGenerator
 
     public GoalGenerator(
         IReadOnlyDictionary<EntityKind, KindConfig> kindConfigs,
-        IReadOnlyList<ProcessDefinition> processes)
+        IReadOnlyList<ProcessDefinition> processes,
+        DomainIdRegistry? domainIds = null)
     {
         _kindConfigs = kindConfigs;
         _processes = processes;
+        _domainIds = domainIds;
+        if (_domainIds is not null)
+        {
+            BindRuntimeIds(_domainIds);
+        }
     }
 
     public IReadOnlyList<EntityGoal> Generate(Entity entity, IWorldState worldState)
@@ -118,7 +126,9 @@ public sealed class GoalGenerator
         var demands = new List<(AttributeRef Effect, float Urgency, string Source)>();
         foreach (var attrConfig in kindConfig.Attributes)
         {
-            var scalar = entity.Attributes.GetScalar(attrConfig.Name);
+            var scalar = _domainIds is null
+                ? entity.Attributes.GetScalar(attrConfig.Name)
+                : entity.Attributes.GetScalar(_domainIds.AttributeIdOf(attrConfig.Name));
             if (scalar is null) continue;
 
             float urgency;
@@ -137,7 +147,7 @@ public sealed class GoalGenerator
             }
 
             if (urgency < 0.01f) continue;
-            demands.Add((AttributeRef.Self(attrConfig.Name, entity.Kind), urgency, "deficit"));
+            demands.Add((BindRef(AttributeRef.Self(attrConfig.Name, entity.Kind)), urgency, "deficit"));
         }
 
         var standingDrives = kindConfig.StandingDrives
@@ -145,7 +155,7 @@ public sealed class GoalGenerator
             .ToList();
         foreach (var standingDrive in standingDrives)
         {
-            demands.Add((standingDrive.DesiredEffect, standingDrive.BaseUrgency, "standing"));
+            demands.Add((BindRef(standingDrive.DesiredEffect), standingDrive.BaseUrgency, "standing"));
         }
 
         var orderedDemands = demands
@@ -341,6 +351,7 @@ public sealed class GoalGenerator
                 goal,
                 process.RuntimeId,
                 worldState,
+                _domainIds,
                 capturePreconditionDiagnostics: CapturePlanningTraces,
                 capturePreconditionBlockers: true);
             var precondition = process.Precondition.Evaluate(context);
@@ -644,6 +655,7 @@ public sealed class GoalGenerator
                 plannedProcessId: process.RuntimeId),
             process.RuntimeId,
             worldState,
+            _domainIds,
             capturePreconditionDiagnostics: CapturePlanningTraces,
             capturePreconditionBlockers: false);
         var rawReward = process.RewardExpression.Evaluate(
@@ -681,6 +693,7 @@ public sealed class GoalGenerator
                 plannedProcessId: process.RuntimeId),
             process.RuntimeId,
             worldState,
+            _domainIds,
             capturePreconditionDiagnostics: CapturePlanningTraces,
             capturePreconditionBlockers: false);
         return MathF.Max(0f, process.ScoreExpression.Evaluate(
@@ -705,6 +718,7 @@ public sealed class GoalGenerator
                 plannedProcessId: process.RuntimeId),
             process.RuntimeId,
             worldState,
+            _domainIds,
             capturePreconditionDiagnostics: CapturePlanningTraces,
             capturePreconditionBlockers: false);
         return MathF.Max(0f, rule.CurrentValueExpression.Evaluate(
@@ -768,6 +782,35 @@ public sealed class GoalGenerator
         float PlanningWeight,
         string Reason);
 
+    private void BindRuntimeIds(DomainIdRegistry runtimeIds)
+    {
+        foreach (var process in _processes)
+        {
+            process.BindRuntimeIds(runtimeIds);
+        }
+
+        foreach (var kindConfig in _kindConfigs.Values)
+        {
+            foreach (var standingDrive in kindConfig.StandingDrives)
+            {
+                standingDrive.DesiredEffect.BindRuntimeIds(runtimeIds);
+            }
+        }
+    }
+
+    private AttributeRef BindRef(AttributeRef reference)
+    {
+        if (_domainIds is not null && reference.AttributeId.Value == 0 &&
+            reference.PressureId.Value == 0 &&
+            reference.ResourceId.Value == 0 &&
+            reference.RelationshipKindId.Value == 0)
+        {
+            reference.BindRuntimeIds(_domainIds);
+        }
+
+        return reference;
+    }
+
     private sealed class GoalPlan(EntityGoal root, IReadOnlyList<EntityGoal> goals, float bestActionableUrgency)
     {
         public EntityGoal Root { get; } = root;
@@ -780,6 +823,7 @@ public sealed class GoalGenerator
         private readonly Entity _entity;
         private readonly ProcessRuntimeId? _definitionId;
         private readonly IWorldState _worldState;
+        private readonly DomainIdRegistry? _domainIds;
 
         public int CurrentTick => _worldState.CurrentTick;
         public EntityId SelfEntityId => _entity.Id;
@@ -794,6 +838,7 @@ public sealed class GoalGenerator
             EntityGoal goal,
             ProcessRuntimeId? definitionId,
             IWorldState worldState,
+            DomainIdRegistry? domainIds,
             bool capturePreconditionDiagnostics,
             bool capturePreconditionBlockers)
         {
@@ -801,16 +846,29 @@ public sealed class GoalGenerator
             _definitionId = definitionId;
             ResolvedTargetId = goal.TargetEntityId;
             _worldState = worldState;
+            _domainIds = domainIds;
             CapturePreconditionDiagnostics = capturePreconditionDiagnostics;
             CapturePreconditionBlockers = capturePreconditionBlockers;
         }
 
         public float GetPressure(string pressureName, EntityId scopeId) =>
-            _worldState.Pressure?.GetValue(pressureName, scopeId) ?? 0f;
+            _domainIds is null
+                ? _worldState.Pressure?.GetValue(pressureName, scopeId) ?? 0f
+                : GetPressure(_domainIds.PressureIdOf(pressureName), scopeId);
+        public float GetPressure(PressureRuntimeId pressureId, EntityId scopeId) =>
+            _worldState.Pressure?.GetValue(pressureId, scopeId) ?? 0f;
         public float GetAttribute(EntityId entityId, string attributeName) =>
-            GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
+            _domainIds is null
+                ? GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f
+                : GetAttribute(entityId, _domainIds.AttributeIdOf(attributeName));
+        public float GetAttribute(EntityId entityId, AttributeRuntimeId attributeId) =>
+            GetEntity(entityId)?.Attributes.GetValue(attributeId) ?? 0f;
         public int CountEntitiesByKind(EntityKind kind) => _worldState.Graph.GetEntitiesByKind(kind).Count;
         public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
+            _domainIds is null
+                ? FindRelationshipByName(sourceId, targetId, kind)
+                : FindRelationship(sourceId, targetId, _domainIds.RelationshipKindIdOf(kind));
+        public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, RelationshipKindRuntimeId kind) =>
             _worldState is ICachedWorldState cachedWorldState
                 ? cachedWorldState.QueryCache.FindRelationship(sourceId, targetId, kind)
                 : _worldState.Graph.OutgoingRelationships(sourceId, kind)
@@ -824,6 +882,10 @@ public sealed class GoalGenerator
                 ? cachedWorldState.QueryCache.GetEntity(id)
                 : _worldState.Graph.GetEntity(id);
         public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) =>
+            _domainIds is null
+                ? FindRelatedEntityByName(sourceId, relationshipKind)
+                : FindRelatedEntity(sourceId, _domainIds.RelationshipKindIdOf(relationshipKind));
+        public EntityId? FindRelatedEntity(EntityId sourceId, RelationshipKindRuntimeId relationshipKind) =>
             _worldState is ICachedWorldState cachedWorldState
                 ? cachedWorldState.QueryCache.FindRelatedEntity(sourceId, relationshipKind)
                 : _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
@@ -844,19 +906,37 @@ public sealed class GoalGenerator
                 _ => 0f,
             };
         }
-        public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) => throw new NotSupportedException();
-        public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) { }
-        public void ModifyAttribute(EntityId entityId, string attributeName, float delta) { }
-        public void ModifyPressure(string pressureName, EntityId scopeId, float delta) { }
-        public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta) { }
-        public void SetTag(EntityId entityId, string key, string value) { }
-        public void SetEntityHistorical(EntityId entityId) { }
-        public float ConsumeResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float amount) => 0f;
-        public void SetCoordinates(EntityId entityId, int q, int r) { }
-        public void SetSemanticCoordinates(EntityId entityId, int q, int r) { }
-        public void CullRelationship(EntityId sourceId, string relationshipKind) { }
+        public Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates) => throw ReadOnlyContextMutationException();
+        public void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) => throw ReadOnlyContextMutationException();
+        public void CreateRelationship(RelationshipKindRuntimeId kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength) => throw ReadOnlyContextMutationException();
+        public void ModifyAttribute(EntityId entityId, string attributeName, float delta) => throw ReadOnlyContextMutationException();
+        public void ModifyAttribute(EntityId entityId, AttributeRuntimeId attributeId, float delta) => throw ReadOnlyContextMutationException();
+        public void ModifyPressure(string pressureName, EntityId scopeId, float delta) => throw ReadOnlyContextMutationException();
+        public void ModifyPressure(PressureRuntimeId pressureId, EntityId scopeId, float delta) => throw ReadOnlyContextMutationException();
+        public void ModifyResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float delta) => throw ReadOnlyContextMutationException();
+        public void SetTag(EntityId entityId, string key, string value) => throw ReadOnlyContextMutationException();
+        public void SetEntityHistorical(EntityId entityId) => throw ReadOnlyContextMutationException();
+        public float ConsumeResource((int Q, int R) coordinates, Resources.ResourceType resourceType, float amount) => throw ReadOnlyContextMutationException();
+        public void SetCoordinates(EntityId entityId, int q, int r) => throw ReadOnlyContextMutationException();
+        public void SetSemanticCoordinates(EntityId entityId, int q, int r) => throw ReadOnlyContextMutationException();
+        public void CullRelationship(EntityId sourceId, string relationshipKind) => throw ReadOnlyContextMutationException();
+        public void CullRelationship(EntityId sourceId, RelationshipKindRuntimeId relationshipKind) => throw ReadOnlyContextMutationException();
         public void SetVariable(string name, float value) { }
         public float GetVariable(string name) => 0f;
+
+        private Relationship? FindRelationshipByName(EntityId sourceId, EntityId targetId, string kind) =>
+            _worldState is ICachedWorldState cachedWorldState
+                ? cachedWorldState.QueryCache.FindRelationship(sourceId, targetId, kind)
+                : _worldState.Graph.OutgoingRelationships(sourceId, kind)
+                    .FirstOrDefault(r => r.TargetId == targetId);
+
+        private EntityId? FindRelatedEntityByName(EntityId sourceId, string relationshipKind) =>
+            _worldState is ICachedWorldState cachedWorldState
+                ? cachedWorldState.QueryCache.FindRelatedEntity(sourceId, relationshipKind)
+                : _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
+
+        private static NotSupportedException ReadOnlyContextMutationException() =>
+            new("Planner goal checks are read-only and cannot mutate engine state.");
     }
 
     private static void AppendTraceLine(StringBuilder? trace, string text)

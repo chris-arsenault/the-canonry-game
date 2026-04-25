@@ -19,21 +19,28 @@ using Engine.Graph;
 public sealed class DomainEntityInitializer
 {
     private readonly DomainConfig _config;
+    private readonly global::Engine.Domain.DomainIdRegistry _runtimeIds;
     private readonly Random _random;
 
-    public DomainEntityInitializer(WorldGraph graph, DomainConfig config, Random? random = null)
+    public DomainEntityInitializer(
+        WorldGraph graph,
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        Random? random = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(runtimeIds);
 
         _config = config;
+        _runtimeIds = runtimeIds;
         _random = random ?? Random.Shared;
         graph.EntityCreated += OnEntityCreated;
     }
 
     private void OnEntityCreated(object? sender, EntityCreatedEventArgs e)
     {
-        InitializeAttributes(e.Entity, _config, _random);
+        InitializeAttributes(e.Entity, _config, _runtimeIds, _random);
     }
 
     /// <summary>
@@ -41,10 +48,15 @@ public sealed class DomainEntityInitializer
     /// to call more than once on the same entity (attributes already present
     /// are skipped).
     /// </summary>
-    public static void InitializeAttributes(Entity entity, DomainConfig config, Random random)
+    public static void InitializeAttributes(
+        Entity entity,
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        Random random)
     {
         ArgumentNullException.ThrowIfNull(entity);
         ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(runtimeIds);
         ArgumentNullException.ThrowIfNull(random);
 
         if (!config.Kinds.TryGetValue(entity.Kind, out var kindConfig))
@@ -54,7 +66,8 @@ public sealed class DomainEntityInitializer
 
         foreach (var attr in kindConfig.Attributes)
         {
-            if (entity.Attributes.Has(attr.Name))
+            var attributeId = runtimeIds.AttributeIdOf(attr.Name);
+            if (entity.Attributes.Has(attributeId))
             {
                 continue;
             }
@@ -66,7 +79,7 @@ public sealed class DomainEntityInitializer
                 defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
             }
 
-            var instance = new ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
+            var instance = new ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal, attributeId);
             if (attr.DriftRate != 0f)
             {
                 instance.AddTickEffect(new AttributeEffect(

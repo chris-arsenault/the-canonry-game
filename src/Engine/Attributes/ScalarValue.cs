@@ -1,5 +1,7 @@
 namespace Engine.Attributes;
 
+using Engine.Domain;
+
 /// <summary>
 /// A scalar attribute on an entity. Owns its base value, tick effects, and static effects.
 /// All reads return the computed effective value. All writes go through Modify().
@@ -18,6 +20,7 @@ public sealed class ScalarValue : IEntityProperty
     private const int TrendWindow = 10;
 
     public string Name { get; }
+    public AttributeRuntimeId RuntimeId { get; }
     public float Min { get; }
     public float Max { get; }
     public float Base { get; private set; }
@@ -43,9 +46,10 @@ public sealed class ScalarValue : IEntityProperty
         }
     }
 
-    public ScalarValue(string name, float min, float max, float defaultValue)
+    public ScalarValue(string name, float min, float max, float defaultValue, AttributeRuntimeId runtimeId = default)
     {
         Name = name;
+        RuntimeId = runtimeId;
         Min = min;
         Max = max;
         Base = Math.Clamp(defaultValue, min, max);

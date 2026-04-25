@@ -1,7 +1,7 @@
 namespace Engine.Tests.Domain;
 
 using Engine.Domain.Loader;
-using Engine.Messages;
+using Engine.Eventing;
 using Engine.Domain.IceRemembers;
 using Engine.Kinds;
 using Engine.Simulation;
@@ -133,18 +133,21 @@ public class DomainConfigTests
         var sim = SimulationRunner.CreateFromTestMap();
         var initialEntityCount = sim.Graph.EntityCount;
         var firedGeneratorIds = new HashSet<string>(StringComparer.Ordinal);
-
-        sim.MessageBus.Subscribe(message =>
-        {
-            if (message is GeneratorFiredMessage fired)
-            {
-                firedGeneratorIds.Add(fired.GeneratorId);
-            }
-        });
+        var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
 
         for (var i = 0; i < 250; i++)
         {
             sim.Tick();
+        }
+
+        while (sim.KernelEvents.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType == KernelEventType.GeneratorFired)
+            {
+                var fired = sequenced.Event.AsGeneratorFired();
+                firedGeneratorIds.Add(
+                    sim.DomainIds.GeneratorNameOf(new global::Engine.Domain.GeneratorRuntimeId(fired.GeneratorId)));
+            }
         }
 
         Assert.True(sim.Graph.EntityCount >= initialEntityCount + 2);

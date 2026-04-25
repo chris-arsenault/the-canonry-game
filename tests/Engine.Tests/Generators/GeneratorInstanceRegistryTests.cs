@@ -4,6 +4,7 @@ using Engine.Domain.Graph;
 using Engine.Generators;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Processes;
 
 public class GeneratorInstanceRegistryTests
 {
@@ -58,6 +59,7 @@ public class GeneratorInstanceRegistryTests
         new()
         {
             Id = id,
+            RuntimeId = ProcessRuntimeId.FromStableName(id).Value,
             Name = "Hero Emergence",
             Target = new DefinitionGeneratorTarget
             {
@@ -82,7 +84,9 @@ public class GeneratorInstanceRegistryTests
                     SourceRef = "$hero",
                     DestinationRef = "$target",
                     RelationshipId = new DefinitionRelationshipId("home_base"),
+                    RelationshipRuntimeId = 1,
                     FactIds = new HashSet<DefinitionRelationshipFactId>(),
+                    FactRuntimeIds = new HashSet<int>(),
                 },
             ],
             Triggers =

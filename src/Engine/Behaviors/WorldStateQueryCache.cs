@@ -1,5 +1,6 @@
 namespace Engine.Behaviors;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -23,6 +24,10 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
     private readonly Dictionary<(EntityId TargetId, string? Kind), IReadOnlyList<Relationship>> _incomingRelationships = [];
     private readonly Dictionary<(EntityId SourceId, string Kind), EntityId?> _relatedEntities = [];
     private readonly Dictionary<(EntityId SourceId, EntityId TargetId, string Kind), Relationship?> _relationships = [];
+    private readonly Dictionary<(EntityId SourceId, RelationshipKindRuntimeId Kind), IReadOnlyList<Relationship>> _outgoingRelationshipsByKindId = [];
+    private readonly Dictionary<(EntityId TargetId, RelationshipKindRuntimeId Kind), IReadOnlyList<Relationship>> _incomingRelationshipsByKindId = [];
+    private readonly Dictionary<(EntityId SourceId, RelationshipKindRuntimeId Kind), EntityId?> _relatedEntitiesByKindId = [];
+    private readonly Dictionary<(EntityId SourceId, EntityId TargetId, RelationshipKindRuntimeId Kind), Relationship?> _relationshipsByKindId = [];
 
     public void BeginTick(int tick)
     {
@@ -54,6 +59,10 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
         _incomingRelationships.Clear();
         _relatedEntities.Clear();
         _relationships.Clear();
+        _outgoingRelationshipsByKindId.Clear();
+        _incomingRelationshipsByKindId.Clear();
+        _relatedEntitiesByKindId.Clear();
+        _relationshipsByKindId.Clear();
     }
 
     public Entity? GetEntity(EntityId id)
@@ -123,6 +132,20 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
         return relationships;
     }
 
+    public IReadOnlyList<Relationship> OutgoingRelationships(EntityId sourceId, RelationshipKindRuntimeId kind)
+    {
+        EnsureCurrentTick();
+        var key = (sourceId, kind);
+        if (_outgoingRelationshipsByKindId.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var relationships = _worldState.Graph.OutgoingRelationships(sourceId, kind).ToArray();
+        _outgoingRelationshipsByKindId[key] = relationships;
+        return relationships;
+    }
+
     public IReadOnlyList<Relationship> IncomingRelationships(EntityId targetId, string? kind = null)
     {
         EnsureCurrentTick();
@@ -134,6 +157,20 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
 
         var relationships = _worldState.Graph.IncomingRelationships(targetId, kind).ToArray();
         _incomingRelationships[key] = relationships;
+        return relationships;
+    }
+
+    public IReadOnlyList<Relationship> IncomingRelationships(EntityId targetId, RelationshipKindRuntimeId kind)
+    {
+        EnsureCurrentTick();
+        var key = (targetId, kind);
+        if (_incomingRelationshipsByKindId.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var relationships = _worldState.Graph.IncomingRelationships(targetId, kind).ToArray();
+        _incomingRelationshipsByKindId[key] = relationships;
         return relationships;
     }
 
@@ -152,6 +189,21 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
         return related;
     }
 
+    public EntityId? FindRelatedEntity(EntityId sourceId, RelationshipKindRuntimeId relationshipKind)
+    {
+        EnsureCurrentTick();
+        var key = (sourceId, relationshipKind);
+        if (_relatedEntitiesByKindId.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var relationships = OutgoingRelationships(sourceId, relationshipKind);
+        var related = relationships.Count == 0 ? (EntityId?)null : relationships[0].TargetId;
+        _relatedEntitiesByKindId[key] = related;
+        return related;
+    }
+
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind)
     {
         EnsureCurrentTick();
@@ -163,6 +215,20 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
 
         var relationship = OutgoingRelationships(sourceId, kind).FirstOrDefault(r => r.TargetId == targetId);
         _relationships[key] = relationship;
+        return relationship;
+    }
+
+    public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, RelationshipKindRuntimeId kind)
+    {
+        EnsureCurrentTick();
+        var key = (sourceId, targetId, kind);
+        if (_relationshipsByKindId.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var relationship = OutgoingRelationships(sourceId, kind).FirstOrDefault(r => r.TargetId == targetId);
+        _relationshipsByKindId[key] = relationship;
         return relationship;
     }
 
@@ -186,6 +252,14 @@ public sealed class WorldStateQueryCache(IWorldState worldState)
 
         if (selector.Kind.HasValue)
         {
+            if (selector.AttributeId.Value > 0)
+            {
+                var attributeId = selector.AttributeId;
+                return ActiveEntityIdsByKind(selector.Kind.Value)
+                    .Where(id => _worldState.Graph.GetEntity(id)?.Attributes.Has(attributeId) == true)
+                    .ToArray();
+            }
+
             var attributeName = selector.Name;
             return ActiveEntityIdsByKind(selector.Kind.Value)
                 .Where(id => _worldState.Graph.GetEntity(id)?.Attributes.Has(attributeName) == true)

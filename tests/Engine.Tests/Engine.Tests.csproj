@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Engine.Domain\Engine.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Engine.Eventing\Engine.Eventing.csproj" />
+    <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
+    <ProjectReference Include="..\..\src\Engine.Projection\Engine.Projection.csproj" />
     <ProjectReference Include="..\..\src\Engine\Engine.csproj" />
     <ProjectReference Include="..\..\tools\MonteCarlo\MonteCarlo.csproj" />
   </ItemGroup>

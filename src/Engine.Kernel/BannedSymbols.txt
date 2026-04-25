@@ -1,0 +1,35 @@
+# Engine.Kernel is the hot simulation boundary. These APIs fail the build here.
+
+# Runtime strings and formatting
+T:System.String;Kernel runtime code must use stable primitive IDs, not strings.
+T:System.Text.StringBuilder;Kernel runtime code must not build diagnostics or presentation text.
+T:System.FormattableString;Kernel runtime code must not create formatted text.
+
+# LINQ and enumerable materialization
+T:System.Linq.Enumerable;Kernel runtime code must use explicit loops over fixed buffers/spans.
+
+# Common heap collections
+T:System.Collections.Generic.List`1;Kernel runtime code must use preallocated arrays, spans, or fixed buffers.
+T:System.Collections.Generic.Dictionary`2;Kernel runtime code must use stable ID indexes or preallocated tables.
+T:System.Collections.Generic.HashSet`1;Kernel runtime code must use fixed sets/bitsets or preallocated tables.
+T:System.Collections.Generic.Queue`1;Kernel runtime code must use explicit ring buffers.
+T:System.Collections.Generic.Stack`1;Kernel runtime code must use fixed buffers.
+T:System.Collections.Generic.IEnumerable`1;Kernel runtime code must not expose enumerable traversal.
+T:System.Collections.Generic.IReadOnlyList`1;Kernel runtime code must use fixed buffers/spans with explicit ownership.
+T:System.Collections.Generic.IReadOnlyCollection`1;Kernel runtime code must use fixed buffers/spans with explicit ownership.
+T:System.Collections.IEnumerable;Kernel runtime code must not expose enumerable traversal.
+
+# Async/threading primitives belong outside the synchronous kernel
+T:System.Threading.Tasks.Task;Kernel runtime code must stay synchronous and deterministic.
+T:System.Threading.Tasks.Task`1;Kernel runtime code must stay synchronous and deterministic.
+T:System.Threading.Tasks.ValueTask;Kernel runtime code must stay synchronous and deterministic.
+T:System.Threading.Tasks.ValueTask`1;Kernel runtime code must stay synchronous and deterministic.
+T:System.Threading.Thread;Kernel runtime code must not create or manage threads.
+T:System.Threading.Channels.Channel;Kernel runtime code must not own async channels.
+T:System.Threading.Channels.Channel`1;Kernel runtime code must not own async channels.
+
+# Logging, timing, and I/O belong to consumers/projections
+T:System.Console;Kernel runtime code must not write logs or presentation output.
+T:System.Diagnostics.Stopwatch;Kernel runtime code must not own profiling timers.
+T:System.IO.File;Kernel runtime code must not perform file I/O.
+T:System.IO.Directory;Kernel runtime code must not perform file-system I/O.

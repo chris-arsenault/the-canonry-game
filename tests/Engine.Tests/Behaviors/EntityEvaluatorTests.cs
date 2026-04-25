@@ -2,16 +2,20 @@ namespace Engine.Tests.Behaviors;
 
 using Engine.Attributes;
 using Engine.Behaviors;
+using Engine.Domain;
 using Engine.Domain.Config;
+using Engine.Domain.Loader;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Messages;
 using Engine.Processes;
 using Engine.Tests;
 using Engine.Wiring;
 
 public class EntityEvaluatorTests
 {
+    private static readonly DomainIdRegistry TestDomainIds = CreateTestDomainIds();
+
     [Fact]
     public void Evaluate_RecencyDecay_ShiftsRepeatedWinnerToAlternateProcess()
     {
@@ -31,22 +35,18 @@ public class EntityEvaluatorTests
         definitions.Register(grow);
         definitions.Register(celebrate);
 
-        var bus = new MessageBus();
-        var executed = new List<(int Tick, ProcessRuntimeId ProcessId)>();
-        bus.Subscribe(message =>
-        {
-            if (message is ProcessExecutedMessage processExecuted)
-            {
-                executed.Add((processExecuted.Tick, processExecuted.ProcessId));
-            }
-        });
-
-        var evaluator = new EntityEvaluator(definitions, bus, new Random(42));
+        var kernelEvents = new KernelEventLog(256);
+        var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var evaluator = CreateEvaluator(definitions, random: new Random(42), kernelEvents: kernelEvents);
         for (var i = 0; i < 100; i++)
         {
             world.CurrentTick = i + 1;
             evaluator.Evaluate(self, world);
         }
+
+        var executed = ReadProcessExecutions(kernelEvents, cursor)
+            .Select(process => (process.Tick, ProcessId: new ProcessRuntimeId(process.ProcessId)))
+            .ToList();
 
         // With decay on, no process should monopolize a 10-tick window.
         for (var startTick = 1; startTick <= 91; startTick++)
@@ -73,12 +73,72 @@ public class EntityEvaluatorTests
         var grow = CreateProcess("Grow", "population");
         definitions.Register(grow);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
         Assert.Equal(goal.Id, self.LastEvaluation!.SelectedGoalId);
         Assert.Equal(grow.RuntimeId, self.LastEvaluation.ExecutedProcessId);
+    }
+
+    [Fact]
+    public void Evaluate_WritesPrimitiveKernelEventsForProcessExecutionAndEvaluation()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        world.CurrentTick = 7;
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
+
+        var definitions = new BehaviorDefinitionIndex();
+        var grow = CreateProcess("Grow", "population");
+        definitions.Register(grow);
+
+        var kernelEvents = new KernelEventLog(8, KernelEventOverflowPolicy.RejectWrite);
+        var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var evaluator = CreateEvaluator(
+            definitions,
+            random: new FixedRandom(0.5),
+            kernelEvents: kernelEvents);
+
+        evaluator.Evaluate(self, world);
+
+        Assert.True(kernelEvents.TryRead(cursor, out var executedEvent));
+        Assert.Equal(KernelEventType.ProcessExecuted, executedEvent.Event.EventType);
+        var executed = executedEvent.Event.AsProcessExecuted();
+        Assert.Equal(7, executed.Tick);
+        Assert.Equal(self.Id.Value, executed.ActorId);
+        Assert.Equal(self.Kind.Id, executed.ActorKindId);
+        Assert.Equal(grow.RuntimeId.Value, executed.ProcessId);
+        Assert.Equal(KernelEventState.Succeeded, executed.State);
+
+        Assert.True(kernelEvents.TryRead(cursor, out var evaluatedEvent));
+        Assert.Equal(KernelEventType.ProcessEvaluated, evaluatedEvent.Event.EventType);
+        var evaluated = evaluatedEvent.Event.AsProcessEvaluated();
+        Assert.Equal(self.Id.Value, evaluated.EntityId);
+        Assert.Equal(grow.RuntimeId.Value, evaluated.ExecutedProcessId);
+        Assert.Equal(KernelEventState.Succeeded, evaluated.State);
+        Assert.True(evaluated.WorldVersion >= executed.WorldVersion);
+    }
+
+    [Fact]
+    public void Evaluate_FailsWhenPrimitiveKernelEventWriterRejectsEvent()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
+        self.Goals.Add(CreateGoal("population", self.Id, 1f));
+
+        var definitions = new BehaviorDefinitionIndex();
+        definitions.Register(CreateProcess("Grow", "population"));
+
+        var kernelEvents = new KernelEventLog(1, KernelEventOverflowPolicy.RejectWrite);
+        _ = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var evaluator = CreateEvaluator(
+            definitions,
+            random: new FixedRandom(0.5),
+            kernelEvents: kernelEvents);
+
+        Assert.Throws<InvalidOperationException>(() => evaluator.Evaluate(self, world));
+        Assert.Equal(1, kernelEvents.RejectedWriteCount);
     }
 
     [Fact]
@@ -95,26 +155,21 @@ public class EntityEvaluatorTests
         definitions.Register(grow);
         definitions.Register(celebrate);
 
-        var bus = new MessageBus();
-        var executed = new List<ProcessRuntimeId>();
-        bus.Subscribe(message =>
-        {
-            if (message is ProcessExecutedMessage processExecuted)
-            {
-                executed.Add(processExecuted.ProcessId);
-            }
-        });
+        var kernelEvents = new KernelEventLog(256);
+        var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
 
         // Turn off recency decay: this test is about urgency-weighted goal selection,
         // not the anti-repetition penalty (which is exercised elsewhere).
-        var evaluator = new EntityEvaluator(definitions, bus, new Random(42))
-        {
-            RecencyDecayFactor = 1f,
-        };
+        var evaluator = CreateEvaluator(definitions, random: new Random(42), kernelEvents: kernelEvents);
+        evaluator.RecencyDecayFactor = 1f;
         for (var i = 0; i < 500; i++)
         {
             evaluator.Evaluate(self, world);
         }
+
+        var executed = ReadProcessExecutions(kernelEvents, cursor)
+            .Select(process => new ProcessRuntimeId(process.ProcessId))
+            .ToList();
 
         Assert.True(executed.Count(id => id == grow.RuntimeId) > executed.Count(id => id == celebrate.RuntimeId));
     }
@@ -140,7 +195,7 @@ public class EntityEvaluatorTests
         definitions.Register(celebrate);
         definitions.Register(stockpile);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.6));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.6));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
@@ -177,7 +232,7 @@ public class EntityEvaluatorTests
         definitions.Register(blocked);
         definitions.Register(viable);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.0));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.0));
         evaluator.Evaluate(self, world);
 
         Assert.Equal(viable.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
@@ -198,7 +253,7 @@ public class EntityEvaluatorTests
         definitions.Register(grow);
         definitions.Register(CreateProcess("Celebrate", "fame"));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Single(self.LastEvaluation!.Candidates);
@@ -217,7 +272,7 @@ public class EntityEvaluatorTests
         var stockpile = CreateProcess("Stockpile", "sustenance");
         definitions.Register(stockpile);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Single(self.LastEvaluation!.Candidates);
@@ -235,7 +290,7 @@ public class EntityEvaluatorTests
         var grow = CreateProcess("Grow", "population", new TargetIsSelf());
         definitions.Register(grow);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -254,7 +309,7 @@ public class EntityEvaluatorTests
         var definitions = new BehaviorDefinitionIndex();
         definitions.Register(CreateProcess("Grow", "population", new TargetIsSelf()));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -274,7 +329,7 @@ public class EntityEvaluatorTests
         definitions.Register(
             CreateProcess("Grow", "population", new SelfAttributeThreshold("sustenance", min: 3f, max: null)));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -294,7 +349,7 @@ public class EntityEvaluatorTests
         definitions.Register(
             CreateProcess("Grow", "population", new TargetAttributeThreshold("sustenance", min: 3f, max: null)));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -313,7 +368,7 @@ public class EntityEvaluatorTests
         var grow = CreateProcess("Grow", "population", cooldown: 4);
         definitions.Register(grow);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5, 0.5, 0.5));
 
         world.CurrentTick = 0;
         evaluator.Evaluate(self, world);
@@ -340,7 +395,7 @@ public class EntityEvaluatorTests
         var grow = CreateProcess("Grow", "population");
         definitions.Register(grow);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
 
         world.CurrentTick = 0;
         evaluator.Evaluate(self, world);
@@ -372,7 +427,7 @@ public class EntityEvaluatorTests
             var grow = CreateProcess("Grow", "population", cooldown: 8);
             definitions.Register(grow);
 
-            var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.0, 0.0, jitterRoll));
+            var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.0, 0.0, jitterRoll));
             evaluator.Evaluate(self, world);
 
             Assert.InRange(self.ProcessCooldowns[grow.RuntimeId], 6, 10);
@@ -405,7 +460,7 @@ public class EntityEvaluatorTests
         var definitions = new BehaviorDefinitionIndex();
         definitions.Register(definition);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5, 0.5, 0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Equal(11f, self.Attributes.GetValue("population"));
@@ -428,7 +483,7 @@ public class EntityEvaluatorTests
         definitions.Register(blocked);
         definitions.Register(grow);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.9));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.9));
         evaluator.Evaluate(self, world);
 
         var report = self.LastEvaluation!;
@@ -448,7 +503,7 @@ public class EntityEvaluatorTests
         var idle = CreateIdleProcess("Idle");
         definitions.Register(idle);
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Equal(idle.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
@@ -478,7 +533,10 @@ public class EntityEvaluatorTests
         };
 
         var generator = new GoalGenerator(kinds, [CreateIdleProcess("Idle")]);
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5), generator);
+        var evaluator = CreateEvaluator(
+            definitions,
+            random: new FixedRandom(0.5),
+            goalGenerator: generator);
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
@@ -519,7 +577,10 @@ public class EntityEvaluatorTests
         definitions.Register(idleGrowth);
 
         var generator = new GoalGenerator(kinds, [idleGrowth]);
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5), generator);
+        var evaluator = CreateEvaluator(
+            definitions,
+            random: new FixedRandom(0.5),
+            goalGenerator: generator);
         evaluator.Evaluate(self, world);
 
         Assert.Equal(idleGrowth.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
@@ -538,7 +599,7 @@ public class EntityEvaluatorTests
         definitions.Register(CreateProcess("Blocked", "population",
             precondition: new SelfAttributeThreshold("sustenance", min: 3f, max: null)));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
@@ -558,7 +619,7 @@ public class EntityEvaluatorTests
         // Grow has TargetIsSelf — should fail precondition against Other, not show "score below threshold"
         definitions.Register(CreateProcess("Grow", "population", new TargetIsSelf()));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -579,7 +640,7 @@ public class EntityEvaluatorTests
         definitions.Register(
             CreateProcess("Grow", "population", new TargetIsSelf(), scoreExpression: Expr.Lit(0f)));
 
-        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
+        var evaluator = CreateEvaluator(definitions, random: new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
@@ -792,6 +853,49 @@ public class EntityEvaluatorTests
         return new EntityGoal(effect, targetEntityId, urgency, parentGoalId: parentGoalId);
     }
 
+    private static EntityEvaluator CreateEvaluator(
+        BehaviorDefinitionIndex definitions,
+        Random? random = null,
+        GoalGenerator? goalGenerator = null,
+        IReadOnlyDictionary<EntityKind, KindConfig>? kindConfigs = null,
+        IKernelEventWriter? kernelEvents = null)
+    {
+        return new EntityEvaluator(
+            definitions,
+            random: random,
+            goalGenerator: goalGenerator,
+            kindConfigs: kindConfigs,
+            kernelEvents: kernelEvents ?? new KernelEventLog(1024),
+            domainIds: TestDomainIds);
+    }
+
+    private static DomainIdRegistry CreateTestDomainIds()
+    {
+        var ids = new DomainIdRegistry();
+        ids.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
+        ids.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        ids.RegisterAttribute("population");
+        ids.RegisterAttribute("fame");
+        ids.RegisterAttribute("sustenance");
+        return ids;
+    }
+
+    private static List<ProcessExecutedKernelEvent> ReadProcessExecutions(
+        KernelEventLog kernelEvents,
+        KernelEventCursor cursor)
+    {
+        var executed = new List<ProcessExecutedKernelEvent>();
+        while (kernelEvents.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType == KernelEventType.ProcessExecuted)
+            {
+                executed.Add(sequenced.Event.AsProcessExecuted());
+            }
+        }
+
+        return executed;
+    }
+
     private static Entity CreateSettlement(
         StubWorldState world,
         string name,
@@ -801,9 +905,24 @@ public class EntityEvaluatorTests
         float sustenance = 5f)
     {
         var entity = world.Graph.CreateEntity(TestKinds.Settlement, "village", name, "c", 0, coordinates);
-        entity.Attributes.Add(new ScalarValue("population", 0f, 100f, population));
-        entity.Attributes.Add(new ScalarValue("fame", 0f, 100f, fame));
-        entity.Attributes.Add(new ScalarValue("sustenance", 0f, 100f, sustenance));
+        entity.Attributes.Add(new ScalarValue(
+            "population",
+            0f,
+            100f,
+            population,
+            TestDomainIds.AttributeIdOf("population")));
+        entity.Attributes.Add(new ScalarValue(
+            "fame",
+            0f,
+            100f,
+            fame,
+            TestDomainIds.AttributeIdOf("fame")));
+        entity.Attributes.Add(new ScalarValue(
+            "sustenance",
+            0f,
+            100f,
+            sustenance,
+            TestDomainIds.AttributeIdOf("sustenance")));
         return entity;
     }
 }

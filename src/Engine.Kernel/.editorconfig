@@ -1,0 +1,4 @@
+root = false
+
+[*.cs]
+dotnet_diagnostic.RS0030.severity = error

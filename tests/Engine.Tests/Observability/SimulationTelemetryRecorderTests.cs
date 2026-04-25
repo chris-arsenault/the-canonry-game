@@ -1,8 +1,9 @@
 namespace Engine.Tests.Observability;
 
 using Engine.Domain.IceRemembers;
-using Engine.Messages;
+using Engine.Eventing;
 using Engine.Observability;
+using Engine.Projection;
 using Engine.Simulation;
 
 public class SimulationTelemetryRecorderTests
@@ -50,17 +51,36 @@ public class SimulationTelemetryRecorderTests
     }
 
     [Fact]
-    public void MessageBus_SubscriptionCanBeDisposed()
+    public void ProjectionPump_CursorCanBeDisposed()
     {
-        var bus = new MessageBus();
-        var count = 0;
-        var subscription = bus.Subscribe(_ => count++);
+        var log = new KernelEventLog(capacity: 1, KernelEventOverflowPolicy.RejectWrite);
+        var projection = new UiProjectionState();
+        var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
 
-        bus.Publish(new DegeneracyWarningMessage(1, "test", Engine.Degeneracy.Severity.Warning, "first"));
-        subscription.Dispose();
-        bus.Publish(new DegeneracyWarningMessage(2, "test", Engine.Degeneracy.Severity.Warning, "second"));
+        Assert.True(log.TryWrite(KernelEvent.From(new DegeneracyDetectedKernelEvent(
+            Tick: 1,
+            WorldVersion: 1,
+            DetectorId: 2,
+            SeverityCode: 3,
+            ReasonCodeId: 4))));
+        Assert.False(log.TryWrite(KernelEvent.From(new DegeneracyDetectedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            DetectorId: 2,
+            SeverityCode: 3,
+            ReasonCodeId: 5))));
 
-        Assert.Equal(1, count);
+        pump.Dispose();
+
+        Assert.True(log.TryWrite(KernelEvent.From(new DegeneracyDetectedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            DetectorId: 2,
+            SeverityCode: 3,
+            ReasonCodeId: 5))));
     }
 
     [Fact]

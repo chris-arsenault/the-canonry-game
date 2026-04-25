@@ -4,15 +4,16 @@ using System.Diagnostics;
 using System.Globalization;
 
 using Engine.Clock;
+using Engine.Eventing;
 using Engine.Graph;
-using Engine.Messages;
 using Engine.Simulation;
 
 public sealed class SimulationPerformanceRecorder : IDisposable
-{
-    private readonly SimulationRunner _sim;
-    private readonly IDisposable _subscription;
-    private readonly Stopwatch _simulationStopwatch = Stopwatch.StartNew();
+    {
+        private readonly SimulationRunner _sim;
+        private readonly KernelEventCursor _kernelCursor;
+        private readonly SequencedKernelEvent[] _kernelEventBuffer = new SequencedKernelEvent[256];
+        private readonly Stopwatch _simulationStopwatch = Stopwatch.StartNew();
     private readonly Dictionary<int, TickMessageCounters> _messageCounters = [];
     private readonly List<double> _sampledTickMilliseconds = [];
     private readonly int _requestedTicks;
@@ -74,7 +75,7 @@ public sealed class SimulationPerformanceRecorder : IDisposable
             sim.Clock.SystemTimed += OnSystemTimed;
         }
 
-        _subscription = sim.MessageBus.Subscribe(OnMessage);
+        _kernelCursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
     }
 
     public PerformanceTelemetryBatch Complete()
@@ -117,34 +118,47 @@ public sealed class SimulationPerformanceRecorder : IDisposable
         _disposed = true;
 
         Complete();
-        _subscription.Dispose();
+        _kernelCursor.Dispose();
         _sim.Clock.TickTimed -= OnTickTimed;
         _sim.Clock.SystemTimed -= OnSystemTimed;
         _sim.Clock.TickTimingSampleFilter = _previousTickTimingSampleFilter;
         _sim.Clock.SystemTimingSampleFilter = _previousSystemTimingSampleFilter;
     }
 
-    private void OnMessage(SimulationMessage message)
+    private void DrainKernelEvents(int tick)
     {
-        if (!ShouldSampleTick(message.Tick))
+        while (true)
         {
-            return;
-        }
+            var read = _sim.KernelEvents.Read(_kernelCursor, _kernelEventBuffer);
+            if (read == 0)
+            {
+                return;
+            }
 
-        var counters = GetCounters(message.Tick);
-        counters.TotalMessages++;
+            for (var i = 0; i < read; i++)
+            {
+                var kernelEvent = _kernelEventBuffer[i].Event;
+                if (kernelEvent.Tick > tick || !ShouldSampleTick(kernelEvent.Tick))
+                {
+                    continue;
+                }
 
-        switch (message)
-        {
-            case ProcessEvaluationMessage process:
-                counters.ProcessEvents++;
-                counters.ProcessCandidates += process.CandidateCount;
-                break;
+                var counters = GetCounters(kernelEvent.Tick);
+                counters.TotalMessages++;
 
-            case GeneratorPulseMessage:
-            case GeneratorFiredMessage:
-                counters.GeneratorEvents++;
-                break;
+                switch (kernelEvent.EventType)
+                {
+                    case KernelEventType.ProcessEvaluated:
+                        var process = kernelEvent.AsProcessEvaluated();
+                        counters.ProcessEvents++;
+                        counters.ProcessCandidates += process.CandidateCount;
+                        break;
+                    case KernelEventType.GeneratorEvaluated:
+                    case KernelEventType.GeneratorFired:
+                        counters.GeneratorEvents++;
+                        break;
+                }
+            }
         }
     }
 
@@ -155,6 +169,7 @@ public sealed class SimulationPerformanceRecorder : IDisposable
             return;
         }
 
+        DrainKernelEvents(timing.Tick);
         var elapsedMilliseconds = timing.Elapsed.TotalMilliseconds;
         _sampledTickMilliseconds.Add(elapsedMilliseconds);
         UpdatePeakManagedMemory();

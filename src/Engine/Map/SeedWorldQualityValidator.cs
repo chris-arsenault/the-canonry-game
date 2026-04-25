@@ -243,17 +243,17 @@ public static class SeedWorldQualityValidator
 
         foreach (var penguin in Active(world, K.Penguin))
         {
-            if (!world.Graph.OutgoingRelationships(penguin.Id, "loyal_to").Any())
+            if (!world.Graph.OutgoingRelationships(penguin.Id, "member_of").Any())
             {
-                issues.Add($"penguin '{penguin.Name}' has no loyal_to relationship.");
+                issues.Add($"penguin '{penguin.Name}' has no member_of relationship.");
             }
         }
 
         foreach (var artifact in Active(world, K.Artifact))
         {
-            if (!world.Graph.OutgoingRelationships(artifact.Id, "stored_at").Any())
+            if (!world.Graph.OutgoingRelationships(artifact.Id, "anchored").Any())
             {
-                issues.Add($"artifact '{artifact.Name}' has no stored_at relationship.");
+                issues.Add($"artifact '{artifact.Name}' has no anchored relationship.");
             }
         }
     }

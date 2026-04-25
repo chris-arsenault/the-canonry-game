@@ -2,22 +2,24 @@ namespace Engine.Observability;
 
 using System.Globalization;
 
+using Engine.Domain;
 using Engine.Domain.Config;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Map;
-using Engine.Messages;
 using Engine.Processes;
 using Engine.Resources;
 using Engine.Simulation;
 
 /// <summary>
-/// Structured observer for batch simulation analysis. It subscribes to the
-/// existing message bus and samples aggregate state at tick boundaries.
+/// Structured observer for batch simulation analysis. It consumes primitive
+/// kernel events and samples aggregate state at tick boundaries.
 /// </summary>
 public sealed class SimulationTelemetryRecorder : IDisposable
 {
     private readonly SimulationRunner _sim;
-    private readonly IDisposable _subscription;
+    private readonly KernelEventCursor _kernelCursor;
+    private readonly SequencedKernelEvent[] _kernelEventBuffer = new SequencedKernelEvent[512];
     private readonly int _entitySnapshotCadence;
     private readonly Dictionary<EntityId, EntityStateSnapshot> _lastEntityState = [];
     private readonly HashSet<(int Tick, int EntityId, string AttributeName)> _attributeEventsSeen = [];
@@ -32,8 +34,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
         string runId,
         int? seed = null,
         string domain = "IceRemembers",
-        int entitySnapshotCadence = 25,
-        IEnumerable<SimulationMessage>? bootstrapMessages = null)
+        int entitySnapshotCadence = 25)
     {
         ArgumentNullException.ThrowIfNull(sim);
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
@@ -41,7 +42,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
         _sim = sim;
         RunId = runId;
         _entitySnapshotCadence = entitySnapshotCadence;
-        _subscription = sim.MessageBus.Subscribe(OnMessage);
+        _kernelCursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
 
         Batch.Runs.Add(new RunRow(
             runId,
@@ -49,20 +50,14 @@ public sealed class SimulationTelemetryRecorder : IDisposable
             domain,
             DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)));
 
-        if (bootstrapMessages is not null)
-        {
-            foreach (var message in bootstrapMessages)
-            {
-                OnMessage(message);
-            }
-        }
-
+        DrainKernelEvents(sim.Clock.CurrentTick);
         RecordTickSnapshot();
     }
 
     public void OnTickEnded()
     {
         if (_disposed) return;
+        DrainKernelEvents(_sim.Clock.CurrentTick);
         RecordTickSnapshot();
     }
 
@@ -70,301 +65,458 @@ public sealed class SimulationTelemetryRecorder : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _subscription.Dispose();
+        _kernelCursor.Dispose();
     }
 
-    private void OnMessage(SimulationMessage message)
+    private void DrainKernelEvents(int tick)
     {
-        switch (message)
+        int read;
+        do
         {
-            case EntityCreatedMessage created:
-                Batch.EntityEvents.Add(new EntityEventRow(
-                    RunId,
-                    created.Tick,
-                    "created",
-                    created.EntityId.Value,
-                    created.Kind.Value,
-                    created.Subtype,
-                    created.Name,
-                    created.Culture,
-                    PreviousStatus: null,
-                    CurrentStatus: "Active",
-                    created.Physical.Q,
-                    created.Physical.R,
-                    created.Semantic.Q,
-                    created.Semantic.R,
-                    created.Semantic.S));
-                break;
-
-            case EntityStatusChangedMessage status:
-                Batch.EntityEvents.Add(new EntityEventRow(
-                    RunId,
-                    status.Tick,
-                    "status_changed",
-                    status.EntityId.Value,
-                    status.Kind.Value,
-                    status.Subtype,
-                    status.Name,
-                    CultureOf(status.EntityId),
-                    status.PreviousStatus,
-                    status.CurrentStatus,
-                    PhysicalQOf(status.EntityId),
-                    PhysicalROf(status.EntityId),
-                    SemanticQOf(status.EntityId),
-                    SemanticROf(status.EntityId),
-                    SemanticSOf(status.EntityId)));
-                break;
-
-            case GoalGenerationMessage goals:
-                foreach (var goal in goals.Goals)
+            read = _sim.KernelEvents.Read(_kernelCursor, _kernelEventBuffer);
+            for (var index = 0; index < read; index++)
+            {
+                var kernelEvent = _kernelEventBuffer[index].Event;
+                if (kernelEvent.Tick <= tick)
                 {
-                    Batch.PlannerGoals.Add(new PlannerGoalRow(
-                        RunId,
-                        goals.Tick,
-                        goals.EntityId.Value,
-                        goals.Kind.Value,
-                        GoalKey(goal.GoalId),
-                        goal.DesiredEffect.ToString(),
-                        goal.TargetEntityId.Value,
-                        goal.Urgency,
-                        ProcessNameOf(goal.PlannedProcessId),
-                        GoalKey(goal.ParentGoalId),
-                        goal.IsActionable,
-                        goal.Depth));
+                    ProjectKernelEvent(kernelEvent);
                 }
-                break;
+            }
+        } while (read == _kernelEventBuffer.Length);
+    }
 
-            case ProcessEvaluationMessage process:
-                Batch.ProcessEvents.Add(new ProcessEventRow(
-                    RunId,
-                    process.Tick,
-                    process.EntityId.Value,
-                    process.Kind.Value,
-                    GoalKey(process.SelectedGoalId),
-                    ProcessNameOf(process.ExecutedProcessId),
-                    process.IsStale,
-                    process.StatusNote,
-                    process.CandidateCount,
-                    VisitKey(process.SelectedLocality?.VisitId),
-                    LocalityKeyText(process.SelectedLocality?.LocalityKey),
-                    PlaneLabel(process.SelectedLocality?.Plane),
-                    process.SelectedLocality?.Q,
-                    process.SelectedLocality?.R,
-                    process.SelectedLocality?.S,
-                    process.SelectedLocality?.BundleScore,
-                    process.SelectedLocality?.GoalCount,
-                    process.SelectedLocality?.DistinctTargetCount,
-                    process.SelectedLocality?.DistinctEffectCount,
-                    process.SelectedLocality?.Distance,
-                    process.SelectedLocality?.IsCurrentLocality,
-                    process.SelectedLocality?.IsCommitted,
-                    process.SelectedLocality?.Arrived,
-                    process.SelectedLocality?.ActionsRemaining,
-                    process.SelectedLocality?.RealizedActions,
-                    ReasonLabel(process.SelectedLocality?.SelectionReason)));
-                foreach (var candidate in process.Candidates)
-                {
-                    Batch.ProcessCandidates.Add(new ProcessCandidateRow(
-                        RunId,
-                        process.Tick,
-                        process.EntityId.Value,
-                        process.Kind.Value,
-                        ProcessNameOf(candidate.ProcessId) ?? string.Empty,
-                        GoalKey(candidate.GoalId) ?? string.Empty,
-                        ProviderNameOf(candidate.ProviderId),
-                        candidate.Score,
-                        candidate.PreconditionPassed,
-                        candidate.PreconditionDiagnostic,
-                        candidate.OnCooldown,
-                        candidate.WasSelected));
-                }
-                foreach (var locality in process.LocalityOpportunities)
-                {
-                    Batch.LocalityOpportunities.Add(new LocalityOpportunityRow(
-                        RunId,
-                        process.Tick,
-                        process.EntityId.Value,
-                        process.Kind.Value,
-                        VisitKey(process.SelectedLocality?.VisitId),
-                        LocalityKeyText(locality.LocalityKey),
-                        PlaneLabel(locality.Plane),
-                        locality.Q,
-                        locality.R,
-                        locality.S,
-                        locality.AnchorEntityId.Value,
-                        locality.AnchorName,
-                        locality.BundleScore,
-                        locality.GoalCount,
-                        locality.DistinctTargetCount,
-                        locality.DistinctEffectCount,
-                        locality.Distance,
-                        locality.IsCurrentLocality,
-                        locality.IsCommitted,
-                        locality.WasSelected,
-                        ReasonLabel(locality.SelectionReason)));
-                }
+    private void ProjectKernelEvent(KernelEvent kernelEvent)
+    {
+        switch (kernelEvent.EventType)
+        {
+            case KernelEventType.EntityCreated:
+                ProjectEntityCreated(kernelEvent.AsEntityCreated());
                 break;
-
-            case AttributeChangedMessage attribute:
-                _attributeEventsSeen.Add((attribute.Tick, attribute.EntityId.Value, attribute.AttributeName));
-                Batch.AttributeEvents.Add(new AttributeEventRow(
-                    RunId,
-                    attribute.Tick,
-                    attribute.EntityId.Value,
-                    attribute.AttributeName,
-                    attribute.OldValue,
-                    attribute.NewValue,
-                    attribute.NewValue - attribute.OldValue,
-                    attribute.Source));
+            case KernelEventType.EntityStatusChanged:
+                ProjectEntityStatusChanged(kernelEvent.AsEntityStatusChanged());
                 break;
-
-            case EntityMovedMessage moved:
-                _movementEventsSeen.Add((moved.Tick, moved.EntityId.Value, "physical"));
-                Batch.MovementEvents.Add(new MovementEventRow(
-                    RunId,
-                    moved.Tick,
-                    moved.EntityId.Value,
-                    "physical",
-                    moved.From.Q,
-                    moved.From.R,
-                    null,
-                    moved.To.Q,
-                    moved.To.R,
-                    null,
-                    HexCoord.Distance(new HexCoord(moved.From.Q, moved.From.R), new HexCoord(moved.To.Q, moved.To.R))));
+            case KernelEventType.EntityMoved:
+                ProjectEntityMoved(kernelEvent.AsEntityMoved());
                 break;
-
-            case EntitySemanticMovedMessage moved:
-                _movementEventsSeen.Add((moved.Tick, moved.EntityId.Value, "semantic"));
-                Batch.MovementEvents.Add(new MovementEventRow(
-                    RunId,
-                    moved.Tick,
-                    moved.EntityId.Value,
-                    "semantic",
-                    moved.From.Q,
-                    moved.From.R,
-                    moved.From.S,
-                    moved.To.Q,
-                    moved.To.R,
-                    moved.To.S,
-                    SemanticDistance(
-                        new SemanticHexCoord(moved.From.Q, moved.From.R),
-                        new SemanticHexCoord(moved.To.Q, moved.To.R))));
+            case KernelEventType.AttributeChanged:
+                ProjectAttributeChanged(kernelEvent.AsAttributeChanged());
                 break;
-
-            case ResourceChangedMessage resource:
-                Batch.ResourceEvents.Add(new ResourceEventRow(
-                    RunId,
-                    resource.Tick,
-                    resource.ResourceType,
-                    resource.Coordinates.Q,
-                    resource.Coordinates.R,
-                    resource.OldValue,
-                    resource.NewValue,
-                    resource.NewValue - resource.OldValue,
-                    resource.Source));
+            case KernelEventType.ResourceChanged:
+                ProjectResourceChanged(kernelEvent.AsResourceChanged());
                 break;
-
-            case RelationshipChangedMessage relationship:
-                Batch.RelationshipEvents.Add(new RelationshipEventRow(
-                    RunId,
-                    relationship.Tick,
-                    relationship.ChangeType,
-                    relationship.RelationshipKind,
-                    relationship.Polarity,
-                    relationship.SourceId.Value,
-                    relationship.TargetId.Value,
-                    relationship.PreviousStrength,
-                    relationship.NewStrength,
-                    string.Join('|', relationship.Facts.OrderBy(value => value, StringComparer.Ordinal))));
+            case KernelEventType.RelationshipChanged:
+                ProjectRelationshipChanged(kernelEvent.AsRelationshipChanged());
                 break;
-
-            case EntityDiedMessage death:
-                Batch.LifecycleEvents.Add(new LifecycleEventRow(
-                    RunId,
-                    death.Tick,
-                    "death",
-                    death.EntityId.Value,
-                    death.Kind.Value,
-                    death.Name));
+            case KernelEventType.ProcessEvaluated:
+                ProjectProcessEvaluated(kernelEvent.AsProcessEvaluated());
                 break;
-
-            case MapGenerationDegenerateMessage mapDegenerate:
-                Batch.MapGenerationEvents.Add(new MapGenerationEventRow(
-                    RunId,
-                    mapDegenerate.Tick,
-                    mapDegenerate.BaseSeed,
-                    mapDegenerate.Attempt,
-                    mapDegenerate.TerrainSeed,
-                    mapDegenerate.EntitySeed,
-                    mapDegenerate.Phase,
-                    mapDegenerate.Description,
-                    string.Join('|', mapDegenerate.Reasons),
-                    mapDegenerate.WillRetry));
+            case KernelEventType.GoalGenerated:
+                ProjectGoalGenerated(kernelEvent.AsGoalGenerated());
                 break;
-
-            case GeneratorPulseMessage pulse:
-                Batch.GeneratorEvents.Add(new GeneratorEventRow(
-                    RunId,
-                    pulse.Tick,
-                    "pulse",
-                    pulse.GeneratorId,
-                    pulse.Status,
-                    pulse.TargetPoolCount,
-                    pulse.InactiveRejectedCount,
-                    pulse.SubtypeRejectedCount,
-                    pulse.SaturationRejectedCount,
-                    pulse.SecondaryTargetRejectedCount,
-                    pulse.WildernessRejectedCount,
-                    pulse.TriggerRejectedCount,
-                    pulse.CandidateCount,
-                    pulse.FailedFireCount,
-                    pulse.SelectedTargetEntityId?.Value,
-                    CreatedEntityCount: 0,
-                    CreatedRelationshipCount: 0));
+            case KernelEventType.GeneratorEvaluated:
+                ProjectGeneratorEvaluated(kernelEvent.AsGeneratorEvaluated());
                 break;
-
-            case GeneratorFiredMessage fired:
-                Batch.GeneratorEvents.Add(new GeneratorEventRow(
-                    RunId,
-                    fired.Tick,
-                    "fired",
-                    fired.GeneratorId,
-                    "fired",
-                    TargetPoolCount: 0,
-                    InactiveRejectedCount: 0,
-                    SubtypeRejectedCount: 0,
-                    SaturationRejectedCount: 0,
-                    SecondaryTargetRejectedCount: 0,
-                    WildernessRejectedCount: 0,
-                    TriggerRejectedCount: 0,
-                    CandidateCount: 0,
-                    FailedFireCount: 0,
-                    fired.TargetEntityId?.Value,
-                    fired.CreatedEntityIds.Count,
-                    fired.CreatedRelationshipCount));
-                foreach (var entityId in fired.CreatedEntityIds)
-                {
-                    var entity = _sim.Graph.GetEntity(entityId);
-                    if (entity is null) continue;
-                    var sem = entity.SemanticPosition;
-                    Batch.GeneratedEntities.Add(new GeneratedEntityRow(
-                        RunId,
-                        fired.Tick,
-                        fired.GeneratorId,
-                        entity.Id.Value,
-                        entity.Kind.Value,
-                        entity.Subtype,
-                        entity.Culture,
-                        entity.Coordinates.Q,
-                        entity.Coordinates.R,
-                        sem.Q,
-                        sem.R,
-                        sem.S));
-                }
+            case KernelEventType.GeneratorFired:
+                ProjectGeneratorFired(kernelEvent.AsGeneratorFired());
                 break;
         }
     }
+
+    private void ProjectEntityCreated(EntityCreatedKernelEvent created)
+    {
+        var entity = RequiredEntity(created.EntityId);
+        Batch.EntityEvents.Add(new EntityEventRow(
+            RunId,
+            created.Tick,
+            "created",
+            created.EntityId,
+            entity.Kind.Value,
+            _sim.DomainIds.SubtypeNameOf(new SubtypeRuntimeId(created.SubtypeId)),
+            entity.Name,
+            _sim.DomainIds.CultureNameOf(new CultureRuntimeId(created.CultureId)),
+            PreviousStatus: null,
+            CurrentStatus: EntityStatus.Active.ToString(),
+            created.PhysicalQ,
+            created.PhysicalR,
+            created.SemanticQ,
+            created.SemanticR,
+            created.SemanticS));
+    }
+
+    private void ProjectEntityStatusChanged(EntityStatusChangedKernelEvent status)
+    {
+        var entity = RequiredEntity(status.EntityId);
+        var previousStatus = (EntityStatus)status.PreviousStatusCode;
+        var currentStatus = (EntityStatus)status.CurrentStatusCode;
+        var sem = entity.SemanticPosition;
+        Batch.EntityEvents.Add(new EntityEventRow(
+            RunId,
+            status.Tick,
+            "status_changed",
+            status.EntityId,
+            entity.Kind.Value,
+            _sim.DomainIds.SubtypeNameOf(new SubtypeRuntimeId(status.SubtypeId)),
+            entity.Name,
+            entity.Culture,
+            previousStatus.ToString(),
+            currentStatus.ToString(),
+            entity.Coordinates.Q,
+            entity.Coordinates.R,
+            sem.Q,
+            sem.R,
+            sem.S));
+
+        if (currentStatus == EntityStatus.Historical)
+        {
+            Batch.LifecycleEvents.Add(new LifecycleEventRow(
+                RunId,
+                status.Tick,
+                "death",
+                status.EntityId,
+                entity.Kind.Value,
+                entity.Name));
+        }
+    }
+
+    private void ProjectEntityMoved(EntityMovedKernelEvent moved)
+    {
+        var plane = moved.PlaneCode == (int)PrimaryPlane.Physical ? "physical" : "semantic";
+        _movementEventsSeen.Add((moved.Tick, moved.EntityId, plane));
+        var distance = moved.PlaneCode == (int)PrimaryPlane.Physical
+            ? HexCoord.Distance(new HexCoord(moved.FromQ, moved.FromR), new HexCoord(moved.ToQ, moved.ToR))
+            : SemanticDistance(
+                new SemanticHexCoord(moved.FromQ, moved.FromR),
+                new SemanticHexCoord(moved.ToQ, moved.ToR));
+        Batch.MovementEvents.Add(new MovementEventRow(
+            RunId,
+            moved.Tick,
+            moved.EntityId,
+            plane,
+            moved.FromQ,
+            moved.FromR,
+            moved.PlaneCode == (int)PrimaryPlane.Physical ? null : moved.FromS,
+            moved.ToQ,
+            moved.ToR,
+            moved.PlaneCode == (int)PrimaryPlane.Physical ? null : moved.ToS,
+            distance));
+    }
+
+    private void ProjectAttributeChanged(AttributeChangedKernelEvent attribute)
+    {
+        var attributeName = _sim.DomainIds.AttributeNameOf(new AttributeRuntimeId(attribute.AttributeId));
+        var source = _sim.DomainIds.SourceCodeNameOf(new SourceCodeId(attribute.SourceCodeId));
+        _attributeEventsSeen.Add((attribute.Tick, attribute.EntityId, attributeName));
+        Batch.AttributeEvents.Add(new AttributeEventRow(
+            RunId,
+            attribute.Tick,
+            attribute.EntityId,
+            attributeName,
+            attribute.OldValue,
+            attribute.NewValue,
+            attribute.NewValue - attribute.OldValue,
+            source));
+    }
+
+    private void ProjectResourceChanged(ResourceChangedKernelEvent resource)
+    {
+        var resourceName = _sim.DomainIds.ResourceNameOf(new ResourceRuntimeId(resource.ResourceId));
+        var source = _sim.DomainIds.SourceCodeNameOf(new SourceCodeId(resource.SourceCodeId));
+        Batch.ResourceEvents.Add(new ResourceEventRow(
+            RunId,
+            resource.Tick,
+            resourceName,
+            resource.Q,
+            resource.R,
+            resource.OldValue,
+            resource.NewValue,
+            resource.NewValue - resource.OldValue,
+            source));
+    }
+
+    private void ProjectRelationshipChanged(RelationshipChangedKernelEvent relationship)
+    {
+        Batch.RelationshipEvents.Add(new RelationshipEventRow(
+            RunId,
+            relationship.Tick,
+            _sim.DomainIds.EventCodeNameOf(new EventCodeId(relationship.ChangeCodeId)),
+            _sim.DomainIds.RelationshipKindNameOf(new RelationshipKindRuntimeId(relationship.RelationshipKindId)),
+            ((RelationshipPolarity)relationship.PolarityCode).ToString(),
+            relationship.SourceEntityId,
+            relationship.TargetEntityId,
+            relationship.PreviousStrength,
+            relationship.NewStrength,
+            RelationshipFacts(relationship)));
+    }
+
+    private void ProjectGoalGenerated(GoalGeneratedKernelEvent goals)
+    {
+        var entity = RequiredEntity(goals.EntityId);
+        foreach (var goal in entity.Goals)
+        {
+            Batch.PlannerGoals.Add(new PlannerGoalRow(
+                RunId,
+                goals.Tick,
+                goals.EntityId,
+                entity.Kind.Value,
+                GoalKey(goal.Id),
+                goal.DesiredEffect.ToString(),
+                goal.TargetEntityId.Value,
+                goal.Urgency,
+                ProcessNameOf(goal.PlannedProcessId),
+                GoalKey(goal.ParentGoalId),
+                goal.IsActionable,
+                goal.Depth));
+        }
+    }
+
+    private void ProjectProcessEvaluated(ProcessEvaluatedKernelEvent process)
+    {
+        var entity = RequiredEntity(process.EntityId);
+        if (entity.LastEvaluation is { } report && report.Tick == process.Tick)
+        {
+            ProjectProcessReport(process.Tick, entity, report);
+            return;
+        }
+
+        var selectedGoal = process.SelectedGoalId > 0 ? new GoalRuntimeId(process.SelectedGoalId) : (GoalRuntimeId?)null;
+        var executedProcess = process.ExecutedProcessId > 0
+            ? new ProcessRuntimeId(process.ExecutedProcessId)
+            : (ProcessRuntimeId?)null;
+        Batch.ProcessEvents.Add(new ProcessEventRow(
+            RunId,
+            process.Tick,
+            process.EntityId,
+            entity.Kind.Value,
+            GoalKey(selectedGoal),
+            ProcessNameOf(executedProcess),
+            process.State.HasFlag(KernelEventState.Stale),
+            StatusNote: null,
+            process.CandidateCount,
+            VisitId: null,
+            LocalityKey: null,
+            LocalityPlane: null,
+            LocalityQ: null,
+            LocalityR: null,
+            LocalityS: null,
+            LocalityBundleScore: null,
+            LocalityGoalCount: null,
+            LocalityDistinctTargetCount: null,
+            LocalityDistinctEffectCount: null,
+            LocalityDistance: null,
+            LocalityIsCurrent: null,
+            LocalityIsCommitted: null,
+            LocalityArrived: null,
+            LocalityActionsRemaining: null,
+            LocalityRealizedActions: null,
+            LocalitySelectionReason: null));
+    }
+
+    private void ProjectProcessReport(int tick, Entity entity, EvaluationReport report)
+    {
+        Batch.ProcessEvents.Add(new ProcessEventRow(
+            RunId,
+            tick,
+            entity.Id.Value,
+            entity.Kind.Value,
+            GoalKey(report.SelectedGoalId),
+            ProcessNameOf(report.ExecutedProcessId),
+            report.IsStale,
+            report.StatusNote,
+            report.CandidateCount,
+            VisitKey(report.SelectedLocality?.VisitId),
+            LocalityKeyText(report.SelectedLocality?.LocalityKey),
+            PlaneLabel(report.SelectedLocality?.Plane),
+            report.SelectedLocality?.Q,
+            report.SelectedLocality?.R,
+            report.SelectedLocality?.S,
+            report.SelectedLocality?.BundleScore,
+            report.SelectedLocality?.GoalCount,
+            report.SelectedLocality?.DistinctTargetCount,
+            report.SelectedLocality?.DistinctEffectCount,
+            report.SelectedLocality?.Distance,
+            report.SelectedLocality?.IsCurrentLocality,
+            report.SelectedLocality?.IsCommitted,
+            report.SelectedLocality?.Arrived,
+            report.SelectedLocality?.ActionsRemaining,
+            report.SelectedLocality?.RealizedActions,
+            ReasonLabel(report.SelectedLocality?.SelectionReason)));
+        foreach (var candidate in report.Candidates)
+        {
+            Batch.ProcessCandidates.Add(new ProcessCandidateRow(
+                RunId,
+                tick,
+                entity.Id.Value,
+                entity.Kind.Value,
+                ProcessNameOf(candidate.ProcessId) ?? string.Empty,
+                GoalKey(candidate.GoalId) ?? string.Empty,
+                ProviderNameOf(candidate.ProviderId),
+                candidate.Score,
+                candidate.PreconditionPassed,
+                candidate.PreconditionDiagnostic,
+                candidate.OnCooldown,
+                candidate.WasSelected));
+        }
+        foreach (var locality in report.LocalityOpportunities)
+        {
+            Batch.LocalityOpportunities.Add(new LocalityOpportunityRow(
+                RunId,
+                tick,
+                entity.Id.Value,
+                entity.Kind.Value,
+                VisitKey(report.SelectedLocality?.VisitId),
+                LocalityKeyText(locality.LocalityKey),
+                PlaneLabel(locality.Plane),
+                locality.Q,
+                locality.R,
+                locality.S,
+                locality.AnchorEntityId,
+                locality.AnchorName,
+                locality.BundleScore,
+                locality.GoalCount,
+                locality.DistinctTargetCount,
+                locality.DistinctEffectCount,
+                locality.Distance,
+                locality.IsCurrentLocality,
+                locality.IsCommitted,
+                locality.WasSelected,
+                ReasonLabel(locality.SelectionReason)));
+        }
+    }
+
+    private void ProjectGeneratorEvaluated(GeneratorEvaluatedKernelEvent generator)
+    {
+        Batch.GeneratorEvents.Add(new GeneratorEventRow(
+            RunId,
+            generator.Tick,
+            "pulse",
+            GeneratorNameOf(generator.GeneratorId),
+            GeneratorStatusName(generator.StatusCode),
+            TargetPoolCount: 0,
+            InactiveRejectedCount: 0,
+            SubtypeRejectedCount: 0,
+            SaturationRejectedCount: 0,
+            SecondaryTargetRejectedCount: 0,
+            WildernessRejectedCount: 0,
+            TriggerRejectedCount: 0,
+            generator.CandidateCount,
+            generator.FailedFireCount,
+            generator.SelectedTargetEntityId == 0 ? null : generator.SelectedTargetEntityId,
+            CreatedEntityCount: 0,
+            CreatedRelationshipCount: 0));
+    }
+
+    private void ProjectGeneratorFired(GeneratorFiredKernelEvent generator)
+    {
+        var generatorName = GeneratorNameOf(generator.GeneratorId);
+        Batch.GeneratorEvents.Add(new GeneratorEventRow(
+            RunId,
+            generator.Tick,
+            "fired",
+            generatorName,
+            "fired",
+            TargetPoolCount: 0,
+            InactiveRejectedCount: 0,
+            SubtypeRejectedCount: 0,
+            SaturationRejectedCount: 0,
+            SecondaryTargetRejectedCount: 0,
+            WildernessRejectedCount: 0,
+            TriggerRejectedCount: 0,
+            CandidateCount: 0,
+            FailedFireCount: 0,
+            generator.TargetEntityId == 0 ? null : generator.TargetEntityId,
+            generator.CreatedEntityCount,
+            generator.CreatedRelationshipCount));
+        RecordGeneratedEntities(generator.Tick, generatorName, generator.CreatedEntityCount);
+    }
+
+    private void RecordGeneratedEntities(int tick, string generatorName, int expectedCount)
+    {
+        if (expectedCount == 0)
+        {
+            return;
+        }
+
+        var rows = 0;
+        foreach (var entity in _sim.Graph.AllEntities.Values.Where(entity => entity.CreatedAt == tick))
+        {
+            var sem = entity.SemanticPosition;
+            Batch.GeneratedEntities.Add(new GeneratedEntityRow(
+                RunId,
+                tick,
+                generatorName,
+                entity.Id.Value,
+                entity.Kind.Value,
+                entity.Subtype,
+                entity.Culture,
+                entity.Coordinates.Q,
+                entity.Coordinates.R,
+                sem.Q,
+                sem.R,
+                sem.S));
+            rows++;
+        }
+
+        if (rows < expectedCount)
+        {
+            throw new InvalidOperationException(
+                $"Generator '{generatorName}' reported {expectedCount} created entities at tick {tick}, but projection found {rows}.");
+        }
+    }
+
+    private Entity RequiredEntity(int entityId) =>
+        _sim.Graph.GetEntity(new EntityId(entityId))
+        ?? throw new InvalidOperationException(
+            $"Kernel event referenced missing entity {entityId}.");
+
+    private string RelationshipFacts(RelationshipChangedKernelEvent relationship)
+    {
+        if (relationship.FactCount == 0)
+        {
+            return string.Empty;
+        }
+
+        var facts = new List<string>(relationship.FactCount);
+        if (relationship.FactCount > 0)
+        {
+            facts.Add(_sim.DomainIds.RelationshipFactNameOf(new RelationshipFactRuntimeId(relationship.FactId0)));
+        }
+
+        if (relationship.FactCount > 1)
+        {
+            facts.Add(_sim.DomainIds.RelationshipFactNameOf(new RelationshipFactRuntimeId(relationship.FactId1)));
+        }
+
+        if (relationship.FactCount > 2)
+        {
+            facts.Add(_sim.DomainIds.RelationshipFactNameOf(new RelationshipFactRuntimeId(relationship.FactId2)));
+        }
+
+        if (relationship.FactCount > 3)
+        {
+            facts.Add(_sim.DomainIds.RelationshipFactNameOf(new RelationshipFactRuntimeId(relationship.FactId3)));
+        }
+
+        facts.Sort(StringComparer.Ordinal);
+        return string.Join('|', facts);
+    }
+
+    private string GeneratorNameOf(int generatorId) =>
+        _sim.DomainIds.GeneratorNameOf(new GeneratorRuntimeId(generatorId));
+
+    private static string GeneratorStatusName(int statusCode) => statusCode switch
+    {
+        1 => "eligible",
+        2 => "fired",
+        3 => "eligible_not_selected",
+        4 => "blocked",
+        5 => "fire_failed",
+        6 => "missing_definition",
+        7 => "max_runs",
+        8 => "zero_weight",
+        9 => "not_evaluated",
+        _ => throw new InvalidOperationException(
+            $"Unknown primitive generator status code {statusCode}."),
+    };
 
     private string? ProcessNameOf(ProcessRuntimeId? processId)
     {

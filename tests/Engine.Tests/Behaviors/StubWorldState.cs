@@ -8,7 +8,7 @@ using Engine.Map;
 /// <summary>
 /// Minimal IWorldState stub for testing impulse evaluation without full world setup.
 /// </summary>
-internal sealed class StubWorldState : IWorldState
+internal sealed class StubWorldState : IWorldState, IWorldVersionSink
 {
     public WorldGraph Graph { get; } = new();
     public EffectSystem Effects { get; } = new();
@@ -18,6 +18,7 @@ internal sealed class StubWorldState : IWorldState
     public SpatialIndex SpatialIndex { get; }
     public Engine.Resources.ResourceSystem? Resources { get; }
     public int CurrentTick { get; set; }
+    public long WorldVersion { get; private set; }
 
     public StubWorldState(int gridRadius = 1, bool withResources = false)
     {
@@ -27,5 +28,10 @@ internal sealed class StubWorldState : IWorldState
         {
             Resources = new Engine.Resources.ResourceSystem(Graph, Grid);
         }
+    }
+
+    public void AdvanceWorldVersion()
+    {
+        WorldVersion++;
     }
 }

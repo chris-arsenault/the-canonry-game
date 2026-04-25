@@ -18,6 +18,36 @@ No other thread may mutate engine state. Off-thread systems may consume primitiv
 snapshots or primitive event records, compute suggestions, and return primitive
 intent records for the sim thread to validate and apply.
 
+## Architectural Enforcement Direction
+
+These invariants cannot be enforced reliably while all runtime, projection,
+telemetry, logging, UI-facing messages, and support code live in one engine
+project. The engine should move toward a microkernel-style project split where
+the simulation kernel has strict references and stricter analyzers than the
+surrounding services.
+
+Target project responsibilities:
+
+- `Engine.Kernel`: owns deterministic simulation state, tick mutation, primitive
+  IDs, process execution, fixed buffers, and primitive event emission.
+- `Engine.Domain`: owns domain registration and compilation from strings into
+  stable runtime IDs. Strings are allowed here as input/metadata.
+- `Engine.Eventing`: owns the primitive event stream, consumer registration,
+  per-consumer cursors, overflow accounting, and async consumer lifecycle.
+- `Engine.Projection.*`: owns UI projection, telemetry rows, run logs, perf
+  summaries, debug traces, Monte Carlo exports, and human-readable formatting.
+- `Engine.Host`: wires kernel, domain, eventing, projections, tools, UI, and
+  plugin loading.
+
+`Engine.Kernel` should not reference projection, telemetry, logging, UI,
+debugging, export, or async infrastructure. It should have the narrowest possible
+event-writer dependency and should be the only project with strict no-string and
+no-allocation kernel analyzers enabled.
+
+This split is an enforcement mechanism, not just organization. If code formats
+text, blocks on I/O, depends on consumer pacing, allocates projection objects, or
+needs live UI/log/telemetry concepts, it does not belong in `Engine.Kernel`.
+
 ## Invariant 1: No Runtime String Creation In The Kernel
 
 Engine tick code must not create user-facing text.
@@ -95,6 +125,16 @@ or expanding a buffer are design choices and should be visible in tests/telemetr
 
 The message bus should become a primitive event stream.
 
+The kernel-facing event API should remain tiny and non-blocking, for example:
+
+```csharp
+bool TryWrite(in KernelEvent evt);
+```
+
+The kernel must never await event publication, invoke consumer callbacks, format
+messages, or depend on consumer progress. Event writes are fire-and-forget from
+the kernel's perspective, with explicit overflow counters and policies.
+
 Events should carry:
 
 - tick
@@ -114,6 +154,20 @@ Events should not carry:
 - lists built only for presentation
 
 Consumers may build rich objects or text after reading the primitive stream.
+
+The event stream should support multiple independent async consumers with
+separate read heads/cursors. UI projection, telemetry export, run logging,
+profiling, debug traces, Monte Carlo analysis, and future plugins should not
+share a synchronized read head and should not block one another. A slow consumer
+may lag, drop, or compact according to its own policy; it must not stall the
+kernel or another consumer.
+
+The bus is not a callback list and not a single dispatcher as the architectural
+source of truth. It is an append-only primitive stream with sequence numbers,
+consumer cursors, bounded retention, and explicit overflow behavior. Host-side
+dispatchers may exist as implementation details for individual consumers, but
+the bus model must allow consumers to be built, tested, paced, and replaced
+independently.
 
 ## Thread Discipline
 
@@ -139,6 +193,12 @@ Disallowed off-thread work:
 Cross-thread data must be primitive, immutable, and versioned. A worker may
 return `PlanIntent` records, but the sim thread decides whether the source world
 version is still current and whether the intent remains legal.
+
+Async work belongs on the consumer side of the primitive event boundary. UI,
+logs, telemetry, profiler aggregation, Monte Carlo export, debug trace building,
+and plugin services should run as independent consumers. The kernel remains
+synchronous and deterministic; consumers are asynchronous and independently
+paced.
 
 ## Planner Thread Direction
 
@@ -174,6 +234,9 @@ For any engine change, ask:
 - Does it emit presentation text instead of primitive facts?
 - Does it pass live engine objects across threads?
 - Does it make the sim thread anything other than the only state mutator?
+- Does it belong in `Engine.Kernel`, or should it be a domain, eventing,
+  projection, host, or plugin concern?
+- Does it require one consumer to keep pace with another consumer?
 - Does it preserve deterministic tick ordering?
 
 If the answer exposes a violation, either redesign the change or document the

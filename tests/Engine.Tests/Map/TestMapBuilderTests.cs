@@ -3,7 +3,6 @@ namespace Engine.Tests.Map;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
-using Engine.Messages;
 
 public class TestMapBuilderTests
 {
@@ -103,32 +102,17 @@ public class TestMapBuilderTests
     }
 
     [Fact]
-    public void SelectAcceptedSeed_PublishesDegenerateMessageAndRetries()
+    public void SelectAcceptedSeed_RetriesAfterDegenerateWorld()
     {
-        var bus = new MessageBus();
-        var messages = new List<MapGenerationDegenerateMessage>();
-        using var subscription = bus.Subscribe(message =>
-        {
-            if (message is MapGenerationDegenerateMessage degenerate)
-            {
-                messages.Add(degenerate);
-            }
-        });
-
         var accepted = TestMapBuilder.SelectAcceptedSeed(
             baseSeed: 42,
             buildWorld: seed => new TestWorld(new HexGrid(1), new MapCoverageMap(), new WorldGraph(), seed),
             validateWorld: world => world.Seed.Attempt == 0
                 ? new SeedWorldQualityReport(["too small"])
                 : new SeedWorldQualityReport([]),
-            messageBus: bus,
             maxAttempts: 3);
 
         Assert.Equal(1, accepted.Attempt);
-        var message = Assert.Single(messages);
-        Assert.Equal("quality_validation", message.Phase);
-        Assert.True(message.WillRetry);
-        Assert.Contains("too small", message.Reasons);
     }
 
     // --- Grid ---
@@ -261,12 +245,12 @@ public class TestMapBuilderTests
     }
 
     [Fact]
-    public void AllNpcs_HaveLoyalty()
+    public void AllNpcs_HaveFactionMembership()
     {
         foreach (var npcId in _world.Graph.GetEntitiesByKind(TestKinds.Penguin))
         {
-            var loyalty = _world.Graph.OutgoingRelationships(npcId, "loyal_to").ToList();
-            Assert.Single(loyalty);
+            var memberOf = _world.Graph.OutgoingRelationships(npcId, "member_of").ToList();
+            Assert.Single(memberOf);
         }
     }
 
@@ -316,14 +300,14 @@ public class TestMapBuilderTests
     }
 
     [Fact]
-    public void Artifact_IsStoredAtSettlement()
+    public void Artifact_IsAnchoredAtSettlement()
     {
         foreach (var artifactId in _world.Graph.GetEntitiesByKind(TestKinds.Artifact))
         {
-            var storedAt = _world.Graph.OutgoingRelationships(artifactId, "stored_at").ToList();
-            Assert.Single(storedAt);
+            var anchored = _world.Graph.OutgoingRelationships(artifactId, "anchored").ToList();
+            Assert.Single(anchored);
 
-            var location = _world.Graph.GetEntity(storedAt[0].TargetId);
+            var location = _world.Graph.GetEntity(anchored[0].TargetId);
             Assert.NotNull(location);
             Assert.Equal(TestKinds.Settlement, location.Kind);
         }

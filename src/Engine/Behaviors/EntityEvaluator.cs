@@ -1,10 +1,10 @@
 namespace Engine.Behaviors;
 
 using Engine.Domain.Config;
+using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
-using Engine.Messages;
 using Engine.Processes;
 using Engine.Wiring;
 using System;
@@ -25,9 +25,10 @@ public sealed class EntityEvaluator
 {
     private readonly BehaviorDefinitionIndex _definitions;
     private readonly IReadOnlyDictionary<EntityKind, KindConfig> _kindConfigs;
-    private readonly MessageBus _messageBus;
     private readonly Random _random;
     private readonly GoalGenerator? _goalGenerator;
+    private readonly IKernelEventWriter? _kernelEvents;
+    private readonly global::Engine.Domain.DomainIdRegistry? _domainIds;
 
     /// <summary>Minimum score for a process to be considered viable.</summary>
     public float MinimumViableScore { get; set; } = 0.01f;
@@ -77,16 +78,19 @@ public sealed class EntityEvaluator
     /// <summary>Improvement required before abandoning an existing locality commitment.</summary>
     public float LocalitySwitchHysteresisRatio { get; set; } = 0.2f;
 
-    public EntityEvaluator(BehaviorDefinitionIndex definitions, MessageBus messageBus,
+    public EntityEvaluator(BehaviorDefinitionIndex definitions,
         Random? random = null,
         GoalGenerator? goalGenerator = null,
-        IReadOnlyDictionary<EntityKind, KindConfig>? kindConfigs = null)
+        IReadOnlyDictionary<EntityKind, KindConfig>? kindConfigs = null,
+        IKernelEventWriter? kernelEvents = null,
+        global::Engine.Domain.DomainIdRegistry? domainIds = null)
     {
         _definitions = definitions;
         _kindConfigs = kindConfigs ?? new Dictionary<EntityKind, KindConfig>();
-        _messageBus = messageBus;
         _random = random ?? Random.Shared;
         _goalGenerator = goalGenerator;
+        _kernelEvents = kernelEvents;
+        _domainIds = domainIds;
     }
 
     public void Evaluate(Entity entity, IWorldState worldState)
@@ -118,7 +122,9 @@ public sealed class EntityEvaluator
                     entity,
                     worldState,
                     definitionId: decision.RuntimeId,
-                    capturePreconditionDiagnostics: false);
+                    capturePreconditionDiagnostics: false,
+                    kernelEvents: _kernelEvents,
+                    domainIds: _domainIds);
                 if (!decision.Precondition.Evaluate(context).Passed) continue;
                 var score = decision.ScoreExpression.Evaluate(
                     new ExpressionContext(entity, grid: worldState.Grid, mutationContext: context));
@@ -130,9 +136,10 @@ public sealed class EntityEvaluator
                 var winner = WeightedRandomSelectDecision(viableDecisions);
                 if (winner is not null)
                 {
-                    var message = ExecuteDecision(winner.Value.Definition, entity, worldState);
-                    _messageBus.Publish(message);
+                    ExecuteDecision(winner.Value.Definition, entity, worldState);
                     entity.RecordAction(worldState.CurrentTick, winner.Value.Definition.RuntimeId);
+                    AdvanceWorldVersion(worldState);
+                    WriteDecisionExecutedKernelEvent(worldState, entity, winner.Value.Definition);
                 }
             }
         }
@@ -187,23 +194,8 @@ public sealed class EntityEvaluator
         }
 
         entity.GoalsGeneratedAt = worldState.CurrentTick;
-        _messageBus.Publish(new GoalGenerationMessage(
-            worldState.CurrentTick,
-            entity.Id,
-            entity.Kind,
-            entity.Goals.Count,
-            entity.Goals.Count(goal => goal.IsActionable),
-            PublishGoalDetails
-                ? entity.Goals.Select(goal => new GoalSnapshot(
-                    goal.Id,
-                    goal.DesiredEffect,
-                    goal.TargetEntityId,
-                    goal.Urgency,
-                    goal.PlannedProcessId,
-                    goal.ParentGoalId,
-                    goal.IsActionable,
-                    goal.Depth)).ToList()
-                : []));
+        AdvanceWorldVersion(worldState);
+        WriteGoalGeneratedKernelEvent(worldState, entity);
     }
 
     private void EvaluateProcesses(Entity entity, IWorldState worldState)
@@ -227,7 +219,7 @@ public sealed class EntityEvaluator
             AppendLineInvariant(
                 trace,
                 $"entity cooldown active until tick {entity.EntityCooldownUntil}; reusing report from tick {entity.LastEvaluation.SourceTick} age={staleAge}");
-            PublishEvaluation(entity, entity.LastEvaluation);
+            PublishEvaluation(entity, entity.LastEvaluation, worldState);
             return;
         }
 
@@ -252,7 +244,7 @@ public sealed class EntityEvaluator
                 localityOpportunities: [],
                 evaluatedCandidateCount);
             AppendTraceLine(trace, "No planner goals present; idling.");
-            PublishEvaluation(entity, entity.LastEvaluation);
+            PublishEvaluation(entity, entity.LastEvaluation, worldState);
             return;
         }
 
@@ -280,7 +272,7 @@ public sealed class EntityEvaluator
                 localityOpportunities: [],
                 evaluatedCandidateCount);
             AppendTraceLine(trace, "No actionable goals; forcing replanning.");
-            PublishEvaluation(entity, entity.LastEvaluation);
+            PublishEvaluation(entity, entity.LastEvaluation, worldState);
             return;
         }
 
@@ -362,7 +354,9 @@ public sealed class EntityEvaluator
                         worldState,
                         goal: goal,
                         definitionId: process.RuntimeId,
-                        capturePreconditionDiagnostics: capturePreconditionDiagnostics);
+                        capturePreconditionDiagnostics: capturePreconditionDiagnostics,
+                        kernelEvents: _kernelEvents,
+                        domainIds: _domainIds);
                     precondResult = process.Precondition.Evaluate(processContext);
                 }
 
@@ -378,7 +372,9 @@ public sealed class EntityEvaluator
                                 worldState,
                                 goal: goal,
                                 definitionId: process.RuntimeId,
-                                capturePreconditionDiagnostics: capturePreconditionDiagnostics)))
+                                capturePreconditionDiagnostics: capturePreconditionDiagnostics,
+                                kernelEvents: _kernelEvents,
+                                domainIds: _domainIds)))
                     : 0f;
 
                 // Per-entity, per-process recency decay: each time this entity fired
@@ -471,9 +467,9 @@ public sealed class EntityEvaluator
                 }
             }
 
-            var message = ExecuteProcess(winner.Value.Definition, entity, worldState, goal);
-            _messageBus.Publish(message);
+            ExecuteProcess(winner.Value.Definition, entity, worldState, goal);
             entity.RecordAction(tick, winner.Value.Definition.RuntimeId);
+            AdvanceWorldVersion(worldState);
 
             // Apply cooldowns
             if (winner.Value.Definition.Cooldown > 0)
@@ -481,6 +477,7 @@ public sealed class EntityEvaluator
                 var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
                 entity.ProcessCooldowns[winner.Value.Definition.RuntimeId] =
                     tick + Math.Max(1, (int)(winner.Value.Definition.Cooldown * jitter));
+                AdvanceWorldVersion(worldState);
                 AppendLineInvariant(
                     trace,
                     $"  process cooldown {winner.Value.Definition.Name} until tick {entity.ProcessCooldowns[winner.Value.Definition.RuntimeId]}");
@@ -491,6 +488,7 @@ public sealed class EntityEvaluator
                 var jitter = 1f + ((float)(_random.NextDouble() * 0.5 - 0.25));
                 entity.EntityCooldownUntil =
                     tick + Math.Max(1, (int)(winner.Value.Definition.EntityCooldown * jitter));
+                AdvanceWorldVersion(worldState);
                 AppendLineInvariant(
                     trace,
                     $"  entity cooldown until tick {entity.EntityCooldownUntil}");
@@ -499,9 +497,11 @@ public sealed class EntityEvaluator
             if (goal is not null && goal.IsSubGoal)
             {
                 entity.GoalsGeneratedAt = 0;
+                AdvanceWorldVersion(worldState);
                 AppendTraceLine(trace, "  executed sub-goal; forcing replanning.");
             }
 
+            WriteProcessExecutedKernelEvent(worldState, entity, winner.Value.Definition);
             executed = true;
         }
 
@@ -534,7 +534,7 @@ public sealed class EntityEvaluator
             reportCandidates,
             localityOpportunities: localityPlanning?.Opportunities ?? [],
             evaluatedCandidateCount);
-        PublishEvaluation(entity, entity.LastEvaluation);
+        PublishEvaluation(entity, entity.LastEvaluation, worldState);
     }
 
     private EntityGoal? SelectGoal(
@@ -589,7 +589,7 @@ public sealed class EntityEvaluator
         return process.GoalEffects.Contains(goal.DesiredEffect);
     }
 
-    private ProcessExecutedMessage ExecuteProcess(
+    private void ExecuteProcess(
         ProcessDefinition definition, Entity entity, IWorldState worldState, EntityGoal? goal)
     {
         var context = new ProcessMutationContext(
@@ -597,32 +597,27 @@ public sealed class EntityEvaluator
             worldState,
             goal: goal,
             definitionId: definition.RuntimeId,
-            messageBus: _messageBus);
+            kernelEvents: _kernelEvents,
+            domainIds: _domainIds);
         foreach (var mutation in definition.Mutations)
         {
             mutation.Execute(context);
         }
-
-        return new ProcessExecutedMessage(
-            worldState.CurrentTick, entity.Id, entity.Kind, definition.RuntimeId);
     }
 
-    private DecisionExecutedMessage ExecuteDecision(
+    private void ExecuteDecision(
         ProcessDefinition definition, Entity entity, IWorldState worldState)
     {
         var context = new ProcessMutationContext(
             entity,
             worldState,
             definitionId: definition.RuntimeId,
-            messageBus: _messageBus);
+            kernelEvents: _kernelEvents,
+            domainIds: _domainIds);
         foreach (var mutation in definition.Mutations)
         {
             mutation.Execute(context);
         }
-
-        return new DecisionExecutedMessage(
-            worldState.CurrentTick, entity.Id, entity.Kind, definition.RuntimeId,
-            definition.EnablingCardRuntimeId);
     }
 
     private (ProcessDefinition Definition, float Score)? WeightedRandomSelect(
@@ -969,65 +964,134 @@ public sealed class EntityEvaluator
     private static LocalityRuntimeKey BuildLocalityKey(PrimaryPlane plane, int q, int r, int? s) =>
         LocalityRuntimeKey.Create(plane, q, r, s);
 
-    private void PublishEvaluation(Entity entity, EvaluationReport report)
+    private void PublishEvaluation(Entity entity, EvaluationReport report, IWorldState worldState)
     {
-        _messageBus.Publish(new ProcessEvaluationMessage(
-            report.Tick,
-            entity.Id,
-            entity.Kind,
-            report.SelectedGoalId,
-            report.ExecutedProcessId,
-            report.IsStale,
-            report.StatusNote,
-            report.Candidates.Select(candidate => new ProcessCandidateSnapshot(
-                candidate.ProcessId,
-                candidate.GoalId,
-                candidate.ProviderId,
-                candidate.Score,
-                candidate.PreconditionPassed,
-                candidate.PreconditionDiagnostic,
-                candidate.OnCooldown,
-                candidate.WasSelected)).ToList(),
-            report.SelectedLocality is null
-                ? null
-                : new LocalitySelectionSnapshot(
-                    report.SelectedLocality.VisitId,
-                    report.SelectedLocality.LocalityKey,
-                    report.SelectedLocality.Plane,
-                    report.SelectedLocality.Q,
-                    report.SelectedLocality.R,
-                    report.SelectedLocality.S,
-                    new EntityId(report.SelectedLocality.AnchorEntityId),
-                    report.SelectedLocality.AnchorName,
-                    report.SelectedLocality.BundleScore,
-                    report.SelectedLocality.GoalCount,
-                    report.SelectedLocality.DistinctTargetCount,
-                    report.SelectedLocality.DistinctEffectCount,
-                    report.SelectedLocality.Distance,
-                    report.SelectedLocality.IsCurrentLocality,
-                    report.SelectedLocality.IsCommitted,
-                    report.SelectedLocality.Arrived,
-                    report.SelectedLocality.ActionsRemaining,
-                    report.SelectedLocality.RealizedActions,
-                    report.SelectedLocality.SelectionReason),
-            report.LocalityOpportunities.Select(locality => new LocalityOpportunitySnapshot(
-                locality.LocalityKey,
-                locality.Plane,
-                locality.Q,
-                locality.R,
-                locality.S,
-                new EntityId(locality.AnchorEntityId),
-                locality.AnchorName,
-                locality.BundleScore,
-                locality.GoalCount,
-                locality.DistinctTargetCount,
-                locality.DistinctEffectCount,
-                locality.Distance,
-                locality.IsCurrentLocality,
-                locality.IsCommitted,
-                locality.WasSelected,
-                locality.SelectionReason)).ToList(),
-            report.CandidateCount));
+        WriteProcessEvaluatedKernelEvent(worldState, entity, report);
+    }
+
+    private void WriteGoalGeneratedKernelEvent(IWorldState worldState, Entity entity)
+    {
+        if (_kernelEvents is null)
+        {
+            return;
+        }
+
+        WriteKernelEventOrThrow(KernelEvent.From(new GoalGeneratedKernelEvent(
+            Tick: worldState.CurrentTick,
+            WorldVersion: WorldVersionOf(worldState),
+            EntityId: entity.Id.Value,
+            KindId: entity.Kind.Id,
+            GoalCount: entity.Goals.Count,
+            ActionableGoalCount: CountActionableGoals(entity),
+            State: KernelEventState.Succeeded)));
+    }
+
+    private void WriteProcessEvaluatedKernelEvent(IWorldState worldState, Entity entity, EvaluationReport report)
+    {
+        if (_kernelEvents is null)
+        {
+            return;
+        }
+
+        var state = report.IsStale
+            ? KernelEventState.Stale
+            : report.ExecutedProcessId is not null
+                ? KernelEventState.Succeeded
+                : KernelEventState.None;
+        WriteKernelEventOrThrow(KernelEvent.From(new ProcessEvaluatedKernelEvent(
+            Tick: report.Tick,
+            WorldVersion: WorldVersionOf(worldState),
+            EntityId: entity.Id.Value,
+            KindId: entity.Kind.Id,
+            SelectedGoalId: report.SelectedGoalId?.Value ?? GoalRuntimeId.None.Value,
+            ExecutedProcessId: report.ExecutedProcessId?.Value ?? ProcessRuntimeId.None.Value,
+            CandidateCount: report.CandidateCount,
+            State: state)));
+    }
+
+    private void WriteProcessExecutedKernelEvent(
+        IWorldState worldState,
+        Entity entity,
+        ProcessDefinition definition)
+    {
+        if (_kernelEvents is null)
+        {
+            return;
+        }
+
+        WriteKernelEventOrThrow(KernelEvent.From(new ProcessExecutedKernelEvent(
+            Tick: worldState.CurrentTick,
+            WorldVersion: WorldVersionOf(worldState),
+            ActorId: entity.Id.Value,
+            ActorKindId: entity.Kind.Id,
+            ProcessId: definition.RuntimeId.Value,
+            AffectedEntityId0: 0,
+            AffectedEntityId1: 0,
+            AffectedEntityCount: 0,
+            State: KernelEventState.Succeeded)));
+    }
+
+    private void WriteDecisionExecutedKernelEvent(
+        IWorldState worldState,
+        Entity entity,
+        ProcessDefinition definition)
+    {
+        if (_kernelEvents is null)
+        {
+            return;
+        }
+
+        WriteKernelEventOrThrow(KernelEvent.From(new DecisionExecutedKernelEvent(
+            Tick: worldState.CurrentTick,
+            WorldVersion: WorldVersionOf(worldState),
+            ActorId: entity.Id.Value,
+            ActorKindId: entity.Kind.Id,
+            DecisionId: definition.RuntimeId.Value,
+            CardId: definition.EnablingCardRuntimeId?.Value ?? 0,
+            State: KernelEventState.Succeeded)));
+    }
+
+    private void WriteKernelEventOrThrow(in KernelEvent kernelEvent)
+    {
+        if (_kernelEvents is null || !_kernelEvents.TryWrite(kernelEvent))
+        {
+            throw new InvalidOperationException("Kernel event writer rejected a simulation event.");
+        }
+    }
+
+    private static long WorldVersionOf(IWorldState worldState)
+    {
+        if (worldState is IWorldVersionSource versioned)
+        {
+            return versioned.WorldVersion;
+        }
+
+        throw new InvalidOperationException("Primitive kernel events require a versioned world state.");
+    }
+
+    private static void AdvanceWorldVersion(IWorldState worldState)
+    {
+        if (worldState is IWorldVersionSink versioned)
+        {
+            versioned.AdvanceWorldVersion();
+            return;
+        }
+
+        throw new InvalidOperationException("Engine state mutations require a versioned world state.");
+    }
+
+    private static int CountActionableGoals(Entity entity)
+    {
+        var count = 0;
+        foreach (var goal in entity.Goals)
+        {
+            if (goal.IsActionable)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private bool GoalsRequireInvalidation(Entity entity, IWorldState worldState)

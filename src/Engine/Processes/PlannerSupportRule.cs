@@ -24,4 +24,10 @@ public sealed class PlannerSupportRule
         DesiredMinimum = desiredMinimum;
         UrgencyScale = urgencyScale;
     }
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        DesiredEffect.BindRuntimeIds(runtimeIds);
+        CurrentValueExpression.BindRuntimeIds(runtimeIds);
+    }
 }

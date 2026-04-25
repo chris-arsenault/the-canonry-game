@@ -1,5 +1,6 @@
 namespace Engine.Processes;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Resources;
@@ -30,9 +31,15 @@ public interface IMutationContext
 
     // --- Read operations (preconditions + scoring) ---
     float GetPressure(string pressureName, EntityId scopeId);
+    float GetPressure(PressureRuntimeId pressureId, EntityId scopeId) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(GetPressure));
     float GetAttribute(EntityId entityId, string attributeName);
+    float GetAttribute(EntityId entityId, AttributeRuntimeId attributeId) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(GetAttribute));
     int CountEntitiesByKind(EntityKind kind);
     Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind);
+    Relationship? FindRelationship(EntityId sourceId, EntityId targetId, RelationshipKindRuntimeId kind) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(FindRelationship));
     int? GetLastFiredTick();
     Entity? GetEntity(EntityId id);
 
@@ -40,6 +47,8 @@ public interface IMutationContext
     /// e.g., FindRelatedEntity(npcId, "located_at") returns the settlement the NPC is at.
     /// Returns null if no such relationship exists.</summary>
     EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind);
+    EntityId? FindRelatedEntity(EntityId sourceId, RelationshipKindRuntimeId relationshipKind) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(FindRelatedEntity));
 
     /// <summary>Get all active entity IDs of a given kind.</summary>
     IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind);
@@ -50,8 +59,19 @@ public interface IMutationContext
     // --- Write operations (mutations) ---
     Entity CreateEntity(EntityKind kind, string subtype, string name, string culture, (int Q, int R)? coordinates);
     void CreateRelationship(string kind, RelationshipPolarity polarity, EntityId sourceId, EntityId targetId, float strength);
+    void CreateRelationship(
+        RelationshipKindRuntimeId kind,
+        RelationshipPolarity polarity,
+        EntityId sourceId,
+        EntityId targetId,
+        float strength) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(CreateRelationship));
     void ModifyAttribute(EntityId entityId, string attributeName, float delta);
+    void ModifyAttribute(EntityId entityId, AttributeRuntimeId attributeId, float delta) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(ModifyAttribute));
     void ModifyPressure(string pressureName, EntityId scopeId, float delta);
+    void ModifyPressure(PressureRuntimeId pressureId, EntityId scopeId, float delta) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(ModifyPressure));
     void ModifyResource((int Q, int R) coordinates, ResourceType resourceType, float delta);
     void SetTag(EntityId entityId, string key, string value);
     void SetEntityHistorical(EntityId entityId);
@@ -67,6 +87,11 @@ public interface IMutationContext
 
     /// <summary>Cull an exclusive relationship from a source entity (e.g., NPC leaving a settlement).</summary>
     void CullRelationship(EntityId sourceId, string relationshipKind);
+    void CullRelationship(EntityId sourceId, RelationshipKindRuntimeId relationshipKind) =>
+        throw PrimitiveRuntimeIdNotSupported(nameof(CullRelationship));
+
+    private static NotSupportedException PrimitiveRuntimeIdNotSupported(string operation) =>
+        new($"{operation} by runtime ID requires a kernel mutation context bound to domain runtime IDs.");
 }
 
 /// <summary>

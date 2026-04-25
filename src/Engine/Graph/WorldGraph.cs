@@ -1,5 +1,6 @@
 namespace Engine.Graph;
 
+using Engine.Domain;
 using Engine.Kinds;
 
 using QuikGraph;
@@ -40,10 +41,12 @@ public sealed class WorldGraph
         string culture,
         int tick,
         (int Q, int R)? coordinates = null,
-        Engine.Map.SemanticHexCoord? semanticPosition = null)
+        Engine.Map.SemanticHexCoord? semanticPosition = null,
+        SubtypeRuntimeId subtypeId = default,
+        CultureRuntimeId cultureId = default)
     {
         var id = new EntityId(_nextId++);
-        var entity = new Entity(id, kind, subtype, name, culture, tick, coordinates);
+        var entity = new Entity(id, kind, subtype, name, culture, tick, coordinates, subtypeId, cultureId);
         if (semanticPosition is { } semanticCoord)
         {
             entity.SemanticPosition = semanticCoord;
@@ -108,12 +111,31 @@ public sealed class WorldGraph
         EntityId targetId,
         float strength,
         int tick,
-        IEnumerable<string>? facts = null)
+        IEnumerable<string>? facts = null,
+        RelationshipKindRuntimeId kindId = default,
+        RelationshipFactRuntimeId factId0 = default,
+        RelationshipFactRuntimeId factId1 = default,
+        RelationshipFactRuntimeId factId2 = default,
+        RelationshipFactRuntimeId factId3 = default,
+        int factCount = 0)
     {
         ValidateEntityExists(sourceId);
         ValidateEntityExists(targetId);
 
-        var relationship = new Relationship(kind, polarity, sourceId, targetId, strength, tick, facts);
+        var relationship = new Relationship(
+            kind,
+            polarity,
+            sourceId,
+            targetId,
+            strength,
+            tick,
+            facts,
+            kindId,
+            factId0,
+            factId1,
+            factId2,
+            factId3,
+            factCount);
         var edge = new RelationshipEdge(sourceId, targetId, relationship);
         _graph.AddEdge(edge);
 
@@ -165,6 +187,18 @@ public sealed class WorldGraph
         return kindFilter is null ? edges : edges.Where(r => r.Kind == kindFilter);
     }
 
+    public IEnumerable<Relationship> OutgoingRelationships(EntityId entityId, RelationshipKindRuntimeId kindFilter)
+    {
+        if (!_graph.ContainsVertex(entityId))
+        {
+            return [];
+        }
+
+        return _graph.OutEdges(entityId)
+            .Select(e => e.Tag)
+            .Where(r => r.KindId == kindFilter);
+    }
+
     public IEnumerable<Relationship> IncomingRelationships(EntityId entityId, string? kindFilter = null)
     {
         if (!_graph.ContainsVertex(entityId))
@@ -174,6 +208,18 @@ public sealed class WorldGraph
 
         var edges = _graph.InEdges(entityId).Select(e => e.Tag);
         return kindFilter is null ? edges : edges.Where(r => r.Kind == kindFilter);
+    }
+
+    public IEnumerable<Relationship> IncomingRelationships(EntityId entityId, RelationshipKindRuntimeId kindFilter)
+    {
+        if (!_graph.ContainsVertex(entityId))
+        {
+            return [];
+        }
+
+        return _graph.InEdges(entityId)
+            .Select(e => e.Tag)
+            .Where(r => r.KindId == kindFilter);
     }
 
     // --- Historical Queries ---

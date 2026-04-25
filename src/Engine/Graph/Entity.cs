@@ -1,5 +1,6 @@
 namespace Engine.Graph;
 
+using Engine.Domain;
 using Engine.Kinds;
 using Engine.Map;
 using Engine.Processes;
@@ -13,9 +14,11 @@ public sealed class Entity
     public EntityId Id { get; }
     public EntityKind Kind { get; }
     public string Subtype { get; set; }
+    public SubtypeRuntimeId SubtypeId { get; }
     public string Name { get; set; }
     public EntityStatus Status { get; set; }
     public string Culture { get; set; }
+    public CultureRuntimeId CultureId { get; }
     public int CreatedAt { get; }
     public int UpdatedAt { get; set; }
 
@@ -116,13 +119,17 @@ public sealed class Entity
         string name,
         string culture,
         int createdAt,
-        (int Q, int R)? coordinates = null)
+        (int Q, int R)? coordinates = null,
+        SubtypeRuntimeId subtypeId = default,
+        CultureRuntimeId cultureId = default)
     {
         Id = id;
         Kind = kind;
         Subtype = subtype;
+        SubtypeId = subtypeId;
         Name = name;
         Culture = culture;
+        CultureId = cultureId;
         Status = EntityStatus.Active;
         CreatedAt = createdAt;
         UpdatedAt = createdAt;

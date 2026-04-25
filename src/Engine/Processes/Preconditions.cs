@@ -3,6 +3,7 @@ namespace Engine.Processes;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Resources;
@@ -21,6 +22,10 @@ public interface IPrecondition
 
     /// <summary>Human-readable description for UI display.</summary>
     string Describe();
+
+    void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+    }
 }
 
 /// <summary>AND composition: all children must pass.</summary>
@@ -77,6 +82,14 @@ public sealed class AndPrecondition(IReadOnlyList<IPrecondition> children) : IPr
 
     public string Describe() =>
         $"ALL({string.Join(", ", Children.Select(c => c.Describe()))})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        foreach (var child in Children)
+        {
+            child.BindRuntimeIds(runtimeIds);
+        }
+    }
 }
 
 /// <summary>OR composition: at least one child must pass.</summary>
@@ -97,6 +110,14 @@ public sealed class OrPrecondition(IReadOnlyList<IPrecondition> children) : IPre
 
     public string Describe() =>
         $"ANY({string.Join(", ", Children.Select(c => c.Describe()))})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        foreach (var child in Children)
+        {
+            child.BindRuntimeIds(runtimeIds);
+        }
+    }
 }
 
 // --- Leaf Preconditions ---
@@ -104,6 +125,7 @@ public sealed class OrPrecondition(IReadOnlyList<IPrecondition> children) : IPre
 /// <summary>Checks a pressure value against a threshold.</summary>
 public sealed class PressureThreshold(string pressureName, EntityId scopeId, float? min, float? max, bool plannerRelevant = false) : IPrecondition
 {
+    private PressureRuntimeId _pressureId;
     public string PressureName { get; } = pressureName;
     public EntityId ScopeId { get; } = scopeId;
     public float? Min { get; } = min;
@@ -113,7 +135,9 @@ public sealed class PressureThreshold(string pressureName, EntityId scopeId, flo
     public PreconditionResult Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var value = context.GetPressure(PressureName, ScopeId);
+        var value = _pressureId.Value > 0
+            ? context.GetPressure(_pressureId, ScopeId)
+            : context.GetPressure(PressureName, ScopeId);
         IReadOnlyList<AttributeRef> blocker = PlannerRelevant
             ? [AttributeRef.Pressure(PressureName)]
             : Array.Empty<AttributeRef>();
@@ -126,11 +150,18 @@ public sealed class PressureThreshold(string pressureName, EntityId scopeId, flo
 
     public string Describe() =>
         $"pressure({PressureName}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _pressureId = runtimeIds.PressureIdOf(PressureName);
+    }
 }
 
 /// <summary>Checks an entity's attribute value against a threshold.</summary>
 public sealed class AttributeThreshold(EntityId entityId, string attributeName, float? min, float? max, bool plannerRelevant = true) : IPrecondition
 {
+    private AttributeRuntimeId _attributeId;
     public EntityId EntityId { get; } = entityId;
     public string AttributeName { get; } = attributeName;
     public float? Min { get; } = min;
@@ -145,7 +176,9 @@ public sealed class AttributeThreshold(EntityId entityId, string attributeName, 
         IReadOnlyList<AttributeRef> blockers = PlannerRelevant
             ? [blocker]
             : Array.Empty<AttributeRef>();
-        var value = context.GetAttribute(EntityId, AttributeName);
+        var value = _attributeId.Value > 0
+            ? context.GetAttribute(EntityId, _attributeId)
+            : context.GetAttribute(EntityId, AttributeName);
         if (Min.HasValue && value < Min.Value)
             return PreconditionResult.Fail(Diagnostic(context, $"{AttributeName}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
@@ -155,6 +188,12 @@ public sealed class AttributeThreshold(EntityId entityId, string attributeName, 
 
     public string Describe() =>
         $"attribute({EntityId}, {AttributeName}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _attributeId = runtimeIds.AttributeIdOf(AttributeName);
+    }
 }
 
 /// <summary>Checks that at least N entities of a kind exist.</summary>
@@ -179,6 +218,7 @@ public sealed class EntityCountCheck(EntityKind kind, int min) : IPrecondition
 public sealed class RelationshipExists(
     EntityId sourceId, EntityId targetId, string relationshipKind, float? minStrength) : IPrecondition
 {
+    private RelationshipKindRuntimeId _relationshipKindId;
     public EntityId SourceId { get; } = sourceId;
     public EntityId TargetId { get; } = targetId;
     public string RelationshipKind { get; } = relationshipKind;
@@ -187,7 +227,9 @@ public sealed class RelationshipExists(
     public PreconditionResult Evaluate(IMutationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var rel = context.FindRelationship(SourceId, TargetId, RelationshipKind);
+        var rel = _relationshipKindId.Value > 0
+            ? context.FindRelationship(SourceId, TargetId, _relationshipKindId)
+            : context.FindRelationship(SourceId, TargetId, RelationshipKind);
         if (rel is null) return PreconditionResult.Fail(Diagnostic(context, $"no {RelationshipKind} relationship"));
         if (MinStrength.HasValue && rel.Strength < MinStrength.Value)
             return PreconditionResult.Fail(Diagnostic(context, $"{RelationshipKind} strength={rel.Strength:F2} (need >= {MinStrength})"));
@@ -196,6 +238,12 @@ public sealed class RelationshipExists(
 
     public string Describe() =>
         $"relationship({SourceId}->{TargetId}, {RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _relationshipKindId = runtimeIds.RelationshipKindIdOf(RelationshipKind);
+    }
 }
 
 /// <summary>
@@ -204,6 +252,7 @@ public sealed class RelationshipExists(
 /// </summary>
 public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? minStrength = null, bool plannerRelevant = false) : IPrecondition
 {
+    private RelationshipKindRuntimeId _relationshipKindId;
     public string RelationshipKind { get; } = relationshipKind;
     public float? MinStrength { get; } = minStrength;
     public bool PlannerRelevant { get; } = plannerRelevant;
@@ -222,7 +271,9 @@ public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? 
         if (context.ResolvedTargetId is null)
             return PreconditionResult.Fail("no target", blockers);
 
-        var relationship = context.FindRelationship(context.ResolvedTargetId.Value, context.SelfEntityId, RelationshipKind);
+        var relationship = _relationshipKindId.Value > 0
+            ? context.FindRelationship(context.ResolvedTargetId.Value, context.SelfEntityId, _relationshipKindId)
+            : context.FindRelationship(context.ResolvedTargetId.Value, context.SelfEntityId, RelationshipKind);
         if (relationship is null)
             return PreconditionResult.Fail(Diagnostic(context, $"target has no {RelationshipKind} relationship to self"), blockers);
         if (MinStrength.HasValue && relationship.Strength < MinStrength.Value)
@@ -233,6 +284,12 @@ public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? 
 
     public string Describe() =>
         $"target_has_relationship_to_self({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _relationshipKindId = runtimeIds.RelationshipKindIdOf(RelationshipKind);
+    }
 }
 
 /// <summary>
@@ -241,6 +298,7 @@ public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? 
 /// </summary>
 public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? minStrength = null, bool plannerRelevant = false) : IPrecondition
 {
+    private RelationshipKindRuntimeId _relationshipKindId;
     public string RelationshipKind { get; } = relationshipKind;
     public float? MinStrength { get; } = minStrength;
     public bool PlannerRelevant { get; } = plannerRelevant;
@@ -259,7 +317,9 @@ public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? 
         if (context.ResolvedTargetId is null)
             return PreconditionResult.Fail("no target", blockers);
 
-        var relationship = context.FindRelationship(context.SelfEntityId, context.ResolvedTargetId.Value, RelationshipKind);
+        var relationship = _relationshipKindId.Value > 0
+            ? context.FindRelationship(context.SelfEntityId, context.ResolvedTargetId.Value, _relationshipKindId)
+            : context.FindRelationship(context.SelfEntityId, context.ResolvedTargetId.Value, RelationshipKind);
         if (relationship is null)
             return PreconditionResult.Fail(Diagnostic(context, $"self has no {RelationshipKind} relationship to target"), blockers);
         if (MinStrength.HasValue && relationship.Strength < MinStrength.Value)
@@ -270,6 +330,12 @@ public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? 
 
     public string Describe() =>
         $"self_has_relationship_to_target({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _relationshipKindId = runtimeIds.RelationshipKindIdOf(RelationshipKind);
+    }
 }
 
 /// <summary>
@@ -282,6 +348,7 @@ public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? 
 /// </summary>
 public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool plannerRelevant = true) : IPrecondition
 {
+    private RelationshipKindRuntimeId _relationshipKindId;
     public string RelationshipKind { get; } = relationshipKind;
     public bool PlannerRelevant { get; } = plannerRelevant;
 
@@ -292,7 +359,9 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool pla
         var targetEntity = context.ResolvedTargetId is not null
             ? context.GetEntity(context.ResolvedTargetId.Value)
             : null;
-        var relatedEntityId = context.FindRelatedEntity(context.SelfEntityId, RelationshipKind);
+        var relatedEntityId = _relationshipKindId.Value > 0
+            ? context.FindRelatedEntity(context.SelfEntityId, _relationshipKindId)
+            : context.FindRelatedEntity(context.SelfEntityId, RelationshipKind);
         var relatedEntity = relatedEntityId is not null
             ? context.GetEntity(relatedEntityId.Value)
             : null;
@@ -315,6 +384,12 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool pla
     }
 
     public string Describe() => $"related_matches_target({RelationshipKind})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _relationshipKindId = runtimeIds.RelationshipKindIdOf(RelationshipKind);
+    }
 }
 
 /// <summary>
@@ -384,6 +459,7 @@ public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
 /// <summary>Checks the current entity's own attribute against a threshold.</summary>
 public sealed class SelfAttributeThreshold(string attributeName, float? min, float? max, bool plannerRelevant = true) : IPrecondition
 {
+    private AttributeRuntimeId _attributeId;
     public string AttributeName { get; } = attributeName;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
@@ -398,7 +474,9 @@ public sealed class SelfAttributeThreshold(string attributeName, float? min, flo
         IReadOnlyList<AttributeRef> blockers = PlannerRelevant
             ? [blocker]
             : Array.Empty<AttributeRef>();
-        var value = entity.Attributes.GetValue(AttributeName);
+        var value = _attributeId.Value > 0
+            ? entity.Attributes.GetValue(_attributeId)
+            : entity.Attributes.GetValue(AttributeName);
         if (Min.HasValue && value < Min.Value)
             return PreconditionResult.Fail(Diagnostic(context, $"self.{AttributeName}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
@@ -408,11 +486,18 @@ public sealed class SelfAttributeThreshold(string attributeName, float? min, flo
 
     public string Describe() =>
         $"self.{AttributeName} {(Min.HasValue ? $">= {Min}" : "")} {(Max.HasValue ? $"<= {Max}" : "")}";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _attributeId = runtimeIds.AttributeIdOf(AttributeName);
+    }
 }
 
 /// <summary>Checks the resolved target entity's attribute against a threshold.</summary>
 public sealed class TargetAttributeThreshold(string attributeName, float? min, float? max, bool plannerRelevant = true) : IPrecondition
 {
+    private AttributeRuntimeId _attributeId;
     public string AttributeName { get; } = attributeName;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
@@ -431,7 +516,9 @@ public sealed class TargetAttributeThreshold(string attributeName, float? min, f
         if (context.ResolvedTargetId is null)
             return PreconditionResult.Fail("no target", blockers);
         if (targetEntity is null) return PreconditionResult.Fail("target not found", blockers);
-        var value = targetEntity.Attributes.GetValue(AttributeName);
+        var value = _attributeId.Value > 0
+            ? targetEntity.Attributes.GetValue(_attributeId)
+            : targetEntity.Attributes.GetValue(AttributeName);
         if (Min.HasValue && value < Min.Value)
             return PreconditionResult.Fail(Diagnostic(context, $"target.{AttributeName}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
@@ -441,6 +528,12 @@ public sealed class TargetAttributeThreshold(string attributeName, float? min, f
 
     public string Describe() =>
         $"target.{AttributeName} {(Min.HasValue ? $">= {Min}" : "")} {(Max.HasValue ? $"<= {Max}" : "")}";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeIds);
+        _attributeId = runtimeIds.AttributeIdOf(AttributeName);
+    }
 }
 
 /// <summary>Target must be the entity itself.</summary>
@@ -557,6 +650,11 @@ public sealed class NotPrecondition(IPrecondition inner) : IPrecondition
     }
 
     public string Describe() => $"not({Inner.Describe()})";
+
+    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        Inner.BindRuntimeIds(runtimeIds);
+    }
 }
 
 /// <summary>

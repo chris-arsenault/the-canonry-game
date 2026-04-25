@@ -1,5 +1,6 @@
 namespace Engine.Tests.Graph;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -21,6 +22,25 @@ public class WorldGraphTests
         Assert.Equal("culture_a", entity.Culture);
         Assert.Equal(EntityStatus.Active, entity.Status);
         Assert.Equal(0, entity.CreatedAt);
+    }
+
+    [Fact]
+    public void CreateEntity_CapturesPrimitiveRuntimeIds()
+    {
+        var subtypeId = new SubtypeRuntimeId(7);
+        var cultureId = new CultureRuntimeId(11);
+
+        var entity = _graph.CreateEntity(
+            TestKinds.Faction,
+            "generic",
+            "TestNation",
+            "culture_a",
+            tick: 0,
+            subtypeId: subtypeId,
+            cultureId: cultureId);
+
+        Assert.Equal(subtypeId, entity.SubtypeId);
+        Assert.Equal(cultureId, entity.CultureId);
     }
 
     [Fact]
@@ -125,6 +145,31 @@ public class WorldGraphTests
 
         Assert.Contains("sealed_thin_place", rel.Facts);
         Assert.True(rel.HasFact("sealed_thin_place"));
+    }
+
+    [Fact]
+    public void CreateRelationship_CapturesPrimitiveRuntimeIds()
+    {
+        var nation = _graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", tick: 0);
+        var settlement = _graph.CreateEntity(TestKinds.Settlement, "generic", "S", "c", tick: 0);
+        var relationshipKindId = new RelationshipKindRuntimeId(5);
+        var relationshipFactId = new RelationshipFactRuntimeId(9);
+
+        var rel = _graph.CreateRelationship(
+            "controls",
+            RelationshipPolarity.Neutral,
+            nation.Id,
+            settlement.Id,
+            0.8f,
+            tick: 0,
+            facts: ["sealed_thin_place"],
+            kindId: relationshipKindId,
+            factId0: relationshipFactId,
+            factCount: 1);
+
+        Assert.Equal(relationshipKindId, rel.KindId);
+        Assert.True(rel.HasFact(relationshipFactId));
+        Assert.Same(rel, Assert.Single(_graph.OutgoingRelationships(nation.Id, relationshipKindId)));
     }
 
     [Fact]

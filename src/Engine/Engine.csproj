@@ -11,4 +11,10 @@
     <PackageReference Include="QuikGraph" Version="2.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Engine.Domain\Engine.Domain.csproj" />
+    <ProjectReference Include="..\Engine.Eventing\Engine.Eventing.csproj" />
+    <ProjectReference Include="..\Engine.Kernel\Engine.Kernel.csproj" />
+  </ItemGroup>
+
 </Project>

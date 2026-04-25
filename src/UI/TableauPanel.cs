@@ -10,7 +10,7 @@ using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Generators;
 using Engine.Kinds;
-using Engine.Messages;
+using Engine.Projection;
 using Engine.Simulation;
 using TheCanonryGame.UI.Theme;
 
@@ -37,17 +37,19 @@ public partial class TableauPanel : PanelContainer
     private VBoxContainer? _detailSections;
     private Control? _detailContent;
     private GridContainer? _rows;
-    private readonly Queue<string> _recentFires = [];
     private readonly Dictionary<string, GeneratorRowRefs> _rowRefs = [];
-    private string? _lastFiredGeneratorId;
+    private UiProjectionState? _projection;
+    private IProjectionSymbolCatalog? _symbols;
     private string? _hoveredGeneratorId;
 
-    public void Initialize(SimulationRunner sim)
+    public void Initialize(
+        SimulationRunner sim,
+        UiProjectionState? projection,
+        IProjectionSymbolCatalog? symbols)
     {
         _sim = sim;
-        _recentFires.Clear();
-        _lastFiredGeneratorId = null;
-        _sim.MessageBus.Subscribe(OnMessageReceived);
+        _projection = projection;
+        _symbols = symbols;
         if (_rows is not null)
         {
             RebuildRows();
@@ -61,15 +63,18 @@ public partial class TableauPanel : PanelContainer
             return;
         }
 
+        // MIGRATION: active tableau cards still come from live host state.
+        // UiProjectionState.FutureMigrationItems tracks the missing primitive
+        // card/tableau add/remove events needed to make this panel event-only.
         var activeCount = _sim.Tableau.ActiveCards.Count(card => !string.IsNullOrWhiteSpace(card.Definition.GeneratorId));
         var totalCount = _sim.DefinitionGraph.Generators.Count;
-        var lastFiredText = _lastFiredGeneratorId is null
+        var lastFire = LatestGeneratorFire();
+        var lastFiredText = lastFire is null
             ? "none"
-            : $"{_sim.DefinitionGraph.Generators[_lastFiredGeneratorId].Name} @ {_sim.WorldState.Generators.ById[_lastFiredGeneratorId].LastFiredTick}";
-        _summaryLabel.Text = $"Active {activeCount}/{totalCount}  |  Fired {_sim.GeneratorSystem.TotalFired}  |  Last {lastFiredText}";
-        _recentLabel.Text = _recentFires.Count == 0
-            ? "Recent: none"
-            : "Recent:\n" + string.Join('\n', _recentFires);
+            : $"{ResolveDisplayName(ProjectionSymbolKind.Generator, lastFire!.GeneratorId, $"G{lastFire.GeneratorId}")} @ {lastFire.Tick}";
+        var projectedFireCount = _projection?.GeneratorFires.Count ?? 0;
+        _summaryLabel.Text = $"Active {activeCount}/{totalCount}  |  Fired {projectedFireCount}  |  Last {lastFiredText}";
+        _recentLabel.Text = BuildRecentFireText();
 
         foreach (var (generatorId, generator) in _sim.DefinitionGraph.Generators.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
@@ -79,8 +84,11 @@ public partial class TableauPanel : PanelContainer
             }
 
             var isActive = HasActiveGeneratorCard(generatorId);
+            // MIGRATION: generator runtime status still comes from live host
+            // state until the stream covers card activation and full generator
+            // status transitions.
             var instance = _sim.WorldState.Generators.ById[generatorId];
-            var isLastFired = string.Equals(generatorId, _lastFiredGeneratorId, StringComparison.Ordinal);
+            var isLastFired = lastFire?.GeneratorId == generator.RuntimeId;
             var accent = UiTokens.KindAccent(generator.Target.Kind.Value);
             var chipTone = GetChipTone(instance, isLastFired);
             row.StatusLabel.Text = BuildStatusText(generatorId, instance);
@@ -428,7 +436,7 @@ public partial class TableauPanel : PanelContainer
 
             var nameLabel = new Label
             {
-                Text = generator.Name,
+                Text = ResolveGeneratorName(generator),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 ClipText = true,
                 MouseFilter = MouseFilterEnum.Ignore,
@@ -643,7 +651,7 @@ public partial class TableauPanel : PanelContainer
         _hoveredGeneratorId = generatorId;
         var instance = _sim.WorldState.Generators.ById[generatorId];
         _detailArt.Texture = AssetLibrary.CardFace(generator.Target.Kind.Value);
-        _detailNameLabel.Text = generator.Name;
+        _detailNameLabel.Text = ResolveGeneratorName(generator);
         _detailTypeLabel.Text = BuildTypeLine(generator);
         _detailDescLabel.Text = string.IsNullOrWhiteSpace(generator.Description)
             ? generator.Id
@@ -818,22 +826,58 @@ public partial class TableauPanel : PanelContainer
         }
     }
 
-    private void OnMessageReceived(SimulationMessage message)
+    private UiGeneratorFireProjection? LatestGeneratorFire()
     {
-        if (message is not GeneratorFiredMessage fired || _sim is null)
+        if (_projection is null || _projection.GeneratorFires.Count == 0)
         {
-            return;
+            return null;
         }
 
-        _lastFiredGeneratorId = fired.GeneratorId;
-        var targetName = fired.TargetEntityId is { } targetId
-            ? _sim.Graph.GetEntity(targetId)?.Name ?? targetId.ToString()
-            : "unknown";
-        _recentFires.Enqueue($"[{fired.Tick}] {_sim.DefinitionGraph.Generators[fired.GeneratorId].Name} -> {targetName}");
-        while (_recentFires.Count > 6)
+        return _projection.GeneratorFires[^1];
+    }
+
+    private string BuildRecentFireText()
+    {
+        if (_projection is null || _projection.GeneratorFires.Count == 0)
         {
-            _recentFires.Dequeue();
+            return "Recent: none";
         }
+
+        var start = Math.Max(0, _projection.GeneratorFires.Count - 6);
+        var lines = _projection.GeneratorFires
+            .Skip(start)
+            .Select(fire =>
+            {
+                var generatorName = ResolveDisplayName(
+                    ProjectionSymbolKind.Generator,
+                    fire.GeneratorId,
+                    $"G{fire.GeneratorId}");
+                var target = fire.TargetEntityId == 0
+                    ? "unknown"
+                    : ResolveEntityDisplayName(fire.TargetEntityId);
+                return $"[{fire.Tick}] {generatorName} -> {target}";
+            });
+        return "Recent:\n" + string.Join('\n', lines);
+    }
+
+    private string ResolveGeneratorName(DefinitionGeneratorNode generator) =>
+        ResolveDisplayName(ProjectionSymbolKind.Generator, generator.RuntimeId, generator.Name);
+
+    private string ResolveDisplayName(ProjectionSymbolKind kind, int id, string fallback) =>
+        _symbols?.ResolveDisplayName(kind, id, fallback) ?? fallback;
+
+    private string ResolveEntityDisplayName(int entityId)
+    {
+        UiEntityProjection? entity = null;
+        _projection?.Entities.TryGetValue(entityId, out entity);
+        return _symbols?.ResolveEntityName(
+            new ProjectionEntityNameKey(
+                entityId,
+                entity?.KindId ?? 0,
+                entity?.SubtypeId ?? 0,
+                entity?.CultureId ?? 0,
+                entity?.NameSeed ?? entityId),
+            $"E{entityId}") ?? $"E{entityId}";
     }
 
     private static string BuildTooltip(DefinitionGeneratorNode generator)

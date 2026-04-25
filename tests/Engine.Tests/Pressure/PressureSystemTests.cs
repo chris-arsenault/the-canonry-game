@@ -1,5 +1,6 @@
 namespace Engine.Tests.Pressure;
 
+using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
@@ -12,7 +13,7 @@ public class PressureSystemTests
     public void Compute_ReturnsBaselineWithNoFactors()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(new PressureDefinition("test", PressureScope.Regional, baseline: 0f));
+        system.RegisterDefinition(TestPressureDefinition("test", baseline: 0f));
 
         var scopeId = new EntityId(100);
         var contexts = CreateContexts(scopeId, []);
@@ -26,7 +27,7 @@ public class PressureSystemTests
     public void Compute_FactorPushesValue()
     {
         var system = new PressureSystem();
-        var def = new PressureDefinition("test", PressureScope.Regional,
+        var def = TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0f, smoothingFactor: 1f); // No smoothing/homeostasis for clarity
         def.Factors.Add(new FixedFactor("push", 50f));
         system.RegisterDefinition(def);
@@ -45,7 +46,7 @@ public class PressureSystemTests
     public void Homeostasis_DriftsTowardBaseline()
     {
         var system = new PressureSystem();
-        var def = new PressureDefinition("test", PressureScope.Regional,
+        var def = TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0.5f, smoothingFactor: 1f);
         def.Factors.Add(new FixedFactor("push", 50f));
         system.RegisterDefinition(def);
@@ -72,7 +73,7 @@ public class PressureSystemTests
     public void Smoothing_PreventsInstantSpikes()
     {
         var system = new PressureSystem();
-        var def = new PressureDefinition("test", PressureScope.Regional,
+        var def = TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0f, smoothingFactor: 0.1f); // Very smooth
         def.Factors.Add(new FixedFactor("spike", 100f));
         system.RegisterDefinition(def);
@@ -93,7 +94,7 @@ public class PressureSystemTests
     public void Compute_ClampsToRange()
     {
         var system = new PressureSystem();
-        var def = new PressureDefinition("test", PressureScope.Regional,
+        var def = TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0f, smoothingFactor: 1f);
         def.Factors.Add(new FixedFactor("huge", 500f));
         system.RegisterDefinition(def);
@@ -108,7 +109,7 @@ public class PressureSystemTests
     public void Compute_ClampsNegative()
     {
         var system = new PressureSystem();
-        var def = new PressureDefinition("test", PressureScope.Regional,
+        var def = TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0f, smoothingFactor: 1f);
         def.Factors.Add(new FixedFactor("negative", -500f));
         system.RegisterDefinition(def);
@@ -125,7 +126,7 @@ public class PressureSystemTests
     public void ApplyDelta_AffectsNextCompute()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(new PressureDefinition("test", PressureScope.Regional,
+        system.RegisterDefinition(TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0f, smoothingFactor: 1f));
 
         var scopeId = new EntityId(100);
@@ -140,7 +141,7 @@ public class PressureSystemTests
     public void ApplyDelta_ClearedAfterCompute()
     {
         var system = new PressureSystem();
-        system.RegisterDefinition(new PressureDefinition("test", PressureScope.Regional,
+        system.RegisterDefinition(TestPressureDefinition("test",
             baseline: 0f, homeostasisRate: 0.5f, smoothingFactor: 1f));
 
         var scopeId = new EntityId(100);
@@ -253,6 +254,19 @@ public class PressureSystemTests
         public string Name => name;
         public float Evaluate(IPressureContext context) => value;
     }
+
+    private static PressureDefinition TestPressureDefinition(
+        string name,
+        float baseline = 0f,
+        float homeostasisRate = 0.1f,
+        float smoothingFactor = 0.3f) =>
+        new(
+            name,
+            PressureScope.Regional,
+            baseline,
+            homeostasisRate,
+            smoothingFactor,
+            new PressureRuntimeId(99));
 
     private static Dictionary<EntityId, IPressureContext> CreateContexts(
         EntityId scopeId, IReadOnlyCollection<EntityId> entities)

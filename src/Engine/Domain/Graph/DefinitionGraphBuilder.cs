@@ -8,9 +8,12 @@ using Engine.Wiring;
 
 public static class DefinitionGraphBuilder
 {
-    public static DefinitionGraph Build(DomainConfig config)
+    public static DefinitionGraph Build(
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
     {
         ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(runtimeIds);
 
         var kindNodes = new Dictionary<EntityKind, DefinitionKindNode>();
         var attributeIndex = new Dictionary<DefinitionAttributeKey, DefinitionAttributeNode>();
@@ -27,8 +30,8 @@ public static class DefinitionGraphBuilder
         }
 
         var resourceNodes = BuildResourceNodes(config.Resources);
-        var relationshipNodes = BuildRelationshipNodes(config.Relationships);
-        var relationshipFactNodes = BuildRelationshipFactNodes(config.RelationshipFacts);
+        var relationshipNodes = BuildRelationshipNodes(config.Relationships, runtimeIds);
+        var relationshipFactNodes = BuildRelationshipFactNodes(config.RelationshipFacts, runtimeIds);
         var pressureNodes = BuildPressureNodes(config.Pressures);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
@@ -68,7 +71,7 @@ public static class DefinitionGraphBuilder
         {
             DefinitionSemanticGraphBuilder.Populate(graph, config.Semantics);
 
-            foreach (var (id, node) in RuntimeGeneratorBuilder.Build(config.Semantics.Generators, graph))
+            foreach (var (id, node) in RuntimeGeneratorBuilder.Build(config.Semantics.Generators, graph, runtimeIds))
             {
                 generatorNodes[id] = node;
             }
@@ -173,7 +176,8 @@ public static class DefinitionGraphBuilder
     }
 
     private static Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> BuildRelationshipNodes(
-        IReadOnlyList<RelationshipConfig> relationships)
+        IReadOnlyList<RelationshipConfig> relationships,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
     {
         var nodes = new Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>();
         foreach (var relationship in relationships)
@@ -188,6 +192,7 @@ public static class DefinitionGraphBuilder
             nodes[relationshipId] = new DefinitionRelationshipNode
             {
                 Id = relationshipId,
+                RuntimeId = runtimeIds.RelationshipKindIdOf(relationship.Name).Value,
                 SourceConfig = relationship,
             };
         }
@@ -196,7 +201,8 @@ public static class DefinitionGraphBuilder
     }
 
     private static Dictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> BuildRelationshipFactNodes(
-        IReadOnlyList<RelationshipFactConfig> relationshipFacts)
+        IReadOnlyList<RelationshipFactConfig> relationshipFacts,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
     {
         var nodes = new Dictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode>();
         foreach (var fact in relationshipFacts)
@@ -211,6 +217,7 @@ public static class DefinitionGraphBuilder
             nodes[factId] = new DefinitionRelationshipFactNode
             {
                 Id = factId,
+                RuntimeId = runtimeIds.RelationshipFactIdOf(fact.Name).Value,
                 SourceConfig = fact,
             };
         }
