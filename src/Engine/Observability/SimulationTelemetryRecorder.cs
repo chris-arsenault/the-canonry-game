@@ -2,9 +2,11 @@ namespace Engine.Observability;
 
 using System.Globalization;
 
+using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Map;
 using Engine.Messages;
+using Engine.Processes;
 using Engine.Resources;
 using Engine.Simulation;
 
@@ -121,12 +123,12 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                         goals.Tick,
                         goals.EntityId.Value,
                         goals.Kind.Value,
-                        goal.GoalId,
-                        goal.DesiredEffect,
+                        GoalKey(goal.GoalId),
+                        goal.DesiredEffect.ToString(),
                         goal.TargetEntityId.Value,
                         goal.Urgency,
-                        goal.PlannedProcessId,
-                        goal.ParentGoalId,
+                        ProcessNameOf(goal.PlannedProcessId),
+                        GoalKey(goal.ParentGoalId),
                         goal.IsActionable,
                         goal.Depth));
                 }
@@ -138,11 +140,28 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                     process.Tick,
                     process.EntityId.Value,
                     process.Kind.Value,
-                    process.SelectedGoalId,
-                    process.ExecutedProcessName,
+                    GoalKey(process.SelectedGoalId),
+                    ProcessNameOf(process.ExecutedProcessId),
                     process.IsStale,
                     process.StatusNote,
-                    process.CandidateCount));
+                    process.CandidateCount,
+                    VisitKey(process.SelectedLocality?.VisitId),
+                    LocalityKeyText(process.SelectedLocality?.LocalityKey),
+                    PlaneLabel(process.SelectedLocality?.Plane),
+                    process.SelectedLocality?.Q,
+                    process.SelectedLocality?.R,
+                    process.SelectedLocality?.S,
+                    process.SelectedLocality?.BundleScore,
+                    process.SelectedLocality?.GoalCount,
+                    process.SelectedLocality?.DistinctTargetCount,
+                    process.SelectedLocality?.DistinctEffectCount,
+                    process.SelectedLocality?.Distance,
+                    process.SelectedLocality?.IsCurrentLocality,
+                    process.SelectedLocality?.IsCommitted,
+                    process.SelectedLocality?.Arrived,
+                    process.SelectedLocality?.ActionsRemaining,
+                    process.SelectedLocality?.RealizedActions,
+                    ReasonLabel(process.SelectedLocality?.SelectionReason)));
                 foreach (var candidate in process.Candidates)
                 {
                     Batch.ProcessCandidates.Add(new ProcessCandidateRow(
@@ -150,14 +169,39 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                         process.Tick,
                         process.EntityId.Value,
                         process.Kind.Value,
-                        candidate.ProcessName,
-                        candidate.GoalId,
-                        candidate.ProviderName,
+                        ProcessNameOf(candidate.ProcessId) ?? string.Empty,
+                        GoalKey(candidate.GoalId) ?? string.Empty,
+                        ProviderNameOf(candidate.ProviderId),
                         candidate.Score,
                         candidate.PreconditionPassed,
                         candidate.PreconditionDiagnostic,
                         candidate.OnCooldown,
                         candidate.WasSelected));
+                }
+                foreach (var locality in process.LocalityOpportunities)
+                {
+                    Batch.LocalityOpportunities.Add(new LocalityOpportunityRow(
+                        RunId,
+                        process.Tick,
+                        process.EntityId.Value,
+                        process.Kind.Value,
+                        VisitKey(process.SelectedLocality?.VisitId),
+                        LocalityKeyText(locality.LocalityKey),
+                        PlaneLabel(locality.Plane),
+                        locality.Q,
+                        locality.R,
+                        locality.S,
+                        locality.AnchorEntityId.Value,
+                        locality.AnchorName,
+                        locality.BundleScore,
+                        locality.GoalCount,
+                        locality.DistinctTargetCount,
+                        locality.DistinctEffectCount,
+                        locality.Distance,
+                        locality.IsCurrentLocality,
+                        locality.IsCommitted,
+                        locality.WasSelected,
+                        ReasonLabel(locality.SelectionReason)));
                 }
                 break;
 
@@ -321,6 +365,63 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                 break;
         }
     }
+
+    private string? ProcessNameOf(ProcessRuntimeId? processId)
+    {
+        if (processId is null || processId.Value.IsNone)
+        {
+            return null;
+        }
+
+        return _sim.BehaviorDefinitions.TryGetDefinition(processId.Value, out var definition) &&
+               definition is not null
+            ? definition.Name
+            : processId.Value.Value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string GoalKey(GoalRuntimeId goalId) =>
+        FormattableString.Invariant($"goal_{goalId.Value}");
+
+    private static string? GoalKey(GoalRuntimeId? goalId) =>
+        goalId is null ? null : GoalKey(goalId.Value);
+
+    private string ProviderNameOf(EntityId providerId)
+    {
+        var entity = _sim.WorldState.QueryCache.GetEntity(providerId);
+        return entity?.Name ?? providerId.Value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string? VisitKey(LocalityVisitId? visitId) =>
+        visitId is null || visitId.Value.IsNone
+            ? null
+            : FormattableString.Invariant($"visit_{visitId.Value.Value}");
+
+    private static string? LocalityKeyText(LocalityRuntimeKey? key) =>
+        key is null ? null : LocalityKeyText(key.Value);
+
+    private static string LocalityKeyText(LocalityRuntimeKey key) =>
+        key.Plane == PrimaryPlane.Physical
+            ? FormattableString.Invariant($"physical:{key.Q}:{key.R}")
+            : FormattableString.Invariant($"semantic:{key.Q}:{key.R}:{key.S}");
+
+    private static string? PlaneLabel(PrimaryPlane? plane) =>
+        plane is null ? null : PlaneLabel(plane.Value);
+
+    private static string PlaneLabel(PrimaryPlane plane) =>
+        plane == PrimaryPlane.Physical ? "physical" : "semantic";
+
+    private static string? ReasonLabel(LocalitySelectionReason? reason) =>
+        reason is null ? null : ReasonLabel(reason.Value);
+
+    private static string ReasonLabel(LocalitySelectionReason reason) =>
+        reason switch
+        {
+            LocalitySelectionReason.BestBundle => "best_bundle",
+            LocalitySelectionReason.KeptCommitment => "kept_commitment",
+            LocalitySelectionReason.ContinuedCommitment => "continued_commitment",
+            LocalitySelectionReason.SwitchedCommitment => "switched_commitment",
+            _ => string.Empty,
+        };
 
     private void RecordTickSnapshot()
     {

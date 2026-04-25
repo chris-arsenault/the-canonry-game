@@ -169,9 +169,11 @@ public sealed class SimulationRunner
         var behaviorDefinitions = new BehaviorDefinitionIndex();
         DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions);
         var goalGenerator = new Behaviors.GoalGenerator(domainConfig.Kinds, domainConfig.Processes);
-        goalGenerator.CapturePlanningTraces = diagnosticsOptions.CapturePlanningTraces;
-        var evaluator = new EntityEvaluator(behaviorDefinitions, messageBus, goalGenerator: goalGenerator);
-        evaluator.CaptureEvaluationTraces = diagnosticsOptions.CaptureEvaluationTraces;
+        var evaluator = new EntityEvaluator(
+            behaviorDefinitions,
+            messageBus,
+            goalGenerator: goalGenerator,
+            kindConfigs: domainConfig.Kinds);
         evaluator.CaptureEvaluationCandidates = diagnosticsOptions.CaptureEvaluationCandidates;
         evaluator.PublishGoalDetails = diagnosticsOptions.PublishGoalDetails;
 

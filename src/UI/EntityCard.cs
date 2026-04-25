@@ -254,22 +254,23 @@ public partial class EntityCard : PanelContainer
         sb.AppendLine(SectionHeader("Recent Actions"));
         if (entity.ActionHistory.Count > 0)
         {
-            var counts = new Dictionary<string, int>();
-            foreach (var (_, name) in entity.ActionHistory)
+            var counts = new Dictionary<Engine.Processes.ProcessRuntimeId, int>();
+            foreach (var (_, processId) in entity.ActionHistory)
             {
-                counts.TryGetValue(name, out var c);
-                counts[name] = c + 1;
+                counts.TryGetValue(processId, out var c);
+                counts[processId] = c + 1;
             }
 
-            foreach (var (name, count) in counts.OrderByDescending(kv => kv.Value))
+            foreach (var (processId, count) in counts.OrderByDescending(kv => kv.Value))
             {
+                var name = ProcessName(processId);
                 var bar = new string('▌', System.Math.Min(count, 20));
                 sb.AppendLine($"  {name}: {count} [color={ColorTag(UiTokens.Whisper)}]{bar}[/color]");
             }
 
-            if (entity.LastActionName is not null)
+            if (!entity.LastActionProcessId.IsNone)
             {
-                sb.AppendLine($"  [i][color={whisper}]Last: {entity.LastActionName} @ t{entity.LastActionTick}[/color][/i]");
+                sb.AppendLine($"  [i][color={whisper}]Last: {ProcessName(entity.LastActionProcessId)} @ t{entity.LastActionTick}[/color][/i]");
             }
         }
         else
@@ -382,7 +383,8 @@ public partial class EntityCard : PanelContainer
                         : ColorTag(UiTokens.Blood);
                 var statusIcon = candidate.WasSelected ? "★"
                     : candidate.PreconditionPassed ? "✓" : "✗";
-                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {candidate.ProcessName} → {candidate.ProviderName}  [color={whisper}]score {candidate.Score:F3}[/color]");
+                var providerName = _sim.Graph.GetEntity(candidate.ProviderId)?.Name ?? candidate.ProviderId.ToString();
+                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {ProcessName(candidate.ProcessId)} → {providerName}  [color={whisper}]score {candidate.Score:F3}[/color]");
                 if (!candidate.PreconditionPassed)
                 {
                     sb.AppendLine($"    [color={whisper}]{candidate.PreconditionDiagnostic}[/color]");
@@ -398,6 +400,19 @@ public partial class EntityCard : PanelContainer
     {
         var caption = ColorTag(UiTokens.Parchment);
         return $"\n[color={caption}]{title.ToUpperInvariant()}[/color]";
+    }
+
+    private string ProcessName(Engine.Processes.ProcessRuntimeId processId)
+    {
+        if (_sim is null || processId.IsNone)
+        {
+            return string.Empty;
+        }
+
+        return _sim.BehaviorDefinitions.TryGetDefinition(processId, out var definition) &&
+               definition is not null
+            ? definition.Name
+            : processId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string ColorTag(Color color) => Main.ColorHex(color);
@@ -442,23 +457,8 @@ public partial class EntityCard : PanelContainer
 
     private static string BuildClipboardText(Entity entity, string visibleText)
     {
-        var sb = new StringBuilder(visibleText);
-        AppendDiagnosticSection(sb, "Goal Generation Trace", entity.GoalGenerationTrace);
-        AppendDiagnosticSection(sb, "Evaluation Trace", entity.EvaluationTrace);
-        return sb.ToString();
-    }
-
-    private static void AppendDiagnosticSection(StringBuilder sb, string title, string? trace)
-    {
-        if (string.IsNullOrWhiteSpace(trace))
-        {
-            return;
-        }
-
-        sb.AppendLine();
-        sb.AppendLine();
-        sb.AppendLine($"--- {title} ---");
-        sb.AppendLine(trace.TrimEnd());
+        _ = entity;
+        return visibleText;
     }
 
     private static string FormatReportStatus(EvaluationReport report, int currentTick)

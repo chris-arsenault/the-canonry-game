@@ -2,6 +2,7 @@ namespace Engine.Graph;
 
 using Engine.Kinds;
 using Engine.Map;
+using Engine.Processes;
 
 /// <summary>
 /// A node in the entity graph. Stores identity and structural data only.
@@ -41,29 +42,30 @@ public sealed class Entity
     /// <summary>Engine-produced evaluation report from the last tick. UI reads this.</summary>
     public EvaluationReport? LastEvaluation { get; set; }
 
-    /// <summary>Hidden diagnostic trace from the most recent goal-generation pass.</summary>
-    public string? GoalGenerationTrace { get; set; }
+    /// <summary>
+    /// Short-horizon locality commitment used by the planner to make movement choose
+    /// destinations that unlock multiple follow-up actions instead of replanning
+    /// every tick from scratch.
+    /// </summary>
+    public LocalityVisitIntent? ActiveVisitIntent { get; set; }
 
-    /// <summary>Hidden diagnostic trace from the most recent evaluation pass.</summary>
-    public string? EvaluationTrace { get; set; }
+    /// <summary>Per-process cooldown tracking: process runtime id → tick when cooldown expires.</summary>
+    public Dictionary<ProcessRuntimeId, int> ProcessCooldowns { get; } = [];
 
-    /// <summary>Per-process cooldown tracking: processId → tick when cooldown expires.</summary>
-    public Dictionary<string, int> ProcessCooldowns { get; } = [];
-
-    /// <summary>Per-definition last execution tick keyed by definition id.</summary>
-    public Dictionary<string, int> LastDefinitionExecutionTicks { get; } = [];
+    /// <summary>Per-definition last execution tick keyed by primitive runtime id.</summary>
+    public Dictionary<ProcessRuntimeId, int> LastDefinitionExecutionTicks { get; } = [];
 
     /// <summary>Entity-wide cooldown: tick when entity can act again.</summary>
     public int EntityCooldownUntil { get; set; }
 
-    /// <summary>Name of the last process or action that executed for this entity.</summary>
-    public string? LastActionName { get; set; }
+    /// <summary>Primitive id of the last process or action that executed for this entity.</summary>
+    public ProcessRuntimeId LastActionProcessId { get; set; }
 
     /// <summary>Tick when the last process or action executed.</summary>
     public int? LastActionTick { get; set; }
 
-    /// <summary>Recent action history for frequency display. (tick, processName).</summary>
-    public Queue<(int Tick, string Name)> ActionHistory { get; } = new();
+    /// <summary>Recent action history for frequency display. (tick, process id).</summary>
+    public Queue<(int Tick, ProcessRuntimeId ProcessId)> ActionHistory { get; } = new();
 
     /// <summary>Health value history for graphing. (tick, value).</summary>
     public Queue<(int Tick, float Value)> HealthHistory { get; } = new();
@@ -71,16 +73,13 @@ public sealed class Entity
     private const int MaxHistorySize = 60;
 
     /// <summary>Record an action in the history.</summary>
-    public void RecordAction(int tick, string name, string? definitionId = null)
+    public void RecordAction(int tick, ProcessRuntimeId processId)
     {
-        LastActionName = name;
+        LastActionProcessId = processId;
         LastActionTick = tick;
-        if (definitionId is not null)
-        {
-            LastDefinitionExecutionTicks[definitionId] = tick;
-        }
+        LastDefinitionExecutionTicks[processId] = tick;
 
-        ActionHistory.Enqueue((tick, name));
+        ActionHistory.Enqueue((tick, processId));
         while (ActionHistory.Count > MaxHistorySize) ActionHistory.Dequeue();
     }
 
@@ -92,18 +91,17 @@ public sealed class Entity
     }
 
     /// <summary>
-    /// Count how many times <paramref name="actionName"/> fired on this entity at or
+    /// Count how many times <paramref name="processId"/> fired on this entity at or
     /// after <paramref name="sinceTick"/>. Used by the utility AI to soft-penalize
     /// recent repetition — a process fired N times recently gets its score scaled
     /// down, encouraging the planner to consider alternatives without hard-locking.
     /// </summary>
-    public int CountRecentActions(string actionName, int sinceTick)
+    public int CountRecentActions(ProcessRuntimeId processId, int sinceTick)
     {
-        ArgumentNullException.ThrowIfNull(actionName);
         var count = 0;
-        foreach (var (tick, name) in ActionHistory)
+        foreach (var (tick, recordedProcessId) in ActionHistory)
         {
-            if (tick >= sinceTick && string.Equals(name, actionName, StringComparison.Ordinal))
+            if (tick >= sinceTick && recordedProcessId == processId)
             {
                 count++;
             }

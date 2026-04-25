@@ -20,6 +20,18 @@ Current engine work is focused on a data-driven simulation architecture in Godot
 
 ## Non-Negotiable Architecture Rules
 
+### Critical Reference: Simulation Kernel Discipline
+
+Before changing engine runtime code, read `docs/simulation-kernel-discipline.md`.
+
+That document is the controlling architecture direction for simulation-thread
+work: no runtime string creation in the kernel, no runtime string lookup after
+domain registration, no steady-state hot-path allocations, primitive event
+boundaries, and one sim writer thread.
+
+Existing engine violations are migration debt, not precedent. New work should
+move the engine toward that model and should not add avoidable new violations.
+
 ### 1. No Domain Mixing
 
 Engine code must remain domain-agnostic.

@@ -26,16 +26,18 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("fame", self.Id, 0.5f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population"));
-        definitions.Register(CreateProcess("Celebrate", "fame"));
+        var grow = CreateProcess("Grow", "population");
+        var celebrate = CreateProcess("Celebrate", "fame");
+        definitions.Register(grow);
+        definitions.Register(celebrate);
 
         var bus = new MessageBus();
-        var executed = new List<(int Tick, string Name)>();
+        var executed = new List<(int Tick, ProcessRuntimeId ProcessId)>();
         bus.Subscribe(message =>
         {
             if (message is ProcessExecutedMessage processExecuted)
             {
-                executed.Add((processExecuted.Tick, processExecuted.ProcessName));
+                executed.Add((processExecuted.Tick, processExecuted.ProcessId));
             }
         });
 
@@ -50,8 +52,8 @@ public class EntityEvaluatorTests
         for (var startTick = 1; startTick <= 91; startTick++)
         {
             var window = executed.Where(e => e.Tick >= startTick && e.Tick < startTick + 10).ToList();
-            var growInWindow = window.Count(e => e.Name == "Grow");
-            var celebrateInWindow = window.Count(e => e.Name == "Celebrate");
+            var growInWindow = window.Count(e => e.ProcessId == grow.RuntimeId);
+            var celebrateInWindow = window.Count(e => e.ProcessId == celebrate.RuntimeId);
             Assert.True(growInWindow <= 7,
                 $"Grow fired {growInWindow} times in ticks [{startTick},{startTick + 10}) — recency decay should cap sustained repetition.");
             Assert.True(celebrateInWindow <= 7,
@@ -68,14 +70,15 @@ public class EntityEvaluatorTests
         self.Goals.Add(goal);
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population"));
+        var grow = CreateProcess("Grow", "population");
+        definitions.Register(grow);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
         Assert.Equal(goal.Id, self.LastEvaluation!.SelectedGoalId);
-        Assert.Equal("Grow", self.LastEvaluation.ExecutedProcessName);
+        Assert.Equal(grow.RuntimeId, self.LastEvaluation.ExecutedProcessId);
     }
 
     [Fact]
@@ -87,16 +90,18 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("fame", self.Id, 0.1f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population"));
-        definitions.Register(CreateProcess("Celebrate", "fame"));
+        var grow = CreateProcess("Grow", "population");
+        var celebrate = CreateProcess("Celebrate", "fame");
+        definitions.Register(grow);
+        definitions.Register(celebrate);
 
         var bus = new MessageBus();
-        var executed = new List<string>();
+        var executed = new List<ProcessRuntimeId>();
         bus.Subscribe(message =>
         {
             if (message is ProcessExecutedMessage processExecuted)
             {
-                executed.Add(processExecuted.ProcessName);
+                executed.Add(processExecuted.ProcessId);
             }
         });
 
@@ -111,7 +116,46 @@ public class EntityEvaluatorTests
             evaluator.Evaluate(self, world);
         }
 
-        Assert.True(executed.Count(name => name == "Grow") > executed.Count(name => name == "Celebrate"));
+        Assert.True(executed.Count(id => id == grow.RuntimeId) > executed.Count(id => id == celebrate.RuntimeId));
+    }
+
+    [Fact]
+    public void Evaluate_LocalityBundleBiasesGoalSelectionTowardMultiGoalDestination()
+    {
+        var world = new StubWorldState(gridRadius: 5);
+        var self = CreateSettlement(world, "Self", (0, 0), population: 10f, fame: 10f, sustenance: 10f);
+        var farA = CreateSettlement(world, "FarA", (2, 0), population: 10f, fame: 10f, sustenance: 10f);
+        var farB = CreateSettlement(world, "FarB", (2, 0), population: 10f, fame: 10f, sustenance: 10f);
+        var near = CreateSettlement(world, "Near", (1, 0), population: 10f, fame: 10f, sustenance: 10f);
+
+        self.Goals.Add(CreateGoal("population", farA.Id, 0.6f));
+        self.Goals.Add(CreateGoal("fame", farB.Id, 0.6f));
+        self.Goals.Add(CreateGoal("sustenance", near.Id, 1.0f));
+
+        var definitions = new BehaviorDefinitionIndex();
+        var grow = CreateProcess("Grow", "population", new TargetIsNotSelf());
+        var celebrate = CreateProcess("Celebrate", "fame", new TargetIsNotSelf());
+        var stockpile = CreateProcess("Stockpile", "sustenance", new TargetIsNotSelf());
+        definitions.Register(grow);
+        definitions.Register(celebrate);
+        definitions.Register(stockpile);
+
+        var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.6));
+        evaluator.Evaluate(self, world);
+
+        Assert.NotNull(self.LastEvaluation);
+        Assert.NotNull(self.LastEvaluation!.SelectedLocality);
+        Assert.Equal(PrimaryPlane.Physical, self.LastEvaluation.SelectedLocality!.Plane);
+        Assert.Equal(2, self.LastEvaluation.SelectedLocality.Q);
+        Assert.Equal(0, self.LastEvaluation.SelectedLocality.R);
+        Assert.Equal(2, self.LastEvaluation.SelectedLocality.GoalCount);
+        Assert.True(
+            self.LastEvaluation.ExecutedProcessId == grow.RuntimeId ||
+            self.LastEvaluation.ExecutedProcessId == celebrate.RuntimeId,
+            $"Expected locality-selected process to come from the bundled destination, got '{self.LastEvaluation.ExecutedProcessId}'.");
+        Assert.NotNull(self.ActiveVisitIntent);
+        Assert.Equal(2, self.ActiveVisitIntent!.Q);
+        Assert.Equal(0, self.ActiveVisitIntent.R);
     }
 
     [Fact]
@@ -136,9 +180,9 @@ public class EntityEvaluatorTests
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.0));
         evaluator.Evaluate(self, world);
 
-        Assert.Equal("Celebrate", self.LastEvaluation!.ExecutedProcessName);
-        Assert.Contains(self.LastEvaluation.Candidates, c => c.GoalId == blockedGoal.Id && c.ProcessName == "Blocked");
-        Assert.Contains(self.LastEvaluation.Candidates, c => c.GoalId == viableGoal.Id && c.ProcessName == "Celebrate");
+        Assert.Equal(viable.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
+        Assert.Contains(self.LastEvaluation.Candidates, c => c.GoalId == blockedGoal.Id && c.ProcessId == blocked.RuntimeId);
+        Assert.Contains(self.LastEvaluation.Candidates, c => c.GoalId == viableGoal.Id && c.ProcessId == viable.RuntimeId);
         Assert.Equal(0, self.GoalsGeneratedAt);
     }
 
@@ -150,14 +194,15 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population"));
+        var grow = CreateProcess("Grow", "population");
+        definitions.Register(grow);
         definitions.Register(CreateProcess("Celebrate", "fame"));
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Single(self.LastEvaluation!.Candidates);
-        Assert.Equal("Grow", self.LastEvaluation.Candidates[0].ProcessName);
+        Assert.Equal(grow.RuntimeId, self.LastEvaluation.Candidates[0].ProcessId);
     }
 
     [Fact]
@@ -165,17 +210,18 @@ public class EntityEvaluatorTests
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
-        self.Goals.Add(CreateGoal("sustenance", self.Id, 1f, parentGoalId: "parent"));
+        self.Goals.Add(CreateGoal("sustenance", self.Id, 1f, parentGoalId: new GoalRuntimeId(999)));
 
         var definitions = new BehaviorDefinitionIndex();
         definitions.Register(CreateProcess("Grow", "population"));
-        definitions.Register(CreateProcess("Stockpile", "sustenance"));
+        var stockpile = CreateProcess("Stockpile", "sustenance");
+        definitions.Register(stockpile);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         Assert.Single(self.LastEvaluation!.Candidates);
-        Assert.Equal("Stockpile", self.LastEvaluation.Candidates[0].ProcessName);
+        Assert.Equal(stockpile.RuntimeId, self.LastEvaluation.Candidates[0].ProcessId);
     }
 
     [Fact]
@@ -186,14 +232,15 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population", new TargetIsSelf()));
+        var grow = CreateProcess("Grow", "population", new TargetIsSelf());
+        definitions.Register(grow);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
         Assert.True(candidate.PreconditionPassed);
-        Assert.Equal("Grow", self.LastEvaluation.ExecutedProcessName);
+        Assert.Equal(grow.RuntimeId, self.LastEvaluation.ExecutedProcessId);
     }
 
     [Fact]
@@ -212,7 +259,7 @@ public class EntityEvaluatorTests
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
         Assert.False(candidate.PreconditionPassed);
-        Assert.Null(self.LastEvaluation.ExecutedProcessName);
+        Assert.Null(self.LastEvaluation.ExecutedProcessId);
     }
 
     [Fact]
@@ -232,7 +279,7 @@ public class EntityEvaluatorTests
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
         Assert.False(candidate.PreconditionPassed);
-        Assert.Contains("self.sustenance=0.0", candidate.PreconditionDiagnostic, StringComparison.Ordinal);
+        Assert.Empty(candidate.PreconditionDiagnostic);
     }
 
     [Fact]
@@ -252,7 +299,7 @@ public class EntityEvaluatorTests
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
         Assert.False(candidate.PreconditionPassed);
-        Assert.Contains("target.sustenance=0.0", candidate.PreconditionDiagnostic, StringComparison.Ordinal);
+        Assert.Empty(candidate.PreconditionDiagnostic);
     }
 
     [Fact]
@@ -263,22 +310,23 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population", cooldown: 4));
+        var grow = CreateProcess("Grow", "population", cooldown: 4);
+        definitions.Register(grow);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5, 0.5, 0.5));
 
         world.CurrentTick = 0;
         evaluator.Evaluate(self, world);
-        Assert.Equal(4, self.ProcessCooldowns["Grow"]);
+        Assert.Equal(4, self.ProcessCooldowns[grow.RuntimeId]);
 
         world.CurrentTick = 1;
         evaluator.Evaluate(self, world);
         Assert.True(self.LastEvaluation!.Candidates[0].OnCooldown);
-        Assert.Null(self.LastEvaluation.ExecutedProcessName);
+        Assert.Null(self.LastEvaluation.ExecutedProcessId);
 
         world.CurrentTick = 4;
         evaluator.Evaluate(self, world);
-        Assert.Equal("Grow", self.LastEvaluation!.ExecutedProcessName);
+        Assert.Equal(grow.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
     }
 
     [Fact]
@@ -289,7 +337,8 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Grow", "population"));
+        var grow = CreateProcess("Grow", "population");
+        definitions.Register(grow);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
 
@@ -304,11 +353,10 @@ public class EntityEvaluatorTests
         Assert.True(self.LastEvaluation!.IsStale);
         Assert.Equal(0, self.LastEvaluation.SourceTick);
         Assert.Single(self.LastEvaluation.Candidates);
-        Assert.Equal("Grow", self.LastEvaluation.Candidates[0].ProcessName);
+        Assert.Equal(grow.RuntimeId, self.LastEvaluation.Candidates[0].ProcessId);
         Assert.Equal(2, self.LastEvaluation.Tick);
         Assert.Contains("entity cooldown until tick 5", self.LastEvaluation.StatusNote, StringComparison.Ordinal);
-        Assert.Equal("Grow", self.LastEvaluation.ExecutedProcessName);
-        Assert.Contains("reusing report from tick 0", self.EvaluationTrace, StringComparison.Ordinal);
+        Assert.Equal(grow.RuntimeId, self.LastEvaluation.ExecutedProcessId);
     }
 
     [Fact]
@@ -321,12 +369,13 @@ public class EntityEvaluatorTests
             self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
             var definitions = new BehaviorDefinitionIndex();
-            definitions.Register(CreateProcess("Grow", "population", cooldown: 8));
+            var grow = CreateProcess("Grow", "population", cooldown: 8);
+            definitions.Register(grow);
 
             var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.0, 0.0, jitterRoll));
             evaluator.Evaluate(self, world);
 
-            Assert.InRange(self.ProcessCooldowns["Grow"], 6, 10);
+            Assert.InRange(self.ProcessCooldowns[grow.RuntimeId], 6, 10);
         }
     }
 
@@ -361,8 +410,8 @@ public class EntityEvaluatorTests
 
         Assert.Equal(11f, self.Attributes.GetValue("population"));
         Assert.Equal(8f, other.Attributes.GetValue("population"));
-        Assert.Equal("Attract", self.LastEvaluation!.ExecutedProcessName);
-        Assert.True(self.ProcessCooldowns.ContainsKey("Attract"));
+        Assert.Equal(definition.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
+        Assert.True(self.ProcessCooldowns.ContainsKey(definition.RuntimeId));
     }
 
     [Fact]
@@ -373,18 +422,20 @@ public class EntityEvaluatorTests
         self.Goals.Add(CreateGoal("population", self.Id, 1f));
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateProcess("Blocked", "population",
-            new SelfAttributeThreshold("sustenance", min: 3f, max: null)));
-        definitions.Register(CreateProcess("Grow", "population"));
+        var blocked = CreateProcess("Blocked", "population",
+            new SelfAttributeThreshold("sustenance", min: 3f, max: null));
+        var grow = CreateProcess("Grow", "population");
+        definitions.Register(blocked);
+        definitions.Register(grow);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.9));
         evaluator.Evaluate(self, world);
 
         var report = self.LastEvaluation!;
         Assert.Equal(2, report.Candidates.Count);
-        Assert.Equal("Grow", report.ExecutedProcessName);
-        Assert.Contains(report.Candidates, c => c.ProcessName == "Blocked" && !c.PreconditionPassed);
-        Assert.Contains(report.Candidates, c => c.ProcessName == "Grow" && c.WasSelected);
+        Assert.Equal(grow.RuntimeId, report.ExecutedProcessId);
+        Assert.Contains(report.Candidates, c => c.ProcessId == blocked.RuntimeId && !c.PreconditionPassed);
+        Assert.Contains(report.Candidates, c => c.ProcessId == grow.RuntimeId && c.WasSelected);
     }
 
     [Fact]
@@ -394,13 +445,14 @@ public class EntityEvaluatorTests
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f);
 
         var definitions = new BehaviorDefinitionIndex();
-        definitions.Register(CreateIdleProcess("Idle"));
+        var idle = CreateIdleProcess("Idle");
+        definitions.Register(idle);
 
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5));
         evaluator.Evaluate(self, world);
 
-        Assert.Equal("Idle", self.LastEvaluation!.ExecutedProcessName);
-        Assert.Equal(string.Empty, self.LastEvaluation.SelectedGoalId);
+        Assert.Equal(idle.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
+        Assert.Null(self.LastEvaluation.SelectedGoalId);
     }
 
     [Fact]
@@ -430,7 +482,7 @@ public class EntityEvaluatorTests
         evaluator.Evaluate(self, world);
 
         Assert.NotNull(self.LastEvaluation);
-        Assert.Null(self.LastEvaluation!.ExecutedProcessName);
+        Assert.Null(self.LastEvaluation!.ExecutedProcessId);
         Assert.Equal("no planner goals", self.LastEvaluation.StatusNote);
     }
 
@@ -470,8 +522,8 @@ public class EntityEvaluatorTests
         var evaluator = new EntityEvaluator(definitions, new MessageBus(), new FixedRandom(0.5), generator);
         evaluator.Evaluate(self, world);
 
-        Assert.Equal("IdleGrowth", self.LastEvaluation!.ExecutedProcessName);
-        Assert.False(string.IsNullOrEmpty(self.LastEvaluation.SelectedGoalId));
+        Assert.Equal(idleGrowth.RuntimeId, self.LastEvaluation!.ExecutedProcessId);
+        Assert.NotNull(self.LastEvaluation.SelectedGoalId);
         Assert.NotEmpty(self.Goals);
     }
 
@@ -491,7 +543,7 @@ public class EntityEvaluatorTests
 
         Assert.NotNull(self.LastEvaluation);
         Assert.Single(self.LastEvaluation!.Candidates);
-        Assert.Null(self.LastEvaluation.ExecutedProcessName);
+        Assert.Null(self.LastEvaluation.ExecutedProcessId);
     }
 
     [Fact]
@@ -511,8 +563,7 @@ public class EntityEvaluatorTests
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
         Assert.False(candidate.PreconditionPassed);
-        Assert.Contains("target", candidate.PreconditionDiagnostic, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("score", candidate.PreconditionDiagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(candidate.PreconditionDiagnostic);
     }
 
     [Fact]
@@ -533,8 +584,7 @@ public class EntityEvaluatorTests
 
         var candidate = Assert.Single(self.LastEvaluation!.Candidates);
         Assert.False(candidate.PreconditionPassed);
-        // Should show precondition failure, not "score below threshold"
-        Assert.DoesNotContain("score", candidate.PreconditionDiagnostic, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(candidate.PreconditionDiagnostic);
     }
 
     [Fact]
@@ -661,7 +711,7 @@ public class EntityEvaluatorTests
     }
 
     [Fact]
-    public void GoalGenerator_RecordsTraceForPlannerExpansion()
+    public void GoalGenerator_ProducesPrimitivePlannerExpansion()
     {
         var world = new StubWorldState(gridRadius: 5);
         var self = CreateSettlement(world, "Self", (0, 0), population: 10f, sustenance: 0f);
@@ -687,11 +737,10 @@ public class EntityEvaluatorTests
         };
 
         var generator = new GoalGenerator(kinds, [grow, stockpile]);
-        _ = generator.Generate(self, world);
+        var goals = generator.Generate(self, world);
 
-        Assert.NotNull(self.GoalGenerationTrace);
-        Assert.Contains("blocked process=Grow", self.GoalGenerationTrace, StringComparison.Ordinal);
-        Assert.Contains("selected child process=STOCKPILE", self.GoalGenerationTrace, StringComparison.Ordinal);
+        Assert.Contains(goals, g => !g.IsActionable && g.PlannedProcessId == grow.RuntimeId);
+        Assert.Contains(goals, g => g.IsActionable && g.PlannedProcessId == stockpile.RuntimeId);
     }
 
     private static ProcessDefinition CreateProcess(
@@ -731,7 +780,7 @@ public class EntityEvaluatorTests
         string attribute,
         EntityId targetEntityId,
         float urgency,
-        string? parentGoalId = null,
+        GoalRuntimeId? parentGoalId = null,
         RefScope scope = RefScope.Self)
     {
         var effect = scope switch

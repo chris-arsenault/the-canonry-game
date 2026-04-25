@@ -10,6 +10,18 @@ Built with Godot 4 + C#. First narrative domain: The Ice Remembers (penguin civi
 
 These are inviolable. Every commit must respect them.
 
+### Critical Reference: Simulation Kernel Discipline
+
+Before changing engine runtime code, read `docs/simulation-kernel-discipline.md`.
+
+That document is the controlling architecture direction for simulation-thread
+work: no runtime string creation in the kernel, no runtime string lookup after
+domain registration, no steady-state hot-path allocations, primitive event
+boundaries, and one sim writer thread.
+
+Existing engine violations are migration debt, not precedent. New work should
+move the engine toward that model and should not add avoidable new violations.
+
 ### 1. No Domain Mixing
 
 Engine code NEVER references domain content. No penguins, no orcas, no soup, no ice magic in the engine. The engine knows about entity kinds, attributes, relationships, cards, and pressure. The domain module knows about specific subtypes, specific cards, specific naming rules, and specific ground truths.

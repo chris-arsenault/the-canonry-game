@@ -1,9 +1,13 @@
 namespace Engine.Processes;
 
+using System.Globalization;
+using System.Runtime.CompilerServices;
+
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Resources;
 using Engine.Wiring;
+using static Engine.Processes.PreconditionDiagnostics;
 
 /// <summary>
 /// A composable precondition tree node. Evaluates against world state.
@@ -114,10 +118,10 @@ public sealed class PressureThreshold(string pressureName, EntityId scopeId, flo
             ? [AttributeRef.Pressure(PressureName)]
             : Array.Empty<AttributeRef>();
         if (Min.HasValue && value < Min.Value)
-            return PreconditionResult.Fail($"{PressureName}={value:F1} (need >= {Min})", blocker);
+            return PreconditionResult.Fail(Diagnostic(context, $"{PressureName}={value:F1} (need >= {Min})"), blocker);
         if (Max.HasValue && value > Max.Value)
-            return PreconditionResult.Fail($"{PressureName}={value:F1} (need <= {Max})", blocker);
-        return PreconditionResult.Pass($"{PressureName}={value:F1}");
+            return PreconditionResult.Fail(Diagnostic(context, $"{PressureName}={value:F1} (need <= {Max})"), blocker);
+        return PreconditionResult.Pass(Diagnostic(context, $"{PressureName}={value:F1}"));
     }
 
     public string Describe() =>
@@ -143,10 +147,10 @@ public sealed class AttributeThreshold(EntityId entityId, string attributeName, 
             : Array.Empty<AttributeRef>();
         var value = context.GetAttribute(EntityId, AttributeName);
         if (Min.HasValue && value < Min.Value)
-            return PreconditionResult.Fail($"{AttributeName}={value:F1} (need >= {Min})", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"{AttributeName}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
-            return PreconditionResult.Fail($"{AttributeName}={value:F1} (need <= {Max})", blockers);
-        return PreconditionResult.Pass($"{AttributeName}={value:F1}");
+            return PreconditionResult.Fail(Diagnostic(context, $"{AttributeName}={value:F1} (need <= {Max})"), blockers);
+        return PreconditionResult.Pass(Diagnostic(context, $"{AttributeName}={value:F1}"));
     }
 
     public string Describe() =>
@@ -164,8 +168,8 @@ public sealed class EntityCountCheck(EntityKind kind, int min) : IPrecondition
         ArgumentNullException.ThrowIfNull(context);
         var count = context.CountEntitiesByKind(Kind);
         return count >= Min
-            ? PreconditionResult.Pass($"{Kind} count={count}")
-            : PreconditionResult.Fail($"{Kind} count={count} (need >= {Min})");
+            ? PreconditionResult.Pass(Diagnostic(context, $"{Kind} count={count}"))
+            : PreconditionResult.Fail(Diagnostic(context, $"{Kind} count={count} (need >= {Min})"));
     }
 
     public string Describe() => $"entity_count({Kind}, min={Min})";
@@ -184,10 +188,10 @@ public sealed class RelationshipExists(
     {
         ArgumentNullException.ThrowIfNull(context);
         var rel = context.FindRelationship(SourceId, TargetId, RelationshipKind);
-        if (rel is null) return PreconditionResult.Fail($"no {RelationshipKind} relationship");
+        if (rel is null) return PreconditionResult.Fail(Diagnostic(context, $"no {RelationshipKind} relationship"));
         if (MinStrength.HasValue && rel.Strength < MinStrength.Value)
-            return PreconditionResult.Fail($"{RelationshipKind} strength={rel.Strength:F2} (need >= {MinStrength})");
-        return PreconditionResult.Pass($"{RelationshipKind} exists (strength={rel.Strength:F2})");
+            return PreconditionResult.Fail(Diagnostic(context, $"{RelationshipKind} strength={rel.Strength:F2} (need >= {MinStrength})"));
+        return PreconditionResult.Pass(Diagnostic(context, $"{RelationshipKind} exists (strength={rel.Strength:F2})"));
     }
 
     public string Describe() =>
@@ -220,11 +224,11 @@ public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? 
 
         var relationship = context.FindRelationship(context.ResolvedTargetId.Value, context.SelfEntityId, RelationshipKind);
         if (relationship is null)
-            return PreconditionResult.Fail($"target has no {RelationshipKind} relationship to self", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"target has no {RelationshipKind} relationship to self"), blockers);
         if (MinStrength.HasValue && relationship.Strength < MinStrength.Value)
-            return PreconditionResult.Fail($"{RelationshipKind} strength={relationship.Strength:F2} (need >= {MinStrength})", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"{RelationshipKind} strength={relationship.Strength:F2} (need >= {MinStrength})"), blockers);
 
-        return PreconditionResult.Pass($"target {RelationshipKind} self (strength={relationship.Strength:F2})");
+        return PreconditionResult.Pass(Diagnostic(context, $"target {RelationshipKind} self (strength={relationship.Strength:F2})"));
     }
 
     public string Describe() =>
@@ -257,11 +261,11 @@ public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? 
 
         var relationship = context.FindRelationship(context.SelfEntityId, context.ResolvedTargetId.Value, RelationshipKind);
         if (relationship is null)
-            return PreconditionResult.Fail($"self has no {RelationshipKind} relationship to target", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"self has no {RelationshipKind} relationship to target"), blockers);
         if (MinStrength.HasValue && relationship.Strength < MinStrength.Value)
-            return PreconditionResult.Fail($"{RelationshipKind} strength={relationship.Strength:F2} (need >= {MinStrength})", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"{RelationshipKind} strength={relationship.Strength:F2} (need >= {MinStrength})"), blockers);
 
-        return PreconditionResult.Pass($"self {RelationshipKind} target (strength={relationship.Strength:F2})");
+        return PreconditionResult.Pass(Diagnostic(context, $"self {RelationshipKind} target (strength={relationship.Strength:F2})"));
     }
 
     public string Describe() =>
@@ -303,11 +307,11 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool pla
         if (context.ResolvedTargetId is null)
             return PreconditionResult.Fail("no target", blockers);
         if (relatedEntityId is null)
-            return PreconditionResult.Fail($"no {RelationshipKind} relationship to target", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"no {RelationshipKind} relationship to target"), blockers);
         if (relatedEntityId != context.ResolvedTargetId)
-            return PreconditionResult.Fail($"{RelationshipKind} points to {relatedEntity?.Name ?? relatedEntityId.Value.ToString()} (need target)", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"{RelationshipKind} points to {relatedEntity?.Name ?? relatedEntityId.Value.ToString()} (need target)"), blockers);
 
-        return PreconditionResult.Pass($"{RelationshipKind} matches target");
+        return PreconditionResult.Pass(Diagnostic(context, $"{RelationshipKind} matches target"));
     }
 
     public string Describe() => $"related_matches_target({RelationshipKind})";
@@ -348,10 +352,10 @@ public sealed class LocationResourceThreshold(
         var value = context.GetResource(entity.Coordinates, ResourceType);
         var prefix = TargetLocation ? "target_location" : "self_location";
         if (Min.HasValue && value < Min.Value)
-            return PreconditionResult.Fail($"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need >= {Min})", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
-            return PreconditionResult.Fail($"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need <= {Max})", blockers);
-        return PreconditionResult.Pass($"{prefix}.{ResourceType.ToDomainName()}={value:F1}");
+            return PreconditionResult.Fail(Diagnostic(context, $"{prefix}.{ResourceType.ToDomainName()}={value:F1} (need <= {Max})"), blockers);
+        return PreconditionResult.Pass(Diagnostic(context, $"{prefix}.{ResourceType.ToDomainName()}={value:F1}"));
     }
 
     public string Describe() =>
@@ -370,8 +374,8 @@ public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
         if (lastFired is null) return PreconditionResult.Pass("never fired");
         var elapsed = context.CurrentTick - lastFired.Value;
         return elapsed >= minimumTicksSinceFire
-            ? PreconditionResult.Pass($"cooldown elapsed ({elapsed} ticks)")
-            : PreconditionResult.Fail($"cooldown: {elapsed}/{minimumTicksSinceFire} ticks");
+            ? PreconditionResult.Pass(Diagnostic(context, $"cooldown elapsed ({elapsed} ticks)"))
+            : PreconditionResult.Fail(Diagnostic(context, $"cooldown: {elapsed}/{minimumTicksSinceFire} ticks"));
     }
 
     public string Describe() => $"cooldown(min_ticks={minimumTicksSinceFire})";
@@ -396,10 +400,10 @@ public sealed class SelfAttributeThreshold(string attributeName, float? min, flo
             : Array.Empty<AttributeRef>();
         var value = entity.Attributes.GetValue(AttributeName);
         if (Min.HasValue && value < Min.Value)
-            return PreconditionResult.Fail($"self.{AttributeName}={value:F1} (need >= {Min})", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"self.{AttributeName}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
-            return PreconditionResult.Fail($"self.{AttributeName}={value:F1} (need <= {Max})", blockers);
-        return PreconditionResult.Pass($"self.{AttributeName}={value:F1}");
+            return PreconditionResult.Fail(Diagnostic(context, $"self.{AttributeName}={value:F1} (need <= {Max})"), blockers);
+        return PreconditionResult.Pass(Diagnostic(context, $"self.{AttributeName}={value:F1}"));
     }
 
     public string Describe() =>
@@ -429,10 +433,10 @@ public sealed class TargetAttributeThreshold(string attributeName, float? min, f
         if (targetEntity is null) return PreconditionResult.Fail("target not found", blockers);
         var value = targetEntity.Attributes.GetValue(AttributeName);
         if (Min.HasValue && value < Min.Value)
-            return PreconditionResult.Fail($"target.{AttributeName}={value:F1} (need >= {Min})", blockers);
+            return PreconditionResult.Fail(Diagnostic(context, $"target.{AttributeName}={value:F1} (need >= {Min})"), blockers);
         if (Max.HasValue && value > Max.Value)
-            return PreconditionResult.Fail($"target.{AttributeName}={value:F1} (need <= {Max})", blockers);
-        return PreconditionResult.Pass($"target.{AttributeName}={value:F1}");
+            return PreconditionResult.Fail(Diagnostic(context, $"target.{AttributeName}={value:F1} (need <= {Max})"), blockers);
+        return PreconditionResult.Pass(Diagnostic(context, $"target.{AttributeName}={value:F1}"));
     }
 
     public string Describe() =>
@@ -446,8 +450,8 @@ public sealed class TargetIsSelf : IPrecondition
     {
         ArgumentNullException.ThrowIfNull(context);
         return context.ResolvedTargetId == context.SelfEntityId
-            ? PreconditionResult.Pass("target is self")
-            : PreconditionResult.Fail("target is not self");
+            ? PreconditionResult.Pass(Diagnostic(context, "target is self"))
+            : PreconditionResult.Fail(Diagnostic(context, "target is not self"));
     }
 
     public string Describe() => "target == self";
@@ -460,10 +464,10 @@ public sealed class TargetIsNotSelf : IPrecondition
     {
         ArgumentNullException.ThrowIfNull(context);
         if (context.ResolvedTargetId is null)
-            return PreconditionResult.Fail("no target");
+            return PreconditionResult.Fail(Diagnostic(context, "no target"));
         return context.ResolvedTargetId != context.SelfEntityId
-            ? PreconditionResult.Pass("target is not self")
-            : PreconditionResult.Fail("target is self");
+            ? PreconditionResult.Pass(Diagnostic(context, "target is not self"))
+            : PreconditionResult.Fail(Diagnostic(context, "target is self"));
     }
 
     public string Describe() => "target != self";
@@ -529,8 +533,8 @@ public sealed class WithinPlaneDistancePrecondition(int maxDistance, Engine.Doma
         }
 
         return distance <= MaxDistance
-            ? PreconditionResult.Pass($"{planeLabel}_distance={distance} (≤ {MaxDistance})")
-            : PreconditionResult.Fail($"{planeLabel}_distance={distance} (need ≤ {MaxDistance})", blocker);
+            ? PreconditionResult.Pass(Diagnostic(context, $"{planeLabel}_distance={distance} (≤ {MaxDistance})"))
+            : PreconditionResult.Fail(Diagnostic(context, $"{planeLabel}_distance={distance} (need ≤ {MaxDistance})"), blocker);
     }
 
     public string Describe() =>
@@ -548,8 +552,8 @@ public sealed class NotPrecondition(IPrecondition inner) : IPrecondition
     {
         var result = Inner.Evaluate(context);
         return result.Passed
-            ? PreconditionResult.Fail($"not({result.Diagnostic})")
-            : PreconditionResult.Pass($"not({result.Diagnostic})");
+            ? PreconditionResult.Fail(Diagnostic(context, $"not({result.Diagnostic})"))
+            : PreconditionResult.Pass(Diagnostic(context, $"not({result.Diagnostic})"));
     }
 
     public string Describe() => $"not({Inner.Describe()})";
@@ -579,4 +583,76 @@ public sealed class HasColocatedNamedEntityPrecondition : IPrecondition
     }
 
     public string Describe() => "has_colocated_named_entity";
+}
+
+file static class PreconditionDiagnostics
+{
+    public static string Diagnostic(
+        IMutationContext context,
+        [InterpolatedStringHandlerArgument(nameof(context))] PreconditionDiagnosticStringHandler diagnostic) =>
+        diagnostic.GetText();
+
+    public static string Diagnostic(IMutationContext context, string diagnostic) =>
+        CaptureDiagnostics(context) ? diagnostic : string.Empty;
+
+    private static bool CaptureDiagnostics(IMutationContext context) =>
+        context is not IPreconditionDiagnosticContext diagnosticContext ||
+        diagnosticContext.CapturePreconditionDiagnostics;
+
+    [InterpolatedStringHandler]
+    public ref struct PreconditionDiagnosticStringHandler
+    {
+        private DefaultInterpolatedStringHandler _inner;
+        private readonly bool _enabled;
+
+        public PreconditionDiagnosticStringHandler(
+            int literalLength,
+            int formattedCount,
+            IMutationContext context,
+            out bool shouldAppend)
+        {
+            _enabled = CaptureDiagnostics(context);
+            shouldAppend = _enabled;
+            _inner = _enabled
+                ? new DefaultInterpolatedStringHandler(
+                    literalLength,
+                    formattedCount,
+                    CultureInfo.InvariantCulture)
+                : default;
+        }
+
+        public void AppendLiteral(string value)
+        {
+            if (_enabled)
+            {
+                _inner.AppendLiteral(value);
+            }
+        }
+
+        public void AppendFormatted<T>(T value)
+        {
+            if (_enabled)
+            {
+                _inner.AppendFormatted(value);
+            }
+        }
+
+        public void AppendFormatted<T>(T value, string? format)
+        {
+            if (_enabled)
+            {
+                _inner.AppendFormatted(value, format);
+            }
+        }
+
+        public void AppendFormatted(string? value)
+        {
+            if (_enabled)
+            {
+                _inner.AppendFormatted(value);
+            }
+        }
+
+        public string GetText() => _enabled ? _inner.ToStringAndClear() : string.Empty;
+    }
 }

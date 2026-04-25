@@ -19,6 +19,7 @@ public enum CardType
 public sealed class CardDefinition
 {
     public string Id { get; }
+    public CardRuntimeId RuntimeId { get; }
     public string Name { get; set; }
     public CardType Type { get; }
     public string? GeneratorId { get; }
@@ -57,6 +58,7 @@ public sealed class CardDefinition
         string? generatorId = null)
     {
         Id = id;
+        RuntimeId = CardRuntimeId.FromStableName(id);
         Name = name;
         Type = type;
         GeneratorId = generatorId;

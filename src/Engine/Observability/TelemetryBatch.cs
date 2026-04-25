@@ -16,6 +16,7 @@ public sealed class TelemetryBatch
     public Collection<PlannerGoalRow> PlannerGoals { get; } = [];
     public Collection<ProcessEventRow> ProcessEvents { get; } = [];
     public Collection<ProcessCandidateRow> ProcessCandidates { get; } = [];
+    public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
     public Collection<AttributeEventRow> AttributeEvents { get; } = [];
     public Collection<MovementEventRow> MovementEvents { get; } = [];
     public Collection<ResourceEventRow> ResourceEvents { get; } = [];
@@ -114,7 +115,24 @@ public sealed record ProcessEventRow(
     string? ExecutedProcessName,
     bool IsStale,
     string? StatusNote,
-    int CandidateCount);
+    int CandidateCount,
+    string? VisitId,
+    string? LocalityKey,
+    string? LocalityPlane,
+    int? LocalityQ,
+    int? LocalityR,
+    int? LocalityS,
+    float? LocalityBundleScore,
+    int? LocalityGoalCount,
+    int? LocalityDistinctTargetCount,
+    int? LocalityDistinctEffectCount,
+    int? LocalityDistance,
+    bool? LocalityIsCurrent,
+    bool? LocalityIsCommitted,
+    bool? LocalityArrived,
+    int? LocalityActionsRemaining,
+    int? LocalityRealizedActions,
+    string? LocalitySelectionReason);
 
 public sealed record ProcessCandidateRow(
     string RunId,
@@ -129,6 +147,29 @@ public sealed record ProcessCandidateRow(
     string PreconditionDiagnostic,
     bool OnCooldown,
     bool WasSelected);
+
+public sealed record LocalityOpportunityRow(
+    string RunId,
+    int Tick,
+    int EntityId,
+    string Kind,
+    string? VisitId,
+    string LocalityKey,
+    string Plane,
+    int Q,
+    int R,
+    int? S,
+    int AnchorEntityId,
+    string AnchorName,
+    float BundleScore,
+    int GoalCount,
+    int DistinctTargetCount,
+    int DistinctEffectCount,
+    int Distance,
+    bool IsCurrentLocality,
+    bool IsCommitted,
+    bool WasSelected,
+    string SelectionReason);
 
 public sealed record AttributeEventRow(
     string RunId,

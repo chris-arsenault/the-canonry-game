@@ -1,5 +1,6 @@
 namespace Engine.Graph;
 
+using Engine.Processes;
 using Engine.Wiring;
 
 /// <summary>
@@ -12,7 +13,7 @@ public sealed class EntityGoal
     private static int _nextId;
 
     /// <summary>Unique ID within the entity's goal list.</summary>
-    public string Id { get; }
+    public GoalRuntimeId Id { get; }
 
     /// <summary>The specific scoped effect this goal wants to produce.</summary>
     public AttributeRef DesiredEffect { get; }
@@ -24,10 +25,10 @@ public sealed class EntityGoal
     public float Urgency { get; set; }
 
     /// <summary>The process this goal is currently planning around. Null for abstract blocker goals.</summary>
-    public string? PlannedProcessId { get; }
+    public ProcessRuntimeId? PlannedProcessId { get; }
 
     /// <summary>Parent goal ID. Non-null for sub-goals.</summary>
-    public string? ParentGoalId { get; }
+    public GoalRuntimeId? ParentGoalId { get; }
 
     /// <summary>Whether this goal is the current actionable step of a plan.</summary>
     public bool IsActionable { get; set; }
@@ -36,10 +37,10 @@ public sealed class EntityGoal
     public int Depth { get; }
 
     public EntityGoal(AttributeRef desiredEffect, EntityId targetEntityId, float urgency,
-        string? plannedProcessId = null, string? parentGoalId = null,
+        ProcessRuntimeId? plannedProcessId = null, GoalRuntimeId? parentGoalId = null,
         bool isActionable = true, int depth = 0)
     {
-        Id = $"goal_{System.Threading.Interlocked.Increment(ref _nextId)}";
+        Id = new GoalRuntimeId(System.Threading.Interlocked.Increment(ref _nextId));
         DesiredEffect = desiredEffect;
         TargetEntityId = targetEntityId;
         Urgency = urgency;

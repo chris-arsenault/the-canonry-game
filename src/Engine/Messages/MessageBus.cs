@@ -26,9 +26,9 @@ public sealed class MessageBus
     public void Publish(SimulationMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        foreach (var handler in _subscribers.ToArray())
+        for (var i = 0; i < _subscribers.Count; i++)
         {
-            handler(message);
+            _subscribers[i](message);
         }
     }
 

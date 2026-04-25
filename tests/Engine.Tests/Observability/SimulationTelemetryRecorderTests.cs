@@ -32,6 +32,7 @@ public class SimulationTelemetryRecorderTests
 
         Assert.NotEmpty(recorder.Batch.ProcessEvents);
         Assert.NotEmpty(recorder.Batch.ProcessCandidates);
+        Assert.NotEmpty(recorder.Batch.LocalityOpportunities);
         Assert.NotEmpty(recorder.Batch.PlannerGoals);
         Assert.NotEmpty(recorder.Batch.AttributeEvents);
         Assert.NotEmpty(recorder.Batch.MovementEvents);

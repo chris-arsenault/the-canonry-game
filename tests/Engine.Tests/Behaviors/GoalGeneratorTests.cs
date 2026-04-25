@@ -221,8 +221,8 @@ public class GoalGeneratorTests
         var generator = new GoalGenerator(config.Kinds, config.Processes);
         var goals = generator.Generate(penguin, world);
 
-        var recoverGoal = Assert.Single(goals, g => g.PlannedProcessId == "penguin_warm" && !g.IsSubGoal);
-        var moveGoal = Assert.Single(goals, g => g.PlannedProcessId == "penguin_travel" && g.IsSubGoal);
+        var recoverGoal = Assert.Single(goals, g => g.PlannedProcessId == P("penguin_warm") && !g.IsSubGoal);
+        var moveGoal = Assert.Single(goals, g => g.PlannedProcessId == P("penguin_travel") && g.IsSubGoal);
 
         Assert.Equal(settlement.Id, recoverGoal.TargetEntityId);
         Assert.Equal(settlement.Id, moveGoal.TargetEntityId);
@@ -287,7 +287,7 @@ public class GoalGeneratorTests
         var goals = generator.Generate(self, world);
 
         Assert.Contains(goals, g => g.IsActionable &&
-            g.PlannedProcessId == "stockpile" &&
+            g.PlannedProcessId == stockpile.RuntimeId &&
             g.DesiredEffect.Equals(AttributeRef.Self("sustenance", TestKinds.Settlement)));
     }
 
@@ -335,8 +335,8 @@ public class GoalGeneratorTests
         var generator = new GoalGenerator(CreateSettlementKinds("population"), [grow, irrigate]);
         var goals = generator.Generate(self, world);
 
-        var root = Assert.Single(goals, g => !g.IsSubGoal && g.PlannedProcessId == "grow");
-        var child = Assert.Single(goals, g => g.IsSubGoal && g.PlannedProcessId == "irrigate");
+        var root = Assert.Single(goals, g => !g.IsSubGoal && g.PlannedProcessId == grow.RuntimeId);
+        var child = Assert.Single(goals, g => g.IsSubGoal && g.PlannedProcessId == irrigate.RuntimeId);
 
         Assert.False(root.IsActionable);
         Assert.True(child.IsActionable);
@@ -385,7 +385,7 @@ public class GoalGeneratorTests
             .Where(g => !g.IsSubGoal)
             .ToList();
 
-        Assert.Contains(goals, g => g.PlannedProcessId == "stabilize" && g.IsActionable);
+        Assert.Contains(goals, g => g.PlannedProcessId == process.RuntimeId && g.IsActionable);
     }
 
     [Fact]
@@ -396,7 +396,7 @@ public class GoalGeneratorTests
         var self = CreateSettlement(world, "Self", population: 10f, coordinates: (0, 0));
 
         var process = CreateProcess("grow", "population", new CooldownCheck(3));
-        self.RecordAction(5, process.Name, process.Id);
+        self.RecordAction(5, process.RuntimeId);
 
         var generator = new GoalGenerator(CreateSettlementKinds("population"), [process]);
         var goals = generator.Generate(self, world);
@@ -436,9 +436,8 @@ public class GoalGeneratorTests
 
         var goal = Assert.Single(generator.Generate(entity, world), g => !g.IsSubGoal);
 
-        Assert.Equal("grow", goal.PlannedProcessId);
+        Assert.Equal(grow.RuntimeId, goal.PlannedProcessId);
         Assert.InRange(goal.Urgency, 0.13f, 0.15f);
-        Assert.Contains("Standing Drives:", entity.GoalGenerationTrace, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -498,7 +497,7 @@ public class GoalGeneratorTests
         var goals = generator.Generate(self, world).Where(g => !g.IsSubGoal).ToList();
 
         var root = Assert.Single(goals);
-        Assert.Equal("attend", root.PlannedProcessId);
+        Assert.Equal(attend.RuntimeId, root.PlannedProcessId);
         Assert.Equal(near.Id, root.TargetEntityId);
         Assert.DoesNotContain(goals, g => g.TargetEntityId == far.Id);
     }
@@ -519,18 +518,17 @@ public class GoalGeneratorTests
             AttributeRef.Self("population", TestKinds.Settlement),
             current.Id,
             urgency: 1f,
-            plannedProcessId: "attract",
+            plannedProcessId: attract.RuntimeId,
             isActionable: true));
 
         var generator = new GoalGenerator(CreateSettlementKinds("population", "fame"), [attract]);
         var goals = generator.Generate(self, world)
-            .Where(g => !g.IsSubGoal && g.PlannedProcessId == "attract")
+            .Where(g => !g.IsSubGoal && g.PlannedProcessId == attract.RuntimeId)
             .ToList();
 
         var root = Assert.Single(goals);
         Assert.Equal(current.Id, root.TargetEntityId);
         Assert.DoesNotContain(goals, g => g.TargetEntityId == challenger.Id);
-        Assert.Contains("effect commitment kept", self.GoalGenerationTrace, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -671,6 +669,8 @@ public class GoalGeneratorTests
     }
 
     private static string EffectName(EntityGoal goal) => goal.DesiredEffect.Name;
+
+    private static ProcessRuntimeId P(string id) => ProcessRuntimeId.FromStableName(id);
 
     private static void SetAmbientResource(StubWorldState world, Entity entity, ResourceType resourceType, float value)
     {

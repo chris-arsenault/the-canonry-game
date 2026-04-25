@@ -1,5 +1,6 @@
 namespace Engine.Processes;
 
+using Engine.Cards;
 using Engine.Kinds;
 
 /// <summary>
@@ -10,7 +11,8 @@ public sealed class BehaviorDefinitionIndex
 {
     private readonly Dictionary<EntityKind, List<ProcessDefinition>> _processes = [];
     private readonly Dictionary<EntityKind, List<ProcessDefinition>> _decisions = [];
-    private readonly Dictionary<EntityKind, Dictionary<string, ProcessDefinition>> _processesById = [];
+    private readonly Dictionary<EntityKind, Dictionary<ProcessRuntimeId, ProcessDefinition>> _processesByRuntimeId = [];
+    private readonly Dictionary<ProcessRuntimeId, ProcessDefinition> _definitionsByRuntimeId = [];
 
     public void Register(ProcessDefinition definition)
     {
@@ -24,45 +26,52 @@ public sealed class BehaviorDefinitionIndex
         }
 
         list.Add(definition);
+        if (_definitionsByRuntimeId.TryGetValue(definition.RuntimeId, out var existing) &&
+            !string.Equals(existing.Id, definition.Id, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Process runtime id collision: '{existing.Id}' and '{definition.Id}' both map to {definition.RuntimeId.Value}.");
+        }
+
+        _definitionsByRuntimeId[definition.RuntimeId] = definition;
+
         if (definition.Role == DefinitionRole.Process)
         {
-            if (!_processesById.TryGetValue(definition.TargetKind, out var byId))
+            if (!_processesByRuntimeId.TryGetValue(definition.TargetKind, out var byRuntimeId))
             {
-                byId = new Dictionary<string, ProcessDefinition>(StringComparer.Ordinal);
-                _processesById[definition.TargetKind] = byId;
+                byRuntimeId = [];
+                _processesByRuntimeId[definition.TargetKind] = byRuntimeId;
             }
 
-            byId[definition.Id] = definition;
+            byRuntimeId[definition.RuntimeId] = definition;
         }
     }
 
     public IReadOnlyList<ProcessDefinition> GetProcesses(EntityKind kind) =>
         _processes.TryGetValue(kind, out var list) ? list : [];
 
-    public IReadOnlyDictionary<string, ProcessDefinition> GetProcessesById(EntityKind kind) =>
-        _processesById.TryGetValue(kind, out var byId) ? byId : EmptyProcessesById;
-
-    public bool TryGetProcess(EntityKind kind, string processId, out ProcessDefinition? process)
+    public bool TryGetProcess(EntityKind kind, ProcessRuntimeId processId, out ProcessDefinition? process)
     {
-        ArgumentNullException.ThrowIfNull(processId);
-
-        if (_processesById.TryGetValue(kind, out var byId))
+        if (_processesByRuntimeId.TryGetValue(kind, out var byRuntimeId))
         {
-            return byId.TryGetValue(processId, out process);
+            return byRuntimeId.TryGetValue(processId, out process);
         }
 
         process = null;
         return false;
     }
 
+    public bool TryGetDefinition(ProcessRuntimeId processId, out ProcessDefinition? process) =>
+        _definitionsByRuntimeId.TryGetValue(processId, out process);
+
     public IReadOnlyList<ProcessDefinition> GetDecisions(EntityKind kind) =>
         _decisions.TryGetValue(kind, out var list) ? list : [];
 
-    public void UnregisterDecisionsByCard(string cardId)
+    public void UnregisterDecisionsByCard(CardRuntimeId cardId)
     {
         foreach (var (_, list) in _decisions)
         {
-            list.RemoveAll(d => string.Equals(d.EnablingCardId, cardId, StringComparison.Ordinal));
+            list.RemoveAll(d => d.EnablingCardRuntimeId == cardId);
         }
     }
 
@@ -72,6 +81,4 @@ public sealed class BehaviorDefinitionIndex
     public bool HasDecisions(EntityKind kind) =>
         _decisions.TryGetValue(kind, out var list) && list.Count > 0;
 
-    private static readonly IReadOnlyDictionary<string, ProcessDefinition> EmptyProcessesById =
-        new Dictionary<string, ProcessDefinition>(StringComparer.Ordinal);
 }

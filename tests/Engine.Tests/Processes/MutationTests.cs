@@ -115,12 +115,13 @@ public class MutationTests
         });
 
         var goal = new EntityGoal(AttributeRef.Target("population", TestKinds.Settlement), target.Id, urgency: 1f);
+        var processId = ProcessRuntimeId.FromStableName("test_process");
         var context = new ProcessMutationContext(
             self,
             world,
             random: new FixedRandom(0.5),
             goal: goal,
-            definitionId: "test_process",
+            definitionId: processId,
             messageBus: bus);
 
         new CalculateMutation("delta", Expr.Lit(4f)).Execute(context);
@@ -132,7 +133,7 @@ public class MutationTests
         Assert.Equal("population", changed.AttributeName);
         Assert.Equal(6f, changed.OldValue);
         Assert.Equal(10f, changed.NewValue);
-        Assert.Equal("test_process", changed.Source);
+        Assert.Equal(processId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), changed.Source);
     }
 
     [Fact]
@@ -221,7 +222,7 @@ public class MutationTests
             self,
             world,
             goal: goal,
-            definitionId: "semantic_move",
+            definitionId: ProcessRuntimeId.FromStableName("semantic_move"),
             messageBus: bus);
 
         new MoveTowardTargetOnSemanticPlaneMutation().Execute(context);

@@ -1,25 +1,27 @@
 namespace Engine.Messages;
 
+using Engine.Cards;
+using Engine.Domain.Config;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Processes;
+using Engine.Wiring;
 
 /// <summary>A process was executed by an entity.</summary>
 public sealed class ProcessExecutedMessage : SimulationMessage
 {
     public EntityId ActorId { get; }
     public EntityKind ActorKind { get; }
-    public string ProcessName { get; }
-    public string Description { get; }
+    public ProcessRuntimeId ProcessId { get; }
     public IReadOnlyList<EntityId> AffectedEntities { get; }
 
     public ProcessExecutedMessage(int tick, EntityId actorId, EntityKind actorKind,
-        string processName, string description, IReadOnlyList<EntityId>? affectedEntities = null)
+        ProcessRuntimeId processId, IReadOnlyList<EntityId>? affectedEntities = null)
         : base(tick)
     {
         ActorId = actorId;
         ActorKind = actorKind;
-        ProcessName = processName;
-        Description = description;
+        ProcessId = processId;
         AffectedEntities = affectedEntities ?? [];
     }
 }
@@ -29,21 +31,19 @@ public sealed class DecisionExecutedMessage : SimulationMessage
 {
     public EntityId ActorId { get; }
     public EntityKind ActorKind { get; }
-    public string DecisionName { get; }
-    public string Description { get; }
-    public string? CardId { get; }
+    public ProcessRuntimeId DecisionId { get; }
+    public CardRuntimeId? CardId { get; }
     public bool Succeeded { get; }
     public IReadOnlyList<EntityId> AffectedEntities { get; }
 
     public DecisionExecutedMessage(int tick, EntityId actorId, EntityKind actorKind,
-        string decisionName, string description, string? cardId = null,
+        ProcessRuntimeId decisionId, CardRuntimeId? cardId = null,
         bool succeeded = true, IReadOnlyList<EntityId>? affectedEntities = null)
         : base(tick)
     {
         ActorId = actorId;
         ActorKind = actorKind;
-        DecisionName = decisionName;
-        Description = description;
+        DecisionId = decisionId;
         CardId = cardId;
         Succeeded = succeeded;
         AffectedEntities = affectedEntities ?? [];
@@ -288,12 +288,12 @@ public sealed class GoalGenerationMessage : SimulationMessage
 }
 
 public sealed record GoalSnapshot(
-    string GoalId,
-    string DesiredEffect,
+    GoalRuntimeId GoalId,
+    AttributeRef DesiredEffect,
     EntityId TargetEntityId,
     float Urgency,
-    string? PlannedProcessId,
-    string? ParentGoalId,
+    ProcessRuntimeId? PlannedProcessId,
+    GoalRuntimeId? ParentGoalId,
     bool IsActionable,
     int Depth);
 
@@ -302,45 +302,90 @@ public sealed class ProcessEvaluationMessage : SimulationMessage
 {
     public EntityId EntityId { get; }
     public EntityKind Kind { get; }
-    public string? SelectedGoalId { get; }
-    public string? ExecutedProcessName { get; }
+    public GoalRuntimeId? SelectedGoalId { get; }
+    public ProcessRuntimeId? ExecutedProcessId { get; }
     public bool IsStale { get; }
     public string? StatusNote { get; }
     public int CandidateCount { get; }
     public IReadOnlyList<ProcessCandidateSnapshot> Candidates { get; }
+    public LocalitySelectionSnapshot? SelectedLocality { get; }
+    public IReadOnlyList<LocalityOpportunitySnapshot> LocalityOpportunities { get; }
 
     public ProcessEvaluationMessage(
         int tick,
         EntityId entityId,
         EntityKind kind,
-        string? selectedGoalId,
-        string? executedProcessName,
+        GoalRuntimeId? selectedGoalId,
+        ProcessRuntimeId? executedProcessId,
         bool isStale,
         string? statusNote,
         IReadOnlyList<ProcessCandidateSnapshot>? candidates = null,
+        LocalitySelectionSnapshot? selectedLocality = null,
+        IReadOnlyList<LocalityOpportunitySnapshot>? localityOpportunities = null,
         int? candidateCount = null)
         : base(tick)
     {
         EntityId = entityId;
         Kind = kind;
         SelectedGoalId = selectedGoalId;
-        ExecutedProcessName = executedProcessName;
+        ExecutedProcessId = executedProcessId;
         IsStale = isStale;
         StatusNote = statusNote;
         Candidates = candidates ?? [];
+        SelectedLocality = selectedLocality;
+        LocalityOpportunities = localityOpportunities ?? [];
         CandidateCount = candidateCount ?? Candidates.Count;
     }
 }
 
 public sealed record ProcessCandidateSnapshot(
-    string ProcessName,
-    string GoalId,
-    string ProviderName,
+    ProcessRuntimeId ProcessId,
+    GoalRuntimeId? GoalId,
+    EntityId ProviderId,
     float Score,
     bool PreconditionPassed,
     string PreconditionDiagnostic,
     bool OnCooldown,
     bool WasSelected);
+
+public sealed record LocalitySelectionSnapshot(
+    LocalityVisitId VisitId,
+    LocalityRuntimeKey LocalityKey,
+    PrimaryPlane Plane,
+    int Q,
+    int R,
+    int? S,
+    EntityId AnchorEntityId,
+    string AnchorName,
+    float BundleScore,
+    int GoalCount,
+    int DistinctTargetCount,
+    int DistinctEffectCount,
+    int Distance,
+    bool IsCurrentLocality,
+    bool IsCommitted,
+    bool Arrived,
+    int ActionsRemaining,
+    int RealizedActions,
+    LocalitySelectionReason SelectionReason);
+
+public sealed record LocalityOpportunitySnapshot(
+    LocalityRuntimeKey LocalityKey,
+    PrimaryPlane Plane,
+    int Q,
+    int R,
+    int? S,
+    EntityId AnchorEntityId,
+    string AnchorName,
+    float BundleScore,
+    int GoalCount,
+    int DistinctTargetCount,
+    int DistinctEffectCount,
+    int Distance,
+    bool IsCurrentLocality,
+    bool IsCommitted,
+    bool WasSelected,
+    LocalitySelectionReason SelectionReason);
 
 /// <summary>A degeneracy warning was triggered or resolved.</summary>
 public sealed class DegeneracyWarningMessage : SimulationMessage

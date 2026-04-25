@@ -42,6 +42,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("planner_goals", batch.PlannerGoals);
         AppendTable("process_events", batch.ProcessEvents);
         AppendTable("process_candidates", batch.ProcessCandidates);
+        AppendTable("locality_opportunities", batch.LocalityOpportunities);
         AppendTable("attribute_events", batch.AttributeEvents);
         AppendTable("movement_events", batch.MovementEvents);
         AppendTable("resource_events", batch.ResourceEvents);
@@ -67,6 +68,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("planner_goals");
         ExportTable("process_events");
         ExportTable("process_candidates");
+        ExportTable("locality_opportunities");
         ExportTable("attribute_events");
         ExportTable("movement_events");
         ExportTable("resource_events");
@@ -97,6 +99,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("planner_goals", typeof(PlannerGoalRow));
         EnsureTable("process_events", typeof(ProcessEventRow));
         EnsureTable("process_candidates", typeof(ProcessCandidateRow));
+        EnsureTable("locality_opportunities", typeof(LocalityOpportunityRow));
         EnsureTable("attribute_events", typeof(AttributeEventRow));
         EnsureTable("movement_events", typeof(MovementEventRow));
         EnsureTable("resource_events", typeof(ResourceEventRow));
@@ -174,6 +177,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.PlannerGoals, source.PlannerGoals);
         AppendRows(destination.ProcessEvents, source.ProcessEvents);
         AppendRows(destination.ProcessCandidates, source.ProcessCandidates);
+        AppendRows(destination.LocalityOpportunities, source.LocalityOpportunities);
         AppendRows(destination.AttributeEvents, source.AttributeEvents);
         AppendRows(destination.MovementEvents, source.MovementEvents);
         AppendRows(destination.ResourceEvents, source.ResourceEvents);

@@ -53,8 +53,7 @@ public sealed class GoalGenerator
     /// </summary>
     public float TargetSwitchHysteresisRatio { get; set; } = 0.2f;
 
-    /// <summary>Whether to build human-readable planning traces for debug UI.</summary>
-    public bool CapturePlanningTraces { get; set; } = true;
+    private const bool CapturePlanningTraces = false;
 
     public GoalGenerator(
         IReadOnlyDictionary<EntityKind, KindConfig> kindConfigs,
@@ -69,14 +68,13 @@ public sealed class GoalGenerator
         ArgumentNullException.ThrowIfNull(entity);
         ArgumentNullException.ThrowIfNull(worldState);
 
-        StringBuilder? trace = CapturePlanningTraces ? new StringBuilder() : null;
+        var trace = CreateTraceBuilder();
         AppendLineInvariant(trace, $"Goal Generation Tick {worldState.CurrentTick}");
         AppendLineInvariant(trace, $"Entity: {entity.Name} ({entity.Id}) kind={entity.Kind}");
 
         if (!_kindConfigs.TryGetValue(entity.Kind, out var kindConfig))
         {
             AppendTraceLine(trace, "No kind config found.");
-            entity.GoalGenerationTrace = trace?.ToString();
             return [];
         }
 
@@ -105,12 +103,11 @@ public sealed class GoalGenerator
         AppendTraceLine(trace, "Final Goals:");
         foreach (var goal in trimmedGoals.OrderByDescending(g => g.Urgency))
         {
-            AppendLineInvariant(
-                trace,
-                $"  depth={goal.Depth} {(goal.IsActionable ? "next" : "blocked")} process={goal.PlannedProcessId ?? "(abstract)"} target={DescribeTarget(worldState, goal.TargetEntityId)} effect={DescribeEffect(goal.DesiredEffect)} urgency={goal.Urgency:F3}");
+                AppendLineInvariant(
+                    trace,
+                    $"  depth={goal.Depth} {(goal.IsActionable ? "next" : "blocked")} process={DescribeProcessId(goal.PlannedProcessId)} target={DescribeTarget(worldState, goal.TargetEntityId)} effect={DescribeEffect(goal.DesiredEffect)} urgency={goal.Urgency:F3}");
         }
 
-        entity.GoalGenerationTrace = trace?.ToString();
         return trimmedGoals;
     }
 
@@ -266,27 +263,27 @@ public sealed class GoalGenerator
 
         var previousPlan = candidatePlans.FirstOrDefault(p =>
             p.Root.TargetEntityId == previousRoot.TargetEntityId &&
-            string.Equals(p.Root.PlannedProcessId, previousRoot.PlannedProcessId, StringComparison.Ordinal));
+            p.Root.PlannedProcessId == previousRoot.PlannedProcessId);
         if (previousPlan is null)
         {
-            AppendLineInvariant(
-                trace,
-                $"effect commitment released effect={DescribeEffect(effect)} old_process={previousRoot.PlannedProcessId ?? "(abstract)"} old_target={previousRoot.TargetEntityId} reason=prior plan unavailable");
+                AppendLineInvariant(
+                    trace,
+                    $"effect commitment released effect={DescribeEffect(effect)} old_process={DescribeProcessId(previousRoot.PlannedProcessId)} old_target={previousRoot.TargetEntityId} reason=prior plan unavailable");
             return bestPlan;
         }
 
         var requiredImprovement = previousPlan.BestActionableUrgency * (1f + TargetSwitchHysteresisRatio);
         if (bestPlan.BestActionableUrgency <= requiredImprovement)
         {
-            AppendLineInvariant(
-                trace,
-                $"effect commitment kept process={previousPlan.Root.PlannedProcessId ?? "(abstract)"} effect={DescribeEffect(effect)} target={previousPlan.Root.TargetEntityId} previous={previousPlan.BestActionableUrgency:F3} challenger={bestPlan.BestActionableUrgency:F3}");
+                AppendLineInvariant(
+                    trace,
+                    $"effect commitment kept process={DescribeProcessId(previousPlan.Root.PlannedProcessId)} effect={DescribeEffect(effect)} target={previousPlan.Root.TargetEntityId} previous={previousPlan.BestActionableUrgency:F3} challenger={bestPlan.BestActionableUrgency:F3}");
             return previousPlan;
         }
 
         AppendLineInvariant(
             trace,
-            $"effect commitment released effect={DescribeEffect(effect)} old_process={previousPlan.Root.PlannedProcessId ?? "(abstract)"} old_target={previousPlan.Root.TargetEntityId} old={previousPlan.BestActionableUrgency:F3} new_process={bestPlan.Root.PlannedProcessId ?? "(abstract)"} new_target={bestPlan.Root.TargetEntityId} new={bestPlan.BestActionableUrgency:F3}");
+            $"effect commitment released effect={DescribeEffect(effect)} old_process={DescribeProcessId(previousPlan.Root.PlannedProcessId)} old_target={previousPlan.Root.TargetEntityId} old={previousPlan.BestActionableUrgency:F3} new_process={DescribeProcessId(bestPlan.Root.PlannedProcessId)} new_target={bestPlan.Root.TargetEntityId} new={bestPlan.BestActionableUrgency:F3}");
         return bestPlan;
     }
 
@@ -297,7 +294,7 @@ public sealed class GoalGenerator
         EntityId targetEntityId,
         ProcessDefinition process,
         float baseUrgency,
-        string? parentGoalId,
+        GoalRuntimeId? parentGoalId,
         int depth,
         HashSet<PlanKey> visited,
         StringBuilder? trace)
@@ -308,7 +305,7 @@ public sealed class GoalGenerator
             return null;
         }
 
-        if (!visited.Add(new PlanKey(desiredEffect, targetEntityId, process.Id)))
+        if (!visited.Add(new PlanKey(desiredEffect, targetEntityId, process.RuntimeId)))
         {
             AppendTraceLine(trace, depth, $"skip process={process.Name} effect={DescribeEffect(desiredEffect)} target={targetEntityId}: cycle detected");
             return null;
@@ -334,7 +331,7 @@ public sealed class GoalGenerator
                 desiredEffect,
                 targetEntityId,
                 weightedUrgency,
-                plannedProcessId: process.Id,
+                plannedProcessId: process.RuntimeId,
                 parentGoalId: parentGoalId,
                 isActionable: false,
                 depth: depth);
@@ -342,7 +339,7 @@ public sealed class GoalGenerator
             var context = new GoalCheckContext(
                 entity,
                 goal,
-                process.Id,
+                process.RuntimeId,
                 worldState,
                 capturePreconditionDiagnostics: CapturePlanningTraces,
                 capturePreconditionBlockers: true);
@@ -450,7 +447,7 @@ public sealed class GoalGenerator
         }
         finally
         {
-            visited.Remove(new PlanKey(desiredEffect, targetEntityId, process.Id));
+                visited.Remove(new PlanKey(desiredEffect, targetEntityId, process.RuntimeId));
         }
     }
 
@@ -644,8 +641,8 @@ public sealed class GoalGenerator
                 desiredEffect: desiredEffect,
                 targetEntityId: targetEntity.Id,
                 urgency: 0f,
-                plannedProcessId: process.Id),
-            process.Id,
+                plannedProcessId: process.RuntimeId),
+            process.RuntimeId,
             worldState,
             capturePreconditionDiagnostics: CapturePlanningTraces,
             capturePreconditionBlockers: false);
@@ -681,8 +678,8 @@ public sealed class GoalGenerator
                 desiredEffect: desiredEffect,
                 targetEntityId: targetEntity.Id,
                 urgency: 0f,
-                plannedProcessId: process.Id),
-            process.Id,
+                plannedProcessId: process.RuntimeId),
+            process.RuntimeId,
             worldState,
             capturePreconditionDiagnostics: CapturePlanningTraces,
             capturePreconditionBlockers: false);
@@ -705,8 +702,8 @@ public sealed class GoalGenerator
                 desiredEffect: desiredEffect,
                 targetEntityId: targetEntity.Id,
                 urgency: 0f,
-                plannedProcessId: process.Id),
-            process.Id,
+                plannedProcessId: process.RuntimeId),
+            process.RuntimeId,
             worldState,
             capturePreconditionDiagnostics: CapturePlanningTraces,
             capturePreconditionBlockers: false);
@@ -742,7 +739,7 @@ public sealed class GoalGenerator
     private static List<EntityGoal> DedupeActionableGoals(List<EntityGoal> goals)
     {
         var deduped = new List<EntityGoal>();
-        var actionableGoals = new Dictionary<(string? ProcessId, EntityId Target, AttributeRef Effect), EntityGoal>();
+        var actionableGoals = new Dictionary<(ProcessRuntimeId? ProcessId, EntityId Target, AttributeRef Effect), EntityGoal>();
 
         foreach (var goal in goals)
         {
@@ -763,7 +760,7 @@ public sealed class GoalGenerator
         return deduped;
     }
 
-    private readonly record struct PlanKey(AttributeRef Effect, EntityId TargetEntityId, string ProcessId);
+    private readonly record struct PlanKey(AttributeRef Effect, EntityId TargetEntityId, ProcessRuntimeId ProcessId);
 
     private readonly record struct PlanningRewardInfo(
         bool Included,
@@ -781,7 +778,7 @@ public sealed class GoalGenerator
     private sealed class GoalCheckContext : IMutationContext, IWorldStateAccessor, IPreconditionDiagnosticContext
     {
         private readonly Entity _entity;
-        private readonly string? _definitionId;
+        private readonly ProcessRuntimeId? _definitionId;
         private readonly IWorldState _worldState;
 
         public int CurrentTick => _worldState.CurrentTick;
@@ -795,7 +792,7 @@ public sealed class GoalGenerator
         public GoalCheckContext(
             Entity entity,
             EntityGoal goal,
-            string? definitionId,
+            ProcessRuntimeId? definitionId,
             IWorldState worldState,
             bool capturePreconditionDiagnostics,
             bool capturePreconditionBlockers)
@@ -819,7 +816,7 @@ public sealed class GoalGenerator
                 : _worldState.Graph.OutgoingRelationships(sourceId, kind)
                     .FirstOrDefault(r => r.TargetId == targetId);
         public int? GetLastFiredTick() =>
-            _definitionId is not null && _entity.LastDefinitionExecutionTicks.TryGetValue(_definitionId, out var tick)
+            _definitionId is not null && _entity.LastDefinitionExecutionTicks.TryGetValue(_definitionId.Value, out var tick)
                 ? tick
                 : null;
         public Entity? GetEntity(EntityId id) =>
@@ -903,6 +900,13 @@ public sealed class GoalGenerator
 
     private static string DescribeTarget(IWorldState worldState, EntityId targetEntityId) =>
         worldState.Graph.GetEntity(targetEntityId)?.Name ?? targetEntityId.ToString();
+
+    private static string DescribeProcessId(ProcessRuntimeId? processId) =>
+        processId is { } value && !value.IsNone
+            ? value.Value.ToString(CultureInfo.InvariantCulture)
+            : "(abstract)";
+
+    private static StringBuilder? CreateTraceBuilder() => null;
 
     [InterpolatedStringHandler]
     private ref struct GoalTraceInterpolatedStringHandler

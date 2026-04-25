@@ -81,16 +81,20 @@ public partial class EntityBrowser : PanelContainer
         scroll.AddChild(_listContainer);
     }
 
-    private static string? FormatLastActionSubtitle(Entity entity, int currentTick)
+    private static string? FormatLastActionSubtitle(SimulationRunner sim, Entity entity, int currentTick)
     {
-        if (entity.LastActionName is null || entity.LastActionTick is null)
+        if (entity.LastActionProcessId.IsNone || entity.LastActionTick is null)
         {
             return null;
         }
 
+        var processName = sim.BehaviorDefinitions.TryGetDefinition(entity.LastActionProcessId, out var definition) &&
+                          definition is not null
+            ? definition.Name
+            : entity.LastActionProcessId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var age = System.Math.Max(0, currentTick - entity.LastActionTick.Value);
         var ageText = age == 0 ? "now" : $"{age}t ago";
-        return $"    {entity.LastActionName} · {ageText}";
+        return $"    {processName} · {ageText}";
     }
 
     /// <summary>Rebuild the entity list from current simulation state.</summary>
@@ -209,7 +213,7 @@ public partial class EntityBrowser : PanelContainer
                 entityRow.AddChild(btn);
                 _entityButtons[entityId] = btn;
 
-                var subtitleText = FormatLastActionSubtitle(entity, _sim.Clock.CurrentTick);
+                var subtitleText = FormatLastActionSubtitle(_sim, entity, _sim.Clock.CurrentTick);
                 if (subtitleText is not null)
                 {
                     var subtitle = new Label

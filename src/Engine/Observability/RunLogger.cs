@@ -12,6 +12,7 @@ using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Map;
 using Engine.Messages;
+using Engine.Processes;
 using Engine.Simulation;
 
 /// <summary>
@@ -184,7 +185,7 @@ public sealed class RunLogger : IDisposable
             }
             EntityId? target = executed.AffectedEntities.Count > 0 ? executed.AffectedEntities[0] : null;
             if (target == executed.ActorId) target = null;
-            list.Add(new ActionEntry(ProcessName: executed.ProcessName, Target: target));
+            list.Add(new ActionEntry(ProcessId: executed.ProcessId, Target: target));
             return;
         }
 
@@ -265,10 +266,14 @@ public sealed class RunLogger : IDisposable
 
     private string FormatAction(ActionEntry entry)
     {
-        if (entry.Target is not { } targetId) return entry.ProcessName;
+        var processName = _sim.BehaviorDefinitions.TryGetDefinition(entry.ProcessId, out var definition) &&
+                          definition is not null
+            ? definition.Name
+            : entry.ProcessId.Value.ToString(CultureInfo.InvariantCulture);
+        if (entry.Target is not { } targetId) return processName;
         var target = _sim.Graph.GetEntity(targetId);
         var targetName = target?.Name ?? targetId.Value.ToString(CultureInfo.InvariantCulture);
-        return FormattableString.Invariant($"{entry.ProcessName}→E{targetId.Value}:{targetName}");
+        return FormattableString.Invariant($"{processName}→E{targetId.Value}:{targetName}");
     }
 
     private string FormatGenerator(GeneratorFiredMessage message)
@@ -316,5 +321,5 @@ public sealed class RunLogger : IDisposable
         SemanticHexCoord Semantic,
         IReadOnlyDictionary<string, float> Attributes);
 
-    private sealed record ActionEntry(string ProcessName, EntityId? Target);
+    private sealed record ActionEntry(ProcessRuntimeId ProcessId, EntityId? Target);
 }

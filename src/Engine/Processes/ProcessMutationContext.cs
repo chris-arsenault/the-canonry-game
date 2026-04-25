@@ -3,6 +3,7 @@ namespace Engine.Processes;
 using Engine.Behaviors;
 using Engine.Graph;
 using Engine.Messages;
+using System.Globalization;
 
 /// <summary>
 /// Bridges IWorldState to IMutationContext for data-driven precondition and mutation evaluation.
@@ -12,7 +13,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 {
     private readonly Entity _entity;
     private readonly IWorldState _worldState;
-    private readonly string? _definitionId;
+    private readonly ProcessRuntimeId? _definitionId;
     private readonly MessageBus? _messageBus;
     private Dictionary<string, float>? _variables;
 
@@ -28,7 +29,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public EntityGoal? Goal { get; }
 
     public ProcessMutationContext(Entity entity, IWorldState worldState,
-        Random? random = null, EntityGoal? goal = null, string? definitionId = null,
+        Random? random = null, EntityGoal? goal = null, ProcessRuntimeId? definitionId = null,
         MessageBus? messageBus = null, bool capturePreconditionDiagnostics = true)
     {
         _entity = entity;
@@ -69,7 +70,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
                 .FirstOrDefault(r => r.TargetId == targetId);
 
     public int? GetLastFiredTick() =>
-        _definitionId is not null && _entity.LastDefinitionExecutionTicks.TryGetValue(_definitionId, out var tick)
+        _definitionId is not null && _entity.LastDefinitionExecutionTicks.TryGetValue(_definitionId.Value, out var tick)
             ? tick
             : null;
 
@@ -136,7 +137,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
                     attributeName,
                     before,
                     after,
-                    _definitionId ?? "process"));
+                    DefinitionSourceLabel()));
             }
         }
     }
@@ -166,7 +167,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
                 coordinates,
                 before,
                 after,
-                _definitionId ?? "process"));
+                DefinitionSourceLabel()));
         }
     }
 
@@ -202,7 +203,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
                 coordinates,
                 available,
                 available - consumed,
-                _definitionId ?? "process"));
+                DefinitionSourceLabel()));
         }
         return consumed;
     }
@@ -261,4 +262,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
             cachedWorldState.QueryCache.InvalidateResources();
         }
     }
+
+    private string DefinitionSourceLabel() =>
+        _definitionId?.Value.ToString(CultureInfo.InvariantCulture) ?? "process";
 }

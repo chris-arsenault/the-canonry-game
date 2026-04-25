@@ -1,5 +1,6 @@
 namespace Engine.Processes;
 
+using Engine.Cards;
 using Engine.Kinds;
 using Engine.Wiring;
 
@@ -22,7 +23,10 @@ public enum DefinitionRole
 /// </summary>
 public sealed class ProcessDefinition
 {
+    private string? _enablingCardId;
+
     public string Id { get; }
+    public ProcessRuntimeId RuntimeId { get; }
     public string Name { get; set; }
     public DefinitionRole Role { get; }
 
@@ -30,7 +34,19 @@ public sealed class ProcessDefinition
     public EntityKind TargetKind { get; }
 
     /// <summary>For decisions: which card enables this. Null for processes (always available).</summary>
-    public string? EnablingCardId { get; set; }
+    public string? EnablingCardId
+    {
+        get => _enablingCardId;
+        set
+        {
+            _enablingCardId = value;
+            EnablingCardRuntimeId = string.IsNullOrEmpty(value)
+                ? null
+                : CardRuntimeId.FromStableName(value);
+        }
+    }
+
+    public CardRuntimeId? EnablingCardRuntimeId { get; private set; }
 
     /// <summary>Precondition: can this fire right now?</summary>
     public IPrecondition Precondition { get; set; }
@@ -45,9 +61,6 @@ public sealed class ProcessDefinition
 
     /// <summary>Mutations applied when this process/decision executes.</summary>
     public System.Collections.ObjectModel.Collection<IMutation> Mutations { get; } = [];
-
-    /// <summary>Human-readable description template. {entity.name} etc replaced at runtime.</summary>
-    public string DescriptionTemplate { get; set; } = "{name} performed {process}";
 
     /// <summary>Minimum ticks between executions of this process per entity.
     /// 0 = no cooldown. Applied with jitter (±25%).</summary>
@@ -93,6 +106,7 @@ public sealed class ProcessDefinition
         IExpression scoreExpression)
     {
         Id = id;
+        RuntimeId = ProcessRuntimeId.FromStableName(id);
         Name = name;
         Role = role;
         TargetKind = targetKind;
