@@ -12,6 +12,7 @@ public sealed class EvaluationReport
     public string? ExecutedProcessName { get; init; }
     public bool IsStale { get; init; }
     public string? StatusNote { get; init; }
+    public int CandidateCount { get; init; }
     public IReadOnlyList<ProcessCandidate> Candidates { get; init; } = [];
 }
 

@@ -3,6 +3,7 @@ namespace Engine.Tests.Map;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
+using Engine.Messages;
 
 public class TestMapBuilderTests
 {
@@ -99,6 +100,35 @@ public class TestMapBuilderTests
         Assert.Equal(
             SeedWorldQualityValidator.EntityPlacementFingerprint(direct),
             SeedWorldQualityValidator.EntityPlacementFingerprint(replayed));
+    }
+
+    [Fact]
+    public void SelectAcceptedSeed_PublishesDegenerateMessageAndRetries()
+    {
+        var bus = new MessageBus();
+        var messages = new List<MapGenerationDegenerateMessage>();
+        using var subscription = bus.Subscribe(message =>
+        {
+            if (message is MapGenerationDegenerateMessage degenerate)
+            {
+                messages.Add(degenerate);
+            }
+        });
+
+        var accepted = TestMapBuilder.SelectAcceptedSeed(
+            baseSeed: 42,
+            buildWorld: seed => new TestWorld(new HexGrid(1), new MapCoverageMap(), new WorldGraph(), seed),
+            validateWorld: world => world.Seed.Attempt == 0
+                ? new SeedWorldQualityReport(["too small"])
+                : new SeedWorldQualityReport([]),
+            messageBus: bus,
+            maxAttempts: 3);
+
+        Assert.Equal(1, accepted.Attempt);
+        var message = Assert.Single(messages);
+        Assert.Equal("quality_validation", message.Phase);
+        Assert.True(message.WillRetry);
+        Assert.Contains("too small", message.Reasons);
     }
 
     // --- Grid ---

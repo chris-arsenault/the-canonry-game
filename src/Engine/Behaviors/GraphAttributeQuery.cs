@@ -23,6 +23,11 @@ public static class GraphAttributeQuery
         ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(worldState);
 
+        if (worldState is ICachedWorldState cachedWorldState)
+        {
+            return cachedWorldState.QueryCache.FindProviderCandidates(selector);
+        }
+
         var candidates = new List<EntityId>();
 
         if (selector.Scope == RefScope.Resource)

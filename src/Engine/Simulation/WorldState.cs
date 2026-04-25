@@ -10,8 +10,8 @@ using Engine.Map;
 /// Concrete IWorldState implementation. Bundles all system references
 /// for impulse evaluation and behavior execution.
 /// </summary>
-public sealed class WorldState : IWorldState
-{
+    public sealed class WorldState : ICachedWorldState
+    {
     public WorldGraph Graph { get; }
     public EffectSystem Effects { get; }
     public Engine.Pressure.PressureSystem? Pressure { get; }
@@ -21,7 +21,19 @@ public sealed class WorldState : IWorldState
     public SemanticPlaneIndex SemanticPlane { get; }
     public GeneratorInstanceRegistry Generators { get; }
     public Resources.ResourceSystem? Resources { get; }
-    public int CurrentTick { get; set; }
+    private int _currentTick;
+
+    public int CurrentTick
+    {
+        get => _currentTick;
+        set
+        {
+            _currentTick = value;
+            QueryCache.BeginTick(value);
+        }
+    }
+
+    public WorldStateQueryCache QueryCache { get; }
 
     public WorldState(
         WorldGraph graph,
@@ -34,6 +46,14 @@ public sealed class WorldState : IWorldState
         GeneratorInstanceRegistry generators,
         Resources.ResourceSystem? resources = null)
     {
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(effects);
+        ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(coverageMap);
+        ArgumentNullException.ThrowIfNull(spatialIndex);
+        ArgumentNullException.ThrowIfNull(semanticPlane);
+        ArgumentNullException.ThrowIfNull(generators);
+
         Graph = graph;
         Effects = effects;
         Pressure = pressure;
@@ -43,5 +63,11 @@ public sealed class WorldState : IWorldState
         SemanticPlane = semanticPlane;
         Generators = generators;
         Resources = resources;
+        QueryCache = new WorldStateQueryCache(this);
+
+        graph.EntityCreated += (_, _) => QueryCache.InvalidateEntities();
+        graph.EntityStatusChanged += (_, _) => QueryCache.InvalidateEntities();
+        graph.RelationshipCreated += (_, _) => QueryCache.InvalidateRelationships();
+        graph.RelationshipCulled += (_, _) => QueryCache.InvalidateRelationships();
     }
 }

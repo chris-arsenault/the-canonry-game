@@ -30,14 +30,15 @@ public sealed class SimulationTelemetryRecorder : IDisposable
         string runId,
         int? seed = null,
         string domain = "IceRemembers",
-        int entitySnapshotCadence = 25)
+        int entitySnapshotCadence = 25,
+        IEnumerable<SimulationMessage>? bootstrapMessages = null)
     {
         ArgumentNullException.ThrowIfNull(sim);
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
 
         _sim = sim;
         RunId = runId;
-        _entitySnapshotCadence = Math.Max(1, entitySnapshotCadence);
+        _entitySnapshotCadence = entitySnapshotCadence;
         _subscription = sim.MessageBus.Subscribe(OnMessage);
 
         Batch.Runs.Add(new RunRow(
@@ -45,6 +46,15 @@ public sealed class SimulationTelemetryRecorder : IDisposable
             seed,
             domain,
             DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)));
+
+        if (bootstrapMessages is not null)
+        {
+            foreach (var message in bootstrapMessages)
+            {
+                OnMessage(message);
+            }
+        }
+
         RecordTickSnapshot();
     }
 
@@ -132,7 +142,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                     process.ExecutedProcessName,
                     process.IsStale,
                     process.StatusNote,
-                    process.Candidates.Count));
+                    process.CandidateCount));
                 foreach (var candidate in process.Candidates)
                 {
                     Batch.ProcessCandidates.Add(new ProcessCandidateRow(
@@ -235,6 +245,20 @@ public sealed class SimulationTelemetryRecorder : IDisposable
                     death.Name));
                 break;
 
+            case MapGenerationDegenerateMessage mapDegenerate:
+                Batch.MapGenerationEvents.Add(new MapGenerationEventRow(
+                    RunId,
+                    mapDegenerate.Tick,
+                    mapDegenerate.BaseSeed,
+                    mapDegenerate.Attempt,
+                    mapDegenerate.TerrainSeed,
+                    mapDegenerate.EntitySeed,
+                    mapDegenerate.Phase,
+                    mapDegenerate.Description,
+                    string.Join('|', mapDegenerate.Reasons),
+                    mapDegenerate.WillRetry));
+                break;
+
             case GeneratorPulseMessage pulse:
                 Batch.GeneratorEvents.Add(new GeneratorEventRow(
                     RunId,
@@ -326,7 +350,7 @@ public sealed class SimulationTelemetryRecorder : IDisposable
         RecordResourceSnapshots(tick);
         RecordMapSnapshots(tick, active);
 
-        if (tick % _entitySnapshotCadence == 0)
+        if (_entitySnapshotCadence > 0 && tick % _entitySnapshotCadence == 0)
         {
             RecordEntitySnapshots(tick, entities);
         }

@@ -8,7 +8,7 @@ using Engine.Messages;
 /// Bridges IWorldState to IMutationContext for data-driven precondition and mutation evaluation.
 /// Uses the entity being evaluated as the implicit "self" for attribute reads.
 /// </summary>
-public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccessor
+public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccessor, IPreconditionDiagnosticContext
 {
     private readonly Entity _entity;
     private readonly IWorldState _worldState;
@@ -21,19 +21,23 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
     public Random Random { get; }
     public EntityId? ResolvedTargetId => Goal?.TargetEntityId;
     public IWorldState WorldState => _worldState;
+    public bool CapturePreconditionDiagnostics { get; }
+    public bool CapturePreconditionBlockers { get; }
 
     /// <summary>The goal this process is executing against. Null when no goal.</summary>
     public EntityGoal? Goal { get; }
 
     public ProcessMutationContext(Entity entity, IWorldState worldState,
         Random? random = null, EntityGoal? goal = null, string? definitionId = null,
-        MessageBus? messageBus = null)
+        MessageBus? messageBus = null, bool capturePreconditionDiagnostics = true)
     {
         _entity = entity;
         _worldState = worldState;
         Goal = goal;
         _definitionId = definitionId;
         _messageBus = messageBus;
+        CapturePreconditionDiagnostics = capturePreconditionDiagnostics;
+        CapturePreconditionBlockers = capturePreconditionDiagnostics;
         Random = random ?? System.Random.Shared;
     }
 
@@ -51,7 +55,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 
     public float GetAttribute(EntityId entityId, string attributeName)
     {
-        var entity = _worldState.Graph.GetEntity(entityId);
+        var entity = GetEntity(entityId);
         return entity?.Attributes.GetValue(attributeName) ?? 0f;
     }
 
@@ -59,20 +63,29 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         _worldState.Graph.GetEntitiesByKind(kind).Count;
 
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
-        _worldState.Graph.OutgoingRelationships(sourceId, kind)
-            .FirstOrDefault(r => r.TargetId == targetId);
+        _worldState is ICachedWorldState cachedWorldState
+            ? cachedWorldState.QueryCache.FindRelationship(sourceId, targetId, kind)
+            : _worldState.Graph.OutgoingRelationships(sourceId, kind)
+                .FirstOrDefault(r => r.TargetId == targetId);
 
     public int? GetLastFiredTick() =>
         _definitionId is not null && _entity.LastDefinitionExecutionTicks.TryGetValue(_definitionId, out var tick)
             ? tick
             : null;
 
-    public Entity? GetEntity(EntityId id) => _worldState.Graph.GetEntity(id);
+    public Entity? GetEntity(EntityId id) =>
+        _worldState is ICachedWorldState cachedWorldState
+            ? cachedWorldState.QueryCache.GetEntity(id)
+            : _worldState.Graph.GetEntity(id);
 
     public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind)
     {
-        var rel = _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
-        return rel?.TargetId;
+        if (_worldState is ICachedWorldState cachedWorldState)
+        {
+            return cachedWorldState.QueryCache.FindRelatedEntity(sourceId, relationshipKind);
+        }
+
+        return _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
     }
 
     public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) =>
@@ -109,7 +122,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 
     public void ModifyAttribute(EntityId entityId, string attributeName, float delta)
     {
-        var entity = _worldState.Graph.GetEntity(entityId);
+        var entity = GetEntity(entityId);
         var oldValue = entity?.Attributes.GetValue(attributeName);
         entity?.Attributes.Modify(attributeName, delta);
         if (entity is not null && oldValue is { } before)
@@ -146,6 +159,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         var after = layer.GetStockpile(coord);
         if (Math.Abs(after - before) > float.Epsilon)
         {
+            InvalidateResourceQueries();
             _messageBus?.Publish(new ResourceChangedMessage(
                 CurrentTick,
                 resourceType.ToString(),
@@ -181,6 +195,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
         layer.AddToStockpile(coord, -consumed);
         if (consumed > 0f)
         {
+            InvalidateResourceQueries();
             _messageBus?.Publish(new ResourceChangedMessage(
                 CurrentTick,
                 resourceType.ToString(),
@@ -194,7 +209,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 
     public void SetCoordinates(EntityId entityId, int q, int r)
     {
-        var entity = _worldState.Graph.GetEntity(entityId);
+        var entity = GetEntity(entityId);
         var previous = entity?.Coordinates;
         _worldState.SpatialIndex.RemoveEntity(entityId);
         _worldState.Graph.SetCoordinates(entityId, q, r);
@@ -207,7 +222,7 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 
     public void SetSemanticCoordinates(EntityId entityId, int q, int r)
     {
-        var entity = _worldState.Graph.GetEntity(entityId);
+        var entity = GetEntity(entityId);
         if (entity is null)
         {
             return;
@@ -227,10 +242,23 @@ public sealed class ProcessMutationContext : IMutationContext, IWorldStateAccess
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {
-        var rel = _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
+        var rel = _worldState is ICachedWorldState cachedWorldState
+            ? FirstOrNull(cachedWorldState.QueryCache.OutgoingRelationships(sourceId, relationshipKind))
+            : _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
         if (rel is not null)
         {
             _worldState.Graph.CullRelationship(rel, CurrentTick);
+        }
+    }
+
+    private static Relationship? FirstOrNull(IReadOnlyList<Relationship> relationships) =>
+        relationships.Count == 0 ? null : relationships[0];
+
+    private void InvalidateResourceQueries()
+    {
+        if (_worldState is ICachedWorldState cachedWorldState)
+        {
+            cachedWorldState.QueryCache.InvalidateResources();
         }
     }
 }

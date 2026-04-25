@@ -33,6 +33,15 @@ public sealed class EntityEvaluator
     /// <summary>Score multiplier applied per recent firing of the same (entity, process) pair.</summary>
     public float RecencyDecayFactor { get; set; } = 0.5f;
 
+    /// <summary>Whether to build human-readable evaluator traces for debug UI.</summary>
+    public bool CaptureEvaluationTraces { get; set; } = true;
+
+    /// <summary>Whether LastEvaluation and process telemetry messages include per-candidate detail rows.</summary>
+    public bool CaptureEvaluationCandidates { get; set; } = true;
+
+    /// <summary>Whether goal-generation messages include every generated goal snapshot.</summary>
+    public bool PublishGoalDetails { get; set; } = true;
+
     public EntityEvaluator(BehaviorDefinitionIndex definitions, MessageBus messageBus,
         Random? random = null, GoalGenerator? goalGenerator = null)
     {
@@ -67,7 +76,11 @@ public sealed class EntityEvaluator
             var viableDecisions = new List<(ProcessDefinition Definition, float Score)>();
             foreach (var decision in decisions)
             {
-                var context = new ProcessMutationContext(entity, worldState, definitionId: decision.Id);
+                var context = new ProcessMutationContext(
+                    entity,
+                    worldState,
+                    definitionId: decision.Id,
+                    capturePreconditionDiagnostics: CaptureEvaluationCandidates || CaptureEvaluationTraces);
                 if (!decision.Precondition.Evaluate(context).Passed) continue;
                 var score = decision.ScoreExpression.Evaluate(
                     new ExpressionContext(entity, grid: worldState.Grid, mutationContext: context));
@@ -110,6 +123,16 @@ public sealed class EntityEvaluator
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(worldState);
 
+        if (worldState is ICachedWorldState cachedWorldState)
+        {
+            foreach (var entity in cachedWorldState.QueryCache.ActiveEntities())
+            {
+                Evaluate(entity, worldState);
+            }
+
+            return;
+        }
+
         foreach (var (_, entity) in graph.AllEntities)
         {
             Evaluate(entity, worldState);
@@ -132,22 +155,26 @@ public sealed class EntityEvaluator
             entity.Kind,
             entity.Goals.Count,
             entity.Goals.Count(goal => goal.IsActionable),
-            entity.Goals.Select(goal => new GoalSnapshot(
-                goal.Id,
-                goal.DesiredEffect.ToString(),
-                goal.TargetEntityId,
-                goal.Urgency,
-                goal.PlannedProcessId,
-                goal.ParentGoalId,
-                goal.IsActionable,
-                goal.Depth)).ToList()));
+            PublishGoalDetails
+                ? entity.Goals.Select(goal => new GoalSnapshot(
+                    goal.Id,
+                    goal.DesiredEffect.ToString(),
+                    goal.TargetEntityId,
+                    goal.Urgency,
+                    goal.PlannedProcessId,
+                    goal.ParentGoalId,
+                    goal.IsActionable,
+                    goal.Depth)).ToList()
+                : []));
     }
 
     private void EvaluateProcesses(Entity entity, IWorldState worldState)
     {
         var tick = worldState.CurrentTick;
-        var reportCandidates = new List<ProcessCandidate>();
-        var trace = new StringBuilder();
+        var reportCandidates = CaptureEvaluationCandidates ? new List<ProcessCandidate>() : null;
+        var evaluatedCandidateCount = 0;
+        var capturePreconditionDiagnostics = CaptureEvaluationCandidates || CaptureEvaluationTraces;
+        StringBuilder? trace = CaptureEvaluationTraces ? new StringBuilder() : null;
         AppendLineInvariant(trace, $"Evaluation Tick {tick}");
         AppendLineInvariant(trace, $"Entity: {entity.Name} ({entity.Id}) kind={entity.Kind}");
 
@@ -162,7 +189,7 @@ public sealed class EntityEvaluator
             AppendLineInvariant(
                 trace,
                 $"entity cooldown active until tick {entity.EntityCooldownUntil}; reusing report from tick {entity.LastEvaluation.SourceTick} age={staleAge}");
-            entity.EvaluationTrace = trace.ToString();
+            entity.EvaluationTrace = trace?.ToString();
             PublishEvaluation(entity, entity.LastEvaluation);
             return;
         }
@@ -181,14 +208,23 @@ public sealed class EntityEvaluator
                 executedProcessName: null,
                 isStale: false,
                 statusNote: "no planner goals",
-                reportCandidates);
-            trace.AppendLine("No planner goals present; idling.");
-            entity.EvaluationTrace = trace.ToString();
+                reportCandidates,
+                evaluatedCandidateCount);
+            AppendTraceLine(trace, "No planner goals present; idling.");
+            entity.EvaluationTrace = trace?.ToString();
             PublishEvaluation(entity, entity.LastEvaluation);
             return;
         }
 
-        var actionableGoals = entity.Goals.Where(g => g.IsActionable).ToList();
+        var actionableGoals = new List<EntityGoal>(entity.Goals.Count);
+        foreach (var candidateGoal in entity.Goals)
+        {
+            if (candidateGoal.IsActionable)
+            {
+                actionableGoals.Add(candidateGoal);
+            }
+        }
+
         if (entity.Goals.Count > 0 && actionableGoals.Count == 0)
         {
             entity.GoalsGeneratedAt = 0;
@@ -199,20 +235,21 @@ public sealed class EntityEvaluator
                 executedProcessName: null,
                 isStale: false,
                 statusNote: "no actionable goals; replanning next tick",
-                reportCandidates);
-            trace.AppendLine("No actionable goals; forcing replanning.");
-            entity.EvaluationTrace = trace.ToString();
+                reportCandidates,
+                evaluatedCandidateCount);
+            AppendTraceLine(trace, "No actionable goals; forcing replanning.");
+            entity.EvaluationTrace = trace?.ToString();
             PublishEvaluation(entity, entity.LastEvaluation);
             return;
         }
 
         if (actionableGoals.Count == 0)
         {
-            trace.AppendLine("No actionable goals present; evaluating unguided processes.");
+            AppendTraceLine(trace, "No actionable goals present; evaluating unguided processes.");
         }
         else
         {
-            trace.AppendLine("Actionable Goals:");
+            AppendTraceLine(trace, "Actionable Goals:");
             foreach (var goal in actionableGoals.OrderByDescending(g => g.Urgency))
             {
                 AppendLineInvariant(
@@ -234,7 +271,7 @@ public sealed class EntityEvaluator
 
             var goalId = goal?.Id ?? "";
             var providerName = goal is not null
-                ? (worldState.Graph.GetEntity(goal.TargetEntityId)?.Name ?? goal.TargetEntityId.ToString())
+                ? (GetEntity(worldState, goal.TargetEntityId)?.Name ?? goal.TargetEntityId.ToString())
                 : "none";
             AppendLineInvariant(
                 trace,
@@ -242,10 +279,8 @@ public sealed class EntityEvaluator
 
             var candidates = new List<(ProcessDefinition Definition, float Score)>();
 
-            foreach (var process in processes)
+            void EvaluateCandidate(ProcessDefinition process)
             {
-                if (goal is not null && !ServesGoal(process, goal)) continue;
-
                 // Skip process-provider pairs already evaluated in a prior goal attempt.
                 // Two goals with the same Provider and TargetAttribute produce identical
                 // precondition/score results, so re-evaluating is wasteful and creates
@@ -255,11 +290,12 @@ public sealed class EntityEvaluator
                     AppendLineInvariant(
                         trace,
                         $"  skip process={process.Name} target={providerName}: already evaluated for this target");
-                    continue;
+                    return;
                 }
 
                 var onCooldown = entity.ProcessCooldowns.TryGetValue(process.Name, out var cdUntil)
                     && tick < cdUntil;
+                ProcessMutationContext? processContext = null;
 
                 // Evaluate precondition first (reveals real failure reason)
                 PreconditionResult precondResult;
@@ -269,18 +305,28 @@ public sealed class EntityEvaluator
                 }
                 else
                 {
-                    var processContext = new ProcessMutationContext(entity, worldState, goal: goal, definitionId: process.Id);
+                    processContext = new ProcessMutationContext(
+                        entity,
+                        worldState,
+                        goal: goal,
+                        definitionId: process.Id,
+                        capturePreconditionDiagnostics: capturePreconditionDiagnostics);
                     precondResult = process.Precondition.Evaluate(processContext);
                 }
 
                 // Score only matters if precondition passed
-                var targetEntity = goal is not null
-                    ? worldState.Graph.GetEntity(goal.TargetEntityId)
-                    : null;
-                var scoreContext = new ProcessMutationContext(entity, worldState, goal: goal, definitionId: process.Id);
                 var rawScore = precondResult.Passed
                     ? process.ScoreExpression.Evaluate(
-                        new ExpressionContext(entity, targetEntity, worldState.Grid, scoreContext))
+                        new ExpressionContext(
+                            entity,
+                            goal is not null ? GetEntity(worldState, goal.TargetEntityId) : null,
+                            worldState.Grid,
+                            processContext ?? new ProcessMutationContext(
+                                entity,
+                                worldState,
+                                goal: goal,
+                                definitionId: process.Id,
+                                capturePreconditionDiagnostics: capturePreconditionDiagnostics)))
                     : 0f;
 
                 // Per-entity, per-process recency decay: each time this entity fired
@@ -294,21 +340,49 @@ public sealed class EntityEvaluator
                 var viable = precondResult.Passed && score >= MinimumViableScore;
                 if (viable) candidates.Add((process, score));
 
-                reportCandidates.Add(new ProcessCandidate
+                evaluatedCandidateCount++;
+                if (reportCandidates is not null)
                 {
-                    ProcessName = process.Name,
-                    GoalId = goalId,
-                    ProviderName = providerName,
-                    Score = score,
-                    PreconditionPassed = precondResult.Passed,
-                    PreconditionDiagnostic = precondResult.Diagnostic,
-                    OnCooldown = onCooldown,
-                    WasSelected = false, // Updated below if selected
-                });
+                    reportCandidates.Add(new ProcessCandidate
+                    {
+                        ProcessName = process.Name,
+                        GoalId = goalId,
+                        ProviderName = providerName,
+                        Score = score,
+                        PreconditionPassed = precondResult.Passed,
+                        PreconditionDiagnostic = precondResult.Diagnostic,
+                        OnCooldown = onCooldown,
+                        WasSelected = false, // Updated below if selected
+                    });
+                }
 
                 AppendLineInvariant(
                     trace,
                     $"  candidate process={process.Name} target={providerName} precondition={(precondResult.Passed ? "pass" : "fail")} score={score:F3} viable={viable} diagnostic={precondResult.Diagnostic}");
+            }
+
+            if (goal?.PlannedProcessId is { } plannedProcessId)
+            {
+                if (_definitions.TryGetProcess(entity.Kind, plannedProcessId, out var plannedProcess) &&
+                    plannedProcess is not null &&
+                    ServesGoal(plannedProcess, goal))
+                {
+                    EvaluateCandidate(plannedProcess);
+                }
+                else
+                {
+                    AppendLineInvariant(
+                        trace,
+                        $"  planned process={plannedProcessId} unavailable for goal={goal.Id}");
+                }
+            }
+            else
+            {
+                foreach (var process in processes)
+                {
+                    if (goal is not null && !ServesGoal(process, goal)) continue;
+                    EvaluateCandidate(process);
+                }
             }
 
             if (candidates.Count == 0)
@@ -323,7 +397,7 @@ public sealed class EntityEvaluator
             var winner = WeightedRandomSelect(candidates);
             if (winner is null)
             {
-                trace.AppendLine("  weighted selection produced no winner.");
+                AppendTraceLine(trace, "  weighted selection produced no winner.");
                 continue;
             }
 
@@ -334,10 +408,13 @@ public sealed class EntityEvaluator
                 $"  selected process={executedName} score={winner.Value.Score:F3}");
 
             // Mark winner in report
-            foreach (var c in reportCandidates)
+            if (reportCandidates is not null)
             {
-                if (c.ProcessName == executedName && c.GoalId == goalId)
-                    c.WasSelected = true;
+                foreach (var c in reportCandidates)
+                {
+                    if (c.ProcessName == executedName && c.GoalId == goalId)
+                        c.WasSelected = true;
+                }
             }
 
             var message = ExecuteProcess(winner.Value.Definition, entity, worldState, goal);
@@ -368,7 +445,7 @@ public sealed class EntityEvaluator
             if (goal is not null && goal.IsSubGoal)
             {
                 entity.GoalsGeneratedAt = 0;
-                trace.AppendLine("  executed sub-goal; forcing replanning.");
+                AppendTraceLine(trace, "  executed sub-goal; forcing replanning.");
             }
 
             executed = true;
@@ -377,10 +454,10 @@ public sealed class EntityEvaluator
         if (shouldReplan)
         {
             entity.GoalsGeneratedAt = 0;
-            trace.AppendLine("Plan invalidated for next tick.");
+            AppendTraceLine(trace, "Plan invalidated for next tick.");
             if (!executed)
             {
-                trace.AppendLine("No executable process found; forcing replanning next tick.");
+                AppendTraceLine(trace, "No executable process found; forcing replanning next tick.");
             }
         }
 
@@ -391,8 +468,9 @@ public sealed class EntityEvaluator
             executedProcessName: executedName,
             isStale: false,
             statusNote: !executed && shouldReplan ? "no viable actionable process; replanning next tick" : null,
-            reportCandidates);
-        entity.EvaluationTrace = trace.ToString();
+            reportCandidates,
+            evaluatedCandidateCount);
+        entity.EvaluationTrace = trace?.ToString();
         PublishEvaluation(entity, entity.LastEvaluation);
     }
 
@@ -513,7 +591,8 @@ public sealed class EntityEvaluator
                 candidate.PreconditionPassed,
                 candidate.PreconditionDiagnostic,
                 candidate.OnCooldown,
-                candidate.WasSelected)).ToList()));
+                candidate.WasSelected)).ToList(),
+            report.CandidateCount));
     }
 
     private bool GoalsRequireInvalidation(Entity entity, IWorldState worldState)
@@ -523,7 +602,7 @@ public sealed class EntityEvaluator
             return false;
         }
 
-        var processesById = _definitions.GetProcesses(entity.Kind).ToDictionary(p => p.Id, StringComparer.Ordinal);
+        var processesById = _definitions.GetProcessesById(entity.Kind);
         var goalIds = entity.Goals.Select(g => g.Id).ToHashSet(StringComparer.Ordinal);
 
         foreach (var goal in entity.Goals)
@@ -580,7 +659,8 @@ public sealed class EntityEvaluator
             executedProcessName: previous.ExecutedProcessName,
             isStale: true,
             statusNote: statusNote,
-            previous.Candidates.Select(CloneCandidate).ToList());
+            previous.Candidates.Select(CloneCandidate).ToList(),
+            previous.CandidateCount);
     }
 
     private static EvaluationReport CreateEvaluationReport(
@@ -590,8 +670,10 @@ public sealed class EntityEvaluator
         string? executedProcessName,
         bool isStale,
         string? statusNote,
-        IReadOnlyList<ProcessCandidate> candidates)
+        IReadOnlyList<ProcessCandidate>? candidates,
+        int? candidateCount = null)
     {
+        var capturedCandidates = candidates ?? [];
         return new EvaluationReport
         {
             Tick = tick,
@@ -600,7 +682,8 @@ public sealed class EntityEvaluator
             ExecutedProcessName = executedProcessName,
             IsStale = isStale,
             StatusNote = statusNote,
-            Candidates = candidates,
+            CandidateCount = candidateCount ?? capturedCandidates.Count,
+            Candidates = capturedCandidates,
         };
     }
 
@@ -628,11 +711,22 @@ public sealed class EntityEvaluator
 
     private static string DescribeTarget(IWorldState worldState, EntityId targetEntityId)
     {
-        return worldState.Graph.GetEntity(targetEntityId)?.Name ?? targetEntityId.ToString();
+        return GetEntity(worldState, targetEntityId)?.Name ?? targetEntityId.ToString();
     }
 
-    private static void AppendLineInvariant(StringBuilder trace, FormattableString text)
+    private static Entity? GetEntity(IWorldState worldState, EntityId entityId) =>
+        worldState is ICachedWorldState cachedWorldState
+            ? cachedWorldState.QueryCache.GetEntity(entityId)
+            : worldState.Graph.GetEntity(entityId);
+
+    private static void AppendLineInvariant(StringBuilder? trace, FormattableString text)
     {
+        if (trace is null) return;
         trace.AppendLine(FormattableString.Invariant(text));
+    }
+
+    private static void AppendTraceLine(StringBuilder? trace, string text)
+    {
+        trace?.AppendLine(text);
     }
 }

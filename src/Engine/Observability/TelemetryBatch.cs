@@ -25,6 +25,7 @@ public sealed class TelemetryBatch
     public Collection<GeneratorEventRow> GeneratorEvents { get; } = [];
     public Collection<GeneratedEntityRow> GeneratedEntities { get; } = [];
     public Collection<LifecycleEventRow> LifecycleEvents { get; } = [];
+    public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
     public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
 }
 
@@ -233,6 +234,18 @@ public sealed record LifecycleEventRow(
     int EntityId,
     string Kind,
     string Name);
+
+public sealed record MapGenerationEventRow(
+    string RunId,
+    int Tick,
+    int BaseSeed,
+    int Attempt,
+    int TerrainSeed,
+    int EntitySeed,
+    string Phase,
+    string Description,
+    string Reasons,
+    bool WillRetry);
 
 public sealed record MapSnapshotRow(
     string RunId,

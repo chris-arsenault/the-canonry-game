@@ -27,13 +27,17 @@ public sealed class CriticalAttributeEffectSystem
 
     public void UpdateEffects()
     {
-        foreach (var (_, entity) in _graph.AllEntities)
-        {
-            if (entity.Status != EntityStatus.Active)
-            {
-                continue;
-            }
+        UpdateEffects(_graph.AllEntities.Values
+            .Where(entity => entity.Status == EntityStatus.Active)
+            .ToArray());
+    }
 
+    public void UpdateEffects(IReadOnlyList<Entity> activeEntities)
+    {
+        ArgumentNullException.ThrowIfNull(activeEntities);
+
+        foreach (var entity in activeEntities)
+        {
             if (!_kindConfigs.TryGetValue(entity.Kind, out var kindConfig))
             {
                 continue;

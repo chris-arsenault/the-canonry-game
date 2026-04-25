@@ -57,24 +57,19 @@ public sealed class LifecycleSystem
     /// </summary>
     public void UpdateDrainRates(int currentTick)
     {
-        foreach (var (_, entity) in _graph.AllEntities)
+        UpdateDrainRates(currentTick, EnumerateActiveEntities());
+    }
+
+    /// <summary>
+    /// Update drain effect values for a caller-provided active-entity snapshot.
+    /// </summary>
+    public void UpdateDrainRates(int currentTick, IReadOnlyList<Entity> activeEntities)
+    {
+        ArgumentNullException.ThrowIfNull(activeEntities);
+
+        foreach (var entity in activeEntities)
         {
-            if (entity.Status != EntityStatus.Active) continue;
-
-            var lifecycleConfig = _config.GetConfig(entity.Kind);
-            if (lifecycleConfig is null) continue;
-
-            var (healthAttr, aging) = lifecycleConfig.Value;
-            var age = currentTick - entity.CreatedAt;
-            var drain = aging.ComputeDrain(age);
-            var attr = entity.Attributes.GetScalar(healthAttr);
-            if (attr is null) continue;
-
-            var drainEffect = FindEffect(attr, DrainSourcePrefix + healthAttr);
-            if (drainEffect is not null)
-            {
-                drainEffect.Value = -drain;
-            }
+            UpdateDrainRate(entity, currentTick);
         }
     }
 
@@ -83,12 +78,20 @@ public sealed class LifecycleSystem
     /// </summary>
     public void CheckDeaths(int currentTick)
     {
+        CheckDeaths(currentTick, EnumerateActiveEntities());
+    }
+
+    /// <summary>
+    /// Check a caller-provided active-entity snapshot for death transitions.
+    /// </summary>
+    public void CheckDeaths(int currentTick, IReadOnlyList<Entity> activeEntities)
+    {
+        ArgumentNullException.ThrowIfNull(activeEntities);
+
         var toTransition = new List<EntityId>();
 
-        foreach (var (entityId, entity) in _graph.AllEntities)
+        foreach (var entity in activeEntities)
         {
-            if (entity.Status != EntityStatus.Active) continue;
-
             var lifecycleConfig = _config.GetConfig(entity.Kind);
             if (lifecycleConfig is null) continue;
 
@@ -96,7 +99,7 @@ public sealed class LifecycleSystem
             var attr = entity.Attributes.GetScalar(healthAttr);
             if (attr is not null && attr.Value <= 0f)
             {
-                toTransition.Add(entityId);
+                toTransition.Add(entity.Id);
             }
         }
 
@@ -109,6 +112,29 @@ public sealed class LifecycleSystem
             EntityDied?.Invoke(this, new LifecycleDeathEventArgs(entity, currentTick));
         }
     }
+
+    private void UpdateDrainRate(Entity entity, int currentTick)
+    {
+        var lifecycleConfig = _config.GetConfig(entity.Kind);
+        if (lifecycleConfig is null) return;
+
+        var (healthAttr, aging) = lifecycleConfig.Value;
+        var age = currentTick - entity.CreatedAt;
+        var drain = aging.ComputeDrain(age);
+        var attr = entity.Attributes.GetScalar(healthAttr);
+        if (attr is null) return;
+
+        var drainEffect = FindEffect(attr, DrainSourcePrefix + healthAttr);
+        if (drainEffect is not null)
+        {
+            drainEffect.Value = -drain;
+        }
+    }
+
+    private Entity[] EnumerateActiveEntities() =>
+        _graph.AllEntities.Values
+            .Where(entity => entity.Status == EntityStatus.Active)
+            .ToArray();
 
     /// <summary>Register a drain tick effect on an entity's health attribute.
     /// Idempotent — if the effect already exists, does nothing.</summary>

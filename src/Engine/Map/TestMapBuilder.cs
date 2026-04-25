@@ -3,6 +3,7 @@ namespace Engine.Map;
 using Engine.Domain.IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Messages;
 using K = Engine.Domain.IceRemembers.IceRemembersKinds;
 
 /// <summary>
@@ -63,31 +64,93 @@ public sealed class TestMapBuilder
         return BuildUnchecked(acceptedSeed);
     }
 
-    public static WorldGenerationSeed SelectAcceptedSeed(Random random)
+    public static WorldGenerationSeed SelectAcceptedSeed(Random random, MessageBus? messageBus = null)
     {
         ArgumentNullException.ThrowIfNull(random);
-        return SelectAcceptedSeed(random.Next());
+        return SelectAcceptedSeed(random.Next(), messageBus);
     }
 
-    public static WorldGenerationSeed SelectAcceptedSeed(int baseSeed)
+    public static WorldGenerationSeed SelectAcceptedSeed(int baseSeed, MessageBus? messageBus = null)
+        => SelectAcceptedSeed(
+            baseSeed,
+            BuildUnchecked,
+            SeedWorldQualityValidator.Validate,
+            messageBus,
+            MaxAcceptedSeedAttempts);
+
+    internal static WorldGenerationSeed SelectAcceptedSeed(
+        int baseSeed,
+        Func<WorldGenerationSeed, TestWorld> buildWorld,
+        Func<TestWorld, SeedWorldQualityReport> validateWorld,
+        MessageBus? messageBus,
+        int maxAttempts)
     {
+        ArgumentNullException.ThrowIfNull(buildWorld);
+        ArgumentNullException.ThrowIfNull(validateWorld);
+
         IReadOnlyList<string> lastIssues = [];
-        for (var attempt = 0; attempt < MaxAcceptedSeedAttempts; attempt++)
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
             var seed = WorldGenerationSeed.FromBaseSeed(baseSeed, attempt);
-            var world = BuildUnchecked(seed);
-            var report = SeedWorldQualityValidator.Validate(world);
-            if (report.IsValid)
+            try
             {
-                return seed;
-            }
+                var world = buildWorld(seed);
+                var report = validateWorld(world);
+                if (report.IsValid)
+                {
+                    return seed;
+                }
 
-            lastIssues = report.Issues;
+                lastIssues = report.Issues;
+                PublishDegenerate(
+                    messageBus,
+                    seed,
+                    phase: "quality_validation",
+                    description: $"Rejected procedural seed after validation ({report.Issues.Count} issues).",
+                    reasons: report.Issues,
+                    willRetry: attempt < maxAttempts - 1);
+            }
+#pragma warning disable CA1031
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                lastIssues =
+                [
+                    $"{ex.GetType().Name}: {ex.Message}",
+                ];
+                PublishDegenerate(
+                    messageBus,
+                    seed,
+                    phase: "generation_exception",
+                    description: "Procedural seed generation threw before validation.",
+                    reasons: lastIssues,
+                    willRetry: attempt < maxAttempts - 1);
+            }
         }
 
         throw new InvalidOperationException(
             $"Could not build an accepted procedural seed for base seed {baseSeed}. " +
             $"Last issues: {string.Join("; ", lastIssues)}");
+    }
+
+    private static void PublishDegenerate(
+        MessageBus? messageBus,
+        WorldGenerationSeed seed,
+        string phase,
+        string description,
+        IReadOnlyList<string> reasons,
+        bool willRetry)
+    {
+        messageBus?.Publish(new MapGenerationDegenerateMessage(
+            tick: 0,
+            baseSeed: seed.BaseSeed,
+            attempt: seed.Attempt,
+            terrainSeed: seed.TerrainSeed,
+            entitySeed: seed.EntitySeed,
+            phase: phase,
+            description: description,
+            reasons: reasons,
+            willRetry: willRetry));
     }
 
     /// <summary>

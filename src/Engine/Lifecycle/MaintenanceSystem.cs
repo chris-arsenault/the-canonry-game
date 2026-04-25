@@ -24,9 +24,18 @@ public sealed class MaintenanceSystem
     /// <summary>Apply tick effects to all active entities.</summary>
     public void Tick()
     {
-        foreach (var (_, entity) in _graph.AllEntities)
+        Tick(_graph.AllEntities.Values
+            .Where(entity => entity.Status == EntityStatus.Active)
+            .ToArray());
+    }
+
+    /// <summary>Apply tick effects to a caller-provided active-entity snapshot.</summary>
+    public void Tick(IReadOnlyList<Entity> activeEntities)
+    {
+        ArgumentNullException.ThrowIfNull(activeEntities);
+
+        foreach (var entity in activeEntities)
         {
-            if (entity.Status != EntityStatus.Active) continue;
             entity.Attributes.ApplyTickEffects();
         }
     }

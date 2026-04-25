@@ -39,9 +39,17 @@ public sealed class LocationResourceDriftSystem
 
     public void UpdateDriftEffects()
     {
-        foreach (var (_, entity) in _graph.AllEntities)
+        UpdateDriftEffects(_graph.AllEntities.Values
+            .Where(entity => entity.Status == EntityStatus.Active)
+            .ToArray());
+    }
+
+    public void UpdateDriftEffects(IReadOnlyList<Entity> activeEntities)
+    {
+        ArgumentNullException.ThrowIfNull(activeEntities);
+
+        foreach (var entity in activeEntities)
         {
-            if (entity.Status != EntityStatus.Active) continue;
             EnsureEffects(entity);
             UpdateEntityEffects(entity);
         }

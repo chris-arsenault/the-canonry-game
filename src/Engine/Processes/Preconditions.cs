@@ -26,8 +26,28 @@ public sealed class AndPrecondition(IReadOnlyList<IPrecondition> children) : IPr
 
     public PreconditionResult Evaluate(IMutationContext context)
     {
-        var allBlockers = new List<AttributeRef>();
-        var allDiagnostics = new List<string>();
+        ArgumentNullException.ThrowIfNull(context);
+
+        var captureDiagnostics = context is not IPreconditionDiagnosticContext diagnosticContext ||
+            diagnosticContext.CapturePreconditionDiagnostics;
+        var captureBlockers = context is not IPreconditionDiagnosticContext blockerContext ||
+            blockerContext.CapturePreconditionBlockers;
+
+        if (!captureDiagnostics && !captureBlockers)
+        {
+            foreach (var child in Children)
+            {
+                if (!child.Evaluate(context).Passed)
+                {
+                    return PreconditionResult.Fail("condition failed");
+                }
+            }
+
+            return PreconditionResult.Pass("all conditions met");
+        }
+
+        List<AttributeRef>? allBlockers = captureBlockers ? [] : null;
+        List<string>? allDiagnostics = captureDiagnostics ? [] : null;
         var allPassed = true;
 
         foreach (var child in Children)
@@ -36,14 +56,19 @@ public sealed class AndPrecondition(IReadOnlyList<IPrecondition> children) : IPr
             if (!result.Passed)
             {
                 allPassed = false;
-                allDiagnostics.Add(result.Diagnostic);
-                allBlockers.AddRange(result.Blockers);
+                allDiagnostics?.Add(result.Diagnostic);
+                if (allBlockers is not null && result.Blockers.Count > 0)
+                {
+                    allBlockers.AddRange(result.Blockers);
+                }
             }
         }
 
         return allPassed
             ? PreconditionResult.Pass("all conditions met")
-            : PreconditionResult.Fail(string.Join("; ", allDiagnostics), allBlockers.Distinct().ToList());
+            : PreconditionResult.Fail(
+                allDiagnostics is null ? "condition failed" : string.Join("; ", allDiagnostics),
+                allBlockers is null || allBlockers.Count == 0 ? [] : allBlockers.Distinct().ToList());
     }
 
     public string Describe() =>

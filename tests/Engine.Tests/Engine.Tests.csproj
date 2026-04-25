@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Engine\Engine.csproj" />
+    <ProjectReference Include="..\..\tools\MonteCarlo\MonteCarlo.csproj" />
   </ItemGroup>
 
 </Project>

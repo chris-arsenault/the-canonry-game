@@ -10,6 +10,7 @@ public sealed class BehaviorDefinitionIndex
 {
     private readonly Dictionary<EntityKind, List<ProcessDefinition>> _processes = [];
     private readonly Dictionary<EntityKind, List<ProcessDefinition>> _decisions = [];
+    private readonly Dictionary<EntityKind, Dictionary<string, ProcessDefinition>> _processesById = [];
 
     public void Register(ProcessDefinition definition)
     {
@@ -23,10 +24,36 @@ public sealed class BehaviorDefinitionIndex
         }
 
         list.Add(definition);
+        if (definition.Role == DefinitionRole.Process)
+        {
+            if (!_processesById.TryGetValue(definition.TargetKind, out var byId))
+            {
+                byId = new Dictionary<string, ProcessDefinition>(StringComparer.Ordinal);
+                _processesById[definition.TargetKind] = byId;
+            }
+
+            byId[definition.Id] = definition;
+        }
     }
 
     public IReadOnlyList<ProcessDefinition> GetProcesses(EntityKind kind) =>
         _processes.TryGetValue(kind, out var list) ? list : [];
+
+    public IReadOnlyDictionary<string, ProcessDefinition> GetProcessesById(EntityKind kind) =>
+        _processesById.TryGetValue(kind, out var byId) ? byId : EmptyProcessesById;
+
+    public bool TryGetProcess(EntityKind kind, string processId, out ProcessDefinition? process)
+    {
+        ArgumentNullException.ThrowIfNull(processId);
+
+        if (_processesById.TryGetValue(kind, out var byId))
+        {
+            return byId.TryGetValue(processId, out process);
+        }
+
+        process = null;
+        return false;
+    }
 
     public IReadOnlyList<ProcessDefinition> GetDecisions(EntityKind kind) =>
         _decisions.TryGetValue(kind, out var list) ? list : [];
@@ -44,4 +71,7 @@ public sealed class BehaviorDefinitionIndex
 
     public bool HasDecisions(EntityKind kind) =>
         _decisions.TryGetValue(kind, out var list) && list.Count > 0;
+
+    private static readonly IReadOnlyDictionary<string, ProcessDefinition> EmptyProcessesById =
+        new Dictionary<string, ProcessDefinition>(StringComparer.Ordinal);
 }

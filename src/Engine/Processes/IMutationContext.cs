@@ -68,3 +68,13 @@ public interface IMutationContext
     /// <summary>Cull an exclusive relationship from a source entity (e.g., NPC leaving a settlement).</summary>
     void CullRelationship(EntityId sourceId, string relationshipKind);
 }
+
+/// <summary>
+/// Optional context capability for callers that only need boolean precondition
+/// results and can skip expensive diagnostic/blocker aggregation.
+/// </summary>
+public interface IPreconditionDiagnosticContext
+{
+    bool CapturePreconditionDiagnostics { get; }
+    bool CapturePreconditionBlockers { get; }
+}

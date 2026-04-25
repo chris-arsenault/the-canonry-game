@@ -32,3 +32,9 @@ Thumbs.db
 # Build
 *.log
 .claude/
+
+# Local profiler output
+*.nettrace
+*.speedscope.json
+*.etl
+*.etlx

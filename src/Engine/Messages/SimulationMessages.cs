@@ -306,6 +306,7 @@ public sealed class ProcessEvaluationMessage : SimulationMessage
     public string? ExecutedProcessName { get; }
     public bool IsStale { get; }
     public string? StatusNote { get; }
+    public int CandidateCount { get; }
     public IReadOnlyList<ProcessCandidateSnapshot> Candidates { get; }
 
     public ProcessEvaluationMessage(
@@ -316,7 +317,8 @@ public sealed class ProcessEvaluationMessage : SimulationMessage
         string? executedProcessName,
         bool isStale,
         string? statusNote,
-        IReadOnlyList<ProcessCandidateSnapshot>? candidates = null)
+        IReadOnlyList<ProcessCandidateSnapshot>? candidates = null,
+        int? candidateCount = null)
         : base(tick)
     {
         EntityId = entityId;
@@ -326,6 +328,7 @@ public sealed class ProcessEvaluationMessage : SimulationMessage
         IsStale = isStale;
         StatusNote = statusNote;
         Candidates = candidates ?? [];
+        CandidateCount = candidateCount ?? Candidates.Count;
     }
 }
 
@@ -353,6 +356,41 @@ public sealed class DegeneracyWarningMessage : SimulationMessage
         DetectorName = detectorName;
         Severity = severity;
         Description = description;
+    }
+}
+
+/// <summary>A procedural map-generation attempt was rejected as degenerate.</summary>
+public sealed class MapGenerationDegenerateMessage : SimulationMessage
+{
+    public int BaseSeed { get; }
+    public int Attempt { get; }
+    public int TerrainSeed { get; }
+    public int EntitySeed { get; }
+    public string Phase { get; }
+    public string Description { get; }
+    public IReadOnlyList<string> Reasons { get; }
+    public bool WillRetry { get; }
+
+    public MapGenerationDegenerateMessage(
+        int tick,
+        int baseSeed,
+        int attempt,
+        int terrainSeed,
+        int entitySeed,
+        string phase,
+        string description,
+        IReadOnlyList<string>? reasons,
+        bool willRetry)
+        : base(tick)
+    {
+        BaseSeed = baseSeed;
+        Attempt = attempt;
+        TerrainSeed = terrainSeed;
+        EntitySeed = entitySeed;
+        Phase = phase;
+        Description = description;
+        Reasons = reasons ?? [];
+        WillRetry = willRetry;
     }
 }
 

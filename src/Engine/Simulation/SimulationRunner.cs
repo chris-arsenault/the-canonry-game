@@ -120,19 +120,28 @@ public sealed class SimulationRunner
     /// entity kinds, subtypes, attributes, relationships, pressures, and lifecycles.
     /// The engine provides the framework; the domain provides the content.
     /// </summary>
-    public static SimulationRunner CreateFromDomain(DomainConfig domainConfig, Random? random = null)
+    public static SimulationRunner CreateFromDomain(
+        DomainConfig domainConfig,
+        Random? random = null,
+        MessageBus? messageBus = null,
+        SimulationDiagnosticsOptions? diagnosticsOptions = null)
     {
         ArgumentNullException.ThrowIfNull(domainConfig);
+        diagnosticsOptions ??= SimulationDiagnosticsOptions.Detailed;
         KindId.RegisterAll(domainConfig.Kinds.Keys);
 
         var definitionGraph = DomainLoader.BuildDefinitionGraph(domainConfig);
+
+        // Message bus is needed before seed selection so procedural map generation
+        // degeneracy can be observed and handled without crashing the executor.
+        messageBus ??= new MessageBus();
 
         // Build an empty world first so we can wire per-entity subscribers (attribute
         // init, lifecycle drain) BEFORE any entity is created. Subsequent Populate
         // triggers WorldGraph.EntityCreated for each entity, and every subscriber
         // initializes that entity exactly once — no init-time sweeps.
         random ??= new Random();
-        var worldSeed = TestMapBuilder.SelectAcceptedSeed(random);
+        var worldSeed = TestMapBuilder.SelectAcceptedSeed(random, messageBus);
         var testWorld = TestMapBuilder.BuildEmpty(worldSeed);
         var graph = testWorld.Graph;
         var grid = testWorld.Grid;
@@ -147,9 +156,6 @@ public sealed class SimulationRunner
         var kindRegistry = DomainLoader.LoadKindRegistry(domainConfig);
         var attributeInitializer = new DomainEntityInitializer(graph, domainConfig, random);
 
-        // Message bus
-        var messageBus = new MessageBus();
-
         // Wiring validation: check domain coherence before starting
         var wiringValidator = DomainLoader.LoadAndValidateWiring(domainConfig);
         var wiringErrors = wiringValidator.Validate();
@@ -163,7 +169,11 @@ public sealed class SimulationRunner
         var behaviorDefinitions = new BehaviorDefinitionIndex();
         DomainLoader.LoadProcesses(domainConfig, behaviorDefinitions);
         var goalGenerator = new Behaviors.GoalGenerator(domainConfig.Kinds, domainConfig.Processes);
+        goalGenerator.CapturePlanningTraces = diagnosticsOptions.CapturePlanningTraces;
         var evaluator = new EntityEvaluator(behaviorDefinitions, messageBus, goalGenerator: goalGenerator);
+        evaluator.CaptureEvaluationTraces = diagnosticsOptions.CaptureEvaluationTraces;
+        evaluator.CaptureEvaluationCandidates = diagnosticsOptions.CaptureEvaluationCandidates;
+        evaluator.PublishGoalDetails = diagnosticsOptions.PublishGoalDetails;
 
         // Relationships
         var relationships = new RelationshipSystem(graph, kindRegistry);
@@ -263,16 +273,16 @@ public sealed class SimulationRunner
             tick =>
             {
                 worldState.CurrentTick = tick;
-                lifecycle.UpdateDrainRates(tick);
+                lifecycle.UpdateDrainRates(tick, worldState.QueryCache.ActiveEntities());
             });
         clock.Register("location_resource_drift", TickPhase.LowAltitude, cadence: 1,
-            _ => locationDrift.UpdateDriftEffects());
+            _ => locationDrift.UpdateDriftEffects(worldState.QueryCache.ActiveEntities()));
         clock.Register("critical_attribute_effects", TickPhase.LowAltitude, cadence: 1,
-            _ => criticalEffects.UpdateEffects());
+            _ => criticalEffects.UpdateEffects(worldState.QueryCache.ActiveEntities()));
         clock.Register("maintenance", TickPhase.LowAltitude, cadence: 1,
-            _ => maintenance.Tick());
+            _ => maintenance.Tick(worldState.QueryCache.ActiveEntities()));
         clock.Register("lifecycle_death_check", TickPhase.LowAltitude, cadence: 1,
-            tick => lifecycle.CheckDeaths(tick));
+            tick => lifecycle.CheckDeaths(tick, worldState.QueryCache.ActiveEntities()));
         clock.Register("relationships", TickPhase.LowAltitude, cadence: 1,
             tick => relationships.Tick(tick, relContext));
         clock.Register("resources", TickPhase.LowAltitude, cadence: 1,
@@ -282,9 +292,8 @@ public sealed class SimulationRunner
         clock.Register("health_recording", TickPhase.LowAltitude, cadence: 1,
             tick =>
             {
-                foreach (var (_, e) in graph.AllEntities)
+                foreach (var e in worldState.QueryCache.ActiveEntities())
                 {
-                    if (e.Status != EntityStatus.Active) continue;
                     var healthAttr = domainConfig.Kinds.TryGetValue(e.Kind, out var kc) ? kc.HealthAttribute : null;
                     if (healthAttr is not null)
                     {
@@ -414,17 +423,17 @@ internal sealed class CardMutationContext(
     public float GetVariable(string name) => _variables is not null && _variables.TryGetValue(name, out var v) ? v : 0f;
     public float GetPressure(string pressureName, EntityId scopeId) => pressure.GetValue(pressureName, scopeId);
     public float GetAttribute(EntityId entityId, string attributeName) =>
-        graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
+        GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
     public int CountEntitiesByKind(EntityKind kind) => graph.GetEntitiesByKind(kind).Count;
 
     public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
-        graph.OutgoingRelationships(sourceId, kind).FirstOrDefault(r => r.TargetId == targetId);
+        worldState.QueryCache.FindRelationship(sourceId, targetId, kind);
 
     public int? GetLastFiredTick() => null; // Per-card, handled by CardInstance
-    public Entity? GetEntity(EntityId id) => graph.GetEntity(id);
+    public Entity? GetEntity(EntityId id) => worldState.QueryCache.GetEntity(id);
 
     public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) =>
-        graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
+        worldState.QueryCache.FindRelatedEntity(sourceId, relationshipKind);
 
     public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) =>
         graph.GetEntitiesByKind(kind);
@@ -489,6 +498,7 @@ internal sealed class CardMutationContext(
         var after = layer.GetStockpile(coord);
         if (Math.Abs(after - before) > float.Epsilon)
         {
+            worldState.QueryCache.InvalidateResources();
             messageBus.Publish(new ResourceChangedMessage(
                 CurrentTick,
                 resourceType.ToString(),
@@ -524,6 +534,7 @@ internal sealed class CardMutationContext(
         layer.AddToStockpile(coord, -consumed);
         if (consumed > 0f)
         {
+            worldState.QueryCache.InvalidateResources();
             messageBus.Publish(new ResourceChangedMessage(
                 CurrentTick,
                 resourceType.ToString(),
@@ -537,7 +548,7 @@ internal sealed class CardMutationContext(
 
     public void SetCoordinates(EntityId entityId, int q, int r)
     {
-        var entity = graph.GetEntity(entityId);
+        var entity = GetEntity(entityId);
         var previous = entity?.Coordinates;
         graph.SetCoordinates(entityId, q, r);
         if (previous is { } from && from != (q, r))
@@ -548,7 +559,7 @@ internal sealed class CardMutationContext(
 
     public void SetSemanticCoordinates(EntityId entityId, int q, int r)
     {
-        var entity = graph.GetEntity(entityId);
+        var entity = GetEntity(entityId);
         if (entity is null)
         {
             return;
@@ -568,7 +579,8 @@ internal sealed class CardMutationContext(
 
     public void CullRelationship(EntityId sourceId, string relationshipKind)
     {
-        var rel = graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault();
+        var relationships = worldState.QueryCache.OutgoingRelationships(sourceId, relationshipKind);
+        var rel = relationships.Count == 0 ? null : relationships[0];
         if (rel is not null)
         {
             graph.CullRelationship(rel, CurrentTick);

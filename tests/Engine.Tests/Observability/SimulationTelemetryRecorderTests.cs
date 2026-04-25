@@ -39,8 +39,11 @@ public class SimulationTelemetryRecorderTests
         Assert.NotEmpty(recorder.Batch.RelationshipSnapshots);
 
         Assert.Contains(recorder.Batch.GeneratorEvents, row => row.EventType == "pulse");
-        Assert.Contains(recorder.Batch.GeneratorEvents, row => row.EventType == "fired");
-        Assert.NotEmpty(recorder.Batch.GeneratedEntities);
+        Assert.Equal(
+            recorder.Batch.GeneratorEvents
+                .Where(row => row.EventType == "fired")
+                .Sum(row => row.CreatedEntityCount),
+            recorder.Batch.GeneratedEntities.Count);
         Assert.Contains(recorder.Batch.AttributeEvents, row => row.Source == "tick_snapshot");
         Assert.Contains(recorder.Batch.MovementEvents, row => row.Plane == "semantic");
     }
@@ -57,5 +60,51 @@ public class SimulationTelemetryRecorderTests
         bus.Publish(new DegeneracyWarningMessage(2, "test", Engine.Degeneracy.Severity.Warning, "second"));
 
         Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void PerformanceRecorder_CapturesTickAndSystemTimings()
+    {
+        var sim = SimulationRunner.CreateFromDomain(IceRemembersDefinition.Create(), new Random(7101));
+        using var recorder = new SimulationPerformanceRecorder(
+            sim,
+            "perf-run",
+            requestedTicks: 5,
+            seed: 7101,
+            tickSampleCadence: 1,
+            systemSampleCadence: 1);
+
+        for (var i = 0; i < 5; i++)
+        {
+            sim.Tick();
+        }
+
+        recorder.Complete();
+
+        Assert.Single(recorder.Batch.RunPerformance);
+        Assert.Equal(5, recorder.Batch.TickPerformance.Count);
+        Assert.NotEmpty(recorder.Batch.SystemPerformance);
+        Assert.Contains(recorder.Batch.SystemPerformance, row => row.SystemName == "processes");
+        Assert.All(recorder.Batch.TickPerformance, row => Assert.True(row.ElapsedMilliseconds >= 0d));
+    }
+
+    [Fact]
+    public void Recorder_CanDisableEntitySnapshotsForPerfRuns()
+    {
+        var sim = SimulationRunner.CreateFromDomain(IceRemembersDefinition.Create(), new Random(7102));
+        using var recorder = new SimulationTelemetryRecorder(
+            sim,
+            "no-entity-snapshots",
+            seed: 7102,
+            entitySnapshotCadence: 0);
+
+        for (var i = 0; i < 5; i++)
+        {
+            sim.Tick();
+            recorder.OnTickEnded();
+        }
+
+        Assert.Empty(recorder.Batch.EntitySnapshots);
+        Assert.NotEmpty(recorder.Batch.TickSnapshots);
     }
 }

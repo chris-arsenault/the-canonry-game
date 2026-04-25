@@ -6,6 +6,8 @@ using Engine.Kinds;
 using Engine.Processes;
 using Engine.Wiring;
 using System;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 /// <summary>
@@ -17,6 +19,7 @@ public sealed class GoalGenerator
 {
     private readonly IReadOnlyDictionary<EntityKind, KindConfig> _kindConfigs;
     private readonly IReadOnlyList<ProcessDefinition> _processes;
+    private readonly Dictionary<(EntityKind Kind, AttributeRef Effect), List<ProcessDefinition>> _servingProcessCache = [];
 
     /// <summary>Max primary plan roots persisted per entity.</summary>
     public int MaxGoals { get; set; } = 3;
@@ -50,6 +53,9 @@ public sealed class GoalGenerator
     /// </summary>
     public float TargetSwitchHysteresisRatio { get; set; } = 0.2f;
 
+    /// <summary>Whether to build human-readable planning traces for debug UI.</summary>
+    public bool CapturePlanningTraces { get; set; } = true;
+
     public GoalGenerator(
         IReadOnlyDictionary<EntityKind, KindConfig> kindConfigs,
         IReadOnlyList<ProcessDefinition> processes)
@@ -63,14 +69,14 @@ public sealed class GoalGenerator
         ArgumentNullException.ThrowIfNull(entity);
         ArgumentNullException.ThrowIfNull(worldState);
 
-        var trace = new StringBuilder();
+        StringBuilder? trace = CapturePlanningTraces ? new StringBuilder() : null;
         AppendLineInvariant(trace, $"Goal Generation Tick {worldState.CurrentTick}");
         AppendLineInvariant(trace, $"Entity: {entity.Name} ({entity.Id}) kind={entity.Kind}");
 
         if (!_kindConfigs.TryGetValue(entity.Kind, out var kindConfig))
         {
-            trace.AppendLine("No kind config found.");
-            entity.GoalGenerationTrace = trace.ToString();
+            AppendTraceLine(trace, "No kind config found.");
+            entity.GoalGenerationTrace = trace?.ToString();
             return [];
         }
 
@@ -79,8 +85,8 @@ public sealed class GoalGenerator
             .Take(MaxGoals)
             .ToList();
 
-        trace.AppendLine();
-        trace.AppendLine("Selected Root Plans:");
+        AppendTraceLine(trace, "");
+        AppendTraceLine(trace, "Selected Root Plans:");
         foreach (var plan in primaryPlans)
         {
             AppendLineInvariant(
@@ -95,8 +101,8 @@ public sealed class GoalGenerator
         }
 
         var trimmedGoals = TrimGoals(goals);
-        trace.AppendLine();
-        trace.AppendLine("Final Goals:");
+        AppendTraceLine(trace, "");
+        AppendTraceLine(trace, "Final Goals:");
         foreach (var goal in trimmedGoals.OrderByDescending(g => g.Urgency))
         {
             AppendLineInvariant(
@@ -104,13 +110,14 @@ public sealed class GoalGenerator
                 $"  depth={goal.Depth} {(goal.IsActionable ? "next" : "blocked")} process={goal.PlannedProcessId ?? "(abstract)"} target={DescribeTarget(worldState, goal.TargetEntityId)} effect={DescribeEffect(goal.DesiredEffect)} urgency={goal.Urgency:F3}");
         }
 
-        entity.GoalGenerationTrace = trace.ToString();
+        entity.GoalGenerationTrace = trace?.ToString();
         return trimmedGoals;
     }
 
     private List<GoalPlan> GeneratePrimaryPlans(
-        Entity entity, KindConfig kindConfig, IWorldState worldState, StringBuilder trace)
+        Entity entity, KindConfig kindConfig, IWorldState worldState, StringBuilder? trace)
     {
+        var providerCandidateCache = new Dictionary<AttributeRef, IReadOnlyList<EntityId>>();
         var demands = new List<(AttributeRef Effect, float Urgency, string Source)>();
         foreach (var attrConfig in kindConfig.Attributes)
         {
@@ -152,18 +159,18 @@ public sealed class GoalGenerator
 
         if (demands.Count == 0)
         {
-            trace.AppendLine("No deficits or standing drives above threshold.");
+            AppendTraceLine(trace, "No deficits or standing drives above threshold.");
         }
         else
         {
             var deficitDemands = demands.Where(d => d.Source == "deficit").ToList();
             if (deficitDemands.Count == 0)
             {
-                trace.AppendLine("No deficits above threshold.");
+                AppendTraceLine(trace, "No deficits above threshold.");
             }
             else
             {
-                trace.AppendLine("Deficits:");
+                AppendTraceLine(trace, "Deficits:");
                 foreach (var (effect, urgency, _) in deficitDemands.OrderByDescending(d => d.Urgency))
                 {
                     AppendLineInvariant(trace, $"  {DescribeEffect(effect)} urgency={urgency:F3}");
@@ -172,7 +179,7 @@ public sealed class GoalGenerator
 
             if (standingDrives.Count > 0)
             {
-                trace.AppendLine("Standing Drives:");
+                AppendTraceLine(trace, "Standing Drives:");
                 foreach (var standingDrive in standingDrives.OrderByDescending(d => d.BaseUrgency))
                 {
                     AppendLineInvariant(
@@ -197,7 +204,7 @@ public sealed class GoalGenerator
 
             foreach (var process in servingProcesses)
             {
-                foreach (var targetId in EnumeratePrimaryTargets(entity, process, worldState))
+                foreach (var targetId in EnumeratePrimaryTargets(entity, process, worldState, providerCandidateCache))
                 {
                     var plan = BuildPlan(
                         entity,
@@ -237,7 +244,7 @@ public sealed class GoalGenerator
         Entity entity,
         AttributeRef effect,
         IReadOnlyList<GoalPlan> candidatePlans,
-        StringBuilder trace)
+        StringBuilder? trace)
     {
         var bestPlan = candidatePlans
             .OrderByDescending(p => p.BestActionableUrgency)
@@ -293,7 +300,7 @@ public sealed class GoalGenerator
         string? parentGoalId,
         int depth,
         HashSet<PlanKey> visited,
-        StringBuilder trace)
+        StringBuilder? trace)
     {
         if (depth > MaxPlanningDepth)
         {
@@ -332,7 +339,13 @@ public sealed class GoalGenerator
                 isActionable: false,
                 depth: depth);
 
-            var context = new GoalCheckContext(entity, goal, process.Id, worldState);
+            var context = new GoalCheckContext(
+                entity,
+                goal,
+                process.Id,
+                worldState,
+                capturePreconditionDiagnostics: CapturePlanningTraces,
+                capturePreconditionBlockers: true);
             var precondition = process.Precondition.Evaluate(context);
 
             if (precondition.Passed)
@@ -451,7 +464,7 @@ public sealed class GoalGenerator
         float processScore,
         int depth,
         HashSet<PlanKey> visited,
-        StringBuilder trace)
+        StringBuilder? trace)
     {
         GoalPlan? best = null;
         var scoreHeadroom = 1f - Math.Clamp(processScore, 0f, 1f);
@@ -513,7 +526,7 @@ public sealed class GoalGenerator
         float childBaseUrgency,
         int depth,
         HashSet<PlanKey> visited,
-        StringBuilder trace)
+        StringBuilder? trace)
     {
         var targetEntityId = ResolveBlockedTarget(entity, parentGoal, blocker);
         GoalPlan? best = null;
@@ -578,13 +591,24 @@ public sealed class GoalGenerator
 
     private List<ProcessDefinition> FindProcessesServingEffect(EntityKind kind, AttributeRef effect)
     {
-        return _processes
+        var key = (kind, effect);
+        if (_servingProcessCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var servingProcesses = _processes
             .Where(p => p.TargetKind == kind && p.GoalEffects.Contains(effect))
             .ToList();
+        _servingProcessCache[key] = servingProcesses;
+        return servingProcesses;
     }
 
     private HashSet<EntityId> EnumeratePrimaryTargets(
-        Entity entity, ProcessDefinition process, IWorldState worldState)
+        Entity entity,
+        ProcessDefinition process,
+        IWorldState worldState,
+        Dictionary<AttributeRef, IReadOnlyList<EntityId>> providerCandidateCache)
     {
         if (process.ProviderSelectors.Count == 0)
         {
@@ -594,7 +618,13 @@ public sealed class GoalGenerator
         var candidates = new HashSet<EntityId>();
         foreach (var selector in process.ProviderSelectors)
         {
-            foreach (var candidateId in GraphAttributeQuery.FindCandidates(selector, worldState))
+            if (!providerCandidateCache.TryGetValue(selector, out var selectorCandidates))
+            {
+                selectorCandidates = GraphAttributeQuery.FindCandidates(selector, worldState);
+                providerCandidateCache[selector] = selectorCandidates;
+            }
+
+            foreach (var candidateId in selectorCandidates)
             {
                 candidates.Add(candidateId);
             }
@@ -616,7 +646,9 @@ public sealed class GoalGenerator
                 urgency: 0f,
                 plannedProcessId: process.Id),
             process.Id,
-            worldState);
+            worldState,
+            capturePreconditionDiagnostics: CapturePlanningTraces,
+            capturePreconditionBlockers: false);
         var rawReward = process.RewardExpression.Evaluate(
             new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext));
 
@@ -638,7 +670,7 @@ public sealed class GoalGenerator
         return new PlanningRewardInfo(true, rawReward, 1f + MathF.Log(1f + rawReward), "accepted");
     }
 
-    private static float EvaluateProcessScore(
+    private float EvaluateProcessScore(
         ProcessDefinition process, Entity entity, Entity targetEntity, IWorldState worldState)
     {
         var desiredEffect = process.GoalEffects.FirstOrDefault()
@@ -651,12 +683,14 @@ public sealed class GoalGenerator
                 urgency: 0f,
                 plannedProcessId: process.Id),
             process.Id,
-            worldState);
+            worldState,
+            capturePreconditionDiagnostics: CapturePlanningTraces,
+            capturePreconditionBlockers: false);
         return MathF.Max(0f, process.ScoreExpression.Evaluate(
             new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext)));
     }
 
-    private static float EvaluateSupportCurrentValue(
+    private float EvaluateSupportCurrentValue(
         ProcessDefinition process,
         Entity entity,
         Entity targetEntity,
@@ -673,7 +707,9 @@ public sealed class GoalGenerator
                 urgency: 0f,
                 plannedProcessId: process.Id),
             process.Id,
-            worldState);
+            worldState,
+            capturePreconditionDiagnostics: CapturePlanningTraces,
+            capturePreconditionBlockers: false);
         return MathF.Max(0f, rule.CurrentValueExpression.Evaluate(
             new ExpressionContext(entity, targetEntity, worldState.Grid, expressionContext)));
     }
@@ -742,7 +778,7 @@ public sealed class GoalGenerator
         public float BestActionableUrgency { get; } = bestActionableUrgency;
     }
 
-        private sealed class GoalCheckContext : IMutationContext, IWorldStateAccessor
+    private sealed class GoalCheckContext : IMutationContext, IWorldStateAccessor, IPreconditionDiagnosticContext
     {
         private readonly Entity _entity;
         private readonly string? _definitionId;
@@ -753,30 +789,47 @@ public sealed class GoalGenerator
         public Random Random => Random.Shared;
         public EntityId? ResolvedTargetId { get; }
         public IWorldState WorldState => _worldState;
+        public bool CapturePreconditionDiagnostics { get; }
+        public bool CapturePreconditionBlockers { get; }
 
-        public GoalCheckContext(Entity entity, EntityGoal goal, string? definitionId, IWorldState worldState)
+        public GoalCheckContext(
+            Entity entity,
+            EntityGoal goal,
+            string? definitionId,
+            IWorldState worldState,
+            bool capturePreconditionDiagnostics,
+            bool capturePreconditionBlockers)
         {
             _entity = entity;
             _definitionId = definitionId;
             ResolvedTargetId = goal.TargetEntityId;
             _worldState = worldState;
+            CapturePreconditionDiagnostics = capturePreconditionDiagnostics;
+            CapturePreconditionBlockers = capturePreconditionBlockers;
         }
 
         public float GetPressure(string pressureName, EntityId scopeId) =>
             _worldState.Pressure?.GetValue(pressureName, scopeId) ?? 0f;
         public float GetAttribute(EntityId entityId, string attributeName) =>
-            _worldState.Graph.GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
+            GetEntity(entityId)?.Attributes.GetValue(attributeName) ?? 0f;
         public int CountEntitiesByKind(EntityKind kind) => _worldState.Graph.GetEntitiesByKind(kind).Count;
         public Relationship? FindRelationship(EntityId sourceId, EntityId targetId, string kind) =>
-            _worldState.Graph.OutgoingRelationships(sourceId, kind)
-                .FirstOrDefault(r => r.TargetId == targetId);
+            _worldState is ICachedWorldState cachedWorldState
+                ? cachedWorldState.QueryCache.FindRelationship(sourceId, targetId, kind)
+                : _worldState.Graph.OutgoingRelationships(sourceId, kind)
+                    .FirstOrDefault(r => r.TargetId == targetId);
         public int? GetLastFiredTick() =>
             _definitionId is not null && _entity.LastDefinitionExecutionTicks.TryGetValue(_definitionId, out var tick)
                 ? tick
                 : null;
-        public Entity? GetEntity(EntityId id) => _worldState.Graph.GetEntity(id);
+        public Entity? GetEntity(EntityId id) =>
+            _worldState is ICachedWorldState cachedWorldState
+                ? cachedWorldState.QueryCache.GetEntity(id)
+                : _worldState.Graph.GetEntity(id);
         public EntityId? FindRelatedEntity(EntityId sourceId, string relationshipKind) =>
-            _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
+            _worldState is ICachedWorldState cachedWorldState
+                ? cachedWorldState.QueryCache.FindRelatedEntity(sourceId, relationshipKind)
+                : _worldState.Graph.OutgoingRelationships(sourceId, relationshipKind).FirstOrDefault()?.TargetId;
         public IReadOnlyCollection<EntityId> GetEntitiesByKind(EntityKind kind) => _worldState.Graph.GetEntitiesByKind(kind);
         public float GetResource((int Q, int R) coordinates, Resources.ResourceType resourceType)
         {
@@ -809,21 +862,38 @@ public sealed class GoalGenerator
         public float GetVariable(string name) => 0f;
     }
 
-    private static void AppendTraceLine(StringBuilder trace, int depth, string text)
+    private static void AppendTraceLine(StringBuilder? trace, string text)
     {
+        trace?.AppendLine(text);
+    }
+
+    private static void AppendTraceLine(
+        StringBuilder? trace,
+        [InterpolatedStringHandlerArgument(nameof(trace))] GoalTraceInterpolatedStringHandler text)
+    {
+        trace?.AppendLine();
+    }
+
+    private static void AppendTraceLine(StringBuilder? trace, int depth, string text)
+    {
+        if (trace is null) return;
         trace.Append(' ', depth * 2);
         trace.AppendLine(text);
     }
 
-    private static void AppendTraceLine(StringBuilder trace, int depth, FormattableString text)
+    private static void AppendTraceLine(
+        StringBuilder? trace,
+        int depth,
+        [InterpolatedStringHandlerArgument(nameof(trace), nameof(depth))] GoalTraceInterpolatedStringHandler text)
     {
-        trace.Append(' ', depth * 2);
-        trace.AppendLine(FormattableString.Invariant(text));
+        trace?.AppendLine();
     }
 
-    private static void AppendLineInvariant(StringBuilder trace, FormattableString text)
+    private static void AppendLineInvariant(
+        StringBuilder? trace,
+        [InterpolatedStringHandlerArgument(nameof(trace))] GoalTraceInterpolatedStringHandler text)
     {
-        trace.AppendLine(FormattableString.Invariant(text));
+        trace?.AppendLine();
     }
 
     private static string DescribeEffect(AttributeRef effect) => effect.ToString();
@@ -833,4 +903,72 @@ public sealed class GoalGenerator
 
     private static string DescribeTarget(IWorldState worldState, EntityId targetEntityId) =>
         worldState.Graph.GetEntity(targetEntityId)?.Name ?? targetEntityId.ToString();
+
+    [InterpolatedStringHandler]
+    private ref struct GoalTraceInterpolatedStringHandler
+    {
+        private readonly StringBuilder? _trace;
+
+        public GoalTraceInterpolatedStringHandler(
+            int literalLength,
+            int formattedCount,
+            StringBuilder? trace,
+            out bool shouldAppend)
+        {
+            _trace = trace;
+            shouldAppend = trace is not null;
+            if (shouldAppend)
+            {
+                trace!.EnsureCapacity(trace.Length + literalLength + formattedCount * 8);
+            }
+        }
+
+        public GoalTraceInterpolatedStringHandler(
+            int literalLength,
+            int formattedCount,
+            StringBuilder? trace,
+            int depth,
+            out bool shouldAppend)
+            : this(literalLength + depth * 2, formattedCount, trace, out shouldAppend)
+        {
+            if (shouldAppend)
+            {
+                trace!.Append(' ', depth * 2);
+            }
+        }
+
+        public void AppendLiteral(string value)
+        {
+            _trace?.Append(value);
+        }
+
+        public void AppendFormatted<T>(T value)
+        {
+            if (_trace is null)
+            {
+                return;
+            }
+
+            _trace.Append(value is IFormattable formattable
+                ? formattable.ToString(null, CultureInfo.InvariantCulture)
+                : value?.ToString());
+        }
+
+        public void AppendFormatted<T>(T value, string? format)
+        {
+            if (_trace is null)
+            {
+                return;
+            }
+
+            _trace.Append(value is IFormattable formattable
+                ? formattable.ToString(format, CultureInfo.InvariantCulture)
+                : value?.ToString());
+        }
+
+        public void AppendFormatted(string? value)
+        {
+            _trace?.Append(value);
+        }
+    }
 }

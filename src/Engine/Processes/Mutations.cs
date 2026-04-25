@@ -1,5 +1,6 @@
 namespace Engine.Processes;
 
+using Engine.Behaviors;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Map;
@@ -263,8 +264,8 @@ public sealed class ModifyRelatedEntitiesAttributeMutation(
         }
 
         var relationships = direction == RelationshipTraversalDirection.Outgoing
-            ? accessor.WorldState.Graph.OutgoingRelationships(anchorId.Value, relationshipKind)
-            : accessor.WorldState.Graph.IncomingRelationships(anchorId.Value, relationshipKind);
+            ? GetOutgoingRelationships(accessor.WorldState, anchorId.Value, relationshipKind)
+            : GetIncomingRelationships(accessor.WorldState, anchorId.Value, relationshipKind);
 
         foreach (var relationship in relationships)
         {
@@ -288,6 +289,22 @@ public sealed class ModifyRelatedEntitiesAttributeMutation(
 
     public string Describe() =>
         $"modify_related_attribute(anchor={(useTargetEntity ? "target" : "self")}, dir={direction}, rel={relationshipKind}, attr={attributeName}, delta={delta}, var={variance})";
+
+    private static IReadOnlyList<Relationship> GetOutgoingRelationships(
+        IWorldState worldState,
+        EntityId sourceId,
+        string kind) =>
+        worldState is ICachedWorldState cachedWorldState
+            ? cachedWorldState.QueryCache.OutgoingRelationships(sourceId, kind)
+            : worldState.Graph.OutgoingRelationships(sourceId, kind).ToArray();
+
+    private static IReadOnlyList<Relationship> GetIncomingRelationships(
+        IWorldState worldState,
+        EntityId targetId,
+        string kind) =>
+        worldState is ICachedWorldState cachedWorldState
+            ? cachedWorldState.QueryCache.IncomingRelationships(targetId, kind)
+            : worldState.Graph.IncomingRelationships(targetId, kind).ToArray();
 }
 
 /// <summary>
