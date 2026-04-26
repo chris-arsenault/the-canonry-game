@@ -126,7 +126,7 @@ public sealed class WorldStateIndexTests
             ProcessCooldownCapacity = 32,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 32,
-            PlannerDemandCapacity = 16,
+            ProcessObjectiveCapacity = 16,
             PressureCapacity = 4,
             PressureValueCapacity = 16,
             DegeneracyDetectorCapacity = 4,

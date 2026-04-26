@@ -8,6 +8,7 @@ using Godot;
 
 using Engine.Domain.Config;
 using Engine.Graph;
+using Engine.Projection;
 using Engine.Simulation;
 using TheCanonryGame.UI.Theme;
 
@@ -21,6 +22,7 @@ namespace TheCanonryGame.UI;
 public partial class EntityDetailPanel : PanelContainer
 {
     private SimulationRunner? _sim;
+    private UiProjectionState? _projection;
     private EntityId? _selectedEntityId;
     private RichTextLabel? _content;
     private Label? _titleLabel;
@@ -72,9 +74,10 @@ public partial class EntityDetailPanel : PanelContainer
         scroll.AddChild(_content);
     }
 
-    public void Initialize(SimulationRunner sim)
+    public void Initialize(SimulationRunner sim, UiProjectionState? projection)
     {
         _sim = sim;
+        _projection = projection;
     }
 
     public void SelectEntity(EntityId entityId)
@@ -117,7 +120,7 @@ public partial class EntityDetailPanel : PanelContainer
 
         // Header info — small-caps ledger block
         sb.AppendLine($"[color={parchment}]{entity.Subtype}  ·  {_sim.DomainConfig.GetCultureDisplayName(entity.Culture)}  ·  {entity.Status}[/color]");
-        sb.AppendLine($"[code][color={whisper}]({entity.Coordinates.Q}, {entity.Coordinates.R})  ·  age {_sim.Clock.CurrentTick - entity.CreatedAt}t[/color][/code]");
+        sb.AppendLine($"[code][color={whisper}]({entity.Coordinates.Q}, {entity.Coordinates.R})  ·  age {(_projection?.CurrentTick ?? 0) - entity.CreatedAt}t[/color][/code]");
 
         // Attributes
         sb.AppendLine($"\n[color={parchment}]ATTRIBUTES[/color]");

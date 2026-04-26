@@ -142,9 +142,9 @@ public sealed class WorldState
         _graphVisitedEpochs = new int[options.EntityCapacity + 1];
         _graphFrontierA = new int[options.EntityCapacity + 1];
         _graphFrontierB = new int[options.EntityCapacity + 1];
-        _relationshipCreatedCodeId = options.RelationshipCreatedCodeId;
-        _relationshipCulledCodeId = options.RelationshipCulledCodeId;
-        _relationshipStrengthChangedCodeId = options.RelationshipStrengthChangedCodeId;
+        _relationshipCreatedCodeId = options.RuntimeCodes.RelationshipCreatedCodeId;
+        _relationshipCulledCodeId = options.RuntimeCodes.RelationshipCulledCodeId;
+        _relationshipStrengthChangedCodeId = options.RuntimeCodes.RelationshipStrengthChangedCodeId;
         _relationshipGraphDeltaMergeThreshold = options.RelationshipGraphDeltaMergeThreshold;
     }
 
@@ -163,8 +163,7 @@ public sealed class WorldState
     public void SetCell(int q, int r, int terrainId, bool passable)
     {
         ValidatePositive(terrainId);
-        SetCellPassability(q, r, passable);
-        _mapCellTerrainIds.Set(CoordinateKey(q, r), 1, terrainId);
+        WriteCell(q, r, terrainId, passable, CellCoverageOwner(q, r));
     }
 
     public void SetCellPassability(int q, int r, bool passable)
@@ -190,8 +189,23 @@ public sealed class WorldState
     public void SetCellTerrain(int q, int r, int terrainId, bool passable)
     {
         ValidatePositive(terrainId);
-        _mapCellTerrainIds.Set(CoordinateKey(q, r), 1, terrainId);
-        SetCellPassability(q, r, passable);
+        WriteCell(q, r, terrainId, passable, CellCoverageOwner(q, r));
+    }
+
+    public void MaterializeCell(int q, int r, int terrainId, int ownerEntityId)
+    {
+        ValidatePositive(terrainId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
+        WriteCell(q, r, terrainId, TerrainIsPassable(terrainId), ownerEntityId);
+        AdvanceWorldVersion();
+    }
+
+    private void WriteCell(int q, int r, int terrainId, bool passable, int ownerEntityId)
+    {
+        var key = CoordinateKey(q, r);
+        _mapCellTerrainIds.Set(key, 1, terrainId);
+        _mapCellPassability.Set(key, 1, passable ? 1 : 2);
+        _mapCellCoverageOwners.Set(key, 1, ownerEntityId);
     }
 
     public void RegisterTerrain(int terrainId, bool passable, int boundaryGroupId)
@@ -280,7 +294,8 @@ public sealed class WorldState
         CurrentTick = tick;
     }
 
-    public int CreateEntity(
+    public int MaterializeEntity(
+        int entityId,
         int kindId,
         int subtypeId,
         int cultureId,
@@ -294,7 +309,15 @@ public sealed class WorldState
         ValidateRelationshipKindIndex(kindId);
         ValidatePositive(subtypeId);
         ValidatePositive(cultureId);
-        var entityId = FindEntitySlot();
+        if (entityId == 0)
+        {
+            entityId = FindEntitySlot();
+        }
+        else if ((uint)entityId >= (uint)_entityAllocated.Length || _entityAllocated[entityId])
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         _entityAllocated[entityId] = true;
         _entityStatus[entityId] = EntityStatusCodes.Active;
         _entityKindId[entityId] = kindId;
@@ -316,18 +339,6 @@ public sealed class WorldState
         }
 
         AdvanceWorldVersion();
-        Write(KernelEvent.From(new EntityCreatedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            subtypeId,
-            cultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS)));
         return entityId;
     }
 

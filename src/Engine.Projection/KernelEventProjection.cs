@@ -57,6 +57,36 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.DecisionExecuted:
                 OnDecisionExecuted(kernelEvent.Sequence, evt.AsDecisionExecuted());
                 break;
+            case KernelEventType.TickCompleted:
+                OnTickCompleted(kernelEvent.Sequence, evt.AsTickCompleted());
+                break;
+            case KernelEventType.GeneratorEnabledChanged:
+                OnGeneratorEnabledChanged(kernelEvent.Sequence, evt.AsGeneratorEnabledChanged());
+                break;
+            case KernelEventType.CellCreated:
+                OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
+                break;
+            case KernelEventType.PlanStarted:
+                OnPlanStarted(kernelEvent.Sequence, evt.AsPlanStarted());
+                break;
+            case KernelEventType.GoalConsidered:
+                OnGoalConsidered(kernelEvent.Sequence, evt.AsGoalConsidered());
+                break;
+            case KernelEventType.GoalScored:
+                OnGoalScored(kernelEvent.Sequence, evt.AsGoalScored());
+                break;
+            case KernelEventType.GoalSelected:
+                OnGoalSelected(kernelEvent.Sequence, evt.AsGoalSelected());
+                break;
+            case KernelEventType.PlanStepEmitted:
+                OnPlanStepEmitted(kernelEvent.Sequence, evt.AsPlanStepEmitted());
+                break;
+            case KernelEventType.PlanCommitted:
+                OnPlanCommitted(kernelEvent.Sequence, evt.AsPlanCommitted());
+                break;
+            case KernelEventType.PlanAbandoned:
+                OnPlanAbandoned(kernelEvent.Sequence, evt.AsPlanAbandoned());
+                break;
         }
     }
 
@@ -115,6 +145,46 @@ public abstract class KernelEventProjector : IKernelEventProjection
     protected virtual void OnDecisionExecuted(long sequence, in DecisionExecutedKernelEvent evt)
     {
     }
+
+    protected virtual void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGeneratorEnabledChanged(long sequence, in GeneratorEnabledChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnPlanStarted(long sequence, in PlanStartedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGoalConsidered(long sequence, in GoalConsideredKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGoalScored(long sequence, in GoalScoredKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGoalSelected(long sequence, in GoalSelectedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnPlanStepEmitted(long sequence, in PlanStepEmittedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnPlanCommitted(long sequence, in PlanCommittedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnPlanAbandoned(long sequence, in PlanAbandonedKernelEvent evt)
+    {
+    }
 }
 
 public sealed class KernelEventProjectionPump : IDisposable
@@ -124,7 +194,6 @@ public sealed class KernelEventProjectionPump : IDisposable
     private readonly IKernelEventProjection[] _projections;
     private readonly SequencedKernelEvent[] _buffer;
     private bool _disposed;
-    private long _lastObservedDroppedEvents;
 
     public KernelEventProjectionPump(
         KernelEventLog eventLog,
@@ -161,14 +230,14 @@ public sealed class KernelEventProjectionPump : IDisposable
 
         while (true)
         {
-            var read = _eventLog.Read(_cursor, _buffer);
-            NotifyDroppedEvents();
-            if (read == 0)
+            var result = _eventLog.ReadWithResult(_cursor, _buffer);
+            NotifyDroppedEvents(result);
+            if (result.Count == 0)
             {
                 return;
             }
 
-            for (var i = 0; i < read; i++)
+            for (var i = 0; i < result.Count; i++)
             {
                 for (var projectionIndex = 0; projectionIndex < _projections.Length; projectionIndex++)
                 {
@@ -189,19 +258,16 @@ public sealed class KernelEventProjectionPump : IDisposable
         _cursor.Dispose();
     }
 
-    private void NotifyDroppedEvents()
+    private void NotifyDroppedEvents(KernelEventReadResult result)
     {
-        var dropped = _cursor.DroppedEvents;
-        if (dropped == _lastObservedDroppedEvents)
+        if (result.DroppedEventCount == 0)
         {
             return;
         }
 
-        var delta = dropped - _lastObservedDroppedEvents;
-        _lastObservedDroppedEvents = dropped;
         for (var projectionIndex = 0; projectionIndex < _projections.Length; projectionIndex++)
         {
-            _projections[projectionIndex].OnEventsDropped(delta, _cursor.NextSequence);
+            _projections[projectionIndex].OnEventsDropped(result.DroppedEventCount, result.NextSequence);
         }
     }
 

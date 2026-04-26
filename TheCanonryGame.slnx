@@ -3,12 +3,25 @@
   <Folder Name="/src/">
     <Project Path="src/Engine.Domain/Engine.Domain.csproj" />
     <Project Path="src/Engine.Eventing/Engine.Eventing.csproj" />
+    <Project Path="src/Engine.Eventing.Schema/Engine.Eventing.Schema.csproj" />
     <Project Path="src/Engine.Host/Engine.Host.csproj" />
     <Project Path="src/Engine.Kernel/Engine.Kernel.csproj" />
+    <Project Path="src/Engine.Kernel.Driver/Engine.Kernel.Driver.csproj" />
+    <Project Path="src/Engine.Kernel.Schema/Engine.Kernel.Schema.csproj" />
+    <Project Path="src/Engine.Observability/Engine.Observability.csproj" />
+    <Project Path="src/Engine.Observability.Export/Engine.Observability.Export.csproj" />
     <Project Path="src/Engine.Projection/Engine.Projection.csproj" />
+    <Project Path="src/Engine.WorldGen/Engine.WorldGen.csproj" />
     <Project Path="src/Engine/Engine.csproj" />
+    <Project Path="src/IceRemembers/IceRemembers.csproj" />
+    <Project Path="src/IceRemembers.Seed/IceRemembers.Seed.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Engine.Eventing.Tests/Engine.Eventing.Tests.csproj" />
+    <Project Path="tests/Engine.Host.Tests/Engine.Host.Tests.csproj" />
+    <Project Path="tests/Engine.Kernel.Driver.Tests/Engine.Kernel.Driver.Tests.csproj" />
+    <Project Path="tests/Engine.Observability.Tests/Engine.Observability.Tests.csproj" />
     <Project Path="tests/Engine.Tests/Engine.Tests.csproj" />
+    <Project Path="tests/IceRemembers.Seed.Tests/IceRemembers.Seed.Tests.csproj" />
   </Folder>
 </Solution>

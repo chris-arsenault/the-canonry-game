@@ -9,6 +9,7 @@ using DuckDB.NET.Data;
 
 using Engine.Domain.Config;
 using Engine.Map;
+using Engine.Observability.Export;
 using Engine.Processes;
 
 internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)

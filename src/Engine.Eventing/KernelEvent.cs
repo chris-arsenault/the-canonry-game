@@ -16,6 +16,18 @@ public enum KernelEventType
     GeneratorEvaluated = 11,
     GeneratorFired = 12,
     DecisionExecuted = 13,
+    CommandApplied = 14,
+    CommandRejected = 15,
+    TickCompleted = 16,
+    GeneratorEnabledChanged = 17,
+    CellCreated = 20,
+    PlanStarted = 100,
+    GoalConsidered = 101,
+    GoalScored = 102,
+    GoalSelected = 103,
+    PlanStepEmitted = 104,
+    PlanCommitted = 105,
+    PlanAbandoned = 106,
 }
 
 [Flags]
@@ -160,7 +172,103 @@ public readonly record struct DecisionExecutedKernelEvent(
     int CardId,
     KernelEventState State);
 
-public readonly record struct KernelEvent
+public readonly record struct CommandAppliedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int CommandId,
+    int CommandType,
+    int IssueVersion);
+
+public readonly record struct CommandRejectedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int CommandId,
+    int CommandType,
+    int IssueVersion,
+    int ReasonCodeId);
+
+public readonly record struct TickCompletedKernelEvent(
+    int Tick,
+    long WorldVersion);
+
+public readonly record struct GeneratorEnabledChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int GeneratorId,
+    int Enabled);
+
+public readonly record struct CellCreatedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int Q,
+    int R,
+    int TerrainId,
+    int OwnerEntityId);
+
+public readonly record struct PlanStartedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int ReasonCodeId,
+    int CandidateCount);
+
+public readonly record struct GoalConsideredKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int GoalId,
+    int CandidateIndex,
+    float PreliminaryScore);
+
+public readonly record struct GoalScoredKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int GoalId,
+    int ReasonCodeId,
+    int ScoringPassIndex,
+    float ScoreDelta,
+    float RunningTotal);
+
+public readonly record struct GoalSelectedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int GoalId,
+    float FinalScore);
+
+public readonly record struct PlanStepEmittedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int GoalId,
+    int StepIndex,
+    int ProcessId,
+    int TargetEntityId,
+    int RelationshipKindId);
+
+public readonly record struct PlanCommittedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int StepCount,
+    int ReasonCodeId,
+    float TotalScore);
+
+public readonly record struct PlanAbandonedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int PlanId,
+    int EntityId,
+    int ReasonCodeId);
+
+public readonly partial record struct KernelEvent
 {
     private readonly int _a;
     private readonly int _b;
@@ -174,6 +282,8 @@ public readonly record struct KernelEvent
     private readonly int _j;
     private readonly float _x;
     private readonly float _y;
+    private readonly float _z;
+    private readonly float _w;
 
     private KernelEvent(
         KernelEventType eventType,
@@ -190,7 +300,9 @@ public readonly record struct KernelEvent
         int i = 0,
         int j = 0,
         float x = 0f,
-        float y = 0f)
+        float y = 0f,
+        float z = 0f,
+        float w = 0f)
     {
         EventType = eventType;
         Tick = tick;
@@ -207,255 +319,40 @@ public readonly record struct KernelEvent
         _j = j;
         _x = x;
         _y = y;
+        _z = z;
+        _w = w;
     }
 
     public KernelEventType EventType { get; }
     public int Tick { get; }
     public long WorldVersion { get; }
 
-    public static KernelEvent From(in EntityCreatedKernelEvent payload) =>
-        new(
-            KernelEventType.EntityCreated,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.EntityId,
-            payload.KindId,
-            payload.SubtypeId,
-            payload.CultureId,
-            payload.PhysicalQ,
-            payload.PhysicalR,
-            payload.SemanticQ,
-            payload.SemanticR,
-            payload.SemanticS);
+    public const int IntSlotCount = 10;
+    public const int FloatSlotCount = 4;
 
-    public static KernelEvent From(in EntityStatusChangedKernelEvent payload) =>
-        new(
-            KernelEventType.EntityStatusChanged,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.EntityId,
-            payload.KindId,
-            payload.SubtypeId,
-            payload.PreviousStatusCode,
-            payload.CurrentStatusCode);
-
-    public static KernelEvent From(in EntityMovedKernelEvent payload) =>
-        new(
-            KernelEventType.EntityMoved,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.EntityId,
-            payload.PlaneCode,
-            payload.FromQ,
-            payload.FromR,
-            payload.FromS,
-            payload.ToQ,
-            payload.ToR,
-            payload.ToS);
-
-    public static KernelEvent From(in AttributeChangedKernelEvent payload) =>
-        new(
-            KernelEventType.AttributeChanged,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.EntityId,
-            payload.AttributeId,
-            payload.SourceCodeId,
-            x: payload.OldValue,
-            y: payload.NewValue);
-
-    public static KernelEvent From(in ResourceChangedKernelEvent payload) =>
-        new(
-            KernelEventType.ResourceChanged,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.ResourceId,
-            payload.Q,
-            payload.R,
-            payload.SourceCodeId,
-            x: payload.OldValue,
-            y: payload.NewValue);
-
-    public static KernelEvent From(in RelationshipChangedKernelEvent payload) =>
-        new(
-            KernelEventType.RelationshipChanged,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.ChangeCodeId,
-            payload.RelationshipKindId,
-            payload.PolarityCode,
-            payload.SourceEntityId,
-            payload.TargetEntityId,
-            payload.FactId0,
-            payload.FactId1,
-            payload.FactId2,
-            payload.FactId3,
-            payload.FactCount,
-            payload.PreviousStrength,
-            payload.NewStrength);
-
-    public static KernelEvent From(in ProcessEvaluatedKernelEvent payload) =>
-        new(
-            KernelEventType.ProcessEvaluated,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.EntityId,
-            payload.KindId,
-            payload.SelectedGoalId,
-            payload.ExecutedProcessId,
-            payload.CandidateCount,
-            (int)payload.State);
-
-    public static KernelEvent From(in ProcessExecutedKernelEvent payload) =>
-        new(
-            KernelEventType.ProcessExecuted,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.ActorId,
-            payload.ActorKindId,
-            payload.ProcessId,
-            payload.AffectedEntityId0,
-            payload.AffectedEntityId1,
-            payload.AffectedEntityCount,
-            (int)payload.State);
-
-    public static KernelEvent From(in GoalGeneratedKernelEvent payload) =>
-        new(
-            KernelEventType.GoalGenerated,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.EntityId,
-            payload.KindId,
-            payload.GoalCount,
-            payload.ActionableGoalCount,
-            (int)payload.State);
-
-    public static KernelEvent From(in DegeneracyDetectedKernelEvent payload) =>
-        new(
-            KernelEventType.DegeneracyDetected,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.DetectorId,
-            payload.SeverityCode,
-            payload.ReasonCodeId);
-
-    public static KernelEvent From(in GeneratorEvaluatedKernelEvent payload) =>
-        new(
-            KernelEventType.GeneratorEvaluated,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.GeneratorId,
-            payload.StatusCode,
-            payload.SelectedTargetEntityId,
-            payload.CandidateCount,
-            payload.FailedFireCount);
-
-    public static KernelEvent From(in GeneratorFiredKernelEvent payload) =>
-        new(
-            KernelEventType.GeneratorFired,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.GeneratorId,
-            payload.TargetEntityId,
-            payload.CreatedEntityCount,
-            payload.CreatedRelationshipCount);
-
-    public static KernelEvent From(in DecisionExecutedKernelEvent payload) =>
-        new(
-            KernelEventType.DecisionExecuted,
-            payload.Tick,
-            payload.WorldVersion,
-            payload.ActorId,
-            payload.ActorKindId,
-            payload.DecisionId,
-            payload.CardId,
-            (int)payload.State);
-
-    public EntityCreatedKernelEvent AsEntityCreated()
+    public int GetIntSlot(int slot) => slot switch
     {
-        EnsureType(KernelEventType.EntityCreated);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i);
-    }
+        0 => _a,
+        1 => _b,
+        2 => _c,
+        3 => _d,
+        4 => _e,
+        5 => _f,
+        6 => _g,
+        7 => _h,
+        8 => _i,
+        9 => _j,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 9."),
+    };
 
-    public EntityStatusChangedKernelEvent AsEntityStatusChanged()
+    public float GetFloatSlot(int slot) => slot switch
     {
-        EnsureType(KernelEventType.EntityStatusChanged);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e);
-    }
-
-    public EntityMovedKernelEvent AsEntityMoved()
-    {
-        EnsureType(KernelEventType.EntityMoved);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h);
-    }
-
-    public AttributeChangedKernelEvent AsAttributeChanged()
-    {
-        EnsureType(KernelEventType.AttributeChanged);
-        return new(Tick, WorldVersion, _a, _b, _c, _x, _y);
-    }
-
-    public ResourceChangedKernelEvent AsResourceChanged()
-    {
-        EnsureType(KernelEventType.ResourceChanged);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _x, _y);
-    }
-
-    public RelationshipChangedKernelEvent AsRelationshipChanged()
-    {
-        EnsureType(KernelEventType.RelationshipChanged);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _x, _y);
-    }
-
-    public ProcessEvaluatedKernelEvent AsProcessEvaluated()
-    {
-        EnsureType(KernelEventType.ProcessEvaluated);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, (KernelEventState)_f);
-    }
-
-    public ProcessExecutedKernelEvent AsProcessExecuted()
-    {
-        EnsureType(KernelEventType.ProcessExecuted);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, (KernelEventState)_g);
-    }
-
-    public GoalGeneratedKernelEvent AsGoalGenerated()
-    {
-        EnsureType(KernelEventType.GoalGenerated);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, (KernelEventState)_e);
-    }
-
-    public DegeneracyDetectedKernelEvent AsDegeneracyDetected()
-    {
-        EnsureType(KernelEventType.DegeneracyDetected);
-        return new(Tick, WorldVersion, _a, _b, _c);
-    }
-
-    public GeneratorEvaluatedKernelEvent AsGeneratorEvaluated()
-    {
-        EnsureType(KernelEventType.GeneratorEvaluated);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e);
-    }
-
-    public GeneratorFiredKernelEvent AsGeneratorFired()
-    {
-        EnsureType(KernelEventType.GeneratorFired);
-        return new(Tick, WorldVersion, _a, _b, _c, _d);
-    }
-
-    public DecisionExecutedKernelEvent AsDecisionExecuted()
-    {
-        EnsureType(KernelEventType.DecisionExecuted);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, (KernelEventState)_e);
-    }
-
-    private void EnsureType(KernelEventType expected)
-    {
-        if (EventType != expected)
-        {
-            throw new InvalidOperationException($"Kernel event is {EventType}, not {expected}.");
-        }
-    }
+        0 => _x,
+        1 => _y,
+        2 => _z,
+        3 => _w,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event float slots are numbered 0 through 3."),
+    };
 }
 
 public readonly record struct SequencedKernelEvent(long Sequence, KernelEvent Event);

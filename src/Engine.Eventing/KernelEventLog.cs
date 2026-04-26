@@ -17,6 +17,7 @@ public sealed class KernelEventLog : IKernelEventWriter
     private readonly KernelEventCursor?[] _cursors;
     private readonly object _cursorGate = new();
     private readonly KernelEventOverflowPolicy _overflowPolicy;
+    private readonly IKernelEventSchemaValidator? _schemaValidator;
     private long _reservedNextSequence;
     private long _publishedNextSequence;
     private long _overwrittenSlotCount;
@@ -25,12 +26,14 @@ public sealed class KernelEventLog : IKernelEventWriter
     public KernelEventLog(
         int capacity,
         KernelEventOverflowPolicy overflowPolicy = KernelEventOverflowPolicy.DropOldest,
-        int maxCursors = 64)
+        int maxCursors = 64,
+        IKernelEventSchemaValidator? schemaValidator = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCursors);
 
         _overflowPolicy = overflowPolicy;
+        _schemaValidator = schemaValidator;
         _slots = new KernelEventSlot[capacity];
         for (var i = 0; i < _slots.Length; i++)
         {
@@ -89,6 +92,12 @@ public sealed class KernelEventLog : IKernelEventWriter
 
     public bool TryWrite(in KernelEvent kernelEvent)
     {
+        if (_schemaValidator is not null && !_schemaValidator.IsValid(kernelEvent))
+        {
+            Volatile.Write(ref _rejectedWriteCount, _rejectedWriteCount + 1);
+            return false;
+        }
+
         var sequence = _reservedNextSequence;
         if (_overflowPolicy == KernelEventOverflowPolicy.RejectWrite && WouldOverwriteUnreadCursor(sequence))
         {
@@ -137,8 +146,16 @@ public sealed class KernelEventLog : IKernelEventWriter
 
     public int Read(KernelEventCursor cursor, Span<SequencedKernelEvent> destination)
     {
+        return ReadWithResult(cursor, destination).Count;
+    }
+
+    public KernelEventReadResult ReadWithResult(KernelEventCursor cursor, Span<SequencedKernelEvent> destination)
+    {
         ArgumentNullException.ThrowIfNull(cursor);
         cursor.ThrowIfDisposed();
+
+        var droppedBeforeRead = cursor.DroppedEvents;
+        SkipDroppedEvents(cursor);
 
         var count = 0;
         while (count < destination.Length && TryRead(cursor, out var kernelEvent))
@@ -147,7 +164,10 @@ public sealed class KernelEventLog : IKernelEventWriter
             count++;
         }
 
-        return count;
+        return new KernelEventReadResult(
+            count,
+            cursor.DroppedEvents - droppedBeforeRead,
+            cursor.NextSequence);
     }
 
     private int SlotIndex(long sequence) => (int)(sequence % Capacity);

@@ -5,7 +5,7 @@ using System.Globalization;
 
 using Engine.Domain.IceRemembers;
 using Engine.Observability;
-using Engine.Simulation;
+using Engine.Observability.Export;
 
 internal static class MonteCarloCli
 {
@@ -44,64 +44,25 @@ internal static class MonteCarloCli
             {
                 var seed = options.Seed + runIndex;
                 var runId = $"seed-{seed}";
-                var diagnosticsOptions = options.PerformanceMode && !options.CollectStateTelemetry
-                    ? SimulationDiagnosticsOptions.LeanPerformance
-                    : SimulationDiagnosticsOptions.Detailed;
-                var sim = SimulationRunner.CreateFromDomain(domain, new Random(seed), diagnosticsOptions: diagnosticsOptions);
-
-                SimulationTelemetryRecorder? recorder = null;
-                SimulationPerformanceRecorder? performanceRecorder = null;
+                MonteCarloKernelRun? run = null;
                 try
                 {
-                    if (options.CollectStateTelemetry)
-                    {
-                        recorder = new SimulationTelemetryRecorder(
-                            sim,
-                            runId,
-                            seed,
-                            entitySnapshotCadence: options.DisableEntitySnapshots ? 0 : options.EntitySnapshotCadence);
-                    }
+                    run = MonteCarloKernelRunFactory.Create(domain, seed);
+                    var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
+                    stateRowsWritten += result.StateRowsWritten;
+                    performanceRowsWritten += result.PerformanceRowsWritten;
 
-                    if (options.PerformanceMode)
-                    {
-                        performanceRecorder = new SimulationPerformanceRecorder(
-                            sim,
-                            runId,
-                            options.Ticks,
-                            seed,
-                            tickSampleCadence: options.PerformanceSampleCadence,
-                            systemSampleCadence: options.SystemPerformanceSampleCadence,
-                            fullTelemetryEnabled: options.CollectStateTelemetry);
-                    }
-
-                    for (var tick = 0; tick < options.Ticks; tick++)
-                    {
-                        sim.Tick();
-                        recorder?.OnTickEnded();
-                    }
-
-                    if (performanceRecorder is not null && performanceStore is not null)
-                    {
-                        var performanceBatch = performanceRecorder.Complete();
-                        performanceRowsWritten += CountRows(performanceBatch);
-                        performanceStore.Append(performanceBatch);
-                    }
-
-                    if (recorder is not null && stateStore is not null)
-                    {
-                        stateRowsWritten += CountRows(recorder.Batch);
-                        stateStore.Append(recorder.Batch);
-                    }
+                    var degenerateAttempts = result.Summary.MapAttempt?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
+                    var droppedSuffix = result.Summary.DroppedSummaryEvents > 0
+                        ? FormattableString.Invariant($" summary_events_dropped={result.Summary.DroppedSummaryEvents}")
+                        : string.Empty;
+                    Console.WriteLine(FormattableString.Invariant(
+                        $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={result.ProcessedTicks} fires={result.Summary.GeneratorFireCount} map_degenerate={degenerateAttempts}{droppedSuffix}"));
                 }
                 finally
                 {
-                    performanceRecorder?.Dispose();
-                    recorder?.Dispose();
+                    run?.Dispose();
                 }
-
-                var degenerateAttempts = sim.WorldSeed.Attempt;
-                Console.WriteLine(FormattableString.Invariant(
-                    $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={options.Ticks} fires={sim.GeneratorSystem.TotalFired} map_degenerate={degenerateAttempts}"));
             }
 
             if (stateStore is not null)
@@ -138,6 +99,136 @@ internal static class MonteCarloCli
         return 0;
     }
 
+    private static MonteCarloRunExecutionResult ExecuteKernelRun(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        string runId,
+        int seed,
+        DuckDbTelemetryStore? stateStore,
+        DuckDbPerformanceTelemetryStore? performanceStore)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(runId);
+
+        var stateRowsWritten = 0L;
+        var performanceRowsWritten = 0L;
+        var processedTicks = 0;
+        using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
+        KernelTelemetryRecorder? stateRecorder = null;
+        KernelPerformanceRecorder? performanceRecorder = null;
+
+        try
+        {
+            if (options.CollectStateTelemetry)
+            {
+                stateRecorder = new KernelTelemetryRecorder(
+                run.Events,
+                runId,
+                run.Symbols,
+                seed);
+                RecordMapGenerationAccepted(stateRecorder.Batch, runId, run.WorldSeed);
+                RecordStateSnapshots(stateRecorder, run.Host.Kernel.CurrentTick, options);
+            }
+
+            if (options.PerformanceMode)
+            {
+                performanceRecorder = new KernelPerformanceRecorder(
+                run.Events,
+                runId,
+                options.Ticks,
+                    seed,
+                    tickSampleCadence: options.PerformanceSampleCadence,
+                    systemSampleCadence: options.SystemPerformanceSampleCadence,
+                    fullTelemetryEnabled: options.CollectStateTelemetry);
+            }
+
+            for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var advanced = run.Host.Time.AdvanceSingleStep(1);
+                stopwatch.Stop();
+                if (advanced == 0)
+                {
+                    break;
+                }
+
+                processedTicks += advanced;
+                var currentTick = run.Host.Kernel.CurrentTick;
+                summaryRecorder.DrainAvailable();
+                RecordStateSnapshots(stateRecorder, currentTick, options);
+                performanceRecorder?.RecordTick(currentTick, stopwatch.Elapsed);
+            }
+
+            var summary = summaryRecorder.Snapshot();
+            if (performanceRecorder is not null && performanceStore is not null)
+            {
+                var performanceBatch = performanceRecorder.Complete(processedTicks);
+                performanceRowsWritten = CountRows(performanceBatch);
+                performanceStore.Append(performanceBatch);
+            }
+
+            if (stateRecorder is not null && stateStore is not null)
+            {
+                stateRecorder.DrainAvailable();
+                stateRowsWritten = CountRows(stateRecorder.Batch);
+                stateStore.Append(stateRecorder.Batch);
+            }
+
+            return new MonteCarloRunExecutionResult(
+                stateRowsWritten,
+                performanceRowsWritten,
+                processedTicks,
+                summary);
+        }
+        finally
+        {
+            performanceRecorder?.Dispose();
+            stateRecorder?.Dispose();
+        }
+    }
+
+    private static void RecordStateSnapshots(
+        KernelTelemetryRecorder? recorder,
+        int tick,
+        MonteCarloOptions options)
+    {
+        if (recorder is null)
+        {
+            return;
+        }
+
+        recorder.RecordSnapshots(tick, IncludeEntitySnapshot(options, tick));
+    }
+
+    private static bool IncludeEntitySnapshot(MonteCarloOptions options, int tick) =>
+        !options.DisableEntitySnapshots &&
+        options.EntitySnapshotCadence > 0 &&
+        tick % options.EntitySnapshotCadence == 0;
+
+    private static void RecordMapGenerationAccepted(
+        TelemetryBatch batch,
+        string runId,
+        MonteCarloWorldSeed? worldSeed)
+    {
+        if (worldSeed is not { } seed)
+        {
+            return;
+        }
+
+        batch.MapGenerationEvents.Add(new MapGenerationEventRow(
+            runId,
+            Tick: 0,
+            seed.BaseSeed,
+            seed.Attempt,
+            seed.TerrainSeed,
+            seed.EntitySeed,
+            Phase: "accepted",
+            Description: "accepted_world_seed",
+            Reasons: string.Empty,
+            WillRetry: false));
+    }
+
     private static ExportPerformanceRow TimedExport(string step, long rowsWritten, Action action)
     {
         var started = DateTime.UtcNow;
@@ -161,8 +252,13 @@ internal static class MonteCarloCli
         batch.EntitySnapshots.Count +
         batch.EntityEvents.Count +
         batch.PlannerGoals.Count +
+        batch.PlannerTraces.Count +
+        batch.PlannerTraceGoals.Count +
+        batch.PlannerTraceScores.Count +
+        batch.PlannerTraceSteps.Count +
         batch.ProcessEvents.Count +
         batch.ProcessCandidates.Count +
+        batch.LocalityOpportunities.Count +
         batch.AttributeEvents.Count +
         batch.MovementEvents.Count +
         batch.ResourceEvents.Count +

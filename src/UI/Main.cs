@@ -5,17 +5,10 @@ using System.Linq;
 
 using Godot;
 
-using Engine.Clock;
-using Engine.Domain.Config;
-using Engine.Domain.Loader;
-using Engine.Graph;
-using Engine.Kinds;
-using Engine.Map;
+using Engine.Host;
+using Engine.Kernel.Driver;
 using Engine.Observability;
 using Engine.Projection;
-using Engine.Processes;
-using Engine.Resources;
-using Engine.Simulation;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -24,8 +17,13 @@ namespace TheCanonryGame.UI;
 public partial class Main : Node2D
 {
     private const ulong HexTooltipDelayMs = 500;
+    private const double NormalTicksPerSecond = 1d;
+    private const double FastTicksPerSecond = 5d;
+    private const double VeryFastTicksPerSecond = 10d;
 
-    private SimulationRunner? _sim;
+    private KernelHost? _host;
+    private IKernelDriverTimeControl? _kernelTime;
+    private ICommandSubmitter? _commandSubmitter;
     private HexMapRenderer? _mapRenderer;
     private Camera2D? _camera;
     private EntityBrowser? _browser;
@@ -43,23 +41,24 @@ public partial class Main : Node2D
     private TableauPanel? _tableauPanel;
     private RunLogger? _runLogger;
     private UiProjectionState? _uiProjection;
-    private KernelEventProjectionPump? _uiProjectionPump;
-    private ProjectionSymbolCatalog? _projectionSymbols;
+    private HexMapProjection? _hexMapProjection;
+    private IProjectionSymbolCatalog? _projectionSymbols;
     private PanelContainer? _hexTooltipPanel;
     private Label? _hexTooltipLabel;
     private PanelContainer? _legendPanel;
     private Godot.Theme? _theme;
-    private double _tickAccumulator;
-    private bool _stepOneTick;
+    private int _lastObservedKernelTick;
+    private double _displayTicksPerSecond = NormalTicksPerSecond;
+    private bool _displayPaused;
     private HexCoord? _hoveredHex;
     private Vector2 _hoverScreenPosition;
     private ulong _hoverStartedAtMs;
-    private readonly Dictionary<EntityId, EntityCard> _openCards = [];
+    private readonly Dictionary<int, EntityCard> _openCards = [];
 
     public override void _ExitTree()
     {
-        _uiProjectionPump?.Dispose();
-        _uiProjectionPump = null;
+        _host?.Dispose();
+        _host = null;
         _runLogger?.Dispose();
         _runLogger = null;
         base._ExitTree();
@@ -75,17 +74,25 @@ public partial class Main : Node2D
         // flicker to textures one tick later.
         AssetLibrary.Load();
 
-        _sim = SimulationRunner.CreateFromTestMap();
-        _sim.Clock.Speed = SimulationSpeed.Normal;
-        InitializeUiProjection();
+        // MIGRATION-BLOCKER: Main must be wired to the real startup entrypoint
+        // that creates KernelHost, SymbolCatalog, UiProjectionState, and
+        // HexMapProjection. Do not seed UI-local startup data here; that
+        // would be a compatibility facade and would hide startup debt.
+        InitializeKernelHost();
 
         var logPath = RunLogger.DefaultLogPath();
-        _runLogger = new RunLogger(logPath, _sim);
-        GD.Print($"Simulation initialized: {_sim.Graph.EntityCount} entities. Run log -> {logPath}");
+        _runLogger = _host is null ? null : new RunLogger(logPath, _host.Events, _projectionSymbols);
+        _kernelTime?.SetTickRate(NormalTicksPerSecond);
+        _displayPaused = false;
+        _displayTicksPerSecond = NormalTicksPerSecond;
+        GD.Print($"Simulation initialized: {_uiProjection?.Entities.Count ?? 0} projected entities. Run log -> {logPath}");
 
         // Create map renderer
         _mapRenderer = new HexMapRenderer();
-        _mapRenderer.Initialize(_sim);
+        if (_hexMapProjection is not null && _uiProjection is not null)
+        {
+            _mapRenderer.Initialize(_hexMapProjection, _uiProjection, _projectionSymbols);
+        }
         AddChild(_mapRenderer);
 
         // Create camera
@@ -122,15 +129,6 @@ public partial class Main : Node2D
         _uiRoot.Theme = _theme;
         _uiLayer.AddChild(_uiRoot);
 
-        // Subscribe to events BEFORE we start building UI that listens to them,
-        // so anything emitted during setup reaches the chronicle.
-        _sim.EventLog.EventEmitted += OnEventEmitted;
-        _sim.Lifecycle.EntityDied += (_, e) =>
-        {
-            _sim.EventLog.Emit(e.DeathTick, Engine.Events.EventType.Lifecycle,
-                $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
-        };
-
         // -----------------------------------------------------------------
         // Root layout: TOP BAR  /  MIDDLE ROW  /  BOTTOM BAR
         // Mouse filter is "ignore" for transparent wrappers so the map beneath
@@ -161,7 +159,7 @@ public partial class Main : Node2D
             CustomMinimumSize = new Vector2(260, 0),
         };
         _browser.AddThemeStyleboxOverride("panel", UiTheme.RailPanelStyle(onLeft: true));
-        _browser.Initialize(_sim);
+        _browser.Initialize(_uiProjection, _projectionSymbols);
         _browser.EntitySelected += OnBrowserEntitySelected;
         middleRow.AddChild(_browser);
 
@@ -203,7 +201,6 @@ public partial class Main : Node2D
         // Floating overlays — live above the layout, positioned by code.
         // -----------------------------------------------------------------
         _tableauPanel = new TableauPanel();
-        _tableauPanel.Initialize(_sim, _uiProjection, _projectionSymbols);
         _uiRoot.AddChild(_tableauPanel);
         _tableauPanel.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _tableauPanel.Visible = false;
@@ -458,61 +455,34 @@ public partial class Main : Node2D
 
     public override void _Process(double delta)
     {
-        if (_sim is null) return;
+        if (_host is null) return;
 
-        var ticksProcessed = 0;
+        _host.DrainConsumers();
+        _runLogger?.DrainAvailable();
 
-        if (_stepOneTick)
-        {
-            _sim.Clock.Speed = SimulationSpeed.Normal;
-            _sim.Tick();
-            _runLogger?.OnTickEnded();
-            _sim.Clock.Speed = SimulationSpeed.Paused;
-            _stepOneTick = false;
-            ticksProcessed = 1;
-        }
-        else if (_sim.Clock.Speed != SimulationSpeed.Paused)
-        {
-            var secondsPerTick = _sim.Clock.Speed switch
-            {
-                SimulationSpeed.Normal => 1.0,
-                SimulationSpeed.Fast => 0.25,
-                SimulationSpeed.VeryFast => 0.1,
-                _ => 1.0,
-            };
-
-            _tickAccumulator += delta;
-            while (_tickAccumulator >= secondsPerTick)
-            {
-                _sim.Tick();
-                _runLogger?.OnTickEnded();
-                _tickAccumulator -= secondsPerTick;
-                ticksProcessed++;
-            }
-        }
+        var previousObservedTick = _lastObservedKernelTick;
+        var currentTick = _uiProjection?.CurrentTick ?? 0;
+        var ticksProcessed = Math.Max(0, currentTick - previousObservedTick);
+        _lastObservedKernelTick = currentTick;
 
         if (ticksProcessed > 0)
         {
-            _uiProjectionPump?.DrainAvailable();
+            for (var tick = previousObservedTick + 1; tick <= currentTick; tick++)
+            {
+                _runLogger?.OnTickEnded(tick);
+            }
             _mapRenderer?.Refresh();
             _browser?.Refresh();
             RefreshOpenCards();
-            _attributeGraph?.Refresh();
             _tableauPanel?.Refresh();
         }
 
         if (_tickLabel is not null)
         {
-            var speedText = _sim.Clock.Speed switch
-            {
-                SimulationSpeed.Paused   => "paused",
-                SimulationSpeed.Normal   => "1×",
-                SimulationSpeed.Fast     => "4×",
-                SimulationSpeed.VeryFast => "10×",
-                _                        => _sim.Clock.Speed.ToString(),
-            };
+            var entityCount = _uiProjection?.Entities.Count ?? 0;
+            var generatorFireCount = _uiProjection?.GeneratorFires.Count ?? 0;
             _tickLabel.Text =
-                $"t{_sim.Clock.CurrentTick,-5}  ·  {speedText,-6}  ·  {_sim.Graph.EntityCount,3} entities  ·  {_sim.GeneratorSystem.TotalFired,3} fires";
+                $"t{currentTick,-5}  ·  {FormatKernelTimeState(),-8}  ·  {entityCount,3} entities  ·  {generatorFireCount,3} fires";
         }
 
         PositionFloatingHud();
@@ -522,38 +492,34 @@ public partial class Main : Node2D
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_sim is null) return;
+        if (_host is null) return;
 
         if (@event is InputEventKey { Pressed: true } key)
         {
             switch (key.Keycode)
             {
                 case Key.Space:
-                    if (_sim.Clock.Speed == SimulationSpeed.Paused)
+                    if (_displayPaused)
                     {
-                        _sim.Clock.Speed = SimulationSpeed.Normal;
+                        SetKernelTickRate(NormalTicksPerSecond);
                     }
                     else
                     {
-                        _sim.Clock.Speed = SimulationSpeed.Paused;
-                        _tickAccumulator = 0;
+                        PauseKernelDriver();
                     }
 
                     break;
                 case Key.Key1:
-                    _sim.Clock.Speed = SimulationSpeed.Normal;
-                    _tickAccumulator = 0;
+                    SetKernelTickRate(NormalTicksPerSecond);
                     break;
                 case Key.Key2:
-                    _sim.Clock.Speed = SimulationSpeed.Fast;
-                    _tickAccumulator = 0;
+                    SetKernelTickRate(FastTicksPerSecond);
                     break;
                 case Key.Key3:
-                    _sim.Clock.Speed = SimulationSpeed.VeryFast;
-                    _tickAccumulator = 0;
+                    SetKernelTickRate(VeryFastTicksPerSecond);
                     break;
                 case Key.Right:
-                    _stepOneTick = true;
+                    StepKernelDriver();
                     break;
                 case Key.R:
                     ResetSimulation();
@@ -622,7 +588,7 @@ public partial class Main : Node2D
             Theme = _theme,
         };
         _cardLayer.AddChild(_attributeGraph);
-        _attributeGraph.Initialize(_sim);
+        _attributeGraph.Initialize(_sim, _uiProjection);
         _attributeGraph.Position = new Vector2(320, UiTokens.Space7);
         if (_readingsToggleButton is not null) _readingsToggleButton.Text = "Hide Readings";
     }
@@ -641,30 +607,28 @@ public partial class Main : Node2D
 
         _runLogger?.Dispose();
         _uiProjectionPump?.Dispose();
+        _commandCompletionPump?.Dispose();
+        _kernelTime?.Dispose();
 
         _sim = SimulationRunner.CreateFromTestMap();
-        _sim.Clock.Speed = SimulationSpeed.Paused;
+        _kernelSimulation = KernelSimulationFactory.CreateFromTestMap(IceRemembersDefinition.Create());
+        _kernelTime = CreateKernelTimeController(_kernelSimulation);
+        InitializeCommandBus(_kernelSimulation);
         InitializeUiProjection();
-        _tickAccumulator = 0;
+        _displayPaused = true;
+        _displayTicksPerSecond = NormalTicksPerSecond;
         ClearHexHoverTooltip();
 
         var logPath = RunLogger.DefaultLogPath();
-        _runLogger = new RunLogger(logPath, _sim);
+        _runLogger = new RunLogger(logPath, _kernelSimulation.Events, _projectionSymbols);
         GD.Print($"Simulation reset. New run log -> {logPath}");
-
-        _sim.EventLog.EventEmitted += OnEventEmitted;
-        _sim.Lifecycle.EntityDied += (_, e) =>
-        {
-            _sim.EventLog.Emit(e.DeathTick, Engine.Events.EventType.Lifecycle,
-                $"{e.Entity.Name} ({e.Entity.Kind}) died", "lifecycle", e.Entity.Id);
-        };
 
         _mapRenderer?.Initialize(_sim);
         _mapRenderer?.Refresh();
-        _attributeGraph?.Initialize(_sim);
-        _browser?.Initialize(_sim);
+        _attributeGraph?.Initialize(_sim, _uiProjection);
+        _browser?.Initialize(_sim, _uiProjection);
         _browser?.Refresh();
-        _tableauPanel?.Initialize(_sim, _uiProjection, _projectionSymbols);
+        _tableauPanel?.Initialize(_sim, _uiProjection, _projectionSymbols, _commandSubmitter);
         _tableauPanel?.Refresh();
 
         if (_eventLogLabel is not null) _eventLogLabel.Text = "";
@@ -680,226 +644,29 @@ public partial class Main : Node2D
         }
 
         _uiProjectionPump?.Dispose();
-        _projectionSymbols = BuildProjectionSymbolCatalog(_sim);
+        var kernelEvents = _kernelSimulation?.Events ?? _sim.KernelEvents;
         _uiProjection = new UiProjectionState();
         _uiProjectionPump = new KernelEventProjectionPump(
-            _sim.KernelEvents,
+            kernelEvents,
             Engine.Eventing.KernelEventCursorStart.EarliestAvailable,
             _uiProjection);
 
-        // MIGRATION: The UI projection replays every primitive event currently
-        // available. Any remaining live SimulationRunner reads in panels mark
-        // missing primitive events or startup snapshots, not a fallback bus.
         _uiProjectionPump.DrainAvailable();
+        _lastObservedKernelTick = _uiProjection.CurrentTick;
     }
 
-    private static ProjectionSymbolCatalog BuildProjectionSymbolCatalog(SimulationRunner sim)
+    private void InitializeCommandBus(Engine.Kernel.Simulation simulation)
     {
-        var catalog = new ProjectionSymbolCatalog();
-
-        foreach (var (kind, config) in sim.DomainConfig.Kinds.OrderBy(pair => pair.Key.Value, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Kind,
-                kind.Id,
-                kind.Value,
-                description: config.Description);
-
-            foreach (var subtype in config.Subtypes.OrderBy(value => value, StringComparer.Ordinal))
-            {
-                catalog.RegisterSymbol(
-                    ProjectionSymbolKind.Subtype,
-                    sim.DomainIds.SubtypeIdOf(subtype).Value,
-                    subtype);
-            }
-
-            foreach (var attribute in config.Attributes.OrderBy(attr => attr.Name, StringComparer.Ordinal))
-            {
-                catalog.RegisterSymbol(
-                    ProjectionSymbolKind.Attribute,
-                    sim.DomainIds.AttributeIdOf(attribute.Name).Value,
-                    attribute.Name,
-                    attribute.DisplayName,
-                    attribute.CriticalEffect?.Description);
-            }
-        }
-
-        foreach (var culture in sim.DomainConfig.Cultures.OrderBy(culture => culture.Id, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Culture,
-                sim.DomainIds.CultureIdOf(culture.Id).Value,
-                culture.Id,
-                culture.DisplayName);
-        }
-
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.Culture,
-            sim.DomainIds.CultureIdOf(DomainRuntimeIdLoader.NoneCultureId).Value,
-            DomainRuntimeIdLoader.NoneCultureId,
-            "None");
-
-        foreach (var relationship in sim.DomainConfig.Relationships.OrderBy(rel => rel.Name, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.RelationshipKind,
-                sim.DomainIds.RelationshipKindIdOf(relationship.Name).Value,
-                relationship.Name);
-        }
-
-        foreach (var fact in sim.DomainConfig.RelationshipFacts.OrderBy(fact => fact.Name, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.RelationshipFact,
-                sim.DomainIds.RelationshipFactIdOf(fact.Name).Value,
-                fact.Name,
-                fact.DisplayName,
-                fact.Description);
-        }
-
-        foreach (var pressure in sim.DomainConfig.Pressures.OrderBy(pressure => pressure.Name, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Pressure,
-                sim.DomainIds.PressureIdOf(pressure.Name).Value,
-                pressure.Name);
-        }
-
-        foreach (var resourceType in Enum.GetValues<ResourceType>())
-        {
-            var stableName = resourceType.ToDomainName();
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Resource,
-                sim.DomainIds.ResourceIdOf(stableName).Value,
-                stableName);
-        }
-
-        foreach (var resource in sim.DomainConfig.Resources.OrderBy(resource => resource.Name, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Resource,
-                sim.DomainIds.ResourceIdOf(resource.Name).Value,
-                resource.Name,
-                resource.DisplayName);
-        }
-
-        foreach (var terrain in Enum.GetValues<TerrainType>())
-        {
-            var stableName = terrain.ToString();
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Terrain,
-                sim.DomainIds.TerrainIdOf(stableName).Value,
-                stableName);
-        }
-
-        foreach (var generator in sim.DefinitionGraph.Generators.Values.OrderBy(generator => generator.Id, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Generator,
-                generator.RuntimeId,
-                generator.Id,
-                generator.Name,
-                generator.Description);
-        }
-
-        foreach (var process in sim.DefinitionGraph.Processes.Values.OrderBy(process => process.Id, StringComparer.Ordinal))
-        {
-            var symbolKind = process.SourceDefinition.Role == DefinitionRole.Decision
-                ? ProjectionSymbolKind.Decision
-                : ProjectionSymbolKind.Process;
-            catalog.RegisterSymbol(
-                symbolKind,
-                process.SourceDefinition.RuntimeId.Value,
-                process.Id,
-                process.Name);
-        }
-
-        foreach (var card in sim.SpawnCards.Values.OrderBy(card => card.Id, StringComparer.Ordinal))
-        {
-            catalog.RegisterSymbol(
-                ProjectionSymbolKind.Card,
-                card.RuntimeId.Value,
-                card.Id,
-                card.Name,
-                card.Description);
-        }
-
-        RegisterKernelRuntimeSymbols(catalog, sim);
-
-        foreach (var entity in sim.Graph.AllEntities.Values.OrderBy(entity => entity.Id.Value))
-        {
-            // MIGRATION: Initial entity names come from the startup graph until
-            // userspace receives a formal entity-name seed snapshot.
-            catalog.RegisterEntityName(entity.Id.Value, entity.Name);
-
-            if (entity.SubtypeId.Value > 0)
-            {
-                catalog.RegisterSymbol(
-                    ProjectionSymbolKind.Subtype,
-                    entity.SubtypeId.Value,
-                    entity.Subtype);
-            }
-
-            if (entity.CultureId.Value > 0)
-            {
-                catalog.RegisterSymbol(
-                    ProjectionSymbolKind.Culture,
-                    entity.CultureId.Value,
-                    entity.Culture,
-                    sim.DomainConfig.GetCultureDisplayName(entity.Culture));
-            }
-        }
-
-        return catalog;
+        _commandCompletionTable = new KernelCommandCompletionTable(simulation.Commands.Capacity);
+        _commandSubmitter = new KernelCommandSubmitter(simulation.Commands, _commandCompletionTable);
+        _commandCompletionPump = new KernelCommandCompletionPump(simulation.Events, _commandCompletionTable);
     }
 
-    private static void RegisterKernelRuntimeSymbols(ProjectionSymbolCatalog catalog, SimulationRunner sim)
-    {
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.EventCode,
-            sim.DomainIds.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipCreatedCode).Value,
-            DomainRuntimeIdLoader.RelationshipCreatedCode);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.EventCode,
-            sim.DomainIds.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipCulledCode).Value,
-            DomainRuntimeIdLoader.RelationshipCulledCode);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.EventCode,
-            sim.DomainIds.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipStrengthChangedCode).Value,
-            DomainRuntimeIdLoader.RelationshipStrengthChangedCode);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.SourceCode,
-            sim.DomainIds.SourceCodeIdOf(DomainRuntimeIdLoader.ProcessSourceCode).Value,
-            DomainRuntimeIdLoader.ProcessSourceCode);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.SourceCode,
-            sim.DomainIds.SourceCodeIdOf(DomainRuntimeIdLoader.CardSourceCode).Value,
-            DomainRuntimeIdLoader.CardSourceCode);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.Detector,
-            sim.DomainIds.DetectorIdOf(DomainRuntimeIdLoader.SettlementDepopulationDetector).Value,
-            DomainRuntimeIdLoader.SettlementDepopulationDetector);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.Detector,
-            sim.DomainIds.DetectorIdOf(DomainRuntimeIdLoader.PoliticalMonocultureDetector).Value,
-            DomainRuntimeIdLoader.PoliticalMonocultureDetector);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.Detector,
-            sim.DomainIds.DetectorIdOf(DomainRuntimeIdLoader.NpcExtinctionDetector).Value,
-            DomainRuntimeIdLoader.NpcExtinctionDetector);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.ReasonCode,
-            sim.DomainIds.ReasonCodeIdOf(DomainRuntimeIdLoader.SettlementDepopulationReason).Value,
-            DomainRuntimeIdLoader.SettlementDepopulationReason);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.ReasonCode,
-            sim.DomainIds.ReasonCodeIdOf(DomainRuntimeIdLoader.PoliticalMonocultureReason).Value,
-            DomainRuntimeIdLoader.PoliticalMonocultureReason);
-        catalog.RegisterSymbol(
-            ProjectionSymbolKind.ReasonCode,
-            sim.DomainIds.ReasonCodeIdOf(DomainRuntimeIdLoader.NpcExtinctionReason).Value,
-            DomainRuntimeIdLoader.NpcExtinctionReason);
-    }
+    private static KernelDriverTimeController CreateKernelTimeController(Engine.Kernel.Simulation simulation) =>
+        new(simulation, new RealtimeDriverConfig(
+            NormalTicksPerSecond,
+            MaxTicksPerSlice: 8,
+            SliceInterval: TimeSpan.FromMilliseconds(16)));
 
     private void OnBrowserEntitySelected(int entityIdValue)
     {
@@ -914,11 +681,11 @@ public partial class Main : Node2D
         };
         row.AddThemeConstantOverride("separation", UiTokens.Space2);
 
-        row.AddChild(CreateControlButton("⏸", "Pause", () => SetSimulationSpeed(SimulationSpeed.Paused)));
-        row.AddChild(CreateControlButton("▸", "Step one tick", () => _stepOneTick = true));
-        row.AddChild(CreateControlButton("1×", "Normal speed", () => SetSimulationSpeed(SimulationSpeed.Normal)));
-        row.AddChild(CreateControlButton("4×", "Fast", () => SetSimulationSpeed(SimulationSpeed.Fast)));
-        row.AddChild(CreateControlButton("10×", "Very fast", () => SetSimulationSpeed(SimulationSpeed.VeryFast)));
+        row.AddChild(CreateControlButton("⏸", "Pause", PauseKernelDriver));
+        row.AddChild(CreateControlButton("▸", "Step one tick", StepKernelDriver));
+        row.AddChild(CreateControlButton("1×", "1 tick/sec", () => SetKernelTickRate(NormalTicksPerSecond)));
+        row.AddChild(CreateControlButton("5×", "5 ticks/sec", () => SetKernelTickRate(FastTicksPerSecond)));
+        row.AddChild(CreateControlButton("10×", "10 ticks/sec", () => SetKernelTickRate(VeryFastTicksPerSecond)));
         row.AddChild(CreateControlButton("↺", "Reset simulation", ResetSimulation));
 
         return row;
@@ -960,15 +727,36 @@ public partial class Main : Node2D
         };
     }
 
-    private void SetSimulationSpeed(SimulationSpeed speed)
+    private void PauseKernelDriver()
     {
-        if (_sim is null)
+        _kernelTime?.RequestPause();
+        _displayPaused = true;
+    }
+
+    private void StepKernelDriver()
+    {
+        _kernelTime?.RequestSingleStep(1);
+        _displayPaused = true;
+    }
+
+    private void SetKernelTickRate(double ticksPerSecond)
+    {
+        _kernelTime?.SetTickRate(ticksPerSecond);
+        _displayPaused = ticksPerSecond <= 0d;
+        if (ticksPerSecond > 0d)
         {
-            return;
+            _displayTicksPerSecond = ticksPerSecond;
+        }
+    }
+
+    private string FormatKernelTimeState()
+    {
+        if (_displayPaused)
+        {
+            return "paused";
         }
 
-        _sim.Clock.Speed = speed;
-        _tickAccumulator = 0;
+        return $"{_displayTicksPerSecond:0.##} t/s";
     }
 
     private void ToggleTableauVisibility()
@@ -1216,7 +1004,7 @@ public partial class Main : Node2D
         {
             Theme = _theme,
         };
-        card.Initialize(_sim, entityId, position);
+        card.Initialize(_sim, _uiProjection, entityId, position);
         card.CardClosed += OnCardClosed;
         _cardLayer.AddChild(card);
         _openCards[entityId] = card;
@@ -1233,24 +1021,6 @@ public partial class Main : Node2D
         {
             card.Refresh();
         }
-    }
-
-    private void OnEventEmitted(object? sender, Engine.Events.GameEventArgs e)
-    {
-        if (_eventLogLabel is null) return;
-
-        var color = e.Type switch
-        {
-            Engine.Events.EventType.Lifecycle => UiTokens.Blood,
-            Engine.Events.EventType.Threshold => UiTokens.Ember,
-            Engine.Events.EventType.Creation  => UiTokens.Aurora,
-            Engine.Events.EventType.Card      => UiTokens.Gilt,
-            _                                 => UiTokens.Vellum,
-        };
-        var tickColor = UiTokens.Whisper;
-        var tickHex = ColorHex(tickColor);
-        var descHex = ColorHex(color);
-        _eventLogLabel.AppendText($"[color={tickHex}][code]t{e.Tick,5}[/code][/color]  [color={descHex}]{e.Description}[/color]\n");
     }
 
     internal static string ColorHex(Color color)

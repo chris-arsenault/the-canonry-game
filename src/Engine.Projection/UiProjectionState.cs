@@ -40,12 +40,8 @@ public sealed class UiProjectionState : KernelEventProjector
             "AttributeChangedKernelEvent can replay deltas after the cursor starts, but not untouched initial values."),
         new(
             "map terrain and coverage",
-            "startup map snapshot plus coverage ownership events",
-            "Hex map UI needs terrain, regions, and ownership that are not kernel events yet."),
-        new(
-            "tableau activation",
-            "primitive card/tableau added and removed events",
-            "Generator definitions are startup/domain data; active card toggles are still live host state."),
+            "cell projection wired into the UI renderer",
+            "CellCreatedKernelEvent carries startup map state, but the UI renderer still needs to consume the dedicated map projection."),
         new(
             "relationship removal semantics",
             "explicit relationship inactive/cull code contract",
@@ -65,6 +61,10 @@ public sealed class UiProjectionState : KernelEventProjector
     public IReadOnlyList<UiDegeneracyProjection> DegeneracyEvents => _degeneracyEvents;
 
     public long LastProjectedSequence { get; private set; } = -1;
+
+    public int CurrentTick { get; private set; }
+
+    public long WorldVersion { get; private set; }
 
     public long DroppedEvents { get; private set; }
 
@@ -95,7 +95,7 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
         entity.WasCreatedFromEvent = true;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnEntityStatusChanged(long sequence, in EntityStatusChangedKernelEvent evt)
@@ -107,7 +107,7 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.StatusCode = evt.CurrentStatusCode;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
@@ -136,7 +136,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.ToS);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt)
@@ -151,7 +151,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
@@ -166,7 +166,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.NewValue,
             evt.Tick,
             evt.WorldVersion);
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnRelationshipChanged(long sequence, in RelationshipChangedKernelEvent evt)
@@ -189,7 +189,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.NewStrength > 0f,
             evt.Tick,
             evt.WorldVersion);
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnProcessEvaluated(long sequence, in ProcessEvaluatedKernelEvent evt)
@@ -205,7 +205,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
@@ -222,7 +222,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt)
@@ -237,7 +237,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnDegeneracyDetected(long sequence, in DegeneracyDetectedKernelEvent evt)
@@ -248,7 +248,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.SeverityCode,
             evt.ReasonCodeId,
             evt.WorldVersion));
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnGeneratorEvaluated(long sequence, in GeneratorEvaluatedKernelEvent evt)
@@ -261,7 +261,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.CandidateCount,
             evt.FailedFireCount,
             evt.WorldVersion);
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
@@ -277,7 +277,7 @@ public sealed class UiProjectionState : KernelEventProjector
         generator.TotalFired++;
         generator.LastFire = fire;
         _generatorFires.Add(fire);
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnDecisionExecuted(long sequence, in DecisionExecutedKernelEvent evt)
@@ -292,7 +292,23 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt)
+    {
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnGeneratorEnabledChanged(long sequence, in GeneratorEnabledChangedKernelEvent evt)
+    {
+        var generator = GetOrCreateGenerator(evt.GeneratorId);
+        generator.IsEnabled = evt.Enabled != 0;
+        generator.LastEnabledChanged = new UiGeneratorEnabledProjection(
+            evt.Tick,
+            evt.Enabled != 0,
+            evt.WorldVersion);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     private UiEntityProjection GetOrCreateEntity(int entityId)
@@ -319,9 +335,11 @@ public sealed class UiProjectionState : KernelEventProjector
         return generator;
     }
 
-    private void MarkProjected(long sequence)
+    private void MarkProjected(long sequence, int tick, long worldVersion)
     {
         LastProjectedSequence = sequence;
+        CurrentTick = Math.Max(CurrentTick, tick);
+        WorldVersion = Math.Max(WorldVersion, worldVersion);
     }
 }
 
@@ -376,7 +394,11 @@ public sealed class UiGeneratorProjection(int generatorId)
 {
     public int GeneratorId { get; } = generatorId;
 
+    public bool IsEnabled { get; internal set; }
+
     public int TotalFired { get; internal set; }
+
+    public UiGeneratorEnabledProjection? LastEnabledChanged { get; internal set; }
 
     public UiGeneratorEvaluationProjection? LastEvaluation { get; internal set; }
 
@@ -434,6 +456,11 @@ public sealed record UiResourceProjection(
     float OldValue,
     float NewValue,
     int Tick,
+    long WorldVersion);
+
+public sealed record UiGeneratorEnabledProjection(
+    int Tick,
+    bool IsEnabled,
     long WorldVersion);
 
 public sealed record UiGoalGenerationProjection(

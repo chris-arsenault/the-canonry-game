@@ -1,6 +1,7 @@
 namespace Engine.Tests.Domain;
 
 using System.IO;
+using Engine.Domain.Compilation;
 using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
@@ -49,6 +50,7 @@ public class MotionDebugTests
 
         var actionsByKind = new Dictionary<EntityKind, int>();
         var cursor = sim.KernelEvents.CreateCursor(KernelEventCursorStart.Latest);
+        var domainIds = DomainCompiler.BuildCatalog(sim.DomainConfig);
 
         var startSemanticByKind = sim.Graph.AllEntities
             .GroupBy(kv => kv.Value.Kind)
@@ -69,7 +71,8 @@ public class MotionDebugTests
             }
 
             var executed = sequenced.Event.AsProcessExecuted();
-            var kind = sim.DomainConfig.Kinds.Keys.Single(candidate => candidate.Id == executed.ActorKindId);
+            var kind = sim.DomainConfig.Kinds.Keys.Single(candidate =>
+                domainIds.KindIdOf(candidate).Value == executed.ActorKindId);
             actionsByKind.TryGetValue(kind, out var count);
             actionsByKind[kind] = count + 1;
         }

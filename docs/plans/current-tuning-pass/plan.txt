@@ -1,0 +1,40 @@
+Fair. I was treating process tier as if it meant reactive selection, when what you're describing is closer to **task-and-motion planning with multi-agent coordination over a sparse action graph** — and that's a hard problem in its own right, not a degraded version of the strategic tier.
+
+Three things in your description make it real planning:
+
+**Movement dominates plan structure.** When you said "a good deal of moving to keep the map alive," that flips the usual game-AI assumption. Most game AI treats movement as a service — the planner picks an action with a target, the navmesh gets there, the planner doesn't care. In your sim, movement *is* the plan, and the verb is the punctuation. This is the robotics TAMP shape: you can't cleanly separate "what to do" from "how to get there" because position determines what's possible. Concrete impact: plan scoring is partly movement cost, and the action graph is map-distance-aware at planning time, not just at execution.
+
+**Entity-as-precondition makes the precondition graph dynamic.** If "trade" requires a partner and partners are themselves entities with their own plans, your action preconditions aren't static facts — they're queries against other agents' availability. This is the structurally hard part. Three patterns:
+
+- *Job board / posted intents*: entities advertise availability ("I need repair," "I have grain"); other entities query. DF fortress mode does this; it works because there's a coordinator. In a flat peer world your kernel command/event system can serve as the board — entities emit intent events, other planners read them.
+- *Reservation with confirmation*: A plans against B's last-known availability and submits a reservation command. B's planner, next time it runs, sees the reservation and either accepts (commits to the rendezvous) or rejects (counter-emits). This is the imperfect-knowledge model exactly: A acts on stale belief, B reconciles.
+- *Opportunistic only*: entities plan solo verbs and movement; cross-entity interactions fire when paths cross. Cheap, but produces an undirected-feeling world.
+
+Reservation-with-confirmation is the most interesting for your goals because it puts imperfect-knowledge handling at the point where it matters — cross-entity coordination — and uses the command/event infrastructure you already have to mediate it. The kernel doesn't need to understand A's goals; it just enforces reservation conflicts.
+
+**Plan length is a function of verb scarcity, not entity ambition.** Limited verbs means low branching factor — you're not searching a deep tree. But chain length is still substantial because each verb has spatial setup cost (move → arrive → check → coordinate → act → move). This is more like a shortest-path-through-action-states problem than a classical planning problem. A\* over `(position × action_state × world_facts)` is often sufficient, and that's effectively what GOAP does once you look at it.
+
+The shape that fits your description is roughly:
+
+```
+HTN-like decomposition for macro intent (go trade)
+   ↓
+A* over (position × action × world facts) for plan body
+   ↓
+Reservation/coordination commands for cross-entity dependencies
+   ↓
+Reactive replan triggers on rejection or precondition failure
+```
+
+This is heavier than I implied. It's also where the staleness framing earns its keep.
+
+**On staleness at this tier specifically.** For pure self-plans (move-eat, move-repair-self) 1–3 ticks is fine; the world doesn't change much in 3 ticks for those. For coordination plans (trade with B, recruit from settlement S) staleness is exactly where it bites — B may have committed elsewhere, S may have just been raided. The reservation pattern absorbs this without turning every planner into a pessimist: A optimistically reserves, the kernel arbitrates, A replans on rejection. Walk-and-arrive-and-find-B-gone is the same failure mode handled the same way.
+
+**Prior art that actually matters here, not the strategic tier:**
+
+- *DF fortress mode job system* — job board, skill-weighted claiming, movement-bound execution. The closest match for "limited verbs + entity dependencies + movement-heavy."
+- *The Sims object-affordance model* — objects advertise actions, Sims select by utility. Maps onto "verbs are afforded by entities, not chosen abstractly."
+- *Multi-robot task allocation literature* — Gerkey and Matarić's taxonomy paper places coordination problems by single/multi-task and single/multi-agent. Your trade and recruit cases sit in different cells; worth knowing which.
+- *TAMP* — Garrett et al's integrated task-and-motion-planning survey. You won't implement the algorithms, but the framing of "task and motion are inseparable" is the one thing process planning here shares with robotics and not with most game AI.
+
+The hot take: pure F.E.A.R.-style GOAP is probably too thin because it doesn't model entity-as-precondition well. HTN is closer but assumes more central control than you want. What you're sliding toward, whether you've named it or not, is **utility-driven action selection + A\* over action-states + reservation-mediated coordination**. That's its own pattern, and DF fortress mode is what it looks like once you squint. Worth committing to it explicitly rather than discovering it accidentally through GOAP-with-extra-bits.

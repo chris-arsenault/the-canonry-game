@@ -110,7 +110,7 @@ public static class RelationshipTraversalDirectionCodes
     public const int Incoming = 2;
 }
 
-public static class PlannerEffectScopeCodes
+public static class ProcessEffectScopeCodes
 {
     public const int SelfAttribute = 1;
     public const int TargetAttribute = 2;
@@ -119,7 +119,7 @@ public static class PlannerEffectScopeCodes
     public const int Relational = 5;
 }
 
-public static class PlannerDemandCodes
+public static class ProcessObjectiveUrgencyCodes
 {
     public const int StandardNeed = 1;
     public const int Baseline = 2;
@@ -127,7 +127,7 @@ public static class PlannerDemandCodes
     public const int Fixed = 4;
 }
 
-public static class PlannerProviderSelectorCodes
+public static class ProcessProviderSelectorCodes
 {
     public const int TargetAttribute = 1;
     public const int Structural = 2;
@@ -162,7 +162,7 @@ public static class GeneratorPlacementCodes
     public const int On = 1;
     public const int Near = 2;
     public const int Across = 3;
-    public const int InRegionLocality = 4;
+    public const int InCoverageLocality = 4;
 }
 
 public static class GeneratorCultureMatchCodes
@@ -189,15 +189,27 @@ public static class GeneratorCoverageModeCodes
 
 public static class PressureScopeCodes
 {
-    public const int Regional = 1;
+    public const int Coverage = 1;
     public const int Entity = 2;
 }
 
-public static class DegeneracyOperationCodes
+public static class DegeneracyMetricCodes
 {
-    public const int DecliningAttributeRatio = 1;
-    public const int RelationshipDominanceRatio = 2;
-    public const int ActiveKindCountBelow = 3;
+    public const int AttributeDeclineRatio = 1;
+    public const int RelationshipEndpointDominanceRatio = 2;
+    public const int ActiveKindCount = 3;
+}
+
+public static class DegeneracyThresholdDirectionCodes
+{
+    public const int HighIsBad = 1;
+    public const int LowIsBad = 2;
+}
+
+public static class DegeneracyRelationshipEndpointCodes
+{
+    public const int Source = 1;
+    public const int Target = 2;
 }
 
 public static class DegeneracySeverityCodes

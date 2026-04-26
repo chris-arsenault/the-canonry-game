@@ -6,8 +6,7 @@ using System.Text;
 
 using Godot;
 
-using Engine.Graph;
-using Engine.Simulation;
+using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -27,8 +26,9 @@ public partial class EntityCard : PanelContainer
     private const float ResizeGripSize = 24f;
     private const double BottomStickThreshold = 160d;
 
-    private SimulationRunner? _sim;
-    private EntityId _entityId;
+    private UiProjectionState? _projection;
+    private IProjectionSymbolCatalog? _symbols;
+    private int _entityId;
     private RichTextLabel? _content;
     private VBoxContainer? _body;
     private Label? _titleLabel;
@@ -46,11 +46,16 @@ public partial class EntityCard : PanelContainer
     [Signal]
     public delegate void CardClosedEventHandler(EntityCard card);
 
-    public EntityId EntityId => _entityId;
+    public int EntityId => _entityId;
 
-    public void Initialize(SimulationRunner sim, EntityId entityId, Vector2 position)
+    public void Initialize(
+        UiProjectionState? projection,
+        IProjectionSymbolCatalog? symbols,
+        int entityId,
+        Vector2 position)
     {
-        _sim = sim;
+        _projection = projection;
+        _symbols = symbols;
         _entityId = entityId;
         Position = position;
     }
@@ -200,17 +205,18 @@ public partial class EntityCard : PanelContainer
 
     public void Refresh()
     {
-        if (_sim is null || _content is null || _titleLabel is null) return;
+        if (_projection is null || _content is null || _titleLabel is null) return;
 
-        var entity = _sim.Graph.GetEntity(_entityId);
-        if (entity is null)
+        if (!_projection.Entities.TryGetValue(_entityId, out var entity))
         {
             _titleLabel.Text = "Entity not found";
             _content.Text = "";
             return;
         }
 
-        _titleLabel.Text = $"{entity.Name}  ·  {entity.Kind}";
+        var entityName = ResolveEntityName(entity);
+        var kindName = ResolveDisplayName(ProjectionSymbolKind.Kind, entity.KindId, $"Kind {entity.KindId}");
+        _titleLabel.Text = $"{entityName}  ·  {kindName}";
         if (_collapsed) return; // Don't rebuild body when collapsed
 
         CaptureScrollAnchor();
@@ -221,119 +227,61 @@ public partial class EntityCard : PanelContainer
         // coordinates and age in mono for tabular legibility.
         var secondary = ColorTag(UiTokens.Parchment);
         var whisper = ColorTag(UiTokens.Whisper);
-        sb.AppendLine($"[color={secondary}]{entity.Subtype}  ·  {entity.Culture}  ·  {entity.Status}[/color]");
-        sb.AppendLine($"[code][color={whisper}]({entity.Coordinates.Q}, {entity.Coordinates.R})  ·  age {_sim.Clock.CurrentTick - entity.CreatedAt}t[/color][/code]");
+        var subtype = ResolveDisplayName(ProjectionSymbolKind.Subtype, entity.SubtypeId, $"Subtype {entity.SubtypeId}");
+        var culture = ResolveDisplayName(ProjectionSymbolKind.Culture, entity.CultureId, $"Culture {entity.CultureId}");
+        var status = entity.StatusCode == UiProjectionStatusCodes.Active ? "Active" : "Historical";
+        sb.AppendLine($"[color={secondary}]{subtype}  ·  {culture}  ·  {status}[/color]");
+        var currentTick = _projection?.CurrentTick ?? 0;
+        var createdTick = entity.CreatedTick ?? 0;
+        sb.AppendLine($"[code][color={whisper}]({entity.PhysicalQ}, {entity.PhysicalR})  ·  age {currentTick - createdTick}t[/color][/code]");
 
         sb.AppendLine();
 
-        // Goals
-        sb.AppendLine(SectionHeader("Goals"));
-        if (entity.Goals.Count == 0)
-        {
-            sb.AppendLine($"  [color={whisper}]— no goals —[/color]");
-        }
-        else
-        {
-            foreach (var goal in entity.Goals)
-            {
-                var providerName = goal.TargetEntityId == entity.Id ? "self" :
-                    (_sim.Graph.GetEntity(goal.TargetEntityId)?.Name ?? goal.TargetEntityId.ToString());
-                var prefix = goal.IsSubGoal ? "  ↳ " : "  ";
-                var stateColor = goal.IsActionable ? ColorTag(UiTokens.Aurora) : ColorTag(UiTokens.Ember);
-                var state = goal.IsActionable ? "next" : "blocked";
-                var attr = goal.IsSubGoal
-                    ? $"unblock {DescribeGoalEffect(goal.DesiredEffect)}"
-                    : DescribeGoalEffect(goal.DesiredEffect);
-                sb.AppendLine($"{prefix}[b]{attr}[/b] via {providerName}  [color={stateColor}]{state}[/color]  [color={whisper}]u {goal.Urgency:F2}[/color]");
-            }
-        }
-
-        sb.AppendLine();
-
-        // Action History (frequency)
-        sb.AppendLine(SectionHeader("Recent Actions"));
-        if (entity.ActionHistory.Count > 0)
-        {
-            var counts = new Dictionary<Engine.Processes.ProcessRuntimeId, int>();
-            foreach (var (_, processId) in entity.ActionHistory)
-            {
-                counts.TryGetValue(processId, out var c);
-                counts[processId] = c + 1;
-            }
-
-            foreach (var (processId, count) in counts.OrderByDescending(kv => kv.Value))
-            {
-                var name = ProcessName(processId);
-                var bar = new string('▌', System.Math.Min(count, 20));
-                sb.AppendLine($"  {name}: {count} [color={ColorTag(UiTokens.Whisper)}]{bar}[/color]");
-            }
-
-            if (!entity.LastActionProcessId.IsNone)
-            {
-                sb.AppendLine($"  [i][color={whisper}]Last: {ProcessName(entity.LastActionProcessId)} @ t{entity.LastActionTick}[/color][/i]");
-            }
-        }
-        else
-        {
-            sb.AppendLine($"  [color={whisper}]— none —[/color]");
-        }
+        sb.AppendLine(SectionHeader("Seed State"));
+        AppendSeedMetric(sb, "population", entity.SeedPopulation, whisper);
+        AppendSeedMetric(sb, "integrity", entity.SeedIntegrity, whisper);
+        AppendSeedMetric(sb, "projection", entity.SeedProjection, whisper);
+        AppendSeedMetric(sb, "cohesion", entity.SeedCohesion, whisper);
+        AppendSeedMetric(sb, "reach", entity.SeedReach, whisper);
+        AppendSeedMetric(sb, "provisions", entity.SeedProvisions, whisper);
+        AppendSeedMetric(sb, "vitality", entity.SeedVitality, whisper);
+        AppendSeedMetric(sb, "agency", entity.SeedAgency, whisper);
+        AppendSeedMetric(sb, "memory", entity.SeedMemory, whisper);
+        AppendSeedMetric(sb, "potency", entity.SeedPotency, whisper);
+        AppendSeedMetric(sb, "notoriety", entity.SeedNotoriety, whisper);
 
         sb.AppendLine();
 
         // Attributes
         sb.AppendLine(SectionHeader("Attributes"));
-        foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
+        if (entity.Attributes.Count == 0)
         {
-            if (attr is Engine.Attributes.ScalarValue scalar)
-            {
-                var effectInfo = "";
-                if (scalar.TickEffects.Count > 0)
-                {
-                    var tickDelta = scalar.TickEffects.Where(e => !e.IsMultiplier).Sum(e => e.Value);
-                    if (System.Math.Abs(tickDelta) > 0.001f)
-                        effectInfo = $" [color={whisper}]({tickDelta:+0.##;-0.##}/tick)[/color]";
-                }
-
-                sb.AppendLine($"  {scalar.Name}: [b]{scalar.Value:F1}[/b]{effectInfo}");
-            }
+            sb.AppendLine($"  [color={whisper}]— no attribute events —[/color]");
         }
-
-        sb.AppendLine();
-
-        // Active Effects (tick + static, per attribute)
-        var hasEffects = false;
-        foreach (var attr in entity.Attributes.All.OrderBy(a => a.Name, System.StringComparer.Ordinal))
+        else
         {
-            void ShowEffects(string label, IReadOnlyList<Engine.Attributes.AttributeEffect> effects, string suffix)
+            foreach (var attr in entity.Attributes.Values.OrderBy(attr => attr.AttributeId))
             {
-                foreach (var effect in effects)
-                {
-                    if (!hasEffects) { sb.AppendLine(SectionHeader("Active Effects")); hasEffects = true; }
-                    var sign = effect.Value >= 0 ? "+" : "";
-                    var kind = effect.IsMultiplier ? "×" : "";
-                    sb.AppendLine($"  {label}: {kind}{sign}{effect.Value:F3}{suffix} [color={whisper}]{effect.Description}[/color]");
-                }
+                var name = ResolveDisplayName(
+                    ProjectionSymbolKind.Attribute,
+                    attr.AttributeId,
+                    $"Attribute {attr.AttributeId}");
+                sb.AppendLine($"  {name}: [b]{attr.NewValue:F1}[/b] [color={whisper}]from {attr.OldValue:F1}[/color]");
             }
-
-            if (attr is Engine.Attributes.ScalarValue scalar)
-            {
-                ShowEffects(scalar.Name, scalar.TickEffects, "/tick");
-                ShowEffects(scalar.Name, scalar.StaticEffects, "");
-            }
-        }
-
-        if (!hasEffects)
-        {
-            sb.AppendLine(SectionHeader("Active Effects"));
-            sb.AppendLine($"  [color={whisper}]— none —[/color]");
         }
 
         sb.AppendLine();
 
         // Relationships
         sb.AppendLine(SectionHeader("Relationships"));
-        var outgoing = _sim.Graph.OutgoingRelationships(_entityId).ToList();
-        var incoming = _sim.Graph.IncomingRelationships(_entityId).ToList();
+        var outgoing = _projection.Relationships.Values
+            .Where(rel => rel.Key.SourceEntityId == _entityId && rel.IsActive)
+            .OrderBy(rel => rel.Key.TargetEntityId)
+            .ToArray();
+        var incoming = _projection.Relationships.Values
+            .Where(rel => rel.Key.TargetEntityId == _entityId && rel.IsActive)
+            .OrderBy(rel => rel.Key.SourceEntityId)
+            .ToArray();
 
         if (outgoing.Count == 0 && incoming.Count == 0)
         {
@@ -342,53 +290,56 @@ public partial class EntityCard : PanelContainer
 
         foreach (var rel in outgoing)
         {
-            var targetName = _sim.Graph.GetEntity(rel.TargetId)?.Name ?? rel.TargetId.ToString();
-            sb.AppendLine($"  → {rel.Kind} → {targetName} [color={whisper}]({rel.Strength:F2})[/color]");
+            var targetName = ResolveEntityName(rel.Key.TargetEntityId);
+            var relationshipName = ResolveDisplayName(
+                ProjectionSymbolKind.RelationshipKind,
+                rel.Key.RelationshipKindId,
+                $"Relationship {rel.Key.RelationshipKindId}");
+            sb.AppendLine($"  → {relationshipName} → {targetName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
 
         foreach (var rel in incoming)
         {
-            var sourceName = _sim.Graph.GetEntity(rel.SourceId)?.Name ?? rel.SourceId.ToString();
-            sb.AppendLine($"  ← {rel.Kind} ← {sourceName} [color={whisper}]({rel.Strength:F2})[/color]");
+            var sourceName = ResolveEntityName(rel.Key.SourceEntityId);
+            var relationshipName = ResolveDisplayName(
+                ProjectionSymbolKind.RelationshipKind,
+                rel.Key.RelationshipKindId,
+                $"Relationship {rel.Key.RelationshipKindId}");
+            sb.AppendLine($"  ← {relationshipName} ← {sourceName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
 
-        // Evaluation Report (engine-produced, read-only)
         sb.AppendLine(SectionHeader("Processes"));
-        var report = entity.LastEvaluation;
-        if (report is null)
+        if (entity.LastProcessEvaluation is null &&
+            entity.LastProcessExecution is null &&
+            entity.LastGoalGeneration is null &&
+            entity.LastDecisionExecution is null)
         {
-            sb.AppendLine($"  [color={whisper}]— no evaluation data —[/color]");
+            sb.AppendLine($"  [color={whisper}]— no process events —[/color]");
         }
         else
         {
-            if (!string.IsNullOrWhiteSpace(report.StatusNote) && (report.IsStale || report.Candidates.Count == 0))
+            if (entity.LastGoalGeneration is { } goals)
             {
-                sb.AppendLine($"  [i][color={whisper}]{FormatReportStatus(report, _sim.Clock.CurrentTick)}[/color][/i]");
+                sb.AppendLine($"  goals generated: {goals.GoalCount} [color={whisper}]actionable {goals.ActionableGoalCount} @ t{goals.Tick}[/color]");
             }
 
-            if (report.Candidates.Count == 0)
+            if (entity.LastProcessEvaluation is { } evaluation)
             {
-                if (string.IsNullOrWhiteSpace(report.StatusNote))
-                {
-                    sb.AppendLine($"  [color={whisper}]— no evaluation data —[/color]");
-                }
+                var selectedGoal = ResolveDisplayName(ProjectionSymbolKind.Goal, evaluation.SelectedGoalId, $"Goal {evaluation.SelectedGoalId}");
+                var process = ResolveDisplayName(ProjectionSymbolKind.Process, evaluation.ExecutedProcessId, $"Process {evaluation.ExecutedProcessId}");
+                sb.AppendLine($"  evaluated: {selectedGoal} / {process} [color={whisper}]candidates {evaluation.CandidateCount} @ t{evaluation.Tick}[/color]");
             }
 
-            foreach (var candidate in report.Candidates)
+            if (entity.LastProcessExecution is { } execution)
             {
-                var statusColor = candidate.WasSelected
-                    ? ColorTag(UiTokens.Ember)
-                    : candidate.PreconditionPassed
-                        ? ColorTag(UiTokens.Aurora)
-                        : ColorTag(UiTokens.Blood);
-                var statusIcon = candidate.WasSelected ? "★"
-                    : candidate.PreconditionPassed ? "✓" : "✗";
-                var providerName = _sim.Graph.GetEntity(candidate.ProviderId)?.Name ?? candidate.ProviderId.ToString();
-                sb.AppendLine($"  [color={statusColor}]{statusIcon}[/color] {ProcessName(candidate.ProcessId)} → {providerName}  [color={whisper}]score {candidate.Score:F3}[/color]");
-                if (!candidate.PreconditionPassed)
-                {
-                    sb.AppendLine($"    [color={whisper}]{candidate.PreconditionDiagnostic}[/color]");
-                }
+                var process = ResolveDisplayName(ProjectionSymbolKind.Process, execution.ProcessId, $"Process {execution.ProcessId}");
+                sb.AppendLine($"  executed: {process} [color={whisper}]affected {execution.AffectedEntityCount} @ t{execution.Tick}[/color]");
+            }
+
+            if (entity.LastDecisionExecution is { } decision)
+            {
+                var decisionName = ResolveDisplayName(ProjectionSymbolKind.Decision, decision.DecisionId, $"Decision {decision.DecisionId}");
+                sb.AppendLine($"  decision: {decisionName} [color={whisper}]card {decision.CardId} @ t{decision.Tick}[/color]");
             }
         }
 
@@ -402,30 +353,42 @@ public partial class EntityCard : PanelContainer
         return $"\n[color={caption}]{title.ToUpperInvariant()}[/color]";
     }
 
-    private string ProcessName(Engine.Processes.ProcessRuntimeId processId)
+    private static void AppendSeedMetric(StringBuilder sb, string label, float value, string whisper)
     {
-        if (_sim is null || processId.IsNone)
+        if (System.Math.Abs(value) <= 0.0001f)
         {
-            return string.Empty;
+            return;
         }
 
-        return _sim.BehaviorDefinitions.TryGetDefinition(processId, out var definition) &&
-               definition is not null
-            ? definition.Name
-            : processId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        sb.AppendLine($"  {label}: [b]{value:F2}[/b] [color={whisper}]seed[/color]");
     }
+
+    private string ResolveEntityName(UiEntityProjection entity) =>
+        _symbols?.ResolveEntityName(
+            new ProjectionEntityNameKey(
+                entity.EntityId,
+                entity.KindId,
+                entity.SubtypeId,
+                entity.CultureId,
+                entity.NameSeed),
+            $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
+
+    private string ResolveEntityName(int entityId)
+    {
+        if (_projection?.Entities.TryGetValue(entityId, out var entity) == true)
+        {
+            return ResolveEntityName(entity);
+        }
+
+        return $"E{entityId}";
+    }
+
+    private string ResolveDisplayName(ProjectionSymbolKind kind, int id, string fallback) =>
+        id > 0
+            ? _symbols?.ResolveDisplayName(kind, id, fallback) ?? fallback
+            : "none";
 
     private static string ColorTag(Color color) => Main.ColorHex(color);
-
-    private static string DescribeGoalEffect(Engine.Wiring.AttributeRef effect)
-    {
-        return effect.Scope switch
-        {
-            Engine.Wiring.RefScope.Self => effect.Name,
-            Engine.Wiring.RefScope.Target => $"target.{effect.Name}",
-            _ => effect.ToString(),
-        };
-    }
 
     private void OnCollapsePressed()
     {
@@ -441,38 +404,12 @@ public partial class EntityCard : PanelContainer
 
     private void OnCopyPressed()
     {
-        if (_sim is null || _content is null)
+        if (_content is null)
         {
             return;
         }
 
-        var entity = _sim.Graph.GetEntity(_entityId);
-        if (entity is null)
-        {
-            return;
-        }
-
-        DisplayServer.ClipboardSet(BuildClipboardText(entity, _content.Text));
-    }
-
-    private static string BuildClipboardText(Entity entity, string visibleText)
-    {
-        _ = entity;
-        return visibleText;
-    }
-
-    private static string FormatReportStatus(EvaluationReport report, int currentTick)
-    {
-        if (!report.IsStale)
-        {
-            return report.StatusNote ?? string.Empty;
-        }
-
-        var age = System.Math.Max(0, currentTick - report.SourceTick);
-        var prefix = age == 1 ? "stale by 1 tick" : $"stale by {age} ticks";
-        return string.IsNullOrWhiteSpace(report.StatusNote)
-            ? prefix
-            : $"{prefix}: {report.StatusNote}";
+        DisplayServer.ClipboardSet(_content.Text);
     }
 
     private void CaptureScrollAnchor()

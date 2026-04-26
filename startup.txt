@@ -1,0 +1,90 @@
+---
+
+# Hex map seeding — proposal (revised)
+
+## Resolution
+
+Per-kind seed events emitted into the live event ring at boot, before tick 1. No durable startup frame, no separate map store, no snapshot-as-source-of-truth.
+
+## Boot sequence
+
+```
+1. Construct kernel with empty entity store.
+2. Wire all consumers; subscribe their cursors at tick 0.
+3. Procgen produces seed data for hexes and other entities.
+4. Kernel emits seed events into the ring.
+5. Consumers drain seed events and hydrate their projections.
+6. Kernel begins tick advancement.
+```
+
+The single invariant: **consumers subscribe before the kernel emits.** Enforced by boot-time assertion. No other startup machinery exists.
+
+The earlier durable startup frame was justified by the possibility of late-attaching projections. That is not a real requirement for this system — all consumers are wired at host boot and the ring is empty when they attach. If session save/load is ever needed, that's a snapshot problem, not a startup-frame problem.
+
+Ring sizing must comfortably hold the seed burst plus several ticks of headroom so a slow consumer cannot drop tick-0 events. ~1000 hex seed events plus seed events for other entity kinds is sub-megabyte; trivially provisioned.
+
+## Event shape: per-kind, fully-specified
+
+Seeding is materialization of a fully-formed entity, not a sequence of changes to existing state. The event shape matches that semantics: one event per entity, fully-specified payload.
+
+```
+HexSeeded(HexId, q, r, terrain_id, region_id,
+          ambient_food, ambient_wealth, ambient_population, ...)
+
+NpcSeeded(NpcId, ...all NPC fields...)
+FactionSeeded(FactionId, ...all faction fields...)
+SettlementSeeded(SettlementId, ...all settlement fields...)
+ArtifactSeeded(ArtifactId, ...all artifact fields...)
+RegionSeeded(RegionId, ...all region fields...)
+```
+
+Relationships flow separately as `RelationshipCreated(src, type, dst)` — relationships are inherently per-edge and don't compose into the entity payload.
+
+### Why not per-attribute
+
+Per-attribute seeding (`EntityCreated` + N × `AttributeInitialized`) was considered and rejected:
+
+- 9× the event count, with each entity's seed state scattered across multiple events.
+- Atomicity blur: a hex appears to exist before its attributes are set; projections see transient incoherent states.
+- The "schema reuse with runtime mutations" argument was wrong. Runtime mutations are typed (`TerrainChanged`, `AmbientShifted`), not generic `AttributeChanged`. There was no shared vocabulary to preserve.
+- Ordering hazards if seeding ever parallelizes per-entity.
+
+Per-attribute remains available for any future entity kind where seed data is genuinely sparse and most attributes are absent at gen time. None of the current kinds are in that category.
+
+### Two vocabularies is correct
+
+Seeding and runtime mutation are different operations and should look different in projection code. `OnHexSeeded` does a full insert; `OnTerrainChanged` does a targeted update. The handlers diverge because the operations diverge.
+
+## Map structure
+
+| Category | Examples | Where it lives |
+|---|---|---|
+| Hex topology | Which (q,r) cells exist | Hex entities in the entity graph |
+| Hex content | terrain_id, region_id, ambient stocks, ownership, features | Fields on the Hex entity |
+| Surface adjacency | Six-neighbor lookup | Derived spatial index from (q,r), built at hydration time |
+
+The set of hexes is the set of Hex entities. There is no parallel `MapTopology` artifact and no separate map store. Adjacency is a query against a derived index, not seeded relationships — storing six edges per hex would be redundant duplication of coordinate data.
+
+Surface adjacency is built when a projection processes its `HexSeeded` events, not stored in the kernel.
+
+## Runtime mutability
+
+Hex content changes (terrain shift, region rezoning, ambient stock changes) flow as their normal typed runtime events. There is no special map-mutation event type and no blurring between seed and runtime paths.
+
+The hex topology itself is fixed at gen time for the current design.
+
+## Schema commitments
+
+Two cheap commitments to make now:
+
+1. **Hex coordinates are stored as a structured tuple, not a flat key.** Schema extension does not require migration.
+2. **Surface adjacency is queried through an interface, not a direct array reference.** Implementation today is a single frozen index built at hydration. The interface is the seam for any future indexing scheme.
+
+## Summary
+
+- Per-kind seed events with fully-specified payloads, one event per entity.
+- Emitted into the live ring at boot, after consumers subscribe and before tick 1.
+- No durable startup frame, no separate map store, no snapshot machinery.
+- Hex topology lives in the entity graph as Hex entities; surface adjacency is a derived index.
+- Runtime hex content mutations use existing typed runtime events. No new map-mutation vocabulary.
+- Boot-ordering invariant (subscribe before emit) is the entire startup mechanism.

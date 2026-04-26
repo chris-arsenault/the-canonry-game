@@ -4,7 +4,7 @@ using Engine.Attributes;
 using Engine.Behaviors;
 using Engine.Domain;
 using Engine.Domain.Config;
-using Engine.Domain.Loader;
+using Engine.Domain.Compilation;
 using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
@@ -107,7 +107,7 @@ public class EntityEvaluatorTests
         var executed = executedEvent.Event.AsProcessExecuted();
         Assert.Equal(7, executed.Tick);
         Assert.Equal(self.Id.Value, executed.ActorId);
-        Assert.Equal(self.Kind.Id, executed.ActorKindId);
+        Assert.Equal(TestDomainIds.KindIdOf(self.Kind).Value, executed.ActorKindId);
         Assert.Equal(grow.RuntimeId.Value, executed.ProcessId);
         Assert.Equal(KernelEventState.Succeeded, executed.State);
 
@@ -872,8 +872,9 @@ public class EntityEvaluatorTests
     private static DomainIdRegistry CreateTestDomainIds()
     {
         var ids = new DomainIdRegistry();
-        ids.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
-        ids.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        ids.RegisterKind(TestKinds.Settlement);
+        ids.RegisterSourceCode(DomainRuntimeNames.ProcessSourceCode);
+        ids.RegisterSourceCode(DomainRuntimeNames.CardSourceCode);
         ids.RegisterAttribute("population");
         ids.RegisterAttribute("fame");
         ids.RegisterAttribute("sustenance");

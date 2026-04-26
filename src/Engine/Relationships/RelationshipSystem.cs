@@ -5,7 +5,7 @@ using Engine.Kinds;
 
 /// <summary>
 /// Per-tick processing of all active relationships: applies strength modifiers,
-/// culls relationships below threshold. Registers with TickClock at LowAltitude phase.
+/// culls relationships below threshold.
 /// </summary>
 public sealed class RelationshipSystem
 {

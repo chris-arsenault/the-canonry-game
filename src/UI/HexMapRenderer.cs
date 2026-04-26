@@ -4,11 +4,7 @@ using System.Linq;
 
 using Godot;
 
-using Engine.Domain.IceRemembers;
-using Engine.Graph;
-using Engine.Kinds;
-using Engine.Map;
-using Engine.Simulation;
+using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -31,7 +27,9 @@ public enum PlaneMode
 /// </summary>
 public partial class HexMapRenderer : Node2D
 {
-    private SimulationRunner? _sim;
+    private HexMapProjection? _map;
+    private UiProjectionState? _entities;
+    private IProjectionSymbolCatalog? _symbols;
 
     /// <summary>Pixel size of each hex cell (outer radius).</summary>
     [Export] public float HexSize { get; set; } = 30f;
@@ -48,18 +46,23 @@ public partial class HexMapRenderer : Node2D
     /// <summary>Which plane is rendered. Physical = map hex grid; Semantic = autonomy/resonance/tradition.</summary>
     public PlaneMode CurrentPlane { get; set; } = PlaneMode.Physical;
 
-    public void Initialize(SimulationRunner sim)
+    public void Initialize(
+        HexMapProjection map,
+        UiProjectionState entities,
+        IProjectionSymbolCatalog? symbols)
     {
-        _sim = sim;
+        _map = map;
+        _entities = entities;
+        _symbols = symbols;
     }
 
     public override void _Draw()
     {
-        if (_sim is null) return;
+        if (_map is null || _entities is null) return;
 
         if (CurrentPlane == PlaneMode.Physical)
         {
-            foreach (var cell in _sim.Grid.AllCells)
+            foreach (var cell in _map.HexesById.Values.OrderBy(hex => hex.HexId))
             {
                 DrawPhysicalHexCell(cell);
             }
@@ -95,7 +98,7 @@ public partial class HexMapRenderer : Node2D
 
     public HexCoord? GetHexAtWorldPosition(Vector2 worldPos)
     {
-        if (_sim is null)
+        if (_map is null)
         {
             return null;
         }
@@ -103,8 +106,8 @@ public partial class HexMapRenderer : Node2D
         HexCoord? nearest = null;
         var nearestDist = HexSize;
         var coords = CurrentPlane == PlaneMode.Physical
-            ? _sim.Grid.AllCells.Select(c => c.Coord)
-            : HexCoord.CoordsInRadius(new HexCoord(0, 0), _sim.Grid.Radius);
+            ? _map.HexIdsByCoord.Keys
+            : HexCoord.CoordsInRadius(new HexCoord(0, 0), _map.MapRadius);
 
         foreach (var coord in coords)
         {
@@ -120,18 +123,19 @@ public partial class HexMapRenderer : Node2D
     }
 
     /// <summary>Returns the entity's position in the currently rendered plane as a HexCoord.</summary>
-    public HexCoord EntityCoordForCurrentPlane(Entity entity)
+    public HexCoord EntityCoordForCurrentPlane(UiEntityProjection entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
         return CurrentPlane == PlaneMode.Physical
-            ? new HexCoord(entity.Coordinates.Q, entity.Coordinates.R)
-            : new HexCoord(entity.SemanticPosition.Q, entity.SemanticPosition.R);
+            ? new HexCoord(entity.PhysicalQ, entity.PhysicalR)
+            : new HexCoord(entity.SemanticQ, entity.SemanticR);
     }
 
-    private void DrawPhysicalHexCell(HexCell cell)
+    private void DrawPhysicalHexCell(HexProjection cell)
     {
         var center = HexToPixel(cell.Coord);
-        var color = GetTerrainColor(cell.Terrain);
+        var terrainStableName = ResolveStableName(ProjectionSymbolKind.Terrain, cell.TerrainId, $"Terrain {cell.TerrainId}");
+        var color = UiTokens.TerrainColor(terrainStableName);
         var points = GetHexPoints(center);
 
         // Illustrated terrain tile if the asset loaded; colored polygon
@@ -139,7 +143,7 @@ public partial class HexMapRenderer : Node2D
         // UVs for clip-masking a tile into the hex shape. The texture's
         // hex-masked alpha already matches our hex, so the UVs just scale
         // the texture to fit.
-        var tile = AssetLibrary.Terrain(cell.Terrain);
+        var tile = AssetLibrary.Terrain(terrainStableName);
         if (tile is not null)
         {
             // Build UVs that map each hex vertex to the corresponding point
@@ -164,7 +168,7 @@ public partial class HexMapRenderer : Node2D
 
     private void DrawSemanticGrid()
     {
-        if (_sim is null) return;
+        if (_map is null) return;
 
         // Rose renders first as the background — the Semantic plane IS the
         // rose window. The hex grid overlays on top of it as the coordinate
@@ -175,7 +179,7 @@ public partial class HexMapRenderer : Node2D
         // jewel-tone glass: a thick dark underlayer provides the "shadow",
         // a thinner light stroke provides the "line". This same trick keeps
         // axis highlights legible against both bright and dark glass panels.
-        var radius = _sim.Grid.Radius;
+        var radius = _map.MapRadius;
         var haloColor = UiTokens.Basalt;
         var lineColor = UiTokens.Whisper;
         var axisColor = UiTokens.Ember;
@@ -213,7 +217,7 @@ public partial class HexMapRenderer : Node2D
     /// </summary>
     private void DrawSemanticRoseWindow()
     {
-        if (_sim is null) return;
+        if (_map is null) return;
 
         var panes = new[]
         {
@@ -235,7 +239,7 @@ public partial class HexMapRenderer : Node2D
         // stack at √3 stride horizontally), so this puts the rose's
         // outermost vertex at the edge of the visible grid.
         var center = HexToPixel(new HexCoord(0, 0));
-        var roseRadius = HexSize * (_sim.Grid.Radius + 1) * Mathf.Sqrt(3f);
+        var roseRadius = HexSize * (_map.MapRadius + 1) * Mathf.Sqrt(3f);
         var verts = new Vector2[6];
         for (var i = 0; i < 6; i++)
         {
@@ -274,56 +278,32 @@ public partial class HexMapRenderer : Node2D
 
     private void DrawTerritoryOverlay()
     {
-        if (_sim is null) return;
+        if (_map is null) return;
 
-        var factionColors = AssignFactionColors();
+        var ownerColors = AssignOwnerColors();
 
-        // Factions manifest through relationships (controlled_by, member_of, ...).
-        // Rather than hardcoding a whitelist of relationship kinds, we shade any hex whose
-        // resident entity has an outgoing relationship to a Faction-kind target.
-        // Dominant-by-strength per hex: if two entities on one hex point at different factions,
-        // the stronger relationship wins. Multi-faction disputes belong on the detail card,
-        // not the map — shading stays readable at a glance.
-        var hexFaction = new Dictionary<HexCoord, (EntityId FactionId, float Strength)>();
-
-        foreach (var (entityId, entity) in _sim.Graph.AllEntities)
+        foreach (var hex in _map.HexesById.Values)
         {
-            if (entity.Status != EntityStatus.Active) continue;
-
-            foreach (var rel in _sim.Graph.OutgoingRelationships(entityId))
+            if (hex.OwnerEntityId <= 0 || !ownerColors.TryGetValue(hex.OwnerEntityId, out var ownerColor))
             {
-                var target = _sim.Graph.GetEntity(rel.TargetId);
-                if (target?.Kind != IceRemembersKinds.Faction) continue;
-
-                var coord = new HexCoord(entity.Coordinates.Q, entity.Coordinates.R);
-                if (!hexFaction.TryGetValue(coord, out var current) || rel.Strength > current.Strength)
-                {
-                    hexFaction[coord] = (rel.TargetId, rel.Strength);
-                }
+                continue;
             }
-        }
 
-        foreach (var (coord, (factionId, strength)) in hexFaction)
-        {
-            if (!factionColors.TryGetValue(factionId, out var factionColor)) continue;
-
-            var center = HexToPixel(coord);
+            var center = HexToPixel(hex.Coord);
             var points = GetHexPoints(center, HexSize * 0.85f);
-            var alpha = Mathf.Clamp(0.25f + strength * 0.3f, 0.25f, 0.55f);
-            DrawColoredPolygon(points, new Color(factionColor, alpha));
+            DrawColoredPolygon(points, new Color(ownerColor, 0.36f));
         }
     }
 
     private void DrawRegionBorders()
     {
-        if (_sim is null) return;
+        if (_map is null) return;
 
         var borderColor = UiTokens.Ink;
         const float borderWidth = 2.5f;
 
-        foreach (var cell in _sim.Grid.AllCells)
+        foreach (var cell in _map.HexesById.Values)
         {
-            var region = _sim.CoverageMap.GetCoverageForCell(cell.Coord);
             var center = HexToPixel(cell.Coord);
             var points = GetHexPoints(center);
 
@@ -333,13 +313,11 @@ public partial class HexMapRenderer : Node2D
 
                 // Canonicalize: only draw each shared edge once. For edges against
                 // cells outside the grid, always draw (no duplicate partner to handle).
-                if (_sim.Grid.ContainsCoord(neighborCoord))
+                if (_map.TryGetHex(neighborCoord, out var neighbor))
                 {
                     if (!IsCanonicalEdgeOwner(cell.Coord, neighborCoord)) continue;
+                    if (cell.RegionId == neighbor.RegionId) continue;
                 }
-
-                var neighborRegion = _sim.CoverageMap.GetCoverageForCell(neighborCoord);
-                if (ReferenceEquals(region, neighborRegion)) continue;
 
                 // Edge `d` (direction index) sits between hex vertices (6-d)%6 and (7-d)%6.
                 // See HexCoord.Directions vs GetHexPoints vertex ordering.
@@ -359,7 +337,7 @@ public partial class HexMapRenderer : Node2D
 
     private void DrawEntityMarkers()
     {
-        if (_sim is null) return;
+        if (_entities is null) return;
 
         var font = UiTheme.BodyFont;
 
@@ -367,9 +345,9 @@ public partial class HexMapRenderer : Node2D
         // glyphs remain visible instead of stacking on top of each other.
         var offsetsByHex = new Dictionary<HexCoord, int>();
 
-        foreach (var (entityId, entity) in _sim.Graph.AllEntities)
+        foreach (var entity in _entities.Entities.Values.OrderBy(entity => entity.EntityId))
         {
-            if (entity.Status != EntityStatus.Active) continue;
+            if (entity.StatusCode != UiProjectionStatusCodes.Active) continue;
 
             var coord = EntityCoordForCurrentPlane(entity);
             var hexCenter = HexToPixel(coord);
@@ -384,7 +362,9 @@ public partial class HexMapRenderer : Node2D
 
             var center = hexCenter + offset;
             var glyphSize = GlyphSizeForEntity(entity);
-            var accent = UiTokens.KindAccent(entity.Kind.Value);
+            var kindStableName = ResolveStableName(ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}");
+            var subtypeStableName = ResolveNullableStableName(ProjectionSymbolKind.Subtype, entity.SubtypeId);
+            var accent = UiTokens.KindAccent(kindStableName);
 
             // Preference order for the map marker:
             //   1. Map icon — flat heraldic stamp, designed for small-scale
@@ -393,8 +373,8 @@ public partial class HexMapRenderer : Node2D
             //      noisy against terrain (this was run 1; kept as fallback).
             //   3. Polygon glyph — procedural shape, used when neither
             //      asset is on disk (fresh clone, pre-generation).
-            var mapIcon = AssetLibrary.SubtypeMapIcon(entity.Kind.Value, entity.Subtype);
-            var sprite = mapIcon ?? AssetLibrary.KindSprite(entity.Kind.Value);
+            var mapIcon = AssetLibrary.SubtypeMapIcon(kindStableName, subtypeStableName);
+            var sprite = mapIcon ?? AssetLibrary.KindSprite(kindStableName);
             if (sprite is not null)
             {
                 // Map icons are drawn larger than the polygon glyph so the
@@ -410,12 +390,12 @@ public partial class HexMapRenderer : Node2D
             }
             else
             {
-                KindGlyph.Draw(this, entity.Kind.Value, center, glyphSize, accent);
+                KindGlyph.Draw(this, kindStableName, center, glyphSize, accent);
             }
 
             if (ShowEntityNames)
             {
-                DrawEntityLabel(font, entity.Name, center, glyphSize);
+                DrawEntityLabel(font, ResolveEntityName(entity), center, glyphSize);
             }
         }
     }
@@ -443,13 +423,13 @@ public partial class HexMapRenderer : Node2D
             UiTokens.Vellum);
     }
 
-    private float GlyphSizeForEntity(Entity entity)
+    private float GlyphSizeForEntity(UiEntityProjection entity)
     {
         // Settlements scale with population; other kinds stay at a fixed readable size.
-        if (entity.Kind == IceRemembersKinds.Settlement)
+        var kindStableName = ResolveStableName(ProjectionSymbolKind.Kind, entity.KindId, string.Empty);
+        if (kindStableName == "settlement")
         {
-            var residents = entity.Attributes.GetValue("residents");
-            return Mathf.Clamp(8f + residents / 40f, 9f, 18f);
+            return Mathf.Clamp(8f + entity.SeedPopulation / 40f, 9f, 18f);
         }
 
         return 10f;
@@ -486,35 +466,55 @@ public partial class HexMapRenderer : Node2D
         return points;
     }
 
-    private static Color GetTerrainColor(TerrainType terrain) => terrain switch
+    private Dictionary<int, Color> AssignOwnerColors()
     {
-        TerrainType.Wastes     => UiTokens.TerrainWastes,
-        TerrainType.Crags      => UiTokens.TerrainCrags,
-        TerrainType.Tundra     => UiTokens.TerrainTundra,
-        TerrainType.Ice        => UiTokens.TerrainIce,
-        TerrainType.HotSprings => UiTokens.TerrainHotSprings,
-        TerrainType.Shelf      => UiTokens.TerrainShelf,
-        TerrainType.Reef       => UiTokens.TerrainReef,
-        TerrainType.Ocean      => UiTokens.TerrainOcean,
-        _                      => UiTokens.Whisper,
-    };
+        var colors = new Dictionary<int, Color>();
+        if (_map is null) return colors;
 
-    private Dictionary<EntityId, Color> AssignFactionColors()
-    {
-        var colors = new Dictionary<EntityId, Color>();
-        if (_sim is null) return colors;
+        var ownerIds = _map.HexesById.Values
+            .Select(hex => hex.OwnerEntityId)
+            .Where(ownerId => ownerId > 0)
+            .Distinct()
+            .OrderBy(ownerId => ownerId)
+            .ToArray();
 
-        // Order by EntityId value so each faction gets the same color every run.
-        // The underlying kind index is a HashSet — enumeration order is not stable.
-        var factionIds = _sim.Graph.GetEntitiesByKind(IceRemembersKinds.Faction)
-            .OrderBy(id => id.Value)
-            .ToList();
-
-        for (var i = 0; i < factionIds.Count; i++)
+        for (var i = 0; i < ownerIds.Length; i++)
         {
-            colors[factionIds[i]] = UiTokens.FactionPalette[i % UiTokens.FactionPalette.Length];
+            colors[ownerIds[i]] = UiTokens.FactionPalette[i % UiTokens.FactionPalette.Length];
         }
 
         return colors;
+    }
+
+    private string ResolveEntityName(UiEntityProjection entity) =>
+        _symbols?.ResolveEntityName(
+            new ProjectionEntityNameKey(
+                entity.EntityId,
+                entity.KindId,
+                entity.SubtypeId,
+                entity.CultureId,
+                entity.NameSeed),
+            $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
+
+    private string ResolveStableName(ProjectionSymbolKind kind, int id, string fallback)
+    {
+        if (_symbols?.TryResolve(kind, id, out var symbol) == true)
+        {
+            return symbol.StableName;
+        }
+
+        return fallback;
+    }
+
+    private string? ResolveNullableStableName(ProjectionSymbolKind kind, int id)
+    {
+        if (id <= 0)
+        {
+            return null;
+        }
+
+        return _symbols?.TryResolve(kind, id, out var symbol) == true
+            ? symbol.StableName
+            : null;
     }
 }

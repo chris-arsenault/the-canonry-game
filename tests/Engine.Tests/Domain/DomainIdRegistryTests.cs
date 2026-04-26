@@ -1,8 +1,8 @@
 namespace Engine.Tests.Domain;
 
 using Engine.Domain;
-using Engine.Domain.IceRemembers;
-using Engine.Domain.Loader;
+using Engine.Domain.Compilation;
+using IceRemembers;
 
 public sealed class DomainIdRegistryTests
 {
@@ -77,17 +77,24 @@ public sealed class DomainIdRegistryTests
     }
 
     [Fact]
-    public void DomainRuntimeIdLoader_RegistersCanonicalDomainIds()
+    public void DomainCompiler_RegistersCanonicalDomainIdsAndSymbols()
     {
-        var registry = DomainRuntimeIdLoader.BuildRuntimeIds(IceRemembersDefinition.Create());
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var registry = compiled.Ids;
 
+        Assert.True(registry.KindIdOf(IceRemembersKinds.Settlement).Value > 0);
         Assert.True(registry.AttributeIdOf("residents").Value > 0);
         Assert.True(registry.RelationshipKindIdOf("member_of").Value > 0);
         Assert.True(registry.RelationshipFactIdOf("called_unhuddled").Value > 0);
         Assert.True(registry.ResourceIdOf("food").Value > 0);
-        Assert.True(registry.CultureIdOf(DomainRuntimeIdLoader.NoneCultureId).Value > 0);
+        Assert.True(registry.CultureIdOf(DomainRuntimeNames.NoneCultureId).Value > 0);
         Assert.True(registry.GeneratorIdOf("penguin_calls_the_unhuddled").Value > 0);
-        Assert.True(registry.EventCodeIdOf(DomainRuntimeIdLoader.RelationshipCreatedCode).Value > 0);
-        Assert.True(registry.SourceCodeIdOf(DomainRuntimeIdLoader.ProcessSourceCode).Value > 0);
+        Assert.True(registry.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value > 0);
+        Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.ProcessSourceCode).Value > 0);
+        Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value > 0);
+        Assert.Contains(compiled.Symbols, symbol =>
+            symbol.Kind == DomainSymbolKind.Kind &&
+            symbol.Id == registry.KindIdOf(IceRemembersKinds.Settlement).Value &&
+            symbol.StableName == IceRemembersKinds.Settlement.Value);
     }
 }

@@ -65,7 +65,52 @@
       "engine.eventing": {
         "type": "Project"
       },
+      "engine.eventing.schema": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Eventing": "[1.0.0, )"
+        }
+      },
+      "engine.host": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Domain": "[1.0.0, )",
+          "Engine.Eventing": "[1.0.0, )",
+          "Engine.Eventing.Schema": "[1.0.0, )",
+          "Engine.Kernel": "[1.0.0, )",
+          "Engine.Kernel.Driver": "[1.0.0, )",
+          "Engine.Projection": "[1.0.0, )"
+        }
+      },
       "engine.kernel": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Eventing": "[1.0.0, )"
+        }
+      },
+      "engine.kernel.driver": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Eventing": "[1.0.0, )",
+          "Engine.Kernel": "[1.0.0, )"
+        }
+      },
+      "engine.observability": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Eventing": "[1.0.0, )",
+          "Engine.Eventing.Schema": "[1.0.0, )",
+          "Engine.Projection": "[1.0.0, )"
+        }
+      },
+      "engine.observability.export": {
+        "type": "Project",
+        "dependencies": {
+          "DuckDB.NET.Data.Full": "[1.5.2, )",
+          "Engine.Observability": "[1.0.0, )"
+        }
+      },
+      "engine.projection": {
         "type": "Project",
         "dependencies": {
           "Engine.Eventing": "[1.0.0, )"

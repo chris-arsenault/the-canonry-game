@@ -2,7 +2,7 @@ namespace Engine.Tests.Processes;
 
 using Engine.Attributes;
 using Engine.Domain;
-using Engine.Domain.Loader;
+using Engine.Domain.Compilation;
 using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kinds;
@@ -110,8 +110,8 @@ public class MutationTests
         var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
         var domainIds = new DomainIdRegistry();
         var populationId = domainIds.RegisterAttribute("population");
-        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
-        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeNames.ProcessSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeNames.CardSourceCode);
         target.Attributes.Add(new ScalarValue("population", 0f, 100f, target.Attributes.GetValue("population"), populationId));
 
         var goal = new EntityGoal(AttributeRef.Target("population", TestKinds.Settlement), target.Id, urgency: 1f);
@@ -148,8 +148,8 @@ public class MutationTests
         var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
         var domainIds = new DomainIdRegistry();
         var populationId = domainIds.RegisterAttribute("population");
-        var processSourceId = domainIds.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
-        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        var processSourceId = domainIds.RegisterSourceCode(DomainRuntimeNames.ProcessSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeNames.CardSourceCode);
         target.Attributes.Add(new ScalarValue("population", 0f, 100f, target.Attributes.GetValue("population"), populationId));
 
         var goal = new EntityGoal(AttributeRef.Target("population", TestKinds.Settlement), target.Id, urgency: 1f);
@@ -250,8 +250,8 @@ public class MutationTests
         var kernelEvents = new KernelEventLog(4, KernelEventOverflowPolicy.RejectWrite);
         var cursor = kernelEvents.CreateCursor(KernelEventCursorStart.EarliestAvailable);
         var domainIds = new DomainIdRegistry();
-        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.ProcessSourceCode);
-        domainIds.RegisterSourceCode(DomainRuntimeIdLoader.CardSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeNames.ProcessSourceCode);
+        domainIds.RegisterSourceCode(DomainRuntimeNames.CardSourceCode);
 
         var goal = new EntityGoal(AttributeRef.Target("reach", TestKinds.Faction), target.Id, urgency: 1f);
         var context = new ProcessMutationContext(

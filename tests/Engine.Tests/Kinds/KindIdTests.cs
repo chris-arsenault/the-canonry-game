@@ -1,16 +1,19 @@
 namespace Engine.Tests.Kinds;
 
+using Engine.Domain;
 using Engine.Kinds;
 
 public sealed class KindIdTests
 {
     [Fact]
-    public void RegisteredKindHasPrimitiveId()
+    public void DomainRegistryAssignsPrimitiveKindId()
     {
+        var ids = new DomainIdRegistry();
         var kind = KindId.Register("kind_id_test_registered");
+        var runtimeId = ids.RegisterKind(kind);
 
-        Assert.True(kind.Id > 0);
+        Assert.True(runtimeId.Value > 0);
         Assert.Equal(kind, KindId.From("kind_id_test_registered"));
-        Assert.Equal(kind.Id, KindId.From("kind_id_test_registered").Id);
+        Assert.Equal(runtimeId, ids.KindIdOf(KindId.From("kind_id_test_registered")));
     }
 }

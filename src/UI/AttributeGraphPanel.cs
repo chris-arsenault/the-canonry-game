@@ -9,6 +9,7 @@ using Engine.Domain.Config;
 using Engine.Attributes;
 using Engine.Graph;
 using Engine.Kinds;
+using Engine.Projection;
 using Engine.Simulation;
 using TheCanonryGame.UI.Theme;
 
@@ -36,6 +37,7 @@ public partial class AttributeGraphPanel : PanelContainer
     ];
 
     private SimulationRunner? _sim;
+    private UiProjectionState? _projection;
     private Label? _titleLabel;
     private Control? _graphArea;
     private readonly SeriesSlot[] _slots = new SeriesSlot[MaxSeries];
@@ -64,9 +66,10 @@ public partial class AttributeGraphPanel : PanelContainer
         }
     }
 
-    public void Initialize(SimulationRunner sim)
+    public void Initialize(SimulationRunner sim, UiProjectionState? projection)
     {
         _sim = sim;
+        _projection = projection;
         foreach (var slot in _slots)
         {
             slot?.Clear();
@@ -149,12 +152,13 @@ public partial class AttributeGraphPanel : PanelContainer
             RebuildKindDropdowns();
         }
 
-        SampleAll(_sim.Clock.CurrentTick);
+        var currentTick = _projection?.CurrentTick ?? 0;
+        SampleAll(currentTick);
         UpdateCountLabels();
 
         if (_titleLabel is not null)
         {
-            _titleLabel.Text = $"Readings  ·  t{_sim.Clock.CurrentTick}";
+            _titleLabel.Text = $"Readings  ·  t{currentTick}";
         }
 
         _graphArea?.QueueRedraw();

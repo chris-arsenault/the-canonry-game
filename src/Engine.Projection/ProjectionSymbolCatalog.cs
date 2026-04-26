@@ -9,19 +9,21 @@ public enum ProjectionSymbolKind
     Subtype = 2,
     Culture = 3,
     Attribute = 4,
-    RelationshipKind = 5,
-    RelationshipFact = 6,
-    Resource = 7,
-    Terrain = 8,
-    Pressure = 9,
-    Generator = 10,
-    Process = 11,
-    Decision = 12,
-    Card = 13,
-    EventCode = 14,
-    ReasonCode = 15,
-    SourceCode = 16,
-    Detector = 17,
+    Process = 5,
+    StructuralFact = 6,
+    RelationshipKind = 7,
+    RelationshipFact = 8,
+    Resource = 9,
+    Terrain = 10,
+    Pressure = 11,
+    Generator = 12,
+    Decision = 13,
+    Card = 14,
+    EventCode = 15,
+    ReasonCode = 16,
+    SourceCode = 17,
+    Detector = 18,
+    Goal = 19,
 }
 
 public readonly record struct ProjectionSymbolKey(ProjectionSymbolKind Kind, int Id);
@@ -34,6 +36,19 @@ public sealed record ProjectionSymbol(
     string? Description = null,
     string? IconKey = null,
     string? ColorKey = null);
+
+public sealed record ProjectionSymbolSeed(
+    ProjectionSymbolKind Kind,
+    int Id,
+    string StableName,
+    string? DisplayName = null,
+    string? Description = null,
+    string? IconKey = null,
+    string? ColorKey = null);
+
+public sealed record ProjectionEntityNameSeed(
+    int EntityId,
+    string DisplayName);
 
 public readonly record struct ProjectionEntityNameKey(
     int EntityId,
@@ -276,5 +291,35 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         }
 
         return char.ToUpperInvariant(value[0]) + value[1..];
+    }
+}
+
+public static class ProjectionSymbolCatalogSeeder
+{
+    public static void Apply(
+        ProjectionSymbolCatalog catalog,
+        IEnumerable<ProjectionSymbolSeed> symbols,
+        IEnumerable<ProjectionEntityNameSeed> entityNames)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(symbols);
+        ArgumentNullException.ThrowIfNull(entityNames);
+
+        foreach (var symbol in symbols)
+        {
+            catalog.RegisterSymbol(
+                symbol.Kind,
+                symbol.Id,
+                symbol.StableName,
+                symbol.DisplayName,
+                symbol.Description,
+                symbol.IconKey,
+                symbol.ColorKey);
+        }
+
+        foreach (var name in entityNames)
+        {
+            catalog.RegisterEntityName(name.EntityId, name.DisplayName);
+        }
     }
 }

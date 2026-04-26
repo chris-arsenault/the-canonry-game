@@ -137,6 +137,19 @@ public static class UiTokens
         _            => KindDefault,
     };
 
+    public static Color TerrainColor(string stableName) => stableName switch
+    {
+        "Wastes"     => TerrainWastes,
+        "Crags"      => TerrainCrags,
+        "Tundra"     => TerrainTundra,
+        "Ice"        => TerrainIce,
+        "HotSprings" => TerrainHotSprings,
+        "Shelf"      => TerrainShelf,
+        "Reef"       => TerrainReef,
+        "Ocean"      => TerrainOcean,
+        _            => Whisper,
+    };
+
     public static Color WithAlpha(Color color, float alpha) =>
         new(color.R, color.G, color.B, alpha);
 

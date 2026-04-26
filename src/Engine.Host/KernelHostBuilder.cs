@@ -1,0 +1,333 @@
+namespace Engine.Host;
+
+using Engine.Domain;
+using Engine.Domain.Compilation;
+using Engine.Domain.Config;
+using Engine.Eventing.Schema;
+using Engine.Kernel;
+using Engine.Kernel.Driver;
+using Engine.Projection;
+
+public sealed class KernelHostBuilder
+{
+    private readonly List<Action<DomainIdRegistry>> _domainRegistrations = [];
+    private readonly List<Action<KernelSymbolContext>> _symbolConfigurators = [];
+    private readonly List<Action<KernelProgramConfigurationContext>> _programConfigurators = [];
+    private readonly List<Action<KernelConfigurationContext>> _kernelConfigurators = [];
+    private readonly List<Action<KernelHostConsumerContext>> _consumerRegistrations = [];
+    private DomainIdRegistry? _domainIds;
+    private CompiledDomain? _compiledDomain;
+    private Simulation? _kernel;
+    private IKernelStartupSeeder? _startupSeeder;
+    private SimulationOptions _simulationOptions = new()
+    {
+        EventSchemaValidator = KernelEventSchemaRegistry.Validator,
+    };
+    private RealtimeDriverConfig _driverConfig = new(
+        TicksPerSecond: 0d,
+        MaxTicksPerSlice: 1,
+        SliceInterval: TimeSpan.FromMilliseconds(16));
+    private int _seedHeadroom = 128;
+
+    public KernelHostBuilder WithKernel(Simulation kernel)
+    {
+        ArgumentNullException.ThrowIfNull(kernel);
+        _kernel = kernel;
+        return this;
+    }
+
+    public KernelHostBuilder WithDomainIds(DomainIdRegistry domainIds)
+    {
+        ArgumentNullException.ThrowIfNull(domainIds);
+        _domainIds = domainIds;
+        return this;
+    }
+
+    public KernelHostBuilder WithDomainConfig(DomainConfig config) =>
+        WithCompiledDomain(DomainCompiler.Compile(config));
+
+    public KernelHostBuilder WithCompiledDomain(CompiledDomain compiledDomain)
+    {
+        ArgumentNullException.ThrowIfNull(compiledDomain);
+        _compiledDomain = compiledDomain;
+        return this;
+    }
+
+    public KernelHostBuilder WithSimulationOptions(SimulationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _simulationOptions = options;
+        return this;
+    }
+
+    public KernelHostBuilder WithStartupSeeder(IKernelStartupSeeder startupSeeder)
+    {
+        ArgumentNullException.ThrowIfNull(startupSeeder);
+        _startupSeeder = startupSeeder;
+        return this;
+    }
+
+    public KernelHostBuilder WithStartupSeeder(
+        int estimatedEventCount,
+        Action<KernelStartupContext> seed)
+    {
+        _startupSeeder = new DelegateKernelStartupSeeder(estimatedEventCount, seed);
+        return this;
+    }
+
+    public KernelHostBuilder WithSeedHeadroom(int seedHeadroom)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(seedHeadroom);
+        _seedHeadroom = seedHeadroom;
+        return this;
+    }
+
+    public KernelHostBuilder WithDriverConfig(RealtimeDriverConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        _driverConfig = config;
+        return this;
+    }
+
+    public KernelHostBuilder RegisterDomain(Action<DomainIdRegistry> register)
+    {
+        ArgumentNullException.ThrowIfNull(register);
+        _domainRegistrations.Add(register);
+        return this;
+    }
+
+    public KernelHostBuilder ConfigureSymbols(Action<KernelSymbolContext> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _symbolConfigurators.Add(configure);
+        return this;
+    }
+
+    public KernelHostBuilder ConfigurePrograms(Action<KernelProgramConfigurationContext> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _programConfigurators.Add(configure);
+        return this;
+    }
+
+    public KernelHostBuilder ConfigureKernel(Action<KernelConfigurationContext> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _kernelConfigurators.Add(configure);
+        return this;
+    }
+
+    public KernelHostBuilder RegisterConsumers(Action<KernelHostConsumerContext> register)
+    {
+        ArgumentNullException.ThrowIfNull(register);
+        _consumerRegistrations.Add(register);
+        return this;
+    }
+
+    public KernelHostBuilder RegisterProjection(
+        string name,
+        Func<KernelHostConsumerContext, IKernelEventProjection> projectionFactory,
+        int batchSize = 256)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(projectionFactory);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchSize);
+        return RegisterConsumers(context =>
+            context.RegisterProjection(name, projectionFactory(context), batchSize));
+    }
+
+    public KernelHost Build()
+    {
+        EnsureSeedBurstFits();
+
+        if (_compiledDomain is not null && _domainIds is not null)
+        {
+            throw new InvalidOperationException("A compiled domain owns the domain ID catalog; do not also pass DomainIdRegistry.");
+        }
+
+        if (_compiledDomain is not null && _domainRegistrations.Count > 0)
+        {
+            throw new InvalidOperationException("A compiled domain owns domain registration; do not also register domain IDs manually.");
+        }
+
+        if (_compiledDomain is not null && _kernel is not null)
+        {
+            throw new InvalidOperationException("A compiled domain must configure runtime codes before the kernel is constructed.");
+        }
+
+        var domainIds = _compiledDomain?.Ids ?? _domainIds ?? new DomainIdRegistry();
+        foreach (var register in _domainRegistrations)
+        {
+            register(domainIds);
+        }
+
+        var symbols = new ProjectionSymbolCatalog();
+        var symbolContext = new KernelSymbolContext(symbols);
+        if (_compiledDomain is not null)
+        {
+            ApplyDomainSymbols(symbolContext, _compiledDomain.Symbols);
+        }
+
+        foreach (var configure in _symbolConfigurators)
+        {
+            configure(symbolContext);
+        }
+
+        var simulationOptions = _compiledDomain is null
+            ? _simulationOptions
+            : _simulationOptions with
+            {
+                RuntimeCodes = ToKernelRuntimeCodes(_compiledDomain.RuntimeCodes),
+            };
+        var kernel = _kernel ?? new Simulation(simulationOptions);
+        var nextSequenceBeforeKernelConfiguration = kernel.Events.NextSequence;
+        var kernelConfigurationContext = new KernelConfigurationContext(kernel, domainIds, symbolContext);
+        var programConfig = new KernelProgramConfigurationContext();
+        foreach (var configure in _programConfigurators)
+        {
+            configure(programConfig);
+        }
+
+        if (_compiledDomain is not null)
+        {
+            KernelProgramInstaller.Install(kernelConfigurationContext, _compiledDomain, programConfig);
+        }
+
+        foreach (var programOverride in programConfig.Overrides)
+        {
+            kernelConfigurationContext.SetProgramEnabled(programOverride.Key, programOverride.Value);
+        }
+
+        foreach (var configure in _kernelConfigurators)
+        {
+            configure(kernelConfigurationContext);
+        }
+
+        if (kernel.Events.NextSequence != nextSequenceBeforeKernelConfiguration)
+        {
+            throw new InvalidOperationException("Kernel configuration must not emit events.");
+        }
+
+        KernelConsumerRegistry? consumers = null;
+        KernelCommandCompletionPump? commandCompletions = null;
+        KernelDriverTimeController? time = null;
+
+        try
+        {
+            consumers = new KernelConsumerRegistry(kernel.Events);
+            var completionTable = new KernelCommandCompletionTable(simulationOptions.CommandCapacity);
+            var commands = new KernelCommandSubmitter(kernel.Commands, completionTable);
+            commandCompletions = new KernelCommandCompletionPump(kernel.Events, completionTable);
+
+            var consumerContext = new KernelHostConsumerContext(domainIds, kernel.Events, symbols, consumers);
+            foreach (var register in _consumerRegistrations)
+            {
+                register(consumerContext);
+            }
+
+            if (_startupSeeder is not null && kernel.Events.NextSequence != 0)
+            {
+                throw new InvalidOperationException("Kernel startup consumers must be registered before seed events are emitted.");
+            }
+
+            var seedEventCount = 0;
+            if (_startupSeeder is not null)
+            {
+                var nextSequenceBeforeSeed = kernel.Events.NextSequence;
+                var startupContext = new KernelStartupContext(kernel, domainIds, symbolContext);
+                _startupSeeder.Seed(startupContext);
+                var observedSeedEventCount = checked((int)(kernel.Events.NextSequence - nextSequenceBeforeSeed));
+                seedEventCount = observedSeedEventCount;
+            }
+
+            commandCompletions.DrainAvailable();
+            consumers.DrainAll();
+            consumers.ThrowIfAnyDropped();
+            consumers.Seal();
+
+            time = new KernelDriverTimeController(kernel, _driverConfig);
+            var host = new KernelHost(
+                kernel,
+                domainIds,
+                symbols,
+                consumers,
+                time,
+                commands,
+                commandCompletions,
+                seedEventCount,
+                _compiledDomain);
+            consumers = null;
+            commandCompletions = null;
+            time = null;
+            return host;
+        }
+        finally
+        {
+            time?.Dispose();
+            commandCompletions?.Dispose();
+            consumers?.Dispose();
+        }
+    }
+
+    private static KernelRuntimeCodes ToKernelRuntimeCodes(DomainRuntimeCodes codes) =>
+        new(
+            codes.RelationshipCreatedCodeId.Value,
+            codes.RelationshipCulledCodeId.Value,
+            codes.RelationshipStrengthChangedCodeId.Value,
+            codes.ProcessSourceCodeId.Value,
+            codes.CardSourceCodeId.Value,
+            codes.UpkeepSourceCodeId.Value);
+
+    private static void ApplyDomainSymbols(
+        KernelSymbolContext context,
+        IReadOnlyList<DomainSymbolSeed> symbols)
+    {
+        foreach (var symbol in symbols)
+        {
+            context.RegisterSymbol(
+                ToProjectionSymbolKind(symbol.Kind),
+                symbol.Id,
+                symbol.StableName,
+                symbol.DisplayName,
+                symbol.Description,
+                symbol.IconKey,
+                symbol.ColorKey);
+        }
+    }
+
+    private static ProjectionSymbolKind ToProjectionSymbolKind(DomainSymbolKind kind) => kind switch
+    {
+        DomainSymbolKind.Kind => ProjectionSymbolKind.Kind,
+        DomainSymbolKind.Subtype => ProjectionSymbolKind.Subtype,
+        DomainSymbolKind.Culture => ProjectionSymbolKind.Culture,
+        DomainSymbolKind.Attribute => ProjectionSymbolKind.Attribute,
+        DomainSymbolKind.Process => ProjectionSymbolKind.Process,
+        DomainSymbolKind.StructuralFact => ProjectionSymbolKind.StructuralFact,
+        DomainSymbolKind.RelationshipKind => ProjectionSymbolKind.RelationshipKind,
+        DomainSymbolKind.RelationshipFact => ProjectionSymbolKind.RelationshipFact,
+        DomainSymbolKind.Resource => ProjectionSymbolKind.Resource,
+        DomainSymbolKind.Terrain => ProjectionSymbolKind.Terrain,
+        DomainSymbolKind.Pressure => ProjectionSymbolKind.Pressure,
+        DomainSymbolKind.Generator => ProjectionSymbolKind.Generator,
+        DomainSymbolKind.Decision => ProjectionSymbolKind.Decision,
+        DomainSymbolKind.Card => ProjectionSymbolKind.Card,
+        DomainSymbolKind.EventCode => ProjectionSymbolKind.EventCode,
+        DomainSymbolKind.ReasonCode => ProjectionSymbolKind.ReasonCode,
+        DomainSymbolKind.SourceCode => ProjectionSymbolKind.SourceCode,
+        DomainSymbolKind.Detector => ProjectionSymbolKind.Detector,
+        DomainSymbolKind.Goal => ProjectionSymbolKind.Goal,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
+
+    private void EnsureSeedBurstFits()
+    {
+        var seedEventCount = _startupSeeder?.EstimatedEventCount ?? 0;
+        var requiredCapacity = checked(seedEventCount + _seedHeadroom);
+        if (_simulationOptions.EventCapacity < requiredCapacity)
+        {
+            throw new InvalidOperationException(
+                $"Kernel event capacity {_simulationOptions.EventCapacity} cannot hold startup seed burst " +
+                $"{seedEventCount} plus headroom {_seedHeadroom}.");
+        }
+    }
+}

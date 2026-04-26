@@ -3,6 +3,7 @@ namespace Engine.Tests.Observability;
 using Engine.Domain.Config;
 using Engine.Domain.IceRemembers;
 using Engine.Observability;
+using Engine.Observability.Export;
 using MonteCarloTool;
 
 public sealed class MonteCarloBatchAnalyzerTests : IDisposable

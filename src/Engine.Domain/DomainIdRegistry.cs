@@ -1,9 +1,43 @@
 namespace Engine.Domain;
 
+using Engine.Kinds;
+using Engine.Processes;
+
+public enum DomainIdCategory
+{
+    Kind,
+    Attribute,
+    Process,
+    StructuralFact,
+    RelationshipKind,
+    RelationshipFact,
+    Pressure,
+    Resource,
+    Terrain,
+    Subtype,
+    Culture,
+    Generator,
+    Detector,
+    EventCode,
+    ReasonCode,
+    SourceCode,
+}
+
+public readonly record struct DomainIdEntry(
+    DomainIdCategory Category,
+    int Id,
+    string StableName);
+
 public sealed class DomainIdRegistry
 {
+    private readonly StableNameRegistry<KindRuntimeId> _kinds =
+        new(static value => new KindRuntimeId(value), static id => id.Value, "kind");
     private readonly StableNameRegistry<AttributeRuntimeId> _attributes =
         new(static value => new AttributeRuntimeId(value), static id => id.Value, "attribute");
+    private readonly StableNameRegistry<ProcessRuntimeId> _processes =
+        new(static value => new ProcessRuntimeId(value), static id => id.Value, "process");
+    private readonly StableNameRegistry<StructuralFactRuntimeId> _structuralFacts =
+        new(static value => new StructuralFactRuntimeId(value), static id => id.Value, "structural fact");
     private readonly StableNameRegistry<RelationshipKindRuntimeId> _relationshipKinds =
         new(static value => new RelationshipKindRuntimeId(value), static id => id.Value, "relationship kind");
     private readonly StableNameRegistry<RelationshipFactRuntimeId> _relationshipFacts =
@@ -29,9 +63,23 @@ public sealed class DomainIdRegistry
     private readonly StableNameRegistry<SourceCodeId> _sourceCodes =
         new(static value => new SourceCodeId(value), static id => id.Value, "source code");
 
+    public KindRuntimeId RegisterKind(string stableName) => _kinds.Register(stableName);
+    public KindRuntimeId RegisterKind(KindId kind) => RegisterKind(kind.Value);
+    public KindRuntimeId KindIdOf(string stableName) => _kinds.Resolve(stableName);
+    public KindRuntimeId KindIdOf(KindId kind) => KindIdOf(kind.Value);
+    public string KindNameOf(KindRuntimeId id) => _kinds.NameOf(id);
+
     public AttributeRuntimeId RegisterAttribute(string stableName) => _attributes.Register(stableName);
     public AttributeRuntimeId AttributeIdOf(string stableName) => _attributes.Resolve(stableName);
     public string AttributeNameOf(AttributeRuntimeId id) => _attributes.NameOf(id);
+
+    public ProcessRuntimeId RegisterProcess(string stableName) => _processes.Register(stableName);
+    public ProcessRuntimeId ProcessIdOf(string stableName) => _processes.Resolve(stableName);
+    public string ProcessNameOf(ProcessRuntimeId id) => _processes.NameOf(id);
+
+    public StructuralFactRuntimeId RegisterStructuralFact(string stableName) => _structuralFacts.Register(stableName);
+    public StructuralFactRuntimeId StructuralFactIdOf(string stableName) => _structuralFacts.Resolve(stableName);
+    public string StructuralFactNameOf(StructuralFactRuntimeId id) => _structuralFacts.NameOf(id);
 
     public RelationshipKindRuntimeId RegisterRelationshipKind(string stableName) =>
         _relationshipKinds.Register(stableName);
@@ -87,6 +135,26 @@ public sealed class DomainIdRegistry
     public SourceCodeId SourceCodeIdOf(string stableName) => _sourceCodes.Resolve(stableName);
     public string SourceCodeNameOf(SourceCodeId id) => _sourceCodes.NameOf(id);
 
+    public IEnumerable<DomainIdEntry> Entries()
+    {
+        foreach (var entry in _kinds.Entries(DomainIdCategory.Kind)) yield return entry;
+        foreach (var entry in _attributes.Entries(DomainIdCategory.Attribute)) yield return entry;
+        foreach (var entry in _processes.Entries(DomainIdCategory.Process)) yield return entry;
+        foreach (var entry in _structuralFacts.Entries(DomainIdCategory.StructuralFact)) yield return entry;
+        foreach (var entry in _relationshipKinds.Entries(DomainIdCategory.RelationshipKind)) yield return entry;
+        foreach (var entry in _relationshipFacts.Entries(DomainIdCategory.RelationshipFact)) yield return entry;
+        foreach (var entry in _pressures.Entries(DomainIdCategory.Pressure)) yield return entry;
+        foreach (var entry in _resources.Entries(DomainIdCategory.Resource)) yield return entry;
+        foreach (var entry in _terrains.Entries(DomainIdCategory.Terrain)) yield return entry;
+        foreach (var entry in _subtypes.Entries(DomainIdCategory.Subtype)) yield return entry;
+        foreach (var entry in _cultures.Entries(DomainIdCategory.Culture)) yield return entry;
+        foreach (var entry in _generators.Entries(DomainIdCategory.Generator)) yield return entry;
+        foreach (var entry in _detectors.Entries(DomainIdCategory.Detector)) yield return entry;
+        foreach (var entry in _eventCodes.Entries(DomainIdCategory.EventCode)) yield return entry;
+        foreach (var entry in _reasonCodes.Entries(DomainIdCategory.ReasonCode)) yield return entry;
+        foreach (var entry in _sourceCodes.Entries(DomainIdCategory.SourceCode)) yield return entry;
+    }
+
     private sealed class StableNameRegistry<TId>(
         Func<int, TId> createId,
         Func<TId, int> valueOf,
@@ -119,6 +187,14 @@ public sealed class DomainIdRegistry
             }
 
             throw new KeyNotFoundException($"Unknown {category} '{stableName}'.");
+        }
+
+        public IEnumerable<DomainIdEntry> Entries(DomainIdCategory domainCategory)
+        {
+            for (var id = 1; id < _namesById.Count; id++)
+            {
+                yield return new DomainIdEntry(domainCategory, id, _namesById[id]);
+            }
         }
 
         public string NameOf(TId id)

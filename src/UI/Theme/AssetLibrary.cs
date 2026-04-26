@@ -4,8 +4,6 @@ using System.Collections.Generic;
 
 using Godot;
 
-using Engine.Map;
-
 namespace TheCanonryGame.UI.Theme;
 
 /// <summary>
@@ -67,7 +65,7 @@ public static class AssetLibrary
     public static Texture2D? PaneLineage { get; private set; }
     public static Texture2D? PaneSeverance { get; private set; }
 
-    private static readonly Dictionary<TerrainType, Texture2D?> _terrain = [];
+    private static readonly Dictionary<string, Texture2D?> _terrain = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, Texture2D?> _kindSprites = [];
     private static readonly Dictionary<string, Texture2D?> _cardFaces = [];
     private static readonly Dictionary<string, Texture2D?> _mapIcons = [];
@@ -166,14 +164,14 @@ public static class AssetLibrary
         TextureParchment = LoadTexture("chrome/texture-parchment.png");
         TextureSlate     = LoadTexture("chrome/texture-slate.png");
 
-        _terrain[TerrainType.Wastes]     = LoadTexture("terrain/wastes.png");
-        _terrain[TerrainType.Crags]      = LoadTexture("terrain/crags.png");
-        _terrain[TerrainType.Tundra]     = LoadTexture("terrain/tundra.png");
-        _terrain[TerrainType.Ice]        = LoadTexture("terrain/ice.png");
-        _terrain[TerrainType.HotSprings] = LoadTexture("terrain/hotsprings.png");
-        _terrain[TerrainType.Shelf]      = LoadTexture("terrain/shelf.png");
-        _terrain[TerrainType.Reef]       = LoadTexture("terrain/reef.png");
-        _terrain[TerrainType.Ocean]      = LoadTexture("terrain/ocean.png");
+        _terrain["Wastes"]     = LoadTexture("terrain/wastes.png");
+        _terrain["Crags"]      = LoadTexture("terrain/crags.png");
+        _terrain["Tundra"]     = LoadTexture("terrain/tundra.png");
+        _terrain["Ice"]        = LoadTexture("terrain/ice.png");
+        _terrain["HotSprings"] = LoadTexture("terrain/hotsprings.png");
+        _terrain["Shelf"]      = LoadTexture("terrain/shelf.png");
+        _terrain["Reef"]       = LoadTexture("terrain/reef.png");
+        _terrain["Ocean"]      = LoadTexture("terrain/ocean.png");
 
         Loaded = true;
         GD.Print($"[AssetLibrary] Loaded {_byPath.Count} illustration textures");
@@ -215,8 +213,11 @@ public static class AssetLibrary
         _cardFaces.TryGetValue(kindId, out var tex) ? tex : null;
 
     /// <summary>Get a terrain texture, or null if not available.</summary>
-    public static Texture2D? Terrain(TerrainType terrain) =>
-        _terrain.TryGetValue(terrain, out var tex) ? tex : null;
+    public static Texture2D? Terrain(string stableName)
+    {
+        ArgumentNullException.ThrowIfNull(stableName);
+        return _terrain.TryGetValue(stableName, out var tex) ? tex : null;
+    }
 
     /// <summary>Get a per-attribute glyph icon (dominion, echo, food, etc.).</summary>
     public static Texture2D? AttributeIcon(string attributeName)

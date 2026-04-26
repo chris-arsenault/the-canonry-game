@@ -1,6 +1,8 @@
+using Engine.Eventing;
+
 namespace Engine.Kernel;
 
-public sealed class SimulationOptions
+public sealed record SimulationOptions
 {
     public int EntityCapacity { get; init; } = 4096;
     public int RelationshipCapacity { get; init; } = 8192;
@@ -12,13 +14,15 @@ public sealed class SimulationOptions
     public int MaxPhase { get; init; } = 8;
     public int EventCapacity { get; init; } = 65536;
     public int EventCursorCapacity { get; init; } = 32;
+    public IKernelEventSchemaValidator? EventSchemaValidator { get; init; }
+    public int CommandCapacity { get; init; } = 1024;
     public int ProcessCapacity { get; init; } = 512;
     public int ProcessStepCapacity { get; init; } = 4096;
     public int ProcessCooldownCapacity { get; init; } = 8192;
-    public int PlannerDemandCapacity { get; init; } = 1024;
-    public int PlannerProviderSelectorCapacity { get; init; } = 1024;
-    public int PlannerSupportRuleCapacity { get; init; } = 1024;
-    public int PlannerCommitmentCapacity { get; init; } = 8192;
+    public int ProcessObjectiveCapacity { get; init; } = 1024;
+    public int ProcessProviderSelectorCapacity { get; init; } = 1024;
+    public int ProcessSupportRuleCapacity { get; init; } = 1024;
+    public int ProcessCommitmentCapacity { get; init; } = 8192;
     public int GeneratorCapacity { get; init; } = 256;
     public int GeneratorItemCapacity { get; init; } = 4096;
     public int PressureCapacity { get; init; } = 128;
@@ -33,10 +37,6 @@ public sealed class SimulationOptions
     public int RelationshipRuleCapacity { get; init; } = 256;
     public int RelationshipKindIdCapacity { get; init; } = 256;
     public int RelationshipGraphDeltaMergeThreshold { get; init; } = 1024;
-    public int RelationshipCreatedCodeId { get; init; } = 1;
-    public int RelationshipCulledCodeId { get; init; } = 2;
-    public int RelationshipStrengthChangedCodeId { get; init; } = 3;
-    public int ProcessSourceCodeId { get; init; } = 1;
-    public int CardSourceCodeId { get; init; } = 2;
+    public KernelRuntimeCodes RuntimeCodes { get; init; } = KernelRuntimeCodes.Default;
     public int Seed { get; init; } = 1;
 }

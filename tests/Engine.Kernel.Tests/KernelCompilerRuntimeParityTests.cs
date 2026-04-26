@@ -1,12 +1,10 @@
 using System.Collections;
-using System.Reflection;
 using Engine.Domain;
 using Engine.Graph;
 using Engine.Kernel;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Resources;
-using Engine.Simulation;
 
 namespace Engine.Kernel.Tests;
 
@@ -43,7 +41,7 @@ public sealed class KernelCompilerRuntimeParityTests
         AddCompositePreconditions(simulation, process, expressionMode);
         simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, MarkerAttributeId, x: 1f);
 
-        simulation.Tick();
+        simulation.AdvanceTicks(1);
 
         Assert.Equal(expectedExecuted ? 1f : 0f, simulation.World.GetAttribute(actor, MarkerAttributeId));
     }
@@ -74,7 +72,7 @@ public sealed class KernelCompilerRuntimeParityTests
         simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.EntityCountAtLeast, TargetKindId, minimum);
         simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, MarkerAttributeId, x: 1f);
 
-        simulation.Tick();
+        simulation.AdvanceTicks(1);
 
         Assert.Equal(expectedExecuted ? 1f : 0f, simulation.World.GetAttribute(actor, MarkerAttributeId));
     }
@@ -108,7 +106,7 @@ public sealed class KernelCompilerRuntimeParityTests
         simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.HasColocatedEntity);
         simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, MarkerAttributeId, x: 1f);
 
-        simulation.Tick();
+        simulation.AdvanceTicks(1);
 
         Assert.Equal(expectedExecuted ? 1f : 0f, simulation.World.GetAttribute(actor, MarkerAttributeId));
     }
@@ -145,7 +143,7 @@ public sealed class KernelCompilerRuntimeParityTests
             StableRuntimeCode("delta"),
             x: 1f);
 
-        simulation.Tick();
+        simulation.AdvanceTicks(1);
 
         var writtenEntity = writeTarget ? target : actor;
         Assert.Equal(expectedDelta, simulation.World.GetAttribute(writtenEntity, MarkerAttributeId), 4);
@@ -181,84 +179,10 @@ public sealed class KernelCompilerRuntimeParityTests
         var process = RegisterTargetProcess(simulation, ProcessIdBase + caseId);
         AddMutationOperation(simulation, process, mutationMode, actor, target, amount, useTarget, incoming);
 
-        simulation.Tick();
+        simulation.AdvanceTicks(1);
         simulation.Pressures.Tick(simulation, simulation.CurrentTick);
 
         AssertMutationOperation(simulation, mutationMode, actor, target, related, amount, useTarget, incoming);
-    }
-
-    [Theory]
-    [MemberData(nameof(FactoryPreconditionCases))]
-    public void KernelFactoryCompilesUnsupportedPreconditionCases(
-        int caseId,
-        int preconditionMode,
-        bool expectedExecuted)
-    {
-        var simulation = CreateSimulation(entityCapacity: 96);
-        var ids = CreateDomainIds();
-        var actor = CreateEntity(simulation, ActorKindId, 0, 0);
-        var target = CreateEntity(simulation, TargetKindId, 1, 0);
-        simulation.World.SetAttribute(actor, ValueAttributeId, simulation.ProcessSourceCodeId, preconditionMode is 0 or 3 ? 8f : 2f, 0);
-        simulation.World.SetAttribute(target, TargetAttributeId, simulation.ProcessSourceCodeId, 2f, 0);
-        if (preconditionMode is 4 or 5)
-        {
-            var countedKindId = KindId.Register("target").Id;
-            _ = CreateEntity(simulation, countedKindId, 2, 0);
-            _ = CreateEntity(simulation, countedKindId, 3, 0);
-        }
-
-        if (preconditionMode is 6)
-        {
-            _ = CreateEntity(simulation, TargetKindId, 0, 0);
-        }
-
-        var process = RegisterTargetProcess(simulation, ProcessIdBase + caseId);
-        InvokeFactoryPrecondition(simulation, process, CreatePrecondition(preconditionMode), ids);
-        simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, MarkerAttributeId, x: 1f);
-
-        simulation.Tick();
-
-        Assert.Equal(expectedExecuted ? 1f : 0f, simulation.World.GetAttribute(actor, MarkerAttributeId));
-    }
-
-    [Theory]
-    [MemberData(nameof(FactoryMutationCases))]
-    public void KernelFactoryCompilesUnsupportedMutationCases(
-        int caseId,
-        int mutationMode,
-        float amount,
-        bool useTarget,
-        bool incoming)
-    {
-        var simulation = CreateSimulation(entityCapacity: 96, relationshipCapacity: 128);
-        var ids = CreateDomainIds();
-        simulation.Pressures.RegisterPressure(ids.PressureIdOf("heat").Value, PressureScopeCodes.Entity, 0f, 0f, 1f);
-        var actor = CreateEntity(simulation, ActorKindId, 0, 0);
-        var target = CreateEntity(simulation, TargetKindId, 1, 0);
-        var related = CreateEntity(simulation, RelatedKindId, incoming ? 2 : 0, 0);
-        simulation.World.SetAttribute(actor, MarkerAttributeId, simulation.ProcessSourceCodeId, 0f, 0);
-        simulation.World.SetAttribute(target, MarkerAttributeId, simulation.ProcessSourceCodeId, 0f, 0);
-        simulation.World.SetAttribute(related, RelatedAttributeId, simulation.ProcessSourceCodeId, 10f, 0);
-        if (incoming)
-        {
-            simulation.World.CreateRelationship(ids.RelationshipKindIdOf("link").Value, (int)RelationshipPolarity.Neutral, related, target, 1f, 0);
-        }
-        else
-        {
-            simulation.World.CreateRelationship(ids.RelationshipKindIdOf("link").Value, (int)RelationshipPolarity.Neutral, actor, related, 1f, 0);
-        }
-
-        var process = RegisterTargetProcess(simulation, ProcessIdBase + caseId);
-        InvokeFactoryMutation(simulation, process, CreateMutation(mutationMode, amount, useTarget, incoming), ids);
-        if (mutationMode == 5)
-        {
-            InvokeFactoryMutation(simulation, process, new ModifySelfByVariableMutation("marker", "delta"), ids);
-        }
-
-        simulation.Tick();
-        simulation.Pressures.Tick(simulation, simulation.CurrentTick);
-
-        AssertFactoryMutation(simulation, ids, mutationMode, actor, target, related, amount, useTarget, incoming);
     }
 
     public static TheoryData<int, int, float, float, bool> CompositePreconditionCases()
@@ -331,35 +255,6 @@ public sealed class KernelCompilerRuntimeParityTests
         for (var mode = 0; mode < 10; mode++)
         {
             foreach (var amount in new[] { 1f, 3f, 7f, -2f })
-            {
-                data.Add(id++, mode, amount, false, false);
-                data.Add(id++, mode, amount, true, true);
-            }
-        }
-
-        return data;
-    }
-
-    public static TheoryData<int, int, bool> FactoryPreconditionCases()
-    {
-        var data = new TheoryData<int, int, bool>();
-        var id = 5000;
-        for (var mode = 0; mode < 8; mode++)
-        {
-            data.Add(id++, mode, mode is 0 or 2 or 4 or 6);
-            data.Add(id++, mode, mode is 0 or 2 or 4 or 6);
-        }
-
-        return data;
-    }
-
-    public static TheoryData<int, int, float, bool, bool> FactoryMutationCases()
-    {
-        var data = new TheoryData<int, int, float, bool, bool>();
-        var id = 6000;
-        for (var mode = 0; mode < 9; mode++)
-        {
-            foreach (var amount in new[] { 2f, 5f, -3f })
             {
                 data.Add(id++, mode, amount, false, false);
                 data.Add(id++, mode, amount, true, true);
@@ -594,114 +489,6 @@ public sealed class KernelCompilerRuntimeParityTests
         }
     }
 
-    private static IPrecondition CreatePrecondition(int mode)
-    {
-        return mode switch
-        {
-            0 => new OrPrecondition([
-                new SelfAttributeThreshold("value", 5f, null),
-                new TargetAttributeThreshold("target_value", 5f, null)]),
-            1 => new OrPrecondition([
-                new SelfAttributeThreshold("value", 5f, null),
-                new TargetAttributeThreshold("target_value", 5f, null)]),
-            2 => new NotPrecondition(new SelfAttributeThreshold("value", 5f, null)),
-            3 => new NotPrecondition(new SelfAttributeThreshold("value", 5f, null)),
-            4 => new EntityCountCheck(KindId.Register("target"), 2),
-            5 => new EntityCountCheck(KindId.Register("target"), 4),
-            6 => new HasColocatedNamedEntityPrecondition(),
-            _ => new HasColocatedNamedEntityPrecondition(),
-        };
-    }
-
-    private static IMutation CreateMutation(int mode, float amount, bool useTarget, bool incoming)
-    {
-        return mode switch
-        {
-            0 => new CreateEntityMutation(KindId.Register("created"), "created_subtype", "created_name", "none", ((int)amount, (int)amount + 1)),
-            1 => new ModifyPressureMutation("heat", new EntityId(1), amount),
-            2 => new SetTagMutation(new EntityId(1), "flag", $"value_{(int)amount}"),
-            3 => new SetHistoricalMutation(new EntityId(useTarget ? 2 : 1)),
-            4 => new ModifyRelatedEntitiesAttributeMutation(
-                "link",
-                incoming ? RelationshipTraversalDirection.Incoming : RelationshipTraversalDirection.Outgoing,
-                "related_value",
-                amount,
-                useTargetEntity: useTarget),
-            5 => new CalculateMutation("delta", new Literal(amount)),
-            6 => new ModifySelfByVariableMutation("marker", "delta"),
-            7 => new ModifyTargetByVariableMutation("marker", "delta"),
-            _ => new CreateRelationshipMutation(new EntityId(1), new EntityId(2), "link", RelationshipPolarity.Positive, 0.75f),
-        };
-    }
-
-    private static void AssertFactoryMutation(
-        Simulation simulation,
-        DomainIdRegistry ids,
-        int mutationMode,
-        int actor,
-        int target,
-        int related,
-        float amount,
-        bool useTarget,
-        bool incoming)
-    {
-        switch (mutationMode)
-        {
-            case 0:
-                Assert.Equal(4, simulation.World.EntityHighWatermark);
-                Assert.Equal(KindId.Register("created").Id, simulation.World.EntityKindId(simulation.World.EntityHighWatermark));
-                break;
-            case 1:
-                Assert.Equal(amount, simulation.Pressures.GetValue(ids.PressureIdOf("heat").Value, actor), 4);
-                break;
-            case 2:
-                Assert.True(simulation.World.EntityTagValue(actor, StableRuntimeCode("flag")) > 0);
-                break;
-            case 3:
-                Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(useTarget ? target : actor));
-                break;
-            case 4:
-                Assert.Equal(10f + amount, simulation.World.GetAttribute(related, RelatedAttributeId), 4);
-                break;
-            case 5:
-                Assert.Equal(amount, simulation.World.GetAttribute(actor, MarkerAttributeId), 4);
-                break;
-            case 6:
-                Assert.Equal(0f, simulation.World.GetAttribute(actor, MarkerAttributeId));
-                break;
-            case 7:
-                Assert.Equal(0f, simulation.World.GetAttribute(target, MarkerAttributeId));
-                break;
-            default:
-                Assert.True(simulation.World.FindRelationship(actor, target, ids.RelationshipKindIdOf("link").Value) > 0);
-                break;
-        }
-    }
-
-    private static void InvokeFactoryPrecondition(
-        Simulation simulation,
-        int process,
-        IPrecondition precondition,
-        DomainIdRegistry ids)
-    {
-        var method = typeof(KernelSimulationFactory).GetMethod(
-            "RegisterPreconditions",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-        method.Invoke(null, [simulation, process, precondition, ids]);
-    }
-
-    private static void InvokeFactoryMutation(
-        Simulation simulation,
-        int process,
-        IMutation mutation,
-        DomainIdRegistry ids)
-    {
-        var method = typeof(KernelSimulationFactory).GetMethod(
-            "RegisterMutation",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-        method.Invoke(null, [simulation, process, mutation, ids]);
-    }
-
     private static int RegisterSelfProcess(Simulation simulation, int processId)
     {
         var process = simulation.Processes.RegisterProcess(ActorKindId, processId);
@@ -799,6 +586,9 @@ public sealed class KernelCompilerRuntimeParityTests
     private static DomainIdRegistry CreateDomainIds()
     {
         var ids = new DomainIdRegistry();
+        ids.RegisterKind("actor");
+        ids.RegisterKind("target");
+        ids.RegisterKind("created");
         ids.RegisterAttribute("value");
         ids.RegisterAttribute("target_value");
         ids.RegisterAttribute("marker");
@@ -828,10 +618,10 @@ public sealed class KernelCompilerRuntimeParityTests
             ProcessCooldownCapacity = 128,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 32,
-            PlannerDemandCapacity = 64,
-            PlannerProviderSelectorCapacity = 64,
-            PlannerSupportRuleCapacity = 64,
-            PlannerCommitmentCapacity = 256,
+            ProcessObjectiveCapacity = 64,
+            ProcessProviderSelectorCapacity = 64,
+            ProcessSupportRuleCapacity = 64,
+            ProcessCommitmentCapacity = 256,
             PressureCapacity = 16,
             PressureValueCapacity = 128,
             DegeneracyDetectorCapacity = 4,

@@ -9,6 +9,8 @@ using Godot;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Generators;
+using Engine.Kernel;
+using Engine.Kernel.Driver;
 using Engine.Kinds;
 using Engine.Projection;
 using Engine.Simulation;
@@ -40,16 +42,20 @@ public partial class TableauPanel : PanelContainer
     private readonly Dictionary<string, GeneratorRowRefs> _rowRefs = [];
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
+    private ICommandSubmitter? _commandSubmitter;
+    private int _submitterSequence;
     private string? _hoveredGeneratorId;
 
     public void Initialize(
         SimulationRunner sim,
         UiProjectionState? projection,
-        IProjectionSymbolCatalog? symbols)
+        IProjectionSymbolCatalog? symbols,
+        ICommandSubmitter? commandSubmitter)
     {
         _sim = sim;
         _projection = projection;
         _symbols = symbols;
+        _commandSubmitter = commandSubmitter;
         if (_rows is not null)
         {
             RebuildRows();
@@ -63,10 +69,7 @@ public partial class TableauPanel : PanelContainer
             return;
         }
 
-        // MIGRATION: active tableau cards still come from live host state.
-        // UiProjectionState.FutureMigrationItems tracks the missing primitive
-        // card/tableau add/remove events needed to make this panel event-only.
-        var activeCount = _sim.Tableau.ActiveCards.Count(card => !string.IsNullOrWhiteSpace(card.Definition.GeneratorId));
+        var activeCount = _sim.DefinitionGraph.Generators.Count(pair => IsGeneratorEnabled(pair.Key));
         var totalCount = _sim.DefinitionGraph.Generators.Count;
         var lastFire = LatestGeneratorFire();
         var lastFiredText = lastFire is null
@@ -83,10 +86,7 @@ public partial class TableauPanel : PanelContainer
                 continue;
             }
 
-            var isActive = HasActiveGeneratorCard(generatorId);
-            // MIGRATION: generator runtime status still comes from live host
-            // state until the stream covers card activation and full generator
-            // status transitions.
+            var isActive = IsGeneratorEnabled(generatorId);
             var instance = _sim.WorldState.Generators.ById[generatorId];
             var isLastFired = lastFire?.GeneratorId == generator.RuntimeId;
             var accent = UiTokens.KindAccent(generator.Target.Kind.Value);
@@ -387,13 +387,13 @@ public partial class TableauPanel : PanelContainer
                 MouseFilter = MouseFilterEnum.Stop,
                 ClipContents = true,
             };
-            card.AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent, selected: HasActiveGeneratorCard(generatorId)));
+            card.AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent, selected: IsGeneratorEnabled(generatorId)));
             var localGeneratorId = generatorId;
             card.GuiInput += evt =>
             {
                 if (evt is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
                 {
-                    OnGeneratorToggled(localGeneratorId, !HasActiveGeneratorCard(localGeneratorId));
+                    OnGeneratorToggled(localGeneratorId, !IsGeneratorEnabled(localGeneratorId));
                 }
             };
             card.MouseEntered += () => ShowCardDetail(localGeneratorId);
@@ -428,7 +428,7 @@ public partial class TableauPanel : PanelContainer
             var activePip = new ColorRect
             {
                 CustomMinimumSize = new Vector2(8, 8),
-                Color = HasActiveGeneratorCard(generatorId) ? ActivePip : InactivePip,
+                Color = IsGeneratorEnabled(generatorId) ? ActivePip : InactivePip,
                 SizeFlagsVertical = SizeFlags.ShrinkCenter,
                 MouseFilter = MouseFilterEnum.Ignore,
             };
@@ -600,38 +600,43 @@ public partial class TableauPanel : PanelContainer
 
     private void OnGeneratorToggled(string generatorId, bool enabled)
     {
-        if (_sim is null)
+        if (_sim is null || _commandSubmitter is null || _projection is null)
         {
             return;
         }
 
-        if (enabled)
+        if (!_sim.DefinitionGraph.Generators.TryGetValue(generatorId, out var generator))
         {
-            if (HasActiveGeneratorCard(generatorId))
-            {
-                return;
-            }
+            return;
+        }
 
-            if (_sim.SpawnCards.TryGetValue(generatorId, out var cardDefinition))
-            {
-                _sim.Tableau.PlaceCard(cardDefinition, _sim.Clock.CurrentTick);
-            }
-
+        var issueVersion = _projection.WorldVersion > int.MaxValue
+            ? int.MaxValue
+            : (int)_projection.WorldVersion;
+        var command = KernelCommand.From(new SetGeneratorEnabledKernelCommand(
+            issueVersion,
+            generator.RuntimeId,
+            enabled ? 1 : 0,
+            SubmitterId: 1,
+            SubmitterSequence: ++_submitterSequence));
+        if (_commandSubmitter.TryEnqueue(command, out _))
+        {
             Refresh();
-            return;
         }
-
-        var activeCard = _sim.Tableau.ActiveCards.FirstOrDefault(card => card.Definition.GeneratorId == generatorId);
-        if (activeCard is not null)
-        {
-            _sim.Tableau.RemoveCard(activeCard);
-        }
-
-        Refresh();
     }
 
-    private bool HasActiveGeneratorCard(string generatorId) =>
-        _sim is not null && _sim.Tableau.ActiveCards.Any(card => card.Definition.GeneratorId == generatorId);
+    private bool IsGeneratorEnabled(string generatorId)
+    {
+        if (_sim is null ||
+            _projection is null ||
+            !_sim.DefinitionGraph.Generators.TryGetValue(generatorId, out var generator))
+        {
+            return false;
+        }
+
+        return _projection.Generators.TryGetValue(generator.RuntimeId, out var projected) &&
+               projected.IsEnabled;
+    }
 
     private void ShowCardDetail(string generatorId)
     {

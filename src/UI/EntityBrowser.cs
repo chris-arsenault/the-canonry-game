@@ -5,9 +5,7 @@ using System.Linq;
 
 using Godot;
 
-using Engine.Graph;
-using Engine.Kinds;
-using Engine.Simulation;
+using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -18,17 +16,19 @@ namespace TheCanonryGame.UI;
 #pragma warning disable CA2213 // Godot nodes managed by scene tree
 public partial class EntityBrowser : PanelContainer
 {
-    private SimulationRunner? _sim;
+    private UiProjectionState? _projection;
+    private IProjectionSymbolCatalog? _symbols;
     private VBoxContainer? _listContainer;
-    private readonly Dictionary<EntityId, Button> _entityButtons = [];
+    private readonly Dictionary<int, Button> _entityButtons = [];
 
     /// <summary>Emitted when the user clicks an entity in the browser.</summary>
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
 
-    public void Initialize(SimulationRunner sim)
+    public void Initialize(UiProjectionState? projection, IProjectionSymbolCatalog? symbols)
     {
-        _sim = sim;
+        _projection = projection;
+        _symbols = symbols;
     }
 
     public override void _Ready()
@@ -81,18 +81,19 @@ public partial class EntityBrowser : PanelContainer
         scroll.AddChild(_listContainer);
     }
 
-    private static string? FormatLastActionSubtitle(SimulationRunner sim, Entity entity, int currentTick)
+    private string? FormatLastActionSubtitle(UiEntityProjection entity, int currentTick)
     {
-        if (entity.LastActionProcessId.IsNone || entity.LastActionTick is null)
+        var last = entity.LastProcessExecution;
+        if (last is null)
         {
             return null;
         }
 
-        var processName = sim.BehaviorDefinitions.TryGetDefinition(entity.LastActionProcessId, out var definition) &&
-                          definition is not null
-            ? definition.Name
-            : entity.LastActionProcessId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var age = System.Math.Max(0, currentTick - entity.LastActionTick.Value);
+        var processName = ResolveDisplayName(
+            ProjectionSymbolKind.Process,
+            last.ProcessId,
+            $"Process {last.ProcessId}");
+        var age = System.Math.Max(0, currentTick - last.Tick);
         var ageText = age == 0 ? "now" : $"{age}t ago";
         return $"    {processName} · {ageText}";
     }
@@ -100,7 +101,7 @@ public partial class EntityBrowser : PanelContainer
     /// <summary>Rebuild the entity list from current simulation state.</summary>
     public void Refresh()
     {
-        if (_sim is null || _listContainer is null) return;
+        if (_projection is null || _listContainer is null) return;
 
         // Clear existing buttons
         foreach (var child in _listContainer.GetChildren())
@@ -110,14 +111,17 @@ public partial class EntityBrowser : PanelContainer
 
         _entityButtons.Clear();
 
-        // Add entities grouped by kind
         var firstKind = true;
-        foreach (var kind in _sim.DomainConfig.Kinds.Keys.OrderBy(kind => kind.Value, System.StringComparer.Ordinal))
+        foreach (var group in _projection.Entities.Values
+            .OrderBy(entity => ResolveStableName(ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}"), System.StringComparer.Ordinal)
+            .ThenBy(entity => ResolveEntityName(entity), System.StringComparer.Ordinal)
+            .GroupBy(entity => entity.KindId))
         {
-            var entities = _sim.Graph.GetEntitiesByKind(kind);
-            if (entities.Count == 0) continue;
+            var entities = group.ToArray();
+            if (entities.Length == 0) continue;
 
-            var accent = UiTokens.KindAccent(kind.Value);
+            var kindStableName = ResolveStableName(ProjectionSymbolKind.Kind, group.Key, $"kind-{group.Key}");
+            var accent = UiTokens.KindAccent(kindStableName);
 
             // Gap before each section (except the first)
             if (!firstKind)
@@ -134,7 +138,7 @@ public partial class EntityBrowser : PanelContainer
 
             var kindLabel = new Label
             {
-                Text = kind.ToString().ToUpperInvariant(),
+                Text = ResolveDisplayName(ProjectionSymbolKind.Kind, group.Key, kindStableName).ToUpperInvariant(),
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
             };
             kindLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
@@ -144,19 +148,18 @@ public partial class EntityBrowser : PanelContainer
 
             var countLabel = new Label
             {
-                Text = entities.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Text = entities.Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
             };
             countLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
             countLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
             countLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
             kindRow.AddChild(countLabel);
 
-            foreach (var entityId in entities)
+            foreach (var entity in entities)
             {
-                var entity = _sim.Graph.GetEntity(entityId);
-                if (entity is null) continue;
-
-                var isDead = entity.Status != EntityStatus.Active;
+                var isDead = entity.StatusCode != UiProjectionStatusCodes.Active;
+                var subtypeStableName = ResolveNullableStableName(ProjectionSymbolKind.Subtype, entity.SubtypeId);
+                var entityName = ResolveEntityName(entity);
 
                 // Row: [glyph] [name button expand] — the glyph is a tiny sprite so
                 // the registry reads as a specimen list rather than a flat names column.
@@ -171,8 +174,8 @@ public partial class EntityBrowser : PanelContainer
                 // Portrait sprite is too noisy at 22px; polygon is the
                 // final fallback.
                 Control glyph;
-                var spriteTex = AssetLibrary.SubtypeMapIcon(kind.Value, entity.Subtype)
-                    ?? AssetLibrary.KindSprite(kind.Value);
+                var spriteTex = AssetLibrary.SubtypeMapIcon(kindStableName, subtypeStableName)
+                    ?? AssetLibrary.KindSprite(kindStableName);
                 if (spriteTex is not null)
                 {
                     glyph = new TextureRect
@@ -189,7 +192,7 @@ public partial class EntityBrowser : PanelContainer
                 {
                     glyph = new KindGlyphRect
                     {
-                        KindId = kind.Value,
+                        KindId = kindStableName,
                         Accent = isDead ? UiTokens.Whisper : accent,
                         CustomMinimumSize = new Vector2(18, 20),
                     };
@@ -198,7 +201,7 @@ public partial class EntityBrowser : PanelContainer
 
                 var btn = new Button
                 {
-                    Text = isDead ? $" {entity.Name}  †" : $" {entity.Name}",
+                    Text = isDead ? $" {entityName}  †" : $" {entityName}",
                     Alignment = HorizontalAlignment.Left,
                     Flat = true,
                     SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -208,12 +211,12 @@ public partial class EntityBrowser : PanelContainer
                 btn.AddThemeColorOverride("font_color", isDead ? UiTokens.Whisper : UiTokens.Vellum);
                 btn.AddThemeColorOverride("font_hover_color", UiTokens.Vellum);
 
-                var capturedId = entityId; // Capture for lambda
-                btn.Pressed += () => EmitSignal(SignalName.EntitySelected, capturedId.Value);
+                var capturedId = entity.EntityId;
+                btn.Pressed += () => EmitSignal(SignalName.EntitySelected, capturedId);
                 entityRow.AddChild(btn);
-                _entityButtons[entityId] = btn;
+                _entityButtons[entity.EntityId] = btn;
 
-                var subtitleText = FormatLastActionSubtitle(_sim, entity, _sim.Clock.CurrentTick);
+                var subtitleText = FormatLastActionSubtitle(entity, _projection.CurrentTick);
                 if (subtitleText is not null)
                 {
                     var subtitle = new Label
@@ -227,5 +230,40 @@ public partial class EntityBrowser : PanelContainer
                 }
             }
         }
+    }
+
+    private string ResolveEntityName(UiEntityProjection entity) =>
+        _symbols?.ResolveEntityName(
+            new ProjectionEntityNameKey(
+                entity.EntityId,
+                entity.KindId,
+                entity.SubtypeId,
+                entity.CultureId,
+                entity.NameSeed),
+            $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
+
+    private string ResolveDisplayName(ProjectionSymbolKind kind, int id, string fallback) =>
+        _symbols?.ResolveDisplayName(kind, id, fallback) ?? fallback;
+
+    private string ResolveStableName(ProjectionSymbolKind kind, int id, string fallback)
+    {
+        if (_symbols?.TryResolve(kind, id, out var symbol) == true)
+        {
+            return symbol.StableName;
+        }
+
+        return fallback;
+    }
+
+    private string? ResolveNullableStableName(ProjectionSymbolKind kind, int id)
+    {
+        if (id <= 0)
+        {
+            return null;
+        }
+
+        return _symbols?.TryResolve(kind, id, out var symbol) == true
+            ? symbol.StableName
+            : null;
     }
 }
