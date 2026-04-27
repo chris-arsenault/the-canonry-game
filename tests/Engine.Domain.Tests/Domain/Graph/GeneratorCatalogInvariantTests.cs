@@ -3,9 +3,9 @@ namespace Engine.Domain.Tests.Domain.Graph;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
+using Engine.Domain.Startup;
 using IceRemembers;
 using IceRemembers.Seed;
-using Engine.Graph;
 using Engine.Kinds;
 using Engine.WorldGen;
 
@@ -619,7 +619,7 @@ public class GeneratorCatalogInvariantTests
 
     private static List<string> FindSeedReachabilityIssues(IReadOnlyList<SemanticGeneratorConfig> generators)
     {
-        var seedFacts = ReachabilityFacts.FromSeed(IceRemembersSeedBuilder.BuildDefault(seed: 42).Graph);
+        var seedFacts = ReachabilityFacts.FromSeed(IceRemembersSeedBuilder.BuildDefault(seed: 42));
         var available = seedFacts;
         var remaining = generators.ToDictionary(generator => generator.Id, StringComparer.Ordinal);
 
@@ -716,31 +716,26 @@ public class GeneratorCatalogInvariantTests
         Dictionary<EntityKind, HashSet<string>> Subtypes,
         HashSet<string> RelationshipKinds)
     {
-        public static ReachabilityFacts FromSeed(WorldGraph graph)
+        public static ReachabilityFacts FromSeed(DomainStartupSeed seed)
         {
             var kinds = new HashSet<EntityKind>();
             var subtypes = new Dictionary<EntityKind, HashSet<string>>();
             var relationshipKinds = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var entity in graph.AllEntities.Values.Where(entity => entity.Status == EntityStatus.Active))
+            foreach (var entity in seed.Entities)
             {
-                kinds.Add(entity.Kind);
-                if (!subtypes.TryGetValue(entity.Kind, out var values))
+                var kind = EntityKind.From(entity.Kind);
+                kinds.Add(kind);
+                if (!subtypes.TryGetValue(kind, out var values))
                 {
                     values = new HashSet<string>(StringComparer.Ordinal);
-                    subtypes[entity.Kind] = values;
+                    subtypes[kind] = values;
                 }
 
                 values.Add(entity.Subtype);
             }
 
-            foreach (var entity in graph.AllEntities.Values.Where(entity => entity.Status == EntityStatus.Active))
-            {
-                foreach (var relationship in graph.OutgoingRelationships(entity.Id))
-                {
-                    relationshipKinds.Add(relationship.Kind);
-                }
-            }
+            relationshipKinds.UnionWith(seed.Relationships.Select(relationship => relationship.RelationshipKind));
 
             return new ReachabilityFacts(kinds, subtypes, relationshipKinds);
         }

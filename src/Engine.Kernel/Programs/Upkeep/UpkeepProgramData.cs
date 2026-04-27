@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class UpkeepProgramData : IKernelProgramData
+internal sealed partial class UpkeepProgramData : IKernelProgramData
 {
     internal readonly int[] UpkeepKindIds;
     internal readonly int[] UpkeepAttributeIds;

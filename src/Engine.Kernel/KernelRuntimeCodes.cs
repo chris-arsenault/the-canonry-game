@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public readonly record struct KernelRuntimeCodes(
+internal readonly record struct KernelRuntimeCodes(
     int RelationshipCreatedCodeId,
     int RelationshipCulledCodeId,
     int RelationshipStrengthChangedCodeId,

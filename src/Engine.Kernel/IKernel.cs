@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public interface IKernel
+internal interface IKernel
 {
     int CurrentTick { get; }
 

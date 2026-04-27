@@ -1,0 +1,146 @@
+namespace Engine.Observability;
+
+using Engine.Constants;
+using Engine.Eventing;
+using Engine.Projection;
+using System.Collections.ObjectModel;
+
+internal static class TelemetrySymbolIds
+{
+    public static int RunId(string runLabel, int? seed) =>
+        seed ?? StableId(TelemetrySymbolKinds.Run, runLabel);
+
+    public static int StableId(int symbolKind, string stableName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stableName);
+        unchecked
+        {
+            var hash = 2166136261u;
+            hash ^= (uint)symbolKind;
+            hash *= 16777619u;
+            for (var i = 0; i < stableName.Length; i++)
+            {
+                hash ^= stableName[i];
+                hash *= 16777619u;
+            }
+
+            var id = (int)(hash & 0x7fffffffu);
+            return id == 0 ? 1 : id;
+        }
+    }
+
+    public static SymbolRow Create(
+        int symbolKind,
+        string stableName,
+        string? displayName = null,
+        string? description = null,
+        string? iconKey = null,
+        string? colorKey = null) =>
+        new(
+            symbolKind,
+            StableId(symbolKind, stableName),
+            stableName,
+            string.IsNullOrWhiteSpace(displayName)
+                ? ProjectionSymbolCatalog.ToDisplayName(stableName)
+                : displayName,
+            description,
+            iconKey,
+            colorKey);
+
+    public static SymbolRow CreateWithId(
+        int symbolKind,
+        int id,
+        string stableName,
+        string? displayName = null,
+        string? description = null,
+        string? iconKey = null,
+        string? colorKey = null) =>
+        new(
+            symbolKind,
+            id,
+            stableName,
+            string.IsNullOrWhiteSpace(displayName)
+                ? ProjectionSymbolCatalog.ToDisplayName(stableName)
+                : displayName,
+            description,
+            iconKey,
+            colorKey);
+
+    public static void AddProjectionSymbols(TelemetryBatch batch, IProjectionSymbolCatalog? symbols)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        if (symbols is null)
+        {
+            return;
+        }
+
+        foreach (var symbol in symbols.Symbols.Values)
+        {
+            batch.Symbols.Add(new SymbolRow(
+                (int)symbol.Kind,
+                symbol.Id,
+                symbol.StableName,
+                symbol.DisplayName,
+                symbol.Description,
+                symbol.IconKey,
+                symbol.ColorKey));
+        }
+    }
+
+    public static void AddFixedCodeSymbols(TelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        AddFixedCodeSymbols(batch.Symbols);
+    }
+
+    public static void AddFixedCodeSymbols(PerformanceTelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        AddFixedCodeSymbols(batch.Symbols);
+    }
+
+    private static void AddFixedCodeSymbols(Collection<SymbolRow> symbols)
+    {
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.EntityStatus, EntityStatusCodes.Active, "active", "Active"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.EntityStatus, EntityStatusCodes.Historical, "historical", "Historical"));
+
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.Plane, PlaneCodes.Physical, "physical", "Physical"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.Plane, PlaneCodes.Semantic, "semantic", "Semantic"));
+
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.RelationshipPolarity, RelationshipPolarityCodes.Positive, "positive", "Positive"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.RelationshipPolarity, RelationshipPolarityCodes.Negative, "negative", "Negative"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.RelationshipPolarity, RelationshipPolarityCodes.Neutral, "neutral", "Neutral"));
+
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.Eligible, "eligible", "Eligible"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.Fired, "fired", "Fired"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.EligibleNotSelected, "eligible_not_selected", "Eligible Not Selected"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.Blocked, "blocked", "Blocked"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.FireFailed, "fire_failed", "Fire Failed"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.MissingDefinition, "missing_definition", "Missing Definition"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.MaxRuns, "max_runs", "Max Runs"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.ZeroWeight, "zero_weight", "Zero Weight"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.NotEvaluated, "not_evaluated", "Not Evaluated"));
+
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Committed, "committed", "Committed"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Abandoned, "abandoned", "Abandoned"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Truncated, "truncated", "Truncated"));
+
+        AddKernelEventType(symbols, KernelEventType.EntityCreated, "entity_created", "Entity Created");
+        AddKernelEventType(symbols, KernelEventType.EntityStatusChanged, "entity_status_changed", "Entity Status Changed");
+        AddKernelEventType(symbols, KernelEventType.EntityMoved, "entity_moved", "Entity Moved");
+        AddKernelEventType(symbols, KernelEventType.AttributeChanged, "attribute_changed", "Attribute Changed");
+        AddKernelEventType(symbols, KernelEventType.ResourceChanged, "resource_changed", "Resource Changed");
+        AddKernelEventType(symbols, KernelEventType.RelationshipChanged, "relationship_changed", "Relationship Changed");
+        AddKernelEventType(symbols, KernelEventType.ProcessEvaluated, "process_evaluated", "Process Evaluated");
+        AddKernelEventType(symbols, KernelEventType.ProcessExecuted, "process_executed", "Process Executed");
+        AddKernelEventType(symbols, KernelEventType.GeneratorEvaluated, "generator_evaluated", "Generator Evaluated");
+        AddKernelEventType(symbols, KernelEventType.GeneratorFired, "generator_fired", "Generator Fired");
+    }
+
+    private static void AddKernelEventType(
+        Collection<SymbolRow> symbols,
+        KernelEventType eventType,
+        string stableName,
+        string displayName) =>
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.KernelEventType, (int)eventType, stableName, displayName));
+}

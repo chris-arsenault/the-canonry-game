@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed partial class KernelDataSet
+internal sealed partial class KernelDataSet
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
@@ -15,7 +15,7 @@ public sealed partial class KernelDataSet
     }
 }
 
-public sealed partial class KernelEntityData
+internal sealed partial class KernelEntityData
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
@@ -28,7 +28,7 @@ public sealed partial class KernelEntityData
     }
 }
 
-public sealed partial class KernelTerrainData
+internal sealed partial class KernelTerrainData
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {

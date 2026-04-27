@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningProgramData, PlanningProgramState>
+internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningProgramData, PlanningProgramState>
 {
     private readonly PlanningProgramScratch _scratch;
 

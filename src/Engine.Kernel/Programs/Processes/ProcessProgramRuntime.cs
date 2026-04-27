@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgramData, ProcessProgramState>
+internal sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgramData, ProcessProgramState>
 {
     internal const int ActionHistoryLength = 60;
     private const int RecencyWindow = 10;
@@ -73,11 +73,11 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
     private PrimitiveIntTable _cooldowns => State.Cooldowns;
     private PrimitiveIntTable _entityCooldowns => State.EntityCooldowns;
     private int[] _pathOpenSet => _scratch.PathOpenSet;
-    private bool[] _pathOpen => _scratch.PathOpen;
-    private bool[] _pathClosed => _scratch.PathClosed;
-    private int[] _pathCameFrom => _scratch.PathCameFrom;
-    private float[] _pathGScore => _scratch.PathGScore;
-    private float[] _pathFScore => _scratch.PathFScore;
+    private ref EpochStampSet _pathOpen => ref _scratch.PathOpen;
+    private ref EpochStampSet _pathClosed => ref _scratch.PathClosed;
+    private ref EpochStampedArray<int> _pathCameFrom => ref _scratch.PathCameFrom;
+    private ref EpochStampedArray<float> _pathGScore => ref _scratch.PathGScore;
+    private ref EpochStampedArray<float> _pathFScore => ref _scratch.PathFScore;
     private int[] _actionHistoryTicks => State.ActionHistoryTicks;
     private int[] _actionHistoryProcessIds => State.ActionHistoryProcessIds;
     private int[] _actionHistoryCounts => State.ActionHistoryCounts;
@@ -120,7 +120,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanProcessSlots => State.CommittedPlanProcessSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
-    private int[] _processVisitedEpochs => _scratch.ProcessVisitedEpochs;
+    private ref EpochStampSet _processVisited => ref _scratch.ProcessVisited;
     private ref int _processCount => ref Data.ProcessCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;
     private ref int _expressionCount => ref Data.ExpressionCount;
@@ -132,7 +132,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
     private ref int _supportRuleCount => ref Data.SupportRuleCount;
     private ref int _supportExpressionCount => ref Data.SupportExpressionCount;
     private ref int _goalEffectCount => ref Data.GoalEffectCount;
-    private ref int _processVisitedEpoch => ref _scratch.ProcessVisitedEpoch;
     private ref int _openProcessSlot => ref Data.OpenProcessSlot;
 
     private const int ProcessLocalityCommitmentKey = 1;
@@ -1344,7 +1343,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         selectedProcessSlot = 0;
         selectedTargetId = 0;
         var bestWeight = 0f;
-        var epoch = NextProcessVisitedEpoch();
+        _processVisited.BeginEpoch();
         var selectorEnd = selectorStart + selectorCount;
         for (var selector = selectorStart; selector < selectorEnd; selector++)
         {
@@ -1359,7 +1358,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                 urgency,
                 depth,
                 selector,
-                epoch,
                 bestWeight,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
@@ -1382,7 +1380,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         float urgency,
         int depth,
         int selector,
-        int epoch,
         float bestWeight,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
@@ -1407,7 +1404,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     bestWeight,
                     ref candidateCount,
                     ref selectedRootProcessSlot,
@@ -1431,7 +1427,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                         urgency,
                         depth,
                         selector,
-                        epoch,
                         bestWeight,
                         ref candidateCount,
                         ref selectedRootProcessSlot,
@@ -1453,7 +1448,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     outgoing: true,
                     bestWeight,
                     ref candidateCount,
@@ -1473,7 +1467,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     outgoing: false,
                     bestWeight,
                     ref candidateCount,
@@ -1497,7 +1490,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         float urgency,
         int depth,
         int selector,
-        int epoch,
         float bestWeight,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
@@ -1525,7 +1517,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     bestWeight,
                     ref candidateCount,
                     ref selectedRootProcessSlot,
@@ -1551,7 +1542,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                 urgency,
                 depth,
                 selector,
-                epoch,
                 bestWeight,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
@@ -1574,7 +1564,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         float urgency,
         int depth,
         int selector,
-        int epoch,
         bool outgoing,
         float bestWeight,
         ref int candidateCount,
@@ -1615,7 +1604,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                 urgency,
                 depth,
                 selector,
-                epoch,
                 bestWeight,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
@@ -1639,7 +1627,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         float urgency,
         int depth,
         int selector,
-        int epoch,
         float bestWeight,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
@@ -1648,7 +1635,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         ref int selectedTargetId)
     {
         var world = simulation.World;
-        if (!world.EntityIsActive(targetId) || _processVisitedEpochs[targetId] == epoch)
+        if (!world.EntityIsActive(targetId) || _processVisited.Contains(targetId))
         {
             return bestWeight;
         }
@@ -1674,7 +1661,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
             return bestWeight;
         }
 
-        _processVisitedEpochs[targetId] = epoch;
+        _processVisited.Add(targetId);
         candidateCount++;
         var weight = EvaluatePlanCandidate(
             simulation,
@@ -2017,19 +2004,6 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
             ProcessEffectScopeCodes.Structural when targetId != entityId => targetId,
             _ => entityId,
         };
-    }
-
-    private int NextProcessVisitedEpoch()
-    {
-        _processVisitedEpoch++;
-        if (_processVisitedEpoch < int.MaxValue)
-        {
-            return _processVisitedEpoch;
-        }
-
-        global::System.Array.Clear(_processVisitedEpochs);
-        _processVisitedEpoch = 1;
-        return _processVisitedEpoch;
     }
 
     private static int EffectKey(int effectScopeCode, int effectValueId, int effectKindId)
@@ -2990,17 +2964,17 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
             return false;
         }
 
-        global::System.Array.Clear(_pathOpen, 0, _pathOpen.Length);
-        global::System.Array.Clear(_pathClosed, 0, _pathClosed.Length);
-        global::System.Array.Fill(_pathCameFrom, -1);
-        global::System.Array.Fill(_pathGScore, float.PositiveInfinity);
-        global::System.Array.Fill(_pathFScore, float.PositiveInfinity);
+        _pathOpen.BeginEpoch();
+        _pathClosed.BeginEpoch();
+        _pathCameFrom.BeginEpoch();
+        _pathGScore.BeginEpoch();
+        _pathFScore.BeginEpoch();
 
         var openCount = 1;
         _pathOpenSet[0] = startIndex;
-        _pathOpen[startIndex] = true;
-        _pathGScore[startIndex] = 0f;
-        _pathFScore[startIndex] = HexDistance(startQ, startR, targetQ, targetR);
+        _pathOpen.Add(startIndex);
+        _pathGScore.Set(startIndex, 0f);
+        _pathFScore.Set(startIndex, HexDistance(startQ, startR, targetQ, targetR));
 
         while (openCount > 0)
         {
@@ -3008,8 +2982,8 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
             var currentIndex = _pathOpenSet[openSlot];
             openCount--;
             _pathOpenSet[openSlot] = _pathOpenSet[openCount];
-            _pathOpen[currentIndex] = false;
-            _pathClosed[currentIndex] = true;
+            _pathOpen.Remove(currentIndex);
+            _pathClosed.Add(currentIndex);
 
             if (currentIndex == targetIndex)
             {
@@ -3028,22 +3002,22 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                 }
 
                 var neighborIndex = PhysicalPathIndex(radius, width, neighborQ, neighborR);
-                if (neighborIndex < 0 || _pathClosed[neighborIndex])
+                if (neighborIndex < 0 || _pathClosed.Contains(neighborIndex))
                 {
                     continue;
                 }
 
-                var tentativeGScore = _pathGScore[currentIndex] + 1f;
-                if (tentativeGScore >= _pathGScore[neighborIndex])
+                var tentativeGScore = _pathGScore.GetOrDefault(currentIndex, float.PositiveInfinity) + 1f;
+                if (tentativeGScore >= _pathGScore.GetOrDefault(neighborIndex, float.PositiveInfinity))
                 {
                     continue;
                 }
 
-                _pathCameFrom[neighborIndex] = currentIndex;
-                _pathGScore[neighborIndex] = tentativeGScore;
-                _pathFScore[neighborIndex] = tentativeGScore + HexDistance(neighborQ, neighborR, targetQ, targetR);
+                _pathCameFrom.Set(neighborIndex, currentIndex);
+                _pathGScore.Set(neighborIndex, tentativeGScore);
+                _pathFScore.Set(neighborIndex, tentativeGScore + HexDistance(neighborQ, neighborR, targetQ, targetR));
 
-                if (!_pathOpen[neighborIndex])
+                if (!_pathOpen.Contains(neighborIndex))
                 {
                     if (openCount >= _pathOpenSet.Length)
                     {
@@ -3051,7 +3025,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
                     }
 
                     _pathOpenSet[openCount] = neighborIndex;
-                    _pathOpen[neighborIndex] = true;
+                    _pathOpen.Add(neighborIndex);
                     openCount++;
                 }
             }
@@ -3064,11 +3038,11 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
     {
         var selectedSlot = 0;
         var selectedIndex = _pathOpenSet[0];
-        var selectedScore = _pathFScore[selectedIndex];
+        var selectedScore = _pathFScore.GetOrDefault(selectedIndex, float.PositiveInfinity);
         for (var slot = 1; slot < openCount; slot++)
         {
             var index = _pathOpenSet[slot];
-            var score = _pathFScore[index];
+            var score = _pathFScore.GetOrDefault(index, float.PositiveInfinity);
             if (score < selectedScore)
             {
                 selectedSlot = slot;
@@ -3089,7 +3063,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         out int nextR)
     {
         var currentIndex = targetIndex;
-        var parentIndex = _pathCameFrom[currentIndex];
+        var parentIndex = _pathCameFrom.GetOrDefault(currentIndex, -1);
         while (parentIndex != startIndex)
         {
             if (parentIndex < 0)
@@ -3100,7 +3074,7 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
             }
 
             currentIndex = parentIndex;
-            parentIndex = _pathCameFrom[currentIndex];
+            parentIndex = _pathCameFrom.GetOrDefault(currentIndex, -1);
         }
 
         nextQ = PhysicalPathQ(radius, width, currentIndex);

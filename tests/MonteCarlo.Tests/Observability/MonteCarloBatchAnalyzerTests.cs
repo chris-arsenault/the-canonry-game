@@ -1,8 +1,11 @@
 namespace MonteCarlo.Tests.Observability;
 
 using Engine.Domain.Config;
+using Engine.Constants;
+using Engine.Eventing;
 using Engine.Observability;
 using Engine.Observability.Export;
+using Engine.Projection;
 using IceRemembers;
 using IceRemembers.Seed;
 using MonteCarloTool;
@@ -85,6 +88,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(batchDirectory, "tick_perf.parquet")));
         Assert.True(File.Exists(Path.Combine(batchDirectory, "system_perf.parquet")));
         Assert.True(File.Exists(Path.Combine(batchDirectory, "export_perf.parquet")));
+        Assert.True(File.Exists(Path.Combine(batchDirectory, "performance_symbols.parquet")));
         Assert.False(File.Exists(Path.Combine(batchDirectory, "tick_snapshots.parquet")));
         Assert.False(Directory.Exists(Path.Combine(batchDirectory, "analysis")));
     }
@@ -110,47 +114,79 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static TelemetryBatch CreateBatch(DomainConfig domain, bool includeGeneratorFire)
     {
-        var penguinKind = IceRemembersKinds.Penguin.Value;
-        var settlementKind = IceRemembersKinds.Settlement.Value;
+        const int runId = 1000;
+        const int domainId = 1;
+        const int penguinKindId = 10;
+        const int settlementKindId = 11;
+        const int factionKindId = 12;
+        const int artifactKindId = 13;
+        const int wardenSubtypeId = 20;
+        const int sanctuarySubtypeId = 21;
+        const int compactSubtypeId = 22;
+        const int cultureId = 30;
+        const int processId = 40;
+        const int generatorId = 50;
+        const int foodResourceId = 60;
+        const int wealthResourceId = 61;
+        const int shelfTerrainId = 70;
+        const int oceanTerrainId = 71;
         var penguinConfig = domain.Kinds[IceRemembersKinds.Penguin];
         var settlementConfig = domain.Kinds[IceRemembersKinds.Settlement];
         var penguinProcess = domain.Processes.First(process => process.TargetKind == IceRemembersKinds.Penguin);
-
-        var penguinAttributes = FormatAttributes(
-            penguinConfig.Attributes[0].Name, 92d,
-            penguinConfig.Attributes[1].Name, 78d,
-            penguinConfig.Attributes[2].Name, 24d);
-        var settlementAttributes = FormatAttributes(
-            settlementConfig.Attributes[0].Name, 45d,
-            settlementConfig.Attributes[1].Name, 55d,
-            settlementConfig.Attributes[2].Name, 61d);
+        var penguinAttributeIds = AttributeIds(penguinConfig, firstId: 100);
+        var settlementAttributeIds = AttributeIds(settlementConfig, firstId: 200);
 
         var batch = new TelemetryBatch();
-        batch.Runs.Add(new RunRow("seed-1000", 1000, "IceRemembers", DateTime.UtcNow.ToString("o")));
-        batch.TickSnapshots.Add(new TickSnapshotRow("seed-1000", 0, 2, 0, 0, 1, 2, 20, 40, 1.5f, 1.0f));
-        batch.TickSnapshots.Add(new TickSnapshotRow("seed-1000", 25, 2, 1, includeGeneratorFire ? 1 : 0, 3, 3, 28, 32, 4.2f, 2.2f));
+        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Run, runId, "seed-1000", "seed-1000"));
+        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Domain, domainId, "IceRemembers", "IceRemembers"));
+        TelemetrySymbolIds.AddFixedCodeSymbols(batch);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, penguinKindId, IceRemembersKinds.Penguin.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, settlementKindId, IceRemembersKinds.Settlement.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, factionKindId, IceRemembersKinds.Faction.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, artifactKindId, IceRemembersKinds.Artifact.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Subtype, wardenSubtypeId, "warden");
+        AddSymbol(batch, ProjectionSymbolKind.Subtype, sanctuarySubtypeId, "sanctuary");
+        AddSymbol(batch, ProjectionSymbolKind.Subtype, compactSubtypeId, "compact");
+        AddSymbol(batch, ProjectionSymbolKind.Culture, cultureId, IceRemembersCulture.Nightshelf.ToDomainName());
+        AddSymbol(batch, ProjectionSymbolKind.Process, processId, penguinProcess.Name);
+        AddSymbol(batch, ProjectionSymbolKind.Generator, generatorId, "penguin_calls_the_unhuddled");
+        AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "faction_seals_the_edge");
+        AddSymbol(batch, ProjectionSymbolKind.Resource, foodResourceId, "Food");
+        AddSymbol(batch, ProjectionSymbolKind.Resource, wealthResourceId, "Wealth");
+        AddSymbol(batch, ProjectionSymbolKind.Terrain, shelfTerrainId, "Shelf");
+        AddSymbol(batch, ProjectionSymbolKind.Terrain, oceanTerrainId, "Ocean");
+        AddAttributeSymbols(batch, penguinAttributeIds);
+        AddAttributeSymbols(batch, settlementAttributeIds);
 
-        batch.KindSnapshots.Add(new KindSnapshotRow("seed-1000", 25, penguinKind, "warden", 1, 0, 92f, 92f, 92f));
-        batch.KindSnapshots.Add(new KindSnapshotRow("seed-1000", 25, settlementKind, "sanctuary", 1, 0, 45f, 45f, 45f));
+        batch.Runs.Add(new RunRow(runId, 1000, domainId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        batch.TickSnapshots.Add(new TickSnapshotRow(runId, 0, 2, 0, 0, 1, 2, 20, 40, 1.5f, 1.0f));
+        batch.TickSnapshots.Add(new TickSnapshotRow(runId, 25, 2, 1, includeGeneratorFire ? 1 : 0, 3, 3, 28, 32, 4.2f, 2.2f));
 
-        batch.EntitySnapshots.Add(new EntitySnapshotRow("seed-1000", 0, 1, penguinKind, "warden", IceRemembersCulture.Nightshelf.ToDomainName(), "Active", 0, 0, 0, 0, 0, penguinAttributes));
-        batch.EntitySnapshots.Add(new EntitySnapshotRow("seed-1000", 0, 2, settlementKind, "sanctuary", IceRemembersCulture.Nightshelf.ToDomainName(), "Active", 2, 0, 1, 0, -1, settlementAttributes));
-        batch.EntitySnapshots.Add(new EntitySnapshotRow("seed-1000", 25, 1, penguinKind, "warden", IceRemembersCulture.Nightshelf.ToDomainName(), "Active", 4, 1, 0, 0, 0, penguinAttributes));
-        batch.EntitySnapshots.Add(new EntitySnapshotRow("seed-1000", 25, 2, settlementKind, "sanctuary", IceRemembersCulture.Nightshelf.ToDomainName(), "Active", 6, 2, 1, 0, -1, settlementAttributes));
+        batch.KindSnapshots.Add(new KindSnapshotRow(runId, 25, penguinKindId, wardenSubtypeId, 1, 0, 92f, 92f, 92f));
+        batch.KindSnapshots.Add(new KindSnapshotRow(runId, 25, settlementKindId, sanctuarySubtypeId, 1, 0, 45f, 45f, 45f));
+
+        AddEntitySnapshot(batch, runId, 0, 1, penguinKindId, wardenSubtypeId, cultureId, 0, 0, 0, 0, 0);
+        AddEntityAttributes(batch, runId, 0, 1, penguinAttributeIds, 92f, 78f, 24f);
+        AddEntitySnapshot(batch, runId, 0, 2, settlementKindId, sanctuarySubtypeId, cultureId, 2, 0, 1, 0, -1);
+        AddEntityAttributes(batch, runId, 0, 2, settlementAttributeIds, 45f, 55f, 61f);
+        AddEntitySnapshot(batch, runId, 25, 1, penguinKindId, wardenSubtypeId, cultureId, 4, 1, 0, 0, 0);
+        AddEntityAttributes(batch, runId, 25, 1, penguinAttributeIds, 92f, 78f, 24f);
+        AddEntitySnapshot(batch, runId, 25, 2, settlementKindId, sanctuarySubtypeId, cultureId, 6, 2, 1, 0, -1);
+        AddEntityAttributes(batch, runId, 25, 2, settlementAttributeIds, 45f, 55f, 61f);
 
         batch.ProcessEvents.Add(new ProcessEventRow(
-            "seed-1000",
+            runId,
             25,
             1,
-            penguinKind,
-            "goal-1",
-            penguinProcess.Name,
+            penguinKindId,
+            1,
+            processId,
             IsStale: false,
-            StatusNote: "executed",
+            StateCode: (int)KernelEventState.Succeeded,
             CandidateCount: 1,
             VisitId: null,
-            LocalityKey: null,
-            LocalityPlane: null,
+            LocalityId: null,
+            LocalityPlaneCode: null,
             LocalityQ: null,
             LocalityR: null,
             LocalityS: null,
@@ -164,52 +200,68 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             LocalityArrived: null,
             LocalityActionsRemaining: null,
             LocalityRealizedActions: null,
-            LocalitySelectionReason: null));
+            LocalitySelectionReasonCode: null));
         batch.ProcessCandidates.Add(new ProcessCandidateRow(
-            "seed-1000",
+            runId,
             25,
             1,
-            penguinKind,
-            penguinProcess.Name,
-            "goal-1",
-            "self",
+            penguinKindId,
+            processId,
+            1,
+            ProviderId: 0,
             1.25f,
             PreconditionPassed: true,
-            PreconditionDiagnostic: string.Empty,
+            PreconditionDiagnosticCode: 0,
             OnCooldown: false,
             WasSelected: true));
 
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow("seed-1000", 0, "Food", 28f, 1.4f, 0.5f, 3.0f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow("seed-1000", 25, "Food", 12f, 0.6f, 0.2f, 1.5f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow("seed-1000", 0, "Wealth", 6f, 0.3f, 0f, 1f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow("seed-1000", 25, "Wealth", 5f, 0.25f, 0f, 1f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 0, foodResourceId, 28f, 1.4f, 0.5f, 3.0f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 25, foodResourceId, 12f, 0.6f, 0.2f, 1.5f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 0, wealthResourceId, 6f, 0.3f, 0f, 1f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 25, wealthResourceId, 5f, 0.25f, 0f, 1f));
 
-        batch.MapSnapshots.Add(new MapSnapshotRow("seed-1000", 0, "Shelf", 20, 8, 2));
-        batch.MapSnapshots.Add(new MapSnapshotRow("seed-1000", 0, "Ocean", 40, 12, 0));
-        batch.MapSnapshots.Add(new MapSnapshotRow("seed-1000", 25, "Shelf", 20, 10, 1));
-        batch.MapSnapshots.Add(new MapSnapshotRow("seed-1000", 25, "Ocean", 40, 18, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 0, shelfTerrainId, 20, 8, 2));
+        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 0, oceanTerrainId, 40, 12, 0));
+        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 25, shelfTerrainId, 20, 10, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 25, oceanTerrainId, 40, 18, 1));
+        var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "quality_validation", "quality_validation");
+        var description = TelemetrySymbolIds.Create(
+            TelemetrySymbolKinds.MapGenerationDescription,
+            "Rejected procedural seed after validation (1 issues).",
+            "Rejected procedural seed after validation (1 issues).");
+        var reason = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationReason, "coverage too small", "coverage too small");
+        batch.Symbols.Add(phase);
+        batch.Symbols.Add(description);
+        batch.Symbols.Add(reason);
         batch.MapGenerationEvents.Add(new MapGenerationEventRow(
-            "seed-1000",
+            runId,
             0,
             1000,
             0,
             111,
             222,
-            "quality_validation",
-            "Rejected procedural seed after validation (1 issues).",
-            "coverage too small",
+            phase.Id,
+            description.Id,
+            reason.Id,
             true));
 
-        batch.LifecycleEvents.Add(new LifecycleEventRow("seed-1000", 18, "death", 7, IceRemembersKinds.Artifact.Value, "Broken Seal"));
+        batch.EntityNameSymbols.Add(new EntityNameSymbolRow(runId, 7, artifactKindId, 0, 0, 7, "Broken Seal"));
+        batch.LifecycleEvents.Add(new LifecycleEventRow(
+            runId,
+            18,
+            (int)KernelEventType.EntityStatusChanged,
+            7,
+            artifactKindId,
+            EntityStatusCodes.Historical));
 
         if (includeGeneratorFire)
         {
             batch.GeneratorEvents.Add(new GeneratorEventRow(
-                RunId: "seed-1000",
+                RunId: runId,
                 Tick: 25,
-                EventType: "pulse",
-                GeneratorId: "penguin_calls_the_unhuddled",
-                Status: "fired",
+                EventTypeCode: (int)KernelEventType.GeneratorEvaluated,
+                GeneratorId: generatorId,
+                StatusCode: GeneratorStatusCodes.Fired,
                 TargetPoolCount: 2,
                 InactiveRejectedCount: 0,
                 SubtypeRejectedCount: 0,
@@ -223,11 +275,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
                 CreatedEntityCount: 0,
                 CreatedRelationshipCount: 0));
             batch.GeneratorEvents.Add(new GeneratorEventRow(
-                RunId: "seed-1000",
+                RunId: runId,
                 Tick: 25,
-                EventType: "fired",
-                GeneratorId: "penguin_calls_the_unhuddled",
-                Status: "fired",
+                EventTypeCode: (int)KernelEventType.GeneratorFired,
+                GeneratorId: generatorId,
+                StatusCode: GeneratorStatusCodes.Fired,
                 TargetPoolCount: 0,
                 InactiveRejectedCount: 0,
                 SubtypeRejectedCount: 0,
@@ -241,26 +293,26 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
                 CreatedEntityCount: 2,
                 CreatedRelationshipCount: 4));
             batch.GeneratedEntities.Add(new GeneratedEntityRow(
-                "seed-1000",
+                runId,
                 25,
-                "penguin_calls_the_unhuddled",
+                generatorId,
                 3,
-                settlementKind,
-                "sanctuary",
-                IceRemembersCulture.Nightshelf.ToDomainName(),
+                settlementKindId,
+                sanctuarySubtypeId,
+                cultureId,
                 6,
                 2,
                 1,
                 0,
                 -1));
             batch.GeneratedEntities.Add(new GeneratedEntityRow(
-                "seed-1000",
+                runId,
                 25,
-                "penguin_calls_the_unhuddled",
+                generatorId,
                 4,
-                IceRemembersKinds.Faction.Value,
-                "compact",
-                IceRemembersCulture.Nightshelf.ToDomainName(),
+                factionKindId,
+                compactSubtypeId,
+                cultureId,
                 6,
                 2,
                 1,
@@ -271,11 +323,72 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         return batch;
     }
 
-    private static string FormatAttributes(string firstName, double firstValue, string secondName, double secondValue, string thirdName, double thirdValue) =>
-        string.Join('|', new[]
+    private static Dictionary<string, int> AttributeIds(KindConfig config, int firstId)
+    {
+        var ids = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var i = 0; i < config.Attributes.Count; i++)
         {
-            $"{firstName}={firstValue:F3}",
-            $"{secondName}={secondValue:F3}",
-            $"{thirdName}={thirdValue:F3}",
-        });
+            ids[config.Attributes[i].Name] = firstId + i;
+        }
+
+        return ids;
+    }
+
+    private static void AddSymbol(TelemetryBatch batch, ProjectionSymbolKind kind, int id, string stableName) =>
+        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId((int)kind, id, stableName, stableName));
+
+    private static void AddAttributeSymbols(TelemetryBatch batch, IReadOnlyDictionary<string, int> attributeIds)
+    {
+        foreach (var (name, id) in attributeIds)
+        {
+            AddSymbol(batch, ProjectionSymbolKind.Attribute, id, name);
+        }
+    }
+
+    private static void AddEntitySnapshot(
+        TelemetryBatch batch,
+        int runId,
+        int tick,
+        int entityId,
+        int kindId,
+        int subtypeId,
+        int cultureId,
+        int physicalQ,
+        int physicalR,
+        int semanticQ,
+        int semanticR,
+        int semanticS) =>
+        batch.EntitySnapshots.Add(new EntitySnapshotRow(
+            runId,
+            tick,
+            entityId,
+            kindId,
+            subtypeId,
+            cultureId,
+            EntityStatusCodes.Active,
+            physicalQ,
+            physicalR,
+            semanticQ,
+            semanticR,
+            semanticS));
+
+    private static void AddEntityAttributes(
+        TelemetryBatch batch,
+        int runId,
+        int tick,
+        int entityId,
+        IReadOnlyDictionary<string, int> attributeIds,
+        params float[] values)
+    {
+        var index = 0;
+        foreach (var id in attributeIds.Values)
+        {
+            batch.EntityAttributeSnapshots.Add(new EntityAttributeSnapshotRow(
+                runId,
+                tick,
+                entityId,
+                id,
+                values[index++]));
+        }
+    }
 }

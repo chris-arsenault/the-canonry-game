@@ -3,7 +3,7 @@ namespace TheCanonryGame.Game.Tableau;
 using Engine.Projection;
 using TheCanonryGame.Game.Cards;
 
-public sealed record GameTableauCardState(
+internal sealed record GameTableauCardState(
     CardInstance Card,
     int GeneratorId,
     bool IsKnown,
@@ -11,9 +11,9 @@ public sealed record GameTableauCardState(
     int TotalFired,
     int? LastFireTick);
 
-public sealed record GameTableauGeneratorFire(string GeneratorName, int Tick);
+internal sealed record GameTableauGeneratorFire(string GeneratorName, int Tick);
 
-public sealed class GameRuntimeTableau
+internal sealed class GameRuntimeTableau
 {
     private readonly TableauManager _tableau = new(manaCap: 0f);
     private readonly UiProjectionState _projection;

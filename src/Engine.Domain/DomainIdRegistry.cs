@@ -164,6 +164,77 @@ public sealed class DomainIdRegistry
         foreach (var entry in _sourceCodes.Entries(DomainIdCategory.SourceCode)) yield return entry;
     }
 
+    public DomainIdRegistry Clone()
+    {
+        var clone = new DomainIdRegistry();
+        foreach (var entry in Entries())
+        {
+            RegisterCloneEntry(clone, entry);
+        }
+
+        return clone;
+    }
+
+    private static void RegisterCloneEntry(DomainIdRegistry clone, DomainIdEntry entry)
+    {
+        switch (entry.Category)
+        {
+            case DomainIdCategory.Kind:
+                clone.RegisterKind(entry.StableName);
+                break;
+            case DomainIdCategory.Attribute:
+                clone.RegisterAttribute(entry.StableName);
+                break;
+            case DomainIdCategory.Process:
+                clone.RegisterProcess(entry.StableName);
+                break;
+            case DomainIdCategory.Gambit:
+                clone.RegisterGambit(entry.StableName);
+                break;
+            case DomainIdCategory.StructuralFact:
+                clone.RegisterStructuralFact(entry.StableName);
+                break;
+            case DomainIdCategory.RelationshipKind:
+                clone.RegisterRelationshipKind(entry.StableName);
+                break;
+            case DomainIdCategory.RelationshipFact:
+                clone.RegisterRelationshipFact(entry.StableName);
+                break;
+            case DomainIdCategory.Pressure:
+                clone.RegisterPressure(entry.StableName);
+                break;
+            case DomainIdCategory.Resource:
+                clone.RegisterResource(entry.StableName);
+                break;
+            case DomainIdCategory.Terrain:
+                clone.RegisterTerrain(entry.StableName);
+                break;
+            case DomainIdCategory.Subtype:
+                clone.RegisterSubtype(entry.StableName);
+                break;
+            case DomainIdCategory.Culture:
+                clone.RegisterCulture(entry.StableName);
+                break;
+            case DomainIdCategory.Generator:
+                clone.RegisterGenerator(entry.StableName);
+                break;
+            case DomainIdCategory.Detector:
+                clone.RegisterDetector(entry.StableName);
+                break;
+            case DomainIdCategory.EventCode:
+                clone.RegisterEventCode(entry.StableName);
+                break;
+            case DomainIdCategory.ReasonCode:
+                clone.RegisterReasonCode(entry.StableName);
+                break;
+            case DomainIdCategory.SourceCode:
+                clone.RegisterSourceCode(entry.StableName);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(entry), entry.Category, null);
+        }
+    }
+
     private sealed class StableNameRegistry<TId>(
         Func<int, TId> createId,
         Func<TId, int> valueOf,

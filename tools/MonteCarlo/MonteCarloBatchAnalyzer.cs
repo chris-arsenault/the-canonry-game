@@ -7,7 +7,9 @@ using System.Text;
 
 using DuckDB.NET.Data;
 
+using Engine.Constants;
 using Engine.Domain.Config;
+using Engine.Observability;
 using Engine.Observability.Export;
 using Engine.WorldGen;
 
@@ -15,14 +17,22 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 {
     private static readonly string[] RequiredTables =
     [
+        "symbols",
+        "entity_name_symbols",
         "runs",
         "tick_snapshots",
         "kind_snapshots",
         "entity_snapshots",
+        "entity_attribute_snapshots",
         "entity_events",
         "planner_goals",
+        "planner_traces",
+        "planner_trace_goals",
+        "planner_trace_scores",
+        "planner_trace_steps",
         "process_events",
         "process_candidates",
+        "locality_opportunities",
         "attribute_events",
         "movement_events",
         "resource_events",
@@ -129,6 +139,14 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
             var dbConnection = new DuckDBConnection($"Data Source={databasePath}");
             dbConnection.Open();
+            foreach (var table in RequiredTables)
+            {
+                SqlFileHelpers.Execute(
+                    dbConnection,
+                    $"CREATE OR REPLACE TEMP VIEW {SqlFileHelpers.QuoteIdentifier($"raw_{table}")} AS SELECT * FROM {SqlFileHelpers.QuoteIdentifier(table)};");
+            }
+
+            CreateAnalysisViews(dbConnection);
             return dbConnection;
         }
 
@@ -140,10 +158,343 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             var path = Path.Combine(batchDirectory, $"{table}.parquet");
             SqlFileHelpers.Execute(
                 connection,
-                $"CREATE VIEW {SqlFileHelpers.QuoteIdentifier(table)} AS SELECT * FROM read_parquet({SqlFileHelpers.QuoteString(path)});");
+                $"CREATE OR REPLACE TEMP VIEW {SqlFileHelpers.QuoteIdentifier($"raw_{table}")} AS SELECT * FROM read_parquet({SqlFileHelpers.QuoteString(path)});");
         }
 
+        CreateAnalysisViews(connection);
         return connection;
+    }
+
+    private static void CreateAnalysisViews(DuckDBConnection connection)
+    {
+        var runKind = TelemetrySymbolKinds.Run;
+        var domainKind = TelemetrySymbolKinds.Domain;
+        var kindKind = (int)Engine.Projection.ProjectionSymbolKind.Kind;
+        var subtypeKind = (int)Engine.Projection.ProjectionSymbolKind.Subtype;
+        var cultureKind = (int)Engine.Projection.ProjectionSymbolKind.Culture;
+        var attributeKind = (int)Engine.Projection.ProjectionSymbolKind.Attribute;
+        var processKind = (int)Engine.Projection.ProjectionSymbolKind.Process;
+        var resourceKind = (int)Engine.Projection.ProjectionSymbolKind.Resource;
+        var terrainKind = (int)Engine.Projection.ProjectionSymbolKind.Terrain;
+        var generatorKind = (int)Engine.Projection.ProjectionSymbolKind.Generator;
+        var entityStatusKind = TelemetrySymbolKinds.EntityStatus;
+        var generatorStatusKind = TelemetrySymbolKinds.GeneratorStatus;
+        var kernelEventTypeKind = TelemetrySymbolKinds.KernelEventType;
+        var mapPhaseKind = TelemetrySymbolKinds.MapGenerationPhase;
+        var mapDescriptionKind = TelemetrySymbolKinds.MapGenerationDescription;
+        var mapReasonKind = TelemetrySymbolKinds.MapGenerationReason;
+        var generatorEvaluated = (int)Engine.Eventing.KernelEventType.GeneratorEvaluated;
+        var generatorFired = (int)Engine.Eventing.KernelEventType.GeneratorFired;
+        var historicalStatus = Engine.Constants.EntityStatusCodes.Historical;
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "symbol_lookup",
+            """
+            SELECT
+                symbol_kind,
+                id,
+                any_value(stable_name) AS stable_name,
+                any_value(display_name) AS display_name,
+                any_value(description) AS description,
+                any_value(icon_key) AS icon_key,
+                any_value(color_key) AS color_key
+            FROM raw_symbols
+            GROUP BY symbol_kind, id
+            """);
+        CreateMaterializedAnalysisTable(connection, "symbols", "SELECT * FROM symbol_lookup");
+        CreateMaterializedAnalysisTable(connection, "entity_name_symbols", "SELECT * FROM raw_entity_name_symbols");
+        CreateMaterializedAnalysisTable(
+            connection,
+            "runs",
+            $"""
+            SELECT
+                COALESCE(run_symbol.stable_name, CAST(r.run_id AS VARCHAR)) AS run_id,
+                r.seed,
+                COALESCE(domain_symbol.stable_name, CAST(r.domain_id AS VARCHAR)) AS domain,
+                CAST(r.started_unix_milliseconds AS VARCHAR) AS started_utc
+            FROM raw_runs r
+            LEFT JOIN symbol_lookup run_symbol
+              ON run_symbol.symbol_kind = {runKind}
+             AND run_symbol.id = r.run_id
+            LEFT JOIN symbol_lookup domain_symbol
+              ON domain_symbol.symbol_kind = {domainKind}
+             AND domain_symbol.id = r.domain_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "tick_snapshots",
+            """
+            SELECT runs.run_id, ts.tick, ts.active_entities, ts.historical_entities, ts.total_generator_fires,
+                   ts.active_relationships, ts.coverage_count, ts.covered_cells, ts.uncovered_cells,
+                   ts.physical_spread, ts.semantic_spread
+            FROM raw_tick_snapshots ts
+            JOIN runs ON runs.seed = (SELECT seed FROM raw_runs WHERE raw_runs.run_id = ts.run_id LIMIT 1)
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "kind_snapshots",
+            $"""
+            SELECT runs.run_id, ks.tick,
+                   COALESCE(kind_symbol.stable_name, CAST(ks.kind_id AS VARCHAR)) AS kind,
+                   COALESCE(subtype_symbol.stable_name, CAST(ks.subtype_id AS VARCHAR)) AS subtype,
+                   ks.active_count, ks.historical_count, ks.average_health, ks.minimum_health, ks.maximum_health
+            FROM raw_kind_snapshots ks
+            JOIN raw_runs rr ON rr.run_id = ks.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {kindKind}
+             AND kind_symbol.id = ks.kind_id
+            LEFT JOIN symbol_lookup subtype_symbol
+              ON subtype_symbol.symbol_kind = {subtypeKind}
+             AND subtype_symbol.id = ks.subtype_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "entity_snapshot_attributes",
+            $"""
+            SELECT
+                eas.run_id,
+                eas.tick,
+                eas.entity_id,
+                string_agg(
+                    COALESCE(attribute_symbol.stable_name, CAST(eas.attribute_id AS VARCHAR)) || '=' || CAST(eas.value AS VARCHAR),
+                    '|'
+                    ORDER BY eas.attribute_id) AS attributes
+            FROM raw_entity_attribute_snapshots eas
+            LEFT JOIN symbol_lookup attribute_symbol
+              ON attribute_symbol.symbol_kind = {attributeKind}
+             AND attribute_symbol.id = eas.attribute_id
+            GROUP BY eas.run_id, eas.tick, eas.entity_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "entity_snapshots",
+            $"""
+            SELECT runs.run_id, es.tick, es.entity_id,
+                   COALESCE(kind_symbol.stable_name, CAST(es.kind_id AS VARCHAR)) AS kind,
+                   COALESCE(subtype_symbol.stable_name, CAST(es.subtype_id AS VARCHAR)) AS subtype,
+                   COALESCE(culture_symbol.stable_name, CAST(es.culture_id AS VARCHAR)) AS culture,
+                   COALESCE(status_symbol.display_name, CAST(es.status_code AS VARCHAR)) AS status,
+                   es.physical_q, es.physical_r, es.semantic_q, es.semantic_r, es.semantic_s,
+                   COALESCE(attrs.attributes, '') AS attributes
+            FROM raw_entity_snapshots es
+            JOIN raw_runs rr ON rr.run_id = es.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {kindKind}
+             AND kind_symbol.id = es.kind_id
+            LEFT JOIN symbol_lookup subtype_symbol
+              ON subtype_symbol.symbol_kind = {subtypeKind}
+             AND subtype_symbol.id = es.subtype_id
+            LEFT JOIN symbol_lookup culture_symbol
+              ON culture_symbol.symbol_kind = {cultureKind}
+             AND culture_symbol.id = es.culture_id
+            LEFT JOIN symbol_lookup status_symbol
+              ON status_symbol.symbol_kind = {entityStatusKind}
+             AND status_symbol.id = es.status_code
+            LEFT JOIN entity_snapshot_attributes attrs
+              ON attrs.run_id = es.run_id
+             AND attrs.tick = es.tick
+             AND attrs.entity_id = es.entity_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "process_events",
+            $"""
+            SELECT runs.run_id, pe.tick, pe.entity_id,
+                   COALESCE(kind_symbol.stable_name, CAST(pe.kind_id AS VARCHAR)) AS kind,
+                   CASE WHEN pe.selected_goal_id IS NULL THEN NULL ELSE 'goal_' || CAST(pe.selected_goal_id AS VARCHAR) END AS selected_goal_id,
+                   process_symbol.stable_name AS executed_process_name,
+                   pe.is_stale, CAST(pe.state_code AS VARCHAR) AS status_note, pe.candidate_count,
+                   CAST(pe.visit_id AS VARCHAR) AS visit_id,
+                   CAST(pe.locality_id AS VARCHAR) AS locality_key,
+                   CAST(pe.locality_plane_code AS VARCHAR) AS locality_plane,
+                   pe.locality_q, pe.locality_r, pe.locality_s, pe.locality_bundle_score,
+                   pe.locality_goal_count, pe.locality_distinct_target_count, pe.locality_distinct_effect_count,
+                   pe.locality_distance, pe.locality_is_current, pe.locality_is_committed, pe.locality_arrived,
+                   pe.locality_actions_remaining, pe.locality_realized_actions,
+                   CAST(pe.locality_selection_reason_code AS VARCHAR) AS locality_selection_reason
+            FROM raw_process_events pe
+            JOIN raw_runs rr ON rr.run_id = pe.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {kindKind}
+             AND kind_symbol.id = pe.kind_id
+            LEFT JOIN symbol_lookup process_symbol
+              ON process_symbol.symbol_kind = {processKind}
+             AND process_symbol.id = pe.executed_process_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "process_candidates",
+            $"""
+            SELECT runs.run_id, pc.tick, pc.entity_id,
+                   COALESCE(kind_symbol.stable_name, CAST(pc.kind_id AS VARCHAR)) AS kind,
+                   COALESCE(process_symbol.stable_name, CAST(pc.process_id AS VARCHAR)) AS process_name,
+                   'goal_' || CAST(pc.goal_id AS VARCHAR) AS goal_id,
+                   CAST(pc.provider_id AS VARCHAR) AS provider_name,
+                   pc.score, pc.precondition_passed,
+                   CAST(pc.precondition_diagnostic_code AS VARCHAR) AS precondition_diagnostic,
+                   pc.on_cooldown, pc.was_selected
+            FROM raw_process_candidates pc
+            JOIN raw_runs rr ON rr.run_id = pc.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {kindKind}
+             AND kind_symbol.id = pc.kind_id
+            LEFT JOIN symbol_lookup process_symbol
+              ON process_symbol.symbol_kind = {processKind}
+             AND process_symbol.id = pc.process_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "resource_snapshots",
+            $"""
+            SELECT runs.run_id, rs.tick,
+                   COALESCE(resource_symbol.stable_name, CAST(rs.resource_id AS VARCHAR)) AS resource_type,
+                   rs.total, rs.average, rs.minimum, rs.maximum
+            FROM raw_resource_snapshots rs
+            JOIN raw_runs rr ON rr.run_id = rs.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup resource_symbol
+              ON resource_symbol.symbol_kind = {resourceKind}
+             AND resource_symbol.id = rs.resource_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "generator_events",
+            $"""
+            SELECT runs.run_id, ge.tick,
+                   CASE
+                     WHEN ge.event_type_code = {generatorEvaluated} THEN 'pulse'
+                     WHEN ge.event_type_code = {generatorFired} THEN 'fired'
+                     ELSE COALESCE(event_symbol.stable_name, CAST(ge.event_type_code AS VARCHAR))
+                   END AS event_type,
+                   COALESCE(generator_symbol.stable_name, CAST(ge.generator_id AS VARCHAR)) AS generator_id,
+                   COALESCE(status_symbol.stable_name, CAST(ge.status_code AS VARCHAR)) AS status,
+                   ge.target_pool_count, ge.inactive_rejected_count, ge.subtype_rejected_count,
+                   ge.saturation_rejected_count, ge.secondary_target_rejected_count, ge.wilderness_rejected_count,
+                   ge.trigger_rejected_count, ge.candidate_count, ge.failed_fire_count,
+                   ge.selected_target_entity_id, ge.created_entity_count, ge.created_relationship_count
+            FROM raw_generator_events ge
+            JOIN raw_runs rr ON rr.run_id = ge.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup generator_symbol
+              ON generator_symbol.symbol_kind = {generatorKind}
+             AND generator_symbol.id = ge.generator_id
+            LEFT JOIN symbol_lookup status_symbol
+              ON status_symbol.symbol_kind = {generatorStatusKind}
+             AND status_symbol.id = ge.status_code
+            LEFT JOIN symbol_lookup event_symbol
+              ON event_symbol.symbol_kind = {kernelEventTypeKind}
+             AND event_symbol.id = ge.event_type_code
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "generated_entities",
+            $"""
+            SELECT runs.run_id, generated.tick,
+                   COALESCE(generator_symbol.stable_name, CAST(generated.generator_id AS VARCHAR)) AS generator_id,
+                   generated.entity_id,
+                   COALESCE(kind_symbol.stable_name, CAST(generated.kind_id AS VARCHAR)) AS kind,
+                   COALESCE(subtype_symbol.stable_name, CAST(generated.subtype_id AS VARCHAR)) AS subtype,
+                   COALESCE(culture_symbol.stable_name, CAST(generated.culture_id AS VARCHAR)) AS culture,
+                   generated.physical_q, generated.physical_r, generated.semantic_q, generated.semantic_r, generated.semantic_s
+            FROM raw_generated_entities generated
+            JOIN raw_runs rr ON rr.run_id = generated.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup generator_symbol
+              ON generator_symbol.symbol_kind = {generatorKind}
+             AND generator_symbol.id = generated.generator_id
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {kindKind}
+             AND kind_symbol.id = generated.kind_id
+            LEFT JOIN symbol_lookup subtype_symbol
+              ON subtype_symbol.symbol_kind = {subtypeKind}
+             AND subtype_symbol.id = generated.subtype_id
+            LEFT JOIN symbol_lookup culture_symbol
+              ON culture_symbol.symbol_kind = {cultureKind}
+             AND culture_symbol.id = generated.culture_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "lifecycle_events",
+            $"""
+            SELECT runs.run_id, le.tick,
+                   CASE WHEN le.status_code = {historicalStatus} THEN 'death' ELSE COALESCE(event_symbol.stable_name, CAST(le.event_type_code AS VARCHAR)) END AS event_type,
+                   le.entity_id,
+                   COALESCE(kind_symbol.stable_name, CAST(le.kind_id AS VARCHAR)) AS kind,
+                   COALESCE(entity_name.display_name, 'E' || CAST(le.entity_id AS VARCHAR)) AS name
+            FROM raw_lifecycle_events le
+            JOIN raw_runs rr ON rr.run_id = le.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup event_symbol
+              ON event_symbol.symbol_kind = {kernelEventTypeKind}
+             AND event_symbol.id = le.event_type_code
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {kindKind}
+             AND kind_symbol.id = le.kind_id
+            LEFT JOIN raw_entity_name_symbols entity_name
+              ON entity_name.run_id = le.run_id
+             AND entity_name.entity_id = le.entity_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "map_generation_events",
+            $"""
+            SELECT runs.run_id, mge.tick, mge.base_seed, mge.attempt, mge.terrain_seed, mge.entity_seed,
+                   COALESCE(phase_symbol.stable_name, CAST(mge.phase_id AS VARCHAR)) AS phase,
+                   COALESCE(description_symbol.stable_name, CAST(mge.description_id AS VARCHAR)) AS description,
+                   COALESCE(reason_symbol.stable_name, '') AS reasons,
+                   mge.will_retry
+            FROM raw_map_generation_events mge
+            JOIN raw_runs rr ON rr.run_id = mge.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup phase_symbol
+              ON phase_symbol.symbol_kind = {mapPhaseKind}
+             AND phase_symbol.id = mge.phase_id
+            LEFT JOIN symbol_lookup description_symbol
+              ON description_symbol.symbol_kind = {mapDescriptionKind}
+             AND description_symbol.id = mge.description_id
+            LEFT JOIN symbol_lookup reason_symbol
+              ON reason_symbol.symbol_kind = {mapReasonKind}
+             AND reason_symbol.id = mge.reason_id
+            """);
+
+        CreateMaterializedAnalysisTable(
+            connection,
+            "map_snapshots",
+            $"""
+            SELECT runs.run_id, ms.tick,
+                   COALESCE(terrain_symbol.stable_name, CAST(ms.terrain_id AS VARCHAR)) AS terrain,
+                   ms.cell_count, ms.covered_cell_count, ms.active_entity_count
+            FROM raw_map_snapshots ms
+            JOIN raw_runs rr ON rr.run_id = ms.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup terrain_symbol
+              ON terrain_symbol.symbol_kind = {terrainKind}
+             AND terrain_symbol.id = ms.terrain_id
+            """);
+
+    }
+
+    private static void CreateMaterializedAnalysisTable(DuckDBConnection connection, string tableName, string selectSql)
+    {
+        SqlFileHelpers.Execute(
+            connection,
+            $"CREATE OR REPLACE TEMP TABLE {SqlFileHelpers.QuoteIdentifier(tableName)} AS {selectSql};");
     }
 
     private BatchOverviewRow LoadBatchOverview(DuckDBConnection connection)

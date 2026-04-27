@@ -9,4 +9,8 @@
     <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\Engine.Kernel\Engine.Kernel.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Engine.Kernel.Driver.Tests" />
+  </ItemGroup>
 </Project>

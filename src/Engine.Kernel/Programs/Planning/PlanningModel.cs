@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public readonly record struct PlanningRequest(
+internal readonly record struct PlanningRequest(
     int PlannerKindCode,
     int ActionFamilyCode,
     int ActorEntityId,
@@ -8,14 +8,14 @@ public readonly record struct PlanningRequest(
     int Tick,
     float SelectionRoll);
 
-public readonly record struct PlanningActionHandle(
+internal readonly record struct PlanningActionHandle(
     int ActionFamilyCode,
     int ActionSlot);
 
-public readonly record struct PlanningPlanHandle(
+internal readonly record struct PlanningPlanHandle(
     int Slot);
 
-public readonly record struct PlanningDecision(
+internal readonly record struct PlanningDecision(
     int StatusCode,
     PlanningPlanHandle Plan,
     PlanningActionHandle ImmediateAction,
@@ -23,7 +23,7 @@ public readonly record struct PlanningDecision(
     int CandidateCount,
     float Score);
 
-public readonly record struct PlanningPlanHeader(
+internal readonly record struct PlanningPlanHeader(
     int PlannerKindCode,
     int ActionFamilyCode,
     int ActorEntityId,
@@ -39,7 +39,7 @@ public readonly record struct PlanningPlanHeader(
     float Score,
     int StatusCode);
 
-public readonly record struct PlanningPlanStep(
+internal readonly record struct PlanningPlanStep(
     PlanningActionHandle Action,
     int TargetEntityId,
     int SatisfiesEffectKey,

@@ -1,25 +1,32 @@
 namespace Engine.Observability.Export;
 
 using System.Collections.ObjectModel;
-using System.Reflection;
 
 using DuckDB.NET.Data;
 
+using Engine.Constants;
 using Engine.Observability;
 
-public sealed class DuckDbPerformanceTelemetryStore : IDisposable
+internal sealed class DuckDbPerformanceTelemetryStore : IDisposable
 {
+    private const long DefaultFlushRowThreshold = 250_000;
+
     private readonly string _outputDirectory;
     private readonly string _databasePath;
     private readonly DuckDBConnection _connection;
+    private readonly long _flushRowThreshold;
+    private PerformanceTelemetryBatch _pending = new();
+    private long _pendingRows;
     private bool _disposed;
 
-    public DuckDbPerformanceTelemetryStore(string outputDirectory)
+    public DuckDbPerformanceTelemetryStore(string outputDirectory, long flushRowThreshold = DefaultFlushRowThreshold)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        ArgumentOutOfRangeException.ThrowIfNegative(flushRowThreshold);
 
         _outputDirectory = outputDirectory;
         _databasePath = Path.Combine(outputDirectory, "performance.duckdb");
+        _flushRowThreshold = flushRowThreshold;
         Directory.CreateDirectory(_outputDirectory);
 
         _connection = new DuckDBConnection($"Data Source={_databasePath}");
@@ -32,25 +39,58 @@ public sealed class DuckDbPerformanceTelemetryStore : IDisposable
         ArgumentNullException.ThrowIfNull(batch);
         ThrowIfDisposed();
 
-        AppendTable("run_perf", batch.RunPerformance);
-        AppendTable("tick_perf", batch.TickPerformance);
-        AppendTable("system_perf", batch.SystemPerformance);
-        AppendTable("export_perf", batch.ExportPerformance);
+        var rowCount = PerformanceTelemetryBatchExtensions.CountRows(batch);
+        if (rowCount == 0)
+        {
+            return;
+        }
+
+        _pending.Append(batch);
+        _pendingRows += rowCount;
+        if (_pendingRows >= _flushRowThreshold)
+        {
+            Flush();
+        }
     }
 
-    public void AppendExport(ExportPerformanceRow row)
+    public void AppendExport(ExportPerformanceRow row, string stepName)
     {
         ArgumentNullException.ThrowIfNull(row);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stepName);
         ThrowIfDisposed();
 
-        var rows = new Collection<ExportPerformanceRow> { row };
-        AppendTable("export_perf", rows);
+        _pending.Symbols.Add(TelemetrySymbolIds.CreateWithId(
+            TelemetrySymbolKinds.PerformanceExportStep,
+            row.StepId,
+            stepName,
+            stepName));
+        _pending.ExportPerformance.Add(row);
+        _pendingRows += 2;
+        if (_pendingRows >= _flushRowThreshold)
+        {
+            Flush();
+        }
+    }
+
+    public void Flush()
+    {
+        ThrowIfDisposed();
+        if (_pendingRows == 0)
+        {
+            return;
+        }
+
+        AppendPending();
+        _pending = new PerformanceTelemetryBatch();
+        _pendingRows = 0;
     }
 
     public void ExportCoreParquet()
     {
         ThrowIfDisposed();
+        Flush();
 
+        ExportTable("performance_symbols");
         ExportTable("run_perf");
         ExportTable("tick_perf");
         ExportTable("system_perf");
@@ -59,6 +99,7 @@ public sealed class DuckDbPerformanceTelemetryStore : IDisposable
     public void ExportExportPerformanceParquet()
     {
         ThrowIfDisposed();
+        Flush();
 
         ExportTable("export_perf");
     }
@@ -72,12 +113,14 @@ public sealed class DuckDbPerformanceTelemetryStore : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
+        Flush();
         _disposed = true;
         _connection.Dispose();
     }
 
     private void EnsureSchema()
     {
+        EnsureTable("performance_symbols", typeof(SymbolRow));
         EnsureTable("run_perf", typeof(RunPerformanceRow));
         EnsureTable("tick_perf", typeof(TickPerformanceRow));
         EnsureTable("system_perf", typeof(SystemPerformanceRow));
@@ -86,24 +129,27 @@ public sealed class DuckDbPerformanceTelemetryStore : IDisposable
 
     private void EnsureTable(string tableName, Type rowType)
     {
-        var properties = rowType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        var properties = DuckDbRowSchema.PropertiesFor(rowType);
         SqlFileHelpers.Execute(_connection, SqlFileHelpers.CreateTableSql(tableName, properties, ifNotExists: true));
     }
 
-    private void AppendTable<T>(string tableName, Collection<T> rows)
+    private void AppendPending()
+    {
+        AppendTable("performance_symbols", _pending.Symbols);
+        AppendTable("run_perf", _pending.RunPerformance);
+        AppendTable("tick_perf", _pending.TickPerformance);
+        AppendTable("system_perf", _pending.SystemPerformance);
+        AppendTable("export_perf", _pending.ExportPerformance);
+    }
+
+    private void AppendTable<T>(string tableName, IReadOnlyCollection<T> rows)
     {
         if (rows.Count == 0)
         {
             return;
         }
 
-        var properties = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-        var tempCsv = Path.Combine(_outputDirectory, ".staging", $"{tableName}-{Guid.NewGuid():N}.csv");
-        CsvFileWriter.WriteCsv(tempCsv, properties, rows);
-        SqlFileHelpers.Execute(
-            _connection,
-            $"COPY {SqlFileHelpers.QuoteIdentifier(tableName)} FROM {SqlFileHelpers.QuoteString(tempCsv)} (HEADER, DELIMITER ',', QUOTE '\"', ESCAPE '\"', NULL '');");
-        File.Delete(tempCsv);
+        DuckDbAppenderWriter.Append(_connection, tableName, rows);
     }
 
     private void ExportTable(string tableName)
@@ -117,5 +163,38 @@ public sealed class DuckDbPerformanceTelemetryStore : IDisposable
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+}
+
+internal static class PerformanceTelemetryBatchExtensions
+{
+    public static long CountRows(this PerformanceTelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        return batch.Symbols.Count +
+               batch.RunPerformance.Count +
+               batch.TickPerformance.Count +
+               batch.SystemPerformance.Count +
+               batch.ExportPerformance.Count;
+    }
+
+    public static void Append(this PerformanceTelemetryBatch destination, PerformanceTelemetryBatch source)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(source);
+
+        AppendRows(destination.Symbols, source.Symbols);
+        AppendRows(destination.RunPerformance, source.RunPerformance);
+        AppendRows(destination.TickPerformance, source.TickPerformance);
+        AppendRows(destination.SystemPerformance, source.SystemPerformance);
+        AppendRows(destination.ExportPerformance, source.ExportPerformance);
+    }
+
+    private static void AppendRows<T>(Collection<T> destination, Collection<T> source)
+    {
+        foreach (var row in source)
+        {
+            destination.Add(row);
+        }
     }
 }

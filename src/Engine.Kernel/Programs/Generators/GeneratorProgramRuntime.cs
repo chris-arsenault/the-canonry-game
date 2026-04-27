@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>
+internal sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>
 {
     private const int MaxResolvedReferences = 32;
     private const int MaxScratchCells = 4096;
@@ -1462,7 +1462,7 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
 
             if (sourceOwnerId == 0)
             {
-                sourceOwnerId = world.CellCoverageOwner(originQ, originR);
+                sourceOwnerId = world.CoverageOwnerAt(originQ, originR);
             }
 
             if (sourceOwnerId == 0)
@@ -1486,7 +1486,7 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
         {
             var q = _scratchClaimedQ[i];
             var r = _scratchClaimedR[i];
-            world.SetCellCoverageOwner(q, r, ownerEntityId);
+            world.SetCoverageOwner(q, r, ownerEntityId);
             if (_producedCoverageTransformTerrainIds[producedSlot] > 0)
             {
                 world.SetCellTerrain(
@@ -1681,19 +1681,19 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
         var mode = _producedCoverageModeCodes[producedSlot];
         if (mode == GeneratorCoverageModeCodes.CreateNew)
         {
-            if (world.CellCoverageOwner(q, r) != 0)
+            if (world.CoverageOwnerAt(q, r) != 0)
             {
                 return false;
             }
         }
         else if (mode == GeneratorCoverageModeCodes.SplitFromExisting)
         {
-            if (sourceOwnerId == 0 || world.CellCoverageOwner(q, r) != sourceOwnerId)
+            if (sourceOwnerId == 0 || world.CoverageOwnerAt(q, r) != sourceOwnerId)
             {
                 return false;
             }
 
-            var remaining = world.CoverageCellCount(sourceOwnerId) - alreadyClaimedCount - 1;
+            var remaining = world.CoverageOwnerCellCount(sourceOwnerId) - alreadyClaimedCount - 1;
             if (remaining < _producedCoverageMinimumSourceRemainingCellCounts[producedSlot])
             {
                 return false;
@@ -1726,26 +1726,21 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
         var firstQ = 0;
         var firstR = 0;
         var remainingCount = 0;
-        for (var q = -world.MapRadius; q <= world.MapRadius; q++)
+        var cursor = world.CoverageCells(sourceOwnerId);
+        while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
         {
-            var minR = global::System.Math.Max(-world.MapRadius, -q - world.MapRadius);
-            var maxR = global::System.Math.Min(world.MapRadius, -q + world.MapRadius);
-            for (var r = minR; r <= maxR; r++)
+            if (CoverageRemovalContains(q, r, removedQ, removedR, alreadyClaimedCount))
             {
-                if (world.CellCoverageOwner(q, r) != sourceOwnerId ||
-                    CoverageRemovalContains(q, r, removedQ, removedR, alreadyClaimedCount))
-                {
-                    continue;
-                }
-
-                if (remainingCount == 0)
-                {
-                    firstQ = q;
-                    firstR = r;
-                }
-
-                remainingCount++;
+                continue;
             }
+
+            if (remainingCount == 0)
+            {
+                firstQ = q;
+                firstR = r;
+            }
+
+            remainingCount++;
         }
 
         if (remainingCount == 0)
@@ -1771,7 +1766,7 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
             {
                 var neighborQ = currentQ + DirectionQ(direction);
                 var neighborR = currentR + DirectionR(direction);
-                if (world.CellCoverageOwner(neighborQ, neighborR) != sourceOwnerId ||
+                if (world.CoverageOwnerAt(neighborQ, neighborR) != sourceOwnerId ||
                     CoverageRemovalContains(neighborQ, neighborR, removedQ, removedR, alreadyClaimedCount) ||
                     ScratchContains(_scratchConnectivityQ, _scratchConnectivityR, visitedCount, neighborQ, neighborR))
                 {
@@ -1894,16 +1889,12 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
     {
         var world = simulation.World;
         var candidateCount = 0;
-        for (var cq = -world.MapRadius; cq <= world.MapRadius; cq++)
+        var cursor = world.CoverageCells(coverageOwnerId);
+        while (world.MoveNextCoverageCell(ref cursor, out var cq, out var cr))
         {
-            var minR = global::System.Math.Max(-world.MapRadius, -cq - world.MapRadius);
-            var maxR = global::System.Math.Min(world.MapRadius, -cq + world.MapRadius);
-            for (var cr = minR; cr <= maxR; cr++)
+            if (IsFreePhysical(world, cq, cr))
             {
-                if (world.CellCoverageOwner(cq, cr) == coverageOwnerId && IsFreePhysical(world, cq, cr))
-                {
-                    candidateCount++;
-                }
+                candidateCount++;
             }
         }
 
@@ -1916,26 +1907,22 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
 
         var selected = simulation.NextInt(candidateCount);
         var seen = 0;
-        for (var cq = -world.MapRadius; cq <= world.MapRadius; cq++)
+        cursor = world.CoverageCells(coverageOwnerId);
+        while (world.MoveNextCoverageCell(ref cursor, out var cq, out var cr))
         {
-            var minR = global::System.Math.Max(-world.MapRadius, -cq - world.MapRadius);
-            var maxR = global::System.Math.Min(world.MapRadius, -cq + world.MapRadius);
-            for (var cr = minR; cr <= maxR; cr++)
+            if (!IsFreePhysical(world, cq, cr))
             {
-                if (world.CellCoverageOwner(cq, cr) != coverageOwnerId || !IsFreePhysical(world, cq, cr))
-                {
-                    continue;
-                }
-
-                if (seen == selected)
-                {
-                    q = cq;
-                    r = cr;
-                    return true;
-                }
-
-                seen++;
+                continue;
             }
+
+            if (seen == selected)
+            {
+                q = cq;
+                r = cr;
+                return true;
+            }
+
+            seen++;
         }
 
         q = 0;

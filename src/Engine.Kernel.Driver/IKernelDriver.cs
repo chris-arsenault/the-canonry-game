@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Driver;
 
-public interface IKernelDriver : IDisposable
+internal interface IKernelDriver : IDisposable
 {
     DriverState State { get; }
 
@@ -9,7 +9,7 @@ public interface IKernelDriver : IDisposable
     void RequestStop();
 }
 
-public interface IDriverControl
+internal interface IDriverControl
 {
     void SetTickRate(double ticksPerSecond);
 

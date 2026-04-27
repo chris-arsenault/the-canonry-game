@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Driver;
 
-public sealed class KernelDriverTimeController : IKernelDriverTimeControl
+internal sealed class KernelDriverTimeController : IKernelDriverTimeControl
 {
     private readonly IKernel _kernel;
     private readonly object _gate = new();

@@ -6,10 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\Engine.Observability\Engine.Observability.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DuckDB.NET.Data.Full" Version="1.5.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MonteCarlo" />
+    <InternalsVisibleTo Include="MonteCarlo.Tests" />
   </ItemGroup>
 </Project>

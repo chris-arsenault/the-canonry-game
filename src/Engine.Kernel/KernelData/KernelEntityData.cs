@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed partial class KernelEntityData
+internal sealed partial class KernelEntityData
 {
     private readonly int[] _kindIds;
     private readonly int[] _attributeIds;

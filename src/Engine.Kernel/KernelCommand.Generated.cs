@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public readonly partial record struct KernelCommand
+internal readonly partial record struct KernelCommand
 {
     public static KernelCommand From(in NoOpKernelCommand command) =>
         new(

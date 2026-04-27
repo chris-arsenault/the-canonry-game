@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgramData, UpkeepProgramState>
+internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgramData, UpkeepProgramState>
 {
     private int[] _upkeepKindIds => Data.UpkeepKindIds;
     private int[] _upkeepAttributeIds => Data.UpkeepAttributeIds;

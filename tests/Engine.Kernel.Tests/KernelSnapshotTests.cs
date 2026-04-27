@@ -17,6 +17,7 @@ public sealed class KernelSnapshotTests
         simulation.CreateCell(0, 0, terrainId: 1, ownerEntityId: 0);
         var actor = simulation.CreateEntity(1, 3, 4, 0, 0, 0, 0, 0, tick: 0);
         var target = simulation.CreateEntity(2, 3, 4, 1, 0, 1, 0, 0, tick: 0);
+        simulation.World.SetCoverageOwner(0, 0, actor);
         using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
         {
             simulation.SetAttribute(actor, 10, 42f, tick: 0);
@@ -59,6 +60,8 @@ public sealed class KernelSnapshotTests
         Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
         Assert.Equal(5f, loaded.World.GetResource(20, 0, 0));
         Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
+        Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
+        Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));
         Assert.Equal(2, loaded.World.TerrainBoundaryGroupId(1));
         Assert.Equal(0.75f, loaded.World.RelationshipStrength(relationshipId));
         Assert.Equal(7f, loaded.Pressures.GetValue(40, actor));

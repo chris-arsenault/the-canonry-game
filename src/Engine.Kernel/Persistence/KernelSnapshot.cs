@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public static class KernelSnapshot
+internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
     private const int FormatVersion = 4;

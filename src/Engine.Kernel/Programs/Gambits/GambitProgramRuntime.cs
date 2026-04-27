@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramData, GambitProgramState>
+internal sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramData, GambitProgramState>
 {
     internal const int GambitHistoryLength = 60;
     private const int RecencyWindow = 10;
@@ -74,11 +74,11 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
     private PrimitiveIntTable _cooldowns => State.Cooldowns;
     private PrimitiveIntTable _entityCooldowns => State.EntityCooldowns;
     private int[] _pathOpenSet => _scratch.PathOpenSet;
-    private bool[] _pathOpen => _scratch.PathOpen;
-    private bool[] _pathClosed => _scratch.PathClosed;
-    private int[] _pathCameFrom => _scratch.PathCameFrom;
-    private float[] _pathGScore => _scratch.PathGScore;
-    private float[] _pathFScore => _scratch.PathFScore;
+    private ref EpochStampSet _pathOpen => ref _scratch.PathOpen;
+    private ref EpochStampSet _pathClosed => ref _scratch.PathClosed;
+    private ref EpochStampedArray<int> _pathCameFrom => ref _scratch.PathCameFrom;
+    private ref EpochStampedArray<float> _pathGScore => ref _scratch.PathGScore;
+    private ref EpochStampedArray<float> _pathFScore => ref _scratch.PathFScore;
     private int[] _actionHistoryTicks => State.ActionHistoryTicks;
     private int[] _actionHistoryGambitIds => State.ActionHistoryGambitIds;
     private int[] _actionHistoryCounts => State.ActionHistoryCounts;
@@ -121,7 +121,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanGambitSlots => State.CommittedPlanGambitSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
-    private int[] _gambitVisitedEpochs => _scratch.GambitVisitedEpochs;
+    private ref EpochStampSet _gambitVisited => ref _scratch.GambitVisited;
     private ref int _gambitCount => ref Data.GambitCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;
     private ref int _expressionCount => ref Data.ExpressionCount;
@@ -133,7 +133,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
     private ref int _supportRuleCount => ref Data.SupportRuleCount;
     private ref int _supportExpressionCount => ref Data.SupportExpressionCount;
     private ref int _goalEffectCount => ref Data.GoalEffectCount;
-    private ref int _gambitVisitedEpoch => ref _scratch.GambitVisitedEpoch;
     private ref int _openGambitSlot => ref Data.OpenGambitSlot;
 
     private const int GambitLocalityCommitmentKey = 1;
@@ -1370,7 +1369,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         selectedGambitSlot = 0;
         selectedTargetId = 0;
         var bestWeight = 0f;
-        var epoch = NextGambitVisitedEpoch();
+        _gambitVisited.BeginEpoch();
         var selectorEnd = selectorStart + selectorCount;
         for (var selector = selectorStart; selector < selectorEnd; selector++)
         {
@@ -1385,7 +1384,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                 urgency,
                 depth,
                 selector,
-                epoch,
                 bestWeight,
                 ref candidateCount,
                 ref selectedRootGambitSlot,
@@ -1408,7 +1406,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         float urgency,
         int depth,
         int selector,
-        int epoch,
         float bestWeight,
         ref int candidateCount,
         ref int selectedRootGambitSlot,
@@ -1433,7 +1430,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     bestWeight,
                     ref candidateCount,
                     ref selectedRootGambitSlot,
@@ -1457,7 +1453,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                         urgency,
                         depth,
                         selector,
-                        epoch,
                         bestWeight,
                         ref candidateCount,
                         ref selectedRootGambitSlot,
@@ -1479,7 +1474,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     outgoing: true,
                     bestWeight,
                     ref candidateCount,
@@ -1499,7 +1493,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     outgoing: false,
                     bestWeight,
                     ref candidateCount,
@@ -1523,7 +1516,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         float urgency,
         int depth,
         int selector,
-        int epoch,
         float bestWeight,
         ref int candidateCount,
         ref int selectedRootGambitSlot,
@@ -1551,7 +1543,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                     urgency,
                     depth,
                     selector,
-                    epoch,
                     bestWeight,
                     ref candidateCount,
                     ref selectedRootGambitSlot,
@@ -1577,7 +1568,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                 urgency,
                 depth,
                 selector,
-                epoch,
                 bestWeight,
                 ref candidateCount,
                 ref selectedRootGambitSlot,
@@ -1600,7 +1590,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         float urgency,
         int depth,
         int selector,
-        int epoch,
         bool outgoing,
         float bestWeight,
         ref int candidateCount,
@@ -1641,7 +1630,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                 urgency,
                 depth,
                 selector,
-                epoch,
                 bestWeight,
                 ref candidateCount,
                 ref selectedRootGambitSlot,
@@ -1665,7 +1653,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         float urgency,
         int depth,
         int selector,
-        int epoch,
         float bestWeight,
         ref int candidateCount,
         ref int selectedRootGambitSlot,
@@ -1674,7 +1661,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         ref int selectedTargetId)
     {
         var world = simulation.World;
-        if (!world.EntityIsActive(targetId) || _gambitVisitedEpochs[targetId] == epoch)
+        if (!world.EntityIsActive(targetId) || _gambitVisited.Contains(targetId))
         {
             return bestWeight;
         }
@@ -1700,7 +1687,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
             return bestWeight;
         }
 
-        _gambitVisitedEpochs[targetId] = epoch;
+        _gambitVisited.Add(targetId);
         candidateCount++;
         var weight = EvaluatePlanCandidate(
             simulation,
@@ -2043,19 +2030,6 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
             ProcessEffectScopeCodes.Structural when targetId != entityId => targetId,
             _ => entityId,
         };
-    }
-
-    private int NextGambitVisitedEpoch()
-    {
-        _gambitVisitedEpoch++;
-        if (_gambitVisitedEpoch < int.MaxValue)
-        {
-            return _gambitVisitedEpoch;
-        }
-
-        global::System.Array.Clear(_gambitVisitedEpochs);
-        _gambitVisitedEpoch = 1;
-        return _gambitVisitedEpoch;
     }
 
     private static int EffectKey(int effectScopeCode, int effectValueId, int effectKindId)
@@ -3016,17 +2990,17 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
             return false;
         }
 
-        global::System.Array.Clear(_pathOpen, 0, _pathOpen.Length);
-        global::System.Array.Clear(_pathClosed, 0, _pathClosed.Length);
-        global::System.Array.Fill(_pathCameFrom, -1);
-        global::System.Array.Fill(_pathGScore, float.PositiveInfinity);
-        global::System.Array.Fill(_pathFScore, float.PositiveInfinity);
+        _pathOpen.BeginEpoch();
+        _pathClosed.BeginEpoch();
+        _pathCameFrom.BeginEpoch();
+        _pathGScore.BeginEpoch();
+        _pathFScore.BeginEpoch();
 
         var openCount = 1;
         _pathOpenSet[0] = startIndex;
-        _pathOpen[startIndex] = true;
-        _pathGScore[startIndex] = 0f;
-        _pathFScore[startIndex] = HexDistance(startQ, startR, targetQ, targetR);
+        _pathOpen.Add(startIndex);
+        _pathGScore.Set(startIndex, 0f);
+        _pathFScore.Set(startIndex, HexDistance(startQ, startR, targetQ, targetR));
 
         while (openCount > 0)
         {
@@ -3034,8 +3008,8 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
             var currentIndex = _pathOpenSet[openSlot];
             openCount--;
             _pathOpenSet[openSlot] = _pathOpenSet[openCount];
-            _pathOpen[currentIndex] = false;
-            _pathClosed[currentIndex] = true;
+            _pathOpen.Remove(currentIndex);
+            _pathClosed.Add(currentIndex);
 
             if (currentIndex == targetIndex)
             {
@@ -3054,22 +3028,22 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                 }
 
                 var neighborIndex = PhysicalPathIndex(radius, width, neighborQ, neighborR);
-                if (neighborIndex < 0 || _pathClosed[neighborIndex])
+                if (neighborIndex < 0 || _pathClosed.Contains(neighborIndex))
                 {
                     continue;
                 }
 
-                var tentativeGScore = _pathGScore[currentIndex] + 1f;
-                if (tentativeGScore >= _pathGScore[neighborIndex])
+                var tentativeGScore = _pathGScore.GetOrDefault(currentIndex, float.PositiveInfinity) + 1f;
+                if (tentativeGScore >= _pathGScore.GetOrDefault(neighborIndex, float.PositiveInfinity))
                 {
                     continue;
                 }
 
-                _pathCameFrom[neighborIndex] = currentIndex;
-                _pathGScore[neighborIndex] = tentativeGScore;
-                _pathFScore[neighborIndex] = tentativeGScore + HexDistance(neighborQ, neighborR, targetQ, targetR);
+                _pathCameFrom.Set(neighborIndex, currentIndex);
+                _pathGScore.Set(neighborIndex, tentativeGScore);
+                _pathFScore.Set(neighborIndex, tentativeGScore + HexDistance(neighborQ, neighborR, targetQ, targetR));
 
-                if (!_pathOpen[neighborIndex])
+                if (!_pathOpen.Contains(neighborIndex))
                 {
                     if (openCount >= _pathOpenSet.Length)
                     {
@@ -3077,7 +3051,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
                     }
 
                     _pathOpenSet[openCount] = neighborIndex;
-                    _pathOpen[neighborIndex] = true;
+                    _pathOpen.Add(neighborIndex);
                     openCount++;
                 }
             }
@@ -3090,11 +3064,11 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
     {
         var selectedSlot = 0;
         var selectedIndex = _pathOpenSet[0];
-        var selectedScore = _pathFScore[selectedIndex];
+        var selectedScore = _pathFScore.GetOrDefault(selectedIndex, float.PositiveInfinity);
         for (var slot = 1; slot < openCount; slot++)
         {
             var index = _pathOpenSet[slot];
-            var score = _pathFScore[index];
+            var score = _pathFScore.GetOrDefault(index, float.PositiveInfinity);
             if (score < selectedScore)
             {
                 selectedSlot = slot;
@@ -3115,7 +3089,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         out int nextR)
     {
         var currentIndex = targetIndex;
-        var parentIndex = _pathCameFrom[currentIndex];
+        var parentIndex = _pathCameFrom.GetOrDefault(currentIndex, -1);
         while (parentIndex != startIndex)
         {
             if (parentIndex < 0)
@@ -3126,7 +3100,7 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
             }
 
             currentIndex = parentIndex;
-            parentIndex = _pathCameFrom[currentIndex];
+            parentIndex = _pathCameFrom.GetOrDefault(currentIndex, -1);
         }
 
         nextQ = PhysicalPathQ(radius, width, currentIndex);

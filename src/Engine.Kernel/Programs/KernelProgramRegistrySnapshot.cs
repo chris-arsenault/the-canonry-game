@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Programs;
 
-public sealed partial class KernelProgramRegistry
+internal sealed partial class KernelProgramRegistry
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {

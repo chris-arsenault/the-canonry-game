@@ -2,14 +2,14 @@ namespace TheCanonryGame.Game.Cards;
 
 using System.Collections.ObjectModel;
 
-public enum CardType
+internal enum CardType
 {
     Generator,
     System,
     Action,
 }
 
-public sealed class CardDefinition
+internal sealed class CardDefinition
 {
     private string _name;
     private ICardCondition _condition;

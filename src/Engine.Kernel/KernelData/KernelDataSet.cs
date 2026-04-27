@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed partial class KernelDataSet
+internal sealed partial class KernelDataSet
 {
     public KernelDataSet(KernelEntityData entities, KernelTerrainData terrain)
     {

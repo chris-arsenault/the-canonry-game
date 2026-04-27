@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 
 public sealed class PerformanceTelemetryBatch
 {
+    public Collection<SymbolRow> Symbols { get; } = [];
     public Collection<RunPerformanceRow> RunPerformance { get; } = [];
     public Collection<TickPerformanceRow> TickPerformance { get; } = [];
     public Collection<SystemPerformanceRow> SystemPerformance { get; } = [];
@@ -11,11 +12,11 @@ public sealed class PerformanceTelemetryBatch
 }
 
 public sealed record RunPerformanceRow(
-    string RunId,
+    int RunId,
     int? Seed,
-    string Domain,
-    string StartedUtc,
-    string CompletedUtc,
+    int DomainId,
+    long StartedUnixMilliseconds,
+    long CompletedUnixMilliseconds,
     int RequestedTicks,
     int ProcessedTicks,
     double TotalSimulationMilliseconds,
@@ -31,7 +32,7 @@ public sealed record RunPerformanceRow(
     bool FullTelemetryEnabled);
 
 public sealed record TickPerformanceRow(
-    string RunId,
+    int RunId,
     int Tick,
     double ElapsedMilliseconds,
     int ActiveEntities,
@@ -43,16 +44,16 @@ public sealed record TickPerformanceRow(
     long ManagedMemoryBytes);
 
 public sealed record SystemPerformanceRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string Phase,
-    string SystemName,
+    int PhaseId,
+    int SystemId,
     double ElapsedMilliseconds);
 
 public sealed record ExportPerformanceRow(
-    string ExportId,
-    string Step,
-    string StartedUtc,
-    string CompletedUtc,
+    long ExportId,
+    int StepId,
+    long StartedUnixMilliseconds,
+    long CompletedUnixMilliseconds,
     double ElapsedMilliseconds,
     long RowsWritten);

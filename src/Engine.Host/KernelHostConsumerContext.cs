@@ -4,7 +4,7 @@ using Engine.Domain;
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed class KernelHostConsumerContext
+internal sealed class KernelHostConsumerContext
 {
     internal KernelHostConsumerContext(
         DomainIdRegistry domainIds,

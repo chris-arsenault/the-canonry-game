@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed partial class WorldState
+internal sealed partial class WorldState
 {
     private const int OutgoingRelationshipDirectionCode = 1;
     private const int IncomingRelationshipDirectionCode = 2;
@@ -11,7 +11,7 @@ public sealed partial class WorldState
     private readonly PrimitiveFloatTable _attributes;
     private readonly PrimitiveFloatTable _resources;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
-    private readonly PrimitiveIntTable _mapCellCoverageOwners;
+    private readonly SpatialLayerIndex _coverageLayer;
     private readonly KernelDataSet _kernelData;
     private readonly bool[] _entityAllocated;
     private readonly int[] _entityStatus;
@@ -55,7 +55,7 @@ public sealed partial class WorldState
     private readonly int[] _outgoingDeltaRelationships;
     private readonly int[] _incomingDeltaRelationships;
     private readonly int[] _relationshipBuildCursors;
-    private readonly int[] _graphVisitedEpochs;
+    private EpochStampSet _graphVisited;
     private readonly int[] _graphFrontierA;
     private readonly int[] _graphFrontierB;
     private readonly int _relationshipCreatedCodeId;
@@ -69,7 +69,6 @@ public sealed partial class WorldState
     private int _relationshipHighWatermark;
     private int _mapRadius;
     private int _relationshipGraphDeltaCount;
-    private int _graphTraversalEpoch;
 
     public WorldState(KernelEventLog events, SimulationOptions options, KernelDataSet kernelData)
     {
@@ -81,7 +80,7 @@ public sealed partial class WorldState
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _resources = new PrimitiveFloatTable(options.ResourceCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
-        _mapCellCoverageOwners = new PrimitiveIntTable(options.MapCellCapacity);
+        _coverageLayer = new SpatialLayerIndex(options.EntityCapacity, options.MapCellCapacity);
         _entityAllocated = new bool[options.EntityCapacity + 1];
         _entityStatus = new int[options.EntityCapacity + 1];
         _entityKindId = new int[options.EntityCapacity + 1];
@@ -127,7 +126,7 @@ public sealed partial class WorldState
         _outgoingDeltaRelationships = new int[options.RelationshipCapacity];
         _incomingDeltaRelationships = new int[options.RelationshipCapacity];
         _relationshipBuildCursors = new int[relationshipRowCount + 1];
-        _graphVisitedEpochs = new int[options.EntityCapacity + 1];
+        _graphVisited = new EpochStampSet(options.EntityCapacity + 1);
         _graphFrontierA = new int[options.EntityCapacity + 1];
         _graphFrontierB = new int[options.EntityCapacity + 1];
         _relationshipCreatedCodeId = options.RuntimeCodes.RelationshipCreatedCodeId;
@@ -152,7 +151,7 @@ public sealed partial class WorldState
     public void SetCell(int q, int r, int terrainId)
     {
         ValidatePositive(terrainId);
-        WriteCell(q, r, terrainId, CellCoverageOwner(q, r));
+        WriteCell(q, r, terrainId, CoverageOwnerAt(q, r));
     }
 
     public bool CellIsKnown(int q, int r)
@@ -168,7 +167,7 @@ public sealed partial class WorldState
     public void SetCellTerrain(int q, int r, int terrainId)
     {
         ValidatePositive(terrainId);
-        WriteCell(q, r, terrainId, CellCoverageOwner(q, r));
+        WriteCell(q, r, terrainId, CoverageOwnerAt(q, r));
     }
 
     public void MaterializeCell(int q, int r, int terrainId, int ownerEntityId)
@@ -183,7 +182,7 @@ public sealed partial class WorldState
     {
         var key = CoordinateKey(q, r);
         _mapCellTerrainIds.Set(key, 1, terrainId);
-        _mapCellCoverageOwners.Set(key, 1, ownerEntityId);
+        _coverageLayer.SetValue(key, q, r, ownerEntityId);
     }
 
     public int TerrainBoundaryGroupId(int terrainId)
@@ -191,45 +190,43 @@ public sealed partial class WorldState
         return _kernelData.Terrain.BoundaryGroupId(terrainId);
     }
 
-    public int CellCoverageOwner(int q, int r)
+    internal int CoverageOwnerAt(int q, int r)
     {
-        return _mapCellCoverageOwners.GetOrDefault(CoordinateKey(q, r), 1);
+        return _coverageLayer.ValueAt(CoordinateKey(q, r));
     }
 
-    public void SetCellCoverageOwner(int q, int r, int ownerEntityId)
+    internal void SetCoverageOwner(int q, int r, int ownerEntityId)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
-        _mapCellCoverageOwners.Set(CoordinateKey(q, r), 1, ownerEntityId);
+        _coverageLayer.SetValue(CoordinateKey(q, r), q, r, ownerEntityId);
     }
 
-    public int CoverageCellCount(int ownerEntityId)
+    internal int CoverageOwnerCellCount(int ownerEntityId)
     {
         EnsureEntity(ownerEntityId);
-        var count = 0;
-        for (var q = -_mapRadius; q <= _mapRadius; q++)
-        {
-            var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
-            var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
-            for (var r = minR; r <= maxR; r++)
-            {
-                if (CellCoverageOwner(q, r) == ownerEntityId)
-                {
-                    count++;
-                }
-            }
-        }
+        return _coverageLayer.ValueCellCount(ownerEntityId);
+    }
 
-        return count;
+    internal bool CoverageOwnerHasCells(int ownerEntityId)
+    {
+        EnsureEntity(ownerEntityId);
+        return _coverageLayer.ValueCellCount(ownerEntityId) > 0;
+    }
+
+    internal SpatialLayerCellCursor CoverageCells(int ownerEntityId)
+    {
+        EnsureEntity(ownerEntityId);
+        return _coverageLayer.CellsOfValue(ownerEntityId);
+    }
+
+    internal bool MoveNextCoverageCell(ref SpatialLayerCellCursor cursor, out int q, out int r)
+    {
+        return _coverageLayer.MoveNextCell(ref cursor, out q, out r);
     }
 
     public void BeginTick(int tick)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(tick);
-        if (_relationshipGraphDeltaCount > 0)
-        {
-            CompactRelationshipGraph();
-        }
-
         CurrentTick = tick;
     }
 
@@ -585,7 +582,6 @@ public sealed partial class WorldState
         }
 
         _relationshipStrength[relationshipId] = next;
-        AddRelationshipToGraphDelta(relationshipId);
         AdvanceWorldVersion();
         WriteRelationshipChanged(
             relationshipId,
@@ -701,13 +697,10 @@ public sealed partial class WorldState
             var frozenRelationshipId = FrozenCursorRelationshipId(cursor);
             if (_relationshipActive[frozenRelationshipId] && !_relationshipInDeltaGraph[frozenRelationshipId])
             {
-                if (_relationshipStrength[frozenRelationshipId] < cursor.MinimumStrength)
+                if (_relationshipStrength[frozenRelationshipId] >= cursor.MinimumStrength)
                 {
-                    cursor.FrozenIndex = cursor.FrozenEnd;
                     break;
                 }
-
-                break;
             }
 
             cursor.FrozenIndex++;
@@ -718,13 +711,10 @@ public sealed partial class WorldState
             var deltaRelationshipId = DeltaCursorRelationshipId(cursor);
             if (_relationshipActive[deltaRelationshipId])
             {
-                if (_relationshipStrength[deltaRelationshipId] < cursor.MinimumStrength)
+                if (_relationshipStrength[deltaRelationshipId] >= cursor.MinimumStrength)
                 {
-                    cursor.DeltaIndex = cursor.DeltaEnd;
                     break;
                 }
-
-                break;
             }
 
             cursor.DeltaIndex++;
@@ -1069,13 +1059,13 @@ public sealed partial class WorldState
             return 0;
         }
 
-        var epoch = NextGraphTraversalEpoch();
+        _graphVisited.BeginEpoch();
         var currentFrontier = _graphFrontierA;
         var nextFrontier = _graphFrontierB;
         currentFrontier[0] = startEntityId;
         var currentCount = 1;
         var visitedCount = 0;
-        _graphVisitedEpochs[startEntityId] = epoch;
+        _graphVisited.Add(startEntityId);
 
         for (var depth = 0; depth < maxDepth && currentCount > 0; depth++)
         {
@@ -1090,12 +1080,12 @@ public sealed partial class WorldState
                     var nextEntityId = directionCode == OutgoingRelationshipDirectionCode
                         ? _relationshipTargetId[relationshipId]
                         : _relationshipSourceId[relationshipId];
-                    if (_graphVisitedEpochs[nextEntityId] == epoch)
+                    if (_graphVisited.Contains(nextEntityId))
                     {
                         continue;
                     }
 
-                    _graphVisitedEpochs[nextEntityId] = epoch;
+                    _graphVisited.Add(nextEntityId);
                     visitor.Visit(nextEntityId, relationshipId, depth + 1);
                     nextFrontier[nextCount] = nextEntityId;
                     nextCount++;
@@ -1120,6 +1110,11 @@ public sealed partial class WorldState
         }
 
         RemoveRelationshipFromGraphDelta(relationshipId);
+        if (_relationshipGraphDeltaCount >= _outgoingDeltaRelationships.Length)
+        {
+            CompactRelationshipGraph();
+        }
+
         InsertDeltaRelationship(
             _outgoingDeltaOffsets,
             _outgoingDeltaRelationships,
@@ -1290,18 +1285,6 @@ public sealed partial class WorldState
 
     private bool RelationshipComesBefore(int leftRelationshipId, int rightRelationshipId)
     {
-        var leftStrength = _relationshipStrength[leftRelationshipId];
-        var rightStrength = _relationshipStrength[rightRelationshipId];
-        if (leftStrength > rightStrength)
-        {
-            return true;
-        }
-
-        if (leftStrength < rightStrength)
-        {
-            return false;
-        }
-
         return leftRelationshipId < rightRelationshipId;
     }
 
@@ -1315,18 +1298,6 @@ public sealed partial class WorldState
     private int RelationshipRowIndexRaw(int entityId, int kindId)
     {
         return (kindId - 1) * _relationshipEntityCapacity + entityId - 1;
-    }
-
-    private int NextGraphTraversalEpoch()
-    {
-        _graphTraversalEpoch++;
-        if (_graphTraversalEpoch <= 0)
-        {
-            global::System.Array.Clear(_graphVisitedEpochs);
-            _graphTraversalEpoch = 1;
-        }
-
-        return _graphTraversalEpoch;
     }
 
     private void EnsureEntity(int entityId)

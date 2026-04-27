@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed partial class KernelTerrainData
+internal sealed partial class KernelTerrainData
 {
     private readonly bool[] _registered;
     private readonly int[] _boundaryGroupIds;

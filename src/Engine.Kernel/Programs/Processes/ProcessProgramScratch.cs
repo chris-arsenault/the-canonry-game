@@ -3,11 +3,11 @@ namespace Engine.Kernel;
 internal sealed class ProcessProgramScratch
 {
     internal readonly int[] PathOpenSet;
-    internal readonly bool[] PathOpen;
-    internal readonly bool[] PathClosed;
-    internal readonly int[] PathCameFrom;
-    internal readonly float[] PathGScore;
-    internal readonly float[] PathFScore;
+    internal EpochStampSet PathOpen;
+    internal EpochStampSet PathClosed;
+    internal EpochStampedArray<int> PathCameFrom;
+    internal EpochStampedArray<float> PathGScore;
+    internal EpochStampedArray<float> PathFScore;
     internal readonly int[] ProcessPlanEffectKeys;
     internal readonly int[] ProcessPlanRootProcessSlots;
     internal readonly int[] ProcessPlanRootTargetIds;
@@ -16,8 +16,7 @@ internal sealed class ProcessProgramScratch
     internal readonly int[] ProcessPlanLocalityKeys;
     internal readonly float[] ProcessPlanWeights;
     internal readonly float[] ProcessPlanAdjustedWeights;
-    internal readonly int[] ProcessVisitedEpochs;
-    internal int ProcessVisitedEpoch;
+    internal EpochStampSet ProcessVisited;
 
     public ProcessProgramScratch(int pathCapacity, int entityCapacity, int processObjectiveCapacity)
     {
@@ -25,11 +24,11 @@ internal sealed class ProcessProgramScratch
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processObjectiveCapacity);
         PathOpenSet = new int[pathCapacity];
-        PathOpen = new bool[pathCapacity];
-        PathClosed = new bool[pathCapacity];
-        PathCameFrom = new int[pathCapacity];
-        PathGScore = new float[pathCapacity];
-        PathFScore = new float[pathCapacity];
+        PathOpen = new EpochStampSet(pathCapacity);
+        PathClosed = new EpochStampSet(pathCapacity);
+        PathCameFrom = new EpochStampedArray<int>(pathCapacity);
+        PathGScore = new EpochStampedArray<float>(pathCapacity);
+        PathFScore = new EpochStampedArray<float>(pathCapacity);
         ProcessPlanEffectKeys = new int[processObjectiveCapacity + 1];
         ProcessPlanRootProcessSlots = new int[processObjectiveCapacity + 1];
         ProcessPlanRootTargetIds = new int[processObjectiveCapacity + 1];
@@ -38,6 +37,6 @@ internal sealed class ProcessProgramScratch
         ProcessPlanLocalityKeys = new int[processObjectiveCapacity + 1];
         ProcessPlanWeights = new float[processObjectiveCapacity + 1];
         ProcessPlanAdjustedWeights = new float[processObjectiveCapacity + 1];
-        ProcessVisitedEpochs = new int[entityCapacity + 1];
+        ProcessVisited = new EpochStampSet(entityCapacity + 1);
     }
 }

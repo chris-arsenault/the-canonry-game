@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public record struct RelationshipGraphCursor
+internal record struct RelationshipGraphCursor
 {
     internal int DirectionCode;
     internal int FrozenIndex;

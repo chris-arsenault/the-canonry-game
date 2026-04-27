@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class KernelCommandRing
+internal sealed class KernelCommandRing
 {
     private readonly KernelCommand[] _commands;
     private readonly object _gate = new();

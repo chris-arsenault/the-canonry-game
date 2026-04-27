@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed partial class PrimitiveIntTable
+internal sealed partial class PrimitiveIntTable
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
@@ -12,26 +12,25 @@ public sealed partial class PrimitiveIntTable
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
-        _count = reader.ReadInt32();
+        _ = reader.ReadInt32();
         KernelSnapshotBinary.Read(reader, _firstKeys);
         KernelSnapshotBinary.Read(reader, _secondKeys);
         KernelSnapshotBinary.Read(reader, _values);
+        RebuildOccupiedSlots();
     }
 
     internal void ForEach(global::System.Action<int, int, int> visitor)
     {
         global::System.ArgumentNullException.ThrowIfNull(visitor);
-        for (var i = 0; i < _firstKeys.Length; i++)
+        for (var i = 0; i < _count; i++)
         {
-            if (_firstKeys[i] != 0)
-            {
-                visitor(_firstKeys[i], _secondKeys[i], _values[i]);
-            }
+            var slot = _occupiedSlots[i];
+            visitor(_firstKeys[slot], _secondKeys[slot], _values[slot]);
         }
     }
 }
 
-public sealed partial class PrimitiveFloatTable
+internal sealed partial class PrimitiveFloatTable
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
@@ -43,21 +42,20 @@ public sealed partial class PrimitiveFloatTable
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
-        _count = reader.ReadInt32();
+        _ = reader.ReadInt32();
         KernelSnapshotBinary.Read(reader, _firstKeys);
         KernelSnapshotBinary.Read(reader, _secondKeys);
         KernelSnapshotBinary.Read(reader, _values);
+        RebuildOccupiedSlots();
     }
 
     internal void ForEach(global::System.Action<int, int, float> visitor)
     {
         global::System.ArgumentNullException.ThrowIfNull(visitor);
-        for (var i = 0; i < _firstKeys.Length; i++)
+        for (var i = 0; i < _count; i++)
         {
-            if (_firstKeys[i] != 0)
-            {
-                visitor(_firstKeys[i], _secondKeys[i], _values[i]);
-            }
+            var slot = _occupiedSlots[i];
+            visitor(_firstKeys[slot], _secondKeys[slot], _values[slot]);
         }
     }
 }

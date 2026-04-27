@@ -3,7 +3,7 @@ namespace Engine.Kernel.Driver;
 using System.Diagnostics;
 using System.Threading;
 
-public sealed class RealtimeKernelDriver : IKernelDriver, IDriverControl
+internal sealed class RealtimeKernelDriver : IKernelDriver, IDriverControl
 {
     private readonly IKernel _kernel;
     private readonly object _configGate = new();

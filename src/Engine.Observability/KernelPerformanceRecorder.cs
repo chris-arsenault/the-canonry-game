@@ -1,12 +1,12 @@
 namespace Engine.Observability;
 
 using System.Diagnostics;
-using System.Globalization;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed class KernelPerformanceRecorder : IDisposable
+internal sealed class KernelPerformanceRecorder : IDisposable
 {
     private readonly KernelPerformanceProjection _projection;
     private readonly KernelEventProjectionPump _pump;
@@ -15,6 +15,7 @@ public sealed class KernelPerformanceRecorder : IDisposable
     private readonly int _requestedTicks;
     private readonly int _tickSampleCadence;
     private readonly int _systemSampleCadence;
+    private readonly int _domainId;
     private readonly int _gen0Start;
     private readonly int _gen1Start;
     private readonly int _gen2Start;
@@ -42,10 +43,13 @@ public sealed class KernelPerformanceRecorder : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(systemSampleCadence);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchSize);
 
-        RunId = runId;
+        RunId = TelemetrySymbolIds.RunId(runId, seed);
         Seed = seed;
-        Domain = domain;
-        StartedUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        _domainId = TelemetrySymbolIds.StableId(TelemetrySymbolKinds.Domain, domain);
+        StartedUnixMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Run, RunId, runId, runId));
+        Batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Domain, _domainId, domain, domain));
+        TelemetrySymbolIds.AddFixedCodeSymbols(Batch);
         _requestedTicks = requestedTicks;
         _tickSampleCadence = tickSampleCadence;
         _systemSampleCadence = systemSampleCadence;
@@ -59,13 +63,11 @@ public sealed class KernelPerformanceRecorder : IDisposable
         _pump = new KernelEventProjectionPump(eventLog, cursorStart, _projection, batchSize);
     }
 
-    public string RunId { get; }
+    public int RunId { get; }
 
     public int? Seed { get; }
 
-    public string Domain { get; }
-
-    public string StartedUtc { get; }
+    public long StartedUnixMilliseconds { get; }
 
     public PerformanceTelemetryBatch Batch { get; } = new();
 
@@ -115,8 +117,8 @@ public sealed class KernelPerformanceRecorder : IDisposable
         Batch.SystemPerformance.Add(new SystemPerformanceRow(
             RunId,
             tick,
-            phase,
-            systemName,
+            AddPerformanceSymbol(TelemetrySymbolKinds.PerformancePhase, phase),
+            AddPerformanceSymbol(TelemetrySymbolKinds.PerformanceSystem, systemName),
             elapsed.TotalMilliseconds));
     }
 
@@ -137,9 +139,9 @@ public sealed class KernelPerformanceRecorder : IDisposable
         Batch.RunPerformance.Add(new RunPerformanceRow(
             RunId,
             Seed,
-            Domain,
-            StartedUtc,
-            DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
+            _domainId,
+            StartedUnixMilliseconds,
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             _requestedTicks,
             processedTicks,
             _stopwatch.Elapsed.TotalMilliseconds,
@@ -181,6 +183,13 @@ public sealed class KernelPerformanceRecorder : IDisposable
         }
     }
 
+    private int AddPerformanceSymbol(int symbolKind, string stableName)
+    {
+        var id = TelemetrySymbolIds.StableId(symbolKind, stableName);
+        Batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(symbolKind, id, stableName, stableName));
+        return id;
+    }
+
     private static double Average(List<double> values) =>
         values.Count == 0 ? 0d : values.Average();
 
@@ -197,7 +206,7 @@ public sealed class KernelPerformanceRecorder : IDisposable
     }
 }
 
-public sealed class KernelPerformanceProjection : KernelEventProjector
+internal sealed class KernelPerformanceProjection : KernelEventProjector
 {
     private readonly Dictionary<int, KernelTickMessageCounters> _messageCounters = [];
     private readonly HashSet<int> _activeEntities = [];
@@ -316,7 +325,7 @@ public sealed class KernelPerformanceProjection : KernelEventProjector
     }
 }
 
-public sealed class KernelTickMessageCounters
+internal sealed class KernelTickMessageCounters
 {
     public int ProcessEvents { get; set; }
 

@@ -1,31 +1,29 @@
 namespace Engine.Observability;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed class PlannerTraceProjection : KernelEventProjector
+internal sealed class PlannerTraceProjection : KernelEventProjector
 {
-    private readonly string _runId;
+    private readonly int _runId;
     private readonly TelemetryBatch _batch;
-    private readonly IProjectionSymbolCatalog? _symbols;
     private readonly int _maxOpenTraces;
     private readonly Dictionary<PlannerTraceKey, PlannerTraceBuilder> _openTraces = [];
     private long _droppedEventCount;
     private int _lastObservedTick;
 
     public PlannerTraceProjection(
-        string runId,
+        int runId,
         TelemetryBatch batch,
-        IProjectionSymbolCatalog? symbols = null,
         int maxOpenTraces = 4096)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(runId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runId);
         ArgumentNullException.ThrowIfNull(batch);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOpenTraces);
 
         _runId = runId;
         _batch = batch;
-        _symbols = symbols;
         _maxOpenTraces = maxOpenTraces;
     }
 
@@ -76,9 +74,7 @@ public sealed class PlannerTraceProjection : KernelEventProjector
             evt.EntityId,
             evt.PlanId,
             evt.GoalId,
-            ResolveDisplayName(ProjectionSymbolKind.Goal, evt.GoalId, $"goal_{evt.GoalId}"),
             evt.ReasonCodeId,
-            ResolveDisplayName(ProjectionSymbolKind.ReasonCode, evt.ReasonCodeId, $"reason_{evt.ReasonCodeId}"),
             evt.ScoringPassIndex,
             evt.ScoreDelta,
             evt.RunningTotal));
@@ -102,18 +98,10 @@ public sealed class PlannerTraceProjection : KernelEventProjector
             evt.EntityId,
             evt.PlanId,
             evt.GoalId,
-            ResolveDisplayName(ProjectionSymbolKind.Goal, evt.GoalId, $"goal_{evt.GoalId}"),
             evt.StepIndex,
             evt.ProcessId,
-            ResolveDisplayName(ProjectionSymbolKind.Process, evt.ProcessId, $"process_{evt.ProcessId}"),
             evt.TargetEntityId,
-            evt.RelationshipKindId,
-            evt.RelationshipKindId == 0
-                ? string.Empty
-                : ResolveDisplayName(
-                    ProjectionSymbolKind.RelationshipKind,
-                    evt.RelationshipKindId,
-                    $"relationship_{evt.RelationshipKindId}")));
+            evt.RelationshipKindId));
     }
 
     protected override void OnPlanCommitted(long sequence, in PlanCommittedKernelEvent evt)
@@ -170,14 +158,10 @@ public sealed class PlannerTraceProjection : KernelEventProjector
             endTick,
             trace.Key.EntityId,
             trace.Key.PlanId,
-            status,
+            PlannerTraceStatusCodes.FromStatus(status),
             trace.CandidateCount,
             stepCount,
             effectiveReasonCode,
-            ResolveDisplayName(
-                ProjectionSymbolKind.ReasonCode,
-                effectiveReasonCode,
-                effectiveReasonCode == 0 ? string.Empty : $"reason_{effectiveReasonCode}"),
             trace.TotalScore,
             trace.StartSequence,
             endSequence,
@@ -192,7 +176,6 @@ public sealed class PlannerTraceProjection : KernelEventProjector
                 trace.Key.EntityId,
                 trace.Key.PlanId,
                 goal.GoalId,
-                ResolveDisplayName(ProjectionSymbolKind.Goal, goal.GoalId, $"goal_{goal.GoalId}"),
                 goal.CandidateIndex,
                 goal.PreliminaryScore,
                 wasSelected,
@@ -223,9 +206,6 @@ public sealed class PlannerTraceProjection : KernelEventProjector
             Flush(oldest, "truncated", reasonCodeId: 0, endTick: _lastObservedTick, endSequence: sequence);
         }
     }
-
-    private string ResolveDisplayName(ProjectionSymbolKind kind, int id, string fallback) =>
-        _symbols?.ResolveDisplayName(kind, id, fallback) ?? fallback;
 
     private readonly record struct PlannerTraceKey(int StartTick, int EntityId, int PlanId)
     {

@@ -1,33 +1,33 @@
 namespace Engine.Observability;
 
 using System.Collections.ObjectModel;
-using System.Globalization;
 
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed record ObservabilityProjectionMigrationItem(
+internal sealed record ObservabilityProjectionMigrationItem(
     string Area,
     string RequiredPrimitiveSource,
     string Reason);
 
-public sealed class TelemetryEventProjection : KernelEventProjector
+internal sealed class TelemetryEventProjection : KernelEventProjector
 {
-    private readonly string _runId;
+    private readonly int _runId;
     private readonly TelemetryBatch _batch;
     private readonly IProjectionSymbolCatalog? _symbols;
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<int, Queue<ObservedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
+    private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
     private int _totalGeneratorFires;
 
     public TelemetryEventProjection(
-        string runId,
+        int runId,
         TelemetryBatch batch,
         IProjectionSymbolCatalog? symbols = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(runId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runId);
         ArgumentNullException.ThrowIfNull(batch);
 
         _runId = runId;
@@ -104,8 +104,8 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _batch.KindSnapshots.Add(new KindSnapshotRow(
                 _runId,
                 tick,
-                ResolveDisplayName(ProjectionSymbolKind.Kind, group.Key.KindId, $"kind_{group.Key.KindId}"),
-                ResolveDisplayName(ProjectionSymbolKind.Subtype, group.Key.SubtypeId, $"subtype_{group.Key.SubtypeId}"),
+                group.Key.KindId,
+                group.Key.SubtypeId,
                 group.Count(entity => IsActiveStatus(entity.StatusCode)),
                 group.Count(entity => IsHistoricalStatus(entity.StatusCode)),
                 AverageHealth: 0f,
@@ -118,20 +118,30 @@ public sealed class TelemetryEventProjection : KernelEventProjector
     {
         foreach (var entity in _entities.Values.OrderBy(entity => entity.EntityId))
         {
+            RegisterEntityNameSymbol(entity);
             _batch.EntitySnapshots.Add(new EntitySnapshotRow(
                 _runId,
                 tick,
                 entity.EntityId,
-                ResolveDisplayName(ProjectionSymbolKind.Kind, entity.KindId, $"kind_{entity.KindId}"),
-                ResolveDisplayName(ProjectionSymbolKind.Subtype, entity.SubtypeId, $"subtype_{entity.SubtypeId}"),
-                ResolveDisplayName(ProjectionSymbolKind.Culture, entity.CultureId, $"culture_{entity.CultureId}"),
-                StatusName(entity.StatusCode),
+                entity.KindId,
+                entity.SubtypeId,
+                entity.CultureId,
+                entity.StatusCode,
                 entity.PhysicalQ,
                 entity.PhysicalR,
                 entity.SemanticQ,
                 entity.SemanticR,
-                entity.SemanticS,
-                AttributeSnapshot(entity)));
+                entity.SemanticS));
+
+            foreach (var attribute in entity.Attributes.OrderBy(attribute => attribute.Key))
+            {
+                _batch.EntityAttributeSnapshots.Add(new EntityAttributeSnapshotRow(
+                    _runId,
+                    tick,
+                    entity.EntityId,
+                    attribute.Key,
+                    attribute.Value));
+            }
         }
     }
 
@@ -145,7 +155,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _batch.RelationshipSnapshots.Add(new RelationshipSnapshotRow(
                 _runId,
                 tick,
-                ResolveDisplayName(ProjectionSymbolKind.RelationshipKind, group.Key, $"relationship_{group.Key}"),
+                group.Key,
                 strengths.Count,
                 strengths.Count == 0 ? 0f : strengths.Average(),
                 strengths.Count == 0 ? 0f : strengths.Min(),
@@ -170,18 +180,18 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
 
+        RegisterEntityNameSymbol(entity);
         _batch.EntityEvents.Add(new EntityEventRow(
             _runId,
             evt.Tick,
-            "created",
-            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
+            (int)KernelEventType.EntityCreated,
+            evt.SourceCodeId,
             evt.EntityId,
-            ResolveDisplayName(ProjectionSymbolKind.Kind, evt.KindId, $"kind_{evt.KindId}"),
-            ResolveDisplayName(ProjectionSymbolKind.Subtype, evt.SubtypeId, $"subtype_{evt.SubtypeId}"),
-            ResolveEntityName(entity),
-            ResolveDisplayName(ProjectionSymbolKind.Culture, evt.CultureId, $"culture_{evt.CultureId}"),
-            PreviousStatus: null,
-            CurrentStatus: StatusName(entity.StatusCode),
+            evt.KindId,
+            evt.SubtypeId,
+            evt.CultureId,
+            PreviousStatusCode: null,
+            CurrentStatusCode: entity.StatusCode,
             evt.PhysicalQ,
             evt.PhysicalR,
             evt.SemanticQ,
@@ -202,18 +212,18 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
 
+        RegisterEntityNameSymbol(entity);
         _batch.EntityEvents.Add(new EntityEventRow(
             _runId,
             evt.Tick,
-            "status_changed",
-            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
+            (int)KernelEventType.EntityStatusChanged,
+            evt.SourceCodeId,
             evt.EntityId,
-            ResolveDisplayName(ProjectionSymbolKind.Kind, entity.KindId, $"kind_{entity.KindId}"),
-            ResolveDisplayName(ProjectionSymbolKind.Subtype, entity.SubtypeId, $"subtype_{entity.SubtypeId}"),
-            ResolveEntityName(entity),
-            ResolveDisplayName(ProjectionSymbolKind.Culture, entity.CultureId, $"culture_{entity.CultureId}"),
-            StatusName(evt.PreviousStatusCode),
-            StatusName(evt.CurrentStatusCode),
+            entity.KindId,
+            entity.SubtypeId,
+            entity.CultureId,
+            evt.PreviousStatusCode,
+            evt.CurrentStatusCode,
             entity.PhysicalQ,
             entity.PhysicalR,
             entity.SemanticQ,
@@ -225,10 +235,10 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _batch.LifecycleEvents.Add(new LifecycleEventRow(
                 _runId,
                 evt.Tick,
-                "death",
+                (int)KernelEventType.EntityStatusChanged,
                 evt.EntityId,
-                ResolveDisplayName(ProjectionSymbolKind.Kind, entity.KindId, $"kind_{entity.KindId}"),
-                ResolveEntityName(entity)));
+                entity.KindId,
+                evt.CurrentStatusCode));
         }
 
         MarkProjected(sequence);
@@ -256,14 +266,14 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             evt.EntityId,
-            PlaneName(evt.PlaneCode),
-            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
+            evt.PlaneCode,
+            evt.SourceCodeId,
             evt.FromQ,
             evt.FromR,
-            evt.PlaneCode == PlaneCodes.Physical ? null : evt.FromS,
+            evt.FromS,
             evt.ToQ,
             evt.ToR,
-            evt.PlaneCode == PlaneCodes.Physical ? null : evt.ToS,
+            evt.ToS,
             MovementDistance(evt)));
         MarkProjected(sequence);
     }
@@ -279,11 +289,11 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             evt.EntityId,
-            ResolveDisplayName(ProjectionSymbolKind.Attribute, evt.AttributeId, $"attribute_{evt.AttributeId}"),
+            evt.AttributeId,
             evt.OldValue,
             evt.NewValue,
             evt.NewValue - evt.OldValue,
-            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}")));
+            evt.SourceCodeId));
         MarkProjected(sequence);
     }
 
@@ -292,13 +302,13 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         _batch.ResourceEvents.Add(new ResourceEventRow(
             _runId,
             evt.Tick,
-            ResolveDisplayName(ProjectionSymbolKind.Resource, evt.ResourceId, $"resource_{evt.ResourceId}"),
+            evt.ResourceId,
             evt.Q,
             evt.R,
             evt.OldValue,
             evt.NewValue,
             evt.NewValue - evt.OldValue,
-            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}")));
+            evt.SourceCodeId));
         MarkProjected(sequence);
     }
 
@@ -317,18 +327,19 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         _batch.RelationshipEvents.Add(new RelationshipEventRow(
             _runId,
             evt.Tick,
-            ResolveDisplayName(ProjectionSymbolKind.EventCode, evt.ChangeCodeId, $"event_{evt.ChangeCodeId}"),
-            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
-            ResolveDisplayName(
-                ProjectionSymbolKind.RelationshipKind,
-                evt.RelationshipKindId,
-                $"relationship_{evt.RelationshipKindId}"),
-            PolarityName(evt.PolarityCode),
+            evt.ChangeCodeId,
+            evt.SourceCodeId,
+            evt.RelationshipKindId,
+            evt.PolarityCode,
             evt.SourceEntityId,
             evt.TargetEntityId,
             evt.PreviousStrength,
             evt.NewStrength,
-            RelationshipFacts(evt)));
+            evt.FactId0,
+            evt.FactId1,
+            evt.FactId2,
+            evt.FactId3,
+            evt.FactCount));
         MarkProjected(sequence);
     }
 
@@ -343,17 +354,15 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             evt.EntityId,
-            ResolveDisplayName(ProjectionSymbolKind.Kind, evt.KindId, $"kind_{evt.KindId}"),
-            evt.SelectedGoalId > 0 ? GoalKey(evt.SelectedGoalId) : null,
-            evt.ExecutedProcessId > 0
-                ? ResolveDisplayName(ProjectionSymbolKind.Process, evt.ExecutedProcessId, $"process_{evt.ExecutedProcessId}")
-                : null,
+            evt.KindId,
+            evt.SelectedGoalId > 0 ? evt.SelectedGoalId : null,
+            evt.ExecutedProcessId > 0 ? evt.ExecutedProcessId : null,
             evt.State.HasFlag(KernelEventState.Stale),
-            StatusNote: null,
+            (int)evt.State,
             evt.CandidateCount,
             VisitId: null,
-            LocalityKey: null,
-            LocalityPlane: null,
+            LocalityId: null,
+            LocalityPlaneCode: null,
             LocalityQ: null,
             LocalityR: null,
             LocalityS: null,
@@ -367,7 +376,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             LocalityArrived: null,
             LocalityActionsRemaining: null,
             LocalityRealizedActions: null,
-            LocalitySelectionReason: null));
+            LocalitySelectionReasonCode: null));
         MarkProjected(sequence);
     }
 
@@ -382,15 +391,15 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             evt.ActorId,
-            ResolveDisplayName(ProjectionSymbolKind.Kind, evt.ActorKindId, $"kind_{evt.ActorKindId}"),
+            evt.ActorKindId,
             SelectedGoalId: null,
-            ResolveDisplayName(ProjectionSymbolKind.Process, evt.ProcessId, $"process_{evt.ProcessId}"),
+            evt.ProcessId,
             evt.State.HasFlag(KernelEventState.Stale),
-            StatusNote: evt.State.HasFlag(KernelEventState.Succeeded) ? "executed" : "attempted",
+            (int)evt.State,
             CandidateCount: 0,
             VisitId: null,
-            LocalityKey: null,
-            LocalityPlane: null,
+            LocalityId: null,
+            LocalityPlaneCode: null,
             LocalityQ: null,
             LocalityR: null,
             LocalityS: null,
@@ -404,7 +413,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             LocalityArrived: null,
             LocalityActionsRemaining: null,
             LocalityRealizedActions: null,
-            LocalitySelectionReason: null));
+            LocalitySelectionReasonCode: null));
         MarkProjected(sequence);
     }
 
@@ -431,9 +440,9 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         _batch.GeneratorEvents.Add(new GeneratorEventRow(
             _runId,
             evt.Tick,
-            "pulse",
-            ResolveDisplayName(ProjectionSymbolKind.Generator, evt.GeneratorId, $"generator_{evt.GeneratorId}"),
-            GeneratorStatusName(evt.StatusCode),
+            (int)KernelEventType.GeneratorEvaluated,
+            evt.GeneratorId,
+            evt.StatusCode,
             TargetPoolCount: 0,
             InactiveRejectedCount: 0,
             SubtypeRejectedCount: 0,
@@ -452,13 +461,12 @@ public sealed class TelemetryEventProjection : KernelEventProjector
     protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
     {
         _totalGeneratorFires++;
-        var generatorName = ResolveDisplayName(ProjectionSymbolKind.Generator, evt.GeneratorId, $"generator_{evt.GeneratorId}");
         _batch.GeneratorEvents.Add(new GeneratorEventRow(
             _runId,
             evt.Tick,
-            "fired",
-            generatorName,
-            "fired",
+            (int)KernelEventType.GeneratorFired,
+            evt.GeneratorId,
+            GeneratorStatusCodes.Fired,
             TargetPoolCount: 0,
             InactiveRejectedCount: 0,
             SubtypeRejectedCount: 0,
@@ -474,7 +482,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
 
         if (evt.CreatedEntityCount > 0)
         {
-            _pendingGeneratorFires.Add(new PendingGeneratorFire(evt.Tick, generatorName, evt.CreatedEntityCount));
+            _pendingGeneratorFires.Add(new PendingGeneratorFire(evt.Tick, evt.GeneratorId, evt.CreatedEntityCount));
             AssignGeneratedEntities(evt.Tick);
         }
 
@@ -506,6 +514,31 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         return entity;
     }
 
+    private void RegisterEntityNameSymbol(ObservedEntityProjection entity)
+    {
+        if (!_exportedEntityNameSymbols.Add(entity.EntityId))
+        {
+            return;
+        }
+
+        var nameSeed = entity.NameSeed == 0 ? entity.EntityId : entity.NameSeed;
+        var key = new ProjectionEntityNameKey(
+            entity.EntityId,
+            entity.KindId,
+            entity.SubtypeId,
+            entity.CultureId,
+            nameSeed);
+        var displayName = _symbols?.ResolveEntityName(key, $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
+        _batch.EntityNameSymbols.Add(new EntityNameSymbolRow(
+            _runId,
+            entity.EntityId,
+            entity.KindId,
+            entity.SubtypeId,
+            entity.CultureId,
+            nameSeed,
+            displayName));
+    }
+
     private void TrackCreatedEntityForGeneratorAttribution(ObservedEntityProjection entity)
     {
         if (entity.CreatedTick is not { } createdTick)
@@ -535,14 +568,15 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             while (pending.Remaining > 0 && createdEntities.Count > 0)
             {
                 var entity = createdEntities.Dequeue();
+                RegisterEntityNameSymbol(entity);
                 _batch.GeneratedEntities.Add(new GeneratedEntityRow(
                     _runId,
                     tick,
-                    pending.GeneratorName,
+                    pending.GeneratorId,
                     entity.EntityId,
-                    ResolveDisplayName(ProjectionSymbolKind.Kind, entity.KindId, $"kind_{entity.KindId}"),
-                    ResolveDisplayName(ProjectionSymbolKind.Subtype, entity.SubtypeId, $"subtype_{entity.SubtypeId}"),
-                    ResolveDisplayName(ProjectionSymbolKind.Culture, entity.CultureId, $"culture_{entity.CultureId}"),
+                    entity.KindId,
+                    entity.SubtypeId,
+                    entity.CultureId,
                     entity.PhysicalQ,
                     entity.PhysicalR,
                     entity.SemanticQ,
@@ -560,98 +594,10 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         _pendingGeneratorFires.RemoveAll(pending => pending.Remaining == 0);
     }
 
-    private string ResolveEntityName(ObservedEntityProjection entity)
-    {
-        var key = new ProjectionEntityNameKey(
-            entity.EntityId,
-            entity.KindId,
-            entity.SubtypeId,
-            entity.CultureId,
-            entity.NameSeed == 0 ? entity.EntityId : entity.NameSeed);
-        return _symbols?.ResolveEntityName(key, $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
-    }
-
-    private string ResolveDisplayName(ProjectionSymbolKind kind, int id, string fallback) =>
-        id == 0 ? string.Empty : _symbols?.ResolveDisplayName(kind, id, fallback) ?? fallback;
-
-    private string RelationshipFacts(RelationshipChangedKernelEvent relationship)
-    {
-        if (relationship.FactCount <= 0)
-        {
-            return string.Empty;
-        }
-
-        var facts = new[]
-            {
-                relationship.FactId0,
-                relationship.FactId1,
-                relationship.FactId2,
-                relationship.FactId3,
-            }
-            .Take(Math.Clamp(relationship.FactCount, 0, 4))
-            .Where(factId => factId > 0)
-            .Select(factId => ResolveDisplayName(
-                ProjectionSymbolKind.RelationshipFact,
-                factId,
-                $"fact_{factId}"))
-            .Order(StringComparer.Ordinal);
-        return string.Join('|', facts);
-    }
-
-    private string AttributeSnapshot(ObservedEntityProjection entity)
-    {
-        return string.Join(
-            '|',
-            entity.Attributes
-                .OrderBy(attribute => attribute.Key)
-                .Select(attribute => string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"{ResolveDisplayName(ProjectionSymbolKind.Attribute, attribute.Key, $"attribute_{attribute.Key}")}={attribute.Value:F3}")));
-    }
-
     private void MarkProjected(long sequence)
     {
         LastProjectedSequence = sequence;
     }
-
-    private static string GoalKey(int goalId) =>
-        string.Create(CultureInfo.InvariantCulture, $"goal_{goalId}");
-
-    private static string PlaneName(int planeCode) => planeCode switch
-    {
-        PlaneCodes.Physical => "physical",
-        PlaneCodes.Semantic => "semantic",
-        _ => string.Create(CultureInfo.InvariantCulture, $"plane_{planeCode}"),
-    };
-
-    private static string PolarityName(int polarityCode) => polarityCode switch
-    {
-        RelationshipPolarityCodes.Positive => "Positive",
-        RelationshipPolarityCodes.Negative => "Negative",
-        RelationshipPolarityCodes.Neutral => "Neutral",
-        _ => string.Create(CultureInfo.InvariantCulture, $"polarity_{polarityCode}"),
-    };
-
-    private static string GeneratorStatusName(int statusCode) => statusCode switch
-    {
-        GeneratorStatusCodes.Eligible => "eligible",
-        GeneratorStatusCodes.Fired => "fired",
-        GeneratorStatusCodes.EligibleNotSelected => "eligible_not_selected",
-        GeneratorStatusCodes.Blocked => "blocked",
-        GeneratorStatusCodes.FireFailed => "fire_failed",
-        GeneratorStatusCodes.MissingDefinition => "missing_definition",
-        GeneratorStatusCodes.MaxRuns => "max_runs",
-        GeneratorStatusCodes.ZeroWeight => "zero_weight",
-        GeneratorStatusCodes.NotEvaluated => "not_evaluated",
-        _ => string.Create(CultureInfo.InvariantCulture, $"status_{statusCode}"),
-    };
-
-    private static string StatusName(int statusCode) => statusCode switch
-    {
-        EntityStatusCodes.Active => "Active",
-        EntityStatusCodes.Historical => "Historical",
-        _ => string.Create(CultureInfo.InvariantCulture, $"status_{statusCode}"),
-    };
 
     private static bool IsActiveStatus(int statusCode) => statusCode == EntityStatusCodes.Active;
 
@@ -715,22 +661,22 @@ public sealed class TelemetryEventProjection : KernelEventProjector
     private static int CubeDistance(int fromQ, int fromR, int fromS, int toQ, int toR, int toS) =>
         (Math.Abs(fromQ - toQ) + Math.Abs(fromR - toR) + Math.Abs(fromS - toS)) / 2;
 
-    private sealed class PendingGeneratorFire(int tick, string generatorName, int remaining)
+    private sealed class PendingGeneratorFire(int tick, int generatorId, int remaining)
     {
         public int Tick { get; } = tick;
 
-        public string GeneratorName { get; } = generatorName;
+        public int GeneratorId { get; } = generatorId;
 
         public int Remaining { get; set; } = remaining;
     }
 }
 
-public readonly record struct ObservedRelationshipKey(
+internal readonly record struct ObservedRelationshipKey(
     int SourceEntityId,
     int TargetEntityId,
     int RelationshipKindId);
 
-public sealed class ObservedRelationshipProjection(
+internal sealed class ObservedRelationshipProjection(
     ObservedRelationshipKey key,
     int changeCodeId,
     int polarityCode,
@@ -756,7 +702,7 @@ public sealed class ObservedRelationshipProjection(
     public long WorldVersion { get; } = worldVersion;
 }
 
-public sealed class ObservedEntityProjection(int entityId)
+internal sealed class ObservedEntityProjection(int entityId)
 {
     public int EntityId { get; } = entityId;
 

@@ -8,14 +8,14 @@ using Engine.Kernel;
     "Naming",
     "CA1720:Identifier contains type name",
     Justification = "Primitive command schemas intentionally name the concrete slot storage width.")]
-public enum KernelCommandPrimitiveKind
+internal enum KernelCommandPrimitiveKind
 {
     None = 0,
     Int32 = 1,
     Float32 = 2,
 }
 
-public enum KernelCommandSemanticKind
+internal enum KernelCommandSemanticKind
 {
     None = 0,
     RawScalar = 1,
@@ -41,19 +41,19 @@ public enum KernelCommandSemanticKind
     Enabled = 21,
 }
 
-public sealed record KernelCommandSlotSchema(
+internal sealed record KernelCommandSlotSchema(
     int Slot,
     string Name,
     KernelCommandPrimitiveKind PrimitiveKind,
     KernelCommandSemanticKind SemanticKind);
 
-public sealed record KernelCommandSchema(
+internal sealed record KernelCommandSchema(
     int CommandType,
     string Name,
     int SchemaMinor,
     IReadOnlyList<KernelCommandSlotSchema> Slots);
 
-public static class KernelCommandSchemaRegistry
+internal static class KernelCommandSchemaRegistry
 {
     private static readonly IReadOnlyList<KernelCommandSchema> RegisteredSchemas =
     [

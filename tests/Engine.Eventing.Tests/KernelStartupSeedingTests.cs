@@ -104,7 +104,7 @@ public sealed class KernelStartupSeedingTests
         seeded.SeedCell(q: 1, r: -1, terrainId: 1, ownerEntityId: 3);
 
         Assert.Equal(created.World.CellTerrainId(1, -1), seeded.World.CellTerrainId(1, -1));
-        Assert.Equal(created.World.CellCoverageOwner(1, -1), seeded.World.CellCoverageOwner(1, -1));
+        Assert.Equal(created.World.CoverageOwnerAt(1, -1), seeded.World.CoverageOwnerAt(1, -1));
         AssertEventTypes(created, createdCursor, KernelEventType.CellCreated);
         AssertEventTypes(seeded, seededCursor, KernelEventType.CellCreated);
     }

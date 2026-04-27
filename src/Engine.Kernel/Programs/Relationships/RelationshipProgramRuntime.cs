@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class RelationshipProgramRuntime :
+internal sealed class RelationshipProgramRuntime :
     IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>
 {
     public RelationshipProgramRuntime(RelationshipProgramData data, RelationshipProgramState state)

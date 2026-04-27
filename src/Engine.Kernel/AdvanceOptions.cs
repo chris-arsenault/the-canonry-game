@@ -1,7 +1,7 @@
 namespace Engine.Kernel;
 
-public delegate bool StopPredicate(in KernelStopContext context);
+internal delegate bool StopPredicate(in KernelStopContext context);
 
-public readonly record struct AdvanceOptions(StopPredicate? StopAt = null, global::System.Threading.CancellationToken Cancel = default);
+internal readonly record struct AdvanceOptions(StopPredicate? StopAt = null, global::System.Threading.CancellationToken Cancel = default);
 
-public readonly record struct KernelStopContext(int CurrentTick, long CurrentVersion, int AdvancedTicks);
+internal readonly record struct KernelStopContext(int CurrentTick, long CurrentVersion, int AdvancedTicks);

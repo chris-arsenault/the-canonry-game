@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Engine.Observability\Engine.Observability.csproj" />
     <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Engine.Host.Tests" />
+  </ItemGroup>
 </Project>

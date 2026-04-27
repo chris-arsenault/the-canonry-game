@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class ProcessProgramState : IKernelProgramState
+internal sealed partial class ProcessProgramState : IKernelProgramState
 {
     internal readonly bool[] ProcessEnabled;
     internal readonly PrimitiveIntTable Cooldowns;

@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed partial class WorldState
+internal sealed partial class WorldState
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
@@ -79,7 +79,7 @@ public sealed partial class WorldState
                     r,
                     context.SourceCodeId,
                     CellTerrainId(q, r),
-                    CellCoverageOwner(q, r))),
+                    CoverageOwnerAt(q, r))),
                     context);
             }
         }

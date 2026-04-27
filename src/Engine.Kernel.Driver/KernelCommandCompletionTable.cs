@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Driver;
 
-public sealed class KernelCommandCompletionTable
+internal sealed class KernelCommandCompletionTable
 {
     private readonly Entry[] _entries;
     private readonly object _gate = new();

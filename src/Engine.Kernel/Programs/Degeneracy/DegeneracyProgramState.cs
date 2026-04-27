@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class DegeneracyProgramState : IKernelProgramState
+internal sealed partial class DegeneracyProgramState : IKernelProgramState
 {
     internal readonly int[] PreviousSeverityCodes;
     internal readonly bool[] Enabled;

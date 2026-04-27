@@ -12,6 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Engine.Kernel.Driver" />
+    <InternalsVisibleTo Include="Engine.Kernel.Schema" />
     <InternalsVisibleTo Include="Engine.Host" />
     <InternalsVisibleTo Include="Engine.Eventing.Tests" />
     <InternalsVisibleTo Include="Engine.Host.Tests" />

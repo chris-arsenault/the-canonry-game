@@ -1,5 +1,6 @@
 namespace Engine.Observability.Tests.Observability;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Observability;
 using Engine.Projection;
@@ -11,13 +12,7 @@ public sealed class PlannerTraceProjectionTests
     {
         var log = new KernelEventLog(capacity: 32);
         var batch = new TelemetryBatch();
-        var symbols = new ProjectionSymbolCatalog()
-            .RegisterSymbol(ProjectionSymbolKind.Goal, 30, "warmth_goal", "Warmth")
-            .RegisterSymbol(ProjectionSymbolKind.Process, 40, "seek_food", "Seek Food")
-            .RegisterSymbol(ProjectionSymbolKind.ReasonCode, 50, "selected", "Selected")
-            .RegisterSymbol(ProjectionSymbolKind.ReasonCode, 51, "score_rule", "Score Rule")
-            .RegisterSymbol(ProjectionSymbolKind.RelationshipKind, 60, "located_at", "Located At");
-        var projection = new PlannerTraceProjection("run-1", batch, symbols);
+        var projection = new PlannerTraceProjection(1, batch);
         using var pump = new KernelEventProjectionPump(
             log,
             KernelEventCursorStart.EarliestAvailable,
@@ -77,23 +72,23 @@ public sealed class PlannerTraceProjectionTests
         pump.DrainAvailable();
 
         var trace = Assert.Single(batch.PlannerTraces);
-        Assert.Equal("committed", trace.Status);
+        Assert.Equal(PlannerTraceStatusCodes.Committed, trace.StatusCode);
         Assert.Equal(3, trace.CandidateCount);
-        Assert.Equal("Selected", trace.Reason);
+        Assert.Equal(50, trace.ReasonCodeId);
         Assert.Equal(1.0f, trace.TotalScore);
 
         var goal = Assert.Single(batch.PlannerTraceGoals);
-        Assert.Equal("Warmth", goal.Goal);
+        Assert.Equal(30, goal.GoalId);
         Assert.True(goal.WasSelected);
         Assert.Equal(1.0f, goal.FinalScore);
 
         var score = Assert.Single(batch.PlannerTraceScores);
-        Assert.Equal("Score Rule", score.Reason);
+        Assert.Equal(51, score.ReasonCodeId);
         Assert.Equal(1.0f, score.RunningTotal);
 
         var step = Assert.Single(batch.PlannerTraceSteps);
-        Assert.Equal("Seek Food", step.Process);
-        Assert.Equal("Located At", step.RelationshipKind);
+        Assert.Equal(40, step.ProcessId);
+        Assert.Equal(60, step.RelationshipKindId);
     }
 
     [Fact]
@@ -101,7 +96,7 @@ public sealed class PlannerTraceProjectionTests
     {
         var log = new KernelEventLog(capacity: 1);
         var batch = new TelemetryBatch();
-        var projection = new PlannerTraceProjection("run-1", batch);
+        var projection = new PlannerTraceProjection(1, batch);
         using var pump = new KernelEventProjectionPump(
             log,
             KernelEventCursorStart.EarliestAvailable,
@@ -133,6 +128,6 @@ public sealed class PlannerTraceProjectionTests
 
         pump.DrainAvailable();
 
-        Assert.Contains(batch.PlannerTraces, trace => trace.Status == "truncated");
+        Assert.Contains(batch.PlannerTraces, trace => trace.StatusCode == PlannerTraceStatusCodes.Truncated);
     }
 }

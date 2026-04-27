@@ -3,15 +3,18 @@ namespace Engine.Observability;
 using System.Collections.ObjectModel;
 
 /// <summary>
-/// In-memory columnar telemetry rows for a Monte Carlo run or batch.
+/// In-memory primitive telemetry rows for a Monte Carlo run or batch.
 /// Writers project these rows to Parquet/DuckDB-compatible tables.
 /// </summary>
 public sealed class TelemetryBatch
 {
+    public Collection<SymbolRow> Symbols { get; } = [];
+    public Collection<EntityNameSymbolRow> EntityNameSymbols { get; } = [];
     public Collection<RunRow> Runs { get; } = [];
     public Collection<TickSnapshotRow> TickSnapshots { get; } = [];
     public Collection<KindSnapshotRow> KindSnapshots { get; } = [];
     public Collection<EntitySnapshotRow> EntitySnapshots { get; } = [];
+    public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = [];
     public Collection<EntityEventRow> EntityEvents { get; } = [];
     public Collection<PlannerGoalRow> PlannerGoals { get; } = [];
     public Collection<PlannerTraceRow> PlannerTraces { get; } = [];
@@ -34,14 +37,32 @@ public sealed class TelemetryBatch
     public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
 }
 
+public sealed record SymbolRow(
+    int SymbolKind,
+    int Id,
+    string StableName,
+    string DisplayName,
+    string? Description = null,
+    string? IconKey = null,
+    string? ColorKey = null);
+
+public sealed record EntityNameSymbolRow(
+    int RunId,
+    int EntityId,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int NameSeed,
+    string DisplayName);
+
 public sealed record RunRow(
-    string RunId,
+    int RunId,
     int? Seed,
-    string Domain,
-    string StartedUtc);
+    int DomainId,
+    long StartedUnixMilliseconds);
 
 public sealed record TickSnapshotRow(
-    string RunId,
+    int RunId,
     int Tick,
     int ActiveEntities,
     int HistoricalEntities,
@@ -54,10 +75,10 @@ public sealed record TickSnapshotRow(
     float SemanticSpread);
 
 public sealed record KindSnapshotRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string Kind,
-    string Subtype,
+    int KindId,
+    int SubtypeId,
     int ActiveCount,
     int HistoricalCount,
     float AverageHealth,
@@ -65,32 +86,37 @@ public sealed record KindSnapshotRow(
     float MaximumHealth);
 
 public sealed record EntitySnapshotRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string Kind,
-    string Subtype,
-    string Culture,
-    string Status,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int StatusCode,
     int PhysicalQ,
     int PhysicalR,
     int SemanticQ,
     int SemanticR,
-    int SemanticS,
-    string Attributes);
+    int SemanticS);
+
+public sealed record EntityAttributeSnapshotRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int AttributeId,
+    float Value);
 
 public sealed record EntityEventRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string EventType,
-    string Source,
+    int EventTypeCode,
+    int SourceCodeId,
     int EntityId,
-    string Kind,
-    string Subtype,
-    string Name,
-    string Culture,
-    string? PreviousStatus,
-    string? CurrentStatus,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int? PreviousStatusCode,
+    int? CurrentStatusCode,
     int PhysicalQ,
     int PhysicalR,
     int SemanticQ,
@@ -98,87 +124,80 @@ public sealed record EntityEventRow(
     int SemanticS);
 
 public sealed record PlannerGoalRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string Kind,
-    string GoalId,
-    string DesiredEffect,
+    int KindId,
+    int GoalId,
+    int DesiredEffectCode,
     int TargetEntityId,
     float Urgency,
-    string? PlannedProcessId,
-    string? ParentGoalId,
+    int? PlannedProcessId,
+    int? ParentGoalId,
     bool IsActionable,
     int Depth);
 
 public sealed record PlannerTraceRow(
-    string RunId,
+    int RunId,
     int StartTick,
     int EndTick,
     int EntityId,
     int PlanId,
-    string Status,
+    int StatusCode,
     int CandidateCount,
     int StepCount,
     int ReasonCodeId,
-    string Reason,
     float? TotalScore,
     long StartSequence,
     long EndSequence,
     long DroppedEventCount);
 
 public sealed record PlannerTraceGoalRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
     int PlanId,
     int GoalId,
-    string Goal,
     int CandidateIndex,
     float PreliminaryScore,
     bool WasSelected,
     float? FinalScore);
 
 public sealed record PlannerTraceScoreRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
     int PlanId,
     int GoalId,
-    string Goal,
     int ReasonCodeId,
-    string Reason,
     int ScoringPassIndex,
     float ScoreDelta,
     float RunningTotal);
 
 public sealed record PlannerTraceStepRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
     int PlanId,
     int GoalId,
-    string Goal,
     int StepIndex,
     int ProcessId,
-    string Process,
     int TargetEntityId,
-    int RelationshipKindId,
-    string RelationshipKind);
+    int RelationshipKindId);
 
 public sealed record ProcessEventRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string Kind,
-    string? SelectedGoalId,
-    string? ExecutedProcessName,
+    int KindId,
+    int? SelectedGoalId,
+    int? ExecutedProcessId,
     bool IsStale,
-    string? StatusNote,
+    int StateCode,
     int CandidateCount,
-    string? VisitId,
-    string? LocalityKey,
-    string? LocalityPlane,
+    int? VisitId,
+    int? LocalityId,
+    int? LocalityPlaneCode,
     int? LocalityQ,
     int? LocalityR,
     int? LocalityS,
@@ -192,35 +211,34 @@ public sealed record ProcessEventRow(
     bool? LocalityArrived,
     int? LocalityActionsRemaining,
     int? LocalityRealizedActions,
-    string? LocalitySelectionReason);
+    int? LocalitySelectionReasonCode);
 
 public sealed record ProcessCandidateRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string Kind,
-    string ProcessName,
-    string GoalId,
-    string ProviderName,
+    int KindId,
+    int ProcessId,
+    int GoalId,
+    int ProviderId,
     float Score,
     bool PreconditionPassed,
-    string PreconditionDiagnostic,
+    int PreconditionDiagnosticCode,
     bool OnCooldown,
     bool WasSelected);
 
 public sealed record LocalityOpportunityRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string Kind,
-    string? VisitId,
-    string LocalityKey,
-    string Plane,
+    int KindId,
+    int? VisitId,
+    int LocalityId,
+    int PlaneCode,
     int Q,
     int R,
     int? S,
     int AnchorEntityId,
-    string AnchorName,
     float BundleScore,
     int GoalCount,
     int DistinctTargetCount,
@@ -229,80 +247,84 @@ public sealed record LocalityOpportunityRow(
     bool IsCurrentLocality,
     bool IsCommitted,
     bool WasSelected,
-    string SelectionReason);
+    int SelectionReasonCode);
 
 public sealed record AttributeEventRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string AttributeName,
+    int AttributeId,
     float OldValue,
     float NewValue,
     float Delta,
-    string Source);
+    int SourceCodeId);
 
 public sealed record MovementEventRow(
-    string RunId,
+    int RunId,
     int Tick,
     int EntityId,
-    string Plane,
-    string Source,
-    int? FromQ,
-    int? FromR,
-    int? FromS,
-    int? ToQ,
-    int? ToR,
-    int? ToS,
+    int PlaneCode,
+    int SourceCodeId,
+    int FromQ,
+    int FromR,
+    int FromS,
+    int ToQ,
+    int ToR,
+    int ToS,
     int Distance);
 
 public sealed record ResourceEventRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string ResourceType,
+    int ResourceId,
     int Q,
     int R,
     float OldValue,
     float NewValue,
     float Delta,
-    string Source);
+    int SourceCodeId);
 
 public sealed record ResourceSnapshotRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string ResourceType,
+    int ResourceId,
     float Total,
     float Average,
     float Minimum,
     float Maximum);
 
 public sealed record RelationshipEventRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string ChangeType,
-    string Source,
-    string RelationshipKind,
-    string Polarity,
+    int ChangeCodeId,
+    int SourceCodeId,
+    int RelationshipKindId,
+    int PolarityCode,
     int SourceId,
     int TargetId,
     float PreviousStrength,
     float NewStrength,
-    string Facts);
+    int FactId0,
+    int FactId1,
+    int FactId2,
+    int FactId3,
+    int FactCount);
 
 public sealed record RelationshipSnapshotRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string RelationshipKind,
+    int RelationshipKindId,
     int ActiveCount,
     float AverageStrength,
     float MinimumStrength,
     float MaximumStrength);
 
 public sealed record GeneratorEventRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string EventType,
-    string GeneratorId,
-    string Status,
+    int EventTypeCode,
+    int GeneratorId,
+    int StatusCode,
     int TargetPoolCount,
     int InactiveRejectedCount,
     int SubtypeRejectedCount,
@@ -317,13 +339,13 @@ public sealed record GeneratorEventRow(
     int CreatedRelationshipCount);
 
 public sealed record GeneratedEntityRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string GeneratorId,
+    int GeneratorId,
     int EntityId,
-    string Kind,
-    string Subtype,
-    string Culture,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
     int PhysicalQ,
     int PhysicalR,
     int SemanticQ,
@@ -331,29 +353,29 @@ public sealed record GeneratedEntityRow(
     int SemanticS);
 
 public sealed record LifecycleEventRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string EventType,
+    int EventTypeCode,
     int EntityId,
-    string Kind,
-    string Name);
+    int KindId,
+    int StatusCode);
 
 public sealed record MapGenerationEventRow(
-    string RunId,
+    int RunId,
     int Tick,
     int BaseSeed,
     int Attempt,
     int TerrainSeed,
     int EntitySeed,
-    string Phase,
-    string Description,
-    string Reasons,
+    int PhaseId,
+    int DescriptionId,
+    int ReasonId,
     bool WillRetry);
 
 public sealed record MapSnapshotRow(
-    string RunId,
+    int RunId,
     int Tick,
-    string Terrain,
+    int TerrainId,
     int CellCount,
     int CoveredCellCount,
     int ActiveEntityCount);

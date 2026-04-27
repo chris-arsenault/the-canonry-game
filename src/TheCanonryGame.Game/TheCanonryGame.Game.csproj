@@ -8,9 +8,14 @@
   <ItemGroup>
     <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\Engine.Host\Engine.Host.csproj" />
-    <ProjectReference Include="..\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\Engine.Kernel.Driver\Engine.Kernel.Driver.csproj" />
     <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
     <ProjectReference Include="..\IceRemembers.Seed\IceRemembers.Seed.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TheCanonryGame" />
+    <InternalsVisibleTo Include="TheCanonryGame.UI" />
+    <InternalsVisibleTo Include="TheCanonryGame.Game.Tests" />
   </ItemGroup>
 </Project>

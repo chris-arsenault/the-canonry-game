@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class PressureProgramData : IKernelProgramData
+internal sealed partial class PressureProgramData : IKernelProgramData
 {
     internal readonly int[] PressureIds;
     internal readonly int[] ScopeCodes;

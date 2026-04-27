@@ -9,7 +9,7 @@ using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Projection;
 
-public sealed class KernelHostBuilder
+internal sealed class KernelHostBuilder
 {
     private readonly List<Action<DomainIdRegistry>> _domainRegistrations = [];
     private readonly List<Action<KernelSymbolContext>> _symbolConfigurators = [];

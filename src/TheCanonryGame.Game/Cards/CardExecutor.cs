@@ -1,6 +1,6 @@
 namespace TheCanonryGame.Game.Cards;
 
-public enum CardFireStatus
+internal enum CardFireStatus
 {
     SkippedInactive,
     SkippedGenerator,
@@ -10,14 +10,14 @@ public enum CardFireStatus
     Fired,
 }
 
-public enum CardFireOutcome
+internal enum CardFireOutcome
 {
     None,
     Success,
     Failure,
 }
 
-public sealed class CardFireResult
+internal sealed class CardFireResult
 {
     private static readonly IReadOnlyList<CardEffect> NoEffects = Array.Empty<CardEffect>();
 
@@ -51,7 +51,7 @@ public sealed class CardFireResult
     }
 }
 
-public sealed class CardExecutor
+internal sealed class CardExecutor
 {
     private readonly Random _random;
 

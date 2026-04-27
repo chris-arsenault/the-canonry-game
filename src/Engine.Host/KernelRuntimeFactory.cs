@@ -2,6 +2,7 @@ namespace Engine.Host;
 
 using Engine.Eventing.Schema;
 using Engine.Domain;
+using Engine.Domain.Compilation;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Observability;
@@ -10,12 +11,15 @@ using Engine.Projection;
 public sealed class KernelRuntimeFactory
 {
     private readonly Dictionary<string, IKernelDomainModule> _domains;
+    private readonly Dictionary<string, CompiledDomain> _compiledDomains;
+    private readonly object _compiledDomainGate = new();
 
     public KernelRuntimeFactory(IEnumerable<IKernelDomainModule> domains)
     {
         ArgumentNullException.ThrowIfNull(domains);
 
         _domains = new Dictionary<string, IKernelDomainModule>(StringComparer.OrdinalIgnoreCase);
+        _compiledDomains = new Dictionary<string, CompiledDomain>(StringComparer.OrdinalIgnoreCase);
         foreach (var domain in domains)
         {
             ArgumentNullException.ThrowIfNull(domain);
@@ -77,8 +81,9 @@ public sealed class KernelRuntimeFactory
 
         var baseSeed = request.SeedPolicy.ResolveBaseSeed();
         var seedResult = domain.BuildStartupSeed(new DomainStartupSeedRequest(baseSeed));
+        var compiledDomain = CreateRuntimeCompiledDomain(GetOrCompileDomain(domain));
         var builder = new KernelHostBuilder()
-            .WithDomainConfig(domain.CreateDomainConfig())
+            .WithCompiledDomain(compiledDomain)
             .WithSimulationOptions(new SimulationOptions
             {
                 Seed = baseSeed,
@@ -95,6 +100,33 @@ public sealed class KernelRuntimeFactory
             request,
             seedResult.Identity);
     }
+
+    private CompiledDomain GetOrCompileDomain(IKernelDomainModule domain)
+    {
+        lock (_compiledDomainGate)
+        {
+            if (_compiledDomains.TryGetValue(domain.Name, out var compiledDomain))
+            {
+                return compiledDomain;
+            }
+
+            compiledDomain = DomainCompiler.Compile(domain.CreateDomainConfig());
+            _compiledDomains.Add(domain.Name, compiledDomain);
+            return compiledDomain;
+        }
+    }
+
+    private static CompiledDomain CreateRuntimeCompiledDomain(CompiledDomain cachedDomain) =>
+        new()
+        {
+            Config = cachedDomain.Config,
+            Ids = cachedDomain.Ids.Clone(),
+            DefinitionGraph = cachedDomain.DefinitionGraph,
+            RuntimeCodes = cachedDomain.RuntimeCodes,
+            KernelData = cachedDomain.KernelData,
+            Programs = cachedDomain.Programs,
+            Symbols = cachedDomain.Symbols,
+        };
 
     private static RealtimeDriverConfig DriverConfigFor(KernelFunctionProfile profile) => profile switch
     {

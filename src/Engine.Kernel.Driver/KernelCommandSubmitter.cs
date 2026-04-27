@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Driver;
 
-public sealed class KernelCommandSubmitter : ICommandSubmitter
+internal sealed class KernelCommandSubmitter : ICommandSubmitter
 {
     private readonly KernelCommandRing _commands;
     private readonly KernelCommandCompletionTable _completionTable;
@@ -14,7 +14,18 @@ public sealed class KernelCommandSubmitter : ICommandSubmitter
         _completionTable = completionTable;
     }
 
-    public bool TryEnqueue(in KernelCommand command, out CommandHandle handle)
+    public bool TrySetGeneratorEnabled(in SetGeneratorEnabledCommand command, out CommandHandle handle)
+    {
+        var kernelCommand = KernelCommand.From(new SetGeneratorEnabledKernelCommand(
+            command.IssueVersion,
+            command.GeneratorId,
+            command.Enabled ? 1 : 0,
+            command.SubmitterId,
+            command.SubmitterSequence));
+        return TryEnqueue(in kernelCommand, out handle);
+    }
+
+    internal bool TryEnqueue(in KernelCommand command, out CommandHandle handle)
     {
         if (!_commands.TryEnqueue(in command, out var commandId))
         {

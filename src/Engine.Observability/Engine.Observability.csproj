@@ -8,7 +8,14 @@
   <ItemGroup>
     <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\Engine.Eventing\Engine.Eventing.csproj" />
-    <ProjectReference Include="..\Engine.Eventing.Schema\Engine.Eventing.Schema.csproj" />
     <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Engine.Host" />
+    <InternalsVisibleTo Include="Engine.Observability.Export" />
+    <InternalsVisibleTo Include="Engine.Observability.Tests" />
+    <InternalsVisibleTo Include="MonteCarlo" />
+    <InternalsVisibleTo Include="MonteCarlo.Tests" />
   </ItemGroup>
 </Project>

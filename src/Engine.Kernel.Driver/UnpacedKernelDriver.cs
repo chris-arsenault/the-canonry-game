@@ -2,7 +2,7 @@ namespace Engine.Kernel.Driver;
 
 using System.Threading;
 
-public sealed class UnpacedKernelDriver : IKernelDriver
+internal sealed class UnpacedKernelDriver : IKernelDriver
 {
     private readonly IKernel _kernel;
     private readonly int _batchSize;

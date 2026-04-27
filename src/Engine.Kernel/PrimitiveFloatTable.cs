@@ -1,10 +1,11 @@
 namespace Engine.Kernel;
 
-public sealed partial class PrimitiveFloatTable
+internal sealed partial class PrimitiveFloatTable
 {
     private readonly int[] _firstKeys;
     private readonly int[] _secondKeys;
     private readonly float[] _values;
+    private readonly int[] _occupiedSlots;
     private int _count;
 
     public PrimitiveFloatTable(int capacity)
@@ -13,6 +14,7 @@ public sealed partial class PrimitiveFloatTable
         _firstKeys = new int[capacity];
         _secondKeys = new int[capacity];
         _values = new float[capacity];
+        _occupiedSlots = new int[capacity];
     }
 
     public int Capacity => _firstKeys.Length;
@@ -51,6 +53,7 @@ public sealed partial class PrimitiveFloatTable
         {
             _firstKeys[slot] = firstKey;
             _secondKeys[slot] = secondKey;
+            _occupiedSlots[_count] = slot;
             _count++;
         }
 
@@ -65,6 +68,7 @@ public sealed partial class PrimitiveFloatTable
         {
             _firstKeys[slot] = firstKey;
             _secondKeys[slot] = secondKey;
+            _occupiedSlots[_count] = slot;
             _count++;
         }
 
@@ -75,9 +79,9 @@ public sealed partial class PrimitiveFloatTable
     {
         ValidateFirstKey(firstKey);
         var count = 0;
-        for (var i = 0; i < _firstKeys.Length; i++)
+        for (var i = 0; i < _count; i++)
         {
-            if (_firstKeys[i] == firstKey)
+            if (_firstKeys[_occupiedSlots[i]] == firstKey)
             {
                 count++;
             }
@@ -90,11 +94,12 @@ public sealed partial class PrimitiveFloatTable
     {
         ValidateFirstKey(firstKey);
         var count = 0;
-        for (var i = 0; i < _firstKeys.Length && count < destination.Length; i++)
+        for (var i = 0; i < _count && count < destination.Length; i++)
         {
-            if (_firstKeys[i] == firstKey)
+            var slot = _occupiedSlots[i];
+            if (_firstKeys[slot] == firstKey)
             {
-                destination[count] = _secondKeys[i];
+                destination[count] = _secondKeys[slot];
                 count++;
             }
         }
@@ -104,10 +109,28 @@ public sealed partial class PrimitiveFloatTable
 
     public void Clear()
     {
-        global::System.Array.Clear(_firstKeys);
-        global::System.Array.Clear(_secondKeys);
-        global::System.Array.Clear(_values);
+        for (var i = 0; i < _count; i++)
+        {
+            var slot = _occupiedSlots[i];
+            _firstKeys[slot] = 0;
+            _secondKeys[slot] = 0;
+            _values[slot] = 0f;
+        }
+
         _count = 0;
+    }
+
+    private void RebuildOccupiedSlots()
+    {
+        _count = 0;
+        for (var slot = 0; slot < _firstKeys.Length; slot++)
+        {
+            if (_firstKeys[slot] != 0)
+            {
+                _occupiedSlots[_count] = slot;
+                _count++;
+            }
+        }
     }
 
     private int FindSlot(int firstKey, int secondKey, out bool found)

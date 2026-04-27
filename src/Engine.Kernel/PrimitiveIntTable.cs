@@ -1,10 +1,11 @@
 namespace Engine.Kernel;
 
-public sealed partial class PrimitiveIntTable
+internal sealed partial class PrimitiveIntTable
 {
     private readonly int[] _firstKeys;
     private readonly int[] _secondKeys;
     private readonly int[] _values;
+    private readonly int[] _occupiedSlots;
     private int _count;
 
     public PrimitiveIntTable(int capacity)
@@ -13,6 +14,7 @@ public sealed partial class PrimitiveIntTable
         _firstKeys = new int[capacity];
         _secondKeys = new int[capacity];
         _values = new int[capacity];
+        _occupiedSlots = new int[capacity];
     }
 
     public int Capacity => _firstKeys.Length;
@@ -46,6 +48,7 @@ public sealed partial class PrimitiveIntTable
         {
             _firstKeys[slot] = firstKey;
             _secondKeys[slot] = secondKey;
+            _occupiedSlots[_count] = slot;
             _count++;
         }
 
@@ -54,10 +57,28 @@ public sealed partial class PrimitiveIntTable
 
     public void Clear()
     {
-        global::System.Array.Clear(_firstKeys);
-        global::System.Array.Clear(_secondKeys);
-        global::System.Array.Clear(_values);
+        for (var i = 0; i < _count; i++)
+        {
+            var slot = _occupiedSlots[i];
+            _firstKeys[slot] = 0;
+            _secondKeys[slot] = 0;
+            _values[slot] = 0;
+        }
+
         _count = 0;
+    }
+
+    private void RebuildOccupiedSlots()
+    {
+        _count = 0;
+        for (var slot = 0; slot < _firstKeys.Length; slot++)
+        {
+            if (_firstKeys[slot] != 0)
+            {
+                _occupiedSlots[_count] = slot;
+                _count++;
+            }
+        }
     }
 
     private int FindSlot(int firstKey, int secondKey, out bool found)

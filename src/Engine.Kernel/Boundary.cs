@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public static class Boundary
+internal static class Boundary
 {
     public const int EventSchemaVersion = 1;
 }

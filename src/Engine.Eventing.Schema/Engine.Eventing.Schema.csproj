@@ -8,4 +8,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Engine.Eventing\Engine.Eventing.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Engine.Host" />
+    <InternalsVisibleTo Include="Engine.Eventing.Tests" />
+    <InternalsVisibleTo Include="Engine.Host.Tests" />
+    <InternalsVisibleTo Include="Engine.Observability.Tests" />
+  </ItemGroup>
 </Project>

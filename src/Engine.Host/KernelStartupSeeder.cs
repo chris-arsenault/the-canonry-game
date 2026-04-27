@@ -5,14 +5,14 @@ namespace Engine.Host;
 /// tick advancement begins. Implementations receive the host-owned startup
 /// surface rather than direct kernel access.
 /// </summary>
-public interface IKernelStartupSeeder
+internal interface IKernelStartupSeeder
 {
     int EstimatedEventCount { get; }
 
     void Seed(KernelStartupContext context);
 }
 
-public sealed class DelegateKernelStartupSeeder : IKernelStartupSeeder
+internal sealed class DelegateKernelStartupSeeder : IKernelStartupSeeder
 {
     private readonly Action<KernelStartupContext> _seed;
 

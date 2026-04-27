@@ -3,7 +3,7 @@ namespace Engine.Host;
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed class KernelConsumerRegistry : IDisposable
+internal sealed class KernelConsumerRegistry : IDisposable
 {
     private readonly IKernelEventReader _events;
     private readonly List<KernelConsumerRegistration> _registrations = [];
@@ -110,7 +110,7 @@ public sealed class KernelConsumerRegistry : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
 }
 
-public sealed class KernelConsumerRegistration : IDisposable
+internal sealed class KernelConsumerRegistration : IDisposable
 {
     private readonly KernelEventProjectionPump _pump;
     private bool _disposed;

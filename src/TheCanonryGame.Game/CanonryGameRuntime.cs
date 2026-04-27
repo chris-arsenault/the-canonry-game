@@ -1,19 +1,18 @@
 namespace TheCanonryGame.Game;
 
 using Engine.Host;
-using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Projection;
 using IceRemembers.Seed;
 using TheCanonryGame.Game.Tableau;
 
-public enum GameSeedPolicyKind
+internal enum GameSeedPolicyKind
 {
     Random = 0,
     Requested = 1,
 }
 
-public readonly record struct GameSeedPolicy
+internal readonly record struct GameSeedPolicy
 {
     private GameSeedPolicy(GameSeedPolicyKind kind, int requestedSeed)
     {
@@ -41,14 +40,14 @@ public readonly record struct GameSeedPolicy
     };
 }
 
-public sealed record GameSeedIdentity(int BaseSeed, int Attempt);
+internal sealed record GameSeedIdentity(int BaseSeed, int Attempt);
 
-public readonly record struct GameRuntimePulse(int PreviousTick, int CurrentTick)
+internal readonly record struct GameRuntimePulse(int PreviousTick, int CurrentTick)
 {
     public int TicksProcessed => Math.Max(0, CurrentTick - PreviousTick);
 }
 
-public sealed class GameRuntimeReadModels
+internal sealed class GameRuntimeReadModels
 {
     internal GameRuntimeReadModels(KernelUiRuntime runtime)
     {
@@ -68,7 +67,7 @@ public sealed class GameRuntimeReadModels
     public IProjectionSymbolCatalog Symbols { get; }
 }
 
-public sealed class GameRuntimeControls
+internal sealed class GameRuntimeControls
 {
     private readonly IKernelDriverTimeControl _time;
 
@@ -93,7 +92,7 @@ public sealed class GameRuntimeControls
     public void SetTickRate(double ticksPerSecond) => _time.SetTickRate(ticksPerSecond);
 }
 
-public sealed class GameIntentPort
+internal sealed class GameIntentPort
 {
     private readonly ICommandSubmitter _commands;
     private readonly Func<long> _worldVersion;
@@ -115,17 +114,17 @@ public sealed class GameIntentPort
 
         var version = _worldVersion();
         var issueVersion = version > int.MaxValue ? int.MaxValue : (int)version;
-        var command = KernelCommand.From(new SetGeneratorEnabledKernelCommand(
+        var command = new SetGeneratorEnabledCommand(
             issueVersion,
             generatorId,
-            enabled ? 1 : 0,
+            enabled,
             SubmitterId: 1,
-            SubmitterSequence: ++_submitterSequence));
-        return _commands.TryEnqueue(command, out _);
+            SubmitterSequence: ++_submitterSequence);
+        return _commands.TrySetGeneratorEnabled(command, out _);
     }
 }
 
-public sealed class CanonryGameRuntime : IDisposable
+internal sealed class CanonryGameRuntime : IDisposable
 {
     private readonly KernelUiRuntime _runtime;
     private bool _disposed;
@@ -173,7 +172,7 @@ public sealed class CanonryGameRuntime : IDisposable
     }
 }
 
-public static class CanonryGameRuntimeFactory
+internal static class CanonryGameRuntimeFactory
 {
     private static readonly KernelRuntimeFactory RuntimeFactory = IceRemembersRuntime.CreateRuntimeFactory();
 

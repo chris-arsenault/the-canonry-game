@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class DegeneracyProgramData : IKernelProgramData
+internal sealed partial class DegeneracyProgramData : IKernelProgramData
 {
     internal readonly int[] DetectorIds;
     internal readonly int[] MetricCodes;

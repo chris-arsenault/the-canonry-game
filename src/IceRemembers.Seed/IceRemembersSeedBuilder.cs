@@ -1,20 +1,18 @@
 namespace IceRemembers.Seed;
 
-using Engine.Attributes;
-using Engine.Domain;
 using Engine.Domain.Startup;
-using IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.WorldGen;
+using IceRemembers;
 using K = IceRemembers.IceRemembersKinds;
 
 /// <summary>
-/// Builds a seeded procedural test map with named starter regions and anchors.
+/// Builds a seeded procedural map with named starter regions and anchors.
 /// The same seed produces the same world; different seeds should produce
 /// meaningfully different terrain and starting layouts.
 /// </summary>
-public sealed class IceRemembersSeedBuilder
+internal sealed class IceRemembersSeedBuilder
 {
     private const int MaxAcceptedSeedAttempts = 64;
 
@@ -56,52 +54,42 @@ public sealed class IceRemembersSeedBuilder
 
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
 
-    private static Entity CreateEntity(
-        WorldGraph graph,
+    private static SeedEntity CreateEntity(
+        SeedAssembly seed,
         EntityKind kind,
         string subtype,
         string name,
         string culture,
-        int tick,
-        DomainIdRegistry? domainIds,
         (int Q, int R)? coordinates = null) =>
-        graph.CreateEntity(
+        seed.CreateEntity(
             kind,
             subtype,
             name,
             culture,
-            tick,
-            coordinates,
-            subtypeId: domainIds?.SubtypeIdOf(subtype) ?? SubtypeRuntimeId.None,
-            cultureId: domainIds?.CultureIdOf(culture) ?? CultureRuntimeId.None);
+            coordinates);
 
-    private static Relationship CreateRelationship(
-        WorldGraph graph,
+    private static void CreateRelationship(
+        SeedAssembly seed,
         string kind,
         RelationshipPolarity polarity,
-        EntityId sourceId,
-        EntityId targetId,
-        float strength,
-        int tick,
-        DomainIdRegistry? domainIds) =>
-        graph.CreateRelationship(
+        int sourceEntityId,
+        int targetEntityId,
+        float strength) =>
+        seed.CreateRelationship(
             kind,
             polarity,
-            sourceId,
-            targetId,
-            strength,
-            tick,
-            kindId: domainIds?.RelationshipKindIdOf(kind) ?? RelationshipKindRuntimeId.None);
+            sourceEntityId,
+            targetEntityId,
+            strength);
 
     /// <summary>
-    /// Build the default test world from an accepted procedural seed. A fixed
+    /// Build the default startup seed from an accepted procedural seed. A fixed
     /// input seed always resolves to the same accepted terrain and seed roster.
     /// </summary>
-    public static TestWorld BuildDefault(int? seed = null)
+    public static DomainStartupSeed BuildDefault(int? seed = null)
     {
         var baseSeed = seed ?? Random.Shared.Next();
-        var acceptedSeed = SelectAcceptedSeed(baseSeed);
-        return BuildUnchecked(acceptedSeed);
+        return BuildAcceptedStartupSeed(baseSeed).StartupSeed;
     }
 
     /// <summary>
@@ -112,93 +100,23 @@ public sealed class IceRemembersSeedBuilder
     public static DomainStartupSeed BuildStartupSeed(int? seed = null)
     {
         var baseSeed = seed ?? Random.Shared.Next();
-        var acceptedSeed = SelectAcceptedSeed(baseSeed);
-        return BuildStartupSeed(acceptedSeed);
+        return BuildAcceptedStartupSeed(baseSeed).StartupSeed;
     }
 
-    public static DomainStartupSeed BuildStartupSeed(
-        WorldGenerationSeed seed,
-        DomainIdRegistry? domainIds = null)
+    public static DomainStartupSeed BuildStartupSeed(WorldGenerationSeed seed)
     {
-        var world = BuildEmpty(seed);
-        Populate(world, seed, domainIds);
-        return ToStartupSeed(world);
+        var assembly = BuildEmptyAssembly(seed);
+        Populate(assembly, seed);
+        return assembly.ToStartupSeed();
     }
 
-    public static DomainStartupSeed ToStartupSeed(TestWorld world)
+    public static IceRemembersStartupSeedResult BuildAcceptedStartupSeed(int baseSeed)
     {
-        ArgumentNullException.ThrowIfNull(world);
-
-        var entities = world.Graph.AllEntities.Values
-            .OrderBy(entity => entity.Id.Value)
-            .Select(entity => new DomainSeedEntity(
-                entity.Id.Value,
-                entity.Kind.Value,
-                entity.Subtype,
-                entity.Culture,
-                entity.Coordinates.Q,
-                entity.Coordinates.R,
-                entity.SemanticPosition.Q,
-                entity.SemanticPosition.R,
-                entity.SemanticPosition.S,
-                entity.Name))
-            .ToArray();
-
-        var cells = world.Grid.AllCells
-            .OrderBy(cell => cell.Coord.Q)
-            .ThenBy(cell => cell.Coord.R)
-            .Select(cell => new DomainSeedCell(
-                cell.Coord.Q,
-                cell.Coord.R,
-                cell.Terrain.StableName,
-                world.CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId))
-            .ToArray();
-
-        var resources = world.Grid.AllCells
-            .OrderBy(cell => cell.Coord.Q)
-            .ThenBy(cell => cell.Coord.R)
-            .SelectMany(cell => cell.AmbientResources
-                .OrderBy(resource => resource.Key, StringComparer.Ordinal)
-                .Select(resource => new DomainSeedResource(
-                    resource.Key,
-                    cell.Coord.Q,
-                    cell.Coord.R,
-                    resource.Value)))
-            .ToArray();
-
-        var relationships = world.Graph.AllEntities.Values
-            .OrderBy(entity => entity.Id.Value)
-            .SelectMany(entity => world.Graph.OutgoingRelationships(entity.Id)
-                .OrderBy(relationship => relationship.Kind, StringComparer.Ordinal)
-                .ThenBy(relationship => relationship.TargetId.Value)
-                .ThenBy(relationship => relationship.Strength)
-                .Select(relationship => new DomainSeedRelationship(
-                    relationship.Kind,
-                    relationship.Polarity,
-                    relationship.SourceId.Value,
-                    relationship.TargetId.Value,
-                    relationship.Strength,
-                    relationship.Facts.Order(StringComparer.Ordinal).ToArray())))
-            .ToArray();
-
-        var attributes = world.Graph.AllEntities.Values
-            .OrderBy(entity => entity.Id.Value)
-            .SelectMany(entity => entity.Attributes.All
-                .OfType<ScalarValue>()
-                .OrderBy(attribute => attribute.Name, StringComparer.Ordinal)
-                .Select(attribute => new DomainSeedAttributeValue(
-                    entity.Id.Value,
-                    attribute.Name,
-                    attribute.Value)))
-            .ToArray();
-
-        return new DomainStartupSeed(
-            world.Grid.Radius,
-            entities,
-            cells,
-            resources,
-            relationships,
-            attributes);
+        return BuildAcceptedStartupSeed(
+            baseSeed,
+            BuildStartupSeed,
+            IceRemembersSeedQualityValidator.Validate,
+            MaxAcceptedSeedAttempts);
     }
 
     public static WorldGenerationSeed SelectAcceptedSeed(Random random)
@@ -208,20 +126,16 @@ public sealed class IceRemembersSeedBuilder
     }
 
     public static WorldGenerationSeed SelectAcceptedSeed(int baseSeed)
-        => SelectAcceptedSeed(
-            baseSeed,
-            BuildUnchecked,
-            IceRemembersSeedQualityValidator.Validate,
-            MaxAcceptedSeedAttempts);
+        => BuildAcceptedStartupSeed(baseSeed).Seed;
 
-    internal static WorldGenerationSeed SelectAcceptedSeed(
+    internal static IceRemembersStartupSeedResult BuildAcceptedStartupSeed(
         int baseSeed,
-        Func<WorldGenerationSeed, TestWorld> buildWorld,
-        Func<TestWorld, SeedWorldQualityReport> validateWorld,
+        Func<WorldGenerationSeed, DomainStartupSeed> buildSeed,
+        Func<DomainStartupSeed, SeedWorldQualityReport> validateSeed,
         int maxAttempts)
     {
-        ArgumentNullException.ThrowIfNull(buildWorld);
-        ArgumentNullException.ThrowIfNull(validateWorld);
+        ArgumentNullException.ThrowIfNull(buildSeed);
+        ArgumentNullException.ThrowIfNull(validateSeed);
 
         IReadOnlyList<string> lastIssues = [];
         for (var attempt = 0; attempt < maxAttempts; attempt++)
@@ -229,11 +143,11 @@ public sealed class IceRemembersSeedBuilder
             var seed = WorldGenerationSeed.FromBaseSeed(baseSeed, attempt);
             try
             {
-                var world = buildWorld(seed);
-                var report = validateWorld(world);
+                var startupSeed = buildSeed(seed);
+                var report = validateSeed(startupSeed);
                 if (report.IsValid)
                 {
-                    return seed;
+                    return new IceRemembersStartupSeedResult(seed, startupSeed);
                 }
 
                 lastIssues = report.Issues;
@@ -254,41 +168,22 @@ public sealed class IceRemembersSeedBuilder
             $"Last issues: {string.Join("; ", lastIssues)}");
     }
 
-    /// <summary>
-    /// Build an empty world (grid + terrain + empty graph) so callers can
-    /// subscribe systems to <see cref="WorldGraph.EntityCreated"/> before any
-    /// entity exists. Follow with <see cref="Populate"/>.
-    /// </summary>
-    public static TestWorld BuildEmpty(WorldGenerationSeed seed)
+    private static SeedAssembly BuildEmptyAssembly(WorldGenerationSeed seed)
     {
         var grid = new HexGrid(
             20,
             IceRemembersTerrainCatalog.CreateWorldGenCatalog(),
             IceRemembersTerrain.Wastes.ToDomainName());
         var coverageMap = new MapCoverageMap();
-        var graph = new WorldGraph();
         PaintTerrain(grid, new Random(seed.TerrainSeed));
-        return new TestWorld(grid, coverageMap, graph, seed);
+        return new SeedAssembly(grid, coverageMap);
     }
 
-    /// <summary>
-    /// Populate the world with regions, factions, settlements, NPCs, and the
-    /// starter artifact. Every <c>graph.CreateEntity</c> invocation fires
-    /// <see cref="WorldGraph.EntityCreated"/>, so any subscribers wired on the
-    /// empty graph will initialize these entities as they are created.
-    /// </summary>
-    public static void Populate(TestWorld world, WorldGenerationSeed seed, DomainIdRegistry? domainIds = null)
+    private static void Populate(SeedAssembly assembly, WorldGenerationSeed seed)
     {
-        ArgumentNullException.ThrowIfNull(world);
-        var regions = CreateRegionEntities(world.Graph, domainIds);
-        CreateEntities(world.Graph, world.Grid, world.CoverageMap, regions, new Random(seed.EntitySeed), domainIds);
-    }
-
-    private static TestWorld BuildUnchecked(WorldGenerationSeed seed)
-    {
-        var world = BuildEmpty(seed);
-        Populate(world, seed);
-        return world;
+        ArgumentNullException.ThrowIfNull(assembly);
+        var regions = CreateRegionEntities(assembly);
+        CreateEntities(assembly, assembly.Grid, assembly.CoverageMap, regions, new Random(seed.EntitySeed));
     }
 
     private static void PaintTerrain(HexGrid grid, Random random)
@@ -422,14 +317,14 @@ public sealed class IceRemembersSeedBuilder
         TerrainAmbientResources.Seed(cell, random);
     }
 
-    private static Dictionary<string, MapCoverage> CreateRegionEntities(WorldGraph graph, DomainIdRegistry? domainIds)
+    private static Dictionary<string, MapCoverage> CreateRegionEntities(SeedAssembly seed)
     {
         var northlands = new MapCoverage("Northlands",
-            CreateEntity(graph, K.Region, "face", "Northlands", "none", tick: 0, domainIds: domainIds).Id.Value);
+            CreateEntity(seed, K.Region, "face", "Northlands", "none").SeedEntityId);
         var heartlands = new MapCoverage("Heartlands",
-            CreateEntity(graph, K.Region, "reach", "Heartlands", "none", tick: 0, domainIds: domainIds).Id.Value);
+            CreateEntity(seed, K.Region, "reach", "Heartlands", "none").SeedEntityId);
         var coastlands = new MapCoverage("Coastlands",
-            CreateEntity(graph, K.Region, "shelf", "Coastlands", "none", tick: 0, domainIds: domainIds).Id.Value);
+            CreateEntity(seed, K.Region, "shelf", "Coastlands", "none").SeedEntityId);
 
         return new Dictionary<string, MapCoverage>
         {
@@ -440,12 +335,11 @@ public sealed class IceRemembersSeedBuilder
     }
 
     private static void CreateEntities(
-        WorldGraph graph,
+        SeedAssembly seed,
         HexGrid grid,
         MapCoverageMap coverageMap,
         Dictionary<string, MapCoverage> regions,
-        Random random,
-        DomainIdRegistry? domainIds)
+        Random random)
     {
         var takenPhysical = new HashSet<HexCoord>();
         var takenSemantic = new HashSet<SemanticHexCoord>();
@@ -473,18 +367,18 @@ public sealed class IceRemembersSeedBuilder
             minimumDistance: 10,
             cell => RegionCoastlandsScore(grid, cell));
 
-        SetPhysical(graph.GetEntity(new EntityId(regions["northlands"].OwnerEntityId))!, northlandsAnchor, takenPhysical);
-        SetPhysical(graph.GetEntity(new EntityId(regions["heartlands"].OwnerEntityId))!, heartlandsAnchor, takenPhysical);
-        SetPhysical(graph.GetEntity(new EntityId(regions["coastlands"].OwnerEntityId))!, coastlandsAnchor, takenPhysical);
+        SetPhysical(seed.Entity(regions["northlands"].OwnerEntityId), northlandsAnchor, takenPhysical);
+        SetPhysical(seed.Entity(regions["heartlands"].OwnerEntityId), heartlandsAnchor, takenPhysical);
+        SetPhysical(seed.Entity(regions["coastlands"].OwnerEntityId), coastlandsAnchor, takenPhysical);
 
-        SetSemanticProjected(graph.GetEntity(new EntityId(regions["northlands"].OwnerEntityId))!, northlandsAnchor, takenSemantic, bias: new SemanticHexCoord(-2, 2));
-        SetSemanticProjected(graph.GetEntity(new EntityId(regions["heartlands"].OwnerEntityId))!, heartlandsAnchor, takenSemantic, bias: new SemanticHexCoord(0, 0));
-        SetSemanticProjected(graph.GetEntity(new EntityId(regions["coastlands"].OwnerEntityId))!, coastlandsAnchor, takenSemantic, bias: new SemanticHexCoord(2, -2));
+        SetSemanticProjected(seed.Entity(regions["northlands"].OwnerEntityId), northlandsAnchor, takenSemantic, bias: new SemanticHexCoord(-2, 2));
+        SetSemanticProjected(seed.Entity(regions["heartlands"].OwnerEntityId), heartlandsAnchor, takenSemantic, bias: new SemanticHexCoord(0, 0));
+        SetSemanticProjected(seed.Entity(regions["coastlands"].OwnerEntityId), coastlandsAnchor, takenSemantic, bias: new SemanticHexCoord(2, -2));
 
         regions["northlands"] = CreateSeedCoverage(
             grid,
             coverageMap,
-            graph,
+            seed,
             regions["northlands"],
             northlandsAnchor,
             desiredCellCount: 96,
@@ -493,7 +387,7 @@ public sealed class IceRemembersSeedBuilder
         regions["heartlands"] = CreateSeedCoverage(
             grid,
             coverageMap,
-            graph,
+            seed,
             regions["heartlands"],
             heartlandsAnchor,
             desiredCellCount: 144,
@@ -502,7 +396,7 @@ public sealed class IceRemembersSeedBuilder
         regions["coastlands"] = CreateSeedCoverage(
             grid,
             coverageMap,
-            graph,
+            seed,
             regions["coastlands"],
             coastlandsAnchor,
             desiredCellCount: 88,
@@ -546,29 +440,24 @@ public sealed class IceRemembersSeedBuilder
         ReservePhysical(midpointCoord, takenPhysical, "Midpoint");
 
         var s1 = CreateEntity(
-            graph,
-            K.Settlement, "rookery", "Frosthaven", C(IceRemembersCulture.AuroraStack), tick: 0,
-            domainIds: domainIds,
+            seed,
+            K.Settlement, "rookery", "Frosthaven", C(IceRemembersCulture.AuroraStack),
             coordinates: (frosthavenCoord.Q, frosthavenCoord.R));
         var s2 = CreateEntity(
-            graph,
-            K.Settlement, "colony", "Ironhold", C(IceRemembersCulture.AuroraStack), tick: 0,
-            domainIds: domainIds,
+            seed,
+            K.Settlement, "colony", "Ironhold", C(IceRemembersCulture.AuroraStack),
             coordinates: (ironholdCoord.Q, ironholdCoord.R));
         var s3 = CreateEntity(
-            graph,
-            K.Settlement, "harbor", "Driftwatch", C(IceRemembersCulture.Nightshelf), tick: 0,
-            domainIds: domainIds,
+            seed,
+            K.Settlement, "harbor", "Driftwatch", C(IceRemembersCulture.Nightshelf),
             coordinates: (driftwatchCoord.Q, driftwatchCoord.R));
         var s4 = CreateEntity(
-            graph,
-            K.Settlement, "reefhold", "Wavecrest", C(IceRemembersCulture.Nightshelf), tick: 0,
-            domainIds: domainIds,
+            seed,
+            K.Settlement, "reefhold", "Wavecrest", C(IceRemembersCulture.Nightshelf),
             coordinates: (wavecrestCoord.Q, wavecrestCoord.R));
         var s5 = CreateEntity(
-            graph,
-            K.Settlement, "colony", "Midpoint", C(IceRemembersCulture.AuroraStack), tick: 0,
-            domainIds: domainIds,
+            seed,
+            K.Settlement, "colony", "Midpoint", C(IceRemembersCulture.AuroraStack),
             coordinates: (midpointCoord.Q, midpointCoord.R));
 
         SetSemanticProjected(s1, frosthavenCoord, takenSemantic, bias: new SemanticHexCoord(-1, -2));
@@ -576,14 +465,12 @@ public sealed class IceRemembersSeedBuilder
         SetSemanticProjected(s3, driftwatchCoord, takenSemantic, bias: new SemanticHexCoord(2, -1));
         SetSemanticProjected(s4, wavecrestCoord, takenSemantic, bias: new SemanticHexCoord(1, 2));
         SetSemanticProjected(s5, midpointCoord, takenSemantic, bias: SemanticHexCoord.Origin);
-        var allSettlements = new List<Entity> { s1, s2, s3, s4, s5 };
+        var allSettlements = new List<SeedEntity> { s1, s2, s3, s4, s5 };
 
         var factionA = CreateEntity(
-            graph, K.Faction, "compact", "Northern Compact", C(IceRemembersCulture.AuroraStack), tick: 0,
-            domainIds: domainIds);
+            seed, K.Faction, "compact", "Northern Compact", C(IceRemembersCulture.AuroraStack));
         var factionB = CreateEntity(
-            graph, K.Faction, "order", "Southern Order", C(IceRemembersCulture.Nightshelf), tick: 0,
-            domainIds: domainIds);
+            seed, K.Faction, "order", "Southern Order", C(IceRemembersCulture.Nightshelf));
 
         var factionACoord = ChooseNearbyFreeCell(grid, takenPhysical, Centroid(frosthavenCoord, ironholdCoord, midpointCoord), searchRadius: 8)
             ?? throw new InvalidOperationException("Could not place Northern Compact near its settlements.");
@@ -595,16 +482,16 @@ public sealed class IceRemembersSeedBuilder
         SetSemanticProjected(factionB, factionBCoord, takenSemantic, bias: new SemanticHexCoord(3, -3));
 
         // Faction A controls northern settlements
-        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s1.Id, factionA.Id, 1f, 0, domainIds);
-        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s2.Id, factionA.Id, 1f, 0, domainIds);
-        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s5.Id, factionA.Id, 0.8f, 0, domainIds);
+        CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, s1.SeedEntityId, factionA.SeedEntityId, 1f);
+        CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, s2.SeedEntityId, factionA.SeedEntityId, 1f);
+        CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, s5.SeedEntityId, factionA.SeedEntityId, 0.8f);
 
         // Faction B controls southern settlements
-        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s3.Id, factionB.Id, 1f, 0, domainIds);
-        CreateRelationship(graph, "controlled_by", RelationshipPolarity.Neutral, s4.Id, factionB.Id, 1f, 0, domainIds);
+        CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, s3.SeedEntityId, factionB.SeedEntityId, 1f);
+        CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, s4.SeedEntityId, factionB.SeedEntityId, 1f);
 
         CreateSupportingSettlements(
-            graph,
+            seed,
             grid,
             coverageMap,
             regions,
@@ -613,23 +500,22 @@ public sealed class IceRemembersSeedBuilder
             takenSemantic,
             allSettlements,
             factionA,
-            factionB,
-            domainIds);
+            factionB);
 
         var settlementsByCoord = allSettlements.ToDictionary(
-            settlement => new HexCoord(settlement.Coordinates.Q, settlement.Coordinates.R),
-            settlement => settlement.Id);
+            settlement => settlement.Coordinates,
+            settlement => settlement.SeedEntityId);
         var npcHostSettlements = allSettlements
             .OrderBy(_ => random.Next())
             .Take(Math.Min(5, allSettlements.Count))
             .ToArray();
 
         // --- NPCs (random walkable hex, excluding already-taken positions) ---
-        var npcDefs = new List<(string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)>
+        var npcDefs = new List<(string Subtype, string Name, string Culture, int Faction, float Loyalty)>
         {
-            ("warden", "Captain Greyfeather", C(IceRemembersCulture.AuroraStack), factionA.Id, 0.9f),
-            ("broker", "Trader Shellback", C(IceRemembersCulture.Nightshelf), factionB.Id, 0.7f),
-            ("witness", "Elder Deepcurrent", C(IceRemembersCulture.AuroraStack), factionA.Id, 0.8f),
+            ("warden", "Captain Greyfeather", C(IceRemembersCulture.AuroraStack), factionA.SeedEntityId, 0.9f),
+            ("broker", "Trader Shellback", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.7f),
+            ("witness", "Elder Deepcurrent", C(IceRemembersCulture.AuroraStack), factionA.SeedEntityId, 0.8f),
         };
         npcDefs.AddRange(CreateSupportingPenguinPlans(random, factionA, factionB));
 
@@ -652,7 +538,7 @@ public sealed class IceRemembersSeedBuilder
             // the orbit of named places so the initial world remains legible and
             // generator preconditions can actually emerge.
             var hostSettlement = npcHostSettlements[npcIndex % npcHostSettlements.Length];
-            var hostCoord = new HexCoord(hostSettlement.Coordinates.Q, hostSettlement.Coordinates.R);
+            var hostCoord = hostSettlement.Coordinates;
             var nearbyHexes = HexCoord.CoordsInRadius(hostCoord, radius: 2)
                 .Where(coord => grid.ContainsCoord(coord))
                 .Where(coord => HexCoord.Distance(hostCoord, coord) is > 0 and <= 2)
@@ -680,9 +566,8 @@ public sealed class IceRemembersSeedBuilder
             takenPhysical.Add(hex);
 
             var npc = CreateEntity(
-                graph,
-                K.Penguin, subtype, name, culture, tick: 0,
-                domainIds: domainIds,
+                seed,
+                K.Penguin, subtype, name, culture,
                 coordinates: (hex.Q, hex.R));
 
             if (npcIndex < npcSemanticSeeds.Length)
@@ -696,12 +581,12 @@ public sealed class IceRemembersSeedBuilder
             npcIndex++;
 
             // Loyalty to faction
-            CreateRelationship(graph, "member_of", RelationshipPolarity.Neutral, npc.Id, factionId, loyalty, 0, domainIds);
+            CreateRelationship(seed, "member_of", RelationshipPolarity.Neutral, npc.SeedEntityId, factionId, loyalty);
 
             // located_at only if spawning on a settlement hex
             if (settlementsByCoord.TryGetValue(hex, out var settlementId))
             {
-                CreateRelationship(graph, "home_base", RelationshipPolarity.Neutral, npc.Id, settlementId, 1f, 0, domainIds);
+                CreateRelationship(seed, "home_base", RelationshipPolarity.Neutral, npc.SeedEntityId, settlementId, 1f);
             }
         }
 
@@ -712,38 +597,35 @@ public sealed class IceRemembersSeedBuilder
         var artifactCoord = ChooseNearbyFreeCell(grid, takenPhysical, frosthavenCoord, searchRadius: 5)
             ?? throw new InvalidOperationException("Could not place Stormcleaver near Frosthaven.");
         var artifact = CreateEntity(
-            graph,
-            K.Artifact, "weapon", "Stormcleaver", C(IceRemembersCulture.AuroraStack), tick: 0,
-            domainIds: domainIds,
+            seed,
+            K.Artifact, "weapon", "Stormcleaver", C(IceRemembersCulture.AuroraStack),
             coordinates: (artifactCoord.Q, artifactCoord.R));
         takenPhysical.Add(artifactCoord);
         SetSemanticProjected(artifact, artifactCoord, takenSemantic, bias: new SemanticHexCoord(4, -1));
 
         // Artifact stored at Frosthaven (not held by a specific NPC since NPCs are randomly placed)
-        CreateRelationship(graph, "anchored", RelationshipPolarity.Neutral, artifact.Id, s1.Id, 1f, 0, domainIds);
+        CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, artifact.SeedEntityId, s1.SeedEntityId, 1f);
 
         CreateSupportingArtifacts(
-            graph,
+            seed,
             grid,
             random,
             takenPhysical,
             takenSemantic,
-            allSettlements,
-            domainIds);
+            allSettlements);
     }
 
     private static void CreateSupportingSettlements(
-        WorldGraph graph,
+        SeedAssembly seed,
         HexGrid grid,
         MapCoverageMap coverageMap,
         Dictionary<string, MapCoverage> regions,
         Random random,
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
-        List<Entity> allSettlements,
-        Entity factionA,
-        Entity factionB,
-        DomainIdRegistry? domainIds)
+        List<SeedEntity> allSettlements,
+        SeedEntity factionA,
+        SeedEntity factionB)
     {
         var count = 2 + random.Next(2);
         var usedNames = allSettlements.Select(settlement => settlement.Name).ToHashSet(StringComparer.Ordinal);
@@ -779,31 +661,27 @@ public sealed class IceRemembersSeedBuilder
                 usedNames);
 
             var settlement = CreateEntity(
-                graph,
+                seed,
                 K.Settlement,
                 subtype,
                 name,
                 C(culture),
-                tick: 0,
-                domainIds: domainIds,
                 coordinates: (coord.Q, coord.R));
             takenPhysical.Add(coord);
             SetSemanticProjected(settlement, coord, takenSemantic, RandomSemanticBias(random));
             allSettlements.Add(settlement);
             CreateRelationship(
-                graph,
+                seed,
                 "controlled_by",
                 RelationshipPolarity.Neutral,
-                settlement.Id,
-                controlledBy.Id,
-                0.65f,
-                0,
-                domainIds);
+                settlement.SeedEntityId,
+                controlledBy.SeedEntityId,
+                0.65f);
         }
     }
 
-    private static IEnumerable<(string Subtype, string Name, string Culture, EntityId Faction, float Loyalty)>
-        CreateSupportingPenguinPlans(Random random, Entity factionA, Entity factionB)
+    private static IEnumerable<(string Subtype, string Name, string Culture, int Faction, float Loyalty)>
+        CreateSupportingPenguinPlans(Random random, SeedEntity factionA, SeedEntity factionB)
     {
         var count = 2 + random.Next(3);
         var names = new HashSet<string>(StringComparer.Ordinal)
@@ -827,19 +705,18 @@ public sealed class IceRemembersSeedBuilder
                 Pick(PenguinSubtypes, random),
                 name,
                 C(culture),
-                faction.Id,
+                faction.SeedEntityId,
                 0.45f + ((float)random.NextDouble() * 0.45f));
         }
     }
 
     private static void CreateSupportingArtifacts(
-        WorldGraph graph,
+        SeedAssembly seed,
         HexGrid grid,
         Random random,
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
-        List<Entity> allSettlements,
-        DomainIdRegistry? domainIds)
+        List<SeedEntity> allSettlements)
     {
         var count = 1 + random.Next(2);
         var usedNames = new HashSet<string>(StringComparer.Ordinal) { "Stormcleaver" };
@@ -847,7 +724,7 @@ public sealed class IceRemembersSeedBuilder
         for (var i = 0; i < count; i++)
         {
             var host = allSettlements[random.Next(allSettlements.Count)];
-            var hostCoord = new HexCoord(host.Coordinates.Q, host.Coordinates.R);
+            var hostCoord = host.Coordinates;
             var coord = ChooseNearbyFreeCell(grid, takenPhysical, hostCoord, searchRadius: 5)
                 ?? throw new InvalidOperationException($"Could not place supporting artifact near {host.Name}.");
             var subtype = Pick(SupportingArtifactSubtypes, random);
@@ -856,17 +733,15 @@ public sealed class IceRemembersSeedBuilder
                 usedNames);
 
             var artifact = CreateEntity(
-                graph,
+                seed,
                 K.Artifact,
                 subtype,
                 name,
                 host.Culture,
-                tick: 0,
-                domainIds: domainIds,
                 coordinates: (coord.Q, coord.R));
             takenPhysical.Add(coord);
             SetSemanticProjected(artifact, coord, takenSemantic, RandomSemanticBias(random));
-            CreateRelationship(graph, "anchored", RelationshipPolarity.Neutral, artifact.Id, host.Id, 0.7f, 0, domainIds);
+            CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, artifact.SeedEntityId, host.SeedEntityId, 0.7f);
         }
     }
 
@@ -1221,10 +1096,10 @@ public sealed class IceRemembersSeedBuilder
         return null;
     }
 
-    private static void SetPhysical(Entity entity, HexCoord coord, HashSet<HexCoord> taken)
+    private static void SetPhysical(SeedEntity entity, HexCoord coord, HashSet<HexCoord> taken)
     {
         ReservePhysical(coord, taken, entity.Name);
-        entity.Coordinates = (coord.Q, coord.R);
+        entity.Coordinates = coord;
     }
 
     private static void ReservePhysical(HexCoord coord, HashSet<HexCoord> taken, string label)
@@ -1236,7 +1111,7 @@ public sealed class IceRemembersSeedBuilder
         }
     }
 
-    private static void SetSemantic(Entity entity, SemanticHexCoord coord, HashSet<SemanticHexCoord> taken)
+    private static void SetSemantic(SeedEntity entity, SemanticHexCoord coord, HashSet<SemanticHexCoord> taken)
     {
         if (!taken.Add(coord))
         {
@@ -1247,7 +1122,7 @@ public sealed class IceRemembersSeedBuilder
     }
 
     private static void SetSemanticProjected(
-        Entity entity,
+        SeedEntity entity,
         HexCoord physicalCoord,
         HashSet<SemanticHexCoord> taken,
         SemanticHexCoord bias)
@@ -1287,7 +1162,7 @@ public sealed class IceRemembersSeedBuilder
     private static MapCoverage CreateSeedCoverage(
         HexGrid grid,
         MapCoverageMap coverageMap,
-        WorldGraph graph,
+        SeedAssembly assembly,
         MapCoverage seed,
         HexCoord origin,
         int desiredCellCount,
@@ -1308,27 +1183,160 @@ public sealed class IceRemembersSeedBuilder
                 RespectTerrainBoundaries = false,
             });
 
-        var regionEntity = graph.GetEntity(new EntityId(seed.OwnerEntityId))!;
-        regionEntity.Coordinates = (result.Anchor.Q, result.Anchor.R);
+        assembly.Entity(seed.OwnerEntityId).Coordinates = result.Anchor;
         return result.Coverage;
     }
 }
 
-/// <summary>
-/// The complete test world state: grid, region mapping, and entity graph.
-/// </summary>
-public sealed class TestWorld
+internal sealed record IceRemembersStartupSeedResult(
+    WorldGenerationSeed Seed,
+    DomainStartupSeed StartupSeed);
+
+internal sealed class SeedAssembly
 {
     public HexGrid Grid { get; }
-    public MapCoverageMap CoverageMap { get; }
-    public WorldGraph Graph { get; }
-    public WorldGenerationSeed Seed { get; }
 
-    public TestWorld(HexGrid grid, MapCoverageMap coverageMap, WorldGraph graph, WorldGenerationSeed seed)
+    public MapCoverageMap CoverageMap { get; }
+
+    private readonly List<SeedEntity> _entities = [];
+    private readonly List<DomainSeedRelationship> _relationships = [];
+
+    public SeedAssembly(HexGrid grid, MapCoverageMap coverageMap)
     {
+        ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(coverageMap);
         Grid = grid;
         CoverageMap = coverageMap;
-        Graph = graph;
-        Seed = seed;
     }
+
+    public IReadOnlyList<SeedEntity> Entities => _entities;
+
+    public IReadOnlyList<DomainSeedRelationship> Relationships => _relationships;
+
+    public SeedEntity CreateEntity(
+        EntityKind kind,
+        string subtype,
+        string name,
+        string culture,
+        (int Q, int R)? coordinates = null)
+    {
+        var entity = new SeedEntity(
+            _entities.Count,
+            kind,
+            subtype,
+            name,
+            culture,
+            coordinates is { } coord ? new HexCoord(coord.Q, coord.R) : new HexCoord(0, 0));
+        _entities.Add(entity);
+        return entity;
+    }
+
+    public SeedEntity Entity(int seedEntityId)
+    {
+        if (seedEntityId < 0 || seedEntityId >= _entities.Count)
+        {
+            throw new InvalidOperationException($"Unknown seed entity {seedEntityId}.");
+        }
+
+        return _entities[seedEntityId];
+    }
+
+    public void CreateRelationship(
+        string kind,
+        RelationshipPolarity polarity,
+        int sourceEntityId,
+        int targetEntityId,
+        float strength,
+        IReadOnlyList<string>? facts = null)
+    {
+        _ = Entity(sourceEntityId);
+        _ = Entity(targetEntityId);
+        _relationships.Add(new DomainSeedRelationship(
+            kind,
+            polarity,
+            sourceEntityId,
+            targetEntityId,
+            Math.Clamp(strength, 0f, 1f),
+            facts));
+    }
+
+    public DomainStartupSeed ToStartupSeed()
+    {
+        var entities = _entities
+            .OrderBy(entity => entity.SeedEntityId)
+            .Select(entity => new DomainSeedEntity(
+                entity.SeedEntityId,
+                entity.Kind.Value,
+                entity.Subtype,
+                entity.Culture,
+                entity.Coordinates.Q,
+                entity.Coordinates.R,
+                entity.SemanticPosition.Q,
+                entity.SemanticPosition.R,
+                SemanticS(entity.SemanticPosition),
+                entity.Name))
+            .ToArray();
+
+        var cells = Grid.AllCells
+            .OrderBy(cell => cell.Coord.Q)
+            .ThenBy(cell => cell.Coord.R)
+            .Select(cell => new DomainSeedCell(
+                cell.Coord.Q,
+                cell.Coord.R,
+                cell.Terrain.StableName,
+                CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId))
+            .ToArray();
+
+        var resources = Grid.AllCells
+            .OrderBy(cell => cell.Coord.Q)
+            .ThenBy(cell => cell.Coord.R)
+            .SelectMany(cell => cell.AmbientResources
+                .OrderBy(resource => resource.Key, StringComparer.Ordinal)
+                .Select(resource => new DomainSeedResource(
+                    resource.Key,
+                    cell.Coord.Q,
+                    cell.Coord.R,
+                    resource.Value)))
+            .ToArray();
+
+        var relationships = _relationships
+            .OrderBy(relationship => relationship.SourceSeedEntityId)
+            .ThenBy(relationship => relationship.RelationshipKind, StringComparer.Ordinal)
+            .ThenBy(relationship => relationship.TargetSeedEntityId)
+            .ThenBy(relationship => relationship.Strength)
+            .ToArray();
+
+        return new DomainStartupSeed(
+            Grid.Radius,
+            entities,
+            cells,
+            resources,
+            relationships,
+            Attributes: []);
+    }
+
+    private static int SemanticS(SemanticHexCoord coord) => -coord.Q - coord.R;
+}
+
+internal sealed class SeedEntity(
+    int seedEntityId,
+    EntityKind kind,
+    string subtype,
+    string name,
+    string culture,
+    HexCoord coordinates)
+{
+    public int SeedEntityId { get; } = seedEntityId;
+
+    public EntityKind Kind { get; } = kind;
+
+    public string Subtype { get; } = subtype;
+
+    public string Name { get; } = name;
+
+    public string Culture { get; } = culture;
+
+    public HexCoord Coordinates { get; set; } = coordinates;
+
+    public SemanticHexCoord SemanticPosition { get; set; } = SemanticHexCoord.Origin;
 }

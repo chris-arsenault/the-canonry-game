@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed class DegeneracyProgramRuntime : IKernelProgramRuntime<DegeneracyProgramData, DegeneracyProgramState>
+internal sealed class DegeneracyProgramRuntime : IKernelProgramRuntime<DegeneracyProgramData, DegeneracyProgramState>
 {
     private int[] _detectorIds => Data.DetectorIds;
     private int[] _metricCodes => Data.MetricCodes;

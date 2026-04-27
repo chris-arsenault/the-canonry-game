@@ -50,7 +50,7 @@ public partial class Card : PanelContainer
         return _runtimeIdValue;
     }
 
-    public void BindTo(CardInstance card, GameTableauCardState state)
+    internal void BindTo(CardInstance card, GameTableauCardState state)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(state);

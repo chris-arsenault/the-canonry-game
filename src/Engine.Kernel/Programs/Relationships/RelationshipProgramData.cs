@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class RelationshipProgramData : IKernelProgramData
+internal sealed partial class RelationshipProgramData : IKernelProgramData
 {
     private readonly int[] _kindIds;
     private readonly float[] _cullThresholds;

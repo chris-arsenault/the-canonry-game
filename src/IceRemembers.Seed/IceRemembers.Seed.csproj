@@ -12,4 +12,14 @@
     <ProjectReference Include="..\Engine.WorldGen\Engine.WorldGen.csproj" />
     <ProjectReference Include="..\IceRemembers\IceRemembers.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TheCanonryGame.Game" />
+    <InternalsVisibleTo Include="MonteCarlo" />
+    <InternalsVisibleTo Include="Engine.Domain.Tests" />
+    <InternalsVisibleTo Include="Engine.Host.Tests" />
+    <InternalsVisibleTo Include="Engine.Observability.Tests" />
+    <InternalsVisibleTo Include="IceRemembers.Seed.Tests" />
+    <InternalsVisibleTo Include="MonteCarlo.Tests" />
+  </ItemGroup>
 </Project>

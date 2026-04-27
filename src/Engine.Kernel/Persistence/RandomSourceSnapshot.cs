@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed partial class RandomSource
+internal sealed partial class RandomSource
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {

@@ -4,7 +4,7 @@ using Engine.Domain.Config;
 using Engine.Host;
 using IceRemembers;
 
-public sealed class IceRemembersKernelDomainModule : IKernelDomainModule
+internal sealed class IceRemembersKernelDomainModule : IKernelDomainModule
 {
     public const string DomainName = "ice-remembers";
 
@@ -20,8 +20,8 @@ public sealed class IceRemembersKernelDomainModule : IKernelDomainModule
 
     public DomainStartupSeedResult BuildStartupSeed(DomainStartupSeedRequest request)
     {
-        var acceptedSeed = IceRemembersSeedBuilder.SelectAcceptedSeed(request.BaseSeed);
-        var startupSeed = IceRemembersSeedBuilder.BuildStartupSeed(acceptedSeed);
+        var accepted = IceRemembersSeedBuilder.BuildAcceptedStartupSeed(request.BaseSeed);
+        var acceptedSeed = accepted.Seed;
         var identity = new StartupSeedIdentity(
             acceptedSeed.BaseSeed,
             acceptedSeed.Attempt,
@@ -31,7 +31,7 @@ public sealed class IceRemembersKernelDomainModule : IKernelDomainModule
                 ["entity"] = acceptedSeed.EntitySeed,
             });
 
-        return new DomainStartupSeedResult(startupSeed, identity);
+        return new DomainStartupSeedResult(accepted.StartupSeed, identity);
     }
 
     public void ConfigureProjectionSymbols(KernelSymbolContext symbols)
@@ -41,7 +41,7 @@ public sealed class IceRemembersKernelDomainModule : IKernelDomainModule
     }
 }
 
-public static class IceRemembersRuntime
+internal static class IceRemembersRuntime
 {
     public const string DomainName = IceRemembersKernelDomainModule.DomainName;
 

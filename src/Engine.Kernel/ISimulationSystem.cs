@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public interface ISimulationSystem
+internal interface ISimulationSystem
 {
     void Tick(Simulation simulation, int tick);
 }

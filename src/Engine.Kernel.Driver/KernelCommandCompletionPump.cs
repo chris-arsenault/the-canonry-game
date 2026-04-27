@@ -2,7 +2,7 @@ namespace Engine.Kernel.Driver;
 
 using Engine.Eventing;
 
-public sealed class KernelCommandCompletionPump : IDisposable
+internal sealed class KernelCommandCompletionPump : IDisposable
 {
     private readonly IKernelEventReader _events;
     private readonly KernelCommandCompletionTable _completionTable;

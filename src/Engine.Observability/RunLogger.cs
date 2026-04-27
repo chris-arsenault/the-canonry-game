@@ -7,7 +7,7 @@ using System.Text;
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed class RunLogger : IDisposable
+internal sealed class RunLogger : IDisposable
 {
     private readonly StreamWriter _writer;
     private readonly RunLogProjection _projection;

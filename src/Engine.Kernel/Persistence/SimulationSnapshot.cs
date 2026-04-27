@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class Simulation
+internal sealed partial class Simulation
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {

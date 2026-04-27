@@ -3,7 +3,7 @@ namespace Engine.Host;
 using Engine.Domain;
 using Engine.Kernel;
 
-public sealed class KernelConfigurationContext
+internal sealed class KernelConfigurationContext
 {
     private readonly Simulation _kernel;
 

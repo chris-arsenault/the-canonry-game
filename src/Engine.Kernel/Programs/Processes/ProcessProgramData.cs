@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class ProcessProgramData : IKernelProgramData
+internal sealed partial class ProcessProgramData : IKernelProgramData
 {
     internal readonly int[] ProcessKindIds;
     internal readonly int[] ProcessIds;

@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class PressureProgramRuntime : IKernelProgramRuntime<PressureProgramData, PressureProgramState>
+internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressureProgramData, PressureProgramState>
 {
     private int[] _pressureIds => Data.PressureIds;
     private int[] _scopeCodes => Data.ScopeCodes;
@@ -117,7 +117,7 @@ public sealed class PressureProgramRuntime : IKernelProgramRuntime<PressureProgr
 
         for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
         {
-            if (world.EntityIsActive(entityId) && world.CoverageCellCount(entityId) > 0)
+            if (world.EntityIsActive(entityId) && world.CoverageOwnerHasCells(entityId))
             {
                 ComputeForScope(slot, entityId, rawContribution: 0f);
             }

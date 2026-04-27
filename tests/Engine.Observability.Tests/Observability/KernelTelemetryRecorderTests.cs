@@ -1,6 +1,7 @@
 namespace Engine.Observability.Tests.Observability;
 
 using Engine.Eventing;
+using Engine.Constants;
 using Engine.Observability;
 using Engine.Projection;
 
@@ -108,43 +109,48 @@ public sealed class KernelTelemetryRecorderTests
 
         recorder.RecordSnapshots(tick: 3);
 
-        Assert.Equal("run-1", Assert.Single(recorder.Batch.Runs).RunId);
+        Assert.Equal(42, Assert.Single(recorder.Batch.Runs).RunId);
 
         var created = Assert.Single(recorder.Batch.EntityEvents, row => row.EntityId == 100);
-        Assert.Equal("Process", created.Source);
-        Assert.Equal("Settlement", created.Kind);
-        Assert.Equal("Village", created.Subtype);
-        Assert.Equal("Hearthhome", created.Name);
-        Assert.Equal("North", created.Culture);
+        Assert.Equal((int)KernelEventType.EntityCreated, created.EventTypeCode);
+        Assert.Equal(5, created.SourceCodeId);
+        Assert.Equal(1, created.KindId);
+        Assert.Equal(2, created.SubtypeId);
+        Assert.Equal(3, created.CultureId);
+        Assert.Equal(EntityStatusCodes.Active, created.CurrentStatusCode);
+        Assert.Contains(recorder.Batch.EntityNameSymbols, row =>
+            row.EntityId == 100 &&
+            row.DisplayName == "Hearthhome");
 
         var attribute = Assert.Single(recorder.Batch.AttributeEvents);
-        Assert.Equal("Health", attribute.AttributeName);
+        Assert.Equal(4, attribute.AttributeId);
         Assert.Equal(2f, attribute.Delta);
-        Assert.Equal("Process", attribute.Source);
+        Assert.Equal(5, attribute.SourceCodeId);
 
         var movement = Assert.Single(recorder.Batch.MovementEvents);
-        Assert.Equal("Process", movement.Source);
-        Assert.Equal("physical", movement.Plane);
+        Assert.Equal(5, movement.SourceCodeId);
+        Assert.Equal(PlaneCodes.Physical, movement.PlaneCode);
         Assert.Equal(2, movement.Distance);
 
         var relationship = Assert.Single(recorder.Batch.RelationshipEvents);
-        Assert.Equal("Relationship Added", relationship.ChangeType);
-        Assert.Equal("Process", relationship.Source);
-        Assert.Equal("Allied With", relationship.RelationshipKind);
-        Assert.Equal("Neutral", relationship.Polarity);
-        Assert.Equal("Nearby", relationship.Facts);
+        Assert.Equal(7, relationship.ChangeCodeId);
+        Assert.Equal(5, relationship.SourceCodeId);
+        Assert.Equal(8, relationship.RelationshipKindId);
+        Assert.Equal(RelationshipPolarityCodes.Neutral, relationship.PolarityCode);
+        Assert.Equal(9, relationship.FactId0);
+        Assert.Equal(1, relationship.FactCount);
 
         var process = Assert.Single(recorder.Batch.ProcessEvents);
-        Assert.Equal("Forage", process.ExecutedProcessName);
+        Assert.Equal(11, process.ExecutedProcessId);
         Assert.Equal(4, process.CandidateCount);
 
         var generator = Assert.Single(recorder.Batch.GeneratorEvents);
-        Assert.Equal("Found Settlement", generator.GeneratorId);
+        Assert.Equal(10, generator.GeneratorId);
         Assert.Equal(1, generator.CreatedEntityCount);
 
         var generated = Assert.Single(recorder.Batch.GeneratedEntities);
         Assert.Equal(101, generated.EntityId);
-        Assert.Equal("Found Settlement", generated.GeneratorId);
+        Assert.Equal(10, generated.GeneratorId);
 
         var tick = Assert.Single(recorder.Batch.TickSnapshots);
         Assert.Equal(2, tick.ActiveEntities);

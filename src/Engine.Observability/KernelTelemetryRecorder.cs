@@ -1,11 +1,10 @@
 namespace Engine.Observability;
 
-using System.Globalization;
-
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Projection;
 
-public sealed class KernelTelemetryRecorder : IDisposable
+internal sealed class KernelTelemetryRecorder : IDisposable
 {
     private readonly KernelEventProjectionPump _pump;
     private bool _disposed;
@@ -23,15 +22,20 @@ public sealed class KernelTelemetryRecorder : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(batchSize);
 
-        RunId = runId;
+        RunId = TelemetrySymbolIds.RunId(runId, seed);
+        var domainId = TelemetrySymbolIds.StableId(TelemetrySymbolKinds.Domain, domain);
+        Batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Run, RunId, runId, runId));
+        Batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Domain, domainId, domain, domain));
+        TelemetrySymbolIds.AddProjectionSymbols(Batch, symbols);
+        TelemetrySymbolIds.AddFixedCodeSymbols(Batch);
         Batch.Runs.Add(new RunRow(
-            runId,
+            RunId,
             seed,
-            domain,
-            DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)));
+            domainId,
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
 
-        EventProjection = new TelemetryEventProjection(runId, Batch, symbols);
-        PlannerTraceProjection = new PlannerTraceProjection(runId, Batch, symbols);
+        EventProjection = new TelemetryEventProjection(RunId, Batch, symbols);
+        PlannerTraceProjection = new PlannerTraceProjection(RunId, Batch);
         _pump = new KernelEventProjectionPump(
             eventLog,
             cursorStart,
@@ -39,13 +43,13 @@ public sealed class KernelTelemetryRecorder : IDisposable
             batchSize);
     }
 
-    public string RunId { get; }
+    public int RunId { get; }
 
     public TelemetryBatch Batch { get; } = new();
 
-    public TelemetryEventProjection EventProjection { get; }
+    internal TelemetryEventProjection EventProjection { get; }
 
-    public PlannerTraceProjection PlannerTraceProjection { get; }
+    internal PlannerTraceProjection PlannerTraceProjection { get; }
 
     public long NextSequence => _pump.NextSequence;
 

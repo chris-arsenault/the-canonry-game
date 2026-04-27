@@ -1,18 +1,18 @@
 namespace Engine.Kernel;
 
-public readonly record struct NoOpKernelCommand(
+internal readonly record struct NoOpKernelCommand(
     int IssueVersion,
     int SubmitterId = 0,
     int SubmitterSequence = 0);
 
-public readonly record struct SetGeneratorEnabledKernelCommand(
+internal readonly record struct SetGeneratorEnabledKernelCommand(
     int IssueVersion,
     int GeneratorId,
     int Enabled,
     int SubmitterId = 0,
     int SubmitterSequence = 0);
 
-public readonly partial record struct KernelCommand
+internal readonly partial record struct KernelCommand
 {
     private readonly int _a;
     private readonly int _b;

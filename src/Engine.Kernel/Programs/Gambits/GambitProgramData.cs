@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class GambitProgramData : IKernelProgramData
+internal sealed partial class GambitProgramData : IKernelProgramData
 {
     internal readonly int[] GambitKindIds;
     internal readonly int[] GambitIds;

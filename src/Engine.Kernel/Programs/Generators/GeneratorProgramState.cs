@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class GeneratorProgramState : IKernelProgramState
+internal sealed partial class GeneratorProgramState : IKernelProgramState
 {
     internal readonly int[] RunCounts;
     internal readonly bool[] Enabled;

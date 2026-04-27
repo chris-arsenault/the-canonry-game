@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class PressureProgramState : IKernelProgramState
+internal sealed partial class PressureProgramState : IKernelProgramState
 {
     internal readonly bool[] Enabled;
     internal readonly PrimitiveFloatTable Values;

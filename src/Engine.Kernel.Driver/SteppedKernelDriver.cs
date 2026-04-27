@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Driver;
 
-public sealed class SteppedKernelDriver : IKernelDriver, IDriverControl
+internal sealed class SteppedKernelDriver : IKernelDriver, IDriverControl
 {
     private readonly IKernel _kernel;
     private int _state;

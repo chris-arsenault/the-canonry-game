@@ -23,7 +23,7 @@ public partial class TableauPanel : PanelContainer
     private Label? _recentLabel;
     private PackedScene? _cardScene;
 
-    public void Initialize(GameRuntimeTableau? tableau)
+    internal void Initialize(GameRuntimeTableau? tableau)
     {
         _tableau = tableau;
         Refresh();

@@ -2,19 +2,19 @@ namespace Engine.Eventing.Schema;
 
 using Engine.Eventing;
 
-public sealed record KernelEventSlotSchema(
+internal sealed record KernelEventSlotSchema(
     int Slot,
     string Name,
     KernelEventPrimitiveKind PrimitiveKind,
     KernelEventSemanticKind SemanticKind);
 
-public sealed record KernelEventSchema(
+internal sealed record KernelEventSchema(
     KernelEventType EventType,
     string Name,
     int SchemaMinor,
     IReadOnlyList<KernelEventSlotSchema> Slots);
 
-public sealed class KernelEventSchemaValidator : IKernelEventSchemaValidator
+internal sealed class KernelEventSchemaValidator : IKernelEventSchemaValidator
 {
     public static KernelEventSchemaValidator Instance { get; } = new();
 
@@ -27,7 +27,7 @@ public sealed class KernelEventSchemaValidator : IKernelEventSchemaValidator
     public bool IsValid(in KernelEvent kernelEvent) => IsKnown(kernelEvent.EventType);
 }
 
-public static class KernelEventSchemaRegistry
+internal static class KernelEventSchemaRegistry
 {
     private static readonly IReadOnlyList<KernelEventSchema> RegisteredSchemas = BuildSchemas();
 

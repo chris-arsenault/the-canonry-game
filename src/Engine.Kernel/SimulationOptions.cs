@@ -2,7 +2,7 @@ using Engine.Eventing;
 
 namespace Engine.Kernel;
 
-public sealed record SimulationOptions
+internal sealed record SimulationOptions
 {
     public int EntityCapacity { get; init; } = 4096;
     public int RelationshipCapacity { get; init; } = 8192;

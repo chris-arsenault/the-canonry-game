@@ -3,9 +3,9 @@ namespace Engine.Kernel;
 using Engine.Eventing;
 using Engine.Kernel.Programs;
 
-public readonly record struct CellResourceSeed(int ResourceId, float Value);
+internal readonly record struct CellResourceSeed(int ResourceId, float Value);
 
-public sealed partial class Simulation : IKernel
+internal sealed partial class Simulation : IKernel
 {
     private readonly int[] _systemCadences;
     private readonly int[] _systemProgramIds;

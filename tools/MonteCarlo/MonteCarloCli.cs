@@ -3,6 +3,7 @@ namespace MonteCarloTool;
 using System.Diagnostics;
 using System.Globalization;
 
+using Engine.Constants;
 using Engine.Observability;
 using Engine.Observability.Export;
 using IceRemembers.Seed;
@@ -67,25 +68,28 @@ internal static class MonteCarloCli
 
             if (stateStore is not null)
             {
-                var export = TimedExport("state_telemetry_parquet", stateRowsWritten, () => stateStore.ExportParquet());
-                performanceStore?.AppendExport(export);
+                const string step = "state_telemetry_parquet";
+                var export = TimedExport(step, stateRowsWritten, () => stateStore.ExportParquet());
+                performanceStore?.AppendExport(export, step);
                 Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
             }
 
             if (options.ShouldAnalyze)
             {
-                var export = TimedExport("analysis", rowsWritten: 0, () =>
+                const string step = "analysis";
+                var export = TimedExport(step, rowsWritten: 0, () =>
                 {
                     analyzer.AnalyzeToFiles(options.OutputDirectory);
                 });
-                performanceStore?.AppendExport(export);
+                performanceStore?.AppendExport(export, step);
                 Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
             }
 
             if (performanceStore is not null)
             {
-                var export = TimedExport("performance_parquet", performanceRowsWritten, () => performanceStore.ExportCoreParquet());
-                performanceStore.AppendExport(export);
+                const string step = "performance_parquet";
+                var export = TimedExport(step, performanceRowsWritten, () => performanceStore.ExportCoreParquet());
+                performanceStore.AppendExport(export, step);
                 performanceStore.ExportExportPerformanceParquet();
                 Console.WriteLine($"wrote Monte Carlo performance telemetry: {Path.GetFullPath(options.OutputDirectory)}");
             }
@@ -127,7 +131,7 @@ internal static class MonteCarloCli
                 runId,
                 run.Symbols,
                 seed);
-                RecordMapGenerationAccepted(stateRecorder.Batch, runId, run.WorldSeed);
+                RecordMapGenerationAccepted(stateRecorder.Batch, stateRecorder.RunId, run.WorldSeed);
                 RecordStateSnapshots(stateRecorder, run.Host.CurrentTick, options);
             }
 
@@ -208,7 +212,7 @@ internal static class MonteCarloCli
 
     private static void RecordMapGenerationAccepted(
         TelemetryBatch batch,
-        string runId,
+        int runId,
         MonteCarloWorldSeed? worldSeed)
     {
         if (worldSeed is not { } seed)
@@ -216,6 +220,10 @@ internal static class MonteCarloCli
             return;
         }
 
+        var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "accepted", "accepted");
+        var description = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationDescription, "accepted_world_seed", "accepted_world_seed");
+        batch.Symbols.Add(phase);
+        batch.Symbols.Add(description);
         batch.MapGenerationEvents.Add(new MapGenerationEventRow(
             runId,
             Tick: 0,
@@ -223,9 +231,9 @@ internal static class MonteCarloCli
             seed.Attempt,
             seed.TerrainSeed,
             seed.EntitySeed,
-            Phase: "accepted",
-            Description: "accepted_world_seed",
-            Reasons: string.Empty,
+            phase.Id,
+            description.Id,
+            ReasonId: 0,
             WillRetry: false));
     }
 
@@ -237,19 +245,22 @@ internal static class MonteCarloCli
         stopwatch.Stop();
         var completed = DateTime.UtcNow;
         return new ExportPerformanceRow(
-            Guid.NewGuid().ToString("N"),
-            step,
-            started.ToString("o", CultureInfo.InvariantCulture),
-            completed.ToString("o", CultureInfo.InvariantCulture),
+            started.Ticks,
+            TelemetrySymbolIds.StableId(TelemetrySymbolKinds.PerformanceExportStep, step),
+            new DateTimeOffset(started).ToUnixTimeMilliseconds(),
+            new DateTimeOffset(completed).ToUnixTimeMilliseconds(),
             stopwatch.Elapsed.TotalMilliseconds,
             rowsWritten);
     }
 
     private static long CountRows(TelemetryBatch batch) =>
+        batch.Symbols.Count +
+        batch.EntityNameSymbols.Count +
         batch.Runs.Count +
         batch.TickSnapshots.Count +
         batch.KindSnapshots.Count +
         batch.EntitySnapshots.Count +
+        batch.EntityAttributeSnapshots.Count +
         batch.EntityEvents.Count +
         batch.PlannerGoals.Count +
         batch.PlannerTraces.Count +
@@ -272,6 +283,7 @@ internal static class MonteCarloCli
         batch.MapSnapshots.Count;
 
     private static long CountRows(PerformanceTelemetryBatch batch) =>
+        batch.Symbols.Count +
         batch.RunPerformance.Count +
         batch.TickPerformance.Count +
         batch.SystemPerformance.Count +

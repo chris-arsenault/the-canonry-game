@@ -1,6 +1,6 @@
 namespace TheCanonryGame.Game.Cards;
 
-public sealed class CardInstance
+internal sealed class CardInstance
 {
     public CardInstance(CardDefinition definition, int placedAtTick)
     {

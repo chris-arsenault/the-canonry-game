@@ -2,7 +2,7 @@ namespace TheCanonryGame.Game.Tableau;
 
 using TheCanonryGame.Game.Cards;
 
-public sealed class TableauManager
+internal sealed class TableauManager
 {
     private readonly List<CardInstance> _activeCards = [];
     private readonly CardExecutor _executor;
@@ -105,9 +105,9 @@ public sealed class TableauManager
     }
 }
 
-public sealed record CardTableauFiredCard(CardInstance Instance, CardFireResult Result);
+internal sealed record CardTableauFiredCard(CardInstance Instance, CardFireResult Result);
 
-public sealed class CardTableauTickResult
+internal sealed class CardTableauTickResult
 {
     public CardTableauTickResult(
         IReadOnlyList<CardTableauFiredCard> firedCards,
@@ -124,7 +124,7 @@ public sealed class CardTableauTickResult
     public IReadOnlyList<CardInstance> ExpiredCards { get; }
 }
 
-public sealed class CardFiredEventArgs : EventArgs
+internal sealed class CardFiredEventArgs : EventArgs
 {
     public CardFiredEventArgs(CardInstance instance, CardFireResult result, int tick)
     {
@@ -142,7 +142,7 @@ public sealed class CardFiredEventArgs : EventArgs
     public int Tick { get; }
 }
 
-public sealed class CardExpiredEventArgs : EventArgs
+internal sealed class CardExpiredEventArgs : EventArgs
 {
     public CardExpiredEventArgs(CardInstance instance, int tick)
     {

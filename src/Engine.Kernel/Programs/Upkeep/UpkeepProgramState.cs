@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class UpkeepProgramState : IKernelProgramState
+internal sealed partial class UpkeepProgramState : IKernelProgramState
 {
     public int ProgramId => KernelProgramCodes.Upkeep;
 

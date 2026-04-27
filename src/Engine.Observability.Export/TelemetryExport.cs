@@ -1,27 +1,35 @@
 namespace Engine.Observability.Export;
 
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using System.Collections.ObjectModel;
 
 using DuckDB.NET.Data;
 
 using Engine.Observability;
 
-public sealed class DuckDbTelemetryStore : IDisposable
+internal sealed class DuckDbTelemetryStore : IDisposable
 {
+    private const long DefaultFlushRowThreshold = 250_000;
+
     private readonly string _outputDirectory;
     private readonly string _databasePath;
     private readonly DuckDBConnection _connection;
+    private readonly long _flushRowThreshold;
+    private TelemetryBatch _pending = new();
+    private long _pendingRows;
     private bool _disposed;
 
-    public DuckDbTelemetryStore(string outputDirectory)
+    public DuckDbTelemetryStore(string outputDirectory, long flushRowThreshold = DefaultFlushRowThreshold)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        ArgumentOutOfRangeException.ThrowIfNegative(flushRowThreshold);
 
         _outputDirectory = outputDirectory;
         _databasePath = Path.Combine(outputDirectory, "telemetry.duckdb");
+        _flushRowThreshold = flushRowThreshold;
         Directory.CreateDirectory(_outputDirectory);
 
         _connection = new DuckDBConnection($"Data Source={_databasePath}");
@@ -34,40 +42,45 @@ public sealed class DuckDbTelemetryStore : IDisposable
         ArgumentNullException.ThrowIfNull(batch);
         ThrowIfDisposed();
 
-        AppendTable("runs", batch.Runs);
-        AppendTable("tick_snapshots", batch.TickSnapshots);
-        AppendTable("kind_snapshots", batch.KindSnapshots);
-        AppendTable("entity_snapshots", batch.EntitySnapshots);
-        AppendTable("entity_events", batch.EntityEvents);
-        AppendTable("planner_goals", batch.PlannerGoals);
-        AppendTable("planner_traces", batch.PlannerTraces);
-        AppendTable("planner_trace_goals", batch.PlannerTraceGoals);
-        AppendTable("planner_trace_scores", batch.PlannerTraceScores);
-        AppendTable("planner_trace_steps", batch.PlannerTraceSteps);
-        AppendTable("process_events", batch.ProcessEvents);
-        AppendTable("process_candidates", batch.ProcessCandidates);
-        AppendTable("locality_opportunities", batch.LocalityOpportunities);
-        AppendTable("attribute_events", batch.AttributeEvents);
-        AppendTable("movement_events", batch.MovementEvents);
-        AppendTable("resource_events", batch.ResourceEvents);
-        AppendTable("resource_snapshots", batch.ResourceSnapshots);
-        AppendTable("relationship_events", batch.RelationshipEvents);
-        AppendTable("relationship_snapshots", batch.RelationshipSnapshots);
-        AppendTable("generator_events", batch.GeneratorEvents);
-        AppendTable("generated_entities", batch.GeneratedEntities);
-        AppendTable("lifecycle_events", batch.LifecycleEvents);
-        AppendTable("map_generation_events", batch.MapGenerationEvents);
-        AppendTable("map_snapshots", batch.MapSnapshots);
+        var rowCount = TelemetryBatchExtensions.CountRows(batch);
+        if (rowCount == 0)
+        {
+            return;
+        }
+
+        _pending.Append(batch);
+        _pendingRows += rowCount;
+        if (_pendingRows >= _flushRowThreshold)
+        {
+            Flush();
+        }
+    }
+
+    public void Flush()
+    {
+        ThrowIfDisposed();
+        if (_pendingRows == 0)
+        {
+            return;
+        }
+
+        AppendPending();
+        _pending = new TelemetryBatch();
+        _pendingRows = 0;
     }
 
     public void ExportParquet()
     {
         ThrowIfDisposed();
+        Flush();
 
+        ExportTable("symbols");
+        ExportTable("entity_name_symbols");
         ExportTable("runs");
         ExportTable("tick_snapshots");
         ExportTable("kind_snapshots");
         ExportTable("entity_snapshots");
+        ExportTable("entity_attribute_snapshots");
         ExportTable("entity_events");
         ExportTable("planner_goals");
         ExportTable("planner_traces");
@@ -93,16 +106,20 @@ public sealed class DuckDbTelemetryStore : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
+        Flush();
         _disposed = true;
         _connection.Dispose();
     }
 
     private void EnsureSchema()
     {
+        EnsureTable("symbols", typeof(SymbolRow));
+        EnsureTable("entity_name_symbols", typeof(EntityNameSymbolRow));
         EnsureTable("runs", typeof(RunRow));
         EnsureTable("tick_snapshots", typeof(TickSnapshotRow));
         EnsureTable("kind_snapshots", typeof(KindSnapshotRow));
         EnsureTable("entity_snapshots", typeof(EntitySnapshotRow));
+        EnsureTable("entity_attribute_snapshots", typeof(EntityAttributeSnapshotRow));
         EnsureTable("entity_events", typeof(EntityEventRow));
         EnsureTable("planner_goals", typeof(PlannerGoalRow));
         EnsureTable("planner_traces", typeof(PlannerTraceRow));
@@ -127,24 +144,49 @@ public sealed class DuckDbTelemetryStore : IDisposable
 
     private void EnsureTable(string tableName, Type rowType)
     {
-        var properties = rowType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        var properties = DuckDbRowSchema.PropertiesFor(rowType);
         SqlFileHelpers.Execute(_connection, SqlFileHelpers.CreateTableSql(tableName, properties, ifNotExists: true));
     }
 
-    private void AppendTable<T>(string tableName, Collection<T> rows)
+    private void AppendPending()
+    {
+        AppendTable("symbols", _pending.Symbols);
+        AppendTable("entity_name_symbols", _pending.EntityNameSymbols);
+        AppendTable("runs", _pending.Runs);
+        AppendTable("tick_snapshots", _pending.TickSnapshots);
+        AppendTable("kind_snapshots", _pending.KindSnapshots);
+        AppendTable("entity_snapshots", _pending.EntitySnapshots);
+        AppendTable("entity_attribute_snapshots", _pending.EntityAttributeSnapshots);
+        AppendTable("entity_events", _pending.EntityEvents);
+        AppendTable("planner_goals", _pending.PlannerGoals);
+        AppendTable("planner_traces", _pending.PlannerTraces);
+        AppendTable("planner_trace_goals", _pending.PlannerTraceGoals);
+        AppendTable("planner_trace_scores", _pending.PlannerTraceScores);
+        AppendTable("planner_trace_steps", _pending.PlannerTraceSteps);
+        AppendTable("process_events", _pending.ProcessEvents);
+        AppendTable("process_candidates", _pending.ProcessCandidates);
+        AppendTable("locality_opportunities", _pending.LocalityOpportunities);
+        AppendTable("attribute_events", _pending.AttributeEvents);
+        AppendTable("movement_events", _pending.MovementEvents);
+        AppendTable("resource_events", _pending.ResourceEvents);
+        AppendTable("resource_snapshots", _pending.ResourceSnapshots);
+        AppendTable("relationship_events", _pending.RelationshipEvents);
+        AppendTable("relationship_snapshots", _pending.RelationshipSnapshots);
+        AppendTable("generator_events", _pending.GeneratorEvents);
+        AppendTable("generated_entities", _pending.GeneratedEntities);
+        AppendTable("lifecycle_events", _pending.LifecycleEvents);
+        AppendTable("map_generation_events", _pending.MapGenerationEvents);
+        AppendTable("map_snapshots", _pending.MapSnapshots);
+    }
+
+    private void AppendTable<T>(string tableName, IReadOnlyCollection<T> rows)
     {
         if (rows.Count == 0)
         {
             return;
         }
 
-        var properties = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-        var tempCsv = Path.Combine(_outputDirectory, ".staging", $"{tableName}-{Guid.NewGuid():N}.csv");
-        CsvFileWriter.WriteCsv(tempCsv, properties, rows);
-        SqlFileHelpers.Execute(
-            _connection,
-            $"COPY {SqlFileHelpers.QuoteIdentifier(tableName)} FROM {SqlFileHelpers.QuoteString(tempCsv)} (HEADER, DELIMITER ',', QUOTE '\"', ESCAPE '\"', NULL '');");
-        File.Delete(tempCsv);
+        DuckDbAppenderWriter.Append(_connection, tableName, rows);
     }
 
     private void ExportTable(string tableName)
@@ -161,7 +203,7 @@ public sealed class DuckDbTelemetryStore : IDisposable
     }
 }
 
-public sealed class DuckDbParquetTelemetryWriter(string outputDirectory)
+internal sealed class DuckDbParquetTelemetryWriter(string outputDirectory)
 {
     private readonly string _outputDirectory = outputDirectory;
 
@@ -174,17 +216,52 @@ public sealed class DuckDbParquetTelemetryWriter(string outputDirectory)
     }
 }
 
-public static class TelemetryBatchExtensions
+internal static class TelemetryBatchExtensions
 {
+    public static long CountRows(this TelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        return batch.Symbols.Count +
+               batch.EntityNameSymbols.Count +
+               batch.Runs.Count +
+               batch.TickSnapshots.Count +
+               batch.KindSnapshots.Count +
+               batch.EntitySnapshots.Count +
+               batch.EntityAttributeSnapshots.Count +
+               batch.EntityEvents.Count +
+               batch.PlannerGoals.Count +
+               batch.PlannerTraces.Count +
+               batch.PlannerTraceGoals.Count +
+               batch.PlannerTraceScores.Count +
+               batch.PlannerTraceSteps.Count +
+               batch.ProcessEvents.Count +
+               batch.ProcessCandidates.Count +
+               batch.LocalityOpportunities.Count +
+               batch.AttributeEvents.Count +
+               batch.MovementEvents.Count +
+               batch.ResourceEvents.Count +
+               batch.ResourceSnapshots.Count +
+               batch.RelationshipEvents.Count +
+               batch.RelationshipSnapshots.Count +
+               batch.GeneratorEvents.Count +
+               batch.GeneratedEntities.Count +
+               batch.LifecycleEvents.Count +
+               batch.MapGenerationEvents.Count +
+               batch.MapSnapshots.Count;
+    }
+
     public static void Append(this TelemetryBatch destination, TelemetryBatch source)
     {
         ArgumentNullException.ThrowIfNull(destination);
         ArgumentNullException.ThrowIfNull(source);
 
+        AppendRows(destination.Symbols, source.Symbols);
+        AppendRows(destination.EntityNameSymbols, source.EntityNameSymbols);
         AppendRows(destination.Runs, source.Runs);
         AppendRows(destination.TickSnapshots, source.TickSnapshots);
         AppendRows(destination.KindSnapshots, source.KindSnapshots);
         AppendRows(destination.EntitySnapshots, source.EntitySnapshots);
+        AppendRows(destination.EntityAttributeSnapshots, source.EntityAttributeSnapshots);
         AppendRows(destination.EntityEvents, source.EntityEvents);
         AppendRows(destination.PlannerGoals, source.PlannerGoals);
         AppendRows(destination.PlannerTraces, source.PlannerTraces);
@@ -218,7 +295,102 @@ public static class TelemetryBatchExtensions
     }
 }
 
-public static class CsvFileWriter
+internal static class DuckDbAppenderWriter
+{
+    public static void Append<T>(DuckDBConnection connection, string tableName, IReadOnlyCollection<T> rows)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ArgumentNullException.ThrowIfNull(rows);
+
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        var properties = DuckDbRowSchema.PropertiesFor(typeof(T));
+        using var appender = connection.CreateAppender(tableName);
+        foreach (var rowValue in rows)
+        {
+            var appenderRow = appender.CreateRow();
+            for (var i = 0; i < properties.Length; i++)
+            {
+                AppendValue(appenderRow, properties[i].GetValue(rowValue));
+            }
+
+            appenderRow.EndRow();
+        }
+
+        appender.Close();
+    }
+
+    private static void AppendValue(IDuckDBAppenderRow row, object? value)
+    {
+        if (value is null)
+        {
+            row.AppendNullValue();
+            return;
+        }
+
+        switch (value)
+        {
+            case bool boolValue:
+                row.AppendValue((bool?)boolValue);
+                break;
+            case byte byteValue:
+                row.AppendValue((long?)byteValue);
+                break;
+            case short shortValue:
+                row.AppendValue((long?)shortValue);
+                break;
+            case int intValue:
+                row.AppendValue((long?)intValue);
+                break;
+            case long longValue:
+                row.AppendValue((long?)longValue);
+                break;
+            case float floatValue:
+                row.AppendValue((double?)floatValue);
+                break;
+            case double doubleValue:
+                row.AppendValue((double?)doubleValue);
+                break;
+            case decimal decimalValue:
+                row.AppendValue((double?)decimalValue);
+                break;
+            case string stringValue:
+                row.AppendValue(stringValue);
+                break;
+            case DateTime dateTimeValue:
+                row.AppendValue((DateTime?)dateTimeValue);
+                break;
+            case DateTimeOffset dateTimeOffsetValue:
+                row.AppendValue((DateTimeOffset?)dateTimeOffsetValue);
+                break;
+            case TimeSpan timeSpanValue:
+                row.AppendValue((TimeSpan?)timeSpanValue);
+                break;
+            default:
+                row.AppendValue(value.ToString());
+                break;
+        }
+    }
+}
+
+internal static class DuckDbRowSchema
+{
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertiesByType = new();
+
+    public static PropertyInfo[] PropertiesFor(Type rowType)
+    {
+        ArgumentNullException.ThrowIfNull(rowType);
+        return PropertiesByType.GetOrAdd(
+            rowType,
+            static type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public));
+    }
+}
+
+internal static class CsvFileWriter
 {
     public static void WriteCsv<T>(string path, IReadOnlyCollection<T> rows)
     {
@@ -269,7 +441,7 @@ public static class CsvFileWriter
     }
 }
 
-public static class SqlFileHelpers
+internal static class SqlFileHelpers
 {
     public static string CreateTableSql(string tableName, IReadOnlyList<PropertyInfo> properties, bool ifNotExists = false)
     {

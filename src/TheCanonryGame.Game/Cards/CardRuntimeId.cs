@@ -1,6 +1,6 @@
 namespace TheCanonryGame.Game.Cards;
 
-public readonly record struct CardRuntimeId(int Value)
+internal readonly record struct CardRuntimeId(int Value)
 {
     public static readonly CardRuntimeId None = new(0);
 

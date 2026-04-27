@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Kernel.Programs;
 
-public sealed partial class GambitProgramState : IKernelProgramState
+internal sealed partial class GambitProgramState : IKernelProgramState
 {
     internal readonly bool[] GambitEnabled;
     internal readonly PrimitiveIntTable Cooldowns;

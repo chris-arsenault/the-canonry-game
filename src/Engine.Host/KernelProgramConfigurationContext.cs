@@ -1,6 +1,6 @@
 namespace Engine.Host;
 
-public sealed class KernelProgramConfigurationContext
+internal sealed class KernelProgramConfigurationContext
 {
     private readonly Dictionary<int, bool> _enabledByProgram = [];
 

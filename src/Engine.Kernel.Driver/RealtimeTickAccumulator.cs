@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Driver;
 
-public sealed class RealtimeTickAccumulator
+internal sealed class RealtimeTickAccumulator
 {
     private readonly int _maxTicksPerSlice;
     private double _accumulator;

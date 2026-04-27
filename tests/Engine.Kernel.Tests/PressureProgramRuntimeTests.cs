@@ -18,6 +18,38 @@ public sealed class PressureProgramRuntimeTests
     }
 
     [Fact]
+    public void Tick_InitializesCoverageScopedPressureOnlyForOwnersWithCoverage()
+    {
+        var simulation = CreateSimulation();
+        const int pressureId = 1;
+        var covered = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var uncovered = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.World.MaterializeCell(0, 0, terrainId: 1, covered);
+        simulation.Pressures.RegisterPressure(pressureId, PressureScopeCodes.Coverage, baseline: 12f, homeostasisRate: 0f, smoothingFactor: 1f);
+
+        simulation.Pressures.Tick(simulation, tick: 1);
+
+        Assert.Equal(12f, simulation.Pressures.GetValue(pressureId, covered));
+        Assert.Equal(0f, simulation.Pressures.GetValue(pressureId, uncovered));
+    }
+
+    [Fact]
+    public void Tick_StopsCoverageScopedPressureAfterOwnerLosesCoverage()
+    {
+        var simulation = CreateSimulation();
+        const int pressureId = 1;
+        var entity = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        simulation.World.MaterializeCell(0, 0, terrainId: 1, entity);
+        simulation.Pressures.RegisterPressure(pressureId, PressureScopeCodes.Coverage, baseline: 12f, homeostasisRate: 0f, smoothingFactor: 1f);
+        simulation.Pressures.Tick(simulation, tick: 1);
+
+        simulation.World.SetCoverageOwner(0, 0, ownerEntityId: 0);
+        simulation.Pressures.Tick(simulation, tick: 2);
+
+        Assert.Equal(12f, simulation.Pressures.GetValue(pressureId, entity));
+    }
+
+    [Fact]
     public void ApplyDelta_AffectsNextTickAndIsThenCleared()
     {
         var simulation = CreateSimulation();

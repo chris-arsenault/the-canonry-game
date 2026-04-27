@@ -32,7 +32,7 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
-    public void MaintainsTypedRelationshipCsrRowsSortedByStrength()
+    public void MaintainsTypedRelationshipCsrRowsInStableRelationshipOrder()
     {
         var simulation = CreateSimulation();
         var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
@@ -50,13 +50,15 @@ public sealed class WorldStateIndexTests
         var incomingHigh = simulation.World.CreateRelationship(9, 0, highSource, sink, 0.8f, 0);
         var incomingMid = simulation.World.CreateRelationship(9, 0, midSource, sink, 0.4f, 0);
 
-        Assert.Equal([high, mid, low], OutgoingRelationshipsOfKind(simulation.World, source, 9));
-        Assert.Equal([incomingHigh, incomingMid, incomingLow], IncomingRelationshipsOfKind(simulation.World, sink, 9));
+        Assert.Equal([low, high, mid], OutgoingRelationshipsOfKind(simulation.World, source, 9));
+        Assert.Equal([incomingLow, incomingHigh, incomingMid], IncomingRelationshipsOfKind(simulation.World, sink, 9));
 
         simulation.World.CompactRelationshipGraph();
 
-        Assert.Equal([high, mid, low], OutgoingRelationshipsOfKind(simulation.World, source, 9));
-        Assert.Equal([incomingHigh, incomingMid, incomingLow], IncomingRelationshipsOfKind(simulation.World, sink, 9));
+        Assert.Equal([low, high, mid], OutgoingRelationshipsOfKind(simulation.World, source, 9));
+        Assert.Equal([incomingLow, incomingHigh, incomingMid], IncomingRelationshipsOfKind(simulation.World, sink, 9));
+        Assert.Equal([high, mid], OutgoingRelationshipsOfKindAbove(simulation.World, source, 9, 0.5f));
+        Assert.Equal([incomingHigh], IncomingRelationshipsOfKindAbove(simulation.World, sink, 9, 0.5f));
 
         simulation.World.SetRelationshipStrength(low, 0.95f, 1);
         simulation.World.SetRelationshipStrength(incomingLow, 0.85f, 1);
@@ -111,6 +113,52 @@ public sealed class WorldStateIndexTests
         Assert.Equal(firstToSecond, incoming.RelationshipAt(1));
     }
 
+    [Fact]
+    public void MaintainsCoverageLayerReverseIndex()
+    {
+        var simulation = CreateSimulation();
+        var ownerA = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var ownerB = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.World.MaterializeCell(0, 0, terrainId: 1, ownerA);
+        simulation.World.MaterializeCell(1, 0, terrainId: 1, ownerA);
+
+        Assert.Equal(ownerA, simulation.World.CoverageOwnerAt(0, 0));
+        Assert.Equal(2, simulation.World.CoverageOwnerCellCount(ownerA));
+        Assert.Equal([(0, 0), (1, 0)], CoverageCellsOf(simulation.World, ownerA));
+
+        simulation.World.SetCoverageOwner(0, 0, ownerB);
+
+        Assert.Equal(ownerB, simulation.World.CoverageOwnerAt(0, 0));
+        Assert.Equal(1, simulation.World.CoverageOwnerCellCount(ownerA));
+        Assert.Equal(1, simulation.World.CoverageOwnerCellCount(ownerB));
+        Assert.Equal([(1, 0)], CoverageCellsOf(simulation.World, ownerA));
+        Assert.Equal([(0, 0)], CoverageCellsOf(simulation.World, ownerB));
+
+        simulation.World.SetCoverageOwner(1, 0, ownerEntityId: 0);
+
+        Assert.Equal(0, simulation.World.CoverageOwnerAt(1, 0));
+        Assert.False(simulation.World.CoverageOwnerHasCells(ownerA));
+    }
+
+    [Fact]
+    public void CoverageLayerIteratesOwnerCellsAfterPageBoundaryRemoval()
+    {
+        var simulation = CreateSimulation();
+        var ownerA = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var ownerB = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
+        for (var i = 0; i < 20; i++)
+        {
+            simulation.World.MaterializeCell(i, -i, terrainId: 1, ownerA);
+        }
+
+        simulation.World.SetCoverageOwner(0, 0, ownerB);
+
+        var ownerACells = CoverageCellsOf(simulation.World, ownerA);
+        Assert.Equal(19, ownerACells.Length);
+        Assert.DoesNotContain((0, 0), ownerACells);
+        Assert.Equal([(0, 0)], CoverageCellsOf(simulation.World, ownerB));
+    }
+
     private static Simulation CreateSimulation()
     {
         return new Simulation(new SimulationOptions
@@ -156,6 +204,20 @@ public sealed class WorldStateIndexTests
         return result[..count];
     }
 
+    private static (int Q, int R)[] CoverageCellsOf(WorldState world, int ownerEntityId)
+    {
+        var result = new (int Q, int R)[64];
+        var count = 0;
+        var cursor = world.CoverageCells(ownerEntityId);
+        while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
+        {
+            result[count++] = (q, r);
+        }
+
+        Array.Sort(result, 0, count);
+        return result[..count];
+    }
+
     private static int[] OutgoingRelationshipsOfKind(WorldState world, int source, int kindId)
     {
         var result = new int[8];
@@ -169,11 +231,37 @@ public sealed class WorldStateIndexTests
         return result[..count];
     }
 
+    private static int[] OutgoingRelationshipsOfKindAbove(WorldState world, int source, int kindId, float minimumStrength)
+    {
+        var result = new int[8];
+        var count = 0;
+        var cursor = world.OutgoingRelationshipsOfKindAbove(source, kindId, minimumStrength);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            result[count++] = relationshipId;
+        }
+
+        return result[..count];
+    }
+
     private static int[] IncomingRelationshipsOfKind(WorldState world, int target, int kindId)
     {
         var result = new int[8];
         var count = 0;
         var cursor = world.IncomingRelationshipsOfKind(target, kindId);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            result[count++] = relationshipId;
+        }
+
+        return result[..count];
+    }
+
+    private static int[] IncomingRelationshipsOfKindAbove(WorldState world, int target, int kindId, float minimumStrength)
+    {
+        var result = new int[8];
+        var count = 0;
+        var cursor = world.IncomingRelationshipsOfKindAbove(target, kindId, minimumStrength);
         while (world.MoveNextRelationship(ref cursor, out var relationshipId))
         {
             result[count++] = relationshipId;

@@ -1,10 +1,10 @@
 namespace Engine.Kernel;
 
-public readonly record struct KernelExecutionContext(
+internal readonly record struct KernelExecutionContext(
     int ProgramId,
     int SourceCodeId);
 
-public readonly record struct KernelExecutionScope : global::System.IDisposable
+internal readonly record struct KernelExecutionScope : global::System.IDisposable
 {
     private readonly Simulation? _simulation;
     private readonly KernelExecutionContext _previous;

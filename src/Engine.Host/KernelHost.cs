@@ -44,7 +44,7 @@ public sealed class KernelHost : IDisposable
 
     public ProjectionSymbolCatalog Symbols { get; }
 
-    public KernelConsumerRegistry Consumers { get; }
+    internal KernelConsumerRegistry Consumers { get; }
 
     public IKernelDriverTimeControl Time { get; }
 

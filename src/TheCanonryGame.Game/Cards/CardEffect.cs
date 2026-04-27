@@ -1,6 +1,6 @@
 namespace TheCanonryGame.Game.Cards;
 
-public sealed class CardEffect
+internal sealed class CardEffect
 {
     public CardEffect(string kind, string description = "")
     {

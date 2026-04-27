@@ -81,6 +81,66 @@ public sealed class ProcessProgramRuntimeTests
     }
 
     [Fact]
+    public void PhysicalPathScratchCanBeReusedAcrossSearches()
+    {
+        var simulation = CreateSimulation();
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        const int inRangeFactId = 30;
+        RegisterNeed(simulation, actorKindId, attributeId, defaultValue: 10f);
+        RegisterNeed(simulation, targetKindId, attributeId, defaultValue: 100f);
+        RegisterKnownMap(simulation);
+        var firstActorId = simulation.CreateEntity(actorKindId, 1, 1, -2, 0, 0, 0, 0, 0);
+        var secondActorId = simulation.CreateEntity(actorKindId, 1, 1, 0, -2, 0, 0, 0, 0);
+        _ = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
+
+        var consume = simulation.Processes.RegisterProcess(
+            actorKindId,
+            processId: 101,
+            targetMode: ProcessTargetModeCodes.KindOther,
+            targetKindId: targetKindId);
+        simulation.Processes.SetGoalEffect(consume, ProcessEffectScopeCodes.SelfAttribute, attributeId, actorKindId);
+        simulation.Processes.AddPrecondition(consume, ProcessPreconditionCodes.TargetIsNotSelf);
+        simulation.Processes.AddPrecondition(
+            consume,
+            ProcessPreconditionCodes.PlaneDistance,
+            0,
+            PlaneCodes.Physical,
+            inRangeFactId);
+        simulation.Processes.AddExpressionOp(consume, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(consume, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Processes.AddStep(consume, ProcessOperationCodes.AddAttribute, attributeId, x: 50f);
+
+        var move = simulation.Processes.RegisterProcess(
+            actorKindId,
+            processId: 102,
+            targetMode: ProcessTargetModeCodes.KindOther,
+            targetKindId: targetKindId);
+        simulation.Processes.SetGoalEffect(move, ProcessEffectScopeCodes.Structural, inRangeFactId, actorKindId);
+        simulation.Processes.AddPrecondition(move, ProcessPreconditionCodes.TargetIsNotSelf);
+        simulation.Processes.AddExpressionOp(move, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(move, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddStep(move, ProcessOperationCodes.MoveTowardTargetPhysical);
+
+        var firstBefore = HexDistance(-2, 0, 2, 0);
+        var secondBefore = HexDistance(0, -2, 2, 0);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.True(HexDistance(
+            simulation.World.EntityPhysicalQ(firstActorId),
+            simulation.World.EntityPhysicalR(firstActorId),
+            2,
+            0) < firstBefore);
+        Assert.True(HexDistance(
+            simulation.World.EntityPhysicalQ(secondActorId),
+            simulation.World.EntityPhysicalR(secondActorId),
+            2,
+            0) < secondBefore);
+    }
+
+    [Fact]
     public void DoesNotExecuteProcessProgramProcessWhenNoObjectiveIsUrgent()
     {
         var simulation = CreateSimulation();
@@ -926,6 +986,15 @@ public sealed class ProcessProgramRuntimeTests
                 simulation.World.SetCell(q, r, terrainId: 1);
             }
         }
+    }
+
+    private static int HexDistance(int leftQ, int leftR, int rightQ, int rightR)
+    {
+        var leftS = -leftQ - leftR;
+        var rightS = -rightQ - rightR;
+        return Math.Max(
+            Math.Abs(leftQ - rightQ),
+            Math.Max(Math.Abs(leftR - rightR), Math.Abs(leftS - rightS)));
     }
 
     private static void SetSetupAttribute(

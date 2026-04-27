@@ -97,4 +97,25 @@ public sealed class DomainIdRegistryTests
             symbol.Id == registry.KindIdOf(IceRemembersKinds.Settlement).Value &&
             symbol.StableName == IceRemembersKinds.Settlement.Value);
     }
+
+    [Fact]
+    public void Clone_PreservesIdsAndDoesNotShareMutation()
+    {
+        var registry = DomainCompiler.Compile(IceRemembersDefinition.Create()).Ids;
+        var clone = registry.Clone();
+
+        Assert.Equal(
+            registry.KindIdOf(IceRemembersKinds.Settlement),
+            clone.KindIdOf(IceRemembersKinds.Settlement));
+        Assert.Equal(
+            registry.AttributeIdOf("residents"),
+            clone.AttributeIdOf("residents"));
+        Assert.Equal(
+            registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
+            clone.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode));
+
+        clone.RegisterKind("clone_only_kind");
+
+        Assert.Throws<KeyNotFoundException>(() => registry.KindIdOf("clone_only_kind"));
+    }
 }
