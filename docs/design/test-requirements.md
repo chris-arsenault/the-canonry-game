@@ -2,11 +2,27 @@
 
 Systems that need testing, what to verify, and expected fidelity. Written for an agent with no context of the implementation history — only the code as it exists.
 
+> Migration note: this document was written against the legacy `src/Engine/`
+> monolith. The conceptual coverage targets still apply, but the engine has
+> since been split into a microkernel (`Engine.Kernel`), domain compilation
+> (`Engine.Domain`), and consumer projects. The `Location:` lines below have
+> been updated to point at the current homes; some legacy classes
+> (`GoalGenerator`, `EntityEvaluator`, `ScalarValue`/`AttributeSet`,
+> `LifecycleSystem`/`MaintenanceSystem`, `GraphAttributeQuery`) no longer exist
+> as discrete files — their responsibilities are now inside kernel program
+> runtimes operating over primitive ID tables. See `docs/architecture.md` for
+> the runtime model and verify the current home of any system before writing
+> tests for it.
+
 ---
 
-## 1. Goal System (GoalGenerator)
+## 1. Goal System (planner/process goal generation)
 
-**Location:** `src/Engine/Behaviors/GoalGenerator.cs`
+**Location:** `src/Engine.Kernel/Programs/Processes/` (process-side goal
+selection) and `src/Engine.Kernel/Programs/Planning/` (planner runtime).
+Process and gambit objective definitions are compiled from
+`src/Engine.Domain/Processes/` (`ProcessDefinition`,
+`ProcessSupportRule`, etc.) by `DomainCompiler`.
 
 **What it does:** Generates goals for entities from attribute deficits and process wiring contracts. Produces sub-goals from blocked preconditions.
 
@@ -36,11 +52,23 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 - Process with `TargetIsSelf` precondition: when evaluated against self as provider, precondition passes. When evaluated against another entity, it fails and generates no sub-goals (because TargetIsSelf doesn't report a blocking attribute).
 - Process with `TargetIsNotSelf`: opposite behavior.
 
+**Sub-goal mutation context:**
+- Mutation context resolves the planner-selected target by ID, not by
+  name; the runtime carries primitive `(entityId, attributeId)` keys, not
+  string lookups (`ProcessMutationContext.ResolvedTargetId` is the
+  legacy term — verify this is now expressed as a primitive target slot
+  on the kernel mutation context).
+
 ---
 
-## 2. Entity Evaluator
+## 2. Entity Evaluator (process program runtime)
 
-**Location:** `src/Engine/Behaviors/EntityEvaluator.cs`
+**Location:** `src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs`
+(plus `GambitProgramRuntime`, `GeneratorProgramRuntime` for the analogous
+gambit and generator paths). The legacy `EntityEvaluator` class is gone;
+its responsibilities — goal selection, candidate filtering, cooldowns,
+weighted random selection, mutation execution — are now inside the kernel
+program runtimes operating over fixed-capacity scratch buffers.
 
 **What it does:** Each tick, selects a goal, finds serving processes, filters by cooldowns and preconditions, picks one via weighted random, executes with the goal passed through.
 
@@ -70,8 +98,9 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 - Cooldown jitter → cooldown duration varies ±25%
 
 **Execution:**
-- Winning process receives goal in Execute (not null)
-- ProcessMutationContext.ResolvedTargetId == goal.Provider
+- Winning process receives the goal in execute (not null)
+- The mutation context's resolved target ID matches the planner-selected
+  provider entity ID (legacy: `ProcessMutationContext.ResolvedTargetId`)
 - Mutations that reference target modify the provider entity's attributes
 - Mutations that reference self modify the evaluating entity's attributes
 - Cooldowns applied after execution
@@ -91,7 +120,11 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 3. Precondition System
 
-**Location:** `src/Engine/Processes/Preconditions.cs`, `PreconditionResult.cs`
+**Location:** `src/Engine.Domain/Processes/Preconditions.cs`,
+`src/Engine.Domain/Processes/PreconditionResult.cs` (definitions and
+authoring shapes). Precondition codes used at runtime are in
+`src/Engine.Constants/ProcessPreconditionCodes.cs`; runtime evaluation
+runs inside `src/Engine.Kernel/Programs/Processes/`.
 
 ### Tests needed:
 
@@ -127,7 +160,12 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 4. Expression System
 
-**Location:** `src/Engine/Processes/Expression.cs`
+**Location:** `src/Engine.Domain/Processes/Expression.cs` (authoring
+shapes and `Expr.*` builders). Runtime expression codes are in
+`src/Engine.Constants/ProcessExpressionCodes.cs`; runtime evaluation
+runs inside the kernel program runtimes
+(`src/Engine.Kernel/Programs/Processes/`,
+`src/Engine.Kernel/Programs/Gambits/`).
 
 ### Tests needed:
 
@@ -160,7 +198,14 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 5. Attribute System
 
-**Location:** `src/Engine/Attributes/ScalarValue.cs`, `AttributeSet.cs`
+**Location:** `src/Engine.Kernel/PrimitiveFloatTable.cs`,
+`src/Engine.Kernel/PrimitiveIntTable.cs`,
+`src/Engine.Kernel/KernelData/KernelEntityData.cs`,
+`src/Engine.Kernel/WorldState.cs` (attribute mutation API). The legacy
+`ScalarValue` / `AttributeSet` classes are gone; attributes are now
+stored as primitive float values keyed by `(entityId, attributeId)` in
+fixed-capacity tables. Attribute metadata (min/max/default/variance) is
+registered through `Simulation.RegisterAttribute`.
 
 ### Tests needed:
 
@@ -183,7 +228,10 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 6. Mutation System
 
-**Location:** `src/Engine/Processes/Mutations.cs`
+**Location:** `src/Engine.Domain/Processes/Mutations.cs` (authoring
+shapes), `src/Engine.Constants/ProcessOperationCodes.cs` (runtime
+operation codes). Mutation execution runs inside
+`src/Engine.Kernel/Programs/Processes/`.
 
 ### Tests needed:
 
@@ -212,7 +260,12 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 7. Lifecycle and Maintenance
 
-**Location:** `src/Engine/Lifecycle/LifecycleSystem.cs`, `MaintenanceSystem.cs`
+**Location:** `src/Engine.Kernel/Programs/Upkeep/` — the upkeep program
+runtime owns lifecycle drain, maintenance, and death transitions. The
+legacy `LifecycleSystem` / `MaintenanceSystem` classes are gone. Domain
+authoring of lifecycle rules (per-kind drain coefficients, base rates,
+ageing curves) lives in `src/Engine.Domain/Lifecycle/` and is compiled
+into the kernel by `DomainCompiler`.
 
 ### Tests needed:
 
@@ -237,18 +290,26 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 
 ## 8. Provider Scoring
 
-**Location:** `src/Engine/Behaviors/GraphAttributeQuery.cs`, `ProcessDefinition.ProviderScoreExpression`
+**Location:** `src/Engine.Kernel/Programs/Processes/` (provider candidate
+selection and per-candidate scoring) and
+`src/Engine.Domain/Processes/ProcessDefinition.cs` (where
+`ProviderSelectors` and the per-candidate scoring expression are
+authored). The legacy `GraphAttributeQuery` is gone; provider candidates
+are now enumerated against the primitive ID indexes inside
+`WorldState`.
 
 ### Tests needed:
 
-**GraphAttributeQuery.FindCandidates:**
-- Finds entities of specified kind with named attribute > 0
-- Excludes entities with attribute ≤ 0
-- Excludes inactive entities
-- Returns unscored, unordered list
+**Provider candidate selection:**
+- Finds entities of specified kind with the named attribute above the
+  required threshold
+- Excludes entities with the attribute at or below the threshold
+- Excludes inactive (Historical) entities
+- Returns candidates without ranking (ranking is the next step)
 
 **Provider score expression:**
-- GoalGenerator evaluates ProviderScoreExpression per candidate with self + candidate as context
+- Process runtime evaluates the per-candidate scoring expression with self
+  + candidate as context
 - Score of 0 excludes the candidate
 - Null expression → all candidates score 1.0
 - Weights are normalized (best = 1.0, others proportional)

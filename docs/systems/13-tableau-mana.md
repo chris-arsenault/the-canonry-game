@@ -124,7 +124,7 @@ Deck modification events are the primary progression mechanic within a run. They
 - Remove a card from the deck (thinning -- increases frequency of remaining cards)
 - Increase mana cap (allows more simultaneous tableau cards)
 
-**Balatro-inspired options (see `docs/research/balatro-card-model.md`):**
+**Balatro-inspired options (see `docs/research/cards/balatro-card-model.md`):**
 - **Enhance a card:** apply a modification layer to a specific card in the deck. Like Balatro's Tarot cards applying enhancements, this makes a specific card MORE powerful or changes HOW it works. A "Glass" enhancement on a generator might double its output but risk the card being destroyed after firing. A "Wild" enhancement might let a system card count as multiple types. Multiple independent modification layers per card create combinatorial depth and card identity -- "this is MY Cultural Diffusion, not a generic one."
 - **Upgrade a card type:** improve ALL cards of a category, like Balatro's Planet cards upgrading entire hand types. "Upgrade all generators" or "upgrade all connectivity-tagged cards."
 - **Acquire a persistent modifier:** Balatro's Jokers are persistent passive effects in limited slots. Our equivalent might be civilization-level traits or institutions that modify how all cards of a certain tag behave. "Maritime Trade Network" amplifies all Commerce-tagged cards. These would occupy their own limited slots, separate from the tableau.
@@ -155,7 +155,7 @@ The choice between these options IS the mid-run strategic decision. Do you want 
 - **Card cost balancing.** The entire cost structure needs iteration. Costs are the primary lever for making the tableau constraint feel right.
 - **Card lifespan values.** How many ticks/generations each card type lasts in the tableau. Affects commitment weight and tableau turnover rate. Needs playtesting.
 - **Removal cards.** Which cards can remove other cards from the tableau. How common these are. Whether removal cards are a distinct card type or an effect on existing cards.
-- **Card modification layers.** Balatro research suggests three independent modification axes per card (enhancement + edition + seal equivalent). How these map to simulation cards: does enhancement change HOW the card fires, edition change POTENCY, and seal add SECONDARY EFFECTS? How many layers per card? Are modifications permanent across deck cycles? See `docs/research/balatro-card-model.md`.
+- **Card modification layers.** Balatro research suggests three independent modification axes per card (enhancement + edition + seal equivalent). How these map to simulation cards: does enhancement change HOW the card fires, edition change POTENCY, and seal add SECONDARY EFFECTS? How many layers per card? Are modifications permanent across deck cycles? See `docs/research/cards/balatro-card-model.md`.
 - **Persistent modifiers (Joker equivalent).** Whether the game has a separate row of persistent civilization-level modifiers, distinct from the tableau, that amplify/modify all cards matching certain tags. How many slots. How acquired. Whether these are the same thing as the "locked tableau" concept from design constraints.
 - **Minimum tableau requirements.** Whether the game requires at least one card of each type (generator, system, action) or whether fully skewed tableaux are allowed and the simulation's natural dynamics handle balance.
 - **Tableau visual design.** How the active cards are displayed alongside the map. Sidebar, bottom panel, overlay. How much space the tableau occupies vs. the map and entity details.

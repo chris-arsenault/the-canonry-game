@@ -381,7 +381,11 @@ Not pixel art, not 8-bit, not photorealistic-rock, not digital noise.
 
 ## 5 · Event-type icons
 
-Used in the Chronicle feed (`src/UI/Main.cs → OnEventEmitted`). Each one tiny, distinct at glance, filled line-art style.
+Used in the Chronicle feed. The chronicle is now produced by
+`src/Engine.Projection/UiChronicleProjection.cs` (consuming primitive
+kernel events) and rendered by `src/TheCanonryGame.UI/ChroniclePanel.cs`
+in the Godot scene started from `src/TheCanonryGame.App/Main.cs`. Each
+icon is tiny, distinct at glance, filled line-art style.
 
 Common prompt suffix for all five: `simple glyph in dark ink on transparent background, 1:1 square, centered, roughly 128×128 intended output, clean line-art, legible at 16px, not pixel art, not 8-bit, not flat vector`
 

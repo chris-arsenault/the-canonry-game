@@ -8,68 +8,148 @@ This tracks remaining work against the simulation kernel invariants:
 
 ## Architecture Migration Status
 
-Status: started.
+Status: project split complete; hot-path discipline ongoing.
 
-Project boundaries now exist for `Engine.Kernel`, `Engine.Domain`, `Engine.Eventing`, `Engine.Projection`, and `Engine.Host`. The current legacy `Engine` project still owns the active simulation implementation; code has not yet been moved into `Engine.Kernel`.
+The legacy `src/Engine/` project no longer exists. Active simulation code now
+lives in the microkernel split:
 
-`Engine.Eventing` now contains the first primitive bounded event log with independent consumer cursors. It is not yet wired into the legacy simulation message path. The old object-message bus remains in `src/Engine/Messages` until producers and consumers are migrated.
+- `Engine.Kernel` — deterministic tick (`Simulation`, `WorldState`,
+  `KernelDataSet`, the eight program runtimes under `Programs/`,
+  `Persistence/`).
+- `Engine.Constants` — primitive ID code catalogs.
+- `Engine.Domain` — stable-ID registry and `DomainCompiler` producing
+  `CompiledDomain`.
+- `Engine.Eventing`, `Engine.Eventing.Schema`,
+  `Engine.Eventing.Generators` — bounded primitive event log, schema
+  registry, source generators.
+- `Engine.Kernel.Driver`, `Engine.Kernel.Schema` — async edge and event
+  semantic helpers.
+- `Engine.Projection`, `Engine.Observability`,
+  `Engine.Observability.Export` — independent async consumers (UI read
+  models, run logs, telemetry, planner traces, perf, exports).
+- `Engine.Host` — `KernelHostBuilder`, `KernelRuntimeFactory`,
+  `KernelHost`, consumer registration, startup seeding.
+- `Engine.WorldGen` — hex grid, terrain catalog, semantic plane.
 
-`Engine.Kernel` now has hard build guardrails: it may only reference `Engine.Eventing`, it may not add runtime package dependencies, implicit usings are disabled, runtime string syntax fails the build, and banned-symbol analyzers reject LINQ, common allocating collections, async primitives, logging/timing, and file I/O.
+`Engine.Kernel/BannedSymbols.txt` rejects strings, LINQ, common allocating
+collections, async primitives, logging/timing, and file I/O at build time.
+Implicit usings are disabled. The kernel references only `Engine.Constants`
+and `Engine.Eventing`.
 
-`Engine.Domain` now contains the first stable ID registry for attributes, relationship kinds/facts, pressures, resources, subtypes, cultures, generators, event codes, reason codes, and source codes. The active simulation has not yet been migrated to these IDs.
+The kernel's public mutation surface (`Simulation.CreateEntity`,
+`SetAttribute`, `SetResource`, `CreateRelationship`, `MoveEntityPhysical`,
+etc.) is primitive-ID only. Domain content compiles strings to stable IDs
+once at startup; runtime work uses IDs. Display names are resolved by
+projections through `ProjectionSymbolCatalog` off the sim thread.
 
-## 1. Runtime Strings Still Live In Core State
+`KernelEventLog` is the primary message path: programs emit primitive
+events; projections and observability read independently via
+`KernelEventCursor`s. The legacy object-message bus has been retired.
 
-Status: started.
+The remaining work below concentrates inside the kernel programs
+themselves — planner/evaluator allocation cleanup, graph storage handles,
+versioned indexes — and on tightening observability away from object
+allocation. Each item lists the migration step it advances against
+`kernel-architecture-migration-plan.md`.
 
-`Engine.Domain` now has stable runtime ID types and a registry that compiles strings into IDs with hard failures for duplicate registrations and unknown lookups. `Entity` still stores `Subtype`, `Name`, and `Culture` as live strings. `AttributeRef` still stores `Name` and `RelationshipKind` strings. `IMutationContext` still exposes string-based reads and writes for attributes, pressures, relationships, variables, tags, and entity creation.
+## 1. Runtime Strings In Core State (migration plan items 2 + 6)
 
-Required direction: compile subtype, culture, attribute, relationship, pressure, variable, tag, and source names into stable primitive IDs during domain registration. Live engine state should hold IDs only; display strings stay in registries for UI/export.
+Status: done at the kernel surface; verify no string fields slipped into
+program scratch buffers.
 
-## 2. Graph, Attributes, Relationships, And Pressure Still Use String Lookup
+`Simulation`'s public mutation API uses primitive IDs only. Entity state in
+`KernelEntityData` is stored in `PrimitiveIntTable` / `PrimitiveFloatTable`.
+Subtype, culture, attribute, relationship, pressure, variable, tag, and
+source code names are compiled by `DomainCompiler` into stable IDs and are
+not read at runtime. Display names live in `ProjectionSymbolCatalog`.
 
-Status: started.
+Required direction: keep new program runtimes off strings. Audit every
+`Programs/*Runtime` for string fields in `Data` / `State` / `Scratch` and
+replace any that crept in with primitive IDs.
 
-Stable ID types now exist for the relevant categories in `Engine.Domain`, but active graph/runtime systems are not migrated. `AttributeSet` is still keyed by `string`. `WorldGraph.CreateRelationship` still accepts string relationship kinds and string facts. `ProcessMutationContext` still uses strings for variables, relationship kinds, attributes, pressure names, and source labels.
+## 2. Graph, Attributes, Relationships, And Pressure ID-Keying (migration plan items 2 + 6 + 10)
 
-Required direction: replace name-keyed runtime dictionaries and APIs with ID-keyed storage and lookup. Relationship facts should become primitive fact IDs or compact bitsets.
+Status: kernel surface migrated; relationship traversal still uses
+`RelationshipGraphCursor` over compact adjacency, but the underlying
+storage discipline (stable-handle adjacency with no iterator allocation)
+is the open follow-up to migration plan item 10.
 
-## 3. The Message Bus Is Not Primitive Or Allocation-Free Yet
+`Simulation.CreateRelationship`/`SetRelationshipStrength`/`CullRelationship`
+take primitive IDs. Relationship facts are stored as a compact 4-slot
+primitive bitset on each relationship. Pressure values are keyed by
+`PressureId` in `PressureProgramRuntime`.
 
-Status: started.
+Required direction: continue the move to stable-handle adjacency storage
+and confirm all relationship traversal paths avoid allocation in steady
+state.
 
-The new `Engine.Eventing` project introduces a primitive bounded event log with independent read heads. The active simulation still publishes heap-allocated `SimulationMessage` objects. Many current message payloads still carry strings: attribute names, entity names, resource names, relationship kinds, diagnostics, generator IDs, degeneracy descriptions, and status text. The graph-to-message bridge still formats enum strings and allocates arrays on the sim thread.
+## 3. Primitive Event Boundary (migration plan items 3 + 4 + 7)
 
-Required direction: replace object messages with primitive event records in a preallocated/ring-buffer stream. Formatting, diagnostics, and human-readable projection should happen off the engine thread.
+Status: done.
 
-## 4. The Evaluator And Planner Still Allocate Heavily
+`KernelEventLog` is the primary write path. The kernel's
+`WriteKernelEvent(in KernelEvent)` is non-blocking and stamps the current
+execution context (program ID + source code ID) onto every event.
+Projections and observability read via independent
+`KernelEventCursor`s; slow consumers cannot stall the kernel or another
+consumer.
+
+Required direction: keep new event types primitive (no strings, no formatted
+prose, no presentation-only payloads); validate via
+`KernelEventSchemaRegistry`.
+
+## 4. The Evaluator And Planner Still Allocate Heavily (migration plan item 9)
 
 Status: remaining.
 
-`EntityEvaluator` still creates lists, hash sets, locality reports, snapshots, and uses LINQ/grouping/sorting during tick work. `GoalGenerator` still allocates dictionaries/lists and uses string source labels such as `deficit` and `standing`.
+The current planner/evaluator implementations inside
+`ProcessProgramRuntime`, `GambitProgramRuntime`, and
+`PlanningProgramRuntime` still rely on per-tick working sets that allocate
+in steady state — candidate goal lists, locality reports, scoring buffers,
+and provider snapshots. Source labels are typed as IDs but some scratch
+shapes remain object-y.
 
-Required direction: move evaluator/planner working sets to reusable fixed-capacity buffers or pooled scratch buffers with explicit overflow behavior. Replace string source labels with enum/source IDs.
+Required direction: move evaluator/planner working sets to reusable
+fixed-capacity buffers or pooled scratch with explicit overflow behavior.
+The runtimes already carry `Scratch` types — push more of the working set
+into them and shrink per-tick allocation toward zero.
 
-## 5. The Query Cache Is Partial, Not The Target Architecture
+## 5. The Query Cache Is Partial, Not The Target Architecture (migration plan item 7)
 
 Status: partial.
 
-The current query cache gives same-tick quick returns, but it still clears per tick, rebuilds arrays with LINQ, uses string relationship keys, and stores materialized lists behind `IReadOnlyList`.
+The current query path gives same-tick quick returns but still rebuilds
+arrays per tick. The target shape is mutation-maintained versioned indexes
+keyed by primitive IDs.
 
-Required direction: move from per-query materialization to versioned indexes maintained on mutation. Cache keys and relationship filters should be primitive IDs. Cached results should be stable spans/ranges or fixed buffers, not newly allocated arrays.
+Required direction: move from per-query materialization to versioned
+indexes maintained on mutation. Cache keys and relationship filters should
+be primitive IDs. Cached results should be stable spans/ranges or fixed
+buffers, not newly allocated arrays.
 
-## 6. Core Graph Storage Is Not Allocation-Disciplined
-
-Status: remaining.
-
-`WorldGraph` still uses QuikGraph, dictionaries, hash sets, LINQ, `IEnumerable`, and iterator traversal. This is not compatible with a strict audio-thread-style kernel.
-
-Required direction: replace or wrap graph storage with custom stable-handle adjacency/index storage. Relationship traversal should avoid iterator allocation, closures, and materialized enumerable chains.
-
-## 7. Observability Is Still Partly In-Engine
+## 6. Core Graph Storage Is Not Allocation-Disciplined (migration plan item 10)
 
 Status: remaining.
 
-Run logging, telemetry recording, performance recording, and message projection still live under `src/Engine` and consume live engine objects/messages.
+Relationship adjacency in `WorldState` uses primitive IDs at the surface
+but parts of the underlying traversal still rely on iterator-style flow
+that can allocate. Replace remaining iterator/enumerable patterns with
+stable-handle adjacency walks over fixed buffers.
 
-Required direction: make observability a consumer of primitive event streams and immutable primitive snapshots. UI, logs, Monte Carlo export, profiler summaries, and narrative/debug text should resolve IDs and format text off the sim thread.
+Required direction: stable-handle adjacency/index storage with span-based
+traversal. Avoid iterator allocation, closures, and materialized
+enumerable chains in any relationship walk used during the tick.
+
+## 7. Observability Now Lives Outside The Kernel (migration plan item 5)
+
+Status: project split done; allocation cleanup ongoing.
+
+Run logging, telemetry, planner trace reconstruction, performance
+recording, and Monte Carlo export are all in `Engine.Observability` and
+`Engine.Observability.Export`, registered as independent consumers via the
+host. They consume primitive events through `KernelEventCursor`s.
+
+Required direction: tighten the consumers themselves — telemetry batches
+and run-log lines still allocate per event. The kernel side is clean; the
+remaining work is on the consumer side, where allocation is allowed but
+should still be bounded and bursty rather than per-tick steady-state.

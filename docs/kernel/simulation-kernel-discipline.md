@@ -2,13 +2,22 @@
 
 This document is a critical architecture reference for future engine work.
 
-The simulation kernel is the code executed by `SimulationRunner.Tick()` and every
-system it invokes on the sim thread. It should be treated like an audio callback:
-deterministic, bounded, allocation-aware, and isolated from presentation work.
+The simulation kernel is the code executed by `Simulation.AdvanceTicks()` (in
+`Engine.Kernel/Simulation.cs`) and every program/system it invokes on the sim
+thread. It should be treated like an audio callback: deterministic, bounded,
+allocation-aware, and isolated from presentation work.
 
-The current codebase is not fully compliant with this document. Existing
-violations are migration debt, not precedent. New work must move the engine
-toward these rules and must not introduce avoidable new violations.
+The kernel split is in place — `Engine.Kernel`, `Engine.Domain`,
+`Engine.Eventing`, `Engine.Eventing.Schema`, `Engine.Host`,
+`Engine.Kernel.Driver`, `Engine.Kernel.Schema`, `Engine.Projection`,
+`Engine.Observability`, `Engine.Observability.Export`, and
+`Engine.WorldGen` — and `Engine.Kernel/BannedSymbols.txt` enforces the
+no-string, no-LINQ, no-allocation, no-async, no-I/O rules at build time.
+The codebase is not yet fully compliant inside the kernel boundary
+(planner/evaluator hot-path allocations, graph storage, query indexing —
+see `invarient_progress_tracking.md`). Existing violations are migration
+debt, not precedent. New work must move the engine toward these rules and
+must not introduce avoidable new violations.
 
 ## Core Rule
 
@@ -228,7 +237,9 @@ the sim thread to allocate analysis objects or strings.
 
 For any engine change, ask:
 
-- Does this run during `SimulationRunner.Tick()`?
+- Does this run during `Simulation.AdvanceTicks()` (i.e. inside a kernel
+  program registered via `Simulation.RegisterProgram` or as a per-tick
+  system)?
 - Does it allocate in steady state?
 - Does it create or compare strings after domain registration?
 - Does it emit presentation text instead of primitive facts?

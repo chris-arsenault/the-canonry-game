@@ -221,7 +221,7 @@ The ability to create a save point at a pivotal moment and branch the simulation
 
 ### Support-Goal Generalization
 
-Today `GoalGenerator.BuildBestPlanForBlocker` only creates sub-goals when a precondition is **hard-blocked**. Once every precondition passes, the planner commits to the immediate action even if the process would be substantially more productive in a better context.
+Today the planner (`Engine.Kernel/Programs/Planning/PlanningProgramRuntime.cs`, plus the goal-generation paths inside `Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs`) only creates sub-goals when a precondition is **hard-blocked**. Once every precondition passes, the planner commits to the immediate action even if the process would be substantially more productive in a better context.
 
 The existing `SupportRules` concept is attached to specific processes (settlement_grow's "food ≥ 4 helps") but is narrow and hand-authored. Generalize it so any process can declare **"would be better if X"** conditions (target stock ≥ threshold, pressure ≤ threshold, relationship strength ≥ threshold, etc.) and the planner automatically surfaces processes that can improve that state as *support sub-goals* with their own urgency scaled by how much they'd lift the parent's reward.
 

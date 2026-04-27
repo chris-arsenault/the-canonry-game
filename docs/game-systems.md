@@ -4,6 +4,18 @@ The vertical slices that make up the game. Each system is a full-stack unit: dat
 
 MVP scope is noted per system. "MVP" means required for first playable. "Post-MVP" means architecturally planned but not implemented initially.
 
+> Implementation note: this document describes systems conceptually. In the
+> current codebase the runtime is split into a microkernel (`Engine.Kernel`),
+> domain compilation (`Engine.Domain`), an event log (`Engine.Eventing`),
+> projections (`Engine.Projection`), observability (`Engine.Observability`),
+> and a host that wires them together (`Engine.Host`). The kernel runs the
+> per-tick programs listed under "Tick Clock" below. The data model lives in
+> `WorldState` and `KernelDataSet` inside the kernel; the "display" half of
+> each system is a projection that consumes primitive events off the sim
+> thread. See `docs/architecture.md` for the code-level picture and
+> `docs/kernel/simulation-kernel-discipline.md` for the rules that govern
+> what may live in the kernel versus the consumers.
+
 ---
 
 ## Core Data Systems
@@ -426,35 +438,41 @@ Map / Spatial → positions, adjacency, terrain (includes procedural generation)
     ↑
 Tick Clock → drives all updates
     ↑
-LAYER 1: PHYSICS (automatic, unconditional)
-├── Lifecycle → aging drain, death transitions
+LAYER 1: PHYSICS (automatic, unconditional) — Upkeep + Relationships kernel programs
+├── Lifecycle → aging drain, death transitions, ambient resource drift
 ├── Relationships → strength drift from proximity, culture, competing claims
-├── Resources → sustenance/gold production, consumption, population dynamics
-└── Map Visualization → reads all state, renders spatially (NOT a simulation system)
+├── Ambient resources → per-hex food/wealth/population fields
+└── Map Visualization → projection consumer of primitive events; not a sim program
     ↑
-LAYER 2: PROCESSES (utility AI, always available, one per entity per tick)
-├── Per-kind process menus (data-defined in domain config)
+LAYER 2: PROCESSES (planner + utility AI, one per entity per tick) — Processes kernel program
+├── Per-kind process menus (data-defined in domain config, compiled to IDs)
 ├── Cross-entity mutations (NPC eats → settlement loses food)
-└── Wiring contracts validated at startup
+├── Multi-step behavior emerges from sub-goal generation (see MULTI_STEP.md)
+└── Wiring contracts validated at domain compile time
     ↑
-LAYER 3: DECISIONS (utility AI, card-gated, one per entity per tick)
-├── Available only when enabling Action card is in tableau
+LAYER 3: DECISIONS / GAMBITS (utility AI, card-gated, one per entity per tick) — Gambits kernel program
+├── Currently always available; full tableau-driven gating is deferred
 ├── Consume population (universal action currency)
 └── Produce significant world-state changes (new relationships, entities)
     ↑
-Pressure → BRIDGE: smoothed aggregates of layers 1-3
+Pressure → BRIDGE: smoothed aggregates of layers 1-3 — Pressures kernel program
     ↑
-CARD EXECUTION (mid-altitude)
+CARD EXECUTION (mid-altitude) — Generators + Degeneracy kernel programs
 ├── Deck → player's card collection
-├── Tableau / Mana → active cards + resource pool
-├── Save / Load → full state serialization
+├── Tableau / Mana → active cards + resource pool (TheCanonryGame.Game.Tableau)
+├── Save / Load → KernelSnapshot binary round-trip
 ├── Card Precondition Evaluation (reads pressure, attributes, relationships, map)
-├── Generator Executor → creates entities (what the world BECOMES)
-├── System Executor → modifies world processes (how forces BEHAVE)
-└── (Action cards register decisions into Layer 3 above)
+├── Generators → create entities (what the world BECOMES)
+├── Systems → modify world processes (how forces BEHAVE)
+├── Actions → register decisions/gambits into Layer 3 above
+└── Degeneracy → detect spatial / agency / actor degenerate trends
     ↑
-Effects applied back to Entity Graph (loop)
+Effects applied back to WorldState; events emitted to KernelEventLog;
+projection consumers update UI read models (loop)
 ```
+
+Code-level mapping of these layers to the kernel programs registered in
+`Engine.Kernel/Simulation.cs` is in `docs/architecture.md`.
 
 ---
 

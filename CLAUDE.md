@@ -12,15 +12,25 @@ These are inviolable. Every commit must respect them.
 
 ### Critical Reference: Simulation Kernel Discipline
 
-Before changing engine runtime code, read `docs/simulation-kernel-discipline.md`.
+Before changing engine runtime code, read `docs/kernel/simulation-kernel-discipline.md`.
 
 That document is the controlling architecture direction for simulation-thread
 work: no runtime string creation in the kernel, no runtime string lookup after
 domain registration, no steady-state hot-path allocations, primitive event
 boundaries, and one sim writer thread.
 
-Existing engine violations are migration debt, not precedent. New work should
-move the engine toward that model and should not add avoidable new violations.
+The kernel split is in place: `Engine.Kernel`, `Engine.Domain`,
+`Engine.Eventing`, `Engine.Eventing.Schema`, `Engine.Host`,
+`Engine.Kernel.Driver`, `Engine.Kernel.Schema`, `Engine.Projection`,
+`Engine.Observability`, `Engine.Observability.Export`, `Engine.WorldGen`,
+`Engine.Constants`. `Engine.Kernel/BannedSymbols.txt` enforces the no-string,
+no-LINQ, no-allocation, no-async, no-I/O rules at build time.
+
+Remaining migration work (planner/evaluator allocations, graph storage,
+versioned indexes) is tracked in
+`docs/kernel/invarient_progress_tracking.md`. Existing violations are
+migration debt, not precedent. New work should move the engine toward the
+kernel model and should not add avoidable new violations.
 
 ### 1. No Domain Mixing
 
@@ -122,10 +132,13 @@ make clean    # remove .artifacts/
 For each issue, follow this sequence exactly:
 
 1. **Move ticket to In Progress** on the GitHub project board
-2. **Write code** in the appropriate `src/Engine/` subfolder
-3. **Write tests** in `tests/Engine.Tests/` mirroring the source structure
+2. **Write code** in the appropriate engine project under `src/Engine.*` (or
+   the domain projects under `src/IceRemembers*`, or the application
+   projects under `src/TheCanonryGame.*`). See "What belongs where" below.
+3. **Write tests** in the matching `tests/<project>.Tests/` directory,
+   mirroring the source structure.
 4. **Run `make ci`** -- must pass clean (0 warnings, 0 errors, all tests green)
-5. **Domain contamination check:** `grep -ri 'penguin\|orca\|soup\|ice magic\|long dark\|frost' src/Engine/` must return zero matches. Engine code must never reference domain content.
+5. **Domain contamination check:** `grep -ri 'penguin\|orca\|soup\|ice magic\|long dark\|frost' src/Engine.*/` must return zero matches. Engine projects must never reference domain content.
 6. **Validate acceptance criteria** from the issue against the implementation
 7. **Commit** with message referencing the issue: `git commit -m "Description (#N)"`. Use `Closes #N` in the body if the issue is fully complete.
 8. **Update the issue** with commit hash and any notes. Move ticket to Done.
@@ -137,23 +150,113 @@ For each issue, follow this sequence exactly:
 - `make ci` must pass before pushing. Do not push broken builds.
 
 ### What belongs where
-- `src/Engine/` -- domain-agnostic simulation engine only. No domain terms, no Godot UI.
-- `tests/Engine.Tests/` -- unit tests for engine code. Mirror the source folder structure.
-- `src/Domain/` -- narrative domain content (Phase 2, not yet created)
-- `src/UI/` -- Godot scenes and visualization (not yet created)
+
+Engine projects (no domain terms, no Godot, no presentation):
+
+- `src/Engine.Kernel/` — deterministic tick mutation, fixed buffers, primitive
+  IDs only. Build-banned: strings, LINQ, allocating collections, async,
+  logging, I/O. Reference only `Engine.Constants` and `Engine.Eventing`.
+- `src/Engine.Constants/` — primitive ID code catalogs. No external deps.
+- `src/Engine.Eventing/` — bounded primitive event log with independent
+  cursors.
+- `src/Engine.Eventing.Schema/` and `src/Engine.Eventing.Generators/` —
+  runtime schema registry and source generators for event layouts.
+- `src/Engine.Domain/` — domain registration and compilation. Strings allowed
+  here as input/metadata; emits `CompiledDomain` with stable IDs.
+- `src/Engine.WorldGen/` — hex grid, terrain catalog, semantic plane, ambient
+  resource layout.
+- `src/Engine.Kernel.Driver/` — async edge: realtime/stepped/unpaced drivers,
+  time control, command submission/completion.
+- `src/Engine.Kernel.Schema/` — kernel event semantic helpers.
+- `src/Engine.Projection/` — UI read models (`HexMapProjection`,
+  `UiProjectionState`, `UiChronicleProjection`, symbol catalog, name
+  synthesis). Consumes primitive events.
+- `src/Engine.Observability/` — telemetry, run logs, planner traces, perf
+  recorders. Consumes primitive events.
+- `src/Engine.Observability.Export/` — Parquet/CSV exporters.
+- `src/Engine.Host/` — wires kernel, domain, eventing, projections, and
+  observability into a `KernelHost` runtime via `KernelHostBuilder` and
+  `KernelRuntimeFactory`.
+
+Domain projects (`The Ice Remembers` content; never referenced by `Engine.*`):
+
+- `src/IceRemembers/` — `DomainConfig`: kinds, attributes, processes,
+  gambits, generators, relationships, pressures, degeneracy detectors,
+  terrain, name synthesis.
+- `src/IceRemembers.Seed/` — `IKernelDomainModule` + `IKernelStartupSeeder`
+  that places the initial world.
+
+Application projects (Godot game and UI):
+
+- `src/TheCanonryGame.App/` — Godot autoload script (`Main.cs`).
+- `src/TheCanonryGame.Game/` — runtime facade: `CanonryGameRuntime`,
+  read models, controls, intent port, tableau surface.
+- `src/TheCanonryGame.UI/` — Godot scene scripts.
+- `src/TheCanonryGame.UI.Core/` — theme tokens and UI primitives.
+
+Tests live under `tests/<project>.Tests/` mirroring the source layout
+(`Engine.Kernel.Tests`, `Engine.Domain.Tests`, `Engine.Eventing.Tests`,
+`Engine.Host.Tests`, `Engine.Kernel.Driver.Tests`, `Engine.Projection.Tests`,
+`Engine.Observability.Tests`, `Engine.WorldGen.Tests`,
+`IceRemembers.Seed.Tests`, `TheCanonryGame.Game.Tests`,
+`TheCanonryGame.UI.Tests`, plus `MonteCarlo.Tests` for batch runs).
 
 ## Repository Structure
 
 ```
-docs/                          # Design documentation
-  design-principles.md         # Central thesis and core principles
-  design-constraints.md        # What the game is NOT
+src/
+  Engine.Constants/            # Primitive ID code catalogs
+  Engine.Domain/               # Domain registration + DomainCompiler
+  Engine.Eventing/             # Bounded primitive event log
+  Engine.Eventing.Generators/  # Source generators for event layouts
+  Engine.Eventing.Schema/      # Runtime event schema registry
+  Engine.Host/                 # KernelHostBuilder, KernelRuntimeFactory
+  Engine.Kernel/               # Deterministic tick (BannedSymbols.txt)
+  Engine.Kernel.Driver/        # Realtime/stepped/unpaced drivers, commands
+  Engine.Kernel.Schema/        # Kernel event semantic helpers
+  Engine.Observability/        # RunLogger, telemetry, planner trace, perf
+  Engine.Observability.Export/ # Parquet/CSV exporters
+  Engine.Projection/           # UI read models, symbol catalog
+  Engine.WorldGen/             # Hex grid, terrain, semantic plane
+  IceRemembers/                # Domain content (DomainConfig)
+  IceRemembers.Seed/           # Domain module + startup seeder
+  TheCanonryGame.App/          # Godot autoload (Main.cs)
+  TheCanonryGame.Game/         # Runtime facade
+  TheCanonryGame.UI/           # Godot scene scripts
+  TheCanonryGame.UI.Core/      # Theme tokens
+tests/
+  <Project>.Tests/             # xUnit tests mirroring src/
+  MonteCarlo.Tests/            # Batch simulation regressions
+scenes/
+  Main.tscn                    # Godot entry scene
+docs/
+  architecture.md              # Microkernel architecture (read this first)
   game-systems.md              # System overview and MVP priority
-  anti-degeneracy.md           # Structural anti-degeneracy mechanisms
-  milestones.md                # MVP / Tech Demo / Early Access definitions
-  post-mvp-backlog.md          # Deferred ideas
+  kernel/                      # Kernel discipline + migration tracking
   systems/                     # Per-system design docs (01-19)
-  research/                    # Research corpus (exemplars, card mechanics, etc.)
+  design/                      # Functional design areas
+    principles.md              # Central thesis, core principles, what we're not
+    milestones.md              # MVP / Tech Demo / Early Access
+    anti-degeneracy.md         # Three-layer anti-degeneracy mechanism
+    entities.md                # Kinds, attributes, RPS verb ring, relationships
+    generators.md              # Generator system + current catalog
+    loops.md                   # Active gameplay loops
+    asset-prompts.md           # Art-asset reference prompts
+    test-requirements.md       # Engine test coverage targets
+    post-mvp-backlog.md        # Deferred ideas
+  lore/                        # The Ice Remembers world reference
+    lore-bible.md
+    eras/                      # Era frames (great thaw, faction wars, ...)
+    encyclopedia/              # Per-kind reference (artifact, nation, ...)
+  research/                    # Research corpus, organized by area
+    requirements.md            # Original requirements summary
+    tech-stack.md              # Engine/language evaluation
+    exemplars.md               # Mechanical analysis of inspirational games
+    cards/                     # Card-system research
+    simulation/                # Process / behavior / planning research
+    graph/                     # Graph storage and library evaluation
+    pacing/                    # Tempo, attention, lose conditions
+    modes/                     # Patron / favored-nation research
 ```
 
 ## Key Design Decisions

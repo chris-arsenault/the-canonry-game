@@ -22,7 +22,7 @@ Unlike generators and systems (where the executor evaluates preconditions and fi
 
 The flow:
 1. Action card is in the tableau -> its decisions are registered as available for the specified entity kinds
-2. EntityEvaluator runs Layer 3 (decision selection) for each active entity
+2. The kernel's gambit program (`Engine.Kernel/Programs/Gambits/GambitProgramRuntime.cs`) runs Layer 3 (decision selection) for each active entity. (The legacy `EntityEvaluator` class is gone; in the current architecture Layer 3 lives in the gambit program runtime.)
 3. Entity evaluates all available decisions alongside each other (not alongside processes -- those are Layer 2)
 4. If a decision scores highly AND its preconditions are met, the entity selects it
 5. The decision's mutations execute: attribute changes, relationship creation, pressure modification
@@ -164,7 +164,7 @@ achievement_conditions:
 
 The action executor and entity behavior system are tightly coupled:
 
-**Entity Behaviors provides:** process/decision evaluation, actor state, goal tag response. The EntityEvaluator runs Layer 3 (decision selection) for entities with available decisions.
+**Entity Behaviors provides:** process/decision evaluation, actor state, goal tag response. The kernel's gambit program runtime (`Engine.Kernel/Programs/Gambits/GambitProgramRuntime.cs`) runs Layer 3 (decision selection) for entities with available decisions; Layer 2 (process selection) is run by `Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs`.
 
 **Action Executor provides:** the set of available actions (registered from active action cards). Resolution logic when an actor selects an action.
 
