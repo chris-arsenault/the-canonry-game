@@ -2,9 +2,6 @@ namespace Engine.Domain.Compilation.KernelPrograms;
 
 public sealed class GeneratorProgram
 {
-    public const int TargetReferenceCode = 1;
-    public const int DefaultCadenceTicks = 25;
-
     public bool EnabledByDefault { get; init; } = true;
     public IReadOnlyList<CompiledGeneratorRule> Generators { get; init; } = [];
 }

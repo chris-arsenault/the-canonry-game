@@ -160,7 +160,7 @@ public partial class EntityCard : PanelContainer
         var whisper = ColorTag(UiTokens.Whisper);
         var subtype = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Subtype, entity.SubtypeId, $"Subtype {entity.SubtypeId}");
         var culture = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Culture, entity.CultureId, $"Culture {entity.CultureId}");
-        var status = entity.StatusCode == UiProjectionStatusCodes.Active ? "Active" : "Historical";
+        var status = entity.StatusCode == EntityStatusCodes.Active ? "Active" : "Historical";
         sb.AppendLine($"[color={secondary}]{subtype}  |  {culture}  |  {status}[/color]");
         var currentTick = _projection.CurrentTick;
         var createdTick = entity.CreatedTick ?? 0;

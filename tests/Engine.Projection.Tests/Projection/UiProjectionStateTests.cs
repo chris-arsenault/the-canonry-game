@@ -33,7 +33,7 @@ public sealed class UiProjectionStateTests
             WorldVersion: 2,
             EntityId: 10,
             SourceCodeId: 40,
-            PlaneCode: 1,
+            PlaneCode: PlaneCodes.Physical,
             FromQ: 0,
             FromR: 0,
             FromS: 0,
@@ -45,7 +45,7 @@ public sealed class UiProjectionStateTests
             WorldVersion: 3,
             EntityId: 10,
             SourceCodeId: 40,
-            PlaneCode: 2,
+            PlaneCode: PlaneCodes.Semantic,
             FromQ: 0,
             FromR: 0,
             FromS: 0,
@@ -61,6 +61,55 @@ public sealed class UiProjectionStateTests
         Assert.Equal(0, entity.SemanticQ);
         Assert.Equal(1, entity.SemanticR);
         Assert.Equal(-1, entity.SemanticS);
+    }
+
+    [Fact]
+    public void Projection_UsesKernelStatusCodesForEntityStatusChanges()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: 1,
+            EntityId: 10,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0))));
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityStatusChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            EntityId: 10,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            PreviousStatusCode: EntityStatusCodes.Active,
+            CurrentStatusCode: EntityStatusCodes.Historical))));
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityStatusChangedKernelEvent(
+            Tick: 3,
+            WorldVersion: 3,
+            EntityId: 10,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            PreviousStatusCode: EntityStatusCodes.Historical,
+            CurrentStatusCode: EntityStatusCodes.Active))));
+
+        pump.DrainAvailable();
+
+        var entity = projection.Entities[10];
+        Assert.Equal(EntityStatusCodes.Historical, entity.PreviousStatusCode);
+        Assert.Equal(EntityStatusCodes.Active, entity.StatusCode);
     }
 
     [Fact]
@@ -91,7 +140,7 @@ public sealed class UiProjectionStateTests
             WorldVersion: 2,
             EntityId: 10,
             SourceCodeId: 40,
-            PlaneCode: (int)UiProjectionPlane.Physical,
+            PlaneCode: PlaneCodes.Physical,
             FromQ: 5,
             FromR: 6,
             FromS: 0,
@@ -124,7 +173,7 @@ public sealed class UiProjectionStateTests
         Assert.Equal(3, entity.SubtypeId);
         Assert.Equal(4, entity.CultureId);
         Assert.Equal(10, entity.NameSeed);
-        Assert.Equal(UiProjectionStatusCodes.Active, entity.StatusCode);
+        Assert.Equal(EntityStatusCodes.Active, entity.StatusCode);
         Assert.Equal(7, entity.PhysicalQ);
         Assert.Equal(8, entity.PhysicalR);
         Assert.Equal(14.5f, entity.Attributes[30].NewValue);
@@ -158,7 +207,7 @@ public sealed class UiProjectionStateTests
             ChangeCodeId: 9,
             SourceCodeId: 8,
             RelationshipKindId: 10,
-            PolarityCode: 1,
+            PolarityCode: RelationshipPolarityCodes.Negative,
             SourceEntityId: 20,
             TargetEntityId: 21,
             FactId0: 30,
@@ -172,7 +221,7 @@ public sealed class UiProjectionStateTests
             Tick: 3,
             WorldVersion: 3,
             GeneratorId: 40,
-            StatusCode: 1,
+            StatusCode: GeneratorStatusCodes.Eligible,
             SelectedTargetEntityId: 20,
             CandidateCount: 6,
             FailedFireCount: 0))));

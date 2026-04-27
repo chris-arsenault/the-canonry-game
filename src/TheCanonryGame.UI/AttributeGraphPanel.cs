@@ -100,7 +100,7 @@ public partial class AttributeGraphPanel : PanelContainer
         var parchment = UiFormat.ColorHex(UiTokens.Parchment);
         var sb = new StringBuilder();
         foreach (var entity in _projection.Entities.Values
-            .Where(entity => entity.StatusCode == UiProjectionStatusCodes.Active)
+            .Where(entity => entity.StatusCode == EntityStatusCodes.Active)
             .OrderBy(entity => ResolveEntityName(entity), StringComparer.Ordinal)
             .Take(24))
         {

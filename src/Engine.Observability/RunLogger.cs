@@ -138,7 +138,7 @@ public sealed class RunLogger : IDisposable
             entity.KindId = evt.KindId;
             entity.SubtypeId = evt.SubtypeId;
             entity.StatusCode = evt.CurrentStatusCode;
-            if (evt.CurrentStatusCode is UiProjectionStatusCodes.Historical or 2)
+            if (evt.CurrentStatusCode == EntityStatusCodes.Historical)
             {
                 Summary(evt.Tick).Deaths++;
                 Add(

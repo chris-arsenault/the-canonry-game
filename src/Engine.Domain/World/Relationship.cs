@@ -10,9 +10,9 @@ using Engine.Domain;
 /// </summary>
 public enum RelationshipPolarity
 {
-    Positive,
-    Negative,
-    Neutral,
+    Positive = RelationshipPolarityCodes.Positive,
+    Negative = RelationshipPolarityCodes.Negative,
+    Neutral = RelationshipPolarityCodes.Neutral,
 }
 
 /// <summary>

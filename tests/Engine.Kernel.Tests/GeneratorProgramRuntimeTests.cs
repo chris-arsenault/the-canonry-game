@@ -248,8 +248,8 @@ public sealed class GeneratorProgramRuntimeTests
             queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
             physicalPlacementCode: GeneratorPlacementCodes.Near,
             semanticPlacementCode: GeneratorPlacementCodes.Near,
-            placementRefCode: GeneratorProgramRuntime.TargetReferenceCode,
-            cultureRefCode: GeneratorProgramRuntime.TargetReferenceCode,
+            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
             createChance,
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
@@ -261,7 +261,7 @@ public sealed class GeneratorProgramRuntimeTests
         simulation.Generators.AddRelationship(
             generatorSlot,
             CreatedRef,
-            GeneratorProgramRuntime.TargetReferenceCode,
+            GeneratorProgramConstants.TargetReferenceCode,
             RelationshipKindId,
             strength: 0.75f,
             replaceExistingOutgoing: 0);

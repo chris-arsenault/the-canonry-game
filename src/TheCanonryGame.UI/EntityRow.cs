@@ -44,7 +44,7 @@ public partial class EntityRow : VBoxContainer
         ArgumentNullException.ThrowIfNull(entity);
 
         _entityId = entity.EntityId;
-        var isHistorical = entity.StatusCode != UiProjectionStatusCodes.Active;
+        var isHistorical = entity.StatusCode != EntityStatusCodes.Active;
         var kindStableName = ProjectionDisplay.StableName(symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}");
         var subtypeStableName = ProjectionDisplay.NullableStableName(symbols, ProjectionSymbolKind.Subtype, entity.SubtypeId);
         var entityName = ProjectionDisplay.EntityName(symbols, entity);

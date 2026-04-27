@@ -160,7 +160,7 @@ public sealed class KernelStartupSeedingTests
 
         var createdRelationship = created.CreateRelationship(
             relationshipKindId: 7,
-            polarityCode: 1,
+            polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: 1,
             targetEntityId: 2,
             strength: 0.5f,
@@ -169,7 +169,7 @@ public sealed class KernelStartupSeedingTests
             factCount: 1);
         seeded.SeedRelationship(
             relationshipKindId: 7,
-            polarityCode: 1,
+            polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: 1,
             targetEntityId: 2,
             factId0: 9,

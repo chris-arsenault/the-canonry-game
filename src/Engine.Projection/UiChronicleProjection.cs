@@ -40,7 +40,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
 
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
     {
-        var plane = evt.PlaneCode == (int)UiProjectionPlane.Physical ? "physical" : "semantic";
+        var plane = evt.PlaneCode == PlaneCodes.Physical ? "physical" : "semantic";
         Add(evt.Tick, $"E{evt.EntityId} moved on {plane} to ({evt.ToQ},{evt.ToR},{evt.ToS})");
     }
 

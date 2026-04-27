@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="TheCanonryGame.csproj" />
   <Folder Name="/src/">
+    <Project Path="src/Engine.Constants/Engine.Constants.csproj" />
     <Project Path="src/Engine.Domain/Engine.Domain.csproj" />
     <Project Path="src/Engine.Eventing/Engine.Eventing.csproj" />
     <Project Path="src/Engine.Eventing.Schema/Engine.Eventing.Schema.csproj" />

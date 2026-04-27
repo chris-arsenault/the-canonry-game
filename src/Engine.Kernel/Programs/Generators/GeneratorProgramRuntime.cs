@@ -4,8 +4,6 @@ using Engine.Eventing;
 
 public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>
 {
-    public const int TargetReferenceCode = 1;
-
     private const int MaxResolvedReferences = 32;
     private const int MaxScratchCells = 4096;
     private readonly GeneratorProgramScratch _scratch;
@@ -694,7 +692,7 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
             return false;
         }
 
-        SetRef(refCodes, refEntityIds, ref refCount, TargetReferenceCode, targetId);
+        SetRef(refCodes, refEntityIds, ref refCount, GeneratorProgramConstants.TargetReferenceCode, targetId);
         return ResolveSecondaryBindings(
             world,
             generatorSlot,
@@ -771,7 +769,7 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
         global::System.Span<int> createdEntityIds = stackalloc int[MaxResolvedReferences];
         var refCount = 0;
         var createdEntityCount = 0;
-        SetRef(refCodes, refEntityIds, ref refCount, TargetReferenceCode, targetId);
+        SetRef(refCodes, refEntityIds, ref refCount, GeneratorProgramConstants.TargetReferenceCode, targetId);
 
         if (!ResolveSecondaryBindings(
                 world,

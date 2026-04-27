@@ -55,7 +55,7 @@ public sealed class KernelEventProjectionPumpTests
             Tick: 1,
             WorldVersion: 1,
             GeneratorId: 2,
-            StatusCode: 3,
+            StatusCode: GeneratorStatusCodes.EligibleNotSelected,
             SelectedTargetEntityId: 4,
             CandidateCount: 5,
             FailedFireCount: 6))));

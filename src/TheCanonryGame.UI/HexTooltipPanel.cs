@@ -128,7 +128,7 @@ public partial class HexTooltipPanel : PanelContainer
         {
             var s = -coord.Q - coord.R;
             var occupants = _projection.Entities.Values
-                .Where(entity => entity.StatusCode == UiProjectionStatusCodes.Active &&
+                .Where(entity => entity.StatusCode == EntityStatusCodes.Active &&
                                  entity.SemanticQ == coord.Q &&
                                  entity.SemanticR == coord.R)
                 .Select(FormatProjectedEntityLine)

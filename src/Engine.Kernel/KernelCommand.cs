@@ -1,20 +1,5 @@
 namespace Engine.Kernel;
 
-public static class KernelCommandTypeCodes
-{
-    public const int None = 0;
-    public const int NoOp = 1;
-    public const int SetGeneratorEnabled = 2;
-}
-
-public static class KernelCommandRejectReasonCodes
-{
-    public const int None = 0;
-    public const int StaleVersion = 1;
-    public const int UnsupportedCommand = 2;
-    public const int InvalidCommand = 3;
-}
-
 public readonly record struct NoOpKernelCommand(
     int IssueVersion,
     int SubmitterId = 0,

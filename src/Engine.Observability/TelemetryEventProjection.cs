@@ -160,7 +160,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         entity.SubtypeId = evt.SubtypeId;
         entity.CultureId = evt.CultureId;
         entity.NameSeed = evt.EntityId;
-        entity.StatusCode = UiProjectionStatusCodes.Active;
+        entity.StatusCode = EntityStatusCodes.Active;
         entity.PhysicalQ = evt.PhysicalQ;
         entity.PhysicalR = evt.PhysicalR;
         entity.SemanticQ = evt.SemanticQ;
@@ -237,7 +237,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
-        if (evt.PlaneCode == (int)UiProjectionPlane.Physical)
+        if (evt.PlaneCode == PlaneCodes.Physical)
         {
             entity.PhysicalQ = evt.ToQ;
             entity.PhysicalR = evt.ToR;
@@ -260,10 +260,10 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
             evt.FromQ,
             evt.FromR,
-            evt.PlaneCode == (int)UiProjectionPlane.Physical ? null : evt.FromS,
+            evt.PlaneCode == PlaneCodes.Physical ? null : evt.FromS,
             evt.ToQ,
             evt.ToR,
-            evt.PlaneCode == (int)UiProjectionPlane.Physical ? null : evt.ToS,
+            evt.PlaneCode == PlaneCodes.Physical ? null : evt.ToS,
             MovementDistance(evt)));
         MarkProjected(sequence);
     }
@@ -500,7 +500,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         entity = new ObservedEntityProjection(entityId)
         {
             NameSeed = entityId,
-            StatusCode = UiProjectionStatusCodes.Active,
+            StatusCode = EntityStatusCodes.Active,
         };
         _entities.Add(entityId, entity);
         return entity;
@@ -619,48 +619,47 @@ public sealed class TelemetryEventProjection : KernelEventProjector
 
     private static string PlaneName(int planeCode) => planeCode switch
     {
-        (int)UiProjectionPlane.Physical => "physical",
-        (int)UiProjectionPlane.Semantic => "semantic",
+        PlaneCodes.Physical => "physical",
+        PlaneCodes.Semantic => "semantic",
         _ => string.Create(CultureInfo.InvariantCulture, $"plane_{planeCode}"),
     };
 
     private static string PolarityName(int polarityCode) => polarityCode switch
     {
-        0 => "Positive",
-        1 => "Negative",
-        2 => "Neutral",
+        RelationshipPolarityCodes.Positive => "Positive",
+        RelationshipPolarityCodes.Negative => "Negative",
+        RelationshipPolarityCodes.Neutral => "Neutral",
         _ => string.Create(CultureInfo.InvariantCulture, $"polarity_{polarityCode}"),
     };
 
     private static string GeneratorStatusName(int statusCode) => statusCode switch
     {
-        1 => "eligible",
-        2 => "fired",
-        3 => "eligible_not_selected",
-        4 => "blocked",
-        5 => "fire_failed",
-        6 => "missing_definition",
-        7 => "max_runs",
-        8 => "zero_weight",
-        9 => "not_evaluated",
+        GeneratorStatusCodes.Eligible => "eligible",
+        GeneratorStatusCodes.Fired => "fired",
+        GeneratorStatusCodes.EligibleNotSelected => "eligible_not_selected",
+        GeneratorStatusCodes.Blocked => "blocked",
+        GeneratorStatusCodes.FireFailed => "fire_failed",
+        GeneratorStatusCodes.MissingDefinition => "missing_definition",
+        GeneratorStatusCodes.MaxRuns => "max_runs",
+        GeneratorStatusCodes.ZeroWeight => "zero_weight",
+        GeneratorStatusCodes.NotEvaluated => "not_evaluated",
         _ => string.Create(CultureInfo.InvariantCulture, $"status_{statusCode}"),
     };
 
     private static string StatusName(int statusCode) => statusCode switch
     {
-        UiProjectionStatusCodes.Active => "Active",
-        UiProjectionStatusCodes.Historical => "Historical",
-        2 => "Historical",
+        EntityStatusCodes.Active => "Active",
+        EntityStatusCodes.Historical => "Historical",
         _ => string.Create(CultureInfo.InvariantCulture, $"status_{statusCode}"),
     };
 
-    private static bool IsActiveStatus(int statusCode) => statusCode == UiProjectionStatusCodes.Active;
+    private static bool IsActiveStatus(int statusCode) => statusCode == EntityStatusCodes.Active;
 
     private static bool IsHistoricalStatus(int statusCode) =>
-        statusCode is UiProjectionStatusCodes.Historical or 2;
+        statusCode == EntityStatusCodes.Historical;
 
     private static int MovementDistance(EntityMovedKernelEvent evt) =>
-        evt.PlaneCode == (int)UiProjectionPlane.Physical
+        evt.PlaneCode == PlaneCodes.Physical
             ? AxialDistance(evt.FromQ, evt.FromR, evt.ToQ, evt.ToR)
             : CubeDistance(evt.FromQ, evt.FromR, evt.FromS, evt.ToQ, evt.ToR, evt.ToS);
 

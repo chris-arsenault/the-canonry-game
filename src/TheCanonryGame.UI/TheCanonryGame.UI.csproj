@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\TheCanonryGame.UI.Core\TheCanonryGame.UI.Core.csproj" />
     <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
     <ProjectReference Include="..\TheCanonryGame.Game\TheCanonryGame.Game.csproj" />

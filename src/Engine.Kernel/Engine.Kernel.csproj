@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\Engine.Eventing\Engine.Eventing.csproj" />
   </ItemGroup>
 
@@ -24,14 +25,14 @@
   <Target Name="ValidateKernelBoundaryReferences" BeforeTargets="CoreCompile">
     <ItemGroup>
       <ForbiddenKernelProjectReference Include="@(ProjectReference)"
-        Condition="'%(ProjectReference.Filename)' != 'Engine.Eventing'" />
+        Condition="'%(ProjectReference.Filename)' != 'Engine.Constants' and '%(ProjectReference.Filename)' != 'Engine.Eventing'" />
       <ForbiddenKernelPackageReference Include="@(PackageReference)"
         Condition="'%(PackageReference.Identity)' != 'Microsoft.CodeAnalysis.BannedApiAnalyzers'" />
     </ItemGroup>
 
     <Error
       Condition="'@(ForbiddenKernelProjectReference)' != ''"
-      Text="Engine.Kernel may only reference Engine.Eventing. Forbidden project references: @(ForbiddenKernelProjectReference)" />
+      Text="Engine.Kernel may only reference Engine.Constants and Engine.Eventing. Forbidden project references: @(ForbiddenKernelProjectReference)" />
     <Error
       Condition="'@(ForbiddenKernelPackageReference)' != ''"
       Text="Engine.Kernel may not add runtime package dependencies. Forbidden package references: @(ForbiddenKernelPackageReference)" />

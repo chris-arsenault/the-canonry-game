@@ -216,7 +216,7 @@ public sealed class KernelHostBuilderTests
                     value: 25f);
                 startup.SeedRelationship(
                     relationshipKindId: relationshipKindId,
-                    polarityCode: 0,
+                    polarityCode: RelationshipPolarityCodes.Positive,
                     sourceEntityId: 1,
                     targetEntityId: 1,
                     factId0: 0,

@@ -1,4 +1,4 @@
-namespace Engine.Kernel;
+namespace Engine.Constants;
 
 public static class TickPhaseCodes
 {
@@ -18,6 +18,7 @@ public static class EntityStatusCodes
 
 public static class PlaneCodes
 {
+    public const int None = 0;
     public const int Physical = 1;
     public const int Semantic = 2;
 }
@@ -108,6 +109,13 @@ public static class RelationshipTraversalDirectionCodes
 {
     public const int Outgoing = 1;
     public const int Incoming = 2;
+}
+
+public static class RelationshipPolarityCodes
+{
+    public const int Positive = 0;
+    public const int Negative = 1;
+    public const int Neutral = 2;
 }
 
 public static class ProcessEffectScopeCodes
@@ -217,4 +225,68 @@ public static class DegeneracySeverityCodes
     public const int Normal = 0;
     public const int Warning = 1;
     public const int Critical = 2;
+}
+
+public static class KernelProgramCodes
+{
+    public const int Upkeep = 1;
+    public const int Processes = 2;
+    public const int Relationships = 3;
+    public const int Pressures = 4;
+    public const int Generators = 5;
+    public const int Degeneracy = 6;
+    public const int Gambits = 7;
+    public const int Planning = 8;
+}
+
+public static class PlannerKindCodes
+{
+    public const int Goap = 1;
+    public const int Htn = 2;
+}
+
+public static class ActionFamilyCodes
+{
+    public const int Process = 1;
+    public const int Gambit = 2;
+}
+
+public static class PlanningStatusCodes
+{
+    public const int None = 0;
+    public const int Succeeded = 1;
+    public const int NoCandidates = 2;
+    public const int NoWeight = 3;
+    public const int UnsupportedPlanner = 4;
+    public const int UnsupportedActionFamily = 5;
+}
+
+public static class PlanningStepRoleCodes
+{
+    public const int Immediate = 1;
+    public const int Root = 2;
+    public const int Blocker = 3;
+    public const int Support = 4;
+    public const int Decomposition = 5;
+}
+
+public static class KernelCommandTypeCodes
+{
+    public const int None = 0;
+    public const int NoOp = 1;
+    public const int SetGeneratorEnabled = 2;
+}
+
+public static class KernelCommandRejectReasonCodes
+{
+    public const int None = 0;
+    public const int StaleVersion = 1;
+    public const int UnsupportedCommand = 2;
+    public const int InvalidCommand = 3;
+}
+
+public static class GeneratorProgramConstants
+{
+    public const int TargetReferenceCode = 1;
+    public const int DefaultCadenceTicks = 25;
 }

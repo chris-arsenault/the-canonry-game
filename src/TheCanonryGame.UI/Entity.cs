@@ -54,7 +54,7 @@ public partial class Entity : Node2D
         BindTexture(subtypeStableName);
         BindLabel(ProjectionDisplay.EntityName(symbols, entity), showName);
         BindShape();
-        BindHistorical(entity.StatusCode != UiProjectionStatusCodes.Active);
+        BindHistorical(entity.StatusCode != EntityStatusCodes.Active);
         QueueRedraw();
     }
 

@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\..\src\Engine.Kernel.Driver\Engine.Kernel.Driver.csproj" />
     <ProjectReference Include="..\..\src\Engine.Kernel.Schema\Engine.Kernel.Schema.csproj" />

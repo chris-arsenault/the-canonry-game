@@ -22,7 +22,7 @@ public sealed class KernelSnapshotTests
         simulation.World.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
         var relationshipId = simulation.CreateRelationship(
             relationshipKindId: 6,
-            polarityCode: 1,
+            polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: actor,
             targetEntityId: target,
             strength: 0.75f,

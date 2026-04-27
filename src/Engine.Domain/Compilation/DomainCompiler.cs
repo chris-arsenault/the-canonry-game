@@ -1138,7 +1138,7 @@ public static class DomainCompiler
             var refCodes = BuildGeneratorRefCodes(generator);
             generators.Add(new CompiledGeneratorRule(
                 generator.RuntimeId,
-                GeneratorProgram.DefaultCadenceTicks,
+                GeneratorProgramConstants.DefaultCadenceTicks,
                 ids.KindIdOf(generator.Target.Kind).Value,
                 CompileGeneratorSubtypeIds(generator.Target.Subtypes, ids),
                 generator.Target.AllowWilderness,
@@ -1158,9 +1158,9 @@ public static class DomainCompiler
     {
         var refCodes = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["$target"] = GeneratorProgram.TargetReferenceCode,
+            ["$target"] = GeneratorProgramConstants.TargetReferenceCode,
         };
-        var next = GeneratorProgram.TargetReferenceCode + 1;
+        var next = GeneratorProgramConstants.TargetReferenceCode + 1;
 
         foreach (var binding in generator.SecondaryTargets)
         {

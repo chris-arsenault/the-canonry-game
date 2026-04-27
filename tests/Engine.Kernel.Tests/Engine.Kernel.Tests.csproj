@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Engine.Constants\Engine.Constants.csproj" />
     <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\..\src\Engine.Eventing\Engine.Eventing.csproj" />
     <ProjectReference Include="..\..\src\Engine.Domain\Engine.Domain.csproj" />

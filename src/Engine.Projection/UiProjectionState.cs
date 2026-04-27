@@ -2,19 +2,6 @@ namespace Engine.Projection;
 
 using Engine.Eventing;
 
-public enum UiProjectionPlane
-{
-    None = 0,
-    Physical = 1,
-    Semantic = 2,
-}
-
-public static class UiProjectionStatusCodes
-{
-    public const int Active = 0;
-    public const int Historical = 1;
-}
-
 public sealed record UiProjectionMigrationItem(
     string Area,
     string RequiredPrimitiveSource,
@@ -86,7 +73,7 @@ public sealed class UiProjectionState : KernelEventProjector
         // MIGRATION: EntityCreatedKernelEvent does not yet carry a name seed.
         // EntityId keeps generated projection names stable until the kernel adds it.
         entity.NameSeed = evt.EntityId;
-        entity.StatusCode = UiProjectionStatusCodes.Active;
+        entity.StatusCode = EntityStatusCodes.Active;
         entity.PhysicalQ = evt.PhysicalQ;
         entity.PhysicalR = evt.PhysicalR;
         entity.SemanticQ = evt.SemanticQ;
@@ -114,7 +101,7 @@ public sealed class UiProjectionState : KernelEventProjector
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
-        if (evt.PlaneCode == (int)UiProjectionPlane.Physical)
+        if (evt.PlaneCode == PlaneCodes.Physical)
         {
             entity.PhysicalQ = evt.ToQ;
             entity.PhysicalR = evt.ToR;

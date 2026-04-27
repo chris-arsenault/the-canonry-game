@@ -225,7 +225,7 @@ public sealed class KernelPerformanceProjection : KernelEventProjector
 
     protected override void OnEntityStatusChanged(long sequence, in EntityStatusChangedKernelEvent evt)
     {
-        if (evt.CurrentStatusCode is UiProjectionStatusCodes.Historical or 2)
+        if (evt.CurrentStatusCode == EntityStatusCodes.Historical)
         {
             _activeEntities.Remove(evt.EntityId);
             _historicalEntities.Add(evt.EntityId);

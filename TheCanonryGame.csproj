@@ -8,7 +8,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 
     <!-- Scene scripts must compile into the main Godot assembly for resource path lookup at runtime. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;src/Engine.Domain/**;src/Engine.Eventing/**;src/Engine.Eventing.Schema/**;src/Engine.Host/**;src/Engine.Kernel/**;src/Engine.Kernel.Driver/**;src/Engine.Kernel.Schema/**;src/Engine.Observability/**;src/Engine.Observability.Export/**;src/Engine.Projection/**;tests/**;tools/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;src/Engine.Constants/**;src/Engine.Domain/**;src/Engine.Eventing/**;src/Engine.Eventing.Schema/**;src/Engine.Host/**;src/Engine.Kernel/**;src/Engine.Kernel.Driver/**;src/Engine.Kernel.Schema/**;src/Engine.Observability/**;src/Engine.Observability.Export/**;src/Engine.Projection/**;tests/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="src/Engine.Constants/Engine.Constants.csproj" />
     <ProjectReference Include="src/Engine.Projection/Engine.Projection.csproj" />
     <ProjectReference Include="src/TheCanonryGame.Game/TheCanonryGame.Game.csproj" />
     <ProjectReference Include="src/TheCanonryGame.UI.Core/TheCanonryGame.UI.Core.csproj" />

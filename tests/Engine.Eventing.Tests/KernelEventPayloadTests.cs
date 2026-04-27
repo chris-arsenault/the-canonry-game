@@ -4,6 +4,8 @@ using Engine.Eventing;
 
 public sealed class KernelEventPayloadTests
 {
+    private const int InvalidPolarityCode = -1;
+
     [Fact]
     public void RawSlotAccessExposesPrimitiveEventStorage()
     {
@@ -13,7 +15,7 @@ public sealed class KernelEventPayloadTests
             ChangeCodeId: 7,
             SourceCodeId: 41,
             RelationshipKindId: 11,
-            PolarityCode: -1,
+            PolarityCode: InvalidPolarityCode,
             SourceEntityId: 13,
             TargetEntityId: 17,
             FactId0: 19,
@@ -27,7 +29,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(7, kernelEvent.GetIntSlot(0));
         Assert.Equal(41, kernelEvent.GetIntSlot(1));
         Assert.Equal(11, kernelEvent.GetIntSlot(2));
-        Assert.Equal(-1, kernelEvent.GetIntSlot(3));
+        Assert.Equal(InvalidPolarityCode, kernelEvent.GetIntSlot(3));
         Assert.Equal(13, kernelEvent.GetIntSlot(4));
         Assert.Equal(17, kernelEvent.GetIntSlot(5));
         Assert.Equal(19, kernelEvent.GetIntSlot(6));
@@ -50,7 +52,7 @@ public sealed class KernelEventPayloadTests
         var entityStatusChanged = new EntityStatusChangedKernelEvent(2, 3, 4, 5, 6, 7, 8, 9);
         Assert.Equal(entityStatusChanged, KernelEvent.From(entityStatusChanged).AsEntityStatusChanged());
 
-        var entityMoved = new EntityMovedKernelEvent(3, 4, 5, 6, 1, 7, 8, -15, 9, 10, -19);
+        var entityMoved = new EntityMovedKernelEvent(3, 4, 5, 6, PlaneCodes.Physical, 7, 8, -15, 9, 10, -19);
         Assert.Equal(entityMoved, KernelEvent.From(entityMoved).AsEntityMoved());
 
         var attributeChanged = new AttributeChangedKernelEvent(4, 5, 6, 7, 8, 1.25f, 2.5f);
@@ -60,7 +62,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(resourceChanged, KernelEvent.From(resourceChanged).AsResourceChanged());
 
         var relationshipChanged = new RelationshipChangedKernelEvent(
-            6, 7, 8, 9, 10, -1, 11, 12, 13, 14, 15, 16, 4, 0.125f, 0.875f);
+            6, 7, 8, 9, 10, InvalidPolarityCode, 11, 12, 13, 14, 15, 16, 4, 0.125f, 0.875f);
         Assert.Equal(relationshipChanged, KernelEvent.From(relationshipChanged).AsRelationshipChanged());
 
         var processEvaluated = new ProcessEvaluatedKernelEvent(
