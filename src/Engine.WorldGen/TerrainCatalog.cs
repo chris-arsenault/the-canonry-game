@@ -3,7 +3,6 @@ namespace Engine.WorldGen;
 public sealed record TerrainDefinition(
     string StableName,
     string DisplayName,
-    bool IsPassable,
     float MovementCost,
     float HabitabilityFactor,
     string BoundaryGroup,
@@ -12,14 +11,12 @@ public sealed record TerrainDefinition(
     public TerrainDefinition(
         string stableName,
         string displayName,
-        bool isPassable,
         float movementCost,
         float habitabilityFactor,
         string boundaryGroup)
         : this(
             stableName,
             displayName,
-            isPassable,
             movementCost,
             habitabilityFactor,
             boundaryGroup,

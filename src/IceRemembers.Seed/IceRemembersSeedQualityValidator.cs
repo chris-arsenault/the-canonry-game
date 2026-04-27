@@ -161,7 +161,7 @@ public static class IceRemembersSeedQualityValidator
 
             if (float.IsPositiveInfinity(cell.MovementCost))
             {
-                issues.Add($"{entity.Kind} '{entity.Name}' is on impassable terrain {cell.Terrain} at {coord}.");
+                issues.Add($"{entity.Kind} '{entity.Name}' is on blocked terrain cost {cell.Terrain} at {coord}.");
             }
         }
 

@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class PrimitiveIntTable
+public sealed partial class PrimitiveIntTable
 {
     private readonly int[] _firstKeys;
     private readonly int[] _secondKeys;

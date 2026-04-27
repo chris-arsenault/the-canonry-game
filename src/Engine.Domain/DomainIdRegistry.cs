@@ -1,5 +1,6 @@
 namespace Engine.Domain;
 
+using Engine.Gambits;
 using Engine.Kinds;
 using Engine.Processes;
 
@@ -8,6 +9,7 @@ public enum DomainIdCategory
     Kind,
     Attribute,
     Process,
+    Gambit,
     StructuralFact,
     RelationshipKind,
     RelationshipFact,
@@ -36,6 +38,8 @@ public sealed class DomainIdRegistry
         new(static value => new AttributeRuntimeId(value), static id => id.Value, "attribute");
     private readonly StableNameRegistry<ProcessRuntimeId> _processes =
         new(static value => new ProcessRuntimeId(value), static id => id.Value, "process");
+    private readonly StableNameRegistry<GambitRuntimeId> _gambits =
+        new(static value => new GambitRuntimeId(value), static id => id.Value, "gambit");
     private readonly StableNameRegistry<StructuralFactRuntimeId> _structuralFacts =
         new(static value => new StructuralFactRuntimeId(value), static id => id.Value, "structural fact");
     private readonly StableNameRegistry<RelationshipKindRuntimeId> _relationshipKinds =
@@ -76,6 +80,10 @@ public sealed class DomainIdRegistry
     public ProcessRuntimeId RegisterProcess(string stableName) => _processes.Register(stableName);
     public ProcessRuntimeId ProcessIdOf(string stableName) => _processes.Resolve(stableName);
     public string ProcessNameOf(ProcessRuntimeId id) => _processes.NameOf(id);
+
+    public GambitRuntimeId RegisterGambit(string stableName) => _gambits.Register(stableName);
+    public GambitRuntimeId GambitIdOf(string stableName) => _gambits.Resolve(stableName);
+    public string GambitNameOf(GambitRuntimeId id) => _gambits.NameOf(id);
 
     public StructuralFactRuntimeId RegisterStructuralFact(string stableName) => _structuralFacts.Register(stableName);
     public StructuralFactRuntimeId StructuralFactIdOf(string stableName) => _structuralFacts.Resolve(stableName);
@@ -140,6 +148,7 @@ public sealed class DomainIdRegistry
         foreach (var entry in _kinds.Entries(DomainIdCategory.Kind)) yield return entry;
         foreach (var entry in _attributes.Entries(DomainIdCategory.Attribute)) yield return entry;
         foreach (var entry in _processes.Entries(DomainIdCategory.Process)) yield return entry;
+        foreach (var entry in _gambits.Entries(DomainIdCategory.Gambit)) yield return entry;
         foreach (var entry in _structuralFacts.Entries(DomainIdCategory.StructuralFact)) yield return entry;
         foreach (var entry in _relationshipKinds.Entries(DomainIdCategory.RelationshipKind)) yield return entry;
         foreach (var entry in _relationshipFacts.Entries(DomainIdCategory.RelationshipFact)) yield return entry;

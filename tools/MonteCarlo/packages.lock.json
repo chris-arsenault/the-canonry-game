@@ -46,20 +46,12 @@
         "resolved": "2.5.0",
         "contentHash": "sG+mrPpXwxlXknRK5VqWUGiOmDACa9X+3ftlkQIMgOZUqxVOQSe0+HIU9PTjwqazy0pqSf8MPDXYFGl0GYWcKw=="
       },
-      "engine": {
-        "type": "Project",
-        "dependencies": {
-          "Engine.Domain": "[1.0.0, )",
-          "Engine.Eventing": "[1.0.0, )",
-          "Engine.Kernel": "[1.0.0, )",
-          "MessagePack": "[3.1.4, )",
-          "QuikGraph": "[2.5.0, )"
-        }
-      },
       "engine.domain": {
         "type": "Project",
         "dependencies": {
-          "Engine.Kernel": "[1.0.0, )"
+          "Engine.WorldGen": "[1.0.0, )",
+          "MessagePack": "[3.1.4, )",
+          "QuikGraph": "[2.5.0, )"
         }
       },
       "engine.eventing": {
@@ -79,6 +71,7 @@
           "Engine.Eventing.Schema": "[1.0.0, )",
           "Engine.Kernel": "[1.0.0, )",
           "Engine.Kernel.Driver": "[1.0.0, )",
+          "Engine.Observability": "[1.0.0, )",
           "Engine.Projection": "[1.0.0, )"
         }
       },
@@ -114,6 +107,27 @@
         "type": "Project",
         "dependencies": {
           "Engine.Eventing": "[1.0.0, )"
+        }
+      },
+      "engine.worldgen": {
+        "type": "Project"
+      },
+      "iceremembers": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Domain": "[1.0.0, )",
+          "Engine.Projection": "[1.0.0, )",
+          "Engine.WorldGen": "[1.0.0, )"
+        }
+      },
+      "iceremembers.seed": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Domain": "[1.0.0, )",
+          "Engine.Host": "[1.0.0, )",
+          "Engine.Projection": "[1.0.0, )",
+          "Engine.WorldGen": "[1.0.0, )",
+          "IceRemembers": "[1.0.0, )"
         }
       }
     }

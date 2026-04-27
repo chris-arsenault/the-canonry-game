@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class RandomSource
+public sealed partial class RandomSource
 {
     private uint _state;
 

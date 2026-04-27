@@ -64,6 +64,24 @@ public static class DefinitionGraphValidator
             }
         }
 
+        foreach (var gambit in graph.Gambits.Values)
+        {
+            if (!graph.Kinds.ContainsKey(gambit.TargetKind))
+            {
+                errors.Add($"Gambit '{gambit.Id}' targets missing kind '{gambit.TargetKind}'.");
+            }
+
+            ValidateRefs(gambit.Id, gambit.Reads, graph, errors);
+            ValidateRefs(gambit.Id, gambit.Writes, graph, errors);
+            ValidateRefs(gambit.Id, gambit.GoalEffects, graph, errors);
+            ValidateRefs(gambit.Id, gambit.ProviderSelectors, graph, errors);
+
+            foreach (var supportRule in gambit.SupportRules)
+            {
+                ValidateRefs($"{gambit.Id}.support", [supportRule.DesiredEffect], graph, errors);
+            }
+        }
+
         ValidateSemanticFlows(graph, errors);
         ValidateSemanticVerbParticipation(graph, errors);
         ValidateResourceStockInflows(graph, errors);
@@ -265,23 +283,36 @@ public static class DefinitionGraphValidator
     {
         foreach (var (id, processNode) in graph.Processes)
         {
-            var process = processNode.SourceDefinition;
-            foreach (var mutation in process.Mutations)
-            {
-                if (mutation is not TransferAttributeMutation transfer) continue;
+            ValidateTransferPreconditionGate(id, "Process", processNode.SourceDefinition, errors);
+        }
 
-                var hasGate = PreconditionTreeHasSourceGate(
-                    process.Precondition,
-                    transfer.Source,
-                    transfer.SourceAttribute,
-                    transfer.Amount);
-                if (!hasGate)
-                {
-                    errors.Add(
-                        $"Process '{id}' has a TransferAttributeMutation moving {transfer.Amount} from " +
-                        $"{transfer.Source}.{transfer.SourceAttribute} but no precondition gates the source at ≥ {transfer.Amount}. " +
-                        "Transfers are all-or-nothing; add a threshold precondition on the source stock.");
-                }
+        foreach (var (id, gambitNode) in graph.Gambits)
+        {
+            ValidateTransferPreconditionGate(id, "Gambit", gambitNode.SourceDefinition, errors);
+        }
+    }
+
+    private static void ValidateTransferPreconditionGate(
+        string id,
+        string behaviorKind,
+        BehaviorDefinition behavior,
+        List<string> errors)
+    {
+        foreach (var mutation in behavior.Mutations)
+        {
+            if (mutation is not TransferAttributeMutation transfer) continue;
+
+            var hasGate = PreconditionTreeHasSourceGate(
+                behavior.Precondition,
+                transfer.Source,
+                transfer.SourceAttribute,
+                transfer.Amount);
+            if (!hasGate)
+            {
+                errors.Add(
+                    $"{behaviorKind} '{id}' has a TransferAttributeMutation moving {transfer.Amount} from " +
+                    $"{transfer.Source}.{transfer.SourceAttribute} but no precondition gates the source at ≥ {transfer.Amount}. " +
+                    "Transfers are all-or-nothing; add a threshold precondition on the source stock.");
             }
         }
     }

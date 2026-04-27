@@ -41,7 +41,7 @@ public sealed class ProcessProgramRuntimeTests
         const int inRangeFactId = 30;
         RegisterNeed(simulation, actorKindId, attributeId, defaultValue: 10f);
         RegisterNeed(simulation, targetKindId, attributeId, defaultValue: 100f);
-        RegisterPassableMap(simulation);
+        RegisterKnownMap(simulation);
         var actorId = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         _ = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
 
@@ -913,17 +913,17 @@ public sealed class ProcessProgramRuntimeTests
         return process;
     }
 
-    private static void RegisterPassableMap(Simulation simulation)
+    private static void RegisterKnownMap(Simulation simulation)
     {
         simulation.World.SetMapRadius(2);
-        simulation.World.RegisterTerrain(1, passable: true, boundaryGroupId: 1);
+        simulation.RegisterTerrain(1, boundaryGroupId: 1);
         for (var q = -2; q <= 2; q++)
         {
             var minR = Math.Max(-2, -q - 2);
             var maxR = Math.Min(2, -q + 2);
             for (var r = minR; r <= maxR; r++)
             {
-                simulation.World.SetCell(q, r, terrainId: 1, passable: true);
+                simulation.World.SetCell(q, r, terrainId: 1);
             }
         }
     }
@@ -949,7 +949,8 @@ public sealed class ProcessProgramRuntimeTests
             DegeneracyDetectorCapacity = 4,
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
-            AttributeRuleCapacity = 8,
+            EntityAttributeCapacity = 8,
+            UpkeepRuleCapacity = 8,
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,

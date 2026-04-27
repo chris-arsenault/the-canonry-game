@@ -7,11 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\..\src\Engine.Host\Engine.Host.csproj" />
+    <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\..\src\Engine.Observability\Engine.Observability.csproj" />
     <ProjectReference Include="..\..\src\Engine.Observability.Export\Engine.Observability.Export.csproj" />
-    <ProjectReference Include="..\..\src\Engine\Engine.csproj" />
+    <ProjectReference Include="..\..\src\Engine.WorldGen\Engine.WorldGen.csproj" />
+    <ProjectReference Include="..\..\src\IceRemembers.Seed\IceRemembers.Seed.csproj" />
   </ItemGroup>
 
   <ItemGroup>

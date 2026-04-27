@@ -6,17 +6,17 @@ public sealed class MutationEventWriter
 {
     private readonly IKernelEventWriter _events;
     private readonly int _processSourceCodeId;
-    private readonly int _cardSourceCodeId;
+    private readonly int _gambitSourceCodeId;
 
     public MutationEventWriter(
         IKernelEventWriter events,
         int processSourceCodeId,
-        int cardSourceCodeId)
+        int gambitSourceCodeId)
     {
         global::System.ArgumentNullException.ThrowIfNull(events);
         _events = events;
         _processSourceCodeId = processSourceCodeId;
-        _cardSourceCodeId = cardSourceCodeId;
+        _gambitSourceCodeId = gambitSourceCodeId;
     }
 
     public void WriteProcessAttributeChanged(
@@ -28,14 +28,14 @@ public sealed class MutationEventWriter
         float newValue) =>
         WriteAttributeChanged(tick, worldVersion, entityId, attributeId, _processSourceCodeId, oldValue, newValue);
 
-    public void WriteCardAttributeChanged(
+    public void WriteGambitAttributeChanged(
         int tick,
         long worldVersion,
         int entityId,
         int attributeId,
         float oldValue,
         float newValue) =>
-        WriteAttributeChanged(tick, worldVersion, entityId, attributeId, _cardSourceCodeId, oldValue, newValue);
+        WriteAttributeChanged(tick, worldVersion, entityId, attributeId, _gambitSourceCodeId, oldValue, newValue);
 
     public void WriteProcessResourceChanged(
         int tick,
@@ -47,7 +47,7 @@ public sealed class MutationEventWriter
         float newValue) =>
         WriteResourceChanged(tick, worldVersion, resourceId, q, r, _processSourceCodeId, oldValue, newValue);
 
-    public void WriteCardResourceChanged(
+    public void WriteGambitResourceChanged(
         int tick,
         long worldVersion,
         int resourceId,
@@ -55,7 +55,7 @@ public sealed class MutationEventWriter
         int r,
         float oldValue,
         float newValue) =>
-        WriteResourceChanged(tick, worldVersion, resourceId, q, r, _cardSourceCodeId, oldValue, newValue);
+        WriteResourceChanged(tick, worldVersion, resourceId, q, r, _gambitSourceCodeId, oldValue, newValue);
 
     public void WriteEntityMoved(
         int tick,
@@ -73,6 +73,7 @@ public sealed class MutationEventWriter
             tick,
             worldVersion,
             entityId,
+            _processSourceCodeId,
             planeCode,
             fromQ,
             fromR,

@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/Card.cs" id="1_card"]
+
+[node name="Card" type="PanelContainer"]
+script = ExtResource("1_card")
+
+[node name="Row" type="HBoxContainer" parent="."]
+
+[node name="Face" type="TextureRect" parent="Row"]
+custom_minimum_size = Vector2(52, 64)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameColumn" type="VBoxContainer" parent="Row"]
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="Row/NameColumn"]
+text = "Card"
+
+[node name="StatusLabel" type="Label" parent="Row/NameColumn"]
+text = ""
+
+[node name="ToggleButton" type="Button" parent="Row"]
+custom_minimum_size = Vector2(92, 30)
+text = "Enable"

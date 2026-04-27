@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-public sealed class PrimitiveFloatTable
+public sealed partial class PrimitiveFloatTable
 {
     private readonly int[] _firstKeys;
     private readonly int[] _secondKeys;

@@ -64,7 +64,7 @@ public sealed class KernelStartupSeedingTests
         const int wealthResourceId = 11;
         const int populationResourceId = 12;
 
-        simulation.World.RegisterTerrain(terrainId, passable: true, boundaryGroupId: boundaryGroupId);
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: boundaryGroupId);
 
         var resources = new[]
         {
@@ -105,7 +105,6 @@ public sealed class KernelStartupSeedingTests
 
         Assert.Equal(created.World.CellTerrainId(1, -1), seeded.World.CellTerrainId(1, -1));
         Assert.Equal(created.World.CellCoverageOwner(1, -1), seeded.World.CellCoverageOwner(1, -1));
-        Assert.Equal(created.World.CellIsPassable(1, -1), seeded.World.CellIsPassable(1, -1));
         AssertEventTypes(created, createdCursor, KernelEventType.CellCreated);
         AssertEventTypes(seeded, seededCursor, KernelEventType.CellCreated);
     }
@@ -219,7 +218,7 @@ public sealed class KernelStartupSeedingTests
         {
             EventSchemaValidator = KernelEventSchemaRegistry.Validator,
         });
-        simulation.World.RegisterTerrain(1, passable: true, boundaryGroupId: 1);
+        simulation.RegisterTerrain(1, boundaryGroupId: 1);
         return simulation;
     }
 

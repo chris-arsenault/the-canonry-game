@@ -23,8 +23,19 @@ public sealed class UiBoundaryInvariantTests
     public void UiDoesNotReadLegacyClockOrDriverStateAndDoesNotMutateTableauDirectly()
     {
         var root = FindRepoRoot();
-        var uiDirectory = Path.Combine(root.FullName, "src", "UI");
-        var sourceFiles = Directory.GetFiles(uiDirectory, "*.cs", SearchOption.AllDirectories);
+        var sourceDirectories = new[]
+        {
+            Path.Combine(root.FullName, "src", "TheCanonryGame.App"),
+            Path.Combine(root.FullName, "src", "TheCanonryGame.UI"),
+        };
+        var missingDirectories = sourceDirectories
+            .Where(directory => !Directory.Exists(directory))
+            .Select(directory => Path.GetRelativePath(root.FullName, directory))
+            .ToArray();
+        Assert.Empty(missingDirectories);
+
+        var sourceFiles = sourceDirectories.SelectMany(directory =>
+            Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories));
         var violations = new List<string>();
 
         foreach (var sourceFile in sourceFiles)

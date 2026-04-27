@@ -50,7 +50,6 @@ public enum ProcessProgramOperation
     WanderSemantic,
     CreateEntity,
     AddPressure,
-    SetEntityTag,
     SetHistorical,
     AddRelatedEntitiesAttribute,
     CalculateVariable,

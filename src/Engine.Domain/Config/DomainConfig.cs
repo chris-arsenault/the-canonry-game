@@ -3,6 +3,7 @@ namespace Engine.Domain.Config;
 using Engine.Kinds;
 using Engine.Wiring;
 using Engine.Resources;
+using Engine.Gambits;
 
 /// <summary>
 /// All domain-specific content that the engine needs. Attribute names, subtypes,
@@ -15,8 +16,11 @@ public sealed class DomainConfig
     /// <summary>Kind definitions: valid subtypes, attribute schemas, health attributes.</summary>
     public required IReadOnlyDictionary<EntityKind, KindConfig> Kinds { get; init; }
 
-    /// <summary>Data-defined processes and decisions.</summary>
+    /// <summary>Data-defined low-altitude processes.</summary>
     public required IReadOnlyList<Processes.ProcessDefinition> Processes { get; init; }
+
+    /// <summary>Data-defined high-stakes entity gambits.</summary>
+    public IReadOnlyList<GambitDefinition> Gambits { get; init; } = [];
 
     /// <summary>Relationship kind definitions.</summary>
     public required IReadOnlyList<RelationshipConfig> Relationships { get; init; }
@@ -298,7 +302,6 @@ public sealed class TerrainConfig
 {
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
-    public bool IsPassable { get; init; } = true;
     public string BoundaryGroup { get; init; } = "default";
 }
 

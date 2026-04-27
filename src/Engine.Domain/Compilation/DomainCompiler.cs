@@ -2,7 +2,9 @@ namespace Engine.Domain.Compilation;
 
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
+using Engine.Gambits;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Resources;
@@ -28,8 +30,12 @@ public static class DomainCompiler
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode),
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipStrengthChangedCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.ProcessSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.CardSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode)),
+                ids.SourceCodeIdOf(DomainRuntimeNames.GambitSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.RelationshipSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode)),
+            KernelData = BuildKernelData(config, ids),
             Programs = BuildPrograms(config, ids, graph),
             Symbols = BuildSymbols(config, ids),
         };
@@ -52,6 +58,7 @@ public static class DomainCompiler
         var subtypes = new HashSet<string>(StringComparer.Ordinal);
         var cultures = new HashSet<string>(StringComparer.Ordinal);
         var generators = new HashSet<string>(StringComparer.Ordinal);
+        var gambits = new HashSet<string>(StringComparer.Ordinal);
         var detectors = new HashSet<string>(StringComparer.Ordinal);
         var eventCodes = new HashSet<string>(StringComparer.Ordinal);
         var sourceCodes = new HashSet<string>(StringComparer.Ordinal);
@@ -123,6 +130,12 @@ public static class DomainCompiler
             RegisterProcessStructuralFacts(process, structuralFacts, registry);
         }
 
+        foreach (var gambit in config.Gambits)
+        {
+            RegisterOnceStrict(gambits, gambit.Id, registry.RegisterGambit, "gambit");
+            RegisterProcessStructuralFacts(gambit, structuralFacts, registry);
+        }
+
         foreach (var (_, kindConfig) in config.Kinds)
         {
             foreach (var standingDrive in kindConfig.StandingDrives)
@@ -139,8 +152,11 @@ public static class DomainCompiler
             registry.RegisterEventCode,
             "event code");
         RegisterOnceStrict(sourceCodes, DomainRuntimeNames.ProcessSourceCode, registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.CardSourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.GambitSourceCode, registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(sourceCodes, DomainRuntimeNames.UpkeepSourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.StartupSourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.RelationshipSourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.GeneratorSourceCode, registry.RegisterSourceCode, "source code");
         foreach (var detector in config.Degeneracy.Detectors)
         {
             RegisterOnceStrict(detectors, detector.Id, registry.RegisterDetector, "detector");
@@ -157,28 +173,36 @@ public static class DomainCompiler
     {
         return new KernelProgramSet
         {
-            EntityData = BuildEntityDataProgram(config, ids),
             Upkeep = BuildUpkeepProgram(config, ids),
             Processes = BuildProcessProgram(config, ids),
+            Gambits = BuildGambitProgram(config, ids),
             Relationships = BuildRelationshipProgram(config, ids),
-            Terrain = BuildTerrainProgram(config, ids),
             Pressures = BuildPressureProgram(config, ids),
             Generators = BuildGeneratorProgram(config, ids, graph),
             Degeneracy = BuildDegeneracyProgram(config, ids),
         };
     }
 
-    private static EntityDataProgram BuildEntityDataProgram(
+    private static CompiledKernelDataSet BuildKernelData(DomainConfig config, DomainIdRegistry ids)
+    {
+        return new CompiledKernelDataSet
+        {
+            Entities = BuildEntityData(config, ids),
+            Terrain = BuildTerrainData(config, ids),
+        };
+    }
+
+    private static CompiledEntityData BuildEntityData(
         DomainConfig config,
         DomainIdRegistry ids)
     {
-        var attributes = new List<EntityAttributeDataRule>();
+        var attributes = new List<CompiledEntityAttributeData>();
         foreach (var (kind, kindConfig) in config.Kinds)
         {
             var kindId = ids.KindIdOf(kind).Value;
             foreach (var attribute in kindConfig.Attributes)
             {
-                attributes.Add(new EntityAttributeDataRule(
+                attributes.Add(new CompiledEntityAttributeData(
                     kindId,
                     ids.AttributeIdOf(attribute.Name).Value,
                     attribute.Min,
@@ -188,7 +212,7 @@ public static class DomainCompiler
             }
         }
 
-        return new EntityDataProgram { Attributes = attributes };
+        return new CompiledEntityData { Attributes = attributes };
     }
 
     private static UpkeepProgram BuildUpkeepProgram(
@@ -265,11 +289,6 @@ public static class DomainCompiler
         var processes = new List<CompiledProcessRule>();
         foreach (var process in config.Processes)
         {
-            if (process.Role != DefinitionRole.Process)
-            {
-                continue;
-            }
-
             var targetKindId = ResolveTargetKindId(process, ids);
             processes.Add(new CompiledProcessRule(
                 ids.KindIdOf(process.TargetKind).Value,
@@ -288,6 +307,37 @@ public static class DomainCompiler
         }
 
         return processes;
+    }
+
+    private static GambitProgram BuildGambitProgram(
+        DomainConfig config,
+        DomainIdRegistry ids)
+    {
+        var gambits = new List<CompiledGambitRule>();
+        foreach (var gambit in config.Gambits)
+        {
+            var targetKindId = ResolveTargetKindId(gambit, ids);
+            gambits.Add(new CompiledGambitRule(
+                ids.KindIdOf(gambit.TargetKind).Value,
+                ids.GambitIdOf(gambit.Id).Value,
+                gambit.Cooldown,
+                gambit.EntityCooldown,
+                ResolveTargetMode(gambit, targetKindId),
+                targetKindId,
+                gambit.SuccessChance,
+                CompileGoalEffects(gambit, ids),
+                CompileProviderSelectors(gambit, ids),
+                CompileSupportRules(gambit, ids),
+                CompilePreconditions(gambit.Precondition, ids),
+                CompileExpression(gambit.ScoreExpression, ids),
+                CompileExpression(gambit.RewardExpression, ids),
+                CompileSteps(gambit, ids)));
+        }
+
+        return new GambitProgram
+        {
+            Gambits = gambits,
+        };
     }
 
     private static List<ProcessObjectiveRule> BuildProcessObjectives(
@@ -346,7 +396,7 @@ public static class DomainCompiler
         return objectives;
     }
 
-    private static int ResolveTargetKindId(ProcessDefinition process, DomainIdRegistry ids)
+    private static int ResolveTargetKindId(BehaviorDefinition process, DomainIdRegistry ids)
     {
         foreach (var selector in process.ProviderSelectors)
         {
@@ -367,7 +417,7 @@ public static class DomainCompiler
         return 0;
     }
 
-    private static ProcessProgramTargetMode ResolveTargetMode(ProcessDefinition process, int targetKindId)
+    private static ProcessProgramTargetMode ResolveTargetMode(BehaviorDefinition process, int targetKindId)
     {
         return ContainsPrecondition<TargetIsSelf>(process.Precondition)
             ? ProcessProgramTargetMode.Self
@@ -379,7 +429,7 @@ public static class DomainCompiler
     }
 
     private static List<ProcessProgramEffectRule> CompileGoalEffects(
-        ProcessDefinition process,
+        BehaviorDefinition process,
         DomainIdRegistry ids)
     {
         var effects = new List<ProcessProgramEffectRule>();
@@ -395,7 +445,7 @@ public static class DomainCompiler
     }
 
     private static List<ProcessProgramProviderSelectorRule> CompileProviderSelectors(
-        ProcessDefinition process,
+        BehaviorDefinition process,
         DomainIdRegistry ids)
     {
         var selectors = new List<ProcessProgramProviderSelectorRule>();
@@ -414,7 +464,7 @@ public static class DomainCompiler
     }
 
     private static List<ProcessProgramSupportRule> CompileSupportRules(
-        ProcessDefinition process,
+        BehaviorDefinition process,
         DomainIdRegistry ids)
     {
         var supportRules = new List<ProcessProgramSupportRule>();
@@ -703,7 +753,7 @@ public static class DomainCompiler
     }
 
     private static List<ProcessProgramStepRule> CompileSteps(
-        ProcessDefinition process,
+        BehaviorDefinition process,
         DomainIdRegistry ids)
     {
         var steps = new List<ProcessProgramStepRule>();
@@ -759,13 +809,6 @@ public static class DomainCompiler
                     ids.PressureIdOf(modify.PressureName).Value,
                     modify.ScopeId.Value,
                     X: modify.Delta));
-                break;
-            case SetTagMutation tag:
-                steps.Add(new ProcessProgramStepRule(
-                    ProcessProgramOperation.SetEntityTag,
-                    tag.EntityId.Value,
-                    StableRuntimeCode(tag.Key),
-                    StableRuntimeCode(tag.Value)));
                 break;
             case SetHistoricalMutation historical:
                 steps.Add(new ProcessProgramStepRule(
@@ -868,21 +911,20 @@ public static class DomainCompiler
         return new RelationshipProgram { Relationships = relationships };
     }
 
-    private static TerrainProgram BuildTerrainProgram(
+    private static CompiledTerrainData BuildTerrainData(
         DomainConfig config,
         DomainIdRegistry ids)
     {
-        var terrains = new List<TerrainRuntimeRule>();
+        var terrains = new List<CompiledTerrainDefinition>();
         var boundaryGroups = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var terrain in config.Terrains)
         {
-            terrains.Add(new TerrainRuntimeRule(
+            terrains.Add(new CompiledTerrainDefinition(
                 ids.TerrainIdOf(terrain.Name).Value,
-                terrain.IsPassable,
                 BoundaryGroupId(boundaryGroups, terrain.BoundaryGroup)));
         }
 
-        return new TerrainProgram { Terrains = terrains };
+        return new CompiledTerrainData { Terrains = terrains };
     }
 
     private static PressureProgram BuildPressureProgram(
@@ -1275,7 +1317,6 @@ public static class DomainCompiler
             coverage.MinimumSourceRemainingCellCount,
             coverage.RespectTerrainBoundaries,
             transformTerrain is null ? 0 : ids.TerrainIdOf(transformTerrain.Name).Value,
-            transformTerrain?.IsPassable ?? false,
             CompileTerrainIds(coverage.PreferredTerrains, terrainByName, ids),
             CompileTerrainIds(coverage.AllowedTerrains, terrainByName, ids));
     }
@@ -1630,10 +1671,19 @@ public static class DomainCompiler
         foreach (var process in config.Processes)
         {
             Add(
-                process.Role == DefinitionRole.Decision ? DomainSymbolKind.Decision : DomainSymbolKind.Process,
+                DomainSymbolKind.Process,
                 ids.ProcessIdOf(process.Id).Value,
                 process.Id,
                 process.Name);
+        }
+
+        foreach (var gambit in config.Gambits)
+        {
+            Add(
+                DomainSymbolKind.Gambit,
+                ids.GambitIdOf(gambit.Id).Value,
+                gambit.Id,
+                gambit.Name);
         }
 
         foreach (var entry in ids.Entries())
@@ -1653,6 +1703,7 @@ public static class DomainCompiler
         DomainIdCategory.Kind => DomainSymbolKind.Kind,
         DomainIdCategory.Attribute => DomainSymbolKind.Attribute,
         DomainIdCategory.Process => DomainSymbolKind.Process,
+        DomainIdCategory.Gambit => DomainSymbolKind.Gambit,
         DomainIdCategory.StructuralFact => DomainSymbolKind.StructuralFact,
         DomainIdCategory.RelationshipKind => DomainSymbolKind.RelationshipKind,
         DomainIdCategory.RelationshipFact => DomainSymbolKind.RelationshipFact,
@@ -1687,7 +1738,7 @@ public static class DomainCompiler
     }
 
     private static void RegisterProcessStructuralFacts(
-        ProcessDefinition process,
+        BehaviorDefinition process,
         HashSet<string> structuralFacts,
         DomainIdRegistry registry)
     {

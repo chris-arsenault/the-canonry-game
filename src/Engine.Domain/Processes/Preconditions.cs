@@ -438,7 +438,7 @@ public sealed class LocationResourceThreshold(
         $"{(TargetLocation ? "target" : "self")}_location_resource({ResourceType.ToDomainName()}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
 }
 
-/// <summary>Checks that enough ticks have passed since a card last fired.</summary>
+/// <summary>Checks that enough ticks have passed since the current behavior last fired.</summary>
 public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
 {
     public int MinimumTicksSinceFire => minimumTicksSinceFire;

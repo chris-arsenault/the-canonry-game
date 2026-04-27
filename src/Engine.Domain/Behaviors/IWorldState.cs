@@ -5,7 +5,7 @@ using Engine.Resources;
 using Engine.WorldGen;
 
 /// <summary>
-/// Read-only view of the world state provided to process/decision scoring and execution.
+/// Read-only view of the world state provided to process/gambit scoring and execution.
 /// Keeps behaviors decoupled from specific system implementations.
 /// </summary>
 public interface IWorldState

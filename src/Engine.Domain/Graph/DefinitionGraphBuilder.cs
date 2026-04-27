@@ -1,6 +1,7 @@
 namespace Engine.Domain.Graph;
 
 using Engine.Domain.Config;
+using Engine.Gambits;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Resources;
@@ -53,11 +54,29 @@ public static class DefinitionGraphBuilder
                 pressureNodes);
         }
 
+        var gambitNodes = new Dictionary<string, DefinitionGambitNode>(StringComparer.Ordinal);
+        foreach (var gambit in config.Gambits)
+        {
+            if (!kindNodes.ContainsKey(gambit.TargetKind))
+            {
+                throw new DefinitionGraphException(
+                    $"Gambit '{gambit.Id}' targets kind '{gambit.TargetKind}' which is not present in the domain kinds.");
+            }
+
+            gambitNodes[gambit.Id] = BuildGambitNode(
+                gambit,
+                kindNodes,
+                resourceNodes,
+                relationshipNodes,
+                pressureNodes);
+        }
+
         var graph = new DefinitionGraph
         {
             RingOrder = config.Semantics?.RingOrder ?? [],
             Kinds = kindNodes,
             Processes = processNodes,
+            Gambits = gambitNodes,
             Generators = generatorNodes,
             Resources = resourceNodes,
             Relationships = relationshipNodes,
@@ -287,7 +306,6 @@ public static class DefinitionGraphBuilder
         {
             Id = process.Id,
             Name = process.Name,
-            Role = process.Role,
             TargetKind = process.TargetKind,
             SourceDefinition = process,
             Reads = ConvertRefs(process.Reads, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
@@ -295,6 +313,33 @@ public static class DefinitionGraphBuilder
             GoalEffects = ConvertRefs(process.GoalEffects, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
             ProviderSelectors = ConvertRefs(process.ProviderSelectors, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
             SupportRules = process.SupportRules.Select(rule => new DefinitionSupportRuleNode
+            {
+                DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+                DesiredMinimum = rule.DesiredMinimum,
+                UrgencyScale = rule.UrgencyScale,
+                SourceRule = rule,
+            }).ToList(),
+        };
+    }
+
+    private static DefinitionGambitNode BuildGambitNode(
+        GambitDefinition gambit,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode> pressureNodes)
+    {
+        return new DefinitionGambitNode
+        {
+            Id = gambit.Id,
+            Name = gambit.Name,
+            TargetKind = gambit.TargetKind,
+            SourceDefinition = gambit,
+            Reads = ConvertRefs(gambit.Reads, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            Writes = ConvertRefs(gambit.Writes, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            GoalEffects = ConvertRefs(gambit.GoalEffects, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            ProviderSelectors = ConvertRefs(gambit.ProviderSelectors, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
+            SupportRules = gambit.SupportRules.Select(rule => new DefinitionSupportRuleNode
             {
                 DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
                 DesiredMinimum = rule.DesiredMinimum,

@@ -1,0 +1,15 @@
+<Project Sdk="Godot.NET.Sdk/4.6.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>TheCanonryGame.UI</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TheCanonryGame.UI.Core\TheCanonryGame.UI.Core.csproj" />
+    <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
+    <ProjectReference Include="..\TheCanonryGame.Game\TheCanonryGame.Game.csproj" />
+  </ItemGroup>
+</Project>

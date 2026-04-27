@@ -18,8 +18,11 @@ public sealed class UpkeepProgramTests
                 RelationshipCulledCodeId: 2,
                 RelationshipStrengthChangedCodeId: 3,
                 ProcessSourceCodeId: 10,
-                CardSourceCodeId: 11,
-                UpkeepSourceCodeId: upkeepSourceCodeId),
+                GambitSourceCodeId: 11,
+                UpkeepSourceCodeId: upkeepSourceCodeId,
+                StartupSourceCodeId: 12,
+                RelationshipSourceCodeId: 13,
+                GeneratorSourceCodeId: 14),
         });
 
         simulation.RegisterAttribute(
@@ -27,8 +30,8 @@ public sealed class UpkeepProgramTests
             attributeId,
             minimum: 0f,
             maximum: 100f,
-            defaultValue: 50f,
-            driftRate: -1f);
+            defaultValue: 50f);
+        simulation.Upkeep.RegisterAttributeUpkeep(kindId, attributeId, driftRate: -1f);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 

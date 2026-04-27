@@ -174,6 +174,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             "created",
+            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
             evt.EntityId,
             ResolveDisplayName(ProjectionSymbolKind.Kind, evt.KindId, $"kind_{evt.KindId}"),
             ResolveDisplayName(ProjectionSymbolKind.Subtype, evt.SubtypeId, $"subtype_{evt.SubtypeId}"),
@@ -205,6 +206,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             "status_changed",
+            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
             evt.EntityId,
             ResolveDisplayName(ProjectionSymbolKind.Kind, entity.KindId, $"kind_{entity.KindId}"),
             ResolveDisplayName(ProjectionSymbolKind.Subtype, entity.SubtypeId, $"subtype_{entity.SubtypeId}"),
@@ -255,6 +257,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             evt.Tick,
             evt.EntityId,
             PlaneName(evt.PlaneCode),
+            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
             evt.FromQ,
             evt.FromR,
             evt.PlaneCode == (int)UiProjectionPlane.Physical ? null : evt.FromS,
@@ -315,6 +318,7 @@ public sealed class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             ResolveDisplayName(ProjectionSymbolKind.EventCode, evt.ChangeCodeId, $"event_{evt.ChangeCodeId}"),
+            ResolveDisplayName(ProjectionSymbolKind.SourceCode, evt.SourceCodeId, $"source_{evt.SourceCodeId}"),
             ResolveDisplayName(
                 ProjectionSymbolKind.RelationshipKind,
                 evt.RelationshipKindId,
@@ -477,13 +481,12 @@ public sealed class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnDecisionExecuted(long sequence, in DecisionExecutedKernelEvent evt)
+    protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.ActorId);
         entity.KindId = evt.ActorKindId;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        // MIGRATION: DecisionExecutedKernelEvent has no dedicated telemetry table yet.
         MarkProjected(sequence);
     }
 

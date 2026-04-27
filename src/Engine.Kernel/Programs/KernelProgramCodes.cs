@@ -8,4 +8,6 @@ public static class KernelProgramCodes
     public const int Pressures = 4;
     public const int Generators = 5;
     public const int Degeneracy = 6;
+    public const int Gambits = 7;
+    public const int Planning = 8;
 }

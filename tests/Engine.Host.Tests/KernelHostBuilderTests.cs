@@ -8,6 +8,7 @@ using Engine.Kernel;
 using Engine.Kernel.Programs;
 using Engine.Projection;
 using IceRemembers;
+using IceRemembers.Seed;
 
 public sealed class KernelHostBuilderTests
 {
@@ -15,8 +16,8 @@ public sealed class KernelHostBuilderTests
     public void Build_CanAttachExistingKernelWhenNoSeedIsEmitted()
     {
         var kernel = new Simulation();
-        kernel.World.RegisterTerrain(1, passable: true, boundaryGroupId: 1);
-        kernel.World.SetCell(0, 0, terrainId: 1, passable: true);
+        kernel.RegisterTerrain(1, boundaryGroupId: 1);
+        kernel.World.SetCell(0, 0, terrainId: 1);
 
         using var host = new KernelHostBuilder()
             .WithKernel(kernel)
@@ -25,6 +26,28 @@ public sealed class KernelHostBuilderTests
         Assert.Same(kernel, host.Kernel);
         Assert.Same(kernel.Events, host.Events);
         Assert.True(host.BootstrapCompleted);
+    }
+
+    [Fact]
+    public void Build_CanRestoreKernelState()
+    {
+        var kernel = new Simulation();
+        kernel.World.SetMapRadius(1);
+        kernel.RegisterTerrain(1, boundaryGroupId: 1);
+        kernel.CreateCell(0, 0, terrainId: 1, ownerEntityId: 0);
+        _ = kernel.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, tick: 0);
+
+        using var state = new MemoryStream();
+        KernelSnapshot.SaveKernelState(kernel, state);
+        state.Position = 0;
+
+        using var host = new KernelHostBuilder()
+            .WithKernelState(state)
+            .Build();
+
+        Assert.Equal(1, host.Kernel.World.CellTerrainId(0, 0));
+        Assert.Equal(1, host.Kernel.World.EntityHighWatermark);
+        Assert.True(host.SeedEventCount > 0);
     }
 
     [Fact]
@@ -60,8 +83,8 @@ public sealed class KernelHostBuilderTests
             out var upkeepSymbol));
         Assert.Equal(DomainRuntimeNames.UpkeepSourceCode, upkeepSymbol.StableName);
         Assert.Equal(
-            host.CompiledDomain.Programs.EntityData.Attributes.Count,
-            host.Kernel.Upkeep.AttributeRuleCount);
+            host.CompiledDomain.KernelData.Entities.Attributes.Count,
+            host.Kernel.KernelData.Entities.AttributeCount);
         Assert.Equal(
             host.CompiledDomain.Programs.Upkeep.AttributeRules.Count,
             host.Kernel.Upkeep.UpkeepRuleCount);
@@ -105,8 +128,6 @@ public sealed class KernelHostBuilderTests
             structuralFactSeed.Id,
             out var structuralFactSymbol));
         Assert.Equal(structuralFactSeed.StableName, structuralFactSymbol.StableName);
-        Assert.False(host.Kernel.World.TerrainIsPassable(
-            host.DomainIds.TerrainIdOf(IceRemembersTerrain.Ocean.ToDomainName()).Value));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Upkeep));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Degeneracy));
@@ -143,7 +164,7 @@ public sealed class KernelHostBuilderTests
             .ConfigureKernel(kernel =>
             {
                 kernel.SetMapRadius(1);
-                kernel.RegisterTerrain(1, passable: true, boundaryGroupId: 1);
+                kernel.RegisterTerrain(1, boundaryGroupId: 1);
                 kernel.RegisterAttribute(
                     kindId: kernel.DomainIds.KindIdOf("test_kind").Value,
                     attributeId: kernel.DomainIds.AttributeIdOf("test_attribute"),
@@ -255,5 +276,87 @@ public sealed class KernelHostBuilderTests
                 .Build());
 
         Assert.Contains("startup seed burst", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Build_WithDomainStartupSeedHydratesKernelAndSeedProjections()
+    {
+        var startupSeed = IceRemembersSeedBuilder.BuildStartupSeed(seed: 42);
+        var map = new HexMapProjection();
+        var ui = new UiProjectionState();
+
+        using var host = new KernelHostBuilder()
+            .WithDomainConfig(IceRemembersDefinition.Create())
+            .WithDomainStartupSeed(startupSeed)
+            .RegisterProjection("map", _ => map)
+            .RegisterProjection("ui", _ => ui)
+            .Build();
+
+        Assert.Equal(startupSeed.MapRadius, host.Kernel.World.MapRadius);
+        Assert.Equal(startupSeed.Cells.Count, map.HexesById.Count);
+        Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
+
+        var frosthavenSeed = startupSeed.Entities.Single(entity => entity.DisplayName == "Frosthaven");
+        var frosthavenEntityId = StartupEntityId(startupSeed, frosthavenSeed.SeedEntityId);
+        Assert.True(ui.Entities.TryGetValue(frosthavenEntityId, out var frosthaven));
+        Assert.Equal(host.DomainIds.KindIdOf(IceRemembersKinds.Settlement).Value, frosthaven.KindId);
+
+        var displayName = host.Symbols.ResolveEntityName(new ProjectionEntityNameKey(
+            frosthaven.EntityId,
+            frosthaven.KindId,
+            frosthaven.SubtypeId,
+            frosthaven.CultureId,
+            frosthaven.NameSeed));
+        Assert.Equal("Frosthaven", displayName);
+
+        var startupSourceCodeId = host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode).Value;
+        Assert.NotEmpty(frosthaven.Attributes);
+        Assert.All(frosthaven.Attributes.Values, attribute =>
+            Assert.Equal(startupSourceCodeId, attribute.SourceCodeId));
+        Assert.Contains(ui.Resources.Values, resource =>
+            resource.SourceCodeId == startupSourceCodeId && resource.NewValue > 0f);
+        Assert.Contains(ui.Relationships.Keys, relationship =>
+            relationship.RelationshipKindId == host.DomainIds
+                .RelationshipKindIdOf(IceRemembersRelationship.ControlledBy.ToDomainName())
+                .Value);
+    }
+
+    [Fact]
+    public void Build_DomainStartupSeedCannotBeCombinedWithLegacyStartupSeeder()
+    {
+        var seed = Engine.Domain.Startup.DomainStartupSeed.Empty(1);
+
+        var builder = new KernelHostBuilder()
+            .WithDomainStartupSeed(seed);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            builder.WithStartupSeeder(estimatedEventCount: 0, seed: _ => { }));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            new KernelHostBuilder()
+                .WithStartupSeeder(estimatedEventCount: 0, seed: _ => { })
+                .WithDomainStartupSeed(seed));
+    }
+
+    [Fact]
+    public void Build_DomainStartupSeedRequiresCompiledDomain()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            new KernelHostBuilder()
+                .WithDomainStartupSeed(Engine.Domain.Startup.DomainStartupSeed.Empty(1))
+                .Build());
+
+        Assert.Contains("compiled domain", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int StartupEntityId(Engine.Domain.Startup.DomainStartupSeed seed, int seedEntityId)
+    {
+        var orderedSeedIds = seed.Entities
+            .Select(entity => entity.SeedEntityId)
+            .OrderBy(id => id)
+            .ToArray();
+        var index = Array.IndexOf(orderedSeedIds, seedEntityId);
+        Assert.True(index >= 0, $"Seed entity ID {seedEntityId} was not present.");
+        return index + 1;
     }
 }

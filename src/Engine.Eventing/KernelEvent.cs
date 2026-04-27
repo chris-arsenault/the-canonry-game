@@ -15,11 +15,12 @@ public enum KernelEventType
     DegeneracyDetected = 10,
     GeneratorEvaluated = 11,
     GeneratorFired = 12,
-    DecisionExecuted = 13,
+    GambitExecuted = 13,
     CommandApplied = 14,
     CommandRejected = 15,
     TickCompleted = 16,
     GeneratorEnabledChanged = 17,
+    GambitEvaluated = 18,
     CellCreated = 20,
     PlanStarted = 100,
     GoalConsidered = 101,
@@ -38,12 +39,14 @@ public enum KernelEventState
     Stale = 1 << 1,
     Truncated = 1 << 2,
     Overflowed = 1 << 3,
+    Failed = 1 << 4,
 }
 
 public readonly record struct EntityCreatedKernelEvent(
     int Tick,
     long WorldVersion,
     int EntityId,
+    int SourceCodeId,
     int KindId,
     int SubtypeId,
     int CultureId,
@@ -57,6 +60,7 @@ public readonly record struct EntityStatusChangedKernelEvent(
     int Tick,
     long WorldVersion,
     int EntityId,
+    int SourceCodeId,
     int KindId,
     int SubtypeId,
     int PreviousStatusCode,
@@ -66,6 +70,7 @@ public readonly record struct EntityMovedKernelEvent(
     int Tick,
     long WorldVersion,
     int EntityId,
+    int SourceCodeId,
     int PlaneCode,
     int FromQ,
     int FromR,
@@ -97,6 +102,7 @@ public readonly record struct RelationshipChangedKernelEvent(
     int Tick,
     long WorldVersion,
     int ChangeCodeId,
+    int SourceCodeId,
     int RelationshipKindId,
     int PolarityCode,
     int SourceEntityId,
@@ -163,13 +169,24 @@ public readonly record struct GeneratorFiredKernelEvent(
     int CreatedEntityCount,
     int CreatedRelationshipCount);
 
-public readonly record struct DecisionExecutedKernelEvent(
+public readonly record struct GambitEvaluatedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    int EntityId,
+    int KindId,
+    int ExecutedGambitId,
+    int CandidateCount,
+    KernelEventState State);
+
+public readonly record struct GambitExecutedKernelEvent(
     int Tick,
     long WorldVersion,
     int ActorId,
     int ActorKindId,
-    int DecisionId,
-    int CardId,
+    int GambitId,
+    int AffectedEntityId0,
+    int AffectedEntityId1,
+    int AffectedEntityCount,
     KernelEventState State);
 
 public readonly record struct CommandAppliedKernelEvent(
@@ -202,6 +219,7 @@ public readonly record struct CellCreatedKernelEvent(
     long WorldVersion,
     int Q,
     int R,
+    int SourceCodeId,
     int TerrainId,
     int OwnerEntityId);
 
@@ -280,6 +298,8 @@ public readonly partial record struct KernelEvent
     private readonly int _h;
     private readonly int _i;
     private readonly int _j;
+    private readonly int _k;
+    private readonly int _l;
     private readonly float _x;
     private readonly float _y;
     private readonly float _z;
@@ -299,6 +319,8 @@ public readonly partial record struct KernelEvent
         int h = 0,
         int i = 0,
         int j = 0,
+        int k = 0,
+        int l = 0,
         float x = 0f,
         float y = 0f,
         float z = 0f,
@@ -317,6 +339,8 @@ public readonly partial record struct KernelEvent
         _h = h;
         _i = i;
         _j = j;
+        _k = k;
+        _l = l;
         _x = x;
         _y = y;
         _z = z;
@@ -327,7 +351,7 @@ public readonly partial record struct KernelEvent
     public int Tick { get; }
     public long WorldVersion { get; }
 
-    public const int IntSlotCount = 10;
+    public const int IntSlotCount = 12;
     public const int FloatSlotCount = 4;
 
     public int GetIntSlot(int slot) => slot switch
@@ -342,7 +366,9 @@ public readonly partial record struct KernelEvent
         7 => _h,
         8 => _i,
         9 => _j,
-        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 9."),
+        10 => _k,
+        11 => _l,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 11."),
     };
 
     public float GetFloatSlot(int slot) => slot switch

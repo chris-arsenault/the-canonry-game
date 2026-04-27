@@ -5,13 +5,15 @@ using Engine.Host;
 using Engine.Projection;
 
 internal sealed record MonteCarloKernelRun(
-    KernelHost Host,
+    KernelRuntime Runtime,
     IProjectionSymbolCatalog? Symbols,
     MonteCarloWorldSeed? WorldSeed)
 {
+    public KernelHost Host => Runtime.Host;
+
     public KernelEventLog Events => Host.Events;
 
-    public void Dispose() => Host.Dispose();
+    public void Dispose() => Runtime.Dispose();
 }
 
 internal readonly record struct MonteCarloWorldSeed(

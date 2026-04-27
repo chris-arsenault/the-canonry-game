@@ -8,6 +8,7 @@ public readonly partial record struct KernelEvent
             payload.Tick,
             payload.WorldVersion,
             payload.EntityId,
+            payload.SourceCodeId,
             payload.KindId,
             payload.SubtypeId,
             payload.CultureId,
@@ -23,6 +24,7 @@ public readonly partial record struct KernelEvent
             payload.Tick,
             payload.WorldVersion,
             payload.EntityId,
+            payload.SourceCodeId,
             payload.KindId,
             payload.SubtypeId,
             payload.PreviousStatusCode,
@@ -34,6 +36,7 @@ public readonly partial record struct KernelEvent
             payload.Tick,
             payload.WorldVersion,
             payload.EntityId,
+            payload.SourceCodeId,
             payload.PlaneCode,
             payload.FromQ,
             payload.FromR,
@@ -71,6 +74,7 @@ public readonly partial record struct KernelEvent
             payload.Tick,
             payload.WorldVersion,
             payload.ChangeCodeId,
+            payload.SourceCodeId,
             payload.RelationshipKindId,
             payload.PolarityCode,
             payload.SourceEntityId,
@@ -80,8 +84,8 @@ public readonly partial record struct KernelEvent
             payload.FactId2,
             payload.FactId3,
             payload.FactCount,
-            payload.PreviousStrength,
-            payload.NewStrength);
+            x: payload.PreviousStrength,
+            y: payload.NewStrength);
 
     public static KernelEvent From(in ProcessEvaluatedKernelEvent payload) =>
         new(
@@ -149,15 +153,28 @@ public readonly partial record struct KernelEvent
             payload.CreatedEntityCount,
             payload.CreatedRelationshipCount);
 
-    public static KernelEvent From(in DecisionExecutedKernelEvent payload) =>
+    public static KernelEvent From(in GambitEvaluatedKernelEvent payload) =>
         new(
-            KernelEventType.DecisionExecuted,
+            KernelEventType.GambitEvaluated,
+            payload.Tick,
+            payload.WorldVersion,
+            payload.EntityId,
+            payload.KindId,
+            payload.ExecutedGambitId,
+            payload.CandidateCount,
+            (int)payload.State);
+
+    public static KernelEvent From(in GambitExecutedKernelEvent payload) =>
+        new(
+            KernelEventType.GambitExecuted,
             payload.Tick,
             payload.WorldVersion,
             payload.ActorId,
             payload.ActorKindId,
-            payload.DecisionId,
-            payload.CardId,
+            payload.GambitId,
+            payload.AffectedEntityId0,
+            payload.AffectedEntityId1,
+            payload.AffectedEntityCount,
             (int)payload.State);
 
     public static KernelEvent From(in CommandAppliedKernelEvent payload) =>
@@ -200,6 +217,7 @@ public readonly partial record struct KernelEvent
             payload.WorldVersion,
             payload.Q,
             payload.R,
+            payload.SourceCodeId,
             payload.TerrainId,
             payload.OwnerEntityId);
 
@@ -283,19 +301,19 @@ public readonly partial record struct KernelEvent
     public EntityCreatedKernelEvent AsEntityCreated()
     {
         EnsureType(KernelEventType.EntityCreated);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i);
+        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i, _j);
     }
 
     public EntityStatusChangedKernelEvent AsEntityStatusChanged()
     {
         EnsureType(KernelEventType.EntityStatusChanged);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e);
+        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f);
     }
 
     public EntityMovedKernelEvent AsEntityMoved()
     {
         EnsureType(KernelEventType.EntityMoved);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h);
+        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i);
     }
 
     public AttributeChangedKernelEvent AsAttributeChanged()
@@ -313,7 +331,7 @@ public readonly partial record struct KernelEvent
     public RelationshipChangedKernelEvent AsRelationshipChanged()
     {
         EnsureType(KernelEventType.RelationshipChanged);
-        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _x, _y);
+        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _x, _y);
     }
 
     public ProcessEvaluatedKernelEvent AsProcessEvaluated()
@@ -352,10 +370,16 @@ public readonly partial record struct KernelEvent
         return new(Tick, WorldVersion, _a, _b, _c, _d);
     }
 
-    public DecisionExecutedKernelEvent AsDecisionExecuted()
+    public GambitEvaluatedKernelEvent AsGambitEvaluated()
     {
-        EnsureType(KernelEventType.DecisionExecuted);
+        EnsureType(KernelEventType.GambitEvaluated);
         return new(Tick, WorldVersion, _a, _b, _c, _d, (KernelEventState)_e);
+    }
+
+    public GambitExecutedKernelEvent AsGambitExecuted()
+    {
+        EnsureType(KernelEventType.GambitExecuted);
+        return new(Tick, WorldVersion, _a, _b, _c, _d, _e, _f, (KernelEventState)_g);
     }
 
     public CommandAppliedKernelEvent AsCommandApplied()
@@ -385,7 +409,7 @@ public readonly partial record struct KernelEvent
     public CellCreatedKernelEvent AsCellCreated()
     {
         EnsureType(KernelEventType.CellCreated);
-        return new(Tick, WorldVersion, _a, _b, _c, _d);
+        return new(Tick, WorldVersion, _a, _b, _c, _d, _e);
     }
 
     public PlanStartedKernelEvent AsPlanStarted()

@@ -1,6 +1,68 @@
-[gd_scene load_steps=2 format=3 uid="uid://b2qy5k1m3xvxr"]
+[gd_scene load_steps=12 format=3 uid="uid://b2qy5k1m3xvxr"]
 
-[ext_resource type="Script" path="res://src/UI/Main.cs" id="1_main"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.App/Main.cs" id="1_main"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexMapRenderer.cs" id="2_maprenderer"]
+[ext_resource type="PackedScene" path="res://scenes/ui/EntityLayer.tscn" id="3_entitylayer"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TopBar.tscn" id="4_topbar"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/EntityBrowser.cs" id="5_browser"]
+[ext_resource type="PackedScene" path="res://scenes/ui/MapArea.tscn" id="6_maparea"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ChroniclePanel.tscn" id="7_chronicle"]
+[ext_resource type="PackedScene" path="res://scenes/ui/BottomBar.tscn" id="8_bottombar"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TableauPanel.tscn" id="9_tableau"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexTooltipPanel.cs" id="10_tooltip"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/EntityCardLayer.cs" id="11_cardlayer"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
+
+[node name="MapRenderer" type="Node2D" parent="."]
+script = ExtResource("2_maprenderer")
+
+[node name="EntityLayer" parent="." instance=ExtResource("3_entitylayer")]
+
+[node name="Camera" type="Camera2D" parent="."]
+zoom = Vector2(1.5, 1.5)
+
+[node name="UiLayer" type="CanvasLayer" parent="."]
+
+[node name="UiRoot" type="Control" parent="UiLayer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="RootColumn" type="VBoxContainer" parent="UiLayer/UiRoot"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TopBar" parent="UiLayer/UiRoot/RootColumn" instance=ExtResource("4_topbar")]
+
+[node name="MiddleRow" type="HBoxContainer" parent="UiLayer/UiRoot/RootColumn"]
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="EntityBrowser" type="PanelContainer" parent="UiLayer/UiRoot/RootColumn/MiddleRow"]
+custom_minimum_size = Vector2(260, 0)
+script = ExtResource("5_browser")
+
+[node name="MapArea" parent="UiLayer/UiRoot/RootColumn/MiddleRow" instance=ExtResource("6_maparea")]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ChroniclePanel" parent="UiLayer/UiRoot/RootColumn/MiddleRow" instance=ExtResource("7_chronicle")]
+
+[node name="BottomBar" parent="UiLayer/UiRoot/RootColumn" instance=ExtResource("8_bottombar")]
+
+[node name="TableauPanel" parent="UiLayer/UiRoot" instance=ExtResource("9_tableau")]
+
+[node name="HexTooltipPanel" type="PanelContainer" parent="UiLayer/UiRoot"]
+visible = false
+mouse_filter = 2
+script = ExtResource("10_tooltip")
+
+[node name="TooltipLabel" type="Label" parent="UiLayer/UiRoot/HexTooltipPanel"]
+mouse_filter = 2
+
+[node name="CardLayer" type="CanvasLayer" parent="."]
+layer = 2
+script = ExtResource("11_cardlayer")

@@ -3,6 +3,7 @@ namespace Engine.Host;
 using Engine.Domain;
 using Engine.Domain.Compilation;
 using Engine.Domain.Config;
+using Engine.Domain.Startup;
 using Engine.Eventing.Schema;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
@@ -17,7 +18,9 @@ public sealed class KernelHostBuilder
     private readonly List<Action<KernelHostConsumerContext>> _consumerRegistrations = [];
     private DomainIdRegistry? _domainIds;
     private CompiledDomain? _compiledDomain;
+    private DomainStartupSeed? _domainStartupSeed;
     private Simulation? _kernel;
+    private byte[]? _kernelState;
     private IKernelStartupSeeder? _startupSeeder;
     private SimulationOptions _simulationOptions = new()
     {
@@ -33,6 +36,17 @@ public sealed class KernelHostBuilder
     {
         ArgumentNullException.ThrowIfNull(kernel);
         _kernel = kernel;
+        _kernelState = null;
+        return this;
+    }
+
+    public KernelHostBuilder WithKernelState(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var memory = new MemoryStream();
+        source.CopyTo(memory);
+        _kernelState = memory.ToArray();
+        _kernel = null;
         return this;
     }
 
@@ -63,6 +77,11 @@ public sealed class KernelHostBuilder
     public KernelHostBuilder WithStartupSeeder(IKernelStartupSeeder startupSeeder)
     {
         ArgumentNullException.ThrowIfNull(startupSeeder);
+        if (_domainStartupSeed is not null)
+        {
+            throw new InvalidOperationException("A domain startup seed is already configured.");
+        }
+
         _startupSeeder = startupSeeder;
         return this;
     }
@@ -71,7 +90,24 @@ public sealed class KernelHostBuilder
         int estimatedEventCount,
         Action<KernelStartupContext> seed)
     {
+        if (_domainStartupSeed is not null)
+        {
+            throw new InvalidOperationException("A domain startup seed is already configured.");
+        }
+
         _startupSeeder = new DelegateKernelStartupSeeder(estimatedEventCount, seed);
+        return this;
+    }
+
+    public KernelHostBuilder WithDomainStartupSeed(DomainStartupSeed seed)
+    {
+        ArgumentNullException.ThrowIfNull(seed);
+        if (_startupSeeder is not null)
+        {
+            throw new InvalidOperationException("A custom startup seeder is already configured.");
+        }
+
+        _domainStartupSeed = seed;
         return this;
     }
 
@@ -100,6 +136,13 @@ public sealed class KernelHostBuilder
     {
         ArgumentNullException.ThrowIfNull(configure);
         _symbolConfigurators.Add(configure);
+        return this;
+    }
+
+    public KernelHostBuilder WithEntityNameSynthesizer(IProjectionEntityNameSynthesizer synthesizer)
+    {
+        ArgumentNullException.ThrowIfNull(synthesizer);
+        _symbolConfigurators.Add(symbols => symbols.UseEntityNameSynthesizer(synthesizer));
         return this;
     }
 
@@ -138,8 +181,6 @@ public sealed class KernelHostBuilder
 
     public KernelHost Build()
     {
-        EnsureSeedBurstFits();
-
         if (_compiledDomain is not null && _domainIds is not null)
         {
             throw new InvalidOperationException("A compiled domain owns the domain ID catalog; do not also pass DomainIdRegistry.");
@@ -154,6 +195,18 @@ public sealed class KernelHostBuilder
         {
             throw new InvalidOperationException("A compiled domain must configure runtime codes before the kernel is constructed.");
         }
+
+        if (_domainStartupSeed is not null && _compiledDomain is null)
+        {
+            throw new InvalidOperationException("A domain startup seed requires a compiled domain.");
+        }
+
+        if (_kernelState is not null && (_startupSeeder is not null || _domainStartupSeed is not null))
+        {
+            throw new InvalidOperationException("A loaded kernel state replaces startup seeding.");
+        }
+
+        EnsureSeedBurstFits();
 
         var domainIds = _compiledDomain?.Ids ?? _domainIds ?? new DomainIdRegistry();
         foreach (var register in _domainRegistrations)
@@ -179,7 +232,11 @@ public sealed class KernelHostBuilder
             {
                 RuntimeCodes = ToKernelRuntimeCodes(_compiledDomain.RuntimeCodes),
             };
-        var kernel = _kernel ?? new Simulation(simulationOptions);
+        var kernelWasLoaded = _kernelState is not null;
+        var kernel = _kernel ??
+            (kernelWasLoaded
+                ? KernelSnapshot.LoadKernelState(new MemoryStream(_kernelState!), simulationOptions)
+                : new Simulation(simulationOptions));
         var nextSequenceBeforeKernelConfiguration = kernel.Events.NextSequence;
         var kernelConfigurationContext = new KernelConfigurationContext(kernel, domainIds, symbolContext);
         var programConfig = new KernelProgramConfigurationContext();
@@ -188,9 +245,10 @@ public sealed class KernelHostBuilder
             configure(programConfig);
         }
 
-        if (_compiledDomain is not null)
+        if (_compiledDomain is not null && !kernelWasLoaded)
         {
-            KernelProgramInstaller.Install(kernelConfigurationContext, _compiledDomain, programConfig);
+            KernelDataInstaller.Install(kernelConfigurationContext, _compiledDomain.KernelData);
+            KernelProgramInstaller.Install(kernelConfigurationContext, _compiledDomain.Programs, programConfig);
         }
 
         foreach (var programOverride in programConfig.Overrides)
@@ -201,6 +259,11 @@ public sealed class KernelHostBuilder
         foreach (var configure in _kernelConfigurators)
         {
             configure(kernelConfigurationContext);
+        }
+
+        if (_domainStartupSeed is not null && !kernelWasLoaded)
+        {
+            DomainStartupSeedInstaller.ConfigureKernel(kernelConfigurationContext, _domainStartupSeed);
         }
 
         if (kernel.Events.NextSequence != nextSequenceBeforeKernelConfiguration)
@@ -225,17 +288,26 @@ public sealed class KernelHostBuilder
                 register(consumerContext);
             }
 
-            if (_startupSeeder is not null && kernel.Events.NextSequence != 0)
+            var hasStartupSeed = !kernelWasLoaded && (_startupSeeder is not null || _domainStartupSeed is not null);
+            if (hasStartupSeed && kernel.Events.NextSequence != 0)
             {
                 throw new InvalidOperationException("Kernel startup consumers must be registered before seed events are emitted.");
             }
 
-            var seedEventCount = 0;
-            if (_startupSeeder is not null)
+            var seedEventCount = kernelWasLoaded ? checked((int)kernel.Events.NextSequence) : 0;
+            if (hasStartupSeed)
             {
                 var nextSequenceBeforeSeed = kernel.Events.NextSequence;
                 var startupContext = new KernelStartupContext(kernel, domainIds, symbolContext);
-                _startupSeeder.Seed(startupContext);
+                if (_domainStartupSeed is not null)
+                {
+                    DomainStartupSeedInstaller.Install(startupContext, _domainStartupSeed);
+                }
+                else
+                {
+                    _startupSeeder!.Seed(startupContext);
+                }
+
                 var observedSeedEventCount = checked((int)(kernel.Events.NextSequence - nextSequenceBeforeSeed));
                 seedEventCount = observedSeedEventCount;
             }
@@ -275,8 +347,11 @@ public sealed class KernelHostBuilder
             codes.RelationshipCulledCodeId.Value,
             codes.RelationshipStrengthChangedCodeId.Value,
             codes.ProcessSourceCodeId.Value,
-            codes.CardSourceCodeId.Value,
-            codes.UpkeepSourceCodeId.Value);
+            codes.GambitSourceCodeId.Value,
+            codes.UpkeepSourceCodeId.Value,
+            codes.StartupSourceCodeId.Value,
+            codes.RelationshipSourceCodeId.Value,
+            codes.GeneratorSourceCodeId.Value);
 
     private static void ApplyDomainSymbols(
         KernelSymbolContext context,
@@ -309,8 +384,7 @@ public sealed class KernelHostBuilder
         DomainSymbolKind.Terrain => ProjectionSymbolKind.Terrain,
         DomainSymbolKind.Pressure => ProjectionSymbolKind.Pressure,
         DomainSymbolKind.Generator => ProjectionSymbolKind.Generator,
-        DomainSymbolKind.Decision => ProjectionSymbolKind.Decision,
-        DomainSymbolKind.Card => ProjectionSymbolKind.Card,
+        DomainSymbolKind.Gambit => ProjectionSymbolKind.Gambit,
         DomainSymbolKind.EventCode => ProjectionSymbolKind.EventCode,
         DomainSymbolKind.ReasonCode => ProjectionSymbolKind.ReasonCode,
         DomainSymbolKind.SourceCode => ProjectionSymbolKind.SourceCode,
@@ -321,7 +395,9 @@ public sealed class KernelHostBuilder
 
     private void EnsureSeedBurstFits()
     {
-        var seedEventCount = _startupSeeder?.EstimatedEventCount ?? 0;
+        var seedEventCount = _domainStartupSeed is not null
+            ? DomainStartupSeedInstaller.EstimateEventCount(_domainStartupSeed, _compiledDomain!)
+            : _startupSeeder?.EstimatedEventCount ?? 0;
         var requiredCapacity = checked(seedEventCount + _seedHeadroom);
         if (_simulationOptions.EventCapacity < requiredCapacity)
         {

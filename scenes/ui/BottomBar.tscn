@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/BottomBar.cs" id="1_bottom"]
+
+[node name="BottomBar" type="PanelContainer"]
+script = ExtResource("1_bottom")
+
+[node name="Row" type="HBoxContainer" parent="."]
+
+[node name="TableauToggleButton" type="Button" parent="Row"]
+custom_minimum_size = Vector2(110, 28)
+text = "Tableau"
+
+[node name="ReadingsToggleButton" type="Button" parent="Row"]
+custom_minimum_size = Vector2(110, 28)
+text = "Readings"
+
+[node name="Spacer" type="Control" parent="Row"]
+size_flags_horizontal = 3
+
+[node name="HintLabel" type="Label" parent="Row"]
+text = "SPACE pause   Right step   1/2/3 speed   N names   G readings   R reset   WASD pan   scroll zoom"

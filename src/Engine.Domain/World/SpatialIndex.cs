@@ -6,7 +6,7 @@ using Engine.Kinds;
 
 /// <summary>
 /// Spatial query API over the hex grid. Provides entity-location queries,
-/// pathfinding, and spatial aggregation used by entity behaviors, card
+/// pathfinding, and spatial aggregation used by entity behaviors, authored
 /// preconditions, and relationship strength modifiers.
 /// </summary>
 public sealed class SpatialIndex
@@ -269,7 +269,7 @@ public sealed class SpatialIndex
 
     /// <summary>
     /// A* pathfinding on the hex grid. Returns ordered list of cells from start to end,
-    /// or null if no path exists. Respects movement costs (water is impassable).
+    /// or null if no path exists. Respects movement costs.
     /// </summary>
     public IReadOnlyList<HexCoord>? FindPath(HexCoord start, HexCoord end)
     {

@@ -1,6 +1,8 @@
 namespace IceRemembers.Seed;
 
+using Engine.Attributes;
 using Engine.Domain;
+using Engine.Domain.Startup;
 using IceRemembers;
 using Engine.Graph;
 using Engine.Kinds;
@@ -100,6 +102,103 @@ public sealed class IceRemembersSeedBuilder
         var baseSeed = seed ?? Random.Shared.Next();
         var acceptedSeed = SelectAcceptedSeed(baseSeed);
         return BuildUnchecked(acceptedSeed);
+    }
+
+    /// <summary>
+    /// Build the Ice Remembers startup seed in the domain-stable shape consumed by Engine.Host.
+    /// This is a migration boundary: the source remains the existing procedural seed builder,
+    /// while the output avoids kernel runtime IDs and legacy host coupling.
+    /// </summary>
+    public static DomainStartupSeed BuildStartupSeed(int? seed = null)
+    {
+        var baseSeed = seed ?? Random.Shared.Next();
+        var acceptedSeed = SelectAcceptedSeed(baseSeed);
+        return BuildStartupSeed(acceptedSeed);
+    }
+
+    public static DomainStartupSeed BuildStartupSeed(
+        WorldGenerationSeed seed,
+        DomainIdRegistry? domainIds = null)
+    {
+        var world = BuildEmpty(seed);
+        Populate(world, seed, domainIds);
+        return ToStartupSeed(world);
+    }
+
+    public static DomainStartupSeed ToStartupSeed(TestWorld world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+
+        var entities = world.Graph.AllEntities.Values
+            .OrderBy(entity => entity.Id.Value)
+            .Select(entity => new DomainSeedEntity(
+                entity.Id.Value,
+                entity.Kind.Value,
+                entity.Subtype,
+                entity.Culture,
+                entity.Coordinates.Q,
+                entity.Coordinates.R,
+                entity.SemanticPosition.Q,
+                entity.SemanticPosition.R,
+                entity.SemanticPosition.S,
+                entity.Name))
+            .ToArray();
+
+        var cells = world.Grid.AllCells
+            .OrderBy(cell => cell.Coord.Q)
+            .ThenBy(cell => cell.Coord.R)
+            .Select(cell => new DomainSeedCell(
+                cell.Coord.Q,
+                cell.Coord.R,
+                cell.Terrain.StableName,
+                world.CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId))
+            .ToArray();
+
+        var resources = world.Grid.AllCells
+            .OrderBy(cell => cell.Coord.Q)
+            .ThenBy(cell => cell.Coord.R)
+            .SelectMany(cell => cell.AmbientResources
+                .OrderBy(resource => resource.Key, StringComparer.Ordinal)
+                .Select(resource => new DomainSeedResource(
+                    resource.Key,
+                    cell.Coord.Q,
+                    cell.Coord.R,
+                    resource.Value)))
+            .ToArray();
+
+        var relationships = world.Graph.AllEntities.Values
+            .OrderBy(entity => entity.Id.Value)
+            .SelectMany(entity => world.Graph.OutgoingRelationships(entity.Id)
+                .OrderBy(relationship => relationship.Kind, StringComparer.Ordinal)
+                .ThenBy(relationship => relationship.TargetId.Value)
+                .ThenBy(relationship => relationship.Strength)
+                .Select(relationship => new DomainSeedRelationship(
+                    relationship.Kind,
+                    relationship.Polarity,
+                    relationship.SourceId.Value,
+                    relationship.TargetId.Value,
+                    relationship.Strength,
+                    relationship.Facts.Order(StringComparer.Ordinal).ToArray())))
+            .ToArray();
+
+        var attributes = world.Graph.AllEntities.Values
+            .OrderBy(entity => entity.Id.Value)
+            .SelectMany(entity => entity.Attributes.All
+                .OfType<ScalarValue>()
+                .OrderBy(attribute => attribute.Name, StringComparer.Ordinal)
+                .Select(attribute => new DomainSeedAttributeValue(
+                    entity.Id.Value,
+                    attribute.Name,
+                    attribute.Value)))
+            .ToArray();
+
+        return new DomainStartupSeed(
+            world.Grid.Radius,
+            entities,
+            cells,
+            resources,
+            relationships,
+            attributes);
     }
 
     public static WorldGenerationSeed SelectAcceptedSeed(Random random)

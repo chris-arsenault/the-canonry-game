@@ -5,7 +5,7 @@ using Engine.Kinds;
 
 /// <summary>
 /// A structured reference to a value in the simulation. Used by wiring contracts
-/// to declare what processes/decisions read from and write to.
+/// to declare what processes/gambits read from and write to.
 /// Not a string -- a typed path through the simulation state.
 /// </summary>
 public sealed class AttributeRef : IEquatable<AttributeRef>

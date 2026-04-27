@@ -74,7 +74,6 @@ public static class RuntimeProcessGenerator
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
-            DefinitionRole.Process,
             ownerKind,
             new TargetIsNotSelf(),
             Expr.Score(Expr.Lit(1f)))
@@ -99,7 +98,6 @@ public static class RuntimeProcessGenerator
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
-            DefinitionRole.Process,
             ownerKind,
             new AlwaysTrue(),
             Expr.Score(Expr.Lit(0.05f)))
@@ -184,7 +182,6 @@ public static class RuntimeProcessGenerator
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
-            DefinitionRole.Process,
             ownerKind,
             new AndPrecondition(
             [
@@ -228,7 +225,6 @@ public static class RuntimeProcessGenerator
             var selfDirectedProcess = new ProcessDefinition(
                 verb.Id,
                 Titleize(verb.Id),
-                DefinitionRole.Process,
                 ownerKind,
                 new AndPrecondition(
                 [
@@ -258,7 +254,6 @@ public static class RuntimeProcessGenerator
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
-            DefinitionRole.Process,
             ownerKind,
             new AndPrecondition(
             [
@@ -308,7 +303,6 @@ public static class RuntimeProcessGenerator
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
-            DefinitionRole.Process,
             ownerKind,
             new AndPrecondition(
             [
@@ -381,7 +375,6 @@ public static class RuntimeProcessGenerator
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
-            DefinitionRole.Process,
             ownerKind,
             new AndPrecondition(preconditionChildren),
             scoreExpression)

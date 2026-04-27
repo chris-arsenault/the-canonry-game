@@ -10,7 +10,7 @@ using Engine.Resources;
 /// </summary>
 public static class PreconditionInspector
 {
-    public static ProcessPreconditionAnalysis Analyze(ProcessDefinition definition)
+    public static ProcessPreconditionAnalysis Analyze(BehaviorDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
 
@@ -90,7 +90,7 @@ public static class PreconditionInspector
         }
     }
 
-    private static HashSet<EntityKind> InferTargetKinds(ProcessDefinition definition)
+    private static HashSet<EntityKind> InferTargetKinds(BehaviorDefinition definition)
     {
         var targetKinds = definition.ProviderSelectors
             .Where(selector => selector.Kind.HasValue)

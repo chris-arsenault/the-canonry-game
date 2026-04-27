@@ -17,13 +17,12 @@ public enum ProjectionSymbolKind
     Terrain = 10,
     Pressure = 11,
     Generator = 12,
-    Decision = 13,
-    Card = 14,
-    EventCode = 15,
-    ReasonCode = 16,
-    SourceCode = 17,
-    Detector = 18,
-    Goal = 19,
+    Gambit = 13,
+    EventCode = 14,
+    ReasonCode = 15,
+    SourceCode = 16,
+    Detector = 17,
+    Goal = 18,
 }
 
 public readonly record struct ProjectionSymbolKey(ProjectionSymbolKind Kind, int Id);
@@ -72,57 +71,22 @@ public interface IProjectionSymbolCatalog
 
 public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
 {
-    private static readonly string[] GeneratedNameRoots =
-    [
-        "Aren",
-        "Bel",
-        "Cair",
-        "Dalen",
-        "Eld",
-        "Fenn",
-        "Galen",
-        "Hale",
-        "Iven",
-        "Jora",
-        "Kael",
-        "Lorn",
-        "Maren",
-        "Neris",
-        "Oren",
-        "Pelar",
-        "Quen",
-        "Saren",
-        "Tovin",
-        "Ulven",
-        "Varen",
-        "Yorin",
-        "Zalen",
-    ];
-
-    private static readonly string[] GeneratedNameTails =
-    [
-        "a",
-        "en",
-        "is",
-        "or",
-        "un",
-        "el",
-        "ia",
-        "ar",
-        "in",
-        "eth",
-        "os",
-        "ir",
-    ];
-
     private readonly Dictionary<ProjectionSymbolKey, ProjectionSymbol> _symbols = [];
     private readonly Dictionary<int, string> _entityNamesById = [];
+    private IProjectionEntityNameSynthesizer? _entityNameSynthesizer;
 
     public IReadOnlyDictionary<ProjectionSymbolKey, ProjectionSymbol> Symbols =>
         new ReadOnlyDictionary<ProjectionSymbolKey, ProjectionSymbol>(_symbols);
 
     public IReadOnlyDictionary<int, string> ExplicitEntityNames =>
         new ReadOnlyDictionary<int, string>(_entityNamesById);
+
+    public ProjectionSymbolCatalog UseEntityNameSynthesizer(IProjectionEntityNameSynthesizer synthesizer)
+    {
+        ArgumentNullException.ThrowIfNull(synthesizer);
+        _entityNameSynthesizer = synthesizer;
+        return this;
+    }
 
     public ProjectionSymbolCatalog RegisterSymbol(
         ProjectionSymbolKind kind,
@@ -210,8 +174,15 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
             return true;
         }
 
-        displayName = GenerateEntityName(key);
-        return true;
+        var context = CreateEntityNameContext(key);
+        if (_entityNameSynthesizer is not null &&
+            _entityNameSynthesizer.TrySynthesizeName(context, out displayName) &&
+            !string.IsNullOrWhiteSpace(displayName))
+        {
+            return true;
+        }
+
+        return DefaultProjectionEntityNameSynthesizer.Instance.TrySynthesizeName(context, out displayName);
     }
 
     public string ResolveEntityName(ProjectionEntityNameKey key, string? fallback = null)
@@ -239,49 +210,28 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         return string.Join(' ', chars.Select(Capitalize));
     }
 
-    private string GenerateEntityName(ProjectionEntityNameKey key)
+    private ProjectionEntityNameContext CreateEntityNameContext(ProjectionEntityNameKey key)
     {
-        var baseLabel = ResolveEntityBaseLabel(key);
-        var seed = key.NameSeed != 0 ? key.NameSeed : key.EntityId;
-        var hash = Mix(seed, key.EntityId, key.KindId, key.SubtypeId, key.CultureId);
-        var root = GeneratedNameRoots[hash % GeneratedNameRoots.Length];
-        var tail = GeneratedNameTails[(hash / GeneratedNameRoots.Length) % GeneratedNameTails.Length];
-        return $"{baseLabel} {root}{tail}";
-    }
-
-    private string ResolveEntityBaseLabel(ProjectionEntityNameKey key)
-    {
-        if (key.SubtypeId > 0 &&
-            TryResolve(ProjectionSymbolKind.Subtype, key.SubtypeId, out var subtype) &&
-            !IsNone(subtype.StableName))
+        ProjectionSymbol? kind = null;
+        ProjectionSymbol? subtype = null;
+        ProjectionSymbol? culture = null;
+        if (key.KindId > 0 && TryResolve(ProjectionSymbolKind.Kind, key.KindId, out var resolvedKind))
         {
-            return subtype.DisplayName;
+            kind = resolvedKind;
         }
 
-        if (key.KindId > 0 && TryResolve(ProjectionSymbolKind.Kind, key.KindId, out var kind))
+        if (key.SubtypeId > 0 && TryResolve(ProjectionSymbolKind.Subtype, key.SubtypeId, out var resolvedSubtype))
         {
-            return kind.DisplayName;
+            subtype = resolvedSubtype;
         }
 
-        return "Entity";
-    }
-
-    private static int Mix(int a, int b, int c, int d, int e)
-    {
-        unchecked
+        if (key.CultureId > 0 && TryResolve(ProjectionSymbolKind.Culture, key.CultureId, out var resolvedCulture))
         {
-            var hash = 2166136261u;
-            hash = (hash ^ (uint)a) * 16777619u;
-            hash = (hash ^ (uint)b) * 16777619u;
-            hash = (hash ^ (uint)c) * 16777619u;
-            hash = (hash ^ (uint)d) * 16777619u;
-            hash = (hash ^ (uint)e) * 16777619u;
-            return (int)(hash & 0x7fffffffu);
+            culture = resolvedCulture;
         }
-    }
 
-    private static bool IsNone(string stableName) =>
-        string.Equals(stableName, "none", StringComparison.OrdinalIgnoreCase);
+        return new ProjectionEntityNameContext(key, kind, subtype, culture);
+    }
 
     private static string Capitalize(string value)
     {

@@ -62,6 +62,12 @@ public sealed class KernelHost : IDisposable
     public bool ProgramIsEnabled(int programId) =>
         Kernel.ProgramIsEnabled(programId);
 
+    public void SaveKernelState(Stream destination)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        KernelSnapshot.SaveKernelState(Kernel, destination);
+    }
+
     public void DrainConsumers()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

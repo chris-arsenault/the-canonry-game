@@ -11,6 +11,7 @@ public sealed class KernelEventPayloadTests
             Tick: 3,
             WorldVersion: 5,
             ChangeCodeId: 7,
+            SourceCodeId: 41,
             RelationshipKindId: 11,
             PolarityCode: -1,
             SourceEntityId: 13,
@@ -24,15 +25,16 @@ public sealed class KernelEventPayloadTests
             NewStrength: 0.75f));
 
         Assert.Equal(7, kernelEvent.GetIntSlot(0));
-        Assert.Equal(11, kernelEvent.GetIntSlot(1));
-        Assert.Equal(-1, kernelEvent.GetIntSlot(2));
-        Assert.Equal(13, kernelEvent.GetIntSlot(3));
-        Assert.Equal(17, kernelEvent.GetIntSlot(4));
-        Assert.Equal(19, kernelEvent.GetIntSlot(5));
-        Assert.Equal(23, kernelEvent.GetIntSlot(6));
-        Assert.Equal(29, kernelEvent.GetIntSlot(7));
-        Assert.Equal(31, kernelEvent.GetIntSlot(8));
-        Assert.Equal(4, kernelEvent.GetIntSlot(9));
+        Assert.Equal(41, kernelEvent.GetIntSlot(1));
+        Assert.Equal(11, kernelEvent.GetIntSlot(2));
+        Assert.Equal(-1, kernelEvent.GetIntSlot(3));
+        Assert.Equal(13, kernelEvent.GetIntSlot(4));
+        Assert.Equal(17, kernelEvent.GetIntSlot(5));
+        Assert.Equal(19, kernelEvent.GetIntSlot(6));
+        Assert.Equal(23, kernelEvent.GetIntSlot(7));
+        Assert.Equal(29, kernelEvent.GetIntSlot(8));
+        Assert.Equal(31, kernelEvent.GetIntSlot(9));
+        Assert.Equal(4, kernelEvent.GetIntSlot(10));
         Assert.Equal(0.25f, kernelEvent.GetFloatSlot(0));
         Assert.Equal(0.75f, kernelEvent.GetFloatSlot(1));
         Assert.Throws<ArgumentOutOfRangeException>(() => kernelEvent.GetIntSlot(KernelEvent.IntSlotCount));
@@ -42,13 +44,13 @@ public sealed class KernelEventPayloadTests
     [Fact]
     public void GeneratedPackAndViewRoundTripEveryRegisteredEvent()
     {
-        var entityCreated = new EntityCreatedKernelEvent(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -19);
+        var entityCreated = new EntityCreatedKernelEvent(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, -21);
         Assert.Equal(entityCreated, KernelEvent.From(entityCreated).AsEntityCreated());
 
-        var entityStatusChanged = new EntityStatusChangedKernelEvent(2, 3, 4, 5, 6, 7, 8);
+        var entityStatusChanged = new EntityStatusChangedKernelEvent(2, 3, 4, 5, 6, 7, 8, 9);
         Assert.Equal(entityStatusChanged, KernelEvent.From(entityStatusChanged).AsEntityStatusChanged());
 
-        var entityMoved = new EntityMovedKernelEvent(3, 4, 5, 1, 6, 7, -13, 8, 9, -17);
+        var entityMoved = new EntityMovedKernelEvent(3, 4, 5, 6, 1, 7, 8, -15, 9, 10, -19);
         Assert.Equal(entityMoved, KernelEvent.From(entityMoved).AsEntityMoved());
 
         var attributeChanged = new AttributeChangedKernelEvent(4, 5, 6, 7, 8, 1.25f, 2.5f);
@@ -58,7 +60,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(resourceChanged, KernelEvent.From(resourceChanged).AsResourceChanged());
 
         var relationshipChanged = new RelationshipChangedKernelEvent(
-            6, 7, 8, 9, -1, 10, 11, 12, 13, 14, 15, 4, 0.125f, 0.875f);
+            6, 7, 8, 9, 10, -1, 11, 12, 13, 14, 15, 16, 4, 0.125f, 0.875f);
         Assert.Equal(relationshipChanged, KernelEvent.From(relationshipChanged).AsRelationshipChanged());
 
         var processEvaluated = new ProcessEvaluatedKernelEvent(
@@ -81,8 +83,11 @@ public sealed class KernelEventPayloadTests
         var generatorFired = new GeneratorFiredKernelEvent(12, 13, 14, 15, 16, 17);
         Assert.Equal(generatorFired, KernelEvent.From(generatorFired).AsGeneratorFired());
 
-        var decisionExecuted = new DecisionExecutedKernelEvent(13, 14, 15, 16, 17, 18, KernelEventState.Succeeded);
-        Assert.Equal(decisionExecuted, KernelEvent.From(decisionExecuted).AsDecisionExecuted());
+        var gambitEvaluated = new GambitEvaluatedKernelEvent(13, 14, 15, 16, 17, 18, KernelEventState.Succeeded);
+        Assert.Equal(gambitEvaluated, KernelEvent.From(gambitEvaluated).AsGambitEvaluated());
+
+        var gambitExecuted = new GambitExecutedKernelEvent(13, 14, 15, 16, 17, 18, 19, 20, KernelEventState.Succeeded);
+        Assert.Equal(gambitExecuted, KernelEvent.From(gambitExecuted).AsGambitExecuted());
 
         var commandApplied = new CommandAppliedKernelEvent(14, 15, 16, 17, 18);
         Assert.Equal(commandApplied, KernelEvent.From(commandApplied).AsCommandApplied());
@@ -96,7 +101,7 @@ public sealed class KernelEventPayloadTests
         var generatorEnabledChanged = new GeneratorEnabledChangedKernelEvent(17, 18, 19, 1);
         Assert.Equal(generatorEnabledChanged, KernelEvent.From(generatorEnabledChanged).AsGeneratorEnabledChanged());
 
-        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3);
+        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4);
         Assert.Equal(cellCreated, KernelEvent.From(cellCreated).AsCellCreated());
 
         var planStarted = new PlanStartedKernelEvent(18, 19, 20, 21, 22, 23);

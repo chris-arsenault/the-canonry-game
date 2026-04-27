@@ -7,7 +7,7 @@ using Engine.Resources;
 
 /// <summary>
 /// Context provided to preconditions and mutations for accessing and modifying world state.
-/// Used by processes, decisions, and cards — any code that evaluates preconditions or executes mutations.
+/// Used by data-driven behavior code that evaluates preconditions or executes mutations.
 /// </summary>
 public interface IMutationContext
 {
@@ -73,7 +73,6 @@ public interface IMutationContext
     void ModifyPressure(PressureRuntimeId pressureId, EntityId scopeId, float delta) =>
         throw PrimitiveRuntimeIdNotSupported(nameof(ModifyPressure));
     void ModifyResource((int Q, int R) coordinates, ResourceType resourceType, float delta);
-    void SetTag(EntityId entityId, string key, string value);
     void SetEntityHistorical(EntityId entityId);
 
     /// <summary>Consume resource at hex coordinates. Returns actual amount consumed (may be less than requested).</summary>

@@ -21,8 +21,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Engine.Eventing\Engine.Eventing.csproj" />
     <ProjectReference Include="..\..\src\Engine.Eventing.Schema\Engine.Eventing.Schema.csproj" />
+    <ProjectReference Include="..\..\src\Engine.Host\Engine.Host.csproj" />
+    <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\..\src\Engine.Observability\Engine.Observability.csproj" />
     <ProjectReference Include="..\..\src\Engine.Projection\Engine.Projection.csproj" />
+    <ProjectReference Include="..\..\src\IceRemembers.Seed\IceRemembers.Seed.csproj" />
   </ItemGroup>
 
 </Project>

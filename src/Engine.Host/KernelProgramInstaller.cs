@@ -1,7 +1,6 @@
 namespace Engine.Host;
 
 using Engine.Domain;
-using Engine.Domain.Compilation;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Kernel;
 using Engine.Kernel.Programs;
@@ -10,54 +9,42 @@ internal static class KernelProgramInstaller
 {
     public static void Install(
         KernelConfigurationContext context,
-        CompiledDomain compiledDomain,
+        KernelProgramSet programs,
         KernelProgramConfigurationContext programConfig)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(compiledDomain);
+        ArgumentNullException.ThrowIfNull(programs);
         ArgumentNullException.ThrowIfNull(programConfig);
 
-        InstallEntityData(context, compiledDomain.Programs.EntityData);
-        InstallUpkeep(context, compiledDomain.Programs.Upkeep);
-        InstallProcesses(context, compiledDomain.Programs.Processes);
-        InstallRelationships(context, compiledDomain.Programs.Relationships);
-        InstallTerrain(context, compiledDomain.Programs.Terrain);
-        InstallPressures(context, compiledDomain.Programs.Pressures);
-        InstallGenerators(context, compiledDomain.Programs.Generators);
-        InstallDegeneracy(context, compiledDomain.Programs.Degeneracy);
+        InstallUpkeep(context, programs.Upkeep);
+        InstallProcesses(context, programs.Processes);
+        InstallGambits(context, programs.Gambits);
+        InstallRelationships(context, programs.Relationships);
+        InstallPressures(context, programs.Pressures);
+        InstallGenerators(context, programs.Generators);
+        InstallDegeneracy(context, programs.Degeneracy);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Upkeep,
-            programConfig.IsEnabled(KernelProgramCodes.Upkeep, compiledDomain.Programs.Upkeep.EnabledByDefault));
+            programConfig.IsEnabled(KernelProgramCodes.Upkeep, programs.Upkeep.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Processes,
-            programConfig.IsEnabled(KernelProgramCodes.Processes, compiledDomain.Programs.Processes.EnabledByDefault));
+            programConfig.IsEnabled(KernelProgramCodes.Processes, programs.Processes.EnabledByDefault));
+        context.SetProgramEnabled(
+            KernelProgramCodes.Gambits,
+            programConfig.IsEnabled(KernelProgramCodes.Gambits, programs.Gambits.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Relationships,
-            programConfig.IsEnabled(KernelProgramCodes.Relationships, compiledDomain.Programs.Relationships.EnabledByDefault));
+            programConfig.IsEnabled(KernelProgramCodes.Relationships, programs.Relationships.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Pressures,
-            programConfig.IsEnabled(KernelProgramCodes.Pressures, compiledDomain.Programs.Pressures.EnabledByDefault));
+            programConfig.IsEnabled(KernelProgramCodes.Pressures, programs.Pressures.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Generators,
-            programConfig.IsEnabled(KernelProgramCodes.Generators, compiledDomain.Programs.Generators.EnabledByDefault));
+            programConfig.IsEnabled(KernelProgramCodes.Generators, programs.Generators.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Degeneracy,
-            programConfig.IsEnabled(KernelProgramCodes.Degeneracy, compiledDomain.Programs.Degeneracy.EnabledByDefault));
-    }
-
-    private static void InstallEntityData(KernelConfigurationContext context, EntityDataProgram program)
-    {
-        foreach (var attribute in program.Attributes)
-        {
-            context.RegisterAttribute(
-                attribute.KindId,
-                new AttributeRuntimeId(attribute.AttributeId),
-                attribute.Minimum,
-                attribute.Maximum,
-                attribute.DefaultValue,
-                attribute.DefaultVariance);
-        }
+            programConfig.IsEnabled(KernelProgramCodes.Degeneracy, programs.Degeneracy.EnabledByDefault));
     }
 
     private static void InstallUpkeep(KernelConfigurationContext context, UpkeepProgram program)
@@ -234,14 +221,117 @@ internal static class KernelProgramInstaller
         }
     }
 
-    private static void InstallTerrain(KernelConfigurationContext context, TerrainProgram program)
+    private static void InstallGambits(
+        KernelConfigurationContext context,
+        GambitProgram program)
     {
-        foreach (var terrain in program.Terrains)
+        foreach (var gambit in program.Gambits)
         {
-            context.RegisterTerrain(
-                new TerrainRuntimeId(terrain.TerrainId),
-                terrain.IsPassable,
-                terrain.BoundaryGroupId);
+            var gambitSlot = context.RegisterGambit(
+                gambit.KindId,
+                gambit.GambitId,
+                gambit.CooldownTicks,
+                gambit.EntityCooldownTicks,
+                TargetModeCode(gambit.TargetMode),
+                gambit.TargetKindId,
+                gambit.SuccessChance);
+
+            foreach (var goalEffect in gambit.GoalEffects)
+            {
+                context.AddGambitGoalEffect(
+                    gambitSlot,
+                    EffectScopeCode(goalEffect.Scope),
+                    goalEffect.ValueId,
+                    goalEffect.KindId);
+            }
+
+            foreach (var precondition in gambit.Preconditions)
+            {
+                context.AddGambitPrecondition(
+                    gambitSlot,
+                    PreconditionCode(precondition.Code),
+                    precondition.A,
+                    precondition.B,
+                    precondition.C,
+                    precondition.D,
+                    precondition.X,
+                    precondition.Y);
+            }
+
+            foreach (var expression in gambit.ScoreExpression)
+            {
+                context.AddGambitScoreExpressionOp(
+                    gambitSlot,
+                    ExpressionCode(expression.Code),
+                    expression.A,
+                    expression.X);
+            }
+
+            foreach (var expression in gambit.RewardExpression)
+            {
+                context.AddGambitRewardExpressionOp(
+                    gambitSlot,
+                    ExpressionCode(expression.Code),
+                    expression.A,
+                    expression.X);
+            }
+
+            foreach (var selector in gambit.ProviderSelectors)
+            {
+                context.AddGambitProviderSelector(
+                    gambitSlot,
+                    ProviderSelectorCode(selector.Selector),
+                    selector.KindId,
+                    selector.ValueId,
+                    selector.RelationshipKindId,
+                    selector.FactId,
+                    selector.MinimumStrength);
+            }
+
+            foreach (var support in gambit.SupportRules)
+            {
+                var supportSlot = context.AddGambitSupportRule(
+                    gambitSlot,
+                    EffectScopeCode(support.EffectScope),
+                    support.EffectValueId,
+                    support.EffectKindId,
+                    support.DesiredMinimum,
+                    support.UrgencyScale);
+                foreach (var expression in support.CurrentValueExpression)
+                {
+                    context.AddGambitSupportExpressionOp(
+                        supportSlot,
+                        ExpressionCode(expression.Code),
+                        expression.A,
+                        expression.X);
+                }
+            }
+
+            foreach (var step in gambit.Steps)
+            {
+                var stepSlot = context.AddGambitStep(
+                    gambitSlot,
+                    OperationCode(step.Operation),
+                    step.A,
+                    step.B,
+                    step.C,
+                    step.D,
+                    step.X,
+                    step.Y);
+                if (step.Expression is null)
+                {
+                    continue;
+                }
+
+                foreach (var expression in step.Expression)
+                {
+                    context.AddGambitStepExpressionOp(
+                        stepSlot,
+                        ExpressionCode(expression.Code),
+                        expression.A,
+                        expression.X);
+                }
+            }
         }
     }
 
@@ -354,8 +444,7 @@ internal static class KernelProgramInstaller
                     coverage?.MinimumCellCount ?? 0,
                     coverage?.MinimumSourceRemainingCellCount ?? 0,
                     coverage?.RespectTerrainBoundaries ?? true,
-                    coverage?.TransformTerrainId ?? 0,
-                    coverage?.TransformPassable ?? false);
+                    coverage?.TransformTerrainId ?? 0);
 
                 foreach (var subtypeId in produced.SubtypeChoiceIds)
                 {
@@ -489,7 +578,6 @@ internal static class KernelProgramInstaller
         ProcessProgramOperation.WanderSemantic => ProcessOperationCodes.WanderSemantic,
         ProcessProgramOperation.CreateEntity => ProcessOperationCodes.CreateEntity,
         ProcessProgramOperation.AddPressure => ProcessOperationCodes.AddPressure,
-        ProcessProgramOperation.SetEntityTag => ProcessOperationCodes.SetEntityTag,
         ProcessProgramOperation.SetHistorical => ProcessOperationCodes.SetHistorical,
         ProcessProgramOperation.AddRelatedEntitiesAttribute => ProcessOperationCodes.AddRelatedEntitiesAttribute,
         ProcessProgramOperation.CalculateVariable => ProcessOperationCodes.CalculateVariable,

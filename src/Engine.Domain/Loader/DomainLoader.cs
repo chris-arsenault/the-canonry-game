@@ -103,7 +103,7 @@ public static class DomainLoader
         }
     }
 
-    /// <summary>Register process and decision definitions from domain config into a definition-backed index.</summary>
+    /// <summary>Register process definitions from domain config into a definition-backed index.</summary>
     public static void LoadProcesses(DomainConfig config, BehaviorDefinitionIndex definitions)
     {
         ArgumentNullException.ThrowIfNull(config);

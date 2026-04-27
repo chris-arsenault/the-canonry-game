@@ -182,10 +182,10 @@ CardDefinition (mutable data, not code)
   │     RelationshipExists, CooldownCheck, AlwaysTrue
   ├── Mutations: ordered list executed on fire
   │     CreateEntity, CreateRelationship, ModifyAttribute,
-  │     ModifyPressure, SetTag, SetHistorical
+  │     ModifyPressure, SetHistorical
   ├── FailureMutations (action cards only)
   ├── Mana cost, cooldown, cadence, lifespan
-  └── Tags for synergy
+  └── Future explicit synergy markers
 
 Action cards also register decisions into Layer 3:
   When card is in tableau → its decisions become available to entities

@@ -1,6 +1,7 @@
 namespace Engine.Domain.Graph;
 
 using Engine.Domain.Config;
+using Engine.Gambits;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.WorldGen;
@@ -11,6 +12,7 @@ public sealed class DefinitionGraph
     public IReadOnlyList<EntityKind> RingOrder { get; init; } = [];
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
     public required IReadOnlyDictionary<string, DefinitionProcessNode> Processes { get; init; }
+    public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
     public required IReadOnlyDictionary<DefinitionResourceId, DefinitionResourceNode> Resources { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
@@ -232,9 +234,21 @@ public sealed class DefinitionProcessNode
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
-    public required DefinitionRole Role { get; init; }
     public required EntityKind TargetKind { get; init; }
     public required ProcessDefinition SourceDefinition { get; init; }
+    public required IReadOnlySet<TypedDefinitionRef> Reads { get; init; }
+    public required IReadOnlySet<TypedDefinitionRef> Writes { get; init; }
+    public required IReadOnlySet<TypedDefinitionRef> GoalEffects { get; init; }
+    public required IReadOnlySet<TypedDefinitionRef> ProviderSelectors { get; init; }
+    public required IReadOnlyList<DefinitionSupportRuleNode> SupportRules { get; init; }
+}
+
+public sealed class DefinitionGambitNode
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public required EntityKind TargetKind { get; init; }
+    public required GambitDefinition SourceDefinition { get; init; }
     public required IReadOnlySet<TypedDefinitionRef> Reads { get; init; }
     public required IReadOnlySet<TypedDefinitionRef> Writes { get; init; }
     public required IReadOnlySet<TypedDefinitionRef> GoalEffects { get; init; }

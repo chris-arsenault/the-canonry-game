@@ -179,14 +179,23 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     private static int CellId(int q, int r)
     {
-        unchecked
+        var uq = ZigZag(q);
+        var ur = ZigZag(r);
+        var sum = uq + ur;
+        var paired = ((sum * (sum + 1L)) / 2L) + ur;
+        if (paired >= int.MaxValue)
         {
-            var hash = (uint)q * 2654435761u;
-            hash ^= (uint)r * 2246822519u;
-            var value = (int)(hash & 2147483647u);
-            return value == 0 ? 1 : value;
+            throw new InvalidOperationException(
+                $"Hex coordinate ({q},{r}) is outside projection ID range.");
         }
+
+        return (int)paired + 1;
     }
+
+    private static long ZigZag(int value) =>
+        value >= 0
+            ? value * 2L
+            : (-value * 2L) - 1L;
 
     private void MarkProjected(long sequence, int tick, long worldVersion)
     {

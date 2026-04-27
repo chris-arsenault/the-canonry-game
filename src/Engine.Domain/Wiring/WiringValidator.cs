@@ -3,7 +3,7 @@ namespace Engine.Wiring;
 using Engine.Kinds;
 
 /// <summary>
-/// Validates that registered processes and decisions form complete feedback loops.
+/// Validates that registered processes and gambits form complete feedback loops.
 /// Runs at simulation startup. Refuses to start if wiring is incomplete.
 ///
 /// Validations:

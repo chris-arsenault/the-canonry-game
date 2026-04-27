@@ -54,8 +54,11 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.GeneratorFired:
                 OnGeneratorFired(kernelEvent.Sequence, evt.AsGeneratorFired());
                 break;
-            case KernelEventType.DecisionExecuted:
-                OnDecisionExecuted(kernelEvent.Sequence, evt.AsDecisionExecuted());
+            case KernelEventType.GambitEvaluated:
+                OnGambitEvaluated(kernelEvent.Sequence, evt.AsGambitEvaluated());
+                break;
+            case KernelEventType.GambitExecuted:
+                OnGambitExecuted(kernelEvent.Sequence, evt.AsGambitExecuted());
                 break;
             case KernelEventType.TickCompleted:
                 OnTickCompleted(kernelEvent.Sequence, evt.AsTickCompleted());
@@ -142,7 +145,11 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
     }
 
-    protected virtual void OnDecisionExecuted(long sequence, in DecisionExecutedKernelEvent evt)
+    protected virtual void OnGambitEvaluated(long sequence, in GambitEvaluatedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)
     {
     }
 

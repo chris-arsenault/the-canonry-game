@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/EntityRow.cs" id="1_entityrow"]
+
+[node name="EntityRow" type="VBoxContainer"]
+size_flags_horizontal = 3
+script = ExtResource("1_entityrow")
+
+[node name="Row" type="HBoxContainer" parent="."]
+size_flags_horizontal = 3
+
+[node name="GlyphSlot" type="Control" parent="Row"]
+custom_minimum_size = Vector2(24, 24)
+
+[node name="EntityButton" type="Button" parent="Row"]
+size_flags_horizontal = 3
+flat = true
+alignment = 0
+
+[node name="SubtitleLabel" type="Label" parent="."]
+text = ""

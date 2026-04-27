@@ -4,8 +4,9 @@ using Engine.Eventing;
 
 public enum UiProjectionPlane
 {
-    Physical = 0,
-    Semantic = 1,
+    None = 0,
+    Physical = 1,
+    Semantic = 2,
 }
 
 public static class UiProjectionStatusCodes
@@ -178,6 +179,7 @@ public sealed class UiProjectionState : KernelEventProjector
         _relationships[key] = new UiRelationshipProjection(
             key,
             evt.ChangeCodeId,
+            evt.SourceCodeId,
             evt.PolarityCode,
             evt.FactId0,
             evt.FactId1,
@@ -280,14 +282,16 @@ public sealed class UiProjectionState : KernelEventProjector
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
-    protected override void OnDecisionExecuted(long sequence, in DecisionExecutedKernelEvent evt)
+    protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.ActorId);
         entity.KindId = evt.ActorKindId;
-        entity.LastDecisionExecution = new UiDecisionExecutionProjection(
+        entity.LastGambitExecution = new UiGambitExecutionProjection(
             evt.Tick,
-            evt.DecisionId,
-            evt.CardId,
+            evt.GambitId,
+            evt.AffectedEntityId0,
+            evt.AffectedEntityId1,
+            evt.AffectedEntityCount,
             evt.State,
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
@@ -387,7 +391,7 @@ public sealed class UiEntityProjection(int entityId)
 
     public UiProcessExecutionProjection? LastProcessExecution { get; internal set; }
 
-    public UiDecisionExecutionProjection? LastDecisionExecution { get; internal set; }
+    public UiGambitExecutionProjection? LastGambitExecution { get; internal set; }
 }
 
 public sealed class UiGeneratorProjection(int generatorId)
@@ -436,6 +440,7 @@ public sealed record UiMovementProjection(
 public sealed record UiRelationshipProjection(
     UiRelationshipKey Key,
     int ChangeCodeId,
+    int SourceCodeId,
     int PolarityCode,
     int FactId0,
     int FactId1,
@@ -487,10 +492,12 @@ public sealed record UiProcessExecutionProjection(
     KernelEventState State,
     long WorldVersion);
 
-public sealed record UiDecisionExecutionProjection(
+public sealed record UiGambitExecutionProjection(
     int Tick,
-    int DecisionId,
-    int CardId,
+    int GambitId,
+    int AffectedEntityId0,
+    int AffectedEntityId1,
+    int AffectedEntityCount,
     KernelEventState State,
     long WorldVersion);
 

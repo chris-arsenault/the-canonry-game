@@ -20,7 +20,7 @@ public sealed class HexCell
     public float Habitability => Terrain.HabitabilityFactor * Fertility;
 
     /// <summary>Derived: how expensive it is to cross this cell. Used by pathfinding.</summary>
-    public float MovementCost => Terrain.IsPassable ? Terrain.MovementCost : float.PositiveInfinity;
+    public float MovementCost => Terrain.MovementCost;
 
     public HexCell(HexCoord coord, TerrainDefinition terrain, float elevation = 0f, float fertility = 0.5f)
     {

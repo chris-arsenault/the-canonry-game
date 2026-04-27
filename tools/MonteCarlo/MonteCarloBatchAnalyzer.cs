@@ -8,9 +8,8 @@ using System.Text;
 using DuckDB.NET.Data;
 
 using Engine.Domain.Config;
-using Engine.Map;
 using Engine.Observability.Export;
-using Engine.Processes;
+using Engine.WorldGen;
 
 internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 {
@@ -374,7 +373,6 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToDictionary(row => (row.Kind, row.ProcessName), row => row);
 
         var rows = _domainConfig.Processes
-            .Where(process => process.Role == DefinitionRole.Process)
             .Select(process =>
             {
                 var observedRow = observed.GetValueOrDefault((process.TargetKind.Value, process.Name)) ??

@@ -254,6 +254,11 @@ public sealed class KernelCompilerRuntimeParityTests
         var id = 4000;
         for (var mode = 0; mode < 10; mode++)
         {
+            if (mode == 2)
+            {
+                continue;
+            }
+
             foreach (var amount in new[] { 1f, 3f, 7f, -2f })
             {
                 data.Add(id++, mode, amount, false, false);
@@ -393,9 +398,6 @@ public sealed class KernelCompilerRuntimeParityTests
             case 1:
                 simulation.Processes.AddStep(process, ProcessOperationCodes.AddPressure, PressureId, actor, x: amount);
                 break;
-            case 2:
-                simulation.Processes.AddStep(process, ProcessOperationCodes.SetEntityTag, actor, 101, 201 + (int)amount);
-                break;
             case 3:
                 simulation.Processes.AddStep(process, ProcessOperationCodes.SetHistorical, useTarget ? target : actor);
                 break;
@@ -461,9 +463,6 @@ public sealed class KernelCompilerRuntimeParityTests
                 break;
             case 1:
                 Assert.Equal(amount, simulation.Pressures.GetValue(PressureId, actor), 4);
-                break;
-            case 2:
-                Assert.Equal(201 + (int)amount, simulation.World.EntityTagValue(actor, 101));
                 break;
             case 3:
                 Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(useTarget ? target : actor));
@@ -610,7 +609,6 @@ public sealed class KernelCompilerRuntimeParityTests
             RelationshipCapacity = relationshipCapacity,
             AttributeCapacity = 512,
             ResourceCapacity = 128,
-            TagCapacity = 256,
             MapCellCapacity = 256,
             EventCapacity = 2048,
             ProcessCapacity = 128,
@@ -627,7 +625,8 @@ public sealed class KernelCompilerRuntimeParityTests
             DegeneracyDetectorCapacity = 4,
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
-            AttributeRuleCapacity = 8,
+            EntityAttributeCapacity = 8,
+            UpkeepRuleCapacity = 8,
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 512,
             TerrainIdCapacity = 8,

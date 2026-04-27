@@ -2,18 +2,18 @@ namespace Engine.Wiring;
 
 /// <summary>
 /// A wiring contract declares both operational and process program-facing dependencies for
-/// a process or decision. Used by the WiringValidator to verify feedback loops and
+/// a process or gambit. Used by the WiringValidator to verify feedback loops and
 /// emergent plan chains exist.
 /// </summary>
 public sealed class WiringContract
 {
-    /// <summary>Name of the process/decision this contract belongs to.</summary>
+    /// <summary>Name of the process/gambit this contract belongs to.</summary>
     public string OwnerName { get; }
 
-    /// <summary>What this process/decision reads from to score and make decisions.</summary>
+    /// <summary>What this process/gambit reads from to score and select behavior.</summary>
     public IReadOnlySet<AttributeRef> Reads { get; }
 
-    /// <summary>What this process/decision writes to when it executes.</summary>
+    /// <summary>What this process/gambit writes to when it executes.</summary>
     public IReadOnlySet<AttributeRef> Writes { get; }
 
     /// <summary>ProcessProgram effects this process claims it can satisfy.</summary>

@@ -31,6 +31,7 @@ public sealed class KernelTelemetryRecorderTests
             Tick: 1,
             WorldVersion: 1,
             EntityId: 100,
+            SourceCodeId: 5,
             KindId: 1,
             SubtypeId: 2,
             CultureId: 3,
@@ -51,6 +52,7 @@ public sealed class KernelTelemetryRecorderTests
             Tick: 2,
             WorldVersion: 3,
             EntityId: 100,
+            SourceCodeId: 5,
             PlaneCode: (int)UiProjectionPlane.Physical,
             FromQ: 0,
             FromR: 0,
@@ -62,6 +64,7 @@ public sealed class KernelTelemetryRecorderTests
             Tick: 2,
             WorldVersion: 4,
             ChangeCodeId: 7,
+            SourceCodeId: 5,
             RelationshipKindId: 8,
             PolarityCode: 2,
             SourceEntityId: 100,
@@ -93,6 +96,7 @@ public sealed class KernelTelemetryRecorderTests
             Tick: 3,
             WorldVersion: 7,
             EntityId: 101,
+            SourceCodeId: 5,
             KindId: 1,
             SubtypeId: 2,
             CultureId: 3,
@@ -107,6 +111,7 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal("run-1", Assert.Single(recorder.Batch.Runs).RunId);
 
         var created = Assert.Single(recorder.Batch.EntityEvents, row => row.EntityId == 100);
+        Assert.Equal("Process", created.Source);
         Assert.Equal("Settlement", created.Kind);
         Assert.Equal("Village", created.Subtype);
         Assert.Equal("Hearthhome", created.Name);
@@ -118,11 +123,13 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal("Process", attribute.Source);
 
         var movement = Assert.Single(recorder.Batch.MovementEvents);
+        Assert.Equal("Process", movement.Source);
         Assert.Equal("physical", movement.Plane);
         Assert.Equal(2, movement.Distance);
 
         var relationship = Assert.Single(recorder.Batch.RelationshipEvents);
         Assert.Equal("Relationship Added", relationship.ChangeType);
+        Assert.Equal("Process", relationship.Source);
         Assert.Equal("Allied With", relationship.RelationshipKind);
         Assert.Equal("Neutral", relationship.Polarity);
         Assert.Equal("Nearby", relationship.Facts);
@@ -155,6 +162,7 @@ public sealed class KernelTelemetryRecorderTests
             Tick: 1,
             WorldVersion: 1,
             EntityId: 100,
+            SourceCodeId: 5,
             KindId: 1,
             SubtypeId: 2,
             CultureId: 3,

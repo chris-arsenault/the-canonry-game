@@ -2,6 +2,7 @@ namespace Engine.Domain.Compilation;
 
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 
 public sealed class CompiledDomain
@@ -10,6 +11,7 @@ public sealed class CompiledDomain
     public required DomainIdRegistry Ids { get; init; }
     public required DefinitionGraph DefinitionGraph { get; init; }
     public required DomainRuntimeCodes RuntimeCodes { get; init; }
+    public required CompiledKernelDataSet KernelData { get; init; }
     public required KernelProgramSet Programs { get; init; }
     public required IReadOnlyList<DomainSymbolSeed> Symbols { get; init; }
 }
@@ -19,8 +21,11 @@ public sealed record DomainRuntimeCodes(
     EventCodeId RelationshipCulledCodeId,
     EventCodeId RelationshipStrengthChangedCodeId,
     SourceCodeId ProcessSourceCodeId,
-    SourceCodeId CardSourceCodeId,
-    SourceCodeId UpkeepSourceCodeId);
+    SourceCodeId GambitSourceCodeId,
+    SourceCodeId UpkeepSourceCodeId,
+    SourceCodeId StartupSourceCodeId,
+    SourceCodeId RelationshipSourceCodeId,
+    SourceCodeId GeneratorSourceCodeId);
 
 public enum DomainSymbolKind
 {
@@ -29,6 +34,7 @@ public enum DomainSymbolKind
     Culture,
     Attribute,
     Process,
+    Gambit,
     StructuralFact,
     RelationshipKind,
     RelationshipFact,
@@ -36,8 +42,6 @@ public enum DomainSymbolKind
     Terrain,
     Pressure,
     Generator,
-    Decision,
-    Card,
     EventCode,
     ReasonCode,
     SourceCode,

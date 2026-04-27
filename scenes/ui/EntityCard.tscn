@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/EntityCard.cs" id="1_entitycard"]
+
+[node name="EntityCard" type="PanelContainer"]
+script = ExtResource("1_entitycard")
+
+[node name="Outer" type="VBoxContainer" parent="."]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TitleBar" type="HBoxContainer" parent="Outer"]
+
+[node name="TitleLabel" type="Label" parent="Outer/TitleBar"]
+size_flags_horizontal = 3
+text = "Entity"
+
+[node name="CopyButton" type="Button" parent="Outer/TitleBar"]
+custom_minimum_size = Vector2(26, 26)
+tooltip_text = "Copy details"
+text = "copy"
+
+[node name="CollapseButton" type="Button" parent="Outer/TitleBar"]
+custom_minimum_size = Vector2(26, 26)
+tooltip_text = "Collapse"
+text = "-"
+
+[node name="CloseButton" type="Button" parent="Outer/TitleBar"]
+custom_minimum_size = Vector2(26, 26)
+tooltip_text = "Close"
+text = "x"
+
+[node name="Hairline" type="ColorRect" parent="Outer"]
+custom_minimum_size = Vector2(0, 1)
+size_flags_horizontal = 3
+
+[node name="Body" type="VBoxContainer" parent="Outer"]
+size_flags_vertical = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Outer/Body"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Content" type="RichTextLabel" parent="Outer/Body/Scroll"]
+size_flags_horizontal = 3
+bbcode_enabled = true
+fit_content = true
+scroll_active = false

@@ -28,15 +28,15 @@ public sealed class KernelConfigurationContext
     public void SetMapRadius(int radius) =>
         _kernel.World.SetMapRadius(radius);
 
-    public int RegisterTerrain(TerrainRuntimeId terrainId, bool passable, int boundaryGroupId)
+    public int RegisterTerrain(TerrainRuntimeId terrainId, int boundaryGroupId)
     {
-        _kernel.World.RegisterTerrain(terrainId.Value, passable, boundaryGroupId);
+        _kernel.RegisterTerrain(terrainId.Value, boundaryGroupId);
         return terrainId.Value;
     }
 
-    public int RegisterTerrain(int terrainId, bool passable, int boundaryGroupId)
+    public int RegisterTerrain(int terrainId, int boundaryGroupId)
     {
-        _kernel.World.RegisterTerrain(terrainId, passable, boundaryGroupId);
+        _kernel.RegisterTerrain(terrainId, boundaryGroupId);
         return terrainId;
     }
 
@@ -46,30 +46,14 @@ public sealed class KernelConfigurationContext
         float minimum,
         float maximum,
         float defaultValue,
-        float defaultVariance = 0f,
-        float driftRate = 0f,
-        int locationResourceId = 0,
-        float locationResourceDriftPerUnit = 0f,
-        float locationResourceDriftMinOffset = 0f,
-        float locationResourceDriftMaxOffset = 0f,
-        int criticalTargetAttributeId = 0,
-        float criticalThreshold = 15f,
-        float criticalDelta = 0f) =>
+        float defaultVariance = 0f) =>
         _kernel.RegisterAttribute(
             kindId,
             attributeId.Value,
             minimum,
             maximum,
             defaultValue,
-            defaultVariance,
-            driftRate,
-            locationResourceId,
-            locationResourceDriftPerUnit,
-            locationResourceDriftMinOffset,
-            locationResourceDriftMaxOffset,
-            criticalTargetAttributeId,
-            criticalThreshold,
-            criticalDelta);
+            defaultVariance);
 
     public int RegisterAttributeUpkeep(
         int kindId,
@@ -227,6 +211,92 @@ public sealed class KernelConfigurationContext
     public void AddProcessStepExpressionOp(int stepSlot, int expressionCode, int a = 0, float x = 0f) =>
         _kernel.Processes.AddStepExpressionOp(stepSlot, expressionCode, a, x);
 
+    public int RegisterGambit(
+        int kindId,
+        int gambitId,
+        int cooldownTicks = 0,
+        int entityCooldownTicks = 0,
+        int targetMode = ProcessTargetModeCodes.Self,
+        int targetKindId = 0,
+        float successChance = 1f) =>
+        _kernel.Gambits.RegisterGambit(
+            kindId,
+            gambitId,
+            cooldownTicks,
+            entityCooldownTicks,
+            targetMode,
+            targetKindId,
+            successChance);
+
+    public void AddGambitPrecondition(
+        int gambitSlot,
+        int preconditionCode,
+        int a = 0,
+        int b = 0,
+        int c = 0,
+        int d = 0,
+        float x = 0f,
+        float y = 0f) =>
+        _kernel.Gambits.AddPrecondition(gambitSlot, preconditionCode, a, b, c, d, x, y);
+
+    public void AddGambitScoreExpressionOp(int gambitSlot, int expressionCode, int a = 0, float x = 0f) =>
+        _kernel.Gambits.AddExpressionOp(gambitSlot, expressionCode, a, x);
+
+    public void AddGambitRewardExpressionOp(int gambitSlot, int expressionCode, int a = 0, float x = 0f) =>
+        _kernel.Gambits.AddRewardExpressionOp(gambitSlot, expressionCode, a, x);
+
+    public void AddGambitGoalEffect(int gambitSlot, int scopeCode, int valueId, int kindId) =>
+        _kernel.Gambits.AddGoalEffect(gambitSlot, scopeCode, valueId, kindId);
+
+    public void AddGambitProviderSelector(
+        int gambitSlot,
+        int selectorCode,
+        int kindId = 0,
+        int valueId = 0,
+        int relationshipKindId = 0,
+        int factId = 0,
+        float minimumStrength = 0f) =>
+        _kernel.Gambits.AddProviderSelector(
+            gambitSlot,
+            selectorCode,
+            kindId,
+            valueId,
+            relationshipKindId,
+            factId,
+            minimumStrength);
+
+    public int AddGambitSupportRule(
+        int gambitSlot,
+        int effectScopeCode,
+        int effectValueId,
+        int effectKindId,
+        float desiredMinimum,
+        float urgencyScale = 1f) =>
+        _kernel.Gambits.AddSupportRule(
+            gambitSlot,
+            effectScopeCode,
+            effectValueId,
+            effectKindId,
+            desiredMinimum,
+            urgencyScale);
+
+    public void AddGambitSupportExpressionOp(int supportRuleSlot, int expressionCode, int a = 0, float x = 0f) =>
+        _kernel.Gambits.AddSupportExpressionOp(supportRuleSlot, expressionCode, a, x);
+
+    public int AddGambitStep(
+        int gambitSlot,
+        int operationCode,
+        int a = 0,
+        int b = 0,
+        int c = 0,
+        int d = 0,
+        float x = 0f,
+        float y = 0f) =>
+        _kernel.Gambits.AddStep(gambitSlot, operationCode, a, b, c, d, x, y);
+
+    public void AddGambitStepExpressionOp(int stepSlot, int expressionCode, int a = 0, float x = 0f) =>
+        _kernel.Gambits.AddStepExpressionOp(stepSlot, expressionCode, a, x);
+
     public int RegisterGenerator(
         int generatorId,
         int cadenceTicks,
@@ -315,8 +385,7 @@ public sealed class KernelConfigurationContext
         int coverageMinimumCellCount,
         int coverageMinimumSourceRemainingCellCount,
         bool coverageRespectTerrainBoundaries,
-        int coverageTransformTerrainId,
-        bool coverageTransformPassable) =>
+        int coverageTransformTerrainId) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -337,8 +406,7 @@ public sealed class KernelConfigurationContext
             coverageMinimumCellCount,
             coverageMinimumSourceRemainingCellCount,
             coverageRespectTerrainBoundaries ? 1 : 0,
-            coverageTransformTerrainId,
-            coverageTransformPassable ? 1 : 0);
+            coverageTransformTerrainId);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

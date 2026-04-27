@@ -8,7 +8,6 @@ public sealed record SimulationOptions
     public int RelationshipCapacity { get; init; } = 8192;
     public int AttributeCapacity { get; init; } = 65536;
     public int ResourceCapacity { get; init; } = 8192;
-    public int TagCapacity { get; init; } = 8192;
     public int MapCellCapacity { get; init; } = 2048;
     public int SystemCapacity { get; init; } = 32;
     public int MaxPhase { get; init; } = 8;
@@ -23,6 +22,13 @@ public sealed record SimulationOptions
     public int ProcessProviderSelectorCapacity { get; init; } = 1024;
     public int ProcessSupportRuleCapacity { get; init; } = 1024;
     public int ProcessCommitmentCapacity { get; init; } = 8192;
+    public int GambitCapacity { get; init; } = 256;
+    public int GambitStepCapacity { get; init; } = 2048;
+    public int GambitCooldownCapacity { get; init; } = 4096;
+    public int GambitObjectiveCapacity { get; init; } = 512;
+    public int GambitProviderSelectorCapacity { get; init; } = 512;
+    public int GambitSupportRuleCapacity { get; init; } = 512;
+    public int GambitCommitmentCapacity { get; init; } = 4096;
     public int GeneratorCapacity { get; init; } = 256;
     public int GeneratorItemCapacity { get; init; } = 4096;
     public int PressureCapacity { get; init; } = 128;
@@ -30,7 +36,8 @@ public sealed record SimulationOptions
     public int DegeneracyDetectorCapacity { get; init; } = 32;
     public int DegeneracyStateCapacity { get; init; } = 8192;
     public int LifecycleRuleCapacity { get; init; } = 256;
-    public int AttributeRuleCapacity { get; init; } = 512;
+    public int EntityAttributeCapacity { get; init; } = 512;
+    public int UpkeepRuleCapacity { get; init; } = 512;
     public int AttributeIdCapacity { get; init; } = 1024;
     public int KindIdCapacity { get; init; } = 256;
     public int TerrainIdCapacity { get; init; } = 128;

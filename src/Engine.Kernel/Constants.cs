@@ -4,9 +4,10 @@ public static class TickPhaseCodes
 {
     public const int Low = 1;
     public const int Process = 2;
-    public const int Pressure = 3;
-    public const int Generator = 4;
-    public const int Event = 5;
+    public const int Gambit = 3;
+    public const int Pressure = 4;
+    public const int Generator = 5;
+    public const int Event = 6;
 }
 
 public static class EntityStatusCodes
@@ -41,7 +42,6 @@ public static class ProcessOperationCodes
     public const int WanderSemantic = 16;
     public const int CreateEntity = 17;
     public const int AddPressure = 18;
-    public const int SetEntityTag = 19;
     public const int SetHistorical = 20;
     public const int AddRelatedEntitiesAttribute = 21;
     public const int CalculateVariable = 22;

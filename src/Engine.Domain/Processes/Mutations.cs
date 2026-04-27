@@ -8,8 +8,8 @@ using Engine.WorldGen;
 using Engine.Resources;
 
 /// <summary>
-/// A mutation: a single effect applied to the world when a card fires.
-/// Mutations execute in order within a single card firing.
+/// A mutation: a single effect applied to the world when a data-driven behavior executes.
+/// Mutations execute in order within a single behavior execution.
 /// </summary>
 public interface IMutation
 {
@@ -138,21 +138,9 @@ public sealed class ModifyPressureMutation(string pressureName, EntityId scopeId
     }
 }
 
-/// <summary>Sets a tag on an entity.</summary>
-public sealed class SetTagMutation(EntityId entityId, string key, string value) : IMutation
-{
-    public EntityId EntityId { get; } = entityId;
-    public string Key { get; } = key;
-    public string Value { get; } = value;
-
-    public void Execute(IMutationContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        context.SetTag(EntityId, Key, Value);
-    }
-
-    public string Describe() => $"set_tag({EntityId}, {Key}={Value})";
-}
+// Future marker, status, or fact mutations should be designed as explicit
+// domain contracts. The old generic entity tag mutation was removed because it
+// had no authored semantics.
 
 /// <summary>Transitions an entity to historical status.</summary>
 public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
@@ -743,7 +731,7 @@ public sealed class WanderMutation(
 /// <summary>
 /// Semantic-plane mobility. Steps self's SemanticPosition one hex toward the
 /// resolved target's SemanticPosition along whichever axis shrinks the distance
-/// most. No pathfinding — semantic space is always passable.
+/// most. No pathfinding is applied to semantic space.
 /// </summary>
 public sealed class MoveTowardTargetOnSemanticPlaneMutation : IMutation
 {

@@ -5,8 +5,11 @@ public readonly record struct KernelRuntimeCodes(
     int RelationshipCulledCodeId,
     int RelationshipStrengthChangedCodeId,
     int ProcessSourceCodeId,
-    int CardSourceCodeId,
-    int UpkeepSourceCodeId)
+    int GambitSourceCodeId,
+    int UpkeepSourceCodeId,
+    int StartupSourceCodeId,
+    int RelationshipSourceCodeId,
+    int GeneratorSourceCodeId)
 {
-    public static KernelRuntimeCodes Default => new(1, 2, 3, 1, 2, 3);
+    public static KernelRuntimeCodes Default => new(1, 2, 3, 1, 2, 3, 4, 5, 6);
 }

@@ -14,6 +14,12 @@ public sealed class KernelSymbolContext
 
     public IProjectionSymbolCatalog Catalog => _symbols;
 
+    public KernelSymbolContext UseEntityNameSynthesizer(IProjectionEntityNameSynthesizer synthesizer)
+    {
+        _symbols.UseEntityNameSynthesizer(synthesizer);
+        return this;
+    }
+
     public KernelSymbolContext RegisterSymbol(
         ProjectionSymbolKind kind,
         int id,

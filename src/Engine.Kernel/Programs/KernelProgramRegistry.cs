@@ -1,6 +1,6 @@
 namespace Engine.Kernel.Programs;
 
-public sealed class KernelProgramRegistry
+public sealed partial class KernelProgramRegistry
 {
     private readonly int[] _programIds;
     private readonly int[] _systemHandles;

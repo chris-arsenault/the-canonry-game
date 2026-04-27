@@ -75,6 +75,23 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
+    public void BuildStartupSeed_PreservesGeneratedMapEntitiesAndRelationships()
+    {
+        var startupSeed = IceRemembersSeedBuilder.BuildStartupSeed(seed: 42);
+
+        Assert.Equal(_world.Grid.Radius, startupSeed.MapRadius);
+        Assert.Equal(_world.Grid.CellCount, startupSeed.Cells.Count);
+        Assert.Equal(_world.Graph.EntityCount, startupSeed.Entities.Count);
+        Assert.Contains(startupSeed.Entities, entity => entity.DisplayName == "Frosthaven");
+        Assert.Contains(startupSeed.Cells, cell => cell.OwnerSeedEntityId is not null);
+        Assert.Contains(startupSeed.Resources, resource =>
+            resource.Resource == IceRemembersResource.Food.ToDomainName() &&
+            resource.Value > 0f);
+        Assert.Contains(startupSeed.Relationships, relationship =>
+            relationship.RelationshipKind == IceRemembersRelationship.ControlledBy.ToDomainName());
+    }
+
+    [Fact]
     public void Grid_UsesIceRemembersTerrainCatalogAndAmbientResourceBands()
     {
         var terrainNames = _world.Grid.AllCells
@@ -155,7 +172,7 @@ public sealed class IceRemembersSeedBuilderTests
             var cell = _world.Grid.GetCell(coord);
             Assert.NotNull(cell);
             Assert.False(float.IsPositiveInfinity(cell.MovementCost),
-                $"Penguin {penguin.Name} spawned on impassable terrain at {coord}.");
+                $"Penguin {penguin.Name} spawned on blocked terrain cost at {coord}.");
         }
 
         foreach (var artifactId in _world.Graph.GetEntitiesByKind(K.Artifact))

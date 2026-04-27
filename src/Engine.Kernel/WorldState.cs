@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-public sealed class WorldState
+public sealed partial class WorldState
 {
     private const int OutgoingRelationshipDirectionCode = 1;
     private const int IncomingRelationshipDirectionCode = 2;
@@ -10,16 +10,9 @@ public sealed class WorldState
     private readonly KernelEventLog _events;
     private readonly PrimitiveFloatTable _attributes;
     private readonly PrimitiveFloatTable _resources;
-    private readonly PrimitiveIntTable _entityTags;
-    private readonly PrimitiveIntTable _mapCellPassability;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
     private readonly PrimitiveIntTable _mapCellCoverageOwners;
-    private readonly float[] _attributeMinimums;
-    private readonly float[] _attributeMaximums;
-    private readonly bool[] _attributeBoundsRegistered;
-    private readonly bool[] _terrainRegistered;
-    private readonly bool[] _terrainPassable;
-    private readonly int[] _terrainBoundaryGroupIds;
+    private readonly KernelDataSet _kernelData;
     private readonly bool[] _entityAllocated;
     private readonly int[] _entityStatus;
     private readonly int[] _entityKindId;
@@ -68,6 +61,7 @@ public sealed class WorldState
     private readonly int _relationshipCreatedCodeId;
     private readonly int _relationshipCulledCodeId;
     private readonly int _relationshipStrengthChangedCodeId;
+    private readonly int _defaultSourceCodeId;
     private readonly int _relationshipEntityCapacity;
     private readonly int _relationshipKindCapacity;
     private readonly int _relationshipGraphDeltaMergeThreshold;
@@ -77,23 +71,17 @@ public sealed class WorldState
     private int _relationshipGraphDeltaCount;
     private int _graphTraversalEpoch;
 
-    public WorldState(KernelEventLog events, SimulationOptions options)
+    public WorldState(KernelEventLog events, SimulationOptions options, KernelDataSet kernelData)
     {
         global::System.ArgumentNullException.ThrowIfNull(events);
         global::System.ArgumentNullException.ThrowIfNull(options);
+        global::System.ArgumentNullException.ThrowIfNull(kernelData);
         _events = events;
+        _kernelData = kernelData;
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _resources = new PrimitiveFloatTable(options.ResourceCapacity);
-        _entityTags = new PrimitiveIntTable(options.TagCapacity);
-        _mapCellPassability = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellCoverageOwners = new PrimitiveIntTable(options.MapCellCapacity);
-        _attributeMinimums = new float[options.AttributeIdCapacity + 1];
-        _attributeMaximums = new float[options.AttributeIdCapacity + 1];
-        _attributeBoundsRegistered = new bool[options.AttributeIdCapacity + 1];
-        _terrainRegistered = new bool[options.TerrainIdCapacity + 1];
-        _terrainPassable = new bool[options.TerrainIdCapacity + 1];
-        _terrainBoundaryGroupIds = new int[options.TerrainIdCapacity + 1];
         _entityAllocated = new bool[options.EntityCapacity + 1];
         _entityStatus = new int[options.EntityCapacity + 1];
         _entityKindId = new int[options.EntityCapacity + 1];
@@ -145,6 +133,7 @@ public sealed class WorldState
         _relationshipCreatedCodeId = options.RuntimeCodes.RelationshipCreatedCodeId;
         _relationshipCulledCodeId = options.RuntimeCodes.RelationshipCulledCodeId;
         _relationshipStrengthChangedCodeId = options.RuntimeCodes.RelationshipStrengthChangedCodeId;
+        _defaultSourceCodeId = options.RuntimeCodes.StartupSourceCodeId;
         _relationshipGraphDeltaMergeThreshold = options.RelationshipGraphDeltaMergeThreshold;
     }
 
@@ -160,20 +149,10 @@ public sealed class WorldState
         _mapRadius = radius;
     }
 
-    public void SetCell(int q, int r, int terrainId, bool passable)
+    public void SetCell(int q, int r, int terrainId)
     {
         ValidatePositive(terrainId);
-        WriteCell(q, r, terrainId, passable, CellCoverageOwner(q, r));
-    }
-
-    public void SetCellPassability(int q, int r, bool passable)
-    {
-        _mapCellPassability.Set(CoordinateKey(q, r), 1, passable ? 1 : 2);
-    }
-
-    public bool CellIsPassable(int q, int r)
-    {
-        return _mapCellPassability.GetOrDefault(CoordinateKey(q, r), 1) == 1;
+        WriteCell(q, r, terrainId, CellCoverageOwner(q, r));
     }
 
     public bool CellIsKnown(int q, int r)
@@ -186,52 +165,30 @@ public sealed class WorldState
         return _mapCellTerrainIds.GetOrDefault(CoordinateKey(q, r), 1);
     }
 
-    public void SetCellTerrain(int q, int r, int terrainId, bool passable)
+    public void SetCellTerrain(int q, int r, int terrainId)
     {
         ValidatePositive(terrainId);
-        WriteCell(q, r, terrainId, passable, CellCoverageOwner(q, r));
+        WriteCell(q, r, terrainId, CellCoverageOwner(q, r));
     }
 
     public void MaterializeCell(int q, int r, int terrainId, int ownerEntityId)
     {
         ValidatePositive(terrainId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
-        WriteCell(q, r, terrainId, TerrainIsPassable(terrainId), ownerEntityId);
+        WriteCell(q, r, terrainId, ownerEntityId);
         AdvanceWorldVersion();
     }
 
-    private void WriteCell(int q, int r, int terrainId, bool passable, int ownerEntityId)
+    private void WriteCell(int q, int r, int terrainId, int ownerEntityId)
     {
         var key = CoordinateKey(q, r);
         _mapCellTerrainIds.Set(key, 1, terrainId);
-        _mapCellPassability.Set(key, 1, passable ? 1 : 2);
         _mapCellCoverageOwners.Set(key, 1, ownerEntityId);
-    }
-
-    public void RegisterTerrain(int terrainId, bool passable, int boundaryGroupId)
-    {
-        ValidatePositive(terrainId);
-        ValidatePositive(boundaryGroupId);
-        if ((uint)terrainId >= (uint)_terrainRegistered.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _terrainRegistered[terrainId] = true;
-        _terrainPassable[terrainId] = passable;
-        _terrainBoundaryGroupIds[terrainId] = boundaryGroupId;
-    }
-
-    public bool TerrainIsPassable(int terrainId)
-    {
-        EnsureTerrain(terrainId);
-        return _terrainPassable[terrainId];
     }
 
     public int TerrainBoundaryGroupId(int terrainId)
     {
-        EnsureTerrain(terrainId);
-        return _terrainBoundaryGroupIds[terrainId];
+        return _kernelData.Terrain.BoundaryGroupId(terrainId);
     }
 
     public int CellCoverageOwner(int q, int r)
@@ -263,24 +220,6 @@ public sealed class WorldState
         }
 
         return count;
-    }
-
-    public void RegisterAttributeBounds(int attributeId, float minimum, float maximum)
-    {
-        ValidatePositive(attributeId);
-        if (maximum < minimum)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        if ((uint)attributeId >= (uint)_attributeMinimums.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _attributeMinimums[attributeId] = minimum;
-        _attributeMaximums[attributeId] = maximum;
-        _attributeBoundsRegistered[attributeId] = true;
     }
 
     public void BeginTick(int tick)
@@ -342,8 +281,12 @@ public sealed class WorldState
         return entityId;
     }
 
-    public void SetEntityStatus(int entityId, int statusCode, int tick)
+    public void SetEntityStatus(int entityId, int statusCode, int tick) =>
+        SetEntityStatus(entityId, statusCode, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void SetEntityStatus(int entityId, int statusCode, int tick, in KernelExecutionContext context)
     {
+        ValidatePositive(context.SourceCodeId);
         EnsureEntity(entityId);
         ValidatePositive(statusCode);
         var previous = _entityStatus[entityId];
@@ -359,14 +302,19 @@ public sealed class WorldState
             tick,
             WorldVersion,
             entityId,
+            context.SourceCodeId,
             _entityKindId[entityId],
             _entitySubtypeId[entityId],
             previous,
             statusCode)));
     }
 
-    public void MoveEntityPhysical(int entityId, int q, int r, int tick)
+    public void MoveEntityPhysical(int entityId, int q, int r, int tick) =>
+        MoveEntityPhysical(entityId, q, r, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void MoveEntityPhysical(int entityId, int q, int r, int tick, in KernelExecutionContext context)
     {
+        ValidatePositive(context.SourceCodeId);
         EnsureEntity(entityId);
         var fromQ = _entityPhysicalQ[entityId];
         var fromR = _entityPhysicalR[entityId];
@@ -385,6 +333,7 @@ public sealed class WorldState
             tick,
             WorldVersion,
             entityId,
+            context.SourceCodeId,
             PlaneCodes.Physical,
             fromQ,
             fromR,
@@ -394,8 +343,12 @@ public sealed class WorldState
             0)));
     }
 
-    public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
+    public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick) =>
+        MoveEntitySemantic(entityId, q, r, s, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick, in KernelExecutionContext context)
     {
+        ValidatePositive(context.SourceCodeId);
         EnsureEntity(entityId);
         var fromQ = _entitySemanticQ[entityId];
         var fromR = _entitySemanticR[entityId];
@@ -416,6 +369,7 @@ public sealed class WorldState
             tick,
             WorldVersion,
             entityId,
+            context.SourceCodeId,
             PlaneCodes.Semantic,
             fromQ,
             fromR,
@@ -439,11 +393,14 @@ public sealed class WorldState
         return _attributes.TryGet(entityId, attributeId, out _);
     }
 
-    public void SetAttribute(int entityId, int attributeId, int sourceCodeId, float value, int tick)
+    public void SetAttribute(int entityId, int attributeId, int sourceCodeId, float value, int tick) =>
+        SetAttribute(entityId, attributeId, value, tick, new KernelExecutionContext(0, sourceCodeId));
+
+    public void SetAttribute(int entityId, int attributeId, float value, int tick, in KernelExecutionContext context)
     {
         EnsureEntity(entityId);
         ValidatePositive(attributeId);
-        ValidatePositive(sourceCodeId);
+        ValidatePositive(context.SourceCodeId);
         var clamped = ClampAttribute(attributeId, value);
         var previous = _attributes.GetOrDefault(entityId, attributeId);
         if (global::System.MathF.Abs(clamped - previous) <= float.Epsilon)
@@ -459,39 +416,18 @@ public sealed class WorldState
             WorldVersion,
             entityId,
             attributeId,
-            sourceCodeId,
+            context.SourceCodeId,
             previous,
             clamped)));
     }
 
-    public void ModifyAttribute(int entityId, int attributeId, int sourceCodeId, float delta, int tick)
+    public void ModifyAttribute(int entityId, int attributeId, int sourceCodeId, float delta, int tick) =>
+        ModifyAttribute(entityId, attributeId, delta, tick, new KernelExecutionContext(0, sourceCodeId));
+
+    public void ModifyAttribute(int entityId, int attributeId, float delta, int tick, in KernelExecutionContext context)
     {
         var previous = GetAttribute(entityId, attributeId);
-        SetAttribute(entityId, attributeId, sourceCodeId, previous + delta, tick);
-    }
-
-    public int EntityTagValue(int entityId, int tagKeyId)
-    {
-        EnsureEntity(entityId);
-        ValidatePositive(tagKeyId);
-        return _entityTags.GetOrDefault(entityId, tagKeyId);
-    }
-
-    public void SetEntityTag(int entityId, int tagKeyId, int tagValueId, int sourceCodeId, int tick)
-    {
-        EnsureEntity(entityId);
-        ValidatePositive(tagKeyId);
-        ValidatePositive(tagValueId);
-        ValidatePositive(sourceCodeId);
-        var previous = _entityTags.GetOrDefault(entityId, tagKeyId);
-        if (previous == tagValueId)
-        {
-            return;
-        }
-
-        _entityTags.Set(entityId, tagKeyId, tagValueId);
-        _entityUpdatedAt[entityId] = tick;
-        AdvanceWorldVersion();
+        SetAttribute(entityId, attributeId, previous + delta, tick, context);
     }
 
     public float GetResource(int resourceId, int q, int r)
@@ -500,10 +436,13 @@ public sealed class WorldState
         return _resources.GetOrDefault(resourceId, CoordinateKey(q, r));
     }
 
-    public void SetResource(int resourceId, int q, int r, int sourceCodeId, float value, int tick)
+    public void SetResource(int resourceId, int q, int r, int sourceCodeId, float value, int tick) =>
+        SetResource(resourceId, q, r, value, tick, new KernelExecutionContext(0, sourceCodeId));
+
+    public void SetResource(int resourceId, int q, int r, float value, int tick, in KernelExecutionContext context)
     {
         ValidatePositive(resourceId);
-        ValidatePositive(sourceCodeId);
+        ValidatePositive(context.SourceCodeId);
         var key = CoordinateKey(q, r);
         var clamped = value < 0f ? 0f : value;
         var previous = _resources.GetOrDefault(resourceId, key);
@@ -520,15 +459,18 @@ public sealed class WorldState
             resourceId,
             q,
             r,
-            sourceCodeId,
+            context.SourceCodeId,
             previous,
             clamped)));
     }
 
-    public void ModifyResource(int resourceId, int q, int r, int sourceCodeId, float delta, int tick)
+    public void ModifyResource(int resourceId, int q, int r, int sourceCodeId, float delta, int tick) =>
+        ModifyResource(resourceId, q, r, delta, tick, new KernelExecutionContext(0, sourceCodeId));
+
+    public void ModifyResource(int resourceId, int q, int r, float delta, int tick, in KernelExecutionContext context)
     {
         var previous = GetResource(resourceId, q, r);
-        SetResource(resourceId, q, r, sourceCodeId, previous + delta, tick);
+        SetResource(resourceId, q, r, previous + delta, tick, context);
     }
 
     public int CreateRelationship(
@@ -544,6 +486,36 @@ public sealed class WorldState
         int factId3 = 0,
         int factCount = 0)
     {
+        return CreateRelationship(
+            kindId,
+            polarityCode,
+            sourceEntityId,
+            targetEntityId,
+            strength,
+            tick,
+            factId0,
+            factId1,
+            factId2,
+            factId3,
+            factCount,
+            new KernelExecutionContext(0, _defaultSourceCodeId));
+    }
+
+    public int CreateRelationship(
+        int kindId,
+        int polarityCode,
+        int sourceEntityId,
+        int targetEntityId,
+        float strength,
+        int tick,
+        int factId0,
+        int factId1,
+        int factId2,
+        int factId3,
+        int factCount,
+        in KernelExecutionContext context)
+    {
+        ValidatePositive(context.SourceCodeId);
         ValidatePositive(kindId);
         EnsureEntity(sourceEntityId);
         EnsureEntity(targetEntityId);
@@ -570,12 +542,22 @@ public sealed class WorldState
 
         AddRelationshipToGraphDelta(relationshipId);
         AdvanceWorldVersion();
-        WriteRelationshipChanged(relationshipId, tick, _relationshipCreatedCodeId, 0f, _relationshipStrength[relationshipId]);
+        WriteRelationshipChanged(
+            relationshipId,
+            tick,
+            _relationshipCreatedCodeId,
+            context.SourceCodeId,
+            0f,
+            _relationshipStrength[relationshipId]);
         return relationshipId;
     }
 
-    public void CullRelationship(int relationshipId, int tick)
+    public void CullRelationship(int relationshipId, int tick) =>
+        CullRelationship(relationshipId, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void CullRelationship(int relationshipId, int tick, in KernelExecutionContext context)
     {
+        ValidatePositive(context.SourceCodeId);
         EnsureRelationship(relationshipId);
         if (!_relationshipActive[relationshipId])
         {
@@ -587,11 +569,15 @@ public sealed class WorldState
         _relationshipEndTick[relationshipId] = tick;
         RemoveRelationshipFromGraphDelta(relationshipId);
         AdvanceWorldVersion();
-        WriteRelationshipChanged(relationshipId, tick, _relationshipCulledCodeId, previous, 0f);
+        WriteRelationshipChanged(relationshipId, tick, _relationshipCulledCodeId, context.SourceCodeId, previous, 0f);
     }
 
-    public void SetRelationshipStrength(int relationshipId, float strength, int tick)
+    public void SetRelationshipStrength(int relationshipId, float strength, int tick) =>
+        SetRelationshipStrength(relationshipId, strength, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void SetRelationshipStrength(int relationshipId, float strength, int tick, in KernelExecutionContext context)
     {
+        ValidatePositive(context.SourceCodeId);
         EnsureRelationship(relationshipId);
         if (!_relationshipActive[relationshipId])
         {
@@ -608,7 +594,13 @@ public sealed class WorldState
         _relationshipStrength[relationshipId] = next;
         AddRelationshipToGraphDelta(relationshipId);
         AdvanceWorldVersion();
-        WriteRelationshipChanged(relationshipId, tick, _relationshipStrengthChangedCodeId, previous, next);
+        WriteRelationshipChanged(
+            relationshipId,
+            tick,
+            _relationshipStrengthChangedCodeId,
+            context.SourceCodeId,
+            previous,
+            next);
     }
 
     public int FindRelationship(int sourceEntityId, int targetEntityId, int kindId)
@@ -778,7 +770,14 @@ public sealed class WorldState
         return MoveNextRelationship(ref cursor, out _);
     }
 
-    public void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
+    public void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick) =>
+        CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void CullOutgoingRelationshipsOfKind(
+        int sourceEntityId,
+        int kindId,
+        int tick,
+        in KernelExecutionContext context)
     {
         EnsureEntity(sourceEntityId);
         ValidateRelationshipKindIndex(kindId);
@@ -790,7 +789,7 @@ public sealed class WorldState
                 return;
             }
 
-            CullRelationship(relationshipId, tick);
+            CullRelationship(relationshipId, tick, context);
         }
     }
 
@@ -1371,18 +1370,11 @@ public sealed class WorldState
         }
     }
 
-    private void EnsureTerrain(int terrainId)
-    {
-        if ((uint)terrainId >= (uint)_terrainRegistered.Length || !_terrainRegistered[terrainId])
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
     private void WriteRelationshipChanged(
         int relationshipId,
         int tick,
         int changeCodeId,
+        int sourceCodeId,
         float previousStrength,
         float newStrength)
     {
@@ -1390,6 +1382,7 @@ public sealed class WorldState
             tick,
             WorldVersion,
             changeCodeId,
+            sourceCodeId,
             _relationshipKindId[relationshipId],
             _relationshipPolarityCode[relationshipId],
             _relationshipSourceId[relationshipId],
@@ -1453,19 +1446,6 @@ public sealed class WorldState
 
     private float ClampAttribute(int attributeId, float value)
     {
-        if ((uint)attributeId < (uint)_attributeBoundsRegistered.Length && _attributeBoundsRegistered[attributeId])
-        {
-            if (value < _attributeMinimums[attributeId])
-            {
-                return _attributeMinimums[attributeId];
-            }
-
-            if (value > _attributeMaximums[attributeId])
-            {
-                return _attributeMaximums[attributeId];
-            }
-        }
-
-        return value;
+        return _kernelData.Entities.ClampAttribute(attributeId, value);
     }
 }

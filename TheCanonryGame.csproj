@@ -3,17 +3,24 @@
     <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>TheCanonryGame</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 
-    <!-- Only include UI scripts, not the engine projects (they are separate projects) -->
+    <!-- Scene scripts must compile into the main Godot assembly for resource path lookup at runtime. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);src/Engine/**;src/Engine.Domain/**;src/Engine.Eventing/**;src/Engine.Eventing.Schema/**;src/Engine.Host/**;src/Engine.Kernel/**;src/Engine.Kernel.Driver/**;src/Engine.Kernel.Schema/**;src/Engine.Observability/**;src/Engine.Observability.Export/**;src/Engine.Projection/**;tests/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="src/Engine.Host/Engine.Host.csproj" />
-    <ProjectReference Include="src/Engine.Kernel/Engine.Kernel.csproj" />
-    <ProjectReference Include="src/Engine.Kernel.Driver/Engine.Kernel.Driver.csproj" />
-    <ProjectReference Include="src/Engine.Observability/Engine.Observability.csproj" />
+    <Compile Include="src/TheCanonryGame.App/**/*.cs" />
+    <Compile
+      Include="src/TheCanonryGame.UI/**/*.cs"
+      Exclude="src/TheCanonryGame.UI/.godot/**/*.cs;src/TheCanonryGame.UI/bin/**/*.cs;src/TheCanonryGame.UI/obj/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="src/Engine.Projection/Engine.Projection.csproj" />
+    <ProjectReference Include="src/TheCanonryGame.Game/TheCanonryGame.Game.csproj" />
+    <ProjectReference Include="src/TheCanonryGame.UI.Core/TheCanonryGame.UI.Core.csproj" />
   </ItemGroup>
 </Project>

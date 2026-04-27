@@ -65,6 +65,29 @@ public sealed class KernelStartupContext
             semanticR,
             semanticS);
 
+    public void SeedEntity(
+        int entityId,
+        int kindId,
+        int subtypeId,
+        int cultureId,
+        int physicalQ,
+        int physicalR,
+        int semanticQ,
+        int semanticR,
+        int semanticS,
+        int attributeSourceCodeId) =>
+        _kernel.SeedEntity(
+            entityId,
+            kindId,
+            subtypeId,
+            cultureId,
+            physicalQ,
+            physicalR,
+            semanticQ,
+            semanticR,
+            semanticS,
+            attributeSourceCodeId);
+
     public void SeedAttribute(
         int entityId,
         int attributeId,

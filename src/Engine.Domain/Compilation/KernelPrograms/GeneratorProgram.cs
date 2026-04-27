@@ -76,7 +76,6 @@ public sealed record GeneratorCoverageRule(
     int MinimumSourceRemainingCellCount,
     bool RespectTerrainBoundaries,
     int TransformTerrainId,
-    bool TransformPassable,
     IReadOnlyList<int> PreferredTerrainIds,
     IReadOnlyList<int> AllowedTerrainIds);
 

@@ -3,9 +3,9 @@ namespace MonteCarloTool;
 using System.Diagnostics;
 using System.Globalization;
 
-using Engine.Domain.IceRemembers;
 using Engine.Observability;
 using Engine.Observability.Export;
+using IceRemembers.Seed;
 
 internal static class MonteCarloCli
 {
@@ -14,7 +14,7 @@ internal static class MonteCarloCli
         ArgumentNullException.ThrowIfNull(args);
 
         var options = MonteCarloOptions.Parse(args);
-        var domain = IceRemembersDefinition.Create();
+        var domain = IceRemembersRuntime.CreateDomainConfig();
         var analyzer = new MonteCarloBatchAnalyzer(domain);
 
         if (options.AnalyzeOnly)
@@ -47,7 +47,7 @@ internal static class MonteCarloCli
                 MonteCarloKernelRun? run = null;
                 try
                 {
-                    run = MonteCarloKernelRunFactory.Create(domain, seed);
+                    run = MonteCarloKernelRunFactory.Create(seed);
                     var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
                     stateRowsWritten += result.StateRowsWritten;
                     performanceRowsWritten += result.PerformanceRowsWritten;

@@ -1,0 +1,128 @@
+
+• Yes, if implemented literally as I sketched it.
+
+  The layout table is the right contract idea, but the runtime shape I described with lambdas like e => e.SourceCodeId, layout builders,
+  Select(...).ToArray(), and layout-driven Pack(...) would be wrong for a no-allocation hot path.
+
+  The stricter version should be:
+
+  - Layout table is compile-time/source-generator input, or static metadata used only for schema/tests.
+  - KernelEvent.From(...) remains generated straight-line code.
+  - As...() remains generated straight-line code.
+  - No reflection, delegates, LINQ, builders, arrays, or schema projection on the event emission path.
+  - Schema registry is generated from the same layout and cached statically.
+  - Tests can use reflection/layout metadata because test allocation is irrelevant.
+
+  So the real design is:
+
+  KernelEventLayouts source definition
+          |
+          v
+  generated KernelEvent.From(...)
+  generated KernelEvent.As...()
+  generated KernelEventSchemaRegistry
+  generated/contract tests
+
+  Runtime event creation should still look like hand-written code to the JIT:
+
+  public static KernelEvent From(in RelationshipChangedKernelEvent payload) =>
+      new(
+          KernelEventType.RelationshipChanged,
+          payload.Tick,
+          payload.WorldVersion,
+          int0: payload.ChangeCodeId,
+          int1: payload.SourceCodeId,
+          ...,
+          float0: payload.PreviousStrength,
+          float1: payload.NewStrength);
+
+  The layout table should tighten authorship of the contract. It should not become an interpretive runtime layer.
+
+
+› correct. repropose the full plan with that modification
+
+
+• Full plan with the no-allocation correction:
+
+  Target Contract
+  There is one authoritative event layout definition. It is build-time input, not runtime machinery.
+
+  Kernel event layout source
+          |
+          v
+  generated KernelEvent.From(...)
+  generated KernelEvent.As...()
+  generated schema registry
+  generated/contract tests
+
+  The layout exists to author the contract once. It must not become an interpreter on the event hot path.
+
+  Layout Source
+  Create a single declarative layout file in Engine.Eventing, for example:
+
+  Event RelationshipChanged schemaMinor=1 payload=RelationshipChangedKernelEvent
+    int   0 ChangeCodeId         EventCodeId
+    int   1 SourceCodeId         SourceCodeId
+    int   2 RelationshipKindId   RelationshipKindId
+    int   3 PolarityCode         PolarityCode
+    int   4 SourceEntityId       EntityId
+    int   5 TargetEntityId       EntityId
+    int   6 FactId0              RelationshipFactId
+    int   7 FactId1              RelationshipFactId
+    int   8 FactId2              RelationshipFactId
+    int   9 FactId3              RelationshipFactId
+    int  10 FactCount            Count
+    float 0 PreviousStrength     Strength
+    float 1 NewStrength          Strength
+
+  This can be a small custom manifest, JSON, or a constrained C#-like DSL. I would prefer a tiny manifest over a runtime C# builder
+  because it makes the “not runtime code” boundary explicit.
+
+  Generated Code
+  The generator emits straight-line code only.
+
+  KernelEvent.From(...) remains allocation-free:
+
+  public static KernelEvent From(in RelationshipChangedKernelEvent payload) =>
+      new(
+          KernelEventType.RelationshipChanged,
+          payload.Tick,
+          payload.WorldVersion,
+          int0: payload.ChangeCodeId,
+          int1: payload.SourceCodeId,
+          ...
+
+  AsRelationshipChanged() is also straight-line:
+
+  public RelationshipChangedKernelEvent AsRelationshipChanged()
+  {
+      EnsureType(KernelEventType.RelationshipChanged);
+      return new(
+          Tick,
+
+  No delegates. No reflection. No LINQ. No layout lookup. No arrays on the emission path.
+
+  Schema Registry
+  Engine.Eventing.Schema should not manually restate slots. It should consume generated schema metadata from the same layout source.
+
+
+     Header fields are only:
+
+     Tick
+     WorldVersion
+  5. No duplicate slots per event.
+  6. No slot exceeds KernelEvent.IntSlotCount or KernelEvent.FloatSlotCount.
+  7. Generated schema exactly matches the layout.
+  8. Generated pack code matches the layout by sentinel testing.
+  9. Generated unpack code matches the layout by sentinel testing.
+
+  The tests may use reflection and allocation. The production hot path may not.
+
+  Required Cleanup
+  Once this exists, delete the hand-maintained schema declarations and the manually maintained KernelEvent.Generated.cs content. The
+  generated file can keep that name, but it needs to actually be generated from the layout source.
+
+  The final invariant is:
+
+  > A kernel event field can only be added, removed, renamed, or moved by changing the layout source. Pack, unpack, and schema cannot
+  > drift because they are generated from the same declaration.

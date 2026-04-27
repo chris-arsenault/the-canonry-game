@@ -24,7 +24,9 @@
     <ProjectReference Include="..\..\src\Engine.Host\Engine.Host.csproj" />
     <ProjectReference Include="..\..\src\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\..\src\Engine.Projection\Engine.Projection.csproj" />
+    <ProjectReference Include="..\..\src\Engine.WorldGen\Engine.WorldGen.csproj" />
     <ProjectReference Include="..\..\src\IceRemembers\IceRemembers.csproj" />
+    <ProjectReference Include="..\..\src\IceRemembers.Seed\IceRemembers.Seed.csproj" />
   </ItemGroup>
 
 </Project>

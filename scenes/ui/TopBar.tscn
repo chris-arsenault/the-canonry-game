@@ -1,0 +1,57 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/TopBar.cs" id="1_topbar"]
+
+[node name="TopBar" type="PanelContainer"]
+script = ExtResource("1_topbar")
+
+[node name="Row" type="HBoxContainer" parent="."]
+
+[node name="TitleColumn" type="VBoxContainer" parent="Row"]
+
+[node name="TitleLabel" type="Label" parent="Row/TitleColumn"]
+text = "The Canonry"
+
+[node name="SubtitleLabel" type="Label" parent="Row/TitleColumn"]
+text = "THE ICE REMEMBERS"
+
+[node name="LeftSpacer" type="Control" parent="Row"]
+size_flags_horizontal = 3
+
+[node name="TickLabel" type="Label" parent="Row"]
+text = "t 0"
+
+[node name="RightSpacer" type="Control" parent="Row"]
+size_flags_horizontal = 3
+
+[node name="Controls" type="HBoxContainer" parent="Row"]
+
+[node name="PauseButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(46, 28)
+tooltip_text = "Pause"
+text = "||"
+
+[node name="StepButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(46, 28)
+tooltip_text = "Step one tick"
+text = ">"
+
+[node name="NormalSpeedButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(46, 28)
+tooltip_text = "1 tick/sec"
+text = "1x"
+
+[node name="FastSpeedButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(46, 28)
+tooltip_text = "5 ticks/sec"
+text = "5x"
+
+[node name="VeryFastSpeedButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(46, 28)
+tooltip_text = "10 ticks/sec"
+text = "10x"
+
+[node name="ResetButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(46, 28)
+tooltip_text = "Reset simulation"
+text = "reset"
