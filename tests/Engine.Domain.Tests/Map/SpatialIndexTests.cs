@@ -1,7 +1,6 @@
 namespace Engine.Domain.Tests.Map;
 
 using Engine.Graph;
-using Engine.Domain.Tests.Behaviors;
 using Engine.WorldGen;
 
 public class SpatialIndexTests

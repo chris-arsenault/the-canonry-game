@@ -2,7 +2,6 @@ namespace Engine.Domain.Tests.Map;
 
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Domain.Tests.Behaviors;
 using Engine.WorldGen;
 
 public class SpatialIndexFreeHexTests

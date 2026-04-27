@@ -1,6 +1,5 @@
 namespace Engine.Wiring;
 
-using Engine.Domain;
 using Engine.Kinds;
 
 /// <summary>
@@ -18,14 +17,9 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
 
     /// <summary>The attribute or property name.</summary>
     public string Name { get; }
-    public AttributeRuntimeId AttributeId { get; private set; }
-    public PressureRuntimeId PressureId { get; private set; }
-    public ResourceRuntimeId ResourceId { get; private set; }
-    public StructuralFactRuntimeId StructuralFactId { get; private set; }
 
     /// <summary>Optional relationship kind for related-entity references.</summary>
     public string? RelationshipKind { get; }
-    public RelationshipKindRuntimeId RelationshipKindId { get; private set; }
 
     public AttributeRef(RefScope scope, string name, EntityKind? kind = null, string? relationshipKind = null)
     {
@@ -97,28 +91,6 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
 
     public override int GetHashCode() =>
         HashCode.Combine(Scope, Kind, Name, RelationshipKind);
-
-    public void BindRuntimeIds(global::Engine.Domain.DomainIdRegistry runtimeIds)
-    {
-        ArgumentNullException.ThrowIfNull(runtimeIds);
-
-        RelationshipKindId = RelationshipKind is null
-            ? RelationshipKindRuntimeId.None
-            : runtimeIds.RelationshipKindIdOf(RelationshipKind);
-
-        AttributeId = Scope is RefScope.Self or RefScope.Target or RefScope.Location or RefScope.Related
-            ? runtimeIds.AttributeIdOf(Name)
-            : AttributeRuntimeId.None;
-        PressureId = Scope == RefScope.Pressure
-            ? runtimeIds.PressureIdOf(Name)
-            : PressureRuntimeId.None;
-        ResourceId = Scope == RefScope.Resource
-            ? runtimeIds.ResourceIdOf(Name)
-            : ResourceRuntimeId.None;
-        StructuralFactId = Scope == RefScope.Structural
-            ? runtimeIds.StructuralFactIdOf(Name)
-            : StructuralFactRuntimeId.None;
-    }
 }
 
 /// <summary>

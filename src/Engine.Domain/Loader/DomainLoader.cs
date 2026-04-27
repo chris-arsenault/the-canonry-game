@@ -1,6 +1,5 @@
 namespace Engine.Domain.Loader;
 
-using Engine.Behaviors;
 using Engine.Domain.Compilation;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
@@ -100,29 +99,6 @@ public static class DomainLoader
                 pc.SmoothingFactor,
                 runtimeIds.PressureIdOf(pc.Name));
             // Contributing factors will be added via wiring contracts (#35)
-        }
-    }
-
-    /// <summary>Register process definitions from domain config into a definition-backed index.</summary>
-    public static void LoadProcesses(DomainConfig config, BehaviorDefinitionIndex definitions)
-    {
-        ArgumentNullException.ThrowIfNull(config);
-        LoadProcesses(config, definitions, DomainCompiler.BuildCatalog(config));
-    }
-
-    public static void LoadProcesses(
-        DomainConfig config,
-        BehaviorDefinitionIndex definitions,
-        global::Engine.Domain.DomainIdRegistry runtimeIds)
-    {
-        ArgumentNullException.ThrowIfNull(config);
-        ArgumentNullException.ThrowIfNull(definitions);
-        ArgumentNullException.ThrowIfNull(runtimeIds);
-
-        foreach (var procDef in config.Processes)
-        {
-            procDef.BindRuntimeIds(runtimeIds);
-            definitions.Register(procDef);
         }
     }
 
