@@ -17,8 +17,11 @@ public sealed class KernelSnapshotTests
         simulation.CreateCell(0, 0, terrainId: 1, ownerEntityId: 0);
         var actor = simulation.CreateEntity(1, 3, 4, 0, 0, 0, 0, 0, tick: 0);
         var target = simulation.CreateEntity(2, 3, 4, 1, 0, 1, 0, 0, tick: 0);
-        simulation.SetAttribute(actor, 10, simulation.ProcessSourceCodeId, 42f, tick: 0);
-        simulation.SetResource(20, 0, 0, simulation.ProcessSourceCodeId, 5f, tick: 0);
+        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        {
+            simulation.SetAttribute(actor, 10, 42f, tick: 0);
+            simulation.SetResource(20, 0, 0, 5f, tick: 0);
+        }
         simulation.World.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
         var relationshipId = simulation.CreateRelationship(
             relationshipKindId: 6,

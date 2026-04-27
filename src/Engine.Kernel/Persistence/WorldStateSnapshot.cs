@@ -57,7 +57,7 @@ public sealed partial class WorldState
         return count;
     }
 
-    internal void EmitSnapshotEvents(int attributeSourceCodeId)
+    internal void EmitSnapshotEvents(KernelExecutionContext context)
     {
         var tick = CurrentTick;
         var version = WorldVersion;
@@ -77,9 +77,10 @@ public sealed partial class WorldState
                     version,
                     q,
                     r,
-                    attributeSourceCodeId,
+                    context.SourceCodeId,
                     CellTerrainId(q, r),
-                    CellCoverageOwner(q, r))));
+                    CellCoverageOwner(q, r))),
+                    context);
             }
         }
 
@@ -94,7 +95,7 @@ public sealed partial class WorldState
                 tick,
                 version,
                 entityId,
-                attributeSourceCodeId,
+                context.SourceCodeId,
                 _entityKindId[entityId],
                 _entitySubtypeId[entityId],
                 _entityCultureId[entityId],
@@ -102,7 +103,8 @@ public sealed partial class WorldState
                 _entityPhysicalR[entityId],
                 _entitySemanticQ[entityId],
                 _entitySemanticR[entityId],
-                _entitySemanticS[entityId])));
+                _entitySemanticS[entityId])),
+                context);
 
             if (_entityStatus[entityId] != EntityStatusCodes.Active)
             {
@@ -110,11 +112,12 @@ public sealed partial class WorldState
                     tick,
                     version,
                     entityId,
-                    attributeSourceCodeId,
+                    context.SourceCodeId,
                     _entityKindId[entityId],
                     _entitySubtypeId[entityId],
                     EntityStatusCodes.Active,
-                    _entityStatus[entityId])));
+                    _entityStatus[entityId])),
+                    context);
             }
         }
 
@@ -127,9 +130,10 @@ public sealed partial class WorldState
                     version,
                     entityId,
                     attributeId,
-                    attributeSourceCodeId,
+                    context.SourceCodeId,
                     0f,
-                    value)));
+                    value)),
+                    context);
             }
         });
 
@@ -143,9 +147,10 @@ public sealed partial class WorldState
                     resourceId,
                     q,
                     r,
-                    attributeSourceCodeId,
+                    context.SourceCodeId,
                     0f,
-                    value)));
+                    value)),
+                    context);
             }
         });
 
@@ -160,7 +165,7 @@ public sealed partial class WorldState
                 tick,
                 version,
                 _relationshipCreatedCodeId,
-                attributeSourceCodeId,
+                context.SourceCodeId,
                 _relationshipKindId[relationshipId],
                 _relationshipPolarityCode[relationshipId],
                 _relationshipSourceId[relationshipId],
@@ -171,7 +176,8 @@ public sealed partial class WorldState
                 _relationshipFactId3[relationshipId],
                 _relationshipFactCount[relationshipId],
                 0f,
-                _relationshipStrength[relationshipId])));
+                _relationshipStrength[relationshipId])),
+                context);
         }
     }
 

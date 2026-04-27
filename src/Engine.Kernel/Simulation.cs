@@ -7,26 +7,24 @@ public readonly record struct CellResourceSeed(int ResourceId, float Value);
 
 public sealed partial class Simulation : IKernel
 {
-    private readonly int[] _systemPhases;
     private readonly int[] _systemCadences;
     private readonly int[] _systemProgramIds;
     private readonly int[] _systemSourceCodeIds;
     private readonly ISimulationSystem?[] _systems;
     private readonly bool[] _systemActive;
     private readonly KernelProgramRegistry _programs;
-    private readonly int _maxPhase;
     private int _systemCount;
 #if DEBUG
     private int _writerThreadId;
 #endif
     private RandomSource _random;
     private KernelExecutionContext _executionContext;
+    private int _executionContextDepth;
 
     public Simulation(SimulationOptions? options = null)
     {
         options ??= new SimulationOptions();
         Options = options;
-        _maxPhase = options.MaxPhase;
         Events = new KernelEventLog(
             options.EventCapacity,
             maxCursors: options.EventCursorCapacity,
@@ -95,22 +93,24 @@ public sealed partial class Simulation : IKernel
         StartupSourceCodeId = options.RuntimeCodes.StartupSourceCodeId;
         RelationshipSourceCodeId = options.RuntimeCodes.RelationshipSourceCodeId;
         GeneratorSourceCodeId = options.RuntimeCodes.GeneratorSourceCodeId;
+        PressureSourceCodeId = options.RuntimeCodes.PressureSourceCodeId;
+        DegeneracySourceCodeId = options.RuntimeCodes.DegeneracySourceCodeId;
+        PlanningSourceCodeId = options.RuntimeCodes.PlanningSourceCodeId;
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
-        _systemPhases = new int[options.SystemCapacity];
         _systemCadences = new int[options.SystemCapacity];
         _systemProgramIds = new int[options.SystemCapacity];
         _systemSourceCodeIds = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
         _systemActive = new bool[options.SystemCapacity];
         _programs = new KernelProgramRegistry(options.SystemCapacity);
-        RegisterProgram(KernelProgramCodes.Upkeep, TickPhaseCodes.Low, 1, Upkeep);
-        RegisterProgram(KernelProgramCodes.Relationships, TickPhaseCodes.Low, 1, Relationships);
-        RegisterProgram(KernelProgramCodes.Processes, TickPhaseCodes.Process, 1, Processes);
-        RegisterProgram(KernelProgramCodes.Gambits, TickPhaseCodes.Gambit, 1, Gambits);
-        RegisterProgram(KernelProgramCodes.Pressures, TickPhaseCodes.Pressure, 5, Pressures);
-        RegisterProgram(KernelProgramCodes.Generators, TickPhaseCodes.Generator, 1, Generators);
-        RegisterProgram(KernelProgramCodes.Degeneracy, TickPhaseCodes.Event, 10, Degeneracy);
+        RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
+        RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
+        RegisterProgram(KernelProgramCodes.Processes, 1, Processes);
+        RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
+        RegisterProgram(KernelProgramCodes.Pressures, 5, Pressures);
+        RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
+        RegisterProgram(KernelProgramCodes.Degeneracy, 10, Degeneracy);
     }
 
     public WorldState World { get; }
@@ -131,6 +131,9 @@ public sealed partial class Simulation : IKernel
     public int StartupSourceCodeId { get; }
     public int RelationshipSourceCodeId { get; }
     public int GeneratorSourceCodeId { get; }
+    public int PressureSourceCodeId { get; }
+    public int DegeneracySourceCodeId { get; }
+    public int PlanningSourceCodeId { get; }
     public KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
     public long CurrentVersion => WorldVersion;
@@ -237,33 +240,9 @@ public sealed partial class Simulation : IKernel
         int physicalR,
         int semanticQ,
         int semanticR,
-        int semanticS) =>
-        SeedEntity(
-            entityId,
-            kindId,
-            subtypeId,
-            cultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS,
-            StartupSourceCodeId);
-
-    public void SeedEntity(
-        int entityId,
-        int kindId,
-        int subtypeId,
-        int cultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR,
-        int semanticS,
-        int attributeSourceCodeId)
+        int semanticS)
     {
         AssertStartupSeedTick();
-        using var scope = EnterExecutionContext(attributeSourceCodeId, 0);
         _ = MaterializeEntity(
             entityId,
             kindId,
@@ -321,11 +300,9 @@ public sealed partial class Simulation : IKernel
     public void SeedAttribute(
         int entityId,
         int attributeId,
-        int sourceCodeId,
         float value)
     {
         AssertStartupSeedTick();
-        using var scope = EnterExecutionContext(sourceCodeId, 0);
         SetAttribute(entityId, attributeId, value, CurrentTick);
     }
 
@@ -333,11 +310,9 @@ public sealed partial class Simulation : IKernel
         int resourceId,
         int q,
         int r,
-        int sourceCodeId,
         float value)
     {
         AssertStartupSeedTick();
-        using var scope = EnterExecutionContext(sourceCodeId, 0);
         SetResource(resourceId, q, r, value, CurrentTick);
     }
 
@@ -354,7 +329,6 @@ public sealed partial class Simulation : IKernel
         float strength)
     {
         AssertStartupSeedTick();
-        using var scope = EnterExecutionContext(StartupSourceCodeId, 0);
         _ = CreateRelationship(
             relationshipKindId,
             polarityCode,
@@ -367,17 +341,6 @@ public sealed partial class Simulation : IKernel
             factId2,
             factId3,
             factCount);
-    }
-
-    public void SetAttribute(
-        int entityId,
-        int attributeId,
-        int sourceCodeId,
-        float value,
-        int tick)
-    {
-        using var scope = EnterExecutionContext(sourceCodeId, _executionContext.ProgramId);
-        SetAttribute(entityId, attributeId, value, tick);
     }
 
     public void SetAttribute(
@@ -396,18 +359,6 @@ public sealed partial class Simulation : IKernel
         int tick)
     {
         World.ModifyAttribute(entityId, attributeId, delta, tick, _executionContext);
-    }
-
-    public void SetResource(
-        int resourceId,
-        int q,
-        int r,
-        int sourceCodeId,
-        float value,
-        int tick)
-    {
-        using var scope = EnterExecutionContext(sourceCodeId, _executionContext.ProgramId);
-        SetResource(resourceId, q, r, value, tick);
     }
 
     public void SetResource(
@@ -488,15 +439,12 @@ public sealed partial class Simulation : IKernel
         World.CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, _executionContext);
     }
 
-    public int RegisterSystem(int phase, int cadence, ISimulationSystem system)
+    public int RegisterSystem(int cadence, ISimulationSystem system)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(phase);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(phase, _maxPhase);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cadence);
         global::System.ArgumentNullException.ThrowIfNull(system);
 
         var slot = FindSystemSlot();
-        _systemPhases[slot] = phase;
         _systemCadences[slot] = cadence;
         _systemProgramIds[slot] = 0;
         _systemSourceCodeIds[slot] = 0;
@@ -510,34 +458,39 @@ public sealed partial class Simulation : IKernel
         return slot;
     }
 
-    public int RegisterProgram(int programId, int phase, int cadence, ISimulationSystem system)
+    public int RegisterProgram(int programId, int cadence, ISimulationSystem system)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(programId);
-        var handle = RegisterSystem(phase, cadence, system);
+        var sourceCodeId = SourceCodeIdForProgram(programId);
+        if (sourceCodeId <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var handle = RegisterSystem(cadence, system);
         _systemProgramIds[handle] = programId;
-        _systemSourceCodeIds[handle] = SourceCodeIdForProgram(programId);
+        _systemSourceCodeIds[handle] = sourceCodeId;
         _programs.Register(programId, handle);
         return handle;
     }
 
     public KernelExecutionScope EnterExecutionContext(
         int sourceCodeId,
-        int programId,
-        int subCode1 = 0,
-        int subCode2 = 0,
-        int subCode3 = 0,
-        int subCode4 = 0)
+        int programId)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceCodeId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(programId);
         var previous = _executionContext;
-        _executionContext = new KernelExecutionContext(programId, sourceCodeId, subCode1, subCode2, subCode3, subCode4);
-        return new KernelExecutionScope(this, previous);
+        var previousDepth = _executionContextDepth;
+        _executionContext = new KernelExecutionContext(programId, sourceCodeId);
+        _executionContextDepth = previousDepth + 1;
+        return new KernelExecutionScope(this, previous, previousDepth);
     }
 
-    internal void RestoreExecutionContext(in KernelExecutionContext context)
+    internal void RestoreExecutionContext(in KernelExecutionContext context, int depth)
     {
         _executionContext = context;
+        _executionContextDepth = depth;
     }
 
     public void SetSystemActive(int handle, bool active)
@@ -602,10 +555,7 @@ public sealed partial class Simulation : IKernel
         CurrentTick++;
         World.BeginTick(CurrentTick);
         DrainCommands();
-        for (var phase = 0; phase <= _maxPhase; phase++)
-        {
-            TickPhase(phase);
-        }
+        TickSystems();
 
         WriteTickCompleted();
     }
@@ -710,7 +660,10 @@ public sealed partial class Simulation : IKernel
 
     private void WriteKernelEvent(in KernelEvent kernelEvent)
     {
-        if (!Events.TryWrite(kernelEvent))
+        var contextualEvent = kernelEvent.WithExecutionContext(
+            _executionContext.ProgramId,
+            _executionContext.SourceCodeId);
+        if (!Events.TryWrite(contextualEvent))
         {
             throw new global::System.InvalidOperationException();
         }
@@ -718,23 +671,274 @@ public sealed partial class Simulation : IKernel
 
     public void WriteGeneratorEnabledChanged(int generatorId, int enabled)
     {
-        _ = Events.TryWrite(KernelEvent.From(new GeneratorEnabledChangedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new GeneratorEnabledChangedKernelEvent(
             CurrentTick,
             WorldVersion,
             generatorId,
             enabled)));
     }
 
+    public void EmitProcessEvaluated(
+        int tick,
+        int entityId,
+        int kindId,
+        int selectedGoalId,
+        int processId,
+        int candidateCount,
+        KernelEventState state)
+    {
+        WriteKernelEvent(KernelEvent.From(new ProcessEvaluatedKernelEvent(
+            tick,
+            WorldVersion,
+            entityId,
+            kindId,
+            selectedGoalId,
+            processId,
+            candidateCount,
+            state)));
+    }
+
+    public void EmitProcessExecuted(
+        int tick,
+        int entityId,
+        int targetId,
+        int kindId,
+        int processId)
+    {
+        WriteKernelEvent(KernelEvent.From(new ProcessExecutedKernelEvent(
+            tick,
+            WorldVersion,
+            entityId,
+            kindId,
+            processId,
+            entityId,
+            targetId == entityId ? 0 : targetId,
+            targetId == entityId ? 1 : 2,
+            KernelEventState.Succeeded)));
+    }
+
+    public void EmitGambitEvaluated(
+        int tick,
+        int entityId,
+        int kindId,
+        int gambitId,
+        int candidateCount,
+        KernelEventState state)
+    {
+        WriteKernelEvent(KernelEvent.From(new GambitEvaluatedKernelEvent(
+            tick,
+            WorldVersion,
+            entityId,
+            kindId,
+            gambitId,
+            candidateCount,
+            state)));
+    }
+
+    public void EmitGambitExecuted(
+        int tick,
+        int entityId,
+        int targetId,
+        int kindId,
+        int gambitId,
+        KernelEventState state)
+    {
+        WriteKernelEvent(KernelEvent.From(new GambitExecutedKernelEvent(
+            tick,
+            WorldVersion,
+            entityId,
+            kindId,
+            gambitId,
+            entityId,
+            targetId == entityId ? 0 : targetId,
+            targetId == entityId ? 1 : 2,
+            state)));
+    }
+
+    public void EmitGeneratorEvaluated(
+        int tick,
+        int generatorId,
+        int statusCode,
+        int selectedTargetEntityId,
+        int candidateCount,
+        int failedFireCount)
+    {
+        WriteKernelEvent(KernelEvent.From(new GeneratorEvaluatedKernelEvent(
+            tick,
+            WorldVersion,
+            generatorId,
+            statusCode,
+            selectedTargetEntityId,
+            candidateCount,
+            failedFireCount)));
+    }
+
+    public void EmitGeneratorFired(
+        int tick,
+        int generatorId,
+        int selectedTargetEntityId,
+        int createdEntityCount,
+        int createdRelationshipCount)
+    {
+        WriteKernelEvent(KernelEvent.From(new GeneratorFiredKernelEvent(
+            tick,
+            WorldVersion,
+            generatorId,
+            selectedTargetEntityId,
+            createdEntityCount,
+            createdRelationshipCount)));
+    }
+
+    public void EmitDegeneracyDetected(
+        int tick,
+        int detectorId,
+        int severityCode,
+        int reasonCodeId)
+    {
+        WriteKernelEvent(KernelEvent.From(new DegeneracyDetectedKernelEvent(
+            tick,
+            WorldVersion,
+            detectorId,
+            severityCode,
+            reasonCodeId)));
+    }
+
+    public void EmitPlanStarted(
+        int tick,
+        int planId,
+        int entityId,
+        int reasonCodeId,
+        int candidateCount)
+    {
+        WriteKernelEvent(KernelEvent.From(new PlanStartedKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            reasonCodeId,
+            candidateCount)));
+    }
+
+    public void EmitGoalConsidered(
+        int tick,
+        int planId,
+        int entityId,
+        int goalId,
+        int candidateIndex,
+        float preliminaryScore)
+    {
+        WriteKernelEvent(KernelEvent.From(new GoalConsideredKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            goalId,
+            candidateIndex,
+            preliminaryScore)));
+    }
+
+    public void EmitGoalScored(
+        int tick,
+        int planId,
+        int entityId,
+        int goalId,
+        int reasonCodeId,
+        int scoringPassIndex,
+        float scoreDelta,
+        float runningTotal)
+    {
+        WriteKernelEvent(KernelEvent.From(new GoalScoredKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            goalId,
+            reasonCodeId,
+            scoringPassIndex,
+            scoreDelta,
+            runningTotal)));
+    }
+
+    public void EmitGoalSelected(
+        int tick,
+        int planId,
+        int entityId,
+        int goalId,
+        float finalScore)
+    {
+        WriteKernelEvent(KernelEvent.From(new GoalSelectedKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            goalId,
+            finalScore)));
+    }
+
+    public void EmitPlanStepEmitted(
+        int tick,
+        int planId,
+        int entityId,
+        int goalId,
+        int stepIndex,
+        int processId,
+        int targetEntityId,
+        int relationshipKindId)
+    {
+        WriteKernelEvent(KernelEvent.From(new PlanStepEmittedKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            goalId,
+            stepIndex,
+            processId,
+            targetEntityId,
+            relationshipKindId)));
+    }
+
+    public void EmitPlanCommitted(
+        int tick,
+        int planId,
+        int entityId,
+        int stepCount,
+        int reasonCodeId,
+        float totalScore)
+    {
+        WriteKernelEvent(KernelEvent.From(new PlanCommittedKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            stepCount,
+            reasonCodeId,
+            totalScore)));
+    }
+
+    public void EmitPlanAbandoned(
+        int tick,
+        int planId,
+        int entityId,
+        int reasonCodeId)
+    {
+        WriteKernelEvent(KernelEvent.From(new PlanAbandonedKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            reasonCodeId)));
+    }
+
     private void WriteTickCompleted()
     {
-        _ = Events.TryWrite(KernelEvent.From(new TickCompletedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new TickCompletedKernelEvent(
             CurrentTick,
             WorldVersion)));
     }
 
     private void WriteCommandApplied(in KernelCommand command)
     {
-        _ = Events.TryWrite(KernelEvent.From(new CommandAppliedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new CommandAppliedKernelEvent(
             CurrentTick,
             WorldVersion,
             command.CommandId,
@@ -744,7 +948,7 @@ public sealed partial class Simulation : IKernel
 
     private void WriteCommandRejected(in KernelCommand command, int reasonCodeId)
     {
-        _ = Events.TryWrite(KernelEvent.From(new CommandRejectedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new CommandRejectedKernelEvent(
             CurrentTick,
             WorldVersion,
             command.CommandId,
@@ -762,11 +966,11 @@ public sealed partial class Simulation : IKernel
 #endif
     }
 
-    private void TickPhase(int phase)
+    private void TickSystems()
     {
         for (var i = 0; i < _systemCount; i++)
         {
-            if (!_systemActive[i] || _systemPhases[i] != phase || CurrentTick % _systemCadences[i] != 0)
+            if (!_systemActive[i] || CurrentTick % _systemCadences[i] != 0)
             {
                 continue;
             }
@@ -777,8 +981,17 @@ public sealed partial class Simulation : IKernel
                 throw new global::System.InvalidOperationException();
             }
 
-            using var scope = EnterExecutionContext(_systemSourceCodeIds[i], _systemProgramIds[i], phase, i, _systemCadences[i]);
-            system.Tick(this, CurrentTick);
+            if (_systemSourceCodeIds[i] > 0)
+            {
+                using var scope = EnterExecutionContext(
+                    _systemSourceCodeIds[i],
+                    _systemProgramIds[i]);
+                system.Tick(this, CurrentTick);
+            }
+            else
+            {
+                system.Tick(this, CurrentTick);
+            }
         }
     }
 
@@ -788,7 +1001,10 @@ public sealed partial class Simulation : IKernel
         KernelProgramCodes.Relationships => RelationshipSourceCodeId,
         KernelProgramCodes.Processes => ProcessSourceCodeId,
         KernelProgramCodes.Gambits => GambitSourceCodeId,
+        KernelProgramCodes.Pressures => PressureSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
+        KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
+        KernelProgramCodes.Planning => PlanningSourceCodeId,
         _ => 0,
     };
 

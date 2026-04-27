@@ -306,7 +306,8 @@ public sealed partial class WorldState
             _entityKindId[entityId],
             _entitySubtypeId[entityId],
             previous,
-            statusCode)));
+            statusCode)),
+            context);
     }
 
     public void MoveEntityPhysical(int entityId, int q, int r, int tick) =>
@@ -340,7 +341,8 @@ public sealed partial class WorldState
             0,
             q,
             r,
-            0)));
+            0)),
+            context);
     }
 
     public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick) =>
@@ -376,7 +378,8 @@ public sealed partial class WorldState
             fromS,
             q,
             r,
-            s)));
+            s)),
+            context);
     }
 
     public float GetAttribute(int entityId, int attributeId)
@@ -392,9 +395,6 @@ public sealed partial class WorldState
         ValidatePositive(attributeId);
         return _attributes.TryGet(entityId, attributeId, out _);
     }
-
-    public void SetAttribute(int entityId, int attributeId, int sourceCodeId, float value, int tick) =>
-        SetAttribute(entityId, attributeId, value, tick, new KernelExecutionContext(0, sourceCodeId));
 
     public void SetAttribute(int entityId, int attributeId, float value, int tick, in KernelExecutionContext context)
     {
@@ -418,11 +418,9 @@ public sealed partial class WorldState
             attributeId,
             context.SourceCodeId,
             previous,
-            clamped)));
+            clamped)),
+            context);
     }
-
-    public void ModifyAttribute(int entityId, int attributeId, int sourceCodeId, float delta, int tick) =>
-        ModifyAttribute(entityId, attributeId, delta, tick, new KernelExecutionContext(0, sourceCodeId));
 
     public void ModifyAttribute(int entityId, int attributeId, float delta, int tick, in KernelExecutionContext context)
     {
@@ -435,9 +433,6 @@ public sealed partial class WorldState
         ValidatePositive(resourceId);
         return _resources.GetOrDefault(resourceId, CoordinateKey(q, r));
     }
-
-    public void SetResource(int resourceId, int q, int r, int sourceCodeId, float value, int tick) =>
-        SetResource(resourceId, q, r, value, tick, new KernelExecutionContext(0, sourceCodeId));
 
     public void SetResource(int resourceId, int q, int r, float value, int tick, in KernelExecutionContext context)
     {
@@ -461,11 +456,9 @@ public sealed partial class WorldState
             r,
             context.SourceCodeId,
             previous,
-            clamped)));
+            clamped)),
+            context);
     }
-
-    public void ModifyResource(int resourceId, int q, int r, int sourceCodeId, float delta, int tick) =>
-        ModifyResource(resourceId, q, r, delta, tick, new KernelExecutionContext(0, sourceCodeId));
 
     public void ModifyResource(int resourceId, int q, int r, float delta, int tick, in KernelExecutionContext context)
     {
@@ -546,7 +539,7 @@ public sealed partial class WorldState
             relationshipId,
             tick,
             _relationshipCreatedCodeId,
-            context.SourceCodeId,
+            context,
             0f,
             _relationshipStrength[relationshipId]);
         return relationshipId;
@@ -569,7 +562,7 @@ public sealed partial class WorldState
         _relationshipEndTick[relationshipId] = tick;
         RemoveRelationshipFromGraphDelta(relationshipId);
         AdvanceWorldVersion();
-        WriteRelationshipChanged(relationshipId, tick, _relationshipCulledCodeId, context.SourceCodeId, previous, 0f);
+        WriteRelationshipChanged(relationshipId, tick, _relationshipCulledCodeId, context, previous, 0f);
     }
 
     public void SetRelationshipStrength(int relationshipId, float strength, int tick) =>
@@ -598,7 +591,7 @@ public sealed partial class WorldState
             relationshipId,
             tick,
             _relationshipStrengthChangedCodeId,
-            context.SourceCodeId,
+            context,
             previous,
             next);
     }
@@ -1374,7 +1367,7 @@ public sealed partial class WorldState
         int relationshipId,
         int tick,
         int changeCodeId,
-        int sourceCodeId,
+        in KernelExecutionContext context,
         float previousStrength,
         float newStrength)
     {
@@ -1382,7 +1375,7 @@ public sealed partial class WorldState
             tick,
             WorldVersion,
             changeCodeId,
-            sourceCodeId,
+            context.SourceCodeId,
             _relationshipKindId[relationshipId],
             _relationshipPolarityCode[relationshipId],
             _relationshipSourceId[relationshipId],
@@ -1393,12 +1386,16 @@ public sealed partial class WorldState
             _relationshipFactId3[relationshipId],
             _relationshipFactCount[relationshipId],
             previousStrength,
-            newStrength)));
+            newStrength)),
+            context);
     }
 
-    private void Write(in KernelEvent kernelEvent)
+    private void Write(in KernelEvent kernelEvent, in KernelExecutionContext context)
     {
-        if (!_events.TryWrite(kernelEvent))
+        var contextualEvent = kernelEvent.WithExecutionContext(
+            context.ProgramId,
+            context.SourceCodeId);
+        if (!_events.TryWrite(contextualEvent))
         {
             throw new global::System.InvalidOperationException();
         }

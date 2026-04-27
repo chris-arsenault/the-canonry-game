@@ -351,7 +351,10 @@ public sealed class KernelHostBuilder
             codes.UpkeepSourceCodeId.Value,
             codes.StartupSourceCodeId.Value,
             codes.RelationshipSourceCodeId.Value,
-            codes.GeneratorSourceCodeId.Value);
+            codes.GeneratorSourceCodeId.Value,
+            codes.PressureSourceCodeId.Value,
+            codes.DegeneracySourceCodeId.Value,
+            codes.PlanningSourceCodeId.Value);
 
     private static void ApplyDomainSymbols(
         KernelSymbolContext context,

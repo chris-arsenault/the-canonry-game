@@ -265,15 +265,11 @@ public sealed class DegeneracyProgramRuntime : IKernelProgramRuntime<DegeneracyP
 
     private static void WriteDegeneracyDetected(Simulation simulation, int tick, int slot, int severityCode)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new DegeneracyDetectedKernelEvent(
+        simulation.EmitDegeneracyDetected(
             tick,
-            simulation.WorldVersion,
             simulation.Degeneracy._detectorIds[slot],
             severityCode,
-            simulation.Degeneracy._reasonCodeIds[slot]))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            simulation.Degeneracy._reasonCodeIds[slot]);
     }
 
     private void EnsureDetector(int detectorSlot)

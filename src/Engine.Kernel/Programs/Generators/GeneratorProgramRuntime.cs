@@ -2135,17 +2135,13 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
 
     private static void WriteGeneratorEvaluated(Simulation simulation, int tick, int slot)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new GeneratorEvaluatedKernelEvent(
+        simulation.EmitGeneratorEvaluated(
             tick,
-            simulation.WorldVersion,
             simulation.Generators._generatorIds[slot],
             simulation.Generators._pulseStatusCodes[slot],
             simulation.Generators._pulseSelectedTargetIds[slot],
             simulation.Generators._pulseCandidateCounts[slot],
-            simulation.Generators._pulseFailedFireCounts[slot]))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            simulation.Generators._pulseFailedFireCounts[slot]);
     }
 
     private static void WriteGeneratorFired(
@@ -2156,16 +2152,12 @@ public sealed class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorPro
         int createdEntityCount,
         int createdRelationshipCount)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
+        simulation.EmitGeneratorFired(
             tick,
-            simulation.WorldVersion,
             simulation.Generators._generatorIds[slot],
             selectedTargetEntityId,
             createdEntityCount,
-            createdRelationshipCount))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            createdRelationshipCount);
     }
 
     private void AddSubtypeId(int subtypeId)

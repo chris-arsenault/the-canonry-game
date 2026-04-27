@@ -137,17 +137,16 @@ Time management. Drives everything.
 - Tick counter that advances the simulation
 - Speed control: pause, play, 2x, 4x (possibly more)
 - Cadence management: different systems register for different tick frequencies (every tick, every 5 ticks, every 20 ticks, etc.)
-- Tick phases: within a single tick, systems execute in a defined order
+- Strict scheduled order: within a single tick, systems execute in registration order
 
-**Tick phase order (within a single tick):**
-1. Physics: lifecycle drain, relationship drift, ambient resource drift, maintenance, and other automatic systems
-2. Process selection and execution: utility AI selects one process per entity, executes mutations (always available)
-3. Decision selection and execution: utility AI selects one decision per entity, executes mutations (card-gated only)
-4. Pressure recomputation: aggregates low-altitude state from phases 1-3
-5. Card precondition evaluation: checks pressures/conditions against active generator and system cards
-6. Card execution: generators and systems that fired apply effects
-7. Effects applied back to entity graph
-8. State change notification
+**Current built-in order (within a single tick):**
+1. Upkeep
+2. Relationships
+3. Processes
+4. Gambits
+5. Pressures
+6. Generators
+7. Degeneracy
 
 **MVP scope:** Full implementation. Speed control and cadence management are essential from day one.
 

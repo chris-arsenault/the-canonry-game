@@ -83,7 +83,10 @@ public sealed class GeneratorProgramRuntimeTests
         simulation.AdvanceTicks(1);
         Assert.Equal(1, simulation.World.EntityHighWatermark);
 
-        simulation.World.SetAttribute(target, TriggerAttributeId, simulation.ProcessSourceCodeId, 75f, tick: 1);
+        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        {
+            simulation.SetAttribute(target, TriggerAttributeId, 75f, tick: 1);
+        }
         simulation.AdvanceTicks(1);
 
         Assert.Equal(2, simulation.World.EntityHighWatermark);

@@ -65,43 +65,18 @@ public sealed class KernelStartupContext
             semanticR,
             semanticS);
 
-    public void SeedEntity(
-        int entityId,
-        int kindId,
-        int subtypeId,
-        int cultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR,
-        int semanticS,
-        int attributeSourceCodeId) =>
-        _kernel.SeedEntity(
-            entityId,
-            kindId,
-            subtypeId,
-            cultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS,
-            attributeSourceCodeId);
-
     public void SeedAttribute(
         int entityId,
         int attributeId,
-        int sourceCodeId,
         float value) =>
-        _kernel.SeedAttribute(entityId, attributeId, sourceCodeId, value);
+        _kernel.SeedAttribute(entityId, attributeId, value);
 
     public void SeedResource(
         int resourceId,
         int q,
         int r,
-        int sourceCodeId,
         float value) =>
-        _kernel.SeedResource(resourceId, q, r, sourceCodeId, value);
+        _kernel.SeedResource(resourceId, q, r, value);
 
     public void SeedRelationship(
         int relationshipKindId,

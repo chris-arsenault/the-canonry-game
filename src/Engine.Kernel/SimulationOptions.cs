@@ -10,7 +10,6 @@ public sealed record SimulationOptions
     public int ResourceCapacity { get; init; } = 8192;
     public int MapCellCapacity { get; init; } = 2048;
     public int SystemCapacity { get; init; } = 32;
-    public int MaxPhase { get; init; } = 8;
     public int EventCapacity { get; init; } = 65536;
     public int EventCursorCapacity { get; init; } = 32;
     public IKernelEventSchemaValidator? EventSchemaValidator { get; init; }

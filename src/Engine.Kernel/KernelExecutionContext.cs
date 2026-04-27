@@ -2,28 +2,26 @@ namespace Engine.Kernel;
 
 public readonly record struct KernelExecutionContext(
     int ProgramId,
-    int SourceCodeId,
-    int SubCode1 = 0,
-    int SubCode2 = 0,
-    int SubCode3 = 0,
-    int SubCode4 = 0);
+    int SourceCodeId);
 
 public readonly record struct KernelExecutionScope : global::System.IDisposable
 {
     private readonly Simulation? _simulation;
     private readonly KernelExecutionContext _previous;
+    private readonly int _previousDepth;
 
-    internal KernelExecutionScope(Simulation simulation, in KernelExecutionContext previous)
+    internal KernelExecutionScope(Simulation simulation, in KernelExecutionContext previous, int previousDepth)
     {
         _simulation = simulation;
         _previous = previous;
+        _previousDepth = previousDepth;
     }
 
     public void Dispose()
     {
         if (_simulation is not null)
         {
-            _simulation.RestoreExecutionContext(_previous);
+            _simulation.RestoreExecutionContext(_previous, _previousDepth);
         }
     }
 }

@@ -34,7 +34,10 @@ public static class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.RelationshipSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode)),
+                ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.PressureSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.DegeneracySourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.PlanningSourceCode)),
             KernelData = BuildKernelData(config, ids),
             Programs = BuildPrograms(config, ids, graph),
             Symbols = BuildSymbols(config, ids),
@@ -157,6 +160,9 @@ public static class DomainCompiler
         RegisterOnceStrict(sourceCodes, DomainRuntimeNames.StartupSourceCode, registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(sourceCodes, DomainRuntimeNames.RelationshipSourceCode, registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(sourceCodes, DomainRuntimeNames.GeneratorSourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.PressureSourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.DegeneracySourceCode, registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(sourceCodes, DomainRuntimeNames.PlanningSourceCode, registry.RegisterSourceCode, "source code");
         foreach (var detector in config.Degeneracy.Detectors)
         {
             RegisterOnceStrict(detectors, detector.Id, registry.RegisterDetector, "detector");

@@ -189,7 +189,6 @@ public sealed class KernelHostBuilderTests
                 var kindId = startup.DomainIds.KindIdOf("test_kind").Value;
                 var subtypeId = startup.DomainIds.SubtypeIdOf("test_subtype").Value;
                 var cultureId = startup.DomainIds.CultureIdOf("test_culture").Value;
-                var sourceCodeId = startup.DomainIds.SourceCodeIdOf("process").Value;
                 var relationshipKindId = startup.DomainIds.RelationshipKindIdOf("test_relationship").Value;
                 var resources = new[] { new CellResourceSeed(resourceId, 3f) };
 
@@ -212,7 +211,6 @@ public sealed class KernelHostBuilderTests
                 startup.SeedAttribute(
                     entityId: 1,
                     attributeId: startup.DomainIds.AttributeIdOf("test_attribute").Value,
-                    sourceCodeId: sourceCodeId,
                     value: 25f);
                 startup.SeedRelationship(
                     relationshipKindId: relationshipKindId,
@@ -347,6 +345,22 @@ public sealed class KernelHostBuilderTests
                 .Build());
 
         Assert.Contains("compiled domain", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void StartupSeedApisDoNotExposeSourceCodeOverloads()
+    {
+        var forbidden = typeof(KernelStartupContext)
+            .GetMethods()
+            .Where(method => method.Name.StartsWith("Seed", StringComparison.Ordinal))
+            .Where(method => method.GetParameters().Any(parameter =>
+                string.Equals(parameter.Name, "sourceCodeId", StringComparison.Ordinal) ||
+                string.Equals(parameter.Name, "attributeSourceCodeId", StringComparison.Ordinal)))
+            .Select(method => method.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Empty(forbidden);
     }
 
     private static int StartupEntityId(Engine.Domain.Startup.DomainStartupSeed seed, int seedEntityId)

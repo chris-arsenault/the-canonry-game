@@ -46,18 +46,20 @@ If performance cannot support this (if ticks become too expensive to run multipl
 
 ### Strict execution ordering within a tick
 
-All systems execute in a defined, strict order within each tick. The results of phase 1 are visible to phase 2, but phase 2's results are NOT visible to phase 1 within the same tick.
+All systems execute in a defined, strict order within each tick. The results of an earlier scheduled program are visible to later scheduled programs, but later writes are not visible to earlier programs until the next tick.
 
-**Tick phase order:**
-1. Low-altitude systems update (entity behaviors, relationships, resources, lifecycle, bulk flow)
-2. Pressure recomputation (aggregates the updated low-altitude state)
-3. Card precondition evaluation (checks pressures, attributes, relationships against active cards)
-4. Card execution (generators, systems, actions whose preconditions were met)
-5. Effects applied to entity graph (new entities, modified attributes, new/changed relationships)
+**Current built-in program order:**
+1. Upkeep
+2. Relationships
+3. Processes
+4. Gambits
+5. Pressures
+6. Generators
+7. Degeneracy
 
 This ordering is strict for determinism and sanity. A card cannot react to state that was just created by another card in the same tick. A low-altitude system cannot see a card effect until the next tick. This creates a clean one-tick delay between cause and visible effect, which is acceptable at the game's contemplative pace.
 
-The specific ordering of systems WITHIN a phase (e.g., which low-altitude system runs first) will be worked out during implementation. The phase boundaries are the design commitment.
+There is no separate phase layer in the runtime scheduler. Program registration order is the ordering contract.
 
 ---
 
@@ -67,7 +69,7 @@ Each system registers a cadence: how many ticks between its updates.
 
 - **Every tick (cadence 1):** entity movement, resource consumption, relationship strength shifts. The fast-updating low-altitude systems.
 - **Every N ticks (cadence N):** pressure recomputation might run every 5 ticks. Seasonal changes every ~90 ticks (if 1 tick = 1 day). Generator precondition checks every 10-20 ticks. The exact numbers are configurable and will be tuned through playtesting.
-- **The cadence of a system does not change its phase.** A system with cadence 10 still runs in the same phase (e.g., phase 1 for low-altitude systems) -- it just skips 9 out of 10 ticks.
+- Cadence does not change ordering. A system with cadence 10 keeps its registration position and skips 9 out of 10 ticks.
 
 ---
 
@@ -75,7 +77,7 @@ Each system registers a cadence: how many ticks between its updates.
 
 | System | How Tick Clock Interacts |
 |--------|--------------------------|
-| All systems | Every system is driven by the tick clock. Systems register their cadence and phase. |
+| All systems | Every system is driven by the tick clock. Systems register with a cadence and run in registration order. |
 | Map/Spatial (#4) | Seasons cycle based on tick count (periodic function). |
 | Lifecycle (#9) | Entity aging is a function of ticks elapsed. |
 | Save/Load (#15) | Current tick count is part of serialized state. Restoring a save resumes from the saved tick. |
@@ -86,6 +88,6 @@ Each system registers a cadence: how many ticks between its updates.
 
 - **In-world time mapping.** What does 1 tick equal? Needs playtesting. Affects lifecycle, seasons, pacing, and session length.
 - **Speed levels.** How many speed options (1x, 2x, 4x, 8x, max?). Whether a "skip to next event" option exists.
-- **Intra-phase ordering.** Which low-altitude system runs first within phase 1. Whether this ordering matters or whether systems within a phase can be treated as independent (and potentially parallelized).
+- **Ordering model.** Whether registration order remains sufficient as the built-in program list grows, or whether the scheduler needs an explicit ordered schedule definition.
 - **Performance budget per tick.** How expensive can a single tick be before speed control breaks down. Determines how complex individual systems can be and how many entities the simulation can support.
 - **Tick visualization.** Whether the player sees a tick counter, an in-world calendar, or both. How time is communicated in the UI.

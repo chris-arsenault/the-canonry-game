@@ -40,17 +40,29 @@ public sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningProgr
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var plannerKindCode = request.PlannerKindCode == 0 ? Data.DefaultPlannerKindCode : request.PlannerKindCode;
+        var plannedRequest = new PlanningRequest(
+            plannerKindCode,
+            request.ActionFamilyCode,
+            request.ActorEntityId,
+            request.ActorKindId,
+            request.Tick,
+            request.SelectionRoll);
+        PlanningDecision decision;
         if (plannerKindCode != PlannerKindCodes.Goap)
         {
-            return EmptyDecision(PlanningStatusCodes.UnsupportedPlanner, request.ActionFamilyCode, 0, 0f);
+            decision = EmptyDecision(PlanningStatusCodes.UnsupportedPlanner, request.ActionFamilyCode, 0, 0f);
+            EmitPlanEvents(simulation, plannedRequest, decision);
+            return decision;
         }
 
-        return request.ActionFamilyCode switch
+        decision = request.ActionFamilyCode switch
         {
-            ActionFamilyCodes.Process => simulation.Processes.PlanGoap(simulation, request with { PlannerKindCode = plannerKindCode }),
-            ActionFamilyCodes.Gambit => simulation.Gambits.PlanGoap(simulation, request with { PlannerKindCode = plannerKindCode }),
+            ActionFamilyCodes.Process => simulation.Processes.PlanGoap(simulation, plannedRequest),
+            ActionFamilyCodes.Gambit => simulation.Gambits.PlanGoap(simulation, plannedRequest),
             _ => EmptyDecision(PlanningStatusCodes.UnsupportedActionFamily, request.ActionFamilyCode, 0, 0f),
         };
+        EmitPlanEvents(simulation, plannedRequest, decision);
+        return decision;
     }
 
     public PlanningPlanHeader PlanHeader(PlanningPlanHandle handle)
@@ -202,6 +214,88 @@ public sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningProgr
         _scratch.StepParentStepIndexes[slot] = parentStepIndex;
         _scratch.StepRoleCodes[slot] = stepRoleCode;
         _scratch.StepScores[slot] = score;
+    }
+
+    private void EmitPlanEvents(Simulation simulation, in PlanningRequest request, in PlanningDecision decision)
+    {
+        var planId = PlanId(request.ActionFamilyCode);
+        simulation.EmitPlanStarted(
+            request.Tick,
+            planId,
+            request.ActorEntityId,
+            decision.StatusCode,
+            decision.CandidateCount);
+        if (decision.StatusCode != PlanningStatusCodes.Succeeded || decision.Plan.Slot == 0)
+        {
+            simulation.EmitPlanAbandoned(
+                request.Tick,
+                planId,
+                request.ActorEntityId,
+                decision.StatusCode);
+            return;
+        }
+
+        var header = PlanHeader(decision.Plan);
+        var goalId = header.ObjectiveEffectKey;
+        simulation.EmitGoalConsidered(
+            request.Tick,
+            planId,
+            request.ActorEntityId,
+            goalId,
+            candidateIndex: 0,
+            preliminaryScore: header.Score);
+        simulation.EmitGoalScored(
+            request.Tick,
+            planId,
+            request.ActorEntityId,
+            goalId,
+            PlanningStatusCodes.Succeeded,
+            scoringPassIndex: 0,
+            scoreDelta: header.Score,
+            runningTotal: header.Score);
+        simulation.EmitGoalSelected(
+            request.Tick,
+            planId,
+            request.ActorEntityId,
+            goalId,
+            header.Score);
+
+        for (var stepIndex = 0; stepIndex < header.StepCount; stepIndex++)
+        {
+            var step = PlanStep(decision.Plan, stepIndex);
+            simulation.EmitPlanStepEmitted(
+                request.Tick,
+                planId,
+                request.ActorEntityId,
+                goalId,
+                stepIndex,
+                ActionId(simulation, step.Action),
+                step.TargetEntityId,
+                relationshipKindId: 0);
+        }
+
+        simulation.EmitPlanCommitted(
+            request.Tick,
+            planId,
+            request.ActorEntityId,
+            header.StepCount,
+            PlanningStatusCodes.Succeeded,
+            header.Score);
+    }
+
+    private static int PlanId(int actionFamilyCode)
+    {
+        return actionFamilyCode;
+    }
+
+    private static int ActionId(Simulation simulation, PlanningActionHandle action)
+    {
+        return action.ActionFamilyCode switch
+        {
+            ActionFamilyCodes.Process => simulation.Processes.ProcessIdForSlot(action.ActionSlot),
+            ActionFamilyCodes.Gambit => simulation.Gambits.GambitIdForSlot(action.ActionSlot),
+            _ => action.ActionSlot,
+        };
     }
 
     private void EnsurePlan(PlanningPlanHandle handle)

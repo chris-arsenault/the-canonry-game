@@ -1,5 +1,6 @@
 namespace Engine.Kernel.Tests;
 
+using Engine.Eventing;
 using Engine.Kernel;
 
 public sealed class PlanningProgramRuntimeTests
@@ -156,6 +157,85 @@ public sealed class PlanningProgramRuntimeTests
         Assert.Equal(PlanningStatusCodes.Succeeded, decision.StatusCode);
         Assert.Equal(process, decision.ImmediateAction.ActionSlot);
         Assert.Equal(10f, simulation.World.GetAttribute(entityId, attributeId));
+    }
+
+    [Fact]
+    public void DirectProcessPlanEmitsPlanShapedKernelEvents()
+    {
+        var simulation = CreateSimulation();
+        const int kindId = 1;
+        const int attributeId = 10;
+        const int processId = 1100;
+        simulation.RegisterAttribute(kindId, attributeId, 0f, 100f, 10f);
+        simulation.Processes.RegisterAttributeObjective(
+            kindId,
+            attributeId,
+            ProcessObjectiveUrgencyCodes.StandardNeed,
+            0f,
+            100f,
+            10f,
+            baseline: 0f);
+        var entityId = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        var process = simulation.Processes.RegisterProcess(kindId, processId, targetMode: ProcessTargetModeCodes.Self);
+        simulation.Processes.SetGoalEffect(process, ProcessEffectScopeCodes.SelfAttribute, attributeId, kindId);
+        simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.TargetIsSelf);
+        simulation.Processes.AddExpressionOp(process, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(process, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, attributeId, x: 20f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        var decision = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(
+                PlannerKindCodes.Goap,
+                ActionFamilyCodes.Process,
+                entityId,
+                kindId,
+                Tick: 3,
+                SelectionRoll: 0f));
+
+        Assert.Equal(PlanningStatusCodes.Succeeded, decision.StatusCode);
+        Assert.Equal(KernelEventType.PlanStarted, ReadNextEvent(simulation, cursor).EventType);
+        Assert.Equal(KernelEventType.GoalConsidered, ReadNextEvent(simulation, cursor).EventType);
+        Assert.Equal(KernelEventType.GoalScored, ReadNextEvent(simulation, cursor).EventType);
+        Assert.Equal(KernelEventType.GoalSelected, ReadNextEvent(simulation, cursor).EventType);
+        var step = ReadNextEvent(simulation, cursor);
+        Assert.Equal(KernelEventType.PlanStepEmitted, step.EventType);
+        Assert.Equal(processId, step.AsPlanStepEmitted().ProcessId);
+        Assert.Equal(entityId, step.AsPlanStepEmitted().TargetEntityId);
+        var committed = ReadNextEvent(simulation, cursor);
+        Assert.Equal(KernelEventType.PlanCommitted, committed.EventType);
+        Assert.Equal(1, committed.AsPlanCommitted().StepCount);
+    }
+
+    [Fact]
+    public void FailedProcessPlanEmitsAbandonedPlanKernelEvents()
+    {
+        var simulation = CreateSimulation();
+        const int kindId = 1;
+        const int attributeId = 10;
+        simulation.RegisterAttribute(kindId, attributeId, 0f, 100f, 10f);
+        var entityId = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        var decision = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(
+                PlannerKindCodes.Goap,
+                ActionFamilyCodes.Process,
+                entityId,
+                kindId,
+                Tick: 4,
+                SelectionRoll: 0f));
+
+        Assert.Equal(PlanningStatusCodes.NoCandidates, decision.StatusCode);
+        var started = ReadNextEvent(simulation, cursor);
+        Assert.Equal(KernelEventType.PlanStarted, started.EventType);
+        Assert.Equal(PlanningStatusCodes.NoCandidates, started.AsPlanStarted().ReasonCodeId);
+        var abandoned = ReadNextEvent(simulation, cursor);
+        Assert.Equal(KernelEventType.PlanAbandoned, abandoned.EventType);
+        Assert.Equal(PlanningStatusCodes.NoCandidates, abandoned.AsPlanAbandoned().ReasonCodeId);
     }
 
     [Fact]
@@ -326,6 +406,7 @@ public sealed class PlanningProgramRuntimeTests
         simulation.Gambits.AddExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 1f);
         simulation.Gambits.AddRewardExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 10f);
         simulation.Gambits.AddStep(gambit, ProcessOperationCodes.AddAttribute, attributeId, x: 20f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         var decision = simulation.Planners.Plan(
             simulation,
@@ -356,6 +437,15 @@ public sealed class PlanningProgramRuntimeTests
         Assert.Equal(entityId, step.TargetEntityId);
         Assert.Equal(-1, step.ParentStepIndex);
         Assert.Equal(PlanningStepRoleCodes.Immediate, step.StepRoleCode);
+
+        Assert.Equal(KernelEventType.PlanStarted, ReadNextEvent(simulation, cursor).EventType);
+        Assert.Equal(KernelEventType.GoalConsidered, ReadNextEvent(simulation, cursor).EventType);
+        Assert.Equal(KernelEventType.GoalScored, ReadNextEvent(simulation, cursor).EventType);
+        Assert.Equal(KernelEventType.GoalSelected, ReadNextEvent(simulation, cursor).EventType);
+        var emittedStep = ReadNextEvent(simulation, cursor);
+        Assert.Equal(KernelEventType.PlanStepEmitted, emittedStep.EventType);
+        Assert.Equal(300, emittedStep.AsPlanStepEmitted().ProcessId);
+        Assert.Equal(KernelEventType.PlanCommitted, ReadNextEvent(simulation, cursor).EventType);
     }
 
     [Fact]
@@ -435,5 +525,11 @@ public sealed class PlanningProgramRuntimeTests
             TerrainIdCapacity = 8,
             Seed = 1,
         });
+    }
+
+    private static KernelEvent ReadNextEvent(Simulation simulation, KernelEventCursor cursor)
+    {
+        Assert.True(simulation.Events.TryRead(cursor, out var read));
+        return read.Event;
     }
 }

@@ -22,7 +22,10 @@ public sealed class UpkeepProgramTests
                 UpkeepSourceCodeId: upkeepSourceCodeId,
                 StartupSourceCodeId: 12,
                 RelationshipSourceCodeId: 13,
-                GeneratorSourceCodeId: 14),
+                GeneratorSourceCodeId: 14,
+                PressureSourceCodeId: 15,
+                DegeneracySourceCodeId: 16,
+                PlanningSourceCodeId: 17),
         });
 
         simulation.RegisterAttribute(

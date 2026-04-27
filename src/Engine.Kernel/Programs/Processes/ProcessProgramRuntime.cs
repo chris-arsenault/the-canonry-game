@@ -738,6 +738,12 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
             totalWeight);
     }
 
+    internal int ProcessIdForSlot(int processSlot)
+    {
+        EnsureProcess(processSlot);
+        return _processIds[processSlot];
+    }
+
     private float EvaluatePlannedCandidates(
         Simulation simulation,
         int entityId,
@@ -3449,18 +3455,14 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         int candidateCount,
         KernelEventState state)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new ProcessEvaluatedKernelEvent(
+        simulation.EmitProcessEvaluated(
             tick,
-            simulation.WorldVersion,
             entityId,
             kindId,
             0,
             processId,
             candidateCount,
-            state))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            state);
     }
 
     private static void WriteProcessExecuted(
@@ -3471,19 +3473,12 @@ public sealed class ProcessProgramRuntime : IKernelProgramRuntime<ProcessProgram
         int kindId,
         int processId)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new ProcessExecutedKernelEvent(
+        simulation.EmitProcessExecuted(
             tick,
-            simulation.WorldVersion,
             entityId,
+            targetId,
             kindId,
-            processId,
-            entityId,
-            targetId == entityId ? 0 : targetId,
-            targetId == entityId ? 1 : 2,
-            KernelEventState.Succeeded))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            processId);
     }
 
     private static void Push(global::System.Span<float> stack, ref int stackCount, float value)

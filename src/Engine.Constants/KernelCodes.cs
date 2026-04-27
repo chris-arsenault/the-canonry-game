@@ -1,15 +1,5 @@
 namespace Engine.Constants;
 
-public static class TickPhaseCodes
-{
-    public const int Low = 1;
-    public const int Process = 2;
-    public const int Gambit = 3;
-    public const int Pressure = 4;
-    public const int Generator = 5;
-    public const int Event = 6;
-}
-
 public static class EntityStatusCodes
 {
     public const int Active = 1;

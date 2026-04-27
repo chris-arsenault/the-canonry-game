@@ -44,8 +44,6 @@ internal static class DomainStartupSeedInstaller
         ArgumentNullException.ThrowIfNull(seed);
 
         var entityIds = BuildEntityIdMap(seed);
-        var startupSourceCodeId = context.DomainIds.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode).Value;
-
         foreach (var entity in seed.Entities)
         {
             if (!string.IsNullOrWhiteSpace(entity.DisplayName))
@@ -65,8 +63,7 @@ internal static class DomainStartupSeedInstaller
                 entity.PhysicalR,
                 entity.SemanticQ,
                 entity.SemanticR,
-                entity.SemanticS,
-                startupSourceCodeId);
+                entity.SemanticS);
         }
 
         foreach (var cell in seed.Cells)
@@ -89,7 +86,6 @@ internal static class DomainStartupSeedInstaller
                 context.DomainIds.ResourceIdOf(resource.Resource).Value,
                 resource.Q,
                 resource.R,
-                startupSourceCodeId,
                 resource.Value);
         }
 
@@ -98,7 +94,6 @@ internal static class DomainStartupSeedInstaller
             context.SeedAttribute(
                 entityIds[attribute.SeedEntityId],
                 context.DomainIds.AttributeIdOf(attribute.Attribute).Value,
-                startupSourceCodeId,
                 attribute.Value);
         }
 

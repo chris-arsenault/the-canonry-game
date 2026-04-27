@@ -118,8 +118,8 @@ public sealed class KernelStartupSeedingTests
         using var changedCursor = changed.Events.CreateCursor(KernelEventCursorStart.Latest);
         using var seededCursor = seeded.Events.CreateCursor(KernelEventCursorStart.Latest);
 
-        changed.SetAttribute(entityId: 1, attributeId: 4, sourceCodeId: 1, value: 11f, tick: 0);
-        seeded.SeedAttribute(entityId: 1, attributeId: 4, sourceCodeId: 1, value: 11f);
+        changed.SetAttribute(entityId: 1, attributeId: 4, value: 11f, tick: 0);
+        seeded.SeedAttribute(entityId: 1, attributeId: 4, value: 11f);
 
         Assert.Equal(changed.World.GetAttribute(1, 4), seeded.World.GetAttribute(1, 4));
         AssertEventTypes(changed, changedCursor, KernelEventType.AttributeChanged);
@@ -141,8 +141,8 @@ public sealed class KernelStartupSeedingTests
         using var changedCursor = changed.Events.CreateCursor(KernelEventCursorStart.Latest);
         using var seededCursor = seeded.Events.CreateCursor(KernelEventCursorStart.Latest);
 
-        changed.SetResource(resourceId: 8, q: 1, r: -1, sourceCodeId: 1, value: 13f, tick: 0);
-        seeded.SeedResource(resourceId: 8, q: 1, r: -1, sourceCodeId: 1, value: 13f);
+        changed.SetResource(resourceId: 8, q: 1, r: -1, value: 13f, tick: 0);
+        seeded.SeedResource(resourceId: 8, q: 1, r: -1, value: 13f);
 
         Assert.Equal(changed.World.GetResource(8, 1, -1), seeded.World.GetResource(8, 1, -1));
         AssertEventTypes(changed, changedCursor, KernelEventType.ResourceChanged);

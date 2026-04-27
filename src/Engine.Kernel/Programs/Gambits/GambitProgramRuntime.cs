@@ -764,6 +764,12 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
             totalWeight);
     }
 
+    internal int GambitIdForSlot(int gambitSlot)
+    {
+        EnsureGambit(gambitSlot);
+        return _gambitIds[gambitSlot];
+    }
+
     private float EvaluatePlannedCandidates(
         Simulation simulation,
         int entityId,
@@ -3475,17 +3481,13 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         int candidateCount,
         KernelEventState state)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new GambitEvaluatedKernelEvent(
+        simulation.EmitGambitEvaluated(
             tick,
-            simulation.WorldVersion,
             entityId,
             kindId,
             gambitId,
             candidateCount,
-            state))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            state);
     }
 
     private static void WriteGambitExecuted(
@@ -3497,19 +3499,13 @@ public sealed class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramDa
         int gambitId,
         KernelEventState state)
     {
-        if (!simulation.Events.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
+        simulation.EmitGambitExecuted(
             tick,
-            simulation.WorldVersion,
             entityId,
+            targetId,
             kindId,
             gambitId,
-            entityId,
-            targetId == entityId ? 0 : targetId,
-            targetId == entityId ? 1 : 2,
-            state))))
-        {
-            throw new global::System.InvalidOperationException();
-        }
+            state);
     }
 
     private static void Push(global::System.Span<float> stack, ref int stackCount, float value)

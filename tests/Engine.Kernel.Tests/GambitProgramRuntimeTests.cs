@@ -6,7 +6,7 @@ using Engine.Kernel;
 public sealed class GambitProgramRuntimeTests
 {
     [Fact]
-    public void ExecutesSuccessfulGambitInSeparatePhase()
+    public void ExecutesSuccessfulGambitInSeparateProgram()
     {
         var simulation = CreateSimulation(seed: 1);
         const int kindId = 1;

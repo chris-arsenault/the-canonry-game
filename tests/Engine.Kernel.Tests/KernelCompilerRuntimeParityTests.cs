@@ -34,8 +34,8 @@ public sealed class KernelCompilerRuntimeParityTests
         var simulation = CreateSimulation();
         var actor = CreateEntity(simulation, ActorKindId, 0, 0);
         var target = CreateEntity(simulation, TargetKindId, 1, 0);
-        simulation.World.SetAttribute(actor, ValueAttributeId, simulation.ProcessSourceCodeId, selfValue, 0);
-        simulation.World.SetAttribute(target, TargetAttributeId, simulation.ProcessSourceCodeId, targetValue, 0);
+        SetSetupAttribute(simulation, actor, ValueAttributeId, selfValue);
+        SetSetupAttribute(simulation, target, TargetAttributeId, targetValue);
 
         var process = RegisterTargetProcess(simulation, ProcessIdBase + caseId);
         AddCompositePreconditions(simulation, process, expressionMode);
@@ -125,8 +125,8 @@ public sealed class KernelCompilerRuntimeParityTests
         var simulation = CreateSimulation();
         var actor = CreateEntity(simulation, ActorKindId, 0, 0);
         var target = CreateEntity(simulation, TargetKindId, 3, 0);
-        simulation.World.SetAttribute(actor, ValueAttributeId, simulation.ProcessSourceCodeId, selfValue, 0);
-        simulation.World.SetAttribute(target, TargetAttributeId, simulation.ProcessSourceCodeId, targetValue, 0);
+        SetSetupAttribute(simulation, actor, ValueAttributeId, selfValue);
+        SetSetupAttribute(simulation, target, TargetAttributeId, targetValue);
 
         var process = RegisterTargetProcess(simulation, ProcessIdBase + caseId);
         var calculate = simulation.Processes.AddStep(
@@ -163,9 +163,9 @@ public sealed class KernelCompilerRuntimeParityTests
         var actor = CreateEntity(simulation, ActorKindId, 0, 0);
         var target = CreateEntity(simulation, TargetKindId, 1, 0);
         var related = CreateEntity(simulation, RelatedKindId, incoming ? 2 : 0, 0);
-        simulation.World.SetAttribute(actor, MarkerAttributeId, simulation.ProcessSourceCodeId, 0f, 0);
-        simulation.World.SetAttribute(target, MarkerAttributeId, simulation.ProcessSourceCodeId, 0f, 0);
-        simulation.World.SetAttribute(related, RelatedAttributeId, simulation.ProcessSourceCodeId, 10f, 0);
+        SetSetupAttribute(simulation, actor, MarkerAttributeId, 0f);
+        SetSetupAttribute(simulation, target, MarkerAttributeId, 0f);
+        SetSetupAttribute(simulation, related, RelatedAttributeId, 10f);
 
         if (incoming)
         {
@@ -599,6 +599,16 @@ public sealed class KernelCompilerRuntimeParityTests
         ids.RegisterCulture("none");
         ids.RegisterResource(ResourceType.Food.ToDomainName());
         return ids;
+    }
+
+    private static void SetSetupAttribute(
+        Simulation simulation,
+        int entityId,
+        int attributeId,
+        float value)
+    {
+        using var scope = simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0);
+        simulation.SetAttribute(entityId, attributeId, value, tick: 0);
     }
 
     private static Simulation CreateSimulation(int entityCapacity = 64, int relationshipCapacity = 64)

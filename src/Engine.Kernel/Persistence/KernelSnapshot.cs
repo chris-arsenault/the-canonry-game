@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 public static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 2;
+    private const int FormatVersion = 4;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -55,7 +55,6 @@ internal static class KernelSnapshotOptions
         writer.Write(options.ResourceCapacity);
         writer.Write(options.MapCellCapacity);
         writer.Write(options.SystemCapacity);
-        writer.Write(options.MaxPhase);
         writer.Write(options.EventCapacity);
         writer.Write(options.EventCursorCapacity);
         writer.Write(options.CommandCapacity);
@@ -97,6 +96,9 @@ internal static class KernelSnapshotOptions
         writer.Write(options.RuntimeCodes.StartupSourceCodeId);
         writer.Write(options.RuntimeCodes.RelationshipSourceCodeId);
         writer.Write(options.RuntimeCodes.GeneratorSourceCodeId);
+        writer.Write(options.RuntimeCodes.PressureSourceCodeId);
+        writer.Write(options.RuntimeCodes.DegeneracySourceCodeId);
+        writer.Write(options.RuntimeCodes.PlanningSourceCodeId);
         writer.Write(options.Seed);
         writer.Write(eventCount);
     }
@@ -111,7 +113,6 @@ internal static class KernelSnapshotOptions
         var resourceCapacity = reader.ReadInt32();
         var mapCellCapacity = reader.ReadInt32();
         var systemCapacity = reader.ReadInt32();
-        var maxPhase = reader.ReadInt32();
         var eventCapacity = reader.ReadInt32();
         var eventCursorCapacity = reader.ReadInt32();
         var commandCapacity = reader.ReadInt32();
@@ -153,6 +154,9 @@ internal static class KernelSnapshotOptions
         var startupSourceCodeId = reader.ReadInt32();
         var relationshipSourceCodeId = reader.ReadInt32();
         var generatorSourceCodeId = reader.ReadInt32();
+        var pressureSourceCodeId = reader.ReadInt32();
+        var degeneracySourceCodeId = reader.ReadInt32();
+        var planningSourceCodeId = reader.ReadInt32();
         var seed = reader.ReadInt32();
         var eventCount = reader.ReadInt32();
         if (eventCapacity <= eventCount)
@@ -186,7 +190,6 @@ internal static class KernelSnapshotOptions
             ResourceCapacity = resourceCapacity,
             MapCellCapacity = mapCellCapacity,
             SystemCapacity = systemCapacity,
-            MaxPhase = maxPhase,
             EventCapacity = eventCapacity,
             EventCursorCapacity = eventCursorCapacity,
             EventSchemaValidator = options?.EventSchemaValidator,
@@ -229,7 +232,10 @@ internal static class KernelSnapshotOptions
                 upkeepSourceCodeId,
                 startupSourceCodeId,
                 relationshipSourceCodeId,
-                generatorSourceCodeId),
+                generatorSourceCodeId,
+                pressureSourceCodeId,
+                degeneracySourceCodeId,
+                planningSourceCodeId),
             Seed = seed,
         };
     }

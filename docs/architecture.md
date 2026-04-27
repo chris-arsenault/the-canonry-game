@@ -16,26 +16,25 @@
                        │ orchestrates
 ┌──────────────────────▼──────────────────────────────┐
 │                   TickClock                           │
-│  Single clock, strict phases per tick                │
-│  Systems register with phase + cadence               │
+│  Single clock, strict scheduled order per tick       │
+│  Systems register with cadence                       │
 └──────────────────────┬──────────────────────────────┘
                        │
      ┌─────────────────┼─────────────────────┐
      ▼                 ▼                     ▼
-Phases 1-3         Phase 4              Phases 5-8
 LOW ALTITUDE       BRIDGE              MID ALTITUDE
 ```
 
-## Phase Execution (Per Tick)
+## Scheduled Execution (Per Tick)
 
-**Phase 1 — Physics (automatic, unconditional):**
+**Physics (automatic, unconditional):**
 ```
 LifecycleSystem         → Per-kind aging drain on health metrics, death transitions
 RelationshipSystem      → Strength modifiers (proximity, culture, competing claims), auto-culling
 ResourceSystem          → Sustenance + gold production/consumption, population dynamics, intra-national flow
 ```
 
-**Phase 2 — Goal-Driven Process Evaluation:**
+**Goal-Driven Process Evaluation:**
 ```
 EntityEvaluator
   → Regenerate goals (every 10 ticks or on sub-goal completion)
@@ -48,14 +47,14 @@ EntityEvaluator
   → If no viable process for selected goal, fall through to next goal
 ```
 
-**Phase 3 — Decisions (card-gated, separate from processes):**
+**Decisions (card-gated, separate from processes):**
 ```
 EntityEvaluator
   → Score viable decisions (card-gated only)
   → Weighted random selection, execute
 ```
 
-**Phase 4 — Bridge (every 5 ticks):**
+**Bridge (every 5 ticks):**
 ```
 PressureSystem          → Computes 4 regional pressures from low-altitude outputs
   ├── Military tension (nation count, rivalries - alliances)
@@ -64,13 +63,13 @@ PressureSystem          → Computes 4 regional pressures from low-altitude outp
   └── Demographic pressure (settlement density)
 ```
 
-**Phase 5 — Mid Altitude (card-controlled):**
+**Mid Altitude (card-controlled):**
 ```
 TableauManager          → Evaluates active generator/system cards, fires when preconditions met
   └── CardExecutor      → Precondition trees (AND/OR), mutation execution
 ```
 
-**Phase 6 — Observability (every 10 ticks):**
+**Observability (every 10 ticks):**
 ```
 DetectorRegistry        → 3 degeneracy detectors → EventLog warnings
 ```
@@ -237,7 +236,7 @@ SaveManager (MessagePack binary)
 4. **QuikGraph, not homegrown** — graph traversal via library, not custom implementation.
 5. **Everything serializable** — every system supports MessagePack round-trip.
 6. **Everything visible** — no hidden state, all attributes/effects inspectable. No hidden storyteller.
-7. **Strict tick ordering** — phases execute in order, results from phase N visible to phase N+1 only.
+7. **Strict tick ordering** — scheduled programs execute in order; later writes are visible to earlier programs only on the next tick.
 8. **Wiring validation** — startup check that domain data produces coherent feedback loops.
 
 ## Known Architecture Issue: Domain Mixing
@@ -265,7 +264,7 @@ src/
     Behaviors/      IProcess, IDecision, ActivityRegistry, EntityEvaluator,
                     GoalGenerator, GraphAttributeQuery, IWorldState
     Map/            HexCoord, HexCell, HexGrid, TerrainType, Region, SpatialIndex, TestMapBuilder
-    Clock/          TickClock, TickPhase, SimulationSpeed
+    Clock/          TickClock, SimulationSpeed
     Relationships/  StrengthModifier, DefaultModifiers, RelationshipSystem
     Lifecycle/      AgingDrain, LifecycleSystem, MaintenanceSystem
     Resources/      ResourceType, ResourceLayer, ResourceSystem

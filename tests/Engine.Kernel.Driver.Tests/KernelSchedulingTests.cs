@@ -23,7 +23,6 @@ public sealed class KernelSchedulingTests
         var simulation = new Simulation();
         var ticks = new List<int>();
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 5,
             new RecordingSystem((_, tick) => ticks.Add(tick)));
 
@@ -39,7 +38,6 @@ public sealed class KernelSchedulingTests
         var simulation = new Simulation();
         var ticks = new List<int>();
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 1,
             new RecordingSystem((_, tick) => ticks.Add(tick)));
 
@@ -54,95 +52,79 @@ public sealed class KernelSchedulingTests
         var simulation = new Simulation();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            simulation.RegisterSystem(TickPhaseCodes.Low, cadence: 0, new RecordingSystem((_, _) => { })));
+            simulation.RegisterSystem(cadence: 0, new RecordingSystem((_, _) => { })));
     }
 
     [Fact]
-    public void RegisteredSystemsRunInStrictPhaseOrder()
+    public void RegisteredSystemsRunInRegistrationOrder()
     {
         var simulation = new Simulation();
         var executionOrder = new List<int>();
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Generator,
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(TickPhaseCodes.Generator)));
+            new RecordingSystem((_, _) => executionOrder.Add(1)));
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(TickPhaseCodes.Low)));
+            new RecordingSystem((_, _) => executionOrder.Add(2)));
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Event,
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(TickPhaseCodes.Event)));
+            new RecordingSystem((_, _) => executionOrder.Add(3)));
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Pressure,
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(TickPhaseCodes.Pressure)));
+            new RecordingSystem((_, _) => executionOrder.Add(4)));
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Process,
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(TickPhaseCodes.Process)));
+            new RecordingSystem((_, _) => executionOrder.Add(5)));
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(
-        [
-            TickPhaseCodes.Low,
-            TickPhaseCodes.Process,
-            TickPhaseCodes.Pressure,
-            TickPhaseCodes.Generator,
-            TickPhaseCodes.Event,
-        ], executionOrder);
+        Assert.Equal([1, 2, 3, 4, 5], executionOrder);
     }
 
     [Fact]
-    public void LowerPhaseWritesAreVisibleToLaterPhasesInSameTick()
+    public void EarlierRegisteredWritesAreVisibleToLaterRegisteredSystemsInSameTick()
     {
         var simulation = new Simulation();
         var value = 0;
-        var pressureSaw = -1;
+        var laterSaw = -1;
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 1,
             new RecordingSystem((_, _) => value = 42));
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Pressure,
             cadence: 1,
-            new RecordingSystem((_, _) => pressureSaw = value));
+            new RecordingSystem((_, _) => laterSaw = value));
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(42, pressureSaw);
+        Assert.Equal(42, laterSaw);
     }
 
     [Fact]
-    public void LaterPhaseWritesAreNotVisibleToLowerPhaseUntilNextTick()
+    public void LaterRegisteredWritesAreNotVisibleToEarlierRegisteredSystemsUntilNextTick()
     {
         var simulation = new Simulation();
         var value = 0;
-        var lowSaw = new List<int>();
-        var generatorSaw = new List<int>();
+        var earlierSaw = new List<int>();
+        var laterSaw = new List<int>();
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Generator,
             cadence: 1,
             new RecordingSystem((_, _) =>
             {
-                generatorSaw.Add(value);
-                value = 99;
+                earlierSaw.Add(value);
+                value = 42;
             }));
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 1,
             new RecordingSystem((_, _) =>
             {
-                lowSaw.Add(value);
-                value = 42;
+                laterSaw.Add(value);
+                value = 99;
             }));
 
         _ = simulation.AdvanceTicks(2);
 
-        Assert.Equal([0, 99], lowSaw);
-        Assert.Equal([42, 42], generatorSaw);
+        Assert.Equal([0, 99], earlierSaw);
+        Assert.Equal([42, 42], laterSaw);
     }
 
     [Fact]
@@ -151,7 +133,6 @@ public sealed class KernelSchedulingTests
         var simulation = new Simulation();
         var runCount = 0;
         var handle = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 1,
             new RecordingSystem((_, _) => runCount++));
 
@@ -166,11 +147,10 @@ public sealed class KernelSchedulingTests
     public void ProgramCanBeDisabledAndReEnabled()
     {
         var simulation = new Simulation();
-        const int testProgram = 99;
+        const int testProgram = KernelProgramCodes.Planning;
         var runCount = 0;
         _ = simulation.RegisterProgram(
             testProgram,
-            TickPhaseCodes.Low,
             cadence: 1,
             new RecordingSystem((_, _) => runCount++));
 
@@ -189,7 +169,6 @@ public sealed class KernelSchedulingTests
         var simulation = new Simulation();
         var receivedTicks = new List<int>();
         _ = simulation.RegisterSystem(
-            TickPhaseCodes.Low,
             cadence: 1,
             new RecordingSystem((_, tick) => receivedTicks.Add(tick)));
 

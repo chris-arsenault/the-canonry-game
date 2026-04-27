@@ -38,6 +38,6 @@ public sealed partial class Simulation
 
     internal void EmitSnapshotEvents()
     {
-        World.EmitSnapshotEvents(StartupSourceCodeId);
+        World.EmitSnapshotEvents(_executionContext);
     }
 }

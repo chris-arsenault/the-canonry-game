@@ -5,4 +5,11 @@
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);CA1045</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference
+      Include="..\Engine.Eventing.Generators\Engine.Eventing.Generators.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false" />
+  </ItemGroup>
 </Project>

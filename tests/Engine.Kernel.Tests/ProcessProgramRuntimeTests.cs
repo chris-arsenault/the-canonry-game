@@ -365,8 +365,8 @@ public sealed class ProcessProgramRuntimeTests
         _ = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var committed = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var challenger = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
-        simulation.World.SetAttribute(committed, rewardAttributeId, simulation.ProcessSourceCodeId, 100f, 0);
-        simulation.World.SetAttribute(challenger, rewardAttributeId, simulation.ProcessSourceCodeId, 110f, 0);
+        SetSetupAttribute(simulation, committed, rewardAttributeId, 100f);
+        SetSetupAttribute(simulation, challenger, rewardAttributeId, 110f);
         simulation.World.SetEntityStatus(challenger, EntityStatusCodes.Historical, 0);
 
         var process = simulation.Processes.RegisterProcess(
@@ -548,9 +548,9 @@ public sealed class ProcessProgramRuntimeTests
         var farFirst = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
         var farSecond = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
         var near = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        simulation.World.SetAttribute(farFirst, firstEffectId, simulation.ProcessSourceCodeId, 1f, 0);
-        simulation.World.SetAttribute(farSecond, secondEffectId, simulation.ProcessSourceCodeId, 1f, 0);
-        simulation.World.SetAttribute(near, nearEffectId, simulation.ProcessSourceCodeId, 1f, 0);
+        SetSetupAttribute(simulation, farFirst, firstEffectId, 1f);
+        SetSetupAttribute(simulation, farSecond, secondEffectId, 1f);
+        SetSetupAttribute(simulation, near, nearEffectId, 1f);
 
         RegisterTargetMarkerProcess(simulation, actorKindId, targetKindId, processId: 230, firstEffectId, markerAttributeId, reward: 1f);
         RegisterTargetMarkerProcess(simulation, actorKindId, targetKindId, processId: 231, secondEffectId, markerAttributeId, reward: 1f);
@@ -575,7 +575,7 @@ public sealed class ProcessProgramRuntimeTests
         _ = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var richProvider = simulation.CreateEntity(providerKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var emptyProvider = simulation.CreateEntity(providerKindId, 1, 1, 2, 0, 0, 0, 0, 0);
-        simulation.World.SetResource(foodResourceId, 1, 0, simulation.ProcessSourceCodeId, 5f, 0);
+        SetSetupResource(simulation, foodResourceId, 1, 0, 5f);
 
         var process = RegisterSelfObjectiveTargetMarkerProcess(
             simulation,
@@ -605,8 +605,8 @@ public sealed class ProcessProgramRuntimeTests
         _ = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var low = simulation.CreateEntity(providerKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var high = simulation.CreateEntity(providerKindId, 1, 1, 2, 0, 0, 0, 0, 0);
-        simulation.World.SetAttribute(low, rewardAttributeId, simulation.ProcessSourceCodeId, 1f, 0);
-        simulation.World.SetAttribute(high, rewardAttributeId, simulation.ProcessSourceCodeId, 10f, 0);
+        SetSetupAttribute(simulation, low, rewardAttributeId, 1f);
+        SetSetupAttribute(simulation, high, rewardAttributeId, 10f);
 
         var process = RegisterSelfObjectiveTargetMarkerProcess(
             simulation,
@@ -637,8 +637,8 @@ public sealed class ProcessProgramRuntimeTests
         _ = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var colocated = simulation.CreateEntity(providerKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var elsewhere = simulation.CreateEntity(providerKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        simulation.World.SetAttribute(colocated, locationAttributeId, simulation.ProcessSourceCodeId, 1f, 0);
-        simulation.World.SetAttribute(elsewhere, locationAttributeId, simulation.ProcessSourceCodeId, 1f, 0);
+        SetSetupAttribute(simulation, colocated, locationAttributeId, 1f);
+        SetSetupAttribute(simulation, elsewhere, locationAttributeId, 1f);
 
         var process = RegisterSelfObjectiveTargetMarkerProcess(
             simulation,
@@ -926,6 +926,27 @@ public sealed class ProcessProgramRuntimeTests
                 simulation.World.SetCell(q, r, terrainId: 1);
             }
         }
+    }
+
+    private static void SetSetupAttribute(
+        Simulation simulation,
+        int entityId,
+        int attributeId,
+        float value)
+    {
+        using var scope = simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0);
+        simulation.SetAttribute(entityId, attributeId, value, tick: 0);
+    }
+
+    private static void SetSetupResource(
+        Simulation simulation,
+        int resourceId,
+        int q,
+        int r,
+        float value)
+    {
+        using var scope = simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0);
+        simulation.SetResource(resourceId, q, r, value, tick: 0);
     }
 
     private static Simulation CreateSimulation()

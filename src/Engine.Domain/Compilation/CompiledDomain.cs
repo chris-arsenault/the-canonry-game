@@ -25,7 +25,10 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId UpkeepSourceCodeId,
     SourceCodeId StartupSourceCodeId,
     SourceCodeId RelationshipSourceCodeId,
-    SourceCodeId GeneratorSourceCodeId);
+    SourceCodeId GeneratorSourceCodeId,
+    SourceCodeId PressureSourceCodeId,
+    SourceCodeId DegeneracySourceCodeId,
+    SourceCodeId PlanningSourceCodeId);
 
 public enum DomainSymbolKind
 {
