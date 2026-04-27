@@ -23,7 +23,6 @@ public sealed class KernelHostBuilderTests
             .WithKernel(kernel)
             .Build();
 
-        Assert.Same(kernel, host.Kernel);
         Assert.Same(kernel.Events, host.Events);
         Assert.True(host.BootstrapCompleted);
     }
@@ -40,13 +39,18 @@ public sealed class KernelHostBuilderTests
         using var state = new MemoryStream();
         KernelSnapshot.SaveKernelState(kernel, state);
         state.Position = 0;
+        var map = new HexMapProjection();
+        var ui = new UiProjectionState();
 
         using var host = new KernelHostBuilder()
             .WithKernelState(state)
+            .RegisterProjection("map", _ => map)
+            .RegisterProjection("ui", _ => ui)
             .Build();
 
-        Assert.Equal(1, host.Kernel.World.CellTerrainId(0, 0));
-        Assert.Equal(1, host.Kernel.World.EntityHighWatermark);
+        Assert.True(map.TryGetHex(new HexCoord(0, 0), out var origin));
+        Assert.Equal(1, origin.TerrainId);
+        Assert.True(ui.Entities.ContainsKey(1));
         Assert.True(host.SeedEventCount > 0);
     }
 
@@ -61,12 +65,6 @@ public sealed class KernelHostBuilderTests
         Assert.Equal(
             host.CompiledDomain.Ids.KindIdOf(IceRemembersKinds.Settlement),
             host.DomainIds.KindIdOf(IceRemembersKinds.Settlement));
-        Assert.Equal(
-            host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.ProcessSourceCode).Value,
-            host.Kernel.ProcessSourceCodeId);
-        Assert.Equal(
-            host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value,
-            host.Kernel.UpkeepSourceCodeId);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.Kind,
             host.DomainIds.KindIdOf(IceRemembersKinds.Settlement).Value,
@@ -82,34 +80,7 @@ public sealed class KernelHostBuilderTests
             host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value,
             out var upkeepSymbol));
         Assert.Equal(DomainRuntimeNames.UpkeepSourceCode, upkeepSymbol.StableName);
-        Assert.Equal(
-            host.CompiledDomain.KernelData.Entities.Attributes.Count,
-            host.Kernel.KernelData.Entities.AttributeCount);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Upkeep.AttributeRules.Count,
-            host.Kernel.Upkeep.UpkeepRuleCount);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Upkeep.LifecycleRules.Count,
-            host.Kernel.Upkeep.LifecycleRuleCount);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Relationships.Relationships.Count,
-            host.Kernel.Relationships.Count);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Pressures.Pressures.Count,
-            host.Kernel.Pressures.Count);
         Assert.True(host.CompiledDomain.Programs.Generators.Generators.Count > 0);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Generators.Generators.Count,
-            host.Kernel.Generators.Count);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Degeneracy.Detectors.Count,
-            host.Kernel.Degeneracy.Count);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Processes.Objectives.Count,
-            host.Kernel.Processes.ObjectiveCount);
-        Assert.Equal(
-            host.CompiledDomain.Programs.Processes.Processes.Count,
-            host.Kernel.Processes.Count);
         var processSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Process);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.Process,
@@ -131,10 +102,17 @@ public sealed class KernelHostBuilderTests
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Upkeep));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Degeneracy));
-        host.SetProgramEnabled(KernelProgramCodes.Pressures, enabled: false);
+    }
+
+    [Fact]
+    public void Build_AppliesProgramOverridesBeforeStartup()
+    {
+        using var host = new KernelHostBuilder()
+            .WithDomainConfig(IceRemembersDefinition.Create())
+            .ConfigurePrograms(programs => programs.Disable(KernelProgramCodes.Pressures))
+            .Build();
+
         Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Pressures));
-        host.SetProgramEnabled(KernelProgramCodes.Pressures, enabled: true);
-        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Pressures));
     }
 
     [Fact]
@@ -290,7 +268,6 @@ public sealed class KernelHostBuilderTests
             .RegisterProjection("ui", _ => ui)
             .Build();
 
-        Assert.Equal(startupSeed.MapRadius, host.Kernel.World.MapRadius);
         Assert.Equal(startupSeed.Cells.Count, map.HexesById.Count);
         Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
 

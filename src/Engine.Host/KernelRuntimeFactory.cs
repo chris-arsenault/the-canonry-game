@@ -1,6 +1,7 @@
 namespace Engine.Host;
 
 using Engine.Eventing.Schema;
+using Engine.Domain;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Observability;
@@ -191,6 +192,8 @@ public sealed class KernelUiRuntime : IDisposable
     public UiChronicleProjection Chronicle { get; }
 
     public ProjectionSymbolCatalog Symbols => _runtime.Symbols;
+
+    public DomainIdRegistry DomainIds => _runtime.Host.DomainIds;
 
     public StartupSeedIdentity SeedIdentity => _runtime.SeedIdentity;
 

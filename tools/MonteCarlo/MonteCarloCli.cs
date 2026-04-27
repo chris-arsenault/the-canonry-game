@@ -128,7 +128,7 @@ internal static class MonteCarloCli
                 run.Symbols,
                 seed);
                 RecordMapGenerationAccepted(stateRecorder.Batch, runId, run.WorldSeed);
-                RecordStateSnapshots(stateRecorder, run.Host.Kernel.CurrentTick, options);
+                RecordStateSnapshots(stateRecorder, run.Host.CurrentTick, options);
             }
 
             if (options.PerformanceMode)
@@ -154,7 +154,7 @@ internal static class MonteCarloCli
                 }
 
                 processedTicks += advanced;
-                var currentTick = run.Host.Kernel.CurrentTick;
+                var currentTick = run.Host.CurrentTick;
                 summaryRecorder.DrainAvailable();
                 RecordStateSnapshots(stateRecorder, currentTick, options);
                 performanceRecorder?.RecordTick(currentTick, stopwatch.Elapsed);

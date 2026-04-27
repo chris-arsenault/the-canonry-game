@@ -23,7 +23,7 @@ public sealed class ObservabilitySmokeTests
             {
                 var advanced = host.Time.AdvanceSingleStep(1);
                 Assert.Equal(1, advanced);
-                logger.OnTickEnded(host.Kernel.CurrentTick);
+                logger.OnTickEnded(host.CurrentTick);
             }
 
             var lines = File.ReadAllLines(logPath);
@@ -58,7 +58,7 @@ public sealed class ObservabilitySmokeTests
             {
                 var advanced = host.Time.AdvanceSingleStep(1);
                 Assert.Equal(1, advanced);
-                logger.OnTickEnded(host.Kernel.CurrentTick);
+                logger.OnTickEnded(host.CurrentTick);
             }
 
             var lines = File.ReadAllLines(logPath);
@@ -86,12 +86,12 @@ public sealed class ObservabilitySmokeTests
             host.Symbols,
             seed: 7100);
 
-        recorder.RecordSnapshots(host.Kernel.CurrentTick);
+        recorder.RecordSnapshots(host.CurrentTick);
         for (var i = 0; i < 50; i++)
         {
             var advanced = host.Time.AdvanceSingleStep(1);
             Assert.Equal(1, advanced);
-            recorder.RecordSnapshots(host.Kernel.CurrentTick, includeEntities: host.Kernel.CurrentTick % 10 == 0);
+            recorder.RecordSnapshots(host.CurrentTick, includeEntities: host.CurrentTick % 10 == 0);
         }
 
         recorder.DrainAvailable();
@@ -121,7 +121,7 @@ public sealed class ObservabilitySmokeTests
             var started = DateTime.UtcNow;
             var advanced = host.Time.AdvanceSingleStep(1);
             Assert.Equal(1, advanced);
-            recorder.RecordTick(host.Kernel.CurrentTick, DateTime.UtcNow - started);
+            recorder.RecordTick(host.CurrentTick, DateTime.UtcNow - started);
         }
 
         recorder.Complete(processedTicks: 5);

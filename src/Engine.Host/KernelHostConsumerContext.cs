@@ -8,7 +8,7 @@ public sealed class KernelHostConsumerContext
 {
     internal KernelHostConsumerContext(
         DomainIdRegistry domainIds,
-        KernelEventLog events,
+        IKernelEventReader events,
         ProjectionSymbolCatalog symbols,
         KernelConsumerRegistry consumers)
     {
@@ -20,7 +20,7 @@ public sealed class KernelHostConsumerContext
 
     public DomainIdRegistry DomainIds { get; }
 
-    public KernelEventLog Events { get; }
+    public IKernelEventReader Events { get; }
 
     public ProjectionSymbolCatalog Symbols { get; }
 

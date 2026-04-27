@@ -16,7 +16,7 @@ public sealed class RunLogger : IDisposable
 
     public RunLogger(
         string logPath,
-        KernelEventLog eventLog,
+        IKernelEventReader eventLog,
         IProjectionSymbolCatalog? symbols = null,
         KernelEventCursorStart cursorStart = KernelEventCursorStart.EarliestAvailable)
     {

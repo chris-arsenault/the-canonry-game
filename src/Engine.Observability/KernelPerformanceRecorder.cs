@@ -24,7 +24,7 @@ public sealed class KernelPerformanceRecorder : IDisposable
     private bool _disposed;
 
     public KernelPerformanceRecorder(
-        KernelEventLog eventLog,
+        IKernelEventReader eventLog,
         string runId,
         int requestedTicks,
         int? seed = null,

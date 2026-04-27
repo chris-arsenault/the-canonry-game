@@ -11,7 +11,7 @@ public sealed class KernelTelemetryRecorder : IDisposable
     private bool _disposed;
 
     public KernelTelemetryRecorder(
-        KernelEventLog eventLog,
+        IKernelEventReader eventLog,
         string runId,
         IProjectionSymbolCatalog? symbols = null,
         int? seed = null,

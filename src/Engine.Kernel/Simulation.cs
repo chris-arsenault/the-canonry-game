@@ -113,34 +113,34 @@ public sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Degeneracy, 10, Degeneracy);
     }
 
-    public WorldState World { get; }
-    public KernelDataSet KernelData { get; }
-    public KernelEventLog Events { get; }
-    public KernelCommandRing Commands { get; }
-    public PlanningProgramRuntime Planners { get; }
-    public ProcessProgramRuntime Processes { get; }
-    public GambitProgramRuntime Gambits { get; }
-    public GeneratorProgramRuntime Generators { get; }
-    public PressureProgramRuntime Pressures { get; }
-    public DegeneracyProgramRuntime Degeneracy { get; }
-    public UpkeepProgramRuntime Upkeep { get; }
-    public RelationshipProgramRuntime Relationships { get; }
-    public int ProcessSourceCodeId { get; }
-    public int GambitSourceCodeId { get; }
-    public int UpkeepSourceCodeId { get; }
-    public int StartupSourceCodeId { get; }
-    public int RelationshipSourceCodeId { get; }
-    public int GeneratorSourceCodeId { get; }
-    public int PressureSourceCodeId { get; }
-    public int DegeneracySourceCodeId { get; }
-    public int PlanningSourceCodeId { get; }
-    public KernelExecutionContext ExecutionContext => _executionContext;
+    internal WorldState World { get; }
+    internal KernelDataSet KernelData { get; }
+    internal KernelEventLog Events { get; }
+    internal KernelCommandRing Commands { get; }
+    internal PlanningProgramRuntime Planners { get; }
+    internal ProcessProgramRuntime Processes { get; }
+    internal GambitProgramRuntime Gambits { get; }
+    internal GeneratorProgramRuntime Generators { get; }
+    internal PressureProgramRuntime Pressures { get; }
+    internal DegeneracyProgramRuntime Degeneracy { get; }
+    internal UpkeepProgramRuntime Upkeep { get; }
+    internal RelationshipProgramRuntime Relationships { get; }
+    internal int ProcessSourceCodeId { get; }
+    internal int GambitSourceCodeId { get; }
+    internal int UpkeepSourceCodeId { get; }
+    internal int StartupSourceCodeId { get; }
+    internal int RelationshipSourceCodeId { get; }
+    internal int GeneratorSourceCodeId { get; }
+    internal int PressureSourceCodeId { get; }
+    internal int DegeneracySourceCodeId { get; }
+    internal int PlanningSourceCodeId { get; }
+    internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
     public long CurrentVersion => WorldVersion;
     public long WorldVersion => World.WorldVersion;
     internal SimulationOptions Options { get; }
 
-    public int RegisterAttribute(
+    internal int RegisterAttribute(
         int kindId,
         int attributeId,
         float minimum,
@@ -157,13 +157,13 @@ public sealed partial class Simulation : IKernel
             defaultVariance);
     }
 
-    public int RegisterTerrain(int terrainId, int boundaryGroupId)
+    internal int RegisterTerrain(int terrainId, int boundaryGroupId)
     {
         KernelData.Terrain.RegisterTerrain(terrainId, boundaryGroupId);
         return terrainId;
     }
 
-    public int CreateEntity(
+    internal int CreateEntity(
         int kindId,
         int subtypeId,
         int cultureId,
@@ -187,7 +187,7 @@ public sealed partial class Simulation : IKernel
             tick);
     }
 
-    public void SeedCell(
+    internal void SeedCell(
         int q,
         int r,
         int terrainId,
@@ -197,7 +197,7 @@ public sealed partial class Simulation : IKernel
         CreateCell(q, r, terrainId, ownerEntityId);
     }
 
-    public void SeedCell(
+    internal void SeedCell(
         int q,
         int r,
         int terrainId,
@@ -213,7 +213,7 @@ public sealed partial class Simulation : IKernel
         }
     }
 
-    public void CreateCell(
+    internal void CreateCell(
         int q,
         int r,
         int terrainId,
@@ -231,7 +231,7 @@ public sealed partial class Simulation : IKernel
             ownerEntityId)));
     }
 
-    public void SeedEntity(
+    internal void SeedEntity(
         int entityId,
         int kindId,
         int subtypeId,
@@ -297,7 +297,7 @@ public sealed partial class Simulation : IKernel
         return createdEntityId;
     }
 
-    public void SeedAttribute(
+    internal void SeedAttribute(
         int entityId,
         int attributeId,
         float value)
@@ -306,7 +306,7 @@ public sealed partial class Simulation : IKernel
         SetAttribute(entityId, attributeId, value, CurrentTick);
     }
 
-    public void SeedResource(
+    internal void SeedResource(
         int resourceId,
         int q,
         int r,
@@ -316,7 +316,7 @@ public sealed partial class Simulation : IKernel
         SetResource(resourceId, q, r, value, CurrentTick);
     }
 
-    public void SeedRelationship(
+    internal void SeedRelationship(
         int relationshipKindId,
         int polarityCode,
         int sourceEntityId,
@@ -343,7 +343,7 @@ public sealed partial class Simulation : IKernel
             factCount);
     }
 
-    public void SetAttribute(
+    internal void SetAttribute(
         int entityId,
         int attributeId,
         float value,
@@ -352,7 +352,7 @@ public sealed partial class Simulation : IKernel
         World.SetAttribute(entityId, attributeId, value, tick, _executionContext);
     }
 
-    public void ModifyAttribute(
+    internal void ModifyAttribute(
         int entityId,
         int attributeId,
         float delta,
@@ -361,7 +361,7 @@ public sealed partial class Simulation : IKernel
         World.ModifyAttribute(entityId, attributeId, delta, tick, _executionContext);
     }
 
-    public void SetResource(
+    internal void SetResource(
         int resourceId,
         int q,
         int r,
@@ -371,7 +371,7 @@ public sealed partial class Simulation : IKernel
         World.SetResource(resourceId, q, r, value, tick, _executionContext);
     }
 
-    public void ModifyResource(
+    internal void ModifyResource(
         int resourceId,
         int q,
         int r,
@@ -381,22 +381,22 @@ public sealed partial class Simulation : IKernel
         World.ModifyResource(resourceId, q, r, delta, tick, _executionContext);
     }
 
-    public void SetEntityStatus(int entityId, int statusCode, int tick)
+    internal void SetEntityStatus(int entityId, int statusCode, int tick)
     {
         World.SetEntityStatus(entityId, statusCode, tick, _executionContext);
     }
 
-    public void MoveEntityPhysical(int entityId, int q, int r, int tick)
+    internal void MoveEntityPhysical(int entityId, int q, int r, int tick)
     {
         World.MoveEntityPhysical(entityId, q, r, tick, _executionContext);
     }
 
-    public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
+    internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
     {
         World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
     }
 
-    public int CreateRelationship(
+    internal int CreateRelationship(
         int relationshipKindId,
         int polarityCode,
         int sourceEntityId,
@@ -424,22 +424,22 @@ public sealed partial class Simulation : IKernel
             _executionContext);
     }
 
-    public void SetRelationshipStrength(int relationshipId, float strength, int tick)
+    internal void SetRelationshipStrength(int relationshipId, float strength, int tick)
     {
         World.SetRelationshipStrength(relationshipId, strength, tick, _executionContext);
     }
 
-    public void CullRelationship(int relationshipId, int tick)
+    internal void CullRelationship(int relationshipId, int tick)
     {
         World.CullRelationship(relationshipId, tick, _executionContext);
     }
 
-    public void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
+    internal void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
     {
         World.CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, _executionContext);
     }
 
-    public int RegisterSystem(int cadence, ISimulationSystem system)
+    internal int RegisterSystem(int cadence, ISimulationSystem system)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cadence);
         global::System.ArgumentNullException.ThrowIfNull(system);
@@ -458,7 +458,7 @@ public sealed partial class Simulation : IKernel
         return slot;
     }
 
-    public int RegisterProgram(int programId, int cadence, ISimulationSystem system)
+    internal int RegisterProgram(int programId, int cadence, ISimulationSystem system)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(programId);
         var sourceCodeId = SourceCodeIdForProgram(programId);
@@ -474,7 +474,7 @@ public sealed partial class Simulation : IKernel
         return handle;
     }
 
-    public KernelExecutionScope EnterExecutionContext(
+    internal KernelExecutionScope EnterExecutionContext(
         int sourceCodeId,
         int programId)
     {
@@ -493,7 +493,7 @@ public sealed partial class Simulation : IKernel
         _executionContextDepth = depth;
     }
 
-    public void SetSystemActive(int handle, bool active)
+    internal void SetSystemActive(int handle, bool active)
     {
         if ((uint)handle >= (uint)_systemActive.Length || _systems[handle] is null)
         {
@@ -503,17 +503,17 @@ public sealed partial class Simulation : IKernel
         _systemActive[handle] = active;
     }
 
-    public void SetProgramEnabled(int programId, bool enabled)
+    internal void SetProgramEnabled(int programId, bool enabled)
     {
         _programs.SetEnabled(this, programId, enabled);
     }
 
-    public bool ProgramIsEnabled(int programId)
+    internal bool ProgramIsEnabled(int programId)
     {
         return _programs.IsEnabled(programId);
     }
 
-    public void UnregisterSystem(int handle)
+    internal void UnregisterSystem(int handle)
     {
         if ((uint)handle >= (uint)_systemActive.Length)
         {
@@ -560,17 +560,17 @@ public sealed partial class Simulation : IKernel
         WriteTickCompleted();
     }
 
-    public int NextInt(int exclusiveMaximum)
+    internal int NextInt(int exclusiveMaximum)
     {
         return _random.NextInt(exclusiveMaximum);
     }
 
-    public int NextInclusive(int minimum, int maximum)
+    internal int NextInclusive(int minimum, int maximum)
     {
         return _random.NextInclusive(minimum, maximum);
     }
 
-    public float NextFloat()
+    internal float NextFloat()
     {
         return _random.NextFloat();
     }
@@ -669,7 +669,7 @@ public sealed partial class Simulation : IKernel
         }
     }
 
-    public void WriteGeneratorEnabledChanged(int generatorId, int enabled)
+    internal void WriteGeneratorEnabledChanged(int generatorId, int enabled)
     {
         WriteKernelEvent(KernelEvent.From(new GeneratorEnabledChangedKernelEvent(
             CurrentTick,
@@ -678,7 +678,7 @@ public sealed partial class Simulation : IKernel
             enabled)));
     }
 
-    public void EmitProcessEvaluated(
+    internal void EmitProcessEvaluated(
         int tick,
         int entityId,
         int kindId,
@@ -698,7 +698,7 @@ public sealed partial class Simulation : IKernel
             state)));
     }
 
-    public void EmitProcessExecuted(
+    internal void EmitProcessExecuted(
         int tick,
         int entityId,
         int targetId,
@@ -717,7 +717,7 @@ public sealed partial class Simulation : IKernel
             KernelEventState.Succeeded)));
     }
 
-    public void EmitGambitEvaluated(
+    internal void EmitGambitEvaluated(
         int tick,
         int entityId,
         int kindId,
@@ -735,7 +735,7 @@ public sealed partial class Simulation : IKernel
             state)));
     }
 
-    public void EmitGambitExecuted(
+    internal void EmitGambitExecuted(
         int tick,
         int entityId,
         int targetId,
@@ -755,7 +755,7 @@ public sealed partial class Simulation : IKernel
             state)));
     }
 
-    public void EmitGeneratorEvaluated(
+    internal void EmitGeneratorEvaluated(
         int tick,
         int generatorId,
         int statusCode,
@@ -773,7 +773,7 @@ public sealed partial class Simulation : IKernel
             failedFireCount)));
     }
 
-    public void EmitGeneratorFired(
+    internal void EmitGeneratorFired(
         int tick,
         int generatorId,
         int selectedTargetEntityId,
@@ -789,7 +789,7 @@ public sealed partial class Simulation : IKernel
             createdRelationshipCount)));
     }
 
-    public void EmitDegeneracyDetected(
+    internal void EmitDegeneracyDetected(
         int tick,
         int detectorId,
         int severityCode,
@@ -803,7 +803,7 @@ public sealed partial class Simulation : IKernel
             reasonCodeId)));
     }
 
-    public void EmitPlanStarted(
+    internal void EmitPlanStarted(
         int tick,
         int planId,
         int entityId,
@@ -819,7 +819,7 @@ public sealed partial class Simulation : IKernel
             candidateCount)));
     }
 
-    public void EmitGoalConsidered(
+    internal void EmitGoalConsidered(
         int tick,
         int planId,
         int entityId,
@@ -837,7 +837,7 @@ public sealed partial class Simulation : IKernel
             preliminaryScore)));
     }
 
-    public void EmitGoalScored(
+    internal void EmitGoalScored(
         int tick,
         int planId,
         int entityId,
@@ -859,7 +859,7 @@ public sealed partial class Simulation : IKernel
             runningTotal)));
     }
 
-    public void EmitGoalSelected(
+    internal void EmitGoalSelected(
         int tick,
         int planId,
         int entityId,
@@ -875,7 +875,7 @@ public sealed partial class Simulation : IKernel
             finalScore)));
     }
 
-    public void EmitPlanStepEmitted(
+    internal void EmitPlanStepEmitted(
         int tick,
         int planId,
         int entityId,
@@ -897,7 +897,7 @@ public sealed partial class Simulation : IKernel
             relationshipKindId)));
     }
 
-    public void EmitPlanCommitted(
+    internal void EmitPlanCommitted(
         int tick,
         int planId,
         int entityId,
@@ -915,7 +915,7 @@ public sealed partial class Simulation : IKernel
             totalScore)));
     }
 
-    public void EmitPlanAbandoned(
+    internal void EmitPlanAbandoned(
         int tick,
         int planId,
         int entityId,

@@ -9,6 +9,8 @@ using Engine.Projection;
 
 public sealed class KernelHost : IDisposable
 {
+    private readonly Simulation _kernel;
+    private readonly KernelCommandCompletionPump _commandCompletions;
     private bool _disposed;
 
     internal KernelHost(
@@ -22,21 +24,19 @@ public sealed class KernelHost : IDisposable
         int seedEventCount,
         CompiledDomain? compiledDomain = null)
     {
-        Kernel = kernel;
+        _kernel = kernel;
         Events = kernel.Events;
         DomainIds = domainIds;
         Symbols = symbols;
         Consumers = consumers;
         Time = time;
         Commands = commands;
-        CommandCompletions = commandCompletions;
+        _commandCompletions = commandCompletions;
         SeedEventCount = seedEventCount;
         CompiledDomain = compiledDomain;
     }
 
-    public Simulation Kernel { get; }
-
-    public KernelEventLog Events { get; }
+    public IKernelEventReader Events { get; }
 
     public DomainIdRegistry DomainIds { get; }
 
@@ -50,28 +50,27 @@ public sealed class KernelHost : IDisposable
 
     public ICommandSubmitter Commands { get; }
 
-    public KernelCommandCompletionPump CommandCompletions { get; }
-
     public int SeedEventCount { get; }
 
     public bool BootstrapCompleted { get; } = true;
 
-    public void SetProgramEnabled(int programId, bool enabled) =>
-        Kernel.SetProgramEnabled(programId, enabled);
+    public int CurrentTick => _kernel.CurrentTick;
+
+    public long CurrentVersion => _kernel.CurrentVersion;
 
     public bool ProgramIsEnabled(int programId) =>
-        Kernel.ProgramIsEnabled(programId);
+        _kernel.ProgramIsEnabled(programId);
 
     public void SaveKernelState(Stream destination)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        KernelSnapshot.SaveKernelState(Kernel, destination);
+        KernelSnapshot.SaveKernelState(_kernel, destination);
     }
 
     public void DrainConsumers()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        CommandCompletions.DrainAvailable();
+        _commandCompletions.DrainAvailable();
         Consumers.DrainAll();
     }
 
@@ -84,7 +83,7 @@ public sealed class KernelHost : IDisposable
 
         _disposed = true;
         Time.Dispose();
-        CommandCompletions.Dispose();
+        _commandCompletions.Dispose();
         Consumers.Dispose();
     }
 }

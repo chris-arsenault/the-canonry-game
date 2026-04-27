@@ -196,14 +196,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
 public sealed class KernelEventProjectionPump : IDisposable
 {
-    private readonly KernelEventLog _eventLog;
+    private readonly IKernelEventReader _eventLog;
     private readonly KernelEventCursor _cursor;
     private readonly IKernelEventProjection[] _projections;
     private readonly SequencedKernelEvent[] _buffer;
     private bool _disposed;
 
     public KernelEventProjectionPump(
-        KernelEventLog eventLog,
+        IKernelEventReader eventLog,
         KernelEventCursorStart cursorStart,
         IEnumerable<IKernelEventProjection> projections,
         int batchSize = 256)
@@ -219,7 +219,7 @@ public sealed class KernelEventProjectionPump : IDisposable
     }
 
     public KernelEventProjectionPump(
-        KernelEventLog eventLog,
+        IKernelEventReader eventLog,
         KernelEventCursorStart cursorStart,
         IKernelEventProjection projection,
         int batchSize = 256)

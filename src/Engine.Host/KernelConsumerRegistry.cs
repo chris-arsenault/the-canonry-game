@@ -5,13 +5,13 @@ using Engine.Projection;
 
 public sealed class KernelConsumerRegistry : IDisposable
 {
-    private readonly KernelEventLog _events;
+    private readonly IKernelEventReader _events;
     private readonly List<KernelConsumerRegistration> _registrations = [];
     private readonly HashSet<string> _names = new(StringComparer.Ordinal);
     private bool _sealed;
     private bool _disposed;
 
-    public KernelConsumerRegistry(KernelEventLog events)
+    public KernelConsumerRegistry(IKernelEventReader events)
     {
         ArgumentNullException.ThrowIfNull(events);
         _events = events;

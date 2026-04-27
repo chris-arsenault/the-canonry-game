@@ -11,7 +11,7 @@ internal sealed record MonteCarloKernelRun(
 {
     public KernelHost Host => Runtime.Host;
 
-    public KernelEventLog Events => Host.Events;
+    public IKernelEventReader Events => Host.Events;
 
     public void Dispose() => Runtime.Dispose();
 }

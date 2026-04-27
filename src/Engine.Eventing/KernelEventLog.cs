@@ -5,13 +5,36 @@ public interface IKernelEventWriter
     bool TryWrite(in KernelEvent kernelEvent);
 }
 
+public interface IKernelEventReader
+{
+    int Capacity { get; }
+
+    KernelEventOverflowPolicy OverflowPolicy { get; }
+
+    long NextSequence { get; }
+
+    long OverwrittenSlotCount { get; }
+
+    long RejectedWriteCount { get; }
+
+    long OldestAvailableSequence { get; }
+
+    KernelEventCursor CreateCursor(KernelEventCursorStart start);
+
+    bool TryRead(KernelEventCursor cursor, out SequencedKernelEvent kernelEvent);
+
+    int Read(KernelEventCursor cursor, Span<SequencedKernelEvent> destination);
+
+    KernelEventReadResult ReadWithResult(KernelEventCursor cursor, Span<SequencedKernelEvent> destination);
+}
+
 public enum KernelEventOverflowPolicy
 {
     DropOldest = 0,
     RejectWrite = 1,
 }
 
-public sealed class KernelEventLog : IKernelEventWriter
+public sealed class KernelEventLog : IKernelEventWriter, IKernelEventReader
 {
     private readonly KernelEventSlot[] _slots;
     private readonly KernelEventCursor?[] _cursors;

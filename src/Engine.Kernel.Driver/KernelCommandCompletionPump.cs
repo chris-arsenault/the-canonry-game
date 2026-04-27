@@ -4,14 +4,14 @@ using Engine.Eventing;
 
 public sealed class KernelCommandCompletionPump : IDisposable
 {
-    private readonly KernelEventLog _events;
+    private readonly IKernelEventReader _events;
     private readonly KernelCommandCompletionTable _completionTable;
     private readonly KernelEventCursor _cursor;
     private readonly SequencedKernelEvent[] _buffer;
     private bool _disposed;
 
     public KernelCommandCompletionPump(
-        KernelEventLog events,
+        IKernelEventReader events,
         KernelCommandCompletionTable completionTable,
         KernelEventCursorStart cursorStart = KernelEventCursorStart.EarliestAvailable,
         int batchSize = 256)
