@@ -55,85 +55,11 @@ public class GeneratorCatalogInvariantTests
     [Fact]
     public void Validate_GeneratorReachability_AllowsGeneratorUnlockedByAnotherGenerator()
     {
-        var founder = new SemanticGeneratorConfig
-        {
-            Id = "founds_reefhold",
-            Name = "Founds Reefhold",
-            Target = new SemanticGeneratorTarget
-            {
-                Kind = TestKinds.Settlement,
-            },
-            Produces =
+        var issues = FindSeedReachabilityIssues(
             [
-                new SemanticProducedEntity
-                {
-                    Ref = "$reefhold",
-                    Kind = TestKinds.Settlement,
-                    Subtype = "reefhold",
-                    Role = "new_site",
-                    InheritCultureFrom = "$target",
-                },
-            ],
-            Relationships =
-            [
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$reefhold",
-                    DestinationRef = "$target",
-                    Kind = "founded_from",
-                },
-            ],
-            Triggers =
-            [
-                new SemanticGeneratorTrigger
-                {
-                    OnKind = TestKinds.Settlement,
-                    AttributeName = "shelter",
-                    Direction = TriggerDirection.High,
-                },
-            ],
-        };
-        var dependent = new SemanticGeneratorConfig
-        {
-            Id = "reefhold_appoints_keeper",
-            Name = "Reefhold Appoints Keeper",
-            Target = new SemanticGeneratorTarget
-            {
-                Kind = TestKinds.Settlement,
-                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "reefhold" },
-            },
-            Produces =
-            [
-                new SemanticProducedEntity
-                {
-                    Ref = "$keeper",
-                    Kind = IceRemembersKinds.Penguin,
-                    Subtype = "warden",
-                    Role = "keeper",
-                    InheritCultureFrom = "$target",
-                },
-            ],
-            Relationships =
-            [
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$keeper",
-                    DestinationRef = "$target",
-                    Kind = "home_base",
-                },
-            ],
-            Triggers =
-            [
-                new SemanticGeneratorTrigger
-                {
-                    OnKind = TestKinds.Settlement,
-                    AttributeName = "shelter",
-                    Direction = TriggerDirection.High,
-                },
-            ],
-        };
-
-        var issues = FindSeedReachabilityIssues([founder, dependent]);
+                CreateFounderGenerator(),
+                CreateReefholdKeeperGenerator(),
+            ]);
 
         Assert.Empty(issues);
     }
@@ -191,86 +117,11 @@ public class GeneratorCatalogInvariantTests
     [Fact]
     public void Validate_GeneratorReachability_FailsOnClosedSubtypeCycle()
     {
-        var a = new SemanticGeneratorConfig
-        {
-            Id = "sanctuary_names_keeper",
-            Name = "Sanctuary Names Keeper",
-            Target = new SemanticGeneratorTarget
-            {
-                Kind = TestKinds.Settlement,
-                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "sanctuary" },
-            },
-            Produces =
+        var issues = FindSeedReachabilityIssues(
             [
-                new SemanticProducedEntity
-                {
-                    Ref = "$scholar",
-                    Kind = IceRemembersKinds.Penguin,
-                    Subtype = "ruler",
-                    Role = "reader",
-                    InheritCultureFrom = "$target",
-                },
-            ],
-            Relationships =
-            [
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$scholar",
-                    DestinationRef = "$target",
-                    Kind = "home_base",
-                },
-            ],
-            Triggers =
-            [
-                new SemanticGeneratorTrigger
-                {
-                    OnKind = TestKinds.Settlement,
-                    AttributeName = "shelter",
-                    Direction = TriggerDirection.High,
-                },
-            ],
-        };
-        var b = new SemanticGeneratorConfig
-        {
-            Id = "witness_raises_sanctuary",
-            Name = "Witness Raises Sanctuary",
-            Target = new SemanticGeneratorTarget
-            {
-                Kind = TestKinds.Penguin,
-                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "ruler" },
-            },
-            Produces =
-            [
-                new SemanticProducedEntity
-                {
-                    Ref = "$sanctuary",
-                    Kind = TestKinds.Settlement,
-                    Subtype = "sanctuary",
-                    Role = "new_site",
-                    InheritCultureFrom = "$target",
-                },
-            ],
-            Relationships =
-            [
-                new SemanticGeneratorRelationship
-                {
-                    SourceRef = "$sanctuary",
-                    DestinationRef = "$target",
-                    Kind = "founded_from",
-                },
-            ],
-            Triggers =
-            [
-                new SemanticGeneratorTrigger
-                {
-                    OnKind = TestKinds.Penguin,
-                    AttributeName = "echo",
-                    Direction = TriggerDirection.High,
-                },
-            ],
-        };
-
-        var issues = FindSeedReachabilityIssues([a, b]);
+                CreateSanctuaryNamesKeeperGenerator(),
+                CreateWitnessRaisesSanctuaryGenerator(),
+            ]);
 
         Assert.Equal(2, issues.Count);
         Assert.All(issues, issue => Assert.Contains("seed or guaranteed generator output never provides it", issue, StringComparison.Ordinal));
@@ -535,6 +386,141 @@ public class GeneratorCatalogInvariantTests
         Assert.Contains("produces '$artifact' but no relationship references it", ex.Message, StringComparison.Ordinal);
     }
 
+    private static SemanticGeneratorConfig CreateFounderGenerator() =>
+        new()
+        {
+            Id = "founds_reefhold",
+            Name = "Founds Reefhold",
+            Target = new SemanticGeneratorTarget { Kind = TestKinds.Settlement },
+            Produces =
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$reefhold",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "reefhold",
+                    Role = "new_site",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            Relationships =
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$reefhold",
+                    DestinationRef = "$target",
+                    Kind = "founded_from",
+                },
+            ],
+            Triggers = [HighSettlementShelterTrigger()],
+        };
+
+    private static SemanticGeneratorConfig CreateReefholdKeeperGenerator() =>
+        CreateSubtypeKeeperGenerator(
+            "reefhold_appoints_keeper",
+            "Reefhold Appoints Keeper",
+            "reefhold",
+            "$keeper",
+            "warden",
+            "keeper");
+
+    private static SemanticGeneratorConfig CreateSanctuaryNamesKeeperGenerator() =>
+        CreateSubtypeKeeperGenerator(
+            "sanctuary_names_keeper",
+            "Sanctuary Names Keeper",
+            "sanctuary",
+            "$scholar",
+            "ruler",
+            "reader");
+
+    private static SemanticGeneratorConfig CreateSubtypeKeeperGenerator(
+        string id,
+        string name,
+        string targetSubtype,
+        string producedRef,
+        string producedSubtype,
+        string producedRole) =>
+        new()
+        {
+            Id = id,
+            Name = name,
+            Target = new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { targetSubtype },
+            },
+            Produces =
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = producedRef,
+                    Kind = IceRemembersKinds.Penguin,
+                    Subtype = producedSubtype,
+                    Role = producedRole,
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            Relationships =
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = producedRef,
+                    DestinationRef = "$target",
+                    Kind = "home_base",
+                },
+            ],
+            Triggers = [HighSettlementShelterTrigger()],
+        };
+
+    private static SemanticGeneratorConfig CreateWitnessRaisesSanctuaryGenerator() =>
+        new()
+        {
+            Id = "witness_raises_sanctuary",
+            Name = "Witness Raises Sanctuary",
+            Target = new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Penguin,
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "ruler" },
+            },
+            Produces =
+            [
+                new SemanticProducedEntity
+                {
+                    Ref = "$sanctuary",
+                    Kind = TestKinds.Settlement,
+                    Subtype = "sanctuary",
+                    Role = "new_site",
+                    InheritCultureFrom = "$target",
+                },
+            ],
+            Relationships =
+            [
+                new SemanticGeneratorRelationship
+                {
+                    SourceRef = "$sanctuary",
+                    DestinationRef = "$target",
+                    Kind = "founded_from",
+                },
+            ],
+            Triggers =
+            [
+                new SemanticGeneratorTrigger
+                {
+                    OnKind = TestKinds.Penguin,
+                    AttributeName = "echo",
+                    Direction = TriggerDirection.High,
+                },
+            ],
+        };
+
+    private static SemanticGeneratorTrigger HighSettlementShelterTrigger() =>
+        new()
+        {
+            OnKind = TestKinds.Settlement,
+            AttributeName = "shelter",
+            Direction = TriggerDirection.High,
+        };
+
     private static SemanticGeneratorConfig CreateBaseGenerator(
         SemanticGeneratorTarget? target = null,
         IReadOnlyList<SemanticProducedEntity>? produces = null,
@@ -686,7 +672,7 @@ public class GeneratorCatalogInvariantTests
 
         if (generator.Target.Subtypes is { Count: > 0 } && !facts.HasAnySubtype(generator.Target.Kind, generator.Target.Subtypes))
         {
-            var required = string.Join(", ", generator.Target.Subtypes.OrderBy(value => value, StringComparer.Ordinal));
+            var required = string.Join(", ", generator.Target.Subtypes.Order(StringComparer.Ordinal));
             return
                 $"Generator '{generator.Id}' is unreachable: requires target subtype(s) [{required}] on kind '{generator.Target.Kind}', but seed or guaranteed generator output never provides it.";
         }
@@ -702,7 +688,7 @@ public class GeneratorCatalogInvariantTests
             if (secondaryTarget.Query?.Subtypes is { Count: > 0 } &&
                 !facts.HasAnySubtype(secondaryTarget.Kind, secondaryTarget.Query.Subtypes))
             {
-                var required = string.Join(", ", secondaryTarget.Query.Subtypes.OrderBy(value => value, StringComparer.Ordinal));
+                var required = string.Join(", ", secondaryTarget.Query.Subtypes.Order(StringComparer.Ordinal));
                 return
                     $"Generator '{generator.Id}' is unreachable: requires secondary target subtype(s) [{required}] on kind '{secondaryTarget.Kind}', but seed or guaranteed generator output never provides it.";
             }

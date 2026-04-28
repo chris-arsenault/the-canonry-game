@@ -90,6 +90,7 @@ public sealed class KernelRuntimeFactory
         var baseSeed = request.SeedPolicy.ResolveBaseSeed();
         var seedResult = domain.BuildStartupSeed(new DomainStartupSeedRequest(baseSeed));
         var compiledDomain = CreateRuntimeCompiledDomain(GetOrCompileDomain(domain));
+        var kernelTuning = KernelStartupConfigLoader.LoadKernelTuning(request.ConfigFilePath);
         var builder = new KernelHostBuilder()
             .WithCompiledDomain(compiledDomain)
             .WithSimulationOptions(new SimulationOptions
@@ -97,6 +98,7 @@ public sealed class KernelRuntimeFactory
                 Seed = baseSeed,
                 EventSchemaValidator = KernelEventSchemaRegistry.Validator,
                 TraceEnabled = request.TraceEnabled,
+                KernelTuning = kernelTuning,
             })
             .WithDriverConfig(DriverConfigFor(request.FunctionProfile))
             .ConfigureSymbols(domain.ConfigureProjectionSymbols)

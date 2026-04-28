@@ -135,6 +135,31 @@ public static class ProcessProviderSelectorCodes
     public const int IncomingRelationship = 6;
 }
 
+public static class ProcessResourceSupplyModelCodes
+{
+    public const int AmbientHex = 1;
+    public const int NamedProviderNoHex = 2;
+}
+
+public static class ProcessResourceSupplyRoleCodes
+{
+    public const int None = 0;
+    public const int HexHealthRecovery = 1;
+    public const int HexResourceProducer = 2;
+}
+
+public static class ProcessWorkCommitmentCodes
+{
+    public const int Off = 1;
+    public const int Pilot = 2;
+}
+
+public static class UpkeepAgingModelCodes
+{
+    public const int Linear = 1;
+    public const int LateLife = 2;
+}
+
 public static class GeneratorStatusCodes
 {
     public const int Eligible = 1;
@@ -233,6 +258,7 @@ public static class PlannerKindCodes
 {
     public const int Goap = 1;
     public const int Htn = 2;
+    public const int Opportunity = 3;
 }
 
 public static class ActionFamilyCodes
@@ -283,6 +309,7 @@ public static class TraceStatusCodes
     public const int SupportSelected = 9;
     public const int Selected = 10;
     public const int CommittedByHysteresis = 11;
+    public const int CapacityReached = 12;
 }
 
 public static class KernelCommandTypeCodes

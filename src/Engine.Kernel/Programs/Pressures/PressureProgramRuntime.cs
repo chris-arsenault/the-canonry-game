@@ -13,16 +13,28 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
     private ref int _pressureCount => ref Data.PressureCount;
 
     public PressureProgramRuntime(PressureProgramData data, PressureProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public PressureProgramRuntime(
+        PressureProgramData data,
+        PressureProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
     }
 
     public PressureProgramData Data { get; }
 
     public PressureProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => _pressureCount;
 
@@ -61,6 +73,11 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
     {
         ValidatePositive(pressureId);
         ValidatePositive(scopeEntityId);
+        if (!Tuning.Pressures.Enabled)
+        {
+            return 0f;
+        }
+
         return _values.GetOrDefault(pressureId, scopeEntityId);
     }
 
@@ -68,6 +85,11 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
     {
         ValidatePositive(pressureId);
         ValidatePositive(scopeEntityId);
+        if (!Tuning.Pressures.Enabled)
+        {
+            return;
+        }
+
         _pendingDeltas.Add(pressureId, scopeEntityId, delta);
     }
 
@@ -87,6 +109,12 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         _ = tick;
+        if (!Tuning.Pressures.Enabled)
+        {
+            _pendingDeltas.Clear();
+            return;
+        }
+
         for (var slot = 1; slot <= _pressureCount; slot++)
         {
             if (!_enabled[slot])

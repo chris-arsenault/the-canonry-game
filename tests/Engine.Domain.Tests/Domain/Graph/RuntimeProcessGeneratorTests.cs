@@ -66,7 +66,7 @@ public class RuntimeProcessGeneratorTests
     public void Generate_MobilityVerbs_OneProcessPerKind_OnOwnerPlane()
     {
         var config = IceRemembersDefinition.Create();
-        var processesById = config.Processes.ToDictionary(p => p.Id);
+        var processesById = config.Processes.ToDictionary(p => p.Id, StringComparer.Ordinal);
 
         var physicalMobility = new[] { "penguin_travel", "artifact_compel" };
         foreach (var id in physicalMobility)
@@ -87,7 +87,7 @@ public class RuntimeProcessGeneratorTests
     public void Generate_DriftVerbs_OneProcessPerKind_OnOwnerPlane()
     {
         var config = IceRemembersDefinition.Create();
-        var processesById = config.Processes.ToDictionary(p => p.Id);
+        var processesById = config.Processes.ToDictionary(p => p.Id, StringComparer.Ordinal);
 
         foreach (var id in new[] { "penguin_wander", "artifact_circulate" })
         {

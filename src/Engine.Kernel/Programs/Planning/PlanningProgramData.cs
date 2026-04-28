@@ -18,7 +18,7 @@ internal sealed partial class PlanningProgramData : IKernelProgramData
 
     internal static void ValidatePlannerKind(int plannerKindCode)
     {
-        if (plannerKindCode is not PlannerKindCodes.Goap and not PlannerKindCodes.Htn)
+        if (plannerKindCode is not PlannerKindCodes.Goap and not PlannerKindCodes.Htn and not PlannerKindCodes.Opportunity)
         {
             throw new global::System.InvalidOperationException();
         }

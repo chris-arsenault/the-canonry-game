@@ -121,7 +121,11 @@ internal static class KernelProgramInstaller
             process.CooldownTicks,
             process.EntityCooldownTicks,
             TargetModeCode(process.TargetMode),
-            process.TargetKindId);
+            process.TargetKindId,
+            process.ResourceSupplyRoleCode,
+            process.NamedProviderKindId,
+            process.NamedProviderAttributeId,
+            process.WorkCommitmentTicks);
         InstallProcessGoalEffects(context, processSlot, process);
         InstallProcessPreconditions(context, processSlot, process);
         InstallProcessExpressions(context, processSlot, process);

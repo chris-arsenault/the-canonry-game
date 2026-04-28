@@ -164,7 +164,7 @@ internal sealed partial class ProcessProgramRuntime
         ref int selectedTargetId)
     {
         var world = simulation.World;
-        var kindId = _providerSelectorKindIds[selector];
+        var kindId = EffectiveProviderSelectorKindId(processSlot, selector);
         if (kindId > 0)
         {
             for (var targetId = world.FirstEntityOfKind(kindId);
@@ -316,23 +316,7 @@ internal sealed partial class ProcessProgramRuntime
             return bestWeight;
         }
 
-        var selectorKindId = _providerSelectorKindIds[selector];
-        if (selectorKindId > 0 && world.EntityKindId(targetId) != selectorKindId)
-        {
-            return bestWeight;
-        }
-
-        if (ProviderSelectorRequiresAttribute(selector) &&
-            !world.HasAttribute(targetId, _providerSelectorValueIds[selector]))
-        {
-            return bestWeight;
-        }
-
-        if (_providerSelectorCodes[selector] == ProcessProviderSelectorCodes.Resource &&
-            world.GetResource(
-                _providerSelectorValueIds[selector],
-                world.EntityPhysicalQ(targetId),
-                world.EntityPhysicalR(targetId)) <= 0f)
+        if (!ProviderTargetMatchesSelector(world, targetId, processSlot, selector))
         {
             return bestWeight;
         }
@@ -367,6 +351,39 @@ internal sealed partial class ProcessProgramRuntime
         }
 
         return bestWeight;
+    }
+
+    private bool ProviderTargetMatchesSelector(WorldState world, int targetId, int processSlot, int selector)
+    {
+        if (NamedProviderRecoveryActive(processSlot))
+        {
+            return NamedProviderTargetMatches(world, targetId, processSlot);
+        }
+
+        var selectorKindId = EffectiveProviderSelectorKindId(processSlot, selector);
+        if (selectorKindId > 0 && world.EntityKindId(targetId) != selectorKindId)
+        {
+            return false;
+        }
+
+        if (ProviderSelectorRequiresAttribute(selector) &&
+            !world.HasAttribute(targetId, _providerSelectorValueIds[selector]))
+        {
+            return false;
+        }
+
+        return _providerSelectorCodes[selector] != ProcessProviderSelectorCodes.Resource ||
+               world.GetResource(
+                   _providerSelectorValueIds[selector],
+                   world.EntityPhysicalQ(targetId),
+                   world.EntityPhysicalR(targetId)) > 0f;
+    }
+
+    private int EffectiveProviderSelectorKindId(int processSlot, int selector)
+    {
+        return NamedProviderRecoveryActive(processSlot)
+            ? _processNamedProviderKindIds[processSlot]
+            : _providerSelectorKindIds[selector];
     }
 
 }

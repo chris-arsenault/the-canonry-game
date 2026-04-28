@@ -233,6 +233,29 @@ Both depend on the same primitive event boundary. Runs can execute independently
 but aggregation and export should consume primitive run outputs without requiring
 the sim thread to allocate analysis objects or strings.
 
+## Runtime Tuning Config
+
+Kernel behavior changes must be compiled with explicit runtime tuning config when
+the behavior is experimental, tunable, or likely to need A/B comparison. The
+config file is a host startup input, loaded from JSON or TOML, never YAML. Host
+startup maps that file into `SimulationOptions.KernelTuning`; the kernel itself
+does not read files, parse strings, or depend on command-line flags.
+
+The tuning object is part of the kernel input contract. It should be primitive,
+deterministic, organized by program family, passed into program runtimes at
+construction, persisted with kernel snapshots when it affects future ticks, and
+covered by tests for configured and default behavior. The default value should
+represent the current intended game behavior, not a temporary test convenience.
+
+Current tuning keys:
+
+- `programs.processes.resource_supply_model`: `ambient_hex` or
+  `named_provider_no_hex`.
+- `programs.processes.work_commitments`: `off` or `pilot`.
+- `programs.pressures.enabled`: `true` or `false`; default is `false`.
+- `programs.upkeep.aging_model`: `linear` or `late_life`.
+- `programs.generators.retry_fire_targets`: `true` or `false`.
+
 ## Review Checklist
 
 For any engine change, ask:
@@ -249,6 +272,8 @@ For any engine change, ask:
   projection, host, or plugin concern?
 - Does it require one consumer to keep pace with another consumer?
 - Does it preserve deterministic tick ordering?
+- Is experimental or tunable kernel behavior controlled by host-loaded JSON/TOML
+  runtime config rather than command-line-specific switches or code edits?
 
 If the answer exposes a violation, either redesign the change or document the
 violation as explicit migration debt with a contained scope.

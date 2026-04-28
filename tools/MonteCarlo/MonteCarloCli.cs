@@ -74,7 +74,7 @@ internal static class MonteCarloCli
         {
             var seed = options.Seed + runIndex;
             var runId = $"seed-{seed}";
-            using (var run = MonteCarloKernelRunFactory.Create(seed, options.TraceEnabled))
+            using (var run = MonteCarloKernelRunFactory.Create(seed, options.TraceEnabled, options.ConfigFilePath))
             {
                 var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
                 stateRowsWritten += result.StateRowsWritten;

@@ -8,13 +8,17 @@ internal static class MonteCarloKernelRunFactory
 {
     private static readonly KernelRuntimeFactory RuntimeFactory = IceRemembersRuntime.CreateRuntimeFactory();
 
-    public static MonteCarloKernelRun Create(int seed, bool traceEnabled = false)
+    public static MonteCarloKernelRun Create(
+        int seed,
+        bool traceEnabled = false,
+        string? configFilePath = null)
     {
         var runtime = RuntimeFactory.Start(new KernelStartRequest(
             IceRemembersRuntime.DomainName,
             StartupSeedPolicy.Requested(seed),
             KernelFunctionProfile.Batch,
-            traceEnabled));
+            traceEnabled,
+            configFilePath));
 
         return new MonteCarloKernelRun(
             runtime,

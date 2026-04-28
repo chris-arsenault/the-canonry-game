@@ -131,28 +131,9 @@ public sealed class KernelExecutionContextTests
             SystemCapacity = 32,
         });
         var programIds = AllProgramIds();
-        for (var i = 0; i < programIds.Length; i++)
-        {
-            simulation.RegisterAttribute(
-                kindId,
-                firstAttributeId + i,
-                minimum: 0f,
-                maximum: 100f,
-                defaultValue: 0f);
-        }
-
+        RegisterAttributesForPrograms(simulation, kindId, firstAttributeId, programIds.Length);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var systems = new RecordingEventSystem[programIds.Length];
-        for (var i = 0; i < programIds.Length; i++)
-        {
-            systems[i] = new RecordingEventSystem(
-                programIds[i],
-                entityId,
-                firstAttributeId + i,
-                i + 1);
-            simulation.RegisterProgram(programIds[i], cadence: 1, systems[i]);
-        }
-
+        var systems = RegisterRecordingSystems(simulation, programIds, entityId, firstAttributeId);
         var initial = simulation.ExecutionContext;
         var caller = new KernelExecutionContext(
             KernelProgramCodes.Planning,
@@ -169,40 +150,9 @@ public sealed class KernelExecutionContextTests
         }
 
         Assert.Equal(initial, simulation.ExecutionContext);
-
-        foreach (var system in systems)
-        {
-            Assert.Equal(1, system.TickCount);
-            Assert.Equal(system.ProgramId, system.ObservedContext.ProgramId);
-            Assert.True(
-                system.ObservedContext.SourceCodeId > 0,
-                $"Program {system.ProgramId} entered execution with no source context.");
-        }
-
-        var observedContextsByAttribute = new Dictionary<int, KernelExecutionContext>();
-        while (simulation.Events.TryRead(cursor, out var read))
-        {
-            if (read.Event.EventType != KernelEventType.AttributeChanged)
-            {
-                continue;
-            }
-
-            var changed = read.Event.AsAttributeChanged();
-            if (changed.AttributeId >= firstAttributeId)
-            {
-                observedContextsByAttribute[changed.AttributeId] = new KernelExecutionContext(
-                    read.Event.ProgramId,
-                    read.Event.SourceCodeId);
-            }
-        }
-
-        foreach (var system in systems)
-        {
-            Assert.True(
-                observedContextsByAttribute.TryGetValue(system.AttributeId, out var emittedContext),
-                $"Program {system.ProgramId} did not emit its attribute event.");
-            Assert.Equal(system.ObservedContext, emittedContext);
-        }
+        AssertSystemsObservedContext(systems);
+        var observedContextsByAttribute = ReadAttributeContexts(simulation, cursor, firstAttributeId);
+        AssertSystemEvents(systems, observedContextsByAttribute);
     }
 
     [Fact]
@@ -344,17 +294,17 @@ public sealed class KernelExecutionContextTests
     {
         var forbidden = typeof(Simulation).Assembly
             .GetTypes()
-            .Where(type => type == typeof(Simulation) || type == typeof(WorldState))
             .SelectMany(type => type.GetMethods())
-            .Where(method => method.Name is
-                "SeedEntity" or
-                "SeedAttribute" or
-                "SeedResource" or
-                "SetAttribute" or
-                "ModifyAttribute" or
-                "SetResource" or
-                "ModifyResource")
             .Where(method =>
+                (method.DeclaringType == typeof(Simulation) || method.DeclaringType == typeof(WorldState)) &&
+                method.Name is (
+                    "SeedEntity" or
+                    "SeedAttribute" or
+                    "SeedResource" or
+                    "SetAttribute" or
+                    "ModifyAttribute" or
+                    "SetResource" or
+                    "ModifyResource") &&
                 method.GetParameters().Any(parameter =>
                     string.Equals(parameter.Name, "sourceCodeId", StringComparison.Ordinal) ||
                     string.Equals(parameter.Name, "attributeSourceCodeId", StringComparison.Ordinal)))
@@ -376,6 +326,93 @@ public sealed class KernelExecutionContextTests
         KernelProgramCodes.Gambits,
         KernelProgramCodes.Planning,
     ];
+
+    private static void RegisterAttributesForPrograms(
+        Simulation simulation,
+        int kindId,
+        int firstAttributeId,
+        int programCount)
+    {
+        for (var i = 0; i < programCount; i++)
+        {
+            simulation.RegisterAttribute(
+                kindId,
+                firstAttributeId + i,
+                minimum: 0f,
+                maximum: 100f,
+                defaultValue: 0f);
+        }
+    }
+
+    private static RecordingEventSystem[] RegisterRecordingSystems(
+        Simulation simulation,
+        int[] programIds,
+        int entityId,
+        int firstAttributeId)
+    {
+        var systems = new RecordingEventSystem[programIds.Length];
+        for (var i = 0; i < programIds.Length; i++)
+        {
+            systems[i] = new RecordingEventSystem(
+                programIds[i],
+                entityId,
+                firstAttributeId + i,
+                i + 1);
+            simulation.RegisterProgram(programIds[i], cadence: 1, systems[i]);
+        }
+
+        return systems;
+    }
+
+    private static void AssertSystemsObservedContext(RecordingEventSystem[] systems)
+    {
+        foreach (var system in systems)
+        {
+            Assert.Equal(1, system.TickCount);
+            Assert.Equal(system.ProgramId, system.ObservedContext.ProgramId);
+            Assert.True(
+                system.ObservedContext.SourceCodeId > 0,
+                $"Program {system.ProgramId} entered execution with no source context.");
+        }
+    }
+
+    private static Dictionary<int, KernelExecutionContext> ReadAttributeContexts(
+        Simulation simulation,
+        KernelEventCursor cursor,
+        int firstAttributeId)
+    {
+        var observedContextsByAttribute = new Dictionary<int, KernelExecutionContext>();
+        while (simulation.Events.TryRead(cursor, out var read))
+        {
+            if (read.Event.EventType != KernelEventType.AttributeChanged)
+            {
+                continue;
+            }
+
+            var changed = read.Event.AsAttributeChanged();
+            if (changed.AttributeId >= firstAttributeId)
+            {
+                observedContextsByAttribute[changed.AttributeId] = new KernelExecutionContext(
+                    read.Event.ProgramId,
+                    read.Event.SourceCodeId);
+            }
+        }
+
+        return observedContextsByAttribute;
+    }
+
+    private static void AssertSystemEvents(
+        RecordingEventSystem[] systems,
+        Dictionary<int, KernelExecutionContext> observedContextsByAttribute)
+    {
+        foreach (var system in systems)
+        {
+            Assert.True(
+                observedContextsByAttribute.TryGetValue(system.AttributeId, out var emittedContext),
+                $"Program {system.ProgramId} did not emit its attribute event.");
+            Assert.Equal(system.ObservedContext, emittedContext);
+        }
+    }
 
     private sealed class RecordingEventSystem : ISimulationSystem
     {

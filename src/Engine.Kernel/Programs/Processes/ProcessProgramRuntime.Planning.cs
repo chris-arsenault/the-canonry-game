@@ -352,6 +352,12 @@ internal sealed partial class ProcessProgramRuntime
                 out selectedTargetId);
         }
 
+        if (NamedProviderRecoveryActive(processSlot))
+        {
+            var namedProvider = EvaluateKindProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
+            return SelectBestProcessTargetChoice(namedProvider, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
+        }
+
         if (_processTargetModes[processSlot] == ProcessTargetModeCodes.Self)
         {
             var self = EvaluateProcessTargetPlanChoice(simulation, entityId, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
@@ -359,7 +365,7 @@ internal sealed partial class ProcessProgramRuntime
         }
 
         if (_processTargetModes[processSlot] == ProcessTargetModeCodes.KindOther &&
-            _processTargetKindIds[processSlot] > 0)
+            EffectiveTargetKindId(processSlot) > 0)
         {
             var kind = EvaluateKindProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
             return SelectBestProcessTargetChoice(kind, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
@@ -385,7 +391,7 @@ internal sealed partial class ProcessProgramRuntime
     {
         var best = default(ProcessPlanChoice);
         var world = simulation.World;
-        for (var targetId = world.FirstEntityOfKind(_processTargetKindIds[processSlot]);
+        for (var targetId = world.FirstEntityOfKind(EffectiveTargetKindId(processSlot));
              targetId > 0;
              targetId = world.NextEntityOfKind(targetId))
         {

@@ -223,10 +223,14 @@ public sealed class KernelCompilerRuntimeParityTests
         var data = new TheoryData<int, bool, bool, bool, bool>();
         var id = 2000;
         foreach (var same in new[] { false, true })
-        foreach (var historical in new[] { false, true })
-        foreach (var different in new[] { false, true })
         {
-            data.Add(id++, same, historical, different, same && !historical);
+            foreach (var historical in new[] { false, true })
+            {
+                foreach (var different in new[] { false, true })
+                {
+                    data.Add(id++, same, historical, different, same && !historical);
+                }
+            }
         }
 
         return data;
@@ -335,34 +339,22 @@ public sealed class KernelCompilerRuntimeParityTests
                 simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
                 break;
             case 3:
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Add);
+                AddBinaryMutationExpression(simulation, step, ProcessExpressionCodes.Add);
                 break;
             case 4:
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Subtract);
+                AddBinaryMutationExpression(simulation, step, ProcessExpressionCodes.Subtract);
                 break;
             case 5:
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Multiply);
+                AddBinaryMutationExpression(simulation, step, ProcessExpressionCodes.Multiply);
                 break;
             case 6:
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Divide);
+                AddBinaryMutationExpression(simulation, step, ProcessExpressionCodes.Divide);
                 break;
             case 7:
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Min);
+                AddBinaryMutationExpression(simulation, step, ProcessExpressionCodes.Min);
                 break;
             case 8:
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
-                simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Max);
+                AddBinaryMutationExpression(simulation, step, ProcessExpressionCodes.Max);
                 break;
             case 9:
                 simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
@@ -378,6 +370,13 @@ public sealed class KernelCompilerRuntimeParityTests
                 simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.Distance);
                 break;
         }
+    }
+
+    private static void AddBinaryMutationExpression(Simulation simulation, int step, int operatorCode)
+    {
+        simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.SelfAttribute, ValueAttributeId);
+        simulation.Processes.AddStepExpressionOp(step, ProcessExpressionCodes.TargetAttribute, TargetAttributeId);
+        simulation.Processes.AddStepExpressionOp(step, operatorCode);
     }
 
     private static void AddMutationOperation(
@@ -580,25 +579,6 @@ public sealed class KernelCompilerRuntimeParityTests
             10 => Math.Abs(literal),
             _ => 3f,
         };
-    }
-
-    private static DomainIdRegistry CreateDomainIds()
-    {
-        var ids = new DomainIdRegistry();
-        ids.RegisterKind("actor");
-        ids.RegisterKind("target");
-        ids.RegisterKind("created");
-        ids.RegisterAttribute("value");
-        ids.RegisterAttribute("target_value");
-        ids.RegisterAttribute("marker");
-        ids.RegisterAttribute("related_value");
-        ids.RegisterPressure("heat");
-        ids.RegisterRelationshipKind("link");
-        ids.RegisterSubtype("created_subtype");
-        ids.RegisterSubtype("default");
-        ids.RegisterCulture("none");
-        ids.RegisterResource(ResourceType.Food.ToDomainName());
-        return ids;
     }
 
     private static void SetSetupAttribute(

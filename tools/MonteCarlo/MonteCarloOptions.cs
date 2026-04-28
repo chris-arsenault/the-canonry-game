@@ -15,7 +15,8 @@ internal sealed record MonteCarloOptions(
     bool PerformanceMode,
     bool IncludeStateTelemetry,
     bool DisableEntitySnapshots,
-    bool TraceEnabled)
+    bool TraceEnabled,
+    string? ConfigFilePath)
 {
     public bool AnalyzeOnly => AnalyzeDirectory is not null;
     public bool CollectStateTelemetry => !PerformanceMode || IncludeStateTelemetry || TraceEnabled;
@@ -47,7 +48,8 @@ internal sealed record MonteCarloOptions(
             PerformanceMode: HasFlag(args, "--perf"),
             IncludeStateTelemetry: HasFlag(args, "--include-state-telemetry"),
             DisableEntitySnapshots: HasFlag(args, "--disable-entity-snapshots"),
-            TraceEnabled: HasFlag(args, "--trace"));
+            TraceEnabled: HasFlag(args, "--trace"),
+            ConfigFilePath: ReadString(args, "--config-file", null));
     }
 
     private static int ReadInt(string[] args, string name, int fallback)

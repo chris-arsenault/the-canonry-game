@@ -125,6 +125,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanGambitSlots => State.CommittedPlanGambitSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
+    private PrimitiveIntTable _opportunityReservationTicks => State.OpportunityReservationTicks;
+    private PrimitiveIntTable _opportunityReservationCounts => State.OpportunityReservationCounts;
     private ref EpochStampSet _gambitVisited => ref _scratch.GambitVisited;
     private ref int _gambitCount => ref Data.GambitCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;
@@ -152,18 +154,31 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         GambitProgramData data,
         GambitProgramState state,
         GambitProgramScratch scratch)
+        : this(data, state, scratch, new KernelProgramTuningOptions())
+    {
+    }
+
+    internal GambitProgramRuntime(
+        GambitProgramData data,
+        GambitProgramState state,
+        GambitProgramScratch scratch,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
         _scratch = scratch;
+        Tuning = tuning;
     }
 
     public GambitProgramData Data { get; }
 
     public GambitProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => _gambitCount;
 
@@ -523,9 +538,10 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
 
         var world = simulation.World;
         var kindId = world.EntityKindId(entityId);
-        if (HasGambitObjectives(kindId))
+        var plannerKindCode = simulation.Planners.PlannerKindFor(kindId, entityId);
+        if (plannerKindCode != PlannerKindCodes.Goap || HasGambitObjectives(kindId))
         {
-            TickEntityPlanned(simulation, entityId, kindId, tick);
+            TickEntityPlanned(simulation, entityId, kindId, plannerKindCode, tick);
             return;
         }
 
@@ -683,12 +699,12 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         return false;
     }
 
-    private void TickEntityPlanned(Simulation simulation, int entityId, int kindId, int tick)
+    private void TickEntityPlanned(Simulation simulation, int entityId, int kindId, int plannerKindCode, int tick)
     {
         var decision = simulation.Planners.Plan(
             simulation,
             new PlanningRequest(
-                simulation.Planners.PlannerKindCode,
+                plannerKindCode,
                 ActionFamilyCodes.Gambit,
                 entityId,
                 kindId,

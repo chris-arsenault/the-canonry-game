@@ -105,7 +105,7 @@ public class KindRegistryTests
     {
         var relKinds = _registry.GetValidRelationshipKinds(EntityCategory.Agency, EntityCategory.Agency)
             .Select(r => r.Name)
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         Assert.Contains("allied_with", relKinds);
         Assert.Contains("rival_of", relKinds);
@@ -119,7 +119,7 @@ public class KindRegistryTests
     {
         var relKinds = _registry.GetValidRelationshipKinds(EntityCategory.Agency, EntityCategory.Asset)
             .Select(r => r.Name)
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         Assert.Contains("holds", relKinds);
     }
@@ -129,7 +129,7 @@ public class KindRegistryTests
     {
         var relKinds = _registry.GetValidRelationshipKinds(EntityCategory.Asset, EntityCategory.Agency)
             .Select(r => r.Name)
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         Assert.Contains("created_by", relKinds);
     }
@@ -172,8 +172,9 @@ public class KindRegistryTests
         var entity = new Entity(
             new EntityId(0), TestKinds.Region, "generic_region", "TestRegion", "culture_a", 0);
 
-        // Should not throw, just no-op
-        _registry.DispatchBehavior(entity);
+        var ex = Record.Exception(() => _registry.DispatchBehavior(entity));
+
+        Assert.Null(ex);
     }
 
     [Fact]
@@ -221,7 +222,7 @@ public class KindRegistryTests
         var def = _registry.GetKindDefinition(TestKinds.Penguin);
         Assert.NotNull(def);
 
-        var attrNames = def.Attributes.Select(a => a.Name).ToHashSet();
+        var attrNames = def.Attributes.Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("vitality", attrNames);
         Assert.Contains("warmth", attrNames);
         Assert.Contains("echo", attrNames);

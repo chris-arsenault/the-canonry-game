@@ -635,7 +635,15 @@ public static partial class DomainCompiler
     };
 
     private static bool AttributeCreatesObjective(AttributeConfig attribute) =>
-        attribute.Category is AttributeCategory.Health or AttributeCategory.Need or AttributeCategory.Drive;
+        // Preserve legacy goal-generator behavior: every scalar attribute can
+        // create a planner demand. Category affects domain meaning, not whether
+        // capacity/projection stocks participate in planning.
+        attribute.Category is
+            AttributeCategory.Health or
+            AttributeCategory.Capacity or
+            AttributeCategory.Projection or
+            AttributeCategory.Need or
+            AttributeCategory.Drive;
 
     private static ProcessObjectiveUrgency ObjectiveUrgency(AttributeConfig attribute)
     {

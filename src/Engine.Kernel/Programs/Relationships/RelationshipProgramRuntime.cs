@@ -4,16 +4,28 @@ internal sealed class RelationshipProgramRuntime :
     IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>
 {
     public RelationshipProgramRuntime(RelationshipProgramData data, RelationshipProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public RelationshipProgramRuntime(
+        RelationshipProgramData data,
+        RelationshipProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
     }
 
     public RelationshipProgramData Data { get; }
 
     public RelationshipProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => Data.Count;
 

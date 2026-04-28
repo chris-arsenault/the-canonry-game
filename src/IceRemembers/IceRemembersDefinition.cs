@@ -74,6 +74,14 @@ public static class IceRemembersDefinition
                     AnyOfKinds = new HashSet<EntityKind> { K.Settlement, K.Artifact },
                 },
             ],
+            NamedProviderRecoveryHosts =
+            [
+                new NamedProviderRecoveryHostConfig
+                {
+                    Kind = K.Artifact,
+                    AttributeName = A(Attr.Resonance),
+                },
+            ],
             Attributes =
             [
                 new() { Name = A(Attr.Stability), DisplayName = "Stability", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 80f },
@@ -97,6 +105,14 @@ public static class IceRemembersDefinition
                     AnyOfKinds = new HashSet<EntityKind> { K.Region, K.Artifact },
                 },
             ],
+            NamedProviderRecoveryHosts =
+            [
+                new NamedProviderRecoveryHostConfig
+                {
+                    Kind = K.Region,
+                    AttributeName = A(Attr.Holding),
+                },
+            ],
             Attributes =
             [
                 new() { Name = A(Attr.Residents), DisplayName = "Residents", Category = AttributeCategory.Health, Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
@@ -117,6 +133,14 @@ public static class IceRemembersDefinition
                 new RecoveryHostQueryConfig
                 {
                     AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
+                },
+            ],
+            NamedProviderRecoveryHosts =
+            [
+                new NamedProviderRecoveryHostConfig
+                {
+                    Kind = K.Settlement,
+                    AttributeName = A(Attr.Dominion),
                 },
             ],
             Attributes = CreateFactionAttributes(),
@@ -164,6 +188,14 @@ public static class IceRemembersDefinition
                 new RecoveryHostQueryConfig
                 {
                     AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
+                },
+            ],
+            NamedProviderRecoveryHosts =
+            [
+                new NamedProviderRecoveryHostConfig
+                {
+                    Kind = K.Settlement,
+                    AttributeName = A(Attr.Shelter),
                 },
             ],
             Attributes = CreatePenguinAttributes(),
@@ -230,6 +262,14 @@ public static class IceRemembersDefinition
                 new RecoveryHostQueryConfig
                 {
                     AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
+                },
+            ],
+            NamedProviderRecoveryHosts =
+            [
+                new NamedProviderRecoveryHostConfig
+                {
+                    Kind = K.Faction,
+                    AttributeName = A(Attr.Provisions),
                 },
             ],
             Attributes = CreateArtifactAttributes(),

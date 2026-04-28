@@ -133,14 +133,22 @@ internal sealed class KernelConfigurationContext
         int cooldownTicks = 0,
         int entityCooldownTicks = 0,
         int targetMode = ProcessTargetModeCodes.Self,
-        int targetKindId = 0) =>
+        int targetKindId = 0,
+        int resourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.None,
+        int namedProviderKindId = 0,
+        int namedProviderAttributeId = 0,
+        int workCommitmentTicks = 0) =>
         _kernel.Processes.RegisterProcess(
             kindId,
             processId,
             cooldownTicks,
             entityCooldownTicks,
             targetMode,
-            targetKindId);
+            targetKindId,
+            resourceSupplyRoleCode,
+            namedProviderKindId,
+            namedProviderAttributeId,
+            workCommitmentTicks);
 
     public void AddProcessPrecondition(
         int processSlot,

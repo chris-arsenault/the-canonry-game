@@ -20,7 +20,7 @@ internal static class TestDefaultRegistry
         registry.RegisterKind(new KindDefinition(
             TestKinds.Region,
             EntityCategory.Spatial,
-            validSubtypes: new HashSet<string> { "generic_region", "tundra", "coastal", "mountain", "plains" },
+            validSubtypes: new HashSet<string>(StringComparer.Ordinal) { "generic_region", "tundra", "coastal", "mountain", "plains" },
             attributes:
             [
                 new AttributeDefinition("fertility", 0f, 1f, 0.5f),
@@ -32,7 +32,7 @@ internal static class TestDefaultRegistry
         registry.RegisterKind(new KindDefinition(
             TestKinds.Settlement,
             EntityCategory.Spatial,
-            validSubtypes: new HashSet<string> { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
+            validSubtypes: new HashSet<string>(StringComparer.Ordinal) { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
             attributes:
             [
                 new AttributeDefinition("residents", 0f, 100000f, 100f),
@@ -44,7 +44,7 @@ internal static class TestDefaultRegistry
         registry.RegisterKind(new KindDefinition(
             TestKinds.Faction,
             EntityCategory.Agency,
-            validSubtypes: new HashSet<string> { "order", "compact", "cell", "choir" },
+            validSubtypes: new HashSet<string>(StringComparer.Ordinal) { "order", "compact", "cell", "choir" },
             attributes:
             [
                 new AttributeDefinition("cohesion", 0f, 100f, 70f),
@@ -56,7 +56,7 @@ internal static class TestDefaultRegistry
         registry.RegisterKind(new KindDefinition(
             TestKinds.Penguin,
             EntityCategory.Agency,
-            validSubtypes: new HashSet<string> { "merchant", "scholar", "warrior", "warden" },
+            validSubtypes: new HashSet<string>(StringComparer.Ordinal) { "merchant", "scholar", "warrior", "warden" },
             attributes:
             [
                 new AttributeDefinition("vitality", 0f, 100f, 100f),
@@ -68,7 +68,7 @@ internal static class TestDefaultRegistry
         registry.RegisterKind(new KindDefinition(
             TestKinds.Artifact,
             EntityCategory.Asset,
-            validSubtypes: new HashSet<string> { "generic_artifact", "weapon", "armor", "instrument", "relic", "scroll" },
+            validSubtypes: new HashSet<string>(StringComparer.Ordinal) { "generic_artifact", "weapon", "armor", "instrument", "relic", "scroll" },
             attributes:
             [
                 new AttributeDefinition("condition", 0f, 100f, 100f),

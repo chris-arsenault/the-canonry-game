@@ -21,6 +21,7 @@ internal sealed record SimulationOptions
     public int ProcessProviderSelectorCapacity { get; init; } = 1024;
     public int ProcessSupportRuleCapacity { get; init; } = 1024;
     public int ProcessCommitmentCapacity { get; init; } = 8192;
+    public int PlanningOverrideCapacity { get; init; } = 512;
     public int GambitCapacity { get; init; } = 256;
     public int GambitStepCapacity { get; init; } = 2048;
     public int GambitCooldownCapacity { get; init; } = 4096;
@@ -44,6 +45,54 @@ internal sealed record SimulationOptions
     public int RelationshipKindIdCapacity { get; init; } = 256;
     public int RelationshipGraphDeltaMergeThreshold { get; init; } = 1024;
     public KernelRuntimeCodes RuntimeCodes { get; init; } = KernelRuntimeCodes.Default;
+    public KernelTuningOptions KernelTuning { get; init; } = new();
     public bool TraceEnabled { get; init; }
     public int Seed { get; init; } = 1;
+}
+
+internal sealed record KernelTuningOptions
+{
+    public KernelProgramTuningOptions Programs { get; init; } = new();
+}
+
+internal sealed record KernelProgramTuningOptions
+{
+    public ProcessProgramTuningOptions Processes { get; init; } = new();
+    public PlanningProgramTuningOptions Planning { get; init; } = new();
+    public PressureProgramTuningOptions Pressures { get; init; } = new();
+    public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
+    public GeneratorProgramTuningOptions Generators { get; init; } = new();
+}
+
+internal sealed record PlanningProgramTuningOptions
+{
+    public int DefaultPlannerKindCode { get; init; } = PlannerKindCodes.Goap;
+    public int OpportunityTargetCapacity { get; init; } = 2;
+    public PlanningKindPlannerOverride[] KindPlannerOverrides { get; init; } = [];
+    public PlanningEntityPlannerOverride[] EntityPlannerOverrides { get; init; } = [];
+}
+
+internal readonly record struct PlanningKindPlannerOverride(int KindId, int PlannerKindCode);
+
+internal readonly record struct PlanningEntityPlannerOverride(int EntityId, int PlannerKindCode);
+
+internal sealed record ProcessProgramTuningOptions
+{
+    public int ResourceSupplyModelCode { get; init; } = ProcessResourceSupplyModelCodes.AmbientHex;
+    public int WorkCommitmentCode { get; init; } = ProcessWorkCommitmentCodes.Off;
+}
+
+internal sealed record PressureProgramTuningOptions
+{
+    public bool Enabled { get; init; }
+}
+
+internal sealed record UpkeepProgramTuningOptions
+{
+    public int AgingModelCode { get; init; } = UpkeepAgingModelCodes.Linear;
+}
+
+internal sealed record GeneratorProgramTuningOptions
+{
+    public bool RetryFireTargets { get; init; } = true;
 }

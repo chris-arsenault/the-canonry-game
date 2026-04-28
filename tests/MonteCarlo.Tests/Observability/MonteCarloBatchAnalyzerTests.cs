@@ -177,6 +177,17 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
+    public void Options_ConfigFileFlagSetsKernelConfigPath()
+    {
+        var options = MonteCarloOptions.Parse([
+            "--config-file",
+            "kernel-tuning.toml",
+        ]);
+
+        Assert.Equal("kernel-tuning.toml", options.ConfigFilePath);
+    }
+
+    [Fact]
     public void Options_TraceKeepsStateTelemetryEnabledInPerfMode()
     {
         var options = MonteCarloOptions.Parse([

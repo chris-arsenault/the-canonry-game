@@ -22,7 +22,7 @@ Current engine work is focused on a data-driven simulation architecture in Godot
 
 ### Critical Reference: Simulation Kernel Discipline
 
-Before changing engine runtime code, read `docs/simulation-kernel-discipline.md`.
+Before changing engine runtime code, read `docs/kernel/simulation-kernel-discipline.md`.
 
 That document is the controlling architecture direction for simulation-thread
 work: no runtime string creation in the kernel, no runtime string lookup after
@@ -158,6 +158,17 @@ Current behavior/resource work should continue to align with these completed pri
 Deferred follow-up work is now tracked as standalone backlog items in GitHub project `#2` rather than under the old umbrella.
 
 ## Workflow Rules
+
+### Analysis Tooling
+
+For Monte Carlo output, parquet telemetry, tuning reports, and exploratory data analysis:
+
+- Use direct SQL as the primary analysis tool.
+- Prefer DuckDB over parquet, either through the DuckDB CLI or Python with the `duckdb` package.
+- If Python DuckDB is missing, install it into an artifact-local target directory and run SQL from Python.
+- Do not write C# helper programs for one-off exploratory analysis.
+- Use C# only when implementing or testing the product/tooling analysis layer itself.
+- Do not introduce CSV as an analysis format; analysis outputs should remain parquet-backed.
 
 ### Git Workflow
 

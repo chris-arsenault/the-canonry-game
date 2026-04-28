@@ -14,6 +14,11 @@ internal sealed partial class ProcessProgramState : IKernelProgramState
     internal readonly PrimitiveIntTable CommittedPlanTargets;
     internal readonly PrimitiveIntTable CommittedPlanProcessSlots;
     internal readonly PrimitiveIntTable CommittedPlanLocalities;
+    internal readonly PrimitiveIntTable WorkCommitmentProcessSlots;
+    internal readonly PrimitiveIntTable WorkCommitmentTargetIds;
+    internal readonly PrimitiveIntTable WorkCommitmentRemainingTicks;
+    internal readonly PrimitiveIntTable OpportunityReservationTicks;
+    internal readonly PrimitiveIntTable OpportunityReservationCounts;
 
     public ProcessProgramState(
         int processCapacity,
@@ -35,9 +40,14 @@ internal sealed partial class ProcessProgramState : IKernelProgramState
         CommittedPlanTargets = new PrimitiveIntTable(processCommitmentCapacity);
         CommittedPlanProcessSlots = new PrimitiveIntTable(processCommitmentCapacity);
         CommittedPlanLocalities = new PrimitiveIntTable(processCommitmentCapacity);
+        WorkCommitmentProcessSlots = new PrimitiveIntTable(processCommitmentCapacity);
+        WorkCommitmentTargetIds = new PrimitiveIntTable(processCommitmentCapacity);
+        WorkCommitmentRemainingTicks = new PrimitiveIntTable(processCommitmentCapacity);
+        OpportunityReservationTicks = new PrimitiveIntTable(processCommitmentCapacity);
+        OpportunityReservationCounts = new PrimitiveIntTable(processCommitmentCapacity);
     }
 
     public int ProgramId => KernelProgramCodes.Processes;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 3;
 }

@@ -66,9 +66,10 @@ internal sealed partial class Simulation : IKernel
     {
         var objectiveCapacity = options.ProcessObjectiveCapacity + options.GambitObjectiveCapacity;
         return new PlanningProgramRuntime(
-            new PlanningProgramData(PlannerKindCodes.Goap),
-            new PlanningProgramState(),
-            new PlanningProgramScratch(objectiveCapacity, objectiveCapacity + 2));
+            new PlanningProgramData(options.KernelTuning.Programs.Planning.DefaultPlannerKindCode),
+            new PlanningProgramState(options.PlanningOverrideCapacity),
+            new PlanningProgramScratch(objectiveCapacity, objectiveCapacity + 2),
+            options.KernelTuning.Programs);
     }
 
     private static ProcessProgramRuntime CreateProcessRuntime(SimulationOptions options) =>
@@ -87,7 +88,8 @@ internal sealed partial class Simulation : IKernel
             new ProcessProgramScratch(
                 options.MapCellCapacity,
                 options.EntityCapacity,
-                options.ProcessObjectiveCapacity));
+                options.ProcessObjectiveCapacity),
+            options.KernelTuning.Programs);
 
     private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
         new(
@@ -105,32 +107,46 @@ internal sealed partial class Simulation : IKernel
             new GambitProgramScratch(
                 options.MapCellCapacity,
                 options.EntityCapacity,
-                options.GambitObjectiveCapacity));
+                options.GambitObjectiveCapacity),
+            options.KernelTuning.Programs);
 
-    private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options) =>
-        new(
-            new GeneratorProgramData(options.GeneratorCapacity, options.GeneratorItemCapacity),
-            new GeneratorProgramState(options.GeneratorCapacity));
+    private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options)
+    {
+        var data = new GeneratorProgramData(options.GeneratorCapacity, options.GeneratorItemCapacity);
+        return new GeneratorProgramRuntime(
+            data,
+            new GeneratorProgramState(options.GeneratorCapacity),
+            new GeneratorProgramScratch(
+                options.GeneratorCapacity,
+                options.MapCellCapacity,
+                options.GeneratorItemCapacity,
+                options.EntityCapacity),
+            options.KernelTuning.Programs);
+    }
 
     private static PressureProgramRuntime CreatePressureRuntime(SimulationOptions options) =>
         new(
             new PressureProgramData(options.PressureCapacity),
-            new PressureProgramState(options.PressureCapacity, options.PressureValueCapacity));
+            new PressureProgramState(options.PressureCapacity, options.PressureValueCapacity),
+            options.KernelTuning.Programs);
 
     private static DegeneracyProgramRuntime CreateDegeneracyRuntime(SimulationOptions options) =>
         new(
             new DegeneracyProgramData(options.DegeneracyDetectorCapacity),
-            new DegeneracyProgramState(options.DegeneracyDetectorCapacity, options.DegeneracyStateCapacity));
+            new DegeneracyProgramState(options.DegeneracyDetectorCapacity, options.DegeneracyStateCapacity),
+            options.KernelTuning.Programs);
 
     private static UpkeepProgramRuntime CreateUpkeepRuntime(SimulationOptions options) =>
         new(
             new UpkeepProgramData(options.UpkeepRuleCapacity, options.LifecycleRuleCapacity),
-            new UpkeepProgramState());
+            new UpkeepProgramState(),
+            options.KernelTuning.Programs);
 
     private static RelationshipProgramRuntime CreateRelationshipRuntime(SimulationOptions options) =>
         new(
             new RelationshipProgramData(options.RelationshipRuleCapacity),
-            new RelationshipProgramState());
+            new RelationshipProgramState(),
+            options.KernelTuning.Programs);
 
     private void RegisterDefaultPrograms()
     {

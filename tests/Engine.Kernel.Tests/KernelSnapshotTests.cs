@@ -53,36 +53,8 @@ public sealed class KernelSnapshotTests
         stream.Position = 0;
         var loaded = KernelSnapshot.LoadKernelState(stream);
 
-        Assert.Equal(simulation.CurrentTick, loaded.CurrentTick);
-        Assert.Equal(simulation.WorldVersion, loaded.WorldVersion);
-        Assert.Equal(actor, loaded.World.EntityHighWatermark - 1);
-        Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
-        Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
-        Assert.Equal(5f, loaded.World.GetResource(20, 0, 0));
-        Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
-        Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
-        Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));
-        Assert.Equal(2, loaded.World.TerrainBoundaryGroupId(1));
-        Assert.Equal(0.75f, loaded.World.RelationshipStrength(relationshipId));
-        Assert.Equal(7f, loaded.Pressures.GetValue(40, actor));
-        Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
-        Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
-        Assert.False(generatorEnabled);
-        Assert.Equal(expectedRandom, loaded.NextInt(10000));
-
-        using var cursor = loaded.Events.CreateCursor(KernelEventCursorStart.EarliestAvailable);
-        var eventTypes = new List<KernelEventType>();
-        while (loaded.Events.TryRead(cursor, out var sequenced))
-        {
-            eventTypes.Add(sequenced.Event.EventType);
-        }
-
-        Assert.Contains(KernelEventType.CellCreated, eventTypes);
-        Assert.Contains(KernelEventType.EntityCreated, eventTypes);
-        Assert.Contains(KernelEventType.EntityStatusChanged, eventTypes);
-        Assert.Contains(KernelEventType.AttributeChanged, eventTypes);
-        Assert.Contains(KernelEventType.ResourceChanged, eventTypes);
-        Assert.Contains(KernelEventType.RelationshipChanged, eventTypes);
+        AssertLoadedSnapshotState(simulation, loaded, actor, target, relationshipId, expectedRandom);
+        AssertMaterializationEvents(loaded);
     }
 
     private static Simulation CreateSimulation() =>
@@ -103,6 +75,7 @@ public sealed class KernelSnapshotTests
             ProcessProviderSelectorCapacity = 4,
             ProcessSupportRuleCapacity = 4,
             ProcessCommitmentCapacity = 16,
+            PlanningOverrideCapacity = 16,
             GambitCapacity = 4,
             GambitStepCapacity = 16,
             GambitCooldownCapacity = 16,
@@ -124,6 +97,101 @@ public sealed class KernelSnapshotTests
             TerrainIdCapacity = 8,
             RelationshipRuleCapacity = 4,
             RelationshipKindIdCapacity = 16,
+            KernelTuning = SnapshotKernelTuning(),
             Seed = 123,
         });
+
+    private static KernelTuningOptions SnapshotKernelTuning() =>
+        new()
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Processes = new ProcessProgramTuningOptions
+                {
+                    ResourceSupplyModelCode = ProcessResourceSupplyModelCodes.NamedProviderNoHex,
+                    WorkCommitmentCode = ProcessWorkCommitmentCodes.Pilot,
+                },
+                Planning = new PlanningProgramTuningOptions
+                {
+                    DefaultPlannerKindCode = PlannerKindCodes.Opportunity,
+                    OpportunityTargetCapacity = 3,
+                    KindPlannerOverrides =
+                    [
+                        new PlanningKindPlannerOverride(1, PlannerKindCodes.Goap),
+                    ],
+                    EntityPlannerOverrides =
+                    [
+                        new PlanningEntityPlannerOverride(2, PlannerKindCodes.Opportunity),
+                    ],
+                },
+                Pressures = new PressureProgramTuningOptions
+                {
+                    Enabled = true,
+                },
+                Upkeep = new UpkeepProgramTuningOptions
+                {
+                    AgingModelCode = UpkeepAgingModelCodes.LateLife,
+                },
+                Generators = new GeneratorProgramTuningOptions
+                {
+                    RetryFireTargets = false,
+                },
+            },
+        };
+
+    private static void AssertLoadedSnapshotState(
+        Simulation simulation,
+        Simulation loaded,
+        int actor,
+        int target,
+        int relationshipId,
+        int expectedRandom)
+    {
+        Assert.Equal(simulation.CurrentTick, loaded.CurrentTick);
+        Assert.Equal(simulation.WorldVersion, loaded.WorldVersion);
+        Assert.Equal(actor, loaded.World.EntityHighWatermark - 1);
+        Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
+        Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
+        Assert.Equal(5f, loaded.World.GetResource(20, 0, 0));
+        Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
+        Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
+        Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));
+        Assert.Equal(2, loaded.World.TerrainBoundaryGroupId(1));
+        Assert.Equal(0.75f, loaded.World.RelationshipStrength(relationshipId));
+        Assert.Equal(7f, loaded.Pressures.GetValue(40, actor));
+        Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
+        Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
+        Assert.False(generatorEnabled);
+        Assert.Equal(ProcessResourceSupplyModelCodes.NamedProviderNoHex, loaded.Options.KernelTuning.Programs.Processes.ResourceSupplyModelCode);
+        Assert.Equal(ProcessWorkCommitmentCodes.Pilot, loaded.Options.KernelTuning.Programs.Processes.WorkCommitmentCode);
+        Assert.Equal(PlannerKindCodes.Opportunity, loaded.Options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
+        Assert.Equal(3, loaded.Options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
+        Assert.Contains(loaded.Options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
+            item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
+        Assert.Contains(loaded.Options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
+            item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
+        Assert.Equal(PlannerKindCodes.Goap, loaded.Planners.PlannerKindFor(1, actor));
+        Assert.Equal(PlannerKindCodes.Opportunity, loaded.Planners.PlannerKindFor(1, target));
+        Assert.True(loaded.Options.KernelTuning.Programs.Pressures.Enabled);
+        Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
+        Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
+        Assert.Equal(expectedRandom, loaded.NextInt(10000));
+    }
+
+    private static void AssertMaterializationEvents(Simulation loaded)
+    {
+        using var cursor = loaded.Events.CreateCursor(KernelEventCursorStart.EarliestAvailable);
+        var eventTypes = new List<KernelEventType>();
+        while (loaded.Events.TryRead(cursor, out var sequenced))
+        {
+            eventTypes.Add(sequenced.Event.EventType);
+        }
+
+        Assert.Contains(KernelEventType.CellCreated, eventTypes);
+        Assert.Contains(KernelEventType.EntityCreated, eventTypes);
+        Assert.Contains(KernelEventType.EntityStatusChanged, eventTypes);
+        Assert.Contains(KernelEventType.AttributeChanged, eventTypes);
+        Assert.Contains(KernelEventType.ResourceChanged, eventTypes);
+        Assert.Contains(KernelEventType.RelationshipChanged, eventTypes);
+    }
 }

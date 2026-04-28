@@ -22,16 +22,28 @@ internal sealed class DegeneracyProgramRuntime : IKernelProgramRuntime<Degenerac
     private ref int _detectorCount => ref Data.DetectorCount;
 
     public DegeneracyProgramRuntime(DegeneracyProgramData data, DegeneracyProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public DegeneracyProgramRuntime(
+        DegeneracyProgramData data,
+        DegeneracyProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
     }
 
     public DegeneracyProgramData Data { get; }
 
     public DegeneracyProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => _detectorCount;
 

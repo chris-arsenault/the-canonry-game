@@ -149,6 +149,14 @@ public static partial class DomainCompiler
                 process.EntityCooldown,
                 ResolveTargetMode(process, targetKindId),
                 targetKindId,
+                process.ResourceSupplyRoleCode,
+                process.NamedProviderKind is { } providerKind
+                    ? ids.KindIdOf(providerKind).Value
+                    : 0,
+                !string.IsNullOrWhiteSpace(process.NamedProviderAttribute)
+                    ? ids.AttributeIdOf(process.NamedProviderAttribute).Value
+                    : 0,
+                process.WorkCommitmentTicks,
                 CompileGoalEffects(process, ids),
                 CompileProviderSelectors(process, ids),
                 CompileSupportRules(process, ids),

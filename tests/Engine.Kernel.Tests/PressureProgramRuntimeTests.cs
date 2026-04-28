@@ -111,11 +111,60 @@ public sealed class PressureProgramRuntimeTests
         Assert.Equal(0f, simulation.Pressures.GetValue(pressureId, entity));
     }
 
-    private static Simulation CreateSimulation() => new(new SimulationOptions
+    [Fact]
+    public void DefaultPressureTuning_DisablesPressureProgramGlobally()
+    {
+        var simulation = CreateSimulation(new KernelTuningOptions());
+        const int pressureId = 1;
+        var entity = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        simulation.Pressures.RegisterPressure(pressureId, PressureScopeCodes.Entity, baseline: 12f, homeostasisRate: 0f, smoothingFactor: 1f);
+
+        simulation.Pressures.ApplyDelta(pressureId, entity, 40f);
+        simulation.Pressures.Tick(simulation, tick: 1);
+
+        Assert.Equal(0f, simulation.Pressures.GetValue(pressureId, entity));
+    }
+
+    [Fact]
+    public void DisabledPressureTuning_DisablesPressureProgramGlobally()
+    {
+        var simulation = CreateSimulation(new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Pressures = new PressureProgramTuningOptions
+                {
+                    Enabled = false,
+                },
+            },
+        });
+        const int pressureId = 1;
+        var entity = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        simulation.Pressures.RegisterPressure(pressureId, PressureScopeCodes.Entity, baseline: 12f, homeostasisRate: 0f, smoothingFactor: 1f);
+
+        simulation.Pressures.ApplyDelta(pressureId, entity, 40f);
+        simulation.Pressures.Tick(simulation, tick: 1);
+
+        Assert.Equal(0f, simulation.Pressures.GetValue(pressureId, entity));
+    }
+
+    private static Simulation CreateSimulation(KernelTuningOptions? tuning = null) => new(new SimulationOptions
     {
         EntityCapacity = 8,
         PressureCapacity = 4,
         PressureValueCapacity = 16,
         EventCapacity = 128,
+        KernelTuning = tuning ?? PressureEnabledTuning(),
     });
+
+    private static KernelTuningOptions PressureEnabledTuning() => new()
+    {
+        Programs = new KernelProgramTuningOptions
+        {
+            Pressures = new PressureProgramTuningOptions
+            {
+                Enabled = true,
+            },
+        },
+    };
 }

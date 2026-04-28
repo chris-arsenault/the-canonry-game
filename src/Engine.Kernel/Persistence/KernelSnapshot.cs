@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 4;
+    private const int FormatVersion = 7;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -53,6 +53,7 @@ internal static class KernelSnapshotOptions
         WriteProgramCapacities(writer, options);
         WriteWorldCapacities(writer, options);
         WriteRuntimeCodes(writer, options.RuntimeCodes);
+        WriteKernelTuning(writer, options.KernelTuning);
         writer.Write(options.Seed);
         writer.Write(eventCount);
     }
@@ -83,6 +84,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.ProcessProviderSelectorCapacity);
         writer.Write(options.ProcessSupportRuleCapacity);
         writer.Write(options.ProcessCommitmentCapacity);
+        writer.Write(options.PlanningOverrideCapacity);
         writer.Write(options.GambitCapacity);
         writer.Write(options.GambitStepCapacity);
         writer.Write(options.GambitCooldownCapacity);
@@ -131,6 +133,45 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.PlanningSourceCodeId);
     }
 
+    private static void WriteKernelTuning(
+        global::System.IO.BinaryWriter writer,
+        KernelTuningOptions kernelTuning)
+    {
+        writer.Write(kernelTuning.Programs.Processes.ResourceSupplyModelCode);
+        writer.Write(kernelTuning.Programs.Processes.WorkCommitmentCode);
+        writer.Write(kernelTuning.Programs.Planning.DefaultPlannerKindCode);
+        writer.Write(kernelTuning.Programs.Planning.OpportunityTargetCapacity);
+        WritePlanningKindOverrides(writer, kernelTuning.Programs.Planning.KindPlannerOverrides);
+        WritePlanningEntityOverrides(writer, kernelTuning.Programs.Planning.EntityPlannerOverrides);
+        writer.Write(kernelTuning.Programs.Pressures.Enabled);
+        writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
+        writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
+    }
+
+    private static void WritePlanningKindOverrides(
+        global::System.IO.BinaryWriter writer,
+        PlanningKindPlannerOverride[] overrides)
+    {
+        writer.Write(overrides.Length);
+        for (var i = 0; i < overrides.Length; i++)
+        {
+            writer.Write(overrides[i].KindId);
+            writer.Write(overrides[i].PlannerKindCode);
+        }
+    }
+
+    private static void WritePlanningEntityOverrides(
+        global::System.IO.BinaryWriter writer,
+        PlanningEntityPlannerOverride[] overrides)
+    {
+        writer.Write(overrides.Length);
+        for (var i = 0; i < overrides.Length; i++)
+        {
+            writer.Write(overrides[i].EntityId);
+            writer.Write(overrides[i].PlannerKindCode);
+        }
+    }
+
     public static SimulationOptions Read(
         global::System.IO.BinaryReader reader,
         SimulationOptions? options)
@@ -160,6 +201,7 @@ internal static class KernelSnapshotOptions
         ReadProgramValues(reader, ref values);
         ReadWorldValues(reader, ref values);
         ReadRuntimeCodeValues(reader, ref values);
+        ReadKernelTuningValues(reader, ref values);
         values.Seed = reader.ReadInt32();
         return values;
     }
@@ -175,6 +217,7 @@ internal static class KernelSnapshotOptions
         values.ProcessProviderSelectorCapacity = reader.ReadInt32();
         values.ProcessSupportRuleCapacity = reader.ReadInt32();
         values.ProcessCommitmentCapacity = reader.ReadInt32();
+        values.PlanningOverrideCapacity = reader.ReadInt32();
         values.GambitCapacity = reader.ReadInt32();
         values.GambitStepCapacity = reader.ReadInt32();
         values.GambitCooldownCapacity = reader.ReadInt32();
@@ -221,6 +264,45 @@ internal static class KernelSnapshotOptions
         values.PressureSourceCodeId = reader.ReadInt32();
         values.DegeneracySourceCodeId = reader.ReadInt32();
         values.PlanningSourceCodeId = reader.ReadInt32();
+    }
+
+    private static void ReadKernelTuningValues(
+        global::System.IO.BinaryReader reader,
+        ref SnapshotOptionValues values)
+    {
+        values.ProcessResourceSupplyModelCode = reader.ReadInt32();
+        values.ProcessWorkCommitmentCode = reader.ReadInt32();
+        values.PlanningDefaultPlannerKindCode = reader.ReadInt32();
+        values.PlanningOpportunityTargetCapacity = reader.ReadInt32();
+        values.PlanningKindPlannerOverrides = ReadPlanningKindOverrides(reader);
+        values.PlanningEntityPlannerOverrides = ReadPlanningEntityOverrides(reader);
+        values.PressuresEnabled = reader.ReadBoolean();
+        values.UpkeepAgingModelCode = reader.ReadInt32();
+        values.GeneratorRetryFireTargets = reader.ReadBoolean();
+    }
+
+    private static PlanningKindPlannerOverride[] ReadPlanningKindOverrides(global::System.IO.BinaryReader reader)
+    {
+        var count = reader.ReadInt32();
+        var overrides = new PlanningKindPlannerOverride[count];
+        for (var i = 0; i < count; i++)
+        {
+            overrides[i] = new PlanningKindPlannerOverride(reader.ReadInt32(), reader.ReadInt32());
+        }
+
+        return overrides;
+    }
+
+    private static PlanningEntityPlannerOverride[] ReadPlanningEntityOverrides(global::System.IO.BinaryReader reader)
+    {
+        var count = reader.ReadInt32();
+        var overrides = new PlanningEntityPlannerOverride[count];
+        for (var i = 0; i < count; i++)
+        {
+            overrides[i] = new PlanningEntityPlannerOverride(reader.ReadInt32(), reader.ReadInt32());
+        }
+
+        return overrides;
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -277,6 +359,7 @@ internal static class KernelSnapshotOptions
             ProcessProviderSelectorCapacity = values.ProcessProviderSelectorCapacity,
             ProcessSupportRuleCapacity = values.ProcessSupportRuleCapacity,
             ProcessCommitmentCapacity = values.ProcessCommitmentCapacity,
+            PlanningOverrideCapacity = values.PlanningOverrideCapacity,
             GambitCapacity = values.GambitCapacity,
             GambitStepCapacity = values.GambitStepCapacity,
             GambitCooldownCapacity = values.GambitCooldownCapacity,
@@ -299,22 +382,58 @@ internal static class KernelSnapshotOptions
             RelationshipRuleCapacity = values.RelationshipRuleCapacity,
             RelationshipKindIdCapacity = values.RelationshipKindIdCapacity,
             RelationshipGraphDeltaMergeThreshold = values.RelationshipGraphDeltaMergeThreshold,
-            RuntimeCodes = new KernelRuntimeCodes(
-                values.RelationshipCreatedCodeId,
-                values.RelationshipCulledCodeId,
-                values.RelationshipStrengthChangedCodeId,
-                values.ProcessSourceCodeId,
-                values.GambitSourceCodeId,
-                values.UpkeepSourceCodeId,
-                values.StartupSourceCodeId,
-                values.RelationshipSourceCodeId,
-                values.GeneratorSourceCodeId,
-                values.PressureSourceCodeId,
-                values.DegeneracySourceCodeId,
-                values.PlanningSourceCodeId),
+            RuntimeCodes = CreateRuntimeCodes(values),
+            KernelTuning = CreateKernelTuning(values),
             Seed = values.Seed,
         };
     }
+
+    private static KernelRuntimeCodes CreateRuntimeCodes(SnapshotOptionValues values) =>
+        new(
+            values.RelationshipCreatedCodeId,
+            values.RelationshipCulledCodeId,
+            values.RelationshipStrengthChangedCodeId,
+            values.ProcessSourceCodeId,
+            values.GambitSourceCodeId,
+            values.UpkeepSourceCodeId,
+            values.StartupSourceCodeId,
+            values.RelationshipSourceCodeId,
+            values.GeneratorSourceCodeId,
+            values.PressureSourceCodeId,
+            values.DegeneracySourceCodeId,
+            values.PlanningSourceCodeId);
+
+    private static KernelTuningOptions CreateKernelTuning(SnapshotOptionValues values) =>
+        new()
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Processes = new ProcessProgramTuningOptions
+                {
+                    ResourceSupplyModelCode = values.ProcessResourceSupplyModelCode,
+                    WorkCommitmentCode = values.ProcessWorkCommitmentCode,
+                },
+                Planning = new PlanningProgramTuningOptions
+                {
+                    DefaultPlannerKindCode = values.PlanningDefaultPlannerKindCode,
+                    OpportunityTargetCapacity = values.PlanningOpportunityTargetCapacity,
+                    KindPlannerOverrides = values.PlanningKindPlannerOverrides,
+                    EntityPlannerOverrides = values.PlanningEntityPlannerOverrides,
+                },
+                Pressures = new PressureProgramTuningOptions
+                {
+                    Enabled = values.PressuresEnabled,
+                },
+                Upkeep = new UpkeepProgramTuningOptions
+                {
+                    AgingModelCode = values.UpkeepAgingModelCode,
+                },
+                Generators = new GeneratorProgramTuningOptions
+                {
+                    RetryFireTargets = values.GeneratorRetryFireTargets,
+                },
+            },
+        };
 
     private struct SnapshotOptionValues
     {
@@ -334,6 +453,7 @@ internal static class KernelSnapshotOptions
         public int ProcessProviderSelectorCapacity;
         public int ProcessSupportRuleCapacity;
         public int ProcessCommitmentCapacity;
+        public int PlanningOverrideCapacity;
         public int GambitCapacity;
         public int GambitStepCapacity;
         public int GambitCooldownCapacity;
@@ -368,6 +488,15 @@ internal static class KernelSnapshotOptions
         public int PressureSourceCodeId;
         public int DegeneracySourceCodeId;
         public int PlanningSourceCodeId;
+        public int ProcessResourceSupplyModelCode;
+        public int ProcessWorkCommitmentCode;
+        public int PlanningDefaultPlannerKindCode;
+        public int PlanningOpportunityTargetCapacity;
+        public PlanningKindPlannerOverride[] PlanningKindPlannerOverrides;
+        public PlanningEntityPlannerOverride[] PlanningEntityPlannerOverrides;
+        public bool PressuresEnabled;
+        public int UpkeepAgingModelCode;
+        public bool GeneratorRetryFireTargets;
         public int Seed;
     }
 }

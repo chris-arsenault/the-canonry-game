@@ -149,6 +149,7 @@ internal static class TelemetrySymbolIds
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.SupportSelected, "support_selected", "Support Selected"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Selected, "selected", "Selected"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.CommittedByHysteresis, "committed_by_hysteresis", "Committed By Hysteresis"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.CapacityReached, "capacity_reached", "Capacity Reached"));
     }
 
     private static void AddKernelEventTypeSymbols(Collection<SymbolRow> symbols)

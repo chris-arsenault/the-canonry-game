@@ -47,7 +47,22 @@ Instruction:
 - stale code and stale docs create future drift
 - if a migration is supposed to be done, remove the old path instead of keeping it around "for now"
 
-### 4. Do not run dotnet test projects in parallel
+### 4. Use the right tool for Monte Carlo analysis
+
+Failure mode:
+
+- write C# helper programs for exploratory Monte Carlo/parquet analysis because the product code is C#
+- turn analysis into temporary application code instead of querying the data directly
+
+Instruction:
+
+- use direct SQL for Monte Carlo output analysis
+- prefer DuckDB SQL over parquet, either through the DuckDB CLI or Python with `duckdb`
+- if the environment is missing Python DuckDB, install it into an artifact-local target directory and run SQL from Python
+- do not use C# for one-off exploratory analysis unless the task is to implement or test the product/tooling analysis layer itself
+- keep analysis outputs parquet-backed; do not introduce CSV as an analysis format
+
+### 5. Do not run dotnet test projects in parallel
 
 Failure mode:
 
@@ -64,28 +79,28 @@ Instruction:
 
 These are working rules for interactive design passes.
 
-### 5. Present concrete review sets
+### 6. Present concrete review sets
 
 Instruction:
 
 - in iterative design turns, present a concrete review set, not vague status chatter
 - prefer 4-6 reviewable items when the user is acting as design editor
 
-### 6. Do not stop for irrelevant permission checks
+### 7. Do not stop for irrelevant permission checks
 
 Instruction:
 
 - if a reasonable next step is clear and low-risk, do it
 - do not waste turns asking for approval on side issues
 
-### 7. Do not make unilateral naming updates that require review
+### 8. Do not make unilateral naming updates that require review
 
 Instruction:
 
 - if naming is explicitly under review, present it first
 - do not silently push reviewed-language decisions into code or docs without that pass
 
-### 8. Inspect before improvising
+### 9. Inspect before improvising
 
 Instruction:
 

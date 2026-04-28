@@ -11,6 +11,7 @@ internal sealed partial class Simulation
         KernelData.WriteSnapshot(writer);
         World.WriteSnapshot(writer);
         _programs.WriteSnapshot(writer);
+        PlanningProgramSnapshot.Write(writer, Planners);
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
         ProcessProgramSnapshot.Write(writer, Processes);
@@ -27,6 +28,7 @@ internal sealed partial class Simulation
         KernelData.ReadSnapshot(reader);
         World.ReadSnapshot(reader);
         _programs.ReadSnapshot(this, reader);
+        PlanningProgramSnapshot.Read(reader, Planners);
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);
         ProcessProgramSnapshot.Read(reader, Processes);

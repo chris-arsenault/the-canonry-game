@@ -109,7 +109,7 @@ public sealed partial class ProcessProgramRuntimeTests
         simulation.SetResource(resourceId, q, r, value, tick: 0);
     }
 
-    private static Simulation CreateSimulation()
+    private static Simulation CreateSimulation(KernelTuningOptions? tuning = null)
     {
         return new Simulation(new SimulationOptions
         {
@@ -135,6 +135,7 @@ public sealed partial class ProcessProgramRuntimeTests
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,
+            KernelTuning = tuning ?? new KernelTuningOptions(),
             Seed = 1,
         });
     }

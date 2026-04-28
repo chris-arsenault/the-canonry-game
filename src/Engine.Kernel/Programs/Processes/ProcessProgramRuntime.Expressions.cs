@@ -13,7 +13,8 @@ internal sealed partial class ProcessProgramRuntime
             _expressionCodes,
             _expressionA,
             _expressionX,
-            defaultValue: 1f);
+            defaultValue: 1f,
+            processSlot);
     }
 
     private float EvaluateReward(WorldState world, int processSlot, int entityId, int targetId)
@@ -27,7 +28,8 @@ internal sealed partial class ProcessProgramRuntime
             _rewardExpressionCodes,
             _rewardExpressionA,
             _rewardExpressionX,
-            defaultValue: 1f);
+            defaultValue: 1f,
+            processSlot);
     }
 
     private float EvaluateExpression(
@@ -39,7 +41,8 @@ internal sealed partial class ProcessProgramRuntime
         int[] codes,
         int[] a,
         float[] x,
-        float defaultValue)
+        float defaultValue,
+        int processSlot = 0)
     {
         return EvaluateExpression(
             world,
@@ -51,6 +54,7 @@ internal sealed partial class ProcessProgramRuntime
             a,
             x,
             defaultValue,
+            processSlot,
             default,
             default,
             0);
@@ -66,6 +70,7 @@ internal sealed partial class ProcessProgramRuntime
         int[] a,
         float[] x,
         float defaultValue,
+        int processSlot,
         global::System.ReadOnlySpan<int> variableIds,
         global::System.ReadOnlySpan<float> variableValues,
         int variableCount)
@@ -87,6 +92,7 @@ internal sealed partial class ProcessProgramRuntime
                 x[op],
                 entityId,
                 targetId,
+                processSlot,
                 stack,
                 ref stackCount,
                 variableIds,
@@ -104,6 +110,7 @@ internal sealed partial class ProcessProgramRuntime
         float x,
         int entityId,
         int targetId,
+        int processSlot,
         global::System.Span<float> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
@@ -117,6 +124,7 @@ internal sealed partial class ProcessProgramRuntime
                 x,
                 entityId,
                 targetId,
+                processSlot,
                 stack,
                 ref stackCount,
                 variableIds,
@@ -137,6 +145,7 @@ internal sealed partial class ProcessProgramRuntime
         float x,
         int entityId,
         int targetId,
+        int processSlot,
         global::System.Span<float> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
@@ -155,7 +164,7 @@ internal sealed partial class ProcessProgramRuntime
             return true;
         }
 
-        return TryExecuteContextExpressionOp(world, code, a, entityId, targetId, stack, ref stackCount, variableIds, variableValues, variableCount);
+        return TryExecuteContextExpressionOp(world, code, a, entityId, targetId, processSlot, stack, ref stackCount, variableIds, variableValues, variableCount);
     }
 
     private bool TryExecuteContextExpressionOp(
@@ -164,6 +173,7 @@ internal sealed partial class ProcessProgramRuntime
         int a,
         int entityId,
         int targetId,
+        int processSlot,
         global::System.Span<float> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
@@ -182,7 +192,7 @@ internal sealed partial class ProcessProgramRuntime
             return true;
         }
 
-        return TryExecuteReferenceExpressionOp(world, code, a, entityId, targetId, stack, ref stackCount, variableIds, variableValues, variableCount);
+        return TryExecuteReferenceExpressionOp(world, code, a, entityId, targetId, processSlot, stack, ref stackCount, variableIds, variableValues, variableCount);
     }
 
     private bool TryExecuteReferenceExpressionOp(
@@ -191,6 +201,7 @@ internal sealed partial class ProcessProgramRuntime
         int a,
         int entityId,
         int targetId,
+        int processSlot,
         global::System.Span<float> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
@@ -199,6 +210,12 @@ internal sealed partial class ProcessProgramRuntime
     {
         if (code == ProcessExpressionCodes.TargetLocationResource)
         {
+            if (NamedProviderRecoveryActive(processSlot))
+            {
+                Push(stack, ref stackCount, world.GetAttribute(targetId, _processNamedProviderAttributeIds[processSlot]));
+                return true;
+            }
+
             Push(stack, ref stackCount, ResourceAtEntity(world, targetId, a));
             return true;
         }

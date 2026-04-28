@@ -53,13 +53,20 @@ public sealed record KernelStartRequest
         string domainName,
         StartupSeedPolicy seedPolicy,
         KernelFunctionProfile functionProfile,
-        bool traceEnabled = false)
+        bool traceEnabled = false,
+        string? configFilePath = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainName);
+        if (configFilePath is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(configFilePath);
+        }
+
         DomainName = domainName;
         SeedPolicy = seedPolicy;
         FunctionProfile = functionProfile;
         TraceEnabled = traceEnabled;
+        ConfigFilePath = configFilePath;
     }
 
     public string DomainName { get; }
@@ -69,6 +76,8 @@ public sealed record KernelStartRequest
     public KernelFunctionProfile FunctionProfile { get; }
 
     public bool TraceEnabled { get; }
+
+    public string? ConfigFilePath { get; }
 }
 
 public readonly record struct DomainStartupSeedRequest

@@ -10,6 +10,10 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
     internal int[] ProcessEntityCooldownTicks = [];
     internal int[] ProcessTargetKindIds = [];
     internal int[] ProcessTargetModes = [];
+    internal int[] ProcessResourceSupplyRoleCodes = [];
+    internal int[] ProcessNamedProviderKindIds = [];
+    internal int[] ProcessNamedProviderAttributeIds = [];
+    internal int[] ProcessWorkCommitmentTicks = [];
     internal int[] ProcessPreconditionStarts = [];
     internal int[] ProcessPreconditionCounts = [];
     internal int[] ProcessExpressionStarts = [];
@@ -119,6 +123,10 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
         ProcessEntityCooldownTicks = new int[processCapacity + 1];
         ProcessTargetKindIds = new int[processCapacity + 1];
         ProcessTargetModes = new int[processCapacity + 1];
+        ProcessResourceSupplyRoleCodes = new int[processCapacity + 1];
+        ProcessNamedProviderKindIds = new int[processCapacity + 1];
+        ProcessNamedProviderAttributeIds = new int[processCapacity + 1];
+        ProcessWorkCommitmentTicks = new int[processCapacity + 1];
         ProcessPreconditionStarts = new int[processCapacity + 1];
         ProcessPreconditionCounts = new int[processCapacity + 1];
         ProcessExpressionStarts = new int[processCapacity + 1];
@@ -208,5 +216,5 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Processes;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 }

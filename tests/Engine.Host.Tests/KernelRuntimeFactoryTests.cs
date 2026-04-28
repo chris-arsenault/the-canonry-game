@@ -3,6 +3,7 @@ namespace Engine.Host.Tests;
 using Engine.Domain.Config;
 using Engine.Domain.Startup;
 using Engine.Host;
+using Engine.Kernel;
 
 using IceRemembers;
 
@@ -39,8 +40,211 @@ public sealed class KernelRuntimeFactoryTests
         Assert.Throws<KeyNotFoundException>(() => second.Host.DomainIds.KindIdOf("runtime_only_kind"));
     }
 
+    [Fact]
+    public void Start_LoadsKernelTuningFromJsonConfigFile()
+    {
+        var path = WriteTempConfig(
+            ".json",
+            """
+            {
+              "kernelTuning": {
+                "programs": {
+                  "generators": {
+                    "retryFireTargets": false
+                  },
+                  "processes": {
+                    "resourceSupplyModel": "named_provider_no_hex",
+                    "workCommitments": "pilot"
+                  },
+                  "planning": {
+                    "defaultPlanner": "opportunity",
+                    "opportunityTargetCapacity": 3,
+                    "kindPlannerOverrides": [
+                      { "kindId": 1, "planner": "goap" }
+                    ],
+                    "entityPlannerOverrides": [
+                      { "entityId": 2, "planner": "opportunity" }
+                    ]
+                  },
+                  "pressures": {
+                    "enabled": false
+                  },
+                  "upkeep": {
+                    "agingModel": "late_life"
+                  }
+                }
+              }
+            }
+            """);
+
+        try
+        {
+            var options = StartAndReadSavedOptions(path);
+
+            Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
+            Assert.Equal(ProcessResourceSupplyModelCodes.NamedProviderNoHex, options.KernelTuning.Programs.Processes.ResourceSupplyModelCode);
+            Assert.Equal(ProcessWorkCommitmentCodes.Pilot, options.KernelTuning.Programs.Processes.WorkCommitmentCode);
+            Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
+            Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
+            Assert.Contains(options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
+                item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
+            Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
+                item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
+            Assert.False(options.KernelTuning.Programs.Pressures.Enabled);
+            Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Start_UsesPressureDisabledKernelTuningByDefault()
+    {
+        var domain = new CountingDomainModule();
+        var factory = KernelRuntimeFactory.ForDomains(domain);
+        using var runtime = factory.Start(Request(domain.Name, seed: 100));
+        using var stream = new MemoryStream();
+
+        runtime.Host.SaveKernelState(stream);
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+
+        Assert.False(loaded.Options.KernelTuning.Programs.Pressures.Enabled);
+    }
+
+    [Fact]
+    public void Start_CanEnablePressureTuningFromJsonConfigFile()
+    {
+        var path = WriteTempConfig(
+            ".json",
+            """
+            {
+              "kernelTuning": {
+                "programs": {
+                  "pressures": {
+                    "enabled": true
+                  }
+                }
+              }
+            }
+            """);
+
+        try
+        {
+            var options = StartAndReadSavedOptions(path);
+
+            Assert.True(options.KernelTuning.Programs.Pressures.Enabled);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Start_LoadsKernelTuningFromTomlConfigFile()
+    {
+        var path = WriteTempConfig(
+            ".toml",
+            """
+            [kernel_tuning.programs.generators]
+            retry_fire_targets = false
+
+            [kernel_tuning.programs.processes]
+            resource_supply_model = "named_provider_no_hex"
+            work_commitments = "pilot"
+
+            [kernel_tuning.programs.planning]
+            default_planner = "opportunity"
+            opportunity_target_capacity = 3
+
+            [kernel_tuning.programs.planning.kind.1]
+            planner = "goap"
+
+            [kernel_tuning.programs.planning.entity.2]
+            planner = "opportunity"
+
+            [kernel_tuning.programs.pressures]
+            enabled = false
+
+            [kernel_tuning.programs.upkeep]
+            aging_model = "late_life"
+            """);
+
+        try
+        {
+            var options = StartAndReadSavedOptions(path);
+
+            Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
+            Assert.Equal(ProcessResourceSupplyModelCodes.NamedProviderNoHex, options.KernelTuning.Programs.Processes.ResourceSupplyModelCode);
+            Assert.Equal(ProcessWorkCommitmentCodes.Pilot, options.KernelTuning.Programs.Processes.WorkCommitmentCode);
+            Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
+            Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
+            Assert.Contains(options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
+                item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
+            Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
+                item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
+            Assert.False(options.KernelTuning.Programs.Pressures.Enabled);
+            Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(".yaml")]
+    [InlineData(".yml")]
+    public void Start_RejectsYamlKernelConfigFile(string extension)
+    {
+        var path = WriteTempConfig(extension, "kernel_tuning: {}\n");
+
+        try
+        {
+            var domain = new CountingDomainModule();
+            var factory = KernelRuntimeFactory.ForDomains(domain);
+            var request = new KernelStartRequest(
+                domain.Name,
+                StartupSeedPolicy.Requested(100),
+                KernelFunctionProfile.Batch,
+                configFilePath: path);
+
+            Assert.Throws<InvalidOperationException>(() => factory.Start(request));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static KernelStartRequest Request(string domainName, int seed) =>
         new(domainName, StartupSeedPolicy.Requested(seed), KernelFunctionProfile.Batch);
+
+    private static SimulationOptions StartAndReadSavedOptions(string configFilePath)
+    {
+        var domain = new CountingDomainModule();
+        var factory = KernelRuntimeFactory.ForDomains(domain);
+        using var runtime = factory.Start(new KernelStartRequest(
+            domain.Name,
+            StartupSeedPolicy.Requested(100),
+            KernelFunctionProfile.Batch,
+            configFilePath: configFilePath));
+        using var stream = new MemoryStream();
+        runtime.Host.SaveKernelState(stream);
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+        return loaded.Options;
+    }
+
+    private static string WriteTempConfig(string extension, string text)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}{extension}");
+        File.WriteAllText(path, text);
+        return path;
+    }
 
     private sealed class CountingDomainModule : IKernelDomainModule
     {

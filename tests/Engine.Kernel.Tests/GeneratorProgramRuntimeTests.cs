@@ -166,6 +166,53 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void RetryFireTargets_WhenEnabled_TriesAnotherTargetAfterFireFailure()
+    {
+        var simulation = CreateSimulation(seed: 1, retryFireTargets: true);
+        var firstTarget = CreateSparseCoverageTarget(simulation);
+        var secondTarget = CreateViableCoverageTarget(simulation);
+        RegisterCoverageGenerator(simulation);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var events = ReadAvailableEvents(simulation, cursor);
+        var evaluated = Assert.Single(events
+            .Where(evt => evt.EventType == KernelEventType.GeneratorEvaluated)
+            .Select(evt => evt.AsGeneratorEvaluated()));
+        Assert.Equal(GeneratorStatusCodes.Fired, evaluated.StatusCode);
+        Assert.Equal(secondTarget, evaluated.SelectedTargetEntityId);
+        Assert.Equal(1, evaluated.FailedFireCount);
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.GeneratorFired &&
+            evt.AsGeneratorFired().TargetEntityId == secondTarget);
+        Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(firstTarget + 2));
+        Assert.Equal(4, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void RetryFireTargets_WhenDisabled_StopsAfterFirstFireFailure()
+    {
+        var simulation = CreateSimulation(seed: 1, retryFireTargets: false);
+        CreateSparseCoverageTarget(simulation);
+        CreateViableCoverageTarget(simulation);
+        RegisterCoverageGenerator(simulation);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var events = ReadAvailableEvents(simulation, cursor);
+        var evaluated = Assert.Single(events
+            .Where(evt => evt.EventType == KernelEventType.GeneratorEvaluated)
+            .Select(evt => evt.AsGeneratorEvaluated()));
+        Assert.Equal(GeneratorStatusCodes.FireFailed, evaluated.StatusCode);
+        Assert.Equal(1, evaluated.SelectedTargetEntityId);
+        Assert.Equal(1, evaluated.FailedFireCount);
+        Assert.DoesNotContain(events, evt => evt.EventType == KernelEventType.GeneratorFired);
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
     public void Fire_AttributesCreatedEntityAndRelationshipEventsToGeneratorContext()
     {
         var simulation = CreateSimulation();
@@ -183,40 +230,71 @@ public sealed class GeneratorProgramRuntimeTests
         var sawCreated = false;
         var sawAttribute = false;
         var sawRelationship = false;
-        while (simulation.Events.TryRead(cursor, out var read))
+        foreach (var evt in ReadAvailableEvents(simulation, cursor))
         {
-            if (read.Event.EventType == KernelEventType.EntityCreated)
-            {
-                var createdEvent = read.Event.AsEntityCreated();
-                if (createdEvent.EntityId == created)
-                {
-                    Assert.Equal(simulation.GeneratorSourceCodeId, createdEvent.SourceCodeId);
-                    sawCreated = true;
-                }
-            }
-            else if (read.Event.EventType == KernelEventType.AttributeChanged)
-            {
-                var attribute = read.Event.AsAttributeChanged();
-                if (attribute.EntityId == created && attribute.AttributeId == CreatedAttributeId)
-                {
-                    Assert.Equal(simulation.GeneratorSourceCodeId, attribute.SourceCodeId);
-                    sawAttribute = true;
-                }
-            }
-            else if (read.Event.EventType == KernelEventType.RelationshipChanged)
-            {
-                var relationship = read.Event.AsRelationshipChanged();
-                if (relationship.SourceEntityId == created && relationship.TargetEntityId == target)
-                {
-                    Assert.Equal(simulation.GeneratorSourceCodeId, relationship.SourceCodeId);
-                    sawRelationship = true;
-                }
-            }
+            sawCreated |= IsGeneratorCreatedEntityEvent(simulation, evt, created);
+            sawAttribute |= IsGeneratorAttributeEvent(simulation, evt, created);
+            sawRelationship |= IsGeneratorRelationshipEvent(simulation, evt, created, target);
         }
 
         Assert.True(sawCreated);
         Assert.True(sawAttribute);
         Assert.True(sawRelationship);
+    }
+
+    private static bool IsGeneratorCreatedEntityEvent(Simulation simulation, KernelEvent evt, int created)
+    {
+        if (evt.EventType != KernelEventType.EntityCreated)
+        {
+            return false;
+        }
+
+        var createdEvent = evt.AsEntityCreated();
+        if (createdEvent.EntityId != created)
+        {
+            return false;
+        }
+
+        Assert.Equal(simulation.GeneratorSourceCodeId, createdEvent.SourceCodeId);
+        return true;
+    }
+
+    private static bool IsGeneratorAttributeEvent(Simulation simulation, KernelEvent evt, int created)
+    {
+        if (evt.EventType != KernelEventType.AttributeChanged)
+        {
+            return false;
+        }
+
+        var attribute = evt.AsAttributeChanged();
+        if (attribute.EntityId != created || attribute.AttributeId != CreatedAttributeId)
+        {
+            return false;
+        }
+
+        Assert.Equal(simulation.GeneratorSourceCodeId, attribute.SourceCodeId);
+        return true;
+    }
+
+    private static bool IsGeneratorRelationshipEvent(
+        Simulation simulation,
+        KernelEvent evt,
+        int created,
+        int target)
+    {
+        if (evt.EventType != KernelEventType.RelationshipChanged)
+        {
+            return false;
+        }
+
+        var relationship = evt.AsRelationshipChanged();
+        if (relationship.SourceEntityId != created || relationship.TargetEntityId != target)
+        {
+            return false;
+        }
+
+        Assert.Equal(simulation.GeneratorSourceCodeId, relationship.SourceCodeId);
+        return true;
     }
 
     [Fact]
@@ -320,8 +398,53 @@ public sealed class GeneratorProgramRuntimeTests
             replaceExistingOutgoing: 0);
     }
 
+    private static void RegisterCoverageGenerator(Simulation simulation)
+    {
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        simulation.Generators.AddProduced(
+            slot,
+            CreatedRef,
+            CreatedKindId,
+            CreatedSubtypeId,
+            createIfMissing: 1,
+            hasQuery: 0,
+            queryAdjacentToTarget: 0,
+            queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
+            physicalPlacementCode: GeneratorPlacementCodes.On,
+            semanticPlacementCode: GeneratorPlacementCodes.Near,
+            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            createChance: 1f,
+            coverageModeCode: GeneratorCoverageModeCodes.CreateNew,
+            coverageSourceRefCode: 0,
+            coverageDesiredCellCount: 2,
+            coverageMinimumCellCount: 2,
+            coverageMinimumSourceRemainingCellCount: 0,
+            coverageRespectTerrainBoundaries: 1,
+            coverageTransformTerrainId: 0);
+    }
+
     private static int CreateTarget(Simulation simulation) =>
-        simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 0, 0, 0, tick: 0);
+        CreateTarget(simulation, physicalQ: 0, physicalR: 0);
+
+    private static int CreateTarget(Simulation simulation, int physicalQ, int physicalR) =>
+        simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, physicalQ, physicalR, 0, 0, 0, tick: 0);
+
+    private static int CreateSparseCoverageTarget(Simulation simulation)
+    {
+        simulation.World.SetMapRadius(20);
+        simulation.RegisterTerrain(1, boundaryGroupId: 1);
+        simulation.CreateCell(0, 0, terrainId: 1, ownerEntityId: 0);
+        return CreateTarget(simulation, physicalQ: 0, physicalR: 0);
+    }
+
+    private static int CreateViableCoverageTarget(Simulation simulation)
+    {
+        simulation.CreateCell(10, 0, terrainId: 1, ownerEntityId: 0);
+        simulation.CreateCell(10, 1, terrainId: 1, ownerEntityId: 0);
+        simulation.CreateCell(11, 0, terrainId: 1, ownerEntityId: 0);
+        return CreateTarget(simulation, physicalQ: 10, physicalR: 0);
+    }
 
     private static void SeedMap(Simulation simulation)
     {
@@ -357,7 +480,7 @@ public sealed class GeneratorProgramRuntimeTests
         return result.ToArray();
     }
 
-    private static Simulation CreateSimulation() => new(new SimulationOptions
+    private static Simulation CreateSimulation(int seed = 1, bool retryFireTargets = true) => new(new SimulationOptions
     {
         EntityCapacity = 16,
         RelationshipCapacity = 16,
@@ -370,6 +493,16 @@ public sealed class GeneratorProgramRuntimeTests
         RelationshipKindIdCapacity = 64,
         TerrainIdCapacity = 8,
         SystemCapacity = 16,
-        Seed = 1,
+        KernelTuning = new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Generators = new GeneratorProgramTuningOptions
+                {
+                    RetryFireTargets = retryFireTargets,
+                },
+            },
+        },
+        Seed = seed,
     });
 }

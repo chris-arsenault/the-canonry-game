@@ -112,6 +112,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _refCodes => _scratch.RefCodes;
     private int[] _refEntityIds => _scratch.RefEntityIds;
     private int[] _createdEntityIds => _scratch.CreatedEntityIds;
+    private int[] _retryRejectedTargetIds => _scratch.RetryRejectedTargetIds;
     private ref int _generatorCount => ref Data.GeneratorCount;
     private ref int _subtypeCount => ref Data.SubtypeCount;
     private ref int _relationshipKindFilterCount => ref Data.RelationshipKindFilterCount;
@@ -126,7 +127,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private ref int _openProducedSlot => ref Data.OpenProducedSlot;
 
     public GeneratorProgramRuntime(GeneratorProgramData data, GeneratorProgramState state)
-        : this(data, state, CreateScratch(data))
+        : this(data, state, CreateScratch(data), new KernelProgramTuningOptions())
     {
     }
 
@@ -134,24 +135,41 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         GeneratorProgramData data,
         GeneratorProgramState state,
         GeneratorProgramScratch scratch)
+        : this(data, state, scratch, new KernelProgramTuningOptions())
+    {
+    }
+
+    internal GeneratorProgramRuntime(
+        GeneratorProgramData data,
+        GeneratorProgramState state,
+        GeneratorProgramScratch scratch,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
         _scratch = scratch;
+        Tuning = tuning;
     }
 
     private static GeneratorProgramScratch CreateScratch(GeneratorProgramData data)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
-        return new GeneratorProgramScratch(data.GeneratorIds.Length - 1, MaxScratchCells, MaxResolvedReferences);
+        return new GeneratorProgramScratch(
+            data.GeneratorIds.Length - 1,
+            MaxScratchCells,
+            MaxResolvedReferences,
+            MaxScratchCells);
     }
 
     public GeneratorProgramData Data { get; }
 
     public GeneratorProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => _generatorCount;
 
@@ -595,6 +613,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
     private bool TryFireEligibleGenerator(Simulation simulation, int selectedGeneratorSlot, int tick)
     {
+        return Tuning.Generators.RetryFireTargets
+            ? TryFireEligibleGeneratorWithRetry(simulation, selectedGeneratorSlot, tick)
+            : TryFireEligibleGeneratorOnce(simulation, selectedGeneratorSlot, tick);
+    }
+
+    private bool TryFireEligibleGeneratorOnce(Simulation simulation, int selectedGeneratorSlot, int tick)
+    {
         var targetId = SelectEligibleTarget(simulation, selectedGeneratorSlot);
         if (targetId == 0)
         {
@@ -614,6 +639,43 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _pulseFailedFireCounts[selectedGeneratorSlot]++;
         _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
         return false;
+    }
+
+    private bool TryFireEligibleGeneratorWithRetry(Simulation simulation, int selectedGeneratorSlot, int tick)
+    {
+        var rejectedTargetCount = 0;
+        while (true)
+        {
+            var targetId = SelectEligibleTarget(
+                simulation,
+                selectedGeneratorSlot,
+                _retryRejectedTargetIds,
+                rejectedTargetCount);
+            if (targetId == 0)
+            {
+                _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
+                return false;
+            }
+
+            _pulseSelectedTargetIds[selectedGeneratorSlot] = targetId;
+            if (Fire(simulation, selectedGeneratorSlot, targetId, tick))
+            {
+                _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
+                MarkEligibleGeneratorsNotSelected();
+                PublishDueGeneratorStats(simulation, tick);
+                return true;
+            }
+
+            _pulseFailedFireCounts[selectedGeneratorSlot]++;
+            if (rejectedTargetCount >= _retryRejectedTargetIds.Length)
+            {
+                _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
+                return false;
+            }
+
+            _retryRejectedTargetIds[rejectedTargetCount] = targetId;
+            rejectedTargetCount++;
+        }
     }
 
     private void MarkEligibleGeneratorsNotSelected()
@@ -730,6 +792,91 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         }
 
         return 0;
+    }
+
+    private int SelectEligibleTarget(
+        Simulation simulation,
+        int generatorSlot,
+        int[] rejectedTargetIds,
+        int rejectedTargetCount)
+    {
+        if (rejectedTargetCount == 0)
+        {
+            return SelectEligibleTarget(simulation, generatorSlot);
+        }
+
+        var candidateCount = CountEligibleTargetsExcluding(
+            simulation.World,
+            generatorSlot,
+            rejectedTargetIds,
+            rejectedTargetCount);
+        if (candidateCount == 0)
+        {
+            return 0;
+        }
+
+        var selectedOrdinal = simulation.NextInt(candidateCount);
+        var seen = 0;
+        var world = simulation.World;
+        global::System.Span<int> refCodes = _refCodes;
+        global::System.Span<int> refEntityIds = _refEntityIds;
+        for (var entityId = world.FirstEntityOfKind(_targetKindIds[generatorSlot]);
+             entityId > 0;
+             entityId = world.NextEntityOfKind(entityId))
+        {
+            if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
+                !TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+            {
+                continue;
+            }
+
+            if (seen == selectedOrdinal)
+            {
+                return entityId;
+            }
+
+            seen++;
+        }
+
+        return 0;
+    }
+
+    private int CountEligibleTargetsExcluding(
+        WorldState world,
+        int generatorSlot,
+        int[] rejectedTargetIds,
+        int rejectedTargetCount)
+    {
+        var count = 0;
+        global::System.Span<int> refCodes = _refCodes;
+        global::System.Span<int> refEntityIds = _refEntityIds;
+        for (var entityId = world.FirstEntityOfKind(_targetKindIds[generatorSlot]);
+             entityId > 0;
+             entityId = world.NextEntityOfKind(entityId))
+        {
+            if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
+                !TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    private static bool RejectedTargetContains(int entityId, int[] rejectedTargetIds, int rejectedTargetCount)
+    {
+        for (var i = 0; i < rejectedTargetCount; i++)
+        {
+            if (rejectedTargetIds[i] == entityId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool TargetPasses(

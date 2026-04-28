@@ -62,6 +62,7 @@ public sealed class KindConfig
     public string? HealthAttribute { get; init; }
     public IReadOnlyList<StandingDriveConfig> StandingDrives { get; init; } = [];
     public IReadOnlyList<RecoveryHostQueryConfig> HexToHealthRecoveryHosts { get; init; } = [];
+    public IReadOnlyList<NamedProviderRecoveryHostConfig> NamedProviderRecoveryHosts { get; init; } = [];
 
     /// <summary>
     /// Design-time prose: what this kind represents in the world — distinct from
@@ -88,6 +89,16 @@ public sealed class KindConfig
 public sealed class RecoveryHostQueryConfig
 {
     public required IReadOnlySet<EntityKind> AnyOfKinds { get; init; }
+}
+
+/// <summary>
+/// Alternate recovery provider used by the no-ambient-resource supply model.
+/// The provider's named attribute is consumed directly into the actor's health.
+/// </summary>
+public sealed class NamedProviderRecoveryHostConfig
+{
+    public required EntityKind Kind { get; init; }
+    public required string AttributeName { get; init; }
 }
 
 public enum PrimaryPlane

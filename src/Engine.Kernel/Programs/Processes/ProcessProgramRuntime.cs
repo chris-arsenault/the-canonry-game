@@ -19,6 +19,8 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private const float StandardNeedCritical = 15f;
     private const int PreconditionFailed = 0;
     private const int PreconditionPassed = 1;
+    private const int WorkCommitmentKey = 1;
+    private const float NamedProviderRecoveryUnit = 5f;
 
     private readonly ProcessProgramScratch _scratch;
     private int[] _processKindIds => Data.ProcessKindIds;
@@ -27,6 +29,10 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private int[] _processEntityCooldownTicks => Data.ProcessEntityCooldownTicks;
     private int[] _processTargetKindIds => Data.ProcessTargetKindIds;
     private int[] _processTargetModes => Data.ProcessTargetModes;
+    private int[] _processResourceSupplyRoleCodes => Data.ProcessResourceSupplyRoleCodes;
+    private int[] _processNamedProviderKindIds => Data.ProcessNamedProviderKindIds;
+    private int[] _processNamedProviderAttributeIds => Data.ProcessNamedProviderAttributeIds;
+    private int[] _processWorkCommitmentTicks => Data.ProcessWorkCommitmentTicks;
     private int[] _processPreconditionStarts => Data.ProcessPreconditionStarts;
     private int[] _processPreconditionCounts => Data.ProcessPreconditionCounts;
     private int[] _processExpressionStarts => Data.ProcessExpressionStarts;
@@ -128,6 +134,11 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanProcessSlots => State.CommittedPlanProcessSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
+    private PrimitiveIntTable _workCommitmentProcessSlots => State.WorkCommitmentProcessSlots;
+    private PrimitiveIntTable _workCommitmentTargetIds => State.WorkCommitmentTargetIds;
+    private PrimitiveIntTable _workCommitmentRemainingTicks => State.WorkCommitmentRemainingTicks;
+    private PrimitiveIntTable _opportunityReservationTicks => State.OpportunityReservationTicks;
+    private PrimitiveIntTable _opportunityReservationCounts => State.OpportunityReservationCounts;
     private ref EpochStampSet _processVisited => ref _scratch.ProcessVisited;
     private ref int _processCount => ref Data.ProcessCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;
@@ -155,18 +166,31 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         ProcessProgramData data,
         ProcessProgramState state,
         ProcessProgramScratch scratch)
+        : this(data, state, scratch, new KernelProgramTuningOptions())
+    {
+    }
+
+    internal ProcessProgramRuntime(
+        ProcessProgramData data,
+        ProcessProgramState state,
+        ProcessProgramScratch scratch,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
         _scratch = scratch;
+        Tuning = tuning;
     }
 
     public ProcessProgramData Data { get; }
 
     public ProcessProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => _processCount;
 
@@ -178,13 +202,21 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         int cooldownTicks = 0,
         int entityCooldownTicks = 0,
         int targetMode = ProcessTargetModeCodes.Self,
-        int targetKindId = 0)
+        int targetKindId = 0,
+        int resourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.None,
+        int namedProviderKindId = 0,
+        int namedProviderAttributeId = 0,
+        int workCommitmentTicks = 0)
     {
         ValidatePositive(kindId);
         ValidatePositive(processId);
         ValidatePositive(targetMode);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(cooldownTicks);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(entityCooldownTicks);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(resourceSupplyRoleCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(namedProviderKindId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(namedProviderAttributeId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(workCommitmentTicks);
         if (_processCount + 1 >= _processKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -198,6 +230,10 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         _processEntityCooldownTicks[slot] = entityCooldownTicks;
         _processTargetModes[slot] = targetMode;
         _processTargetKindIds[slot] = targetKindId;
+        _processResourceSupplyRoleCodes[slot] = resourceSupplyRoleCode;
+        _processNamedProviderKindIds[slot] = namedProviderKindId;
+        _processNamedProviderAttributeIds[slot] = namedProviderAttributeId;
+        _processWorkCommitmentTicks[slot] = workCommitmentTicks;
         _processPreconditionStarts[slot] = _preconditionCount + 1;
         _processExpressionStarts[slot] = _expressionCount + 1;
         _processRewardExpressionStarts[slot] = _rewardExpressionCount + 1;
@@ -519,9 +555,15 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
 
         var world = simulation.World;
         var kindId = world.EntityKindId(entityId);
-        if (HasProcessObjectives(kindId))
+        if (TryRunWorkCommitment(simulation, entityId, kindId, tick))
         {
-            TickEntityPlanned(simulation, entityId, kindId, tick);
+            return;
+        }
+
+        var plannerKindCode = simulation.Planners.PlannerKindFor(kindId, entityId);
+        if (plannerKindCode != PlannerKindCodes.Goap || HasProcessObjectives(kindId))
+        {
+            TickEntityPlanned(simulation, entityId, kindId, plannerKindCode, tick);
             return;
         }
 
@@ -622,8 +664,93 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         ExecuteProcess(simulation, entityId, selectedTargetId, selectedProcessSlot, tick);
         RecordAction(entityId, processId, tick);
         ApplyProcessCooldowns(simulation, entityId, selectedProcessSlot, processId, tick);
+        StartWorkCommitmentIfNeeded(entityId, selectedTargetId, selectedProcessSlot);
         WriteProcessEvaluated(simulation, tick, entityId, kindId, processId, candidateCount, KernelEventState.Succeeded);
         WriteProcessExecuted(simulation, tick, entityId, selectedTargetId, kindId, processId);
+    }
+
+    private bool TryRunWorkCommitment(Simulation simulation, int entityId, int kindId, int tick)
+    {
+        if (Tuning.Processes.WorkCommitmentCode != ProcessWorkCommitmentCodes.Pilot)
+        {
+            return false;
+        }
+
+        var processSlot = _workCommitmentProcessSlots.GetOrDefault(entityId, WorkCommitmentKey);
+        var targetId = _workCommitmentTargetIds.GetOrDefault(entityId, WorkCommitmentKey);
+        var remainingTicks = _workCommitmentRemainingTicks.GetOrDefault(entityId, WorkCommitmentKey);
+        if (processSlot <= 0 || targetId <= 0 || remainingTicks <= 0)
+        {
+            ClearWorkCommitment(entityId);
+            return false;
+        }
+
+        if (!WorkCommitmentStillValid(simulation, entityId, kindId, processSlot, targetId, tick))
+        {
+            ClearWorkCommitment(entityId);
+            return false;
+        }
+
+        var processId = _processIds[processSlot];
+        ExecuteProcess(simulation, entityId, targetId, processSlot, tick);
+        RecordAction(entityId, processId, tick);
+        if (remainingTicks <= 1)
+        {
+            ClearWorkCommitment(entityId);
+        }
+        else
+        {
+            _workCommitmentRemainingTicks.Set(entityId, WorkCommitmentKey, remainingTicks - 1);
+        }
+
+        WriteProcessEvaluated(simulation, tick, entityId, kindId, processId, 1, KernelEventState.Succeeded);
+        WriteProcessExecuted(simulation, tick, entityId, targetId, kindId, processId);
+        return true;
+    }
+
+    private bool WorkCommitmentStillValid(
+        Simulation simulation,
+        int entityId,
+        int kindId,
+        int processSlot,
+        int targetId,
+        int tick)
+    {
+        return _processEnabled[processSlot] &&
+               _processKindIds[processSlot] == kindId &&
+               ProcessEnabledBySupplyModel(processSlot) &&
+               simulation.World.EntityIsActive(targetId) &&
+               TargetEligibleForProcess(simulation.World, entityId, processSlot, targetId, targetId) &&
+               PreconditionsResult(simulation, processSlot, entityId, targetId, tick) == PreconditionPassed;
+    }
+
+    private void StartWorkCommitmentIfNeeded(
+        int entityId,
+        int targetId,
+        int processSlot)
+    {
+        if (Tuning.Processes.WorkCommitmentCode != ProcessWorkCommitmentCodes.Pilot)
+        {
+            return;
+        }
+
+        var workTicks = _processWorkCommitmentTicks[processSlot];
+        if (workTicks <= 1)
+        {
+            ClearWorkCommitment(entityId);
+            return;
+        }
+
+        _workCommitmentProcessSlots.Set(entityId, WorkCommitmentKey, processSlot);
+        _workCommitmentTargetIds.Set(entityId, WorkCommitmentKey, targetId);
+        _workCommitmentRemainingTicks.Set(entityId, WorkCommitmentKey, workTicks - 1);
+    }
+
+    private void ClearWorkCommitment(int entityId)
+    {
+        _workCommitmentProcessSlots.Set(entityId, WorkCommitmentKey, 0);
+        _workCommitmentTargetIds.Set(entityId, WorkCommitmentKey, 0);
+        _workCommitmentRemainingTicks.Set(entityId, WorkCommitmentKey, 0);
     }
 
     private void ApplyProcessCooldowns(
@@ -649,8 +776,30 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private bool ProcessCanRunForEntity(int processSlot, int kindId, int entityId, int tick)
     {
         return _processEnabled[processSlot] &&
+               ProcessEnabledBySupplyModel(processSlot) &&
                _processKindIds[processSlot] == kindId &&
                tick >= _cooldowns.GetOrDefault(entityId, _processIds[processSlot]);
+    }
+
+    private bool ProcessEnabledBySupplyModel(int processSlot)
+    {
+        return Tuning.Processes.ResourceSupplyModelCode == ProcessResourceSupplyModelCodes.AmbientHex ||
+               _processResourceSupplyRoleCodes[processSlot] != ProcessResourceSupplyRoleCodes.HexResourceProducer;
+    }
+
+    private bool NamedProviderRecoveryActive(int processSlot)
+    {
+        return Tuning.Processes.ResourceSupplyModelCode == ProcessResourceSupplyModelCodes.NamedProviderNoHex &&
+               _processResourceSupplyRoleCodes[processSlot] == ProcessResourceSupplyRoleCodes.HexHealthRecovery &&
+               _processNamedProviderKindIds[processSlot] > 0 &&
+               _processNamedProviderAttributeIds[processSlot] > 0;
+    }
+
+    private int EffectiveTargetKindId(int processSlot)
+    {
+        return NamedProviderRecoveryActive(processSlot)
+            ? _processNamedProviderKindIds[processSlot]
+            : _processTargetKindIds[processSlot];
     }
 
     private bool HasProcessObjectives(int kindId)
@@ -666,12 +815,12 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         return false;
     }
 
-    private void TickEntityPlanned(Simulation simulation, int entityId, int kindId, int tick)
+    private void TickEntityPlanned(Simulation simulation, int entityId, int kindId, int plannerKindCode, int tick)
     {
         var decision = simulation.Planners.Plan(
             simulation,
             new PlanningRequest(
-                simulation.Planners.PlannerKindCode,
+                plannerKindCode,
                 ActionFamilyCodes.Process,
                 entityId,
                 kindId,

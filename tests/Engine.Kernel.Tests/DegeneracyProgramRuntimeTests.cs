@@ -61,41 +61,11 @@ public sealed class DegeneracyProgramRuntimeTests
 
         var firstFactionId = simulation.CreateEntity(factionKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
         var secondFactionId = simulation.CreateEntity(factionKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.CreateRelationship(
-            relationshipKindId,
-            polarityCode: RelationshipPolarityCodes.Positive,
-            settlements[0],
-            firstFactionId,
-            1f,
-            tick: 0);
-        simulation.CreateRelationship(
-            relationshipKindId,
-            polarityCode: RelationshipPolarityCodes.Positive,
-            settlements[1],
-            firstFactionId,
-            1f,
-            tick: 0);
-        simulation.CreateRelationship(
-            relationshipKindId,
-            polarityCode: RelationshipPolarityCodes.Positive,
-            settlements[2],
-            firstFactionId,
-            1f,
-            tick: 0);
-        simulation.CreateRelationship(
-            relationshipKindId,
-            polarityCode: RelationshipPolarityCodes.Positive,
-            settlements[3],
-            secondFactionId,
-            1f,
-            tick: 0);
-        simulation.CreateRelationship(
-            relationshipKindId,
-            polarityCode: RelationshipPolarityCodes.Positive,
-            settlements[4],
-            secondFactionId,
-            1f,
-            tick: 0);
+        CreatePositiveRelationship(simulation, relationshipKindId, settlements[0], firstFactionId);
+        CreatePositiveRelationship(simulation, relationshipKindId, settlements[1], firstFactionId);
+        CreatePositiveRelationship(simulation, relationshipKindId, settlements[2], firstFactionId);
+        CreatePositiveRelationship(simulation, relationshipKindId, settlements[3], secondFactionId);
+        CreatePositiveRelationship(simulation, relationshipKindId, settlements[4], secondFactionId);
         simulation.Degeneracy.RegisterDetector(
             detectorId,
             DegeneracyMetricCodes.RelationshipEndpointDominanceRatio,
@@ -152,6 +122,21 @@ public sealed class DegeneracyProgramRuntimeTests
         Assert.Equal(detectorId, degeneracy.DetectorId);
         Assert.Equal(DegeneracySeverityCodes.Warning, degeneracy.SeverityCode);
         Assert.Equal(reasonCodeId, degeneracy.ReasonCodeId);
+    }
+
+    private static void CreatePositiveRelationship(
+        Simulation simulation,
+        int relationshipKindId,
+        int sourceEntityId,
+        int targetEntityId)
+    {
+        simulation.CreateRelationship(
+            relationshipKindId,
+            polarityCode: RelationshipPolarityCodes.Positive,
+            sourceEntityId,
+            targetEntityId,
+            1f,
+            tick: 0);
     }
 
     private static DegeneracyDetectedKernelEvent ReadDegeneracyEvent(

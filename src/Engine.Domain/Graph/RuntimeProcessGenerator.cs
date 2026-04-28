@@ -51,10 +51,23 @@ public static class RuntimeProcessGenerator
                 SemanticVerbRole.Action => BuildAction(verb, ownerKind, kindConfig, flowsByVerb),
                 _ => null,
             };
-            if (process is not null) processes.Add(process);
+            if (process is not null)
+            {
+                ApplyProcessMetadata(process, verb);
+                processes.Add(process);
+            }
         }
 
         return processes;
+    }
+
+    private static void ApplyProcessMetadata(ProcessDefinition process, SemanticVerbConfig verb)
+    {
+        process.WorkCommitmentTicks = verb.Id switch
+        {
+            "settlement_grow" or "faction_organize" or "region_fortify" => 3,
+            _ => 0,
+        };
     }
 
     private static ProcessDefinition BuildMobility(
@@ -234,13 +247,14 @@ public static class RuntimeProcessGenerator
         var recoveryHosts = kindConfig.HexToHealthRecoveryHosts;
 
         return recoveryHosts.Count == 0
-            ? BuildSelfDirectedHexToHealth(verb, ownerKind, healthAttr, resource)
+            ? BuildSelfDirectedHexToHealth(verb, ownerKind, kindConfig, healthAttr, resource)
             : BuildHostedHexToHealth(verb, ownerKind, kindConfig, healthAttr, resource, recoveryHosts);
     }
 
     private static ProcessDefinition BuildSelfDirectedHexToHealth(
         SemanticVerbConfig verb,
         EntityKind ownerKind,
+        KindConfig kindConfig,
         string healthAttr,
         ResourceType resource)
     {
@@ -270,6 +284,8 @@ public static class RuntimeProcessGenerator
         process.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
+        process.ResourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.HexHealthRecovery;
+        ApplyNamedProviderRecovery(process, kindConfig);
         return process;
     }
 
@@ -312,6 +328,8 @@ public static class RuntimeProcessGenerator
         process.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
+        process.ResourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.HexHealthRecovery;
+        ApplyNamedProviderRecovery(process, kindConfig);
         foreach (var hostQuery in recoveryHosts)
         {
             foreach (var hostKind in hostQuery.AnyOfKinds)
@@ -355,7 +373,22 @@ public static class RuntimeProcessGenerator
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(sourceAttr, ownerKind));
         process.Writes.Add(AttributeRef.Resource(resource.ToDomainName()));
+        process.ResourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.HexResourceProducer;
         return process;
+    }
+
+    private static void ApplyNamedProviderRecovery(ProcessDefinition process, KindConfig kindConfig)
+    {
+        if (kindConfig.NamedProviderRecoveryHosts.Count == 0)
+        {
+            return;
+        }
+
+        var host = kindConfig.NamedProviderRecoveryHosts[0];
+        process.NamedProviderKind = host.Kind;
+        process.NamedProviderAttribute = host.AttributeName;
+        process.Reads.Add(AttributeRef.Target(host.AttributeName, host.Kind));
+        process.Writes.Add(AttributeRef.Target(host.AttributeName, host.Kind));
     }
 
     private static ProcessDefinition BuildConversion(

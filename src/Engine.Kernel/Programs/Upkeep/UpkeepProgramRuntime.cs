@@ -21,16 +21,28 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
     private ref int _lifecycleRuleCount => ref Data.LifecycleRuleCount;
 
     public UpkeepProgramRuntime(UpkeepProgramData data, UpkeepProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public UpkeepProgramRuntime(
+        UpkeepProgramData data,
+        UpkeepProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
     }
 
     public UpkeepProgramData Data { get; }
 
     public UpkeepProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int UpkeepRuleCount => _upkeepRuleCount;
 
@@ -203,6 +215,11 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
 
     private float LocationResourceOffset(WorldState world, int entityId, int rule)
     {
+        if (Tuning.Processes.ResourceSupplyModelCode != ProcessResourceSupplyModelCodes.AmbientHex)
+        {
+            return 0f;
+        }
+
         var resourceId = _locationResourceIds[rule];
         if (resourceId <= 0)
         {
@@ -237,7 +254,7 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
             }
 
             var age = tick - simulation.World.EntityCreatedAt(entityId);
-            var drain = _lifecycleBaseRates[rule] + (age * _lifecycleAgeCoefficients[rule]);
+            var drain = LifecycleBaseDrain(rule, age);
             var variance = _lifecycleVariances[rule];
             if (variance > 0f)
             {
@@ -254,6 +271,17 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
         }
 
         return 0f;
+    }
+
+    private float LifecycleBaseDrain(int rule, int age)
+    {
+        if (Tuning.Upkeep.AgingModelCode != UpkeepAgingModelCodes.LateLife)
+        {
+            return _lifecycleBaseRates[rule] + (age * _lifecycleAgeCoefficients[rule]);
+        }
+
+        var scaledAge = (age * age) / 500f;
+        return (_lifecycleBaseRates[rule] * 0.5f) + (scaledAge * _lifecycleAgeCoefficients[rule]);
     }
 
     private bool IsLifecycleAttribute(int kindId, int attributeId)

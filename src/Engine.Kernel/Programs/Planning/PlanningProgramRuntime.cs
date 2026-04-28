@@ -8,18 +8,32 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
         PlanningProgramData data,
         PlanningProgramState state,
         PlanningProgramScratch scratch)
+        : this(data, state, scratch, new KernelProgramTuningOptions())
+    {
+    }
+
+    internal PlanningProgramRuntime(
+        PlanningProgramData data,
+        PlanningProgramState state,
+        PlanningProgramScratch scratch,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
         _scratch = scratch;
+        Tuning = tuning;
+        ApplyConfiguredOverrides(tuning.Planning);
     }
 
     public PlanningProgramData Data { get; }
 
     public PlanningProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int PlannerKindCode => Data.DefaultPlannerKindCode;
 
@@ -29,6 +43,37 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
     {
         PlanningProgramData.ValidatePlannerKind(plannerKindCode);
         Data.DefaultPlannerKindCode = plannerKindCode;
+    }
+
+    public void SetKindPlannerKind(int kindId, int plannerKindCode)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kindId);
+        PlanningProgramData.ValidatePlannerKind(plannerKindCode);
+        State.KindPlannerKindCodes.Set(kindId, State.PlannerOverrideSecondKey, plannerKindCode);
+    }
+
+    public void SetEntityPlannerKind(int entityId, int plannerKindCode)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityId);
+        PlanningProgramData.ValidatePlannerKind(plannerKindCode);
+        State.EntityPlannerKindCodes.Set(entityId, State.PlannerOverrideSecondKey, plannerKindCode);
+    }
+
+    public int PlannerKindFor(int actorKindId, int actorEntityId)
+    {
+        if (actorEntityId > 0 &&
+            State.EntityPlannerKindCodes.TryGet(actorEntityId, State.PlannerOverrideSecondKey, out var entityPlannerKindCode))
+        {
+            return entityPlannerKindCode;
+        }
+
+        if (actorKindId > 0 &&
+            State.KindPlannerKindCodes.TryGet(actorKindId, State.PlannerOverrideSecondKey, out var kindPlannerKindCode))
+        {
+            return kindPlannerKindCode;
+        }
+
+        return Data.DefaultPlannerKindCode;
     }
 
     public void Tick(Simulation simulation, int tick)
@@ -48,21 +93,34 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
             request.Tick,
             request.SelectionRoll);
         PlanningDecision decision;
-        if (plannerKindCode != PlannerKindCodes.Goap)
+        decision = plannerKindCode switch
         {
-            decision = EmptyDecision(PlanningStatusCodes.UnsupportedPlanner, request.ActionFamilyCode, 0, 0f);
-            EmitPlanEvents(simulation, plannedRequest, decision);
-            return decision;
-        }
-
-        decision = request.ActionFamilyCode switch
-        {
-            ActionFamilyCodes.Process => simulation.Processes.PlanGoap(simulation, plannedRequest),
-            ActionFamilyCodes.Gambit => simulation.Gambits.PlanGoap(simulation, plannedRequest),
-            _ => EmptyDecision(PlanningStatusCodes.UnsupportedActionFamily, request.ActionFamilyCode, 0, 0f),
+            PlannerKindCodes.Goap => PlanGoap(simulation, plannedRequest),
+            PlannerKindCodes.Opportunity => PlanOpportunity(simulation, plannedRequest),
+            _ => EmptyDecision(PlanningStatusCodes.UnsupportedPlanner, request.ActionFamilyCode, 0, 0f),
         };
         EmitPlanEvents(simulation, plannedRequest, decision);
         return decision;
+    }
+
+    private PlanningDecision PlanGoap(Simulation simulation, in PlanningRequest request)
+    {
+        return request.ActionFamilyCode switch
+        {
+            ActionFamilyCodes.Process => simulation.Processes.PlanGoap(simulation, request),
+            ActionFamilyCodes.Gambit => simulation.Gambits.PlanGoap(simulation, request),
+            _ => EmptyDecision(PlanningStatusCodes.UnsupportedActionFamily, request.ActionFamilyCode, 0, 0f),
+        };
+    }
+
+    private PlanningDecision PlanOpportunity(Simulation simulation, in PlanningRequest request)
+    {
+        return request.ActionFamilyCode switch
+        {
+            ActionFamilyCodes.Process => simulation.Processes.PlanOpportunity(simulation, request),
+            ActionFamilyCodes.Gambit => simulation.Gambits.PlanOpportunity(simulation, request),
+            _ => EmptyDecision(PlanningStatusCodes.UnsupportedActionFamily, request.ActionFamilyCode, 0, 0f),
+        };
     }
 
     public PlanningPlanHeader PlanHeader(PlanningPlanHandle handle)
@@ -315,6 +373,22 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
             ActionFamilyCodes.Gambit => simulation.Gambits.GambitIdForSlot(action.ActionSlot),
             _ => action.ActionSlot,
         };
+    }
+
+    private void ApplyConfiguredOverrides(PlanningProgramTuningOptions planning)
+    {
+        SetPlannerKind(planning.DefaultPlannerKindCode);
+        for (var i = 0; i < planning.KindPlannerOverrides.Length; i++)
+        {
+            var plannerOverride = planning.KindPlannerOverrides[i];
+            SetKindPlannerKind(plannerOverride.KindId, plannerOverride.PlannerKindCode);
+        }
+
+        for (var i = 0; i < planning.EntityPlannerOverrides.Length; i++)
+        {
+            var plannerOverride = planning.EntityPlannerOverrides[i];
+            SetEntityPlannerKind(plannerOverride.EntityId, plannerOverride.PlannerKindCode);
+        }
     }
 
     private void EnsurePlan(PlanningPlanHandle handle)

@@ -408,6 +408,120 @@ public sealed partial class ProcessProgramRuntimeTests
     }
 
     [Fact]
+    public void NamedProviderSupplyModel_RoutesHexRecoveryThroughProviderAttribute()
+    {
+        var simulation = CreateSimulation(new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Processes = new ProcessProgramTuningOptions
+                {
+                    ResourceSupplyModelCode = ProcessResourceSupplyModelCodes.NamedProviderNoHex,
+                },
+            },
+        });
+        const int actorKindId = 1;
+        const int providerKindId = 2;
+        const int unusedTargetKindId = 9;
+        const int healthAttributeId = 10;
+        const int providerAttributeId = 11;
+        const int resourceId = 20;
+        RegisterNeed(simulation, actorKindId, healthAttributeId, defaultValue: 10f);
+        simulation.RegisterAttribute(providerKindId, providerAttributeId, 0f, 100f, 20f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var provider = simulation.CreateEntity(providerKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var recover = simulation.Processes.RegisterProcess(
+            actorKindId,
+            processId: 300,
+            targetMode: ProcessTargetModeCodes.KindOther,
+            targetKindId: unusedTargetKindId,
+            resourceSupplyRoleCode: ProcessResourceSupplyRoleCodes.HexHealthRecovery,
+            namedProviderKindId: providerKindId,
+            namedProviderAttributeId: providerAttributeId);
+        simulation.Processes.SetGoalEffect(recover, ProcessEffectScopeCodes.SelfAttribute, healthAttributeId, actorKindId);
+        simulation.Processes.AddProviderSelector(recover, ProcessProviderSelectorCodes.Resource, unusedTargetKindId, resourceId);
+        simulation.Processes.AddPrecondition(recover, ProcessPreconditionCodes.TargetIsNotSelf);
+        simulation.Processes.AddPrecondition(recover, ProcessPreconditionCodes.LocationResourceRange, resourceId, 1, 1, 0, x: 1f);
+        simulation.Processes.AddExpressionOp(recover, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(recover, ProcessExpressionCodes.TargetLocationResource, resourceId);
+        simulation.Processes.AddStep(recover, ProcessOperationCodes.HexToHealth, healthAttributeId, resourceId, 1, x: 2f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(20f, simulation.World.GetAttribute(actor, healthAttributeId));
+        Assert.Equal(15f, simulation.World.GetAttribute(provider, providerAttributeId));
+        Assert.Equal(0f, simulation.World.GetResource(resourceId, 1, 0));
+    }
+
+    [Fact]
+    public void NamedProviderSupplyModel_DisablesHexResourceProducerProcesses()
+    {
+        var simulation = CreateSimulation(new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Processes = new ProcessProgramTuningOptions
+                {
+                    ResourceSupplyModelCode = ProcessResourceSupplyModelCodes.NamedProviderNoHex,
+                },
+            },
+        });
+        const int kindId = 1;
+        const int resourceId = 20;
+        _ = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        var gather = simulation.Processes.RegisterProcess(
+            kindId,
+            processId: 301,
+            targetMode: ProcessTargetModeCodes.Self,
+            resourceSupplyRoleCode: ProcessResourceSupplyRoleCodes.HexResourceProducer);
+        simulation.Processes.AddPrecondition(gather, ProcessPreconditionCodes.TargetIsSelf);
+        simulation.Processes.AddExpressionOp(gather, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(gather, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddStep(gather, ProcessOperationCodes.AddLocationResource, resourceId, x: 10f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0f, simulation.World.GetResource(resourceId, 0, 0));
+    }
+
+    [Fact]
+    public void PilotWorkCommitments_ContinueSelectedProcessThroughProcessCooldown()
+    {
+        var simulation = CreateSimulation(new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Processes = new ProcessProgramTuningOptions
+                {
+                    WorkCommitmentCode = ProcessWorkCommitmentCodes.Pilot,
+                },
+            },
+        });
+        const int kindId = 1;
+        const int attributeId = 10;
+        RegisterNeed(simulation, kindId, attributeId, defaultValue: 10f);
+        var entity = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        var process = simulation.Processes.RegisterProcess(
+            kindId,
+            processId: 302,
+            cooldownTicks: 10,
+            targetMode: ProcessTargetModeCodes.Self,
+            workCommitmentTicks: 3);
+        simulation.Processes.SetGoalEffect(process, ProcessEffectScopeCodes.SelfAttribute, attributeId, kindId);
+        simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.TargetIsSelf);
+        simulation.Processes.AddExpressionOp(process, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(process, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, attributeId, x: 10f);
+
+        simulation.AdvanceTicks(3);
+
+        Assert.Equal(40f, simulation.World.GetAttribute(entity, attributeId));
+    }
+
+    [Fact]
     public void RetainsCommittedPlanWhenChallengerIsWithinHysteresis()
     {
         var simulation = CreateSimulation();
