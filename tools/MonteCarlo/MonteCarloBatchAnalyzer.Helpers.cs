@@ -167,7 +167,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static string ReadString(DbDataReader reader, string name)
     {
         var ordinal = reader.GetOrdinal(name);
-        return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
+        return reader.IsDBNull(ordinal)
+            ? string.Empty
+            : Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty;
     }
 
     private sealed class AttributeBandAccumulator

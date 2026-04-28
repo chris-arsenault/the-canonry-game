@@ -104,6 +104,8 @@ public enum KernelEventSemanticKind
     EffectScopeCode = 38,
     EffectValueId = 39,
     EffectKindId = 40,
+    PressureId = 41,
+    PressureScopeCode = 42,
 }
 
 public sealed record KernelEventLayoutSlotDescriptor(

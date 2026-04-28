@@ -31,7 +31,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             "runs",
             $"""
             SELECT
-                COALESCE(run_symbol.stable_name, CAST(r.run_id AS VARCHAR)) AS run_id,
+                r.run_id,
                 r.seed,
                 COALESCE(domain_symbol.stable_name, CAST(r.domain_id AS VARCHAR)) AS domain,
                 CAST(r.started_unix_milliseconds AS VARCHAR) AS started_utc
@@ -206,26 +206,30 @@ internal sealed partial class MonteCarloBatchAnalyzer
             $"""
             SELECT runs.run_id, generated.tick,
                    COALESCE(generator_symbol.stable_name, CAST(generated.generator_id AS VARCHAR)) AS generator_id,
-                   generated.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(generated.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(subtype_symbol.stable_name, CAST(generated.subtype_id AS VARCHAR)) AS subtype,
-                   COALESCE(culture_symbol.stable_name, CAST(generated.culture_id AS VARCHAR)) AS culture,
-                   generated.physical_q, generated.physical_r, generated.semantic_q, generated.semantic_r, generated.semantic_s
-            FROM raw_generated_entities generated
+                   generated.output_entity_id AS entity_id,
+                   COALESCE(kind_symbol.stable_name, CAST(snap.kind_id AS VARCHAR)) AS kind,
+                   COALESCE(subtype_symbol.stable_name, CAST(snap.subtype_id AS VARCHAR)) AS subtype,
+                   COALESCE(culture_symbol.stable_name, CAST(snap.culture_id AS VARCHAR)) AS culture,
+                   snap.physical_q, snap.physical_r, snap.semantic_q, snap.semantic_r, snap.semantic_s
+            FROM raw_generator_outputs generated
             JOIN raw_runs rr ON rr.run_id = generated.run_id
             JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN raw_entity_snapshots snap
+              ON snap.run_id = generated.run_id
+             AND snap.entity_id = generated.output_entity_id
             LEFT JOIN symbol_lookup generator_symbol
               ON generator_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Generator}
              AND generator_symbol.id = generated.generator_id
             LEFT JOIN symbol_lookup kind_symbol
               ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
-             AND kind_symbol.id = generated.kind_id
+             AND kind_symbol.id = snap.kind_id
             LEFT JOIN symbol_lookup subtype_symbol
               ON subtype_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Subtype}
-             AND subtype_symbol.id = generated.subtype_id
+             AND subtype_symbol.id = snap.subtype_id
             LEFT JOIN symbol_lookup culture_symbol
               ON culture_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Culture}
-             AND culture_symbol.id = generated.culture_id
+             AND culture_symbol.id = snap.culture_id
+            WHERE generated.output_entity_id <> 0
             """),
         new(
             "lifecycle_events",

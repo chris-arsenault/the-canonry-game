@@ -200,7 +200,17 @@ internal static class MonteCarloCli
             return null;
         }
 
-        var recorder = new KernelTelemetryRecorder(run.Events, runId, run.Symbols, seed);
+        var recorder = new KernelTelemetryRecorder(
+            run.Events,
+            runId,
+            run.Symbols,
+            seed,
+            traceEnabled: options.TraceEnabled,
+            entitySnapshotCadence: options.EntitySnapshotCadence,
+            resourceSnapshotCadence: options.EntitySnapshotCadence,
+            pressureSnapshotCadence: options.EntitySnapshotCadence,
+            mapSnapshotCadence: options.EntitySnapshotCadence,
+            generatorSnapshotCadence: options.EntitySnapshotCadence);
         RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
         RecordStateSnapshots(recorder, run.Host.CurrentTick, options);
         return recorder;
@@ -354,27 +364,43 @@ internal static class MonteCarloCli
         batch.EntitySnapshots.Count +
         batch.EntityAttributeSnapshots.Count +
         batch.EntityEvents.Count +
+        batch.ExperimentVariants.Count +
         batch.PlannerGoals.Count +
         batch.PlannerTraces.Count +
         batch.PlannerTraceGoals.Count +
         batch.PlannerTraceScores.Count +
         batch.PlannerTraceSteps.Count +
+        batch.PlannerCandidates.Count +
+        batch.PlannerScores.Count +
+        batch.PlannerSteps.Count +
+        batch.PlannerLocalities.Count +
         batch.TraceEvents.Count +
         batch.ProcessEvents.Count +
+        batch.ProcessExecutions.Count +
         batch.ProcessCandidates.Count +
         batch.LocalityOpportunities.Count +
         batch.AttributeEvents.Count +
         batch.MovementEvents.Count +
         batch.ResourceEvents.Count +
         batch.ResourceSnapshots.Count +
+        batch.ResourceTerrainSnapshots.Count +
+        batch.PressureEvents.Count +
+        batch.PressureSnapshots.Count +
+        batch.PressureSourceSnapshots.Count +
         batch.RelationshipEvents.Count +
         batch.RelationshipSnapshots.Count +
         batch.GeneratorEvents.Count +
+        batch.GeneratorOutputs.Count +
+        batch.GeneratorStateSnapshots.Count +
         batch.GeneratedEntities.Count +
         batch.LifecycleEvents.Count +
+        batch.LifecycleReasonEvents.Count +
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
-        batch.MapSnapshots.Count;
+        batch.MapSnapshots.Count +
+        batch.CoverageSnapshots.Count +
+        batch.CoverageTerrainSnapshots.Count +
+        batch.PlacementEvents.Count;
 
     private static long CountRows(PerformanceTelemetryBatch batch) =>
         batch.Symbols.Count +

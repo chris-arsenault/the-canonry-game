@@ -94,21 +94,22 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
                 continue;
             }
 
-            ComputePressure(simulation.World, slot);
+            ComputePressure(simulation, tick, slot);
         }
 
         _pendingDeltas.Clear();
     }
 
-    private void ComputePressure(WorldState world, int slot)
+    private void ComputePressure(Simulation simulation, int tick, int slot)
     {
+        var world = simulation.World;
         if (_scopeCodes[slot] == PressureScopeCodes.Entity)
         {
             for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
             {
                 if (world.EntityIsActive(entityId))
                 {
-                    ComputeForScope(slot, entityId, rawContribution: 0f);
+                    ComputeForScope(simulation, tick, slot, entityId, rawContribution: 0f);
                 }
             }
 
@@ -119,12 +120,12 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
         {
             if (world.EntityIsActive(entityId) && world.CoverageOwnerHasCells(entityId))
             {
-                ComputeForScope(slot, entityId, rawContribution: 0f);
+                ComputeForScope(simulation, tick, slot, entityId, rawContribution: 0f);
             }
         }
     }
 
-    private void ComputeForScope(int slot, int scopeEntityId, float rawContribution)
+    private void ComputeForScope(Simulation simulation, int tick, int slot, int scopeEntityId, float rawContribution)
     {
         var pressureId = _pressureIds[slot];
         var baseline = _baselines[slot];
@@ -133,7 +134,9 @@ internal sealed class PressureProgramRuntime : IKernelProgramRuntime<PressurePro
         var targetValue = baseline + rawContribution;
         targetValue += (baseline - targetValue) * _homeostasisRates[slot];
         var newValue = previousValue + ((targetValue - previousValue) * _smoothingFactors[slot]);
-        _values.Set(pressureId, scopeEntityId, Clamp(newValue, -100f, 100f));
+        var clamped = Clamp(newValue, -100f, 100f);
+        _values.Set(pressureId, scopeEntityId, clamped);
+        simulation.EmitPressureChanged(tick, pressureId, _scopeCodes[slot], scopeEntityId, previousValue, clamped);
     }
 
     private void EnsurePressure(int pressureSlot)

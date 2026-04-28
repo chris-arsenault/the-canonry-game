@@ -40,9 +40,10 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
         var analysisDirectory = Path.Combine(batchDirectory, "analysis");
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "summary.md")));
-        Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
-        Assert.True(File.Exists(Path.Combine(analysisDirectory, "attribute_bands.csv")));
-        Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_generation.csv")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_balance.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "stock_dynamics.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_spread.parquet")));
+        Assert.False(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
 
         var summary = File.ReadAllText(Path.Combine(analysisDirectory, "summary.md"));
         Assert.Contains("Monte Carlo Tuning Summary", summary, StringComparison.Ordinal);

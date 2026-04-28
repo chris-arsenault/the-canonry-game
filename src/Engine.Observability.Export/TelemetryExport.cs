@@ -72,7 +72,13 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         ThrowIfDisposed();
         Flush();
+        ExportIdentityTables();
+        ExportPlannerProcessTables();
+        ExportWorldTables();
+    }
 
+    private void ExportIdentityTables()
+    {
         ExportTable("symbols");
         ExportTable("entity_name_symbols");
         ExportTable("runs");
@@ -81,27 +87,45 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("entity_snapshots");
         ExportTable("entity_attribute_snapshots");
         ExportTable("entity_events");
+        ExportTable("experiment_variants");
+    }
+
+    private void ExportPlannerProcessTables()
+    {
         ExportTable("planner_goals");
         ExportTable("planner_traces");
-        ExportTable("planner_trace_goals");
-        ExportTable("planner_trace_scores");
-        ExportTable("planner_trace_steps");
+        ExportTable("planner_candidates");
+        ExportTable("planner_scores");
+        ExportTable("planner_steps");
+        ExportTable("planner_localities");
         ExportTable("trace_events");
         ExportTable("process_events");
-        ExportTable("process_candidates");
-        ExportTable("locality_opportunities");
+        ExportTable("process_executions");
         ExportTable("attribute_events");
         ExportTable("movement_events");
+    }
+
+    private void ExportWorldTables()
+    {
         ExportTable("resource_events");
         ExportTable("resource_snapshots");
+        ExportTable("resource_terrain_snapshots");
+        ExportTable("pressure_events");
+        ExportTable("pressure_snapshots");
+        ExportTable("pressure_source_snapshots");
         ExportTable("relationship_events");
         ExportTable("relationship_snapshots");
         ExportTable("generator_events");
-        ExportTable("generated_entities");
+        ExportTable("generator_outputs");
+        ExportTable("generator_state_snapshots");
         ExportTable("lifecycle_events");
+        ExportTable("lifecycle_reason_events");
         ExportTable("map_generation_events");
         ExportTable("map_cell_events");
         ExportTable("map_snapshots");
+        ExportTable("coverage_snapshots");
+        ExportTable("coverage_terrain_snapshots");
+        ExportTable("placement_events");
     }
 
     public void Dispose()
@@ -114,6 +138,13 @@ internal sealed class DuckDbTelemetryStore : IDisposable
 
     private void EnsureSchema()
     {
+        EnsureIdentitySchema();
+        EnsurePlannerProcessSchema();
+        EnsureWorldSchema();
+    }
+
+    private void EnsureIdentitySchema()
+    {
         EnsureTable("symbols", typeof(SymbolRow));
         EnsureTable("entity_name_symbols", typeof(EntityNameSymbolRow));
         EnsureTable("runs", typeof(RunRow));
@@ -122,27 +153,51 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("entity_snapshots", typeof(EntitySnapshotRow));
         EnsureTable("entity_attribute_snapshots", typeof(EntityAttributeSnapshotRow));
         EnsureTable("entity_events", typeof(EntityEventRow));
+        EnsureTable("experiment_variants", typeof(ExperimentVariantRow));
+    }
+
+    private void EnsurePlannerProcessSchema()
+    {
         EnsureTable("planner_goals", typeof(PlannerGoalRow));
         EnsureTable("planner_traces", typeof(PlannerTraceRow));
         EnsureTable("planner_trace_goals", typeof(PlannerTraceGoalRow));
         EnsureTable("planner_trace_scores", typeof(PlannerTraceScoreRow));
         EnsureTable("planner_trace_steps", typeof(PlannerTraceStepRow));
+        EnsureTable("planner_candidates", typeof(PlannerCandidateRow));
+        EnsureTable("planner_scores", typeof(PlannerScoreRow));
+        EnsureTable("planner_steps", typeof(PlannerStepRow));
+        EnsureTable("planner_localities", typeof(PlannerLocalityRow));
         EnsureTable("trace_events", typeof(TraceRow));
         EnsureTable("process_events", typeof(ProcessEventRow));
+        EnsureTable("process_executions", typeof(ProcessExecutionRow));
         EnsureTable("process_candidates", typeof(ProcessCandidateRow));
         EnsureTable("locality_opportunities", typeof(LocalityOpportunityRow));
         EnsureTable("attribute_events", typeof(AttributeEventRow));
         EnsureTable("movement_events", typeof(MovementEventRow));
+    }
+
+    private void EnsureWorldSchema()
+    {
         EnsureTable("resource_events", typeof(ResourceEventRow));
         EnsureTable("resource_snapshots", typeof(ResourceSnapshotRow));
+        EnsureTable("resource_terrain_snapshots", typeof(ResourceTerrainSnapshotRow));
+        EnsureTable("pressure_events", typeof(PressureEventRow));
+        EnsureTable("pressure_snapshots", typeof(PressureSnapshotRow));
+        EnsureTable("pressure_source_snapshots", typeof(PressureSourceSnapshotRow));
         EnsureTable("relationship_events", typeof(RelationshipEventRow));
         EnsureTable("relationship_snapshots", typeof(RelationshipSnapshotRow));
         EnsureTable("generator_events", typeof(GeneratorEventRow));
+        EnsureTable("generator_outputs", typeof(GeneratorOutputRow));
+        EnsureTable("generator_state_snapshots", typeof(GeneratorStateSnapshotRow));
         EnsureTable("generated_entities", typeof(GeneratedEntityRow));
         EnsureTable("lifecycle_events", typeof(LifecycleEventRow));
+        EnsureTable("lifecycle_reason_events", typeof(LifecycleReasonEventRow));
         EnsureTable("map_generation_events", typeof(MapGenerationEventRow));
         EnsureTable("map_cell_events", typeof(MapCellEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
+        EnsureTable("coverage_snapshots", typeof(CoverageSnapshotRow));
+        EnsureTable("coverage_terrain_snapshots", typeof(CoverageTerrainSnapshotRow));
+        EnsureTable("placement_events", typeof(PlacementEventRow));
     }
 
     private void EnsureTable(string tableName, Type rowType)
@@ -153,6 +208,13 @@ internal sealed class DuckDbTelemetryStore : IDisposable
 
     private void AppendPending()
     {
+        AppendIdentityTables();
+        AppendPlannerProcessTables();
+        AppendWorldTables();
+    }
+
+    private void AppendIdentityTables()
+    {
         AppendTable("symbols", _pending.Symbols);
         AppendTable("entity_name_symbols", _pending.EntityNameSymbols);
         AppendTable("runs", _pending.Runs);
@@ -161,27 +223,51 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("entity_snapshots", _pending.EntitySnapshots);
         AppendTable("entity_attribute_snapshots", _pending.EntityAttributeSnapshots);
         AppendTable("entity_events", _pending.EntityEvents);
+        AppendTable("experiment_variants", _pending.ExperimentVariants);
+    }
+
+    private void AppendPlannerProcessTables()
+    {
         AppendTable("planner_goals", _pending.PlannerGoals);
         AppendTable("planner_traces", _pending.PlannerTraces);
         AppendTable("planner_trace_goals", _pending.PlannerTraceGoals);
         AppendTable("planner_trace_scores", _pending.PlannerTraceScores);
         AppendTable("planner_trace_steps", _pending.PlannerTraceSteps);
+        AppendTable("planner_candidates", _pending.PlannerCandidates);
+        AppendTable("planner_scores", _pending.PlannerScores);
+        AppendTable("planner_steps", _pending.PlannerSteps);
+        AppendTable("planner_localities", _pending.PlannerLocalities);
         AppendTable("trace_events", _pending.TraceEvents);
         AppendTable("process_events", _pending.ProcessEvents);
+        AppendTable("process_executions", _pending.ProcessExecutions);
         AppendTable("process_candidates", _pending.ProcessCandidates);
         AppendTable("locality_opportunities", _pending.LocalityOpportunities);
         AppendTable("attribute_events", _pending.AttributeEvents);
         AppendTable("movement_events", _pending.MovementEvents);
+    }
+
+    private void AppendWorldTables()
+    {
         AppendTable("resource_events", _pending.ResourceEvents);
         AppendTable("resource_snapshots", _pending.ResourceSnapshots);
+        AppendTable("resource_terrain_snapshots", _pending.ResourceTerrainSnapshots);
+        AppendTable("pressure_events", _pending.PressureEvents);
+        AppendTable("pressure_snapshots", _pending.PressureSnapshots);
+        AppendTable("pressure_source_snapshots", _pending.PressureSourceSnapshots);
         AppendTable("relationship_events", _pending.RelationshipEvents);
         AppendTable("relationship_snapshots", _pending.RelationshipSnapshots);
         AppendTable("generator_events", _pending.GeneratorEvents);
+        AppendTable("generator_outputs", _pending.GeneratorOutputs);
+        AppendTable("generator_state_snapshots", _pending.GeneratorStateSnapshots);
         AppendTable("generated_entities", _pending.GeneratedEntities);
         AppendTable("lifecycle_events", _pending.LifecycleEvents);
+        AppendTable("lifecycle_reason_events", _pending.LifecycleReasonEvents);
         AppendTable("map_generation_events", _pending.MapGenerationEvents);
         AppendTable("map_cell_events", _pending.MapCellEvents);
         AppendTable("map_snapshots", _pending.MapSnapshots);
+        AppendTable("coverage_snapshots", _pending.CoverageSnapshots);
+        AppendTable("coverage_terrain_snapshots", _pending.CoverageTerrainSnapshots);
+        AppendTable("placement_events", _pending.PlacementEvents);
     }
 
     private void AppendTable<T>(string tableName, IReadOnlyCollection<T> rows)
@@ -226,42 +312,73 @@ internal static class TelemetryBatchExtensions
     public static long CountRows(this TelemetryBatch batch)
     {
         ArgumentNullException.ThrowIfNull(batch);
-        return batch.Symbols.Count +
-               batch.EntityNameSymbols.Count +
-               batch.Runs.Count +
-               batch.TickSnapshots.Count +
-               batch.KindSnapshots.Count +
-               batch.EntitySnapshots.Count +
-               batch.EntityAttributeSnapshots.Count +
-               batch.EntityEvents.Count +
-               batch.PlannerGoals.Count +
-               batch.PlannerTraces.Count +
-               batch.PlannerTraceGoals.Count +
-               batch.PlannerTraceScores.Count +
-               batch.PlannerTraceSteps.Count +
-               batch.TraceEvents.Count +
-               batch.ProcessEvents.Count +
-               batch.ProcessCandidates.Count +
-               batch.LocalityOpportunities.Count +
-               batch.AttributeEvents.Count +
-               batch.MovementEvents.Count +
-               batch.ResourceEvents.Count +
-               batch.ResourceSnapshots.Count +
-               batch.RelationshipEvents.Count +
-               batch.RelationshipSnapshots.Count +
-               batch.GeneratorEvents.Count +
-               batch.GeneratedEntities.Count +
-               batch.LifecycleEvents.Count +
-               batch.MapGenerationEvents.Count +
-               batch.MapCellEvents.Count +
-               batch.MapSnapshots.Count;
+        return CountIdentityRows(batch) +
+               CountPlannerProcessRows(batch) +
+               CountWorldRows(batch);
     }
+
+    private static long CountIdentityRows(TelemetryBatch batch) =>
+        batch.Symbols.Count +
+        batch.EntityNameSymbols.Count +
+        batch.Runs.Count +
+        batch.TickSnapshots.Count +
+        batch.KindSnapshots.Count +
+        batch.EntitySnapshots.Count +
+        batch.EntityAttributeSnapshots.Count +
+        batch.EntityEvents.Count +
+        batch.ExperimentVariants.Count;
+
+    private static long CountPlannerProcessRows(TelemetryBatch batch) =>
+        batch.PlannerGoals.Count +
+        batch.PlannerTraces.Count +
+        batch.PlannerTraceGoals.Count +
+        batch.PlannerTraceScores.Count +
+        batch.PlannerTraceSteps.Count +
+        batch.PlannerCandidates.Count +
+        batch.PlannerScores.Count +
+        batch.PlannerSteps.Count +
+        batch.PlannerLocalities.Count +
+        batch.TraceEvents.Count +
+        batch.ProcessEvents.Count +
+        batch.ProcessExecutions.Count +
+        batch.ProcessCandidates.Count +
+        batch.LocalityOpportunities.Count +
+        batch.AttributeEvents.Count +
+        batch.MovementEvents.Count;
+
+    private static long CountWorldRows(TelemetryBatch batch) =>
+        batch.ResourceEvents.Count +
+        batch.ResourceSnapshots.Count +
+        batch.ResourceTerrainSnapshots.Count +
+        batch.PressureEvents.Count +
+        batch.PressureSnapshots.Count +
+        batch.PressureSourceSnapshots.Count +
+        batch.RelationshipEvents.Count +
+        batch.RelationshipSnapshots.Count +
+        batch.GeneratorEvents.Count +
+        batch.GeneratorOutputs.Count +
+        batch.GeneratorStateSnapshots.Count +
+        batch.GeneratedEntities.Count +
+        batch.LifecycleEvents.Count +
+        batch.LifecycleReasonEvents.Count +
+        batch.MapGenerationEvents.Count +
+        batch.MapCellEvents.Count +
+        batch.MapSnapshots.Count +
+        batch.CoverageSnapshots.Count +
+        batch.CoverageTerrainSnapshots.Count +
+        batch.PlacementEvents.Count;
 
     public static void Append(this TelemetryBatch destination, TelemetryBatch source)
     {
         ArgumentNullException.ThrowIfNull(destination);
         ArgumentNullException.ThrowIfNull(source);
+        AppendIdentityRows(destination, source);
+        AppendPlannerProcessRows(destination, source);
+        AppendWorldRows(destination, source);
+    }
 
+    private static void AppendIdentityRows(TelemetryBatch destination, TelemetryBatch source)
+    {
         AppendRows(destination.Symbols, source.Symbols);
         AppendRows(destination.EntityNameSymbols, source.EntityNameSymbols);
         AppendRows(destination.Runs, source.Runs);
@@ -270,27 +387,51 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.EntitySnapshots, source.EntitySnapshots);
         AppendRows(destination.EntityAttributeSnapshots, source.EntityAttributeSnapshots);
         AppendRows(destination.EntityEvents, source.EntityEvents);
+        AppendRows(destination.ExperimentVariants, source.ExperimentVariants);
+    }
+
+    private static void AppendPlannerProcessRows(TelemetryBatch destination, TelemetryBatch source)
+    {
         AppendRows(destination.PlannerGoals, source.PlannerGoals);
         AppendRows(destination.PlannerTraces, source.PlannerTraces);
         AppendRows(destination.PlannerTraceGoals, source.PlannerTraceGoals);
         AppendRows(destination.PlannerTraceScores, source.PlannerTraceScores);
         AppendRows(destination.PlannerTraceSteps, source.PlannerTraceSteps);
+        AppendRows(destination.PlannerCandidates, source.PlannerCandidates);
+        AppendRows(destination.PlannerScores, source.PlannerScores);
+        AppendRows(destination.PlannerSteps, source.PlannerSteps);
+        AppendRows(destination.PlannerLocalities, source.PlannerLocalities);
         AppendRows(destination.TraceEvents, source.TraceEvents);
         AppendRows(destination.ProcessEvents, source.ProcessEvents);
+        AppendRows(destination.ProcessExecutions, source.ProcessExecutions);
         AppendRows(destination.ProcessCandidates, source.ProcessCandidates);
         AppendRows(destination.LocalityOpportunities, source.LocalityOpportunities);
         AppendRows(destination.AttributeEvents, source.AttributeEvents);
         AppendRows(destination.MovementEvents, source.MovementEvents);
+    }
+
+    private static void AppendWorldRows(TelemetryBatch destination, TelemetryBatch source)
+    {
         AppendRows(destination.ResourceEvents, source.ResourceEvents);
         AppendRows(destination.ResourceSnapshots, source.ResourceSnapshots);
+        AppendRows(destination.ResourceTerrainSnapshots, source.ResourceTerrainSnapshots);
+        AppendRows(destination.PressureEvents, source.PressureEvents);
+        AppendRows(destination.PressureSnapshots, source.PressureSnapshots);
+        AppendRows(destination.PressureSourceSnapshots, source.PressureSourceSnapshots);
         AppendRows(destination.RelationshipEvents, source.RelationshipEvents);
         AppendRows(destination.RelationshipSnapshots, source.RelationshipSnapshots);
         AppendRows(destination.GeneratorEvents, source.GeneratorEvents);
+        AppendRows(destination.GeneratorOutputs, source.GeneratorOutputs);
+        AppendRows(destination.GeneratorStateSnapshots, source.GeneratorStateSnapshots);
         AppendRows(destination.GeneratedEntities, source.GeneratedEntities);
         AppendRows(destination.LifecycleEvents, source.LifecycleEvents);
+        AppendRows(destination.LifecycleReasonEvents, source.LifecycleReasonEvents);
         AppendRows(destination.MapGenerationEvents, source.MapGenerationEvents);
         AppendRows(destination.MapCellEvents, source.MapCellEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);
+        AppendRows(destination.CoverageSnapshots, source.CoverageSnapshots);
+        AppendRows(destination.CoverageTerrainSnapshots, source.CoverageTerrainSnapshots);
+        AppendRows(destination.PlacementEvents, source.PlacementEvents);
     }
 
     private static void AppendRows<T>(

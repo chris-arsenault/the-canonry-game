@@ -15,6 +15,12 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         IProjectionSymbolCatalog? symbols = null,
         int? seed = null,
         string domain = "IceRemembers",
+        bool traceEnabled = false,
+        int entitySnapshotCadence = 0,
+        int resourceSnapshotCadence = 0,
+        int pressureSnapshotCadence = 0,
+        int mapSnapshotCadence = 0,
+        int generatorSnapshotCadence = 0,
         KernelEventCursorStart cursorStart = KernelEventCursorStart.EarliestAvailable,
         int batchSize = 512)
     {
@@ -33,6 +39,18 @@ internal sealed class KernelTelemetryRecorder : IDisposable
             seed,
             domainId,
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        Batch.ExperimentVariants.Add(new ExperimentVariantRow(
+            RunId,
+            ExperimentId: 1,
+            VariantId: 1,
+            ConfigHashId: domainId,
+            GitShaId: 0,
+            traceEnabled,
+            entitySnapshotCadence,
+            resourceSnapshotCadence,
+            pressureSnapshotCadence,
+            mapSnapshotCadence,
+            generatorSnapshotCadence));
 
         EventProjection = new TelemetryEventProjection(RunId, Batch, symbols);
         PlannerTraceProjection = new PlannerTraceProjection(RunId, Batch);

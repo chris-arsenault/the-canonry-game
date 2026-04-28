@@ -10,7 +10,7 @@ internal sealed record ObservabilityProjectionMigrationItem(
     string RequiredPrimitiveSource,
     string Reason);
 
-internal sealed class TelemetryEventProjection : KernelEventProjector
+internal sealed partial class TelemetryEventProjection : KernelEventProjector
 {
     private readonly int _runId;
     private readonly TelemetryBatch _batch;
@@ -18,6 +18,12 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
+    private readonly Dictionary<ResourceCellKey, float> _resourceValues = [];
+    private readonly Dictionary<PressureKey, float> _pressureValues = [];
+    private readonly Dictionary<(int EntityId, int ProcessId), PlannerStepRow> _lastSelectedStepByEntityProcess = [];
+    private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
+    private readonly HashSet<int> _recordedMapSnapshotTicks = [];
+    private readonly HashSet<PlannerStepKey> _recordedExecutedPlannerSteps = [];
     private readonly Dictionary<int, Queue<ObservedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
@@ -104,6 +110,10 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
     {
         foreach (var group in _entities.Values.GroupBy(entity => (entity.KindId, entity.SubtypeId)))
         {
+            var healthValues = group
+                .Select(ObservedHealth)
+                .Where(value => value > 0f)
+                .ToList();
             _batch.KindSnapshots.Add(new KindSnapshotRow(
                 _runId,
                 tick,
@@ -111,9 +121,9 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
                 group.Key.SubtypeId,
                 group.Count(entity => IsActiveStatus(entity.StatusCode)),
                 group.Count(entity => IsHistoricalStatus(entity.StatusCode)),
-                AverageHealth: 0f,
-                MinimumHealth: 0f,
-                MaximumHealth: 0f));
+                healthValues.Count == 0 ? 0f : healthValues.Average(),
+                healthValues.Count == 0 ? 0f : healthValues.Min(),
+                healthValues.Count == 0 ? 0f : healthValues.Max()));
         }
     }
 
@@ -168,6 +178,11 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
 
     public void RecordMapSnapshots(int tick)
     {
+        if (!_recordedMapSnapshotTicks.Add(tick))
+        {
+            return;
+        }
+
         var activeEntitiesByCell = _entities.Values
             .Where(entity => IsActiveStatus(entity.StatusCode))
             .GroupBy(entity => new ObservedMapCellKey(entity.PhysicalQ, entity.PhysicalR))
@@ -184,6 +199,117 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
                 group.Count(),
                 group.Count(cell => cell.OwnerEntityId > 0),
                 group.Sum(cell => activeEntitiesByCell.GetValueOrDefault(cell.Key))));
+        }
+
+        RecordCoverageSnapshots(tick, activeEntitiesByCell);
+        RecordResourceSnapshots(tick);
+        RecordPressureSnapshots(tick);
+        RecordGeneratorStateSnapshots(tick);
+    }
+
+    private void RecordCoverageSnapshots(
+        int tick,
+        Dictionary<ObservedMapCellKey, int> activeEntitiesByCell)
+    {
+        foreach (var group in _mapCells.Values
+                     .Where(cell => cell.OwnerEntityId > 0)
+                     .GroupBy(cell => cell.OwnerEntityId))
+        {
+            var cells = group.ToList();
+            _batch.CoverageSnapshots.Add(new CoverageSnapshotRow(
+                _runId,
+                tick,
+                group.Key,
+                CoverageKindCode: 1,
+                cells.Count,
+                cells.Min(cell => cell.Key.Q),
+                cells.Max(cell => cell.Key.Q),
+                cells.Min(cell => cell.Key.R),
+                cells.Max(cell => cell.Key.R),
+                cells.Sum(cell => activeEntitiesByCell.GetValueOrDefault(cell.Key))));
+
+            foreach (var terrain in cells.GroupBy(cell => cell.TerrainId))
+            {
+                _batch.CoverageTerrainSnapshots.Add(new CoverageTerrainSnapshotRow(
+                    _runId,
+                    tick,
+                    group.Key,
+                    terrain.Key,
+                    terrain.Count()));
+            }
+        }
+    }
+
+    private void RecordResourceSnapshots(int tick)
+    {
+        foreach (var group in _resourceValues.GroupBy(pair => pair.Key.ResourceId))
+        {
+            var values = SnapshotStats.From(group.Select(pair => pair.Value));
+            var terrainRows = new List<ResourceTerrainSnapshotRow>();
+            foreach (var terrainGroup in group.GroupBy(pair => TerrainFor(pair.Key.Q, pair.Key.R)))
+            {
+                var terrainValues = SnapshotStats.From(terrainGroup.Select(pair => pair.Value));
+                terrainRows.Add(new ResourceTerrainSnapshotRow(
+                    _runId,
+                    tick,
+                    group.Key,
+                    terrainGroup.Key,
+                    terrainValues.Total,
+                    terrainValues.Average,
+                    terrainValues.Minimum,
+                    terrainValues.Maximum));
+            }
+
+            _batch.ResourceSnapshots.Add(new ResourceSnapshotRow(
+                _runId,
+                tick,
+                group.Key,
+                terrainRows.Sum(row => row.Total),
+                values.Average,
+                values.Minimum,
+                values.Maximum));
+            foreach (var row in terrainRows)
+            {
+                _batch.ResourceTerrainSnapshots.Add(row);
+            }
+        }
+    }
+
+    private void RecordPressureSnapshots(int tick)
+    {
+        foreach (var pair in _pressureValues)
+        {
+            _batch.PressureSnapshots.Add(new PressureSnapshotRow(
+                _runId,
+                tick,
+                pair.Key.PressureId,
+                pair.Key.ScopeCode,
+                pair.Key.ScopeEntityId,
+                pair.Value));
+            _batch.PressureSourceSnapshots.Add(new PressureSourceSnapshotRow(
+                _runId,
+                tick,
+                pair.Key.PressureId,
+                pair.Key.ScopeCode,
+                pair.Key.ScopeEntityId,
+                SourceCodeId: 0,
+                pair.Value));
+        }
+    }
+
+    private void RecordGeneratorStateSnapshots(int tick)
+    {
+        foreach (var state in _generatorStates.Values)
+        {
+            _batch.GeneratorStateSnapshots.Add(new GeneratorStateSnapshotRow(
+                _runId,
+                tick,
+                state.GeneratorId,
+                state.Enabled,
+                Cadence: 0,
+                CooldownRemaining: 0,
+                state.RunCount,
+                state.LastRunTick));
         }
     }
 
@@ -263,6 +389,13 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
                 evt.EntityId,
                 entity.KindId,
                 evt.CurrentStatusCode));
+            _batch.LifecycleReasonEvents.Add(new LifecycleReasonEventRow(
+                _runId,
+                evt.Tick,
+                evt.EntityId,
+                ReasonCodeId: evt.SourceCodeId,
+                CauseId: evt.SourceCodeId,
+                SourceCodeId: evt.SourceCodeId));
         }
 
         MarkProjected(sequence);
@@ -323,6 +456,7 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
     {
+        _resourceValues[new ResourceCellKey(evt.ResourceId, evt.Q, evt.R)] = evt.NewValue;
         _batch.ResourceEvents.Add(new ResourceEventRow(
             _runId,
             evt.Tick,
@@ -333,6 +467,23 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             evt.NewValue,
             evt.NewValue - evt.OldValue,
             evt.SourceCodeId));
+        MarkProjected(sequence);
+    }
+
+    protected override void OnPressureChanged(long sequence, in PressureChangedKernelEvent evt)
+    {
+        var key = new PressureKey(evt.PressureId, evt.ScopeCode, evt.ScopeEntityId);
+        _pressureValues[key] = evt.NewValue;
+        _batch.PressureEvents.Add(new PressureEventRow(
+            _runId,
+            evt.Tick,
+            evt.PressureId,
+            evt.ScopeCode,
+            evt.ScopeEntityId,
+            evt.SourceCodeId,
+            evt.OldValue,
+            evt.NewValue,
+            evt.NewValue - evt.OldValue));
         MarkProjected(sequence);
     }
 
@@ -363,7 +514,8 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             evt.FactId1,
             evt.FactId2,
             evt.FactId3,
-            evt.FactCount));
+            evt.FactCount,
+            CauseId: 0));
         MarkProjected(sequence);
     }
 
@@ -371,6 +523,7 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
     {
         var key = new ObservedMapCellKey(evt.Q, evt.R);
         UpsertMapCell(key, evt.TerrainId, evt.OwnerEntityId, evt.Tick, evt.WorldVersion);
+        var causeId = evt.SourceCodeId;
         _batch.MapCellEvents.Add(new MapCellEventRow(
             _runId,
             evt.Tick,
@@ -381,7 +534,22 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             PreviousTerrainId: 0,
             evt.TerrainId,
             PreviousOwnerEntityId: 0,
-            evt.OwnerEntityId));
+            evt.OwnerEntityId,
+            causeId));
+        _batch.PlacementEvents.Add(new PlacementEventRow(
+            _runId,
+            evt.Tick,
+            causeId,
+            AnchorEntityId: evt.OwnerEntityId,
+            PlacementModeCode: 1,
+            PlaneCode: PlaneCodes.Physical,
+            evt.Q,
+            evt.R,
+            S: 0,
+            evt.TerrainId,
+            evt.OwnerEntityId,
+            RejectionReasonCode: 0,
+            Selected: true));
         MarkProjected(sequence);
     }
 
@@ -399,7 +567,8 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             evt.PreviousTerrainId,
             evt.CurrentTerrainId,
             evt.PreviousOwnerEntityId,
-            evt.CurrentOwnerEntityId));
+            evt.CurrentOwnerEntityId,
+            CauseId: 0));
         MarkProjected(sequence);
     }
 
@@ -474,6 +643,7 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             LocalityActionsRemaining: null,
             LocalityRealizedActions: null,
             LocalitySelectionReasonCode: null));
+        RecordProcessExecution(evt);
         MarkProjected(sequence);
     }
 
@@ -483,8 +653,43 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
         entity.KindId = evt.KindId;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        // MIGRATION: GoalGeneratedKernelEvent has counts only. Detailed PlannerGoalRow
-        // output must wait for primitive goal payload events.
+        MarkProjected(sequence);
+    }
+
+    protected override void OnGoalScored(long sequence, in GoalScoredKernelEvent evt)
+    {
+        _batch.PlannerScores.Add(new PlannerScoreRow(
+            _runId,
+            evt.Tick,
+            evt.EntityId,
+            evt.PlanId,
+            evt.GoalId,
+            CandidateIndex: 0,
+            evt.ReasonCodeId,
+            evt.ScoreDelta,
+            evt.RunningTotal));
+        MarkProjected(sequence);
+    }
+
+    protected override void OnPlanStepEmitted(long sequence, in PlanStepEmittedKernelEvent evt)
+    {
+        var step = new PlannerStepRow(
+            _runId,
+            evt.Tick,
+            evt.EntityId,
+            evt.PlanId,
+            evt.GoalId,
+            evt.StepIndex,
+            evt.ProcessId,
+            ActionId: evt.ProcessId,
+            evt.TargetEntityId,
+            evt.RelationshipKindId,
+            PlanningStepRoleCodes.Immediate);
+        if (evt.ProcessId > 0)
+        {
+            _lastSelectedStepByEntityProcess[(evt.EntityId, evt.ProcessId)] = step;
+        }
+
         MarkProjected(sequence);
     }
 
@@ -509,6 +714,7 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             evt.RewardOrBaseScore,
             evt.RawWeight,
             evt.AdjustedWeight));
+        ProjectSemanticPlannerTrace(evt);
         MarkProjected(sequence);
     }
 
@@ -521,6 +727,7 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnGeneratorEvaluated(long sequence, in GeneratorEvaluatedKernelEvent evt)
     {
+        _ = GetGeneratorState(evt.GeneratorId);
         _batch.GeneratorEvents.Add(new GeneratorEventRow(
             _runId,
             evt.Tick,
@@ -545,6 +752,10 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
     protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
     {
         _totalGeneratorFires++;
+        var causeId = (int)Math.Min(sequence + 1, int.MaxValue);
+        var state = GetGeneratorState(evt.GeneratorId);
+        state.RunCount++;
+        state.LastRunTick = evt.Tick;
         _batch.GeneratorEvents.Add(new GeneratorEventRow(
             _runId,
             evt.Tick,
@@ -562,11 +773,30 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             FailedFireCount: 0,
             evt.TargetEntityId == 0 ? null : evt.TargetEntityId,
             evt.CreatedEntityCount,
-            evt.CreatedRelationshipCount));
+            evt.CreatedRelationshipCount,
+            causeId));
+
+        for (var i = 0; i < evt.CreatedRelationshipCount; i++)
+        {
+            _batch.GeneratorOutputs.Add(new GeneratorOutputRow(
+                _runId,
+                evt.Tick,
+                causeId,
+                evt.GeneratorId,
+                OutputDomainCode: 2,
+                OutputEntityId: 0,
+                OutputRelationshipKindId: 0,
+                OutputSourceEntityId: evt.TargetEntityId,
+                OutputTargetEntityId: 0,
+                OutputQ: 0,
+                OutputR: 0,
+                OutputS: 0,
+                PlacementEventId: 0));
+        }
 
         if (evt.CreatedEntityCount > 0)
         {
-            _pendingGeneratorFires.Add(new PendingGeneratorFire(evt.Tick, evt.GeneratorId, evt.CreatedEntityCount));
+            _pendingGeneratorFires.Add(new PendingGeneratorFire(evt.Tick, evt.GeneratorId, causeId, evt.CreatedEntityCount));
             AssignGeneratedEntities(evt.Tick);
         }
 
@@ -681,6 +911,20 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
                     entity.SemanticQ,
                     entity.SemanticR,
                     entity.SemanticS));
+                _batch.GeneratorOutputs.Add(new GeneratorOutputRow(
+                    _runId,
+                    tick,
+                    pending.CauseId,
+                    pending.GeneratorId,
+                    OutputDomainCode: 1,
+                    entity.EntityId,
+                    OutputRelationshipKindId: 0,
+                    OutputSourceEntityId: 0,
+                    OutputTargetEntityId: 0,
+                    entity.PhysicalQ,
+                    entity.PhysicalR,
+                    OutputS: 0,
+                    pending.CauseId));
                 pending.Remaining--;
             }
         }
@@ -759,99 +1003,4 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
 
     private static int CubeDistance(int fromQ, int fromR, int fromS, int toQ, int toR, int toS) =>
         (Math.Abs(fromQ - toQ) + Math.Abs(fromR - toR) + Math.Abs(fromS - toS)) / 2;
-
-    private sealed class PendingGeneratorFire(int tick, int generatorId, int remaining)
-    {
-        public int Tick { get; } = tick;
-
-        public int GeneratorId { get; } = generatorId;
-
-        public int Remaining { get; set; } = remaining;
-    }
-}
-
-internal readonly record struct ObservedRelationshipKey(
-    int SourceEntityId,
-    int TargetEntityId,
-    int RelationshipKindId);
-
-internal readonly record struct ObservedMapCellKey(int Q, int R);
-
-internal sealed class ObservedMapCellProjection(
-    ObservedMapCellKey key,
-    int terrainId,
-    int ownerEntityId,
-    int lastUpdatedTick,
-    long worldVersion)
-{
-    public ObservedMapCellKey Key { get; } = key;
-
-    public int TerrainId { get; } = terrainId;
-
-    public int OwnerEntityId { get; } = ownerEntityId;
-
-    public int LastUpdatedTick { get; } = lastUpdatedTick;
-
-    public long WorldVersion { get; } = worldVersion;
-}
-
-internal sealed class ObservedRelationshipProjection(
-    ObservedRelationshipKey key,
-    int changeCodeId,
-    int polarityCode,
-    float strength,
-    bool isActive,
-    int lastUpdatedTick,
-    long worldVersion)
-{
-    public ObservedRelationshipKey Key { get; } = key;
-
-    public int RelationshipKindId => Key.RelationshipKindId;
-
-    public int ChangeCodeId { get; } = changeCodeId;
-
-    public int PolarityCode { get; } = polarityCode;
-
-    public float Strength { get; } = strength;
-
-    public bool IsActive { get; } = isActive;
-
-    public int LastUpdatedTick { get; } = lastUpdatedTick;
-
-    public long WorldVersion { get; } = worldVersion;
-}
-
-internal sealed class ObservedEntityProjection(int entityId)
-{
-    public int EntityId { get; } = entityId;
-
-    public int KindId { get; internal set; }
-
-    public int SubtypeId { get; internal set; }
-
-    public int CultureId { get; internal set; }
-
-    public int NameSeed { get; internal set; }
-
-    public int? PreviousStatusCode { get; internal set; }
-
-    public int StatusCode { get; internal set; }
-
-    public int PhysicalQ { get; internal set; }
-
-    public int PhysicalR { get; internal set; }
-
-    public int SemanticQ { get; internal set; }
-
-    public int SemanticR { get; internal set; }
-
-    public int SemanticS { get; internal set; }
-
-    public int? CreatedTick { get; internal set; }
-
-    public int LastUpdatedTick { get; internal set; }
-
-    public long WorldVersion { get; internal set; }
-
-    public Dictionary<int, float> Attributes { get; } = [];
 }

@@ -17,6 +17,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "symbols",
         "entity_name_symbols",
         "runs",
+        "experiment_variants",
         "tick_snapshots",
         "kind_snapshots",
         "entity_snapshots",
@@ -24,24 +25,34 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "entity_events",
         "planner_goals",
         "planner_traces",
-        "planner_trace_goals",
-        "planner_trace_scores",
-        "planner_trace_steps",
+        "planner_candidates",
+        "planner_scores",
+        "planner_steps",
+        "planner_localities",
         "trace_events",
         "process_events",
-        "locality_opportunities",
+        "process_executions",
         "attribute_events",
         "movement_events",
         "resource_events",
         "resource_snapshots",
+        "resource_terrain_snapshots",
+        "pressure_events",
+        "pressure_snapshots",
+        "pressure_source_snapshots",
         "relationship_events",
         "relationship_snapshots",
         "generator_events",
-        "generated_entities",
+        "generator_outputs",
+        "generator_state_snapshots",
         "lifecycle_events",
+        "lifecycle_reason_events",
         "map_generation_events",
         "map_cell_events",
         "map_snapshots",
+        "coverage_snapshots",
+        "coverage_terrain_snapshots",
+        "placement_events",
     ];
 
     private readonly DomainConfig _domainConfig = domainConfig;
@@ -52,7 +63,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
         var report = Analyze(batchDirectory);
         var analysisDirectory = Path.Combine(batchDirectory, "analysis");
-        WriteArtifacts(report, analysisDirectory);
+        WriteArtifacts(report, batchDirectory, analysisDirectory);
         return report;
     }
 
@@ -108,20 +119,10 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         };
     }
 
-    private void WriteArtifacts(MonteCarloAnalysisReport report, string analysisDirectory)
+    private void WriteArtifacts(MonteCarloAnalysisReport report, string batchDirectory, string analysisDirectory)
     {
         Directory.CreateDirectory(analysisDirectory);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "generator_balance.csv"), report.GeneratorBalance);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "generated_subtype_coverage.csv"), report.GeneratedSubtypeCoverage);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "planner_pressure.csv"), report.PlannerPressure);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "process_pressure.csv"), report.ProcessPressure);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "attribute_bands.csv"), report.AttributeBands);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "map_spread.csv"), report.MapSpread);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "map_generation.csv"), report.MapGeneration);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "terrain_occupancy.csv"), report.TerrainOccupancy);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "lifecycle.csv"), report.Lifecycle);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "resource_pressure.csv"), report.ResourcePressure);
-        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "flags.csv"), report.Flags);
+        WriteAnalysisParquetTables(batchDirectory, analysisDirectory);
         File.WriteAllText(Path.Combine(analysisDirectory, "summary.md"), RenderMarkdown(report));
     }
 
@@ -321,7 +322,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 (SELECT COUNT(*) FROM raw_resource_events) AS resource_event_rows,
                 (SELECT COUNT(*) FROM raw_resource_snapshots) AS resource_snapshot_rows,
                 (SELECT COUNT(*) FROM raw_map_snapshots) AS map_snapshot_rows,
-                (SELECT COUNT(*) FROM raw_locality_opportunities) AS locality_opportunity_rows,
+                (SELECT COUNT(*) FROM raw_planner_localities) AS locality_opportunity_rows,
                 (SELECT COUNT(*) FROM raw_planner_traces) AS planner_trace_rows;
             """;
 

@@ -16,27 +16,43 @@ public sealed class TelemetryBatch
     public Collection<EntitySnapshotRow> EntitySnapshots { get; } = [];
     public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = [];
     public Collection<EntityEventRow> EntityEvents { get; } = [];
+    public Collection<ExperimentVariantRow> ExperimentVariants { get; } = [];
     public Collection<PlannerGoalRow> PlannerGoals { get; } = [];
     public Collection<PlannerTraceRow> PlannerTraces { get; } = [];
     public Collection<PlannerTraceGoalRow> PlannerTraceGoals { get; } = [];
     public Collection<PlannerTraceScoreRow> PlannerTraceScores { get; } = [];
     public Collection<PlannerTraceStepRow> PlannerTraceSteps { get; } = [];
+    public Collection<PlannerCandidateRow> PlannerCandidates { get; } = [];
+    public Collection<PlannerScoreRow> PlannerScores { get; } = [];
+    public Collection<PlannerStepRow> PlannerSteps { get; } = [];
+    public Collection<PlannerLocalityRow> PlannerLocalities { get; } = [];
     public Collection<TraceRow> TraceEvents { get; } = [];
     public Collection<ProcessEventRow> ProcessEvents { get; } = [];
+    public Collection<ProcessExecutionRow> ProcessExecutions { get; } = [];
     public Collection<ProcessCandidateRow> ProcessCandidates { get; } = [];
     public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
     public Collection<AttributeEventRow> AttributeEvents { get; } = [];
     public Collection<MovementEventRow> MovementEvents { get; } = [];
     public Collection<ResourceEventRow> ResourceEvents { get; } = [];
     public Collection<ResourceSnapshotRow> ResourceSnapshots { get; } = [];
+    public Collection<ResourceTerrainSnapshotRow> ResourceTerrainSnapshots { get; } = [];
+    public Collection<PressureEventRow> PressureEvents { get; } = [];
+    public Collection<PressureSnapshotRow> PressureSnapshots { get; } = [];
+    public Collection<PressureSourceSnapshotRow> PressureSourceSnapshots { get; } = [];
     public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
     public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
     public Collection<GeneratorEventRow> GeneratorEvents { get; } = [];
+    public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = [];
+    public Collection<GeneratorStateSnapshotRow> GeneratorStateSnapshots { get; } = [];
     public Collection<GeneratedEntityRow> GeneratedEntities { get; } = [];
     public Collection<LifecycleEventRow> LifecycleEvents { get; } = [];
+    public Collection<LifecycleReasonEventRow> LifecycleReasonEvents { get; } = [];
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
     public Collection<MapCellEventRow> MapCellEvents { get; } = [];
     public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
+    public Collection<CoverageSnapshotRow> CoverageSnapshots { get; } = [];
+    public Collection<CoverageTerrainSnapshotRow> CoverageTerrainSnapshots { get; } = [];
+    public Collection<PlacementEventRow> PlacementEvents { get; } = [];
 }
 
 public sealed record SymbolRow(
@@ -62,6 +78,19 @@ public sealed record RunRow(
     int? Seed,
     int DomainId,
     long StartedUnixMilliseconds);
+
+public sealed record ExperimentVariantRow(
+    int RunId,
+    int ExperimentId,
+    int VariantId,
+    int ConfigHashId,
+    int GitShaId,
+    bool TraceEnabled,
+    int EntitySnapshotCadence,
+    int ResourceSnapshotCadence,
+    int PressureSnapshotCadence,
+    int MapSnapshotCadence,
+    int GeneratorSnapshotCadence);
 
 public sealed record TickSnapshotRow(
     int RunId,
@@ -130,14 +159,18 @@ public sealed record PlannerGoalRow(
     int Tick,
     int EntityId,
     int KindId,
+    int PlanId,
     int GoalId,
-    int DesiredEffectCode,
+    int EffectScopeCode,
+    int EffectValueId,
+    int EffectKindId,
     int TargetEntityId,
     float Urgency,
-    int? PlannedProcessId,
-    int? ParentGoalId,
+    int ParentGoalId,
+    int Depth,
     bool IsActionable,
-    int Depth);
+    int BlockerRef,
+    int SupportRuleSourceId);
 
 public sealed record PlannerTraceRow(
     int RunId,
@@ -187,6 +220,76 @@ public sealed record PlannerTraceStepRow(
     int TargetEntityId,
     int RelationshipKindId);
 
+public sealed record PlannerCandidateRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int PlanId,
+    int GoalId,
+    int CandidateIndex,
+    int ParentCandidateIndex,
+    int ProcessId,
+    int ActionId,
+    int ProviderEntityId,
+    int TargetEntityId,
+    int EffectScopeCode,
+    int EffectValueId,
+    int EffectKindId,
+    float RawScore,
+    float AdjustedScore,
+    float RewardScore,
+    int PreconditionStatusCode,
+    int DiagnosticCode,
+    int CooldownStateCode,
+    int LocalityId,
+    bool Selected);
+
+public sealed record PlannerScoreRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int PlanId,
+    int GoalId,
+    int CandidateIndex,
+    int ReasonCodeId,
+    float ScoreDelta,
+    float RunningTotal);
+
+public sealed record PlannerStepRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int PlanId,
+    int GoalId,
+    int StepIndex,
+    int ProcessId,
+    int ActionId,
+    int TargetEntityId,
+    int RelationshipKindId,
+    int StepRoleCode);
+
+public sealed record PlannerLocalityRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int PlanId,
+    int LocalityId,
+    int PlaneCode,
+    int Q,
+    int R,
+    int S,
+    int AnchorEntityId,
+    float BundleScore,
+    int GoalCount,
+    int DistinctTargetCount,
+    int DistinctEffectCount,
+    int Distance,
+    bool IsCurrent,
+    bool IsCommitted,
+    bool Selected);
+
 public sealed record TraceRow(
     int RunId,
     int Tick,
@@ -234,6 +337,20 @@ public sealed record ProcessEventRow(
     int? LocalityActionsRemaining,
     int? LocalityRealizedActions,
     int? LocalitySelectionReasonCode);
+
+public sealed record ProcessExecutionRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int PlanId,
+    int GoalId,
+    int StepIndex,
+    int ProcessId,
+    int TargetEntityId,
+    int StateCode,
+    int AffectedEntityId,
+    int LocalityId);
 
 public sealed record ProcessCandidateRow(
     int RunId,
@@ -310,10 +427,48 @@ public sealed record ResourceSnapshotRow(
     int RunId,
     int Tick,
     int ResourceId,
-    float Total,
-    float Average,
-    float Minimum,
-    float Maximum);
+    double Total,
+    double Average,
+    double Minimum,
+    double Maximum);
+
+public sealed record ResourceTerrainSnapshotRow(
+    int RunId,
+    int Tick,
+    int ResourceId,
+    int TerrainId,
+    double Total,
+    double Average,
+    double Minimum,
+    double Maximum);
+
+public sealed record PressureEventRow(
+    int RunId,
+    int Tick,
+    int PressureId,
+    int ScopeCode,
+    int ScopeEntityId,
+    int SourceCodeId,
+    float OldValue,
+    float NewValue,
+    float Delta);
+
+public sealed record PressureSnapshotRow(
+    int RunId,
+    int Tick,
+    int PressureId,
+    int ScopeCode,
+    int ScopeEntityId,
+    float Value);
+
+public sealed record PressureSourceSnapshotRow(
+    int RunId,
+    int Tick,
+    int PressureId,
+    int ScopeCode,
+    int ScopeEntityId,
+    int SourceCodeId,
+    float Contribution);
 
 public sealed record RelationshipEventRow(
     int RunId,
@@ -330,7 +485,8 @@ public sealed record RelationshipEventRow(
     int FactId1,
     int FactId2,
     int FactId3,
-    int FactCount);
+    int FactCount,
+    int CauseId = 0);
 
 public sealed record RelationshipSnapshotRow(
     int RunId,
@@ -358,7 +514,34 @@ public sealed record GeneratorEventRow(
     int FailedFireCount,
     int? SelectedTargetEntityId,
     int CreatedEntityCount,
-    int CreatedRelationshipCount);
+    int CreatedRelationshipCount,
+    int CauseId = 0,
+    int CreatedMapCellCount = 0);
+
+public sealed record GeneratorOutputRow(
+    int RunId,
+    int Tick,
+    int CauseId,
+    int GeneratorId,
+    int OutputDomainCode,
+    int OutputEntityId,
+    int OutputRelationshipKindId,
+    int OutputSourceEntityId,
+    int OutputTargetEntityId,
+    int OutputQ,
+    int OutputR,
+    int OutputS,
+    int PlacementEventId);
+
+public sealed record GeneratorStateSnapshotRow(
+    int RunId,
+    int Tick,
+    int GeneratorId,
+    bool Enabled,
+    int Cadence,
+    int CooldownRemaining,
+    int RunCount,
+    int LastRunTick);
 
 public sealed record GeneratedEntityRow(
     int RunId,
@@ -382,6 +565,14 @@ public sealed record LifecycleEventRow(
     int KindId,
     int StatusCode);
 
+public sealed record LifecycleReasonEventRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int ReasonCodeId,
+    int CauseId,
+    int SourceCodeId);
+
 public sealed record MapGenerationEventRow(
     int RunId,
     int Tick,
@@ -404,7 +595,8 @@ public sealed record MapCellEventRow(
     int PreviousTerrainId,
     int CurrentTerrainId,
     int PreviousOwnerEntityId,
-    int CurrentOwnerEntityId);
+    int CurrentOwnerEntityId,
+    int CauseId = 0);
 
 public sealed record MapSnapshotRow(
     int RunId,
@@ -413,3 +605,37 @@ public sealed record MapSnapshotRow(
     int CellCount,
     int CoveredCellCount,
     int ActiveEntityCount);
+
+public sealed record CoverageSnapshotRow(
+    int RunId,
+    int Tick,
+    int OwnerEntityId,
+    int CoverageKindCode,
+    int CellCount,
+    int MinQ,
+    int MaxQ,
+    int MinR,
+    int MaxR,
+    int ActiveEntityCount);
+
+public sealed record CoverageTerrainSnapshotRow(
+    int RunId,
+    int Tick,
+    int OwnerEntityId,
+    int TerrainId,
+    int CellCount);
+
+public sealed record PlacementEventRow(
+    int RunId,
+    int Tick,
+    int CauseId,
+    int AnchorEntityId,
+    int PlacementModeCode,
+    int PlaneCode,
+    int Q,
+    int R,
+    int S,
+    int TerrainId,
+    int CoverageOwnerEntityId,
+    int RejectionReasonCode,
+    bool Selected);

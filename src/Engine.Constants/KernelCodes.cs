@@ -271,6 +271,7 @@ public static class TraceSubjectCodes
 
 public static class TraceStatusCodes
 {
+    public const int None = 0;
     public const int Offered = 1;
     public const int BelowUrgency = 2;
     public const int OnCooldown = 3;

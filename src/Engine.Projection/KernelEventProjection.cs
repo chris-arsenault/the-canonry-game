@@ -30,6 +30,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
         if (eventType is KernelEventType.TickCompleted or
             KernelEventType.GeneratorEnabledChanged or
+            KernelEventType.PressureChanged or
             KernelEventType.CellCreated or
             KernelEventType.CellChanged)
         {
@@ -108,6 +109,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.GeneratorEnabledChanged:
                 OnGeneratorEnabledChanged(kernelEvent.Sequence, evt.AsGeneratorEnabledChanged());
+                break;
+            case KernelEventType.PressureChanged:
+                OnPressureChanged(kernelEvent.Sequence, evt.AsPressureChanged());
                 break;
             case KernelEventType.CellCreated:
                 OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
@@ -215,6 +219,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnGeneratorEnabledChanged(long sequence, in GeneratorEnabledChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnPressureChanged(long sequence, in PressureChangedKernelEvent evt)
     {
     }
 
