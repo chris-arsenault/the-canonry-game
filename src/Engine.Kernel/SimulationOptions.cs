@@ -44,5 +44,6 @@ internal sealed record SimulationOptions
     public int RelationshipKindIdCapacity { get; init; } = 256;
     public int RelationshipGraphDeltaMergeThreshold { get; init; } = 1024;
     public KernelRuntimeCodes RuntimeCodes { get; init; } = KernelRuntimeCodes.Default;
+    public bool TraceEnabled { get; init; }
     public int Seed { get; init; } = 1;
 }

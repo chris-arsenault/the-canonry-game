@@ -18,6 +18,8 @@ public static class TelemetrySymbolKinds
     public const int GeneratorStatus = 1014;
     public const int PlannerTraceStatus = 1015;
     public const int KernelEventType = 1016;
+    public const int TraceSubject = 1017;
+    public const int TraceStatus = 1018;
 }
 
 public static class PlannerTraceStatusCodes

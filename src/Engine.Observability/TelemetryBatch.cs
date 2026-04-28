@@ -21,6 +21,7 @@ public sealed class TelemetryBatch
     public Collection<PlannerTraceGoalRow> PlannerTraceGoals { get; } = [];
     public Collection<PlannerTraceScoreRow> PlannerTraceScores { get; } = [];
     public Collection<PlannerTraceStepRow> PlannerTraceSteps { get; } = [];
+    public Collection<TraceRow> TraceEvents { get; } = [];
     public Collection<ProcessEventRow> ProcessEvents { get; } = [];
     public Collection<ProcessCandidateRow> ProcessCandidates { get; } = [];
     public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
@@ -34,6 +35,7 @@ public sealed class TelemetryBatch
     public Collection<GeneratedEntityRow> GeneratedEntities { get; } = [];
     public Collection<LifecycleEventRow> LifecycleEvents { get; } = [];
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
+    public Collection<MapCellEventRow> MapCellEvents { get; } = [];
     public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
 }
 
@@ -184,6 +186,26 @@ public sealed record PlannerTraceStepRow(
     int ProcessId,
     int TargetEntityId,
     int RelationshipKindId);
+
+public sealed record TraceRow(
+    int RunId,
+    int Tick,
+    int PlanId,
+    int EntityId,
+    int TraceSubjectCode,
+    int CandidateIndex,
+    int ParentCandidateIndex,
+    int ActionFamilyCode,
+    int ActionId,
+    int EffectScopeCode,
+    int EffectValueId,
+    int EffectKindId,
+    int TargetEntityId,
+    int StatusCode,
+    float Urgency,
+    float RewardOrBaseScore,
+    float RawWeight,
+    float AdjustedWeight);
 
 public sealed record ProcessEventRow(
     int RunId,
@@ -371,6 +393,18 @@ public sealed record MapGenerationEventRow(
     int DescriptionId,
     int ReasonId,
     bool WillRetry);
+
+public sealed record MapCellEventRow(
+    int RunId,
+    int Tick,
+    int EventTypeCode,
+    int SourceCodeId,
+    int Q,
+    int R,
+    int PreviousTerrainId,
+    int CurrentTerrainId,
+    int PreviousOwnerEntityId,
+    int CurrentOwnerEntityId);
 
 public sealed record MapSnapshotRow(
     int RunId,

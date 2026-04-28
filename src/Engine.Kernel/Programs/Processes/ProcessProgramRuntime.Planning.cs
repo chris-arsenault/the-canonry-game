@@ -25,6 +25,8 @@ internal sealed partial class ProcessProgramRuntime
         float urgency,
         int depth,
         float selectRoll,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         out int selectedRootProcessSlot,
         out int selectedRootTargetId,
@@ -55,6 +57,8 @@ internal sealed partial class ProcessProgramRuntime
             depth,
             useCommitment,
             effectKey,
+            traceEnabled,
+            parentCandidateIndex,
             ref candidateCount,
             out var committed);
         best = ChooseCommittedProcessPlanChoice(best, committed, useCommitment);
@@ -84,6 +88,8 @@ internal sealed partial class ProcessProgramRuntime
         int depth,
         bool useCommitment,
         int effectKey,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         out ProcessPlanChoice committed)
     {
@@ -93,33 +99,31 @@ internal sealed partial class ProcessProgramRuntime
         var previousProcessSlot = useCommitment ? _committedPlanProcessSlots.GetOrDefault(entityId, effectKey) : 0;
         for (var processSlot = 1; processSlot <= _processCount; processSlot++)
         {
-            if (!ProcessCanPlanForEffect(processSlot, kindId, entityId, tick, effectScopeCode, effectValueId, effectKindId))
+            if (ShouldSkipPlanProcess(
+                simulation,
+                entityId,
+                kindId,
+                tick,
+                processSlot,
+                effectScopeCode,
+                effectValueId,
+                effectKindId,
+                urgency,
+                traceEnabled,
+                parentCandidateIndex))
             {
                 continue;
             }
 
-            var candidate = EvaluateProcessPlanChoice(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, forcedTargetId, urgency, depth, ref candidateCount);
+            var candidate = EvaluateProcessPlanChoice(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, forcedTargetId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
             TrackProcessPlanChoice(candidate, previousProcessSlot, previousTargetId, ref best, ref committed);
-            if (TryEvaluatePreviousProcessPlanChoice(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, forcedTargetId, urgency, depth, useCommitment, previousProcessSlot, previousTargetId, ref candidateCount, out var previous))
+            if (TryEvaluatePreviousProcessPlanChoice(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, forcedTargetId, urgency, depth, useCommitment, previousProcessSlot, previousTargetId, traceEnabled, parentCandidateIndex, ref candidateCount, out var previous))
             {
                 committed = previous;
             }
         }
 
         return best;
-    }
-
-    private bool ProcessCanPlanForEffect(
-        int processSlot,
-        int kindId,
-        int entityId,
-        int tick,
-        int effectScopeCode,
-        int effectValueId,
-        int effectKindId)
-    {
-        return ProcessCanRunForEntity(processSlot, kindId, entityId, tick) &&
-            ProcessServesEffect(processSlot, effectScopeCode, effectValueId, effectKindId);
     }
 
     private ProcessPlanChoice EvaluateProcessPlanChoice(
@@ -133,6 +137,8 @@ internal sealed partial class ProcessProgramRuntime
         int forcedTargetId,
         float urgency,
         int depth,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount)
     {
         var weight = EvaluateBestTargetsForProcess(
@@ -146,6 +152,8 @@ internal sealed partial class ProcessProgramRuntime
             forcedTargetId,
             urgency,
             depth,
+            traceEnabled,
+            parentCandidateIndex,
             ref candidateCount,
             out var rootProcessSlot,
             out var rootTargetId,
@@ -193,6 +201,8 @@ internal sealed partial class ProcessProgramRuntime
         bool useCommitment,
         int previousProcessSlot,
         int previousTargetId,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         out ProcessPlanChoice previous)
     {
@@ -206,6 +216,7 @@ internal sealed partial class ProcessProgramRuntime
         }
 
         candidateCount++;
+        var candidateIndex = candidateCount;
         var weight = EvaluatePlanCandidate(
             simulation,
             entityId,
@@ -217,6 +228,9 @@ internal sealed partial class ProcessProgramRuntime
             effectKindId,
             urgency,
             depth,
+            candidateIndex,
+            parentCandidateIndex,
+            traceEnabled,
             ref candidateCount,
             out var leafProcessSlot,
             out var leafTargetId);
@@ -293,6 +307,8 @@ internal sealed partial class ProcessProgramRuntime
         int forcedTargetId,
         float urgency,
         int depth,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         out int selectedRootProcessSlot,
         out int selectedRootTargetId,
@@ -306,7 +322,7 @@ internal sealed partial class ProcessProgramRuntime
         if (forcedTargetId > 0)
         {
             var forced = simulation.World.EntityIsActive(forcedTargetId)
-                ? EvaluateProcessTargetPlanChoice(simulation, entityId, forcedTargetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount)
+                ? EvaluateProcessTargetPlanChoice(simulation, entityId, forcedTargetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount)
                 : default;
             return SelectBestProcessTargetChoice(forced, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
         }
@@ -327,6 +343,8 @@ internal sealed partial class ProcessProgramRuntime
                 depth,
                 selectorStart,
                 selectorCount,
+                traceEnabled,
+                parentCandidateIndex,
                 ref candidateCount,
                 out selectedRootProcessSlot,
                 out selectedRootTargetId,
@@ -336,18 +354,18 @@ internal sealed partial class ProcessProgramRuntime
 
         if (_processTargetModes[processSlot] == ProcessTargetModeCodes.Self)
         {
-            var self = EvaluateProcessTargetPlanChoice(simulation, entityId, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);
+            var self = EvaluateProcessTargetPlanChoice(simulation, entityId, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
             return SelectBestProcessTargetChoice(self, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
         }
 
         if (_processTargetModes[processSlot] == ProcessTargetModeCodes.KindOther &&
             _processTargetKindIds[processSlot] > 0)
         {
-            var kind = EvaluateKindProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);
+            var kind = EvaluateKindProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
             return SelectBestProcessTargetChoice(kind, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
         }
 
-        var any = EvaluateAllProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);
+        var any = EvaluateAllProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
         return SelectBestProcessTargetChoice(any, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
     }
 
@@ -361,6 +379,8 @@ internal sealed partial class ProcessProgramRuntime
         int effectKindId,
         float urgency,
         int depth,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount)
     {
         var best = default(ProcessPlanChoice);
@@ -369,7 +389,7 @@ internal sealed partial class ProcessProgramRuntime
              targetId > 0;
              targetId = world.NextEntityOfKind(targetId))
         {
-            best = EvaluateProcessTargetIfActive(simulation, entityId, targetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, best, ref candidateCount);
+            best = EvaluateProcessTargetIfActive(simulation, entityId, targetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, best, ref candidateCount);
         }
 
         return best;
@@ -385,13 +405,15 @@ internal sealed partial class ProcessProgramRuntime
         int effectKindId,
         float urgency,
         int depth,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount)
     {
         var best = default(ProcessPlanChoice);
         var world = simulation.World;
         for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
         {
-            best = EvaluateProcessTargetIfActive(simulation, entityId, targetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, best, ref candidateCount);
+            best = EvaluateProcessTargetIfActive(simulation, entityId, targetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, best, ref candidateCount);
         }
 
         return best;
@@ -408,6 +430,8 @@ internal sealed partial class ProcessProgramRuntime
         int effectKindId,
         float urgency,
         int depth,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ProcessPlanChoice best,
         ref int candidateCount)
     {
@@ -417,7 +441,7 @@ internal sealed partial class ProcessProgramRuntime
             return best;
         }
 
-        var candidate = EvaluateProcessTargetPlanChoice(simulation, entityId, targetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);
+        var candidate = EvaluateProcessTargetPlanChoice(simulation, entityId, targetId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
         return candidate.Weight > best.Weight ? candidate : best;
     }
 
@@ -432,9 +456,12 @@ internal sealed partial class ProcessProgramRuntime
         int effectKindId,
         float urgency,
         int depth,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount)
     {
         candidateCount++;
+        var candidateIndex = candidateCount;
         var weight = EvaluatePlanCandidate(
             simulation,
             entityId,
@@ -446,6 +473,9 @@ internal sealed partial class ProcessProgramRuntime
             effectKindId,
             urgency,
             depth,
+            candidateIndex,
+            parentCandidateIndex,
+            traceEnabled,
             ref candidateCount,
             out var planProcessSlot,
             out var planTargetId);
@@ -484,6 +514,9 @@ internal sealed partial class ProcessProgramRuntime
         int effectKindId,
         float urgency,
         int depth,
+        int candidateIndex,
+        int parentCandidateIndex,
+        bool traceEnabled,
         ref int candidateCount,
         out int selectedProcessSlot,
         out int selectedTargetId)
@@ -494,9 +527,49 @@ internal sealed partial class ProcessProgramRuntime
         var reward = AdjustedProcessPlanReward(world, processSlot, entityId, targetId);
         if (reward <= 0f)
         {
+            EmitPlanTargetTraceIfNeeded(simulation, tick, entityId, candidateIndex, parentCandidateIndex, processSlot, effectScopeCode, effectValueId, effectKindId, targetId, TraceStatusCodes.NoReward, urgency, reward, 0f, 0f, traceEnabled);
             return 0f;
         }
 
+        return EvaluatePlanCandidateWithReward(
+            simulation,
+            entityId,
+            targetId,
+            processSlot,
+            tick,
+            effectScopeCode,
+            effectValueId,
+            effectKindId,
+            depth,
+            candidateIndex,
+            parentCandidateIndex,
+            traceEnabled,
+            reward,
+            urgency,
+            ref candidateCount,
+            out selectedProcessSlot,
+            out selectedTargetId);
+    }
+
+    private float EvaluatePlanCandidateWithReward(
+        Simulation simulation,
+        int entityId,
+        int targetId,
+        int processSlot,
+        int tick,
+        int effectScopeCode,
+        int effectValueId,
+        int effectKindId,
+        int depth,
+        int candidateIndex,
+        int parentCandidateIndex,
+        bool traceEnabled,
+        float reward,
+        float urgency,
+        ref int candidateCount,
+        out int selectedProcessSlot,
+        out int selectedTargetId)
+    {
         var planningWeight = 1f + global::System.MathF.Log(1f + reward);
         var weightedUrgency = urgency * planningWeight * global::System.MathF.Pow(DepthPenalty, depth);
         var preconditionResult = PreconditionsResult(
@@ -511,12 +584,21 @@ internal sealed partial class ProcessProgramRuntime
             out var blockerTargetId);
         if (preconditionResult == PreconditionFailed)
         {
-            return EvaluateBlockedProcessPlanCandidate(
+            return EvaluateFailedPreconditionPlanCandidate(
                 simulation,
                 entityId,
+                targetId,
+                processSlot,
                 tick,
                 weightedUrgency,
                 depth,
+                candidateIndex,
+                parentCandidateIndex,
+                traceEnabled,
+                effectScopeCode,
+                effectValueId,
+                effectKindId,
+                reward,
                 blockerScopeCode,
                 blockerValueId,
                 blockerKindId,
@@ -534,9 +616,83 @@ internal sealed partial class ProcessProgramRuntime
             tick,
             weightedUrgency,
             depth,
+            candidateIndex,
+            parentCandidateIndex,
+            traceEnabled,
+            effectScopeCode,
+            effectValueId,
+            effectKindId,
             ref candidateCount,
             out selectedProcessSlot,
             out selectedTargetId);
+    }
+
+    private float EvaluateFailedPreconditionPlanCandidate(
+        Simulation simulation,
+        int entityId,
+        int targetId,
+        int processSlot,
+        int tick,
+        float weightedUrgency,
+        int depth,
+        int candidateIndex,
+        int parentCandidateIndex,
+        bool traceEnabled,
+        int effectScopeCode,
+        int effectValueId,
+        int effectKindId,
+        float reward,
+        int blockerScopeCode,
+        int blockerValueId,
+        int blockerKindId,
+        int blockerTargetId,
+        ref int candidateCount,
+        out int selectedProcessSlot,
+        out int selectedTargetId)
+    {
+        var blockedWeight = EvaluateBlockedProcessPlanCandidate(
+            simulation,
+            entityId,
+            targetId,
+            processSlot,
+            tick,
+            weightedUrgency,
+            depth,
+            candidateIndex,
+            parentCandidateIndex,
+            traceEnabled,
+            effectScopeCode,
+            effectValueId,
+            effectKindId,
+            reward,
+            blockerScopeCode,
+            blockerValueId,
+            blockerKindId,
+            blockerTargetId,
+            ref candidateCount,
+            out selectedProcessSlot,
+            out selectedTargetId);
+        if (traceEnabled)
+        {
+            EmitTargetTrace(
+                simulation,
+                tick,
+                entityId,
+                candidateIndex,
+                parentCandidateIndex,
+                processSlot,
+                effectScopeCode,
+                effectValueId,
+                effectKindId,
+                targetId,
+                TraceStatusCodes.PreconditionFailed,
+                weightedUrgency,
+                reward,
+                0f,
+                blockedWeight);
+        }
+
+        return blockedWeight;
     }
 
     private float AdjustedProcessPlanReward(WorldState world, int processSlot, int entityId, int targetId)
@@ -552,14 +708,13 @@ internal sealed partial class ProcessProgramRuntime
 
     private float EvaluateBlockedProcessPlanCandidate(
         Simulation simulation,
-        int entityId,
-        int tick,
+        int entityId, int targetId, int processSlot, int tick,
         float weightedUrgency,
-        int depth,
-        int blockerScopeCode,
-        int blockerValueId,
-        int blockerKindId,
-        int blockerTargetId,
+        int depth, int candidateIndex, int parentCandidateIndex,
+        bool traceEnabled,
+        int effectScopeCode, int effectValueId, int effectKindId,
+        float reward,
+        int blockerScopeCode, int blockerValueId, int blockerKindId, int blockerTargetId,
         ref int candidateCount,
         out int selectedProcessSlot,
         out int selectedTargetId)
@@ -568,9 +723,45 @@ internal sealed partial class ProcessProgramRuntime
         selectedTargetId = 0;
         if (depth >= MaxPlanningDepth || blockerScopeCode == 0 || blockerTargetId == 0)
         {
+            EmitSupportTraceIfNeeded(simulation, tick, entityId, candidateIndex, parentCandidateIndex, processSlot, effectScopeCode, effectValueId, effectKindId, targetId, TraceStatusCodes.NoTarget, weightedUrgency, reward, 0f, traceEnabled);
             return 0f;
         }
 
+        var supportWeight = EvaluateBlockerSupportPlan(
+            simulation,
+            entityId,
+            tick,
+            weightedUrgency,
+            depth,
+            blockerScopeCode,
+            blockerValueId,
+            blockerKindId,
+            blockerTargetId,
+            traceEnabled,
+            candidateIndex,
+            ref candidateCount,
+            out selectedProcessSlot,
+            out selectedTargetId);
+        EmitSupportTraceIfNeeded(simulation, tick, entityId, candidateIndex, parentCandidateIndex, selectedProcessSlot, blockerScopeCode, blockerValueId, blockerKindId, blockerTargetId, supportWeight > 0f ? TraceStatusCodes.SupportSelected : TraceStatusCodes.NoTarget, weightedUrgency, reward, supportWeight, traceEnabled);
+        return supportWeight;
+    }
+
+    private float EvaluateBlockerSupportPlan(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        float weightedUrgency,
+        int depth,
+        int blockerScopeCode,
+        int blockerValueId,
+        int blockerKindId,
+        int blockerTargetId,
+        bool traceEnabled,
+        int candidateIndex,
+        ref int candidateCount,
+        out int selectedProcessSlot,
+        out int selectedTargetId)
+    {
         return EvaluateBestPlanForEffect(
             simulation,
             entityId,
@@ -583,6 +774,8 @@ internal sealed partial class ProcessProgramRuntime
             weightedUrgency * SubGoalUrgencyScale,
             depth + 1,
             selectRoll: -1f,
+            traceEnabled,
+            parentCandidateIndex: candidateIndex,
             ref candidateCount,
             out _,
             out _,
@@ -598,6 +791,12 @@ internal sealed partial class ProcessProgramRuntime
         int tick,
         float weightedUrgency,
         int depth,
+        int candidateIndex,
+        int parentCandidateIndex,
+        bool traceEnabled,
+        int effectScopeCode,
+        int effectValueId,
+        int effectKindId,
         ref int candidateCount,
         out int selectedProcessSlot,
         out int selectedTargetId)
@@ -626,6 +825,8 @@ internal sealed partial class ProcessProgramRuntime
                 weightedUrgency,
                 score,
                 depth + 1,
+                candidateIndex,
+                traceEnabled,
                 ref candidateCount,
                 out var supportProcessSlot,
                 out var supportTargetId);
@@ -636,6 +837,26 @@ internal sealed partial class ProcessProgramRuntime
                 selectedTargetId = supportTargetId;
             }
         }
+
+        EmitPlanTargetTraceIfNeeded(
+            simulation,
+            tick,
+            entityId,
+            candidateIndex,
+            parentCandidateIndex,
+            selectedProcessSlot,
+            effectScopeCode,
+            effectValueId,
+            effectKindId,
+            selectedTargetId,
+            selectedProcessSlot == processSlot && selectedTargetId == targetId
+                ? TraceStatusCodes.Actionable
+                : TraceStatusCodes.SupportSelected,
+            weightedUrgency,
+            score,
+            immediateWeight,
+            bestWeight,
+            traceEnabled);
 
         return bestWeight <= 0f ? 0f : bestWeight;
     }
@@ -649,6 +870,8 @@ internal sealed partial class ProcessProgramRuntime
         float weightedUrgency,
         float processScore,
         int depth,
+        int parentCandidateIndex,
+        bool traceEnabled,
         ref int candidateCount,
         out int selectedProcessSlot,
         out int selectedTargetId)
@@ -691,6 +914,8 @@ internal sealed partial class ProcessProgramRuntime
                 childBaseUrgency,
                 depth,
                 selectRoll: -1f,
+                traceEnabled,
+                parentCandidateIndex,
                 ref candidateCount,
                 out _,
                 out _,

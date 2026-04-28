@@ -298,6 +298,10 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
 
     protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
+    protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
+
+    protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
+
     protected override void OnPlanStarted(long sequence, in PlanStartedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
     protected override void OnGoalConsidered(long sequence, in GoalConsideredKernelEvent evt) => Count(evt.Tick).TotalMessages++;
@@ -311,6 +315,8 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
     protected override void OnPlanCommitted(long sequence, in PlanCommittedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
     protected override void OnPlanAbandoned(long sequence, in PlanAbandonedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
+
+    protected override void OnTrace(long sequence, in TraceKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
     private KernelTickMessageCounters Count(int tick)
     {

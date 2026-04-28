@@ -126,6 +126,33 @@ internal static class TelemetrySymbolIds
         symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Abandoned, "abandoned", "Abandoned"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Truncated, "truncated", "Truncated"));
 
+        AddTraceSymbols(symbols);
+        AddKernelEventTypeSymbols(symbols);
+    }
+
+    private static void AddTraceSymbols(Collection<SymbolRow> symbols)
+    {
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.Goal, "goal", "Goal"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.ActionSummary, "action_summary", "Action Summary"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.TargetDetail, "target_detail", "Target Detail"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.Support, "support", "Support"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.Locality, "locality", "Locality"));
+
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Offered, "offered", "Offered"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.BelowUrgency, "below_urgency", "Below Urgency"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.OnCooldown, "on_cooldown", "On Cooldown"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Disabled, "disabled", "Disabled"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.NoTarget, "no_target", "No Target"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.NoReward, "no_reward", "No Reward"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.PreconditionFailed, "precondition_failed", "Precondition Failed"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Actionable, "actionable", "Actionable"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.SupportSelected, "support_selected", "Support Selected"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Selected, "selected", "Selected"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.CommittedByHysteresis, "committed_by_hysteresis", "Committed By Hysteresis"));
+    }
+
+    private static void AddKernelEventTypeSymbols(Collection<SymbolRow> symbols)
+    {
         AddKernelEventType(symbols, KernelEventType.EntityCreated, "entity_created", "Entity Created");
         AddKernelEventType(symbols, KernelEventType.EntityStatusChanged, "entity_status_changed", "Entity Status Changed");
         AddKernelEventType(symbols, KernelEventType.EntityMoved, "entity_moved", "Entity Moved");
@@ -136,6 +163,9 @@ internal static class TelemetrySymbolIds
         AddKernelEventType(symbols, KernelEventType.ProcessExecuted, "process_executed", "Process Executed");
         AddKernelEventType(symbols, KernelEventType.GeneratorEvaluated, "generator_evaluated", "Generator Evaluated");
         AddKernelEventType(symbols, KernelEventType.GeneratorFired, "generator_fired", "Generator Fired");
+        AddKernelEventType(symbols, KernelEventType.CellCreated, "cell_created", "Cell Created");
+        AddKernelEventType(symbols, KernelEventType.CellChanged, "cell_changed", "Cell Changed");
+        AddKernelEventType(symbols, KernelEventType.Trace, "trace", "Trace");
     }
 
     private static void AddKernelEventType(

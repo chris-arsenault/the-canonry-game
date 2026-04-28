@@ -14,10 +14,11 @@ internal sealed record MonteCarloOptions(
     bool SkipAnalysis,
     bool PerformanceMode,
     bool IncludeStateTelemetry,
-    bool DisableEntitySnapshots)
+    bool DisableEntitySnapshots,
+    bool TraceEnabled)
 {
     public bool AnalyzeOnly => AnalyzeDirectory is not null;
-    public bool CollectStateTelemetry => !PerformanceMode || IncludeStateTelemetry;
+    public bool CollectStateTelemetry => !PerformanceMode || IncludeStateTelemetry || TraceEnabled;
     public bool ShouldAnalyze => !SkipAnalysis && CollectStateTelemetry;
 
     public static MonteCarloOptions Parse(string[] args)
@@ -45,7 +46,8 @@ internal sealed record MonteCarloOptions(
             SkipAnalysis: HasFlag(args, "--no-analysis"),
             PerformanceMode: HasFlag(args, "--perf"),
             IncludeStateTelemetry: HasFlag(args, "--include-state-telemetry"),
-            DisableEntitySnapshots: HasFlag(args, "--disable-entity-snapshots"));
+            DisableEntitySnapshots: HasFlag(args, "--disable-entity-snapshots"),
+            TraceEnabled: HasFlag(args, "--trace"));
     }
 
     private static int ReadInt(string[] args, string name, int fallback)

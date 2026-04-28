@@ -96,6 +96,7 @@ public sealed class KernelRuntimeFactory
             {
                 Seed = baseSeed,
                 EventSchemaValidator = KernelEventSchemaRegistry.Validator,
+                TraceEnabled = request.TraceEnabled,
             })
             .WithDriverConfig(DriverConfigFor(request.FunctionProfile))
             .ConfigureSymbols(domain.ConfigureProjectionSymbols)

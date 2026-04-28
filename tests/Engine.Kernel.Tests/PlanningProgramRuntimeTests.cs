@@ -210,6 +210,64 @@ public sealed class PlanningProgramRuntimeTests
     }
 
     [Fact]
+    public void DirectProcessPlanEmitsTraceEventsWhenEnabled()
+    {
+        var simulation = CreateSimulation(traceEnabled: true);
+        const int kindId = 1;
+        const int attributeId = 10;
+        const int processId = 1101;
+        simulation.RegisterAttribute(kindId, attributeId, 0f, 100f, 10f);
+        simulation.Processes.RegisterAttributeObjective(
+            kindId,
+            attributeId,
+            ProcessObjectiveUrgencyCodes.StandardNeed,
+            0f,
+            100f,
+            10f,
+            baseline: 0f);
+        var entityId = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        var process = simulation.Processes.RegisterProcess(kindId, processId, targetMode: ProcessTargetModeCodes.Self);
+        simulation.Processes.SetGoalEffect(process, ProcessEffectScopeCodes.SelfAttribute, attributeId, kindId);
+        simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.TargetIsSelf);
+        simulation.Processes.AddExpressionOp(process, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(process, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Processes.AddStep(process, ProcessOperationCodes.AddAttribute, attributeId, x: 20f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        var decision = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(
+                PlannerKindCodes.Goap,
+                ActionFamilyCodes.Process,
+                entityId,
+                kindId,
+                Tick: 3,
+                SelectionRoll: 0f));
+
+        Assert.Equal(PlanningStatusCodes.Succeeded, decision.StatusCode);
+        var events = ReadAvailableEvents(simulation, cursor);
+        var traceEvents = events
+            .Where(evt => evt.EventType == KernelEventType.Trace)
+            .Select(evt => evt.AsTrace())
+            .ToArray();
+
+        Assert.Contains(traceEvents, evt =>
+            evt.TraceSubjectCode == TraceSubjectCodes.Goal &&
+            evt.StatusCode == TraceStatusCodes.Offered &&
+            evt.EffectValueId == attributeId);
+        Assert.Contains(traceEvents, evt =>
+            evt.TraceSubjectCode == TraceSubjectCodes.TargetDetail &&
+            evt.StatusCode == TraceStatusCodes.Actionable &&
+            evt.ActionId == processId &&
+            evt.TargetEntityId == entityId);
+        Assert.Contains(traceEvents, evt =>
+            evt.TraceSubjectCode == TraceSubjectCodes.ActionSummary &&
+            evt.StatusCode == TraceStatusCodes.Selected &&
+            evt.ActionId == processId);
+    }
+
+    [Fact]
     public void FailedProcessPlanEmitsAbandonedPlanKernelEvents()
     {
         var simulation = CreateSimulation();
@@ -487,7 +545,7 @@ public sealed class PlanningProgramRuntimeTests
         Assert.Equal(entityId, step.TargetEntityId);
     }
 
-    private static Simulation CreateSimulation()
+    private static Simulation CreateSimulation(bool traceEnabled = false)
     {
         return new Simulation(new SimulationOptions
         {
@@ -523,6 +581,7 @@ public sealed class PlanningProgramRuntimeTests
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,
+            TraceEnabled = traceEnabled,
             Seed = 1,
         });
     }
@@ -531,5 +590,16 @@ public sealed class PlanningProgramRuntimeTests
     {
         Assert.True(simulation.Events.TryRead(cursor, out var read));
         return read.Event;
+    }
+
+    private static KernelEvent[] ReadAvailableEvents(Simulation simulation, KernelEventCursor cursor)
+    {
+        var events = new List<KernelEvent>();
+        while (simulation.Events.TryRead(cursor, out var read))
+        {
+            events.Add(read.Event);
+        }
+
+        return events.ToArray();
     }
 }

@@ -74,7 +74,7 @@ internal static class MonteCarloCli
         {
             var seed = options.Seed + runIndex;
             var runId = $"seed-{seed}";
-            using (var run = MonteCarloKernelRunFactory.Create(seed))
+            using (var run = MonteCarloKernelRunFactory.Create(seed, options.TraceEnabled))
             {
                 var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
                 stateRowsWritten += result.StateRowsWritten;
@@ -359,6 +359,7 @@ internal static class MonteCarloCli
         batch.PlannerTraceGoals.Count +
         batch.PlannerTraceScores.Count +
         batch.PlannerTraceSteps.Count +
+        batch.TraceEvents.Count +
         batch.ProcessEvents.Count +
         batch.ProcessCandidates.Count +
         batch.LocalityOpportunities.Count +
@@ -372,6 +373,7 @@ internal static class MonteCarloCli
         batch.GeneratedEntities.Count +
         batch.LifecycleEvents.Count +
         batch.MapGenerationEvents.Count +
+        batch.MapCellEvents.Count +
         batch.MapSnapshots.Count;
 
     private static long CountRows(PerformanceTelemetryBatch batch) =>

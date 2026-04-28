@@ -426,6 +426,21 @@ internal sealed partial class Simulation : IKernel
         World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
     }
 
+    internal void SetCellState(int q, int r, int terrainId, int ownerEntityId, int tick)
+    {
+        World.SetCellState(q, r, terrainId, ownerEntityId, tick, _executionContext);
+    }
+
+    internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick)
+    {
+        World.SetCoverageOwner(q, r, ownerEntityId, tick, _executionContext);
+    }
+
+    internal void SetCellTerrain(int q, int r, int terrainId, int tick)
+    {
+        World.SetCellTerrain(q, r, terrainId, tick, _executionContext);
+    }
+
     internal int CreateRelationship(
         int relationshipKindId,
         int polarityCode,

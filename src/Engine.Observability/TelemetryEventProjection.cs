@@ -17,6 +17,7 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
     private readonly IProjectionSymbolCatalog? _symbols;
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
+    private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
     private readonly Dictionary<int, Queue<ObservedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
@@ -42,13 +43,9 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             "goal-created/goal-updated events with desired effect, target, urgency, parent, and actionable state",
             "GoalGeneratedKernelEvent only reports counts, so PlannerGoalRow cannot be rebuilt without reading live entity goals."),
         new(
-            "process candidate rows and locality opportunities",
-            "process-candidate and locality-opportunity trace events",
-            "ProcessEvaluatedKernelEvent carries the selected goal/process and candidate count but not candidate diagnostics."),
-        new(
-            "map and resource snapshots",
-            "startup map/resource snapshots plus coverage/resource aggregate events",
-            "The event stream has resource deltas but no full grid, terrain, coverage, or untouched initial stockpile state."),
+            "resource snapshots",
+            "startup resource snapshots plus resource aggregate events",
+            "The event stream has resource deltas but no untouched initial stockpile state."),
         new(
             "generated entity attribution",
             "generator-fired event payload listing created entity IDs or creation-cause IDs on EntityCreated",
@@ -82,6 +79,12 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
         var activeEntities = _entities.Values.Where(entity => IsActiveStatus(entity.StatusCode)).ToList();
         var historicalCount = _entities.Values.Count(entity => IsHistoricalStatus(entity.StatusCode));
         var activeRelationships = _relationships.Values.Where(relationship => relationship.IsActive).ToList();
+        var coveredCells = _mapCells.Values.Count(cell => cell.OwnerEntityId > 0);
+        var coverageCount = _mapCells.Values
+            .Where(cell => cell.OwnerEntityId > 0)
+            .Select(cell => cell.OwnerEntityId)
+            .Distinct()
+            .Count();
 
         _batch.TickSnapshots.Add(new TickSnapshotRow(
             _runId,
@@ -90,9 +93,9 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
             historicalCount,
             _totalGeneratorFires,
             activeRelationships.Count,
-            CoverageCount: 0,
-            CoveredCells: 0,
-            UncoveredCells: 0,
+            coverageCount,
+            coveredCells,
+            _mapCells.Count - coveredCells,
             ComputePhysicalSpread(activeEntities),
             ComputeSemanticSpread(activeEntities)));
     }
@@ -160,6 +163,27 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
                 strengths.Count == 0 ? 0f : strengths.Average(),
                 strengths.Count == 0 ? 0f : strengths.Min(),
                 strengths.Count == 0 ? 0f : strengths.Max()));
+        }
+    }
+
+    public void RecordMapSnapshots(int tick)
+    {
+        var activeEntitiesByCell = _entities.Values
+            .Where(entity => IsActiveStatus(entity.StatusCode))
+            .GroupBy(entity => new ObservedMapCellKey(entity.PhysicalQ, entity.PhysicalR))
+            .ToDictionary(group => group.Key, group => group.Count());
+
+        foreach (var group in _mapCells.Values
+                     .OrderBy(cell => cell.TerrainId)
+                     .GroupBy(cell => cell.TerrainId))
+        {
+            _batch.MapSnapshots.Add(new MapSnapshotRow(
+                _runId,
+                tick,
+                group.Key,
+                group.Count(),
+                group.Count(cell => cell.OwnerEntityId > 0),
+                group.Sum(cell => activeEntitiesByCell.GetValueOrDefault(cell.Key))));
         }
     }
 
@@ -343,6 +367,42 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
+    protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
+    {
+        var key = new ObservedMapCellKey(evt.Q, evt.R);
+        UpsertMapCell(key, evt.TerrainId, evt.OwnerEntityId, evt.Tick, evt.WorldVersion);
+        _batch.MapCellEvents.Add(new MapCellEventRow(
+            _runId,
+            evt.Tick,
+            (int)KernelEventType.CellCreated,
+            evt.SourceCodeId,
+            evt.Q,
+            evt.R,
+            PreviousTerrainId: 0,
+            evt.TerrainId,
+            PreviousOwnerEntityId: 0,
+            evt.OwnerEntityId));
+        MarkProjected(sequence);
+    }
+
+    protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
+    {
+        var key = new ObservedMapCellKey(evt.Q, evt.R);
+        UpsertMapCell(key, evt.CurrentTerrainId, evt.CurrentOwnerEntityId, evt.Tick, evt.WorldVersion);
+        _batch.MapCellEvents.Add(new MapCellEventRow(
+            _runId,
+            evt.Tick,
+            (int)KernelEventType.CellChanged,
+            evt.SourceCodeId,
+            evt.Q,
+            evt.R,
+            evt.PreviousTerrainId,
+            evt.CurrentTerrainId,
+            evt.PreviousOwnerEntityId,
+            evt.CurrentOwnerEntityId));
+        MarkProjected(sequence);
+    }
+
     protected override void OnProcessEvaluated(long sequence, in ProcessEvaluatedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
@@ -425,6 +485,30 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
         entity.WorldVersion = evt.WorldVersion;
         // MIGRATION: GoalGeneratedKernelEvent has counts only. Detailed PlannerGoalRow
         // output must wait for primitive goal payload events.
+        MarkProjected(sequence);
+    }
+
+    protected override void OnTrace(long sequence, in TraceKernelEvent evt)
+    {
+        _batch.TraceEvents.Add(new TraceRow(
+            _runId,
+            evt.Tick,
+            evt.PlanId,
+            evt.EntityId,
+            evt.TraceSubjectCode,
+            evt.CandidateIndex,
+            evt.ParentCandidateIndex,
+            evt.ActionFamilyCode,
+            evt.ActionId,
+            evt.EffectScopeCode,
+            evt.EffectValueId,
+            evt.EffectKindId,
+            evt.TargetEntityId,
+            evt.StatusCode,
+            evt.Urgency,
+            evt.RewardOrBaseScore,
+            evt.RawWeight,
+            evt.AdjustedWeight));
         MarkProjected(sequence);
     }
 
@@ -512,6 +596,21 @@ internal sealed class TelemetryEventProjection : KernelEventProjector
         };
         _entities.Add(entityId, entity);
         return entity;
+    }
+
+    private void UpsertMapCell(
+        ObservedMapCellKey key,
+        int terrainId,
+        int ownerEntityId,
+        int tick,
+        long worldVersion)
+    {
+        _mapCells[key] = new ObservedMapCellProjection(
+            key,
+            terrainId,
+            ownerEntityId,
+            tick,
+            worldVersion);
     }
 
     private void RegisterEntityNameSymbol(ObservedEntityProjection entity)
@@ -675,6 +774,26 @@ internal readonly record struct ObservedRelationshipKey(
     int SourceEntityId,
     int TargetEntityId,
     int RelationshipKindId);
+
+internal readonly record struct ObservedMapCellKey(int Q, int R);
+
+internal sealed class ObservedMapCellProjection(
+    ObservedMapCellKey key,
+    int terrainId,
+    int ownerEntityId,
+    int lastUpdatedTick,
+    long worldVersion)
+{
+    public ObservedMapCellKey Key { get; } = key;
+
+    public int TerrainId { get; } = terrainId;
+
+    public int OwnerEntityId { get; } = ownerEntityId;
+
+    public int LastUpdatedTick { get; } = lastUpdatedTick;
+
+    public long WorldVersion { get; } = worldVersion;
+}
 
 internal sealed class ObservedRelationshipProjection(
     ObservedRelationshipKey key,

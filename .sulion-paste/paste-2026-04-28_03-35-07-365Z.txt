@@ -1,0 +1,71 @@
+**Status**
+The simulation itself does not look dead. In the 5x200 smoke batch, it emitted:
+
+- `31,462` `process_events`
+- `14,447` `movement_events`
+- `58,635` `attribute_events`
+- `18,915` `resource_events`
+- `22,275` `planner_traces`
+- `30,093` `planner_trace_steps`
+
+So entities are planning, moving, executing processes, and mutating state.
+
+**Actual Problems**
+1. **Analyzer bug: process reports still depend on the old `process_candidates` table.**  
+   `process_candidates` is empty, but `process_events` and `planner_trace_steps` are populated. That is why `process_pressure.csv` reports every process as zero offered/selected even though the sim is active.
+
+2. **Instrumentation gap: old candidate-level diagnostics are not currently reconstructable.**  
+   The new primitive trace has plan starts, selected goals, score deltas, and selected steps. It does not currently emit every evaluated process candidate with `process_id`, `target_id`, score, pass/fail diagnostic, cooldown, and selected flag. So the analyzer can recover selected-process counts, but not old-style offered counts or precondition failure diagnostics without new primitive events.
+
+3. **Analyzer/report bug: map/resource aggregate tables are empty.**  
+   `resource_events` exists, but `resource_snapshots` is empty. `map_snapshots` is empty. The analysis output for resource pressure, terrain occupancy, and occupied share is therefore misleading. This looks like missing projection/snapshot support after the refactor, not proof that resources do nothing.
+
+4. **Analysis-view bug: accepted map generation is being flagged as degeneracy.**  
+   `map_generation_events` contains accepted seed events, and the current flag logic treats any map-generation row as degeneracy. Accepted rows need to be excluded from warning counts.
+
+5. **Planner-goal compatibility table is obsolete.**  
+   `planner_goals` is empty. The new model is `planner_traces`, `planner_trace_goals`, `planner_trace_scores`, and `planner_trace_steps`. The analyzer needs to pivot to those tables or explicitly mark old `planner_goals` as deprecated.
+
+**Proposed Fix**
+Keep the microkernel/export invariants intact: no runtime strings in the kernel, no strings in exported fact rows, all readable labels via symbol-table joins.
+
+1. **Update analyzer views first.**
+   - Compute selected process counts from `process_events.executed_process_id`.
+   - Compute planner pressure from `process_events` plus `planner_traces`.
+   - Compute selected plan-step distribution from `planner_trace_steps`.
+   - Stop using empty `process_candidates` for selected counts.
+
+2. **Add primitive candidate trace events only if we still need candidate/precondition fidelity.**
+   Add a kernel event like `ProcessCandidateEvaluated`, with only primitive fields:
+   - `entity_id`
+   - `kind_id`
+   - `plan_id`
+   - `candidate_index`
+   - `process_id`
+   - `target_entity_id`
+   - `effect_key`
+   - `score`
+   - `precondition_passed`
+   - `diagnostic_code_id`
+   - `on_cooldown`
+   - `was_selected`
+
+   Then project that into `process_candidates`. Diagnostic labels come from `symbols`, probably using the existing `TelemetrySymbolKinds.ProcessPreconditionDiagnostic`.
+
+3. **Restore aggregate snapshots as primitive projections.**
+   - Resource snapshots should be rebuilt from current resource state at cadence, with `resource_id`, totals, min/max.
+   - Map snapshots should be rebuilt from current world/map state at cadence, with `terrain_id`, cell count, covered count, active entity count.
+   - No strings in rows; names come from symbol joins.
+
+4. **Fix map-generation analysis semantics.**
+   - Treat `accepted_world_seed` as success, not degeneracy.
+   - Only count retrying/rejected/generation-exception rows as degeneracy.
+
+5. **Add fidelity checks before long experiments.**
+   A smoke MC batch should fail or warn if:
+   - `process_events` has rows but selected-process analysis is zero
+   - `planner_traces` has rows but planner analysis is empty
+   - `resource_events` has rows but `resource_snapshots` is empty
+   - `map_generation` warnings include only accepted rows
+
+My recommendation: fix analyzer compatibility first, then add candidate primitive events if we still need old precondition diagnostics. That keeps the first repair small while respecting the new no-string export model.

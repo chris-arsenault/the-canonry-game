@@ -1,0 +1,873 @@
+namespace MonteCarlo.Tests.Observability;
+
+using DuckDB.NET.Data;
+
+using MonteCarloTool;
+
+#pragma warning disable CA1515, CA2100 // xUnit requires public test types; SQL strings use constants and fixture-owned paths.
+
+// Executable gap ledger for docs/plans/current-tuning-pass/monte-carlo-observability-completion-plan.md.
+//
+// These tests intentionally stay at the Monte Carlo output boundary. They do not inspect kernel
+// internals. Their purpose is to pin the gap analysis to a concrete parquet contract so a later
+// implementation cannot drift by renaming tables, reintroducing CSVs, zero-filling analysis, keeping
+// parallel legacy outputs, or emitting unjoinable facts. If this class is green without shortcuts,
+// the documented Monte Carlo observability gaps are closed at the output-contract level.
+[Collection("Monte Carlo output gap acceptance")]
+public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
+    : IClassFixture<MonteCarloOutputGapFixture>
+{
+    [Theory]
+    [MemberData(nameof(RawDomainContracts))]
+    public void RawOutput_DocumentedDomainTableMustSatisfyAcceptanceContract(string tableName, string columns, string reason)
+    {
+        ValidateContract(tableName, columns, reason);
+
+        // One row in RawDomainContracts is one documented output gap. The table must exist, carry
+        // the declared facts, be production-populated, and obey the primitive-id/no-string rule.
+        Assert.True(fixture.RawParquetExists(tableName), $"{tableName}: missing canonical raw parquet table. {reason}");
+        var actual = fixture.RawColumns(tableName);
+        foreach (var column in SplitColumns(columns))
+        {
+            Assert.Contains(column, actual, StringComparer.OrdinalIgnoreCase);
+        }
+        Assert.True(fixture.RawRowCount(tableName) > 0, $"{tableName}: table exists but has no production rows. {reason}");
+        Assert.DoesNotContain(
+            fixture.RawColumnTypes(tableName),
+            column => IsStringType(column.Type));
+    }
+
+    [Theory]
+    [MemberData(nameof(AnalysisContracts))]
+    public void AnalysisOutput_DocumentedAnalysisTableMustSatisfyAcceptanceContract(string tableName, string columns, string reason)
+    {
+        ValidateContract(tableName, columns, reason);
+
+        // One row in AnalysisContracts is one documented analysis output. It must be parquet-backed,
+        // populated, carry the declared tuning fields, and keep structured rows primitive-id based.
+        Assert.True(fixture.AnalysisParquetExists(tableName), $"{tableName}: missing analysis parquet table. {reason}");
+        var actual = fixture.AnalysisColumns(tableName);
+        foreach (var column in SplitColumns(columns))
+        {
+            Assert.Contains(column, actual, StringComparer.OrdinalIgnoreCase);
+        }
+        Assert.True(fixture.AnalysisRowCount(tableName) > 0, $"{tableName}: analysis table has no rows. {reason}");
+        Assert.DoesNotContain(
+            fixture.AnalysisColumnTypes(tableName),
+            column => IsStringType(column.Type));
+    }
+
+    [Theory]
+    [MemberData(nameof(LegacyParallelOutputs))]
+    public void RawOutput_LegacyParallelTablesMustNotBeExportedAsParquet(string tableName, string replacement)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(replacement);
+
+        // Compatibility can be a view, but the output directory must not contain parallel parquet
+        // systems for the same domain. This is the architecture gap that caused repeated confusion.
+        Assert.False(
+            fixture.RawParquetExists(tableName),
+            $"{tableName}: legacy parallel parquet should be removed; use canonical output '{replacement}'.");
+    }
+
+    [Theory]
+    [MemberData(nameof(LegacyCsvArtifacts))]
+    public void AnalysisOutput_LegacyCsvArtifactsMustNotBeWritten(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        // CSVs were explicitly excluded from the target analysis contract. Leaving them around makes
+        // it too easy to keep patching stale reports instead of the parquet analysis layer.
+        Assert.False(fixture.AnalysisFileExists(fileName), $"{fileName}: structured analysis output must be parquet-only.");
+    }
+
+    [Fact]
+    public void PlannerProcessOutput_SelectedCandidatesMustJoinGoalsStepsAndExecutions()
+    {
+        // This closes the planner/process causality gap: candidates, goals, committed steps, and
+        // process executions must describe the same decisions rather than four unrelated reports.
+        fixture.AssertRawTablesExist("planner_candidates", "planner_goals", "planner_steps", "process_executions");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["planner_candidates", "planner_goals"],
+            """
+            SELECT COUNT(*)
+            FROM planner_candidates c
+            LEFT JOIN planner_goals g
+              ON g.run_id = c.run_id
+             AND g.entity_id = c.entity_id
+             AND g.plan_id = c.plan_id
+             AND g.goal_id = c.goal_id
+            WHERE c.selected AND g.goal_id IS NULL;
+            """));
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["planner_candidates", "planner_steps"],
+            """
+            SELECT COUNT(*)
+            FROM planner_candidates c
+            LEFT JOIN planner_steps s
+              ON s.run_id = c.run_id
+             AND s.entity_id = c.entity_id
+             AND s.plan_id = c.plan_id
+             AND s.goal_id = c.goal_id
+             AND s.process_id = c.process_id
+            WHERE c.selected AND c.process_id <> 0 AND s.step_index IS NULL;
+            """));
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["planner_steps", "process_executions"],
+            """
+            SELECT COUNT(*)
+            FROM planner_steps s
+            LEFT JOIN process_executions e
+              ON e.run_id = s.run_id
+             AND e.entity_id = s.entity_id
+             AND e.plan_id = s.plan_id
+             AND e.goal_id = s.goal_id
+             AND e.step_index = s.step_index
+            WHERE s.process_id <> 0 AND e.process_id IS NULL;
+            """));
+    }
+
+    [Fact]
+    public void PlannerProcessOutput_CandidatesMustIncludeLosersAndDiagnosticsNotOnlyWinningRows()
+    {
+        // A selected-only candidate export would make process pressure look complete while hiding
+        // why non-movement verbs lose. The output must include rejected/non-selected candidates.
+        fixture.AssertRawTablesExist("planner_candidates");
+
+        Assert.True(fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates WHERE selected;") > 0);
+        Assert.True(fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates WHERE NOT selected;") > 0);
+        Assert.True(fixture.RawQueryLong(
+            ["planner_candidates"],
+            """
+            SELECT COUNT(*)
+            FROM planner_candidates
+            WHERE precondition_status_code <> 0
+               OR diagnostic_code <> 0
+               OR cooldown_state_code <> 0;
+            """) > 0);
+    }
+
+    [Fact]
+    public void PlannerProcessOutput_SelectedLocalityMustJoinCommittedProcessExecution()
+    {
+        // Locality opportunities are only useful if the selected bundle can be tied to the action
+        // that eventually executed there.
+        fixture.AssertRawTablesExist("planner_localities", "process_executions");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["planner_localities", "process_executions"],
+            """
+            SELECT COUNT(*)
+            FROM planner_localities l
+            LEFT JOIN process_executions e
+              ON e.run_id = l.run_id
+             AND e.entity_id = l.entity_id
+             AND e.plan_id = l.plan_id
+             AND e.locality_id = l.locality_id
+            WHERE l.selected AND e.process_id IS NULL;
+            """));
+    }
+
+    [Fact]
+    public void GeneratorOutput_FiredCreatedCountsMustBeExplainedByGeneratorOutputs()
+    {
+        // This replaces same-tick inference. Every created entity/relationship/map mutation caused
+        // by a generator fire must have an explicit generator_outputs attribution row.
+        fixture.AssertRawTablesExist("generator_events", "generator_outputs");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["generator_events", "generator_outputs"],
+            """
+            WITH fired AS (
+                SELECT
+                    run_id,
+                    cause_id,
+                    created_entity_count + created_relationship_count + created_map_cell_count AS expected_outputs
+                FROM generator_events
+                WHERE created_entity_count + created_relationship_count + created_map_cell_count > 0
+            ),
+            actual AS (
+                SELECT run_id, cause_id, COUNT(*) AS actual_outputs
+                FROM generator_outputs
+                GROUP BY run_id, cause_id
+            )
+            SELECT COUNT(*)
+            FROM fired f
+            LEFT JOIN actual a
+              ON a.run_id = f.run_id
+             AND a.cause_id = f.cause_id
+            WHERE COALESCE(a.actual_outputs, 0) <> f.expected_outputs;
+            """));
+    }
+
+    [Fact]
+    public void GeneratorOutput_EntityOutputsMustJoinEntityDomainRows()
+    {
+        // Generator observability should reference entity-domain facts, not duplicate entity state.
+        fixture.AssertRawTablesExist("generator_outputs", "entity_events", "entity_snapshots");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["generator_outputs", "entity_events", "entity_snapshots"],
+            """
+            SELECT COUNT(*)
+            FROM generator_outputs output
+            LEFT JOIN entity_events evt
+              ON evt.run_id = output.run_id
+             AND evt.entity_id = output.output_entity_id
+            LEFT JOIN entity_snapshots snap
+              ON snap.run_id = output.run_id
+             AND snap.entity_id = output.output_entity_id
+            WHERE output.output_entity_id <> 0
+              AND evt.entity_id IS NULL
+              AND snap.entity_id IS NULL;
+            """));
+    }
+
+    [Fact]
+    public void MapCoverageOutput_CoverageTerrainSnapshotsMustSumToCoverageSnapshots()
+    {
+        // Owner-level coverage and owner-by-terrain coverage are the same map/coverage domain.
+        // If they disagree, coverage development analysis cannot be trusted.
+        fixture.AssertRawTablesExist("coverage_snapshots", "coverage_terrain_snapshots");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["coverage_snapshots", "coverage_terrain_snapshots"],
+            """
+            WITH terrain_sum AS (
+                SELECT run_id, tick, owner_entity_id, SUM(cell_count) AS cell_count
+                FROM coverage_terrain_snapshots
+                GROUP BY run_id, tick, owner_entity_id
+            )
+            SELECT COUNT(*)
+            FROM coverage_snapshots coverage
+            LEFT JOIN terrain_sum terrain
+              ON terrain.run_id = coverage.run_id
+             AND terrain.tick = coverage.tick
+             AND terrain.owner_entity_id = coverage.owner_entity_id
+            WHERE COALESCE(terrain.cell_count, -1) <> coverage.cell_count;
+            """));
+    }
+
+    [Fact]
+    public void MapCoverageOutput_MapSnapshotsMustAgreeWithTickSnapshotCellTotals()
+    {
+        // Terrain aggregate snapshots and tick coverage counts must agree on total map size.
+        fixture.AssertRawTablesExist("map_snapshots", "tick_snapshots");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["map_snapshots", "tick_snapshots"],
+            """
+            WITH map_total AS (
+                SELECT run_id, tick, SUM(cell_count) AS total_cells
+                FROM map_snapshots
+                GROUP BY run_id, tick
+            )
+            SELECT COUNT(*)
+            FROM tick_snapshots tick
+            JOIN map_total map
+              ON map.run_id = tick.run_id
+             AND map.tick = tick.tick
+            WHERE map.total_cells <> tick.covered_cells + tick.uncovered_cells;
+            """));
+    }
+
+    [Fact]
+    public void PlacementOutput_SelectedPlacementsMustHaveGeneratorOrMapCause()
+    {
+        // Placement events are useful only if they explain a spatial decision made by a generator or
+        // map system. Selected placements with no cause are just another unjoinable table.
+        fixture.AssertRawTablesExist("placement_events");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["placement_events"],
+            """
+            SELECT COUNT(*)
+            FROM placement_events
+            WHERE selected
+              AND cause_id = 0
+              AND anchor_entity_id = 0;
+            """));
+    }
+
+    [Fact]
+    public void ResourceOutput_SnapshotsMustCoverMultipleTicksAndUseSaneBands()
+    {
+        // Resource snapshots are needed because deltas cannot reconstruct untouched stock. They must
+        // be temporal snapshots with min/average/max bands, not a single placeholder row.
+        fixture.AssertRawTablesExist("resource_snapshots");
+
+        Assert.True(fixture.DistinctRawValueCount("resource_snapshots", "tick") >= 2);
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["resource_snapshots"],
+            """
+            SELECT COUNT(*)
+            FROM resource_snapshots
+            WHERE minimum > average
+               OR average > maximum
+               OR total < 0;
+            """));
+    }
+
+    [Fact]
+    public void ResourceOutput_TerrainSnapshotsMustRollUpToResourceSnapshots()
+    {
+        // Terrain resource rows close the "resources are inert or invisible" gap only if they roll
+        // up to the canonical resource snapshot totals.
+        fixture.AssertRawTablesExist("resource_snapshots", "resource_terrain_snapshots");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["resource_snapshots", "resource_terrain_snapshots"],
+            """
+            WITH terrain_sum AS (
+                SELECT run_id, tick, resource_id, SUM(total) AS total
+                FROM resource_terrain_snapshots
+                GROUP BY run_id, tick, resource_id
+            )
+            SELECT COUNT(*)
+            FROM resource_snapshots resource
+            LEFT JOIN terrain_sum terrain
+              ON terrain.run_id = resource.run_id
+             AND terrain.tick = resource.tick
+             AND terrain.resource_id = resource.resource_id
+            WHERE ABS(COALESCE(terrain.total, -1) - resource.total) > 0.001;
+            """));
+    }
+
+    [Fact]
+    public void PressureOutput_EventsAndSnapshotsMustUseTheSamePressureScopes()
+    {
+        // Pressure events and pressure snapshots are one pressure domain. Event scopes that never
+        // appear in snapshots would make pressure internals impossible to analyze.
+        fixture.AssertRawTablesExist("pressure_events", "pressure_snapshots");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["pressure_events", "pressure_snapshots"],
+            """
+            SELECT COUNT(*)
+            FROM pressure_events evt
+            LEFT JOIN pressure_snapshots snap
+              ON snap.run_id = evt.run_id
+             AND snap.pressure_id = evt.pressure_id
+             AND snap.scope_code = evt.scope_code
+             AND snap.scope_entity_id = evt.scope_entity_id
+            WHERE snap.pressure_id IS NULL;
+            """));
+    }
+
+    [Fact]
+    public void PressureOutput_SourceSnapshotsMustRollUpToPressureSnapshots()
+    {
+        // Source contribution snapshots are the planned explanation path for pressure internals.
+        // They must be numerically tied to the pressure snapshot table.
+        fixture.AssertRawTablesExist("pressure_snapshots", "pressure_source_snapshots");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["pressure_snapshots", "pressure_source_snapshots"],
+            """
+            WITH source_sum AS (
+                SELECT run_id, tick, pressure_id, scope_code, scope_entity_id, SUM(contribution) AS value
+                FROM pressure_source_snapshots
+                GROUP BY run_id, tick, pressure_id, scope_code, scope_entity_id
+            )
+            SELECT COUNT(*)
+            FROM pressure_snapshots pressure
+            LEFT JOIN source_sum source
+              ON source.run_id = pressure.run_id
+             AND source.tick = pressure.tick
+             AND source.pressure_id = pressure.pressure_id
+             AND source.scope_code = pressure.scope_code
+             AND source.scope_entity_id = pressure.scope_entity_id
+            WHERE ABS(COALESCE(source.value, -1) - pressure.value) > 0.001;
+            """));
+    }
+
+    [Fact]
+    public void EntityOutput_AttributeSnapshotsMustSupportPerEntityStockDynamics()
+    {
+        // Aggregate attribute bands are not enough. Individual entity/attribute samples over time
+        // are the raw material for variance, reversals, dwell, and pinning.
+        fixture.AssertRawTablesExist("entity_attribute_snapshots");
+
+        Assert.True(fixture.RawQueryLong(
+            ["entity_attribute_snapshots"],
+            """
+            SELECT COUNT(*)
+            FROM (
+                SELECT run_id, entity_id, attribute_id
+                FROM entity_attribute_snapshots
+                GROUP BY run_id, entity_id, attribute_id
+                HAVING COUNT(DISTINCT tick) >= 2
+            ) samples;
+            """) > 0);
+    }
+
+    [Fact]
+    public void EntityOutput_KindHealthSummariesMustNotBeZeroFilledPlaceholders()
+    {
+        // The completion plan calls out the current zero health summary problem directly. Health
+        // summaries must be computed from configured health attributes.
+        fixture.AssertRawTablesExist("kind_snapshots");
+
+        Assert.True(fixture.RawAny("kind_snapshots", "average_health <> 0 OR minimum_health <> 0 OR maximum_health <> 0"));
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["kind_snapshots"],
+            """
+            SELECT COUNT(*)
+            FROM kind_snapshots
+            WHERE minimum_health > average_health
+               OR average_health > maximum_health;
+            """));
+    }
+
+    [Fact]
+    public void LifecycleOutput_HistoricalTransitionsMustHaveLifecycleReasons()
+    {
+        // Lifecycle events tell us what happened. Lifecycle reasons close the tuning gap by making
+        // deaths and historical transitions attributable at the output layer.
+        fixture.AssertRawTablesExist("lifecycle_events", "lifecycle_reason_events");
+
+        Assert.Equal(0, fixture.RawQueryLong(
+            ["lifecycle_events", "lifecycle_reason_events"],
+            """
+            SELECT COUNT(*)
+            FROM lifecycle_events lifecycle
+            LEFT JOIN lifecycle_reason_events reason
+              ON reason.run_id = lifecycle.run_id
+             AND reason.tick = lifecycle.tick
+             AND reason.entity_id = lifecycle.entity_id
+            WHERE lifecycle.status_code <> 0
+              AND reason.reason_code_id IS NULL;
+            """));
+    }
+
+    [Fact]
+    public void SnapshotOutput_RunMetadataMustRecordSnapshotCadencesAndVariantIdentity()
+    {
+        // Cadence metadata is part of interpreting sparse snapshot rows. Without it, missing rows
+        // cannot be distinguished from disabled providers or lower-frequency sampling.
+        fixture.AssertRawTablesExist("experiment_variants");
+
+        var columns = fixture.RawColumns("experiment_variants");
+        foreach (var column in new[]
+                 {
+                     "run_id",
+                     "experiment_id",
+                     "variant_id",
+                     "config_hash_id",
+                     "trace_enabled",
+                     "entity_snapshot_cadence",
+                     "resource_snapshot_cadence",
+                     "pressure_snapshot_cadence",
+                     "map_snapshot_cadence",
+                     "generator_snapshot_cadence",
+                 })
+        {
+            Assert.Contains(column, columns, StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void AnalysisOutput_ReadinessMustCoverEverySemanticFeatureAndReportNoHiddenGaps()
+    {
+        // analysis_readiness is the guard against claiming completion when a source table is empty,
+        // synthetic-only, or zero-filled. Green means every feature in the ledger is explicitly ready.
+        fixture.AssertAnalysisTablesExist("analysis_readiness");
+
+        Assert.True(fixture.AnalysisQueryLong(
+            ["analysis_readiness"],
+            "SELECT COUNT(DISTINCT feature_code) FROM analysis_readiness;") >= 25);
+        Assert.Equal(0, fixture.AnalysisQueryLong(
+            ["analysis_readiness"],
+            """
+            SELECT COUNT(*)
+            FROM analysis_readiness
+            WHERE ready = FALSE
+               OR trustworthy = FALSE
+               OR source_row_count = 0;
+            """));
+    }
+
+    [Fact]
+    public void AnalysisOutput_ProcessPressureMustBeDerivedFromPlannerCandidates()
+    {
+        // This prevents the old fallback where process pressure used execution counts only and
+        // silently lost candidate/precondition/cooldown diagnostics.
+        fixture.AssertRawTablesExist("planner_candidates");
+        fixture.AssertAnalysisTablesExist("process_pressure");
+
+        Assert.Equal(
+            fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates;"),
+            fixture.AnalysisQueryLong(["process_pressure"], "SELECT COALESCE(SUM(candidate_evaluations), 0) FROM process_pressure;"));
+        Assert.True(fixture.AnalysisQueryLong(["process_pressure"], "SELECT COUNT(*) FROM process_pressure WHERE evidence_source_code <> 0;") > 0);
+    }
+
+    [Fact]
+    public void AnalysisOutput_StockDynamicsMustBeDerivedFromEntityAttributeSnapshots()
+    {
+        // Stock dynamics should answer the actual tuning question: are individual stocks fluctuating
+        // or pinned? That requires sample counts and per-entity range/variance, not aggregate bands.
+        fixture.AssertRawTablesExist("entity_attribute_snapshots");
+        fixture.AssertAnalysisTablesExist("stock_dynamics");
+
+        Assert.Equal(0, fixture.AnalysisQueryLong(
+            ["stock_dynamics"],
+            """
+            SELECT COUNT(*)
+            FROM stock_dynamics
+            WHERE sample_count < 2
+               OR normalized_range < 0
+               OR normalized_range > 1
+               OR variance < 0;
+            """));
+        Assert.True(fixture.AnalysisQueryLong(
+            ["stock_dynamics"],
+            "SELECT COUNT(*) FROM stock_dynamics WHERE reversal_count > 0 OR normalized_range > 0;") > 0);
+    }
+
+    [Fact]
+    public void AnalysisOutput_MapAndCoverageReportsMustBeDerivedFromMapCoverageSources()
+    {
+        // Map spread and coverage development are separate analysis products over the same
+        // map/coverage family. Both must be backed by the canonical raw sources.
+        fixture.AssertRawTablesExist("map_snapshots", "coverage_snapshots", "coverage_terrain_snapshots");
+        fixture.AssertAnalysisTablesExist("map_spread", "coverage_development", "terrain_occupancy");
+
+        Assert.True(fixture.AnalysisQueryLong(["map_spread"], "SELECT COUNT(*) FROM map_spread WHERE total_cell_count > 0;") > 0);
+        Assert.True(fixture.AnalysisQueryLong(["coverage_development"], "SELECT COUNT(*) FROM coverage_development WHERE final_cell_count >= 0;") > 0);
+        Assert.True(fixture.AnalysisQueryLong(["terrain_occupancy"], "SELECT COUNT(*) FROM terrain_occupancy WHERE terrain_id <> 0;") > 0);
+    }
+
+    [Fact]
+    public void AnalysisOutput_ExperimentComparisonMustJoinExperimentVariants()
+    {
+        // Cross-variant tuning cannot be done from filenames or ad hoc run directories. The parquet
+        // comparison table must be keyed by structured experiment metadata.
+        fixture.AssertRawTablesExist("experiment_variants");
+        fixture.AssertAnalysisTablesExist("experiment_comparison");
+
+        Assert.Equal(0, fixture.AnalysisQueryLong(
+            ["experiment_comparison"],
+            """
+            SELECT COUNT(*)
+            FROM experiment_comparison
+            WHERE experiment_id = 0
+               OR variant_id = 0
+               OR run_count = 0;
+            """));
+    }
+
+    public static TheoryData<string, string, string> RawDomainContracts()
+    {
+        var data = new TheoryData<string, string, string>();
+        AddRawDomainContracts(data);
+        return data;
+    }
+
+    public static TheoryData<string, string, string> AnalysisContracts()
+    {
+        var data = new TheoryData<string, string, string>();
+        AddAnalysisContracts(data);
+        return data;
+    }
+
+    public static TheoryData<string, string> LegacyParallelOutputs()
+    {
+        var data = new TheoryData<string, string>();
+        data.Add("planner_trace_goals", "planner_goals");
+        data.Add("planner_trace_scores", "planner_scores");
+        data.Add("planner_trace_steps", "planner_steps");
+        data.Add("process_candidates", "planner_candidates");
+        data.Add("locality_opportunities", "planner_localities");
+        data.Add("generated_entities", "generator_outputs");
+        return data;
+    }
+
+    public static TheoryData<string> LegacyCsvArtifacts()
+    {
+        var data = new TheoryData<string>();
+        data.Add("generator_balance.csv");
+        data.Add("generated_subtype_coverage.csv");
+        data.Add("planner_pressure.csv");
+        data.Add("process_pressure.csv");
+        data.Add("attribute_bands.csv");
+        data.Add("map_spread.csv");
+        data.Add("map_generation.csv");
+        data.Add("terrain_occupancy.csv");
+        data.Add("lifecycle.csv");
+        data.Add("resource_pressure.csv");
+        data.Add("flags.csv");
+        return data;
+    }
+
+    private static void AddRawDomainContracts(TheoryData<string, string, string> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        data.Add("runs", "run_id,seed,domain_id,started_unix_milliseconds", "Run metadata is the root key for every output join.");
+        data.Add("experiment_variants", "run_id,experiment_id,variant_id,config_hash_id,git_sha_id,trace_enabled,entity_snapshot_cadence,resource_snapshot_cadence,pressure_snapshot_cadence,map_snapshot_cadence,generator_snapshot_cadence", "Variant metadata and snapshot cadences are required for cross-run comparisons.");
+        data.Add("tick_snapshots", "run_id,tick,active_entities,historical_entities,total_generator_fires,active_relationships,coverage_count,covered_cells,uncovered_cells,physical_spread,semantic_spread", "Tick snapshots provide coarse run state and coverage denominators.");
+        data.Add("kind_snapshots", "run_id,tick,kind_id,subtype_id,active_count,historical_count,average_health,minimum_health,maximum_health", "Kind health summaries must be computed, not zero-filled.");
+        data.Add("entity_events", "run_id,tick,event_type_code,source_code_id,entity_id,kind_id,subtype_id,culture_id,previous_status_code,current_status_code,physical_q,physical_r,semantic_q,semantic_r,semantic_s", "Entity events own identity and status changes.");
+        data.Add("entity_snapshots", "run_id,tick,entity_id,kind_id,subtype_id,culture_id,status_code,physical_q,physical_r,semantic_q,semantic_r,semantic_s", "Entity snapshots own current entity state.");
+        data.Add("entity_attribute_snapshots", "run_id,tick,entity_id,attribute_id,value", "Per-entity attribute samples drive stock dynamics.");
+        data.Add("attribute_events", "run_id,tick,entity_id,attribute_id,old_value,new_value,delta,source_code_id", "Attribute events explain stock changes.");
+        data.Add("movement_events", "run_id,tick,entity_id,plane_code,source_code_id,from_q,from_r,from_s,to_q,to_r,to_s,distance", "Movement events explain physical and semantic motion.");
+        data.Add("trace_events", "run_id,tick,plan_id,entity_id,trace_subject_code,candidate_index,parent_candidate_index,action_family_code,action_id,effect_scope_code,effect_value_id,effect_kind_id,target_entity_id,status_code,urgency,reward_or_base_score,raw_weight,adjusted_weight", "Raw trace events remain primitive payload, not the semantic analysis contract.");
+        data.Add("planner_traces", "run_id,start_tick,end_tick,entity_id,plan_id,status_code,candidate_count,step_count,reason_code_id,total_score,start_sequence,end_sequence,dropped_event_count", "Planner traces own plan-level status.");
+        data.Add("planner_goals", "run_id,tick,entity_id,kind_id,plan_id,goal_id,effect_scope_code,effect_value_id,effect_kind_id,target_entity_id,urgency,parent_goal_id,depth,is_actionable,blocker_ref,support_rule_source_id", "Planner goals need desired effect, target, parent, blocker, and support source.");
+        data.Add("planner_candidates", "run_id,tick,entity_id,kind_id,plan_id,goal_id,candidate_index,parent_candidate_index,process_id,action_id,provider_entity_id,target_entity_id,effect_scope_code,effect_value_id,effect_kind_id,raw_score,adjusted_score,reward_score,precondition_status_code,diagnostic_code,cooldown_state_code,locality_id,selected", "Planner candidates explain why actions won or lost.");
+        data.Add("planner_scores", "run_id,tick,entity_id,plan_id,goal_id,candidate_index,reason_code_id,score_delta,running_total", "Score contribution rows explain utility decisions.");
+        data.Add("planner_steps", "run_id,tick,entity_id,plan_id,goal_id,step_index,process_id,action_id,target_entity_id,relationship_kind_id,step_role_code", "Committed steps connect selected candidates to execution.");
+        data.Add("planner_localities", "run_id,tick,entity_id,kind_id,plan_id,locality_id,plane_code,q,r,s,anchor_entity_id,bundle_score,goal_count,distinct_target_count,distinct_effect_count,distance,is_current,is_committed,selected", "Locality bundles belong to the planner/process trace family.");
+        data.Add("process_executions", "run_id,tick,entity_id,kind_id,plan_id,goal_id,step_index,process_id,target_entity_id,state_code,affected_entity_id,locality_id", "Executed processes must be queryable without mixing planner rows.");
+        data.Add("map_cell_events", "run_id,tick,event_type_code,source_code_id,cause_id,q,r,previous_terrain_id,current_terrain_id,previous_owner_entity_id,current_owner_entity_id", "Cell mutation history owns terrain and coverage changes.");
+        data.Add("map_snapshots", "run_id,tick,terrain_id,cell_count,covered_cell_count,active_entity_count", "Map snapshots own terrain aggregates.");
+        data.Add("coverage_snapshots", "run_id,tick,owner_entity_id,coverage_kind_code,cell_count,min_q,max_q,min_r,max_r,active_entity_count", "Coverage snapshots own named territory size and spread.");
+        data.Add("coverage_terrain_snapshots", "run_id,tick,owner_entity_id,terrain_id,cell_count", "Coverage terrain snapshots explain named coverage terrain mix.");
+        data.Add("placement_events", "run_id,tick,cause_id,anchor_entity_id,placement_mode_code,plane_code,q,r,s,terrain_id,coverage_owner_entity_id,rejection_reason_code,selected", "Placement events explain spatial creation decisions.");
+        data.Add("resource_events", "run_id,tick,resource_id,q,r,old_value,new_value,delta,source_code_id", "Resource events own resource deltas.");
+        data.Add("resource_snapshots", "run_id,tick,resource_id,total,average,minimum,maximum", "Resource snapshots own full stock state.");
+        data.Add("resource_terrain_snapshots", "run_id,tick,resource_id,terrain_id,total,average,minimum,maximum", "Terrain resource snapshots explain terrain-level resource pressure.");
+        data.Add("pressure_events", "run_id,tick,pressure_id,scope_code,scope_entity_id,source_code_id,old_value,new_value,delta", "Pressure events own pressure deltas.");
+        data.Add("pressure_snapshots", "run_id,tick,pressure_id,scope_code,scope_entity_id,value", "Pressure snapshots own current pressure values.");
+        data.Add("pressure_source_snapshots", "run_id,tick,pressure_id,scope_code,scope_entity_id,source_code_id,contribution", "Pressure source snapshots explain pressure internals.");
+        data.Add("generator_events", "run_id,tick,event_type_code,generator_id,status_code,cause_id,target_pool_count,inactive_rejected_count,subtype_rejected_count,saturation_rejected_count,secondary_target_rejected_count,wilderness_rejected_count,trigger_rejected_count,candidate_count,failed_fire_count,selected_target_entity_id,created_entity_count,created_relationship_count,created_map_cell_count", "Generator events own eligibility and fire counts.");
+        data.Add("generator_outputs", "run_id,tick,cause_id,generator_id,output_domain_code,output_entity_id,output_relationship_kind_id,output_source_entity_id,output_target_entity_id,output_q,output_r,output_s,placement_event_id", "Generator outputs explicitly attribute created domain rows.");
+        data.Add("generator_state_snapshots", "run_id,tick,generator_id,enabled,cadence,cooldown_remaining,run_count,last_run_tick", "Generator state snapshots explain availability.");
+        data.Add("relationship_events", "run_id,tick,change_code_id,source_code_id,cause_id,relationship_kind_id,polarity_code,source_id,target_id,previous_strength,new_strength,fact_id0,fact_id1,fact_id2,fact_id3,fact_count", "Relationship events own topology and fact changes.");
+        data.Add("relationship_snapshots", "run_id,tick,relationship_kind_id,active_count,average_strength,minimum_strength,maximum_strength", "Relationship snapshots own active relationship strength distribution.");
+        data.Add("lifecycle_events", "run_id,tick,event_type_code,entity_id,kind_id,status_code", "Lifecycle events own deaths and historical transitions.");
+        data.Add("lifecycle_reason_events", "run_id,tick,entity_id,reason_code_id,cause_id,source_code_id", "Lifecycle reasons explain deaths and transitions when tuning lifecycle behavior.");
+    }
+
+    private static void AddAnalysisContracts(TheoryData<string, string, string> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        data.Add("analysis_overview", "run_count,max_tick,total_generator_fires,average_fires_per_run,average_final_active_entities,average_final_historical_entities,average_final_physical_spread,average_final_semantic_spread,average_final_uncovered_cells", "Overview gives run-level outcomes.");
+        data.Add("analysis_readiness", "feature_code,source_table_code,source_row_count,ready,trustworthy,status_code", "Readiness prevents hidden missing or zero-filled sources.");
+        data.Add("generator_balance", "generator_id,pulses,eligible_pulses,blocked_pulses,eligible_not_selected_pulses,fired_count,fire_failed_pulses,selection_rate_when_eligible,average_target_pool,average_candidate_count,created_entity_count,created_relationship_count,created_map_cell_count,primary_blocker_code", "Generator balance explains pulse, rejection, and output counts.");
+        data.Add("generated_subtype_coverage", "generator_id,kind_id,subtype_id,produced_count", "Generated subtype coverage tracks generator output coverage.");
+        data.Add("process_pressure", "kind_id,process_id,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic_code,evidence_source_code", "Process pressure must include candidate and blocker diagnostics.");
+        data.Add("planner_pressure", "kind_id,evaluations,goal_count,candidate_count,stale_rate,no_execution_rate,average_candidate_count,top_executed_process_id,top_process_share_of_executions", "Planner pressure summarizes planner status and selected actions.");
+        data.Add("stock_dynamics", "run_id,entity_id,kind_id,attribute_id,sample_count,minimum_observed,maximum_observed,variance,reversal_count,dwell_low_ticks,dwell_mid_ticks,dwell_high_ticks,pinned_low_ticks,pinned_high_ticks,normalized_range", "Stock dynamics answers whether entity stocks fluctuate or pin.");
+        data.Add("map_spread", "run_id,snapshot_tick,total_cell_count,active_entities,occupied_cells,occupied_cell_share,bounding_box_area,occupancy_within_bounding_box,mean_distance_from_seed,max_distance_from_seed,anisotropy", "Map spread measures expansion and corridor bias.");
+        data.Add("coverage_development", "run_id,owner_entity_id,coverage_kind_code,initial_cell_count,final_cell_count,cell_growth,terrain_mix_count,active_entities_inside", "Coverage development measures named coverage growth.");
+        data.Add("terrain_occupancy", "terrain_id,average_final_active_entities,average_named_coverage_share", "Terrain occupancy explains terrain utilization.");
+        data.Add("resource_pressure", "resource_id,average_total_over_time,average_initial_total,average_final_total,final_to_initial_ratio,lowest_cell_stock", "Resource pressure summarizes resource snapshots.");
+        data.Add("pressure_dynamics", "pressure_id,scope_code,scope_entity_id,average_value,maximum_value,source_count", "Pressure dynamics summarizes pressure snapshots and source contributions.");
+        data.Add("lifecycle", "kind_id,deaths,deaths_per_run,average_death_tick,average_final_active,average_final_historical,average_final_health", "Lifecycle summarizes deaths and kind health outcomes.");
+        data.Add("experiment_comparison", "experiment_id,variant_id,run_count,average_fires_per_run,average_final_active_entities,average_final_physical_spread,average_final_uncovered_cells", "Experiment comparison is keyed by structured variant metadata.");
+    }
+
+    private static string[] SplitColumns(string columns) =>
+        columns.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool IsStringType(string type) =>
+        type.Contains("VARCHAR", StringComparison.OrdinalIgnoreCase) ||
+        type.Contains("TEXT", StringComparison.OrdinalIgnoreCase);
+
+    private static void ValidateContract(string tableName, string columns, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(columns);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+    }
+}
+
+[CollectionDefinition("Monte Carlo output gap acceptance", DisableParallelization = true)]
+public sealed class MonteCarloOutputGapGroup
+{
+}
+
+public sealed class MonteCarloOutputGapFixture : IDisposable
+{
+    private readonly string _outputDirectory;
+
+    public MonteCarloOutputGapFixture()
+    {
+        _outputDirectory = Path.Combine(Path.GetTempPath(), "canonry-monte-carlo-output-gap-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_outputDirectory);
+
+        var exitCode = MonteCarloCli.Run([
+            "--runs", "3",
+            "--ticks", "150",
+            "--seed", "9401",
+            "--trace",
+            "--entity-snapshot-cadence", "10",
+            "--out", _outputDirectory,
+        ]);
+
+        if (exitCode != 0)
+        {
+            throw new InvalidOperationException($"Monte Carlo output fixture failed with exit code {exitCode}.");
+        }
+    }
+
+    public bool RawParquetExists(string tableName) =>
+        File.Exists(RawParquetPath(tableName));
+
+    public bool AnalysisParquetExists(string tableName) =>
+        File.Exists(AnalysisParquetPath(tableName));
+
+    public bool AnalysisFileExists(string fileName) =>
+        File.Exists(Path.Combine(_outputDirectory, "analysis", RequireNonEmpty(fileName)));
+
+    public long RawRowCount(string tableName) =>
+        RowCount(RawParquetPath(tableName));
+
+    public long AnalysisRowCount(string tableName) =>
+        RowCount(AnalysisParquetPath(tableName));
+
+    public HashSet<string> RawColumns(string tableName) =>
+        Columns(RawParquetPath(tableName));
+
+    public HashSet<string> AnalysisColumns(string tableName) =>
+        Columns(AnalysisParquetPath(tableName));
+
+    public IReadOnlyList<OutputColumnType> RawColumnTypes(string tableName) =>
+        ColumnTypes(RawParquetPath(tableName));
+
+    public IReadOnlyList<OutputColumnType> AnalysisColumnTypes(string tableName) =>
+        ColumnTypes(AnalysisParquetPath(tableName));
+
+    public long DistinctRawValueCount(string tableName, string columnName) =>
+        ScalarLong(RawParquetPath(tableName), $"COUNT(DISTINCT {QuoteIdentifier(RequireNonEmpty(columnName))})");
+
+    public bool RawAny(string tableName, string predicate) =>
+        ScalarLong(RawParquetPath(tableName), $"SUM(CASE WHEN {RequireNonEmpty(predicate)} THEN 1 ELSE 0 END)") > 0;
+
+    public void AssertRawTablesExist(params string[] tableNames)
+    {
+        ArgumentNullException.ThrowIfNull(tableNames);
+        foreach (var tableName in tableNames)
+        {
+            Assert.True(RawParquetExists(tableName), $"{tableName}: required raw parquet table is missing.");
+        }
+    }
+
+    public void AssertAnalysisTablesExist(params string[] tableNames)
+    {
+        ArgumentNullException.ThrowIfNull(tableNames);
+        foreach (var tableName in tableNames)
+        {
+            Assert.True(AnalysisParquetExists(tableName), $"{tableName}: required analysis parquet table is missing.");
+        }
+    }
+
+    public long RawQueryLong(IReadOnlyList<string> tableNames, string sql) =>
+        QueryLong(tableNames, sql, RawParquetPath);
+
+    public long AnalysisQueryLong(IReadOnlyList<string> tableNames, string sql) =>
+        QueryLong(tableNames, sql, AnalysisParquetPath);
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_outputDirectory))
+        {
+            Directory.Delete(_outputDirectory, recursive: true);
+        }
+    }
+
+    private string RawParquetPath(string tableName) =>
+        Path.Combine(_outputDirectory, $"{RequireNonEmpty(tableName)}.parquet");
+
+    private string AnalysisParquetPath(string tableName) =>
+        Path.Combine(_outputDirectory, "analysis", $"{RequireNonEmpty(tableName)}.parquet");
+
+    private static long RowCount(string parquetPath) =>
+        ScalarLong(parquetPath, "COUNT(*)");
+
+    private static HashSet<string> Columns(string parquetPath) =>
+        ColumnTypes(parquetPath)
+            .Select(column => column.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private static List<OutputColumnType> ColumnTypes(string parquetPath)
+    {
+        if (!File.Exists(parquetPath))
+        {
+            return [];
+        }
+
+        using var connection = OpenDuckDb();
+        using var command = connection.CreateCommand();
+        command.CommandText = $"DESCRIBE SELECT * FROM read_parquet({QuoteString(parquetPath)});";
+        using var reader = command.ExecuteReader();
+        var columns = new List<OutputColumnType>();
+        while (reader.Read())
+        {
+            columns.Add(new OutputColumnType(reader.GetString(0), reader.GetString(1)));
+        }
+
+        return columns;
+    }
+
+    private static long QueryLong(IReadOnlyList<string> tableNames, string sql, Func<string, string> parquetPath)
+    {
+        ArgumentNullException.ThrowIfNull(tableNames);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+        ArgumentNullException.ThrowIfNull(parquetPath);
+
+        using var connection = OpenDuckDb();
+        foreach (var tableName in tableNames)
+        {
+            var path = parquetPath(tableName);
+            Assert.True(File.Exists(path), $"{tableName}: required parquet table is missing.");
+            using var viewCommand = connection.CreateCommand();
+            viewCommand.CommandText =
+                $"CREATE OR REPLACE TEMP VIEW {QuoteIdentifier(tableName)} AS SELECT * FROM read_parquet({QuoteString(path)});";
+            viewCommand.ExecuteNonQuery();
+        }
+
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return ToLong(command.ExecuteScalar());
+    }
+
+    private static long ScalarLong(string parquetPath, string expression)
+    {
+        if (!File.Exists(parquetPath))
+        {
+            return 0;
+        }
+
+        using var connection = OpenDuckDb();
+        using var command = connection.CreateCommand();
+        command.CommandText = $"SELECT {RequireNonEmpty(expression)} AS value FROM read_parquet({QuoteString(parquetPath)});";
+        return ToLong(command.ExecuteScalar());
+    }
+
+    private static long ToLong(object? value) =>
+        value switch
+        {
+            null => 0,
+            System.Numerics.BigInteger bigInteger => (long)bigInteger,
+            _ => Convert.ToInt64(value, System.Globalization.CultureInfo.InvariantCulture),
+        };
+
+    private static DuckDBConnection OpenDuckDb()
+    {
+        var connection = new DuckDBConnection("Data Source=:memory:");
+        connection.Open();
+        return connection;
+    }
+
+    private static string QuoteIdentifier(string value) =>
+        $"\"{RequireNonEmpty(value).Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+
+    private static string QuoteString(string value) =>
+        $"'{RequireNonEmpty(value).Replace("'", "''", StringComparison.Ordinal)}'";
+
+    private static string RequireNonEmpty(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        return value;
+    }
+}
+
+public sealed record OutputColumnType(string Name, string Type);
+
+#pragma warning restore CA1515, CA2100

@@ -34,6 +34,44 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
+    public void HexMapProjection_AppliesCellChangedAsRuntimeCellState()
+    {
+        var log = new KernelEventLog(capacity: 4);
+        var projection = new HexMapProjection();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+            Tick: 0,
+            WorldVersion: 1,
+            Q: 1,
+            R: -1,
+            SourceCodeId: 5,
+            TerrainId: 10,
+            OwnerEntityId: 100))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            Q: 1,
+            R: -1,
+            SourceCodeId: 6,
+            PreviousTerrainId: 10,
+            CurrentTerrainId: 11,
+            PreviousOwnerEntityId: 100,
+            CurrentOwnerEntityId: 200))));
+
+        pump.DrainAvailable();
+
+        Assert.True(projection.TryGetHex(new HexCoord(1, -1), out var cell));
+        Assert.Equal(11, cell.TerrainId);
+        Assert.Equal(200, cell.OwnerEntityId);
+        Assert.Equal(2, cell.Tick);
+        Assert.Equal(2, cell.WorldVersion);
+    }
+
+    [Fact]
     public void PrimitiveProjectionPump_DisposeReleasesCursor()
     {
         var log = new KernelEventLog(capacity: 1, KernelEventOverflowPolicy.RejectWrite);

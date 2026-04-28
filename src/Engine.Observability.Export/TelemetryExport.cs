@@ -86,6 +86,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("planner_trace_goals");
         ExportTable("planner_trace_scores");
         ExportTable("planner_trace_steps");
+        ExportTable("trace_events");
         ExportTable("process_events");
         ExportTable("process_candidates");
         ExportTable("locality_opportunities");
@@ -99,6 +100,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("generated_entities");
         ExportTable("lifecycle_events");
         ExportTable("map_generation_events");
+        ExportTable("map_cell_events");
         ExportTable("map_snapshots");
     }
 
@@ -125,6 +127,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("planner_trace_goals", typeof(PlannerTraceGoalRow));
         EnsureTable("planner_trace_scores", typeof(PlannerTraceScoreRow));
         EnsureTable("planner_trace_steps", typeof(PlannerTraceStepRow));
+        EnsureTable("trace_events", typeof(TraceRow));
         EnsureTable("process_events", typeof(ProcessEventRow));
         EnsureTable("process_candidates", typeof(ProcessCandidateRow));
         EnsureTable("locality_opportunities", typeof(LocalityOpportunityRow));
@@ -138,6 +141,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("generated_entities", typeof(GeneratedEntityRow));
         EnsureTable("lifecycle_events", typeof(LifecycleEventRow));
         EnsureTable("map_generation_events", typeof(MapGenerationEventRow));
+        EnsureTable("map_cell_events", typeof(MapCellEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
     }
 
@@ -162,6 +166,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("planner_trace_goals", _pending.PlannerTraceGoals);
         AppendTable("planner_trace_scores", _pending.PlannerTraceScores);
         AppendTable("planner_trace_steps", _pending.PlannerTraceSteps);
+        AppendTable("trace_events", _pending.TraceEvents);
         AppendTable("process_events", _pending.ProcessEvents);
         AppendTable("process_candidates", _pending.ProcessCandidates);
         AppendTable("locality_opportunities", _pending.LocalityOpportunities);
@@ -175,6 +180,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("generated_entities", _pending.GeneratedEntities);
         AppendTable("lifecycle_events", _pending.LifecycleEvents);
         AppendTable("map_generation_events", _pending.MapGenerationEvents);
+        AppendTable("map_cell_events", _pending.MapCellEvents);
         AppendTable("map_snapshots", _pending.MapSnapshots);
     }
 
@@ -233,6 +239,7 @@ internal static class TelemetryBatchExtensions
                batch.PlannerTraceGoals.Count +
                batch.PlannerTraceScores.Count +
                batch.PlannerTraceSteps.Count +
+               batch.TraceEvents.Count +
                batch.ProcessEvents.Count +
                batch.ProcessCandidates.Count +
                batch.LocalityOpportunities.Count +
@@ -246,6 +253,7 @@ internal static class TelemetryBatchExtensions
                batch.GeneratedEntities.Count +
                batch.LifecycleEvents.Count +
                batch.MapGenerationEvents.Count +
+               batch.MapCellEvents.Count +
                batch.MapSnapshots.Count;
     }
 
@@ -267,6 +275,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.PlannerTraceGoals, source.PlannerTraceGoals);
         AppendRows(destination.PlannerTraceScores, source.PlannerTraceScores);
         AppendRows(destination.PlannerTraceSteps, source.PlannerTraceSteps);
+        AppendRows(destination.TraceEvents, source.TraceEvents);
         AppendRows(destination.ProcessEvents, source.ProcessEvents);
         AppendRows(destination.ProcessCandidates, source.ProcessCandidates);
         AppendRows(destination.LocalityOpportunities, source.LocalityOpportunities);
@@ -280,6 +289,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.GeneratedEntities, source.GeneratedEntities);
         AppendRows(destination.LifecycleEvents, source.LifecycleEvents);
         AppendRows(destination.MapGenerationEvents, source.MapGenerationEvents);
+        AppendRows(destination.MapCellEvents, source.MapCellEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);
     }
 

@@ -1,0 +1,2147 @@
+**Prompt**
+
+> ok. were finally ready to do tests of the plan optimizations.  we just went through a huge refactor of the backend. the monte carlo should be the same, with the same trace information. but it might not be. first, run a test MC run and analyize the data to see if it has lost (or gained) fidelity. then provide an overview of the current status and the list of expirments to run. do not make code changes at this time
+
+I’ll treat this as a read-only validation pass: first confirm the Monte Carlo tool still runs after the backend refactor, then inspect the emitted tables and compare them against the fidelity we expected from the previous tuning work.
+
+**Tool:** `exec_command` `git status --short`
+
+```bash
+git status --short
+```
+
+_Result_
+
+```
+Chunk ID: 2ab5d2
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `exec_command` `ls -1 tools/MonteCarlo && rg -n "class MonteCarlo|record .*Row|locality|planner_goals|process_candidates|Parquet|DuckDB|analysis" tools/MonteCarlo src/Engine s…`
+
+```bash
+ls -1 tools/MonteCarlo && rg -n "class MonteCarlo|record .*Row|locality|planner_goals|process_candidates|Parquet|DuckDB|analysis" tools/MonteCarlo src/Engine src/Engine.* tests/Engine.Tests --glob '!**/bin/**' --glob '!**/obj/**'
+```
+
+_Result_
+
+```
+Chunk ID: f9e665
+Wall time: 0.0001 seconds
+Process exited with code 2
+Original token count: 5630
+Output:
+MonteCarlo.csproj
+MonteCarloAnalysisRows.cs
+MonteCarloBatchAnalyzer.Flags.cs
+MonteCarloBatchAnalyzer.Helpers.cs
+MonteCarloBatchAnalyzer.Markdown.cs
+MonteCarloBatchAnalyzer.QuerySql.cs
+MonteCarloBatchAnalyzer.Views.cs
+MonteCarloBatchAnalyzer.cs
+MonteCarloBatchAnalyzer.cs.uid
+MonteCarloCli.cs
+MonteCarloCli.cs.uid
+MonteCarloKernelRun.cs
+MonteCarloKernelRun.cs.uid
+MonteCarloKernelRunFactory.cs
+MonteCarloKernelRunFactory.cs.uid
+MonteCarloOptions.cs
+MonteCarloOptions.cs.uid
+MonteCarloRunSummaryRecorder.cs
+MonteCarloRunSummaryRecorder.cs.uid
+Program.cs
+Program.cs.uid
+Properties
+packages.lock.json
+rg: src/Engine: No such file or directory (os error 2)
+rg: tests/Engine.Tests: No such file or directory (os error 2)
+tools/MonteCarlo/MonteCarloKernelRunFactory.cs:7:internal static class MonteCarloKernelRunFactory
+src/Engine.Observability/PerformanceTelemetryBatch.cs:14:public sealed record RunPerformanceRow(
+src/Engine.Observability/PerformanceTelemetryBatch.cs:34:public sealed record TickPerformanceRow(
+src/Engine.Observability/PerformanceTelemetryBatch.cs:46:public sealed record SystemPerformanceRow(
+src/Engine.Observability/PerformanceTelemetryBatch.cs:53:public sealed record ExportPerformanceRow(
+src/Engine.Observability/TelemetryBatch.cs:7:/// Writers project these rows to Parquet/DuckDB-compatible tables.
+src/Engine.Observability/TelemetryBatch.cs:40:public sealed record SymbolRow(
+src/Engine.Observability/TelemetryBatch.cs:49:public sealed record EntityNameSymbolRow(
+src/Engine.Observability/TelemetryBatch.cs:58:public sealed record RunRow(
+src/Engine.Observability/TelemetryBatch.cs:64:public sealed record TickSnapshotRow(
+src/Engine.Observability/TelemetryBatch.cs:77:public sealed record KindSnapshotRow(
+src/Engine.Observability/TelemetryBatch.cs:88:public sealed record EntitySnapshotRow(
+src/Engine.Observability/TelemetryBatch.cs:102:public sealed record EntityAttributeSnapshotRow(
+src/Engine.Observability/TelemetryBatch.cs:109:public sealed record EntityEventRow(
+src/Engine.Observability/TelemetryBatch.cs:126:public sealed record PlannerGoalRow(
+src/Engine.Observability/TelemetryBatch.cs:140:public sealed record PlannerTraceRow(
+src/Engine.Observability/TelemetryBatch.cs:155:public sealed record PlannerTraceGoalRow(
+src/Engine.Observability/TelemetryBatch.cs:166:public sealed record PlannerTraceScoreRow(
+src/Engine.Observability/TelemetryBatch.cs:177:public sealed record PlannerTraceStepRow(
+src/Engine.Observability/TelemetryBatch.cs:188:public sealed record ProcessEventRow(
+src/Engine.Observability/TelemetryBatch.cs:216:public sealed record ProcessCandidateRow(
+src/Engine.Observability/TelemetryBatch.cs:230:public sealed record LocalityOpportunityRow(
+src/Engine.Observability/TelemetryBatch.cs:252:public sealed record AttributeEventRow(
+src/Engine.Observability/TelemetryBatch.cs:262:public sealed record MovementEventRow(
+src/Engine.Observability/TelemetryBatch.cs:276:public sealed record ResourceEventRow(
+src/Engine.Observability/TelemetryBatch.cs:287:public sealed record ResourceSnapshotRow(
+src/Engine.Observability/TelemetryBatch.cs:296:public sealed record RelationshipEventRow(
+src/Engine.Observability/TelemetryBatch.cs:313:public sealed record RelationshipSnapshotRow(
+src/Engine.Observability/TelemetryBatch.cs:322:public sealed record GeneratorEventRow(
+src/Engine.Observability/TelemetryBatch.cs:341:public sealed record GeneratedEntityRow(
+src/Engine.Observability/TelemetryBatch.cs:355:public sealed record LifecycleEventRow(
+src/Engine.Observability/TelemetryBatch.cs:363:public sealed record MapGenerationEventRow(
+src/Engine.Observability/TelemetryBatch.cs:375:public sealed record MapSnapshotRow(
+tools/MonteCarlo/MonteCarloCli.cs:12:internal static class MonteCarloCli
+tools/MonteCarlo/MonteCarloCli.cs:35:        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(batchDirectory, "analysis"))}");
+tools/MonteCarlo/MonteCarloCli.cs:116:        var export = TimedExport(step, rowsWritten, () => stateStore.ExportParquet());
+tools/MonteCarlo/MonteCarloCli.cs:131:        const string step = "analysis";
+tools/MonteCarlo/MonteCarloCli.cs:134:        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
+tools/MonteCarlo/MonteCarloCli.cs:148:        var export = TimedExport(step, rowsWritten, () => performanceStore.ExportCoreParquet());
+tools/MonteCarlo/MonteCarloCli.cs:150:        performanceStore.ExportExportPerformanceParquet();
+tools/MonteCarlo/MonteCarloCli.cs:394:        var analysisDirectory = Path.Combine(outputDirectory, "analysis");
+tools/MonteCarlo/MonteCarloCli.cs:395:        if (Directory.Exists(analysisDirectory))
+tools/MonteCarlo/MonteCarloCli.cs:397:            Directory.Delete(analysisDirectory, recursive: true);
+src/Engine.Observability/TelemetryEventProjection.cs:45:            "process candidate rows and locality opportunities",
+src/Engine.Observability/TelemetryEventProjection.cs:46:            "process-candidate and locality-opportunity trace events",
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:3:using DuckDB.NET.Data;
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:8:internal sealed partial class MonteCarloBatchAnalyzer
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:128:                   CAST(pe.locality_id AS VARCHAR) AS locality_key,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:129:                   CAST(pe.locality_plane_code AS VARCHAR) AS locality_plane,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:130:                   pe.locality_q, pe.locality_r, pe.locality_s, pe.locality_bundle_score,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:131:                   pe.locality_goal_count, pe.locality_distinct_target_count, pe.locality_distinct_effect_count,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:132:                   pe.locality_distance, pe.locality_is_current, pe.locality_is_committed, pe.locality_arrived,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:133:                   pe.locality_actions_remaining, pe.locality_realized_actions,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:134:                   CAST(pe.locality_selection_reason_code AS VARCHAR) AS locality_selection_reason
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:146:            "process_candidates",
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:156:            FROM raw_process_candidates pc
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Views.cs:290:    private static void CreateAnalysisViews(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:7:using DuckDB.NET.Data;
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:9:internal sealed partial class MonteCarloBatchAnalyzer
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:103:    private static T QuerySingle<T>(DuckDBConnection connection, string sql, Func<DbDataReader, T> map)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:109:    private static List<T> Query<T>(DuckDBConnection connection, string sql, Func<DbDataReader, T> map)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:186:    private sealed record ObservedGeneratorRow(
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:225:    private sealed record ObservedProcessRow(
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:244:    private sealed record FailureDiagnosticRow(string Kind, string ProcessName, string Diagnostic, int Count);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:246:    private sealed record ObservedPlannerRow(
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Helpers.cs:257:    private sealed record ObservedLifecycleRow(
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:5:using DuckDB.NET.Data;
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:15:    private readonly DuckDBConnection _connection;
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:31:        _connection = new DuckDBConnection($"Data Source={databasePath}");
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:87:    public void ExportCoreParquet()
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:98:    public void ExportExportPerformanceParquet()
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:106:    public void ExportParquet()
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:108:        ExportCoreParquet();
+src/Engine.Observability.Export/PerformanceTelemetryExport.cs:109:        ExportExportPerformanceParquet();
+src/Engine.Observability.Export/TelemetryExport.cs:9:using DuckDB.NET.Data;
+src/Engine.Observability.Export/TelemetryExport.cs:18:    private readonly DuckDBConnection _connection;
+src/Engine.Observability.Export/TelemetryExport.cs:34:        _connection = new DuckDBConnection($"Data Source={databasePath}");
+src/Engine.Observability.Export/TelemetryExport.cs:71:    public void ExportParquet()
+src/Engine.Observability.Export/TelemetryExport.cs:84:        ExportTable("planner_goals");
+src/Engine.Observability.Export/TelemetryExport.cs:90:        ExportTable("process_candidates");
+src/Engine.Observability.Export/TelemetryExport.cs:91:        ExportTable("locality_opportunities");
+src/Engine.Observability.Export/TelemetryExport.cs:123:        EnsureTable("planner_goals", typeof(PlannerGoalRow));
+src/Engine.Observability.Export/TelemetryExport.cs:129:        EnsureTable("process_candidates", typeof(ProcessCandidateRow));
+src/Engine.Observability.Export/TelemetryExport.cs:130:        EnsureTable("locality_opportunities", typeof(LocalityOpportunityRow));
+src/Engine.Observability.Export/TelemetryExport.cs:160:        AppendTable("planner_goals", _pending.PlannerGoals);
+src/Engine.Observability.Export/TelemetryExport.cs:166:        AppendTable("process_candidates", _pending.ProcessCandidates);
+src/Engine.Observability.Export/TelemetryExport.cs:167:        AppendTable("locality_opportunities", _pending.LocalityOpportunities);
+src/Engine.Observability.Export/TelemetryExport.cs:205:internal sealed class DuckDbParquetTelemetryWriter(string outputDirectory)
+src/Engine.Observability.Export/TelemetryExport.cs:214:        store.ExportParquet();
+src/Engine.Observability.Export/TelemetryExport.cs:299:    public static void Append<T>(DuckDBConnection connection, string tableName, IReadOnlyCollection<T> rows)
+src/Engine.Observability.Export/TelemetryExport.cs:326:    private static void AppendValue(IDuckDBAppenderRow row, object? value)
+src/Engine.Observability.Export/TelemetryExport.cs:453:    public static void Execute(DuckDBConnection connection, string sql)
+src/Engine.Observability.Export/TelemetryExport.cs:461:        // static query text, and quoted local file paths. DuckDB COPY and CREATE
+src/Engine.Observability.Export/Engine.Observability.Export.csproj:14:    <PackageReference Include="DuckDB.NET.Data.Full" Version="1.5.2" />
+tools/MonteCarlo/MonteCarlo.csproj:20:    <PackageReference Include="DuckDB.NET.Data.Full" Version="1.5.2" />
+tools/MonteCarlo/MonteCarloRunSummaryRecorder.cs:6:internal sealed class MonteCarloRunSummaryRecorder : IDisposable
+tools/MonteCarlo/MonteCarloRunSummaryRecorder.cs:50:    private sealed class MonteCarloRunSummaryProjection : KernelEventProjector
+src/Engine.Domain/World/Entity.cs:49:    /// Short-horizon locality commitment used by the process program to make movement choose
+src/Engine.Domain/World/LocalityVisitIntent.cs:7:/// A lightweight process program commitment to a locality on one plane for a short horizon.
+tools/MonteCarlo/MonteCarloBatchAnalyzer.QuerySql.cs:3:internal sealed partial class MonteCarloBatchAnalyzer
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Markdown.cs:6:internal sealed partial class MonteCarloBatchAnalyzer
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:5:using DuckDB.NET.Data;
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:13:internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:25:        "planner_goals",
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:31:        "process_candidates",
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:32:        "locality_opportunities",
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:53:        var analysisDirectory = Path.Combine(batchDirectory, "analysis");
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:54:        WriteArtifacts(report, analysisDirectory);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:102:    private void WriteArtifacts(MonteCarloAnalysisReport report, string analysisDirectory)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:104:        Directory.CreateDirectory(analysisDirectory);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:105:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "generator_balance.csv"), report.GeneratorBalance);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:106:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "generated_subtype_coverage.csv"), report.GeneratedSubtypeCoverage);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:107:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "planner_pressure.csv"), report.PlannerPressure);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:108:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "process_pressure.csv"), report.ProcessPressure);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:109:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "attribute_bands.csv"), report.AttributeBands);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:110:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "map_spread.csv"), report.MapSpread);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:111:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "map_generation.csv"), report.MapGeneration);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:112:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "terrain_occupancy.csv"), report.TerrainOccupancy);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:113:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "lifecycle.csv"), report.Lifecycle);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:114:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "resource_pressure.csv"), report.ResourcePressure);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:115:        CsvFileWriter.WriteCsv(Path.Combine(analysisDirectory, "flags.csv"), report.Flags);
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:116:        File.WriteAllText(Path.Combine(analysisDirectory, "summary.md"), RenderMarkdown(report));
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:119:    private DuckDBConnection OpenBatch(string batchDirectory)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:122:        var hasAllParquet = RequiredTables
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:126:        if (!hasAllParquet)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:134:                    $"Missing Monte Carlo telemetry parquet '{missing}' and no DuckDB store '{databasePath}' was found.");
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:137:            var dbConnection = new DuckDBConnection($"Data Source={databasePath}");
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:150:        var connection = new DuckDBConnection("Data Source=:memory:");
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:165:    private static void CreateMaterializedAnalysisTable(DuckDBConnection connection, string tableName, string selectSql)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:172:    private BatchOverviewRow LoadBatchOverview(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:212:    private List<GeneratorAnalysisRow> LoadGeneratorRows(DuckDBConnection connection, int runCount)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:218:    private static Dictionary<string, ObservedGeneratorRow> LoadObservedGeneratorRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:286:    private List<GeneratedSubtypeCoverageRow> LoadGeneratedCoverageRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:306:    private List<ProcessPressureRow> LoadProcessPressureRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:314:        DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:322:            FROM process_candidates
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:342:        DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:353:            FROM process_candidates
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:402:        DuckDBConnection connection,
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:459:    private List<ResourcePressureRow> LoadResourcePressureRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:477:        DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:542:    private List<MapGenerationSummaryRow> LoadMapGenerationRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:569:    private List<TerrainOccupancyRow> LoadTerrainOccupancyRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:601:    private List<LifecycleSummaryRow> LoadLifecycleRows(DuckDBConnection connection, int runCount)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:608:    private static Dictionary<string, ObservedLifecycleRow> LoadFinalLifecycleRows(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:643:        DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:685:    private List<EntitySnapshotRecord> LoadEntitySnapshots(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloBatchAnalyzer.cs:714:    private int LoadTotalCellCount(DuckDBConnection connection)
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:3:internal sealed class MonteCarloAnalysisReport
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:19:internal sealed record BatchOverviewRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:30:internal sealed record AnalysisFlagRow(string Category, string Severity, string Message);
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:32:internal sealed record GeneratorAnalysisRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:56:internal sealed record GeneratedSubtypeCoverageRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:62:internal sealed record PlannerPressureRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:71:internal sealed record ProcessPressureRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:82:internal sealed record AttributeBandSummaryRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:96:internal sealed record MapSpreadSummaryRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:108:internal sealed record MapGenerationSummaryRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:117:internal sealed record TerrainOccupancyRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:122:internal sealed record LifecycleSummaryRow(
+tools/MonteCarlo/MonteCarloAnalysisRows.cs:131:internal sealed record ResourcePressureRow(
+tools/MonteCarlo/MonteCarloOptions.cs:45:            SkipAnalysis: HasFlag(args, "--no-analysis"),
+tools/MonteCarlo/MonteCarloBatchAnalyzer.Flags.cs:5:internal sealed partial class MonteCarloBatchAnalyzer
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:753:    private bool AlreadyScoredLocality(int planCount, int plan, int localityKey)
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:757:            if (_processPlanLocalityKeys[previous] == localityKey)
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:766:    private float LocalityBundleScore(WorldState world, int entityId, int planCount, int localityKey)
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:774:            if (_processPlanLocalityKeys[plan] != localityKey)
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:786:            if (FirstPlanForEffectAtLocality(plan, localityKey, _processPlanEffectKeys[plan]))
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:797:        var rootTargetId = FirstTargetAtLocality(planCount, localityKey);
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:810:               (committedKey == localityKey ? LocalityCommitmentBonus : 0f) +
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:815:    private bool FirstPlanForEffectAtLocality(int plan, int localityKey, int effectKey)
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:819:            if (_processPlanLocalityKeys[previous] == localityKey &&
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:829:    private int FirstTargetAtLocality(int planCount, int localityKey)
+src/Engine.Kernel/Programs/Processes/ProcessProgramRuntime.cs:833:            if (_processPlanLocalityKeys[plan] == localityKey)
+src/Engine.Kernel/Programs/Planning/PlanningProgramRuntime.cs:129:        int localityKey,
+src/Engine.Kernel/Programs/Planning/PlanningProgramRuntime.cs:169:        _scratch.HeaderLocalityKeys[headerSlot] = localityKey;
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:220:    private bool AlreadyScoredLocality(int planCount, int plan, int localityKey)
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:224:            if (_gambitPlanLocalityKeys[previous] == localityKey)
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:233:    private float LocalityBundleScore(WorldState world, int entityId, int planCount, int localityKey)
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:241:            if (_gambitPlanLocalityKeys[plan] != localityKey)
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:253:            if (FirstPlanForEffectAtLocality(plan, localityKey, _gambitPlanEffectKeys[plan]))
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:264:        var rootTargetId = FirstTargetAtLocality(planCount, localityKey);
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:277:               (committedKey == localityKey ? LocalityCommitmentBonus : 0f) +
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:282:    private bool FirstPlanForEffectAtLocality(int plan, int localityKey, int effectKey)
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:286:            if (_gambitPlanLocalityKeys[previous] == localityKey &&
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:296:    private int FirstTargetAtLocality(int planCount, int localityKey)
+src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Planning.cs:300:            if (_gambitPlanLocalityKeys[plan] == localityKey)
+
+```
+
+**Tool:** `exec_command` `find docs/plans/current-tuning-pass -maxdepth 1 -type f -print | sort`
+
+```bash
+find docs/plans/current-tuning-pass -maxdepth 1 -type f -print | sort
+```
+
+_Result_
+
+```
+Chunk ID: fea116
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 18
+Output:
+find: ‘docs/plans/current-tuning-pass’: No such file or directory
+
+```
+
+The refactor changed the project layout: the old `src/Engine` and `docs/plans/current-tuning-pass` paths are gone in this checkout. I’m switching to the new split projects and the current Monte Carlo tool surface.
+
+**Tool:** `exec_command` `ls -1`
+
+```bash
+ls -1
+```
+
+_Result_
+
+```
+Chunk ID: a12f56
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 77
+Output:
+CLAUDE.md
+CODEX.md
+Directory.Build.props
+MULTI_STEP.md
+Makefile
+README.md
+TheCanonryGame.csproj
+TheCanonryGame.slnx
+assets
+docs
+dotnet
+global.json
+graph.txt
+input.txt
+kernel_context.md
+obs.txt
+output.coverage
+packages.lock.json
+perf.md
+project.godot
+run-baseline-long.sh
+scenes
+src
+startup.txt
+tests
+tools
+
+```
+
+**Tool:** `exec_command` `find . -maxdepth 3 -type d | sort | sed -n '1,160p'`
+
+```bash
+find . -maxdepth 3 -type d | sort | sed -n '1,160p'
+```
+
+_Result_
+
+```
+Chunk ID: 08e730
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 1312
+Output:
+.
+./.artifacts
+./.artifacts/bin
+./.artifacts/bin/Engine.Constants
+./.artifacts/bin/Engine.Domain
+./.artifacts/bin/Engine.Domain.Tests
+./.artifacts/bin/Engine.Eventing
+./.artifacts/bin/Engine.Eventing.Generators
+./.artifacts/bin/Engine.Eventing.Schema
+./.artifacts/bin/Engine.Eventing.Tests
+./.artifacts/bin/Engine.Host
+./.artifacts/bin/Engine.Host.Tests
+./.artifacts/bin/Engine.Kernel
+./.artifacts/bin/Engine.Kernel.Driver
+./.artifacts/bin/Engine.Kernel.Driver.Tests
+./.artifacts/bin/Engine.Kernel.Schema
+./.artifacts/bin/Engine.Kernel.Tests
+./.artifacts/bin/Engine.Observability
+./.artifacts/bin/Engine.Observability.Export
+./.artifacts/bin/Engine.Observability.Tests
+./.artifacts/bin/Engine.Projection
+./.artifacts/bin/Engine.Projection.Tests
+./.artifacts/bin/Engine.WorldGen
+./.artifacts/bin/Engine.WorldGen.Tests
+./.artifacts/bin/IceRemembers
+./.artifacts/bin/IceRemembers.Seed
+./.artifacts/bin/IceRemembers.Seed.Tests
+./.artifacts/bin/MonteCarlo
+./.artifacts/bin/MonteCarlo.Tests
+./.artifacts/bin/TheCanonryGame.Game
+./.artifacts/bin/TheCanonryGame.Game.Tests
+./.artifacts/bin/TheCanonryGame.UI.Core
+./.artifacts/bin/TheCanonryGame.UI.Tests
+./.artifacts/mc-primitive-smoke
+./.artifacts/mc-primitive-smoke/analysis
+./.artifacts/monte-carlo
+./.artifacts/monte-carlo/20260428T022159541
+./.artifacts/monte-carlo/debug-appender-roundtrip
+./.artifacts/monte-carlo/mc-baseline-profile-8737c20-20x200
+./.artifacts/monte-carlo/mc-baseline-profile-perfonly-8737c20-50x200
+./.artifacts/monte-carlo/mc-current-full-commitfix-20x200
+./.artifacts/monte-carlo/mc-current-full-commitfix-profile-20x200
+./.artifacts/monte-carlo/mc-current-full-projectionfix-20x200
+./.artifacts/monte-carlo/mc-current-full-projectionfix-profile-20x200
+./.artifacts/monte-carlo/mc-current-profile-perfonly-commitfix-100x200
+./.artifacts/monte-carlo/mc-current-profile-perfonly-commitfix-50x200
+./.artifacts/monte-carlo/mc-current-profile-perfonly-post-lint-50x200
+./.artifacts/monte-carlo/mc-current-profile-post-lint-20x200
+./.artifacts/monte-carlo/mc-full-5x200-appender
+./.artifacts/monte-carlo/mc-full-5x200-appender-traced
+./.artifacts/monte-carlo/mc-full-5x200-baseline
+./.artifacts/monte-carlo/mc-full-5x200-post-lint
+./.artifacts/monte-carlo/mc-full-5x200-post-lint-r2
+./.artifacts/monte-carlo/mc-full-5x200-primitive
+./.artifacts/monte-carlo/mc-full-5x200-primitive-materialized
+./.artifacts/monte-carlo/mc-full-5x200-primitive-materialized-trimmed
+./.artifacts/monte-carlo/mc-full-5x200-traced
+./.artifacts/monte-carlo/mc-perf-only-30x1500-current
+./.artifacts/monte-carlo/mc-perf-only-5x200
+./.artifacts/monte-carlo/mc-perf-only-5x200-seq
+./.artifacts/monte-carlo/mc-state-no-analysis-5x200
+./.artifacts/monte-carlo/mc-state-no-analysis-5x200-appender
+./.artifacts/monte-carlo/mc-state-no-analysis-5x200-primitive
+./.artifacts/monte-carlo/mc-state-no-analysis-5x200-seq
+./.artifacts/monte-carlo/mc-state-no-analysis-no-entitysnap-5x200
+./.artifacts/monte-carlo/mc-state-no-analysis-no-entitysnap-5x200-seq
+./.artifacts/obj
+./.artifacts/obj/Engine.Constants
+./.artifacts/obj/Engine.Domain
+./.artifacts/obj/Engine.Domain.Tests
+./.artifacts/obj/Engine.Eventing
+./.artifacts/obj/Engine.Eventing.Generators
+./.artifacts/obj/Engine.Eventing.Schema
+./.artifacts/obj/Engine.Eventing.Tests
+./.artifacts/obj/Engine.Host
+./.artifacts/obj/Engine.Host.Tests
+./.artifacts/obj/Engine.Kernel
+./.artifacts/obj/Engine.Kernel.Driver
+./.artifacts/obj/Engine.Kernel.Driver.Tests
+./.artifacts/obj/Engine.Kernel.Schema
+./.artifacts/obj/Engine.Kernel.Tests
+./.artifacts/obj/Engine.Observability
+./.artifacts/obj/Engine.Observability.Export
+./.artifacts/obj/Engine.Observability.Tests
+./.artifacts/obj/Engine.Projection
+./.artifacts/obj/Engine.Projection.Tests
+./.artifacts/obj/Engine.WorldGen
+./.artifacts/obj/Engine.WorldGen.Tests
+./.artifacts/obj/IceRemembers
+./.artifacts/obj/IceRemembers.Seed
+./.artifacts/obj/IceRemembers.Seed.Tests
+./.artifacts/obj/MonteCarlo
+./.artifacts/obj/MonteCarlo.Tests
+./.artifacts/obj/TheCanonryGame
+./.artifacts/obj/TheCanonryGame.Game
+./.artifacts/obj/TheCanonryGame.Game.Tests
+./.artifacts/obj/TheCanonryGame.UI
+./.artifacts/obj/TheCanonryGame.UI.Core
+./.artifacts/obj/TheCanonryGame.UI.Tests
+./.artifacts/profiles
+./.claude
+./.git
+./.git/branches
+./.git/hooks
+./.git/info
+./.git/logs
+./.git/logs/refs
+./.git/objects
+./.git/objects/00
+./.git/objects/01
+./.git/objects/02
+./.git/objects/03
+./.git/objects/04
+./.git/objects/05
+./.git/objects/06
+./.git/objects/07
+./.git/objects/08
+./.git/objects/09
+./.git/objects/0a
+./.git/objects/0b
+./.git/objects/0c
+./.git/objects/0d
+./.git/objects/0e
+./.git/objects/0f
+./.git/objects/10
+./.git/objects/11
+./.git/objects/12
+./.git/objects/13
+./.git/objects/14
+./.git/objects/15
+./.git/objects/16
+./.git/objects/17
+./.git/objects/18
+./.git/objects/19
+./.git/objects/1a
+./.git/objects/1b
+./.git/objects/1c
+./.git/objects/1d
+./.git/objects/1e
+./.git/objects/1f
+./.git/objects/20
+./.git/objects/21
+./.git/objects/22
+./.git/objects/23
+./.git/objects/24
+./.git/objects/25
+./.git/objects/26
+./.git/objects/27
+./.git/objects/28
+./.git/objects/29
+./.git/objects/2a
+./.git/objects/2b
+./.git/objects/2c
+./.git/objects/2d
+./.git/objects/2e
+./.git/objects/2f
+./.git/objects/30
+./.git/objects/31
+./.git/objects/32
+./.git/objects/33
+
+```
+
+**Tool:** `exec_command` `sed -n '1,260p' tools/MonteCarlo/MonteCarloOptions.cs`
+
+```bash
+sed -n '1,260p' tools/MonteCarlo/MonteCarloOptions.cs
+```
+
+_Result_
+
+```
+Chunk ID: 0bb84c
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 646
+Output:
+namespace MonteCarloTool;
+
+using System.Globalization;
+
+internal sealed record MonteCarloOptions(
+    int Runs,
+    int Ticks,
+    int Seed,
+    int EntitySnapshotCadence,
+    int PerformanceSampleCadence,
+    int SystemPerformanceSampleCadence,
+    string OutputDirectory,
+    string? AnalyzeDirectory,
+    bool SkipAnalysis,
+    bool PerformanceMode,
+    bool IncludeStateTelemetry,
+    bool DisableEntitySnapshots)
+{
+    public bool AnalyzeOnly => AnalyzeDirectory is not null;
+    public bool CollectStateTelemetry => !PerformanceMode || IncludeStateTelemetry;
+    public bool ShouldAnalyze => !SkipAnalysis && CollectStateTelemetry;
+
+    public static MonteCarloOptions Parse(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+
+        var analyzeDirectory = ReadString(args, "--analyze", null);
+        var output = ReadString(
+            args,
+            "--out",
+            Path.Combine(
+                ".artifacts",
+                "monte-carlo",
+                DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff", CultureInfo.InvariantCulture)))!;
+
+        return new MonteCarloOptions(
+            Runs: ReadInt(args, "--runs", 10),
+            Ticks: ReadInt(args, "--ticks", 500),
+            Seed: ReadInt(args, "--seed", 1000),
+            EntitySnapshotCadence: ReadInt(args, "--entity-snapshot-cadence", 25),
+            PerformanceSampleCadence: ReadInt(args, "--perf-sample-cadence", 1),
+            SystemPerformanceSampleCadence: ReadInt(args, "--system-perf-sample-cadence", 1),
+            OutputDirectory: output,
+            AnalyzeDirectory: analyzeDirectory,
+            SkipAnalysis: HasFlag(args, "--no-analysis"),
+            PerformanceMode: HasFlag(args, "--perf"),
+            IncludeStateTelemetry: HasFlag(args, "--include-state-telemetry"),
+            DisableEntitySnapshots: HasFlag(args, "--disable-entity-snapshots"));
+    }
+
+    private static int ReadInt(string[] args, string name, int fallback)
+    {
+        var value = ReadString(args, name, null);
+        return value is null ? fallback : int.Parse(value, CultureInfo.InvariantCulture);
+    }
+
+    private static string? ReadString(string[] args, string name, string? fallback)
+    {
+        for (var i = 0; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], name, StringComparison.Ordinal))
+            {
+                return args[i + 1];
+            }
+        }
+
+        return fallback;
+    }
+
+    private static bool HasFlag(string[] args, string name) =>
+        args.Any(arg => string.Equals(arg, name, StringComparison.Ordinal));
+}
+
+```
+
+**Tool:** `exec_command` `sed -n '1,260p' tools/MonteCarlo/MonteCarloCli.cs`
+
+```bash
+sed -n '1,260p' tools/MonteCarlo/MonteCarloCli.cs
+```
+
+_Result_
+
+```
+Chunk ID: 991fbc
+Wall time: 0.0001 seconds
+Process exited with code 0
+Original token count: 2345
+Output:
+namespace MonteCarloTool;
+
+using System.Diagnostics;
+using System.Globalization;
+
+using Engine.Constants;
+using Engine.Observability;
+using Engine.Observability.Export;
+
+using IceRemembers.Seed;
+
+internal static class MonteCarloCli
+{
+    public static int Run(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+
+        var options = MonteCarloOptions.Parse(args);
+        var domain = IceRemembersRuntime.CreateDomainConfig();
+        var analyzer = new MonteCarloBatchAnalyzer(domain);
+
+        if (options.AnalyzeOnly)
+        {
+            return RunAnalysisOnly(options, analyzer);
+        }
+
+        RunBatch(options, analyzer);
+        return 0;
+    }
+
+    private static int RunAnalysisOnly(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    {
+        var batchDirectory = options.AnalyzeDirectory!;
+        analyzer.AnalyzeToFiles(batchDirectory);
+        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(batchDirectory, "analysis"))}");
+        return 0;
+    }
+
+    private static void RunBatch(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    {
+        ResetOutputDirectory(options.OutputDirectory);
+        DuckDbTelemetryStore? stateStore = null;
+        DuckDbPerformanceTelemetryStore? performanceStore = null;
+
+        try
+        {
+            stateStore = options.CollectStateTelemetry
+                ? new DuckDbTelemetryStore(options.OutputDirectory)
+                : null;
+            performanceStore = options.PerformanceMode
+                ? new DuckDbPerformanceTelemetryStore(options.OutputDirectory)
+                : null;
+
+            var totals = ExecuteRuns(options, stateStore, performanceStore);
+            ExportStateTelemetry(options, stateStore, performanceStore, totals.StateRowsWritten);
+            ExportAnalysis(options, analyzer, performanceStore);
+            ExportPerformanceTelemetry(options, performanceStore, totals.PerformanceRowsWritten);
+        }
+        finally
+        {
+            performanceStore?.Dispose();
+            stateStore?.Dispose();
+        }
+    }
+
+    private static (long StateRowsWritten, long PerformanceRowsWritten) ExecuteRuns(
+        MonteCarloOptions options,
+        DuckDbTelemetryStore? stateStore,
+        DuckDbPerformanceTelemetryStore? performanceStore)
+    {
+        var stateRowsWritten = 0L;
+        var performanceRowsWritten = 0L;
+        for (var runIndex = 0; runIndex < options.Runs; runIndex++)
+        {
+            var seed = options.Seed + runIndex;
+            var runId = $"seed-{seed}";
+            using (var run = MonteCarloKernelRunFactory.Create(seed))
+            {
+                var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
+                stateRowsWritten += result.StateRowsWritten;
+                performanceRowsWritten += result.PerformanceRowsWritten;
+                PrintRunSummary(options, runIndex, seed, result);
+            }
+        }
+
+        return (stateRowsWritten, performanceRowsWritten);
+    }
+
+    private static void PrintRunSummary(
+        MonteCarloOptions options,
+        int runIndex,
+        int seed,
+        MonteCarloRunExecutionResult result)
+    {
+        var degenerateAttempts = result.Summary.MapAttempt?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
+        var droppedSuffix = result.Summary.DroppedSummaryEvents > 0
+            ? string.Create(CultureInfo.InvariantCulture, $" summary_events_dropped={result.Summary.DroppedSummaryEvents}")
+            : string.Empty;
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={result.ProcessedTicks} fires={result.Summary.GeneratorFireCount} map_degenerate={degenerateAttempts}{droppedSuffix}"));
+    }
+
+    private static void ExportStateTelemetry(
+        MonteCarloOptions options,
+        DuckDbTelemetryStore? stateStore,
+        DuckDbPerformanceTelemetryStore? performanceStore,
+        long rowsWritten)
+    {
+        if (stateStore is null)
+        {
+            return;
+        }
+
+        const string step = "state_telemetry_parquet";
+        var export = TimedExport(step, rowsWritten, () => stateStore.ExportParquet());
+        performanceStore?.AppendExport(export, step);
+        Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
+    }
+
+    private static void ExportAnalysis(
+        MonteCarloOptions options,
+        MonteCarloBatchAnalyzer analyzer,
+        DuckDbPerformanceTelemetryStore? performanceStore)
+    {
+        if (!options.ShouldAnalyze)
+        {
+            return;
+        }
+
+        const string step = "analysis";
+        var export = TimedExport(step, rowsWritten: 0, () => analyzer.AnalyzeToFiles(options.OutputDirectory));
+        performanceStore?.AppendExport(export, step);
+        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
+    }
+
+    private static void ExportPerformanceTelemetry(
+        MonteCarloOptions options,
+        DuckDbPerformanceTelemetryStore? performanceStore,
+        long rowsWritten)
+    {
+        if (performanceStore is null)
+        {
+            return;
+        }
+
+        const string step = "performance_parquet";
+        var export = TimedExport(step, rowsWritten, () => performanceStore.ExportCoreParquet());
+        performanceStore.AppendExport(export, step);
+        performanceStore.ExportExportPerformanceParquet();
+        Console.WriteLine($"wrote Monte Carlo performance telemetry: {Path.GetFullPath(options.OutputDirectory)}");
+    }
+
+    private static MonteCarloRunExecutionResult ExecuteKernelRun(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        string runId,
+        int seed,
+        DuckDbTelemetryStore? stateStore,
+        DuckDbPerformanceTelemetryStore? performanceStore)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(runId);
+
+        var stateRowsWritten = 0L;
+        var performanceRowsWritten = 0L;
+        using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
+        var stateRecorder = CreateStateRecorder(run, options, runId, seed);
+        var performanceRecorder = CreatePerformanceRecorder(run, options, runId, seed);
+
+        try
+        {
+            var processedTicks = AdvanceTicks(run, options, summaryRecorder, stateRecorder, performanceRecorder);
+            var summary = summaryRecorder.Snapshot();
+            performanceRowsWritten = FlushPerformanceTelemetry(performanceRecorder, performanceStore, processedTicks);
+            stateRowsWritten = FlushStateTelemetry(stateRecorder, stateStore);
+
+            return new MonteCarloRunExecutionResult(
+                stateRowsWritten,
+                performanceRowsWritten,
+                processedTicks,
+                summary);
+        }
+        finally
+        {
+            performanceRecorder?.Dispose();
+            stateRecorder?.Dispose();
+        }
+    }
+
+    private static KernelTelemetryRecorder? CreateStateRecorder(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        string runId,
+        int seed)
+    {
+        if (!options.CollectStateTelemetry)
+        {
+            return null;
+        }
+
+        var recorder = new KernelTelemetryRecorder(run.Events, runId, run.Symbols, seed);
+        RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
+        RecordStateSnapshots(recorder, run.Host.CurrentTick, options);
+        return recorder;
+    }
+
+    private static KernelPerformanceRecorder? CreatePerformanceRecorder(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        string runId,
+        int seed)
+    {
+        if (!options.PerformanceMode)
+        {
+            return null;
+        }
+
+        return new KernelPerformanceRecorder(
+            run.Events,
+            runId,
+            options.Ticks,
+            seed,
+            tickSampleCadence: options.PerformanceSampleCadence,
+            systemSampleCadence: options.SystemPerformanceSampleCadence,
+            fullTelemetryEnabled: options.CollectStateTelemetry);
+    }
+
+    private static int AdvanceTicks(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        MonteCarloRunSummaryRecorder summaryRecorder,
+        KernelTelemetryRecorder? stateRecorder,
+        KernelPerformanceRecorder? performanceRecorder)
+    {
+        var processedTicks = 0;
+        for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var advanced = run.Host.Time.AdvanceSingleStep(1);
+            stopwatch.Stop();
+            if (advanced == 0)
+            {
+                break;
+            }
+
+            processedTicks += advanced;
+            var currentTick = run.Host.CurrentTick;
+            summaryRecorder.DrainAvailable();
+            RecordStateSnapshots(stateRecorder, currentTick, options);
+            performanceRecorder?.RecordTick(currentTick, stopwatch.Elapsed);
+        }
+
+        return processedTicks;
+    }
+
+    private static long FlushPerformanceTelemetry(
+        KernelPerformanceRecorder? recorder,
+        DuckDbPerformanceTelemetryStore? store,
+
+```
+
+**Tool:** `exec_command` `sed -n '1,420p' src/Engine.Observability/TelemetryBatch.cs`
+
+```bash
+sed -n '1,420p' src/Engine.Observability/TelemetryBatch.cs
+```
+
+_Result_
+
+```
+Chunk ID: 5ea154
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 2316
+Output:
+namespace Engine.Observability;
+
+using System.Collections.ObjectModel;
+
+/// <summary>
+/// In-memory primitive telemetry rows for a Monte Carlo run or batch.
+/// Writers project these rows to Parquet/DuckDB-compatible tables.
+/// </summary>
+public sealed class TelemetryBatch
+{
+    public Collection<SymbolRow> Symbols { get; } = [];
+    public Collection<EntityNameSymbolRow> EntityNameSymbols { get; } = [];
+    public Collection<RunRow> Runs { get; } = [];
+    public Collection<TickSnapshotRow> TickSnapshots { get; } = [];
+    public Collection<KindSnapshotRow> KindSnapshots { get; } = [];
+    public Collection<EntitySnapshotRow> EntitySnapshots { get; } = [];
+    public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = [];
+    public Collection<EntityEventRow> EntityEvents { get; } = [];
+    public Collection<PlannerGoalRow> PlannerGoals { get; } = [];
+    public Collection<PlannerTraceRow> PlannerTraces { get; } = [];
+    public Collection<PlannerTraceGoalRow> PlannerTraceGoals { get; } = [];
+    public Collection<PlannerTraceScoreRow> PlannerTraceScores { get; } = [];
+    public Collection<PlannerTraceStepRow> PlannerTraceSteps { get; } = [];
+    public Collection<ProcessEventRow> ProcessEvents { get; } = [];
+    public Collection<ProcessCandidateRow> ProcessCandidates { get; } = [];
+    public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
+    public Collection<AttributeEventRow> AttributeEvents { get; } = [];
+    public Collection<MovementEventRow> MovementEvents { get; } = [];
+    public Collection<ResourceEventRow> ResourceEvents { get; } = [];
+    public Collection<ResourceSnapshotRow> ResourceSnapshots { get; } = [];
+    public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
+    public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
+    public Collection<GeneratorEventRow> GeneratorEvents { get; } = [];
+    public Collection<GeneratedEntityRow> GeneratedEntities { get; } = [];
+    public Collection<LifecycleEventRow> LifecycleEvents { get; } = [];
+    public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
+    public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
+}
+
+public sealed record SymbolRow(
+    int SymbolKind,
+    int Id,
+    string StableName,
+    string DisplayName,
+    string? Description = null,
+    string? IconKey = null,
+    string? ColorKey = null);
+
+public sealed record EntityNameSymbolRow(
+    int RunId,
+    int EntityId,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int NameSeed,
+    string DisplayName);
+
+public sealed record RunRow(
+    int RunId,
+    int? Seed,
+    int DomainId,
+    long StartedUnixMilliseconds);
+
+public sealed record TickSnapshotRow(
+    int RunId,
+    int Tick,
+    int ActiveEntities,
+    int HistoricalEntities,
+    int TotalGeneratorFires,
+    int ActiveRelationships,
+    int CoverageCount,
+    int CoveredCells,
+    int UncoveredCells,
+    float PhysicalSpread,
+    float SemanticSpread);
+
+public sealed record KindSnapshotRow(
+    int RunId,
+    int Tick,
+    int KindId,
+    int SubtypeId,
+    int ActiveCount,
+    int HistoricalCount,
+    float AverageHealth,
+    float MinimumHealth,
+    float MaximumHealth);
+
+public sealed record EntitySnapshotRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int StatusCode,
+    int PhysicalQ,
+    int PhysicalR,
+    int SemanticQ,
+    int SemanticR,
+    int SemanticS);
+
+public sealed record EntityAttributeSnapshotRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int AttributeId,
+    float Value);
+
+public sealed record EntityEventRow(
+    int RunId,
+    int Tick,
+    int EventTypeCode,
+    int SourceCodeId,
+    int EntityId,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int? PreviousStatusCode,
+    int? CurrentStatusCode,
+    int PhysicalQ,
+    int PhysicalR,
+    int SemanticQ,
+    int SemanticR,
+    int SemanticS);
+
+public sealed record PlannerGoalRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int GoalId,
+    int DesiredEffectCode,
+    int TargetEntityId,
+    float Urgency,
+    int? PlannedProcessId,
+    int? ParentGoalId,
+    bool IsActionable,
+    int Depth);
+
+public sealed record PlannerTraceRow(
+    int RunId,
+    int StartTick,
+    int EndTick,
+    int EntityId,
+    int PlanId,
+    int StatusCode,
+    int CandidateCount,
+    int StepCount,
+    int ReasonCodeId,
+    float? TotalScore,
+    long StartSequence,
+    long EndSequence,
+    long DroppedEventCount);
+
+public sealed record PlannerTraceGoalRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int PlanId,
+    int GoalId,
+    int CandidateIndex,
+    float PreliminaryScore,
+    bool WasSelected,
+    float? FinalScore);
+
+public sealed record PlannerTraceScoreRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int PlanId,
+    int GoalId,
+    int ReasonCodeId,
+    int ScoringPassIndex,
+    float ScoreDelta,
+    float RunningTotal);
+
+public sealed record PlannerTraceStepRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int PlanId,
+    int GoalId,
+    int StepIndex,
+    int ProcessId,
+    int TargetEntityId,
+    int RelationshipKindId);
+
+public sealed record ProcessEventRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int? SelectedGoalId,
+    int? ExecutedProcessId,
+    bool IsStale,
+    int StateCode,
+    int CandidateCount,
+    int? VisitId,
+    int? LocalityId,
+    int? LocalityPlaneCode,
+    int? LocalityQ,
+    int? LocalityR,
+    int? LocalityS,
+    float? LocalityBundleScore,
+    int? LocalityGoalCount,
+    int? LocalityDistinctTargetCount,
+    int? LocalityDistinctEffectCount,
+    int? LocalityDistance,
+    bool? LocalityIsCurrent,
+    bool? LocalityIsCommitted,
+    bool? LocalityArrived,
+    int? LocalityActionsRemaining,
+    int? LocalityRealizedActions,
+    int? LocalitySelectionReasonCode);
+
+public sealed record ProcessCandidateRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int ProcessId,
+    int GoalId,
+    int ProviderId,
+    float Score,
+    bool PreconditionPassed,
+    int PreconditionDiagnosticCode,
+    bool OnCooldown,
+    bool WasSelected);
+
+public sealed record LocalityOpportunityRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int KindId,
+    int? VisitId,
+    int LocalityId,
+    int PlaneCode,
+    int Q,
+    int R,
+    int? S,
+    int AnchorEntityId,
+    float BundleScore,
+    int GoalCount,
+    int DistinctTargetCount,
+    int DistinctEffectCount,
+    int Distance,
+    bool IsCurrentLocality,
+    bool IsCommitted,
+    bool WasSelected,
+    int SelectionReasonCode);
+
+public sealed record AttributeEventRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int AttributeId,
+    float OldValue,
+    float NewValue,
+    float Delta,
+    int SourceCodeId);
+
+public sealed record MovementEventRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int PlaneCode,
+    int SourceCodeId,
+    int FromQ,
+    int FromR,
+    int FromS,
+    int ToQ,
+    int ToR,
+    int ToS,
+    int Distance);
+
+public sealed record ResourceEventRow(
+    int RunId,
+    int Tick,
+    int ResourceId,
+    int Q,
+    int R,
+    float OldValue,
+    float NewValue,
+    float Delta,
+    int SourceCodeId);
+
+public sealed record ResourceSnapshotRow(
+    int RunId,
+    int Tick,
+    int ResourceId,
+    float Total,
+    float Average,
+    float Minimum,
+    float Maximum);
+
+public sealed record RelationshipEventRow(
+    int RunId,
+    int Tick,
+    int ChangeCodeId,
+    int SourceCodeId,
+    int RelationshipKindId,
+    int PolarityCode,
+    int SourceId,
+    int TargetId,
+    float PreviousStrength,
+    float NewStrength,
+    int FactId0,
+    int FactId1,
+    int FactId2,
+    int FactId3,
+    int FactCount);
+
+public sealed record RelationshipSnapshotRow(
+    int RunId,
+    int Tick,
+    int RelationshipKindId,
+    int ActiveCount,
+    float AverageStrength,
+    float MinimumStrength,
+    float MaximumStrength);
+
+public sealed record GeneratorEventRow(
+    int RunId,
+    int Tick,
+    int EventTypeCode,
+    int GeneratorId,
+    int StatusCode,
+    int TargetPoolCount,
+    int InactiveRejectedCount,
+    int SubtypeRejectedCount,
+    int SaturationRejectedCount,
+    int SecondaryTargetRejectedCount,
+    int WildernessRejectedCount,
+    int TriggerRejectedCount,
+    int CandidateCount,
+    int FailedFireCount,
+    int? SelectedTargetEntityId,
+    int CreatedEntityCount,
+    int CreatedRelationshipCount);
+
+public sealed record GeneratedEntityRow(
+    int RunId,
+    int Tick,
+    int GeneratorId,
+    int EntityId,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int PhysicalQ,
+    int PhysicalR,
+    int SemanticQ,
+    int SemanticR,
+    int SemanticS);
+
+public sealed record LifecycleEventRow(
+    int RunId,
+    int Tick,
+    int EventTypeCode,
+    int EntityId,
+    int KindId,
+    int StatusCode);
+
+public sealed record MapGenerationEventRow(
+    int RunId,
+    int Tick,
+    int BaseSeed,
+    int Attempt,
+    int TerrainSeed,
+    int EntitySeed,
+    int PhaseId,
+    int DescriptionId,
+    int ReasonId,
+    bool WillRetry);
+
+public sealed record MapSnapshotRow(
+    int RunId,
+    int Tick,
+    int TerrainId,
+    int CellCount,
+    int CoveredCellCount,
+    int ActiveEntityCount);
+
+```
+
+The current telemetry model has been expanded: planner traces are now first-class rows alongside planner goals, process events, candidates, locality opportunities, and symbol tables. I’m running a small MC batch now to verify the pipeline emits those tables with usable data.
+
+**Tool:** `exec_command` `out=.artifacts/monte-carlo/fidelity-smoke-$(date -u +%Y%m%dT%H%M%SZ); echo "$out" > /tmp/the-canonry-mc-fidelity-out; dotnet run --project tools/MonteCarlo/Mon…`
+
+```bash
+out=.artifacts/monte-carlo/fidelity-smoke-$(date -u +%Y%m%dT%H%M%SZ); echo "$out" > /tmp/the-canonry-mc-fidelity-out; dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -- --runs 5 --ticks 200 --seed 4242 --out "$out"
+```
+
+_Result_
+
+```
+Chunk ID: 3d8376
+Wall time: 1.0014 seconds
+Process running with session ID 26546
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `write_stdin`
+
+```json
+{
+  "chars": "",
+  "max_output_tokens": 12000,
+  "session_id": 26546,
+  "yield_time_ms": 1000
+}
+```
+
+_Result_
+
+```
+Chunk ID: 1c13af
+Wall time: 5.0004 seconds
+Process running with session ID 26546
+Original token count: 0
+Output:
+
+```
+
+The MC command is still running. The lack of immediate per-run output suggests startup/build or the first run is taking the time; I’m waiting for the run-level summaries before inspecting artifacts.
+
+**Tool:** `write_stdin`
+
+```json
+{
+  "chars": "",
+  "max_output_tokens": 12000,
+  "session_id": 26546,
+  "yield_time_ms": 1000
+}
+```
+
+_Result_
+
+```
+Chunk ID: d07735
+Wall time: 5.0006 seconds
+Process running with session ID 26546
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `write_stdin`
+
+```json
+{
+  "chars": "",
+  "max_output_tokens": 12000,
+  "session_id": 26546,
+  "yield_time_ms": 1000
+}
+```
+
+_Result_
+
+```
+Chunk ID: 9e6175
+Wall time: 1.5987 seconds
+Process exited with code 0
+Original token count: 128
+Output:
+run 1/5: seed=4242 ticks=200 fires=2 map_degenerate=0
+run 2/5: seed=4243 ticks=200 fires=3 map_degenerate=0
+run 3/5: seed=4244 ticks=200 fires=2 map_degenerate=0
+run 4/5: seed=4245 ticks=200 fires=2 map_degenerate=0
+run 5/5: seed=4246 ticks=200 fires=2 map_degenerate=0
+wrote Monte Carlo telemetry: /home/dev/repos/the-canonry-game/.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z
+wrote Monte Carlo analysis: /home/dev/repos/the-canonry-game/.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis
+
+```
+
+The smoke batch completed cleanly: 5 runs, 200 ticks each, generator fires in every run, no map degeneracy. I’m now checking table presence, row counts, and analysis output to see whether fidelity survived the refactor.
+
+**Tool:** `exec_command` `out=$(cat /tmp/the-canonry-mc-fidelity-out); find "$out" -maxdepth 2 -type f | sort`
+
+```bash
+out=$(cat /tmp/the-canonry-mc-fidelity-out); find "$out" -maxdepth 2 -type f | sort
+```
+
+_Result_
+
+```
+Chunk ID: 5fccf4
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 810
+Output:
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/attribute_bands.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/flags.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/generated_subtype_coverage.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/generator_balance.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/lifecycle.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/map_generation.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/map_spread.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/planner_pressure.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/process_pressure.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/resource_pressure.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/summary.md
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/terrain_occupancy.csv
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/attribute_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_attribute_snapshots.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_name_symbols.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_snapshots.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/generated_entities.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/generator_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/kind_snapshots.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/lifecycle_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/locality_opportunities.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/map_generation_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/map_snapshots.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/movement_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_goals.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_trace_goals.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_trace_scores.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_trace_steps.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_traces.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/process_candidates.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/process_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/relationship_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/relationship_snapshots.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/resource_events.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/resource_snapshots.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/runs.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/symbols.parquet
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/telemetry.duckdb
+.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/tick_snapshots.parquet
+
+```
+
+**Tool:** `exec_command` `out=$(cat /tmp/the-canonry-mc-fidelity-out); sed -n '1,220p' "$out/analysis/summary.md"`
+
+```bash
+out=$(cat /tmp/the-canonry-mc-fidelity-out); sed -n '1,220p' "$out/analysis/summary.md"
+```
+
+_Result_
+
+```
+Chunk ID: 473936
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 968
+Output:
+# Monte Carlo Tuning Summary
+
+## Batch
+- Runs: 5
+- Max tick: 200
+- Total generator fires: 11
+- Avg fires/run: 2.20
+- Avg final active entities: 27.60
+- Avg final historical entities: 1.80
+- Avg final physical spread: 33.60
+- Avg final semantic spread: 21.00
+
+## Flags
+- [warning] map_generation: Procedural map degeneracy occurred 5 times. Top cause: accepted -> accepted_world_seed.
+- [warning] generator_balance: Configured generators with pulse activity but zero fires: artifact_cracks_the_berg, penguin_calls_the_unhuddled, region_opens_the_old_holding, settlement_names_the_office, the_shelf_yields_a_tome.
+- [warning] generator_balance: faction_seals_the_edge accounts for 90.9 % of generator fires across the batch.
+- [warning] map: Final physical placement anisotropy averages 7.03; the map is still corridor-biased.
+- [info] lifecycle: Kinds with zero recorded deaths: artifact, faction, penguin.
+
+## Map Generation
+|phase|events|runs|max_attempt|description|reasons|
+|---|---|---|---|---|---|
+|accepted|5|5|0|accepted_world_seed|-|
+
+## Generator Balance
+|generator|fires|eligible|select_rate|blocker|
+|---|---|---|---|---|
+|faction_seals_the_edge|10|10|100.0 %|none|
+|sea_raises_the_reefhold|1|2|50.0 %|none|
+|artifact_cracks_the_berg|0|7|0.0 %|none|
+|penguin_calls_the_unhuddled|0|0|0.0 %|none|
+|region_opens_the_old_holding|0|0|0.0 %|none|
+|settlement_names_the_office|0|0|0.0 %|none|
+|the_shelf_yields_a_tome|0|0|0.0 %|none|
+
+## Planner Pressure
+|kind|stale|no_exec|avg_candidates|top_process|top_share|
+|---|---|---|---|---|---|
+|artifact|0.0 %|0.0 %|3.08|Artifact Bind|0.0 %|
+|faction|0.0 %|0.0 %|7.39|Faction Agitate|0.0 %|
+|penguin|0.0 %|1.4 %|7.05|Penguin Endure|0.0 %|
+|region|0.0 %|2.2 %|9.54|Region Breach|0.0 %|
+|settlement|0.0 %|0.0 %|10.40|Settlement Claims Echo|0.0 %|
+
+## Process Pressure
+|kind|process|selected|offered|select_rate|precond|top_failure|
+|---|---|---|---|---|---|---|
+|artifact|Artifact Bind|0|0|0.0 %|0.0 %|-|
+|artifact|Artifact Channel|0|0|0.0 %|0.0 %|-|
+|artifact|Artifact Circulate|0|0|0.0 %|0.0 %|-|
+|artifact|Artifact Compel|0|0|0.0 %|0.0 %|-|
+|artifact|Artifact Corrupt|0|0|0.0 %|0.0 %|-|
+|artifact|Artifact Repair|0|0|0.0 %|0.0 %|-|
+|artifact|Artifact Vivify|0|0|0.0 %|0.0 %|-|
+|faction|Faction Agitate|0|0|0.0 %|0.0 %|-|
+|faction|Faction Distribute|0|0|0.0 %|0.0 %|-|
+|faction|Faction Extort|0|0|0.0 %|0.0 %|-|
+|faction|Faction Organize|0|0|0.0 %|0.0 %|-|
+|faction|Faction Preach|0|0|0.0 %|0.0 %|-|
+
+## Attribute Bands
+|kind|subtype|attribute|critical|low|mid|high|
+|---|---|---|---|---|---|---|
+|artifact|instrument|power|100.0 %|0.0 %|0.0 %|0.0 %|
+|artifact|relic|power|100.0 %|0.0 %|0.0 %|0.0 %|
+|artifact|seal|power|100.0 %|0.0 %|0.0 %|0.0 %|
+|artifact|tome|power|100.0 %|0.0 %|0.0 %|0.0 %|
+|artifact|weapon|power|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|colony|residents|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|harbor|residents|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|holdfast|residents|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|reefhold|residents|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|rookery|residents|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|sanctuary|residents|100.0 %|0.0 %|0.0 %|0.0 %|
+|settlement|colony|dominion|88.9 %|11.1 %|0.0 %|0.0 %|
+
+## Map Spread
+|run|occupied|share|bbox_fill|mean_seed_dist|anisotropy|
+|---|---|---|---|---|---|
+|seed-4242|27|0.0 %|2.6 %|1.63|14.92|
+|seed-4243|29|0.0 %|3.3 %|3.27|4.33|
+|seed-4244|26|0.0 %|2.5 %|1.07|7.04|
+|seed-4245|26|0.0 %|3.3 %|0.82|3.09|
+|seed-4246|24|0.0 %|2.5 %|1.00|5.79|
+
+## Lifecycle
+|kind|deaths|deaths/run|avg_death_tick|final_active|final_health|
+|---|---|---|---|---|---|
+|artifact|0|0.00|0.00|1.47|0.00|
+|faction|0|0.00|0.00|1.00|0.00|
+|penguin|0|0.00|0.00|2.06|0.00|
+|region|8|1.60|34.38|0.76|0.00|
+|settlement|1|0.20|25.00|1.81|0.00|
+
+## Resource Pressure
+|resource|initial_total|avg_total|final_total|final/initial|lowest_cell|
+|---|---|---|---|---|---|
+
+```
+
+**Tool:** `exec_command` `command -v duckdb || true`
+
+```bash
+command -v duckdb || true
+```
+
+_Result_
+
+```
+Chunk ID: 4a0d92
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `exec_command` `out=$(cat /tmp/the-canonry-mc-fidelity-out); sed -n '1,60p' "$out/analysis/process_pressure.csv" && sed -n '1,40p' "$out/analysis/planner_pressure.csv"`
+
+```bash
+out=$(cat /tmp/the-canonry-mc-fidelity-out); sed -n '1,60p' "$out/analysis/process_pressure.csv" && sed -n '1,40p' "$out/analysis/planner_pressure.csv"
+```
+
+_Result_
+
+```
+Chunk ID: e58b75
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 482
+Output:
+﻿kind,process_name,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic
+artifact,Artifact Bind,0,0,0,0,0,0,
+artifact,Artifact Channel,0,0,0,0,0,0,
+artifact,Artifact Circulate,0,0,0,0,0,0,
+artifact,Artifact Compel,0,0,0,0,0,0,
+artifact,Artifact Corrupt,0,0,0,0,0,0,
+artifact,Artifact Repair,0,0,0,0,0,0,
+artifact,Artifact Vivify,0,0,0,0,0,0,
+faction,Faction Agitate,0,0,0,0,0,0,
+faction,Faction Distribute,0,0,0,0,0,0,
+faction,Faction Extort,0,0,0,0,0,0,
+faction,Faction Organize,0,0,0,0,0,0,
+faction,Faction Preach,0,0,0,0,0,0,
+faction,Faction Quarrel,0,0,0,0,0,0,
+faction,Faction Starve,0,0,0,0,0,0,
+penguin,Penguin Endure,0,0,0,0,0,0,
+penguin,Penguin Forage,0,0,0,0,0,0,
+penguin,Penguin Travel,0,0,0,0,0,0,
+penguin,Penguin Wander,0,0,0,0,0,0,
+penguin,Penguin Warm,0,0,0,0,0,0,
+penguin,Penguin Wield,0,0,0,0,0,0,
+penguin,Penguin Witness,0,0,0,0,0,0,
+region,Region Breach,0,0,0,0,0,0,
+region,Region Cleanse,0,0,0,0,0,0,
+region,Region Commune,0,0,0,0,0,0,
+region,Region Dream,0,0,0,0,0,0,
+region,Region Fortify,0,0,0,0,0,0,
+region,Region Reclaim,0,0,0,0,0,0,
+region,Region Root,0,0,0,0,0,0,
+settlement,Settlement Claims Echo,0,0,0,0,0,0,
+settlement,Settlement Deliberate,0,0,0,0,0,0,
+settlement,Settlement Gossip,0,0,0,0,0,0,
+settlement,Settlement Grow,0,0,0,0,0,0,
+settlement,Settlement Overreach,0,0,0,0,0,0,
+settlement,Settlement Sanctify,0,0,0,0,0,0,
+settlement,Settlement Strip Rookeries,0,0,0,0,0,0,
+﻿kind,evaluations,stale_rate,no_execution_rate,average_candidate_count,top_executed_process,top_process_share_of_executions
+artifact,5414,0,0,3.084780199482822,Artifact Bind,0
+faction,1342,0,0,7.389716840536512,Faction Agitate,0
+penguin,4102,0,0.014139444173573866,7.050463188688445,Penguin Endure,0
+region,4918,0,0.022366815778771858,9.54412362749085,Region Breach,0
+settlement,15686,0,0,10.40373581537677,Settlement Claims Echo,0
+
+```
+
+The analysis artifacts exist, but there is an immediate fidelity problem: `planner_pressure.csv` has evaluation counts while `process_pressure.csv` shows zero candidate rows for every process. I’m querying the DuckDB tables directly to see whether the data is missing at export time or only lost in the analysis view.
+
+**Tool:** `exec_command` `command -v csi || true`
+
+```bash
+command -v csi || true
+```
+
+_Result_
+
+```
+Chunk ID: 23af51
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `exec_command` `command -v dotnet-script || true`
+
+```bash
+command -v dotnet-script || true
+```
+
+_Result_
+
+```
+Chunk ID: 5da15b
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `exec_command` `command -v csharp || true`
+
+```bash
+command -v csharp || true
+```
+
+_Result_
+
+```
+Chunk ID: 823f63
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `exec_command` `out=$(cat /tmp/the-canonry-mc-fidelity-out); ls -lh "$out"/*.parquet "$out"/telemetry.duckdb`
+
+```bash
+out=$(cat /tmp/the-canonry-mc-fidelity-out); ls -lh "$out"/*.parquet "$out"/telemetry.duckdb
+```
+
+_Result_
+
+```
+Chunk ID: f39c22
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 834
+Output:
+-rw-r--r-- 1 dev dev 711K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/attribute_events.parquet
+-rw-r--r-- 1 dev dev  13K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_attribute_snapshots.parquet
+-rw-r--r-- 1 dev dev 5.3K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_events.parquet
+-rw-r--r-- 1 dev dev 3.3K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_name_symbols.parquet
+-rw-r--r-- 1 dev dev 8.9K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/entity_snapshots.parquet
+-rw-r--r-- 1 dev dev 2.8K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/generated_entities.parquet
+-rw-r--r-- 1 dev dev 4.7K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/generator_events.parquet
+-rw-r--r-- 1 dev dev 9.0K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/kind_snapshots.parquet
+-rw-r--r-- 1 dev dev 1.2K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/lifecycle_events.parquet
+-rw-r--r-- 1 dev dev  529 Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/locality_opportunities.parquet
+-rw-r--r-- 1 dev dev 1.9K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/map_generation_events.parquet
+-rw-r--r-- 1 dev dev  224 Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/map_snapshots.parquet
+-rw-r--r-- 1 dev dev  73K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/movement_events.parquet
+-rw-r--r-- 1 dev dev  350 Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_goals.parquet
+-rw-r--r-- 1 dev dev 168K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_trace_goals.parquet
+-rw-r--r-- 1 dev dev 168K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_trace_scores.parquet
+-rw-r--r-- 1 dev dev  45K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_trace_steps.parquet
+-rw-r--r-- 1 dev dev 284K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/planner_traces.parquet
+-rw-r--r-- 1 dev dev  350 Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/process_candidates.parquet
+-rw-r--r-- 1 dev dev  36K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/process_events.parquet
+-rw-r--r-- 1 dev dev  67K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/relationship_events.parquet
+-rw-r--r-- 1 dev dev  33K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/relationship_snapshots.parquet
+-rw-r--r-- 1 dev dev 256K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/resource_events.parquet
+-rw-r--r-- 1 dev dev  208 Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/resource_snapshots.parquet
+-rw-r--r-- 1 dev dev  789 Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/runs.parquet
+-rw-r--r-- 1 dev dev 8.8K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/symbols.parquet
+-rw-r--r-- 1 dev dev 9.6M Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/telemetry.duckdb
+-rw-r--r-- 1 dev dev 4.3K Apr 28 02:58 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/tick_snapshots.parquet
+
+```
+
+**Tool:** `exec_command` `tmpdir=$(mktemp -d /tmp/canonry-duck-query-XXXXXX); echo "$tmpdir" > /tmp/the-canonry-duck-query-dir; dotnet new console --framework net8.0 --output "$tmpdir" …`
+
+```bash
+tmpdir=$(mktemp -d /tmp/canonry-duck-query-XXXXXX); echo "$tmpdir" > /tmp/the-canonry-duck-query-dir; dotnet new console --framework net8.0 --output "$tmpdir" >/dev/null; dotnet add "$tmpdir" package DuckDB.NET.Data.Full >/dev/null; printf '%s
+' "$tmpdir"
+```
+
+_Result_
+
+```
+Chunk ID: c8a664
+Wall time: 1.0017 seconds
+Process running with session ID 77771
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `write_stdin`
+
+```json
+{
+  "chars": "",
+  "max_output_tokens": 2000,
+  "session_id": 77771,
+  "yield_time_ms": 1000
+}
+```
+
+_Result_
+
+```
+Chunk ID: 4d8bcb
+Wall time: 1.1134 seconds
+Process exited with code 0
+Original token count: 8
+Output:
+/tmp/canonry-duck-query-OIraGZ
+
+```
+
+**Tool:** `apply_patch`
+
+**delete**: `/tmp/canonry-duck-query-OIraGZ/Program.cs`
+
+---
+
+**add**: `/tmp/canonry-duck-query-OIraGZ/Program.cs`
+
+```diff
++using DuckDB.NET.Data;
++
++var outPath = File.ReadAllText("/tmp/the-canonry-mc-fidelity-out").Trim();
++using var connection = new DuckDBConnection($"Data Source={Path.Combine(outPath, "telemetry.duckdb")}");
++connection.Open();
++
++static void PrintQuery(DuckDBConnection connection, string title, string sql)
++{
++    Console.WriteLine($"## {title}");
++    using var command = connection.CreateCommand();
++    command.CommandText = sql;
++    using var reader = command.ExecuteReader();
++    for (var i = 0; i < reader.FieldCount; i++)
++    {
++        if (i > 0) Console.Write('\t');
++        Console.Write(reader.GetName(i));
++    }
++    Console.WriteLine();
++    while (reader.Read())
++    {
++        for (var i = 0; i < reader.FieldCount; i++)
++        {
++            if (i > 0) Console.Write('\t');
++            Console.Write(reader.IsDBNull(i) ? "NULL" : reader.GetValue(i));
++        }
++        Console.WriteLine();
++    }
++    Console.WriteLine();
++}
++
++PrintQuery(connection, "tables", @"
++select table_name
++from information_schema.tables
++where table_schema = 'main'
++order by table_name;
++");
++
++PrintQuery(connection, "row counts", @"
++select 'runs' as table_name, count(*) as rows from runs
++union all select 'symbols', count(*) from symbols
++union all select 'entity_name_symbols', count(*) from entity_name_symbols
++union all select 'tick_snapshots', count(*) from tick_snapshots
++union all select 'kind_snapshots', count(*) from kind_snapshots
++union all select 'entity_snapshots', count(*) from entity_snapshots
++union all select 'entity_attribute_snapshots', count(*) from entity_attribute_snapshots
++union all select 'entity_events', count(*) from entity_events
++union all select 'planner_goals', count(*) from planner_goals
++union all select 'planner_traces', count(*) from planner_traces
++union all select 'planner_trace_goals', count(*) from planner_trace_goals
++union all select 'planner_trace_scores', count(*) from planner_trace_scores
++union all select 'planner_trace_steps', count(*) from planner_trace_steps
++union all select 'process_events', count(*) from process_events
++union all select 'process_candidates', count(*) from process_candidates
++union all select 'locality_opportunities', count(*) from locality_opportunities
++union all select 'attribute_events', count(*) from attribute_events
++union all select 'movement_events', count(*) from movement_events
++union all select 'resource_events', count(*) from resource_events
++union all select 'resource_snapshots', count(*) from resource_snapshots
++union all select 'relationship_events', count(*) from relationship_events
++union all select 'relationship_snapshots', count(*) from relationship_snapshots
++union all select 'generator_events', count(*) from generator_events
++union all select 'generated_entities', count(*) from generated_entities
++union all select 'lifecycle_events', count(*) from lifecycle_events
++union all select 'map_generation_events', count(*) from map_generation_events
++union all select 'map_snapshots', count(*) from map_snapshots
++order by table_name;
++");
++
++PrintQuery(connection, "process event integrity", @"
++select
++  count(*) as rows,
++  sum(candidate_count) as candidate_count_sum,
++  sum(case when executed_process_id is not null and executed_process_id <> 0 then 1 else 0 end) as executed_rows,
++  avg(candidate_count) as avg_candidate_count,
++  sum(case when locality_id is not null then 1 else 0 end) as locality_rows
++from process_events;
++");
++
++PrintQuery(connection, "planner trace integrity", @"
++select
++  count(*) as traces,
++  sum(candidate_count) as candidate_count_sum,
++  sum(step_count) as step_count_sum,
++  sum(case when status_code = 1 then 1 else 0 end) as status_1_rows,
++  avg(candidate_count) as avg_candidate_count,
++  avg(step_count) as avg_step_count
++from planner_traces;
++");
++
++PrintQuery(connection, "top symbols", @"
++select symbol_kind, count(*) as rows
++from symbols
++group by symbol_kind
++order by symbol_kind;
++");
++
++PrintQuery(connection, "event rows by type", @"
++select event_type_code, count(*) as rows
++from generator_events
++group by event_type_code
++order by event_type_code;
++");
+```
+
+_Result_
+
+```
+{"output":"Success. Updated the following files:\nA /tmp/canonry-duck-query-OIraGZ/Program.cs\nD /tmp/canonry-duck-query-OIraGZ/Program.cs\n","metadata":{"exit_code":0,"duration_seconds":0.0}}
+```
+
+**Tool:** `exec_command` `tmpdir=$(cat /tmp/the-canonry-duck-query-dir); dotnet run --project "$tmpdir"`
+
+```bash
+tmpdir=$(cat /tmp/the-canonry-duck-query-dir); dotnet run --project "$tmpdir"
+```
+
+_Result_
+
+```
+Chunk ID: 22bd2c
+Wall time: 1.0011 seconds
+Process running with session ID 10152
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `write_stdin`
+
+```json
+{
+  "chars": "",
+  "max_output_tokens": 20000,
+  "session_id": 10152,
+  "yield_time_ms": 1000
+}
+```
+
+_Result_
+
+```
+Chunk ID: ef48ad
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 420
+Output:
+## tables
+table_name
+attribute_events
+entity_attribute_snapshots
+entity_events
+entity_name_symbols
+entity_snapshots
+generated_entities
+generator_events
+kind_snapshots
+lifecycle_events
+locality_opportunities
+map_generation_events
+map_snapshots
+movement_events
+planner_goals
+planner_trace_goals
+planner_trace_scores
+planner_trace_steps
+planner_traces
+process_candidates
+process_events
+relationship_events
+relationship_snapshots
+resource_events
+resource_snapshots
+runs
+symbols
+tick_snapshots
+
+## row counts
+table_name	rows
+attribute_events	58635
+entity_attribute_snapshots	3294
+entity_events	156
+entity_name_symbols	147
+entity_snapshots	1098
+generated_entities	34
+generator_events	291
+kind_snapshots	17744
+lifecycle_events	9
+locality_opportunities	0
+map_generation_events	5
+map_snapshots	0
+movement_events	14447
+planner_goals	0
+planner_trace_goals	15647
+planner_trace_scores	15647
+planner_trace_steps	30093
+planner_traces	22275
+process_candidates	0
+process_events	31462
+relationship_events	6498
+relationship_snapshots	3957
+resource_events	18915
+resource_snapshots	0
+runs	5
+symbols	950
+tick_snapshots	1005
+
+## process event integrity
+rows	candidate_count_sum	executed_rows	avg_candidate_count	locality_rows
+31462	265670	31294	8.444154853474032	0
+
+## planner trace integrity
+traces	candidate_count_sum	step_count_sum	status_1_rows	avg_candidate_count	avg_step_count
+22275	265670	30093	15647	11.92682379349046	1.350976430976431
+
+## top symbols
+symbol_kind	rows
+1	25
+2	125
+3	20
+4	75
+5	175
+6	25
+7	105
+8	35
+9	15
+10	40
+11	20
+12	35
+14	15
+15	15
+16	45
+17	15
+1001	5
+1002	5
+1003	5
+1004	5
+1011	10
+1012	10
+1013	15
+1014	45
+1015	15
+1016	50
+
+## event rows by type
+event_type_code	rows
+11	280
+12	11
+
+
+```
+
+The direct DuckDB counts make the fidelity picture much clearer than the generated summary: core events are present, but several old analysis-facing tables are empty. I’m doing a final status check so I can separate telemetry loss from analyzer/report loss.
+
+**Tool:** `exec_command` `git status --short`
+
+```bash
+git status --short
+```
+
+_Result_
+
+```
+Chunk ID: 4cb8b0
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 0
+Output:
+
+```
+
+**Tool:** `exec_command` `out=$(cat /tmp/the-canonry-mc-fidelity-out); wc -l "$out/analysis"/*.csv`
+
+```bash
+out=$(cat /tmp/the-canonry-mc-fidelity-out); wc -l "$out/analysis"/*.csv
+```
+
+_Result_
+
+```
+Chunk ID: ea5082
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 250
+Output:
+   67 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/attribute_bands.csv
+    6 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/flags.csv
+    8 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/generated_subtype_coverage.csv
+    8 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/generator_balance.csv
+    6 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/lifecycle.csv
+    2 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/map_generation.csv
+    6 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/map_spread.csv
+    6 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/planner_pressure.csv
+   36 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/process_pressure.csv
+    1 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/resource_pressure.csv
+    1 .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/terrain_occupancy.csv
+  147 total
+
+```
+
+**Tool:** `exec_command` `out=$(cat /tmp/the-canonry-mc-fidelity-out); sed -n '1,80p' "$out/analysis/flags.csv" && sed -n '1,80p' "$out/analysis/generator_balance.csv" && sed -n '1,80p'…`
+
+```bash
+out=$(cat /tmp/the-canonry-mc-fidelity-out); sed -n '1,80p' "$out/analysis/flags.csv" && sed -n '1,80p' "$out/analysis/generator_balance.csv" && sed -n '1,80p' "$out/analysis/map_spread.csv"
+```
+
+_Result_
+
+```
+Chunk ID: be0f21
+Wall time: 0.0000 seconds
+Process exited with code 0
+Original token count: 598
+Output:
+﻿category,severity,message
+map_generation,warning,Procedural map degeneracy occurred 5 times. Top cause: accepted -> accepted_world_seed.
+generator_balance,warning,"Configured generators with pulse activity but zero fires: artifact_cracks_the_berg, penguin_calls_the_unhuddled, region_opens_the_old_holding, settlement_names_the_office, the_shelf_yields_a_tome."
+generator_balance,warning,faction_seals_the_edge accounts for 90.9 % of generator fires across the batch.
+map,warning,Final physical placement anisotropy averages 7.03; the map is still corridor-biased.
+lifecycle,info,"Kinds with zero recorded deaths: artifact, faction, penguin."
+﻿generator_id,generator_name,target_kind,pulses,eligible_pulses,blocked_pulses,eligible_not_selected_pulses,fired_count,fire_failed_pulses,fire_rate_per_run,selection_rate_when_eligible,average_target_pool,average_candidate_count,inactive_rejected,subtype_rejected,saturation_rejected,secondary_target_rejected,wilderness_rejected,trigger_rejected,primary_blocker,created_entity_count,created_relationship_count
+faction_seals_the_edge,Faction Seals the Edge,faction,40,10,30,0,10,0,2,1,0,0.35,0,0,0,0,0,0,none,30,60
+sea_raises_the_reefhold,Sea Raises the Reefhold,settlement,40,2,38,0,1,1,0.2,0.5,0,0.05,0,0,0,0,0,0,none,4,4
+artifact_cracks_the_berg,Artifact Cracks the Berg,artifact,40,7,33,0,0,7,0,0,0,0.275,0,0,0,0,0,0,none,0,0
+penguin_calls_the_unhuddled,Penguin Calls the Unhuddled,penguin,40,0,40,0,0,0,0,0,0,0,0,0,0,0,0,0,none,0,0
+region_opens_the_old_holding,Region Opens the Old Holding,region,40,0,40,0,0,0,0,0,0,0,0,0,0,0,0,0,none,0,0
+settlement_names_the_office,Warden Bears the Office,penguin,40,0,40,0,0,0,0,0,0,0,0,0,0,0,0,0,none,0,0
+the_shelf_yields_a_tome,The Shelf Yields a Tome,region,40,0,40,0,0,0,0,0,0,0,0,0,0,0,0,0,none,0,0
+﻿run_id,snapshot_tick,active_entities,occupied_cells,occupied_cell_share,bounding_box_area,occupancy_within_bounding_box,mean_distance_from_seed,max_distance_from_seed,anisotropy
+seed-4242,200,27,27,0,1026,0.02631578947368421,1.6296296296296295,7,14.916220606544755
+seed-4243,200,30,29,0,868,0.03341013824884793,3.2666666666666666,13,4.325052971345774
+seed-4244,200,27,26,0,1050,0.024761904761904763,1.0740740740740742,3,7.038685411778432
+seed-4245,200,28,26,0,782,0.03324808184143223,0.8214285714285714,5,3.0893934211458336
+seed-4246,200,26,24,0,945,0.025396825396825397,1,5,5.787225846527285
+
+```
+
+I ran a read-only MC smoke batch:
+
+```bash
+dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -- --runs 5 --ticks 200 --seed 4242 --out .artifacts/monte-carlo/fidelity-smoke-20260428T025737Z
+```
+
+No source files changed. Output is in [.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z](/home/dev/repos/the-canonry-game/.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z).
+
+**MC Status**
+The MC pipeline runs and exports Parquet, DuckDB, and analysis files. Core simulation telemetry is alive:
+
+- `runs`: `5`
+- `tick_snapshots`: `1005`
+- `process_events`: `31,462`
+- `movement_events`: `14,447`
+- `attribute_events`: `58,635`
+- `resource_events`: `18,915`
+- `relationship_events`: `6,498`
+- `generator_events`: `291`
+- `generated_entities`: `34`
+
+The refactor also added useful new planner trace fidelity:
+
+- `planner_traces`: `22,275`
+- `planner_trace_goals`: `15,647`
+- `planner_trace_scores`: `15,647`
+- `planner_trace_steps`: `30,093`
+- `process_events.candidate_count` sums to `265,670`
+
+So the backend is emitting rich planner activity, but it is no longer shaped like the old telemetry.
+
+**Fidelity Problems**
+The analysis layer is currently not trustworthy for process tuning without adjustment:
+
+- `process_candidates` has `0` rows, so [process_pressure.csv](/home/dev/repos/the-canonry-game/.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/process_pressure.csv:1) reports every process as `0 offered / 0 selected`.
+- `planner_goals` has `0` rows, though planner trace goal rows exist.
+- `locality_opportunities` has `0` rows, so locality-specific comparisons from the prior run are gone.
+- `resource_snapshots` and `map_snapshots` have `0` rows, so [resource_pressure.csv](/home/dev/repos/the-canonry-game/.artifacts/monte-carlo/fidelity-smoke-20260428T025737Z/analysis/resource_pressure.csv:1) and terrain occupancy are empty.
+- `map_generation` flags accepted seeds as degeneracy: “accepted -> accepted_world_seed.”
+- `map_spread.csv` has occupied cell share `0`, which is not usable.
+
+Bottom line: **MC execution works, raw event fidelity mostly survived and gained planner trace detail, but the analysis reports lost fidelity because they still expect older tables like `process_candidates` and `planner_goals`.**
+
+**Current Experiment Plan**
+Before running long tuning batches, the first task should be analysis compatibility: map the new planner trace tables into the same questions we used before, especially non-movement process diversity, candidate selection, and stock fluctuation.
+
+The experiments to run after that are still:
+
+1. **Pressure ablation**
+   Check whether pressure removal changes behavior at all.
+
+2. **Resource ablation with graph rewires**
+   Replace hex-dependent recovery with named-entity provider dependencies, disable hex-producing verbs for the diagnostic branch, and compare process diversity, stock dynamics, deaths, and spread.
+
+3. **Multi-turn work pilot**
+   Test short work commitments for a narrow process slice, likely `Settlement Grow`, `Faction Organize`, and `Region Fortify`.
+
+4. **Lightweight development heuristics**
+   Test settlement spacing, terrain desirability, and adjacency growth preferences for new settlements/regions.
+
+5. **Entity-level stock fluctuation analysis**
+   This should run across every branch: per-entity variance, reversals, mid-band time, pinned high/low behavior, deaths, map spread, and process concentration.
+
+I would not start the long plan-optimization experiments until the analyzer can read the new planner trace tables correctly.

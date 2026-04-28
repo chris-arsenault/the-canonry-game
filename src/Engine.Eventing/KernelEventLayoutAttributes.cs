@@ -98,6 +98,12 @@ public enum KernelEventSemanticKind
     TerrainId = 32,
     NameSeed = 33,
     ResourceAmount = 34,
+    TraceSubjectCode = 35,
+    ActionFamilyCode = 36,
+    ActionId = 37,
+    EffectScopeCode = 38,
+    EffectValueId = 39,
+    EffectKindId = 40,
 }
 
 public sealed record KernelEventLayoutSlotDescriptor(

@@ -52,12 +52,14 @@ public sealed record KernelStartRequest
     public KernelStartRequest(
         string domainName,
         StartupSeedPolicy seedPolicy,
-        KernelFunctionProfile functionProfile)
+        KernelFunctionProfile functionProfile,
+        bool traceEnabled = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainName);
         DomainName = domainName;
         SeedPolicy = seedPolicy;
         FunctionProfile = functionProfile;
+        TraceEnabled = traceEnabled;
     }
 
     public string DomainName { get; }
@@ -65,6 +67,8 @@ public sealed record KernelStartRequest
     public StartupSeedPolicy SeedPolicy { get; }
 
     public KernelFunctionProfile FunctionProfile { get; }
+
+    public bool TraceEnabled { get; }
 }
 
 public readonly record struct DomainStartupSeedRequest

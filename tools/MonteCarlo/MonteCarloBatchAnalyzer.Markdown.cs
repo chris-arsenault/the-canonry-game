@@ -110,7 +110,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("offered", row => row.CandidateEvaluations.ToString(CultureInfo.InvariantCulture)),
             ("select_rate", row => FormatPercent(row.SelectionRateWhenOffered)),
             ("precond", row => FormatPercent(row.PreconditionPassRate)),
-            ("top_failure", row => string.IsNullOrWhiteSpace(row.TopFailureDiagnostic) ? "-" : row.TopFailureDiagnostic));
+            ("top_failure", row => string.IsNullOrWhiteSpace(row.TopFailureDiagnostic) ? "-" : row.TopFailureDiagnostic),
+            ("source", row => row.EvidenceSource));
     }
 
     private static void AppendAttributeSection(StringBuilder builder, IReadOnlyList<AttributeBandSummaryRow> rows)

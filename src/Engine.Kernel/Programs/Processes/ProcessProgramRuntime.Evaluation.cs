@@ -274,12 +274,14 @@ internal sealed partial class ProcessProgramRuntime
         out int selectedTargetId)
     {
         candidateCount++;
+        var candidateIndex = candidateCount;
         return EvaluateCandidate(
             simulation,
             processSlot,
             entityId,
             entityId,
             tick,
+            candidateIndex,
             selectRoll,
             out selectedTargetId);
     }
@@ -371,12 +373,14 @@ internal sealed partial class ProcessProgramRuntime
         }
 
         candidateCount++;
+        var candidateIndex = candidateCount;
         return EvaluateCandidate(
             simulation,
             processSlot,
             entityId,
             targetId,
             tick,
+            candidateIndex,
             selectRoll < 0f ? -1f : selectRoll - total,
             out selectedTargetId);
     }
@@ -387,6 +391,7 @@ internal sealed partial class ProcessProgramRuntime
         int entityId,
         int targetId,
         int tick,
+        int candidateIndex,
         float selectRoll,
         out int selectedTargetId)
     {
@@ -394,6 +399,7 @@ internal sealed partial class ProcessProgramRuntime
         var preconditionResult = PreconditionsResult(simulation, processSlot, entityId, targetId, tick);
         if (preconditionResult == PreconditionFailed)
         {
+            EmitUnplannedTargetTraceIfNeeded(simulation, tick, entityId, candidateIndex, processSlot, targetId, TraceStatusCodes.PreconditionFailed, 0f, 0f, selectRoll);
             return 0f;
         }
 
@@ -406,6 +412,7 @@ internal sealed partial class ProcessProgramRuntime
 
         if (score <= 0f)
         {
+            EmitUnplannedTargetTraceIfNeeded(simulation, tick, entityId, candidateIndex, processSlot, targetId, TraceStatusCodes.NoReward, score, 0f, selectRoll);
             return 0f;
         }
 
@@ -414,6 +421,7 @@ internal sealed partial class ProcessProgramRuntime
             selectedTargetId = targetId;
         }
 
+        EmitUnplannedTargetTraceIfNeeded(simulation, tick, entityId, candidateIndex, processSlot, targetId, TraceStatusCodes.Actionable, score, score, selectRoll);
         return score;
     }
 

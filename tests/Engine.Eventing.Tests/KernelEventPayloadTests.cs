@@ -115,6 +115,9 @@ public sealed class KernelEventPayloadTests
 
         var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4);
         Assert.Equal(cellCreated, KernelEvent.From(cellCreated).AsCellCreated());
+
+        var cellChanged = new CellChangedKernelEvent(19, 20, 2, -2, 3, 4, 5, 6, 7);
+        Assert.Equal(cellChanged, KernelEvent.From(cellChanged).AsCellChanged());
     }
 
     private static void AssertPlanningEventsRoundTrip()

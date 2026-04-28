@@ -76,9 +76,17 @@ public sealed class KernelTelemetryRecorderTests
 
     private static void WriteStateChangeEvents(KernelEventLog log)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
             Tick: 1,
             WorldVersion: 2,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            TerrainId: 12,
+            OwnerEntityId: 100))));
+        Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: 3,
             EntityId: 100,
             AttributeId: 4,
             SourceCodeId: 5,
@@ -86,7 +94,7 @@ public sealed class KernelTelemetryRecorderTests
             NewValue: 7f))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 2,
-            WorldVersion: 3,
+            WorldVersion: 4,
             EntityId: 100,
             SourceCodeId: 5,
             PlaneCode: PlaneCodes.Physical,
@@ -98,7 +106,7 @@ public sealed class KernelTelemetryRecorderTests
             ToS: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
             Tick: 2,
-            WorldVersion: 4,
+            WorldVersion: 5,
             ChangeCodeId: 7,
             SourceCodeId: 5,
             RelationshipKindId: 8,
@@ -112,6 +120,16 @@ public sealed class KernelTelemetryRecorderTests
             FactCount: 1,
             PreviousStrength: 0f,
             NewStrength: 0.75f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
+            Tick: 3,
+            WorldVersion: 8,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            PreviousTerrainId: 12,
+            CurrentTerrainId: 13,
+            PreviousOwnerEntityId: 100,
+            CurrentOwnerEntityId: 101))));
     }
 
     private static void WriteProcessAndGeneratorEvents(KernelEventLog log)
@@ -125,6 +143,25 @@ public sealed class KernelTelemetryRecorderTests
             ExecutedProcessId: 11,
             CandidateCount: 4,
             State: KernelEventState.Succeeded))));
+        Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
+            Tick: 2,
+            WorldVersion: 5,
+            PlanId: ActionFamilyCodes.Process,
+            EntityId: 100,
+            TraceSubjectCode: TraceSubjectCodes.TargetDetail,
+            CandidateIndex: 1,
+            ParentCandidateIndex: 0,
+            ActionFamilyCode: ActionFamilyCodes.Process,
+            ActionId: 11,
+            EffectScopeCode: ProcessEffectScopeCodes.SelfAttribute,
+            EffectValueId: 4,
+            EffectKindId: 1,
+            TargetEntityId: 100,
+            StatusCode: TraceStatusCodes.Actionable,
+            Urgency: 0.5f,
+            RewardOrBaseScore: 0.75f,
+            RawWeight: 1.25f,
+            AdjustedWeight: 1.5f))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 3,
             WorldVersion: 6,
@@ -168,6 +205,20 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(PlaneCodes.Physical, movement.PlaneCode);
         Assert.Equal(2, movement.Distance);
 
+        var createdCell = Assert.Single(
+            batch.MapCellEvents,
+            row => row.EventTypeCode == (int)KernelEventType.CellCreated);
+        Assert.Equal(12, createdCell.CurrentTerrainId);
+        Assert.Equal(100, createdCell.CurrentOwnerEntityId);
+
+        var changedCell = Assert.Single(
+            batch.MapCellEvents,
+            row => row.EventTypeCode == (int)KernelEventType.CellChanged);
+        Assert.Equal(12, changedCell.PreviousTerrainId);
+        Assert.Equal(13, changedCell.CurrentTerrainId);
+        Assert.Equal(100, changedCell.PreviousOwnerEntityId);
+        Assert.Equal(101, changedCell.CurrentOwnerEntityId);
+
         var relationship = Assert.Single(batch.RelationshipEvents);
         Assert.Equal(7, relationship.ChangeCodeId);
         Assert.Equal(5, relationship.SourceCodeId);
@@ -179,6 +230,12 @@ public sealed class KernelTelemetryRecorderTests
         var process = Assert.Single(batch.ProcessEvents);
         Assert.Equal(11, process.ExecutedProcessId);
         Assert.Equal(4, process.CandidateCount);
+
+        var trace = Assert.Single(batch.TraceEvents);
+        Assert.Equal(TraceSubjectCodes.TargetDetail, trace.TraceSubjectCode);
+        Assert.Equal(TraceStatusCodes.Actionable, trace.StatusCode);
+        Assert.Equal(11, trace.ActionId);
+        Assert.Equal(1.5f, trace.AdjustedWeight);
     }
 
     private static void AssertGeneratedAndTickRows(TelemetryBatch batch)
@@ -195,6 +252,15 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(2, tick.ActiveEntities);
         Assert.Equal(1, tick.TotalGeneratorFires);
         Assert.Equal(1, tick.ActiveRelationships);
+        Assert.Equal(1, tick.CoverageCount);
+        Assert.Equal(1, tick.CoveredCells);
+        Assert.Equal(0, tick.UncoveredCells);
+
+        var map = Assert.Single(batch.MapSnapshots);
+        Assert.Equal(13, map.TerrainId);
+        Assert.Equal(1, map.CellCount);
+        Assert.Equal(1, map.CoveredCellCount);
+        Assert.Equal(1, map.ActiveEntityCount);
     }
 
     [Fact]

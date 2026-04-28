@@ -193,13 +193,18 @@ internal sealed partial class GeneratorProgramRuntime
         {
             var q = _scratchClaimedQ[i];
             var r = _scratchClaimedR[i];
-            world.SetCoverageOwner(q, r, ownerEntityId);
             if (_producedCoverageTransformTerrainIds[producedSlot] > 0)
             {
-                world.SetCellTerrain(
+                simulation.SetCellState(
                     q,
                     r,
-                    _producedCoverageTransformTerrainIds[producedSlot]);
+                    _producedCoverageTransformTerrainIds[producedSlot],
+                    ownerEntityId,
+                    simulation.CurrentTick);
+            }
+            else
+            {
+                simulation.SetCoverageOwner(q, r, ownerEntityId, simulation.CurrentTick);
             }
         }
 

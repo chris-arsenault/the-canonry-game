@@ -275,6 +275,53 @@ internal sealed partial class Simulation
             reasonCodeId)));
     }
 
+    internal bool TraceEnabled() => Options.TraceEnabled;
+
+    internal void EmitTrace(
+        int tick,
+        int planId,
+        int entityId,
+        int traceSubjectCode,
+        int candidateIndex,
+        int parentCandidateIndex,
+        int actionFamilyCode,
+        int actionId,
+        int effectScopeCode,
+        int effectValueId,
+        int effectKindId,
+        int targetEntityId,
+        int statusCode,
+        float urgency,
+        float rewardOrBaseScore,
+        float rawWeight,
+        float adjustedWeight)
+    {
+        if (!TraceEnabled())
+        {
+            return;
+        }
+
+        WriteKernelEvent(KernelEvent.From(new TraceKernelEvent(
+            tick,
+            WorldVersion,
+            planId,
+            entityId,
+            traceSubjectCode,
+            candidateIndex,
+            parentCandidateIndex,
+            actionFamilyCode,
+            actionId,
+            effectScopeCode,
+            effectValueId,
+            effectKindId,
+            targetEntityId,
+            statusCode,
+            urgency,
+            rewardOrBaseScore,
+            rawWeight,
+            adjustedWeight)));
+    }
+
     private void WriteTickCompleted()
     {
         WriteKernelEvent(KernelEvent.From(new TickCompletedKernelEvent(

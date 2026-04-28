@@ -28,7 +28,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
-        if (eventType is KernelEventType.TickCompleted or KernelEventType.GeneratorEnabledChanged or KernelEventType.CellCreated)
+        if (eventType is KernelEventType.TickCompleted or
+            KernelEventType.GeneratorEnabledChanged or
+            KernelEventType.CellCreated or
+            KernelEventType.CellChanged)
         {
             ProjectWorldEvent(kernelEvent);
             return;
@@ -109,6 +112,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.CellCreated:
                 OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
                 break;
+            case KernelEventType.CellChanged:
+                OnCellChanged(kernelEvent.Sequence, evt.AsCellChanged());
+                break;
         }
     }
 
@@ -137,6 +143,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.PlanAbandoned:
                 OnPlanAbandoned(kernelEvent.Sequence, evt.AsPlanAbandoned());
+                break;
+            case KernelEventType.Trace:
+                OnTrace(kernelEvent.Sequence, evt.AsTrace());
                 break;
         }
     }
@@ -213,6 +222,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
     }
 
+    protected virtual void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
+    {
+    }
+
     protected virtual void OnPlanStarted(long sequence, in PlanStartedKernelEvent evt)
     {
     }
@@ -238,6 +251,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnPlanAbandoned(long sequence, in PlanAbandonedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnTrace(long sequence, in TraceKernelEvent evt)
     {
     }
 }

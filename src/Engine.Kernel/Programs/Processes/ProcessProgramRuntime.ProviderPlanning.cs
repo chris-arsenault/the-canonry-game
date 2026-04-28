@@ -16,6 +16,8 @@ internal sealed partial class ProcessProgramRuntime
         int depth,
         int selectorStart,
         int selectorCount,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         out int selectedRootProcessSlot,
         out int selectedRootTargetId,
@@ -43,6 +45,8 @@ internal sealed partial class ProcessProgramRuntime
                 depth,
                 selector,
                 bestWeight,
+                traceEnabled,
+                parentCandidateIndex,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
                 ref selectedRootTargetId,
@@ -53,7 +57,7 @@ internal sealed partial class ProcessProgramRuntime
         return bestWeight;
     }
 
-    private float EvaluateProviderSelectorTargets(Simulation simulation, int entityId, int processSlot, int tick, int effectScopeCode, int effectValueId, int effectKindId, float urgency, int depth, int selector, float bestWeight, ref int candidateCount, ref int selectedRootProcessSlot, ref int selectedRootTargetId, ref int selectedProcessSlot, ref int selectedTargetId)
+    private float EvaluateProviderSelectorTargets(Simulation simulation, int entityId, int processSlot, int tick, int effectScopeCode, int effectValueId, int effectKindId, float urgency, int depth, int selector, float bestWeight, bool traceEnabled, int parentCandidateIndex, ref int candidateCount, ref int selectedRootProcessSlot, ref int selectedRootTargetId, ref int selectedProcessSlot, ref int selectedTargetId)
     {
         var code = _providerSelectorCodes[selector];
         if (code == ProcessProviderSelectorCodes.TargetAttribute ||
@@ -63,6 +67,7 @@ internal sealed partial class ProcessProgramRuntime
             return EvaluateKindProviderSelector(
                 simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId,
                 urgency, depth, selector, bestWeight,
+                traceEnabled, parentCandidateIndex,
                 ref candidateCount, ref selectedRootProcessSlot, ref selectedRootTargetId, ref selectedProcessSlot, ref selectedTargetId);
         }
 
@@ -71,6 +76,7 @@ internal sealed partial class ProcessProgramRuntime
             return EvaluateLocationProviderSelector(
                 simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId,
                 urgency, depth, selector, bestWeight,
+                traceEnabled, parentCandidateIndex,
                 ref candidateCount, ref selectedRootProcessSlot, ref selectedRootTargetId, ref selectedProcessSlot, ref selectedTargetId);
         }
 
@@ -80,6 +86,7 @@ internal sealed partial class ProcessProgramRuntime
             return EvaluateRelationshipProviderSelector(
                 simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId,
                 urgency, depth, selector, code == ProcessProviderSelectorCodes.OutgoingRelationship, bestWeight,
+                traceEnabled, parentCandidateIndex,
                 ref candidateCount, ref selectedRootProcessSlot, ref selectedRootTargetId, ref selectedProcessSlot, ref selectedTargetId);
         }
 
@@ -98,6 +105,8 @@ internal sealed partial class ProcessProgramRuntime
         int depth,
         int selector,
         float bestWeight,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
         ref int selectedRootTargetId,
@@ -122,6 +131,8 @@ internal sealed partial class ProcessProgramRuntime
                 depth,
                 selector,
                 bestWeight,
+                traceEnabled,
+                parentCandidateIndex,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
                 ref selectedRootTargetId,
@@ -144,6 +155,8 @@ internal sealed partial class ProcessProgramRuntime
         int depth,
         int selector,
         float bestWeight,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
         ref int selectedRootTargetId,
@@ -171,6 +184,8 @@ internal sealed partial class ProcessProgramRuntime
                     depth,
                     selector,
                     bestWeight,
+                    traceEnabled,
+                    parentCandidateIndex,
                     ref candidateCount,
                     ref selectedRootProcessSlot,
                     ref selectedRootTargetId,
@@ -196,6 +211,8 @@ internal sealed partial class ProcessProgramRuntime
                 depth,
                 selector,
                 bestWeight,
+                traceEnabled,
+                parentCandidateIndex,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
                 ref selectedRootTargetId,
@@ -219,6 +236,8 @@ internal sealed partial class ProcessProgramRuntime
         int selector,
         bool outgoing,
         float bestWeight,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
         ref int selectedRootTargetId,
@@ -258,6 +277,8 @@ internal sealed partial class ProcessProgramRuntime
                 depth,
                 selector,
                 bestWeight,
+                traceEnabled,
+                parentCandidateIndex,
                 ref candidateCount,
                 ref selectedRootProcessSlot,
                 ref selectedRootTargetId,
@@ -281,6 +302,8 @@ internal sealed partial class ProcessProgramRuntime
         int depth,
         int selector,
         float bestWeight,
+        bool traceEnabled,
+        int parentCandidateIndex,
         ref int candidateCount,
         ref int selectedRootProcessSlot,
         ref int selectedRootTargetId,
@@ -316,6 +339,7 @@ internal sealed partial class ProcessProgramRuntime
 
         _processVisited.Add(targetId);
         candidateCount++;
+        var candidateIndex = candidateCount;
         var weight = EvaluatePlanCandidate(
             simulation,
             entityId,
@@ -327,6 +351,9 @@ internal sealed partial class ProcessProgramRuntime
             effectKindId,
             urgency,
             depth,
+            candidateIndex,
+            parentCandidateIndex,
+            traceEnabled,
             ref candidateCount,
             out var planProcessSlot,
             out var planTargetId);

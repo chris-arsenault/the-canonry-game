@@ -48,6 +48,45 @@ public sealed class KernelExecutionContextTests
     }
 
     [Fact]
+    public void ActiveExecutionContextStampsRuntimeCellMutationEvents()
+    {
+        const int activeSourceCodeId = 9002;
+        var simulation = new Simulation(new SimulationOptions
+        {
+            EntityCapacity = 4,
+            MapCellCapacity = 4,
+            TerrainIdCapacity = 4,
+            EventCapacity = 64,
+        });
+        simulation.RegisterTerrain(1, boundaryGroupId: 1);
+        simulation.RegisterTerrain(2, boundaryGroupId: 1);
+        simulation.CreateCell(q: 0, r: 0, terrainId: 1, ownerEntityId: 0);
+        var ownerEntityId = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, tick: 0);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        using (simulation.EnterExecutionContext(
+                   activeSourceCodeId,
+                   KernelProgramCodes.Generators))
+        {
+            simulation.SetCellState(q: 0, r: 0, terrainId: 2, ownerEntityId, tick: 7);
+        }
+
+        Assert.Equal(2, simulation.World.CellTerrainId(0, 0));
+        Assert.Equal(ownerEntityId, simulation.World.CoverageOwnerAt(0, 0));
+        Assert.True(simulation.Events.TryRead(cursor, out var read));
+        Assert.Equal(KernelProgramCodes.Generators, read.Event.ProgramId);
+        Assert.Equal(activeSourceCodeId, read.Event.SourceCodeId);
+        var changed = read.Event.AsCellChanged();
+        Assert.Equal(7, changed.Tick);
+        Assert.Equal(activeSourceCodeId, changed.SourceCodeId);
+        Assert.Equal(1, changed.PreviousTerrainId);
+        Assert.Equal(2, changed.CurrentTerrainId);
+        Assert.Equal(0, changed.PreviousOwnerEntityId);
+        Assert.Equal(ownerEntityId, changed.CurrentOwnerEntityId);
+        Assert.False(simulation.Events.TryRead(cursor, out _));
+    }
+
+    [Fact]
     public void ExecutionScopeRestoresPreviousContextAfterDispose()
     {
         var simulation = new Simulation();

@@ -116,6 +116,56 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void Fire_WithProducedCoverage_EmitsCellChangedForClaimedCells()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        simulation.RegisterTerrain(2, boundaryGroupId: 1);
+        CreateTarget(simulation);
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        simulation.Generators.AddProduced(
+            slot,
+            CreatedRef,
+            CreatedKindId,
+            CreatedSubtypeId,
+            createIfMissing: 1,
+            hasQuery: 0,
+            queryAdjacentToTarget: 0,
+            queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
+            physicalPlacementCode: GeneratorPlacementCodes.Near,
+            semanticPlacementCode: GeneratorPlacementCodes.Near,
+            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            createChance: 1f,
+            coverageModeCode: GeneratorCoverageModeCodes.CreateNew,
+            coverageSourceRefCode: 0,
+            coverageDesiredCellCount: 3,
+            coverageMinimumCellCount: 1,
+            coverageMinimumSourceRemainingCellCount: 0,
+            coverageRespectTerrainBoundaries: 1,
+            coverageTransformTerrainId: 2);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var created = simulation.World.EntityHighWatermark;
+        var cellChanges = ReadAvailableEvents(simulation, cursor)
+            .Where(evt => evt.EventType == KernelEventType.CellChanged)
+            .Select(evt => evt.AsCellChanged())
+            .ToArray();
+        Assert.NotEmpty(cellChanges);
+        Assert.All(cellChanges, evt =>
+        {
+            Assert.Equal(simulation.GeneratorSourceCodeId, evt.SourceCodeId);
+            Assert.Equal(1, evt.PreviousTerrainId);
+            Assert.Equal(2, evt.CurrentTerrainId);
+            Assert.Equal(0, evt.PreviousOwnerEntityId);
+            Assert.Equal(created, evt.CurrentOwnerEntityId);
+        });
+        Assert.True(simulation.World.CoverageOwnerCellCount(created) >= 1);
+    }
+
+    [Fact]
     public void Fire_AttributesCreatedEntityAndRelationshipEventsToGeneratorContext()
     {
         var simulation = CreateSimulation();
@@ -289,10 +339,19 @@ public sealed class GeneratorProgramRuntimeTests
 
     private static KernelEventType[] ReadAvailableEventTypes(Simulation simulation, KernelEventCursor cursor)
     {
-        var result = new List<KernelEventType>();
+        var result = ReadAvailableEvents(simulation, cursor)
+            .Select(evt => evt.EventType)
+            .ToArray();
+
+        return result;
+    }
+
+    private static KernelEvent[] ReadAvailableEvents(Simulation simulation, KernelEventCursor cursor)
+    {
+        var result = new List<KernelEvent>();
         while (simulation.Events.TryRead(cursor, out var read))
         {
-            result.Add(read.Event.EventType);
+            result.Add(read.Event);
         }
 
         return result.ToArray();

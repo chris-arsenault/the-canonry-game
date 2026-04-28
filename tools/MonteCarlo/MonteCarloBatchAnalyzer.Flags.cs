@@ -10,9 +10,11 @@ internal sealed partial class MonteCarloBatchAnalyzer
         List<MapSpreadSummaryRow> mapRows,
         List<LifecycleSummaryRow> lifecycleRows,
         List<ResourcePressureRow> resourceRows,
-        List<MapGenerationSummaryRow> mapGenerationRows)
+        List<MapGenerationSummaryRow> mapGenerationRows,
+        TelemetryCoverage telemetryCoverage)
     {
         var flags = new List<AnalysisFlagRow>();
+        AddTelemetryCoverageFlags(flags, telemetryCoverage);
         AddMapGenerationFlags(flags, mapGenerationRows);
         AddGeneratorFlags(flags, generatorRows);
         AddPlannerFlags(flags, plannerRows);
@@ -26,10 +28,13 @@ internal sealed partial class MonteCarloBatchAnalyzer
         List<AnalysisFlagRow> flags,
         List<MapGenerationSummaryRow> mapGenerationRows)
     {
-        var degenerateCount = mapGenerationRows.Sum(row => row.EventCount);
+        var degenerateRows = mapGenerationRows
+            .Where(row => !IsAcceptedMapGenerationRow(row))
+            .ToList();
+        var degenerateCount = degenerateRows.Sum(row => row.EventCount);
         if (degenerateCount > 0)
         {
-            var top = mapGenerationRows
+            var top = degenerateRows
                 .OrderByDescending(row => row.EventCount)
                 .ThenBy(row => row.Phase, StringComparer.Ordinal)
                 .First();
@@ -37,6 +42,53 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 Category: "map_generation",
                 Severity: "warning",
                 Message: string.Create(CultureInfo.InvariantCulture, $"Procedural map degeneracy occurred {degenerateCount} times. Top cause: {top.Phase} -> {top.Description}.")));
+        }
+    }
+
+    private static bool IsAcceptedMapGenerationRow(MapGenerationSummaryRow row) =>
+        string.Equals(row.Phase, "accepted", StringComparison.Ordinal) && row.RetryingEvents == 0;
+
+    private static void AddTelemetryCoverageFlags(
+        List<AnalysisFlagRow> flags,
+        TelemetryCoverage telemetryCoverage)
+    {
+        if (telemetryCoverage.ProcessExecutionRows == 0 && telemetryCoverage.ProcessPlannerRows > 0)
+        {
+            flags.Add(new AnalysisFlagRow(
+                Category: "telemetry",
+                Severity: "warning",
+                Message: "Planner evaluations were recorded, but process execution rows are unavailable; process pressure cannot report selected process utilization."));
+        }
+        else if (telemetryCoverage.ProcessExecutionRows > 0)
+        {
+            flags.Add(new AnalysisFlagRow(
+                Category: "telemetry",
+                Severity: "info",
+                Message: "Process pressure uses process execution events only; per-process candidate diagnostics require future primitive candidate instrumentation."));
+        }
+
+        if (telemetryCoverage.ResourceSnapshotRows == 0 && telemetryCoverage.ResourceEventRows > 0)
+        {
+            flags.Add(new AnalysisFlagRow(
+                Category: "telemetry",
+                Severity: "warning",
+                Message: "Resource events were recorded, but resource snapshots are unavailable; resource pressure tables cannot report stock totals yet."));
+        }
+
+        if (telemetryCoverage.MapSnapshotRows == 0)
+        {
+            flags.Add(new AnalysisFlagRow(
+                Category: "telemetry",
+                Severity: "warning",
+                Message: "Map snapshots are unavailable; terrain occupancy and physical occupied-share denominators are incomplete."));
+        }
+
+        if (telemetryCoverage.LocalityOpportunityRows == 0 && telemetryCoverage.PlannerTraceRows > 0)
+        {
+            flags.Add(new AnalysisFlagRow(
+                Category: "telemetry",
+                Severity: "info",
+                Message: "Locality opportunity rows are unavailable; locality analysis is limited to selected planner traces and process-event locality rollups."));
         }
     }
 

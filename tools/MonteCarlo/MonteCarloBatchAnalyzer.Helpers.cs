@@ -241,7 +241,14 @@ internal sealed partial class MonteCarloBatchAnalyzer
             0d);
     }
 
-    private sealed record FailureDiagnosticRow(string Kind, string ProcessName, string Diagnostic, int Count);
+    private sealed record TelemetryCoverage(
+        int ProcessPlannerRows,
+        int ProcessExecutionRows,
+        int ResourceEventRows,
+        int ResourceSnapshotRows,
+        int MapSnapshotRows,
+        int LocalityOpportunityRows,
+        int PlannerTraceRows);
 
     private sealed record ObservedPlannerRow(
         string Kind,

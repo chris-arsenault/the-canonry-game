@@ -73,6 +73,76 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
+    public void Analyze_UsesProcessExecutionEventsForProcessPressure()
+    {
+        var domain = IceRemembersRuntime.CreateDomainConfig();
+        var batchDirectory = CreateTempDirectory();
+        var batch = CreateBatch(domain, includeGeneratorFire: true);
+        batch.ProcessCandidates.Clear();
+
+        new DuckDbParquetTelemetryWriter(batchDirectory).Write(batch);
+
+        var analyzer = new MonteCarloBatchAnalyzer(domain);
+        var report = analyzer.Analyze(batchDirectory);
+        var processName = domain.Processes.First(process => process.TargetKind == IceRemembersKinds.Penguin).Name;
+
+        Assert.Contains(report.ProcessPressure, row =>
+            row.Kind == IceRemembersKinds.Penguin.Value &&
+            row.ProcessName == processName &&
+            row.SelectedCount == 1 &&
+            row.CandidateEvaluations == 0 &&
+            row.EvidenceSource == "process_events_execution");
+        Assert.Contains(report.PlannerPressure, row =>
+            row.Kind == IceRemembersKinds.Penguin.Value &&
+            row.Evaluations == 1 &&
+            row.TopExecutedProcess == processName);
+        Assert.Contains(report.Flags, row =>
+            row.Category == "telemetry" &&
+            row.Message.Contains("process execution events", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Analyze_DoesNotFlagAcceptedMapGenerationEventsAsDegenerate()
+    {
+        var domain = IceRemembersRuntime.CreateDomainConfig();
+        var batchDirectory = CreateTempDirectory();
+        var batch = CreateBatch(domain, includeGeneratorFire: true);
+        var run = batch.Runs.Single();
+        var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "accepted", "accepted");
+        var description = TelemetrySymbolIds.Create(
+            TelemetrySymbolKinds.MapGenerationDescription,
+            "accepted_world_seed",
+            "accepted_world_seed");
+        var reason = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationReason, "none", "none");
+        batch.Symbols.Add(phase);
+        batch.Symbols.Add(description);
+        batch.Symbols.Add(reason);
+        batch.MapGenerationEvents.Clear();
+        batch.MapGenerationEvents.Add(new MapGenerationEventRow(
+            run.RunId,
+            0,
+            run.Seed ?? 1000,
+            0,
+            111,
+            222,
+            phase.Id,
+            description.Id,
+            reason.Id,
+            WillRetry: false));
+
+        new DuckDbParquetTelemetryWriter(batchDirectory).Write(batch);
+
+        var analyzer = new MonteCarloBatchAnalyzer(domain);
+        var report = analyzer.Analyze(batchDirectory);
+
+        Assert.Contains(report.MapGeneration, row =>
+            row.Phase == "accepted" &&
+            row.Description == "accepted_world_seed" &&
+            row.EventCount == 1);
+        Assert.DoesNotContain(report.Flags, row => row.Category == "map_generation");
+    }
+
+    [Fact]
     public void Cli_PerfModeWritesLeanPerformanceTelemetryByDefault()
     {
         var batchDirectory = CreateTempDirectory();
@@ -93,6 +163,28 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(batchDirectory, "performance_symbols.parquet")));
         Assert.False(File.Exists(Path.Combine(batchDirectory, "tick_snapshots.parquet")));
         Assert.False(Directory.Exists(Path.Combine(batchDirectory, "analysis")));
+    }
+
+    [Fact]
+    public void Options_ParseTraceFlagEnablesTrace()
+    {
+        var options = MonteCarloOptions.Parse([
+            "--trace",
+        ]);
+
+        Assert.True(options.TraceEnabled);
+    }
+
+    [Fact]
+    public void Options_TraceKeepsStateTelemetryEnabledInPerfMode()
+    {
+        var options = MonteCarloOptions.Parse([
+            "--perf",
+            "--trace",
+        ]);
+
+        Assert.True(options.TraceEnabled);
+        Assert.True(options.CollectStateTelemetry);
     }
 
     public void Dispose()
@@ -154,6 +246,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             WealthResourceId: 61,
             ShelfTerrainId: 70,
             OceanTerrainId: 71,
+            PenguinProcessId: penguinProcess.Id,
             PenguinProcessName: penguinProcess.Name,
             PenguinAttributeIds: AttributeIds(penguinConfig, firstId: 100),
             SettlementAttributeIds: AttributeIds(settlementConfig, firstId: 200));
@@ -172,7 +265,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddSymbol(batch, ProjectionSymbolKind.Subtype, seed.SanctuarySubtypeId, "sanctuary");
         AddSymbol(batch, ProjectionSymbolKind.Subtype, seed.CompactSubtypeId, "compact");
         AddSymbol(batch, ProjectionSymbolKind.Culture, seed.CultureId, IceRemembersCulture.Nightshelf.ToDomainName());
-        AddSymbol(batch, ProjectionSymbolKind.Process, seed.ProcessId, seed.PenguinProcessName);
+        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(
+            (int)ProjectionSymbolKind.Process,
+            seed.ProcessId,
+            seed.PenguinProcessId,
+            seed.PenguinProcessName));
         AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "penguin_calls_the_unhuddled");
         AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "faction_seals_the_edge");
         AddSymbol(batch, ProjectionSymbolKind.Resource, seed.FoodResourceId, "Food");
@@ -206,16 +303,38 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static void AddProcessTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
+        AddProcessEvent(batch, seed, selectedGoalId: 1, candidateCount: 1);
+        AddProcessEvent(batch, seed, selectedGoalId: null, candidateCount: 0);
+        batch.ProcessCandidates.Add(new ProcessCandidateRow(
+            seed.RunId,
+            25,
+            1,
+            seed.PenguinKindId,
+            seed.ProcessId,
+            1,
+            ProviderId: 0,
+            1.25f,
+            PreconditionPassed: true,
+            PreconditionDiagnosticCode: 0,
+            OnCooldown: false,
+            WasSelected: true));
+    }
+
+    private static void AddProcessEvent(
+        TelemetryBatch batch,
+        SyntheticBatchSeed seed,
+        int? selectedGoalId,
+        int candidateCount) =>
         batch.ProcessEvents.Add(new ProcessEventRow(
             seed.RunId,
             25,
             1,
             seed.PenguinKindId,
-            1,
+            selectedGoalId,
             seed.ProcessId,
             IsStale: false,
             StateCode: (int)KernelEventState.Succeeded,
-            CandidateCount: 1,
+            candidateCount,
             VisitId: null,
             LocalityId: null,
             LocalityPlaneCode: null,
@@ -233,20 +352,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             LocalityActionsRemaining: null,
             LocalityRealizedActions: null,
             LocalitySelectionReasonCode: null));
-        batch.ProcessCandidates.Add(new ProcessCandidateRow(
-            seed.RunId,
-            25,
-            1,
-            seed.PenguinKindId,
-            seed.ProcessId,
-            1,
-            ProviderId: 0,
-            1.25f,
-            PreconditionPassed: true,
-            PreconditionDiagnosticCode: 0,
-            OnCooldown: false,
-            WasSelected: true));
-    }
 
     private static void AddResourceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
@@ -392,6 +497,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         int WealthResourceId,
         int ShelfTerrainId,
         int OceanTerrainId,
+        string PenguinProcessId,
         string PenguinProcessName,
         Dictionary<string, int> PenguinAttributeIds,
         Dictionary<string, int> SettlementAttributeIds);

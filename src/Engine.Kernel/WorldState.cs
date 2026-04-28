@@ -187,6 +187,11 @@ internal sealed partial class WorldState
         WriteCell(q, r, terrainId, CoverageOwnerAt(q, r));
     }
 
+    public void SetCellTerrain(int q, int r, int terrainId, int tick, in KernelExecutionContext context)
+    {
+        SetCellState(q, r, terrainId, CoverageOwnerAt(q, r), tick, context);
+    }
+
     public void MaterializeCell(int q, int r, int terrainId, int ownerEntityId)
     {
         ValidatePositive(terrainId);
@@ -216,6 +221,45 @@ internal sealed partial class WorldState
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
         _coverageLayer.SetValue(CoordinateKey(q, r), q, r, ownerEntityId);
+    }
+
+    internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick, in KernelExecutionContext context)
+    {
+        SetCellState(q, r, CellTerrainId(q, r), ownerEntityId, tick, context);
+    }
+
+    internal void SetCellState(
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        ValidatePositive(context.SourceCodeId);
+        ValidatePositive(terrainId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
+
+        var previousTerrainId = CellTerrainId(q, r);
+        var previousOwnerEntityId = CoverageOwnerAt(q, r);
+        if (previousTerrainId == terrainId && previousOwnerEntityId == ownerEntityId)
+        {
+            return;
+        }
+
+        WriteCell(q, r, terrainId, ownerEntityId);
+        AdvanceWorldVersion();
+        Write(KernelEvent.From(new CellChangedKernelEvent(
+            tick,
+            WorldVersion,
+            q,
+            r,
+            context.SourceCodeId,
+            previousTerrainId,
+            terrainId,
+            previousOwnerEntityId,
+            ownerEntityId)),
+            context);
     }
 
     internal int CoverageOwnerCellCount(int ownerEntityId)

@@ -154,8 +154,39 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
     {
-        var coord = new HexCoord(evt.Q, evt.R);
-        var hexId = CellId(evt.Q, evt.R);
+        UpsertCell(
+            sequence,
+            evt.Tick,
+            evt.WorldVersion,
+            evt.Q,
+            evt.R,
+            evt.TerrainId,
+            evt.OwnerEntityId);
+    }
+
+    protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
+    {
+        UpsertCell(
+            sequence,
+            evt.Tick,
+            evt.WorldVersion,
+            evt.Q,
+            evt.R,
+            evt.CurrentTerrainId,
+            evt.CurrentOwnerEntityId);
+    }
+
+    private void UpsertCell(
+        long sequence,
+        int tick,
+        long worldVersion,
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId)
+    {
+        var coord = new HexCoord(q, r);
+        var hexId = CellId(q, r);
         if (_hexesById.TryGetValue(hexId, out var existing))
         {
             _hexIdsByCoord.Remove(existing.Coord);
@@ -164,14 +195,14 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         _hexesById[hexId] = new HexProjection(
             hexId,
             coord,
-            evt.TerrainId,
-            evt.OwnerEntityId,
-            evt.Tick,
-            evt.WorldVersion,
+            terrainId,
+            ownerEntityId,
+            tick,
+            worldVersion,
             sequence);
         _hexIdsByCoord[coord] = hexId;
         MapRadius = Math.Max(MapRadius, coord.DistanceFromOrigin);
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+        MarkProjected(sequence, tick, worldVersion);
     }
 
     private static int CellId(int q, int r)

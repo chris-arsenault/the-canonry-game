@@ -9,6 +9,10 @@ internal sealed class ProcessProgramScratch
     internal EpochStampedArray<float> PathGScore;
     internal EpochStampedArray<float> PathFScore;
     internal readonly int[] ProcessPlanEffectKeys;
+    internal readonly int[] ProcessPlanEffectScopeCodes;
+    internal readonly int[] ProcessPlanEffectValueIds;
+    internal readonly int[] ProcessPlanEffectKindIds;
+    internal readonly int[] ProcessPlanGoalCandidateIndexes;
     internal readonly int[] ProcessPlanRootProcessSlots;
     internal readonly int[] ProcessPlanRootTargetIds;
     internal readonly int[] ProcessPlanProcessSlots;
@@ -34,6 +38,10 @@ internal sealed class ProcessProgramScratch
         PathGScore = new EpochStampedArray<float>(pathCapacity);
         PathFScore = new EpochStampedArray<float>(pathCapacity);
         ProcessPlanEffectKeys = new int[processObjectiveCapacity + 1];
+        ProcessPlanEffectScopeCodes = new int[processObjectiveCapacity + 1];
+        ProcessPlanEffectValueIds = new int[processObjectiveCapacity + 1];
+        ProcessPlanEffectKindIds = new int[processObjectiveCapacity + 1];
+        ProcessPlanGoalCandidateIndexes = new int[processObjectiveCapacity + 1];
         ProcessPlanRootProcessSlots = new int[processObjectiveCapacity + 1];
         ProcessPlanRootTargetIds = new int[processObjectiveCapacity + 1];
         ProcessPlanProcessSlots = new int[processObjectiveCapacity + 1];

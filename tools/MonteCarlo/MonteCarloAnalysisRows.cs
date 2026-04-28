@@ -77,7 +77,8 @@ internal sealed record ProcessPressureRow(
     double AverageScore,
     double PreconditionPassRate,
     double CooldownRate,
-    string TopFailureDiagnostic);
+    string TopFailureDiagnostic,
+    string EvidenceSource);
 
 internal sealed record AttributeBandSummaryRow(
     string Kind,

@@ -143,25 +143,22 @@ internal sealed partial class MonteCarloBatchAnalyzer
              AND process_symbol.id = pe.executed_process_id
             """),
         new(
-            "process_candidates",
-            $"""
-            SELECT runs.run_id, pc.tick, pc.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(pc.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(process_symbol.stable_name, CAST(pc.process_id AS VARCHAR)) AS process_name,
-                   'goal_' || CAST(pc.goal_id AS VARCHAR) AS goal_id,
-                   CAST(pc.provider_id AS VARCHAR) AS provider_name,
-                   pc.score, pc.precondition_passed,
-                   CAST(pc.precondition_diagnostic_code AS VARCHAR) AS precondition_diagnostic,
-                   pc.on_cooldown, pc.was_selected
-            FROM raw_process_candidates pc
-            JOIN raw_runs rr ON rr.run_id = pc.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
-             AND kind_symbol.id = pc.kind_id
-            LEFT JOIN symbol_lookup process_symbol
-              ON process_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Process}
-             AND process_symbol.id = pc.process_id
+            "process_planner_events",
+            """
+            SELECT *
+            FROM process_events
+            WHERE executed_process_name IS NULL
+               OR selected_goal_id IS NOT NULL
+               OR candidate_count > 0
+            """),
+        new(
+            "process_execution_events",
+            """
+            SELECT *
+            FROM process_events
+            WHERE executed_process_name IS NOT NULL
+              AND selected_goal_id IS NULL
+              AND candidate_count = 0
             """),
         new(
             "resource_snapshots",
@@ -284,6 +281,41 @@ internal sealed partial class MonteCarloBatchAnalyzer
             LEFT JOIN symbol_lookup terrain_symbol
               ON terrain_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Terrain}
              AND terrain_symbol.id = ms.terrain_id
+            """),
+        new(
+            "map_cell_events",
+            $"""
+            SELECT runs.run_id, mce.tick,
+                   COALESCE(event_symbol.stable_name, CAST(mce.event_type_code AS VARCHAR)) AS event_type,
+                   COALESCE(source_symbol.stable_name, CAST(mce.source_code_id AS VARCHAR)) AS source_code,
+                   mce.q, mce.r,
+                   COALESCE(previous_terrain_symbol.stable_name, CAST(mce.previous_terrain_id AS VARCHAR)) AS previous_terrain,
+                   COALESCE(current_terrain_symbol.stable_name, CAST(mce.current_terrain_id AS VARCHAR)) AS current_terrain,
+                   mce.previous_owner_entity_id,
+                   previous_owner_name.display_name AS previous_owner_name,
+                   mce.current_owner_entity_id,
+                   current_owner_name.display_name AS current_owner_name
+            FROM raw_map_cell_events mce
+            JOIN raw_runs rr ON rr.run_id = mce.run_id
+            JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup event_symbol
+              ON event_symbol.symbol_kind = {TelemetrySymbolKinds.KernelEventType}
+             AND event_symbol.id = mce.event_type_code
+            LEFT JOIN symbol_lookup source_symbol
+              ON source_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.SourceCode}
+             AND source_symbol.id = mce.source_code_id
+            LEFT JOIN symbol_lookup previous_terrain_symbol
+              ON previous_terrain_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Terrain}
+             AND previous_terrain_symbol.id = mce.previous_terrain_id
+            LEFT JOIN symbol_lookup current_terrain_symbol
+              ON current_terrain_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Terrain}
+             AND current_terrain_symbol.id = mce.current_terrain_id
+            LEFT JOIN raw_entity_name_symbols previous_owner_name
+              ON previous_owner_name.run_id = mce.run_id
+             AND previous_owner_name.entity_id = mce.previous_owner_entity_id
+            LEFT JOIN raw_entity_name_symbols current_owner_name
+              ON current_owner_name.run_id = mce.run_id
+             AND current_owner_name.entity_id = mce.current_owner_entity_id
             """),
     ];
 

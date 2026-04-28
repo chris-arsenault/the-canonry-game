@@ -73,6 +73,7 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         EventProjection.RecordTickSnapshot(tick);
         EventProjection.RecordKindSnapshots(tick);
         EventProjection.RecordRelationshipSnapshots(tick);
+        EventProjection.RecordMapSnapshots(tick);
         if (includeEntities)
         {
             EventProjection.RecordEntitySnapshots(tick);

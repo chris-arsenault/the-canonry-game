@@ -94,6 +94,10 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private float[] _objectiveBaselines => Data.ObjectiveBaselines;
     private float[] _objectiveBaseUrgencies => Data.ObjectiveBaseUrgencies;
     private int[] _processPlanEffectKeys => _scratch.ProcessPlanEffectKeys;
+    private int[] _processPlanEffectScopeCodes => _scratch.ProcessPlanEffectScopeCodes;
+    private int[] _processPlanEffectValueIds => _scratch.ProcessPlanEffectValueIds;
+    private int[] _processPlanEffectKindIds => _scratch.ProcessPlanEffectKindIds;
+    private int[] _processPlanGoalCandidateIndexes => _scratch.ProcessPlanGoalCandidateIndexes;
     private int[] _processPlanRootProcessSlots => _scratch.ProcessPlanRootProcessSlots;
     private int[] _processPlanRootTargetIds => _scratch.ProcessPlanRootTargetIds;
     private int[] _processPlanProcessSlots => _scratch.ProcessPlanProcessSlots;
@@ -703,13 +707,56 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
             decision.CandidateCount);
     }
 
-    private void ApplyLocalityBundling(WorldState world, int entityId, int planCount)
+    private void ApplyLocalityBundling(Simulation simulation, int entityId, int tick, int planCount, bool traceEnabled)
     {
+        var world = simulation.World;
         var selectedLocalityKey = SelectLocalityBundle(world, entityId, planCount);
         for (var plan = 1; plan <= planCount; plan++)
         {
             _processPlanAdjustedWeights[plan] = _processPlanWeights[plan] *
                 (_processPlanLocalityKeys[plan] == selectedLocalityKey ? LocalityGoalSelectionBoost : 1f);
+        }
+
+        if (traceEnabled)
+        {
+            EmitLocalityTraceEvents(simulation, entityId, tick, planCount, selectedLocalityKey);
+        }
+    }
+
+    private void EmitLocalityTraceEvents(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        int planCount,
+        int selectedLocalityKey)
+    {
+        for (var plan = 1; plan <= planCount; plan++)
+        {
+            var localityKey = _processPlanLocalityKeys[plan];
+            if (AlreadyScoredLocality(planCount, plan, localityKey))
+            {
+                continue;
+            }
+
+            var score = LocalityBundleScore(simulation.World, entityId, planCount, localityKey);
+            var anchorTargetId = FirstTargetAtLocality(planCount, localityKey);
+            EmitProcessTrace(
+                simulation,
+                tick,
+                entityId,
+                TraceSubjectCodes.Locality,
+                plan,
+                0,
+                0,
+                _processPlanEffectScopeCodes[plan],
+                _processPlanEffectValueIds[plan],
+                _processPlanEffectKindIds[plan],
+                anchorTargetId,
+                localityKey == selectedLocalityKey ? TraceStatusCodes.Selected : TraceStatusCodes.Offered,
+                0f,
+                score,
+                score,
+                score);
         }
     }
 

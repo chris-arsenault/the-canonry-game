@@ -22,6 +22,7 @@ public enum KernelEventType
     GeneratorEnabledChanged = 17,
     GambitEvaluated = 18,
     CellCreated = 20,
+    CellChanged = 21,
     PlanStarted = 100,
     GoalConsidered = 101,
     GoalScored = 102,
@@ -29,6 +30,7 @@ public enum KernelEventType
     PlanStepEmitted = 104,
     PlanCommitted = 105,
     PlanAbandoned = 106,
+    Trace = 120,
 }
 
 [Flags]
@@ -347,6 +349,25 @@ public readonly record struct CellCreatedKernelEvent(
     [KernelEventIntSlot(4, "owner_entity_id", KernelEventSemanticKind.EntityId)]
     int OwnerEntityId);
 
+[KernelEventLayout(KernelEventType.CellChanged, schemaMinor: 0)]
+public readonly record struct CellChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(1, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(3, "previous_terrain_id", KernelEventSemanticKind.TerrainId)]
+    int PreviousTerrainId,
+    [KernelEventIntSlot(4, "current_terrain_id", KernelEventSemanticKind.TerrainId)]
+    int CurrentTerrainId,
+    [KernelEventIntSlot(5, "previous_owner_entity_id", KernelEventSemanticKind.EntityId)]
+    int PreviousOwnerEntityId,
+    [KernelEventIntSlot(6, "current_owner_entity_id", KernelEventSemanticKind.EntityId)]
+    int CurrentOwnerEntityId);
+
 [KernelEventLayout(KernelEventType.PlanStarted, schemaMinor: 0)]
 public readonly record struct PlanStartedKernelEvent(
     int Tick,
@@ -451,6 +472,43 @@ public readonly record struct PlanAbandonedKernelEvent(
     int EntityId,
     [KernelEventIntSlot(2, "reason_code_id", KernelEventSemanticKind.ReasonCodeId)]
     int ReasonCodeId);
+
+[KernelEventLayout(KernelEventType.Trace, schemaMinor: 0)]
+public readonly record struct TraceKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
+    int PlanId,
+    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
+    int EntityId,
+    [KernelEventIntSlot(2, "trace_subject_code", KernelEventSemanticKind.TraceSubjectCode)]
+    int TraceSubjectCode,
+    [KernelEventIntSlot(3, "candidate_index", KernelEventSemanticKind.Index)]
+    int CandidateIndex,
+    [KernelEventIntSlot(4, "parent_candidate_index", KernelEventSemanticKind.Index)]
+    int ParentCandidateIndex,
+    [KernelEventIntSlot(5, "action_family_code", KernelEventSemanticKind.ActionFamilyCode)]
+    int ActionFamilyCode,
+    [KernelEventIntSlot(6, "action_id", KernelEventSemanticKind.ActionId)]
+    int ActionId,
+    [KernelEventIntSlot(7, "effect_scope_code", KernelEventSemanticKind.EffectScopeCode)]
+    int EffectScopeCode,
+    [KernelEventIntSlot(8, "effect_value_id", KernelEventSemanticKind.EffectValueId)]
+    int EffectValueId,
+    [KernelEventIntSlot(9, "effect_kind_id", KernelEventSemanticKind.EffectKindId)]
+    int EffectKindId,
+    [KernelEventIntSlot(10, "target_entity_id", KernelEventSemanticKind.EntityId)]
+    int TargetEntityId,
+    [KernelEventIntSlot(11, "status_code", KernelEventSemanticKind.StatusCode)]
+    int StatusCode,
+    [KernelEventFloatSlot(0, "urgency", KernelEventSemanticKind.Score)]
+    float Urgency,
+    [KernelEventFloatSlot(1, "reward_or_base_score", KernelEventSemanticKind.Score)]
+    float RewardOrBaseScore,
+    [KernelEventFloatSlot(2, "raw_weight", KernelEventSemanticKind.Score)]
+    float RawWeight,
+    [KernelEventFloatSlot(3, "adjusted_weight", KernelEventSemanticKind.Score)]
+    float AdjustedWeight);
 
 public readonly partial record struct KernelEvent
 {

@@ -260,6 +260,30 @@ public static class PlanningStepRoleCodes
     public const int Decomposition = 5;
 }
 
+public static class TraceSubjectCodes
+{
+    public const int Goal = 1;
+    public const int ActionSummary = 2;
+    public const int TargetDetail = 3;
+    public const int Support = 4;
+    public const int Locality = 5;
+}
+
+public static class TraceStatusCodes
+{
+    public const int Offered = 1;
+    public const int BelowUrgency = 2;
+    public const int OnCooldown = 3;
+    public const int Disabled = 4;
+    public const int NoTarget = 5;
+    public const int NoReward = 6;
+    public const int PreconditionFailed = 7;
+    public const int Actionable = 8;
+    public const int SupportSelected = 9;
+    public const int Selected = 10;
+    public const int CommittedByHysteresis = 11;
+}
+
 public static class KernelCommandTypeCodes
 {
     public const int None = 0;

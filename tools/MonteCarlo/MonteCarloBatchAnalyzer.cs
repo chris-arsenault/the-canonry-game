@@ -27,8 +27,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "planner_trace_goals",
         "planner_trace_scores",
         "planner_trace_steps",
+        "trace_events",
         "process_events",
-        "process_candidates",
         "locality_opportunities",
         "attribute_events",
         "movement_events",
@@ -40,6 +40,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "generated_entities",
         "lifecycle_events",
         "map_generation_events",
+        "map_cell_events",
         "map_snapshots",
     ];
 
@@ -68,6 +69,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                     attribute)))
             .ToDictionary(pair => pair.Key, pair => pair.Value);
 
+        var telemetryCoverage = LoadTelemetryCoverage(connection);
         var overview = LoadBatchOverview(connection);
         var generatorRows = LoadGeneratorRows(connection, overview.RunCount);
         var generatedCoverage = LoadGeneratedCoverageRows(connection);
@@ -80,7 +82,14 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var entitySnapshots = LoadEntitySnapshots(connection);
         var attributeRows = BuildAttributeBandRows(entitySnapshots, attributeConfigs);
         var mapRows = BuildMapSpreadRows(entitySnapshots, LoadTotalCellCount(connection));
-        var flags = BuildFlags(generatorRows, plannerRows, mapRows, lifecycleRows, resourceRows, mapGenerationRows);
+        var flags = BuildFlags(
+            generatorRows,
+            plannerRows,
+            mapRows,
+            lifecycleRows,
+            resourceRows,
+            mapGenerationRows,
+            telemetryCoverage);
 
         return new MonteCarloAnalysisReport
         {
@@ -303,78 +312,71 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             ProducedCount: ReadInt(reader, "produced_count")));
     }
 
-    private List<ProcessPressureRow> LoadProcessPressureRows(DuckDBConnection connection)
+    private static TelemetryCoverage LoadTelemetryCoverage(DuckDBConnection connection)
     {
-        var failures = LoadTopProcessFailures(connection);
-        var observed = LoadObservedProcessRows(connection);
-        return BuildProcessPressureRows(observed, failures);
-    }
-
-    private static Dictionary<(string Kind, string ProcessName), string> LoadTopProcessFailures(
-        DuckDBConnection connection)
-    {
-        const string failureSql = """
+        const string sql = """
             SELECT
-                kind,
-                process_name,
-                precondition_diagnostic,
-                COUNT(*) AS failure_count
-            FROM process_candidates
-            WHERE precondition_passed = false
-            GROUP BY kind, process_name, precondition_diagnostic;
+                (SELECT COUNT(*) FROM process_planner_events) AS process_planner_rows,
+                (SELECT COUNT(*) FROM process_execution_events) AS process_execution_rows,
+                (SELECT COUNT(*) FROM raw_resource_events) AS resource_event_rows,
+                (SELECT COUNT(*) FROM raw_resource_snapshots) AS resource_snapshot_rows,
+                (SELECT COUNT(*) FROM raw_map_snapshots) AS map_snapshot_rows,
+                (SELECT COUNT(*) FROM raw_locality_opportunities) AS locality_opportunity_rows,
+                (SELECT COUNT(*) FROM raw_planner_traces) AS planner_trace_rows;
             """;
 
-        return Query(connection, failureSql, reader => new FailureDiagnosticRow(
-            Kind: ReadString(reader, "kind"),
-            ProcessName: ReadString(reader, "process_name"),
-            Diagnostic: ReadString(reader, "precondition_diagnostic"),
-            Count: ReadInt(reader, "failure_count")))
-            .GroupBy(row => (row.Kind, row.ProcessName))
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .OrderByDescending(row => row.Count)
-                    .ThenBy(row => row.Diagnostic, StringComparer.Ordinal)
-                    .First().Diagnostic);
+        return QuerySingle(connection, sql, reader => new TelemetryCoverage(
+            ProcessPlannerRows: ReadInt(reader, "process_planner_rows"),
+            ProcessExecutionRows: ReadInt(reader, "process_execution_rows"),
+            ResourceEventRows: ReadInt(reader, "resource_event_rows"),
+            ResourceSnapshotRows: ReadInt(reader, "resource_snapshot_rows"),
+            MapSnapshotRows: ReadInt(reader, "map_snapshot_rows"),
+            LocalityOpportunityRows: ReadInt(reader, "locality_opportunity_rows"),
+            PlannerTraceRows: ReadInt(reader, "planner_trace_rows")));
     }
 
-    private static Dictionary<(string Kind, string ProcessName), ObservedProcessRow> LoadObservedProcessRows(
+    private List<ProcessPressureRow> LoadProcessPressureRows(DuckDBConnection connection)
+    {
+        var observed = LoadObservedSelectedProcessRows(connection);
+        return BuildProcessPressureRows(observed, "process_events_execution");
+    }
+
+    private static Dictionary<(string Kind, string ProcessName), ObservedProcessRow> LoadObservedSelectedProcessRows(
         DuckDBConnection connection)
     {
         const string summarySql = """
             SELECT
                 kind,
-                process_name,
-                COUNT(*) AS candidate_evaluations,
-                SUM(CASE WHEN was_selected THEN 1 ELSE 0 END) AS selected_count,
-                COALESCE(AVG(CAST(score AS DOUBLE)), 0.0) AS average_score,
-                COALESCE(AVG(CASE WHEN precondition_passed THEN 1.0 ELSE 0.0 END), 0.0) AS precondition_pass_rate,
-                COALESCE(AVG(CASE WHEN on_cooldown THEN 1.0 ELSE 0.0 END), 0.0) AS cooldown_rate
-            FROM process_candidates
-            GROUP BY kind, process_name;
+                executed_process_name AS process_name,
+                COUNT(*) AS selected_count
+            FROM process_execution_events
+            GROUP BY kind, executed_process_name;
             """;
 
-        return Query(connection, summarySql, reader => new ObservedProcessRow(
-            Kind: ReadString(reader, "kind"),
-            ProcessName: ReadString(reader, "process_name"),
-            CandidateEvaluations: ReadInt(reader, "candidate_evaluations"),
-            SelectedCount: ReadInt(reader, "selected_count"),
-            AverageScore: ReadDouble(reader, "average_score"),
-            PreconditionPassRate: ReadDouble(reader, "precondition_pass_rate"),
-            CooldownRate: ReadDouble(reader, "cooldown_rate")))
+        return Query(connection, summarySql, reader =>
+            {
+                var selectedCount = ReadInt(reader, "selected_count");
+                return new ObservedProcessRow(
+                    Kind: ReadString(reader, "kind"),
+                    ProcessName: ReadString(reader, "process_name"),
+                    CandidateEvaluations: 0,
+                    SelectedCount: selectedCount,
+                    AverageScore: 0d,
+                    PreconditionPassRate: 0d,
+                    CooldownRate: 0d);
+            })
             .ToDictionary(row => (row.Kind, row.ProcessName), row => row);
     }
 
     private List<ProcessPressureRow> BuildProcessPressureRows(
         Dictionary<(string Kind, string ProcessName), ObservedProcessRow> observed,
-        Dictionary<(string Kind, string ProcessName), string> failures)
+        string evidenceSource)
     {
         var rows = _domainConfig.Processes
             .Select(process =>
             {
-                var observedRow = observed.GetValueOrDefault((process.TargetKind.Value, process.Name)) ??
+                var observedRow = observed.GetValueOrDefault((process.TargetKind.Value, process.Id)) ??
                                   ObservedProcessRow.Empty(process.TargetKind.Value, process.Name);
-                var topFailure = failures.GetValueOrDefault((process.TargetKind.Value, process.Name)) ?? string.Empty;
 
                 return new ProcessPressureRow(
                     Kind: process.TargetKind.Value,
@@ -387,7 +389,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                     AverageScore: observedRow.AverageScore,
                     PreconditionPassRate: observedRow.PreconditionPassRate,
                     CooldownRate: observedRow.CooldownRate,
-                    TopFailureDiagnostic: topFailure);
+                    TopFailureDiagnostic: string.Empty,
+                    EvidenceSource: evidenceSource);
             });
 
         return rows
@@ -410,7 +413,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 SUM(CASE WHEN executed_process_name IS NULL THEN 1 ELSE 0 END) AS no_execution_evaluations,
                 SUM(CASE WHEN executed_process_name IS NOT NULL THEN 1 ELSE 0 END) AS executed_evaluations,
                 COALESCE(AVG(CAST(candidate_count AS DOUBLE)), 0.0) AS average_candidate_count
-            FROM process_events
+            FROM process_planner_events
             GROUP BY kind;
             """;
 
@@ -714,14 +717,33 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     private int LoadTotalCellCount(DuckDBConnection connection)
     {
         const string sql = """
-            SELECT COALESCE(SUM(cell_count), 0) AS total_cells
-            FROM map_snapshots
-            WHERE run_id = (SELECT run_id FROM runs ORDER BY run_id LIMIT 1)
-              AND tick = (
-                    SELECT MIN(tick)
-                    FROM map_snapshots
-                    WHERE run_id = (SELECT run_id FROM runs ORDER BY run_id LIMIT 1)
-              );
+            WITH first_run AS (
+                SELECT run_id
+                FROM runs
+                ORDER BY run_id
+                LIMIT 1
+            ),
+            map_total AS (
+                SELECT COALESCE(SUM(cell_count), 0) AS total_cells
+                FROM map_snapshots
+                WHERE run_id = (SELECT run_id FROM first_run)
+                  AND tick = (
+                        SELECT MIN(tick)
+                        FROM map_snapshots
+                        WHERE run_id = (SELECT run_id FROM first_run)
+                  )
+            ),
+            tick_total AS (
+                SELECT COALESCE(MAX(covered_cells + uncovered_cells), 0) AS total_cells
+                FROM tick_snapshots
+                WHERE run_id = (SELECT run_id FROM first_run)
+                  AND covered_cells + uncovered_cells > 0
+            )
+            SELECT
+                CASE
+                    WHEN (SELECT total_cells FROM map_total) > 0 THEN (SELECT total_cells FROM map_total)
+                    ELSE (SELECT total_cells FROM tick_total)
+                END AS total_cells;
             """;
 
         return QuerySingle(connection, sql, reader => ReadInt(reader, "total_cells"));
