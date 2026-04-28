@@ -120,49 +120,62 @@ public static class RuntimeProcessGenerator
     {
         if (!flowsByVerb.TryGetValue(verb.Id, out var flows) || flows.Count == 0) return null;
 
-        // Skip decay-only verbs (engine-owned); entity-owned action verbs always have
-        // non-decay flows.
-        if (flows.All(f => f.Mechanism == SemanticMechanism.Decay)) return null;
+        if (flows.TrueForAll(f => f.Mechanism == SemanticMechanism.Decay)) return null;
 
-        if (flows.Any(f => f.Mechanism == SemanticMechanism.Sacrifice))
+        if (flows.Exists(f => f.Mechanism == SemanticMechanism.Sacrifice))
         {
             return BuildSelfSacrifice(verb, ownerKind, flows);
         }
 
-        // Hex→Health: single Inflow with a Resource source ref targeting self.
-        var hexInflow = flows.SingleOrDefault(f =>
-            f.Role == SemanticFlowRole.Inflow &&
-            f.TargetKind == ownerKind &&
-            f.SourceRefs.Count == 1 &&
-            f.SourceRefs[0].Scope == RefScope.Resource);
-        if (hexInflow is not null && flows.Count == 1)
+        return BuildSingleResourceAction(verb, ownerKind, kindConfig, flows) ??
+            BuildConversionAction(verb, ownerKind, kindConfig, flows);
+    }
+
+    private static ProcessDefinition? BuildSingleResourceAction(
+        SemanticVerbConfig verb,
+        EntityKind ownerKind,
+        KindConfig kindConfig,
+        List<SemanticFlowConfig> flows)
+    {
+        if (flows.Count != 1)
         {
-            return BuildHexToHealth(verb, ownerKind, hexInflow, kindConfig);
+            return null;
         }
 
-        // Untouched→Hex: single Outflow with a Resource source ref.
-        var hexOutflow = flows.SingleOrDefault(f =>
-            f.Role == SemanticFlowRole.Outflow &&
-            f.TargetKind == ownerKind &&
-            f.SourceRefs.Count == 1 &&
-            f.SourceRefs[0].Scope == RefScope.Resource);
-        if (hexOutflow is not null && flows.Count == 1)
+        var flow = flows[0];
+        if (!IsResourceFlow(flow, ownerKind))
         {
-            return BuildUntouchedToHex(verb, ownerKind, hexOutflow);
+            return null;
         }
 
-        // Cross-entity conversion: one Outflow on source kind, one Inflow on target kind.
+        return flow.Role == SemanticFlowRole.Inflow
+            ? BuildHexToHealth(verb, ownerKind, flow, kindConfig)
+            : BuildUntouchedToHex(verb, ownerKind, flow);
+    }
+
+    private static bool IsResourceFlow(SemanticFlowConfig flow, EntityKind ownerKind) =>
+        flow.TargetKind == ownerKind &&
+        flow.SourceRefs.Count == 1 &&
+        flow.SourceRefs[0].Scope == RefScope.Resource &&
+        flow.Role is SemanticFlowRole.Inflow or SemanticFlowRole.Outflow;
+
+    private static ProcessDefinition? BuildConversionAction(
+        SemanticVerbConfig verb,
+        EntityKind ownerKind,
+        KindConfig kindConfig,
+        List<SemanticFlowConfig> flows)
+    {
         var conversionOut = flows.SingleOrDefault(f =>
             f.Role == SemanticFlowRole.Outflow && f.Mechanism == SemanticMechanism.Conversion);
         var conversionIn = flows.SingleOrDefault(f =>
             f.Role == SemanticFlowRole.Inflow && f.Mechanism == SemanticMechanism.Conversion);
-        if (conversionOut is not null && conversionIn is not null &&
-            conversionOut.TargetKind != conversionIn.TargetKind)
+
+        if (conversionOut is null || conversionIn is null || conversionOut.TargetKind == conversionIn.TargetKind)
         {
-            return BuildConversion(verb, ownerKind, kindConfig, conversionOut, conversionIn);
+            return null;
         }
 
-        return null;
+        return BuildConversion(verb, ownerKind, kindConfig, conversionOut, conversionIn);
     }
 
     private static ProcessDefinition BuildSelfSacrifice(
@@ -220,37 +233,54 @@ public static class RuntimeProcessGenerator
         var resource = ResolveResource(flow.SourceRefs[0]);
         var recoveryHosts = kindConfig.HexToHealthRecoveryHosts;
 
-        if (recoveryHosts.Count == 0)
-        {
-            var selfDirectedProcess = new ProcessDefinition(
-                verb.Id,
-                Titleize(verb.Id),
-                ownerKind,
-                new AndPrecondition(
-                [
-                    new TargetIsSelf(),
-                    new LocationResourceThreshold(resource, min: 1f, max: null, targetLocation: false, processRelevant: false),
-                    new SelfAttributeThreshold(healthAttr, min: null, max: 95f, processRelevant: false),
-                ]),
-                Expr.Score(
-                    Expr.Div(
-                        Expr.Sub(Expr.Lit(100f), Expr.Self(healthAttr)),
-                        Expr.Lit(20f))))
-            {
-                Cooldown = 3,
-                EntityCooldown = 1,
-                RewardExpression = Expr.Mul(
-                    Expr.SelfLocationResource(resource),
-                    Expr.Lit(HexToHealthRate)),
-            };
-            selfDirectedProcess.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate));
-            selfDirectedProcess.GoalEffects.Add(AttributeRef.Self(healthAttr, ownerKind));
-            selfDirectedProcess.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
-            selfDirectedProcess.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
-            selfDirectedProcess.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
-            return selfDirectedProcess;
-        }
+        return recoveryHosts.Count == 0
+            ? BuildSelfDirectedHexToHealth(verb, ownerKind, healthAttr, resource)
+            : BuildHostedHexToHealth(verb, ownerKind, kindConfig, healthAttr, resource, recoveryHosts);
+    }
 
+    private static ProcessDefinition BuildSelfDirectedHexToHealth(
+        SemanticVerbConfig verb,
+        EntityKind ownerKind,
+        string healthAttr,
+        ResourceType resource)
+    {
+        var process = new ProcessDefinition(
+            verb.Id,
+            Titleize(verb.Id),
+            ownerKind,
+            new AndPrecondition(
+            [
+                new TargetIsSelf(),
+                new LocationResourceThreshold(resource, min: 1f, max: null, targetLocation: false, processRelevant: false),
+                new SelfAttributeThreshold(healthAttr, min: null, max: 95f, processRelevant: false),
+            ]),
+            Expr.Score(
+                Expr.Div(
+                    Expr.Sub(Expr.Lit(100f), Expr.Self(healthAttr)),
+                    Expr.Lit(20f))))
+        {
+            Cooldown = 3,
+            EntityCooldown = 1,
+            RewardExpression = Expr.Mul(
+                Expr.SelfLocationResource(resource),
+                Expr.Lit(HexToHealthRate)),
+        };
+        process.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate));
+        process.GoalEffects.Add(AttributeRef.Self(healthAttr, ownerKind));
+        process.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
+        process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
+        process.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
+        return process;
+    }
+
+    private static ProcessDefinition BuildHostedHexToHealth(
+        SemanticVerbConfig verb,
+        EntityKind ownerKind,
+        KindConfig kindConfig,
+        string healthAttr,
+        ResourceType resource,
+        IReadOnlyList<RecoveryHostQueryConfig> recoveryHosts)
+    {
         var process = new ProcessDefinition(
             verb.Id,
             Titleize(verb.Id),
@@ -335,23 +365,12 @@ public static class RuntimeProcessGenerator
         SemanticFlowConfig outflow,
         SemanticFlowConfig inflow)
     {
-        // outflow.TargetKind drains its outflow.TargetAttribute;
-        // inflow.TargetKind's inflow.TargetAttribute grows.
-        // The verb owner is whichever kind "performs" the verb — this drives
-        // whether the drained or credited kind is self vs target.
         var sourceKind = outflow.TargetKind;
         var sourceAttr = outflow.TargetAttribute;
         var destKind = inflow.TargetKind;
         var destAttr = inflow.TargetAttribute;
 
-        // The verb owner = the kind that ends up debited or credited.
-        // Self is whichever of {sourceKind, destKind} equals ownerKind; the other is target.
-        // Mutation layout depends on which side the owner sits on:
-        //   owner == destKind   → Self is credited, Target is debited
-        //   owner == sourceKind → Self is debited, Target is credited
-        // Precondition always checks source ≥ 5 (wherever that stock lives).
         bool ownerIsDestination = ownerKind == destKind;
-        EntityKind targetKind = ownerIsDestination ? sourceKind : destKind;
 
         var preconditionChildren = new List<IPrecondition>
         {
@@ -390,29 +409,49 @@ public static class RuntimeProcessGenerator
         // both capped at whatever the source actually holds. No mass manufactured.
         if (ownerIsDestination)
         {
-            process.Mutations.Add(new TransferAttributeMutation(
-                TransferEndpoint.Target, sourceAttr,
-                TransferEndpoint.Self, destAttr,
-                TransferUnit));
-            process.Reads.Add(AttributeRef.Target(sourceAttr, sourceKind));
-            process.Writes.Add(AttributeRef.Target(sourceAttr, sourceKind));
-            process.Writes.Add(AttributeRef.Self(destAttr, ownerKind));
-            process.GoalEffects.Add(AttributeRef.Self(destAttr, ownerKind));
-            process.ProviderSelectors.Add(AttributeRef.Target(sourceAttr, sourceKind));
+            AddDestinationOwnedConversion(process, ownerKind, sourceKind, sourceAttr, destAttr);
         }
         else
         {
-            process.Mutations.Add(new TransferAttributeMutation(
-                TransferEndpoint.Self, sourceAttr,
-                TransferEndpoint.Target, destAttr,
-                TransferUnit));
-            process.Reads.Add(AttributeRef.Self(sourceAttr, ownerKind));
-            process.Writes.Add(AttributeRef.Self(sourceAttr, ownerKind));
-            process.Writes.Add(AttributeRef.Target(destAttr, destKind));
-            process.GoalEffects.Add(AttributeRef.Target(destAttr, destKind));
-            process.ProviderSelectors.Add(AttributeRef.Target(destAttr, destKind));
+            AddSourceOwnedConversion(process, ownerKind, destKind, sourceAttr, destAttr);
         }
         return process;
+    }
+
+    private static void AddDestinationOwnedConversion(
+        ProcessDefinition process,
+        EntityKind ownerKind,
+        EntityKind sourceKind,
+        string sourceAttr,
+        string destAttr)
+    {
+        process.Mutations.Add(new TransferAttributeMutation(
+            TransferEndpoint.Target, sourceAttr,
+            TransferEndpoint.Self, destAttr,
+            TransferUnit));
+        process.Reads.Add(AttributeRef.Target(sourceAttr, sourceKind));
+        process.Writes.Add(AttributeRef.Target(sourceAttr, sourceKind));
+        process.Writes.Add(AttributeRef.Self(destAttr, ownerKind));
+        process.GoalEffects.Add(AttributeRef.Self(destAttr, ownerKind));
+        process.ProviderSelectors.Add(AttributeRef.Target(sourceAttr, sourceKind));
+    }
+
+    private static void AddSourceOwnedConversion(
+        ProcessDefinition process,
+        EntityKind ownerKind,
+        EntityKind destKind,
+        string sourceAttr,
+        string destAttr)
+    {
+        process.Mutations.Add(new TransferAttributeMutation(
+            TransferEndpoint.Self, sourceAttr,
+            TransferEndpoint.Target, destAttr,
+            TransferUnit));
+        process.Reads.Add(AttributeRef.Self(sourceAttr, ownerKind));
+        process.Writes.Add(AttributeRef.Self(sourceAttr, ownerKind));
+        process.Writes.Add(AttributeRef.Target(destAttr, destKind));
+        process.GoalEffects.Add(AttributeRef.Target(destAttr, destKind));
+        process.ProviderSelectors.Add(AttributeRef.Target(destAttr, destKind));
     }
 
     private static ResourceType ResolveResource(AttributeRef resourceRef)

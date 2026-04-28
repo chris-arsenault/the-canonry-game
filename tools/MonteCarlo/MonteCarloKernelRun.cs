@@ -7,7 +7,7 @@ using Engine.Projection;
 internal sealed record MonteCarloKernelRun(
     KernelRuntime Runtime,
     IProjectionSymbolCatalog? Symbols,
-    MonteCarloWorldSeed? WorldSeed)
+    MonteCarloWorldSeed? WorldSeed) : IDisposable
 {
     public KernelHost Host => Runtime.Host;
 

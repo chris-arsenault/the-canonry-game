@@ -2,8 +2,8 @@ namespace Engine.Graph;
 
 using Engine.Domain;
 using Engine.Kinds;
-using Engine.WorldGen;
 using Engine.Processes;
+using Engine.WorldGen;
 
 /// <summary>
 /// A node in the entity graph. Stores identity and structural data only.

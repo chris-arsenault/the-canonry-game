@@ -1,0 +1,168 @@
+namespace IceRemembers.Seed;
+
+using Engine.Domain.Startup;
+using Engine.Graph;
+using Engine.Kinds;
+using Engine.WorldGen;
+
+internal sealed record IceRemembersStartupSeedResult(
+    WorldGenerationSeed Seed,
+    DomainStartupSeed StartupSeed);
+
+internal sealed class SeedAssembly
+{
+    private readonly List<SeedEntity> _entities = [];
+    private readonly List<DomainSeedRelationship> _relationships = [];
+
+    public SeedAssembly(HexGrid grid, MapCoverageMap coverageMap)
+    {
+        ArgumentNullException.ThrowIfNull(grid);
+        ArgumentNullException.ThrowIfNull(coverageMap);
+        Grid = grid;
+        CoverageMap = coverageMap;
+    }
+
+    public HexGrid Grid { get; }
+
+    public MapCoverageMap CoverageMap { get; }
+
+    public IReadOnlyList<SeedEntity> Entities => _entities;
+
+    public IReadOnlyList<DomainSeedRelationship> Relationships => _relationships;
+
+    public SeedEntity CreateEntity(
+        EntityKind kind,
+        string subtype,
+        string name,
+        string culture,
+        (int Q, int R)? coordinates = null)
+    {
+        var entity = new SeedEntity(
+            _entities.Count,
+            kind,
+            subtype,
+            name,
+            culture,
+            coordinates is { } coord ? new HexCoord(coord.Q, coord.R) : new HexCoord(0, 0));
+        _entities.Add(entity);
+        return entity;
+    }
+
+    public SeedEntity Entity(int seedEntityId)
+    {
+        if (seedEntityId < 0 || seedEntityId >= _entities.Count)
+        {
+            throw new InvalidOperationException($"Unknown seed entity {seedEntityId}.");
+        }
+
+        return _entities[seedEntityId];
+    }
+
+    public void CreateRelationship(
+        string kind,
+        RelationshipPolarity polarity,
+        int sourceEntityId,
+        int targetEntityId,
+        float strength,
+        IReadOnlyList<string>? facts = null)
+    {
+        _ = Entity(sourceEntityId);
+        _ = Entity(targetEntityId);
+        _relationships.Add(new DomainSeedRelationship(
+            kind,
+            polarity,
+            sourceEntityId,
+            targetEntityId,
+            Math.Clamp(strength, 0f, 1f),
+            facts));
+    }
+
+    public DomainStartupSeed ToStartupSeed()
+    {
+        var entities = CreateStartupEntities();
+        var cells = CreateStartupCells();
+        var resources = CreateStartupResources();
+        var relationships = CreateStartupRelationships();
+
+        return new DomainStartupSeed(
+            Grid.Radius,
+            entities,
+            cells,
+            resources,
+            relationships,
+            Attributes: []);
+    }
+
+    private DomainSeedEntity[] CreateStartupEntities() =>
+        _entities
+            .OrderBy(entity => entity.SeedEntityId)
+            .Select(entity => new DomainSeedEntity(
+                entity.SeedEntityId,
+                entity.Kind.Value,
+                entity.Subtype,
+                entity.Culture,
+                entity.Coordinates.Q,
+                entity.Coordinates.R,
+                entity.SemanticPosition.Q,
+                entity.SemanticPosition.R,
+                SemanticS(entity.SemanticPosition),
+                entity.Name))
+            .ToArray();
+
+    private DomainSeedCell[] CreateStartupCells() =>
+        Grid.AllCells
+            .OrderBy(cell => cell.Coord.Q)
+            .ThenBy(cell => cell.Coord.R)
+            .Select(cell => new DomainSeedCell(
+                cell.Coord.Q,
+                cell.Coord.R,
+                cell.Terrain.StableName,
+                CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId))
+            .ToArray();
+
+    private DomainSeedResource[] CreateStartupResources() =>
+        Grid.AllCells
+            .OrderBy(cell => cell.Coord.Q)
+            .ThenBy(cell => cell.Coord.R)
+            .SelectMany(cell => cell.AmbientResources
+                .OrderBy(resource => resource.Key, StringComparer.Ordinal)
+                .Select(resource => new DomainSeedResource(
+                    resource.Key,
+                    cell.Coord.Q,
+                    cell.Coord.R,
+                    resource.Value)))
+            .ToArray();
+
+    private DomainSeedRelationship[] CreateStartupRelationships() =>
+        _relationships
+            .OrderBy(relationship => relationship.SourceSeedEntityId)
+            .ThenBy(relationship => relationship.RelationshipKind, StringComparer.Ordinal)
+            .ThenBy(relationship => relationship.TargetSeedEntityId)
+            .ThenBy(relationship => relationship.Strength)
+            .ToArray();
+
+    private static int SemanticS(SemanticHexCoord coord) => -coord.Q - coord.R;
+}
+
+internal sealed class SeedEntity(
+    int seedEntityId,
+    EntityKind kind,
+    string subtype,
+    string name,
+    string culture,
+    HexCoord coordinates)
+{
+    public int SeedEntityId { get; } = seedEntityId;
+
+    public EntityKind Kind { get; } = kind;
+
+    public string Subtype { get; } = subtype;
+
+    public string Name { get; } = name;
+
+    public string Culture { get; } = culture;
+
+    public HexCoord Coordinates { get; set; } = coordinates;
+
+    public SemanticHexCoord SemanticPosition { get; set; } = SemanticHexCoord.Origin;
+}

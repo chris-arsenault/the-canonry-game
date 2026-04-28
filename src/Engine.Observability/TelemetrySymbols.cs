@@ -1,9 +1,10 @@
 namespace Engine.Observability;
 
+using System.Collections.ObjectModel;
+
 using Engine.Constants;
 using Engine.Eventing;
 using Engine.Projection;
-using System.Collections.ObjectModel;
 
 internal static class TelemetrySymbolIds
 {

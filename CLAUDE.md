@@ -121,7 +121,7 @@ Save/load uses MessagePack-CSharp for binary serialization (fast, compact). SQLi
 
 ```bash
 make ci       # lint + build + test (run before every commit)
-make lint     # build with -warnaserror (all analyzers at AnalysisMode=All)
+make lint     # Roslyn analyzer lint + format verification
 make build    # restore + release build
 make test     # run xunit tests
 make clean    # remove .artifacts/

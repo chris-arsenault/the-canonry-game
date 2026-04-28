@@ -44,6 +44,19 @@ internal static class DomainStartupSeedInstaller
         ArgumentNullException.ThrowIfNull(seed);
 
         var entityIds = BuildEntityIdMap(seed);
+        RegisterEntityNames(context, seed, entityIds);
+        SeedEntities(context, seed, entityIds);
+        SeedCells(context, seed, entityIds);
+        SeedResources(context, seed);
+        SeedAttributes(context, seed, entityIds);
+        SeedRelationships(context, seed, entityIds);
+    }
+
+    private static void RegisterEntityNames(
+        KernelStartupContext context,
+        DomainStartupSeed seed,
+        Dictionary<int, int> entityIds)
+    {
         foreach (var entity in seed.Entities)
         {
             if (!string.IsNullOrWhiteSpace(entity.DisplayName))
@@ -51,7 +64,13 @@ internal static class DomainStartupSeedInstaller
                 context.Symbols.RegisterEntityName(entityIds[entity.SeedEntityId], entity.DisplayName);
             }
         }
+    }
 
+    private static void SeedEntities(
+        KernelStartupContext context,
+        DomainStartupSeed seed,
+        Dictionary<int, int> entityIds)
+    {
         foreach (var entity in seed.Entities)
         {
             context.SeedEntity(
@@ -65,7 +84,13 @@ internal static class DomainStartupSeedInstaller
                 entity.SemanticR,
                 entity.SemanticS);
         }
+    }
 
+    private static void SeedCells(
+        KernelStartupContext context,
+        DomainStartupSeed seed,
+        Dictionary<int, int> entityIds)
+    {
         foreach (var cell in seed.Cells)
         {
             context.SeedCell(
@@ -74,7 +99,10 @@ internal static class DomainStartupSeedInstaller
                 context.DomainIds.TerrainIdOf(cell.Terrain).Value,
                 ResolveOptionalEntityId(entityIds, cell.OwnerSeedEntityId));
         }
+    }
 
+    private static void SeedResources(KernelStartupContext context, DomainStartupSeed seed)
+    {
         foreach (var resource in seed.Resources)
         {
             if (MathF.Abs(resource.Value) <= float.Epsilon)
@@ -88,7 +116,13 @@ internal static class DomainStartupSeedInstaller
                 resource.R,
                 resource.Value);
         }
+    }
 
+    private static void SeedAttributes(
+        KernelStartupContext context,
+        DomainStartupSeed seed,
+        Dictionary<int, int> entityIds)
+    {
         foreach (var attribute in seed.Attributes)
         {
             context.SeedAttribute(
@@ -96,7 +130,13 @@ internal static class DomainStartupSeedInstaller
                 context.DomainIds.AttributeIdOf(attribute.Attribute).Value,
                 attribute.Value);
         }
+    }
 
+    private static void SeedRelationships(
+        KernelStartupContext context,
+        DomainStartupSeed seed,
+        Dictionary<int, int> entityIds)
+    {
         Span<int> factIds = stackalloc int[4];
         foreach (var relationship in seed.Relationships)
         {

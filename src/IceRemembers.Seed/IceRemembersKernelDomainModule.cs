@@ -2,6 +2,7 @@ namespace IceRemembers.Seed;
 
 using Engine.Domain.Config;
 using Engine.Host;
+
 using IceRemembers;
 
 internal sealed class IceRemembersKernelDomainModule : IKernelDomainModule

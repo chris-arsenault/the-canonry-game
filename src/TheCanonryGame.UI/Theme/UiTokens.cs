@@ -13,49 +13,49 @@ namespace TheCanonryGame.UI.Theme;
 public static class UiTokens
 {
     // Surface (cold, layered). Lower number = deeper / darker / further away.
-    public static readonly Color Ink     = Hex(0x0B0F14);
-    public static readonly Color Basalt  = Hex(0x121722);
-    public static readonly Color Slate   = Hex(0x19202C);
-    public static readonly Color Frost   = Hex(0x222B3A);
-    public static readonly Color Ice     = Hex(0x2E3A4F);
+    public static readonly Color Ink = Hex(0x0B0F14);
+    public static readonly Color Basalt = Hex(0x121722);
+    public static readonly Color Slate = Hex(0x19202C);
+    public static readonly Color Frost = Hex(0x222B3A);
+    public static readonly Color Ice = Hex(0x2E3A4F);
 
     // Text (warm, layered). Warm cream against cold surfaces.
-    public static readonly Color Vellum    = Hex(0xE7E3D5);
+    public static readonly Color Vellum = Hex(0xE7E3D5);
     public static readonly Color Parchment = Hex(0xB8B5A6);
-    public static readonly Color Whisper   = Hex(0x6F7684);
-    public static readonly Color Charcoal  = Hex(0x3E4654);
+    public static readonly Color Whisper = Hex(0x6F7684);
+    public static readonly Color Charcoal = Hex(0x3E4654);
 
     // Rules and borders — always derived from Vellum at low alpha.
-    public static readonly Color Hairline       = new(0xE7 / 255f, 0xE3 / 255f, 0xD5 / 255f, 0.08f);
+    public static readonly Color Hairline = new(0xE7 / 255f, 0xE3 / 255f, 0xD5 / 255f, 0.08f);
     public static readonly Color HairlineStrong = new(0xE7 / 255f, 0xE3 / 255f, 0xD5 / 255f, 0.20f);
 
     // Accents. Ember is sacred — used for selected / last-fired / critical only.
-    public static readonly Color Ember  = Hex(0xD97742);
+    public static readonly Color Ember = Hex(0xD97742);
     public static readonly Color Aurora = Hex(0x78C9B2);
-    public static readonly Color Blood  = Hex(0xB04646);
-    public static readonly Color Gilt   = Hex(0xC9A96B);
+    public static readonly Color Blood = Hex(0xB04646);
+    public static readonly Color Gilt = Hex(0xC9A96B);
 
     // Soft shadow on cards.
     public static readonly Color CardShadow = new(0f, 0f, 0f, 0.28f);
 
     // Kind accents — muted cold-palette variants used on hex map and card borders.
-    public static readonly Color KindPenguin    = Hex(0x8AB4C9);
+    public static readonly Color KindPenguin = Hex(0x8AB4C9);
     public static readonly Color KindSettlement = Hex(0xC9A96B);
-    public static readonly Color KindFaction    = Hex(0xB4707A);
-    public static readonly Color KindArtifact   = Hex(0xA6C8B8);
-    public static readonly Color KindRegion     = Hex(0x8896C2);
-    public static readonly Color KindOrca       = Hex(0x556A7F);
-    public static readonly Color KindDefault    = Hex(0xA0A498);
+    public static readonly Color KindFaction = Hex(0xB4707A);
+    public static readonly Color KindArtifact = Hex(0xA6C8B8);
+    public static readonly Color KindRegion = Hex(0x8896C2);
+    public static readonly Color KindOrca = Hex(0x556A7F);
+    public static readonly Color KindDefault = Hex(0xA0A498);
 
     // Terrain — muted realistic palette.
-    public static readonly Color TerrainWastes     = Hex(0x8C8A80);
-    public static readonly Color TerrainCrags      = Hex(0x54555A);
-    public static readonly Color TerrainTundra     = Hex(0xA5B1B8);
-    public static readonly Color TerrainIce        = Hex(0xC7D2DA);
+    public static readonly Color TerrainWastes = Hex(0x8C8A80);
+    public static readonly Color TerrainCrags = Hex(0x54555A);
+    public static readonly Color TerrainTundra = Hex(0xA5B1B8);
+    public static readonly Color TerrainIce = Hex(0xC7D2DA);
     public static readonly Color TerrainHotSprings = Hex(0x7BA488);
-    public static readonly Color TerrainShelf      = Hex(0x6889A1);
-    public static readonly Color TerrainReef       = Hex(0x3E6078);
-    public static readonly Color TerrainOcean      = Hex(0x1C2B3F);
+    public static readonly Color TerrainShelf = Hex(0x6889A1);
+    public static readonly Color TerrainReef = Hex(0x3E6078);
+    public static readonly Color TerrainOcean = Hex(0x1C2B3F);
 
     // Faction palette on the map — cold, distinguishable.
     public static readonly Color[] FactionPalette =
@@ -78,20 +78,20 @@ public static class UiTokens
     public const int Space7 = 48;
 
     // Radius scale.
-    public const int RadiusSharp  = 2;
-    public const int RadiusSmall  = 6;
+    public const int RadiusSharp = 2;
+    public const int RadiusSmall = 6;
     public const int RadiusMedium = 10;
-    public const int RadiusLarge  = 14;
+    public const int RadiusLarge = 14;
 
     // Font sizes.
-    public const int SizeTitleLarge   = 22;
-    public const int SizeTitleMedium  = 18;
-    public const int SizeTitleSmall   = 15;
-    public const int SizeBody         = 13;
-    public const int SizeBodySmall    = 11;
-    public const int SizeCaption      = 10;
-    public const int SizeMicro        = 9;
-    public const int SizeNumeric      = 13;
+    public const int SizeTitleLarge = 22;
+    public const int SizeTitleMedium = 18;
+    public const int SizeTitleSmall = 15;
+    public const int SizeBody = 13;
+    public const int SizeBodySmall = 11;
+    public const int SizeCaption = 10;
+    public const int SizeMicro = 9;
+    public const int SizeNumeric = 13;
 
     // Font fallback chains — system fonts with graceful degradation.
     public static readonly string[] DisplayFontNames =
@@ -128,26 +128,26 @@ public static class UiTokens
     // Kind accent lookup. Accepts the string KindId value (e.g. "penguin", "settlement").
     public static Color KindAccent(string kindId) => kindId switch
     {
-        "penguin"    => KindPenguin,
+        "penguin" => KindPenguin,
         "settlement" => KindSettlement,
-        "faction"    => KindFaction,
-        "artifact"   => KindArtifact,
-        "region"     => KindRegion,
-        "orca"       => KindOrca,
-        _            => KindDefault,
+        "faction" => KindFaction,
+        "artifact" => KindArtifact,
+        "region" => KindRegion,
+        "orca" => KindOrca,
+        _ => KindDefault,
     };
 
     public static Color TerrainColor(string stableName) => TerrainKey.Canonicalize(stableName) switch
     {
-        TerrainKey.Wastes     => TerrainWastes,
-        TerrainKey.Crags      => TerrainCrags,
-        TerrainKey.Tundra     => TerrainTundra,
-        TerrainKey.Ice        => TerrainIce,
+        TerrainKey.Wastes => TerrainWastes,
+        TerrainKey.Crags => TerrainCrags,
+        TerrainKey.Tundra => TerrainTundra,
+        TerrainKey.Ice => TerrainIce,
         TerrainKey.HotSprings => TerrainHotSprings,
-        TerrainKey.Shelf      => TerrainShelf,
-        TerrainKey.Reef       => TerrainReef,
-        TerrainKey.Ocean      => TerrainOcean,
-        _            => Whisper,
+        TerrainKey.Shelf => TerrainShelf,
+        TerrainKey.Reef => TerrainReef,
+        TerrainKey.Ocean => TerrainOcean,
+        _ => Whisper,
     };
 
     public static Color WithAlpha(Color color, float alpha) =>

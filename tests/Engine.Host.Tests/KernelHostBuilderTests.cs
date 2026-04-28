@@ -7,6 +7,7 @@ using Engine.Host;
 using Engine.Kernel;
 using Engine.Kernel.Programs;
 using Engine.Projection;
+
 using IceRemembers;
 using IceRemembers.Seed;
 
@@ -121,38 +122,23 @@ public sealed class KernelHostBuilderTests
         var map = new HexMapProjection();
         var ui = new UiProjectionState();
 
-        using var host = new KernelHostBuilder()
-            .RegisterDomain(domain =>
-            {
-                _ = domain.RegisterKind("test_kind");
-                _ = domain.RegisterTerrain("test_terrain");
-                _ = domain.RegisterSubtype("test_subtype");
-                _ = domain.RegisterCulture("test_culture");
-                _ = domain.RegisterAttribute("test_attribute");
-                _ = domain.RegisterResource("test_resource");
-                _ = domain.RegisterRelationshipKind("test_relationship");
-                _ = domain.RegisterSourceCode("process");
-            })
-            .ConfigureSymbols(symbols =>
-            {
-                symbols.RegisterSymbol(ProjectionSymbolKind.Kind, 1, "test_kind", "Test Kind");
-                symbols.RegisterSymbol(ProjectionSymbolKind.Terrain, 1, "test_terrain", "Test Terrain");
-                symbols.RegisterEntityName(1, "Seeded Entity");
-            })
-            .ConfigureKernel(kernel =>
-            {
-                kernel.SetMapRadius(1);
-                kernel.RegisterTerrain(1, boundaryGroupId: 1);
-                kernel.RegisterAttribute(
-                    kindId: kernel.DomainIds.KindIdOf("test_kind").Value,
-                    attributeId: kernel.DomainIds.AttributeIdOf("test_attribute"),
-                    minimum: 0f,
-                    maximum: 100f,
-                    defaultValue: 10f);
-                kernel.RegisterRelationshipKind(
-                    kernel.DomainIds.RelationshipKindIdOf("test_relationship"),
-                    cullThreshold: 0.05f);
-            })
+        using var host = BuildGenericStartupHost(map, ui);
+
+        Assert.True(host.SeedEventCount > 0);
+        Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
+        Assert.True(host.BootstrapCompleted);
+
+        AssertGenericStartupProjection(host, map, ui);
+        AssertConsumersSeeded(host);
+        Assert.Throws<InvalidOperationException>(() =>
+            host.Consumers.RegisterProjection("late-map", new HexMapProjection()));
+    }
+
+    private static KernelHost BuildGenericStartupHost(HexMapProjection map, UiProjectionState ui) =>
+        new KernelHostBuilder()
+            .RegisterDomain(RegisterGenericStartupDomain)
+            .ConfigureSymbols(ConfigureGenericStartupSymbols)
+            .ConfigureKernel(ConfigureGenericStartupKernel)
             .WithSimulationOptions(new SimulationOptions
             {
                 EventCapacity = 32,
@@ -160,48 +146,7 @@ public sealed class KernelHostBuilderTests
                 EventSchemaValidator = KernelEventSchemaRegistry.Validator,
             })
             .WithSeedHeadroom(0)
-            .WithStartupSeeder(estimatedEventCount: 6, seed: startup =>
-            {
-                var terrainId = startup.DomainIds.TerrainIdOf("test_terrain").Value;
-                var resourceId = startup.DomainIds.ResourceIdOf("test_resource").Value;
-                var kindId = startup.DomainIds.KindIdOf("test_kind").Value;
-                var subtypeId = startup.DomainIds.SubtypeIdOf("test_subtype").Value;
-                var cultureId = startup.DomainIds.CultureIdOf("test_culture").Value;
-                var relationshipKindId = startup.DomainIds.RelationshipKindIdOf("test_relationship").Value;
-                var resources = new[] { new CellResourceSeed(resourceId, 3f) };
-
-                startup.SeedCell(
-                    q: 0,
-                    r: 0,
-                    terrainId: terrainId,
-                    ownerEntityId: 1,
-                    resources: resources);
-                startup.SeedEntity(
-                    entityId: 1,
-                    kindId: kindId,
-                    subtypeId: subtypeId,
-                    cultureId: cultureId,
-                    physicalQ: 0,
-                    physicalR: 0,
-                    semanticQ: 0,
-                    semanticR: 0,
-                    semanticS: 0);
-                startup.SeedAttribute(
-                    entityId: 1,
-                    attributeId: startup.DomainIds.AttributeIdOf("test_attribute").Value,
-                    value: 25f);
-                startup.SeedRelationship(
-                    relationshipKindId: relationshipKindId,
-                    polarityCode: RelationshipPolarityCodes.Positive,
-                    sourceEntityId: 1,
-                    targetEntityId: 1,
-                    factId0: 0,
-                    factId1: 0,
-                    factId2: 0,
-                    factId3: 0,
-                    factCount: 0,
-                    strength: 0.5f);
-            })
+            .WithStartupSeeder(estimatedEventCount: 6, seed: SeedGenericStartup)
             .RegisterConsumers(context =>
             {
                 context.RegisterProjection("map", map);
@@ -209,10 +154,70 @@ public sealed class KernelHostBuilderTests
             })
             .Build();
 
-        Assert.True(host.SeedEventCount > 0);
-        Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
-        Assert.True(host.BootstrapCompleted);
+    private static void RegisterGenericStartupDomain(DomainIdRegistry domain)
+    {
+        _ = domain.RegisterKind("test_kind");
+        _ = domain.RegisterTerrain("test_terrain");
+        _ = domain.RegisterSubtype("test_subtype");
+        _ = domain.RegisterCulture("test_culture");
+        _ = domain.RegisterAttribute("test_attribute");
+        _ = domain.RegisterResource("test_resource");
+        _ = domain.RegisterRelationshipKind("test_relationship");
+        _ = domain.RegisterSourceCode("process");
+    }
 
+    private static void ConfigureGenericStartupSymbols(KernelSymbolContext symbols)
+    {
+        symbols.RegisterSymbol(ProjectionSymbolKind.Kind, 1, "test_kind", "Test Kind");
+        symbols.RegisterSymbol(ProjectionSymbolKind.Terrain, 1, "test_terrain", "Test Terrain");
+        symbols.RegisterEntityName(1, "Seeded Entity");
+    }
+
+    private static void ConfigureGenericStartupKernel(KernelConfigurationContext kernel)
+    {
+        kernel.SetMapRadius(1);
+        kernel.RegisterTerrain(1, boundaryGroupId: 1);
+        kernel.RegisterAttribute(
+            kindId: kernel.DomainIds.KindIdOf("test_kind").Value,
+            attributeId: kernel.DomainIds.AttributeIdOf("test_attribute"),
+            minimum: 0f,
+            maximum: 100f,
+            defaultValue: 10f);
+        kernel.RegisterRelationshipKind(
+            kernel.DomainIds.RelationshipKindIdOf("test_relationship"),
+            cullThreshold: 0.05f);
+    }
+
+    private static void SeedGenericStartup(KernelStartupContext startup)
+    {
+        var terrainId = startup.DomainIds.TerrainIdOf("test_terrain").Value;
+        var resourceId = startup.DomainIds.ResourceIdOf("test_resource").Value;
+        var kindId = startup.DomainIds.KindIdOf("test_kind").Value;
+        var subtypeId = startup.DomainIds.SubtypeIdOf("test_subtype").Value;
+        var cultureId = startup.DomainIds.CultureIdOf("test_culture").Value;
+        var relationshipKindId = startup.DomainIds.RelationshipKindIdOf("test_relationship").Value;
+
+        startup.SeedCell(0, 0, terrainId, ownerEntityId: 1, [new CellResourceSeed(resourceId, 3f)]);
+        startup.SeedEntity(1, kindId, subtypeId, cultureId, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0);
+        startup.SeedAttribute(1, startup.DomainIds.AttributeIdOf("test_attribute").Value, value: 25f);
+        startup.SeedRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            sourceEntityId: 1,
+            targetEntityId: 1,
+            factId0: 0,
+            factId1: 0,
+            factId2: 0,
+            factId3: 0,
+            factCount: 0,
+            strength: 0.5f);
+    }
+
+    private static void AssertGenericStartupProjection(
+        KernelHost host,
+        HexMapProjection map,
+        UiProjectionState ui)
+    {
         Assert.True(map.TryGetHex(new HexCoord(0, 0), out var origin));
         Assert.Equal(host.DomainIds.TerrainIdOf("test_terrain").Value, origin.TerrainId);
         Assert.Equal(1, origin.OwnerEntityId);
@@ -225,15 +230,16 @@ public sealed class KernelHostBuilderTests
             1,
             1,
             host.DomainIds.RelationshipKindIdOf("test_relationship").Value)));
+    }
 
+    private static void AssertConsumersSeeded(KernelHost host)
+    {
         Assert.All(host.Consumers.Registrations, registration =>
         {
             Assert.Equal(host.SeedEventCount, registration.NextSequence);
             Assert.Equal(0, registration.DroppedEvents);
         });
         Assert.True(host.Consumers.IsSealed);
-        Assert.Throws<InvalidOperationException>(() =>
-            host.Consumers.RegisterProjection("late-map", new HexMapProjection()));
     }
 
     [Fact]
@@ -329,11 +335,9 @@ public sealed class KernelHostBuilderTests
     {
         var forbidden = typeof(KernelStartupContext)
             .GetMethods()
-            .Where(method => method.Name.StartsWith("Seed", StringComparison.Ordinal))
-            .Where(method => method.GetParameters().Any(parameter =>
+.Where(method => method.Name.StartsWith("Seed", StringComparison.Ordinal) && method.GetParameters().Any(parameter =>
                 string.Equals(parameter.Name, "sourceCodeId", StringComparison.Ordinal) ||
-                string.Equals(parameter.Name, "attributeSourceCodeId", StringComparison.Ordinal)))
-            .Select(method => method.Name)
+                string.Equals(parameter.Name, "attributeSourceCodeId", StringComparison.Ordinal))).Select(method => method.Name)
             .Order(StringComparer.Ordinal)
             .ToArray();
 
@@ -344,7 +348,7 @@ public sealed class KernelHostBuilderTests
     {
         var orderedSeedIds = seed.Entities
             .Select(entity => entity.SeedEntityId)
-            .OrderBy(id => id)
+            .Order()
             .ToArray();
         var index = Array.IndexOf(orderedSeedIds, seedEntityId);
         Assert.True(index >= 0, $"Seed entity ID {seedEntityId} was not present.");

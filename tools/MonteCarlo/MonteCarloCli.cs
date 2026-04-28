@@ -6,6 +6,7 @@ using System.Globalization;
 using Engine.Constants;
 using Engine.Observability;
 using Engine.Observability.Export;
+
 using IceRemembers.Seed;
 
 internal static class MonteCarloCli
@@ -20,17 +21,26 @@ internal static class MonteCarloCli
 
         if (options.AnalyzeOnly)
         {
-            var batchDirectory = options.AnalyzeDirectory!;
-            analyzer.AnalyzeToFiles(batchDirectory);
-            Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(batchDirectory, "analysis"))}");
-            return 0;
+            return RunAnalysisOnly(options, analyzer);
         }
 
+        RunBatch(options, analyzer);
+        return 0;
+    }
+
+    private static int RunAnalysisOnly(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    {
+        var batchDirectory = options.AnalyzeDirectory!;
+        analyzer.AnalyzeToFiles(batchDirectory);
+        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(batchDirectory, "analysis"))}");
+        return 0;
+    }
+
+    private static void RunBatch(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    {
         ResetOutputDirectory(options.OutputDirectory);
         DuckDbTelemetryStore? stateStore = null;
         DuckDbPerformanceTelemetryStore? performanceStore = null;
-        long stateRowsWritten = 0;
-        long performanceRowsWritten = 0;
 
         try
         {
@@ -41,66 +51,104 @@ internal static class MonteCarloCli
                 ? new DuckDbPerformanceTelemetryStore(options.OutputDirectory)
                 : null;
 
-            for (var runIndex = 0; runIndex < options.Runs; runIndex++)
-            {
-                var seed = options.Seed + runIndex;
-                var runId = $"seed-{seed}";
-                MonteCarloKernelRun? run = null;
-                try
-                {
-                    run = MonteCarloKernelRunFactory.Create(seed);
-                    var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
-                    stateRowsWritten += result.StateRowsWritten;
-                    performanceRowsWritten += result.PerformanceRowsWritten;
-
-                    var degenerateAttempts = result.Summary.MapAttempt?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
-                    var droppedSuffix = result.Summary.DroppedSummaryEvents > 0
-                        ? FormattableString.Invariant($" summary_events_dropped={result.Summary.DroppedSummaryEvents}")
-                        : string.Empty;
-                    Console.WriteLine(FormattableString.Invariant(
-                        $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={result.ProcessedTicks} fires={result.Summary.GeneratorFireCount} map_degenerate={degenerateAttempts}{droppedSuffix}"));
-                }
-                finally
-                {
-                    run?.Dispose();
-                }
-            }
-
-            if (stateStore is not null)
-            {
-                const string step = "state_telemetry_parquet";
-                var export = TimedExport(step, stateRowsWritten, () => stateStore.ExportParquet());
-                performanceStore?.AppendExport(export, step);
-                Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
-            }
-
-            if (options.ShouldAnalyze)
-            {
-                const string step = "analysis";
-                var export = TimedExport(step, rowsWritten: 0, () =>
-                {
-                    analyzer.AnalyzeToFiles(options.OutputDirectory);
-                });
-                performanceStore?.AppendExport(export, step);
-                Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
-            }
-
-            if (performanceStore is not null)
-            {
-                const string step = "performance_parquet";
-                var export = TimedExport(step, performanceRowsWritten, () => performanceStore.ExportCoreParquet());
-                performanceStore.AppendExport(export, step);
-                performanceStore.ExportExportPerformanceParquet();
-                Console.WriteLine($"wrote Monte Carlo performance telemetry: {Path.GetFullPath(options.OutputDirectory)}");
-            }
+            var totals = ExecuteRuns(options, stateStore, performanceStore);
+            ExportStateTelemetry(options, stateStore, performanceStore, totals.StateRowsWritten);
+            ExportAnalysis(options, analyzer, performanceStore);
+            ExportPerformanceTelemetry(options, performanceStore, totals.PerformanceRowsWritten);
         }
         finally
         {
             performanceStore?.Dispose();
             stateStore?.Dispose();
         }
+    }
 
-        return 0;
+    private static (long StateRowsWritten, long PerformanceRowsWritten) ExecuteRuns(
+        MonteCarloOptions options,
+        DuckDbTelemetryStore? stateStore,
+        DuckDbPerformanceTelemetryStore? performanceStore)
+    {
+        var stateRowsWritten = 0L;
+        var performanceRowsWritten = 0L;
+        for (var runIndex = 0; runIndex < options.Runs; runIndex++)
+        {
+            var seed = options.Seed + runIndex;
+            var runId = $"seed-{seed}";
+            using (var run = MonteCarloKernelRunFactory.Create(seed))
+            {
+                var result = ExecuteKernelRun(run, options, runId, seed, stateStore, performanceStore);
+                stateRowsWritten += result.StateRowsWritten;
+                performanceRowsWritten += result.PerformanceRowsWritten;
+                PrintRunSummary(options, runIndex, seed, result);
+            }
+        }
+
+        return (stateRowsWritten, performanceRowsWritten);
+    }
+
+    private static void PrintRunSummary(
+        MonteCarloOptions options,
+        int runIndex,
+        int seed,
+        MonteCarloRunExecutionResult result)
+    {
+        var degenerateAttempts = result.Summary.MapAttempt?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
+        var droppedSuffix = result.Summary.DroppedSummaryEvents > 0
+            ? string.Create(CultureInfo.InvariantCulture, $" summary_events_dropped={result.Summary.DroppedSummaryEvents}")
+            : string.Empty;
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={result.ProcessedTicks} fires={result.Summary.GeneratorFireCount} map_degenerate={degenerateAttempts}{droppedSuffix}"));
+    }
+
+    private static void ExportStateTelemetry(
+        MonteCarloOptions options,
+        DuckDbTelemetryStore? stateStore,
+        DuckDbPerformanceTelemetryStore? performanceStore,
+        long rowsWritten)
+    {
+        if (stateStore is null)
+        {
+            return;
+        }
+
+        const string step = "state_telemetry_parquet";
+        var export = TimedExport(step, rowsWritten, () => stateStore.ExportParquet());
+        performanceStore?.AppendExport(export, step);
+        Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
+    }
+
+    private static void ExportAnalysis(
+        MonteCarloOptions options,
+        MonteCarloBatchAnalyzer analyzer,
+        DuckDbPerformanceTelemetryStore? performanceStore)
+    {
+        if (!options.ShouldAnalyze)
+        {
+            return;
+        }
+
+        const string step = "analysis";
+        var export = TimedExport(step, rowsWritten: 0, () => analyzer.AnalyzeToFiles(options.OutputDirectory));
+        performanceStore?.AppendExport(export, step);
+        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
+    }
+
+    private static void ExportPerformanceTelemetry(
+        MonteCarloOptions options,
+        DuckDbPerformanceTelemetryStore? performanceStore,
+        long rowsWritten)
+    {
+        if (performanceStore is null)
+        {
+            return;
+        }
+
+        const string step = "performance_parquet";
+        var export = TimedExport(step, rowsWritten, () => performanceStore.ExportCoreParquet());
+        performanceStore.AppendExport(export, step);
+        performanceStore.ExportExportPerformanceParquet();
+        Console.WriteLine($"wrote Monte Carlo performance telemetry: {Path.GetFullPath(options.OutputDirectory)}");
     }
 
     private static MonteCarloRunExecutionResult ExecuteKernelRun(
@@ -117,67 +165,16 @@ internal static class MonteCarloCli
 
         var stateRowsWritten = 0L;
         var performanceRowsWritten = 0L;
-        var processedTicks = 0;
         using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
-        KernelTelemetryRecorder? stateRecorder = null;
-        KernelPerformanceRecorder? performanceRecorder = null;
+        var stateRecorder = CreateStateRecorder(run, options, runId, seed);
+        var performanceRecorder = CreatePerformanceRecorder(run, options, runId, seed);
 
         try
         {
-            if (options.CollectStateTelemetry)
-            {
-                stateRecorder = new KernelTelemetryRecorder(
-                run.Events,
-                runId,
-                run.Symbols,
-                seed);
-                RecordMapGenerationAccepted(stateRecorder.Batch, stateRecorder.RunId, run.WorldSeed);
-                RecordStateSnapshots(stateRecorder, run.Host.CurrentTick, options);
-            }
-
-            if (options.PerformanceMode)
-            {
-                performanceRecorder = new KernelPerformanceRecorder(
-                run.Events,
-                runId,
-                options.Ticks,
-                    seed,
-                    tickSampleCadence: options.PerformanceSampleCadence,
-                    systemSampleCadence: options.SystemPerformanceSampleCadence,
-                    fullTelemetryEnabled: options.CollectStateTelemetry);
-            }
-
-            for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
-            {
-                var stopwatch = Stopwatch.StartNew();
-                var advanced = run.Host.Time.AdvanceSingleStep(1);
-                stopwatch.Stop();
-                if (advanced == 0)
-                {
-                    break;
-                }
-
-                processedTicks += advanced;
-                var currentTick = run.Host.CurrentTick;
-                summaryRecorder.DrainAvailable();
-                RecordStateSnapshots(stateRecorder, currentTick, options);
-                performanceRecorder?.RecordTick(currentTick, stopwatch.Elapsed);
-            }
-
+            var processedTicks = AdvanceTicks(run, options, summaryRecorder, stateRecorder, performanceRecorder);
             var summary = summaryRecorder.Snapshot();
-            if (performanceRecorder is not null && performanceStore is not null)
-            {
-                var performanceBatch = performanceRecorder.Complete(processedTicks);
-                performanceRowsWritten = CountRows(performanceBatch);
-                performanceStore.Append(performanceBatch);
-            }
-
-            if (stateRecorder is not null && stateStore is not null)
-            {
-                stateRecorder.DrainAvailable();
-                stateRowsWritten = CountRows(stateRecorder.Batch);
-                stateStore.Append(stateRecorder.Batch);
-            }
+            performanceRowsWritten = FlushPerformanceTelemetry(performanceRecorder, performanceStore, processedTicks);
+            stateRowsWritten = FlushStateTelemetry(stateRecorder, stateStore);
 
             return new MonteCarloRunExecutionResult(
                 stateRowsWritten,
@@ -190,6 +187,101 @@ internal static class MonteCarloCli
             performanceRecorder?.Dispose();
             stateRecorder?.Dispose();
         }
+    }
+
+    private static KernelTelemetryRecorder? CreateStateRecorder(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        string runId,
+        int seed)
+    {
+        if (!options.CollectStateTelemetry)
+        {
+            return null;
+        }
+
+        var recorder = new KernelTelemetryRecorder(run.Events, runId, run.Symbols, seed);
+        RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
+        RecordStateSnapshots(recorder, run.Host.CurrentTick, options);
+        return recorder;
+    }
+
+    private static KernelPerformanceRecorder? CreatePerformanceRecorder(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        string runId,
+        int seed)
+    {
+        if (!options.PerformanceMode)
+        {
+            return null;
+        }
+
+        return new KernelPerformanceRecorder(
+            run.Events,
+            runId,
+            options.Ticks,
+            seed,
+            tickSampleCadence: options.PerformanceSampleCadence,
+            systemSampleCadence: options.SystemPerformanceSampleCadence,
+            fullTelemetryEnabled: options.CollectStateTelemetry);
+    }
+
+    private static int AdvanceTicks(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        MonteCarloRunSummaryRecorder summaryRecorder,
+        KernelTelemetryRecorder? stateRecorder,
+        KernelPerformanceRecorder? performanceRecorder)
+    {
+        var processedTicks = 0;
+        for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var advanced = run.Host.Time.AdvanceSingleStep(1);
+            stopwatch.Stop();
+            if (advanced == 0)
+            {
+                break;
+            }
+
+            processedTicks += advanced;
+            var currentTick = run.Host.CurrentTick;
+            summaryRecorder.DrainAvailable();
+            RecordStateSnapshots(stateRecorder, currentTick, options);
+            performanceRecorder?.RecordTick(currentTick, stopwatch.Elapsed);
+        }
+
+        return processedTicks;
+    }
+
+    private static long FlushPerformanceTelemetry(
+        KernelPerformanceRecorder? recorder,
+        DuckDbPerformanceTelemetryStore? store,
+        int processedTicks)
+    {
+        if (recorder is null || store is null)
+        {
+            return 0;
+        }
+
+        var batch = recorder.Complete(processedTicks);
+        var rowsWritten = CountRows(batch);
+        store.Append(batch);
+        return rowsWritten;
+    }
+
+    private static long FlushStateTelemetry(KernelTelemetryRecorder? recorder, DuckDbTelemetryStore? store)
+    {
+        if (recorder is null || store is null)
+        {
+            return 0;
+        }
+
+        recorder.DrainAvailable();
+        var rowsWritten = CountRows(recorder.Batch);
+        store.Append(recorder.Batch);
+        return rowsWritten;
     }
 
     private static void RecordStateSnapshots(

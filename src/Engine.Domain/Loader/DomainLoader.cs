@@ -3,10 +3,10 @@ namespace Engine.Domain.Loader;
 using Engine.Domain.Compilation;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
-using Engine.Processes;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Pressure;
+using Engine.Processes;
 using Engine.Wiring;
 
 /// <summary>
@@ -39,7 +39,7 @@ public static class DomainLoader
             registry.RegisterKind(new KindDefinition(
                 kind,
                 kindConfig.Category,
-                new HashSet<string>(kindConfig.Subtypes),
+                new HashSet<string>(kindConfig.Subtypes, StringComparer.Ordinal),
                 attributes,
                 kindConfig.HealthAttribute));
         }
@@ -89,6 +89,13 @@ public static class DomainLoader
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(runtimeIds);
 
+        return LoadPressureDefinitionsCore(config, runtimeIds);
+    }
+
+    private static IEnumerable<PressureDefinition> LoadPressureDefinitionsCore(
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
         foreach (var pc in config.Pressures)
         {
             yield return new PressureDefinition(

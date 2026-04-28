@@ -21,7 +21,7 @@ internal sealed class TableauManager
 
     public float ManaUsed => _activeCards.Where(card => card.IsActive).Sum(card => card.Definition.ManaCost);
 
-    public IReadOnlyList<CardInstance> ActiveCards => _activeCards.Where(card => card.IsActive).ToArray();
+    public IReadOnlyList<CardInstance> ActiveCards => _activeCards;
 
     public event EventHandler<CardFiredEventArgs>? CardFired;
 

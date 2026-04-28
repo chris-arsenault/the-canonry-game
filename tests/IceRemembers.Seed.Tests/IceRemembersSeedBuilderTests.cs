@@ -2,6 +2,7 @@ namespace IceRemembers.Seed.Tests;
 
 using Engine.Domain.Startup;
 using Engine.WorldGen;
+
 using K = IceRemembers.IceRemembersKinds;
 
 public sealed class IceRemembersSeedBuilderTests

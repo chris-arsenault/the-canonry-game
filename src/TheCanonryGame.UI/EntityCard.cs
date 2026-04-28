@@ -3,9 +3,11 @@
 #pragma warning disable CA2000
 #pragma warning disable CA2213
 using System.Text;
-using Godot;
 
 using Engine.Projection;
+
+using Godot;
+
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -164,7 +166,7 @@ public partial class EntityCard : PanelContainer
         sb.AppendLine($"[color={secondary}]{subtype}  |  {culture}  |  {status}[/color]");
         var currentTick = _projection.CurrentTick;
         var createdTick = entity.CreatedTick ?? 0;
-        sb.AppendLine($"[code][color={whisper}]({entity.PhysicalQ}, {entity.PhysicalR})  |  age {currentTick - createdTick}t[/color][/code]");
+        sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"[code][color={whisper}]({entity.PhysicalQ}, {entity.PhysicalR})  |  age {currentTick - createdTick}t[/color][/code]");
 
         sb.AppendLine();
         AppendAttributes(sb, entity, whisper);
@@ -192,7 +194,7 @@ public partial class EntityCard : PanelContainer
                 ProjectionSymbolKind.Attribute,
                 attr.AttributeId,
                 $"Attribute {attr.AttributeId}");
-            sb.AppendLine($"  {name}: [b]{attr.NewValue:F1}[/b] [color={whisper}]from {attr.OldValue:F1}[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  {name}: [b]{attr.NewValue:F1}[/b] [color={whisper}]from {attr.OldValue:F1}[/color]");
         }
     }
 
@@ -221,7 +223,7 @@ public partial class EntityCard : PanelContainer
                 ProjectionSymbolKind.RelationshipKind,
                 rel.Key.RelationshipKindId,
                 $"Relationship {rel.Key.RelationshipKindId}");
-            sb.AppendLine($"  -> {relationshipName} -> {targetName} [color={whisper}]({rel.NewStrength:F2})[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  -> {relationshipName} -> {targetName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
 
         foreach (var rel in incoming)
@@ -232,7 +234,7 @@ public partial class EntityCard : PanelContainer
                 ProjectionSymbolKind.RelationshipKind,
                 rel.Key.RelationshipKindId,
                 $"Relationship {rel.Key.RelationshipKindId}");
-            sb.AppendLine($"  <- {relationshipName} <- {sourceName} [color={whisper}]({rel.NewStrength:F2})[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  <- {relationshipName} <- {sourceName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
     }
 
@@ -250,26 +252,26 @@ public partial class EntityCard : PanelContainer
 
         if (entity.LastGoalGeneration is { } goals)
         {
-            sb.AppendLine($"  goals generated: {goals.GoalCount} [color={whisper}]actionable {goals.ActionableGoalCount} @ t{goals.Tick}[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  goals generated: {goals.GoalCount} [color={whisper}]actionable {goals.ActionableGoalCount} @ t{goals.Tick}[/color]");
         }
 
         if (entity.LastProcessEvaluation is { } evaluation)
         {
             var selectedGoal = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Goal, evaluation.SelectedGoalId, $"Goal {evaluation.SelectedGoalId}");
             var process = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Process, evaluation.ExecutedProcessId, $"Process {evaluation.ExecutedProcessId}");
-            sb.AppendLine($"  evaluated: {selectedGoal} / {process} [color={whisper}]candidates {evaluation.CandidateCount} @ t{evaluation.Tick}[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  evaluated: {selectedGoal} / {process} [color={whisper}]candidates {evaluation.CandidateCount} @ t{evaluation.Tick}[/color]");
         }
 
         if (entity.LastProcessExecution is { } execution)
         {
             var process = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Process, execution.ProcessId, $"Process {execution.ProcessId}");
-            sb.AppendLine($"  executed: {process} [color={whisper}]affected {execution.AffectedEntityCount} @ t{execution.Tick}[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  executed: {process} [color={whisper}]affected {execution.AffectedEntityCount} @ t{execution.Tick}[/color]");
         }
 
         if (entity.LastGambitExecution is { } gambit)
         {
             var gambitName = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Gambit, gambit.GambitId, $"Gambit {gambit.GambitId}");
-            sb.AppendLine($"  gambit: {gambitName} [color={whisper}]affected {gambit.AffectedEntityCount} @ t{gambit.Tick}[/color]");
+            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  gambit: {gambitName} [color={whisper}]affected {gambit.AffectedEntityCount} @ t{gambit.Tick}[/color]");
         }
     }
 
@@ -343,7 +345,7 @@ public partial class EntityCard : PanelContainer
         var target = _pendingScrollStickToBottom
             ? System.Math.Max(0d, maxScroll - _pendingScrollDistanceFromBottom)
             : System.Math.Min(_pendingScrollValue, maxScroll);
-        _scroll!.ScrollVertical = (int)System.Math.Round(target);
+        _scroll!.ScrollVertical = (int)System.Math.Round(target, MidpointRounding.ToEven);
     }
 
     private void WireChromeButton(string path, Action onPressed)

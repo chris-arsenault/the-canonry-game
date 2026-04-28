@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Engine.Projection;
+
 using Godot;
 
-using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -348,7 +349,7 @@ public partial class HexMapRenderer : Node2D
             .Select(hex => hex.OwnerEntityId)
             .Where(ownerId => ownerId > 0)
             .Distinct()
-            .OrderBy(ownerId => ownerId)
+            .Order()
             .ToArray();
 
         for (var i = 0; i < ownerIds.Length; i++)

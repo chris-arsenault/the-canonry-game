@@ -27,7 +27,7 @@ public static class AssetLibrary
 {
     private const string ProcessedRoot = "res://assets/game";
 
-    private static readonly Dictionary<string, Texture2D> _byPath = new();
+    private static readonly Dictionary<string, Texture2D> _byPath = new(StringComparer.Ordinal);
 
     public static Texture2D? Penguin { get; private set; }
     public static Texture2D? Settlement { get; private set; }
@@ -81,100 +81,122 @@ public static class AssetLibrary
     {
         if (Loaded) return;
 
-        Penguin       = LoadTexture("sprites/penguin.png");
-        Settlement    = LoadTexture("sprites/settlement.png");
-        Orca          = LoadTexture("sprites/orca.png");
+        LoadEntitySprites();
+        LoadMapIconSprites();
+        LoadSubtypeIconSprites();
+        LoadInlineIcons();
+        LoadCardFaces();
+        LoadBackgroundsAndChrome();
+        LoadTerrainTextures();
+
+        Loaded = true;
+        GD.Print($"[AssetLibrary] Loaded {_byPath.Count} illustration textures");
+    }
+
+    private static void LoadEntitySprites()
+    {
+        Penguin = LoadTexture("sprites/penguin.png");
+        Settlement = LoadTexture("sprites/settlement.png");
+        Orca = LoadTexture("sprites/orca.png");
         FactionBanner = LoadTexture("sprites/faction.png");
-        Artifact      = LoadTexture("sprites/artifact.png");
-        RegionCairn   = LoadTexture("sprites/region.png");
+        Artifact = LoadTexture("sprites/artifact.png");
+        RegionCairn = LoadTexture("sprites/region.png");
 
-        _kindSprites["penguin"]    = Penguin;
+        RegisterKindSpriteFaces();
+    }
+
+    private static void RegisterKindSpriteFaces()
+    {
+        _kindSprites["penguin"] = Penguin;
         _kindSprites["settlement"] = Settlement;
-        _kindSprites["orca"]       = Orca;
-        _kindSprites["faction"]    = FactionBanner;
-        _kindSprites["artifact"]   = Artifact;
-        _kindSprites["region"]     = RegionCairn;
+        _kindSprites["orca"] = Orca;
+        _kindSprites["faction"] = FactionBanner;
+        _kindSprites["artifact"] = Artifact;
+        _kindSprites["region"] = RegionCairn;
+    }
 
-        // Map icons — flat heraldic stamps used on the hex map. Separate
-        // register from the painted sprites above; these must read at 32px
-        // against any terrain. 128px variant is the source; Godot scales
-        // it down at draw time based on zoom.
-        _mapIcons["penguin"]    = LoadTexture("map-icons/penguin@128.png");
+    private static void LoadMapIconSprites()
+    {
+        _mapIcons["penguin"] = LoadTexture("map-icons/penguin@128.png");
         _mapIcons["settlement"] = LoadTexture("map-icons/settlement@128.png");
-        _mapIcons["orca"]       = LoadTexture("map-icons/orca@128.png");
-        _mapIcons["faction"]    = LoadTexture("map-icons/faction@128.png");
-        _mapIcons["artifact"]   = LoadTexture("map-icons/artifact@128.png");
-        _mapIcons["region"]     = LoadTexture("map-icons/region@128.png");
+        _mapIcons["orca"] = LoadTexture("map-icons/orca@128.png");
+        _mapIcons["faction"] = LoadTexture("map-icons/faction@128.png");
+        _mapIcons["artifact"] = LoadTexture("map-icons/artifact@128.png");
+        _mapIcons["region"] = LoadTexture("map-icons/region@128.png");
+    }
 
-        // Subtype-specific map icons. Keyed "{kind}-{subtype}"; lookup falls
-        // back to the generic map icon when an entry is missing. Orca subtypes
-        // are loaded forward-looking — the engine kind doesn't exist yet but
-        // the assets are ready.
-        LoadSubtypeIcons("penguin",    "warden", "broker", "witness", "exile");
-        LoadSubtypeIcons("orca",       "shamen", "war-leader", "cripple");
+    private static void LoadSubtypeIconSprites()
+    {
+        LoadSubtypeIcons("penguin", "warden", "broker", "witness", "exile");
+        LoadSubtypeIcons("orca", "shamen", "war-leader", "cripple");
         LoadSubtypeIcons("settlement", "rookery", "colony", "holdfast", "sanctuary", "harbor", "reefhold");
-        LoadSubtypeIcons("faction",    "order", "compact", "cell", "choir");
-        LoadSubtypeIcons("artifact",   "relic", "instrument", "weapon", "tome", "seal");
-        LoadSubtypeIcons("region",     "face", "shelf", "depths", "reach", "sea", "scar");
+        LoadSubtypeIcons("faction", "order", "compact", "cell", "choir");
+        LoadSubtypeIcons("artifact", "relic", "instrument", "weapon", "tome", "seal");
+        LoadSubtypeIcons("region", "face", "shelf", "depths", "reach", "sea", "scar");
+    }
 
-        // Attribute icons — used in the tableau detail view to visualize
-        // trigger attributes. Loaded at @32 for inline use.
+    private static void LoadInlineIcons()
+    {
         foreach (var attr in new[] { "dominion", "echo", "food", "holding", "population", "power", "provisions", "warmth", "wealth" })
         {
             _attributeIcons[attr] = LoadTexture($"icons/attr-{attr}@32.png");
         }
 
-        // Event-type icons — generic symbols for creation / lifecycle /
-        // threshold crossings / notices. Used in the detail view.
         foreach (var ev in new[] { "card", "creation", "lifecycle", "notice", "threshold" })
         {
             _eventIcons[ev] = LoadTexture($"icons/{ev}@32.png");
         }
+    }
 
-        CardPenguin    = LoadTexture("cards/card-penguin.png");
+    private static void LoadCardFaces()
+    {
+        CardPenguin = LoadTexture("cards/card-penguin.png");
         CardSettlement = LoadTexture("cards/card-settlement.png");
-        CardFaction    = LoadTexture("cards/card-faction.png");
-        CardArtifact   = LoadTexture("cards/card-artifact.png");
-        CardOrca       = LoadTexture("cards/card-orca.png");
-        CardRegion     = LoadTexture("cards/card-region.png");
-        CardBack       = LoadTexture("cards/card-back.png");
+        CardFaction = LoadTexture("cards/card-faction.png");
+        CardArtifact = LoadTexture("cards/card-artifact.png");
+        CardOrca = LoadTexture("cards/card-orca.png");
+        CardRegion = LoadTexture("cards/card-region.png");
+        CardBack = LoadTexture("cards/card-back.png");
 
-        _cardFaces["penguin"]    = CardPenguin;
+        _cardFaces["penguin"] = CardPenguin;
         _cardFaces["settlement"] = CardSettlement;
-        _cardFaces["faction"]    = CardFaction;
-        _cardFaces["artifact"]   = CardArtifact;
-        _cardFaces["orca"]       = CardOrca;
-        _cardFaces["region"]     = CardRegion;
+        _cardFaces["faction"] = CardFaction;
+        _cardFaces["artifact"] = CardArtifact;
+        _cardFaces["orca"] = CardOrca;
+        _cardFaces["region"] = CardRegion;
+    }
 
-        TitleArt        = LoadTexture("backgrounds/title.png");
+    private static void LoadBackgroundsAndChrome()
+    {
+        TitleArt = LoadTexture("backgrounds/title.png");
         TableauBackdrop = LoadTexture("backgrounds/tableau.png");
-        AuroraBand      = LoadTexture("backgrounds/aurora.png");
+        AuroraBand = LoadTexture("backgrounds/aurora.png");
 
         PaneBreakaway = LoadTexture("semantic-plane/breakaway.png");
-        PaneYoke      = LoadTexture("semantic-plane/yoke.png");
-        PaneWitness   = LoadTexture("semantic-plane/witness.png");
-        PaneSilence   = LoadTexture("semantic-plane/silence.png");
-        PaneLineage   = LoadTexture("semantic-plane/lineage.png");
+        PaneYoke = LoadTexture("semantic-plane/yoke.png");
+        PaneWitness = LoadTexture("semantic-plane/witness.png");
+        PaneSilence = LoadTexture("semantic-plane/silence.png");
+        PaneLineage = LoadTexture("semantic-plane/lineage.png");
         PaneSeverance = LoadTexture("semantic-plane/severance.png");
 
-        CompassRose     = LoadTexture("chrome/compass-rose.png");
-        CornerOrnament  = LoadTexture("chrome/corner-ornament.png");
+        CompassRose = LoadTexture("chrome/compass-rose.png");
+        CornerOrnament = LoadTexture("chrome/corner-ornament.png");
         DividerFlourish = LoadTexture("chrome/divider-flourish.png");
-        ScaleBar        = LoadTexture("chrome/scale-bar.png");
+        ScaleBar = LoadTexture("chrome/scale-bar.png");
         TextureParchment = LoadTexture("chrome/texture-parchment.png");
-        TextureSlate     = LoadTexture("chrome/texture-slate.png");
+        TextureSlate = LoadTexture("chrome/texture-slate.png");
+    }
 
-        _terrain["Wastes"]     = LoadTexture("terrain/wastes.png");
-        _terrain["Crags"]      = LoadTexture("terrain/crags.png");
-        _terrain["Tundra"]     = LoadTexture("terrain/tundra.png");
-        _terrain["Ice"]        = LoadTexture("terrain/ice.png");
+    private static void LoadTerrainTextures()
+    {
+        _terrain["Wastes"] = LoadTexture("terrain/wastes.png");
+        _terrain["Crags"] = LoadTexture("terrain/crags.png");
+        _terrain["Tundra"] = LoadTexture("terrain/tundra.png");
+        _terrain["Ice"] = LoadTexture("terrain/ice.png");
         _terrain["HotSprings"] = LoadTexture("terrain/hotsprings.png");
-        _terrain["Shelf"]      = LoadTexture("terrain/shelf.png");
-        _terrain["Reef"]       = LoadTexture("terrain/reef.png");
-        _terrain["Ocean"]      = LoadTexture("terrain/ocean.png");
-
-        Loaded = true;
-        GD.Print($"[AssetLibrary] Loaded {_byPath.Count} illustration textures");
+        _terrain["Shelf"] = LoadTexture("terrain/shelf.png");
+        _terrain["Reef"] = LoadTexture("terrain/reef.png");
+        _terrain["Ocean"] = LoadTexture("terrain/ocean.png");
     }
 
     /// <summary>Get a per-kind sprite texture, or null if not available.</summary>

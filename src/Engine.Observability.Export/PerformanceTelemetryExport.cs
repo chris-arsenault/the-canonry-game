@@ -12,7 +12,6 @@ internal sealed class DuckDbPerformanceTelemetryStore : IDisposable
     private const long DefaultFlushRowThreshold = 250_000;
 
     private readonly string _outputDirectory;
-    private readonly string _databasePath;
     private readonly DuckDBConnection _connection;
     private readonly long _flushRowThreshold;
     private PerformanceTelemetryBatch _pending = new();
@@ -25,11 +24,11 @@ internal sealed class DuckDbPerformanceTelemetryStore : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(flushRowThreshold);
 
         _outputDirectory = outputDirectory;
-        _databasePath = Path.Combine(outputDirectory, "performance.duckdb");
+        var databasePath = Path.Combine(outputDirectory, "performance.duckdb");
         _flushRowThreshold = flushRowThreshold;
         Directory.CreateDirectory(_outputDirectory);
 
-        _connection = new DuckDBConnection($"Data Source={_databasePath}");
+        _connection = new DuckDBConnection($"Data Source={databasePath}");
         _connection.Open();
         EnsureSchema();
     }

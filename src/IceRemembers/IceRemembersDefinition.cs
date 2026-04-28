@@ -1,12 +1,13 @@
 namespace IceRemembers;
 
 using Engine.Domain.Config;
-using Engine.Processes;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
+using Engine.Processes;
 using Engine.Resources;
 using Engine.Wiring;
+
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using Fact = IceRemembers.IceRemembersStructuralFact;
@@ -51,193 +52,212 @@ public static class IceRemembersDefinition
     private static string R(Res resource) => resource.ToDomainName();
     private static ResourceType T(Res resource) => resource.ToResourceType();
 
-    private static Dictionary<EntityKind, KindConfig> CreateKinds()
-    {
-        return new Dictionary<EntityKind, KindConfig>
+    private static Dictionary<EntityKind, KindConfig> CreateKinds() =>
+        new()
         {
-            [K.Region] = new()
-            {
-                Category = EntityCategory.Spatial,
-                Subtypes = new HashSet<string> { "face", "shelf", "depths", "reach", "sea", "scar" },
-                HexToHealthRecoveryHosts =
-                [
-                    new RecoveryHostQueryConfig
-                    {
-                        AnyOfKinds = new HashSet<EntityKind> { K.Settlement, K.Artifact },
-                    },
-                ],
-                Attributes =
-                [
-                    new() { Name = A(Attr.Stability), DisplayName = "Stability", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 80f },
-                    new() { Name = A(Attr.Holding), DisplayName = "Holding", Category = AttributeCategory.Capacity, Min = 0f, Max = 100f, Default = 50f, DriftRate = -0.3f },
-                    new() { Name = A(Attr.Pristiness), DisplayName = "Pristiness", Category = AttributeCategory.Need, Min = 0f, Max = 100f, Default = 70f, DriftRate = -0.3f },
-                ],
-                HealthAttribute = A(Attr.Stability),
-                Description = "A geographically connected area of the world. A region's semantic alignment is the spirit or animist ideals of the place itself — the land's own tendencies — distinct from the people, factions, or settlements that happen to occupy it.",
-                PrimaryPlane = PrimaryPlane.Semantic,
-            },
-            [K.Settlement] = new()
-            {
-                Category = EntityCategory.Spatial,
-                Subtypes = new HashSet<string> { "rookery", "colony", "holdfast", "sanctuary", "harbor", "reefhold" },
-                HexToHealthRecoveryHosts =
-                [
-                    new RecoveryHostQueryConfig
-                    {
-                        AnyOfKinds = new HashSet<EntityKind> { K.Region, K.Artifact },
-                    },
-                ],
-                Attributes =
-                [
-                    new() { Name = A(Attr.Residents), DisplayName = "Residents", Category = AttributeCategory.Health, Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
-                    new() { Name = A(Attr.Dominion), DisplayName = "Dominion", Category = AttributeCategory.Projection, Min = 0f, Max = 100f, Default = 20f, DriftRate = -0.3f },
-                    new() { Name = A(Attr.Shelter), DisplayName = "Shelter", Category = AttributeCategory.Need, Min = 0f, Max = 100f, Default = 60f, DriftRate = -0.3f },
-                ],
-                HealthAttribute = A(Attr.Residents),
-                PrimaryPlane = PrimaryPlane.Semantic,
-            },
-            [K.Faction] = new()
-            {
-                Category = EntityCategory.Agency,
-                Subtypes = new HashSet<string> { "order", "compact", "cell", "choir" },
-                HexToHealthRecoveryHosts =
-                [
-                    new RecoveryHostQueryConfig
-                    {
-                        AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
-                    },
-                ],
-                Attributes =
-                [
-                    new() { Name = A(Attr.Cohesion), DisplayName = "Cohesion", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 70f },
-                    new() { Name = A(Attr.Reach), DisplayName = "Reach", Category = AttributeCategory.Projection, Min = 0f, Max = 100f, Default = 30f, DriftRate = -0.3f },
-                    new()
-                    {
-                        Name = A(Attr.Provisions),
-                        DisplayName = "Provisions",
-                        CultureDisplayNames = new Dictionary<string, string>
-                        {
-                            [C(Culture.AuroraStack)] = "Aurora Light",
-                            [C(Culture.Nightshelf)] = "Fire-Cores",
-                            [C(Culture.WakeSingers)] = "Offerings",
-                        },
-                        Category = AttributeCategory.Need,
-                        Min = 0f,
-                        Max = 100f,
-                        Default = 50f,
-                        DriftRate = -0.3f,
-                    },
-                ],
-                HealthAttribute = A(Attr.Cohesion),
-                StandingDrives =
-                [
-                    new StandingDriveConfig
-                    {
-                        DesiredEffect = AttributeRef.StructuralFact(F(Fact.TerritorialOrder), K.Faction),
-                        BaseUrgency = 0.035f,
-                    },
-                ],
-                PrimaryPlane = PrimaryPlane.Semantic,
-            },
-            [K.Penguin] = new()
-            {
-                Category = EntityCategory.Agency,
-                Subtypes = new HashSet<string> { "warden", "broker", "witness", "exile" },
-                HexToHealthRecoveryHosts =
-                [
-                    new RecoveryHostQueryConfig
-                    {
-                        AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
-                    },
-                ],
-                Attributes =
-                [
-                    new() { Name = A(Attr.Vitality), DisplayName = "Vitality", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 100f },
-                    new()
-                    {
-                        Name = A(Attr.Echo),
-                        DisplayName = "Echo",
-                        CultureDisplayNames = new Dictionary<string, string>
-                        {
-                            [C(Culture.AuroraStack)] = "Witness",
-                            [C(Culture.Nightshelf)] = "Echo",
-                            [C(Culture.WakeSingers)] = "History",
-                        },
-                        Category = AttributeCategory.Capacity,
-                        Min = 0f,
-                        Max = 100f,
-                        Default = 50f,
-                        DriftRate = -0.3f,
-                    },
-                    new()
-                    {
-                        Name = A(Attr.Warmth),
-                        DisplayName = "Warmth",
-                        Category = AttributeCategory.Need,
-                        Min = 0f,
-                        Max = 100f,
-                        Default = 100f,
-                        DriftRate = -0.35f,
-                        LocationResourceDriftResource = T(Res.Food),
-                        LocationResourceDriftPerUnit = 0.04f,
-                        LocationResourceDriftMinOffset = 0f,
-                        LocationResourceDriftMaxOffset = 0.27f,
-                        CriticalEffect = new CriticalEffectConfig
-                        {
-                            TargetAttribute = A(Attr.Vitality),
-                            DeltaPerTick = -0.20f,
-                            Description = "Critical warmth loss drains vitality",
-                        },
-                    },
-                ],
-                HealthAttribute = A(Attr.Vitality),
-                StandingDrives =
-                [
-                    new StandingDriveConfig
-                    {
-                        DesiredEffect = AttributeRef.StructuralFact(F(Fact.Roam), K.Penguin),
-                        BaseUrgency = 0.03f,
-                    },
-                ],
-                PrimaryPlane = PrimaryPlane.Physical,
-            },
-            [K.Artifact] = new()
-            {
-                Category = EntityCategory.Asset,
-                Subtypes = new HashSet<string> { "relic", "instrument", "weapon", "tome", "seal" },
-                HexToHealthRecoveryHosts =
-                [
-                    new RecoveryHostQueryConfig
-                    {
-                        AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
-                    },
-                ],
-                Attributes =
-                [
-                    new() { Name = A(Attr.Condition), DisplayName = "Condition", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 100f, DriftRate = -0.01f },
-                    new()
-                    {
-                        Name = A(Attr.Power),
-                        DisplayName = "Power",
-                        CultureDisplayNames = new Dictionary<string, string>
-                        {
-                            [C(Culture.AuroraStack)] = "Light",
-                            [C(Culture.Nightshelf)] = "Heat",
-                            [C(Culture.WakeSingers)] = "Pressure",
-                        },
-                        Category = AttributeCategory.Capacity,
-                        Min = 0f,
-                        Max = 100f,
-                        Default = 10f,
-                        DriftRate = -0.3f,
-                    },
-                    new() { Name = A(Attr.Resonance), DisplayName = "Resonance", Category = AttributeCategory.Drive, Min = 0f, Max = 100f, Default = 90f, DriftRate = -0.3f },
-                ],
-                HealthAttribute = A(Attr.Condition),
-                PrimaryPlane = PrimaryPlane.Physical,
-            },
+            [K.Region] = CreateRegionKind(),
+            [K.Settlement] = CreateSettlementKind(),
+            [K.Faction] = CreateFactionKind(),
+            [K.Penguin] = CreatePenguinKind(),
+            [K.Artifact] = CreateArtifactKind(),
         };
-    }
+
+    private static KindConfig CreateRegionKind() =>
+        new()
+        {
+            Category = EntityCategory.Spatial,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "face", "shelf", "depths", "reach", "sea", "scar" },
+            HexToHealthRecoveryHosts =
+            [
+                new RecoveryHostQueryConfig
+                {
+                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement, K.Artifact },
+                },
+            ],
+            Attributes =
+            [
+                new() { Name = A(Attr.Stability), DisplayName = "Stability", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 80f },
+                new() { Name = A(Attr.Holding), DisplayName = "Holding", Category = AttributeCategory.Capacity, Min = 0f, Max = 100f, Default = 50f, DriftRate = -0.3f },
+                new() { Name = A(Attr.Pristiness), DisplayName = "Pristiness", Category = AttributeCategory.Need, Min = 0f, Max = 100f, Default = 70f, DriftRate = -0.3f },
+            ],
+            HealthAttribute = A(Attr.Stability),
+            Description = "A geographically connected area of the world. A region's semantic alignment is the spirit or animist ideals of the place itself — the land's own tendencies — distinct from the people, factions, or settlements that happen to occupy it.",
+            PrimaryPlane = PrimaryPlane.Semantic,
+        };
+
+    private static KindConfig CreateSettlementKind() =>
+        new()
+        {
+            Category = EntityCategory.Spatial,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "rookery", "colony", "holdfast", "sanctuary", "harbor", "reefhold" },
+            HexToHealthRecoveryHosts =
+            [
+                new RecoveryHostQueryConfig
+                {
+                    AnyOfKinds = new HashSet<EntityKind> { K.Region, K.Artifact },
+                },
+            ],
+            Attributes =
+            [
+                new() { Name = A(Attr.Residents), DisplayName = "Residents", Category = AttributeCategory.Health, Min = 0f, Max = 100000f, Default = 10f, Baseline = 20f },
+                new() { Name = A(Attr.Dominion), DisplayName = "Dominion", Category = AttributeCategory.Projection, Min = 0f, Max = 100f, Default = 20f, DriftRate = -0.3f },
+                new() { Name = A(Attr.Shelter), DisplayName = "Shelter", Category = AttributeCategory.Need, Min = 0f, Max = 100f, Default = 60f, DriftRate = -0.3f },
+            ],
+            HealthAttribute = A(Attr.Residents),
+            PrimaryPlane = PrimaryPlane.Semantic,
+        };
+
+    private static KindConfig CreateFactionKind() =>
+        new()
+        {
+            Category = EntityCategory.Agency,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "order", "compact", "cell", "choir" },
+            HexToHealthRecoveryHosts =
+            [
+                new RecoveryHostQueryConfig
+                {
+                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
+                },
+            ],
+            Attributes = CreateFactionAttributes(),
+            HealthAttribute = A(Attr.Cohesion),
+            StandingDrives =
+            [
+                new StandingDriveConfig
+                {
+                    DesiredEffect = AttributeRef.StructuralFact(F(Fact.TerritorialOrder), K.Faction),
+                    BaseUrgency = 0.035f,
+                },
+            ],
+            PrimaryPlane = PrimaryPlane.Semantic,
+        };
+
+    private static IReadOnlyList<AttributeConfig> CreateFactionAttributes() =>
+    [
+        new() { Name = A(Attr.Cohesion), DisplayName = "Cohesion", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 70f },
+        new() { Name = A(Attr.Reach), DisplayName = "Reach", Category = AttributeCategory.Projection, Min = 0f, Max = 100f, Default = 30f, DriftRate = -0.3f },
+        new()
+        {
+            Name = A(Attr.Provisions),
+            DisplayName = "Provisions",
+            CultureDisplayNames = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [C(Culture.AuroraStack)] = "Aurora Light",
+                [C(Culture.Nightshelf)] = "Fire-Cores",
+                [C(Culture.WakeSingers)] = "Offerings",
+            },
+            Category = AttributeCategory.Need,
+            Min = 0f,
+            Max = 100f,
+            Default = 50f,
+            DriftRate = -0.3f,
+        },
+    ];
+
+    private static KindConfig CreatePenguinKind() =>
+        new()
+        {
+            Category = EntityCategory.Agency,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "warden", "broker", "witness", "exile" },
+            HexToHealthRecoveryHosts =
+            [
+                new RecoveryHostQueryConfig
+                {
+                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
+                },
+            ],
+            Attributes = CreatePenguinAttributes(),
+            HealthAttribute = A(Attr.Vitality),
+            StandingDrives =
+            [
+                new StandingDriveConfig
+                {
+                    DesiredEffect = AttributeRef.StructuralFact(F(Fact.Roam), K.Penguin),
+                    BaseUrgency = 0.03f,
+                },
+            ],
+            PrimaryPlane = PrimaryPlane.Physical,
+        };
+
+    private static IReadOnlyList<AttributeConfig> CreatePenguinAttributes() =>
+    [
+        new() { Name = A(Attr.Vitality), DisplayName = "Vitality", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 100f },
+        new()
+        {
+            Name = A(Attr.Echo),
+            DisplayName = "Echo",
+            CultureDisplayNames = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [C(Culture.AuroraStack)] = "Witness",
+                [C(Culture.Nightshelf)] = "Echo",
+                [C(Culture.WakeSingers)] = "History",
+            },
+            Category = AttributeCategory.Capacity,
+            Min = 0f,
+            Max = 100f,
+            Default = 50f,
+            DriftRate = -0.3f,
+        },
+        new()
+        {
+            Name = A(Attr.Warmth),
+            DisplayName = "Warmth",
+            Category = AttributeCategory.Need,
+            Min = 0f,
+            Max = 100f,
+            Default = 100f,
+            DriftRate = -0.35f,
+            LocationResourceDriftResource = T(Res.Food),
+            LocationResourceDriftPerUnit = 0.04f,
+            LocationResourceDriftMinOffset = 0f,
+            LocationResourceDriftMaxOffset = 0.27f,
+            CriticalEffect = new CriticalEffectConfig
+            {
+                TargetAttribute = A(Attr.Vitality),
+                DeltaPerTick = -0.20f,
+                Description = "Critical warmth loss drains vitality",
+            },
+        },
+    ];
+
+    private static KindConfig CreateArtifactKind() =>
+        new()
+        {
+            Category = EntityCategory.Asset,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "relic", "instrument", "weapon", "tome", "seal" },
+            HexToHealthRecoveryHosts =
+            [
+                new RecoveryHostQueryConfig
+                {
+                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
+                },
+            ],
+            Attributes = CreateArtifactAttributes(),
+            HealthAttribute = A(Attr.Condition),
+            PrimaryPlane = PrimaryPlane.Physical,
+        };
+
+    private static IReadOnlyList<AttributeConfig> CreateArtifactAttributes() =>
+    [
+        new() { Name = A(Attr.Condition), DisplayName = "Condition", Category = AttributeCategory.Health, Min = 0f, Max = 100f, Default = 100f, DriftRate = -0.01f },
+        new()
+        {
+            Name = A(Attr.Power),
+            DisplayName = "Power",
+            CultureDisplayNames = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [C(Culture.AuroraStack)] = "Light",
+                [C(Culture.Nightshelf)] = "Heat",
+                [C(Culture.WakeSingers)] = "Pressure",
+            },
+            Category = AttributeCategory.Capacity,
+            Min = 0f,
+            Max = 100f,
+            Default = 10f,
+            DriftRate = -0.3f,
+        },
+        new() { Name = A(Attr.Resonance), DisplayName = "Resonance", Category = AttributeCategory.Drive, Min = 0f, Max = 100f, Default = 90f, DriftRate = -0.3f },
+    ];
 
     private static List<RelationshipConfig> CreateRelationships()
     {

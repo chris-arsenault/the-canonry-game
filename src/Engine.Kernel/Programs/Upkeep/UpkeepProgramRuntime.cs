@@ -116,6 +116,17 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
     {
         var world = simulation.World;
         var kindId = world.EntityKindId(entityId);
+        ApplyCriticalEffectsForKind(simulation, entityId, tick, kindId);
+        ApplyDriftRulesForKind(simulation, entityId, tick, kindId);
+        var healthAttributeId = ApplyLifecycleDrainForKind(simulation, entityId, tick, kindId);
+        if (healthAttributeId > 0 && world.GetAttribute(entityId, healthAttributeId) <= 0f)
+        {
+            simulation.SetEntityStatus(entityId, EntityStatusCodes.Historical, tick);
+        }
+    }
+
+    private void ApplyCriticalEffectsForKind(Simulation simulation, int entityId, int tick, int kindId)
+    {
         for (var rule = 1; rule <= _upkeepRuleCount; rule++)
         {
             if (_upkeepKindIds[rule] == kindId && _criticalTargetAttributeIds[rule] > 0)
@@ -123,11 +134,11 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
                 ApplyCriticalEffect(simulation, entityId, tick, rule);
             }
         }
+    }
 
-        // TODO(kernel effects): Drift, location-resource offsets, critical consequences,
-        // and lifecycle drain are currently hard-coded base attribute mutations. These
-        // need to become mutable rules in a generalized effects system rather than
-        // dedicated upkeep code paths.
+    private void ApplyDriftRulesForKind(Simulation simulation, int entityId, int tick, int kindId)
+    {
+        var world = simulation.World;
         for (var rule = 1; rule <= _upkeepRuleCount; rule++)
         {
             if (_upkeepKindIds[rule] != kindId)
@@ -142,9 +153,10 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
                 simulation.ModifyAttribute(entityId, _upkeepAttributeIds[rule], delta, tick);
             }
         }
+    }
 
-        // TODO(kernel effects): Lifecycle drain needs to be expressed as a mutable
-        // effect so domain/runtime systems can alter aging and drain behavior emergently.
+    private int ApplyLifecycleDrainForKind(Simulation simulation, int entityId, int tick, int kindId)
+    {
         var healthAttributeId = 0;
         var entityData = simulation.KernelData.Entities;
         for (var rule = 1; rule <= entityData.AttributeCount; rule++)
@@ -167,10 +179,7 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
             }
         }
 
-        if (healthAttributeId > 0 && world.GetAttribute(entityId, healthAttributeId) <= 0f)
-        {
-            simulation.SetEntityStatus(entityId, EntityStatusCodes.Historical, tick);
-        }
+        return healthAttributeId;
     }
 
     private void ApplyCriticalEffect(Simulation simulation, int entityId, int tick, int rule)

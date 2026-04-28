@@ -145,7 +145,7 @@ public sealed class KernelEventLayoutContractTests
 
     private static IEnumerable<Type> PayloadTypes() =>
         typeof(KernelEvent).Assembly.GetTypes()
-            .Where(type => type.GetCustomAttribute<KernelEventLayoutAttribute>() is not null)
+            .Where(type => Attribute.IsDefined(type, typeof(KernelEventLayoutAttribute)))
             .OrderBy(type => (int)type.GetCustomAttribute<KernelEventLayoutAttribute>()!.EventType);
 
     private static ConstructorInfo PayloadConstructor(Type payloadType) =>

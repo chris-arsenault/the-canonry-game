@@ -46,6 +46,13 @@ public sealed class KernelEventPayloadTests
     [Fact]
     public void GeneratedPackAndViewRoundTripEveryRegisteredEvent()
     {
+        AssertEntityAndChangeEventsRoundTrip();
+        AssertRuntimeEventsRoundTrip();
+        AssertPlanningEventsRoundTrip();
+    }
+
+    private static void AssertEntityAndChangeEventsRoundTrip()
+    {
         var entityCreated = new EntityCreatedKernelEvent(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, -21);
         Assert.Equal(entityCreated, KernelEvent.From(entityCreated).AsEntityCreated());
 
@@ -64,7 +71,10 @@ public sealed class KernelEventPayloadTests
         var relationshipChanged = new RelationshipChangedKernelEvent(
             6, 7, 8, 9, 10, InvalidPolarityCode, 11, 12, 13, 14, 15, 16, 4, 0.125f, 0.875f);
         Assert.Equal(relationshipChanged, KernelEvent.From(relationshipChanged).AsRelationshipChanged());
+    }
 
+    private static void AssertRuntimeEventsRoundTrip()
+    {
         var processEvaluated = new ProcessEvaluatedKernelEvent(
             7, 8, 9, 10, 11, 12, 13, KernelEventState.Succeeded | KernelEventState.Stale);
         Assert.Equal(processEvaluated, KernelEvent.From(processEvaluated).AsProcessEvaluated());
@@ -105,7 +115,10 @@ public sealed class KernelEventPayloadTests
 
         var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4);
         Assert.Equal(cellCreated, KernelEvent.From(cellCreated).AsCellCreated());
+    }
 
+    private static void AssertPlanningEventsRoundTrip()
+    {
         var planStarted = new PlanStartedKernelEvent(18, 19, 20, 21, 22, 23);
         Assert.Equal(planStarted, KernelEvent.From(planStarted).AsPlanStarted());
 

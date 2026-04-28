@@ -237,13 +237,31 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
 
         var header = PlanHeader(decision.Plan);
         var goalId = header.ObjectiveEffectKey;
+        EmitGoalEvents(simulation, request, planId, goalId, header.Score);
+        EmitPlanStepEvents(simulation, request, decision, planId, goalId, header.StepCount);
+        simulation.EmitPlanCommitted(
+            request.Tick,
+            planId,
+            request.ActorEntityId,
+            header.StepCount,
+            PlanningStatusCodes.Succeeded,
+            header.Score);
+    }
+
+    private static void EmitGoalEvents(
+        Simulation simulation,
+        in PlanningRequest request,
+        int planId,
+        int goalId,
+        float score)
+    {
         simulation.EmitGoalConsidered(
             request.Tick,
             planId,
             request.ActorEntityId,
             goalId,
             candidateIndex: 0,
-            preliminaryScore: header.Score);
+            preliminaryScore: score);
         simulation.EmitGoalScored(
             request.Tick,
             planId,
@@ -251,16 +269,25 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
             goalId,
             PlanningStatusCodes.Succeeded,
             scoringPassIndex: 0,
-            scoreDelta: header.Score,
-            runningTotal: header.Score);
+            scoreDelta: score,
+            runningTotal: score);
         simulation.EmitGoalSelected(
             request.Tick,
             planId,
             request.ActorEntityId,
             goalId,
-            header.Score);
+            score);
+    }
 
-        for (var stepIndex = 0; stepIndex < header.StepCount; stepIndex++)
+    private void EmitPlanStepEvents(
+        Simulation simulation,
+        in PlanningRequest request,
+        in PlanningDecision decision,
+        int planId,
+        int goalId,
+        int stepCount)
+    {
+        for (var stepIndex = 0; stepIndex < stepCount; stepIndex++)
         {
             var step = PlanStep(decision.Plan, stepIndex);
             simulation.EmitPlanStepEmitted(
@@ -273,14 +300,6 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
                 step.TargetEntityId,
                 relationshipKindId: 0);
         }
-
-        simulation.EmitPlanCommitted(
-            request.Tick,
-            planId,
-            request.ActorEntityId,
-            header.StepCount,
-            PlanningStatusCodes.Succeeded,
-            header.Score);
     }
 
     private static int PlanId(int actionFamilyCode)

@@ -34,59 +34,14 @@ internal sealed partial class Simulation : IKernel
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity),
             new KernelTerrainData(options.TerrainIdCapacity));
         World = new WorldState(Events, options, KernelData);
-        Planners = new PlanningProgramRuntime(
-            new PlanningProgramData(PlannerKindCodes.Goap),
-            new PlanningProgramState(),
-            new PlanningProgramScratch(
-                options.ProcessObjectiveCapacity + options.GambitObjectiveCapacity,
-                options.ProcessObjectiveCapacity + options.GambitObjectiveCapacity + 2));
-        Processes = new ProcessProgramRuntime(
-            new ProcessProgramData(
-                options.ProcessCapacity,
-                options.ProcessStepCapacity,
-                options.ProcessObjectiveCapacity,
-                options.ProcessProviderSelectorCapacity,
-                options.ProcessSupportRuleCapacity),
-            new ProcessProgramState(
-                options.ProcessCapacity,
-                options.ProcessCooldownCapacity,
-                options.EntityCapacity,
-                options.ProcessCommitmentCapacity),
-            new ProcessProgramScratch(
-                options.MapCellCapacity,
-                options.EntityCapacity,
-                options.ProcessObjectiveCapacity));
-        Gambits = new GambitProgramRuntime(
-            new GambitProgramData(
-                options.GambitCapacity,
-                options.GambitStepCapacity,
-                options.GambitObjectiveCapacity,
-                options.GambitProviderSelectorCapacity,
-                options.GambitSupportRuleCapacity),
-            new GambitProgramState(
-                options.GambitCapacity,
-                options.GambitCooldownCapacity,
-                options.EntityCapacity,
-                options.GambitCommitmentCapacity),
-            new GambitProgramScratch(
-                options.MapCellCapacity,
-                options.EntityCapacity,
-                options.GambitObjectiveCapacity));
-        Generators = new GeneratorProgramRuntime(
-            new GeneratorProgramData(options.GeneratorCapacity, options.GeneratorItemCapacity),
-            new GeneratorProgramState(options.GeneratorCapacity));
-        Pressures = new PressureProgramRuntime(
-            new PressureProgramData(options.PressureCapacity),
-            new PressureProgramState(options.PressureCapacity, options.PressureValueCapacity));
-        Degeneracy = new DegeneracyProgramRuntime(
-            new DegeneracyProgramData(options.DegeneracyDetectorCapacity),
-            new DegeneracyProgramState(options.DegeneracyDetectorCapacity, options.DegeneracyStateCapacity));
-        Upkeep = new UpkeepProgramRuntime(
-            new UpkeepProgramData(options.UpkeepRuleCapacity, options.LifecycleRuleCapacity),
-            new UpkeepProgramState());
-        Relationships = new RelationshipProgramRuntime(
-            new RelationshipProgramData(options.RelationshipRuleCapacity),
-            new RelationshipProgramState());
+        Planners = CreatePlanningRuntime(options);
+        Processes = CreateProcessRuntime(options);
+        Gambits = CreateGambitRuntime(options);
+        Generators = CreateGeneratorRuntime(options);
+        Pressures = CreatePressureRuntime(options);
+        Degeneracy = CreateDegeneracyRuntime(options);
+        Upkeep = CreateUpkeepRuntime(options);
+        Relationships = CreateRelationshipRuntime(options);
         ProcessSourceCodeId = options.RuntimeCodes.ProcessSourceCodeId;
         GambitSourceCodeId = options.RuntimeCodes.GambitSourceCodeId;
         UpkeepSourceCodeId = options.RuntimeCodes.UpkeepSourceCodeId;
@@ -104,6 +59,81 @@ internal sealed partial class Simulation : IKernel
         _systems = new ISimulationSystem[options.SystemCapacity];
         _systemActive = new bool[options.SystemCapacity];
         _programs = new KernelProgramRegistry(options.SystemCapacity);
+        RegisterDefaultPrograms();
+    }
+
+    private static PlanningProgramRuntime CreatePlanningRuntime(SimulationOptions options)
+    {
+        var objectiveCapacity = options.ProcessObjectiveCapacity + options.GambitObjectiveCapacity;
+        return new PlanningProgramRuntime(
+            new PlanningProgramData(PlannerKindCodes.Goap),
+            new PlanningProgramState(),
+            new PlanningProgramScratch(objectiveCapacity, objectiveCapacity + 2));
+    }
+
+    private static ProcessProgramRuntime CreateProcessRuntime(SimulationOptions options) =>
+        new(
+            new ProcessProgramData(
+                options.ProcessCapacity,
+                options.ProcessStepCapacity,
+                options.ProcessObjectiveCapacity,
+                options.ProcessProviderSelectorCapacity,
+                options.ProcessSupportRuleCapacity),
+            new ProcessProgramState(
+                options.ProcessCapacity,
+                options.ProcessCooldownCapacity,
+                options.EntityCapacity,
+                options.ProcessCommitmentCapacity),
+            new ProcessProgramScratch(
+                options.MapCellCapacity,
+                options.EntityCapacity,
+                options.ProcessObjectiveCapacity));
+
+    private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
+        new(
+            new GambitProgramData(
+                options.GambitCapacity,
+                options.GambitStepCapacity,
+                options.GambitObjectiveCapacity,
+                options.GambitProviderSelectorCapacity,
+                options.GambitSupportRuleCapacity),
+            new GambitProgramState(
+                options.GambitCapacity,
+                options.GambitCooldownCapacity,
+                options.EntityCapacity,
+                options.GambitCommitmentCapacity),
+            new GambitProgramScratch(
+                options.MapCellCapacity,
+                options.EntityCapacity,
+                options.GambitObjectiveCapacity));
+
+    private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options) =>
+        new(
+            new GeneratorProgramData(options.GeneratorCapacity, options.GeneratorItemCapacity),
+            new GeneratorProgramState(options.GeneratorCapacity));
+
+    private static PressureProgramRuntime CreatePressureRuntime(SimulationOptions options) =>
+        new(
+            new PressureProgramData(options.PressureCapacity),
+            new PressureProgramState(options.PressureCapacity, options.PressureValueCapacity));
+
+    private static DegeneracyProgramRuntime CreateDegeneracyRuntime(SimulationOptions options) =>
+        new(
+            new DegeneracyProgramData(options.DegeneracyDetectorCapacity),
+            new DegeneracyProgramState(options.DegeneracyDetectorCapacity, options.DegeneracyStateCapacity));
+
+    private static UpkeepProgramRuntime CreateUpkeepRuntime(SimulationOptions options) =>
+        new(
+            new UpkeepProgramData(options.UpkeepRuleCapacity, options.LifecycleRuleCapacity),
+            new UpkeepProgramState());
+
+    private static RelationshipProgramRuntime CreateRelationshipRuntime(SimulationOptions options) =>
+        new(
+            new RelationshipProgramData(options.RelationshipRuleCapacity),
+            new RelationshipProgramState());
+
+    private void RegisterDefaultPrograms()
+    {
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
         RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
         RegisterProgram(KernelProgramCodes.Processes, 1, Processes);
@@ -656,305 +686,6 @@ internal sealed partial class Simulation : IKernel
         {
             throw new global::System.InvalidOperationException();
         }
-    }
-
-    private void WriteKernelEvent(in KernelEvent kernelEvent)
-    {
-        var contextualEvent = kernelEvent.WithExecutionContext(
-            _executionContext.ProgramId,
-            _executionContext.SourceCodeId);
-        if (!Events.TryWrite(contextualEvent))
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
-    internal void WriteGeneratorEnabledChanged(int generatorId, int enabled)
-    {
-        WriteKernelEvent(KernelEvent.From(new GeneratorEnabledChangedKernelEvent(
-            CurrentTick,
-            WorldVersion,
-            generatorId,
-            enabled)));
-    }
-
-    internal void EmitProcessEvaluated(
-        int tick,
-        int entityId,
-        int kindId,
-        int selectedGoalId,
-        int processId,
-        int candidateCount,
-        KernelEventState state)
-    {
-        WriteKernelEvent(KernelEvent.From(new ProcessEvaluatedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            selectedGoalId,
-            processId,
-            candidateCount,
-            state)));
-    }
-
-    internal void EmitProcessExecuted(
-        int tick,
-        int entityId,
-        int targetId,
-        int kindId,
-        int processId)
-    {
-        WriteKernelEvent(KernelEvent.From(new ProcessExecutedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            processId,
-            entityId,
-            targetId == entityId ? 0 : targetId,
-            targetId == entityId ? 1 : 2,
-            KernelEventState.Succeeded)));
-    }
-
-    internal void EmitGambitEvaluated(
-        int tick,
-        int entityId,
-        int kindId,
-        int gambitId,
-        int candidateCount,
-        KernelEventState state)
-    {
-        WriteKernelEvent(KernelEvent.From(new GambitEvaluatedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            gambitId,
-            candidateCount,
-            state)));
-    }
-
-    internal void EmitGambitExecuted(
-        int tick,
-        int entityId,
-        int targetId,
-        int kindId,
-        int gambitId,
-        KernelEventState state)
-    {
-        WriteKernelEvent(KernelEvent.From(new GambitExecutedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            gambitId,
-            entityId,
-            targetId == entityId ? 0 : targetId,
-            targetId == entityId ? 1 : 2,
-            state)));
-    }
-
-    internal void EmitGeneratorEvaluated(
-        int tick,
-        int generatorId,
-        int statusCode,
-        int selectedTargetEntityId,
-        int candidateCount,
-        int failedFireCount)
-    {
-        WriteKernelEvent(KernelEvent.From(new GeneratorEvaluatedKernelEvent(
-            tick,
-            WorldVersion,
-            generatorId,
-            statusCode,
-            selectedTargetEntityId,
-            candidateCount,
-            failedFireCount)));
-    }
-
-    internal void EmitGeneratorFired(
-        int tick,
-        int generatorId,
-        int selectedTargetEntityId,
-        int createdEntityCount,
-        int createdRelationshipCount)
-    {
-        WriteKernelEvent(KernelEvent.From(new GeneratorFiredKernelEvent(
-            tick,
-            WorldVersion,
-            generatorId,
-            selectedTargetEntityId,
-            createdEntityCount,
-            createdRelationshipCount)));
-    }
-
-    internal void EmitDegeneracyDetected(
-        int tick,
-        int detectorId,
-        int severityCode,
-        int reasonCodeId)
-    {
-        WriteKernelEvent(KernelEvent.From(new DegeneracyDetectedKernelEvent(
-            tick,
-            WorldVersion,
-            detectorId,
-            severityCode,
-            reasonCodeId)));
-    }
-
-    internal void EmitPlanStarted(
-        int tick,
-        int planId,
-        int entityId,
-        int reasonCodeId,
-        int candidateCount)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanStartedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            reasonCodeId,
-            candidateCount)));
-    }
-
-    internal void EmitGoalConsidered(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        int candidateIndex,
-        float preliminaryScore)
-    {
-        WriteKernelEvent(KernelEvent.From(new GoalConsideredKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            candidateIndex,
-            preliminaryScore)));
-    }
-
-    internal void EmitGoalScored(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        int reasonCodeId,
-        int scoringPassIndex,
-        float scoreDelta,
-        float runningTotal)
-    {
-        WriteKernelEvent(KernelEvent.From(new GoalScoredKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            reasonCodeId,
-            scoringPassIndex,
-            scoreDelta,
-            runningTotal)));
-    }
-
-    internal void EmitGoalSelected(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        float finalScore)
-    {
-        WriteKernelEvent(KernelEvent.From(new GoalSelectedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            finalScore)));
-    }
-
-    internal void EmitPlanStepEmitted(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        int stepIndex,
-        int processId,
-        int targetEntityId,
-        int relationshipKindId)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanStepEmittedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            stepIndex,
-            processId,
-            targetEntityId,
-            relationshipKindId)));
-    }
-
-    internal void EmitPlanCommitted(
-        int tick,
-        int planId,
-        int entityId,
-        int stepCount,
-        int reasonCodeId,
-        float totalScore)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanCommittedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            stepCount,
-            reasonCodeId,
-            totalScore)));
-    }
-
-    internal void EmitPlanAbandoned(
-        int tick,
-        int planId,
-        int entityId,
-        int reasonCodeId)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanAbandonedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            reasonCodeId)));
-    }
-
-    private void WriteTickCompleted()
-    {
-        WriteKernelEvent(KernelEvent.From(new TickCompletedKernelEvent(
-            CurrentTick,
-            WorldVersion)));
-    }
-
-    private void WriteCommandApplied(in KernelCommand command)
-    {
-        WriteKernelEvent(KernelEvent.From(new CommandAppliedKernelEvent(
-            CurrentTick,
-            WorldVersion,
-            command.CommandId,
-            command.CommandType,
-            command.IssueVersion)));
-    }
-
-    private void WriteCommandRejected(in KernelCommand command, int reasonCodeId)
-    {
-        WriteKernelEvent(KernelEvent.From(new CommandRejectedKernelEvent(
-            CurrentTick,
-            WorldVersion,
-            command.CommandId,
-            command.CommandType,
-            command.IssueVersion,
-            reasonCodeId)));
     }
 
     private void AssertWriterThread()

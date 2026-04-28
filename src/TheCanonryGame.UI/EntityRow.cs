@@ -2,9 +2,10 @@
 #pragma warning disable CA1305
 #pragma warning disable CA2000
 #pragma warning disable CA2213
+using Engine.Projection;
+
 using Godot;
 
-using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;

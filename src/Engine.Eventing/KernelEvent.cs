@@ -554,6 +554,7 @@ public readonly partial record struct KernelEvent
             float3: _float3);
     }
 
+#pragma warning disable S1541 // Direct slot dispatch is intentionally allocation-free.
     public int GetIntSlot(int slot) => slot switch
     {
         0 => _int0,
@@ -570,6 +571,7 @@ public readonly partial record struct KernelEvent
         11 => _int11,
         _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 11."),
     };
+#pragma warning restore S1541
 
     public float GetFloatSlot(int slot) => slot switch
     {

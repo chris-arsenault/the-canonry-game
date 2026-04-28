@@ -295,8 +295,8 @@ public sealed class KernelExecutionContextTests
 
         Assert.Equal(
         [
-            "src/Engine.Kernel/Simulation.cs",
-            "src/Engine.Kernel/WorldState.cs",
+            "src/Engine.Kernel/Simulation.Events.cs",
+            "src/Engine.Kernel/WorldState.RelationshipIndexes.cs",
         ], rawWriteOwners);
     }
 

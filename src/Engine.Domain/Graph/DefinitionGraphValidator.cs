@@ -4,7 +4,7 @@ using Engine.Kinds;
 using Engine.Processes;
 using Engine.Wiring;
 
-public static class DefinitionGraphValidator
+public static partial class DefinitionGraphValidator
 {
     public static IReadOnlyList<string> Validate(DefinitionGraph graph)
     {
@@ -12,11 +12,29 @@ public static class DefinitionGraphValidator
 
         var errors = new List<string>();
 
+        ValidateKindNodes(graph, errors);
+        ValidateResourceKeys(graph, errors);
+        ValidateRelationshipKeys(graph, errors);
+        ValidatePressureKeys(graph, errors);
+        ValidateLifecycleNodes(graph, errors);
+        ValidateProcessSet(graph, errors);
+        ValidateGambitSet(graph, errors);
+        ValidateSemanticSet(graph, errors);
+        ValidateGeneratorSet(graph, errors);
+
+        return errors;
+    }
+
+    private static void ValidateKindNodes(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var (kind, kindNode) in graph.Kinds)
         {
             ValidateKindNode(kind, kindNode, graph, errors);
         }
+    }
 
+    private static void ValidateResourceKeys(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var (resourceId, resourceNode) in graph.Resources)
         {
             if (resourceNode.Id != resourceId)
@@ -24,7 +42,10 @@ public static class DefinitionGraphValidator
                 errors.Add($"Resource node key '{resourceId}' does not match node id '{resourceNode.Id}'.");
             }
         }
+    }
 
+    private static void ValidateRelationshipKeys(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var (relationshipId, relationshipNode) in graph.Relationships)
         {
             if (relationshipNode.Id != relationshipId)
@@ -32,7 +53,10 @@ public static class DefinitionGraphValidator
                 errors.Add($"Relationship node key '{relationshipId}' does not match node id '{relationshipNode.Id}'.");
             }
         }
+    }
 
+    private static void ValidatePressureKeys(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var (pressureId, pressureNode) in graph.Pressures)
         {
             if (pressureNode.Id != pressureId)
@@ -40,48 +64,90 @@ public static class DefinitionGraphValidator
                 errors.Add($"Pressure node key '{pressureId}' does not match node id '{pressureNode.Id}'.");
             }
         }
+    }
 
+    private static void ValidateLifecycleNodes(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var (kind, lifecycleNode) in graph.Lifecycles)
         {
             ValidateLifecycleNode(kind, lifecycleNode, graph, errors);
         }
+    }
 
+    private static void ValidateProcessSet(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var process in graph.Processes.Values)
         {
-            if (!graph.Kinds.ContainsKey(process.TargetKind))
-            {
-                errors.Add($"Process '{process.Id}' targets missing kind '{process.TargetKind}'.");
-            }
-
-            ValidateRefs(process.Id, process.Reads, graph, errors);
-            ValidateRefs(process.Id, process.Writes, graph, errors);
-            ValidateRefs(process.Id, process.GoalEffects, graph, errors);
-            ValidateRefs(process.Id, process.ProviderSelectors, graph, errors);
-
-            foreach (var supportRule in process.SupportRules)
-            {
-                ValidateRefs($"{process.Id}.support", [supportRule.DesiredEffect], graph, errors);
-            }
+            ValidateBehaviorNode(
+                "Process",
+                process.Id,
+                process.TargetKind,
+                process.Reads,
+                process.Writes,
+                process.GoalEffects,
+                process.ProviderSelectors,
+                process.SupportRules,
+                graph,
+                errors);
         }
+    }
 
+    private static void ValidateGambitSet(DefinitionGraph graph, List<string> errors)
+    {
         foreach (var gambit in graph.Gambits.Values)
         {
-            if (!graph.Kinds.ContainsKey(gambit.TargetKind))
-            {
-                errors.Add($"Gambit '{gambit.Id}' targets missing kind '{gambit.TargetKind}'.");
-            }
+            ValidateBehaviorNode(
+                "Gambit",
+                gambit.Id,
+                gambit.TargetKind,
+                gambit.Reads,
+                gambit.Writes,
+                gambit.GoalEffects,
+                gambit.ProviderSelectors,
+                gambit.SupportRules,
+                graph,
+                errors);
+        }
+    }
 
-            ValidateRefs(gambit.Id, gambit.Reads, graph, errors);
-            ValidateRefs(gambit.Id, gambit.Writes, graph, errors);
-            ValidateRefs(gambit.Id, gambit.GoalEffects, graph, errors);
-            ValidateRefs(gambit.Id, gambit.ProviderSelectors, graph, errors);
-
-            foreach (var supportRule in gambit.SupportRules)
-            {
-                ValidateRefs($"{gambit.Id}.support", [supportRule.DesiredEffect], graph, errors);
-            }
+    private static void ValidateBehaviorNode(
+        string behaviorType,
+        string behaviorId,
+        EntityKind targetKind,
+        IEnumerable<TypedDefinitionRef> reads,
+        IEnumerable<TypedDefinitionRef> writes,
+        IEnumerable<TypedDefinitionRef> goalEffects,
+        IEnumerable<TypedDefinitionRef> providerSelectors,
+        IEnumerable<DefinitionSupportRuleNode> supportRules,
+        DefinitionGraph graph,
+        List<string> errors)
+    {
+        if (!graph.Kinds.ContainsKey(targetKind))
+        {
+            errors.Add($"{behaviorType} '{behaviorId}' targets missing kind '{targetKind}'.");
         }
 
+        ValidateRefs(behaviorId, reads, graph, errors);
+        ValidateRefs(behaviorId, writes, graph, errors);
+        ValidateRefs(behaviorId, goalEffects, graph, errors);
+        ValidateRefs(behaviorId, providerSelectors, graph, errors);
+        ValidateSupportRules(behaviorId, supportRules, graph, errors);
+    }
+
+    private static void ValidateSupportRules(
+        string behaviorId,
+        IEnumerable<DefinitionSupportRuleNode> supportRules,
+        DefinitionGraph graph,
+        List<string> errors)
+    {
+        foreach (var supportRule in supportRules)
+        {
+            ValidateRefs($"{behaviorId}.support", [supportRule.DesiredEffect], graph, errors);
+        }
+    }
+
+    private static void ValidateSemanticSet(DefinitionGraph graph, List<string> errors)
+    {
         ValidateSemanticFlows(graph, errors);
         ValidateSemanticVerbParticipation(graph, errors);
         ValidateResourceStockInflows(graph, errors);
@@ -94,54 +160,79 @@ public static class DefinitionGraphValidator
         ValidateMobilityAndDriftVerbs(graph, errors);
         ValidateNonHealthScalarDecay(graph, errors);
         ValidateTransferPreconditionGates(graph, errors);
-        ValidateGeneratorSet(graph, errors);
-
-        return errors;
     }
 
     private static void ValidateGeneratorSet(DefinitionGraph graph, List<string> errors)
     {
         foreach (var generator in graph.Generators.Values)
         {
-            if (generator.Triggers.Count == 0)
-            {
-                errors.Add($"Generator '{generator.Id}' must declare at least one trigger.");
-            }
-
-            foreach (var trigger in generator.Triggers)
-            {
-                if (trigger.OnKind != generator.Target.Kind)
-                {
-                    errors.Add(
-                        $"Generator '{generator.Id}' target kind '{generator.Target.Kind}' does not match trigger kind '{trigger.OnKind}'.");
-                }
-            }
-
-            var referencedRefs = generator.Relationships
-                .SelectMany(relationship => new[] { relationship.SourceRef, relationship.DestinationRef })
-                .ToHashSet(StringComparer.Ordinal);
-
-            foreach (var produced in generator.Produces)
-            {
-                if (!referencedRefs.Contains(produced.Ref))
-                {
-                    errors.Add(
-                        $"Generator '{generator.Id}' produces '{produced.Ref}' but no relationship references it.");
-                }
-
-                if (produced.CreateChance < 1f)
-                {
-                    var referenceCount = generator.Relationships.Count(relationship =>
-                        relationship.SourceRef == produced.Ref || relationship.DestinationRef == produced.Ref);
-                    if (referenceCount > 2)
-                    {
-                        errors.Add(
-                            $"Generator '{generator.Id}' optional produce '{produced.Ref}' is referenced by {referenceCount} relationships; keep optional anchors at 2 or fewer.");
-                    }
-                }
-            }
-
+            ValidateGeneratorTriggers(generator, errors);
+            ValidateGeneratorProduces(generator, errors);
             ValidateGeneratorCultureInheritance(generator, errors);
+        }
+    }
+
+    private static void ValidateGeneratorTriggers(DefinitionGeneratorNode generator, List<string> errors)
+    {
+        if (generator.Triggers.Count == 0)
+        {
+            errors.Add($"Generator '{generator.Id}' must declare at least one trigger.");
+        }
+
+        foreach (var trigger in generator.Triggers)
+        {
+            if (trigger.OnKind != generator.Target.Kind)
+            {
+                errors.Add(
+                    $"Generator '{generator.Id}' target kind '{generator.Target.Kind}' does not match trigger kind '{trigger.OnKind}'.");
+            }
+        }
+    }
+
+    private static void ValidateGeneratorProduces(DefinitionGeneratorNode generator, List<string> errors)
+    {
+        var referencedRefs = GeneratorRelationshipRefs(generator);
+        foreach (var produced in generator.Produces)
+        {
+            ValidateProducedRelationshipReference(generator, produced, referencedRefs, errors);
+            ValidateOptionalProducedReferenceCount(generator, produced, errors);
+        }
+    }
+
+    private static HashSet<string> GeneratorRelationshipRefs(DefinitionGeneratorNode generator) =>
+        generator.Relationships
+            .SelectMany(relationship => new[] { relationship.SourceRef, relationship.DestinationRef })
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static void ValidateProducedRelationshipReference(
+        DefinitionGeneratorNode generator,
+        DefinitionProducedEntity produced,
+        HashSet<string> referencedRefs,
+        List<string> errors)
+    {
+        if (!referencedRefs.Contains(produced.Ref))
+        {
+            errors.Add(
+                $"Generator '{generator.Id}' produces '{produced.Ref}' but no relationship references it.");
+        }
+    }
+
+    private static void ValidateOptionalProducedReferenceCount(
+        DefinitionGeneratorNode generator,
+        DefinitionProducedEntity produced,
+        List<string> errors)
+    {
+        if (produced.CreateChance >= 1f)
+        {
+            return;
+        }
+
+        var referenceCount = generator.Relationships.Count(relationship =>
+            relationship.SourceRef == produced.Ref || relationship.DestinationRef == produced.Ref);
+        if (referenceCount > 2)
+        {
+            errors.Add(
+                $"Generator '{generator.Id}' optional produce '{produced.Ref}' is referenced by {referenceCount} relationships; keep optional anchors at 2 or fewer.");
         }
     }
 
@@ -200,16 +291,27 @@ public static class DefinitionGraphValidator
                         healthVal.AttributeId.Equals(healthId)))
                 .ToList();
 
-            if (selfSacFlows.Count == 0)
-            {
-                errors.Add(
-                    $"Kind '{kind}' has no self-sacrifice flow from Health ('{healthId.Value}'). Author one inflow on K.O or K.I whose source ref is Self(K, {healthId.Value}).");
-            }
-            else if (selfSacFlows.Count > 1)
-            {
-                errors.Add(
-                    $"Kind '{kind}' declares {selfSacFlows.Count} self-sacrifice flows from Health; exactly one is required.");
-            }
+            AddSelfSacrificeCountError(kind, healthId, selfSacFlows.Count, errors);
+        }
+    }
+
+    private static void AddSelfSacrificeCountError(
+        EntityKind kind,
+        DefinitionAttributeId healthId,
+        int selfSacrificeCount,
+        List<string> errors)
+    {
+        if (selfSacrificeCount == 0)
+        {
+            errors.Add(
+                $"Kind '{kind}' has no self-sacrifice flow from Health ('{healthId.Value}'). Author one inflow on K.O or K.I whose source ref is Self(K, {healthId.Value}).");
+            return;
+        }
+
+        if (selfSacrificeCount > 1)
+        {
+            errors.Add(
+                $"Kind '{kind}' declares {selfSacrificeCount} self-sacrifice flows from Health; exactly one is required.");
         }
     }
 
@@ -439,27 +541,12 @@ public static class DefinitionGraphValidator
                 continue;
             }
 
-            // Find the self-sac target (the attribute receiving from Health).
-            var sacTarget = graph.SemanticFlows.Flows
-                .Where(flow =>
-                    flow.Role == SemanticFlowRole.Inflow &&
-                    flow.TargetStock.Id is AttributeStockId target &&
-                    target.Key.Kind == kind &&
-                    target.Key.AttributeId != healthId &&
-                    flow.SourceRefs.Any(src =>
-                        src.Scope == RefScope.Self &&
-                        src.Kind == kind &&
-                        src.ValueId is AttributeValueId va &&
-                        va.AttributeId == healthId))
-                .Select(flow => ((AttributeStockId)flow.TargetStock.Id).Key.AttributeId)
-                .FirstOrDefault();
-
+            var sacTarget = FindSelfSacrificeTarget(graph, kind, healthId);
             if (sacTarget == default)
             {
-                continue; // self-sac invariant will report its own error
+                continue;
             }
 
-            // Untouched = the other non-Health attribute.
             var untouched = kindNode.Attributes.Keys
                 .FirstOrDefault(id => id != healthId && id != sacTarget);
             if (untouched == default)
@@ -467,20 +554,47 @@ public static class DefinitionGraphValidator
                 continue;
             }
 
-            var hasHexOutflow = graph.SemanticFlows.Flows.Any(flow =>
-                flow.Role == SemanticFlowRole.Outflow &&
-                flow.TargetStock.Id is AttributeStockId source &&
-                source.Key.Kind == kind &&
-                source.Key.AttributeId == untouched &&
-                flow.SourceRefs.Any(src => src.ValueId is ResourceValueId));
-
-            if (!hasHexOutflow)
+            if (!HasHexOutflow(graph, kind, untouched))
             {
                 errors.Add(
                     $"Kind '{kind}' untouched attribute '{untouched.Value}' has no outflow to a hex resource. Author an outflow on {kind}.{untouched.Value} whose source ref is a hex resource.");
             }
         }
     }
+
+    private static DefinitionAttributeId FindSelfSacrificeTarget(
+        DefinitionGraph graph,
+        EntityKind kind,
+        DefinitionAttributeId healthId) =>
+        graph.SemanticFlows.Flows
+            .Where(flow => IsSelfSacrificeFlow(flow, kind, healthId))
+            .Select(flow => ((AttributeStockId)flow.TargetStock.Id).Key.AttributeId)
+            .FirstOrDefault();
+
+    private static bool IsSelfSacrificeFlow(
+        SemanticFlowEdge flow,
+        EntityKind kind,
+        DefinitionAttributeId healthId) =>
+        flow.Role == SemanticFlowRole.Inflow &&
+        flow.TargetStock.Id is AttributeStockId target &&
+        target.Key.Kind == kind &&
+        target.Key.AttributeId != healthId &&
+        flow.SourceRefs.Any(src =>
+            src.Scope == RefScope.Self &&
+            src.Kind == kind &&
+            src.ValueId is AttributeValueId va &&
+            va.AttributeId == healthId);
+
+    private static bool HasHexOutflow(
+        DefinitionGraph graph,
+        EntityKind kind,
+        DefinitionAttributeId untouched) =>
+        graph.SemanticFlows.Flows.Any(flow =>
+            flow.Role == SemanticFlowRole.Outflow &&
+            flow.TargetStock.Id is AttributeStockId source &&
+            source.Key.Kind == kind &&
+            source.Key.AttributeId == untouched &&
+            flow.SourceRefs.Any(src => src.ValueId is ResourceValueId));
 
     private static void ValidateKindAttributeCategoryShape(DefinitionGraph graph, List<string> errors)
     {
@@ -650,51 +764,98 @@ public static class DefinitionGraphValidator
 
         foreach (var (attributeId, attributeNode) in kindNode.Attributes)
         {
-            if (attributeNode.Key.Kind != keyKind)
-            {
-                errors.Add($"Attribute '{attributeId}' is registered under '{keyKind}' but belongs to '{attributeNode.Key.Kind}'.");
-            }
-
-            if (attributeNode.Key.AttributeId != attributeId)
-            {
-                errors.Add($"Attribute node key mismatch for '{keyKind}.{attributeId}'.");
-            }
-
-            if (attributeNode.Shape != DefinitionAttributeShape.Scalar)
-            {
-                errors.Add($"Attribute '{attributeId}' on kind '{keyKind}' has non-scalar shape '{attributeNode.Shape}'.");
-            }
-
-            if (attributeNode.SourceConfig.Name != attributeId.Value)
-            {
-                errors.Add($"Attribute node id '{attributeId}' does not match source config name '{attributeNode.SourceConfig.Name}'.");
-            }
-
-            if (attributeNode.CriticalEffect is not null)
-            {
-                var targetKey = new DefinitionAttributeKey(keyKind, attributeNode.CriticalEffect.TargetAttributeId);
-                if (!graph.Attributes.ContainsKey(targetKey))
-                {
-                    errors.Add($"Critical effect on '{keyKind}.{attributeId}' targets missing attribute '{attributeNode.CriticalEffect.TargetAttributeId}'.");
-                }
-            }
-
-            if (attributeNode.LocationResourceDrift is not null &&
-                !graph.Resources.ContainsKey(attributeNode.LocationResourceDrift.ResourceId))
-            {
-                errors.Add($"Location resource drift on '{keyKind}.{attributeId}' references undeclared resource '{attributeNode.LocationResourceDrift.ResourceId}'.");
-            }
+            ValidateAttributeNode(keyKind, attributeId, attributeNode, graph, errors);
         }
 
-        if (kindNode.HealthAttribute is not null &&
-            !kindNode.Attributes.ContainsKey(kindNode.HealthAttribute.Value))
-        {
-            errors.Add($"Kind '{keyKind}' health attribute '{kindNode.HealthAttribute}' is not present in the kind attribute set.");
-        }
+        ValidateKindHealthAttribute(keyKind, kindNode, errors);
 
         foreach (var standingDrive in kindNode.StandingDrives)
         {
             ValidateRefs($"{keyKind}.standing_drive", [standingDrive.DesiredEffect], graph, errors);
+        }
+    }
+
+    private static void ValidateAttributeNode(
+        EntityKind keyKind,
+        DefinitionAttributeId attributeId,
+        DefinitionAttributeNode attributeNode,
+        DefinitionGraph graph,
+        List<string> errors)
+    {
+        ValidateAttributeIdentity(keyKind, attributeId, attributeNode, errors);
+        ValidateAttributeCriticalEffect(keyKind, attributeId, attributeNode, graph, errors);
+        ValidateAttributeLocationDrift(keyKind, attributeId, attributeNode, graph, errors);
+    }
+
+    private static void ValidateAttributeIdentity(
+        EntityKind keyKind,
+        DefinitionAttributeId attributeId,
+        DefinitionAttributeNode attributeNode,
+        List<string> errors)
+    {
+        if (attributeNode.Key.Kind != keyKind)
+        {
+            errors.Add($"Attribute '{attributeId}' is registered under '{keyKind}' but belongs to '{attributeNode.Key.Kind}'.");
+        }
+
+        if (attributeNode.Key.AttributeId != attributeId)
+        {
+            errors.Add($"Attribute node key mismatch for '{keyKind}.{attributeId}'.");
+        }
+
+        if (attributeNode.Shape != DefinitionAttributeShape.Scalar)
+        {
+            errors.Add($"Attribute '{attributeId}' on kind '{keyKind}' has non-scalar shape '{attributeNode.Shape}'.");
+        }
+
+        if (attributeNode.SourceConfig.Name != attributeId.Value)
+        {
+            errors.Add($"Attribute node id '{attributeId}' does not match source config name '{attributeNode.SourceConfig.Name}'.");
+        }
+    }
+
+    private static void ValidateAttributeCriticalEffect(
+        EntityKind keyKind,
+        DefinitionAttributeId attributeId,
+        DefinitionAttributeNode attributeNode,
+        DefinitionGraph graph,
+        List<string> errors)
+    {
+        if (attributeNode.CriticalEffect is null)
+        {
+            return;
+        }
+
+        var targetKey = new DefinitionAttributeKey(keyKind, attributeNode.CriticalEffect.TargetAttributeId);
+        if (!graph.Attributes.ContainsKey(targetKey))
+        {
+            errors.Add($"Critical effect on '{keyKind}.{attributeId}' targets missing attribute '{attributeNode.CriticalEffect.TargetAttributeId}'.");
+        }
+    }
+
+    private static void ValidateAttributeLocationDrift(
+        EntityKind keyKind,
+        DefinitionAttributeId attributeId,
+        DefinitionAttributeNode attributeNode,
+        DefinitionGraph graph,
+        List<string> errors)
+    {
+        if (attributeNode.LocationResourceDrift is not null &&
+            !graph.Resources.ContainsKey(attributeNode.LocationResourceDrift.ResourceId))
+        {
+            errors.Add($"Location resource drift on '{keyKind}.{attributeId}' references undeclared resource '{attributeNode.LocationResourceDrift.ResourceId}'.");
+        }
+    }
+
+    private static void ValidateKindHealthAttribute(
+        EntityKind keyKind,
+        DefinitionKindNode kindNode,
+        List<string> errors)
+    {
+        if (kindNode.HealthAttribute is not null &&
+            !kindNode.Attributes.ContainsKey(kindNode.HealthAttribute.Value))
+        {
+            errors.Add($"Kind '{keyKind}' health attribute '{kindNode.HealthAttribute}' is not present in the kind attribute set.");
         }
     }
 
@@ -803,174 +964,4 @@ public static class DefinitionGraphValidator
         }
     }
 
-    private static void ValidateSemanticFlows(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var stock in graph.SemanticFlows.Stocks)
-        {
-            var coverage = SemanticCoverageAnalyzer.Summarize(stock, graph.SemanticFlows);
-            var stockLabel = stock.Id.Label;
-
-            if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
-                coverage.ScalarInflows == 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' requires at least one inflow but none are declared.");
-            }
-
-            if (stock.RequiredFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
-                coverage.ScalarOutflows == 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' requires at least one outflow but none are declared.");
-            }
-
-            if (stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
-                coverage.XInflows == 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' requires at least one X-axis inflow but none are declared.");
-            }
-
-            if (stock.RequiredXFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
-                coverage.XOutflows == 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' requires at least one X-axis outflow but none are declared.");
-            }
-
-            if (stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Inflow) &&
-                coverage.YInflows == 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' requires at least one Y-axis inflow but none are declared.");
-            }
-
-            if (stock.RequiredYFlowCoverage.HasFlag(SemanticFlowCoverageRequirement.Outflow) &&
-                coverage.YOutflows == 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' requires at least one Y-axis outflow but none are declared.");
-            }
-
-            ValidateStockDecayRules(stock, graph.SemanticFlows, stockLabel, errors);
-            ValidatePlaneAxisBalance(stock, coverage, stockLabel, errors);
-        }
-    }
-
-    private static void ValidatePlaneAxisBalance(
-        SemanticStockNode stock,
-        SemanticCoverageSummary coverage,
-        string stockLabel,
-        List<string> errors)
-    {
-        if (stock.StockClass != SemanticStockClass.Plane)
-        {
-            return;
-        }
-
-        if (coverage.XOutflows > 0 && coverage.XInflows == 0)
-        {
-            errors.Add(
-                $"Plane stock '{stockLabel}' has X-axis outflows but no X-axis inflows; planes with outflow on an axis must have inflow on that axis.");
-        }
-
-        if (coverage.YOutflows > 0 && coverage.YInflows == 0)
-        {
-            errors.Add(
-                $"Plane stock '{stockLabel}' has Y-axis outflows but no Y-axis inflows; planes with outflow on an axis must have inflow on that axis.");
-        }
-    }
-
-    private static void ValidateStockDecayRules(
-        SemanticStockNode stock,
-        SemanticFlowGraph graph,
-        string stockLabel,
-        List<string> errors)
-    {
-        var relatedFlows = graph.Flows.Where(flow => flow.TargetStock == stock).ToList();
-        var decayFlows = relatedFlows
-            .Where(flow => flow.Mechanism == SemanticMechanism.Decay)
-            .ToList();
-
-        if (stock.Id is ResourceStockId)
-        {
-            if (decayFlows.Count > 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' is a resource; resource stocks must not declare engine_decay flows.");
-            }
-
-            return;
-        }
-
-        if (stock.StockClass == SemanticStockClass.Plane)
-        {
-            if (decayFlows.Count > 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' is a plane; plane stocks must not declare engine_decay flows.");
-            }
-
-            return;
-        }
-
-        var hasDecayOutflow = decayFlows.Any(flow => flow.Role == SemanticFlowRole.Outflow);
-        if (!hasDecayOutflow)
-        {
-            errors.Add(
-                $"Semantic stock '{stockLabel}' is scalar and must declare an engine_decay outflow.");
-        }
-
-        var nonOutflowDecay = decayFlows.Any(flow => flow.Role != SemanticFlowRole.Outflow);
-        if (nonOutflowDecay)
-        {
-            errors.Add(
-                $"Semantic stock '{stockLabel}' declares a decay flow that is not an outflow; decay only applies as an outflow.");
-        }
-    }
-
-    private static void ValidateProjectedSemanticEdges(DefinitionGraph graph, List<string> errors)
-    {
-        var projectedEdges = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
-        var massFlowPairs = projectedEdges
-            .Where(edge => !edge.IsGateOnly)
-            .Select(edge => (edge.SourceId, edge.TargetId))
-            .ToHashSet();
-
-        foreach (var edge in projectedEdges)
-        {
-            if (edge.IsGateOnly || edge.SourceId == edge.TargetId)
-            {
-                continue;
-            }
-
-            if (edge.SourceId is not AttributeStockId sourceAttributeId ||
-                edge.TargetId is not AttributeStockId targetAttributeId)
-            {
-                continue;
-            }
-
-            if (!graph.Attributes.TryGetValue(sourceAttributeId.Key, out var sourceAttribute) ||
-                !graph.Attributes.TryGetValue(targetAttributeId.Key, out var targetAttribute) ||
-                sourceAttribute.Shape != DefinitionAttributeShape.Scalar ||
-                targetAttribute.Shape != DefinitionAttributeShape.Scalar)
-            {
-                continue;
-            }
-
-            if (!massFlowPairs.Contains((edge.TargetId, edge.SourceId)))
-            {
-                continue;
-            }
-
-            var pair = $"{sourceAttributeId.Label} <-> {targetAttributeId.Label}";
-            if (errors.Any(error => error.Contains(pair, StringComparison.Ordinal)))
-            {
-                continue;
-            }
-
-            errors.Add(
-                $"Semantic stock graph contains a direct two-node reversal '{pair}'. Encode a longer path or an explicit modifier/coupling instead of opposite one-hop flows.");
-        }
-    }
 }

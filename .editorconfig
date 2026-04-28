@@ -10,17 +10,56 @@ indent_style = space
 [*.cs]
 indent_size = 4
 
-# Linting focus: correctness/perf > style (AI guidance, low noise).
+# Linting focus: correctness, maintainability, and complexity.
 dotnet_analyzer_diagnostic.category-Reliability.severity = warning
 dotnet_analyzer_diagnostic.category-Performance.severity = warning
 dotnet_analyzer_diagnostic.category-Security.severity = warning
 dotnet_analyzer_diagnostic.category-Usage.severity = warning
-dotnet_analyzer_diagnostic.category-Maintainability.severity = suggestion
+dotnet_analyzer_diagnostic.category-Maintainability.severity = warning
 dotnet_analyzer_diagnostic.category-Design.severity = suggestion
 dotnet_analyzer_diagnostic.category-Style.severity = suggestion
 dotnet_analyzer_diagnostic.category-Globalization.severity = suggestion
+dotnet_analyzer_diagnostic.category-Meziantou.Analyzer.severity = suggestion
+dotnet_analyzer_diagnostic.category-Roslynator.severity = suggestion
+dotnet_analyzer_diagnostic.category-SonarAnalyzer.severity = suggestion
+
+# Structural size and complexity rules are hard requirements. With -warnaserror
+# these fail the build.
+dotnet_diagnostic.MA0051.severity = warning
+dotnet_diagnostic.S104.severity = warning
+dotnet_diagnostic.S138.severity = warning
+dotnet_diagnostic.S1541.severity = warning
+dotnet_diagnostic.S3776.severity = warning
 
 # De-noise rules that create churn without safety value.
+dotnet_diagnostic.MA0006.severity = suggestion
+dotnet_diagnostic.MA0031.severity = suggestion
+dotnet_diagnostic.MA0127.severity = suggestion
+dotnet_diagnostic.S1066.severity = suggestion
+dotnet_diagnostic.S1135.severity = suggestion
+dotnet_diagnostic.S1172.severity = suggestion
+dotnet_diagnostic.S1244.severity = suggestion
+dotnet_diagnostic.S2325.severity = suggestion
+dotnet_diagnostic.S1075.severity = suggestion
+dotnet_diagnostic.S3011.severity = suggestion
+dotnet_diagnostic.S3267.severity = suggestion
+dotnet_diagnostic.S4136.severity = suggestion
+dotnet_diagnostic.S4144.severity = suggestion
+dotnet_diagnostic.S1854.severity = suggestion
+dotnet_diagnostic.S907.severity = suggestion
+dotnet_diagnostic.IDE0005.severity = suggestion
+dotnet_diagnostic.IDE0008.severity = suggestion
+dotnet_diagnostic.IDE0022.severity = suggestion
+dotnet_diagnostic.IDE0032.severity = suggestion
+dotnet_diagnostic.IDE0130.severity = suggestion
+dotnet_diagnostic.IDE0290.severity = suggestion
+dotnet_diagnostic.MA0003.severity = suggestion
+dotnet_diagnostic.MA0008.severity = suggestion
+dotnet_diagnostic.MA0048.severity = suggestion
+dotnet_diagnostic.MA0136.severity = suggestion
+dotnet_diagnostic.MA0182.severity = suggestion
+dotnet_diagnostic.RCS1085.severity = suggestion
+dotnet_diagnostic.RCS1146.severity = suggestion
 dotnet_diagnostic.CA1822.severity = suggestion
 dotnet_diagnostic.CA1303.severity = silent
 
@@ -59,6 +98,10 @@ dotnet_separate_import_directive_groups = true
 csharp_using_directive_placement = outside_namespace:suggestion
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
 dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion

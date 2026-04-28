@@ -132,9 +132,20 @@ internal sealed class KernelDriverTimeController : IKernelDriverTimeControl
     private static void ValidateConfig(RealtimeDriverConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
-        ArgumentOutOfRangeException.ThrowIfNegative(config.TicksPerSecond);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(config.MaxTicksPerSlice);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(config.SliceInterval, TimeSpan.Zero);
+        if (config.TicksPerSecond < 0d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(config), config.TicksPerSecond, null);
+        }
+
+        if (config.MaxTicksPerSlice <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(config), config.MaxTicksPerSlice, null);
+        }
+
+        if (config.SliceInterval <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(config), config.SliceInterval, null);
+        }
     }
 
     private void StartRealtimeDriverLocked()

@@ -91,48 +91,69 @@ public static class SemanticLoopAnalyzer
         {
             if (edge.TargetId == start)
             {
-                if (path.Count + 1 < 2)
-                {
-                    continue;
-                }
-
-                var cycleEdges = path.Append(edge).ToArray();
-                var kindCount = cycleEdges
-                    .Select(loopEdge => DistinctKindOf(loopEdge.SourceId))
-                    .Append(DistinctKindOf(start))
-                    .Distinct()
-                    .Count();
-
-                if (kindCount < minDistinctKinds)
-                {
-                    continue;
-                }
-
-                var signature = Canonicalize(cycleEdges);
-                if (seen.Add(signature))
-                {
-                    loops.Add(new SemanticClosedLoop
-                    {
-                        Signature = signature,
-                        DistinctKinds = kindCount,
-                        Edges = cycleEdges,
-                    });
-                }
-
+                AddClosedLoop(start, edge, path, seen, loops, minDistinctKinds);
                 continue;
             }
 
-            if (path.Count + 1 >= maxLength || !visited.Add(edge.TargetId))
-            {
-                continue;
-            }
-
-            path.Add(edge);
-            Explore(start, edge.TargetId, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
-            path.RemoveAt(path.Count - 1);
-            visited.Remove(edge.TargetId);
+            ExploreEdge(start, edge, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
         }
     }
+
+    private static void AddClosedLoop(
+        SemanticStockId start,
+        SemanticLoopEdge edge,
+        List<SemanticLoopEdge> path,
+        HashSet<string> seen,
+        List<SemanticClosedLoop> loops,
+        int minDistinctKinds)
+    {
+        if (path.Count + 1 < 2)
+        {
+            return;
+        }
+
+        var cycleEdges = path.Append(edge).ToArray();
+        var kindCount = DistinctKindCount(start, cycleEdges);
+        var signature = Canonicalize(cycleEdges);
+        if (kindCount >= minDistinctKinds && seen.Add(signature))
+        {
+            loops.Add(new SemanticClosedLoop
+            {
+                Signature = signature,
+                DistinctKinds = kindCount,
+                Edges = cycleEdges,
+            });
+        }
+    }
+
+    private static void ExploreEdge(
+        SemanticStockId start,
+        SemanticLoopEdge edge,
+        IReadOnlyDictionary<SemanticStockId, List<SemanticLoopEdge>> adjacencies,
+        HashSet<SemanticStockId> visited,
+        List<SemanticLoopEdge> path,
+        HashSet<string> seen,
+        List<SemanticClosedLoop> loops,
+        int minDistinctKinds,
+        int maxLength)
+    {
+        if (path.Count + 1 >= maxLength || !visited.Add(edge.TargetId))
+        {
+            return;
+        }
+
+        path.Add(edge);
+        Explore(start, edge.TargetId, adjacencies, visited, path, seen, loops, minDistinctKinds, maxLength);
+        path.RemoveAt(path.Count - 1);
+        visited.Remove(edge.TargetId);
+    }
+
+    private static int DistinctKindCount(SemanticStockId start, IReadOnlyList<SemanticLoopEdge> cycleEdges) =>
+        cycleEdges
+            .Select(loopEdge => DistinctKindOf(loopEdge.SourceId))
+            .Append(DistinctKindOf(start))
+            .Distinct(StringComparer.Ordinal)
+            .Count();
 
     private static string Canonicalize(IReadOnlyList<SemanticLoopEdge> cycleEdges)
     {

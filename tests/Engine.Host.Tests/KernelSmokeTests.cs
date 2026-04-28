@@ -3,6 +3,7 @@ namespace Engine.Host.Tests;
 using Engine.Eventing;
 using Engine.Host;
 using Engine.Projection;
+
 using IceRemembers;
 using IceRemembers.Seed;
 

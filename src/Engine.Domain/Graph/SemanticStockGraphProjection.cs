@@ -71,10 +71,10 @@ public static class SemanticStockGraphProjection
         switch (sourceRef.ValueId)
         {
             case AttributeValueId attributeValue when sourceRef.Kind is EntityKind kind:
-            {
-                var key = new DefinitionAttributeKey(kind, attributeValue.AttributeId);
-                return stockByAttribute.TryGetValue(key, out var attributeStockId) ? attributeStockId : null;
-            }
+                {
+                    var key = new DefinitionAttributeKey(kind, attributeValue.AttributeId);
+                    return stockByAttribute.TryGetValue(key, out var attributeStockId) ? attributeStockId : null;
+                }
 
             case ResourceValueId resourceValue:
                 return stockByResource.TryGetValue(resourceValue.ResourceId, out var resourceStockId) ? resourceStockId : null;

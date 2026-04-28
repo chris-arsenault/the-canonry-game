@@ -4,91 +4,91 @@ using Engine.Kernel.Programs;
 
 internal sealed partial class GeneratorProgramData : IKernelProgramData
 {
-    internal readonly int[] GeneratorIds;
-    internal readonly int[] Cadences;
-    internal readonly int[] TargetKindIds;
-    internal readonly int[] TargetAllowWilderness;
-    internal readonly int[] PulseWeights;
-    internal readonly int[] MaxRuns;
-    internal readonly int[] TargetSubtypeStarts;
-    internal readonly int[] TargetSubtypeCounts;
-    internal readonly int[] TriggerStarts;
-    internal readonly int[] TriggerCounts;
-    internal readonly int[] BindingStarts;
-    internal readonly int[] BindingCounts;
-    internal readonly int[] ProducedStarts;
-    internal readonly int[] ProducedCounts;
-    internal readonly int[] RelationshipStarts;
-    internal readonly int[] RelationshipCounts;
-    internal readonly int[] SaturationRelationshipKindIds;
-    internal readonly int[] SaturationFactIds;
-    internal readonly int[] SaturationDirectionCodes;
-    internal readonly int[] SaturationMaxExisting;
-    internal readonly int[] SubtypeIds;
-    internal readonly int[] RelationshipKindFilterIds;
-    internal readonly int[] TerrainFilterIds;
-    internal readonly int[] AttributeConditionAttributeIds;
-    internal readonly int[] AttributeConditionDirectionCodes;
-    internal readonly float[] AttributeConditionThresholds;
-    internal readonly int[] TriggerKindIds;
-    internal readonly int[] TriggerAttributeIds;
-    internal readonly int[] TriggerDirectionCodes;
-    internal readonly float[] TriggerThresholds;
-    internal readonly int[] BindingRefCodes;
-    internal readonly int[] BindingKindIds;
-    internal readonly int[] BindingAdjacentToTarget;
-    internal readonly int[] BindingCultureMatchCodes;
-    internal readonly int[] BindingSubtypeStarts;
-    internal readonly int[] BindingSubtypeCounts;
-    internal readonly int[] BindingWithoutOutgoingStarts;
-    internal readonly int[] BindingWithoutOutgoingCounts;
-    internal readonly int[] BindingWithoutIncomingStarts;
-    internal readonly int[] BindingWithoutIncomingCounts;
-    internal readonly int[] BindingAttributeConditionStarts;
-    internal readonly int[] BindingAttributeConditionCounts;
-    internal readonly int[] ProducedRefCodes;
-    internal readonly int[] ProducedKindIds;
-    internal readonly int[] ProducedSubtypeIds;
-    internal readonly int[] ProducedCreateIfMissing;
-    internal readonly int[] ProducedHasQuery;
-    internal readonly int[] ProducedPhysicalPlacementCodes;
-    internal readonly int[] ProducedSemanticPlacementCodes;
-    internal readonly int[] ProducedPlacementRefCodes;
-    internal readonly int[] ProducedCultureRefCodes;
-    internal readonly float[] ProducedCreateChances;
-    internal readonly int[] ProducedSubtypeChoiceStarts;
-    internal readonly int[] ProducedSubtypeChoiceCounts;
-    internal readonly int[] ProducedQuerySubtypeStarts;
-    internal readonly int[] ProducedQuerySubtypeCounts;
-    internal readonly int[] ProducedQueryAdjacentToTarget;
-    internal readonly int[] ProducedQueryCultureMatchCodes;
-    internal readonly int[] ProducedQueryWithoutOutgoingStarts;
-    internal readonly int[] ProducedQueryWithoutOutgoingCounts;
-    internal readonly int[] ProducedQueryWithoutIncomingStarts;
-    internal readonly int[] ProducedQueryWithoutIncomingCounts;
-    internal readonly int[] ProducedQueryAttributeConditionStarts;
-    internal readonly int[] ProducedQueryAttributeConditionCounts;
-    internal readonly int[] ProducedCoverageModeCodes;
-    internal readonly int[] ProducedCoverageSourceRefCodes;
-    internal readonly int[] ProducedCoverageDesiredCellCounts;
-    internal readonly int[] ProducedCoverageMinimumCellCounts;
-    internal readonly int[] ProducedCoverageMinimumSourceRemainingCellCounts;
-    internal readonly int[] ProducedCoverageRespectTerrainBoundaries;
-    internal readonly int[] ProducedCoverageTransformTerrainIds;
-    internal readonly int[] ProducedCoveragePreferredTerrainStarts;
-    internal readonly int[] ProducedCoveragePreferredTerrainCounts;
-    internal readonly int[] ProducedCoverageAllowedTerrainStarts;
-    internal readonly int[] ProducedCoverageAllowedTerrainCounts;
-    internal readonly int[] RelationshipSourceRefCodes;
-    internal readonly int[] RelationshipDestinationRefCodes;
-    internal readonly int[] RelationshipKindIds;
-    internal readonly int[] RelationshipReplaceExistingOutgoing;
-    internal readonly int[] RelationshipFactId0;
-    internal readonly int[] RelationshipFactId1;
-    internal readonly int[] RelationshipFactId2;
-    internal readonly int[] RelationshipFactId3;
-    internal readonly int[] RelationshipFactCounts;
-    internal readonly float[] RelationshipStrengths;
+    internal int[] GeneratorIds = [];
+    internal int[] Cadences = [];
+    internal int[] TargetKindIds = [];
+    internal int[] TargetAllowWilderness = [];
+    internal int[] PulseWeights = [];
+    internal int[] MaxRuns = [];
+    internal int[] TargetSubtypeStarts = [];
+    internal int[] TargetSubtypeCounts = [];
+    internal int[] TriggerStarts = [];
+    internal int[] TriggerCounts = [];
+    internal int[] BindingStarts = [];
+    internal int[] BindingCounts = [];
+    internal int[] ProducedStarts = [];
+    internal int[] ProducedCounts = [];
+    internal int[] RelationshipStarts = [];
+    internal int[] RelationshipCounts = [];
+    internal int[] SaturationRelationshipKindIds = [];
+    internal int[] SaturationFactIds = [];
+    internal int[] SaturationDirectionCodes = [];
+    internal int[] SaturationMaxExisting = [];
+    internal int[] SubtypeIds = [];
+    internal int[] RelationshipKindFilterIds = [];
+    internal int[] TerrainFilterIds = [];
+    internal int[] AttributeConditionAttributeIds = [];
+    internal int[] AttributeConditionDirectionCodes = [];
+    internal float[] AttributeConditionThresholds = [];
+    internal int[] TriggerKindIds = [];
+    internal int[] TriggerAttributeIds = [];
+    internal int[] TriggerDirectionCodes = [];
+    internal float[] TriggerThresholds = [];
+    internal int[] BindingRefCodes = [];
+    internal int[] BindingKindIds = [];
+    internal int[] BindingAdjacentToTarget = [];
+    internal int[] BindingCultureMatchCodes = [];
+    internal int[] BindingSubtypeStarts = [];
+    internal int[] BindingSubtypeCounts = [];
+    internal int[] BindingWithoutOutgoingStarts = [];
+    internal int[] BindingWithoutOutgoingCounts = [];
+    internal int[] BindingWithoutIncomingStarts = [];
+    internal int[] BindingWithoutIncomingCounts = [];
+    internal int[] BindingAttributeConditionStarts = [];
+    internal int[] BindingAttributeConditionCounts = [];
+    internal int[] ProducedRefCodes = [];
+    internal int[] ProducedKindIds = [];
+    internal int[] ProducedSubtypeIds = [];
+    internal int[] ProducedCreateIfMissing = [];
+    internal int[] ProducedHasQuery = [];
+    internal int[] ProducedPhysicalPlacementCodes = [];
+    internal int[] ProducedSemanticPlacementCodes = [];
+    internal int[] ProducedPlacementRefCodes = [];
+    internal int[] ProducedCultureRefCodes = [];
+    internal float[] ProducedCreateChances = [];
+    internal int[] ProducedSubtypeChoiceStarts = [];
+    internal int[] ProducedSubtypeChoiceCounts = [];
+    internal int[] ProducedQuerySubtypeStarts = [];
+    internal int[] ProducedQuerySubtypeCounts = [];
+    internal int[] ProducedQueryAdjacentToTarget = [];
+    internal int[] ProducedQueryCultureMatchCodes = [];
+    internal int[] ProducedQueryWithoutOutgoingStarts = [];
+    internal int[] ProducedQueryWithoutOutgoingCounts = [];
+    internal int[] ProducedQueryWithoutIncomingStarts = [];
+    internal int[] ProducedQueryWithoutIncomingCounts = [];
+    internal int[] ProducedQueryAttributeConditionStarts = [];
+    internal int[] ProducedQueryAttributeConditionCounts = [];
+    internal int[] ProducedCoverageModeCodes = [];
+    internal int[] ProducedCoverageSourceRefCodes = [];
+    internal int[] ProducedCoverageDesiredCellCounts = [];
+    internal int[] ProducedCoverageMinimumCellCounts = [];
+    internal int[] ProducedCoverageMinimumSourceRemainingCellCounts = [];
+    internal int[] ProducedCoverageRespectTerrainBoundaries = [];
+    internal int[] ProducedCoverageTransformTerrainIds = [];
+    internal int[] ProducedCoveragePreferredTerrainStarts = [];
+    internal int[] ProducedCoveragePreferredTerrainCounts = [];
+    internal int[] ProducedCoverageAllowedTerrainStarts = [];
+    internal int[] ProducedCoverageAllowedTerrainCounts = [];
+    internal int[] RelationshipSourceRefCodes = [];
+    internal int[] RelationshipDestinationRefCodes = [];
+    internal int[] RelationshipKindIds = [];
+    internal int[] RelationshipReplaceExistingOutgoing = [];
+    internal int[] RelationshipFactId0 = [];
+    internal int[] RelationshipFactId1 = [];
+    internal int[] RelationshipFactId2 = [];
+    internal int[] RelationshipFactId3 = [];
+    internal int[] RelationshipFactCounts = [];
+    internal float[] RelationshipStrengths = [];
     internal int GeneratorCount;
     internal int SubtypeCount;
     internal int RelationshipKindFilterCount;
@@ -106,6 +106,16 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemCapacity);
+        InitializeGeneratorArrays(generatorCapacity);
+        InitializeSharedItemArrays(itemCapacity);
+        InitializeTriggerArrays(itemCapacity);
+        InitializeBindingArrays(itemCapacity);
+        InitializeProducedArrays(itemCapacity);
+        InitializeRelationshipArrays(itemCapacity);
+    }
+
+    private void InitializeGeneratorArrays(int generatorCapacity)
+    {
         GeneratorIds = new int[generatorCapacity + 1];
         Cadences = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
@@ -126,18 +136,28 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         SaturationFactIds = new int[generatorCapacity + 1];
         SaturationDirectionCodes = new int[generatorCapacity + 1];
         SaturationMaxExisting = new int[generatorCapacity + 1];
+    }
 
+    private void InitializeSharedItemArrays(int itemCapacity)
+    {
         SubtypeIds = new int[itemCapacity + 1];
         RelationshipKindFilterIds = new int[itemCapacity + 1];
         TerrainFilterIds = new int[itemCapacity + 1];
         AttributeConditionAttributeIds = new int[itemCapacity + 1];
         AttributeConditionDirectionCodes = new int[itemCapacity + 1];
         AttributeConditionThresholds = new float[itemCapacity + 1];
+    }
+
+    private void InitializeTriggerArrays(int itemCapacity)
+    {
         TriggerKindIds = new int[itemCapacity + 1];
         TriggerAttributeIds = new int[itemCapacity + 1];
         TriggerDirectionCodes = new int[itemCapacity + 1];
         TriggerThresholds = new float[itemCapacity + 1];
+    }
 
+    private void InitializeBindingArrays(int itemCapacity)
+    {
         BindingRefCodes = new int[itemCapacity + 1];
         BindingKindIds = new int[itemCapacity + 1];
         BindingAdjacentToTarget = new int[itemCapacity + 1];
@@ -150,7 +170,10 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingWithoutIncomingCounts = new int[itemCapacity + 1];
         BindingAttributeConditionStarts = new int[itemCapacity + 1];
         BindingAttributeConditionCounts = new int[itemCapacity + 1];
+    }
 
+    private void InitializeProducedArrays(int itemCapacity)
+    {
         ProducedRefCodes = new int[itemCapacity + 1];
         ProducedKindIds = new int[itemCapacity + 1];
         ProducedSubtypeIds = new int[itemCapacity + 1];
@@ -184,7 +207,10 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedCoveragePreferredTerrainCounts = new int[itemCapacity + 1];
         ProducedCoverageAllowedTerrainStarts = new int[itemCapacity + 1];
         ProducedCoverageAllowedTerrainCounts = new int[itemCapacity + 1];
+    }
 
+    private void InitializeRelationshipArrays(int itemCapacity)
+    {
         RelationshipSourceRefCodes = new int[itemCapacity + 1];
         RelationshipDestinationRefCodes = new int[itemCapacity + 1];
         RelationshipKindIds = new int[itemCapacity + 1];

@@ -61,6 +61,15 @@ internal sealed partial class WorldState
     {
         var tick = CurrentTick;
         var version = WorldVersion;
+        EmitSnapshotCells(context, tick, version);
+        EmitSnapshotEntities(context, tick, version);
+        EmitSnapshotAttributes(context, tick, version);
+        EmitSnapshotResources(context, tick, version);
+        EmitSnapshotRelationships(context, tick, version);
+    }
+
+    private void EmitSnapshotCells(KernelExecutionContext context, int tick, long version)
+    {
         for (var q = -_mapRadius; q <= _mapRadius; q++)
         {
             var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
@@ -83,7 +92,10 @@ internal sealed partial class WorldState
                     context);
             }
         }
+    }
 
+    private void EmitSnapshotEntities(KernelExecutionContext context, int tick, long version)
+    {
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
             if (!_entityAllocated[entityId])
@@ -120,7 +132,10 @@ internal sealed partial class WorldState
                     context);
             }
         }
+    }
 
+    private void EmitSnapshotAttributes(KernelExecutionContext context, int tick, long version)
+    {
         _attributes.ForEach((entityId, attributeId, value) =>
         {
             if (_entityAllocated[entityId])
@@ -136,7 +151,10 @@ internal sealed partial class WorldState
                     context);
             }
         });
+    }
 
+    private void EmitSnapshotResources(KernelExecutionContext context, int tick, long version)
+    {
         _resources.ForEach((resourceId, coordinateKey, value) =>
         {
             if (TryResolveCoordinateKey(coordinateKey, out var q, out var r))
@@ -153,7 +171,10 @@ internal sealed partial class WorldState
                     context);
             }
         });
+    }
 
+    private void EmitSnapshotRelationships(KernelExecutionContext context, int tick, long version)
+    {
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
             if (!_relationshipAllocated[relationshipId] || !_relationshipActive[relationshipId])

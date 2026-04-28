@@ -1,8 +1,7 @@
 namespace Engine.Graph;
 
-using Engine.WorldGen;
-
 using Engine.Kinds;
+using Engine.WorldGen;
 
 /// <summary>
 /// Spatial query API over the hex grid. Provides entity-location queries,

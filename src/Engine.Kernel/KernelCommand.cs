@@ -135,13 +135,23 @@ internal readonly partial record struct KernelCommand
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(slot);
         global::System.ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(slot, IntSlotCount);
-        return slot switch
+        return slot < 5 ? GetLowIntSlot(slot) : GetHighIntSlot(slot);
+    }
+
+    private int GetLowIntSlot(int slot) =>
+        slot switch
         {
             0 => _a,
             1 => _b,
             2 => _c,
             3 => _d,
             4 => _e,
+            _ => 0,
+        };
+
+    private int GetHighIntSlot(int slot) =>
+        slot switch
+        {
             5 => _f,
             6 => _g,
             7 => _h,
@@ -149,7 +159,6 @@ internal readonly partial record struct KernelCommand
             9 => _j,
             _ => 0,
         };
-    }
 
     public float GetFloatSlot(int slot)
     {

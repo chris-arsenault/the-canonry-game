@@ -15,6 +15,30 @@ public abstract class KernelEventProjector : IKernelEventProjection
 {
     public void Project(in SequencedKernelEvent kernelEvent)
     {
+        var eventType = kernelEvent.Event.EventType;
+        if (eventType >= KernelEventType.PlanStarted)
+        {
+            ProjectPlanningEvent(kernelEvent);
+            return;
+        }
+
+        if (eventType <= KernelEventType.RelationshipChanged)
+        {
+            ProjectEntityEvent(kernelEvent);
+            return;
+        }
+
+        if (eventType is KernelEventType.TickCompleted or KernelEventType.GeneratorEnabledChanged or KernelEventType.CellCreated)
+        {
+            ProjectWorldEvent(kernelEvent);
+            return;
+        }
+
+        ProjectBehaviorEvent(kernelEvent);
+    }
+
+    private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
+    {
         var evt = kernelEvent.Event;
         switch (evt.EventType)
         {
@@ -36,6 +60,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.RelationshipChanged:
                 OnRelationshipChanged(kernelEvent.Sequence, evt.AsRelationshipChanged());
                 break;
+        }
+    }
+
+    private void ProjectBehaviorEvent(in SequencedKernelEvent kernelEvent)
+    {
+        var evt = kernelEvent.Event;
+        switch (evt.EventType)
+        {
             case KernelEventType.ProcessEvaluated:
                 OnProcessEvaluated(kernelEvent.Sequence, evt.AsProcessEvaluated());
                 break;
@@ -60,6 +92,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.GambitExecuted:
                 OnGambitExecuted(kernelEvent.Sequence, evt.AsGambitExecuted());
                 break;
+        }
+    }
+
+    private void ProjectWorldEvent(in SequencedKernelEvent kernelEvent)
+    {
+        var evt = kernelEvent.Event;
+        switch (evt.EventType)
+        {
             case KernelEventType.TickCompleted:
                 OnTickCompleted(kernelEvent.Sequence, evt.AsTickCompleted());
                 break;
@@ -69,6 +109,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.CellCreated:
                 OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
                 break;
+        }
+    }
+
+    private void ProjectPlanningEvent(in SequencedKernelEvent kernelEvent)
+    {
+        var evt = kernelEvent.Event;
+        switch (evt.EventType)
+        {
             case KernelEventType.PlanStarted:
                 OnPlanStarted(kernelEvent.Sequence, evt.AsPlanStarted());
                 break;

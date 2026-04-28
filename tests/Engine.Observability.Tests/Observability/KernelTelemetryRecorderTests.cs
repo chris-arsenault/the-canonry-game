@@ -1,7 +1,7 @@
 namespace Engine.Observability.Tests.Observability;
 
-using Engine.Eventing;
 using Engine.Constants;
+using Engine.Eventing;
 using Engine.Observability;
 using Engine.Projection;
 
@@ -11,7 +11,17 @@ public sealed class KernelTelemetryRecorderTests
     public void Recorder_ProjectsPrimitiveRowsFromEventLogWithSymbolCatalog()
     {
         var log = new KernelEventLog(capacity: 64);
-        var symbols = new ProjectionSymbolCatalog()
+        var symbols = CreateTestSymbols();
+        using var recorder = new KernelTelemetryRecorder(log, "run-1", symbols, seed: 42, domain: "test");
+
+        WriteTelemetryEvents(log);
+        recorder.RecordSnapshots(tick: 3);
+
+        AssertTelemetryBatch(recorder.Batch);
+    }
+
+    private static ProjectionSymbolCatalog CreateTestSymbols() =>
+        new ProjectionSymbolCatalog()
             .RegisterSymbol(ProjectionSymbolKind.Kind, 1, "settlement", "Settlement")
             .RegisterSymbol(ProjectionSymbolKind.Subtype, 2, "village", "Village")
             .RegisterSymbol(ProjectionSymbolKind.Culture, 3, "north", "North")
@@ -26,8 +36,16 @@ public sealed class KernelTelemetryRecorderTests
             .RegisterEntityName(100, "Hearthhome")
             .RegisterEntityName(101, "New Hall")
             .RegisterEntityName(200, "Waystone");
-        using var recorder = new KernelTelemetryRecorder(log, "run-1", symbols, seed: 42, domain: "test");
 
+    private static void WriteTelemetryEvents(KernelEventLog log)
+    {
+        WriteEntityCreationEvents(log);
+        WriteStateChangeEvents(log);
+        WriteProcessAndGeneratorEvents(log);
+    }
+
+    private static void WriteEntityCreationEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
             Tick: 1,
             WorldVersion: 1,
@@ -41,6 +59,23 @@ public sealed class KernelTelemetryRecorderTests
             SemanticQ: 0,
             SemanticR: 1,
             SemanticS: -1))));
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 3,
+            WorldVersion: 7,
+            EntityId: 101,
+            SourceCodeId: 5,
+            KindId: 1,
+            SubtypeId: 2,
+            CultureId: 3,
+            PhysicalQ: 3,
+            PhysicalR: -1,
+            SemanticQ: 1,
+            SemanticR: 0,
+            SemanticS: -1))));
+    }
+
+    private static void WriteStateChangeEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 1,
             WorldVersion: 2,
@@ -77,6 +112,10 @@ public sealed class KernelTelemetryRecorderTests
             FactCount: 1,
             PreviousStrength: 0f,
             NewStrength: 0.75f))));
+    }
+
+    private static void WriteProcessAndGeneratorEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new ProcessEvaluatedKernelEvent(
             Tick: 2,
             WorldVersion: 5,
@@ -93,46 +132,43 @@ public sealed class KernelTelemetryRecorderTests
             TargetEntityId: 200,
             CreatedEntityCount: 1,
             CreatedRelationshipCount: 2))));
-        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
-            Tick: 3,
-            WorldVersion: 7,
-            EntityId: 101,
-            SourceCodeId: 5,
-            KindId: 1,
-            SubtypeId: 2,
-            CultureId: 3,
-            PhysicalQ: 3,
-            PhysicalR: -1,
-            SemanticQ: 1,
-            SemanticR: 0,
-            SemanticS: -1))));
+    }
 
-        recorder.RecordSnapshots(tick: 3);
+    private static void AssertTelemetryBatch(TelemetryBatch batch)
+    {
+        Assert.Equal(42, Assert.Single(batch.Runs).RunId);
+        AssertEntityRows(batch);
+        AssertPrimitiveEventRows(batch);
+        AssertGeneratedAndTickRows(batch);
+    }
 
-        Assert.Equal(42, Assert.Single(recorder.Batch.Runs).RunId);
-
-        var created = Assert.Single(recorder.Batch.EntityEvents, row => row.EntityId == 100);
+    private static void AssertEntityRows(TelemetryBatch batch)
+    {
+        var created = Assert.Single(batch.EntityEvents, row => row.EntityId == 100);
         Assert.Equal((int)KernelEventType.EntityCreated, created.EventTypeCode);
         Assert.Equal(5, created.SourceCodeId);
         Assert.Equal(1, created.KindId);
         Assert.Equal(2, created.SubtypeId);
         Assert.Equal(3, created.CultureId);
         Assert.Equal(EntityStatusCodes.Active, created.CurrentStatusCode);
-        Assert.Contains(recorder.Batch.EntityNameSymbols, row =>
+        Assert.Contains(batch.EntityNameSymbols, row =>
             row.EntityId == 100 &&
             row.DisplayName == "Hearthhome");
+    }
 
-        var attribute = Assert.Single(recorder.Batch.AttributeEvents);
+    private static void AssertPrimitiveEventRows(TelemetryBatch batch)
+    {
+        var attribute = Assert.Single(batch.AttributeEvents);
         Assert.Equal(4, attribute.AttributeId);
         Assert.Equal(2f, attribute.Delta);
         Assert.Equal(5, attribute.SourceCodeId);
 
-        var movement = Assert.Single(recorder.Batch.MovementEvents);
+        var movement = Assert.Single(batch.MovementEvents);
         Assert.Equal(5, movement.SourceCodeId);
         Assert.Equal(PlaneCodes.Physical, movement.PlaneCode);
         Assert.Equal(2, movement.Distance);
 
-        var relationship = Assert.Single(recorder.Batch.RelationshipEvents);
+        var relationship = Assert.Single(batch.RelationshipEvents);
         Assert.Equal(7, relationship.ChangeCodeId);
         Assert.Equal(5, relationship.SourceCodeId);
         Assert.Equal(8, relationship.RelationshipKindId);
@@ -140,19 +176,22 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(9, relationship.FactId0);
         Assert.Equal(1, relationship.FactCount);
 
-        var process = Assert.Single(recorder.Batch.ProcessEvents);
+        var process = Assert.Single(batch.ProcessEvents);
         Assert.Equal(11, process.ExecutedProcessId);
         Assert.Equal(4, process.CandidateCount);
+    }
 
-        var generator = Assert.Single(recorder.Batch.GeneratorEvents);
+    private static void AssertGeneratedAndTickRows(TelemetryBatch batch)
+    {
+        var generator = Assert.Single(batch.GeneratorEvents);
         Assert.Equal(10, generator.GeneratorId);
         Assert.Equal(1, generator.CreatedEntityCount);
 
-        var generated = Assert.Single(recorder.Batch.GeneratedEntities);
+        var generated = Assert.Single(batch.GeneratedEntities);
         Assert.Equal(101, generated.EntityId);
         Assert.Equal(10, generated.GeneratorId);
 
-        var tick = Assert.Single(recorder.Batch.TickSnapshots);
+        var tick = Assert.Single(batch.TickSnapshots);
         Assert.Equal(2, tick.ActiveEntities);
         Assert.Equal(1, tick.TotalGeneratorFires);
         Assert.Equal(1, tick.ActiveRelationships);

@@ -278,17 +278,23 @@ public sealed class WorldGraph
                 continue;
             }
 
-            foreach (var edge in _graph.OutEdges(current))
+            foreach (var target in TraversableTargets(current, edgeFilter))
             {
-                if (edgeFilter is not null && !edgeFilter(edge.Tag))
+                if (visited.Add(target))
                 {
-                    continue;
+                    frontier.Enqueue((target, depth + 1));
                 }
+            }
+        }
+    }
 
-                if (visited.Add(edge.Target))
-                {
-                    frontier.Enqueue((edge.Target, depth + 1));
-                }
+    private IEnumerable<EntityId> TraversableTargets(EntityId current, Func<Relationship, bool>? edgeFilter)
+    {
+        foreach (var edge in _graph.OutEdges(current))
+        {
+            if (edgeFilter is null || edgeFilter(edge.Tag))
+            {
+                yield return edge.Target;
             }
         }
     }

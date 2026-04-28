@@ -2,9 +2,10 @@
 #pragma warning disable CA1305
 #pragma warning disable CA2000
 #pragma warning disable CA2213
+using Engine.Projection;
+
 using Godot;
 
-using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -124,55 +125,79 @@ public partial class HexTooltipPanel : PanelContainer
             return string.Empty;
         }
 
-        if (_renderer?.CurrentPlane == PlaneMode.Semantic)
-        {
-            var s = -coord.Q - coord.R;
-            var occupants = _projection.Entities.Values
-                .Where(entity => entity.StatusCode == EntityStatusCodes.Active &&
-                                 entity.SemanticQ == coord.Q &&
-                                 entity.SemanticR == coord.R)
-                .Select(FormatProjectedEntityLine)
-                .ToList();
-            var occupantsLine = occupants.Count == 0 ? "uninhabited" : string.Join("\n", occupants);
-            return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
-        }
+        return _renderer?.CurrentPlane == PlaneMode.Semantic
+            ? FormatSemanticHexTooltip(coord)
+            : FormatPhysicalHexTooltip(coord);
+    }
 
-        if (!_map.TryGetHex(coord, out var cell))
+    private string FormatSemanticHexTooltip(HexCoord coord)
+    {
+        var s = -coord.Q - coord.R;
+        var occupants = _projection!.Entities.Values
+            .Where(entity => entity.StatusCode == EntityStatusCodes.Active &&
+                             entity.SemanticQ == coord.Q &&
+                             entity.SemanticR == coord.R)
+            .Select(FormatProjectedEntityLine)
+            .ToList();
+        var occupantsLine = occupants.Count == 0 ? "uninhabited" : string.Join('\n', occupants);
+        return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
+    }
+
+    private string FormatPhysicalHexTooltip(HexCoord coord)
+    {
+        if (!_map!.TryGetHex(coord, out var cell))
         {
             return $"{coord.Q,3} , {coord.R,3}   unknown";
         }
 
-        var terrain = ProjectionDisplay.DisplayName(
+        var terrain = FormatTerrain(cell);
+        var owner = FormatOwner(cell);
+        var resourceLines = FormatResourceLines(coord);
+        return $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}\n{resourceLines}";
+    }
+
+    private string FormatTerrain(HexProjection cell) =>
+        ProjectionDisplay.DisplayName(
             _symbols,
             ProjectionSymbolKind.Terrain,
             cell.TerrainId,
             $"Terrain {cell.TerrainId}");
-        var owner = cell.OwnerEntityId > 0 &&
-                    _projection.Entities.TryGetValue(cell.OwnerEntityId, out var ownerEntity)
-            ? ProjectionDisplay.EntityName(_symbols, ownerEntity)
-            : "unclaimed";
-        var resources = _projection.Resources.Values
+
+    private string FormatOwner(HexProjection cell)
+    {
+        if (cell.OwnerEntityId <= 0 ||
+            !_projection!.Entities.TryGetValue(cell.OwnerEntityId, out var ownerEntity))
+        {
+            return "unclaimed";
+        }
+
+        return ProjectionDisplay.EntityName(_symbols, ownerEntity);
+    }
+
+    private string FormatResourceLines(HexCoord coord)
+    {
+        var resources = _projection!.Resources.Values
             .Where(resource => resource.Q == coord.Q && resource.R == coord.R)
-            .OrderBy(resource => ProjectionDisplay.DisplayName(
-                _symbols,
-                ProjectionSymbolKind.Resource,
-                resource.ResourceId,
-                $"Resource {resource.ResourceId}"))
-            .Select(resource =>
-            {
-                var name = ProjectionDisplay.DisplayName(
-                    _symbols,
-                    ProjectionSymbolKind.Resource,
-                    resource.ResourceId,
-                    $"Resource {resource.ResourceId}");
-                return $"{name,-10} {resource.NewValue,7:0.0}";
-            })
+            .OrderBy(resource => ResourceDisplayName(resource), StringComparer.Ordinal)
+            .Select(FormatResourceLine)
             .ToArray();
-        var resourceLines = resources.Length == 0
+        return resources.Length == 0
             ? "resources  none"
             : string.Join('\n', resources);
-        return $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}\n{resourceLines}";
     }
+
+    private string FormatResourceLine(UiResourceProjection resource)
+    {
+        var name = ResourceDisplayName(resource);
+        return $"{name,-10} {resource.NewValue,7:0.0}";
+    }
+
+    private string ResourceDisplayName(UiResourceProjection resource) =>
+        ProjectionDisplay.DisplayName(
+            _symbols,
+            ProjectionSymbolKind.Resource,
+            resource.ResourceId,
+            $"Resource {resource.ResourceId}");
 
     private string FormatProjectedEntityLine(UiEntityProjection entity)
     {

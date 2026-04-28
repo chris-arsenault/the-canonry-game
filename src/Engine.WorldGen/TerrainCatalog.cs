@@ -54,9 +54,21 @@ public sealed class TerrainCatalog
     private void Register(TerrainDefinition terrain)
     {
         ArgumentNullException.ThrowIfNull(terrain);
-        ArgumentException.ThrowIfNullOrWhiteSpace(terrain.StableName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(terrain.DisplayName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(terrain.BoundaryGroup);
+        if (string.IsNullOrWhiteSpace(terrain.StableName))
+        {
+            throw new ArgumentException("Terrain stable name cannot be blank.", nameof(terrain));
+        }
+
+        if (string.IsNullOrWhiteSpace(terrain.DisplayName))
+        {
+            throw new ArgumentException("Terrain display name cannot be blank.", nameof(terrain));
+        }
+
+        if (string.IsNullOrWhiteSpace(terrain.BoundaryGroup))
+        {
+            throw new ArgumentException("Terrain boundary group cannot be blank.", nameof(terrain));
+        }
+
         if (!_terrains.TryAdd(terrain.StableName, terrain))
         {
             throw new InvalidOperationException($"Duplicate terrain '{terrain.StableName}'.");

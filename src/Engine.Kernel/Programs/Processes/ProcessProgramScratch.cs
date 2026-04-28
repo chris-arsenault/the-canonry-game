@@ -16,6 +16,10 @@ internal sealed class ProcessProgramScratch
     internal readonly int[] ProcessPlanLocalityKeys;
     internal readonly float[] ProcessPlanWeights;
     internal readonly float[] ProcessPlanAdjustedWeights;
+    internal readonly bool[] PreconditionStack;
+    internal readonly float[] ExpressionStack;
+    internal readonly int[] VariableIds;
+    internal readonly float[] VariableValues;
     internal EpochStampSet ProcessVisited;
 
     public ProcessProgramScratch(int pathCapacity, int entityCapacity, int processObjectiveCapacity)
@@ -37,6 +41,10 @@ internal sealed class ProcessProgramScratch
         ProcessPlanLocalityKeys = new int[processObjectiveCapacity + 1];
         ProcessPlanWeights = new float[processObjectiveCapacity + 1];
         ProcessPlanAdjustedWeights = new float[processObjectiveCapacity + 1];
+        PreconditionStack = new bool[64];
+        ExpressionStack = new float[32];
+        VariableIds = new int[32];
+        VariableValues = new float[32];
         ProcessVisited = new EpochStampSet(entityCapacity + 1);
     }
 }

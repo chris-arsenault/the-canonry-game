@@ -4,81 +4,81 @@ using Engine.Kernel.Programs;
 
 internal sealed partial class ProcessProgramData : IKernelProgramData
 {
-    internal readonly int[] ProcessKindIds;
-    internal readonly int[] ProcessIds;
-    internal readonly int[] ProcessCooldownTicks;
-    internal readonly int[] ProcessEntityCooldownTicks;
-    internal readonly int[] ProcessTargetKindIds;
-    internal readonly int[] ProcessTargetModes;
-    internal readonly int[] ProcessPreconditionStarts;
-    internal readonly int[] ProcessPreconditionCounts;
-    internal readonly int[] ProcessExpressionStarts;
-    internal readonly int[] ProcessExpressionCounts;
-    internal readonly int[] ProcessRewardExpressionStarts;
-    internal readonly int[] ProcessRewardExpressionCounts;
-    internal readonly int[] ProcessStepStarts;
-    internal readonly int[] ProcessStepCounts;
-    internal readonly int[] ProcessProviderSelectorStarts;
-    internal readonly int[] ProcessProviderSelectorCounts;
-    internal readonly int[] ProcessSupportRuleStarts;
-    internal readonly int[] ProcessSupportRuleCounts;
-    internal readonly int[] ProcessGoalEffectStarts;
-    internal readonly int[] ProcessGoalEffectCounts;
-    internal readonly int[] GoalEffectScopeCodes;
-    internal readonly int[] GoalEffectValueIds;
-    internal readonly int[] GoalEffectKindIds;
-    internal readonly int[] PreconditionCodes;
-    internal readonly int[] PreA;
-    internal readonly int[] PreB;
-    internal readonly int[] PreC;
-    internal readonly int[] PreD;
-    internal readonly float[] PreX;
-    internal readonly float[] PreY;
-    internal readonly int[] ExpressionCodes;
-    internal readonly int[] ExpressionA;
-    internal readonly float[] ExpressionX;
-    internal readonly int[] RewardExpressionCodes;
-    internal readonly int[] RewardExpressionA;
-    internal readonly float[] RewardExpressionX;
-    internal readonly int[] StepOperationCodes;
-    internal readonly int[] StepA;
-    internal readonly int[] StepB;
-    internal readonly int[] StepC;
-    internal readonly int[] StepD;
-    internal readonly float[] StepX;
-    internal readonly float[] StepY;
-    internal readonly int[] StepExpressionStarts;
-    internal readonly int[] StepExpressionCounts;
-    internal readonly int[] MutationExpressionCodes;
-    internal readonly int[] MutationExpressionA;
-    internal readonly float[] MutationExpressionX;
-    internal readonly int[] ObjectiveKindIds;
-    internal readonly int[] ObjectiveCodes;
-    internal readonly int[] ObjectiveEffectScopeCodes;
-    internal readonly int[] ObjectiveEffectValueIds;
-    internal readonly int[] ObjectiveEffectKindIds;
-    internal readonly int[] ObjectiveAttributeIds;
-    internal readonly float[] ObjectiveMinimums;
-    internal readonly float[] ObjectiveMaximums;
-    internal readonly float[] ObjectiveDefaults;
-    internal readonly float[] ObjectiveBaselines;
-    internal readonly float[] ObjectiveBaseUrgencies;
-    internal readonly int[] ProviderSelectorCodes;
-    internal readonly int[] ProviderSelectorKindIds;
-    internal readonly int[] ProviderSelectorValueIds;
-    internal readonly int[] ProviderSelectorRelationshipKindIds;
-    internal readonly int[] ProviderSelectorFactIds;
-    internal readonly float[] ProviderSelectorMinimumStrengths;
-    internal readonly int[] SupportEffectScopeCodes;
-    internal readonly int[] SupportEffectValueIds;
-    internal readonly int[] SupportEffectKindIds;
-    internal readonly int[] SupportExpressionStarts;
-    internal readonly int[] SupportExpressionCounts;
-    internal readonly float[] SupportDesiredMinimums;
-    internal readonly float[] SupportUrgencyScales;
-    internal readonly int[] SupportExpressionCodes;
-    internal readonly int[] SupportExpressionA;
-    internal readonly float[] SupportExpressionX;
+    internal int[] ProcessKindIds = [];
+    internal int[] ProcessIds = [];
+    internal int[] ProcessCooldownTicks = [];
+    internal int[] ProcessEntityCooldownTicks = [];
+    internal int[] ProcessTargetKindIds = [];
+    internal int[] ProcessTargetModes = [];
+    internal int[] ProcessPreconditionStarts = [];
+    internal int[] ProcessPreconditionCounts = [];
+    internal int[] ProcessExpressionStarts = [];
+    internal int[] ProcessExpressionCounts = [];
+    internal int[] ProcessRewardExpressionStarts = [];
+    internal int[] ProcessRewardExpressionCounts = [];
+    internal int[] ProcessStepStarts = [];
+    internal int[] ProcessStepCounts = [];
+    internal int[] ProcessProviderSelectorStarts = [];
+    internal int[] ProcessProviderSelectorCounts = [];
+    internal int[] ProcessSupportRuleStarts = [];
+    internal int[] ProcessSupportRuleCounts = [];
+    internal int[] ProcessGoalEffectStarts = [];
+    internal int[] ProcessGoalEffectCounts = [];
+    internal int[] GoalEffectScopeCodes = [];
+    internal int[] GoalEffectValueIds = [];
+    internal int[] GoalEffectKindIds = [];
+    internal int[] PreconditionCodes = [];
+    internal int[] PreA = [];
+    internal int[] PreB = [];
+    internal int[] PreC = [];
+    internal int[] PreD = [];
+    internal float[] PreX = [];
+    internal float[] PreY = [];
+    internal int[] ExpressionCodes = [];
+    internal int[] ExpressionA = [];
+    internal float[] ExpressionX = [];
+    internal int[] RewardExpressionCodes = [];
+    internal int[] RewardExpressionA = [];
+    internal float[] RewardExpressionX = [];
+    internal int[] StepOperationCodes = [];
+    internal int[] StepA = [];
+    internal int[] StepB = [];
+    internal int[] StepC = [];
+    internal int[] StepD = [];
+    internal float[] StepX = [];
+    internal float[] StepY = [];
+    internal int[] StepExpressionStarts = [];
+    internal int[] StepExpressionCounts = [];
+    internal int[] MutationExpressionCodes = [];
+    internal int[] MutationExpressionA = [];
+    internal float[] MutationExpressionX = [];
+    internal int[] ObjectiveKindIds = [];
+    internal int[] ObjectiveCodes = [];
+    internal int[] ObjectiveEffectScopeCodes = [];
+    internal int[] ObjectiveEffectValueIds = [];
+    internal int[] ObjectiveEffectKindIds = [];
+    internal int[] ObjectiveAttributeIds = [];
+    internal float[] ObjectiveMinimums = [];
+    internal float[] ObjectiveMaximums = [];
+    internal float[] ObjectiveDefaults = [];
+    internal float[] ObjectiveBaselines = [];
+    internal float[] ObjectiveBaseUrgencies = [];
+    internal int[] ProviderSelectorCodes = [];
+    internal int[] ProviderSelectorKindIds = [];
+    internal int[] ProviderSelectorValueIds = [];
+    internal int[] ProviderSelectorRelationshipKindIds = [];
+    internal int[] ProviderSelectorFactIds = [];
+    internal float[] ProviderSelectorMinimumStrengths = [];
+    internal int[] SupportEffectScopeCodes = [];
+    internal int[] SupportEffectValueIds = [];
+    internal int[] SupportEffectKindIds = [];
+    internal int[] SupportExpressionStarts = [];
+    internal int[] SupportExpressionCounts = [];
+    internal float[] SupportDesiredMinimums = [];
+    internal float[] SupportUrgencyScales = [];
+    internal int[] SupportExpressionCodes = [];
+    internal int[] SupportExpressionA = [];
+    internal float[] SupportExpressionX = [];
     internal int ProcessCount;
     internal int PreconditionCount;
     internal int ExpressionCount;
@@ -104,6 +104,15 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processObjectiveCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processProviderSelectorCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(processSupportRuleCapacity);
+        InitializeProcessArrays(processCapacity);
+        InitializeStepArrays(stepCapacity);
+        InitializeObjectiveArrays(processObjectiveCapacity);
+        InitializeProviderSelectorArrays(processProviderSelectorCapacity);
+        InitializeSupportRuleArrays(processSupportRuleCapacity, stepCapacity);
+    }
+
+    private void InitializeProcessArrays(int processCapacity)
+    {
         ProcessKindIds = new int[processCapacity + 1];
         ProcessIds = new int[processCapacity + 1];
         ProcessCooldownTicks = new int[processCapacity + 1];
@@ -124,6 +133,10 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
         ProcessSupportRuleCounts = new int[processCapacity + 1];
         ProcessGoalEffectStarts = new int[processCapacity + 1];
         ProcessGoalEffectCounts = new int[processCapacity + 1];
+    }
+
+    private void InitializeStepArrays(int stepCapacity)
+    {
         GoalEffectScopeCodes = new int[stepCapacity + 1];
         GoalEffectValueIds = new int[stepCapacity + 1];
         GoalEffectKindIds = new int[stepCapacity + 1];
@@ -152,6 +165,10 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
         MutationExpressionCodes = new int[stepCapacity + 1];
         MutationExpressionA = new int[stepCapacity + 1];
         MutationExpressionX = new float[stepCapacity + 1];
+    }
+
+    private void InitializeObjectiveArrays(int processObjectiveCapacity)
+    {
         ObjectiveKindIds = new int[processObjectiveCapacity + 1];
         ObjectiveCodes = new int[processObjectiveCapacity + 1];
         ObjectiveEffectScopeCodes = new int[processObjectiveCapacity + 1];
@@ -163,12 +180,20 @@ internal sealed partial class ProcessProgramData : IKernelProgramData
         ObjectiveDefaults = new float[processObjectiveCapacity + 1];
         ObjectiveBaselines = new float[processObjectiveCapacity + 1];
         ObjectiveBaseUrgencies = new float[processObjectiveCapacity + 1];
+    }
+
+    private void InitializeProviderSelectorArrays(int processProviderSelectorCapacity)
+    {
         ProviderSelectorCodes = new int[processProviderSelectorCapacity + 1];
         ProviderSelectorKindIds = new int[processProviderSelectorCapacity + 1];
         ProviderSelectorValueIds = new int[processProviderSelectorCapacity + 1];
         ProviderSelectorRelationshipKindIds = new int[processProviderSelectorCapacity + 1];
         ProviderSelectorFactIds = new int[processProviderSelectorCapacity + 1];
         ProviderSelectorMinimumStrengths = new float[processProviderSelectorCapacity + 1];
+    }
+
+    private void InitializeSupportRuleArrays(int processSupportRuleCapacity, int stepCapacity)
+    {
         SupportEffectScopeCodes = new int[processSupportRuleCapacity + 1];
         SupportEffectValueIds = new int[processSupportRuleCapacity + 1];
         SupportEffectKindIds = new int[processSupportRuleCapacity + 1];

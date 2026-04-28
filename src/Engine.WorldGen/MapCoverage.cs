@@ -186,14 +186,14 @@ public sealed class MapCoverageMap
         return adjacentPairs;
     }
 
-    public CoverageAggregates ComputeAggregates(MapCoverage coverage, HexGrid grid)
+    public static CoverageAggregates ComputeAggregates(MapCoverage coverage, HexGrid grid)
     {
         ArgumentNullException.ThrowIfNull(coverage);
         ArgumentNullException.ThrowIfNull(grid);
 
         var totalFertility = 0f;
-        var terrainCounts = new Dictionary<string, int>();
-        var allResources = new HashSet<string>();
+        var terrainCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var allResources = new HashSet<string>(StringComparer.Ordinal);
         var cellCount = 0;
 
         foreach (var coord in coverage.Cells)
@@ -327,8 +327,9 @@ public sealed class MapCoverageMap
         for (var radius = 0; radius <= grid.Radius; radius++)
         {
             var candidates = HexCoord.CoordsInRadius(origin, radius)
-                .Where(coord => HexCoord.Distance(origin, coord) == radius)
-                .Where(coord => IsEligibleSeedCell(grid, coord, request, sourceCoverage, boundaryGroup))
+                .Where(coord =>
+                    HexCoord.Distance(origin, coord) == radius &&
+                    IsEligibleSeedCell(grid, coord, request, sourceCoverage, boundaryGroup))
                 .OrderBy(coord => ScoreCell(grid, coord, origin, request, boundaryGroup))
                 .ToList();
 
@@ -415,12 +416,10 @@ public sealed class MapCoverageMap
             claimed.Add(current);
             claimedSet.Add(current);
 
-            foreach (var neighbor in current.Neighbors())
+            foreach (var neighbor in current.Neighbors().Where(neighbor =>
+                         grid.ContainsCoord(neighbor) && !visited.Contains(neighbor)))
             {
-                if (!visited.Contains(neighbor) && grid.ContainsCoord(neighbor))
-                {
-                    frontier.Add(neighbor);
-                }
+                frontier.Add(neighbor);
             }
         }
 

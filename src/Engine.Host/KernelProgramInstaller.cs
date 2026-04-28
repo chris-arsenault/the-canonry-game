@@ -81,133 +81,156 @@ internal static class KernelProgramInstaller
     {
         foreach (var objective in program.Objectives)
         {
-            if (objective.Urgency == ProcessObjectiveUrgency.Fixed)
-            {
-                context.RegisterProcessFixedObjective(
-                    objective.KindId,
-                    EffectScopeCode(objective.EffectScope),
-                    objective.EffectValueId,
-                    objective.EffectKindId,
-                    objective.BaseUrgency);
-                continue;
-            }
-
-            context.RegisterProcessAttributeObjective(
-                objective.KindId,
-                new AttributeRuntimeId(objective.AttributeId),
-                UrgencyCode(objective.Urgency),
-                objective.Minimum,
-                objective.Maximum,
-                objective.DefaultValue,
-                objective.Baseline);
+            InstallProcessObjective(context, objective);
         }
 
         foreach (var process in program.Processes)
         {
-            var processSlot = context.RegisterProcess(
-                process.KindId,
-                process.ProcessId,
-                process.CooldownTicks,
-                process.EntityCooldownTicks,
-                TargetModeCode(process.TargetMode),
-                process.TargetKindId);
+            InstallProcess(context, process);
+        }
+    }
 
-            foreach (var goalEffect in process.GoalEffects)
+    private static void InstallProcessObjective(KernelConfigurationContext context, ProcessObjectiveRule objective)
+    {
+        if (objective.Urgency == ProcessObjectiveUrgency.Fixed)
+        {
+            context.RegisterProcessFixedObjective(
+                objective.KindId,
+                EffectScopeCode(objective.EffectScope),
+                objective.EffectValueId,
+                objective.EffectKindId,
+                objective.BaseUrgency);
+            return;
+        }
+
+        context.RegisterProcessAttributeObjective(
+            objective.KindId,
+            new AttributeRuntimeId(objective.AttributeId),
+            UrgencyCode(objective.Urgency),
+            objective.Minimum,
+            objective.Maximum,
+            objective.DefaultValue,
+            objective.Baseline);
+    }
+
+    private static void InstallProcess(KernelConfigurationContext context, CompiledProcessRule process)
+    {
+        var processSlot = context.RegisterProcess(
+            process.KindId,
+            process.ProcessId,
+            process.CooldownTicks,
+            process.EntityCooldownTicks,
+            TargetModeCode(process.TargetMode),
+            process.TargetKindId);
+        InstallProcessGoalEffects(context, processSlot, process);
+        InstallProcessPreconditions(context, processSlot, process);
+        InstallProcessExpressions(context, processSlot, process);
+        InstallProcessProviderSelectors(context, processSlot, process);
+        InstallProcessSupportRules(context, processSlot, process);
+        InstallProcessSteps(context, processSlot, process);
+    }
+
+    private static void InstallProcessGoalEffects(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
+    {
+        foreach (var goalEffect in process.GoalEffects)
+        {
+            context.AddProcessGoalEffect(
+                processSlot,
+                EffectScopeCode(goalEffect.Scope),
+                goalEffect.ValueId,
+                goalEffect.KindId);
+        }
+    }
+
+    private static void InstallProcessPreconditions(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
+    {
+        foreach (var precondition in process.Preconditions)
+        {
+            context.AddProcessPrecondition(
+                processSlot,
+                PreconditionCode(precondition.Code),
+                precondition.A,
+                precondition.B,
+                precondition.C,
+                precondition.D,
+                precondition.X,
+                precondition.Y);
+        }
+    }
+
+    private static void InstallProcessExpressions(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
+    {
+        foreach (var expression in process.ScoreExpression)
+        {
+            context.AddProcessScoreExpressionOp(processSlot, ExpressionCode(expression.Code), expression.A, expression.X);
+        }
+
+        foreach (var expression in process.RewardExpression)
+        {
+            context.AddProcessRewardExpressionOp(processSlot, ExpressionCode(expression.Code), expression.A, expression.X);
+        }
+    }
+
+    private static void InstallProcessProviderSelectors(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
+    {
+        foreach (var selector in process.ProviderSelectors)
+        {
+            context.AddProcessProviderSelector(
+                processSlot,
+                ProviderSelectorCode(selector.Selector),
+                selector.KindId,
+                selector.ValueId,
+                selector.RelationshipKindId,
+                selector.FactId,
+                selector.MinimumStrength);
+        }
+    }
+
+    private static void InstallProcessSupportRules(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
+    {
+        foreach (var support in process.SupportRules)
+        {
+            var supportSlot = context.AddProcessSupportRule(
+                processSlot,
+                EffectScopeCode(support.EffectScope),
+                support.EffectValueId,
+                support.EffectKindId,
+                support.DesiredMinimum,
+                support.UrgencyScale);
+            foreach (var expression in support.CurrentValueExpression)
             {
-                context.AddProcessGoalEffect(
-                    processSlot,
-                    EffectScopeCode(goalEffect.Scope),
-                    goalEffect.ValueId,
-                    goalEffect.KindId);
+                context.AddProcessSupportExpressionOp(supportSlot, ExpressionCode(expression.Code), expression.A, expression.X);
             }
+        }
+    }
 
-            foreach (var precondition in process.Preconditions)
-            {
-                context.AddProcessPrecondition(
-                    processSlot,
-                    PreconditionCode(precondition.Code),
-                    precondition.A,
-                    precondition.B,
-                    precondition.C,
-                    precondition.D,
-                    precondition.X,
-                    precondition.Y);
-            }
+    private static void InstallProcessSteps(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
+    {
+        foreach (var step in process.Steps)
+        {
+            var stepSlot = context.AddProcessStep(
+                processSlot,
+                OperationCode(step.Operation),
+                step.A,
+                step.B,
+                step.C,
+                step.D,
+                step.X,
+                step.Y);
+            InstallProcessStepExpression(context, stepSlot, step);
+        }
+    }
 
-            foreach (var expression in process.ScoreExpression)
-            {
-                context.AddProcessScoreExpressionOp(
-                    processSlot,
-                    ExpressionCode(expression.Code),
-                    expression.A,
-                    expression.X);
-            }
+    private static void InstallProcessStepExpression(KernelConfigurationContext context, int stepSlot, ProcessProgramStepRule step)
+    {
+        if (step.Expression is null)
+        {
+            return;
+        }
 
-            foreach (var expression in process.RewardExpression)
-            {
-                context.AddProcessRewardExpressionOp(
-                    processSlot,
-                    ExpressionCode(expression.Code),
-                    expression.A,
-                    expression.X);
-            }
-
-            foreach (var selector in process.ProviderSelectors)
-            {
-                context.AddProcessProviderSelector(
-                    processSlot,
-                    ProviderSelectorCode(selector.Selector),
-                    selector.KindId,
-                    selector.ValueId,
-                    selector.RelationshipKindId,
-                    selector.FactId,
-                    selector.MinimumStrength);
-            }
-
-            foreach (var support in process.SupportRules)
-            {
-                var supportSlot = context.AddProcessSupportRule(
-                    processSlot,
-                    EffectScopeCode(support.EffectScope),
-                    support.EffectValueId,
-                    support.EffectKindId,
-                    support.DesiredMinimum,
-                    support.UrgencyScale);
-                foreach (var expression in support.CurrentValueExpression)
-                {
-                    context.AddProcessSupportExpressionOp(
-                        supportSlot,
-                        ExpressionCode(expression.Code),
-                        expression.A,
-                        expression.X);
-                }
-            }
-
-            foreach (var step in process.Steps)
-            {
-                var stepSlot = context.AddProcessStep(
-                    processSlot,
-                    OperationCode(step.Operation),
-                    step.A,
-                    step.B,
-                    step.C,
-                    step.D,
-                    step.X,
-                    step.Y);
-                if (step.Expression is null)
-                {
-                    continue;
-                }
-
-                foreach (var expression in step.Expression)
-                {
-                    context.AddProcessStepExpressionOp(
-                        stepSlot,
-                        ExpressionCode(expression.Code),
-                        expression.A,
-                        expression.X);
-                }
-            }
+        foreach (var expression in step.Expression)
+        {
+            context.AddProcessStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
         }
     }
 
@@ -227,111 +250,96 @@ internal static class KernelProgramInstaller
     {
         foreach (var gambit in program.Gambits)
         {
-            var gambitSlot = context.RegisterGambit(
-                gambit.KindId,
-                gambit.GambitId,
-                gambit.CooldownTicks,
-                gambit.EntityCooldownTicks,
-                TargetModeCode(gambit.TargetMode),
-                gambit.TargetKindId,
-                gambit.SuccessChance);
+            InstallGambit(context, gambit);
+        }
+    }
 
-            foreach (var goalEffect in gambit.GoalEffects)
+    private static void InstallGambit(KernelConfigurationContext context, CompiledGambitRule gambit)
+    {
+        var gambitSlot = context.RegisterGambit(
+            gambit.KindId,
+            gambit.GambitId,
+            gambit.CooldownTicks,
+            gambit.EntityCooldownTicks,
+            TargetModeCode(gambit.TargetMode),
+            gambit.TargetKindId,
+            gambit.SuccessChance);
+        InstallGambitGoalEffects(context, gambitSlot, gambit);
+        InstallGambitPreconditions(context, gambitSlot, gambit);
+        InstallGambitExpressions(context, gambitSlot, gambit);
+        InstallGambitProviderSelectors(context, gambitSlot, gambit);
+        InstallGambitSupportRules(context, gambitSlot, gambit);
+        InstallGambitSteps(context, gambitSlot, gambit);
+    }
+
+    private static void InstallGambitGoalEffects(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
+    {
+        foreach (var goalEffect in gambit.GoalEffects)
+        {
+            context.AddGambitGoalEffect(gambitSlot, EffectScopeCode(goalEffect.Scope), goalEffect.ValueId, goalEffect.KindId);
+        }
+    }
+
+    private static void InstallGambitPreconditions(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
+    {
+        foreach (var precondition in gambit.Preconditions)
+        {
+            context.AddGambitPrecondition(gambitSlot, PreconditionCode(precondition.Code), precondition.A, precondition.B, precondition.C, precondition.D, precondition.X, precondition.Y);
+        }
+    }
+
+    private static void InstallGambitExpressions(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
+    {
+        foreach (var expression in gambit.ScoreExpression)
+        {
+            context.AddGambitScoreExpressionOp(gambitSlot, ExpressionCode(expression.Code), expression.A, expression.X);
+        }
+
+        foreach (var expression in gambit.RewardExpression)
+        {
+            context.AddGambitRewardExpressionOp(gambitSlot, ExpressionCode(expression.Code), expression.A, expression.X);
+        }
+    }
+
+    private static void InstallGambitProviderSelectors(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
+    {
+        foreach (var selector in gambit.ProviderSelectors)
+        {
+            context.AddGambitProviderSelector(gambitSlot, ProviderSelectorCode(selector.Selector), selector.KindId, selector.ValueId, selector.RelationshipKindId, selector.FactId, selector.MinimumStrength);
+        }
+    }
+
+    private static void InstallGambitSupportRules(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
+    {
+        foreach (var support in gambit.SupportRules)
+        {
+            var supportSlot = context.AddGambitSupportRule(gambitSlot, EffectScopeCode(support.EffectScope), support.EffectValueId, support.EffectKindId, support.DesiredMinimum, support.UrgencyScale);
+            foreach (var expression in support.CurrentValueExpression)
             {
-                context.AddGambitGoalEffect(
-                    gambitSlot,
-                    EffectScopeCode(goalEffect.Scope),
-                    goalEffect.ValueId,
-                    goalEffect.KindId);
+                context.AddGambitSupportExpressionOp(supportSlot, ExpressionCode(expression.Code), expression.A, expression.X);
             }
+        }
+    }
 
-            foreach (var precondition in gambit.Preconditions)
-            {
-                context.AddGambitPrecondition(
-                    gambitSlot,
-                    PreconditionCode(precondition.Code),
-                    precondition.A,
-                    precondition.B,
-                    precondition.C,
-                    precondition.D,
-                    precondition.X,
-                    precondition.Y);
-            }
+    private static void InstallGambitSteps(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
+    {
+        foreach (var step in gambit.Steps)
+        {
+            var stepSlot = context.AddGambitStep(gambitSlot, OperationCode(step.Operation), step.A, step.B, step.C, step.D, step.X, step.Y);
+            InstallGambitStepExpression(context, stepSlot, step);
+        }
+    }
 
-            foreach (var expression in gambit.ScoreExpression)
-            {
-                context.AddGambitScoreExpressionOp(
-                    gambitSlot,
-                    ExpressionCode(expression.Code),
-                    expression.A,
-                    expression.X);
-            }
+    private static void InstallGambitStepExpression(KernelConfigurationContext context, int stepSlot, ProcessProgramStepRule step)
+    {
+        if (step.Expression is null)
+        {
+            return;
+        }
 
-            foreach (var expression in gambit.RewardExpression)
-            {
-                context.AddGambitRewardExpressionOp(
-                    gambitSlot,
-                    ExpressionCode(expression.Code),
-                    expression.A,
-                    expression.X);
-            }
-
-            foreach (var selector in gambit.ProviderSelectors)
-            {
-                context.AddGambitProviderSelector(
-                    gambitSlot,
-                    ProviderSelectorCode(selector.Selector),
-                    selector.KindId,
-                    selector.ValueId,
-                    selector.RelationshipKindId,
-                    selector.FactId,
-                    selector.MinimumStrength);
-            }
-
-            foreach (var support in gambit.SupportRules)
-            {
-                var supportSlot = context.AddGambitSupportRule(
-                    gambitSlot,
-                    EffectScopeCode(support.EffectScope),
-                    support.EffectValueId,
-                    support.EffectKindId,
-                    support.DesiredMinimum,
-                    support.UrgencyScale);
-                foreach (var expression in support.CurrentValueExpression)
-                {
-                    context.AddGambitSupportExpressionOp(
-                        supportSlot,
-                        ExpressionCode(expression.Code),
-                        expression.A,
-                        expression.X);
-                }
-            }
-
-            foreach (var step in gambit.Steps)
-            {
-                var stepSlot = context.AddGambitStep(
-                    gambitSlot,
-                    OperationCode(step.Operation),
-                    step.A,
-                    step.B,
-                    step.C,
-                    step.D,
-                    step.X,
-                    step.Y);
-                if (step.Expression is null)
-                {
-                    continue;
-                }
-
-                foreach (var expression in step.Expression)
-                {
-                    context.AddGambitStepExpressionOp(
-                        stepSlot,
-                        ExpressionCode(expression.Code),
-                        expression.A,
-                        expression.X);
-                }
-            }
+        foreach (var expression in step.Expression)
+        {
+            context.AddGambitStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
         }
     }
 
@@ -372,120 +380,176 @@ internal static class KernelProgramInstaller
     {
         foreach (var generator in program.Generators)
         {
-            var generatorSlot = context.RegisterGenerator(
-                generator.GeneratorId,
-                generator.CadenceTicks,
-                generator.TargetKindId,
-                generator.PulseWeight,
-                generator.MaxRuns,
-                generator.TargetAllowWilderness);
+            InstallGenerator(context, generator);
+        }
+    }
 
-            foreach (var subtypeId in generator.TargetSubtypeIds)
+    private static void InstallGenerator(KernelConfigurationContext context, CompiledGeneratorRule generator)
+    {
+        var generatorSlot = context.RegisterGenerator(
+            generator.GeneratorId,
+            generator.CadenceTicks,
+            generator.TargetKindId,
+            generator.PulseWeight,
+            generator.MaxRuns,
+            generator.TargetAllowWilderness);
+        InstallGeneratorTarget(context, generatorSlot, generator);
+        InstallGeneratorBindings(context, generatorSlot, generator);
+        InstallGeneratorProducedEntities(context, generatorSlot, generator);
+        InstallGeneratorRelationships(context, generatorSlot, generator);
+    }
+
+    private static void InstallGeneratorTarget(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
+    {
+        foreach (var subtypeId in generator.TargetSubtypeIds)
+        {
+            context.AddGeneratorTargetSubtype(generatorSlot, subtypeId);
+        }
+
+        if (generator.TargetSaturation is { } saturation)
+        {
+            context.SetGeneratorTargetSaturation(
+                generatorSlot,
+                saturation.RelationshipKindId,
+                saturation.RequiredFactId,
+                GeneratorSaturationDirectionCode(saturation.Direction),
+                saturation.MaxExisting);
+        }
+
+        foreach (var trigger in generator.Triggers)
+        {
+            context.AddGeneratorTrigger(
+                generatorSlot,
+                trigger.KindId,
+                trigger.AttributeId,
+                GeneratorTriggerDirectionCode(trigger.Direction),
+                trigger.Threshold);
+        }
+    }
+
+    private static void InstallGeneratorBindings(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
+    {
+        foreach (var binding in generator.SecondaryBindings)
+        {
+            var query = binding.Query;
+            var bindingSlot = context.AddGeneratorSecondaryBinding(
+                generatorSlot,
+                binding.RefCode,
+                binding.KindId,
+                query?.AdjacentToTarget == true,
+                GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any));
+            if (query is not null)
             {
-                context.AddGeneratorTargetSubtype(generatorSlot, subtypeId);
+                InstallGeneratorBindingQuery(context, bindingSlot, query);
             }
+        }
+    }
 
-            if (generator.TargetSaturation is { } saturation)
-            {
-                context.SetGeneratorTargetSaturation(
-                    generatorSlot,
-                    saturation.RelationshipKindId,
-                    saturation.RequiredFactId,
-                    GeneratorSaturationDirectionCode(saturation.Direction),
-                    saturation.MaxExisting);
-            }
+    private static void InstallGeneratorProducedEntities(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
+    {
+        foreach (var produced in generator.ProducedEntities)
+        {
+            InstallGeneratorProducedEntity(context, generatorSlot, produced);
+        }
+    }
 
-            foreach (var trigger in generator.Triggers)
-            {
-                context.AddGeneratorTrigger(
-                    generatorSlot,
-                    trigger.KindId,
-                    trigger.AttributeId,
-                    GeneratorTriggerDirectionCode(trigger.Direction),
-                    trigger.Threshold);
-            }
+    private static void InstallGeneratorProducedEntity(KernelConfigurationContext context, int generatorSlot, GeneratorProducedEntityRule produced)
+    {
+        var query = produced.Query;
+        var coverage = produced.Coverage;
+        var producedSlot = context.AddGeneratorProduced(
+            generatorSlot,
+            produced.RefCode,
+            produced.KindId,
+            produced.SubtypeId,
+            produced.CreateIfMissing,
+            produced.HasQuery,
+            QueryAdjacentToTarget(query),
+            QueryCultureMatchCode(query),
+            GeneratorPlacementCode(produced.PhysicalPlacement),
+            GeneratorPlacementCode(produced.SemanticPlacement),
+            produced.PlacementRefCode,
+            produced.CultureRefCode,
+            produced.CreateChance,
+            NullableCoverageModeCode(coverage),
+            CoverageSourceRefCode(coverage),
+            CoverageDesiredCellCount(coverage),
+            CoverageMinimumCellCount(coverage),
+            CoverageMinimumSourceRemainingCellCount(coverage),
+            CoverageRespectTerrainBoundaries(coverage),
+            CoverageTransformTerrainId(coverage));
+        InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
+        if (query is not null)
+        {
+            InstallGeneratorProducedQuery(context, producedSlot, query);
+        }
 
-            foreach (var binding in generator.SecondaryBindings)
-            {
-                var query = binding.Query;
-                var bindingSlot = context.AddGeneratorSecondaryBinding(
-                    generatorSlot,
-                    binding.RefCode,
-                    binding.KindId,
-                    query?.AdjacentToTarget == true,
-                    GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any));
-                if (query is not null)
-                {
-                    InstallGeneratorBindingQuery(context, bindingSlot, query);
-                }
-            }
+        if (coverage is not null)
+        {
+            InstallGeneratorProducedCoverage(context, producedSlot, coverage);
+        }
+    }
 
-            foreach (var produced in generator.ProducedEntities)
-            {
-                var query = produced.Query;
-                var coverage = produced.Coverage;
-                var producedSlot = context.AddGeneratorProduced(
-                    generatorSlot,
-                    produced.RefCode,
-                    produced.KindId,
-                    produced.SubtypeId,
-                    produced.CreateIfMissing,
-                    produced.HasQuery,
-                    query?.AdjacentToTarget == true,
-                    GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any),
-                    GeneratorPlacementCode(produced.PhysicalPlacement),
-                    GeneratorPlacementCode(produced.SemanticPlacement),
-                    produced.PlacementRefCode,
-                    produced.CultureRefCode,
-                    produced.CreateChance,
-                    GeneratorCoverageModeCode(coverage?.Mode ?? GeneratorProgramCoverageMode.None),
-                    coverage?.SourceRefCode ?? 0,
-                    coverage?.DesiredCellCount ?? 0,
-                    coverage?.MinimumCellCount ?? 0,
-                    coverage?.MinimumSourceRemainingCellCount ?? 0,
-                    coverage?.RespectTerrainBoundaries ?? true,
-                    coverage?.TransformTerrainId ?? 0);
+    private static bool QueryAdjacentToTarget(GeneratorEntityQueryRule? query) => query is not null && query.AdjacentToTarget;
 
-                foreach (var subtypeId in produced.SubtypeChoiceIds)
-                {
-                    context.AddGeneratorProducedSubtypeChoice(producedSlot, subtypeId);
-                }
+    private static int QueryCultureMatchCode(GeneratorEntityQueryRule? query) =>
+        GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any);
 
-                if (query is not null)
-                {
-                    InstallGeneratorProducedQuery(context, producedSlot, query);
-                }
+    private static int NullableCoverageModeCode(GeneratorCoverageRule? coverage) =>
+        GeneratorCoverageModeCode(coverage?.Mode ?? GeneratorProgramCoverageMode.None);
 
-                if (coverage is not null)
-                {
-                    foreach (var terrainId in coverage.PreferredTerrainIds)
-                    {
-                        context.AddGeneratorProducedCoveragePreferredTerrain(producedSlot, terrainId);
-                    }
+    private static int CoverageSourceRefCode(GeneratorCoverageRule? coverage) => coverage?.SourceRefCode ?? 0;
 
-                    foreach (var terrainId in coverage.AllowedTerrainIds)
-                    {
-                        context.AddGeneratorProducedCoverageAllowedTerrain(producedSlot, terrainId);
-                    }
-                }
-            }
+    private static int CoverageDesiredCellCount(GeneratorCoverageRule? coverage) => coverage?.DesiredCellCount ?? 0;
 
-            foreach (var relationship in generator.Relationships)
-            {
-                var (factId0, factId1, factId2, factId3, factCount) = GeneratorRelationshipFacts(relationship.FactIds);
-                context.AddGeneratorRelationship(
-                    generatorSlot,
-                    relationship.SourceRefCode,
-                    relationship.DestinationRefCode,
-                    relationship.RelationshipKindId,
-                    relationship.Strength,
-                    relationship.ReplaceExistingOutgoing,
-                    factId0,
-                    factId1,
-                    factId2,
-                    factId3,
-                    factCount);
-            }
+    private static int CoverageMinimumCellCount(GeneratorCoverageRule? coverage) => coverage?.MinimumCellCount ?? 0;
+
+    private static int CoverageMinimumSourceRemainingCellCount(GeneratorCoverageRule? coverage) =>
+        coverage?.MinimumSourceRemainingCellCount ?? 0;
+
+    private static bool CoverageRespectTerrainBoundaries(GeneratorCoverageRule? coverage) =>
+        coverage?.RespectTerrainBoundaries ?? true;
+
+    private static int CoverageTransformTerrainId(GeneratorCoverageRule? coverage) => coverage?.TransformTerrainId ?? 0;
+
+    private static void InstallGeneratorProducedSubtypeChoices(KernelConfigurationContext context, int producedSlot, GeneratorProducedEntityRule produced)
+    {
+        foreach (var subtypeId in produced.SubtypeChoiceIds)
+        {
+            context.AddGeneratorProducedSubtypeChoice(producedSlot, subtypeId);
+        }
+    }
+
+    private static void InstallGeneratorProducedCoverage(KernelConfigurationContext context, int producedSlot, GeneratorCoverageRule coverage)
+    {
+        foreach (var terrainId in coverage.PreferredTerrainIds)
+        {
+            context.AddGeneratorProducedCoveragePreferredTerrain(producedSlot, terrainId);
+        }
+
+        foreach (var terrainId in coverage.AllowedTerrainIds)
+        {
+            context.AddGeneratorProducedCoverageAllowedTerrain(producedSlot, terrainId);
+        }
+    }
+
+    private static void InstallGeneratorRelationships(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
+    {
+        foreach (var relationship in generator.Relationships)
+        {
+            var (factId0, factId1, factId2, factId3, factCount) = GeneratorRelationshipFacts(relationship.FactIds);
+            context.AddGeneratorRelationship(
+                generatorSlot,
+                relationship.SourceRefCode,
+                relationship.DestinationRefCode,
+                relationship.RelationshipKindId,
+                relationship.Strength,
+                relationship.ReplaceExistingOutgoing,
+                factId0,
+                factId1,
+                factId2,
+                factId3,
+                factCount);
         }
     }
 
@@ -557,78 +621,200 @@ internal static class KernelProgramInstaller
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
 
-    private static int OperationCode(ProcessProgramOperation operation) => operation switch
+    private static int OperationCode(ProcessProgramOperation operation)
     {
-        ProcessProgramOperation.None => 0,
-        ProcessProgramOperation.AddAttribute => ProcessOperationCodes.AddAttribute,
-        ProcessProgramOperation.SetAttribute => ProcessOperationCodes.SetAttribute,
-        ProcessProgramOperation.MovePhysical => ProcessOperationCodes.MovePhysical,
-        ProcessProgramOperation.MoveSemantic => ProcessOperationCodes.MoveSemantic,
-        ProcessProgramOperation.AddResource => ProcessOperationCodes.AddResource,
-        ProcessProgramOperation.SetStatus => ProcessOperationCodes.SetStatus,
-        ProcessProgramOperation.CreateRelationship => ProcessOperationCodes.CreateRelationship,
-        ProcessProgramOperation.SetRelationshipStrength => ProcessOperationCodes.SetRelationshipStrength,
-        ProcessProgramOperation.AddTargetAttribute => ProcessOperationCodes.AddTargetAttribute,
-        ProcessProgramOperation.TransferAttribute => ProcessOperationCodes.TransferAttribute,
-        ProcessProgramOperation.AddLocationResource => ProcessOperationCodes.AddLocationResource,
-        ProcessProgramOperation.HexToHealth => ProcessOperationCodes.HexToHealth,
-        ProcessProgramOperation.MoveTowardTargetPhysical => ProcessOperationCodes.MoveTowardTargetPhysical,
-        ProcessProgramOperation.WanderPhysical => ProcessOperationCodes.WanderPhysical,
-        ProcessProgramOperation.MoveTowardTargetSemantic => ProcessOperationCodes.MoveTowardTargetSemantic,
-        ProcessProgramOperation.WanderSemantic => ProcessOperationCodes.WanderSemantic,
-        ProcessProgramOperation.CreateEntity => ProcessOperationCodes.CreateEntity,
-        ProcessProgramOperation.AddPressure => ProcessOperationCodes.AddPressure,
-        ProcessProgramOperation.SetHistorical => ProcessOperationCodes.SetHistorical,
-        ProcessProgramOperation.AddRelatedEntitiesAttribute => ProcessOperationCodes.AddRelatedEntitiesAttribute,
-        ProcessProgramOperation.CalculateVariable => ProcessOperationCodes.CalculateVariable,
-        ProcessProgramOperation.AddAttributeFromVariable => ProcessOperationCodes.AddAttributeFromVariable,
-        ProcessProgramOperation.AddTargetAttributeFromVariable => ProcessOperationCodes.AddTargetAttributeFromVariable,
-        ProcessProgramOperation.CreateFixedRelationship => ProcessOperationCodes.CreateFixedRelationship,
-        _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
-    };
+        if (TryAttributeOperationCode(operation, out var code) ||
+            TryMovementOperationCode(operation, out code) ||
+            TryEntityOperationCode(operation, out code) ||
+            TryContextOperationCode(operation, out code))
+        {
+            return code;
+        }
 
-    private static int PreconditionCode(ProcessProgramPrecondition precondition) => precondition switch
-    {
-        ProcessProgramPrecondition.TargetIsSelf => ProcessPreconditionCodes.TargetIsSelf,
-        ProcessProgramPrecondition.TargetIsNotSelf => ProcessPreconditionCodes.TargetIsNotSelf,
-        ProcessProgramPrecondition.SelfAttributeRange => ProcessPreconditionCodes.SelfAttributeRange,
-        ProcessProgramPrecondition.TargetAttributeRange => ProcessPreconditionCodes.TargetAttributeRange,
-        ProcessProgramPrecondition.PlaneDistance => ProcessPreconditionCodes.PlaneDistance,
-        ProcessProgramPrecondition.LocationResourceRange => ProcessPreconditionCodes.LocationResourceRange,
-        ProcessProgramPrecondition.Always => ProcessPreconditionCodes.Always,
-        ProcessProgramPrecondition.SelfHasRelationshipToTarget => ProcessPreconditionCodes.SelfHasRelationshipToTarget,
-        ProcessProgramPrecondition.TargetHasRelationshipToSelf => ProcessPreconditionCodes.TargetHasRelationshipToSelf,
-        ProcessProgramPrecondition.RelatedEntityMatchesTarget => ProcessPreconditionCodes.RelatedEntityMatchesTarget,
-        ProcessProgramPrecondition.RelationshipExists => ProcessPreconditionCodes.RelationshipExists,
-        ProcessProgramPrecondition.PressureRange => ProcessPreconditionCodes.PressureRange,
-        ProcessProgramPrecondition.CooldownElapsed => ProcessPreconditionCodes.CooldownElapsed,
-        ProcessProgramPrecondition.And => ProcessPreconditionCodes.And,
-        ProcessProgramPrecondition.Or => ProcessPreconditionCodes.Or,
-        ProcessProgramPrecondition.Not => ProcessPreconditionCodes.Not,
-        ProcessProgramPrecondition.EntityCountAtLeast => ProcessPreconditionCodes.EntityCountAtLeast,
-        ProcessProgramPrecondition.HasColocatedEntity => ProcessPreconditionCodes.HasColocatedEntity,
-        _ => throw new ArgumentOutOfRangeException(nameof(precondition), precondition, null),
-    };
+        throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+    }
 
-    private static int ExpressionCode(ProcessProgramExpression expression) => expression switch
+    private static bool TryAttributeOperationCode(ProcessProgramOperation operation, out int code)
     {
-        ProcessProgramExpression.Literal => ProcessExpressionCodes.Literal,
-        ProcessProgramExpression.SelfAttribute => ProcessExpressionCodes.SelfAttribute,
-        ProcessProgramExpression.TargetAttribute => ProcessExpressionCodes.TargetAttribute,
-        ProcessProgramExpression.SelfLocationResource => ProcessExpressionCodes.SelfLocationResource,
-        ProcessProgramExpression.TargetLocationResource => ProcessExpressionCodes.TargetLocationResource,
-        ProcessProgramExpression.Add => ProcessExpressionCodes.Add,
-        ProcessProgramExpression.Subtract => ProcessExpressionCodes.Subtract,
-        ProcessProgramExpression.Multiply => ProcessExpressionCodes.Multiply,
-        ProcessProgramExpression.Divide => ProcessExpressionCodes.Divide,
-        ProcessProgramExpression.Min => ProcessExpressionCodes.Min,
-        ProcessProgramExpression.Max => ProcessExpressionCodes.Max,
-        ProcessProgramExpression.Clamp => ProcessExpressionCodes.Clamp,
-        ProcessProgramExpression.Abs => ProcessExpressionCodes.Abs,
-        ProcessProgramExpression.Variable => ProcessExpressionCodes.Variable,
-        ProcessProgramExpression.Distance => ProcessExpressionCodes.Distance,
-        _ => throw new ArgumentOutOfRangeException(nameof(expression), expression, null),
-    };
+        code = operation switch
+        {
+            ProcessProgramOperation.None => 0,
+            ProcessProgramOperation.AddAttribute => ProcessOperationCodes.AddAttribute,
+            ProcessProgramOperation.SetAttribute => ProcessOperationCodes.SetAttribute,
+            ProcessProgramOperation.AddTargetAttribute => ProcessOperationCodes.AddTargetAttribute,
+            ProcessProgramOperation.TransferAttribute => ProcessOperationCodes.TransferAttribute,
+            ProcessProgramOperation.CalculateVariable => ProcessOperationCodes.CalculateVariable,
+            ProcessProgramOperation.AddAttributeFromVariable => ProcessOperationCodes.AddAttributeFromVariable,
+            ProcessProgramOperation.AddTargetAttributeFromVariable => ProcessOperationCodes.AddTargetAttributeFromVariable,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryMovementOperationCode(ProcessProgramOperation operation, out int code)
+    {
+        code = operation switch
+        {
+            ProcessProgramOperation.MovePhysical => ProcessOperationCodes.MovePhysical,
+            ProcessProgramOperation.MoveSemantic => ProcessOperationCodes.MoveSemantic,
+            ProcessProgramOperation.MoveTowardTargetPhysical => ProcessOperationCodes.MoveTowardTargetPhysical,
+            ProcessProgramOperation.WanderPhysical => ProcessOperationCodes.WanderPhysical,
+            ProcessProgramOperation.MoveTowardTargetSemantic => ProcessOperationCodes.MoveTowardTargetSemantic,
+            ProcessProgramOperation.WanderSemantic => ProcessOperationCodes.WanderSemantic,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryEntityOperationCode(ProcessProgramOperation operation, out int code)
+    {
+        code = operation switch
+        {
+            ProcessProgramOperation.SetStatus => ProcessOperationCodes.SetStatus,
+            ProcessProgramOperation.CreateRelationship => ProcessOperationCodes.CreateRelationship,
+            ProcessProgramOperation.SetRelationshipStrength => ProcessOperationCodes.SetRelationshipStrength,
+            ProcessProgramOperation.CreateEntity => ProcessOperationCodes.CreateEntity,
+            ProcessProgramOperation.SetHistorical => ProcessOperationCodes.SetHistorical,
+            ProcessProgramOperation.AddRelatedEntitiesAttribute => ProcessOperationCodes.AddRelatedEntitiesAttribute,
+            ProcessProgramOperation.CreateFixedRelationship => ProcessOperationCodes.CreateFixedRelationship,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryContextOperationCode(ProcessProgramOperation operation, out int code)
+    {
+        code = operation switch
+        {
+            ProcessProgramOperation.AddResource => ProcessOperationCodes.AddResource,
+            ProcessProgramOperation.AddLocationResource => ProcessOperationCodes.AddLocationResource,
+            ProcessProgramOperation.HexToHealth => ProcessOperationCodes.HexToHealth,
+            ProcessProgramOperation.AddPressure => ProcessOperationCodes.AddPressure,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static int PreconditionCode(ProcessProgramPrecondition precondition)
+    {
+        if (TryAttributePreconditionCode(precondition, out var code) ||
+            TryRelationshipPreconditionCode(precondition, out code) ||
+            TryCompositionPreconditionCode(precondition, out code) ||
+            TryContextPreconditionCode(precondition, out code))
+        {
+            return code;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(precondition), precondition, null);
+    }
+
+    private static bool TryAttributePreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    {
+        code = precondition switch
+        {
+            ProcessProgramPrecondition.TargetIsSelf => ProcessPreconditionCodes.TargetIsSelf,
+            ProcessProgramPrecondition.TargetIsNotSelf => ProcessPreconditionCodes.TargetIsNotSelf,
+            ProcessProgramPrecondition.SelfAttributeRange => ProcessPreconditionCodes.SelfAttributeRange,
+            ProcessProgramPrecondition.TargetAttributeRange => ProcessPreconditionCodes.TargetAttributeRange,
+            ProcessProgramPrecondition.Always => ProcessPreconditionCodes.Always,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryRelationshipPreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    {
+        code = precondition switch
+        {
+            ProcessProgramPrecondition.SelfHasRelationshipToTarget => ProcessPreconditionCodes.SelfHasRelationshipToTarget,
+            ProcessProgramPrecondition.TargetHasRelationshipToSelf => ProcessPreconditionCodes.TargetHasRelationshipToSelf,
+            ProcessProgramPrecondition.RelatedEntityMatchesTarget => ProcessPreconditionCodes.RelatedEntityMatchesTarget,
+            ProcessProgramPrecondition.RelationshipExists => ProcessPreconditionCodes.RelationshipExists,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryCompositionPreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    {
+        code = precondition switch
+        {
+            ProcessProgramPrecondition.And => ProcessPreconditionCodes.And,
+            ProcessProgramPrecondition.Or => ProcessPreconditionCodes.Or,
+            ProcessProgramPrecondition.Not => ProcessPreconditionCodes.Not,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryContextPreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    {
+        code = precondition switch
+        {
+            ProcessProgramPrecondition.PlaneDistance => ProcessPreconditionCodes.PlaneDistance,
+            ProcessProgramPrecondition.LocationResourceRange => ProcessPreconditionCodes.LocationResourceRange,
+            ProcessProgramPrecondition.PressureRange => ProcessPreconditionCodes.PressureRange,
+            ProcessProgramPrecondition.CooldownElapsed => ProcessPreconditionCodes.CooldownElapsed,
+            ProcessProgramPrecondition.EntityCountAtLeast => ProcessPreconditionCodes.EntityCountAtLeast,
+            ProcessProgramPrecondition.HasColocatedEntity => ProcessPreconditionCodes.HasColocatedEntity,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static int ExpressionCode(ProcessProgramExpression expression)
+    {
+        if (TryValueExpressionCode(expression, out var code) ||
+            TryOperatorExpressionCode(expression, out code) ||
+            TryReferenceExpressionCode(expression, out code))
+        {
+            return code;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(expression), expression, null);
+    }
+
+    private static bool TryValueExpressionCode(ProcessProgramExpression expression, out int code)
+    {
+        code = expression switch
+        {
+            ProcessProgramExpression.Literal => ProcessExpressionCodes.Literal,
+            ProcessProgramExpression.SelfAttribute => ProcessExpressionCodes.SelfAttribute,
+            ProcessProgramExpression.TargetAttribute => ProcessExpressionCodes.TargetAttribute,
+            ProcessProgramExpression.SelfLocationResource => ProcessExpressionCodes.SelfLocationResource,
+            ProcessProgramExpression.TargetLocationResource => ProcessExpressionCodes.TargetLocationResource,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryOperatorExpressionCode(ProcessProgramExpression expression, out int code)
+    {
+        code = expression switch
+        {
+            ProcessProgramExpression.Add => ProcessExpressionCodes.Add,
+            ProcessProgramExpression.Subtract => ProcessExpressionCodes.Subtract,
+            ProcessProgramExpression.Multiply => ProcessExpressionCodes.Multiply,
+            ProcessProgramExpression.Divide => ProcessExpressionCodes.Divide,
+            ProcessProgramExpression.Min => ProcessExpressionCodes.Min,
+            ProcessProgramExpression.Max => ProcessExpressionCodes.Max,
+            ProcessProgramExpression.Clamp => ProcessExpressionCodes.Clamp,
+            ProcessProgramExpression.Abs => ProcessExpressionCodes.Abs,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryReferenceExpressionCode(ProcessProgramExpression expression, out int code)
+    {
+        code = expression switch
+        {
+            ProcessProgramExpression.Variable => ProcessExpressionCodes.Variable,
+            ProcessProgramExpression.Distance => ProcessExpressionCodes.Distance,
+            _ => -1,
+        };
+        return code >= 0;
+    }
 
     private static int EffectScopeCode(ProcessProgramEffectScope scope) => scope switch
     {

@@ -1,9 +1,9 @@
 namespace Engine.Domain.Compilation;
 
-using Engine.Domain.Config;
-using Engine.Domain.Graph;
 using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
+using Engine.Domain.Config;
+using Engine.Domain.Graph;
 
 public sealed class CompiledDomain
 {

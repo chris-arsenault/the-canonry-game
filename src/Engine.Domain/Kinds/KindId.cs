@@ -30,7 +30,10 @@ public readonly record struct KindId
         ArgumentNullException.ThrowIfNull(kinds);
         foreach (var kind in kinds)
         {
-            ArgumentException.ThrowIfNullOrEmpty(kind.Value);
+            if (string.IsNullOrEmpty(kind.Value))
+            {
+                throw new ArgumentException("Kind IDs cannot be null or empty.", nameof(kinds));
+            }
         }
     }
 

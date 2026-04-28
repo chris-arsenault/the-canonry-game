@@ -2,9 +2,10 @@
 #pragma warning disable CA1305
 #pragma warning disable CA2000 // Godot nodes managed by scene tree
 #pragma warning disable CA2213 // Godot nodes are managed by the scene tree
+using Engine.Projection;
+
 using Godot;
 
-using Engine.Projection;
 using TheCanonryGame.Game;
 using TheCanonryGame.UI;
 using TheCanonryGame.UI.Theme;
@@ -99,63 +100,87 @@ public partial class Main : Node2D
             return;
         }
 
-        if (@event is InputEventKey { Pressed: true } key)
+        HandleKeyboardInput(@event);
+        HandleMouseInput(@event);
+    }
+
+    private void HandleKeyboardInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true } key)
         {
-            switch (key.Keycode)
-            {
-                case Key.Space:
-                    if (_displayPaused)
-                    {
-                        SetKernelTickRate(NormalTicksPerSecond);
-                    }
-                    else
-                    {
-                        PauseKernelDriver();
-                    }
-
-                    break;
-                case Key.Key1:
-                    SetKernelTickRate(NormalTicksPerSecond);
-                    break;
-                case Key.Key2:
-                    SetKernelTickRate(FastTicksPerSecond);
-                    break;
-                case Key.Key3:
-                    SetKernelTickRate(VeryFastTicksPerSecond);
-                    break;
-                case Key.Right:
-                    StepKernelDriver();
-                    break;
-                case Key.R:
-                    ResetSimulation();
-                    break;
-                case Key.N:
-                    if (_entityLayer is not null)
-                    {
-                        _entityLayer.SetShowEntityNames(!_entityLayer.ShowEntityNames);
-                    }
-
-                    break;
-                case Key.G:
-                    ToggleAttributeGraph();
-                    break;
-            }
+            return;
         }
 
-        if (@event is InputEventMouseButton { Pressed: true } mouse)
+        switch (key.Keycode)
         {
-            const float zoomFactor = 1.1f;
-            if (mouse.ButtonIndex == MouseButton.WheelUp && _camera is not null)
-            {
-                _camera.Zoom *= zoomFactor;
-                _camera.Zoom = _camera.Zoom.Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
-            }
-            else if (mouse.ButtonIndex == MouseButton.WheelDown && _camera is not null)
-            {
-                _camera.Zoom /= zoomFactor;
-                _camera.Zoom = _camera.Zoom.Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
-            }
+            case Key.Space:
+                TogglePause();
+                break;
+            case Key.Key1:
+                SetKernelTickRate(NormalTicksPerSecond);
+                break;
+            case Key.Key2:
+                SetKernelTickRate(FastTicksPerSecond);
+                break;
+            case Key.Key3:
+                SetKernelTickRate(VeryFastTicksPerSecond);
+                break;
+            case Key.Right:
+                StepKernelDriver();
+                break;
+            case Key.R:
+                ResetSimulation();
+                break;
+            case Key.N:
+                ToggleEntityNames();
+                break;
+            case Key.G:
+                ToggleAttributeGraph();
+                break;
         }
+    }
+
+    private void HandleMouseInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton { Pressed: true } mouse || _camera is null)
+        {
+            return;
+        }
+
+        const float zoomFactor = 1.1f;
+        if (mouse.ButtonIndex == MouseButton.WheelUp)
+        {
+            AdjustZoom(zoomFactor);
+        }
+        else if (mouse.ButtonIndex == MouseButton.WheelDown)
+        {
+            AdjustZoom(1f / zoomFactor);
+        }
+    }
+
+    private void TogglePause()
+    {
+        if (_displayPaused)
+        {
+            SetKernelTickRate(NormalTicksPerSecond);
+            return;
+        }
+
+        PauseKernelDriver();
+    }
+
+    private void ToggleEntityNames()
+    {
+        if (_entityLayer is not null)
+        {
+            _entityLayer.SetShowEntityNames(!_entityLayer.ShowEntityNames);
+        }
+    }
+
+    private void AdjustZoom(float factor)
+    {
+        _camera!.Zoom *= factor;
+        _camera.Zoom = _camera.Zoom.Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
     }
 
     private void CacheSceneNodes()
@@ -266,22 +291,37 @@ public partial class Main : Node2D
 
     private void RebindRuntimeToUi()
     {
+        RebindMapRuntime();
+        RebindEntityRuntime();
+        RebindOverlayRuntime();
+        _chroniclePanel?.Clear();
+    }
+
+    private void RebindMapRuntime()
+    {
         if (_hexMapProjection is not null)
         {
             _mapRenderer?.Initialize(_hexMapProjection, _projectionSymbols);
             _mapRenderer?.Refresh();
         }
 
-        _browser?.Initialize(_uiProjection, _projectionSymbols);
         _entityLayer?.Initialize(_uiProjection, _projectionSymbols, _mapRenderer?.HexSize ?? 30f);
         if (_mapRenderer is not null)
         {
             _entityLayer?.SetPlane(_mapRenderer.CurrentPlane);
             _mapArea?.SetPlane(_mapRenderer.CurrentPlane);
         }
+    }
 
+    private void RebindEntityRuntime()
+    {
+        _browser?.Initialize(_uiProjection, _projectionSymbols);
         _attributeGraph?.Initialize(_uiProjection, _projectionSymbols);
         _cardLayer?.Initialize(_uiProjection, _projectionSymbols, _theme);
+    }
+
+    private void RebindOverlayRuntime()
+    {
         _hexTooltipPanel?.Initialize(
             _hexMapProjection,
             _uiProjection,
@@ -291,7 +331,6 @@ public partial class Main : Node2D
             [_rootColumn, _mapArea, _uiRoot]);
         _tableauPanel?.Initialize(_runtime?.Tableau);
         _tableauPanel?.Refresh();
-        _chroniclePanel?.Clear();
     }
 
     private void RefreshChronicleLabel()

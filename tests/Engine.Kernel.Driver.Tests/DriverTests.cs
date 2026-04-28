@@ -86,7 +86,6 @@ public sealed class DriverTests
 
         time.RequestPause();
         var pausedTick = kernel.CurrentTick;
-        Thread.Sleep(TimeSpan.FromMilliseconds(20));
 
         Assert.True(time.IsPaused);
         Assert.Equal(DriverState.Stopped, time.State);
@@ -109,7 +108,6 @@ public sealed class DriverTests
 
         time.SetTickRate(0d);
         var pausedTick = kernel.CurrentTick;
-        Thread.Sleep(TimeSpan.FromMilliseconds(20));
         var stepped = time.AdvanceSingleStep(2);
 
         Assert.Equal(0d, time.TicksPerSecond);

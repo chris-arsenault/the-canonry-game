@@ -4,6 +4,7 @@ using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Kinds;
 using Engine.Wiring;
+
 using Attr = IceRemembers.IceRemembersAttributeId;
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
@@ -30,7 +31,6 @@ public static class IceRemembersSemanticDefinition
     };
 
     private static string A(Attr attribute) => attribute.ToDomainName();
-    private static string L(Rel relationship) => relationship.ToDomainName();
     private static string R(Res resource) => resource.ToDomainName();
     private static string VerbId(Verb verbId) => verbId.ToVerbId();
 
@@ -84,8 +84,15 @@ public static class IceRemembersSemanticDefinition
     private static IReadOnlyList<SemanticVerbConfig> CreateVerbs() =>
     [
         EngineVerb(Verb.EngineDecay),
+        ..CreateSelfSacrificeVerbs(),
+        ..CreateHexHealthVerbs(),
+        ..CreateUntouchedHexVerbs(),
+        ..CreateRingConversionVerbs(),
+        ..CreatePositioningVerbs(),
+    ];
 
-        // Self-sacrifice verbs (H → X within each kind).
+    private static IReadOnlyList<SemanticVerbConfig> CreateSelfSacrificeVerbs() =>
+    [
         EntityVerb(Verb.ArtifactChannel, K.Artifact,
             notes: "The artifact burns its physical integrity to fuel power projection."),
         EntityVerb(Verb.FactionAgitate, K.Faction,
@@ -96,8 +103,10 @@ public static class IceRemembersSemanticDefinition
             notes: "Slow geological calm purifies the land — the region settles and cleans itself."),
         EntityVerb(Verb.SettlementOverreach, K.Settlement,
             notes: "The settlement overreaches — residents are spent on dominion that exceeds their capacity. Soldiers march too far, builders work to ruin, missionaries die in the wilderness; the city's reach grows at the cost of its people."),
+    ];
 
-        // Hex → Health inflow verbs (food / wealth / population feed each kind's lifecycle).
+    private static IReadOnlyList<SemanticVerbConfig> CreateHexHealthVerbs() =>
+    [
         EntityVerb(Verb.PenguinWarm, K.Penguin,
             notes: "Penguins draw warmth from the local hex's food abundance, shelter, and survivable company."),
         EntityVerb(Verb.ArtifactRepair, K.Artifact,
@@ -108,8 +117,10 @@ public static class IceRemembersSemanticDefinition
             notes: "Agricultural cultivation roots the region — soil management stabilizes the bedrock."),
         EntityVerb(Verb.SettlementGrow, K.Settlement,
             notes: "Settlements absorb population from their hex as immigrants join."),
+    ];
 
-        // Untouched → hex outflow verbs (each kind expands the local hex's possibility space at the cost of an attribute).
+    private static IReadOnlyList<SemanticVerbConfig> CreateUntouchedHexVerbs() =>
+    [
         EntityVerb(Verb.PenguinWitness, K.Penguin,
             notes: "Echo-rich penguins become socially legible — singers, survivors, and remembered names expand the hex's population capacity as their echo spends."),
         EntityVerb(Verb.ArtifactVivify, K.Artifact,
@@ -120,8 +131,10 @@ public static class IceRemembersSemanticDefinition
             notes: "The region is breached — its held interior is opened for ore, lumber, fire-cores, and hidden wealth. Holding drains as extraction takes hold; the hex's wealth possibility grows."),
         EntityVerb(Verb.SettlementStripRookeries, K.Settlement,
             notes: "The settlement strips rookeries — nesting space, shelter, and civic habitability are converted into saleable material and harsh output; the hex's wealth possibility grows."),
+    ];
 
-        // RPS ring conversion verbs (cross-entity drain).
+    private static IReadOnlyList<SemanticVerbConfig> CreateRingConversionVerbs() =>
+    [
         EntityVerb(Verb.SettlementClaimsEcho, K.Settlement,
             notes: "The settlement claims an NPC's echo — a remembered name is absorbed into civic legitimacy, and the city's dominion grows."),
         EntityVerb(Verb.FactionStarve, K.Faction,
@@ -142,8 +155,10 @@ public static class IceRemembersSemanticDefinition
             notes: "The penguin wields the artifact — holding the thing, they draw its working power into their own echo."),
         EntityVerb(Verb.SettlementSanctify, K.Settlement,
             notes: "The settlement sanctifies itself in the artifact's resonance — wards, blessed wells, sanctified ground, intimidation of the unclean. Resonance spends into civic shelter."),
+    ];
 
-        // Mobility verbs — enablement: each kind's act of repositioning into range of its targets.
+    private static IReadOnlyList<SemanticVerbConfig> CreatePositioningVerbs() =>
+    [
         PositioningVerb(Verb.PenguinTravel, K.Penguin, SemanticVerbRole.Mobility,
             "The penguin travels — walking, riding, marching across the map hex grid toward a target."),
         PositioningVerb(Verb.ArtifactCompel, K.Artifact, SemanticVerbRole.Mobility,
@@ -154,8 +169,6 @@ public static class IceRemembersSemanticDefinition
             "The faction preaches — speakers, pamphlets, oaths-at-the-gates. The faction moves on the autonomy/resonance/tradition plane by spreading doctrine and drawing targets closer to its position (or repositioning itself toward them)."),
         PositioningVerb(Verb.RegionCommune, K.Region, SemanticVerbRole.Mobility,
             "The region communes — the land's spirit stirs, takes counsel with itself, shifts its animist alignment. This is the region as a living place moving on the semantic plane; not the people within it, but the genius loci."),
-
-        // Drift verbs — downtime: random one-step movement on the assigned grid when nothing else is happening.
         PositioningVerb(Verb.PenguinWander, K.Penguin, SemanticVerbRole.Drift,
             "The penguin wanders — idle footsteps across the map hex grid when no goal demands them."),
         PositioningVerb(Verb.ArtifactCirculate, K.Artifact, SemanticVerbRole.Drift,
@@ -170,28 +183,34 @@ public static class IceRemembersSemanticDefinition
 
     private static IReadOnlyList<SemanticFlowConfig> CreateFlows() =>
     [
-        // Engine decay — one per scalar stock.
+        ..CreateDecayFlows(),
+        ..CreateSelfSacrificeFlows(),
+        ..CreateHexHealthFlows(),
+        ..CreateUntouchedHexFlows(),
+        ..CreateRingConversionFlows(),
+    ];
+
+    private static IReadOnlyList<SemanticFlowConfig> CreateDecayFlows() =>
+    [
         Decay(K.Artifact, Attr.Condition),
         Decay(K.Artifact, Attr.Power),
         Decay(K.Artifact, Attr.Resonance),
-
         Decay(K.Faction, Attr.Cohesion),
         Decay(K.Faction, Attr.Reach),
         Decay(K.Faction, Attr.Provisions),
-
         Decay(K.Penguin, Attr.Vitality),
         Decay(K.Penguin, Attr.Echo),
         Decay(K.Penguin, Attr.Warmth),
-
         Decay(K.Region, Attr.Stability),
         Decay(K.Region, Attr.Holding),
         Decay(K.Region, Attr.Pristiness),
-
         Decay(K.Settlement, Attr.Residents),
         Decay(K.Settlement, Attr.Dominion),
         Decay(K.Settlement, Attr.Shelter),
+    ];
 
-        // Self-sacrifice (H → X within each kind).
+    private static IReadOnlyList<SemanticFlowConfig> CreateSelfSacrificeFlows() =>
+    [
         ..SelfSac(K.Artifact, Attr.Condition, Attr.Power, Verb.ArtifactChannel,
             "The artifact burns its physical integrity to fuel power projection."),
         ..SelfSac(K.Faction, Attr.Cohesion, Attr.Reach, Verb.FactionAgitate,
@@ -202,8 +221,10 @@ public static class IceRemembersSemanticDefinition
             "Slow geological calm purifies the land — the region settles and cleans itself."),
         ..SelfSac(K.Settlement, Attr.Residents, Attr.Dominion, Verb.SettlementOverreach,
             "The settlement overreaches — residents are spent on dominion: soldiers march too far, builders work to ruin, missionaries die in the wilderness."),
+    ];
 
-        // Hex → Health inflows (every kind's lifecycle anchor feeds from a hex resource).
+    private static IReadOnlyList<SemanticFlowConfig> CreateHexHealthFlows() =>
+    [
         HexToHealth(K.Penguin, Attr.Vitality, Res.Food, Verb.PenguinWarm,
             "Penguins draw warmth from the local hex's food abundance, shelter, and survivable company."),
         HexToHealth(K.Artifact, Attr.Condition, Res.Wealth, Verb.ArtifactRepair,
@@ -214,8 +235,10 @@ public static class IceRemembersSemanticDefinition
             "Agricultural cultivation roots the region — soil management stabilizes the bedrock."),
         HexToHealth(K.Settlement, Attr.Residents, Res.Population, Verb.SettlementGrow,
             "Settlements absorb population from their hex as immigrants join."),
+    ];
 
-        // Untouched → hex outflows (each kind spends an attribute to expand the local hex's possibility space).
+    private static IReadOnlyList<SemanticFlowConfig> CreateUntouchedHexFlows() =>
+    [
         UntouchedToHex(K.Penguin, Attr.Echo, Res.Population, Verb.PenguinWitness,
             "Echo-rich penguins draw migrants — witnesses, singers, and social magnets. Echo spends as they rally; the hex's population capacity grows."),
         UntouchedToHex(K.Artifact, Attr.Resonance, Res.Food, Verb.ArtifactVivify,
@@ -226,8 +249,10 @@ public static class IceRemembersSemanticDefinition
             "The region is breached — held interior opened for ore, lumber, fire-cores, and hidden wealth. Holding drains as extraction takes hold; the hex's wealth possibility grows."),
         UntouchedToHex(K.Settlement, Attr.Shelter, Res.Wealth, Verb.SettlementStripRookeries,
             "The settlement strips rookeries — nesting space and shelter are converted into saleable material and harsh output; the hex's wealth possibility grows."),
+    ];
 
-        // RPS +1 edges (K_N → K_{N+1}).
+    private static IReadOnlyList<SemanticFlowConfig> CreateRingConversionFlows() =>
+    [
         ..Conversion(K.Penguin, Attr.Echo, K.Settlement, Attr.Dominion, Verb.SettlementClaimsEcho,
             "The settlement claims an NPC's echo — a remembered name is absorbed into civic legitimacy, and the city's dominion grows."),
         ..Conversion(K.Settlement, Attr.Shelter, K.Faction, Attr.Reach, Verb.FactionExtort,
@@ -238,8 +263,6 @@ public static class IceRemembersSemanticDefinition
             "The artifact corrupts the land — drinks unspoiled character, converting pristiness into its own raw power."),
         ..Conversion(K.Artifact, Attr.Power, K.Penguin, Attr.Echo, Verb.PenguinWield,
             "The penguin wields the artifact — pulls its working power into their own echo."),
-
-        // RPS +2 edges (K_N → K_{N+2}).
         ..Conversion(K.Penguin, Attr.Warmth, K.Faction, Attr.Provisions, Verb.FactionStarve,
             "The faction starves its followers — NPC bellies empty into faction stockpiles: rationing, tithe-in-kind, requisitioned reserves."),
         ..Conversion(K.Settlement, Attr.Dominion, K.Region, Attr.Pristiness, Verb.RegionReclaim,
@@ -321,44 +344,6 @@ public static class IceRemembersSemanticDefinition
             Notes = notes,
         };
 
-    private static SemanticFlowConfig Inflow(
-        EntityKind kind,
-        Attr attribute,
-        Verb verb,
-        SemanticMechanism mechanism,
-        string signatureLabel,
-        params AttributeRef[] sourceRefs) =>
-        Flow(kind, attribute, verb, SemanticFlowRole.Inflow, mechanism, signatureLabel, SemanticPlaneAxis.None, sourceRefs);
-
-    private static SemanticFlowConfig Inflow(
-        EntityKind kind,
-        Attr attribute,
-        Verb verb,
-        SemanticMechanism mechanism,
-        string signatureLabel,
-        SemanticPlaneAxis planeAxis,
-        params AttributeRef[] sourceRefs) =>
-        Flow(kind, attribute, verb, SemanticFlowRole.Inflow, mechanism, signatureLabel, planeAxis, sourceRefs);
-
-    private static SemanticFlowConfig Outflow(
-        EntityKind kind,
-        Attr attribute,
-        Verb verb,
-        SemanticMechanism mechanism,
-        string signatureLabel,
-        params AttributeRef[] sourceRefs) =>
-        Flow(kind, attribute, verb, SemanticFlowRole.Outflow, mechanism, signatureLabel, SemanticPlaneAxis.None, sourceRefs);
-
-    private static SemanticFlowConfig Outflow(
-        EntityKind kind,
-        Attr attribute,
-        Verb verb,
-        SemanticMechanism mechanism,
-        string signatureLabel,
-        SemanticPlaneAxis planeAxis,
-        params AttributeRef[] sourceRefs) =>
-        Flow(kind, attribute, verb, SemanticFlowRole.Outflow, mechanism, signatureLabel, planeAxis, sourceRefs);
-
     private static SemanticFlowConfig Decay(EntityKind kind, Attr attribute) =>
         new()
         {
@@ -389,8 +374,6 @@ public static class IceRemembersSemanticDefinition
             SourceRefs = [Resource(resource)],
         };
 
-    // Untouched → hex outflow. Target stock is the kind's Untouched attribute;
-    // source ref is a hex resource (the destination of the mass).
     private static SemanticFlowConfig UntouchedToHex(
         EntityKind kind,
         Attr untouched,
@@ -484,44 +467,6 @@ public static class IceRemembersSemanticDefinition
         };
     }
 
-    private static SemanticFlowConfig Flow(
-        EntityKind kind,
-        Attr attribute,
-        Verb verb,
-        SemanticFlowRole role,
-        SemanticMechanism mechanism,
-        string signatureLabel,
-        SemanticPlaneAxis planeAxis,
-        params AttributeRef[] sourceRefs) =>
-        new()
-        {
-            VerbId = VerbId(verb),
-            Role = role,
-            TargetKind = kind,
-            TargetAttribute = A(attribute),
-            PlaneAxis = planeAxis,
-            Mechanism = mechanism,
-            SignatureLabel = signatureLabel,
-            FormLabel = signatureLabel,
-            SourceRefs = sourceRefs,
-        };
-
-    private static SemanticModifierConfig Modifier(
-        EntityKind sourceKind,
-        Attr sourceAttribute,
-        Verb targetVerb,
-        SemanticModifierDirection direction,
-        string formLabel) =>
-        new()
-        {
-            SourceKind = sourceKind,
-            SourceAttribute = A(sourceAttribute),
-            TargetVerbId = VerbId(targetVerb),
-            Direction = direction,
-            FormLabel = formLabel,
-        };
-
-
     private static AttributeRef Resource(Res resource) =>
         AttributeRef.Resource(R(resource));
 
@@ -530,7 +475,4 @@ public static class IceRemembersSemanticDefinition
 
     private static AttributeRef Target(EntityKind kind, Attr attribute) =>
         AttributeRef.Target(A(attribute), kind);
-
-    private static AttributeRef Related(Rel relationship, Attr attribute, EntityKind targetKind) =>
-        AttributeRef.Related(L(relationship), A(attribute), targetKind);
 }

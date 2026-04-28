@@ -1,9 +1,9 @@
 namespace Engine.Domain.Config;
 
-using Engine.Kinds;
-using Engine.Wiring;
-using Engine.Resources;
 using Engine.Gambits;
+using Engine.Kinds;
+using Engine.Resources;
+using Engine.Wiring;
 
 /// <summary>
 /// All domain-specific content that the engine needs. Attribute names, subtypes,

@@ -18,6 +18,14 @@ public sealed class PlannerTraceProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
+        WriteCommittedPlannerTrace(log);
+        pump.DrainAvailable();
+
+        AssertCommittedPlannerTrace(batch);
+    }
+
+    private static void WriteCommittedPlannerTrace(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new PlanStartedKernelEvent(
             Tick: 7,
             WorldVersion: 10,
@@ -68,9 +76,10 @@ public sealed class PlannerTraceProjectionTests
             StepCount: 1,
             ReasonCodeId: 50,
             TotalScore: 1.0f))));
+    }
 
-        pump.DrainAvailable();
-
+    private static void AssertCommittedPlannerTrace(TelemetryBatch batch)
+    {
         var trace = Assert.Single(batch.PlannerTraces);
         Assert.Equal(PlannerTraceStatusCodes.Committed, trace.StatusCode);
         Assert.Equal(3, trace.CandidateCount);

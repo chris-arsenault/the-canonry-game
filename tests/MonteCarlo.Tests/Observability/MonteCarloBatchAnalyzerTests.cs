@@ -1,13 +1,15 @@
 namespace MonteCarlo.Tests.Observability;
 
-using Engine.Domain.Config;
 using Engine.Constants;
+using Engine.Domain.Config;
 using Engine.Eventing;
 using Engine.Observability;
 using Engine.Observability.Export;
 using Engine.Projection;
+
 using IceRemembers;
 using IceRemembers.Seed;
+
 using MonteCarloTool;
 
 public sealed class MonteCarloBatchAnalyzerTests : IDisposable
@@ -114,73 +116,103 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static TelemetryBatch CreateBatch(DomainConfig domain, bool includeGeneratorFire)
     {
-        const int runId = 1000;
-        const int domainId = 1;
-        const int penguinKindId = 10;
-        const int settlementKindId = 11;
-        const int factionKindId = 12;
-        const int artifactKindId = 13;
-        const int wardenSubtypeId = 20;
-        const int sanctuarySubtypeId = 21;
-        const int compactSubtypeId = 22;
-        const int cultureId = 30;
-        const int processId = 40;
-        const int generatorId = 50;
-        const int foodResourceId = 60;
-        const int wealthResourceId = 61;
-        const int shelfTerrainId = 70;
-        const int oceanTerrainId = 71;
+        var seed = CreateBatchSeed(domain);
+        var batch = new TelemetryBatch();
+
+        AddSymbols(batch, seed);
+        AddRunAndSnapshotRows(batch, seed, includeGeneratorFire);
+        AddEntityTelemetry(batch, seed);
+        AddProcessTelemetry(batch, seed);
+        AddResourceTelemetry(batch, seed);
+        AddMapTelemetry(batch, seed);
+        AddLifecycleTelemetry(batch, seed);
+        AddGeneratorTelemetry(batch, seed, includeGeneratorFire);
+
+        return batch;
+    }
+
+    private static SyntheticBatchSeed CreateBatchSeed(DomainConfig domain)
+    {
         var penguinConfig = domain.Kinds[IceRemembersKinds.Penguin];
         var settlementConfig = domain.Kinds[IceRemembersKinds.Settlement];
         var penguinProcess = domain.Processes.First(process => process.TargetKind == IceRemembersKinds.Penguin);
-        var penguinAttributeIds = AttributeIds(penguinConfig, firstId: 100);
-        var settlementAttributeIds = AttributeIds(settlementConfig, firstId: 200);
 
-        var batch = new TelemetryBatch();
-        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Run, runId, "seed-1000", "seed-1000"));
-        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Domain, domainId, "IceRemembers", "IceRemembers"));
+        return new SyntheticBatchSeed(
+            RunId: 1000,
+            DomainId: 1,
+            PenguinKindId: 10,
+            SettlementKindId: 11,
+            FactionKindId: 12,
+            ArtifactKindId: 13,
+            WardenSubtypeId: 20,
+            SanctuarySubtypeId: 21,
+            CompactSubtypeId: 22,
+            CultureId: 30,
+            ProcessId: 40,
+            GeneratorId: 50,
+            FoodResourceId: 60,
+            WealthResourceId: 61,
+            ShelfTerrainId: 70,
+            OceanTerrainId: 71,
+            PenguinProcessName: penguinProcess.Name,
+            PenguinAttributeIds: AttributeIds(penguinConfig, firstId: 100),
+            SettlementAttributeIds: AttributeIds(settlementConfig, firstId: 200));
+    }
+
+    private static void AddSymbols(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Run, seed.RunId, "seed-1000", "seed-1000"));
+        batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(TelemetrySymbolKinds.Domain, seed.DomainId, "IceRemembers", "IceRemembers"));
         TelemetrySymbolIds.AddFixedCodeSymbols(batch);
-        AddSymbol(batch, ProjectionSymbolKind.Kind, penguinKindId, IceRemembersKinds.Penguin.Value);
-        AddSymbol(batch, ProjectionSymbolKind.Kind, settlementKindId, IceRemembersKinds.Settlement.Value);
-        AddSymbol(batch, ProjectionSymbolKind.Kind, factionKindId, IceRemembersKinds.Faction.Value);
-        AddSymbol(batch, ProjectionSymbolKind.Kind, artifactKindId, IceRemembersKinds.Artifact.Value);
-        AddSymbol(batch, ProjectionSymbolKind.Subtype, wardenSubtypeId, "warden");
-        AddSymbol(batch, ProjectionSymbolKind.Subtype, sanctuarySubtypeId, "sanctuary");
-        AddSymbol(batch, ProjectionSymbolKind.Subtype, compactSubtypeId, "compact");
-        AddSymbol(batch, ProjectionSymbolKind.Culture, cultureId, IceRemembersCulture.Nightshelf.ToDomainName());
-        AddSymbol(batch, ProjectionSymbolKind.Process, processId, penguinProcess.Name);
-        AddSymbol(batch, ProjectionSymbolKind.Generator, generatorId, "penguin_calls_the_unhuddled");
+        AddSymbol(batch, ProjectionSymbolKind.Kind, seed.PenguinKindId, IceRemembersKinds.Penguin.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, seed.SettlementKindId, IceRemembersKinds.Settlement.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, seed.FactionKindId, IceRemembersKinds.Faction.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Kind, seed.ArtifactKindId, IceRemembersKinds.Artifact.Value);
+        AddSymbol(batch, ProjectionSymbolKind.Subtype, seed.WardenSubtypeId, "warden");
+        AddSymbol(batch, ProjectionSymbolKind.Subtype, seed.SanctuarySubtypeId, "sanctuary");
+        AddSymbol(batch, ProjectionSymbolKind.Subtype, seed.CompactSubtypeId, "compact");
+        AddSymbol(batch, ProjectionSymbolKind.Culture, seed.CultureId, IceRemembersCulture.Nightshelf.ToDomainName());
+        AddSymbol(batch, ProjectionSymbolKind.Process, seed.ProcessId, seed.PenguinProcessName);
+        AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "penguin_calls_the_unhuddled");
         AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "faction_seals_the_edge");
-        AddSymbol(batch, ProjectionSymbolKind.Resource, foodResourceId, "Food");
-        AddSymbol(batch, ProjectionSymbolKind.Resource, wealthResourceId, "Wealth");
-        AddSymbol(batch, ProjectionSymbolKind.Terrain, shelfTerrainId, "Shelf");
-        AddSymbol(batch, ProjectionSymbolKind.Terrain, oceanTerrainId, "Ocean");
-        AddAttributeSymbols(batch, penguinAttributeIds);
-        AddAttributeSymbols(batch, settlementAttributeIds);
+        AddSymbol(batch, ProjectionSymbolKind.Resource, seed.FoodResourceId, "Food");
+        AddSymbol(batch, ProjectionSymbolKind.Resource, seed.WealthResourceId, "Wealth");
+        AddSymbol(batch, ProjectionSymbolKind.Terrain, seed.ShelfTerrainId, "Shelf");
+        AddSymbol(batch, ProjectionSymbolKind.Terrain, seed.OceanTerrainId, "Ocean");
+        AddAttributeSymbols(batch, seed.PenguinAttributeIds);
+        AddAttributeSymbols(batch, seed.SettlementAttributeIds);
+    }
 
-        batch.Runs.Add(new RunRow(runId, 1000, domainId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
-        batch.TickSnapshots.Add(new TickSnapshotRow(runId, 0, 2, 0, 0, 1, 2, 20, 40, 1.5f, 1.0f));
-        batch.TickSnapshots.Add(new TickSnapshotRow(runId, 25, 2, 1, includeGeneratorFire ? 1 : 0, 3, 3, 28, 32, 4.2f, 2.2f));
+    private static void AddRunAndSnapshotRows(TelemetryBatch batch, SyntheticBatchSeed seed, bool includeGeneratorFire)
+    {
+        batch.Runs.Add(new RunRow(seed.RunId, 1000, seed.DomainId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+        batch.TickSnapshots.Add(new TickSnapshotRow(seed.RunId, 0, 2, 0, 0, 1, 2, 20, 40, 1.5f, 1.0f));
+        batch.TickSnapshots.Add(new TickSnapshotRow(seed.RunId, 25, 2, 1, includeGeneratorFire ? 1 : 0, 3, 3, 28, 32, 4.2f, 2.2f));
+        batch.KindSnapshots.Add(new KindSnapshotRow(seed.RunId, 25, seed.PenguinKindId, seed.WardenSubtypeId, 1, 0, 92f, 92f, 92f));
+        batch.KindSnapshots.Add(new KindSnapshotRow(seed.RunId, 25, seed.SettlementKindId, seed.SanctuarySubtypeId, 1, 0, 45f, 45f, 45f));
+    }
 
-        batch.KindSnapshots.Add(new KindSnapshotRow(runId, 25, penguinKindId, wardenSubtypeId, 1, 0, 92f, 92f, 92f));
-        batch.KindSnapshots.Add(new KindSnapshotRow(runId, 25, settlementKindId, sanctuarySubtypeId, 1, 0, 45f, 45f, 45f));
+    private static void AddEntityTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        AddEntitySnapshot(batch, seed.RunId, 0, 1, seed.PenguinKindId, seed.WardenSubtypeId, seed.CultureId, 0, 0, 0, 0, 0);
+        AddEntityAttributes(batch, seed.RunId, 0, 1, seed.PenguinAttributeIds, 92f, 78f, 24f);
+        AddEntitySnapshot(batch, seed.RunId, 0, 2, seed.SettlementKindId, seed.SanctuarySubtypeId, seed.CultureId, 2, 0, 1, 0, -1);
+        AddEntityAttributes(batch, seed.RunId, 0, 2, seed.SettlementAttributeIds, 45f, 55f, 61f);
+        AddEntitySnapshot(batch, seed.RunId, 25, 1, seed.PenguinKindId, seed.WardenSubtypeId, seed.CultureId, 4, 1, 0, 0, 0);
+        AddEntityAttributes(batch, seed.RunId, 25, 1, seed.PenguinAttributeIds, 92f, 78f, 24f);
+        AddEntitySnapshot(batch, seed.RunId, 25, 2, seed.SettlementKindId, seed.SanctuarySubtypeId, seed.CultureId, 6, 2, 1, 0, -1);
+        AddEntityAttributes(batch, seed.RunId, 25, 2, seed.SettlementAttributeIds, 45f, 55f, 61f);
+    }
 
-        AddEntitySnapshot(batch, runId, 0, 1, penguinKindId, wardenSubtypeId, cultureId, 0, 0, 0, 0, 0);
-        AddEntityAttributes(batch, runId, 0, 1, penguinAttributeIds, 92f, 78f, 24f);
-        AddEntitySnapshot(batch, runId, 0, 2, settlementKindId, sanctuarySubtypeId, cultureId, 2, 0, 1, 0, -1);
-        AddEntityAttributes(batch, runId, 0, 2, settlementAttributeIds, 45f, 55f, 61f);
-        AddEntitySnapshot(batch, runId, 25, 1, penguinKindId, wardenSubtypeId, cultureId, 4, 1, 0, 0, 0);
-        AddEntityAttributes(batch, runId, 25, 1, penguinAttributeIds, 92f, 78f, 24f);
-        AddEntitySnapshot(batch, runId, 25, 2, settlementKindId, sanctuarySubtypeId, cultureId, 6, 2, 1, 0, -1);
-        AddEntityAttributes(batch, runId, 25, 2, settlementAttributeIds, 45f, 55f, 61f);
-
+    private static void AddProcessTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
         batch.ProcessEvents.Add(new ProcessEventRow(
-            runId,
+            seed.RunId,
             25,
             1,
-            penguinKindId,
+            seed.PenguinKindId,
             1,
-            processId,
+            seed.ProcessId,
             IsStale: false,
             StateCode: (int)KernelEventState.Succeeded,
             CandidateCount: 1,
@@ -202,11 +234,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             LocalityRealizedActions: null,
             LocalitySelectionReasonCode: null));
         batch.ProcessCandidates.Add(new ProcessCandidateRow(
-            runId,
+            seed.RunId,
             25,
             1,
-            penguinKindId,
-            processId,
+            seed.PenguinKindId,
+            seed.ProcessId,
             1,
             ProviderId: 0,
             1.25f,
@@ -214,16 +246,22 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             PreconditionDiagnosticCode: 0,
             OnCooldown: false,
             WasSelected: true));
+    }
 
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 0, foodResourceId, 28f, 1.4f, 0.5f, 3.0f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 25, foodResourceId, 12f, 0.6f, 0.2f, 1.5f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 0, wealthResourceId, 6f, 0.3f, 0f, 1f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(runId, 25, wealthResourceId, 5f, 0.25f, 0f, 1f));
+    private static void AddResourceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 0, seed.FoodResourceId, 28f, 1.4f, 0.5f, 3.0f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 25, seed.FoodResourceId, 12f, 0.6f, 0.2f, 1.5f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 0, seed.WealthResourceId, 6f, 0.3f, 0f, 1f));
+        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 25, seed.WealthResourceId, 5f, 0.25f, 0f, 1f));
+    }
 
-        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 0, shelfTerrainId, 20, 8, 2));
-        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 0, oceanTerrainId, 40, 12, 0));
-        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 25, shelfTerrainId, 20, 10, 1));
-        batch.MapSnapshots.Add(new MapSnapshotRow(runId, 25, oceanTerrainId, 40, 18, 1));
+    private static void AddMapTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.ShelfTerrainId, 20, 8, 2));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.OceanTerrainId, 40, 12, 0));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.ShelfTerrainId, 20, 10, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.OceanTerrainId, 40, 18, 1));
         var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "quality_validation", "quality_validation");
         var description = TelemetrySymbolIds.Create(
             TelemetrySymbolKinds.MapGenerationDescription,
@@ -234,7 +272,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.Symbols.Add(description);
         batch.Symbols.Add(reason);
         batch.MapGenerationEvents.Add(new MapGenerationEventRow(
-            runId,
+            seed.RunId,
             0,
             1000,
             0,
@@ -244,84 +282,119 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             description.Id,
             reason.Id,
             true));
+    }
 
-        batch.EntityNameSymbols.Add(new EntityNameSymbolRow(runId, 7, artifactKindId, 0, 0, 7, "Broken Seal"));
+    private static void AddLifecycleTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.EntityNameSymbols.Add(new EntityNameSymbolRow(seed.RunId, 7, seed.ArtifactKindId, 0, 0, 7, "Broken Seal"));
         batch.LifecycleEvents.Add(new LifecycleEventRow(
-            runId,
+            seed.RunId,
             18,
             (int)KernelEventType.EntityStatusChanged,
             7,
-            artifactKindId,
+            seed.ArtifactKindId,
             EntityStatusCodes.Historical));
+    }
 
+    private static void AddGeneratorTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed, bool includeGeneratorFire)
+    {
         if (includeGeneratorFire)
         {
-            batch.GeneratorEvents.Add(new GeneratorEventRow(
-                RunId: runId,
-                Tick: 25,
-                EventTypeCode: (int)KernelEventType.GeneratorEvaluated,
-                GeneratorId: generatorId,
-                StatusCode: GeneratorStatusCodes.Fired,
-                TargetPoolCount: 2,
-                InactiveRejectedCount: 0,
-                SubtypeRejectedCount: 0,
-                SaturationRejectedCount: 0,
-                SecondaryTargetRejectedCount: 0,
-                WildernessRejectedCount: 0,
-                TriggerRejectedCount: 0,
-                CandidateCount: 1,
-                FailedFireCount: 0,
-                SelectedTargetEntityId: 1,
-                CreatedEntityCount: 0,
-                CreatedRelationshipCount: 0));
-            batch.GeneratorEvents.Add(new GeneratorEventRow(
-                RunId: runId,
-                Tick: 25,
-                EventTypeCode: (int)KernelEventType.GeneratorFired,
-                GeneratorId: generatorId,
-                StatusCode: GeneratorStatusCodes.Fired,
-                TargetPoolCount: 0,
-                InactiveRejectedCount: 0,
-                SubtypeRejectedCount: 0,
-                SaturationRejectedCount: 0,
-                SecondaryTargetRejectedCount: 0,
-                WildernessRejectedCount: 0,
-                TriggerRejectedCount: 0,
-                CandidateCount: 0,
-                FailedFireCount: 0,
-                SelectedTargetEntityId: 1,
-                CreatedEntityCount: 2,
-                CreatedRelationshipCount: 4));
-            batch.GeneratedEntities.Add(new GeneratedEntityRow(
-                runId,
-                25,
-                generatorId,
-                3,
-                settlementKindId,
-                sanctuarySubtypeId,
-                cultureId,
-                6,
-                2,
-                1,
-                0,
-                -1));
-            batch.GeneratedEntities.Add(new GeneratedEntityRow(
-                runId,
-                25,
-                generatorId,
-                4,
-                factionKindId,
-                compactSubtypeId,
-                cultureId,
-                6,
-                2,
-                1,
-                1,
-                -2));
+            AddGeneratorEvents(batch, seed);
+            AddGeneratedEntities(batch, seed);
         }
-
-        return batch;
     }
+
+    private static void AddGeneratorEvents(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.GeneratorEvents.Add(new GeneratorEventRow(
+            RunId: seed.RunId,
+            Tick: 25,
+            EventTypeCode: (int)KernelEventType.GeneratorEvaluated,
+            GeneratorId: seed.GeneratorId,
+            StatusCode: GeneratorStatusCodes.Fired,
+            TargetPoolCount: 2,
+            InactiveRejectedCount: 0,
+            SubtypeRejectedCount: 0,
+            SaturationRejectedCount: 0,
+            SecondaryTargetRejectedCount: 0,
+            WildernessRejectedCount: 0,
+            TriggerRejectedCount: 0,
+            CandidateCount: 1,
+            FailedFireCount: 0,
+            SelectedTargetEntityId: 1,
+            CreatedEntityCount: 0,
+            CreatedRelationshipCount: 0));
+        batch.GeneratorEvents.Add(new GeneratorEventRow(
+            RunId: seed.RunId,
+            Tick: 25,
+            EventTypeCode: (int)KernelEventType.GeneratorFired,
+            GeneratorId: seed.GeneratorId,
+            StatusCode: GeneratorStatusCodes.Fired,
+            TargetPoolCount: 0,
+            InactiveRejectedCount: 0,
+            SubtypeRejectedCount: 0,
+            SaturationRejectedCount: 0,
+            SecondaryTargetRejectedCount: 0,
+            WildernessRejectedCount: 0,
+            TriggerRejectedCount: 0,
+            CandidateCount: 0,
+            FailedFireCount: 0,
+            SelectedTargetEntityId: 1,
+            CreatedEntityCount: 2,
+            CreatedRelationshipCount: 4));
+    }
+
+    private static void AddGeneratedEntities(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.GeneratedEntities.Add(new GeneratedEntityRow(
+            seed.RunId,
+            25,
+            seed.GeneratorId,
+            3,
+            seed.SettlementKindId,
+            seed.SanctuarySubtypeId,
+            seed.CultureId,
+            6,
+            2,
+            1,
+            0,
+            -1));
+        batch.GeneratedEntities.Add(new GeneratedEntityRow(
+            seed.RunId,
+            25,
+            seed.GeneratorId,
+            4,
+            seed.FactionKindId,
+            seed.CompactSubtypeId,
+            seed.CultureId,
+            6,
+            2,
+            1,
+            1,
+            -2));
+    }
+
+    private sealed record SyntheticBatchSeed(
+        int RunId,
+        int DomainId,
+        int PenguinKindId,
+        int SettlementKindId,
+        int FactionKindId,
+        int ArtifactKindId,
+        int WardenSubtypeId,
+        int SanctuarySubtypeId,
+        int CompactSubtypeId,
+        int CultureId,
+        int ProcessId,
+        int GeneratorId,
+        int FoodResourceId,
+        int WealthResourceId,
+        int ShelfTerrainId,
+        int OceanTerrainId,
+        string PenguinProcessName,
+        Dictionary<string, int> PenguinAttributeIds,
+        Dictionary<string, int> SettlementAttributeIds);
 
     private static Dictionary<string, int> AttributeIds(KindConfig config, int firstId)
     {

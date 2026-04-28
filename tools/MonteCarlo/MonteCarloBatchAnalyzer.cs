@@ -1,9 +1,6 @@
 namespace MonteCarloTool;
 
 using System.Data.Common;
-using System.Globalization;
-using System.Numerics;
-using System.Text;
 
 using DuckDB.NET.Data;
 
@@ -13,7 +10,7 @@ using Engine.Observability;
 using Engine.Observability.Export;
 using Engine.WorldGen;
 
-internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
+internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 {
     private static readonly string[] RequiredTables =
     [
@@ -165,331 +162,6 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         return connection;
     }
 
-    private static void CreateAnalysisViews(DuckDBConnection connection)
-    {
-        var runKind = TelemetrySymbolKinds.Run;
-        var domainKind = TelemetrySymbolKinds.Domain;
-        var kindKind = (int)Engine.Projection.ProjectionSymbolKind.Kind;
-        var subtypeKind = (int)Engine.Projection.ProjectionSymbolKind.Subtype;
-        var cultureKind = (int)Engine.Projection.ProjectionSymbolKind.Culture;
-        var attributeKind = (int)Engine.Projection.ProjectionSymbolKind.Attribute;
-        var processKind = (int)Engine.Projection.ProjectionSymbolKind.Process;
-        var resourceKind = (int)Engine.Projection.ProjectionSymbolKind.Resource;
-        var terrainKind = (int)Engine.Projection.ProjectionSymbolKind.Terrain;
-        var generatorKind = (int)Engine.Projection.ProjectionSymbolKind.Generator;
-        var entityStatusKind = TelemetrySymbolKinds.EntityStatus;
-        var generatorStatusKind = TelemetrySymbolKinds.GeneratorStatus;
-        var kernelEventTypeKind = TelemetrySymbolKinds.KernelEventType;
-        var mapPhaseKind = TelemetrySymbolKinds.MapGenerationPhase;
-        var mapDescriptionKind = TelemetrySymbolKinds.MapGenerationDescription;
-        var mapReasonKind = TelemetrySymbolKinds.MapGenerationReason;
-        var generatorEvaluated = (int)Engine.Eventing.KernelEventType.GeneratorEvaluated;
-        var generatorFired = (int)Engine.Eventing.KernelEventType.GeneratorFired;
-        var historicalStatus = Engine.Constants.EntityStatusCodes.Historical;
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "symbol_lookup",
-            """
-            SELECT
-                symbol_kind,
-                id,
-                any_value(stable_name) AS stable_name,
-                any_value(display_name) AS display_name,
-                any_value(description) AS description,
-                any_value(icon_key) AS icon_key,
-                any_value(color_key) AS color_key
-            FROM raw_symbols
-            GROUP BY symbol_kind, id
-            """);
-        CreateMaterializedAnalysisTable(connection, "symbols", "SELECT * FROM symbol_lookup");
-        CreateMaterializedAnalysisTable(connection, "entity_name_symbols", "SELECT * FROM raw_entity_name_symbols");
-        CreateMaterializedAnalysisTable(
-            connection,
-            "runs",
-            $"""
-            SELECT
-                COALESCE(run_symbol.stable_name, CAST(r.run_id AS VARCHAR)) AS run_id,
-                r.seed,
-                COALESCE(domain_symbol.stable_name, CAST(r.domain_id AS VARCHAR)) AS domain,
-                CAST(r.started_unix_milliseconds AS VARCHAR) AS started_utc
-            FROM raw_runs r
-            LEFT JOIN symbol_lookup run_symbol
-              ON run_symbol.symbol_kind = {runKind}
-             AND run_symbol.id = r.run_id
-            LEFT JOIN symbol_lookup domain_symbol
-              ON domain_symbol.symbol_kind = {domainKind}
-             AND domain_symbol.id = r.domain_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "tick_snapshots",
-            """
-            SELECT runs.run_id, ts.tick, ts.active_entities, ts.historical_entities, ts.total_generator_fires,
-                   ts.active_relationships, ts.coverage_count, ts.covered_cells, ts.uncovered_cells,
-                   ts.physical_spread, ts.semantic_spread
-            FROM raw_tick_snapshots ts
-            JOIN runs ON runs.seed = (SELECT seed FROM raw_runs WHERE raw_runs.run_id = ts.run_id LIMIT 1)
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "kind_snapshots",
-            $"""
-            SELECT runs.run_id, ks.tick,
-                   COALESCE(kind_symbol.stable_name, CAST(ks.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(subtype_symbol.stable_name, CAST(ks.subtype_id AS VARCHAR)) AS subtype,
-                   ks.active_count, ks.historical_count, ks.average_health, ks.minimum_health, ks.maximum_health
-            FROM raw_kind_snapshots ks
-            JOIN raw_runs rr ON rr.run_id = ks.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {kindKind}
-             AND kind_symbol.id = ks.kind_id
-            LEFT JOIN symbol_lookup subtype_symbol
-              ON subtype_symbol.symbol_kind = {subtypeKind}
-             AND subtype_symbol.id = ks.subtype_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "entity_snapshot_attributes",
-            $"""
-            SELECT
-                eas.run_id,
-                eas.tick,
-                eas.entity_id,
-                string_agg(
-                    COALESCE(attribute_symbol.stable_name, CAST(eas.attribute_id AS VARCHAR)) || '=' || CAST(eas.value AS VARCHAR),
-                    '|'
-                    ORDER BY eas.attribute_id) AS attributes
-            FROM raw_entity_attribute_snapshots eas
-            LEFT JOIN symbol_lookup attribute_symbol
-              ON attribute_symbol.symbol_kind = {attributeKind}
-             AND attribute_symbol.id = eas.attribute_id
-            GROUP BY eas.run_id, eas.tick, eas.entity_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "entity_snapshots",
-            $"""
-            SELECT runs.run_id, es.tick, es.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(es.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(subtype_symbol.stable_name, CAST(es.subtype_id AS VARCHAR)) AS subtype,
-                   COALESCE(culture_symbol.stable_name, CAST(es.culture_id AS VARCHAR)) AS culture,
-                   COALESCE(status_symbol.display_name, CAST(es.status_code AS VARCHAR)) AS status,
-                   es.physical_q, es.physical_r, es.semantic_q, es.semantic_r, es.semantic_s,
-                   COALESCE(attrs.attributes, '') AS attributes
-            FROM raw_entity_snapshots es
-            JOIN raw_runs rr ON rr.run_id = es.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {kindKind}
-             AND kind_symbol.id = es.kind_id
-            LEFT JOIN symbol_lookup subtype_symbol
-              ON subtype_symbol.symbol_kind = {subtypeKind}
-             AND subtype_symbol.id = es.subtype_id
-            LEFT JOIN symbol_lookup culture_symbol
-              ON culture_symbol.symbol_kind = {cultureKind}
-             AND culture_symbol.id = es.culture_id
-            LEFT JOIN symbol_lookup status_symbol
-              ON status_symbol.symbol_kind = {entityStatusKind}
-             AND status_symbol.id = es.status_code
-            LEFT JOIN entity_snapshot_attributes attrs
-              ON attrs.run_id = es.run_id
-             AND attrs.tick = es.tick
-             AND attrs.entity_id = es.entity_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "process_events",
-            $"""
-            SELECT runs.run_id, pe.tick, pe.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(pe.kind_id AS VARCHAR)) AS kind,
-                   CASE WHEN pe.selected_goal_id IS NULL THEN NULL ELSE 'goal_' || CAST(pe.selected_goal_id AS VARCHAR) END AS selected_goal_id,
-                   process_symbol.stable_name AS executed_process_name,
-                   pe.is_stale, CAST(pe.state_code AS VARCHAR) AS status_note, pe.candidate_count,
-                   CAST(pe.visit_id AS VARCHAR) AS visit_id,
-                   CAST(pe.locality_id AS VARCHAR) AS locality_key,
-                   CAST(pe.locality_plane_code AS VARCHAR) AS locality_plane,
-                   pe.locality_q, pe.locality_r, pe.locality_s, pe.locality_bundle_score,
-                   pe.locality_goal_count, pe.locality_distinct_target_count, pe.locality_distinct_effect_count,
-                   pe.locality_distance, pe.locality_is_current, pe.locality_is_committed, pe.locality_arrived,
-                   pe.locality_actions_remaining, pe.locality_realized_actions,
-                   CAST(pe.locality_selection_reason_code AS VARCHAR) AS locality_selection_reason
-            FROM raw_process_events pe
-            JOIN raw_runs rr ON rr.run_id = pe.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {kindKind}
-             AND kind_symbol.id = pe.kind_id
-            LEFT JOIN symbol_lookup process_symbol
-              ON process_symbol.symbol_kind = {processKind}
-             AND process_symbol.id = pe.executed_process_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "process_candidates",
-            $"""
-            SELECT runs.run_id, pc.tick, pc.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(pc.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(process_symbol.stable_name, CAST(pc.process_id AS VARCHAR)) AS process_name,
-                   'goal_' || CAST(pc.goal_id AS VARCHAR) AS goal_id,
-                   CAST(pc.provider_id AS VARCHAR) AS provider_name,
-                   pc.score, pc.precondition_passed,
-                   CAST(pc.precondition_diagnostic_code AS VARCHAR) AS precondition_diagnostic,
-                   pc.on_cooldown, pc.was_selected
-            FROM raw_process_candidates pc
-            JOIN raw_runs rr ON rr.run_id = pc.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {kindKind}
-             AND kind_symbol.id = pc.kind_id
-            LEFT JOIN symbol_lookup process_symbol
-              ON process_symbol.symbol_kind = {processKind}
-             AND process_symbol.id = pc.process_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "resource_snapshots",
-            $"""
-            SELECT runs.run_id, rs.tick,
-                   COALESCE(resource_symbol.stable_name, CAST(rs.resource_id AS VARCHAR)) AS resource_type,
-                   rs.total, rs.average, rs.minimum, rs.maximum
-            FROM raw_resource_snapshots rs
-            JOIN raw_runs rr ON rr.run_id = rs.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup resource_symbol
-              ON resource_symbol.symbol_kind = {resourceKind}
-             AND resource_symbol.id = rs.resource_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "generator_events",
-            $"""
-            SELECT runs.run_id, ge.tick,
-                   CASE
-                     WHEN ge.event_type_code = {generatorEvaluated} THEN 'pulse'
-                     WHEN ge.event_type_code = {generatorFired} THEN 'fired'
-                     ELSE COALESCE(event_symbol.stable_name, CAST(ge.event_type_code AS VARCHAR))
-                   END AS event_type,
-                   COALESCE(generator_symbol.stable_name, CAST(ge.generator_id AS VARCHAR)) AS generator_id,
-                   COALESCE(status_symbol.stable_name, CAST(ge.status_code AS VARCHAR)) AS status,
-                   ge.target_pool_count, ge.inactive_rejected_count, ge.subtype_rejected_count,
-                   ge.saturation_rejected_count, ge.secondary_target_rejected_count, ge.wilderness_rejected_count,
-                   ge.trigger_rejected_count, ge.candidate_count, ge.failed_fire_count,
-                   ge.selected_target_entity_id, ge.created_entity_count, ge.created_relationship_count
-            FROM raw_generator_events ge
-            JOIN raw_runs rr ON rr.run_id = ge.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup generator_symbol
-              ON generator_symbol.symbol_kind = {generatorKind}
-             AND generator_symbol.id = ge.generator_id
-            LEFT JOIN symbol_lookup status_symbol
-              ON status_symbol.symbol_kind = {generatorStatusKind}
-             AND status_symbol.id = ge.status_code
-            LEFT JOIN symbol_lookup event_symbol
-              ON event_symbol.symbol_kind = {kernelEventTypeKind}
-             AND event_symbol.id = ge.event_type_code
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "generated_entities",
-            $"""
-            SELECT runs.run_id, generated.tick,
-                   COALESCE(generator_symbol.stable_name, CAST(generated.generator_id AS VARCHAR)) AS generator_id,
-                   generated.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(generated.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(subtype_symbol.stable_name, CAST(generated.subtype_id AS VARCHAR)) AS subtype,
-                   COALESCE(culture_symbol.stable_name, CAST(generated.culture_id AS VARCHAR)) AS culture,
-                   generated.physical_q, generated.physical_r, generated.semantic_q, generated.semantic_r, generated.semantic_s
-            FROM raw_generated_entities generated
-            JOIN raw_runs rr ON rr.run_id = generated.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup generator_symbol
-              ON generator_symbol.symbol_kind = {generatorKind}
-             AND generator_symbol.id = generated.generator_id
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {kindKind}
-             AND kind_symbol.id = generated.kind_id
-            LEFT JOIN symbol_lookup subtype_symbol
-              ON subtype_symbol.symbol_kind = {subtypeKind}
-             AND subtype_symbol.id = generated.subtype_id
-            LEFT JOIN symbol_lookup culture_symbol
-              ON culture_symbol.symbol_kind = {cultureKind}
-             AND culture_symbol.id = generated.culture_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "lifecycle_events",
-            $"""
-            SELECT runs.run_id, le.tick,
-                   CASE WHEN le.status_code = {historicalStatus} THEN 'death' ELSE COALESCE(event_symbol.stable_name, CAST(le.event_type_code AS VARCHAR)) END AS event_type,
-                   le.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(le.kind_id AS VARCHAR)) AS kind,
-                   COALESCE(entity_name.display_name, 'E' || CAST(le.entity_id AS VARCHAR)) AS name
-            FROM raw_lifecycle_events le
-            JOIN raw_runs rr ON rr.run_id = le.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup event_symbol
-              ON event_symbol.symbol_kind = {kernelEventTypeKind}
-             AND event_symbol.id = le.event_type_code
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {kindKind}
-             AND kind_symbol.id = le.kind_id
-            LEFT JOIN raw_entity_name_symbols entity_name
-              ON entity_name.run_id = le.run_id
-             AND entity_name.entity_id = le.entity_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "map_generation_events",
-            $"""
-            SELECT runs.run_id, mge.tick, mge.base_seed, mge.attempt, mge.terrain_seed, mge.entity_seed,
-                   COALESCE(phase_symbol.stable_name, CAST(mge.phase_id AS VARCHAR)) AS phase,
-                   COALESCE(description_symbol.stable_name, CAST(mge.description_id AS VARCHAR)) AS description,
-                   COALESCE(reason_symbol.stable_name, '') AS reasons,
-                   mge.will_retry
-            FROM raw_map_generation_events mge
-            JOIN raw_runs rr ON rr.run_id = mge.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup phase_symbol
-              ON phase_symbol.symbol_kind = {mapPhaseKind}
-             AND phase_symbol.id = mge.phase_id
-            LEFT JOIN symbol_lookup description_symbol
-              ON description_symbol.symbol_kind = {mapDescriptionKind}
-             AND description_symbol.id = mge.description_id
-            LEFT JOIN symbol_lookup reason_symbol
-              ON reason_symbol.symbol_kind = {mapReasonKind}
-             AND reason_symbol.id = mge.reason_id
-            """);
-
-        CreateMaterializedAnalysisTable(
-            connection,
-            "map_snapshots",
-            $"""
-            SELECT runs.run_id, ms.tick,
-                   COALESCE(terrain_symbol.stable_name, CAST(ms.terrain_id AS VARCHAR)) AS terrain,
-                   ms.cell_count, ms.covered_cell_count, ms.active_entity_count
-            FROM raw_map_snapshots ms
-            JOIN raw_runs rr ON rr.run_id = ms.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup terrain_symbol
-              ON terrain_symbol.symbol_kind = {terrainKind}
-             AND terrain_symbol.id = ms.terrain_id
-            """);
-
-    }
-
     private static void CreateMaterializedAnalysisTable(DuckDBConnection connection, string tableName, string selectSql)
     {
         SqlFileHelpers.Execute(
@@ -539,61 +211,13 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
     private List<GeneratorAnalysisRow> LoadGeneratorRows(DuckDBConnection connection, int runCount)
     {
-        const string sql = """
-            WITH pulse AS (
-                SELECT
-                    generator_id,
-                    COUNT(*) AS pulses,
-                    SUM(CASE WHEN status IN ('eligible', 'eligible_not_selected', 'fired', 'fire_failed') THEN 1 ELSE 0 END) AS eligible_pulses,
-                    SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END) AS blocked_pulses,
-                    SUM(CASE WHEN status = 'eligible_not_selected' THEN 1 ELSE 0 END) AS eligible_not_selected_pulses,
-                    SUM(CASE WHEN status = 'fire_failed' THEN 1 ELSE 0 END) AS fire_failed_pulses,
-                    COALESCE(AVG(CAST(target_pool_count AS DOUBLE)), 0.0) AS average_target_pool,
-                    COALESCE(AVG(CAST(candidate_count AS DOUBLE)), 0.0) AS average_candidate_count,
-                    COALESCE(SUM(inactive_rejected_count), 0) AS inactive_rejected,
-                    COALESCE(SUM(subtype_rejected_count), 0) AS subtype_rejected,
-                    COALESCE(SUM(saturation_rejected_count), 0) AS saturation_rejected,
-                    COALESCE(SUM(secondary_target_rejected_count), 0) AS secondary_target_rejected,
-                    COALESCE(SUM(wilderness_rejected_count), 0) AS wilderness_rejected,
-                    COALESCE(SUM(trigger_rejected_count), 0) AS trigger_rejected
-                FROM generator_events
-                WHERE event_type = 'pulse'
-                GROUP BY generator_id
-            ),
-            fired AS (
-                SELECT
-                    generator_id,
-                    COUNT(*) AS fired_count,
-                    COALESCE(SUM(created_entity_count), 0) AS created_entity_count,
-                    COALESCE(SUM(created_relationship_count), 0) AS created_relationship_count
-                FROM generator_events
-                WHERE event_type = 'fired'
-                GROUP BY generator_id
-            )
-            SELECT
-                COALESCE(p.generator_id, f.generator_id) AS generator_id,
-                COALESCE(p.pulses, 0) AS pulses,
-                COALESCE(p.eligible_pulses, 0) AS eligible_pulses,
-                COALESCE(p.blocked_pulses, 0) AS blocked_pulses,
-                COALESCE(p.eligible_not_selected_pulses, 0) AS eligible_not_selected_pulses,
-                COALESCE(f.fired_count, 0) AS fired_count,
-                COALESCE(p.fire_failed_pulses, 0) AS fire_failed_pulses,
-                COALESCE(p.average_target_pool, 0.0) AS average_target_pool,
-                COALESCE(p.average_candidate_count, 0.0) AS average_candidate_count,
-                COALESCE(p.inactive_rejected, 0) AS inactive_rejected,
-                COALESCE(p.subtype_rejected, 0) AS subtype_rejected,
-                COALESCE(p.saturation_rejected, 0) AS saturation_rejected,
-                COALESCE(p.secondary_target_rejected, 0) AS secondary_target_rejected,
-                COALESCE(p.wilderness_rejected, 0) AS wilderness_rejected,
-                COALESCE(p.trigger_rejected, 0) AS trigger_rejected,
-                COALESCE(f.created_entity_count, 0) AS created_entity_count,
-                COALESCE(f.created_relationship_count, 0) AS created_relationship_count
-            FROM pulse p
-            FULL OUTER JOIN fired f
-              ON p.generator_id = f.generator_id;
-            """;
+        var observed = LoadObservedGeneratorRows(connection);
+        return BuildGeneratorRows(observed, runCount);
+    }
 
-        var observed = Query(connection, sql, reader => new ObservedGeneratorRow(
+    private static Dictionary<string, ObservedGeneratorRow> LoadObservedGeneratorRows(DuckDBConnection connection)
+    {
+        return Query(connection, GeneratorRowsSql, reader => new ObservedGeneratorRow(
             GeneratorId: ReadString(reader, "generator_id"),
             Pulses: ReadInt(reader, "pulses"),
             EligiblePulses: ReadInt(reader, "eligible_pulses"),
@@ -612,7 +236,12 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             CreatedEntityCount: ReadInt(reader, "created_entity_count"),
             CreatedRelationshipCount: ReadInt(reader, "created_relationship_count")))
             .ToDictionary(row => row.GeneratorId, row => row, StringComparer.Ordinal);
+    }
 
+    private List<GeneratorAnalysisRow> BuildGeneratorRows(
+        Dictionary<string, ObservedGeneratorRow> observed,
+        int runCount)
+    {
         var configured = _domainConfig.Semantics?.Generators ?? [];
         var rows = configured.Select(generator =>
         {
@@ -676,6 +305,42 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
     private List<ProcessPressureRow> LoadProcessPressureRows(DuckDBConnection connection)
     {
+        var failures = LoadTopProcessFailures(connection);
+        var observed = LoadObservedProcessRows(connection);
+        return BuildProcessPressureRows(observed, failures);
+    }
+
+    private static Dictionary<(string Kind, string ProcessName), string> LoadTopProcessFailures(
+        DuckDBConnection connection)
+    {
+        const string failureSql = """
+            SELECT
+                kind,
+                process_name,
+                precondition_diagnostic,
+                COUNT(*) AS failure_count
+            FROM process_candidates
+            WHERE precondition_passed = false
+            GROUP BY kind, process_name, precondition_diagnostic;
+            """;
+
+        return Query(connection, failureSql, reader => new FailureDiagnosticRow(
+            Kind: ReadString(reader, "kind"),
+            ProcessName: ReadString(reader, "process_name"),
+            Diagnostic: ReadString(reader, "precondition_diagnostic"),
+            Count: ReadInt(reader, "failure_count")))
+            .GroupBy(row => (row.Kind, row.ProcessName))
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderByDescending(row => row.Count)
+                    .ThenBy(row => row.Diagnostic, StringComparer.Ordinal)
+                    .First().Diagnostic);
+    }
+
+    private static Dictionary<(string Kind, string ProcessName), ObservedProcessRow> LoadObservedProcessRows(
+        DuckDBConnection connection)
+    {
         const string summarySql = """
             SELECT
                 kind,
@@ -689,31 +354,7 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             GROUP BY kind, process_name;
             """;
 
-        const string failureSql = """
-            SELECT
-                kind,
-                process_name,
-                precondition_diagnostic,
-                COUNT(*) AS failure_count
-            FROM process_candidates
-            WHERE precondition_passed = false
-            GROUP BY kind, process_name, precondition_diagnostic;
-            """;
-
-        var failures = Query(connection, failureSql, reader => new FailureDiagnosticRow(
-            Kind: ReadString(reader, "kind"),
-            ProcessName: ReadString(reader, "process_name"),
-            Diagnostic: ReadString(reader, "precondition_diagnostic"),
-            Count: ReadInt(reader, "failure_count")))
-            .GroupBy(row => (row.Kind, row.ProcessName))
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .OrderByDescending(row => row.Count)
-                    .ThenBy(row => row.Diagnostic, StringComparer.Ordinal)
-                    .First().Diagnostic);
-
-        var observed = Query(connection, summarySql, reader => new ObservedProcessRow(
+        return Query(connection, summarySql, reader => new ObservedProcessRow(
             Kind: ReadString(reader, "kind"),
             ProcessName: ReadString(reader, "process_name"),
             CandidateEvaluations: ReadInt(reader, "candidate_evaluations"),
@@ -722,7 +363,12 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             PreconditionPassRate: ReadDouble(reader, "precondition_pass_rate"),
             CooldownRate: ReadDouble(reader, "cooldown_rate")))
             .ToDictionary(row => (row.Kind, row.ProcessName), row => row);
+    }
 
+    private List<ProcessPressureRow> BuildProcessPressureRows(
+        Dictionary<(string Kind, string ProcessName), ObservedProcessRow> observed,
+        Dictionary<(string Kind, string ProcessName), string> failures)
+    {
         var rows = _domainConfig.Processes
             .Select(process =>
             {
@@ -778,7 +424,7 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToDictionary(row => row.Kind, row => row, StringComparer.Ordinal);
 
         var processByKind = processRows
-            .GroupBy(row => row.Kind)
+            .GroupBy(row => row.Kind, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
                 group => group
@@ -821,6 +467,15 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             GROUP BY resource_type;
             """;
 
+        var endpoints = LoadResourceEndpointTotals(connection);
+        return Query(connection, overviewSql, reader => BuildResourcePressureRow(reader, endpoints))
+            .OrderBy(row => row.ResourceType, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static Dictionary<string, (double Initial, double Final)> LoadResourceEndpointTotals(
+        DuckDBConnection connection)
+    {
         const string endpointSql = """
             WITH first_ticks AS (
                 SELECT run_id, MIN(tick) AS first_tick
@@ -861,24 +516,27 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
               ON i.resource_type = f.resource_type;
             """;
 
-        var endpoints = Query(connection, endpointSql, reader => new KeyValuePair<string, (double Initial, double Final)>(
+        return Query(connection, endpointSql, reader => new KeyValuePair<string, (double Initial, double Final)>(
                 ReadString(reader, "resource_type"),
                 (
                     ReadDouble(reader, "average_initial_total"),
                     ReadDouble(reader, "average_final_total"))))
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+    }
 
-        return Query(connection, overviewSql, reader => new ResourcePressureRow(
-                ResourceType: ReadString(reader, "resource_type"),
-                AverageTotalOverTime: ReadDouble(reader, "average_total_over_time"),
-                AverageInitialTotal: endpoints.GetValueOrDefault(ReadString(reader, "resource_type")).Initial,
-                AverageFinalTotal: endpoints.GetValueOrDefault(ReadString(reader, "resource_type")).Final,
-                FinalToInitialRatio: ComputeRatio(
-                    endpoints.GetValueOrDefault(ReadString(reader, "resource_type")).Final,
-                    endpoints.GetValueOrDefault(ReadString(reader, "resource_type")).Initial),
-                LowestCellStock: ReadDouble(reader, "lowest_cell_stock")))
-            .OrderBy(row => row.ResourceType, StringComparer.Ordinal)
-            .ToList();
+    private static ResourcePressureRow BuildResourcePressureRow(
+        DbDataReader reader,
+        Dictionary<string, (double Initial, double Final)> endpoints)
+    {
+        var resourceType = ReadString(reader, "resource_type");
+        var endpoint = endpoints.GetValueOrDefault(resourceType);
+        return new ResourcePressureRow(
+            ResourceType: resourceType,
+            AverageTotalOverTime: ReadDouble(reader, "average_total_over_time"),
+            AverageInitialTotal: endpoint.Initial,
+            AverageFinalTotal: endpoint.Final,
+            FinalToInitialRatio: ComputeRatio(endpoint.Final, endpoint.Initial),
+            LowestCellStock: ReadDouble(reader, "lowest_cell_stock"));
     }
 
     private List<MapGenerationSummaryRow> LoadMapGenerationRows(DuckDBConnection connection)
@@ -942,6 +600,13 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
     private List<LifecycleSummaryRow> LoadLifecycleRows(DuckDBConnection connection, int runCount)
     {
+        var finals = LoadFinalLifecycleRows(connection);
+        var deaths = LoadLifecycleDeathRows(connection);
+        return BuildLifecycleRows(finals, deaths, runCount);
+    }
+
+    private static Dictionary<string, ObservedLifecycleRow> LoadFinalLifecycleRows(DuckDBConnection connection)
+    {
         const string finalSql = """
             WITH final_ticks AS (
                 SELECT run_id, MAX(tick) AS final_tick
@@ -964,6 +629,19 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             GROUP BY kind;
             """;
 
+        return Query(connection, finalSql, reader => new ObservedLifecycleRow(
+                Kind: ReadString(reader, "kind"),
+                Deaths: 0,
+                AverageDeathTick: 0d,
+                AverageFinalActive: ReadDouble(reader, "average_final_active"),
+                AverageFinalHistorical: ReadDouble(reader, "average_final_historical"),
+                AverageFinalHealth: ReadDouble(reader, "average_final_health")))
+            .ToDictionary(row => row.Kind, row => row, StringComparer.Ordinal);
+    }
+
+    private static Dictionary<string, (int Deaths, double AvgTick)> LoadLifecycleDeathRows(
+        DuckDBConnection connection)
+    {
         const string deathSql = """
             SELECT
                 kind,
@@ -974,20 +652,17 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             GROUP BY kind;
             """;
 
-        var finals = Query(connection, finalSql, reader => new ObservedLifecycleRow(
-                Kind: ReadString(reader, "kind"),
-                Deaths: 0,
-                AverageDeathTick: 0d,
-                AverageFinalActive: ReadDouble(reader, "average_final_active"),
-                AverageFinalHistorical: ReadDouble(reader, "average_final_historical"),
-                AverageFinalHealth: ReadDouble(reader, "average_final_health")))
-            .ToDictionary(row => row.Kind, row => row, StringComparer.Ordinal);
-
-        var deaths = Query(connection, deathSql, reader => new KeyValuePair<string, (int Deaths, double AvgTick)>(
+        return Query(connection, deathSql, reader => new KeyValuePair<string, (int Deaths, double AvgTick)>(
                 ReadString(reader, "kind"),
                 (ReadInt(reader, "deaths"), ReadDouble(reader, "average_death_tick"))))
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+    }
 
+    private List<LifecycleSummaryRow> BuildLifecycleRows(
+        Dictionary<string, ObservedLifecycleRow> finals,
+        Dictionary<string, (int Deaths, double AvgTick)> deaths,
+        int runCount)
+    {
         var rows = _domainConfig.Kinds.Keys.Select(kind =>
         {
             var observed = finals.GetValueOrDefault(kind.Value) ?? ObservedLifecycleRow.Empty(kind.Value);
@@ -1056,8 +731,21 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         List<EntitySnapshotRecord> snapshots,
         Dictionary<(string Kind, string Attribute), AttributeConfig> attributeConfigs)
     {
-        var aggregates = new Dictionary<(string Kind, string Subtype, string Attribute), AttributeBandAccumulator>();
+        var aggregates = BuildAttributeBandAggregates(snapshots, attributeConfigs);
+        return aggregates
+            .OrderBy(pair => pair.Key.Kind, StringComparer.Ordinal)
+            .ThenBy(pair => pair.Key.Subtype, StringComparer.Ordinal)
+            .ThenBy(pair => pair.Key.Attribute, StringComparer.Ordinal)
+            .Select(pair => BuildAttributeBandRow(pair.Key, pair.Value))
+            .ToList();
+    }
 
+    private static Dictionary<(string Kind, string Subtype, string Attribute), AttributeBandAccumulator>
+        BuildAttributeBandAggregates(
+            List<EntitySnapshotRecord> snapshots,
+            Dictionary<(string Kind, string Attribute), AttributeConfig> attributeConfigs)
+    {
+        var aggregates = new Dictionary<(string Kind, string Subtype, string Attribute), AttributeBandAccumulator>();
         foreach (var snapshot in snapshots)
         {
             if (!string.Equals(snapshot.Status, "Active", StringComparison.Ordinal))
@@ -1105,29 +793,27 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             }
         }
 
-        return aggregates
-            .OrderBy(pair => pair.Key.Kind, StringComparer.Ordinal)
-            .ThenBy(pair => pair.Key.Subtype, StringComparer.Ordinal)
-            .ThenBy(pair => pair.Key.Attribute, StringComparer.Ordinal)
-            .Select(pair =>
-            {
-                var acc = pair.Value;
-                var denom = Math.Max(1, acc.SampleCount);
-                return new AttributeBandSummaryRow(
-                    Kind: pair.Key.Kind,
-                    Subtype: pair.Key.Subtype,
-                    AttributeName: pair.Key.Attribute,
-                    SampleCount: acc.SampleCount,
-                    AverageValue: acc.ValueSum / denom,
-                    AverageNormalized: acc.NormalizedSum / denom,
-                    MinimumObserved: acc.SampleCount == 0 ? 0d : acc.MinObserved,
-                    MaximumObserved: acc.SampleCount == 0 ? 0d : acc.MaxObserved,
-                    CriticalShare: acc.CriticalCount / (double)denom,
-                    LowShare: acc.LowCount / (double)denom,
-                    MidShare: acc.MidCount / (double)denom,
-                    HighShare: acc.HighCount / (double)denom);
-            })
-            .ToList();
+        return aggregates;
+    }
+
+    private static AttributeBandSummaryRow BuildAttributeBandRow(
+        (string Kind, string Subtype, string Attribute) key,
+        AttributeBandAccumulator acc)
+    {
+        var denom = Math.Max(1, acc.SampleCount);
+        return new AttributeBandSummaryRow(
+            Kind: key.Kind,
+            Subtype: key.Subtype,
+            AttributeName: key.Attribute,
+            SampleCount: acc.SampleCount,
+            AverageValue: acc.ValueSum / denom,
+            AverageNormalized: acc.NormalizedSum / denom,
+            MinimumObserved: acc.SampleCount == 0 ? 0d : acc.MinObserved,
+            MaximumObserved: acc.SampleCount == 0 ? 0d : acc.MaxObserved,
+            CriticalShare: acc.CriticalCount / (double)denom,
+            LowShare: acc.LowCount / (double)denom,
+            MidShare: acc.MidCount / (double)denom,
+            HighShare: acc.HighCount / (double)denom);
     }
 
     private static List<MapSpreadSummaryRow> BuildMapSpreadRows(
@@ -1136,65 +822,13 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         var rows = new List<MapSpreadSummaryRow>();
 
-        foreach (var runGroup in snapshots.GroupBy(snapshot => snapshot.RunId))
+        foreach (var runGroup in snapshots.GroupBy(snapshot => snapshot.RunId, StringComparer.Ordinal))
         {
-            var orderedTicks = runGroup.Select(snapshot => snapshot.Tick).Distinct().OrderBy(tick => tick).ToList();
-            if (orderedTicks.Count == 0)
+            var row = BuildMapSpreadRow(runGroup, totalCellCount);
+            if (row is not null)
             {
-                continue;
+                rows.Add(row);
             }
-
-            var seedTick = orderedTicks[0];
-            var finalTick = orderedTicks[^1];
-            var seedCoords = runGroup
-                .Where(snapshot => snapshot.Tick == seedTick && string.Equals(snapshot.Status, "Active", StringComparison.Ordinal))
-                .Select(snapshot => new HexCoord(snapshot.PhysicalQ, snapshot.PhysicalR))
-                .Distinct()
-                .ToList();
-
-            var finalEntities = runGroup
-                .Where(snapshot => snapshot.Tick == finalTick && string.Equals(snapshot.Status, "Active", StringComparison.Ordinal))
-                .ToList();
-
-            var occupiedCells = finalEntities
-                .Select(snapshot => (snapshot.PhysicalQ, snapshot.PhysicalR))
-                .Distinct()
-                .ToList();
-
-            var bboxArea = 0;
-            if (occupiedCells.Count > 0)
-            {
-                var minQ = occupiedCells.Min(cell => cell.PhysicalQ);
-                var maxQ = occupiedCells.Max(cell => cell.PhysicalQ);
-                var minR = occupiedCells.Min(cell => cell.PhysicalR);
-                var maxR = occupiedCells.Max(cell => cell.PhysicalR);
-                bboxArea = (maxQ - minQ + 1) * (maxR - minR + 1);
-            }
-
-            var distances = finalEntities
-                .Select(snapshot =>
-                {
-                    var coord = new HexCoord(snapshot.PhysicalQ, snapshot.PhysicalR);
-                    if (seedCoords.Count == 0)
-                    {
-                        return 0;
-                    }
-
-                    return seedCoords.Min(seed => HexCoord.Distance(coord, seed));
-                })
-                .ToList();
-
-            rows.Add(new MapSpreadSummaryRow(
-                RunId: runGroup.Key,
-                SnapshotTick: finalTick,
-                ActiveEntities: finalEntities.Count,
-                OccupiedCells: occupiedCells.Count,
-                OccupiedCellShare: totalCellCount == 0 ? 0d : occupiedCells.Count / (double)totalCellCount,
-                BoundingBoxArea: bboxArea,
-                OccupancyWithinBoundingBox: bboxArea == 0 ? 0d : occupiedCells.Count / (double)bboxArea,
-                MeanDistanceFromSeed: distances.Count == 0 ? 0d : distances.Average(),
-                MaxDistanceFromSeed: distances.Count == 0 ? 0d : distances.Max(),
-                Anisotropy: ComputeAnisotropy(finalEntities)));
         }
 
         return rows
@@ -1202,688 +836,87 @@ internal sealed class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToList();
     }
 
-    private static List<AnalysisFlagRow> BuildFlags(
-        List<GeneratorAnalysisRow> generatorRows,
-        List<PlannerPressureRow> plannerRows,
-        List<MapSpreadSummaryRow> mapRows,
-        List<LifecycleSummaryRow> lifecycleRows,
-        List<ResourcePressureRow> resourceRows,
-        List<MapGenerationSummaryRow> mapGenerationRows)
+    private static MapSpreadSummaryRow? BuildMapSpreadRow(
+        IGrouping<string, EntitySnapshotRecord> runGroup,
+        int totalCellCount)
     {
-        var flags = new List<AnalysisFlagRow>();
-
-        var degenerateCount = mapGenerationRows.Sum(row => row.EventCount);
-        if (degenerateCount > 0)
+        var orderedTicks = runGroup.Select(snapshot => snapshot.Tick).Distinct().Order().ToList();
+        if (orderedTicks.Count == 0)
         {
-            var top = mapGenerationRows
-                .OrderByDescending(row => row.EventCount)
-                .ThenBy(row => row.Phase, StringComparer.Ordinal)
-                .First();
-            flags.Add(new AnalysisFlagRow(
-                Category: "map_generation",
-                Severity: "warning",
-                Message: FormattableString.Invariant(
-                    $"Procedural map degeneracy occurred {degenerateCount} times. Top cause: {top.Phase} -> {top.Description}.")));
+            return null;
         }
 
-        var zeroFire = generatorRows
-            .Where(row => row.Pulses > 0 && row.FiredCount == 0)
-            .OrderByDescending(row => row.Pulses)
-            .ThenBy(row => row.GeneratorId, StringComparer.Ordinal)
-            .Take(5)
+        var seedTick = orderedTicks[0];
+        var finalTick = orderedTicks[^1];
+        var seedCoords = ActivePhysicalCoordsAtTick(runGroup, seedTick);
+        var finalEntities = ActiveEntitiesAtTick(runGroup, finalTick);
+        var occupiedCells = finalEntities
+            .Select(snapshot => (snapshot.PhysicalQ, snapshot.PhysicalR))
+            .Distinct()
             .ToList();
-        if (zeroFire.Count > 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "generator_balance",
-                Severity: "warning",
-                Message: $"Configured generators with pulse activity but zero fires: {string.Join(", ", zeroFire.Select(row => row.GeneratorId))}."));
-        }
+        var bboxArea = BoundingBoxArea(occupiedCells);
+        var distances = DistancesFromSeed(finalEntities, seedCoords);
 
-        var totalFires = generatorRows.Sum(row => row.FiredCount);
-        var topGenerator = generatorRows.OrderByDescending(row => row.FiredCount).FirstOrDefault();
-        if (totalFires > 0 && topGenerator is not null)
-        {
-            var topShare = topGenerator.FiredCount / (double)totalFires;
-            if (topShare >= 0.35d)
-            {
-                flags.Add(new AnalysisFlagRow(
-                    Category: "generator_balance",
-                    Severity: "warning",
-                    Message: FormattableString.Invariant(
-                        $"{topGenerator.GeneratorId} accounts for {topShare:P1} of generator fires across the batch.")));
-            }
-        }
-
-        foreach (var planner in plannerRows.Where(row => row.StaleRate >= 0.25d || row.NoExecutionRate >= 0.4d))
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "planner",
-                Severity: "warning",
-                Message: FormattableString.Invariant(
-                    $"{planner.Kind} planner is sticky: stale={planner.StaleRate:P1}, no_execution={planner.NoExecutionRate:P1}, top_process='{planner.TopExecutedProcess}'.")));
-        }
-
-        var averageOccupiedShare = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.OccupiedCellShare);
-        var averageAnisotropy = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.Anisotropy);
-        if (averageOccupiedShare > 0d && averageOccupiedShare <= 0.15d)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "map",
-                Severity: "warning",
-                Message: FormattableString.Invariant(
-                    $"Final occupied physical map share averages {averageOccupiedShare:P1}; expansion is still sparse.")));
-        }
-
-        if (averageAnisotropy >= 3.5d)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "map",
-                Severity: "warning",
-                Message: FormattableString.Invariant(
-                    $"Final physical placement anisotropy averages {averageAnisotropy:F2}; the map is still corridor-biased.")));
-        }
-
-        var totalDeaths = lifecycleRows.Sum(row => row.Deaths);
-        if (totalDeaths == 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "lifecycle",
-                Severity: "warning",
-                Message: "No entities died across the analyzed batch."));
-        }
-        else
-        {
-            var noDeathKinds = lifecycleRows
-                .Where(row => row.Deaths == 0)
-                .Select(row => row.Kind)
-                .OrderBy(kind => kind, StringComparer.Ordinal)
-                .ToList();
-            if (noDeathKinds.Count > 0)
-            {
-                flags.Add(new AnalysisFlagRow(
-                    Category: "lifecycle",
-                    Severity: "info",
-                    Message: $"Kinds with zero recorded deaths: {string.Join(", ", noDeathKinds)}."));
-            }
-        }
-
-        if (resourceRows.Count > 0 && resourceRows.All(row => row.FinalToInitialRatio >= 0.9d))
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "resources",
-                Severity: "info",
-                Message: "Global resource stocks barely deplete across the batch; carrying-capacity pressure may still be too soft."));
-        }
-
-        return flags;
+        return new MapSpreadSummaryRow(
+            RunId: runGroup.Key,
+            SnapshotTick: finalTick,
+            ActiveEntities: finalEntities.Count,
+            OccupiedCells: occupiedCells.Count,
+            OccupiedCellShare: totalCellCount == 0 ? 0d : occupiedCells.Count / (double)totalCellCount,
+            BoundingBoxArea: bboxArea,
+            OccupancyWithinBoundingBox: bboxArea == 0 ? 0d : occupiedCells.Count / (double)bboxArea,
+            MeanDistanceFromSeed: distances.Count == 0 ? 0d : distances.Average(),
+            MaxDistanceFromSeed: distances.Count == 0 ? 0d : distances.Max(),
+            Anisotropy: ComputeAnisotropy(finalEntities));
     }
 
-    private string RenderMarkdown(MonteCarloAnalysisReport report)
+    private static List<HexCoord> ActivePhysicalCoordsAtTick(
+        IEnumerable<EntitySnapshotRecord> snapshots,
+        int tick) =>
+        ActiveEntitiesAtTick(snapshots, tick)
+            .Select(snapshot => new HexCoord(snapshot.PhysicalQ, snapshot.PhysicalR))
+            .Distinct()
+            .ToList();
+
+    private static List<EntitySnapshotRecord> ActiveEntitiesAtTick(
+        IEnumerable<EntitySnapshotRecord> snapshots,
+        int tick) =>
+        snapshots
+            .Where(snapshot => snapshot.Tick == tick && string.Equals(snapshot.Status, "Active", StringComparison.Ordinal))
+            .ToList();
+
+    private static int BoundingBoxArea(List<(int PhysicalQ, int PhysicalR)> occupiedCells)
     {
-        var builder = new StringBuilder();
-        builder.AppendLine("# Monte Carlo Tuning Summary");
-        builder.AppendLine();
-        builder.AppendLine("## Batch");
-        builder.AppendLine(FormattableString.Invariant($"- Runs: {report.Overview.RunCount}"));
-        builder.AppendLine(FormattableString.Invariant($"- Max tick: {report.Overview.MaxTick}"));
-        builder.AppendLine(FormattableString.Invariant($"- Total generator fires: {report.Overview.TotalGeneratorFires}"));
-        builder.AppendLine(FormattableString.Invariant($"- Avg fires/run: {report.Overview.AverageFiresPerRun:F2}"));
-        builder.AppendLine(FormattableString.Invariant($"- Avg final active entities: {report.Overview.AverageFinalActiveEntities:F2}"));
-        builder.AppendLine(FormattableString.Invariant($"- Avg final historical entities: {report.Overview.AverageFinalHistoricalEntities:F2}"));
-        builder.AppendLine(FormattableString.Invariant($"- Avg final physical spread: {report.Overview.AverageFinalPhysicalSpread:F2}"));
-        builder.AppendLine(FormattableString.Invariant($"- Avg final semantic spread: {report.Overview.AverageFinalSemanticSpread:F2}"));
-        builder.AppendLine();
-
-        builder.AppendLine("## Flags");
-        if (report.Flags.Count == 0)
-        {
-            builder.AppendLine("- None");
-        }
-        else
-        {
-            foreach (var flag in report.Flags)
-            {
-                builder.AppendLine(FormattableString.Invariant($"- [{flag.Severity}] {flag.Category}: {flag.Message}"));
-            }
-        }
-
-        builder.AppendLine();
-        builder.AppendLine("## Map Generation");
-        AppendTable(
-            builder,
-            report.MapGeneration.Take(10),
-            ("phase", row => row.Phase),
-            ("events", row => row.EventCount.ToString(CultureInfo.InvariantCulture)),
-            ("runs", row => row.AffectedRuns.ToString(CultureInfo.InvariantCulture)),
-            ("max_attempt", row => row.MaxAttempt.ToString(CultureInfo.InvariantCulture)),
-            ("description", row => row.Description),
-            ("reasons", row => string.IsNullOrWhiteSpace(row.Reasons) ? "-" : row.Reasons));
-
-        builder.AppendLine();
-        builder.AppendLine("## Generator Balance");
-        AppendTable(
-            builder,
-            report.GeneratorBalance.Take(8),
-            ("generator", row => row.GeneratorId),
-            ("fires", row => row.FiredCount.ToString(CultureInfo.InvariantCulture)),
-            ("eligible", row => row.EligiblePulses.ToString(CultureInfo.InvariantCulture)),
-            ("select_rate", row => FormatPercent(row.SelectionRateWhenEligible)),
-            ("blocker", row => row.PrimaryBlocker));
-
-        builder.AppendLine();
-        builder.AppendLine("## Planner Pressure");
-        AppendTable(
-            builder,
-            report.PlannerPressure,
-            ("kind", row => row.Kind),
-            ("stale", row => FormatPercent(row.StaleRate)),
-            ("no_exec", row => FormatPercent(row.NoExecutionRate)),
-            ("avg_candidates", row => row.AverageCandidateCount.ToString("F2", CultureInfo.InvariantCulture)),
-            ("top_process", row => row.TopExecutedProcess),
-            ("top_share", row => FormatPercent(row.TopProcessShareOfExecutions)));
-
-        builder.AppendLine();
-        builder.AppendLine("## Process Pressure");
-        AppendTable(
-            builder,
-            report.ProcessPressure.Take(12),
-            ("kind", row => row.Kind),
-            ("process", row => row.ProcessName),
-            ("selected", row => row.SelectedCount.ToString(CultureInfo.InvariantCulture)),
-            ("offered", row => row.CandidateEvaluations.ToString(CultureInfo.InvariantCulture)),
-            ("select_rate", row => FormatPercent(row.SelectionRateWhenOffered)),
-            ("precond", row => FormatPercent(row.PreconditionPassRate)),
-            ("top_failure", row => string.IsNullOrWhiteSpace(row.TopFailureDiagnostic) ? "-" : row.TopFailureDiagnostic));
-
-        builder.AppendLine();
-        builder.AppendLine("## Attribute Bands");
-        AppendTable(
-            builder,
-            report.AttributeBands
-                .OrderByDescending(row => row.CriticalShare)
-                .ThenByDescending(row => row.LowShare)
-                .Take(12),
-            ("kind", row => row.Kind),
-            ("subtype", row => row.Subtype),
-            ("attribute", row => row.AttributeName),
-            ("critical", row => FormatPercent(row.CriticalShare)),
-            ("low", row => FormatPercent(row.LowShare)),
-            ("mid", row => FormatPercent(row.MidShare)),
-            ("high", row => FormatPercent(row.HighShare)));
-
-        builder.AppendLine();
-        builder.AppendLine("## Map Spread");
-        AppendTable(
-            builder,
-            report.MapSpread.Take(10),
-            ("run", row => row.RunId),
-            ("occupied", row => row.OccupiedCells.ToString(CultureInfo.InvariantCulture)),
-            ("share", row => FormatPercent(row.OccupiedCellShare)),
-            ("bbox_fill", row => FormatPercent(row.OccupancyWithinBoundingBox)),
-            ("mean_seed_dist", row => row.MeanDistanceFromSeed.ToString("F2", CultureInfo.InvariantCulture)),
-            ("anisotropy", row => row.Anisotropy.ToString("F2", CultureInfo.InvariantCulture)));
-
-        builder.AppendLine();
-        builder.AppendLine("## Lifecycle");
-        AppendTable(
-            builder,
-            report.Lifecycle,
-            ("kind", row => row.Kind),
-            ("deaths", row => row.Deaths.ToString(CultureInfo.InvariantCulture)),
-            ("deaths/run", row => row.DeathsPerRun.ToString("F2", CultureInfo.InvariantCulture)),
-            ("avg_death_tick", row => row.AverageDeathTick.ToString("F2", CultureInfo.InvariantCulture)),
-            ("final_active", row => row.AverageFinalActive.ToString("F2", CultureInfo.InvariantCulture)),
-            ("final_health", row => row.AverageFinalHealth.ToString("F2", CultureInfo.InvariantCulture)));
-
-        builder.AppendLine();
-        builder.AppendLine("## Resource Pressure");
-        AppendTable(
-            builder,
-            report.ResourcePressure,
-            ("resource", row => row.ResourceType),
-            ("initial_total", row => row.AverageInitialTotal.ToString("F2", CultureInfo.InvariantCulture)),
-            ("avg_total", row => row.AverageTotalOverTime.ToString("F2", CultureInfo.InvariantCulture)),
-            ("final_total", row => row.AverageFinalTotal.ToString("F2", CultureInfo.InvariantCulture)),
-            ("final/initial", row => FormatPercent(row.FinalToInitialRatio)),
-            ("lowest_cell", row => row.LowestCellStock.ToString("F2", CultureInfo.InvariantCulture)));
-
-        return builder.ToString();
-    }
-
-    private static void AppendTable<T>(
-        StringBuilder builder,
-        IEnumerable<T> rows,
-        params (string Header, Func<T, string> Cell)[] columns)
-    {
-        builder.Append('|');
-        builder.Append(string.Join('|', columns.Select(column => column.Header)));
-        builder.AppendLine("|");
-        builder.Append('|');
-        builder.Append(string.Join('|', columns.Select(_ => "---")));
-        builder.AppendLine("|");
-
-        foreach (var row in rows)
-        {
-            builder.Append('|');
-            builder.Append(string.Join('|', columns.Select(column => EscapeMarkdownCell(column.Cell(row)))));
-            builder.AppendLine("|");
-        }
-    }
-
-    private static string EscapeMarkdownCell(string value) =>
-        value.Replace("|", "\\|", StringComparison.Ordinal);
-
-    private static string FormatPercent(double value) =>
-        value.ToString("P1", CultureInfo.InvariantCulture);
-
-    private static IEnumerable<(string AttributeName, double Value)> ParseAttributes(string attributes)
-    {
-        if (string.IsNullOrWhiteSpace(attributes))
-        {
-            yield break;
-        }
-
-        foreach (var segment in attributes.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var parts = segment.Split('=', 2);
-            if (parts.Length != 2 ||
-                !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
-            {
-                continue;
-            }
-
-            yield return (parts[0], value);
-        }
-    }
-
-    private static double Normalize(double value, float min, float max)
-    {
-        if (Math.Abs(max - min) < double.Epsilon)
-        {
-            return 0d;
-        }
-
-        return Math.Clamp((value - min) / (max - min), 0d, 1d);
-    }
-
-    private static double ComputeAnisotropy(IReadOnlyList<EntitySnapshotRecord> snapshots)
-    {
-        if (snapshots.Count < 2)
-        {
-            return 1d;
-        }
-
-        var meanQ = snapshots.Average(snapshot => snapshot.PhysicalQ);
-        var meanR = snapshots.Average(snapshot => snapshot.PhysicalR);
-        var sxx = snapshots.Average(snapshot => Math.Pow(snapshot.PhysicalQ - meanQ, 2));
-        var syy = snapshots.Average(snapshot => Math.Pow(snapshot.PhysicalR - meanR, 2));
-        var sxy = snapshots.Average(snapshot => (snapshot.PhysicalQ - meanQ) * (snapshot.PhysicalR - meanR));
-
-        var trace = sxx + syy;
-        var determinant = (sxx * syy) - (sxy * sxy);
-        var discriminant = Math.Sqrt(Math.Max(0d, (trace * trace * 0.25d) - determinant));
-        var lambda1 = (trace * 0.5d) + discriminant;
-        var lambda2 = (trace * 0.5d) - discriminant;
-
-        if (lambda1 <= 1e-9d)
-        {
-            return 1d;
-        }
-
-        if (lambda2 <= 1e-9d)
-        {
-            return lambda1;
-        }
-
-        return lambda1 / lambda2;
-    }
-
-    private static double ComputeRatio(double numerator, double denominator)
-    {
-        if (denominator <= 0d)
-        {
-            return numerator <= 0d ? 1d : 0d;
-        }
-
-        return numerator / denominator;
-    }
-
-    private static string PrimaryBlocker(ObservedGeneratorRow row)
-    {
-        var candidates = new (string Label, int Count)[]
-        {
-            ("inactive", row.InactiveRejected),
-            ("subtype", row.SubtypeRejected),
-            ("saturation", row.SaturationRejected),
-            ("secondary_target", row.SecondaryTargetRejected),
-            ("wilderness", row.WildernessRejected),
-            ("trigger", row.TriggerRejected),
-        };
-
-        var top = candidates
-            .OrderByDescending(candidate => candidate.Count)
-            .ThenBy(candidate => candidate.Label, StringComparer.Ordinal)
-            .First();
-
-        return top.Count == 0 ? "none" : top.Label;
-    }
-
-    private static T QuerySingle<T>(DuckDBConnection connection, string sql, Func<DbDataReader, T> map)
-    {
-        var rows = Query(connection, sql, map);
-        return rows.Count == 0 ? throw new InvalidOperationException("Expected one row.") : rows[0];
-    }
-
-    private static List<T> Query<T>(DuckDBConnection connection, string sql, Func<DbDataReader, T> map)
-    {
-        using var command = connection.CreateCommand();
-#pragma warning disable CA2100
-        command.CommandText = sql;
-#pragma warning restore CA2100
-        using var reader = command.ExecuteReader();
-        var rows = new List<T>();
-        while (reader.Read())
-        {
-            rows.Add(map(reader));
-        }
-
-        return rows;
-    }
-
-    private static int ReadInt(DbDataReader reader, string name)
-    {
-        var ordinal = reader.GetOrdinal(name);
-        if (reader.IsDBNull(ordinal))
+        if (occupiedCells.Count == 0)
         {
             return 0;
         }
 
-        return reader.GetValue(ordinal) switch
-        {
-            int value => value,
-            long value => checked((int)value),
-            short value => value,
-            byte value => value,
-            BigInteger value => (int)value,
-            decimal value => decimal.ToInt32(value),
-            float value => checked((int)value),
-            double value => checked((int)value),
-            string value => int.Parse(value, CultureInfo.InvariantCulture),
-            IConvertible convertible => convertible.ToInt32(CultureInfo.InvariantCulture),
-            var value => int.Parse(value.ToString() ?? "0", CultureInfo.InvariantCulture),
-        };
+        var minQ = occupiedCells.Min(cell => cell.PhysicalQ);
+        var maxQ = occupiedCells.Max(cell => cell.PhysicalQ);
+        var minR = occupiedCells.Min(cell => cell.PhysicalR);
+        var maxR = occupiedCells.Max(cell => cell.PhysicalR);
+        return (maxQ - minQ + 1) * (maxR - minR + 1);
     }
 
-    private static double ReadDouble(DbDataReader reader, string name)
+    private static List<int> DistancesFromSeed(
+        IEnumerable<EntitySnapshotRecord> finalEntities,
+        IReadOnlyList<HexCoord> seedCoords) =>
+        finalEntities
+            .Select(snapshot => DistanceFromSeed(snapshot, seedCoords))
+            .ToList();
+
+    private static int DistanceFromSeed(
+        EntitySnapshotRecord snapshot,
+        IReadOnlyList<HexCoord> seedCoords)
     {
-        var ordinal = reader.GetOrdinal(name);
-        if (reader.IsDBNull(ordinal))
+        if (seedCoords.Count == 0)
         {
-            return 0d;
+            return 0;
         }
 
-        return reader.GetValue(ordinal) switch
-        {
-            double value => value,
-            float value => value,
-            decimal value => (double)value,
-            int value => value,
-            long value => value,
-            short value => value,
-            byte value => value,
-            BigInteger value => (double)value,
-            string value => double.Parse(value, CultureInfo.InvariantCulture),
-            IConvertible convertible => convertible.ToDouble(CultureInfo.InvariantCulture),
-            var value => double.Parse(value.ToString() ?? "0", CultureInfo.InvariantCulture),
-        };
+        var coord = new HexCoord(snapshot.PhysicalQ, snapshot.PhysicalR);
+        return seedCoords.Min(seed => HexCoord.Distance(coord, seed));
     }
 
-    private static string ReadString(DbDataReader reader, string name)
-    {
-        var ordinal = reader.GetOrdinal(name);
-        return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
-    }
-
-    private sealed class AttributeBandAccumulator
-    {
-        public int SampleCount { get; set; }
-        public double ValueSum { get; set; }
-        public double NormalizedSum { get; set; }
-        public double MinObserved { get; set; } = double.PositiveInfinity;
-        public double MaxObserved { get; set; } = double.NegativeInfinity;
-        public int CriticalCount { get; set; }
-        public int LowCount { get; set; }
-        public int MidCount { get; set; }
-        public int HighCount { get; set; }
-    }
-
-    private sealed record ObservedGeneratorRow(
-        string GeneratorId,
-        int Pulses,
-        int EligiblePulses,
-        int BlockedPulses,
-        int EligibleNotSelectedPulses,
-        int FiredCount,
-        int FireFailedPulses,
-        double AverageTargetPool,
-        double AverageCandidateCount,
-        int InactiveRejected,
-        int SubtypeRejected,
-        int SaturationRejected,
-        int SecondaryTargetRejected,
-        int WildernessRejected,
-        int TriggerRejected,
-        int CreatedEntityCount,
-        int CreatedRelationshipCount)
-    {
-        public static ObservedGeneratorRow Empty(string generatorId) => new(
-            generatorId,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0d,
-            0d,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0);
-    }
-
-    private sealed record ObservedProcessRow(
-        string Kind,
-        string ProcessName,
-        int CandidateEvaluations,
-        int SelectedCount,
-        double AverageScore,
-        double PreconditionPassRate,
-        double CooldownRate)
-    {
-        public static ObservedProcessRow Empty(string kind, string processName) => new(
-            kind,
-            processName,
-            0,
-            0,
-            0d,
-            0d,
-            0d);
-    }
-
-    private sealed record FailureDiagnosticRow(string Kind, string ProcessName, string Diagnostic, int Count);
-
-    private sealed record ObservedPlannerRow(
-        string Kind,
-        int Evaluations,
-        int StaleEvaluations,
-        int NoExecutionEvaluations,
-        int ExecutedEvaluations,
-        double AverageCandidateCount)
-    {
-        public static ObservedPlannerRow Empty(string kind) => new(kind, 0, 0, 0, 0, 0d);
-    }
-
-    private sealed record ObservedLifecycleRow(
-        string Kind,
-        int Deaths,
-        double AverageDeathTick,
-        double AverageFinalActive,
-        double AverageFinalHistorical,
-        double AverageFinalHealth)
-    {
-        public static ObservedLifecycleRow Empty(string kind) => new(kind, 0, 0d, 0d, 0d, 0d);
-    }
-
-    private sealed record EntitySnapshotRecord(
-        string RunId,
-        int Tick,
-        int EntityId,
-        string Kind,
-        string Subtype,
-        string Status,
-        int PhysicalQ,
-        int PhysicalR,
-        string Attributes);
 }
-
-internal sealed class MonteCarloAnalysisReport
-{
-    public required BatchOverviewRow Overview { get; init; }
-    public required IReadOnlyList<AnalysisFlagRow> Flags { get; init; }
-    public required IReadOnlyList<GeneratorAnalysisRow> GeneratorBalance { get; init; }
-    public required IReadOnlyList<GeneratedSubtypeCoverageRow> GeneratedSubtypeCoverage { get; init; }
-    public required IReadOnlyList<PlannerPressureRow> PlannerPressure { get; init; }
-    public required IReadOnlyList<ProcessPressureRow> ProcessPressure { get; init; }
-    public required IReadOnlyList<AttributeBandSummaryRow> AttributeBands { get; init; }
-    public required IReadOnlyList<MapSpreadSummaryRow> MapSpread { get; init; }
-    public required IReadOnlyList<MapGenerationSummaryRow> MapGeneration { get; init; }
-    public required IReadOnlyList<TerrainOccupancyRow> TerrainOccupancy { get; init; }
-    public required IReadOnlyList<LifecycleSummaryRow> Lifecycle { get; init; }
-    public required IReadOnlyList<ResourcePressureRow> ResourcePressure { get; init; }
-}
-
-internal sealed record BatchOverviewRow(
-    int RunCount,
-    int MaxTick,
-    int TotalGeneratorFires,
-    double AverageFiresPerRun,
-    double AverageFinalActiveEntities,
-    double AverageFinalHistoricalEntities,
-    double AverageFinalPhysicalSpread,
-    double AverageFinalSemanticSpread,
-    double AverageFinalUncoveredCells);
-
-internal sealed record AnalysisFlagRow(string Category, string Severity, string Message);
-
-internal sealed record GeneratorAnalysisRow(
-    string GeneratorId,
-    string GeneratorName,
-    string TargetKind,
-    int Pulses,
-    int EligiblePulses,
-    int BlockedPulses,
-    int EligibleNotSelectedPulses,
-    int FiredCount,
-    int FireFailedPulses,
-    double FireRatePerRun,
-    double SelectionRateWhenEligible,
-    double AverageTargetPool,
-    double AverageCandidateCount,
-    int InactiveRejected,
-    int SubtypeRejected,
-    int SaturationRejected,
-    int SecondaryTargetRejected,
-    int WildernessRejected,
-    int TriggerRejected,
-    string PrimaryBlocker,
-    int CreatedEntityCount,
-    int CreatedRelationshipCount);
-
-internal sealed record GeneratedSubtypeCoverageRow(
-    string GeneratorId,
-    string Kind,
-    string Subtype,
-    int ProducedCount);
-
-internal sealed record PlannerPressureRow(
-    string Kind,
-    int Evaluations,
-    double StaleRate,
-    double NoExecutionRate,
-    double AverageCandidateCount,
-    string TopExecutedProcess,
-    double TopProcessShareOfExecutions);
-
-internal sealed record ProcessPressureRow(
-    string Kind,
-    string ProcessName,
-    int CandidateEvaluations,
-    int SelectedCount,
-    double SelectionRateWhenOffered,
-    double AverageScore,
-    double PreconditionPassRate,
-    double CooldownRate,
-    string TopFailureDiagnostic);
-
-internal sealed record AttributeBandSummaryRow(
-    string Kind,
-    string Subtype,
-    string AttributeName,
-    int SampleCount,
-    double AverageValue,
-    double AverageNormalized,
-    double MinimumObserved,
-    double MaximumObserved,
-    double CriticalShare,
-    double LowShare,
-    double MidShare,
-    double HighShare);
-
-internal sealed record MapSpreadSummaryRow(
-    string RunId,
-    int SnapshotTick,
-    int ActiveEntities,
-    int OccupiedCells,
-    double OccupiedCellShare,
-    int BoundingBoxArea,
-    double OccupancyWithinBoundingBox,
-    double MeanDistanceFromSeed,
-    double MaxDistanceFromSeed,
-    double Anisotropy);
-
-internal sealed record MapGenerationSummaryRow(
-    string Phase,
-    string Description,
-    string Reasons,
-    int EventCount,
-    int AffectedRuns,
-    int RetryingEvents,
-    int MaxAttempt);
-
-internal sealed record TerrainOccupancyRow(
-    string Terrain,
-    double AverageFinalActiveEntities,
-    double AverageNamedCoverageShare);
-
-internal sealed record LifecycleSummaryRow(
-    string Kind,
-    int Deaths,
-    double DeathsPerRun,
-    double AverageDeathTick,
-    double AverageFinalActive,
-    double AverageFinalHistorical,
-    double AverageFinalHealth);
-
-internal sealed record ResourcePressureRow(
-    string ResourceType,
-    double AverageTotalOverTime,
-    double AverageInitialTotal,
-    double AverageFinalTotal,
-    double FinalToInitialRatio,
-    double LowestCellStock);

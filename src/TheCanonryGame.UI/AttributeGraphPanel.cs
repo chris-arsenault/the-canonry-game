@@ -2,9 +2,10 @@
 #pragma warning disable CA1305 // UI display strings
 using System.Text;
 
+using Engine.Projection;
+
 using Godot;
 
-using Engine.Projection;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -114,7 +115,7 @@ public partial class AttributeGraphPanel : PanelContainer
             foreach (var attribute in entity.Attributes.Values
                 .OrderBy(attribute => ResolveAttributeName(attribute.AttributeId), StringComparer.Ordinal))
             {
-                sb.AppendLine($"  {ResolveAttributeName(attribute.AttributeId),-16} [code]{attribute.NewValue,7:0.0}[/code]");
+                sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  {ResolveAttributeName(attribute.AttributeId),-16} [code]{attribute.NewValue,7:0.0}[/code]");
             }
         }
 

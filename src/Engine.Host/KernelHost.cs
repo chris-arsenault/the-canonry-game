@@ -1,8 +1,8 @@
 namespace Engine.Host;
 
-using Engine.Eventing;
 using Engine.Domain;
 using Engine.Domain.Compilation;
+using Engine.Eventing;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Projection;

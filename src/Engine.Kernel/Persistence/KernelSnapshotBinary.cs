@@ -25,55 +25,113 @@ internal static class KernelSnapshotBinary
             var field = fields[i];
             var code = TypeCode(field.FieldType);
             writer.Write(code);
-            if (code == TypeInt)
-            {
-                writer.Write((int)field.GetValue(target)!);
-            }
-            else if (code == TypeLong)
-            {
-                writer.Write((long)field.GetValue(target)!);
-            }
-            else if (code == TypeFloat)
-            {
-                writer.Write((float)field.GetValue(target)!);
-            }
-            else if (code == TypeBool)
-            {
-                writer.Write((bool)field.GetValue(target)!);
-            }
-            else if (code == TypeUint)
-            {
-                writer.Write((uint)field.GetValue(target)!);
-            }
-            else if (code == TypeIntArray)
-            {
-                Write(writer, (int[])field.GetValue(target)!);
-            }
-            else if (code == TypeFloatArray)
-            {
-                Write(writer, (float[])field.GetValue(target)!);
-            }
-            else if (code == TypeBoolArray)
-            {
-                Write(writer, (bool[])field.GetValue(target)!);
-            }
-            else if (code == TypeIntTable)
-            {
-                ((PrimitiveIntTable)field.GetValue(target)!).WriteSnapshot(writer);
-            }
-            else if (code == TypeFloatTable)
-            {
-                ((PrimitiveFloatTable)field.GetValue(target)!).WriteSnapshot(writer);
-            }
-            else if (code == TypeSpatialLayerIndex)
-            {
-                ((SpatialLayerIndex)field.GetValue(target)!).WriteSnapshot(writer);
-            }
-            else
-            {
-                throw new global::System.InvalidOperationException();
-            }
+            WriteFieldValue(writer, code, field.GetValue(target)!);
         }
+    }
+
+    private static void WriteFieldValue(
+        global::System.IO.BinaryWriter writer,
+        int code,
+        object value)
+    {
+        if (TryWriteScalar(writer, code, value) ||
+            TryWriteArray(writer, code, value) ||
+            TryWriteObject(writer, code, value))
+        {
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private static bool TryWriteScalar(
+        global::System.IO.BinaryWriter writer,
+        int code,
+        object value)
+    {
+        if (code == TypeInt)
+        {
+            writer.Write((int)value);
+            return true;
+        }
+
+        if (code == TypeLong)
+        {
+            writer.Write((long)value);
+            return true;
+        }
+
+        if (code == TypeFloat)
+        {
+            writer.Write((float)value);
+            return true;
+        }
+
+        if (code == TypeBool)
+        {
+            writer.Write((bool)value);
+            return true;
+        }
+
+        if (code != TypeUint)
+        {
+            return false;
+        }
+
+        writer.Write((uint)value);
+        return true;
+    }
+
+    private static bool TryWriteArray(
+        global::System.IO.BinaryWriter writer,
+        int code,
+        object value)
+    {
+        if (code == TypeIntArray)
+        {
+            Write(writer, (int[])value);
+            return true;
+        }
+
+        if (code == TypeFloatArray)
+        {
+            Write(writer, (float[])value);
+            return true;
+        }
+
+        if (code != TypeBoolArray)
+        {
+            return false;
+        }
+
+        Write(writer, (bool[])value);
+        return true;
+    }
+
+    private static bool TryWriteObject(
+        global::System.IO.BinaryWriter writer,
+        int code,
+        object value)
+    {
+        if (code == TypeIntTable)
+        {
+            ((PrimitiveIntTable)value).WriteSnapshot(writer);
+            return true;
+        }
+
+        if (code == TypeFloatTable)
+        {
+            ((PrimitiveFloatTable)value).WriteSnapshot(writer);
+            return true;
+        }
+
+        if (code != TypeSpatialLayerIndex)
+        {
+            return false;
+        }
+
+        ((SpatialLayerIndex)value).WriteSnapshot(writer);
+        return true;
     }
 
     public static void ReadObject(global::System.IO.BinaryReader reader, object target)
@@ -95,55 +153,117 @@ internal static class KernelSnapshotBinary
                 throw new global::System.InvalidOperationException();
             }
 
-            if (code == TypeInt)
-            {
-                field.SetValue(target, reader.ReadInt32());
-            }
-            else if (code == TypeLong)
-            {
-                field.SetValue(target, reader.ReadInt64());
-            }
-            else if (code == TypeFloat)
-            {
-                field.SetValue(target, reader.ReadSingle());
-            }
-            else if (code == TypeBool)
-            {
-                field.SetValue(target, reader.ReadBoolean());
-            }
-            else if (code == TypeUint)
-            {
-                field.SetValue(target, reader.ReadUInt32());
-            }
-            else if (code == TypeIntArray)
-            {
-                Read(reader, (int[])field.GetValue(target)!);
-            }
-            else if (code == TypeFloatArray)
-            {
-                Read(reader, (float[])field.GetValue(target)!);
-            }
-            else if (code == TypeBoolArray)
-            {
-                Read(reader, (bool[])field.GetValue(target)!);
-            }
-            else if (code == TypeIntTable)
-            {
-                ((PrimitiveIntTable)field.GetValue(target)!).ReadSnapshot(reader);
-            }
-            else if (code == TypeFloatTable)
-            {
-                ((PrimitiveFloatTable)field.GetValue(target)!).ReadSnapshot(reader);
-            }
-            else if (code == TypeSpatialLayerIndex)
-            {
-                ((SpatialLayerIndex)field.GetValue(target)!).ReadSnapshot(reader);
-            }
-            else
-            {
-                throw new global::System.InvalidOperationException();
-            }
+            ReadFieldValue(reader, target, field, code);
         }
+    }
+
+    private static void ReadFieldValue(
+        global::System.IO.BinaryReader reader,
+        object target,
+        global::System.Reflection.FieldInfo field,
+        int code)
+    {
+        if (TryReadScalar(reader, target, field, code) ||
+            TryReadArray(reader, target, field, code) ||
+            TryReadObject(reader, target, field, code))
+        {
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private static bool TryReadScalar(
+        global::System.IO.BinaryReader reader,
+        object target,
+        global::System.Reflection.FieldInfo field,
+        int code)
+    {
+        if (code == TypeInt)
+        {
+            field.SetValue(target, reader.ReadInt32());
+            return true;
+        }
+
+        if (code == TypeLong)
+        {
+            field.SetValue(target, reader.ReadInt64());
+            return true;
+        }
+
+        if (code == TypeFloat)
+        {
+            field.SetValue(target, reader.ReadSingle());
+            return true;
+        }
+
+        if (code == TypeBool)
+        {
+            field.SetValue(target, reader.ReadBoolean());
+            return true;
+        }
+
+        if (code != TypeUint)
+        {
+            return false;
+        }
+
+        field.SetValue(target, reader.ReadUInt32());
+        return true;
+    }
+
+    private static bool TryReadArray(
+        global::System.IO.BinaryReader reader,
+        object target,
+        global::System.Reflection.FieldInfo field,
+        int code)
+    {
+        if (code == TypeIntArray)
+        {
+            Read(reader, (int[])field.GetValue(target)!);
+            return true;
+        }
+
+        if (code == TypeFloatArray)
+        {
+            Read(reader, (float[])field.GetValue(target)!);
+            return true;
+        }
+
+        if (code != TypeBoolArray)
+        {
+            return false;
+        }
+
+        Read(reader, (bool[])field.GetValue(target)!);
+        return true;
+    }
+
+    private static bool TryReadObject(
+        global::System.IO.BinaryReader reader,
+        object target,
+        global::System.Reflection.FieldInfo field,
+        int code)
+    {
+        if (code == TypeIntTable)
+        {
+            ((PrimitiveIntTable)field.GetValue(target)!).ReadSnapshot(reader);
+            return true;
+        }
+
+        if (code == TypeFloatTable)
+        {
+            ((PrimitiveFloatTable)field.GetValue(target)!).ReadSnapshot(reader);
+            return true;
+        }
+
+        if (code != TypeSpatialLayerIndex)
+        {
+            return false;
+        }
+
+        ((SpatialLayerIndex)field.GetValue(target)!).ReadSnapshot(reader);
+        return true;
     }
 
     public static void Write(global::System.IO.BinaryWriter writer, int[] values)
@@ -258,6 +378,18 @@ internal static class KernelSnapshotBinary
 
     private static int TypeCode(global::System.Type type)
     {
+        var scalarCode = ScalarTypeCode(type);
+        if (scalarCode != 0)
+        {
+            return scalarCode;
+        }
+
+        var arrayCode = ArrayTypeCode(type);
+        return arrayCode != 0 ? arrayCode : ObjectTypeCode(type);
+    }
+
+    private static int ScalarTypeCode(global::System.Type type)
+    {
         if (type == typeof(int))
         {
             return TypeInt;
@@ -283,6 +415,11 @@ internal static class KernelSnapshotBinary
             return TypeUint;
         }
 
+        return 0;
+    }
+
+    private static int ArrayTypeCode(global::System.Type type)
+    {
         if (type == typeof(int[]))
         {
             return TypeIntArray;
@@ -298,6 +435,11 @@ internal static class KernelSnapshotBinary
             return TypeBoolArray;
         }
 
+        return 0;
+    }
+
+    private static int ObjectTypeCode(global::System.Type type)
+    {
         if (type == typeof(PrimitiveIntTable))
         {
             return TypeIntTable;

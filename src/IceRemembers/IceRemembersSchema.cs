@@ -23,25 +23,32 @@ public enum IceRemembersAttributeId
 
 public static class IceRemembersAttributeIdExtensions
 {
-    public static string ToDomainName(this IceRemembersAttributeId attribute) => attribute switch
+    private static readonly string[] DomainNames =
+    [
+        "residents",
+        "dominion",
+        "shelter",
+        "cohesion",
+        "reach",
+        "provisions",
+        "vitality",
+        "echo",
+        "warmth",
+        "stability",
+        "holding",
+        "pristiness",
+        "condition",
+        "power",
+        "resonance",
+    ];
+
+    public static string ToDomainName(this IceRemembersAttributeId attribute)
     {
-        IceRemembersAttributeId.Residents => "residents",
-        IceRemembersAttributeId.Dominion => "dominion",
-        IceRemembersAttributeId.Shelter => "shelter",
-        IceRemembersAttributeId.Cohesion => "cohesion",
-        IceRemembersAttributeId.Reach => "reach",
-        IceRemembersAttributeId.Provisions => "provisions",
-        IceRemembersAttributeId.Vitality => "vitality",
-        IceRemembersAttributeId.Echo => "echo",
-        IceRemembersAttributeId.Warmth => "warmth",
-        IceRemembersAttributeId.Stability => "stability",
-        IceRemembersAttributeId.Holding => "holding",
-        IceRemembersAttributeId.Pristiness => "pristiness",
-        IceRemembersAttributeId.Condition => "condition",
-        IceRemembersAttributeId.Power => "power",
-        IceRemembersAttributeId.Resonance => "resonance",
-        _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, "Unknown test-domain attribute"),
-    };
+        var index = (int)attribute;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(attribute), attribute, "Unknown test-domain attribute");
+    }
 }
 
 public enum IceRemembersResource
@@ -123,31 +130,38 @@ public static class IceRemembersRelationshipFactExtensions
 
 public static class IceRemembersRelationshipExtensions
 {
-    public static string ToDomainName(this IceRemembersRelationship relationship) => relationship switch
+    private static readonly string[] DomainNames =
+    [
+        "controlled_by",
+        "home_base",
+        "allied_with",
+        "rival_of",
+        "led_by",
+        "member_of",
+        "holds",
+        "created_by",
+        "memorializes",
+        "claimed_by",
+        "trade_route",
+        "founded_from",
+        "native_to",
+        "anchored",
+        "conduit_of",
+        "part_of",
+        "ward_against",
+        "corrupted_by",
+        "cleansed_by",
+        "at_war_with",
+        "betrayed_by",
+    ];
+
+    public static string ToDomainName(this IceRemembersRelationship relationship)
     {
-        IceRemembersRelationship.ControlledBy => "controlled_by",
-        IceRemembersRelationship.HomeBase => "home_base",
-        IceRemembersRelationship.AlliedWith => "allied_with",
-        IceRemembersRelationship.RivalOf => "rival_of",
-        IceRemembersRelationship.LedBy => "led_by",
-        IceRemembersRelationship.MemberOf => "member_of",
-        IceRemembersRelationship.Holds => "holds",
-        IceRemembersRelationship.CreatedBy => "created_by",
-        IceRemembersRelationship.Memorializes => "memorializes",
-        IceRemembersRelationship.ClaimedBy => "claimed_by",
-        IceRemembersRelationship.TradeRoute => "trade_route",
-        IceRemembersRelationship.FoundedFrom => "founded_from",
-        IceRemembersRelationship.NativeTo => "native_to",
-        IceRemembersRelationship.Anchored => "anchored",
-        IceRemembersRelationship.ConduitOf => "conduit_of",
-        IceRemembersRelationship.PartOf => "part_of",
-        IceRemembersRelationship.WardAgainst => "ward_against",
-        IceRemembersRelationship.CorruptedBy => "corrupted_by",
-        IceRemembersRelationship.CleansedBy => "cleansed_by",
-        IceRemembersRelationship.AtWarWith => "at_war_with",
-        IceRemembersRelationship.BetrayedBy => "betrayed_by",
-        _ => throw new ArgumentOutOfRangeException(nameof(relationship), relationship, "Unknown test-domain relationship"),
-    };
+        var index = (int)relationship;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(relationship), relationship, "Unknown test-domain relationship");
+    }
 }
 
 public enum IceRemembersPressure
@@ -271,67 +285,74 @@ public enum IceRemembersVerbId
 
 public static class IceRemembersVerbIdExtensions
 {
-    public static string ToVerbId(this IceRemembersVerbId verbId) => verbId switch
+    private static readonly string[] DomainNames =
+    [
+        "artifact_channel",
+        "artifact_circulate",
+        "artifact_cleanse",
+        "artifact_compel",
+        "artifact_corrupt",
+        "artifact_devote",
+        "artifact_empower",
+        "artifact_repair",
+        "artifact_enshrine",
+        "artifact_bind",
+        "artifact_heal",
+        "artifact_purify",
+        "artifact_vivify",
+        "engine_decay",
+        "faction_attract",
+        "faction_consecrate",
+        "faction_distribute",
+        "faction_preach",
+        "faction_extort",
+        "faction_indoctrinate",
+        "faction_maintain",
+        "faction_patrol",
+        "faction_quarrel",
+        "faction_agitate",
+        "faction_rally",
+        "faction_recruit",
+        "faction_starve",
+        "faction_organize",
+        "penguin_create_works",
+        "penguin_warm",
+        "penguin_endure",
+        "penguin_forage",
+        "penguin_guard",
+        "penguin_witness",
+        "penguin_travel",
+        "penguin_wander",
+        "penguin_wield",
+        "region_attune",
+        "region_cleanse",
+        "region_commune",
+        "region_dream",
+        "region_form_militia",
+        "region_fortify",
+        "region_irrigate",
+        "region_breach",
+        "region_reclaim",
+        "region_root",
+        "region_shelter",
+        "settlement_attract",
+        "settlement_deliberate",
+        "settlement_claims_echo",
+        "settlement_garrison",
+        "settlement_gossip",
+        "settlement_grow",
+        "settlement_strip_rookeries",
+        "settlement_overreach",
+        "settlement_propaganda",
+        "settlement_sanctify",
+        "settlement_trade",
+    ];
+
+    public static string ToVerbId(this IceRemembersVerbId verbId)
     {
-        IceRemembersVerbId.ArtifactChannel => "artifact_channel",
-        IceRemembersVerbId.ArtifactCirculate => "artifact_circulate",
-        IceRemembersVerbId.ArtifactCleanse => "artifact_cleanse",
-        IceRemembersVerbId.ArtifactCompel => "artifact_compel",
-        IceRemembersVerbId.ArtifactCorrupt => "artifact_corrupt",
-        IceRemembersVerbId.ArtifactDevote => "artifact_devote",
-        IceRemembersVerbId.ArtifactEmpower => "artifact_empower",
-        IceRemembersVerbId.ArtifactRepair => "artifact_repair",
-        IceRemembersVerbId.ArtifactEnshrine => "artifact_enshrine",
-        IceRemembersVerbId.ArtifactBind => "artifact_bind",
-        IceRemembersVerbId.ArtifactHeal => "artifact_heal",
-        IceRemembersVerbId.ArtifactPurify => "artifact_purify",
-        IceRemembersVerbId.ArtifactVivify => "artifact_vivify",
-        IceRemembersVerbId.EngineDecay => "engine_decay",
-        IceRemembersVerbId.FactionAttract => "faction_attract",
-        IceRemembersVerbId.FactionConsecrate => "faction_consecrate",
-        IceRemembersVerbId.FactionDistribute => "faction_distribute",
-        IceRemembersVerbId.FactionPreach => "faction_preach",
-        IceRemembersVerbId.FactionExtort => "faction_extort",
-        IceRemembersVerbId.FactionIndoctrinate => "faction_indoctrinate",
-        IceRemembersVerbId.FactionMaintain => "faction_maintain",
-        IceRemembersVerbId.FactionPatrol => "faction_patrol",
-        IceRemembersVerbId.FactionQuarrel => "faction_quarrel",
-        IceRemembersVerbId.FactionAgitate => "faction_agitate",
-        IceRemembersVerbId.FactionRally => "faction_rally",
-        IceRemembersVerbId.FactionRecruit => "faction_recruit",
-        IceRemembersVerbId.FactionStarve => "faction_starve",
-        IceRemembersVerbId.FactionOrganize => "faction_organize",
-        IceRemembersVerbId.PenguinCreateWorks => "penguin_create_works",
-        IceRemembersVerbId.PenguinWarm => "penguin_warm",
-        IceRemembersVerbId.PenguinEndure => "penguin_endure",
-        IceRemembersVerbId.PenguinForage => "penguin_forage",
-        IceRemembersVerbId.PenguinGuard => "penguin_guard",
-        IceRemembersVerbId.PenguinWitness => "penguin_witness",
-        IceRemembersVerbId.PenguinTravel => "penguin_travel",
-        IceRemembersVerbId.PenguinWander => "penguin_wander",
-        IceRemembersVerbId.PenguinWield => "penguin_wield",
-        IceRemembersVerbId.RegionAttune => "region_attune",
-        IceRemembersVerbId.RegionCleanse => "region_cleanse",
-        IceRemembersVerbId.RegionCommune => "region_commune",
-        IceRemembersVerbId.RegionDream => "region_dream",
-        IceRemembersVerbId.RegionFormMilitia => "region_form_militia",
-        IceRemembersVerbId.RegionFortify => "region_fortify",
-        IceRemembersVerbId.RegionIrrigate => "region_irrigate",
-        IceRemembersVerbId.RegionBreach => "region_breach",
-        IceRemembersVerbId.RegionReclaim => "region_reclaim",
-        IceRemembersVerbId.RegionRoot => "region_root",
-        IceRemembersVerbId.RegionShelter => "region_shelter",
-        IceRemembersVerbId.SettlementAttract => "settlement_attract",
-        IceRemembersVerbId.SettlementDeliberate => "settlement_deliberate",
-        IceRemembersVerbId.SettlementClaimsEcho => "settlement_claims_echo",
-        IceRemembersVerbId.SettlementGarrison => "settlement_garrison",
-        IceRemembersVerbId.SettlementGossip => "settlement_gossip",
-        IceRemembersVerbId.SettlementGrow => "settlement_grow",
-        IceRemembersVerbId.SettlementStripRookeries => "settlement_strip_rookeries",
-        IceRemembersVerbId.SettlementOverreach => "settlement_overreach",
-        IceRemembersVerbId.SettlementPropaganda => "settlement_propaganda",
-        IceRemembersVerbId.SettlementSanctify => "settlement_sanctify",
-        IceRemembersVerbId.SettlementTrade => "settlement_trade",
-        _ => throw new ArgumentOutOfRangeException(nameof(verbId), verbId, "Unknown test-domain verb id"),
-    };
+        var index = (int)verbId;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(verbId), verbId, "Unknown test-domain verb id");
+    }
 }

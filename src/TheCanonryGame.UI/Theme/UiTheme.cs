@@ -13,8 +13,8 @@ namespace TheCanonryGame.UI.Theme;
 public static class UiTheme
 {
     public static readonly SystemFont DisplayFont = BuildFont(UiTokens.DisplayFontNames);
-    public static readonly SystemFont BodyFont    = BuildFont(UiTokens.BodyFontNames);
-    public static readonly SystemFont MonoFont    = BuildFont(UiTokens.MonoFontNames);
+    public static readonly SystemFont BodyFont = BuildFont(UiTokens.BodyFontNames);
+    public static readonly SystemFont MonoFont = BuildFont(UiTokens.MonoFontNames);
 
     /// <summary>
     /// Build the root Godot Theme. Assign once via Control.Theme on the UI root;
@@ -28,57 +28,73 @@ public static class UiTheme
             DefaultFontSize = UiTokens.SizeBody,
         };
 
-        // Label
+        ConfigureLabelTheme(theme);
+        ConfigureButtonTheme(theme);
+        ConfigurePanelTheme(theme);
+        ConfigureScrollAndSeparatorTheme(theme);
+        ConfigureTextTheme(theme);
+        ConfigureOptionAndPopupTheme(theme);
+        ConfigureTooltipTheme(theme);
+        return theme;
+    }
+
+    private static void ConfigureLabelTheme(Godot.Theme theme)
+    {
         theme.SetColor("font_color", "Label", UiTokens.Vellum);
         theme.SetFont("font", "Label", BodyFont);
         theme.SetFontSize("font_size", "Label", UiTokens.SizeBody);
+    }
 
-        // Button
+    private static void ConfigureButtonTheme(Godot.Theme theme)
+    {
         theme.SetColor("font_color", "Button", UiTokens.Vellum);
         theme.SetColor("font_hover_color", "Button", UiTokens.Vellum);
         theme.SetColor("font_pressed_color", "Button", UiTokens.Vellum);
         theme.SetColor("font_disabled_color", "Button", UiTokens.Charcoal);
         theme.SetFont("font", "Button", BodyFont);
         theme.SetFontSize("font_size", "Button", UiTokens.SizeBody);
-        theme.SetStylebox("normal",   "Button", ButtonStyle(ButtonState.Normal));
-        theme.SetStylebox("hover",    "Button", ButtonStyle(ButtonState.Hover));
-        theme.SetStylebox("pressed",  "Button", ButtonStyle(ButtonState.Pressed));
-        theme.SetStylebox("focus",    "Button", ButtonStyle(ButtonState.Focus));
+        theme.SetStylebox("normal", "Button", ButtonStyle(ButtonState.Normal));
+        theme.SetStylebox("hover", "Button", ButtonStyle(ButtonState.Hover));
+        theme.SetStylebox("pressed", "Button", ButtonStyle(ButtonState.Pressed));
+        theme.SetStylebox("focus", "Button", ButtonStyle(ButtonState.Focus));
         theme.SetStylebox("disabled", "Button", ButtonStyle(ButtonState.Disabled));
 
-        // CheckBox — keep default size but unify colors/fonts.
         theme.SetColor("font_color", "CheckBox", UiTokens.Vellum);
         theme.SetColor("font_hover_color", "CheckBox", UiTokens.Vellum);
         theme.SetColor("font_pressed_color", "CheckBox", UiTokens.Vellum);
         theme.SetFont("font", "CheckBox", BodyFont);
         theme.SetFontSize("font_size", "CheckBox", UiTokens.SizeBodySmall);
+    }
 
-        // PanelContainer (root panels) — subtle, flat, hairline.
+    private static void ConfigurePanelTheme(Godot.Theme theme)
+    {
         theme.SetStylebox("panel", "PanelContainer", PanelRootStyle());
-
-        // Panel (raw panel node)
         theme.SetStylebox("panel", "Panel", PanelRootStyle());
+    }
 
-        // ScrollContainer slider — make the default slider understated.
-        theme.SetStylebox("scroll",         "HScrollBar", SliderGrooveStyle());
-        theme.SetStylebox("scroll_focus",   "HScrollBar", SliderGrooveStyle());
-        theme.SetStylebox("grabber",        "HScrollBar", SliderGrabberStyle());
+    private static void ConfigureScrollAndSeparatorTheme(Godot.Theme theme)
+    {
+        theme.SetStylebox("scroll", "HScrollBar", SliderGrooveStyle());
+        theme.SetStylebox("scroll_focus", "HScrollBar", SliderGrooveStyle());
+        theme.SetStylebox("grabber", "HScrollBar", SliderGrabberStyle());
         theme.SetStylebox("grabber_highlight", "HScrollBar", SliderGrabberStyle(hover: true));
         theme.SetStylebox("grabber_pressed", "HScrollBar", SliderGrabberStyle(hover: true));
 
-        theme.SetStylebox("scroll",         "VScrollBar", SliderGrooveStyle());
-        theme.SetStylebox("scroll_focus",   "VScrollBar", SliderGrooveStyle());
-        theme.SetStylebox("grabber",        "VScrollBar", SliderGrabberStyle());
+        theme.SetStylebox("scroll", "VScrollBar", SliderGrooveStyle());
+        theme.SetStylebox("scroll_focus", "VScrollBar", SliderGrooveStyle());
+        theme.SetStylebox("grabber", "VScrollBar", SliderGrabberStyle());
         theme.SetStylebox("grabber_highlight", "VScrollBar", SliderGrabberStyle(hover: true));
         theme.SetStylebox("grabber_pressed", "VScrollBar", SliderGrabberStyle(hover: true));
 
         // HSeparator / VSeparator — a single hairline.
-        theme.SetStylebox("separator", "HSeparator", HairlineSeparator(horizontal: true));
-        theme.SetStylebox("separator", "VSeparator", HairlineSeparator(horizontal: false));
+        theme.SetStylebox("separator", "HSeparator", HairlineSeparator());
+        theme.SetStylebox("separator", "VSeparator", HairlineSeparator());
         theme.SetConstant("separation", "HSeparator", 1);
         theme.SetConstant("separation", "VSeparator", 1);
+    }
 
-        // RichTextLabel — font + default color, BBCode colors are remapped by caller.
+    private static void ConfigureTextTheme(Godot.Theme theme)
+    {
         theme.SetColor("default_color", "RichTextLabel", UiTokens.Vellum);
         theme.SetFont("normal_font", "RichTextLabel", BodyFont);
         theme.SetFont("bold_font", "RichTextLabel", DisplayFont);
@@ -95,18 +111,20 @@ public static class UiTheme
         theme.SetFont("font", "LineEdit", BodyFont);
         theme.SetFontSize("font_size", "LineEdit", UiTokens.SizeBody);
         theme.SetStylebox("normal", "LineEdit", InputStyle());
-        theme.SetStylebox("focus",  "LineEdit", InputStyle(focus: true));
+        theme.SetStylebox("focus", "LineEdit", InputStyle(focus: true));
+    }
 
-        // OptionButton — inherit Button styles; set font.
+    private static void ConfigureOptionAndPopupTheme(Godot.Theme theme)
+    {
         theme.SetColor("font_color", "OptionButton", UiTokens.Vellum);
         theme.SetColor("font_hover_color", "OptionButton", UiTokens.Vellum);
         theme.SetColor("font_pressed_color", "OptionButton", UiTokens.Vellum);
         theme.SetFont("font", "OptionButton", BodyFont);
         theme.SetFontSize("font_size", "OptionButton", UiTokens.SizeBodySmall);
-        theme.SetStylebox("normal",   "OptionButton", ButtonStyle(ButtonState.Normal));
-        theme.SetStylebox("hover",    "OptionButton", ButtonStyle(ButtonState.Hover));
-        theme.SetStylebox("pressed",  "OptionButton", ButtonStyle(ButtonState.Pressed));
-        theme.SetStylebox("focus",    "OptionButton", ButtonStyle(ButtonState.Focus));
+        theme.SetStylebox("normal", "OptionButton", ButtonStyle(ButtonState.Normal));
+        theme.SetStylebox("hover", "OptionButton", ButtonStyle(ButtonState.Hover));
+        theme.SetStylebox("pressed", "OptionButton", ButtonStyle(ButtonState.Pressed));
+        theme.SetStylebox("focus", "OptionButton", ButtonStyle(ButtonState.Focus));
 
         // PopupMenu (OptionButton dropdown)
         theme.SetColor("font_color", "PopupMenu", UiTokens.Vellum);
@@ -116,14 +134,14 @@ public static class UiTheme
         theme.SetFontSize("font_size", "PopupMenu", UiTokens.SizeBodySmall);
         theme.SetStylebox("panel", "PopupMenu", PanelRootStyle());
         theme.SetStylebox("hover", "PopupMenu", SurfaceStyle(UiTokens.Ice, UiTokens.RadiusSmall));
+    }
 
-        // TooltipPanel
+    private static void ConfigureTooltipTheme(Godot.Theme theme)
+    {
         theme.SetStylebox("panel", "TooltipPanel", TooltipStyle());
         theme.SetColor("font_color", "TooltipLabel", UiTokens.Vellum);
         theme.SetFont("font", "TooltipLabel", BodyFont);
         theme.SetFontSize("font_size", "TooltipLabel", UiTokens.SizeBodySmall);
-
-        return theme;
     }
 
     // ---------- StyleBox factories (use these from any panel) ----------
@@ -224,11 +242,20 @@ public static class UiTheme
 
     public static StyleBoxFlat CardStyle(Color accent, bool selected = false, bool highlighted = false)
     {
-        var border = highlighted
-            ? UiTokens.Ember
-            : selected
-                ? UiTokens.WithAlpha(accent, 0.80f)
-                : UiTokens.WithAlpha(accent, 0.45f);
+        Color border;
+        if (highlighted)
+        {
+            border = UiTokens.Ember;
+        }
+        else if (selected)
+        {
+            border = UiTokens.WithAlpha(accent, 0.80f);
+        }
+        else
+        {
+            border = UiTokens.WithAlpha(accent, 0.45f);
+        }
+
         return new StyleBoxFlat
         {
             BgColor = UiTokens.Frost,
@@ -311,10 +338,10 @@ public static class UiTheme
     {
         var color = tone switch
         {
-            ChipTone.Active   => UiTokens.Aurora,
-            ChipTone.Warning  => UiTokens.Ember,
+            ChipTone.Active => UiTokens.Aurora,
+            ChipTone.Warning => UiTokens.Ember,
             ChipTone.Critical => UiTokens.Blood,
-            _                 => UiTokens.Whisper,
+            _ => UiTokens.Whisper,
         };
         return new StyleBoxFlat
         {
@@ -337,10 +364,10 @@ public static class UiTheme
 
     public static Color ChipTextColor(ChipTone tone) => tone switch
     {
-        ChipTone.Active   => UiTokens.Aurora,
-        ChipTone.Warning  => UiTokens.Ember,
+        ChipTone.Active => UiTokens.Aurora,
+        ChipTone.Warning => UiTokens.Ember,
         ChipTone.Critical => UiTokens.Blood,
-        _                 => UiTokens.Parchment,
+        _ => UiTokens.Parchment,
     };
 
     // ---------- Internals ----------
@@ -351,17 +378,17 @@ public static class UiTheme
     {
         var bg = state switch
         {
-            ButtonState.Hover    => UiTokens.Ice,
-            ButtonState.Pressed  => UiTokens.Ice,
-            ButtonState.Focus    => UiTokens.Frost,
+            ButtonState.Hover => UiTokens.Ice,
+            ButtonState.Pressed => UiTokens.Ice,
+            ButtonState.Focus => UiTokens.Frost,
             ButtonState.Disabled => UiTokens.WithAlpha(UiTokens.Frost, 0.55f),
-            _                    => UiTokens.Frost,
+            _ => UiTokens.Frost,
         };
         var border = state switch
         {
             ButtonState.Pressed => UiTokens.Ember,
-            ButtonState.Focus   => UiTokens.HairlineStrong,
-            _                   => UiTokens.Hairline,
+            ButtonState.Focus => UiTokens.HairlineStrong,
+            _ => UiTokens.Hairline,
         };
         return new StyleBoxFlat
         {
@@ -431,13 +458,13 @@ public static class UiTheme
         CornerRadiusBottomRight = UiTokens.RadiusSmall,
     };
 
-    private static StyleBoxFlat HairlineSeparator(bool horizontal) => new()
+    private static StyleBoxFlat HairlineSeparator() => new()
     {
         BgColor = UiTokens.Hairline,
-        ContentMarginTop = horizontal ? 0 : 0,
-        ContentMarginBottom = horizontal ? 0 : 0,
-        ContentMarginLeft = horizontal ? 0 : 0,
-        ContentMarginRight = horizontal ? 0 : 0,
+        ContentMarginTop = 0,
+        ContentMarginBottom = 0,
+        ContentMarginLeft = 0,
+        ContentMarginRight = 0,
     };
 
     private static StyleBoxFlat TooltipStyle() => new()

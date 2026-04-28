@@ -15,7 +15,17 @@ public static class DefinitionSemanticGraphBuilder
         var stockById = BuildStocks(graph, config.Stocks);
         var verbById = BuildVerbs(graph, config.Verbs);
 
-        foreach (var flow in config.Flows)
+        AddFlows(graph, config.Flows, stockById, verbById);
+        AddModifiers(graph, config.Modifiers, stockById, verbById);
+    }
+
+    private static void AddFlows(
+        DefinitionGraph graph,
+        IReadOnlyList<SemanticFlowConfig> flows,
+        Dictionary<SemanticStockId, SemanticStockNode> stockById,
+        Dictionary<string, SemanticVerbNode> verbById)
+    {
+        foreach (var flow in flows)
         {
             if (!verbById.TryGetValue(flow.VerbId, out var verb))
             {
@@ -47,8 +57,15 @@ public static class DefinitionSemanticGraphBuilder
                 SourceRefs = ConvertRefs(flow.SourceRefs, graph),
             });
         }
+    }
 
-        foreach (var modifier in config.Modifiers)
+    private static void AddModifiers(
+        DefinitionGraph graph,
+        IReadOnlyList<SemanticModifierConfig> modifiers,
+        Dictionary<SemanticStockId, SemanticStockNode> stockById,
+        Dictionary<string, SemanticVerbNode> verbById)
+    {
+        foreach (var modifier in modifiers)
         {
             var sourceId = new AttributeStockId(new DefinitionAttributeKey(
                 modifier.SourceKind,
@@ -76,7 +93,6 @@ public static class DefinitionSemanticGraphBuilder
                 RawForm = modifier.FormLabel,
             });
         }
-
     }
 
     private static Dictionary<SemanticStockId, SemanticStockNode> BuildStocks(
@@ -119,30 +135,30 @@ public static class DefinitionSemanticGraphBuilder
         switch (config)
         {
             case SemanticAttributeStockConfig attributeConfig:
-            {
-                var key = new DefinitionAttributeKey(
-                    attributeConfig.Kind,
-                    new DefinitionAttributeId(attributeConfig.AttributeName));
-                if (!graph.Attributes.ContainsKey(key))
                 {
-                    throw new DefinitionGraphException(
-                        $"Semantic stock references undeclared attribute '{attributeConfig.Kind}.{attributeConfig.AttributeName}'.");
-                }
+                    var key = new DefinitionAttributeKey(
+                        attributeConfig.Kind,
+                        new DefinitionAttributeId(attributeConfig.AttributeName));
+                    if (!graph.Attributes.ContainsKey(key))
+                    {
+                        throw new DefinitionGraphException(
+                            $"Semantic stock references undeclared attribute '{attributeConfig.Kind}.{attributeConfig.AttributeName}'.");
+                    }
 
-                return new AttributeStockId(key);
-            }
+                    return new AttributeStockId(key);
+                }
 
             case SemanticResourceStockConfig resourceConfig:
-            {
-                var resourceId = new DefinitionResourceId(resourceConfig.ResourceName);
-                if (!graph.Resources.ContainsKey(resourceId))
                 {
-                    throw new DefinitionGraphException(
-                        $"Semantic stock references undeclared resource '{resourceConfig.ResourceName}'.");
-                }
+                    var resourceId = new DefinitionResourceId(resourceConfig.ResourceName);
+                    if (!graph.Resources.ContainsKey(resourceId))
+                    {
+                        throw new DefinitionGraphException(
+                            $"Semantic stock references undeclared resource '{resourceConfig.ResourceName}'.");
+                    }
 
-                return new ResourceStockId(resourceId);
-            }
+                    return new ResourceStockId(resourceId);
+                }
 
             default:
                 throw new DefinitionGraphException(
@@ -191,10 +207,13 @@ public static class DefinitionSemanticGraphBuilder
 
     private static TypedDefinitionRef ConvertRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph)
     {
+        if (IsAttributeScopedRef(attrRef.Scope))
+        {
+            return ConvertAttributeScopedRef(attrRef, graph);
+        }
+
         return attrRef.Scope switch
         {
-            Engine.Wiring.RefScope.Self or Engine.Wiring.RefScope.Target or Engine.Wiring.RefScope.Location or Engine.Wiring.RefScope.Related =>
-                ConvertAttributeScopedRef(attrRef, graph),
             Engine.Wiring.RefScope.Resource =>
                 ConvertResourceRef(attrRef, graph),
             Engine.Wiring.RefScope.Pressure =>
@@ -208,6 +227,12 @@ public static class DefinitionSemanticGraphBuilder
             _ => throw new DefinitionGraphException($"Unsupported semantic ref scope '{attrRef.Scope}'."),
         };
     }
+
+    private static bool IsAttributeScopedRef(Engine.Wiring.RefScope scope) =>
+        scope is Engine.Wiring.RefScope.Self or
+            Engine.Wiring.RefScope.Target or
+            Engine.Wiring.RefScope.Location or
+            Engine.Wiring.RefScope.Related;
 
     private static TypedDefinitionRef ConvertAttributeScopedRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph)
     {

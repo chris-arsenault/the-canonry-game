@@ -49,6 +49,18 @@ internal static class KernelSnapshotOptions
         SimulationOptions options,
         int eventCount)
     {
+        WriteStorageCapacities(writer, options);
+        WriteProgramCapacities(writer, options);
+        WriteWorldCapacities(writer, options);
+        WriteRuntimeCodes(writer, options.RuntimeCodes);
+        writer.Write(options.Seed);
+        writer.Write(eventCount);
+    }
+
+    private static void WriteStorageCapacities(
+        global::System.IO.BinaryWriter writer,
+        SimulationOptions options)
+    {
         writer.Write(options.EntityCapacity);
         writer.Write(options.RelationshipCapacity);
         writer.Write(options.AttributeCapacity);
@@ -58,6 +70,12 @@ internal static class KernelSnapshotOptions
         writer.Write(options.EventCapacity);
         writer.Write(options.EventCursorCapacity);
         writer.Write(options.CommandCapacity);
+    }
+
+    private static void WriteProgramCapacities(
+        global::System.IO.BinaryWriter writer,
+        SimulationOptions options)
+    {
         writer.Write(options.ProcessCapacity);
         writer.Write(options.ProcessStepCapacity);
         writer.Write(options.ProcessCooldownCapacity);
@@ -76,6 +94,12 @@ internal static class KernelSnapshotOptions
         writer.Write(options.GeneratorItemCapacity);
         writer.Write(options.PressureCapacity);
         writer.Write(options.PressureValueCapacity);
+    }
+
+    private static void WriteWorldCapacities(
+        global::System.IO.BinaryWriter writer,
+        SimulationOptions options)
+    {
         writer.Write(options.DegeneracyDetectorCapacity);
         writer.Write(options.DegeneracyStateCapacity);
         writer.Write(options.LifecycleRuleCapacity);
@@ -87,156 +111,263 @@ internal static class KernelSnapshotOptions
         writer.Write(options.RelationshipRuleCapacity);
         writer.Write(options.RelationshipKindIdCapacity);
         writer.Write(options.RelationshipGraphDeltaMergeThreshold);
-        writer.Write(options.RuntimeCodes.RelationshipCreatedCodeId);
-        writer.Write(options.RuntimeCodes.RelationshipCulledCodeId);
-        writer.Write(options.RuntimeCodes.RelationshipStrengthChangedCodeId);
-        writer.Write(options.RuntimeCodes.ProcessSourceCodeId);
-        writer.Write(options.RuntimeCodes.GambitSourceCodeId);
-        writer.Write(options.RuntimeCodes.UpkeepSourceCodeId);
-        writer.Write(options.RuntimeCodes.StartupSourceCodeId);
-        writer.Write(options.RuntimeCodes.RelationshipSourceCodeId);
-        writer.Write(options.RuntimeCodes.GeneratorSourceCodeId);
-        writer.Write(options.RuntimeCodes.PressureSourceCodeId);
-        writer.Write(options.RuntimeCodes.DegeneracySourceCodeId);
-        writer.Write(options.RuntimeCodes.PlanningSourceCodeId);
-        writer.Write(options.Seed);
-        writer.Write(eventCount);
+    }
+
+    private static void WriteRuntimeCodes(
+        global::System.IO.BinaryWriter writer,
+        KernelRuntimeCodes runtimeCodes)
+    {
+        writer.Write(runtimeCodes.RelationshipCreatedCodeId);
+        writer.Write(runtimeCodes.RelationshipCulledCodeId);
+        writer.Write(runtimeCodes.RelationshipStrengthChangedCodeId);
+        writer.Write(runtimeCodes.ProcessSourceCodeId);
+        writer.Write(runtimeCodes.GambitSourceCodeId);
+        writer.Write(runtimeCodes.UpkeepSourceCodeId);
+        writer.Write(runtimeCodes.StartupSourceCodeId);
+        writer.Write(runtimeCodes.RelationshipSourceCodeId);
+        writer.Write(runtimeCodes.GeneratorSourceCodeId);
+        writer.Write(runtimeCodes.PressureSourceCodeId);
+        writer.Write(runtimeCodes.DegeneracySourceCodeId);
+        writer.Write(runtimeCodes.PlanningSourceCodeId);
     }
 
     public static SimulationOptions Read(
         global::System.IO.BinaryReader reader,
         SimulationOptions? options)
     {
-        var entityCapacity = reader.ReadInt32();
-        var relationshipCapacity = reader.ReadInt32();
-        var attributeCapacity = reader.ReadInt32();
-        var resourceCapacity = reader.ReadInt32();
-        var mapCellCapacity = reader.ReadInt32();
-        var systemCapacity = reader.ReadInt32();
-        var eventCapacity = reader.ReadInt32();
-        var eventCursorCapacity = reader.ReadInt32();
-        var commandCapacity = reader.ReadInt32();
-        var processCapacity = reader.ReadInt32();
-        var processStepCapacity = reader.ReadInt32();
-        var processCooldownCapacity = reader.ReadInt32();
-        var processObjectiveCapacity = reader.ReadInt32();
-        var processProviderSelectorCapacity = reader.ReadInt32();
-        var processSupportRuleCapacity = reader.ReadInt32();
-        var processCommitmentCapacity = reader.ReadInt32();
-        var gambitCapacity = reader.ReadInt32();
-        var gambitStepCapacity = reader.ReadInt32();
-        var gambitCooldownCapacity = reader.ReadInt32();
-        var gambitObjectiveCapacity = reader.ReadInt32();
-        var gambitProviderSelectorCapacity = reader.ReadInt32();
-        var gambitSupportRuleCapacity = reader.ReadInt32();
-        var gambitCommitmentCapacity = reader.ReadInt32();
-        var generatorCapacity = reader.ReadInt32();
-        var generatorItemCapacity = reader.ReadInt32();
-        var pressureCapacity = reader.ReadInt32();
-        var pressureValueCapacity = reader.ReadInt32();
-        var degeneracyDetectorCapacity = reader.ReadInt32();
-        var degeneracyStateCapacity = reader.ReadInt32();
-        var lifecycleRuleCapacity = reader.ReadInt32();
-        var entityAttributeCapacity = reader.ReadInt32();
-        var upkeepRuleCapacity = reader.ReadInt32();
-        var attributeIdCapacity = reader.ReadInt32();
-        var kindIdCapacity = reader.ReadInt32();
-        var terrainIdCapacity = reader.ReadInt32();
-        var relationshipRuleCapacity = reader.ReadInt32();
-        var relationshipKindIdCapacity = reader.ReadInt32();
-        var relationshipGraphDeltaMergeThreshold = reader.ReadInt32();
-        var relationshipCreatedCodeId = reader.ReadInt32();
-        var relationshipCulledCodeId = reader.ReadInt32();
-        var relationshipStrengthChangedCodeId = reader.ReadInt32();
-        var processSourceCodeId = reader.ReadInt32();
-        var gambitSourceCodeId = reader.ReadInt32();
-        var upkeepSourceCodeId = reader.ReadInt32();
-        var startupSourceCodeId = reader.ReadInt32();
-        var relationshipSourceCodeId = reader.ReadInt32();
-        var generatorSourceCodeId = reader.ReadInt32();
-        var pressureSourceCodeId = reader.ReadInt32();
-        var degeneracySourceCodeId = reader.ReadInt32();
-        var planningSourceCodeId = reader.ReadInt32();
-        var seed = reader.ReadInt32();
+        var values = ReadValues(reader);
         var eventCount = reader.ReadInt32();
-        if (eventCapacity <= eventCount)
-        {
-            eventCapacity = eventCount + 1;
-        }
+        ApplyEventCapacityFloor(ref values, eventCount);
+        ApplyOptionOverrides(ref values, options);
+        return CreateOptions(values, options);
+    }
 
+    private static SnapshotOptionValues ReadValues(global::System.IO.BinaryReader reader)
+    {
+        var values = new SnapshotOptionValues
+        {
+            EntityCapacity = reader.ReadInt32(),
+            RelationshipCapacity = reader.ReadInt32(),
+            AttributeCapacity = reader.ReadInt32(),
+            ResourceCapacity = reader.ReadInt32(),
+            MapCellCapacity = reader.ReadInt32(),
+            SystemCapacity = reader.ReadInt32(),
+            EventCapacity = reader.ReadInt32(),
+            EventCursorCapacity = reader.ReadInt32(),
+            CommandCapacity = reader.ReadInt32(),
+        };
+
+        ReadProgramValues(reader, ref values);
+        ReadWorldValues(reader, ref values);
+        ReadRuntimeCodeValues(reader, ref values);
+        values.Seed = reader.ReadInt32();
+        return values;
+    }
+
+    private static void ReadProgramValues(
+        global::System.IO.BinaryReader reader,
+        ref SnapshotOptionValues values)
+    {
+        values.ProcessCapacity = reader.ReadInt32();
+        values.ProcessStepCapacity = reader.ReadInt32();
+        values.ProcessCooldownCapacity = reader.ReadInt32();
+        values.ProcessObjectiveCapacity = reader.ReadInt32();
+        values.ProcessProviderSelectorCapacity = reader.ReadInt32();
+        values.ProcessSupportRuleCapacity = reader.ReadInt32();
+        values.ProcessCommitmentCapacity = reader.ReadInt32();
+        values.GambitCapacity = reader.ReadInt32();
+        values.GambitStepCapacity = reader.ReadInt32();
+        values.GambitCooldownCapacity = reader.ReadInt32();
+        values.GambitObjectiveCapacity = reader.ReadInt32();
+        values.GambitProviderSelectorCapacity = reader.ReadInt32();
+        values.GambitSupportRuleCapacity = reader.ReadInt32();
+        values.GambitCommitmentCapacity = reader.ReadInt32();
+        values.GeneratorCapacity = reader.ReadInt32();
+        values.GeneratorItemCapacity = reader.ReadInt32();
+        values.PressureCapacity = reader.ReadInt32();
+        values.PressureValueCapacity = reader.ReadInt32();
+    }
+
+    private static void ReadWorldValues(
+        global::System.IO.BinaryReader reader,
+        ref SnapshotOptionValues values)
+    {
+        values.DegeneracyDetectorCapacity = reader.ReadInt32();
+        values.DegeneracyStateCapacity = reader.ReadInt32();
+        values.LifecycleRuleCapacity = reader.ReadInt32();
+        values.EntityAttributeCapacity = reader.ReadInt32();
+        values.UpkeepRuleCapacity = reader.ReadInt32();
+        values.AttributeIdCapacity = reader.ReadInt32();
+        values.KindIdCapacity = reader.ReadInt32();
+        values.TerrainIdCapacity = reader.ReadInt32();
+        values.RelationshipRuleCapacity = reader.ReadInt32();
+        values.RelationshipKindIdCapacity = reader.ReadInt32();
+        values.RelationshipGraphDeltaMergeThreshold = reader.ReadInt32();
+    }
+
+    private static void ReadRuntimeCodeValues(
+        global::System.IO.BinaryReader reader,
+        ref SnapshotOptionValues values)
+    {
+        values.RelationshipCreatedCodeId = reader.ReadInt32();
+        values.RelationshipCulledCodeId = reader.ReadInt32();
+        values.RelationshipStrengthChangedCodeId = reader.ReadInt32();
+        values.ProcessSourceCodeId = reader.ReadInt32();
+        values.GambitSourceCodeId = reader.ReadInt32();
+        values.UpkeepSourceCodeId = reader.ReadInt32();
+        values.StartupSourceCodeId = reader.ReadInt32();
+        values.RelationshipSourceCodeId = reader.ReadInt32();
+        values.GeneratorSourceCodeId = reader.ReadInt32();
+        values.PressureSourceCodeId = reader.ReadInt32();
+        values.DegeneracySourceCodeId = reader.ReadInt32();
+        values.PlanningSourceCodeId = reader.ReadInt32();
+    }
+
+    private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
+    {
+        if (values.EventCapacity <= eventCount)
+        {
+            values.EventCapacity = eventCount + 1;
+        }
+    }
+
+    private static void ApplyOptionOverrides(
+        ref SnapshotOptionValues values,
+        SimulationOptions? options)
+    {
         if (options is not null)
         {
-            if (options.EventCapacity > eventCapacity)
+            if (options.EventCapacity > values.EventCapacity)
             {
-                eventCapacity = options.EventCapacity;
+                values.EventCapacity = options.EventCapacity;
             }
 
-            if (options.EventCursorCapacity > eventCursorCapacity)
+            if (options.EventCursorCapacity > values.EventCursorCapacity)
             {
-                eventCursorCapacity = options.EventCursorCapacity;
+                values.EventCursorCapacity = options.EventCursorCapacity;
             }
 
-            if (options.CommandCapacity > commandCapacity)
+            if (options.CommandCapacity > values.CommandCapacity)
             {
-                commandCapacity = options.CommandCapacity;
+                values.CommandCapacity = options.CommandCapacity;
             }
         }
+    }
 
+    private static SimulationOptions CreateOptions(
+        SnapshotOptionValues values,
+        SimulationOptions? options)
+    {
         return new SimulationOptions
         {
-            EntityCapacity = entityCapacity,
-            RelationshipCapacity = relationshipCapacity,
-            AttributeCapacity = attributeCapacity,
-            ResourceCapacity = resourceCapacity,
-            MapCellCapacity = mapCellCapacity,
-            SystemCapacity = systemCapacity,
-            EventCapacity = eventCapacity,
-            EventCursorCapacity = eventCursorCapacity,
+            EntityCapacity = values.EntityCapacity,
+            RelationshipCapacity = values.RelationshipCapacity,
+            AttributeCapacity = values.AttributeCapacity,
+            ResourceCapacity = values.ResourceCapacity,
+            MapCellCapacity = values.MapCellCapacity,
+            SystemCapacity = values.SystemCapacity,
+            EventCapacity = values.EventCapacity,
+            EventCursorCapacity = values.EventCursorCapacity,
             EventSchemaValidator = options?.EventSchemaValidator,
-            CommandCapacity = commandCapacity,
-            ProcessCapacity = processCapacity,
-            ProcessStepCapacity = processStepCapacity,
-            ProcessCooldownCapacity = processCooldownCapacity,
-            ProcessObjectiveCapacity = processObjectiveCapacity,
-            ProcessProviderSelectorCapacity = processProviderSelectorCapacity,
-            ProcessSupportRuleCapacity = processSupportRuleCapacity,
-            ProcessCommitmentCapacity = processCommitmentCapacity,
-            GambitCapacity = gambitCapacity,
-            GambitStepCapacity = gambitStepCapacity,
-            GambitCooldownCapacity = gambitCooldownCapacity,
-            GambitObjectiveCapacity = gambitObjectiveCapacity,
-            GambitProviderSelectorCapacity = gambitProviderSelectorCapacity,
-            GambitSupportRuleCapacity = gambitSupportRuleCapacity,
-            GambitCommitmentCapacity = gambitCommitmentCapacity,
-            GeneratorCapacity = generatorCapacity,
-            GeneratorItemCapacity = generatorItemCapacity,
-            PressureCapacity = pressureCapacity,
-            PressureValueCapacity = pressureValueCapacity,
-            DegeneracyDetectorCapacity = degeneracyDetectorCapacity,
-            DegeneracyStateCapacity = degeneracyStateCapacity,
-            LifecycleRuleCapacity = lifecycleRuleCapacity,
-            EntityAttributeCapacity = entityAttributeCapacity,
-            UpkeepRuleCapacity = upkeepRuleCapacity,
-            AttributeIdCapacity = attributeIdCapacity,
-            KindIdCapacity = kindIdCapacity,
-            TerrainIdCapacity = terrainIdCapacity,
-            RelationshipRuleCapacity = relationshipRuleCapacity,
-            RelationshipKindIdCapacity = relationshipKindIdCapacity,
-            RelationshipGraphDeltaMergeThreshold = relationshipGraphDeltaMergeThreshold,
+            CommandCapacity = values.CommandCapacity,
+            ProcessCapacity = values.ProcessCapacity,
+            ProcessStepCapacity = values.ProcessStepCapacity,
+            ProcessCooldownCapacity = values.ProcessCooldownCapacity,
+            ProcessObjectiveCapacity = values.ProcessObjectiveCapacity,
+            ProcessProviderSelectorCapacity = values.ProcessProviderSelectorCapacity,
+            ProcessSupportRuleCapacity = values.ProcessSupportRuleCapacity,
+            ProcessCommitmentCapacity = values.ProcessCommitmentCapacity,
+            GambitCapacity = values.GambitCapacity,
+            GambitStepCapacity = values.GambitStepCapacity,
+            GambitCooldownCapacity = values.GambitCooldownCapacity,
+            GambitObjectiveCapacity = values.GambitObjectiveCapacity,
+            GambitProviderSelectorCapacity = values.GambitProviderSelectorCapacity,
+            GambitSupportRuleCapacity = values.GambitSupportRuleCapacity,
+            GambitCommitmentCapacity = values.GambitCommitmentCapacity,
+            GeneratorCapacity = values.GeneratorCapacity,
+            GeneratorItemCapacity = values.GeneratorItemCapacity,
+            PressureCapacity = values.PressureCapacity,
+            PressureValueCapacity = values.PressureValueCapacity,
+            DegeneracyDetectorCapacity = values.DegeneracyDetectorCapacity,
+            DegeneracyStateCapacity = values.DegeneracyStateCapacity,
+            LifecycleRuleCapacity = values.LifecycleRuleCapacity,
+            EntityAttributeCapacity = values.EntityAttributeCapacity,
+            UpkeepRuleCapacity = values.UpkeepRuleCapacity,
+            AttributeIdCapacity = values.AttributeIdCapacity,
+            KindIdCapacity = values.KindIdCapacity,
+            TerrainIdCapacity = values.TerrainIdCapacity,
+            RelationshipRuleCapacity = values.RelationshipRuleCapacity,
+            RelationshipKindIdCapacity = values.RelationshipKindIdCapacity,
+            RelationshipGraphDeltaMergeThreshold = values.RelationshipGraphDeltaMergeThreshold,
             RuntimeCodes = new KernelRuntimeCodes(
-                relationshipCreatedCodeId,
-                relationshipCulledCodeId,
-                relationshipStrengthChangedCodeId,
-                processSourceCodeId,
-                gambitSourceCodeId,
-                upkeepSourceCodeId,
-                startupSourceCodeId,
-                relationshipSourceCodeId,
-                generatorSourceCodeId,
-                pressureSourceCodeId,
-                degeneracySourceCodeId,
-                planningSourceCodeId),
-            Seed = seed,
+                values.RelationshipCreatedCodeId,
+                values.RelationshipCulledCodeId,
+                values.RelationshipStrengthChangedCodeId,
+                values.ProcessSourceCodeId,
+                values.GambitSourceCodeId,
+                values.UpkeepSourceCodeId,
+                values.StartupSourceCodeId,
+                values.RelationshipSourceCodeId,
+                values.GeneratorSourceCodeId,
+                values.PressureSourceCodeId,
+                values.DegeneracySourceCodeId,
+                values.PlanningSourceCodeId),
+            Seed = values.Seed,
         };
+    }
+
+    private struct SnapshotOptionValues
+    {
+        public int EntityCapacity;
+        public int RelationshipCapacity;
+        public int AttributeCapacity;
+        public int ResourceCapacity;
+        public int MapCellCapacity;
+        public int SystemCapacity;
+        public int EventCapacity;
+        public int EventCursorCapacity;
+        public int CommandCapacity;
+        public int ProcessCapacity;
+        public int ProcessStepCapacity;
+        public int ProcessCooldownCapacity;
+        public int ProcessObjectiveCapacity;
+        public int ProcessProviderSelectorCapacity;
+        public int ProcessSupportRuleCapacity;
+        public int ProcessCommitmentCapacity;
+        public int GambitCapacity;
+        public int GambitStepCapacity;
+        public int GambitCooldownCapacity;
+        public int GambitObjectiveCapacity;
+        public int GambitProviderSelectorCapacity;
+        public int GambitSupportRuleCapacity;
+        public int GambitCommitmentCapacity;
+        public int GeneratorCapacity;
+        public int GeneratorItemCapacity;
+        public int PressureCapacity;
+        public int PressureValueCapacity;
+        public int DegeneracyDetectorCapacity;
+        public int DegeneracyStateCapacity;
+        public int LifecycleRuleCapacity;
+        public int EntityAttributeCapacity;
+        public int UpkeepRuleCapacity;
+        public int AttributeIdCapacity;
+        public int KindIdCapacity;
+        public int TerrainIdCapacity;
+        public int RelationshipRuleCapacity;
+        public int RelationshipKindIdCapacity;
+        public int RelationshipGraphDeltaMergeThreshold;
+        public int RelationshipCreatedCodeId;
+        public int RelationshipCulledCodeId;
+        public int RelationshipStrengthChangedCodeId;
+        public int ProcessSourceCodeId;
+        public int GambitSourceCodeId;
+        public int UpkeepSourceCodeId;
+        public int StartupSourceCodeId;
+        public int RelationshipSourceCodeId;
+        public int GeneratorSourceCodeId;
+        public int PressureSourceCodeId;
+        public int DegeneracySourceCodeId;
+        public int PlanningSourceCodeId;
+        public int Seed;
     }
 }

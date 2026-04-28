@@ -124,12 +124,9 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
     public IReadOnlyList<HexCoord> GetNeighborCoords(HexCoord coord)
     {
         var neighbors = new List<HexCoord>(6);
-        foreach (var candidate in coord.Neighbors())
+        foreach (var candidate in coord.Neighbors().Where(_hexIdsByCoord.ContainsKey))
         {
-            if (_hexIdsByCoord.ContainsKey(candidate))
-            {
-                neighbors.Add(candidate);
-            }
+            neighbors.Add(candidate);
         }
 
         return neighbors;

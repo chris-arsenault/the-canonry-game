@@ -1,5 +1,7 @@
 namespace Engine.Processes;
 
+using System.Globalization;
+
 using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
@@ -131,8 +133,7 @@ public sealed class TransferAttributeMutation(
     public string DestinationAttribute { get; } = destinationAttribute;
     public float Amount { get; } = amount;
 
-    public string Describe() => FormattableString.Invariant(
-        $"transfer({Source}.{SourceAttribute} → {Destination}.{DestinationAttribute}, ={Amount})");
+    public string Describe() => string.Create(CultureInfo.InvariantCulture, $"transfer({Source}.{SourceAttribute} → {Destination}.{DestinationAttribute}, ={Amount})");
 }
 
 /// <summary>

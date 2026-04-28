@@ -1,6 +1,7 @@
 namespace IceRemembers;
 
 using Engine.Domain.Config;
+
 using Attr = IceRemembers.IceRemembersAttributeId;
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;

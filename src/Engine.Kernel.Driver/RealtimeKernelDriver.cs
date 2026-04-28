@@ -9,7 +9,6 @@ internal sealed class RealtimeKernelDriver : IKernelDriver, IDriverControl
     private readonly object _configGate = new();
     private readonly RealtimeTickAccumulator _tickAccumulator;
     private Thread? _thread;
-    private TaskCompletionSource? _completion;
     private RealtimeDriverConfig _config;
     private int _state;
     private int _started;
@@ -39,7 +38,6 @@ internal sealed class RealtimeKernelDriver : IKernelDriver, IDriverControl
         }
 
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _completion = completion;
         Volatile.Write(ref _state, (int)DriverState.Running);
         _thread = new Thread(() => RunLoop(completion, cancellationToken))
         {
@@ -94,9 +92,20 @@ internal sealed class RealtimeKernelDriver : IKernelDriver, IDriverControl
     private static void ValidateConfig(RealtimeDriverConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
-        ArgumentOutOfRangeException.ThrowIfNegative(config.TicksPerSecond);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(config.MaxTicksPerSlice);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(config.SliceInterval, TimeSpan.Zero);
+        if (config.TicksPerSecond < 0d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(config), config.TicksPerSecond, null);
+        }
+
+        if (config.MaxTicksPerSlice <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(config), config.MaxTicksPerSlice, null);
+        }
+
+        if (config.SliceInterval <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(config), config.SliceInterval, null);
+        }
     }
 
     private RealtimeDriverConfig ReadConfig()

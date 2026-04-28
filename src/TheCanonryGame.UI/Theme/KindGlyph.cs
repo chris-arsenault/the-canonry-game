@@ -19,22 +19,22 @@ public static class KindGlyph
         System.ArgumentNullException.ThrowIfNull(ci);
         switch (kindId)
         {
-            case "penguin":    DrawPenguin(ci, center, size, fill); break;
+            case "penguin": DrawPenguin(ci, center, size, fill); break;
             case "settlement": DrawSettlement(ci, center, size, fill); break;
-            case "faction":    DrawFaction(ci, center, size, fill); break;
-            case "artifact":   DrawArtifact(ci, center, size, fill); break;
-            case "region":     DrawRegion(ci, center, size, fill); break;
-            case "orca":       DrawOrca(ci, center, size, fill); break;
-            default:           DrawDefault(ci, center, size, fill); break;
+            case "faction": DrawFaction(ci, center, size, fill); break;
+            case "artifact": DrawArtifact(ci, center, size, fill); break;
+            case "region": DrawRegion(ci, center, size, fill); break;
+            case "orca": DrawOrca(ci, center, size, fill); break;
+            default: DrawDefault(ci, center, size, fill); break;
         }
     }
 
     // Penguin: teardrop body + small round head. Classic silhouette.
     private static void DrawPenguin(CanvasItem ci, Vector2 c, float s, Color fill)
     {
-        var bodyTop    = c + new Vector2(0f, -s * 0.10f);
-        var bodyLeft   = c + new Vector2(-s * 0.55f, s * 0.30f);
-        var bodyRight  = c + new Vector2(s * 0.55f, s * 0.30f);
+        var bodyTop = c + new Vector2(0f, -s * 0.10f);
+        var bodyLeft = c + new Vector2(-s * 0.55f, s * 0.30f);
+        var bodyRight = c + new Vector2(s * 0.55f, s * 0.30f);
         var bodyBottom = c + new Vector2(0f, s * 0.75f);
         var body = new Vector2[]
         {

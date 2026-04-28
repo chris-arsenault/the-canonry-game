@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <KernelForbiddenStringPattern>&quot;|(?&lt;![A-Za-z0-9_])string(?![A-Za-z0-9_])|System\.String</KernelForbiddenStringPattern>
+    <KernelForbiddenStringPattern>&quot;|(?&lt;![A-Za-z0-9_])string(?![A-Za-z0-9_])|System\.String|stackalloc</KernelForbiddenStringPattern>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,7 +37,7 @@
       <ForbiddenKernelProjectReference Include="@(ProjectReference)"
         Condition="'%(ProjectReference.Filename)' != 'Engine.Constants' and '%(ProjectReference.Filename)' != 'Engine.Eventing'" />
       <ForbiddenKernelPackageReference Include="@(PackageReference)"
-        Condition="'%(PackageReference.Identity)' != 'Microsoft.CodeAnalysis.BannedApiAnalyzers'" />
+        Condition="'%(PackageReference.Identity)' != 'Microsoft.CodeAnalysis.BannedApiAnalyzers' and ('%(PackageReference.PrivateAssets)' != 'all' or !$([System.String]::Copy('%(PackageReference.IncludeAssets)').Contains('analyzers')))" />
     </ItemGroup>
 
     <Error
@@ -56,6 +56,6 @@
 
     <Error
       Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($([System.IO.File]::ReadAllText('%(KernelCompile.FullPath)')), '$(KernelForbiddenStringPattern)'))"
-      Text="Engine.Kernel source file '%(KernelCompile.Identity)' contains forbidden string syntax. Kernel code must use primitive IDs and may not contain string literals, string types, or System.String." />
+      Text="Engine.Kernel source file '%(KernelCompile.Identity)' contains forbidden source syntax. Kernel code must use primitive IDs and may not contain string literals, string types, System.String, or stackalloc." />
   </Target>
 </Project>

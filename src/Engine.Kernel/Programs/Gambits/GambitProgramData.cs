@@ -4,82 +4,82 @@ using Engine.Kernel.Programs;
 
 internal sealed partial class GambitProgramData : IKernelProgramData
 {
-    internal readonly int[] GambitKindIds;
-    internal readonly int[] GambitIds;
-    internal readonly int[] GambitCooldownTicks;
-    internal readonly int[] GambitEntityCooldownTicks;
-    internal readonly float[] GambitSuccessChances;
-    internal readonly int[] GambitTargetKindIds;
-    internal readonly int[] GambitTargetModes;
-    internal readonly int[] GambitPreconditionStarts;
-    internal readonly int[] GambitPreconditionCounts;
-    internal readonly int[] GambitExpressionStarts;
-    internal readonly int[] GambitExpressionCounts;
-    internal readonly int[] GambitRewardExpressionStarts;
-    internal readonly int[] GambitRewardExpressionCounts;
-    internal readonly int[] GambitStepStarts;
-    internal readonly int[] GambitStepCounts;
-    internal readonly int[] GambitProviderSelectorStarts;
-    internal readonly int[] GambitProviderSelectorCounts;
-    internal readonly int[] GambitSupportRuleStarts;
-    internal readonly int[] GambitSupportRuleCounts;
-    internal readonly int[] GambitGoalEffectStarts;
-    internal readonly int[] GambitGoalEffectCounts;
-    internal readonly int[] GoalEffectScopeCodes;
-    internal readonly int[] GoalEffectValueIds;
-    internal readonly int[] GoalEffectKindIds;
-    internal readonly int[] PreconditionCodes;
-    internal readonly int[] PreA;
-    internal readonly int[] PreB;
-    internal readonly int[] PreC;
-    internal readonly int[] PreD;
-    internal readonly float[] PreX;
-    internal readonly float[] PreY;
-    internal readonly int[] ExpressionCodes;
-    internal readonly int[] ExpressionA;
-    internal readonly float[] ExpressionX;
-    internal readonly int[] RewardExpressionCodes;
-    internal readonly int[] RewardExpressionA;
-    internal readonly float[] RewardExpressionX;
-    internal readonly int[] StepOperationCodes;
-    internal readonly int[] StepA;
-    internal readonly int[] StepB;
-    internal readonly int[] StepC;
-    internal readonly int[] StepD;
-    internal readonly float[] StepX;
-    internal readonly float[] StepY;
-    internal readonly int[] StepExpressionStarts;
-    internal readonly int[] StepExpressionCounts;
-    internal readonly int[] MutationExpressionCodes;
-    internal readonly int[] MutationExpressionA;
-    internal readonly float[] MutationExpressionX;
-    internal readonly int[] ObjectiveKindIds;
-    internal readonly int[] ObjectiveCodes;
-    internal readonly int[] ObjectiveEffectScopeCodes;
-    internal readonly int[] ObjectiveEffectValueIds;
-    internal readonly int[] ObjectiveEffectKindIds;
-    internal readonly int[] ObjectiveAttributeIds;
-    internal readonly float[] ObjectiveMinimums;
-    internal readonly float[] ObjectiveMaximums;
-    internal readonly float[] ObjectiveDefaults;
-    internal readonly float[] ObjectiveBaselines;
-    internal readonly float[] ObjectiveBaseUrgencies;
-    internal readonly int[] ProviderSelectorCodes;
-    internal readonly int[] ProviderSelectorKindIds;
-    internal readonly int[] ProviderSelectorValueIds;
-    internal readonly int[] ProviderSelectorRelationshipKindIds;
-    internal readonly int[] ProviderSelectorFactIds;
-    internal readonly float[] ProviderSelectorMinimumStrengths;
-    internal readonly int[] SupportEffectScopeCodes;
-    internal readonly int[] SupportEffectValueIds;
-    internal readonly int[] SupportEffectKindIds;
-    internal readonly int[] SupportExpressionStarts;
-    internal readonly int[] SupportExpressionCounts;
-    internal readonly float[] SupportDesiredMinimums;
-    internal readonly float[] SupportUrgencyScales;
-    internal readonly int[] SupportExpressionCodes;
-    internal readonly int[] SupportExpressionA;
-    internal readonly float[] SupportExpressionX;
+    internal int[] GambitKindIds = [];
+    internal int[] GambitIds = [];
+    internal int[] GambitCooldownTicks = [];
+    internal int[] GambitEntityCooldownTicks = [];
+    internal float[] GambitSuccessChances = [];
+    internal int[] GambitTargetKindIds = [];
+    internal int[] GambitTargetModes = [];
+    internal int[] GambitPreconditionStarts = [];
+    internal int[] GambitPreconditionCounts = [];
+    internal int[] GambitExpressionStarts = [];
+    internal int[] GambitExpressionCounts = [];
+    internal int[] GambitRewardExpressionStarts = [];
+    internal int[] GambitRewardExpressionCounts = [];
+    internal int[] GambitStepStarts = [];
+    internal int[] GambitStepCounts = [];
+    internal int[] GambitProviderSelectorStarts = [];
+    internal int[] GambitProviderSelectorCounts = [];
+    internal int[] GambitSupportRuleStarts = [];
+    internal int[] GambitSupportRuleCounts = [];
+    internal int[] GambitGoalEffectStarts = [];
+    internal int[] GambitGoalEffectCounts = [];
+    internal int[] GoalEffectScopeCodes = [];
+    internal int[] GoalEffectValueIds = [];
+    internal int[] GoalEffectKindIds = [];
+    internal int[] PreconditionCodes = [];
+    internal int[] PreA = [];
+    internal int[] PreB = [];
+    internal int[] PreC = [];
+    internal int[] PreD = [];
+    internal float[] PreX = [];
+    internal float[] PreY = [];
+    internal int[] ExpressionCodes = [];
+    internal int[] ExpressionA = [];
+    internal float[] ExpressionX = [];
+    internal int[] RewardExpressionCodes = [];
+    internal int[] RewardExpressionA = [];
+    internal float[] RewardExpressionX = [];
+    internal int[] StepOperationCodes = [];
+    internal int[] StepA = [];
+    internal int[] StepB = [];
+    internal int[] StepC = [];
+    internal int[] StepD = [];
+    internal float[] StepX = [];
+    internal float[] StepY = [];
+    internal int[] StepExpressionStarts = [];
+    internal int[] StepExpressionCounts = [];
+    internal int[] MutationExpressionCodes = [];
+    internal int[] MutationExpressionA = [];
+    internal float[] MutationExpressionX = [];
+    internal int[] ObjectiveKindIds = [];
+    internal int[] ObjectiveCodes = [];
+    internal int[] ObjectiveEffectScopeCodes = [];
+    internal int[] ObjectiveEffectValueIds = [];
+    internal int[] ObjectiveEffectKindIds = [];
+    internal int[] ObjectiveAttributeIds = [];
+    internal float[] ObjectiveMinimums = [];
+    internal float[] ObjectiveMaximums = [];
+    internal float[] ObjectiveDefaults = [];
+    internal float[] ObjectiveBaselines = [];
+    internal float[] ObjectiveBaseUrgencies = [];
+    internal int[] ProviderSelectorCodes = [];
+    internal int[] ProviderSelectorKindIds = [];
+    internal int[] ProviderSelectorValueIds = [];
+    internal int[] ProviderSelectorRelationshipKindIds = [];
+    internal int[] ProviderSelectorFactIds = [];
+    internal float[] ProviderSelectorMinimumStrengths = [];
+    internal int[] SupportEffectScopeCodes = [];
+    internal int[] SupportEffectValueIds = [];
+    internal int[] SupportEffectKindIds = [];
+    internal int[] SupportExpressionStarts = [];
+    internal int[] SupportExpressionCounts = [];
+    internal float[] SupportDesiredMinimums = [];
+    internal float[] SupportUrgencyScales = [];
+    internal int[] SupportExpressionCodes = [];
+    internal int[] SupportExpressionA = [];
+    internal float[] SupportExpressionX = [];
     internal int GambitCount;
     internal int PreconditionCount;
     internal int ExpressionCount;
@@ -105,6 +105,15 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gambitObjectiveCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gambitProviderSelectorCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gambitSupportRuleCapacity);
+        InitializeGambitArrays(gambitCapacity);
+        InitializeStepArrays(stepCapacity);
+        InitializeObjectiveArrays(gambitObjectiveCapacity);
+        InitializeProviderSelectorArrays(gambitProviderSelectorCapacity);
+        InitializeSupportRuleArrays(gambitSupportRuleCapacity, stepCapacity);
+    }
+
+    private void InitializeGambitArrays(int gambitCapacity)
+    {
         GambitKindIds = new int[gambitCapacity + 1];
         GambitIds = new int[gambitCapacity + 1];
         GambitCooldownTicks = new int[gambitCapacity + 1];
@@ -126,6 +135,10 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         GambitSupportRuleCounts = new int[gambitCapacity + 1];
         GambitGoalEffectStarts = new int[gambitCapacity + 1];
         GambitGoalEffectCounts = new int[gambitCapacity + 1];
+    }
+
+    private void InitializeStepArrays(int stepCapacity)
+    {
         GoalEffectScopeCodes = new int[stepCapacity + 1];
         GoalEffectValueIds = new int[stepCapacity + 1];
         GoalEffectKindIds = new int[stepCapacity + 1];
@@ -154,6 +167,10 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         MutationExpressionCodes = new int[stepCapacity + 1];
         MutationExpressionA = new int[stepCapacity + 1];
         MutationExpressionX = new float[stepCapacity + 1];
+    }
+
+    private void InitializeObjectiveArrays(int gambitObjectiveCapacity)
+    {
         ObjectiveKindIds = new int[gambitObjectiveCapacity + 1];
         ObjectiveCodes = new int[gambitObjectiveCapacity + 1];
         ObjectiveEffectScopeCodes = new int[gambitObjectiveCapacity + 1];
@@ -165,12 +182,20 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         ObjectiveDefaults = new float[gambitObjectiveCapacity + 1];
         ObjectiveBaselines = new float[gambitObjectiveCapacity + 1];
         ObjectiveBaseUrgencies = new float[gambitObjectiveCapacity + 1];
+    }
+
+    private void InitializeProviderSelectorArrays(int gambitProviderSelectorCapacity)
+    {
         ProviderSelectorCodes = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorKindIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorValueIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorRelationshipKindIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorFactIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorMinimumStrengths = new float[gambitProviderSelectorCapacity + 1];
+    }
+
+    private void InitializeSupportRuleArrays(int gambitSupportRuleCapacity, int stepCapacity)
+    {
         SupportEffectScopeCodes = new int[gambitSupportRuleCapacity + 1];
         SupportEffectValueIds = new int[gambitSupportRuleCapacity + 1];
         SupportEffectKindIds = new int[gambitSupportRuleCapacity + 1];

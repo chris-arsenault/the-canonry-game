@@ -1,8 +1,8 @@
 namespace Engine.Processes;
 
 using Engine.Kinds;
-using Engine.Wiring;
 using Engine.Resources;
+using Engine.Wiring;
 
 /// <summary>
 /// Static process program-facing inspection of preconditions.
@@ -33,18 +33,18 @@ public static class PreconditionInspector
         switch (precondition)
         {
             case AndPrecondition andPrecondition:
-            {
-                var opaque = false;
-                foreach (var child in andPrecondition.Children)
                 {
-                    opaque |= CollectProcessBlockers(child, selfKind, targetKinds, blockers);
-                }
+                    var opaque = false;
+                    foreach (var child in andPrecondition.Children)
+                    {
+                        opaque |= CollectProcessBlockers(child, selfKind, targetKinds, blockers);
+                    }
 
-                return opaque;
-            }
+                    return opaque;
+                }
             case OrPrecondition:
                 return true;
-            
+
             case SelfAttributeThreshold selfThreshold:
                 if (selfThreshold.ProcessRelevant)
                 {
@@ -53,30 +53,10 @@ public static class PreconditionInspector
 
                 return false;
             case TargetAttributeThreshold targetThreshold:
-                if (!targetThreshold.ProcessRelevant)
-                {
-                    return false;
-                }
-
-                foreach (var targetKind in targetKinds)
-                {
-                    blockers.Add(AttributeRef.Target(targetThreshold.AttributeName, targetKind));
-                }
-
+                AddTargetAttributeBlockers(targetThreshold, targetKinds, blockers);
                 return false;
             case RelatedEntityMatchesTarget relatedEntityMatchesTarget:
-                if (!relatedEntityMatchesTarget.ProcessRelevant)
-                {
-                    return false;
-                }
-
-                foreach (var targetKind in targetKinds)
-                {
-                    blockers.Add(AttributeRef.TargetRelation(
-                        relatedEntityMatchesTarget.RelationshipKind,
-                        targetKind));
-                }
-
+                AddTargetRelationBlockers(relatedEntityMatchesTarget, targetKinds, blockers);
                 return false;
             case LocationResourceThreshold locationResourceThreshold:
                 if (locationResourceThreshold.ProcessRelevant)
@@ -87,6 +67,38 @@ public static class PreconditionInspector
                 return false;
             default:
                 return false;
+        }
+    }
+
+    private static void AddTargetAttributeBlockers(
+        TargetAttributeThreshold threshold,
+        IReadOnlySet<EntityKind> targetKinds,
+        HashSet<AttributeRef> blockers)
+    {
+        if (!threshold.ProcessRelevant)
+        {
+            return;
+        }
+
+        foreach (var targetKind in targetKinds)
+        {
+            blockers.Add(AttributeRef.Target(threshold.AttributeName, targetKind));
+        }
+    }
+
+    private static void AddTargetRelationBlockers(
+        RelatedEntityMatchesTarget precondition,
+        IReadOnlySet<EntityKind> targetKinds,
+        HashSet<AttributeRef> blockers)
+    {
+        if (!precondition.ProcessRelevant)
+        {
+            return;
+        }
+
+        foreach (var targetKind in targetKinds)
+        {
+            blockers.Add(AttributeRef.TargetRelation(precondition.RelationshipKind, targetKind));
         }
     }
 

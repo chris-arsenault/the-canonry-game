@@ -1,8 +1,8 @@
 namespace Engine.Host;
 
-using Engine.Eventing.Schema;
 using Engine.Domain;
 using Engine.Domain.Compilation;
+using Engine.Eventing.Schema;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Observability;
@@ -22,8 +22,16 @@ public sealed class KernelRuntimeFactory
         _compiledDomains = new Dictionary<string, CompiledDomain>(StringComparer.OrdinalIgnoreCase);
         foreach (var domain in domains)
         {
-            ArgumentNullException.ThrowIfNull(domain);
-            ArgumentException.ThrowIfNullOrWhiteSpace(domain.Name);
+            if (domain is null)
+            {
+                throw new ArgumentException("Domain collection cannot contain null entries.", nameof(domains));
+            }
+
+            if (string.IsNullOrWhiteSpace(domain.Name))
+            {
+                throw new ArgumentException("Domain name cannot be null or whitespace.", nameof(domains));
+            }
+
             if (!_domains.TryAdd(domain.Name, domain))
             {
                 throw new InvalidOperationException($"Domain '{domain.Name}' is already registered.");

@@ -17,11 +17,15 @@ internal sealed class GeneratorProgramScratch
     internal readonly int[] ConnectivityR;
     internal readonly int[] ConnectivityQueueQ;
     internal readonly int[] ConnectivityQueueR;
+    internal readonly int[] RefCodes;
+    internal readonly int[] RefEntityIds;
+    internal readonly int[] CreatedEntityIds;
 
-    public GeneratorProgramScratch(int generatorCapacity, int scratchCellCapacity)
+    public GeneratorProgramScratch(int generatorCapacity, int scratchCellCapacity, int resolvedReferenceCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(scratchCellCapacity);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(resolvedReferenceCapacity);
         PulseStatusCodes = new int[generatorCapacity + 1];
         PulseCandidateCounts = new int[generatorCapacity + 1];
         PulseSelectedTargetIds = new int[generatorCapacity + 1];
@@ -37,5 +41,8 @@ internal sealed class GeneratorProgramScratch
         ConnectivityR = new int[scratchCellCapacity];
         ConnectivityQueueQ = new int[scratchCellCapacity];
         ConnectivityQueueR = new int[scratchCellCapacity];
+        RefCodes = new int[resolvedReferenceCapacity];
+        RefEntityIds = new int[resolvedReferenceCapacity];
+        CreatedEntityIds = new int[resolvedReferenceCapacity];
     }
 }

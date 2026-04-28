@@ -92,7 +92,7 @@ internal sealed class RunLogger : IDisposable
     {
         var now = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
         _writer.WriteLine("# The Canonry kernel event log");
-        _writer.WriteLine(string.Create(CultureInfo.InvariantCulture, $"# started_utc: {now}"));
+        _writer.WriteLine($"# started_utc: {now}");
         _writer.WriteLine("# source: KernelEventLog");
         _writer.WriteLine("# legend: act=process optional tgt=entity; gen=generator fire; death=status transition to historical");
     }
@@ -156,12 +156,11 @@ internal sealed class RunLogger : IDisposable
             var process = ResolveDisplayName(ProjectionSymbolKind.Process, evt.ProcessId, $"process_{evt.ProcessId}");
             var actor = ResolveEntityTarget(evt.ActorId);
             var target = evt.AffectedEntityCount > 0 && evt.AffectedEntityId0 != evt.ActorId
-                ? string.Create(CultureInfo.InvariantCulture, $" tgt={ResolveEntityTarget(evt.AffectedEntityId0)}")
-                : string.Empty;
+                ? $" tgt={ResolveEntityTarget(evt.AffectedEntityId0)}" : string.Empty;
             Add(
                 _actionLinesByTick,
                 evt.Tick,
-                string.Create(CultureInfo.InvariantCulture, $"  act {actor} {process}{target}"));
+$"  act {actor} {process}{target}");
         }
 
         protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)

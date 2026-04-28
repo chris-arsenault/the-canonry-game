@@ -145,6 +145,12 @@ public sealed class DomainIdRegistry
 
     public IEnumerable<DomainIdEntry> Entries()
     {
+        foreach (var entry in PrimaryEntries()) yield return entry;
+        foreach (var entry in SecondaryEntries()) yield return entry;
+    }
+
+    private IEnumerable<DomainIdEntry> PrimaryEntries()
+    {
         foreach (var entry in _kinds.Entries(DomainIdCategory.Kind)) yield return entry;
         foreach (var entry in _attributes.Entries(DomainIdCategory.Attribute)) yield return entry;
         foreach (var entry in _processes.Entries(DomainIdCategory.Process)) yield return entry;
@@ -154,6 +160,10 @@ public sealed class DomainIdRegistry
         foreach (var entry in _relationshipFacts.Entries(DomainIdCategory.RelationshipFact)) yield return entry;
         foreach (var entry in _pressures.Entries(DomainIdCategory.Pressure)) yield return entry;
         foreach (var entry in _resources.Entries(DomainIdCategory.Resource)) yield return entry;
+    }
+
+    private IEnumerable<DomainIdEntry> SecondaryEntries()
+    {
         foreach (var entry in _terrains.Entries(DomainIdCategory.Terrain)) yield return entry;
         foreach (var entry in _subtypes.Entries(DomainIdCategory.Subtype)) yield return entry;
         foreach (var entry in _cultures.Entries(DomainIdCategory.Culture)) yield return entry;
@@ -177,61 +187,85 @@ public sealed class DomainIdRegistry
 
     private static void RegisterCloneEntry(DomainIdRegistry clone, DomainIdEntry entry)
     {
+        if (RegisterPrimaryCloneEntry(clone, entry))
+        {
+            return;
+        }
+
+        if (RegisterSecondaryCloneEntry(clone, entry))
+        {
+            return;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(entry), entry.Category, null);
+    }
+
+    private static bool RegisterPrimaryCloneEntry(DomainIdRegistry clone, DomainIdEntry entry)
+    {
         switch (entry.Category)
         {
             case DomainIdCategory.Kind:
                 clone.RegisterKind(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Attribute:
                 clone.RegisterAttribute(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Process:
                 clone.RegisterProcess(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Gambit:
                 clone.RegisterGambit(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.StructuralFact:
                 clone.RegisterStructuralFact(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.RelationshipKind:
                 clone.RegisterRelationshipKind(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.RelationshipFact:
                 clone.RegisterRelationshipFact(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Pressure:
                 clone.RegisterPressure(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Resource:
                 clone.RegisterResource(entry.StableName);
-                break;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool RegisterSecondaryCloneEntry(DomainIdRegistry clone, DomainIdEntry entry)
+    {
+        switch (entry.Category)
+        {
             case DomainIdCategory.Terrain:
                 clone.RegisterTerrain(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Subtype:
                 clone.RegisterSubtype(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Culture:
                 clone.RegisterCulture(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Generator:
                 clone.RegisterGenerator(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.Detector:
                 clone.RegisterDetector(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.EventCode:
                 clone.RegisterEventCode(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.ReasonCode:
                 clone.RegisterReasonCode(entry.StableName);
-                break;
+                return true;
             case DomainIdCategory.SourceCode:
                 clone.RegisterSourceCode(entry.StableName);
-                break;
+                return true;
             default:
-                throw new ArgumentOutOfRangeException(nameof(entry), entry.Category, null);
+                return false;
         }
     }
 

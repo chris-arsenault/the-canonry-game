@@ -126,7 +126,7 @@ program.
 make ci         # lint + build + test  (run before every commit)
 make build      # restore + release build
 make test       # run xunit tests
-make lint       # build with -warnaserror, AnalysisMode=All
+make lint       # Roslyn analyzer lint + format verification
 make clean      # remove .artifacts/
 ```
 

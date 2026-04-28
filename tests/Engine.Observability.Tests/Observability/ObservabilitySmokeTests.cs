@@ -2,6 +2,7 @@ namespace Engine.Observability.Tests.Observability;
 
 using Engine.Host;
 using Engine.Observability;
+
 using IceRemembers.Seed;
 
 public sealed class ObservabilitySmokeTests

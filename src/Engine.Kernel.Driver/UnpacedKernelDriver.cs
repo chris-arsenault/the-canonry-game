@@ -8,7 +8,6 @@ internal sealed class UnpacedKernelDriver : IKernelDriver
     private readonly int _batchSize;
     private readonly StopPredicate? _stopAt;
     private Thread? _thread;
-    private TaskCompletionSource? _completion;
     private int _state;
     private int _started;
     private int _stopRequested;
@@ -35,7 +34,6 @@ internal sealed class UnpacedKernelDriver : IKernelDriver
         }
 
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _completion = completion;
         Volatile.Write(ref _state, (int)DriverState.Running);
         _thread = new Thread(() => RunLoop(completion, cancellationToken))
         {

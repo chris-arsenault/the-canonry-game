@@ -92,7 +92,7 @@ public sealed record StartupSeedIdentity
         Attempt = attempt;
         Components = new ReadOnlyDictionary<string, int>(
             components is null
-                ? new Dictionary<string, int>()
+                ? new Dictionary<string, int>(StringComparer.Ordinal)
                 : new Dictionary<string, int>(components, StringComparer.Ordinal));
     }
 

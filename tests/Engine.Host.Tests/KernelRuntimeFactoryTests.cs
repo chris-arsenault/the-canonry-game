@@ -3,6 +3,7 @@ namespace Engine.Host.Tests;
 using Engine.Domain.Config;
 using Engine.Domain.Startup;
 using Engine.Host;
+
 using IceRemembers;
 
 public sealed class KernelRuntimeFactoryTests

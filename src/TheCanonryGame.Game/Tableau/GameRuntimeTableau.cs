@@ -1,6 +1,7 @@
 namespace TheCanonryGame.Game.Tableau;
 
 using Engine.Projection;
+
 using TheCanonryGame.Game.Cards;
 
 internal sealed record GameTableauCardState(

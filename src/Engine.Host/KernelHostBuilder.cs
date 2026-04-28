@@ -181,6 +181,25 @@ internal sealed class KernelHostBuilder
 
     public KernelHost Build()
     {
+        ValidateBuildState();
+        EnsureSeedBurstFits();
+        var domainIds = CreateDomainIds();
+        var symbols = new ProjectionSymbolCatalog();
+        var symbolContext = CreateSymbolContext(symbols);
+        var simulationOptions = CreateSimulationOptions();
+        var kernel = CreateKernel(simulationOptions, out var kernelWasLoaded);
+        ConfigureKernel(kernel, domainIds, symbolContext, kernelWasLoaded);
+        return CreateHost(kernel, domainIds, symbols, symbolContext, simulationOptions, kernelWasLoaded);
+    }
+
+    private void ValidateBuildState()
+    {
+        ValidateCompiledDomainState();
+        ValidateStartupState();
+    }
+
+    private void ValidateCompiledDomainState()
+    {
         if (_compiledDomain is not null && _domainIds is not null)
         {
             throw new InvalidOperationException("A compiled domain owns the domain ID catalog; do not also pass DomainIdRegistry.");
@@ -200,21 +219,29 @@ internal sealed class KernelHostBuilder
         {
             throw new InvalidOperationException("A domain startup seed requires a compiled domain.");
         }
+    }
 
+    private void ValidateStartupState()
+    {
         if (_kernelState is not null && (_startupSeeder is not null || _domainStartupSeed is not null))
         {
             throw new InvalidOperationException("A loaded kernel state replaces startup seeding.");
         }
+    }
 
-        EnsureSeedBurstFits();
-
+    private DomainIdRegistry CreateDomainIds()
+    {
         var domainIds = _compiledDomain?.Ids ?? _domainIds ?? new DomainIdRegistry();
         foreach (var register in _domainRegistrations)
         {
             register(domainIds);
         }
 
-        var symbols = new ProjectionSymbolCatalog();
+        return domainIds;
+    }
+
+    private KernelSymbolContext CreateSymbolContext(ProjectionSymbolCatalog symbols)
+    {
         var symbolContext = new KernelSymbolContext(symbols);
         if (_compiledDomain is not null)
         {
@@ -226,17 +253,34 @@ internal sealed class KernelHostBuilder
             configure(symbolContext);
         }
 
-        var simulationOptions = _compiledDomain is null
+        return symbolContext;
+    }
+
+    private SimulationOptions CreateSimulationOptions()
+    {
+        return _compiledDomain is null
             ? _simulationOptions
             : _simulationOptions with
             {
                 RuntimeCodes = ToKernelRuntimeCodes(_compiledDomain.RuntimeCodes),
             };
-        var kernelWasLoaded = _kernelState is not null;
-        var kernel = _kernel ??
+    }
+
+    private Simulation CreateKernel(SimulationOptions simulationOptions, out bool kernelWasLoaded)
+    {
+        kernelWasLoaded = _kernelState is not null;
+        return _kernel ??
             (kernelWasLoaded
                 ? KernelSnapshot.LoadKernelState(new MemoryStream(_kernelState!), simulationOptions)
                 : new Simulation(simulationOptions));
+    }
+
+    private void ConfigureKernel(
+        Simulation kernel,
+        DomainIdRegistry domainIds,
+        KernelSymbolContext symbolContext,
+        bool kernelWasLoaded)
+    {
         var nextSequenceBeforeKernelConfiguration = kernel.Events.NextSequence;
         var kernelConfigurationContext = new KernelConfigurationContext(kernel, domainIds, symbolContext);
         var programConfig = new KernelProgramConfigurationContext();
@@ -270,7 +314,16 @@ internal sealed class KernelHostBuilder
         {
             throw new InvalidOperationException("Kernel configuration must not emit events.");
         }
+    }
 
+    private KernelHost CreateHost(
+        Simulation kernel,
+        DomainIdRegistry domainIds,
+        ProjectionSymbolCatalog symbols,
+        KernelSymbolContext symbolContext,
+        SimulationOptions simulationOptions,
+        bool kernelWasLoaded)
+    {
         KernelConsumerRegistry? consumers = null;
         KernelCommandCompletionPump? commandCompletions = null;
         KernelDriverTimeController? time = null;
@@ -282,40 +335,9 @@ internal sealed class KernelHostBuilder
             var commands = new KernelCommandSubmitter(kernel.Commands, completionTable);
             commandCompletions = new KernelCommandCompletionPump(kernel.Events, completionTable);
 
-            var consumerContext = new KernelHostConsumerContext(domainIds, kernel.Events, symbols, consumers);
-            foreach (var register in _consumerRegistrations)
-            {
-                register(consumerContext);
-            }
-
-            var hasStartupSeed = !kernelWasLoaded && (_startupSeeder is not null || _domainStartupSeed is not null);
-            if (hasStartupSeed && kernel.Events.NextSequence != 0)
-            {
-                throw new InvalidOperationException("Kernel startup consumers must be registered before seed events are emitted.");
-            }
-
-            var seedEventCount = kernelWasLoaded ? checked((int)kernel.Events.NextSequence) : 0;
-            if (hasStartupSeed)
-            {
-                var nextSequenceBeforeSeed = kernel.Events.NextSequence;
-                var startupContext = new KernelStartupContext(kernel, domainIds, symbolContext);
-                if (_domainStartupSeed is not null)
-                {
-                    DomainStartupSeedInstaller.Install(startupContext, _domainStartupSeed);
-                }
-                else
-                {
-                    _startupSeeder!.Seed(startupContext);
-                }
-
-                var observedSeedEventCount = checked((int)(kernel.Events.NextSequence - nextSequenceBeforeSeed));
-                seedEventCount = observedSeedEventCount;
-            }
-
-            commandCompletions.DrainAvailable();
-            consumers.DrainAll();
-            consumers.ThrowIfAnyDropped();
-            consumers.Seal();
+            RegisterConsumers(domainIds, symbols, kernel, consumers);
+            var seedEventCount = SeedKernelStartup(kernel, domainIds, symbolContext, kernelWasLoaded);
+            SealStartupConsumers(consumers, commandCompletions);
 
             time = new KernelDriverTimeController(kernel, _driverConfig);
             var host = new KernelHost(
@@ -339,6 +361,68 @@ internal sealed class KernelHostBuilder
             commandCompletions?.Dispose();
             consumers?.Dispose();
         }
+    }
+
+    private void RegisterConsumers(
+        DomainIdRegistry domainIds,
+        ProjectionSymbolCatalog symbols,
+        Simulation kernel,
+        KernelConsumerRegistry consumers)
+    {
+        var consumerContext = new KernelHostConsumerContext(domainIds, kernel.Events, symbols, consumers);
+        foreach (var register in _consumerRegistrations)
+        {
+            register(consumerContext);
+        }
+    }
+
+    private int SeedKernelStartup(
+        Simulation kernel,
+        DomainIdRegistry domainIds,
+        KernelSymbolContext symbolContext,
+        bool kernelWasLoaded)
+    {
+        var hasStartupSeed = !kernelWasLoaded && (_startupSeeder is not null || _domainStartupSeed is not null);
+        if (hasStartupSeed && kernel.Events.NextSequence != 0)
+        {
+            throw new InvalidOperationException("Kernel startup consumers must be registered before seed events are emitted.");
+        }
+
+        if (!hasStartupSeed)
+        {
+            return kernelWasLoaded ? checked((int)kernel.Events.NextSequence) : 0;
+        }
+
+        return SeedFreshKernel(kernel, domainIds, symbolContext);
+    }
+
+    private int SeedFreshKernel(
+        Simulation kernel,
+        DomainIdRegistry domainIds,
+        KernelSymbolContext symbolContext)
+    {
+        var nextSequenceBeforeSeed = kernel.Events.NextSequence;
+        var startupContext = new KernelStartupContext(kernel, domainIds, symbolContext);
+        if (_domainStartupSeed is not null)
+        {
+            DomainStartupSeedInstaller.Install(startupContext, _domainStartupSeed);
+        }
+        else
+        {
+            _startupSeeder!.Seed(startupContext);
+        }
+
+        return checked((int)(kernel.Events.NextSequence - nextSequenceBeforeSeed));
+    }
+
+    private static void SealStartupConsumers(
+        KernelConsumerRegistry consumers,
+        KernelCommandCompletionPump commandCompletions)
+    {
+        commandCompletions.DrainAvailable();
+        consumers.DrainAll();
+        consumers.ThrowIfAnyDropped();
+        consumers.Seal();
     }
 
     private static KernelRuntimeCodes ToKernelRuntimeCodes(DomainRuntimeCodes codes) =>
@@ -373,28 +457,101 @@ internal sealed class KernelHostBuilder
         }
     }
 
-    private static ProjectionSymbolKind ToProjectionSymbolKind(DomainSymbolKind kind) => kind switch
+    private static ProjectionSymbolKind ToProjectionSymbolKind(DomainSymbolKind kind)
     {
-        DomainSymbolKind.Kind => ProjectionSymbolKind.Kind,
-        DomainSymbolKind.Subtype => ProjectionSymbolKind.Subtype,
-        DomainSymbolKind.Culture => ProjectionSymbolKind.Culture,
-        DomainSymbolKind.Attribute => ProjectionSymbolKind.Attribute,
-        DomainSymbolKind.Process => ProjectionSymbolKind.Process,
-        DomainSymbolKind.StructuralFact => ProjectionSymbolKind.StructuralFact,
-        DomainSymbolKind.RelationshipKind => ProjectionSymbolKind.RelationshipKind,
-        DomainSymbolKind.RelationshipFact => ProjectionSymbolKind.RelationshipFact,
-        DomainSymbolKind.Resource => ProjectionSymbolKind.Resource,
-        DomainSymbolKind.Terrain => ProjectionSymbolKind.Terrain,
-        DomainSymbolKind.Pressure => ProjectionSymbolKind.Pressure,
-        DomainSymbolKind.Generator => ProjectionSymbolKind.Generator,
-        DomainSymbolKind.Gambit => ProjectionSymbolKind.Gambit,
-        DomainSymbolKind.EventCode => ProjectionSymbolKind.EventCode,
-        DomainSymbolKind.ReasonCode => ProjectionSymbolKind.ReasonCode,
-        DomainSymbolKind.SourceCode => ProjectionSymbolKind.SourceCode,
-        DomainSymbolKind.Detector => ProjectionSymbolKind.Detector,
-        DomainSymbolKind.Goal => ProjectionSymbolKind.Goal,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
-    };
+        if (TryCoreProjectionSymbolKind(kind, out var symbolKind) ||
+            TryRuntimeProjectionSymbolKind(kind, out symbolKind) ||
+            TryNarrativeProjectionSymbolKind(kind, out symbolKind))
+        {
+            return symbolKind;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+    }
+
+    private static bool TryCoreProjectionSymbolKind(DomainSymbolKind kind, out ProjectionSymbolKind symbolKind)
+    {
+        switch (kind)
+        {
+            case DomainSymbolKind.Kind:
+                symbolKind = ProjectionSymbolKind.Kind;
+                return true;
+            case DomainSymbolKind.Subtype:
+                symbolKind = ProjectionSymbolKind.Subtype;
+                return true;
+            case DomainSymbolKind.Culture:
+                symbolKind = ProjectionSymbolKind.Culture;
+                return true;
+            case DomainSymbolKind.Attribute:
+                symbolKind = ProjectionSymbolKind.Attribute;
+                return true;
+            case DomainSymbolKind.StructuralFact:
+                symbolKind = ProjectionSymbolKind.StructuralFact;
+                return true;
+            case DomainSymbolKind.Resource:
+                symbolKind = ProjectionSymbolKind.Resource;
+                return true;
+            case DomainSymbolKind.Terrain:
+                symbolKind = ProjectionSymbolKind.Terrain;
+                return true;
+            default:
+                symbolKind = default;
+                return false;
+        }
+    }
+
+    private static bool TryRuntimeProjectionSymbolKind(DomainSymbolKind kind, out ProjectionSymbolKind symbolKind)
+    {
+        switch (kind)
+        {
+            case DomainSymbolKind.Process:
+                symbolKind = ProjectionSymbolKind.Process;
+                return true;
+            case DomainSymbolKind.Generator:
+                symbolKind = ProjectionSymbolKind.Generator;
+                return true;
+            case DomainSymbolKind.Gambit:
+                symbolKind = ProjectionSymbolKind.Gambit;
+                return true;
+            case DomainSymbolKind.Pressure:
+                symbolKind = ProjectionSymbolKind.Pressure;
+                return true;
+            case DomainSymbolKind.Detector:
+                symbolKind = ProjectionSymbolKind.Detector;
+                return true;
+            case DomainSymbolKind.Goal:
+                symbolKind = ProjectionSymbolKind.Goal;
+                return true;
+            default:
+                symbolKind = default;
+                return false;
+        }
+    }
+
+    private static bool TryNarrativeProjectionSymbolKind(DomainSymbolKind kind, out ProjectionSymbolKind symbolKind)
+    {
+        switch (kind)
+        {
+            case DomainSymbolKind.RelationshipKind:
+                symbolKind = ProjectionSymbolKind.RelationshipKind;
+                return true;
+            case DomainSymbolKind.RelationshipFact:
+                symbolKind = ProjectionSymbolKind.RelationshipFact;
+                return true;
+            case DomainSymbolKind.EventCode:
+                symbolKind = ProjectionSymbolKind.EventCode;
+                return true;
+            case DomainSymbolKind.ReasonCode:
+                symbolKind = ProjectionSymbolKind.ReasonCode;
+                return true;
+            case DomainSymbolKind.SourceCode:
+                symbolKind = ProjectionSymbolKind.SourceCode;
+                return true;
+            default:
+                symbolKind = default;
+                return false;
+        }
+    }
 
     private void EnsureSeedBurstFits()
     {

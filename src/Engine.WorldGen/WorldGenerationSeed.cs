@@ -16,8 +16,8 @@ public readonly record struct WorldGenerationSeed(
         return new WorldGenerationSeed(
             baseSeed,
             attempt,
-            Derive(baseSeed, attempt, unchecked((int)0x6d2b79f5)),
-            Derive(baseSeed, attempt, unchecked((int)0x1b873593)));
+            Derive(baseSeed, attempt, unchecked(0x6d2b79f5)),
+            Derive(baseSeed, attempt, unchecked(0x1b873593)));
     }
 
     private static int Derive(int baseSeed, int attempt, int salt)

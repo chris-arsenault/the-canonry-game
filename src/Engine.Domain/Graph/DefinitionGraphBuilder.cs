@@ -16,60 +16,16 @@ public static class DefinitionGraphBuilder
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(runtimeIds);
 
-        var kindNodes = new Dictionary<EntityKind, DefinitionKindNode>();
-        var attributeIndex = new Dictionary<DefinitionAttributeKey, DefinitionAttributeNode>();
-
-        foreach (var (kind, kindConfig) in config.Kinds)
-        {
-            var kindNode = BuildKindNode(kind, kindConfig, runtimeIds);
-            kindNodes[kind] = kindNode;
-
-            foreach (var attributeNode in kindNode.Attributes.Values)
-            {
-                attributeIndex[attributeNode.Key] = attributeNode;
-            }
-        }
-
+        var kindNodes = BuildKindNodes(config, runtimeIds);
+        var attributeIndex = BuildAttributeIndex(kindNodes);
         var resourceNodes = BuildResourceNodes(config.Resources);
         var relationshipNodes = BuildRelationshipNodes(config.Relationships, runtimeIds);
         var relationshipFactNodes = BuildRelationshipFactNodes(config.RelationshipFacts, runtimeIds);
         var pressureNodes = BuildPressureNodes(config.Pressures);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
-
-        var processNodes = new Dictionary<string, DefinitionProcessNode>(StringComparer.Ordinal);
-        foreach (var process in config.Processes)
-        {
-            if (!kindNodes.ContainsKey(process.TargetKind))
-            {
-                throw new DefinitionGraphException(
-                    $"Process '{process.Id}' targets kind '{process.TargetKind}' which is not present in the domain kinds.");
-            }
-
-            processNodes[process.Id] = BuildProcessNode(
-                process,
-                kindNodes,
-                resourceNodes,
-                relationshipNodes,
-                pressureNodes);
-        }
-
-        var gambitNodes = new Dictionary<string, DefinitionGambitNode>(StringComparer.Ordinal);
-        foreach (var gambit in config.Gambits)
-        {
-            if (!kindNodes.ContainsKey(gambit.TargetKind))
-            {
-                throw new DefinitionGraphException(
-                    $"Gambit '{gambit.Id}' targets kind '{gambit.TargetKind}' which is not present in the domain kinds.");
-            }
-
-            gambitNodes[gambit.Id] = BuildGambitNode(
-                gambit,
-                kindNodes,
-                resourceNodes,
-                relationshipNodes,
-                pressureNodes);
-        }
+        var processNodes = BuildProcessNodes(config.Processes, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
+        var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
 
         var graph = new DefinitionGraph
         {
@@ -86,18 +42,103 @@ public static class DefinitionGraphBuilder
             Attributes = attributeIndex,
         };
 
-        if (config.Semantics is not null)
-        {
-            DefinitionSemanticGraphBuilder.Populate(graph, config.Semantics);
-
-            foreach (var (id, node) in DefinitionGeneratorBuilder.Build(config.Semantics.Generators, graph, runtimeIds))
-            {
-                generatorNodes[id] = node;
-            }
-        }
+        PopulateSemanticGraph(config, graph, runtimeIds, generatorNodes);
 
         DefinitionGraphValidator.ValidateOrThrow(graph);
         return graph;
+    }
+
+    private static Dictionary<EntityKind, DefinitionKindNode> BuildKindNodes(
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        var kindNodes = new Dictionary<EntityKind, DefinitionKindNode>();
+        foreach (var (kind, kindConfig) in config.Kinds)
+        {
+            kindNodes[kind] = BuildKindNode(kind, kindConfig, runtimeIds);
+        }
+
+        return kindNodes;
+    }
+
+    private static Dictionary<DefinitionAttributeKey, DefinitionAttributeNode> BuildAttributeIndex(
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes)
+    {
+        var attributeIndex = new Dictionary<DefinitionAttributeKey, DefinitionAttributeNode>();
+        foreach (var kindNode in kindNodes.Values)
+        {
+            foreach (var attributeNode in kindNode.Attributes.Values)
+            {
+                attributeIndex[attributeNode.Key] = attributeNode;
+            }
+        }
+
+        return attributeIndex;
+    }
+
+    private static Dictionary<string, DefinitionProcessNode> BuildProcessNodes(
+        IReadOnlyList<ProcessDefinition> processes,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode> pressureNodes)
+    {
+        var processNodes = new Dictionary<string, DefinitionProcessNode>(StringComparer.Ordinal);
+        foreach (var process in processes)
+        {
+            EnsureTargetKindExists("Process", process.Id, process.TargetKind, kindNodes);
+            processNodes[process.Id] = BuildProcessNode(process, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
+        }
+
+        return processNodes;
+    }
+
+    private static Dictionary<string, DefinitionGambitNode> BuildGambitNodes(
+        IReadOnlyList<GambitDefinition> gambits,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode> pressureNodes)
+    {
+        var gambitNodes = new Dictionary<string, DefinitionGambitNode>(StringComparer.Ordinal);
+        foreach (var gambit in gambits)
+        {
+            EnsureTargetKindExists("Gambit", gambit.Id, gambit.TargetKind, kindNodes);
+            gambitNodes[gambit.Id] = BuildGambitNode(gambit, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
+        }
+
+        return gambitNodes;
+    }
+
+    private static void EnsureTargetKindExists(
+        string nodeType,
+        string nodeId,
+        EntityKind targetKind,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes)
+    {
+        if (!kindNodes.ContainsKey(targetKind))
+        {
+            throw new DefinitionGraphException(
+                $"{nodeType} '{nodeId}' targets kind '{targetKind}' which is not present in the domain kinds.");
+        }
+    }
+
+    private static void PopulateSemanticGraph(
+        DomainConfig config,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        Dictionary<string, DefinitionGeneratorNode> generatorNodes)
+    {
+        if (config.Semantics is null)
+        {
+            return;
+        }
+
+        DefinitionSemanticGraphBuilder.Populate(graph, config.Semantics);
+        foreach (var (id, node) in DefinitionGeneratorBuilder.Build(config.Semantics.Generators, graph, runtimeIds))
+        {
+            generatorNodes[id] = node;
+        }
     }
 
     private static DefinitionKindNode BuildKindNode(
@@ -105,10 +146,29 @@ public static class DefinitionGraphBuilder
         KindConfig kindConfig,
         global::Engine.Domain.DomainIdRegistry runtimeIds)
     {
-        var attributes = new Dictionary<DefinitionAttributeId, DefinitionAttributeNode>();
-        DefinitionAttributeId? healthAttribute = null;
+        var attributes = BuildAttributeNodes(kind, kindConfig.Attributes);
+        var healthAttribute = ApplyHealthAttribute(kind, kindConfig, attributes);
+        var standingDrives = BuildStandingDrives(kindConfig.StandingDrives);
 
-        foreach (var attribute in kindConfig.Attributes)
+        return new DefinitionKindNode
+        {
+            Kind = kind,
+            RuntimeId = runtimeIds.KindIdOf(kind).Value,
+            Subtypes = new HashSet<string>(kindConfig.Subtypes, StringComparer.Ordinal),
+            Attributes = attributes,
+            HealthAttribute = healthAttribute,
+            StandingDrives = standingDrives,
+            Description = kindConfig.Description,
+            PrimaryPlane = kindConfig.PrimaryPlane,
+        };
+    }
+
+    private static Dictionary<DefinitionAttributeId, DefinitionAttributeNode> BuildAttributeNodes(
+        EntityKind kind,
+        IReadOnlyList<AttributeConfig> attributeConfigs)
+    {
+        var attributes = new Dictionary<DefinitionAttributeId, DefinitionAttributeNode>();
+        foreach (var attribute in attributeConfigs)
         {
             var attributeId = new DefinitionAttributeId(attribute.Name);
             if (attributes.ContainsKey(attributeId))
@@ -117,39 +177,58 @@ public static class DefinitionGraphBuilder
                     $"Kind '{kind}' declares duplicate attribute '{attribute.Name}'.");
             }
 
-            attributes[attributeId] = new DefinitionAttributeNode
-            {
-                Key = new DefinitionAttributeKey(kind, attributeId),
-                Shape = DefinitionAttributeShape.Scalar,
-                SourceConfig = attribute,
-                IsHealthAttribute = false,
-                CriticalEffect = BuildCriticalEffect(attribute.CriticalEffect),
-                LocationResourceDrift = BuildLocationResourceDrift(attribute),
-            };
+            attributes[attributeId] = CreateAttributeNode(kind, attributeId, attribute);
         }
 
-        if (kindConfig.HealthAttribute is not null)
+        return attributes;
+    }
+
+    private static DefinitionAttributeNode CreateAttributeNode(
+        EntityKind kind,
+        DefinitionAttributeId attributeId,
+        AttributeConfig attribute) =>
+        new()
         {
-            var healthId = new DefinitionAttributeId(kindConfig.HealthAttribute);
-            if (!attributes.TryGetValue(healthId, out var healthNode))
-            {
-                throw new DefinitionGraphException(
-                    $"Kind '{kind}' health attribute '{kindConfig.HealthAttribute}' is not present in its declared attributes.");
-            }
+            Key = new DefinitionAttributeKey(kind, attributeId),
+            Shape = DefinitionAttributeShape.Scalar,
+            SourceConfig = attribute,
+            IsHealthAttribute = false,
+            CriticalEffect = BuildCriticalEffect(attribute.CriticalEffect),
+            LocationResourceDrift = BuildLocationResourceDrift(attribute),
+        };
 
-            attributes[healthId] = new DefinitionAttributeNode
-            {
-                Key = healthNode.Key,
-                Shape = healthNode.Shape,
-                SourceConfig = healthNode.SourceConfig,
-                CriticalEffect = healthNode.CriticalEffect,
-                LocationResourceDrift = healthNode.LocationResourceDrift,
-                IsHealthAttribute = true,
-            };
-            healthAttribute = healthId;
+    private static DefinitionAttributeId? ApplyHealthAttribute(
+        EntityKind kind,
+        KindConfig kindConfig,
+        Dictionary<DefinitionAttributeId, DefinitionAttributeNode> attributes)
+    {
+        if (kindConfig.HealthAttribute is null)
+        {
+            return null;
         }
 
-        var standingDrives = kindConfig.StandingDrives
+        var healthId = new DefinitionAttributeId(kindConfig.HealthAttribute);
+        if (!attributes.TryGetValue(healthId, out var healthNode))
+        {
+            throw new DefinitionGraphException(
+                $"Kind '{kind}' health attribute '{kindConfig.HealthAttribute}' is not present in its declared attributes.");
+        }
+
+        attributes[healthId] = new DefinitionAttributeNode
+        {
+            Key = healthNode.Key,
+            Shape = healthNode.Shape,
+            SourceConfig = healthNode.SourceConfig,
+            CriticalEffect = healthNode.CriticalEffect,
+            LocationResourceDrift = healthNode.LocationResourceDrift,
+            IsHealthAttribute = true,
+        };
+        return healthId;
+    }
+
+    private static List<DefinitionStandingDriveNode> BuildStandingDrives(
+        IReadOnlyList<StandingDriveConfig> standingDrives) =>
+        standingDrives
             .Select(drive => new DefinitionStandingDriveNode
             {
                 DesiredEffect = ConvertRef(
@@ -161,19 +240,6 @@ public static class DefinitionGraphBuilder
                 BaseUrgency = drive.BaseUrgency,
             })
             .ToList();
-
-        return new DefinitionKindNode
-        {
-            Kind = kind,
-            RuntimeId = runtimeIds.KindIdOf(kind).Value,
-            Subtypes = new HashSet<string>(kindConfig.Subtypes),
-            Attributes = attributes,
-            HealthAttribute = healthAttribute,
-            StandingDrives = standingDrives,
-            Description = kindConfig.Description,
-            PrimaryPlane = kindConfig.PrimaryPlane,
-        };
-    }
 
     private static Dictionary<DefinitionResourceId, DefinitionResourceNode> BuildResourceNodes(
         IReadOnlyList<ResourceConfig> resources)
@@ -397,10 +463,21 @@ public static class DefinitionGraphBuilder
     {
         ArgumentNullException.ThrowIfNull(attrRef);
 
-        return attrRef.Scope switch
+        if (attrRef.Scope is RefScope.Self or RefScope.Target or RefScope.Location or RefScope.Related)
         {
-            RefScope.Self or RefScope.Target or RefScope.Location or RefScope.Related
-                => ConvertAttributeScopedRef(attrRef, kindNodes, relationshipNodes),
+            return ConvertAttributeScopedRef(attrRef, kindNodes, relationshipNodes);
+        }
+
+        return ConvertNonAttributeScopedRef(attrRef, resourceNodes, relationshipNodes, pressureNodes);
+    }
+
+    private static TypedDefinitionRef ConvertNonAttributeScopedRef(
+        AttributeRef attrRef,
+        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes,
+        Dictionary<DefinitionPressureId, DefinitionPressureNode>? pressureNodes) =>
+        attrRef.Scope switch
+        {
             RefScope.Resource
                 => ConvertResourceRef(attrRef, resourceNodes),
             RefScope.Pressure
@@ -413,7 +490,6 @@ public static class DefinitionGraphBuilder
                 => ConvertRelationalRef(attrRef, relationshipNodes),
             _ => throw new DefinitionGraphException($"Unsupported ref scope '{attrRef.Scope}'."),
         };
-    }
 
     private static TypedDefinitionRef ConvertAttributeScopedRef(
         AttributeRef attrRef,

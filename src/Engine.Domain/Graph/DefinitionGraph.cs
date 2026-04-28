@@ -4,8 +4,8 @@ using Engine.Domain.Config;
 using Engine.Gambits;
 using Engine.Kinds;
 using Engine.Processes;
-using Engine.WorldGen;
 using Engine.Wiring;
+using Engine.WorldGen;
 
 public sealed class DefinitionGraph
 {
@@ -28,6 +28,8 @@ public sealed record DefinitionAttributeKey(EntityKind Kind, DefinitionAttribute
 public abstract record SemanticStockId
 {
     public abstract string Label { get; }
+
+    public string DisplayLabel => Label;
 }
 
 public sealed record AttributeStockId(DefinitionAttributeKey Key) : SemanticStockId
@@ -256,14 +258,42 @@ public sealed class DefinitionGambitNode
     public required IReadOnlyList<DefinitionSupportRuleNode> SupportRules { get; init; }
 }
 
-public abstract record DefinitionValueId;
+public abstract record DefinitionValueId
+{
+    public abstract string Label { get; }
 
-public sealed record AttributeValueId(DefinitionAttributeId AttributeId) : DefinitionValueId;
-public sealed record ResourceValueId(DefinitionResourceId ResourceId) : DefinitionValueId;
-public sealed record PressureValueId(DefinitionPressureId PressureId) : DefinitionValueId;
-public sealed record StructuralValueId(string Name) : DefinitionValueId;
-public sealed record MapCellValueId(string Name) : DefinitionValueId;
-public sealed record RelationalValueId(string Name) : DefinitionValueId;
+    public string DisplayLabel => Label;
+}
+
+public sealed record AttributeValueId(DefinitionAttributeId AttributeId) : DefinitionValueId
+{
+    public override string Label => AttributeId.Value;
+}
+
+public sealed record ResourceValueId(DefinitionResourceId ResourceId) : DefinitionValueId
+{
+    public override string Label => ResourceId.Value;
+}
+
+public sealed record PressureValueId(DefinitionPressureId PressureId) : DefinitionValueId
+{
+    public override string Label => PressureId.Value;
+}
+
+public sealed record StructuralValueId(string Name) : DefinitionValueId
+{
+    public override string Label => Name;
+}
+
+public sealed record MapCellValueId(string Name) : DefinitionValueId
+{
+    public override string Label => Name;
+}
+
+public sealed record RelationalValueId(string Name) : DefinitionValueId
+{
+    public override string Label => Name;
+}
 
 public sealed record TypedDefinitionRef(
     RefScope Scope,

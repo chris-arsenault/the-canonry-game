@@ -32,94 +32,31 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
     public void Execute(GeneratorExecutionContext context)
     {
         var compilation = context.Compilation;
-        var layoutAttribute = compilation.GetTypeByMetadataName(LayoutAttributeName);
-        var intSlotAttribute = compilation.GetTypeByMetadataName(IntSlotAttributeName);
-        var floatSlotAttribute = compilation.GetTypeByMetadataName(FloatSlotAttributeName);
-        var kernelEvent = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEvent");
-        var eventType = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEventType");
-        var semanticKind = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEventSemanticKind");
-
-        if (layoutAttribute is null || intSlotAttribute is null || floatSlotAttribute is null ||
-            kernelEvent is null || eventType is null || semanticKind is null)
+        var symbols = RequiredSymbols.Resolve(compilation);
+        if (symbols is null)
         {
             return;
         }
 
-        var intSlotCount = ConstInt(kernelEvent, "IntSlotCount");
-        var floatSlotCount = ConstInt(kernelEvent, "FloatSlotCount");
+        var intSlotCount = ConstInt(symbols.KernelEvent, "IntSlotCount");
+        var floatSlotCount = ConstInt(symbols.KernelEvent, "FloatSlotCount");
         var layouts = new List<EventLayout>();
         foreach (var type in AllTypes(compilation.Assembly.GlobalNamespace))
         {
-            var layoutMetadata = GetLayoutMetadata(type, layoutAttribute, eventType);
-            if (layoutMetadata is null)
+            if (TryBuildLayout(
+                    context,
+                    type,
+                    symbols.LayoutAttribute,
+                    symbols.EventType,
+                    symbols.IntSlotAttribute,
+                    symbols.FloatSlotAttribute,
+                    symbols.SemanticKind,
+                    intSlotCount,
+                    floatSlotCount,
+                    out var layout))
             {
-                continue;
+                layouts.Add(layout);
             }
-
-            var constructor = PayloadConstructor(type);
-            if (constructor is null)
-            {
-                Report(context, type, $"{type.Name} must declare a primary payload constructor.");
-                continue;
-            }
-
-            var slots = new List<SlotLayout>();
-            var valid = true;
-            foreach (var parameter in constructor.Parameters)
-            {
-                if (parameter.Name is TickFieldName or WorldVersionFieldName)
-                {
-                    continue;
-                }
-
-                var intSlot = SlotMetadata(parameter, intSlotAttribute, semanticKind, KernelEventSlotKind.Int);
-                var floatSlot = SlotMetadata(parameter, floatSlotAttribute, semanticKind, KernelEventSlotKind.Float);
-                if (intSlot is not null && floatSlot is not null)
-                {
-                    Report(context, parameter, $"{type.Name}.{parameter.Name} declares both int and float slots.");
-                    valid = false;
-                    continue;
-                }
-
-                var slot = intSlot ?? floatSlot;
-                if (slot is null)
-                {
-                    Report(context, parameter, $"{type.Name}.{parameter.Name} must declare exactly one kernel event slot.");
-                    valid = false;
-                    continue;
-                }
-
-                if (slot.Kind == KernelEventSlotKind.Int && !IsIntSlotType(parameter.Type))
-                {
-                    Report(context, parameter, $"{type.Name}.{parameter.Name} uses an int slot but is not int-compatible.");
-                    valid = false;
-                    continue;
-                }
-
-                if (slot.Kind == KernelEventSlotKind.Float && parameter.Type.SpecialType != SpecialType.System_Single)
-                {
-                    Report(context, parameter, $"{type.Name}.{parameter.Name} uses a float slot but is not float.");
-                    valid = false;
-                    continue;
-                }
-
-                slots.Add(slot.WithPayload(
-                    parameter.Name,
-                    parameter.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
-            }
-
-            if (!valid)
-            {
-                continue;
-            }
-
-            ValidateSlots(context, type, slots, intSlotCount, floatSlotCount);
-            layouts.Add(new EventLayout(
-                layoutMetadata.EventTypeName,
-                layoutMetadata.EventTypeValue,
-                type.Name,
-                layoutMetadata.SchemaMinor,
-                slots));
         }
 
         if (layouts.Count == 0)
@@ -127,7 +64,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
             return;
         }
 
-        foreach (var duplicate in layouts.GroupBy(static layout => layout.EventTypeValue).Where(static group => group.Count() > 1))
+        foreach (var duplicate in layouts.GroupBy(static layout => layout.EventTypeValue).Where(static group => group.Skip(1).Any()))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 InvalidLayout,
@@ -138,6 +75,169 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         layouts.Sort(static (left, right) => left.EventTypeValue.CompareTo(right.EventTypeValue));
         context.AddSource("KernelEvent.Generated.g.cs", GenerateKernelEvent(layouts));
         context.AddSource("KernelEventLayoutDescriptors.Generated.g.cs", GenerateDescriptors(layouts));
+    }
+
+    private static bool TryBuildLayout(
+        GeneratorExecutionContext context,
+        INamedTypeSymbol type,
+        INamedTypeSymbol layoutAttribute,
+        INamedTypeSymbol eventType,
+        INamedTypeSymbol intSlotAttribute,
+        INamedTypeSymbol floatSlotAttribute,
+        INamedTypeSymbol semanticKind,
+        int intSlotCount,
+        int floatSlotCount,
+        out EventLayout layout)
+    {
+        layout = default!;
+        var layoutMetadata = GetLayoutMetadata(type, layoutAttribute, eventType);
+        if (layoutMetadata is null)
+        {
+            return false;
+        }
+
+        var constructor = PayloadConstructor(type);
+        if (constructor is null)
+        {
+            Report(context, type, $"{type.Name} must declare a primary payload constructor.");
+            return false;
+        }
+
+        if (!TryCollectSlots(context, type, constructor, intSlotAttribute, floatSlotAttribute, semanticKind, out var slots))
+        {
+            return false;
+        }
+
+        ValidateSlots(context, type, slots, intSlotCount, floatSlotCount);
+        layout = new EventLayout(
+            layoutMetadata.EventTypeName,
+            layoutMetadata.EventTypeValue,
+            type.Name,
+            layoutMetadata.SchemaMinor,
+            slots);
+        return true;
+    }
+
+    private static bool TryCollectSlots(
+        GeneratorExecutionContext context,
+        INamedTypeSymbol type,
+        IMethodSymbol constructor,
+        INamedTypeSymbol intSlotAttribute,
+        INamedTypeSymbol floatSlotAttribute,
+        INamedTypeSymbol semanticKind,
+        out List<SlotLayout> slots)
+    {
+        slots = [];
+        var valid = true;
+        foreach (var parameter in constructor.Parameters)
+        {
+            if (parameter.Name is TickFieldName or WorldVersionFieldName)
+            {
+                continue;
+            }
+
+            if (TryCreateSlot(context, type, parameter, intSlotAttribute, floatSlotAttribute, semanticKind, out var slot) &&
+                slot is not null)
+            {
+                slots.Add(slot);
+            }
+            else
+            {
+                valid = false;
+            }
+        }
+
+        return valid;
+    }
+
+    private static bool TryCreateSlot(
+        GeneratorExecutionContext context,
+        INamedTypeSymbol type,
+        IParameterSymbol parameter,
+        INamedTypeSymbol intSlotAttribute,
+        INamedTypeSymbol floatSlotAttribute,
+        INamedTypeSymbol semanticKind,
+        out SlotLayout? slot)
+    {
+        slot = null;
+        var intSlot = SlotMetadata(parameter, intSlotAttribute, semanticKind, KernelEventSlotKind.Int);
+        var floatSlot = SlotMetadata(parameter, floatSlotAttribute, semanticKind, KernelEventSlotKind.Float);
+        if (intSlot is not null && floatSlot is not null)
+        {
+            Report(context, parameter, $"{type.Name}.{parameter.Name} declares both int and float slots.");
+            return false;
+        }
+
+        var metadata = intSlot ?? floatSlot;
+        if (metadata is null)
+        {
+            Report(context, parameter, $"{type.Name}.{parameter.Name} must declare exactly one kernel event slot.");
+            return false;
+        }
+
+        if (!SlotTypeMatches(metadata, parameter))
+        {
+            Report(context, parameter, $"{type.Name}.{parameter.Name} uses a {metadata.Kind.ToString().ToLowerInvariant()} slot but has an incompatible type.");
+            return false;
+        }
+
+        slot = metadata.WithPayload(
+            parameter.Name,
+            parameter.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+        return true;
+    }
+
+    private static bool SlotTypeMatches(SlotLayout slot, IParameterSymbol parameter) =>
+        slot.Kind == KernelEventSlotKind.Int
+            ? IsIntSlotType(parameter.Type)
+            : parameter.Type.SpecialType == SpecialType.System_Single;
+
+    private sealed class RequiredSymbols
+    {
+        private RequiredSymbols(
+            INamedTypeSymbol layoutAttribute,
+            INamedTypeSymbol intSlotAttribute,
+            INamedTypeSymbol floatSlotAttribute,
+            INamedTypeSymbol kernelEvent,
+            INamedTypeSymbol eventType,
+            INamedTypeSymbol semanticKind)
+        {
+            LayoutAttribute = layoutAttribute;
+            IntSlotAttribute = intSlotAttribute;
+            FloatSlotAttribute = floatSlotAttribute;
+            KernelEvent = kernelEvent;
+            EventType = eventType;
+            SemanticKind = semanticKind;
+        }
+
+        public INamedTypeSymbol LayoutAttribute { get; }
+        public INamedTypeSymbol IntSlotAttribute { get; }
+        public INamedTypeSymbol FloatSlotAttribute { get; }
+        public INamedTypeSymbol KernelEvent { get; }
+        public INamedTypeSymbol EventType { get; }
+        public INamedTypeSymbol SemanticKind { get; }
+
+        public static RequiredSymbols? Resolve(Compilation compilation)
+        {
+            var layoutAttribute = compilation.GetTypeByMetadataName(LayoutAttributeName);
+            var intSlotAttribute = compilation.GetTypeByMetadataName(IntSlotAttributeName);
+            var floatSlotAttribute = compilation.GetTypeByMetadataName(FloatSlotAttributeName);
+            var kernelEvent = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEvent");
+            var eventType = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEventType");
+            var semanticKind = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEventSemanticKind");
+
+            if (layoutAttribute is null ||
+                intSlotAttribute is null ||
+                floatSlotAttribute is null ||
+                kernelEvent is null ||
+                eventType is null ||
+                semanticKind is null)
+            {
+                return null;
+            }
+
+            return new RequiredSymbols(layoutAttribute, intSlotAttribute, floatSlotAttribute, kernelEvent, eventType, semanticKind);
+        }
     }
 
     private static string GenerateKernelEvent(IReadOnlyList<EventLayout> layouts)
@@ -152,54 +252,71 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         source.AppendLine("{");
         foreach (var layout in layouts)
         {
-            source.Append("    public static KernelEvent From(in ")
-                .Append(layout.PayloadTypeName)
-                .AppendLine(" payload) =>");
-            source.AppendLine("        new(");
-            source.Append("            KernelEventType.")
-                .Append(layout.EventTypeName)
-                .AppendLine(",");
-            source.AppendLine("            payload.Tick,");
-            source.Append("            payload.WorldVersion");
-
-            foreach (var slot in layout.Slots.OrderBy(static slot => slot.Kind).ThenBy(static slot => slot.Slot))
-            {
-                source.AppendLine(",");
-                source.Append("            ")
-                    .Append(SlotArgumentName(slot))
-                    .Append(": ")
-                    .Append(PackExpression(slot));
-            }
-
-            source.AppendLine(");");
-            source.AppendLine();
+            AppendKernelEventFactory(source, layout);
         }
 
         foreach (var layout in layouts)
         {
-            source.Append("    public ")
-                .Append(layout.PayloadTypeName)
-                .Append(" As")
-                .Append(layout.EventTypeName)
-                .AppendLine("()");
-            source.AppendLine("    {");
-            source.Append("        EnsureType(KernelEventType.")
-                .Append(layout.EventTypeName)
-                .AppendLine(");");
-            source.AppendLine("        return new(");
-            source.AppendLine("            Tick,");
-            source.Append("            WorldVersion");
-            foreach (var slot in layout.SlotsInPayloadOrder)
-            {
-                source.AppendLine(",");
-                source.Append("            ").Append(UnpackExpression(slot));
-            }
-
-            source.AppendLine(");");
-            source.AppendLine("    }");
-            source.AppendLine();
+            AppendKernelEventAccessor(source, layout);
         }
 
+        AppendEnsureType(source);
+        source.AppendLine("}");
+        return source.ToString();
+    }
+
+    private static void AppendKernelEventFactory(StringBuilder source, EventLayout layout)
+    {
+        source.Append("    public static KernelEvent From(in ")
+            .Append(layout.PayloadTypeName)
+            .AppendLine(" payload) =>");
+        source.AppendLine("        new(");
+        source.Append("            KernelEventType.")
+            .Append(layout.EventTypeName)
+            .AppendLine(",");
+        source.AppendLine("            payload.Tick,");
+        source.Append("            payload.WorldVersion");
+
+        foreach (var slot in layout.Slots.OrderBy(static slot => slot.Kind).ThenBy(static slot => slot.Slot))
+        {
+            source.AppendLine(",");
+            source.Append("            ")
+                .Append(SlotArgumentName(slot))
+                .Append(": ")
+                .Append(PackExpression(slot));
+        }
+
+        source.AppendLine(");");
+        source.AppendLine();
+    }
+
+    private static void AppendKernelEventAccessor(StringBuilder source, EventLayout layout)
+    {
+        source.Append("    public ")
+            .Append(layout.PayloadTypeName)
+            .Append(" As")
+            .Append(layout.EventTypeName)
+            .AppendLine("()");
+        source.AppendLine("    {");
+        source.Append("        EnsureType(KernelEventType.")
+            .Append(layout.EventTypeName)
+            .AppendLine(");");
+        source.AppendLine("        return new(");
+        source.AppendLine("            Tick,");
+        source.Append("            WorldVersion");
+        foreach (var slot in layout.SlotsInPayloadOrder)
+        {
+            source.AppendLine(",");
+            source.Append("            ").Append(UnpackExpression(slot));
+        }
+
+        source.AppendLine(");");
+        source.AppendLine("    }");
+        source.AppendLine();
+    }
+
+    private static void AppendEnsureType(StringBuilder source)
+    {
         source.AppendLine("    private void EnsureType(KernelEventType expected)");
         source.AppendLine("    {");
         source.AppendLine("        if (EventType != expected)");
@@ -207,8 +324,6 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         source.AppendLine("            throw new global::System.InvalidOperationException($\"Kernel event is {EventType}, not {expected}.\");");
         source.AppendLine("        }");
         source.AppendLine("    }");
-        source.AppendLine("}");
-        return source.ToString();
     }
 
     private static string GenerateDescriptors(IReadOnlyList<EventLayout> layouts)
@@ -316,8 +431,8 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
     private static IMethodSymbol? PayloadConstructor(INamedTypeSymbol type) =>
         type.InstanceConstructors.FirstOrDefault(static constructor =>
             constructor.Parameters.Length >= 2 &&
-            constructor.Parameters[0].Name == TickFieldName &&
-            constructor.Parameters[1].Name == WorldVersionFieldName);
+            string.Equals(constructor.Parameters[0].Name, TickFieldName, StringComparison.Ordinal) &&
+            string.Equals(constructor.Parameters[1].Name, WorldVersionFieldName, StringComparison.Ordinal));
 
     private static SlotLayout? SlotMetadata(
         IParameterSymbol parameter,
@@ -361,9 +476,12 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
             }
         }
 
-        foreach (var duplicate in slots.GroupBy(static slot => (slot.Kind, slot.Slot)).Where(static group => group.Count() > 1))
+        foreach (var (kind, slot) in slots
+            .GroupBy(static slot => (slot.Kind, slot.Slot))
+            .Where(static group => group.Skip(1).Any())
+            .Select(static duplicate => duplicate.Key))
         {
-            Report(context, type, $"{type.Name} declares duplicate {duplicate.Key.Kind} slot {duplicate.Key.Slot}.");
+            Report(context, type, $"{type.Name} declares duplicate {kind} slot {slot}.");
         }
     }
 
@@ -388,7 +506,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
 
     private static string PackExpression(SlotLayout slot)
     {
-        if (slot.Kind == KernelEventSlotKind.Int && slot.PayloadTypeName != "int")
+        if (slot.Kind == KernelEventSlotKind.Int && !string.Equals(slot.PayloadTypeName, "int", StringComparison.Ordinal))
         {
             return "(int)payload." + slot.PropertyName;
         }
@@ -400,7 +518,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
     {
         var field = slot.Kind == KernelEventSlotKind.Int ? "_int" + slot.Slot.ToString(CultureInfo.InvariantCulture) :
             "_float" + slot.Slot.ToString(CultureInfo.InvariantCulture);
-        if (slot.Kind == KernelEventSlotKind.Int && slot.PayloadTypeName != "int")
+        if (slot.Kind == KernelEventSlotKind.Int && !string.Equals(slot.PayloadTypeName, "int", StringComparison.Ordinal))
         {
             return "(" + slot.PayloadTypeName + ")" + field;
         }
