@@ -6,10 +6,17 @@ Working document for the current tuning pass. This is not a design manifesto. It
 
 Current priority order:
 
-1. process deck and planner physics
+1. low-altitude movement / influence physics
 2. sustainment / death pressure
 3. frontier expansion as a byproduct of the above
 4. generator tuning after the low-altitude systems behave sanely
+
+Current decision:
+
+- The old entity-process / GOAP verb experiments are superseded for now.
+- The new low-altitude verb program is substantially better as the base map-life layer: mobile entities move with per-intent path/dwell/speed variation, and static physical entities affect the map through influence.
+- Do not spend the next tuning pass trying to rescue the old process-deck movement verbs unless a later regression proves the new low-altitude layer is insufficient.
+- Deferred generator note: when generator work resumes, locality targeting should be able to select cells/regions inside high influence, not only exact hex or coverage locality. This lets low-altitude settlement/faction influence become a generator affordance instead of a purely visual map layer.
 
 Primary baseline used so far:
 
@@ -22,10 +29,14 @@ The current working interpretation is not that movement itself is the problem.
 
 Current data-backed issues:
 
-- non-movement process use is badly collapsed even after factoring movement out
 - the world is physically sparse and does not grow organically
-- ambient resources appear inert
-- individual entity stocks appear too binary instead of fluctuating over time
+- individual entity stocks appear too binary instead of fluctuating over time, though attributes are intentionally less central during the low-altitude reset
+- influence overlays look much more alive than the old entity verbs, but may form thin spider-leg shapes that need MC contiguity checks
+
+Current resource stance:
+
+- resource telemetry and parquet artifacts are retained for future work
+- resources are not part of the active tuning analysis because they have been removed as a meaningful active system for now
 
 Grounding numbers from the latest locality batch:
 
@@ -38,39 +49,43 @@ Grounding numbers from the latest locality batch:
 
 Important data caveats:
 
-- settlement `residents` band reporting is not reliable enough yet for fine-grained tuning because its current stock range is very wide and the analyzer output is misleading there
+- settlement `temp_hp` band reporting is not reliable enough yet for fine-grained tuning because the analyzer output has previously conflated health with non-health attributes
 - the locality experiment provided evidence, but should not dominate the next hypothesis ladder
 
 ## Experiment Ladder
 
-### H1. The main deck problem is poor comparative use of non-movement processes
+### H1. Low-altitude movement / influence physics is the current baseline
 
 Why this is active:
 
-- movement can remain common and still be healthy
-- the bad signal is that once movement is factored out, the remaining process deck is still highly collapsed
-- many verbs are never offered, and the live non-movement verbs still monopolize by kind
+- the old entity-process verb model produced stiff, collapsed behavior
+- the new low-altitude verbs are visually and mechanically stronger
+- mobile entities now have divergent target offsets, dwell durations, path looseness, movement cadence, and dwell roaming
+- settlements/factions now create map dynamism through non-exclusive influence rather than physical movement
 
 Experiment:
 
-- inspect utilities, mutation magnitudes, and precondition/cooldown interactions with movement removed as the primary diagnosis
-- measure process concentration within the non-movement slice
-- identify whether dead verbs are structurally unavailable or just numerically losing
+- run the next MC baseline using the new low-altitude physics
+- compare map utilization, entity roaming variance, and influence shape quality
+- treat old GOAP/process movement tuning branches as abandoned unless this baseline regresses
 
 What to measure:
 
-- non-movement process concentration per kind
-- zero-offered and near-zero-selected verbs
-- attribute delta mix by process source
-- comparative score distributions among same-kind non-movement verbs
+- physical/semantic activity spread
+- per-entity roam radius and unique visited cells
+- influence contiguity by influencing entity
+- influence island count and largest-component share
+- settlement/faction coverage growth and HQ movement frequency
 
 Success looks like:
 
-- the non-movement deck becomes materially more diverse even if movement remains common
+- maps look alive per tick without collapsing into a single nexus
+- influence is mostly one dominant component with acceptable tendrils, not many disconnected islands
+- the new low-altitude layer remains clearly better than old entity-process verbs
 
 Status:
 
-- active
+- active baseline
 
 ### H2. Individual stock dynamics are too binary
 
@@ -100,33 +115,30 @@ Status:
 
 - active
 
-### H3. Multi-turn work may create healthier action economics than single-tick action selection
+### H3. Old multi-turn process work is superseded by low-altitude intent commitments
 
-Why this is active:
+Why this is superseded:
 
-- colony sims often tolerate many travel turns because the arrival produces several turns of work
-- current sim actions are highly per-tick and may be creating too much planner churn once an entity reaches a worthwhile site
+- the original concern was that one-tick GOAP actions created planner churn and stiff behavior
+- low-altitude verbs now already create multi-tick commitments with target pursuit, dwell, dwell roaming, and influence application
+- revisiting old process-work commitments now risks tuning the wrong layer
 
 Experiment:
 
-- model selected processes as short work commitments rather than single-tick impulses
-- compare a few representative work types first, not the whole deck
+- no active experiment
+- only reopen if the new low-altitude layer fails to produce sufficient per-tick life
 
 What to measure:
 
-- consecutive same-site productive turns
-- reduction in planner churn
-- non-movement process share
-- local stock fluctuation near work sites
-- whether repeated work simply deepens the existing core or actually produces organic growth
+- none for the immediate ladder
 
 Success looks like:
 
-- arrivals lead to visible multi-turn productive phases without removing movement from the sim
+- old process-work experiments stay closed unless new data justifies reopening
 
 Status:
 
-- active design branch
+- superseded
 
 ### H4. Spatial growth likely needs lightweight development heuristics, not just emergent free play
 
@@ -139,7 +151,7 @@ Why this is active:
 Experiment:
 
 - explore lightweight development rules such as:
-  - terrain/resource desirability
+  - terrain desirability
   - settlement spacing constraints
   - local growth adjacency preferences
   - infrastructure-like anchors or corridors later, if needed
@@ -163,19 +175,16 @@ Status:
 
 - active design branch
 
-### H5. Ambient resources and pressures may be dead systems and should be ablated if necessary
+### H5. Pressures may be a dead system and should be ablated if necessary
 
 Why this is active:
 
-- current telemetry says global resources do nothing
-- there is a real possibility that one or both subsystems are adding complexity without shaping behavior
+- there is a real possibility that pressure is adding complexity without shaping behavior
+- resources are excluded from the active analysis loop for now
 
 Experiment:
 
-- run ablations:
-  - resources removed or disabled
-  - pressures removed or disabled
-  - both removed
+- run a pressure-disabled ablation
 - compare against the current baseline before deciding whether to rework or replace them
 
 What to measure:
@@ -252,12 +261,13 @@ Status:
 
 - active follow-on
 
-### H8. Cooperation planning is still a later option, but smaller request-style coordination remains plausible
+### H8. Cooperation planning and request-style coordination are deferred
 
 Why this is deferred:
 
 - joint planning adds coordination failure, synchronization, and much worse observability
-- it should not be used until simpler changes around process economics, stock dynamics, and growth heuristics are explored first
+- the new low-altitude verb layer should be evaluated first
+- request-style coordination should not be used to patch problems that movement/influence physics already solved
 
 Experiment trigger:
 
@@ -269,15 +279,15 @@ Status:
 
 ## Immediate Next Steps
 
-1. Reframe Monte Carlo analysis around non-movement process diversity and entity-level stock fluctuation.
-2. Design an ablation pass for resources and pressures.
-3. Explore multi-turn work as a narrow experimental branch.
-4. Explore lightweight development heuristics for placement and growth.
+1. Run a fresh MC baseline with the new low-altitude movement/influence physics.
+2. Add influence-contiguity analysis to the MC reporting path.
+3. Continue pressure ablation only after confirming the new low-altitude baseline is stable.
+4. Keep old planner/process verb experiments closed unless the new baseline regresses.
 
 ## Questions To Keep Honest
 
-- If movement is ignored, is the rest of the process deck healthy?
 - Are individual stocks actually fluctuating, or merely pinned high/low?
-- Do resources and pressures matter enough to justify their complexity?
-- Would multi-turn work create better local dynamics, or only deepen existing hubs?
+- Does pressure matter enough to justify its complexity?
+- Is influence mostly contiguous, or is it producing many disconnected islands?
+- Are settlement/faction influence verbs creating readable territory and contestation?
 - Which spatial growth heuristics would create legible late-state development without over-scripting the world?

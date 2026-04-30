@@ -1,6 +1,7 @@
 namespace MonteCarloTool;
 
 using System.Data.Common;
+using System.Globalization;
 
 using DuckDB.NET.Data;
 
@@ -8,7 +9,6 @@ using Engine.Constants;
 using Engine.Domain.Config;
 using Engine.Observability;
 using Engine.Observability.Export;
-using Engine.WorldGen;
 
 internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 {
@@ -55,6 +55,25 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "placement_events",
     ];
 
+    private static readonly OptionalRawTableDefinition[] OptionalRawTables =
+    [
+        new(
+            "cell_influence_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS source_code_id,
+                CAST(NULL AS BIGINT) AS entity_id,
+                CAST(NULL AS BIGINT) AS q,
+                CAST(NULL AS BIGINT) AS r,
+                CAST(NULL AS DOUBLE) AS previous_influence,
+                CAST(NULL AS DOUBLE) AS current_influence,
+                CAST(NULL AS DOUBLE) AS delta
+            WHERE FALSE
+            """),
+    ];
+
     private readonly DomainConfig _domainConfig = domainConfig;
 
     public MonteCarloAnalysisReport AnalyzeToFiles(string batchDirectory)
@@ -84,6 +103,9 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var overview = LoadBatchOverview(connection);
         var generatorRows = LoadGeneratorRows(connection, overview.RunCount);
         var generatedCoverage = LoadGeneratedCoverageRows(connection);
+        var lowAltitudeRows = LoadLowAltitudeVerbRows(connection);
+        var roamingRows = LoadRoamingSummaryRows(connection);
+        var influenceRows = LoadInfluenceSummaryRows(connection);
         var processRows = LoadProcessPressureRows(connection);
         var plannerRows = LoadPlannerPressureRows(connection, processRows);
         var resourceRows = LoadResourcePressureRows(connection);
@@ -92,13 +114,10 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var lifecycleRows = LoadLifecycleRows(connection, overview.RunCount);
         var entitySnapshots = LoadEntitySnapshots(connection);
         var attributeRows = BuildAttributeBandRows(entitySnapshots, attributeConfigs);
-        var mapRows = BuildMapSpreadRows(entitySnapshots, LoadTotalCellCount(connection));
+        var mapRows = LoadMapSpreadRows(connection);
         var flags = BuildFlags(
-            generatorRows,
-            plannerRows,
             mapRows,
             lifecycleRows,
-            resourceRows,
             mapGenerationRows,
             telemetryCoverage);
 
@@ -108,6 +127,9 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             Flags = flags,
             GeneratorBalance = generatorRows,
             GeneratedSubtypeCoverage = generatedCoverage,
+            LowAltitudeVerbUtilization = lowAltitudeRows,
+            RoamingSummary = roamingRows,
+            InfluenceSummary = influenceRows,
             PlannerPressure = plannerRows,
             ProcessPressure = processRows,
             AttributeBands = attributeRows,
@@ -153,6 +175,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                     $"CREATE OR REPLACE TEMP VIEW {SqlFileHelpers.QuoteIdentifier($"raw_{table}")} AS SELECT * FROM {SqlFileHelpers.QuoteIdentifier(table)};");
             }
 
+            CreateOptionalRawViews(dbConnection, batchDirectory, useParquet: false);
             CreateAnalysisViews(dbConnection);
             return dbConnection;
         }
@@ -168,8 +191,46 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 $"CREATE OR REPLACE TEMP VIEW {SqlFileHelpers.QuoteIdentifier($"raw_{table}")} AS SELECT * FROM read_parquet({SqlFileHelpers.QuoteString(path)});");
         }
 
+        CreateOptionalRawViews(connection, batchDirectory, useParquet: true);
         CreateAnalysisViews(connection);
         return connection;
+    }
+
+    private static void CreateOptionalRawViews(DuckDBConnection connection, string batchDirectory, bool useParquet)
+    {
+        foreach (var table in OptionalRawTables)
+        {
+            var rawName = SqlFileHelpers.QuoteIdentifier($"raw_{table.TableName}");
+            if (useParquet)
+            {
+                var path = Path.Combine(batchDirectory, $"{table.TableName}.parquet");
+                var selectSql = File.Exists(path)
+                    ? $"SELECT * FROM read_parquet({SqlFileHelpers.QuoteString(path)})"
+                    : table.EmptySelectSql;
+                SqlFileHelpers.Execute(connection, $"CREATE OR REPLACE TEMP VIEW {rawName} AS {selectSql};");
+                continue;
+            }
+
+            var select = DuckDbTableExists(connection, table.TableName)
+                ? $"SELECT * FROM {SqlFileHelpers.QuoteIdentifier(table.TableName)}"
+                : table.EmptySelectSql;
+            SqlFileHelpers.Execute(connection, $"CREATE OR REPLACE TEMP VIEW {rawName} AS {select};");
+        }
+    }
+
+    private static bool DuckDbTableExists(DuckDBConnection connection, string tableName)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = 'main'
+              AND table_name = ?
+            """;
+        var parameter = command.CreateParameter();
+        parameter.Value = tableName;
+        command.Parameters.Add(parameter);
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
     }
 
     private static void CreateMaterializedAnalysisTable(DuckDBConnection connection, string tableName, string selectSql)
@@ -315,56 +376,65 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
     private static TelemetryCoverage LoadTelemetryCoverage(DuckDBConnection connection)
     {
-        const string sql = """
+        var sql = $"""
             SELECT
                 (SELECT COUNT(*) FROM process_planner_events) AS process_planner_rows,
                 (SELECT COUNT(*) FROM process_execution_events) AS process_execution_rows,
-                (SELECT COUNT(*) FROM raw_resource_events) AS resource_event_rows,
-                (SELECT COUNT(*) FROM raw_resource_snapshots) AS resource_snapshot_rows,
                 (SELECT COUNT(*) FROM raw_map_snapshots) AS map_snapshot_rows,
                 (SELECT COUNT(*) FROM raw_planner_localities) AS locality_opportunity_rows,
-                (SELECT COUNT(*) FROM raw_planner_traces) AS planner_trace_rows;
+                (SELECT COUNT(*) FROM raw_planner_traces) AS planner_trace_rows,
+                (SELECT COUNT(*) FROM raw_trace_events WHERE action_family_code = {ActionFamilyCodes.LowAltitudeVerb}) AS low_altitude_trace_rows,
+                (SELECT COUNT(*) FROM raw_cell_influence_events) AS cell_influence_rows;
             """;
 
         return QuerySingle(connection, sql, reader => new TelemetryCoverage(
             ProcessPlannerRows: ReadInt(reader, "process_planner_rows"),
             ProcessExecutionRows: ReadInt(reader, "process_execution_rows"),
-            ResourceEventRows: ReadInt(reader, "resource_event_rows"),
-            ResourceSnapshotRows: ReadInt(reader, "resource_snapshot_rows"),
             MapSnapshotRows: ReadInt(reader, "map_snapshot_rows"),
             LocalityOpportunityRows: ReadInt(reader, "locality_opportunity_rows"),
-            PlannerTraceRows: ReadInt(reader, "planner_trace_rows")));
+            PlannerTraceRows: ReadInt(reader, "planner_trace_rows"),
+            LowAltitudeTraceRows: ReadInt(reader, "low_altitude_trace_rows"),
+            CellInfluenceRows: ReadInt(reader, "cell_influence_rows")));
     }
 
     private List<ProcessPressureRow> LoadProcessPressureRows(DuckDBConnection connection)
     {
-        var observed = LoadObservedSelectedProcessRows(connection);
-        return BuildProcessPressureRows(observed, "process_events_execution");
+        var observed = LoadObservedActionRows(connection);
+        return BuildProcessPressureRows(observed, "planner_candidates");
     }
 
-    private static Dictionary<(string Kind, string ProcessName), ObservedProcessRow> LoadObservedSelectedProcessRows(
+    private static Dictionary<(string Kind, string ProcessName), ObservedProcessRow> LoadObservedActionRows(
         DuckDBConnection connection)
     {
-        const string summarySql = """
+        var summarySql = $"""
             SELECT
-                kind,
-                executed_process_name AS process_name,
-                COUNT(*) AS selected_count
-            FROM process_execution_events
-            GROUP BY kind, executed_process_name;
+                COALESCE(kind_symbol.stable_name, CAST(candidate.kind_id AS VARCHAR)) AS kind,
+                COALESCE(action_symbol.stable_name, CAST(candidate.action_id AS VARCHAR)) AS process_name,
+                COUNT(*) AS candidate_evaluations,
+                SUM(CASE WHEN candidate.selected THEN 1 ELSE 0 END) AS selected_count,
+                COALESCE(AVG(CAST(candidate.adjusted_score AS DOUBLE)), 0.0) AS average_score,
+                COALESCE(AVG(CASE WHEN candidate.precondition_status_code = 0 THEN 1.0 ELSE 0.0 END), 0.0) AS precondition_pass_rate,
+                COALESCE(AVG(CASE WHEN candidate.cooldown_state_code <> 0 THEN 1.0 ELSE 0.0 END), 0.0) AS cooldown_rate
+            FROM raw_planner_candidates candidate
+            LEFT JOIN symbol_lookup kind_symbol
+              ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
+             AND kind_symbol.id = candidate.kind_id
+            LEFT JOIN symbol_lookup action_symbol
+              ON action_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Verb}
+             AND action_symbol.id = candidate.action_id
+            GROUP BY kind, process_name;
             """;
 
         return Query(connection, summarySql, reader =>
             {
-                var selectedCount = ReadInt(reader, "selected_count");
                 return new ObservedProcessRow(
                     Kind: ReadString(reader, "kind"),
                     ProcessName: ReadString(reader, "process_name"),
-                    CandidateEvaluations: 0,
-                    SelectedCount: selectedCount,
-                    AverageScore: 0d,
-                    PreconditionPassRate: 0d,
-                    CooldownRate: 0d);
+                    CandidateEvaluations: ReadInt(reader, "candidate_evaluations"),
+                    SelectedCount: ReadInt(reader, "selected_count"),
+                    AverageScore: ReadDouble(reader, "average_score"),
+                    PreconditionPassRate: ReadDouble(reader, "precondition_pass_rate"),
+                    CooldownRate: ReadDouble(reader, "cooldown_rate"));
             })
             .ToDictionary(row => (row.Kind, row.ProcessName), row => row);
     }
@@ -373,15 +443,20 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         Dictionary<(string Kind, string ProcessName), ObservedProcessRow> observed,
         string evidenceSource)
     {
-        var rows = _domainConfig.Processes
-            .Select(process =>
+        var configured = _domainConfig.Processes
+            .Select(process => (Kind: process.TargetKind.Value, Name: process.Id))
+            .Concat(_domainConfig.LowAltitudeVerbs.Select(verb => (Kind: verb.Kind.Value, Name: verb.Id)))
+            .ToList();
+
+        var rows = configured
+            .Select(action =>
             {
-                var observedRow = observed.GetValueOrDefault((process.TargetKind.Value, process.Id)) ??
-                                  ObservedProcessRow.Empty(process.TargetKind.Value, process.Name);
+                var observedRow = observed.GetValueOrDefault((action.Kind, action.Name)) ??
+                                  ObservedProcessRow.Empty(action.Kind, action.Name);
 
                 return new ProcessPressureRow(
-                    Kind: process.TargetKind.Value,
-                    ProcessName: process.Name,
+                    Kind: action.Kind,
+                    ProcessName: action.Name,
                     CandidateEvaluations: observedRow.CandidateEvaluations,
                     SelectedCount: observedRow.SelectedCount,
                     SelectionRateWhenOffered: observedRow.CandidateEvaluations == 0
@@ -402,23 +477,39 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToList();
     }
 
+    private static readonly string PlannerPressureRowsSql = $"""
+        SELECT
+            COALESCE(kind_symbol.stable_name, CAST(candidate.kind_id AS VARCHAR)) AS kind,
+            COUNT(DISTINCT candidate.plan_id) AS evaluations,
+            0 AS stale_evaluations,
+            COUNT(DISTINCT CASE WHEN execution.entity_id IS NULL THEN candidate.plan_id ELSE NULL END) AS no_execution_evaluations,
+            COUNT(DISTINCT CASE WHEN execution.entity_id IS NOT NULL THEN candidate.plan_id ELSE NULL END) AS executed_evaluations,
+            COALESCE(AVG(CAST(candidate_count.candidate_count AS DOUBLE)), 0.0) AS average_candidate_count
+        FROM raw_planner_candidates candidate
+        LEFT JOIN raw_process_executions execution
+          ON execution.run_id = candidate.run_id
+         AND execution.entity_id = candidate.entity_id
+         AND execution.plan_id = candidate.plan_id
+         AND execution.goal_id = candidate.goal_id
+        LEFT JOIN symbol_lookup kind_symbol
+          ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
+         AND kind_symbol.id = candidate.kind_id
+        LEFT JOIN (
+            SELECT run_id, entity_id, plan_id, COUNT(*) AS candidate_count
+            FROM raw_planner_candidates
+            GROUP BY run_id, entity_id, plan_id
+        ) candidate_count
+          ON candidate_count.run_id = candidate.run_id
+         AND candidate_count.entity_id = candidate.entity_id
+         AND candidate_count.plan_id = candidate.plan_id
+        GROUP BY kind;
+        """;
+
     private List<PlannerPressureRow> LoadPlannerPressureRows(
         DuckDBConnection connection,
         List<ProcessPressureRow> processRows)
     {
-        const string sql = """
-            SELECT
-                kind,
-                COUNT(*) AS evaluations,
-                SUM(CASE WHEN is_stale THEN 1 ELSE 0 END) AS stale_evaluations,
-                SUM(CASE WHEN executed_process_name IS NULL THEN 1 ELSE 0 END) AS no_execution_evaluations,
-                SUM(CASE WHEN executed_process_name IS NOT NULL THEN 1 ELSE 0 END) AS executed_evaluations,
-                COALESCE(AVG(CAST(candidate_count AS DOUBLE)), 0.0) AS average_candidate_count
-            FROM process_planner_events
-            GROUP BY kind;
-            """;
-
-        var observed = Query(connection, sql, reader => new ObservedPlannerRow(
+        var observed = Query(connection, PlannerPressureRowsSql, reader => new ObservedPlannerRow(
             Kind: ReadString(reader, "kind"),
             Evaluations: ReadInt(reader, "evaluations"),
             StaleEvaluations: ReadInt(reader, "stale_evaluations"),
@@ -602,6 +693,24 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToList();
     }
 
+    private static List<MapSpreadSummaryRow> LoadMapSpreadRows(DuckDBConnection connection)
+    {
+        var sql = $"{MapSpreadSql} ORDER BY run_id;";
+        return Query(connection, sql, reader => new MapSpreadSummaryRow(
+            RunId: ReadString(reader, "run_id"),
+            SnapshotTick: ReadInt(reader, "snapshot_tick"),
+            ActiveEntities: ReadInt(reader, "active_entities"),
+            ActivityEventCount: ReadInt(reader, "activity_event_count"),
+            ActivityCells: ReadInt(reader, "activity_cells"),
+            ActivityCellShare: ReadDouble(reader, "activity_cell_share"),
+            ActivityEntropy: ReadDouble(reader, "activity_entropy"),
+            ActivityTopCellShare: ReadDouble(reader, "activity_top_cell_share"),
+            ActivityBoundingBoxArea: ReadInt(reader, "activity_bounding_box_area"),
+            ActivityCoverageWithinBoundingBox: ReadDouble(reader, "activity_coverage_within_bounding_box"),
+            ActivityAxisAnisotropy: ReadDouble(reader, "activity_axis_anisotropy"),
+            LargestUnoccupiedStrictHexRadius: ReadInt(reader, "largest_unoccupied_strict_hex_radius")));
+    }
+
     private List<LifecycleSummaryRow> LoadLifecycleRows(DuckDBConnection connection, int runCount)
     {
         var finals = LoadFinalLifecycleRows(connection);
@@ -715,41 +824,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToList();
     }
 
-    private int LoadTotalCellCount(DuckDBConnection connection)
-    {
-        const string sql = """
-            WITH first_run AS (
-                SELECT run_id
-                FROM runs
-                ORDER BY run_id
-                LIMIT 1
-            ),
-            map_total AS (
-                SELECT COALESCE(SUM(cell_count), 0) AS total_cells
-                FROM map_snapshots
-                WHERE run_id = (SELECT run_id FROM first_run)
-                  AND tick = (
-                        SELECT MIN(tick)
-                        FROM map_snapshots
-                        WHERE run_id = (SELECT run_id FROM first_run)
-                  )
-            ),
-            tick_total AS (
-                SELECT COALESCE(MAX(covered_cells + uncovered_cells), 0) AS total_cells
-                FROM tick_snapshots
-                WHERE run_id = (SELECT run_id FROM first_run)
-                  AND covered_cells + uncovered_cells > 0
-            )
-            SELECT
-                CASE
-                    WHEN (SELECT total_cells FROM map_total) > 0 THEN (SELECT total_cells FROM map_total)
-                    ELSE (SELECT total_cells FROM tick_total)
-                END AS total_cells;
-            """;
-
-        return QuerySingle(connection, sql, reader => ReadInt(reader, "total_cells"));
-    }
-
     private static List<AttributeBandSummaryRow> BuildAttributeBandRows(
         List<EntitySnapshotRecord> snapshots,
         Dictionary<(string Kind, string Attribute), AttributeConfig> attributeConfigs)
@@ -837,109 +911,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             LowShare: acc.LowCount / (double)denom,
             MidShare: acc.MidCount / (double)denom,
             HighShare: acc.HighCount / (double)denom);
-    }
-
-    private static List<MapSpreadSummaryRow> BuildMapSpreadRows(
-        List<EntitySnapshotRecord> snapshots,
-        int totalCellCount)
-    {
-        var rows = new List<MapSpreadSummaryRow>();
-
-        foreach (var runGroup in snapshots.GroupBy(snapshot => snapshot.RunId, StringComparer.Ordinal))
-        {
-            var row = BuildMapSpreadRow(runGroup, totalCellCount);
-            if (row is not null)
-            {
-                rows.Add(row);
-            }
-        }
-
-        return rows
-            .OrderBy(row => row.RunId, StringComparer.Ordinal)
-            .ToList();
-    }
-
-    private static MapSpreadSummaryRow? BuildMapSpreadRow(
-        IGrouping<string, EntitySnapshotRecord> runGroup,
-        int totalCellCount)
-    {
-        var orderedTicks = runGroup.Select(snapshot => snapshot.Tick).Distinct().Order().ToList();
-        if (orderedTicks.Count == 0)
-        {
-            return null;
-        }
-
-        var seedTick = orderedTicks[0];
-        var finalTick = orderedTicks[^1];
-        var seedCoords = ActivePhysicalCoordsAtTick(runGroup, seedTick);
-        var finalEntities = ActiveEntitiesAtTick(runGroup, finalTick);
-        var occupiedCells = finalEntities
-            .Select(snapshot => (snapshot.PhysicalQ, snapshot.PhysicalR))
-            .Distinct()
-            .ToList();
-        var bboxArea = BoundingBoxArea(occupiedCells);
-        var distances = DistancesFromSeed(finalEntities, seedCoords);
-
-        return new MapSpreadSummaryRow(
-            RunId: runGroup.Key,
-            SnapshotTick: finalTick,
-            ActiveEntities: finalEntities.Count,
-            OccupiedCells: occupiedCells.Count,
-            OccupiedCellShare: totalCellCount == 0 ? 0d : occupiedCells.Count / (double)totalCellCount,
-            BoundingBoxArea: bboxArea,
-            OccupancyWithinBoundingBox: bboxArea == 0 ? 0d : occupiedCells.Count / (double)bboxArea,
-            MeanDistanceFromSeed: distances.Count == 0 ? 0d : distances.Average(),
-            MaxDistanceFromSeed: distances.Count == 0 ? 0d : distances.Max(),
-            Anisotropy: ComputeAnisotropy(finalEntities));
-    }
-
-    private static List<HexCoord> ActivePhysicalCoordsAtTick(
-        IEnumerable<EntitySnapshotRecord> snapshots,
-        int tick) =>
-        ActiveEntitiesAtTick(snapshots, tick)
-            .Select(snapshot => new HexCoord(snapshot.PhysicalQ, snapshot.PhysicalR))
-            .Distinct()
-            .ToList();
-
-    private static List<EntitySnapshotRecord> ActiveEntitiesAtTick(
-        IEnumerable<EntitySnapshotRecord> snapshots,
-        int tick) =>
-        snapshots
-            .Where(snapshot => snapshot.Tick == tick && string.Equals(snapshot.Status, "Active", StringComparison.Ordinal))
-            .ToList();
-
-    private static int BoundingBoxArea(List<(int PhysicalQ, int PhysicalR)> occupiedCells)
-    {
-        if (occupiedCells.Count == 0)
-        {
-            return 0;
-        }
-
-        var minQ = occupiedCells.Min(cell => cell.PhysicalQ);
-        var maxQ = occupiedCells.Max(cell => cell.PhysicalQ);
-        var minR = occupiedCells.Min(cell => cell.PhysicalR);
-        var maxR = occupiedCells.Max(cell => cell.PhysicalR);
-        return (maxQ - minQ + 1) * (maxR - minR + 1);
-    }
-
-    private static List<int> DistancesFromSeed(
-        IEnumerable<EntitySnapshotRecord> finalEntities,
-        IReadOnlyList<HexCoord> seedCoords) =>
-        finalEntities
-            .Select(snapshot => DistanceFromSeed(snapshot, seedCoords))
-            .ToList();
-
-    private static int DistanceFromSeed(
-        EntitySnapshotRecord snapshot,
-        IReadOnlyList<HexCoord> seedCoords)
-    {
-        if (seedCoords.Count == 0)
-        {
-            return 0;
-        }
-
-        var coord = new HexCoord(snapshot.PhysicalQ, snapshot.PhysicalR);
-        return seedCoords.Min(seed => HexCoord.Distance(coord, seed));
     }
 
 }

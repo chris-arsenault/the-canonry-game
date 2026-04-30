@@ -13,6 +13,7 @@ internal static class KernelSnapshotBinary
     private const int TypeIntTable = 9;
     private const int TypeFloatTable = 10;
     private const int TypeSpatialLayerIndex = 11;
+    private const int TypeMapLayerSet = 12;
 
     public static void WriteObject(global::System.IO.BinaryWriter writer, object target)
     {
@@ -122,6 +123,12 @@ internal static class KernelSnapshotBinary
         if (code == TypeFloatTable)
         {
             ((PrimitiveFloatTable)value).WriteSnapshot(writer);
+            return true;
+        }
+
+        if (code == TypeMapLayerSet)
+        {
+            ((MapLayerSet)value).WriteSnapshot(writer);
             return true;
         }
 
@@ -254,6 +261,12 @@ internal static class KernelSnapshotBinary
         if (code == TypeFloatTable)
         {
             ((PrimitiveFloatTable)field.GetValue(target)!).ReadSnapshot(reader);
+            return true;
+        }
+
+        if (code == TypeMapLayerSet)
+        {
+            ((MapLayerSet)field.GetValue(target)!).ReadSnapshot(reader);
             return true;
         }
 
@@ -453,6 +466,11 @@ internal static class KernelSnapshotBinary
         if (type == typeof(SpatialLayerIndex))
         {
             return TypeSpatialLayerIndex;
+        }
+
+        if (type == typeof(MapLayerSet))
+        {
+            return TypeMapLayerSet;
         }
 
         return 0;

@@ -58,8 +58,15 @@ public sealed record HexProjection(
     HexCoord Coord,
     int TerrainId,
     int OwnerEntityId,
+    IReadOnlyList<HexInfluenceProjection> Influences,
     int Tick,
     long WorldVersion,
+    long Sequence);
+
+public sealed record HexInfluenceProjection(
+    int EntityId,
+    float Value,
+    int Tick,
     long Sequence);
 
 public interface IHexSurfaceIndex
@@ -176,6 +183,25 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             evt.CurrentOwnerEntityId);
     }
 
+    protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
+    {
+        var coord = new HexCoord(evt.Q, evt.R);
+        if (!TryGetHex(coord, out var existing))
+        {
+            return;
+        }
+
+        var influences = UpsertInfluence(existing.Influences, evt.EntityId, evt.CurrentInfluence, evt.Tick, sequence);
+        _hexesById[existing.HexId] = existing with
+        {
+            Influences = influences,
+            Tick = evt.Tick,
+            WorldVersion = evt.WorldVersion,
+            Sequence = sequence,
+        };
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
     private void UpsertCell(
         long sequence,
         int tick,
@@ -197,6 +223,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             coord,
             terrainId,
             ownerEntityId,
+            existing?.Influences ?? [],
             tick,
             worldVersion,
             sequence);
@@ -224,6 +251,41 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         value >= 0
             ? value * 2L
             : (-value * 2L) - 1L;
+
+    private static HexInfluenceProjection[] UpsertInfluence(
+        IReadOnlyList<HexInfluenceProjection> existing,
+        int entityId,
+        float value,
+        int tick,
+        long sequence)
+    {
+        var influences = new List<HexInfluenceProjection>(existing.Count + 1);
+        var updated = false;
+        foreach (var influence in existing)
+        {
+            if (influence.EntityId != entityId)
+            {
+                influences.Add(influence);
+                continue;
+            }
+
+            updated = true;
+            if (value > 0f)
+            {
+                influences.Add(new HexInfluenceProjection(entityId, value, tick, sequence));
+            }
+        }
+
+        if (!updated && value > 0f)
+        {
+            influences.Add(new HexInfluenceProjection(entityId, value, tick, sequence));
+        }
+
+        return influences
+            .OrderByDescending(influence => influence.Value)
+            .ThenBy(influence => influence.EntityId)
+            .ToArray();
+    }
 
     private void MarkProjected(long sequence, int tick, long worldVersion)
     {

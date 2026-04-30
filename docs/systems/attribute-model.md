@@ -14,7 +14,7 @@ What keeps the entity present in the world. If integrity reaches zero, the entit
 
 Examples:
 - `stability`
-- `residents`
+- `temp_hp`
 - `cohesion`
 - `vitality`
 - `condition`
@@ -76,7 +76,7 @@ Regions intentionally do not fill all 5 buckets. They are slow world forces, not
 
 ### Settlement
 
-- `residents` -> Integrity
+- `temp_hp` -> Integrity
 - `shelter` -> Need
 - `dominion` -> Projection
 - `civic_ideology` -> Alignment

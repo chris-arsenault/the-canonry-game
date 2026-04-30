@@ -52,7 +52,7 @@ layer. Concretely:
 ```text
 regional ambient food/population/safety
   -> settlements can Irrigate and Grow more effectively
-  -> stronger settlements accumulate residents
+  -> stronger settlements preserve temporary health
   -> NPCs circulate through those settlements to Eat and Create Works
   -> NPC works increase settlement prestige and loyal faction support
   -> factions spend support to Patrol their settlements
@@ -92,7 +92,7 @@ through ambient-resource exhaustion.
 **Existing seed processes**
 
 - `Irrigate` — improves ambient local food.
-- `Grow` — converts local ambient conditions into settlement residents.
+- `Grow` — legacy process concept; settlement health is now `temp_hp`.
 - `Eat` — keeps named settlements relevant as NPC sustainment
   destinations.
 - `Move To Target` — movement enabler for named-place actions.

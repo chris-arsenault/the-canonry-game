@@ -16,6 +16,10 @@ internal static class KernelProgramInstaller
         ArgumentNullException.ThrowIfNull(programs);
         ArgumentNullException.ThrowIfNull(programConfig);
 
+        InstallMovement(context, programs.Movement);
+        InstallLowAltitudeVerbs(context, programs.LowAltitudeVerbs);
+        InstallMapActivity(context, programs.MapActivity);
+        InstallEffects(context, programs.Effects);
         InstallUpkeep(context, programs.Upkeep);
         InstallProcesses(context, programs.Processes);
         InstallGambits(context, programs.Gambits);
@@ -24,6 +28,18 @@ internal static class KernelProgramInstaller
         InstallGenerators(context, programs.Generators);
         InstallDegeneracy(context, programs.Degeneracy);
 
+        context.SetProgramEnabled(
+            KernelProgramCodes.Movement,
+            programConfig.IsEnabled(KernelProgramCodes.Movement, programs.Movement.EnabledByDefault));
+        context.SetProgramEnabled(
+            KernelProgramCodes.LowAltitudeVerbs,
+            programConfig.IsEnabled(KernelProgramCodes.LowAltitudeVerbs, programs.LowAltitudeVerbs.EnabledByDefault));
+        context.SetProgramEnabled(
+            KernelProgramCodes.MapActivity,
+            programConfig.IsEnabled(KernelProgramCodes.MapActivity, programs.MapActivity.EnabledByDefault));
+        context.SetProgramEnabled(
+            KernelProgramCodes.Effects,
+            programConfig.IsEnabled(KernelProgramCodes.Effects, programs.Effects.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Upkeep,
             programConfig.IsEnabled(KernelProgramCodes.Upkeep, programs.Upkeep.EnabledByDefault));
@@ -47,23 +63,66 @@ internal static class KernelProgramInstaller
             programConfig.IsEnabled(KernelProgramCodes.Degeneracy, programs.Degeneracy.EnabledByDefault));
     }
 
+    private static void InstallMovement(KernelConfigurationContext context, MovementProgram program)
+    {
+        foreach (var rule in program.Rules)
+        {
+            context.RegisterMovementRule(
+                rule.KindId,
+                rule.PlaneCode,
+                rule.MoveChance,
+                rule.ExploreWeight,
+                rule.StalenessWeight,
+                rule.CrowdingWeight);
+        }
+    }
+
+    private static void InstallMapActivity(KernelConfigurationContext context, MapActivityProgram program)
+    {
+        context.ConfigureMapActivity(program.PresenceHeat);
+    }
+
+    private static void InstallLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)
+    {
+        foreach (var verb in program.Verbs)
+        {
+            var slot = context.RegisterLowAltitudeVerb(
+                verb.KindId,
+                verb.VerbId,
+                verb.PlaneCode,
+                verb.OperationCode,
+                verb.TargetModeCode,
+                verb.TargetKindId,
+                verb.RelationshipKindId,
+                verb.RelationshipDirectionCode,
+                verb.MinCommitmentTicks,
+                verb.MaxCommitmentTicks,
+                verb.DwellTicks,
+                verb.TargetRadius,
+                verb.CandidateSampleCount,
+                verb.Weight,
+                verb.ExploreWeight,
+                verb.StalenessWeight,
+                verb.HotspotWeight,
+                verb.CrowdingWeight,
+                verb.GeneratorAffordanceWeight,
+                verb.AffinityRelationshipKindId,
+                verb.AffinityRelationshipDirectionCode,
+                verb.RelationshipAffinityWeight,
+                verb.InfluenceDelta,
+                verb.InfluenceRadius,
+                verb.CoverageGrowthChance,
+                verb.HeadquartersMoveChance,
+                verb.RequiredInfluence);
+            foreach (var terrainId in verb.TerrainIds)
+            {
+                context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);
+            }
+        }
+    }
+
     private static void InstallUpkeep(KernelConfigurationContext context, UpkeepProgram program)
     {
-        foreach (var rule in program.AttributeRules)
-        {
-            context.RegisterAttributeUpkeep(
-                rule.KindId,
-                new AttributeRuntimeId(rule.AttributeId),
-                rule.DriftRate,
-                rule.LocationResourceId,
-                rule.LocationResourceDriftPerUnit,
-                rule.LocationResourceDriftMinOffset,
-                rule.LocationResourceDriftMaxOffset,
-                rule.CriticalTargetAttributeId,
-                rule.CriticalThreshold,
-                rule.CriticalDelta);
-        }
-
         foreach (var lifecycle in program.LifecycleRules)
         {
             context.RegisterLifecycleUpkeep(
@@ -72,6 +131,24 @@ internal static class KernelProgramInstaller
                 lifecycle.BaseRate,
                 lifecycle.AgeCoefficient,
                 lifecycle.Variance);
+        }
+    }
+
+    private static void InstallEffects(KernelConfigurationContext context, EffectsProgram program)
+    {
+        foreach (var effect in program.AttributeDeltaEffects)
+        {
+            context.RegisterAttributeDeltaEffect(
+                effect.KindId,
+                new AttributeRuntimeId(effect.AttributeId),
+                effect.ConditionCode,
+                effect.RelationshipKindId,
+                effect.RelationshipDirectionCode,
+                effect.PlaneCode,
+                effect.MaxDistance,
+                effect.Threshold,
+                effect.MinimumRelationshipStrength,
+                effect.DeltaPerTick);
         }
     }
 
@@ -122,9 +199,6 @@ internal static class KernelProgramInstaller
             process.EntityCooldownTicks,
             TargetModeCode(process.TargetMode),
             process.TargetKindId,
-            process.ResourceSupplyRoleCode,
-            process.NamedProviderKindId,
-            process.NamedProviderAttributeId,
             process.WorkCommitmentTicks);
         InstallProcessGoalEffects(context, processSlot, process);
         InstallProcessPreconditions(context, processSlot, process);
@@ -245,6 +319,17 @@ internal static class KernelProgramInstaller
             context.RegisterRelationshipKind(
                 new RelationshipKindRuntimeId(relationship.RelationshipKindId),
                 relationship.CullThreshold);
+        }
+
+        foreach (var rule in program.MaintenanceRules)
+        {
+            context.AddRelationshipMaintenanceRule(
+                new RelationshipKindRuntimeId(rule.RelationshipKindId),
+                rule.ConditionCode,
+                rule.PlaneCode,
+                rule.MaxDistance,
+                rule.Threshold,
+                rule.Delta);
         }
     }
 
@@ -692,7 +777,6 @@ internal static class KernelProgramInstaller
         {
             ProcessProgramOperation.AddResource => ProcessOperationCodes.AddResource,
             ProcessProgramOperation.AddLocationResource => ProcessOperationCodes.AddLocationResource,
-            ProcessProgramOperation.HexToHealth => ProcessOperationCodes.HexToHealth,
             ProcessProgramOperation.AddPressure => ProcessOperationCodes.AddPressure,
             _ => -1,
         };

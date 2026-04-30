@@ -41,7 +41,7 @@ internal sealed partial class ProcessProgramRuntime
         var operationCode = _stepOperationCodes[step];
         if (ExecuteAttributeStep(simulation, entityId, targetId, tick, step, operationCode, variableIds, variableValues, ref variableCount) ||
             ExecuteMovementStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
-            ExecuteResourceStep(simulation, world, entityId, targetId, tick, processSlot, step, operationCode) ||
+            ExecuteResourceStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
             ExecuteEntityStep(simulation, world, entityId, targetId, tick, step, operationCode))
         {
             return;
@@ -121,27 +121,14 @@ internal sealed partial class ProcessProgramRuntime
         }
     }
 
-    private bool ExecuteResourceStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int processSlot, int step, int operationCode)
+    private bool ExecuteResourceStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step, int operationCode)
     {
         switch (operationCode)
         {
             case ProcessOperationCodes.AddLocationResource:
-                if (Tuning.Processes.ResourceSupplyModelCode == ProcessResourceSupplyModelCodes.NamedProviderNoHex)
-                {
-                    return true;
-                }
-
                 AddLocationResource(simulation, entityId, targetId, tick, step);
                 return true;
-            case ProcessOperationCodes.HexToHealth:
-                HexToHealth(simulation, entityId, targetId, tick, processSlot, step);
-                return true;
             case ProcessOperationCodes.AddResource:
-                if (Tuning.Processes.ResourceSupplyModelCode == ProcessResourceSupplyModelCodes.NamedProviderNoHex)
-                {
-                    return true;
-                }
-
                 simulation.ModifyResource(_stepA[step], world.EntityPhysicalQ(entityId) + _stepB[step], world.EntityPhysicalR(entityId) + _stepC[step], _stepX[step], tick);
                 return true;
             case ProcessOperationCodes.AddPressure:
@@ -284,51 +271,6 @@ internal sealed partial class ProcessProgramRuntime
             world.EntityPhysicalR(locationEntityId),
             _stepX[step],
             tick);
-    }
-
-    private void HexToHealth(
-        Simulation simulation,
-        int entityId,
-        int targetId,
-        int tick,
-        int processSlot,
-        int step)
-    {
-        if (NamedProviderRecoveryActive(processSlot))
-        {
-            NamedProviderToHealth(simulation, entityId, targetId, tick, processSlot, step);
-            return;
-        }
-
-        var world = simulation.World;
-        var locationEntityId = _stepC[step] == 0 ? entityId : targetId;
-        var resource = ResourceAtEntity(world, locationEntityId, _stepB[step]);
-        if (resource <= 0f)
-        {
-            return;
-        }
-
-        simulation.ModifyAttribute(entityId, _stepA[step], resource * _stepX[step], tick);
-    }
-
-    private void NamedProviderToHealth(
-        Simulation simulation,
-        int entityId,
-        int targetId,
-        int tick,
-        int processSlot,
-        int step)
-    {
-        var sourceAttributeId = _processNamedProviderAttributeIds[processSlot];
-        var available = simulation.World.GetAttribute(targetId, sourceAttributeId);
-        var amount = available > NamedProviderRecoveryUnit ? NamedProviderRecoveryUnit : available;
-        if (amount <= 0f)
-        {
-            return;
-        }
-
-        simulation.ModifyAttribute(targetId, sourceAttributeId, -amount, tick);
-        simulation.ModifyAttribute(entityId, _stepA[step], amount * _stepX[step], tick);
     }
 
     private float EvaluateMutationExpression(

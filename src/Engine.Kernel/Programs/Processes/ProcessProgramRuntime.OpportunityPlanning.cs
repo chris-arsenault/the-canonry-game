@@ -24,7 +24,14 @@ internal sealed partial class ProcessProgramRuntime
     internal PlanningDecision PlanOpportunity(Simulation simulation, in PlanningRequest request)
     {
         var candidateCount = 0;
-        var totalWeight = EvaluateOpportunityProcessPlanTotal(simulation, request, ref candidateCount);
+        var traceEnabled = simulation.TraceEnabled();
+        var planCount = BuildOpportunityProcessPlans(
+            simulation,
+            request.ActorEntityId,
+            request.ActorKindId,
+            request.Tick,
+            traceEnabled,
+            ref candidateCount);
         if (candidateCount == 0)
         {
             return simulation.Planners.EmptyDecision(
@@ -34,6 +41,17 @@ internal sealed partial class ProcessProgramRuntime
                 0f);
         }
 
+        if (planCount == 0)
+        {
+            return simulation.Planners.EmptyDecision(
+                PlanningStatusCodes.NoWeight,
+                request.ActionFamilyCode,
+                candidateCount,
+                0f);
+        }
+
+        ApplyLocalityBundling(simulation, request.ActorEntityId, request.Tick, planCount, traceEnabled);
+        var totalWeight = ProcessPlanAdjustedWeightTotal(planCount);
         if (totalWeight <= 0f)
         {
             return simulation.Planners.EmptyDecision(
@@ -43,40 +61,21 @@ internal sealed partial class ProcessProgramRuntime
                 totalWeight);
         }
 
-        return SelectOpportunityProcessPlan(simulation, request, totalWeight, candidateCount);
+        return WriteSelectedOpportunityProcessDecision(simulation, request, planCount, candidateCount, totalWeight);
     }
 
-    private float EvaluateOpportunityProcessPlanTotal(Simulation simulation, in PlanningRequest request, ref int candidateCount)
-    {
-        return EvaluateOpportunityProcessPlans(
-            simulation,
-            request.ActorEntityId,
-            request.ActorKindId,
-            request.Tick,
-            selectRoll: -1f,
-            ref candidateCount,
-            out _,
-            out _,
-            out _,
-            out _,
-            out _,
-            out _);
-    }
-
-    private PlanningDecision SelectOpportunityProcessPlan(
+    private PlanningDecision WriteSelectedOpportunityProcessDecision(
         Simulation simulation,
         in PlanningRequest request,
-        float totalWeight,
-        int candidateCount)
+        int planCount,
+        int candidateCount,
+        float totalWeight)
     {
-        var selectedCandidateCount = 0;
-        _ = EvaluateOpportunityProcessPlans(
+        SelectOpportunityProcessPlan(
             simulation,
-            request.ActorEntityId,
-            request.ActorKindId,
-            request.Tick,
-            ClampSelectionRoll(request.SelectionRoll) * totalWeight,
-            ref selectedCandidateCount,
+            request,
+            planCount,
+            totalWeight,
             out var selectedProcessSlot,
             out var selectedTargetId,
             out var selectedRootProcessSlot,
@@ -92,7 +91,7 @@ internal sealed partial class ProcessProgramRuntime
                 totalWeight);
         }
 
-        ReserveOpportunityProcessTarget(selectedRootTargetId, selectedRootProcessSlot, request.Tick);
+        ReserveProcessActionTarget(selectedRootTargetId, selectedRootProcessSlot, request.Tick);
         return simulation.Planners.WriteSelectedPlan(
             request,
             selectedEffectKey,
@@ -105,28 +104,15 @@ internal sealed partial class ProcessProgramRuntime
             totalWeight);
     }
 
-    private float EvaluateOpportunityProcessPlans(
+    private int BuildOpportunityProcessPlans(
         Simulation simulation,
         int entityId,
         int kindId,
         int tick,
-        float selectRoll,
-        ref int candidateCount,
-        out int selectedProcessSlot,
-        out int selectedTargetId,
-        out int selectedRootProcessSlot,
-        out int selectedRootTargetId,
-        out int selectedEffectKey,
-        out int selectedLocalityKey)
+        bool traceEnabled,
+        ref int candidateCount)
     {
-        selectedProcessSlot = 0;
-        selectedTargetId = 0;
-        selectedRootProcessSlot = 0;
-        selectedRootTargetId = 0;
-        selectedEffectKey = 0;
-        selectedLocalityKey = 0;
-        var total = 0f;
-        var traceEnabled = selectRoll < 0f;
+        var planCount = 0;
         for (var processSlot = 1; processSlot <= _processCount; processSlot++)
         {
             if (!ProcessCanRunForEntity(processSlot, kindId, entityId, tick) ||
@@ -135,87 +121,49 @@ internal sealed partial class ProcessProgramRuntime
                 continue;
             }
 
-            total = EvaluateOpportunityProcessTargets(
-                simulation,
-                entityId,
-                processSlot,
-                tick,
-                selectRoll,
-                traceEnabled,
-                total,
-                ref candidateCount,
-                ref selectedProcessSlot,
-                ref selectedTargetId,
-                ref selectedRootProcessSlot,
-                ref selectedRootTargetId,
-                ref selectedEffectKey,
-                ref selectedLocalityKey);
-            if (selectedProcessSlot > 0)
+            var world = simulation.World;
+            for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
             {
-                return total;
+                var candidate = EvaluateOpportunityProcessTarget(
+                    simulation,
+                    entityId,
+                    processSlot,
+                    targetId,
+                    tick,
+                    traceEnabled,
+                    world,
+                    ref candidateCount);
+                if (candidate.Weight <= 0f)
+                {
+                    continue;
+                }
+
+                if (planCount >= _processPlanWeights.Length - 1)
+                {
+                    EmitActionSummaryIfNeeded(
+                        simulation,
+                        tick,
+                        entityId,
+                        candidate.CandidateIndex,
+                        processSlot,
+                        candidate.EffectScopeCode,
+                        candidate.EffectValueId,
+                        candidate.EffectKindId,
+                        targetId,
+                        TraceStatusCodes.CapacityReached,
+                        0f,
+                        candidate.Weight,
+                        0f,
+                        traceEnabled);
+                    continue;
+                }
+
+                planCount++;
+                StoreOpportunityProcessPlan(simulation, planCount, processSlot, targetId, candidate);
             }
         }
 
-        return total;
-    }
-
-    private float EvaluateOpportunityProcessTargets(
-        Simulation simulation,
-        int entityId,
-        int processSlot,
-        int tick,
-        float selectRoll,
-        bool traceEnabled,
-        float total,
-        ref int candidateCount,
-        ref int selectedProcessSlot,
-        ref int selectedTargetId,
-        ref int selectedRootProcessSlot,
-        ref int selectedRootTargetId,
-        ref int selectedEffectKey,
-        ref int selectedLocalityKey)
-    {
-        var world = simulation.World;
-        for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
-        {
-            var candidate = EvaluateOpportunityProcessTarget(
-                simulation,
-                entityId,
-                processSlot,
-                targetId,
-                tick,
-                traceEnabled,
-                world,
-                ref candidateCount);
-            if (candidate.Weight <= 0f)
-            {
-                continue;
-            }
-
-            total += candidate.Weight;
-            if (selectRoll < 0f || selectRoll > total)
-            {
-                continue;
-            }
-
-            SelectOpportunityProcessCandidate(
-                simulation,
-                world,
-                tick,
-                entityId,
-                candidate,
-                processSlot,
-                targetId,
-                ref selectedProcessSlot,
-                ref selectedTargetId,
-                ref selectedRootProcessSlot,
-                ref selectedRootTargetId,
-                ref selectedEffectKey,
-                ref selectedLocalityKey);
-            return total;
-        }
-
-        return total;
+        return planCount;
     }
 
     private OpportunityProcessCandidate EvaluateOpportunityProcessTarget(
@@ -263,42 +211,81 @@ internal sealed partial class ProcessProgramRuntime
         };
     }
 
-    private void SelectOpportunityProcessCandidate(
+    private void StoreOpportunityProcessPlan(
         Simulation simulation,
-        WorldState world,
-        int tick,
-        int entityId,
-        OpportunityProcessCandidate candidate,
+        int planCount,
         int processSlot,
         int targetId,
-        ref int selectedProcessSlot,
-        ref int selectedTargetId,
-        ref int selectedRootProcessSlot,
-        ref int selectedRootTargetId,
-        ref int selectedEffectKey,
-        ref int selectedLocalityKey)
+        OpportunityProcessCandidate candidate)
     {
-        selectedProcessSlot = candidate.LeafProcessSlot;
-        selectedTargetId = candidate.LeafTargetId;
-        selectedRootProcessSlot = processSlot;
-        selectedRootTargetId = targetId;
-        selectedEffectKey = candidate.EffectKeyValue;
-        selectedLocalityKey = LocalityKey(world, targetId);
-        EmitActionSummaryTrace(
-            simulation,
-            tick,
-            entityId,
-            candidate.CandidateIndex,
-            0,
-            processSlot,
-            candidate.EffectScopeCode,
-            candidate.EffectValueId,
-            candidate.EffectKindId,
-            targetId,
-            TraceStatusCodes.Selected,
-            0f,
-            candidate.Weight,
-            candidate.Weight);
+        _processPlanEffectKeys[planCount] = candidate.EffectKeyValue;
+        _processPlanEffectScopeCodes[planCount] = candidate.EffectScopeCode;
+        _processPlanEffectValueIds[planCount] = candidate.EffectValueId;
+        _processPlanEffectKindIds[planCount] = candidate.EffectKindId;
+        _processPlanGoalCandidateIndexes[planCount] = candidate.CandidateIndex;
+        _processPlanRootProcessSlots[planCount] = processSlot;
+        _processPlanRootTargetIds[planCount] = targetId;
+        _processPlanProcessSlots[planCount] = candidate.LeafProcessSlot;
+        _processPlanTargetIds[planCount] = candidate.LeafTargetId;
+        _processPlanLocalityKeys[planCount] = LocalityKey(simulation.World, targetId);
+        _processPlanWeights[planCount] = candidate.Weight;
+        _processPlanAdjustedWeights[planCount] = candidate.Weight;
+    }
+
+    private void SelectOpportunityProcessPlan(
+        Simulation simulation,
+        in PlanningRequest request,
+        int planCount,
+        float total,
+        out int selectedProcessSlot,
+        out int selectedTargetId,
+        out int selectedRootProcessSlot,
+        out int selectedRootTargetId,
+        out int selectedEffectKey,
+        out int selectedLocalityKey)
+    {
+        selectedProcessSlot = 0;
+        selectedTargetId = 0;
+        selectedRootProcessSlot = 0;
+        selectedRootTargetId = 0;
+        selectedEffectKey = 0;
+        selectedLocalityKey = 0;
+        var selectRoll = ClampSelectionRoll(request.SelectionRoll) * total;
+        var cumulative = 0f;
+        for (var plan = 1; plan <= planCount; plan++)
+        {
+            cumulative += _processPlanAdjustedWeights[plan];
+            if (selectRoll > cumulative)
+            {
+                continue;
+            }
+
+            selectedProcessSlot = _processPlanProcessSlots[plan];
+            selectedTargetId = _processPlanTargetIds[plan];
+            selectedRootProcessSlot = _processPlanRootProcessSlots[plan];
+            selectedRootTargetId = _processPlanRootTargetIds[plan];
+            selectedEffectKey = _processPlanEffectKeys[plan];
+            selectedLocalityKey = _processPlanLocalityKeys[plan];
+            EmitActionSummaryTrace(
+                simulation,
+                request.Tick,
+                request.ActorEntityId,
+                _processPlanGoalCandidateIndexes[plan],
+                0,
+                _processPlanRootProcessSlots[plan],
+                _processPlanEffectScopeCodes[plan],
+                _processPlanEffectValueIds[plan],
+                _processPlanEffectKindIds[plan],
+                _processPlanRootTargetIds[plan],
+                TraceStatusCodes.Selected,
+                0f,
+                _processPlanWeights[plan],
+                _processPlanAdjustedWeights[plan]);
+            _committedPlanTargets.Set(request.ActorEntityId, _processPlanEffectKeys[plan], _processPlanRootTargetIds[plan]);
+            _committedPlanProcessSlots.Set(request.ActorEntityId, _processPlanEffectKeys[plan], _processPlanRootProcessSlots[plan]);
+            _committedPlanLocalities.Set(request.ActorEntityId, ProcessLocalityCommitmentKey, _processPlanLocalityKeys[plan]);
+            return;
+        }
     }
 
     private float EvaluateOpportunityProcessCandidate(
@@ -328,13 +315,19 @@ internal sealed partial class ProcessProgramRuntime
             return 0f;
         }
 
-        if (OpportunityProcessTargetAtCapacity(processSlot, targetId, tick))
+        if (ProcessActionTargetAtCapacity(processSlot, targetId, tick, OpportunityTargetCapacity()))
         {
             EmitActionSummaryIfNeeded(simulation, tick, entityId, candidateIndex, processSlot, effectScopeCode, effectValueId, effectKindId, targetId, TraceStatusCodes.CapacityReached, 0f, reward, 0f, traceEnabled);
             return 0f;
         }
 
         var urgency = OpportunityProcessUrgency(simulation.World, entityId, processSlot, targetId);
+        if (urgency <= 0f)
+        {
+            EmitActionSummaryIfNeeded(simulation, tick, entityId, candidateIndex, processSlot, effectScopeCode, effectValueId, effectKindId, targetId, TraceStatusCodes.BelowUrgency, 0f, reward, 0f, traceEnabled);
+            return 0f;
+        }
+
         var weight = EvaluatePlanCandidateWithReward(
             simulation,
             entityId,
@@ -449,32 +442,36 @@ internal sealed partial class ProcessProgramRuntime
         effectKindId = _processKindIds[processSlot];
     }
 
-    private bool OpportunityProcessTargetAtCapacity(int processSlot, int targetId, int tick)
+    private bool GoapProcessTargetReservationsEnabled()
     {
-        var capacity = OpportunityTargetCapacity();
-        return OpportunityProcessReservationCount(processSlot, targetId, tick) >= capacity;
+        return Tuning.Planning.GoapTargetReservationsEnabled;
     }
 
-    private int OpportunityProcessReservationCount(int processSlot, int targetId, int tick)
+    private bool ProcessActionTargetAtCapacity(int processSlot, int targetId, int tick, int capacity)
     {
-        if (_opportunityReservationTicks.GetOrDefault(targetId, processSlot) != tick)
+        return ProcessActionTargetReservationCount(processSlot, targetId, tick) >= capacity;
+    }
+
+    private int ProcessActionTargetReservationCount(int processSlot, int targetId, int tick)
+    {
+        if (_actionTargetReservationTicks.GetOrDefault(targetId, processSlot) != tick)
         {
             return 0;
         }
 
-        return _opportunityReservationCounts.GetOrDefault(targetId, processSlot);
+        return _actionTargetReservationCounts.GetOrDefault(targetId, processSlot);
     }
 
-    private void ReserveOpportunityProcessTarget(int targetId, int processSlot, int tick)
+    private void ReserveProcessActionTarget(int targetId, int processSlot, int tick)
     {
         if (targetId <= 0 || processSlot <= 0)
         {
             return;
         }
 
-        var current = OpportunityProcessReservationCount(processSlot, targetId, tick);
-        _opportunityReservationTicks.Set(targetId, processSlot, tick);
-        _opportunityReservationCounts.Set(targetId, processSlot, current + 1);
+        var current = ProcessActionTargetReservationCount(processSlot, targetId, tick);
+        _actionTargetReservationTicks.Set(targetId, processSlot, tick);
+        _actionTargetReservationCounts.Set(targetId, processSlot, current + 1);
     }
 
     private int OpportunityTargetCapacity()

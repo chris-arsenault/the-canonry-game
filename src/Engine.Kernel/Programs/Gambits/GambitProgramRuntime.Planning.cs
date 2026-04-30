@@ -43,7 +43,7 @@ internal sealed partial class GambitProgramRuntime
         var total = GambitPlanAdjustedWeightTotal(planCount);
         return selectRoll < 0f
             ? total
-            : SelectGambitPlanCandidate(entityId, planCount, selectRoll, total, out selectedGambitSlot, out selectedTargetId, out selectedRootGambitSlot, out selectedRootTargetId, out selectedEffectKey, out selectedLocalityKey);
+            : SelectGambitPlanCandidate(entityId, tick, planCount, selectRoll, total, out selectedGambitSlot, out selectedTargetId, out selectedRootGambitSlot, out selectedRootTargetId, out selectedEffectKey, out selectedLocalityKey);
     }
 
     private int BuildGambitPlans(
@@ -104,6 +104,12 @@ internal sealed partial class GambitProgramRuntime
             return;
         }
 
+        if (GoapGambitTargetReservationsEnabled() &&
+            GambitActionTargetAtCapacity(rootGambitSlot, rootTargetId, tick, capacity: 1))
+        {
+            return;
+        }
+
         planCount++;
         _gambitPlanEffectKeys[planCount] = EffectKey(
             _objectiveEffectScopeCodes[objective],
@@ -130,6 +136,7 @@ internal sealed partial class GambitProgramRuntime
 
     private float SelectGambitPlanCandidate(
         int entityId,
+        int tick,
         int planCount,
         float selectRoll,
         float total,
@@ -164,6 +171,11 @@ internal sealed partial class GambitProgramRuntime
             _committedPlanTargets.Set(entityId, _gambitPlanEffectKeys[plan], _gambitPlanRootTargetIds[plan]);
             _committedPlanGambitSlots.Set(entityId, _gambitPlanEffectKeys[plan], _gambitPlanRootGambitSlots[plan]);
             _committedPlanLocalities.Set(entityId, GambitLocalityCommitmentKey, _gambitPlanLocalityKeys[plan]);
+            if (GoapGambitTargetReservationsEnabled())
+            {
+                ReserveGambitActionTarget(_gambitPlanRootTargetIds[plan], _gambitPlanRootGambitSlots[plan], tick);
+            }
+
             return total;
         }
 

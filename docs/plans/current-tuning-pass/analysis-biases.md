@@ -78,13 +78,12 @@ Recurring bias:
 
 Correction:
 
-- ambient resources should matter occasionally and locally
-- they should help named places accumulate local value over time
-- they are not the main explanation for every planner or frontier problem
+- resources are not an active tuning target in the current low-altitude pass
+- retain resource telemetry for future work, but do not use resource behavior to explain current planner, movement, influence, or frontier problems
 
 Additional correction:
 
-- if resources or pressures are inert, consider ablation as a diagnostic
+- if pressure is inert, consider ablation as a diagnostic
 - do not preserve a dead subsystem just because it sounds simulation-rich on paper
 
 ### 5. Do not propose generic recommendations without a tuning end goal

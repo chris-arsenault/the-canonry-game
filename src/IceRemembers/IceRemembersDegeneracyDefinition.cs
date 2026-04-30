@@ -8,10 +8,10 @@ using Rel = IceRemembers.IceRemembersRelationship;
 
 public static class IceRemembersDegeneracyDefinition
 {
-    private const string SettlementDepopulationId = "settlement_depopulation";
+    private const string SettlementDepopulationId = "settlement_collapse";
     private const string PoliticalMonocultureId = "political_monoculture";
     private const string NpcExtinctionId = "npc_extinction";
-    private const string SettlementDepopulationReason = "settlement_depopulation_transition";
+    private const string SettlementDepopulationReason = "settlement_collapse_transition";
     private const string PoliticalMonocultureReason = "political_monoculture_transition";
     private const string NpcExtinctionReason = "npc_extinction_transition";
 
@@ -22,14 +22,14 @@ public static class IceRemembersDegeneracyDefinition
             new DegeneracyDetectorConfig
             {
                 Id = SettlementDepopulationId,
-                DisplayName = "Settlement Depopulation",
-                Description = "Too many settlements have declining resident populations.",
+                DisplayName = "Settlement Collapse",
+                Description = "Too many settlements have declining temporary health.",
                 ReasonCode = SettlementDepopulationReason,
                 Metric = DegeneracyMetric.AttributeDeclineRatio,
                 ThresholdDirection = DegeneracyThresholdDirection.HighIsBad,
                 NoSubjectsSeverity = DegeneracySeverity.Critical,
                 PrimaryKind = K.Settlement,
-                Attribute = Attr.Residents.ToDomainName(),
+                Attribute = Attr.TempHp.ToDomainName(),
                 WarningThreshold = 0.5f,
                 CriticalThreshold = 0.8f,
             },

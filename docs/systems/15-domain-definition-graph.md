@@ -128,7 +128,7 @@ A stock is a typed attribute that participates in stock/flow reasoning.
 
 Examples:
 
-- `Settlement.residents`
+- `Settlement.temp_hp`
 - `Settlement.security`
 - `Npc.warmth`
 - `Region.holding`

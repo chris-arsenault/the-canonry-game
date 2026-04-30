@@ -12,6 +12,10 @@ internal sealed partial class Simulation
         World.WriteSnapshot(writer);
         _programs.WriteSnapshot(writer);
         PlanningProgramSnapshot.Write(writer, Planners);
+        MovementProgramSnapshot.Write(writer, Movement);
+        LowAltitudeVerbProgramSnapshot.Write(writer, LowAltitudeVerbs);
+        MapActivityProgramSnapshot.Write(writer, MapActivity);
+        EffectsProgramSnapshot.Write(writer, Effects);
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
         ProcessProgramSnapshot.Write(writer, Processes);
@@ -29,6 +33,10 @@ internal sealed partial class Simulation
         World.ReadSnapshot(reader);
         _programs.ReadSnapshot(this, reader);
         PlanningProgramSnapshot.Read(reader, Planners);
+        MovementProgramSnapshot.Read(reader, Movement);
+        LowAltitudeVerbProgramSnapshot.Read(reader, LowAltitudeVerbs);
+        MapActivityProgramSnapshot.Read(reader, MapActivity);
+        EffectsProgramSnapshot.Read(reader, Effects);
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);
         ProcessProgramSnapshot.Read(reader, Processes);

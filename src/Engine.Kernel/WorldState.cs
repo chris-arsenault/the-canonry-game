@@ -11,7 +11,7 @@ internal sealed partial class WorldState
     private readonly PrimitiveFloatTable _attributes;
     private readonly PrimitiveFloatTable _resources;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
-    private readonly SpatialLayerIndex _coverageLayer;
+    private readonly MapLayerSet _mapLayers;
     private readonly KernelDataSet _kernelData;
     private bool[] _entityAllocated = [];
     private int[] _entityStatus = [];
@@ -77,7 +77,7 @@ internal sealed partial class WorldState
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _resources = new PrimitiveFloatTable(options.ResourceCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
-        _coverageLayer = new SpatialLayerIndex(options.EntityCapacity, options.MapCellCapacity);
+        _mapLayers = new MapLayerSet(options.EntityCapacity, options.MapCellCapacity, options.MapInfluenceCapacity);
         InitializeEntityStorage(options);
         InitializeRelationshipStorage(options);
         InitializeRelationshipGraphStorage(options);
@@ -204,7 +204,7 @@ internal sealed partial class WorldState
     {
         var key = CoordinateKey(q, r);
         _mapCellTerrainIds.Set(key, 1, terrainId);
-        _coverageLayer.SetValue(key, q, r, ownerEntityId);
+        _mapLayers.Coverage.SetValue(key, q, r, ownerEntityId);
     }
 
     public int TerrainBoundaryGroupId(int terrainId)
@@ -214,13 +214,13 @@ internal sealed partial class WorldState
 
     internal int CoverageOwnerAt(int q, int r)
     {
-        return _coverageLayer.ValueAt(CoordinateKey(q, r));
+        return _mapLayers.Coverage.ValueAt(CoordinateKey(q, r));
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
-        _coverageLayer.SetValue(CoordinateKey(q, r), q, r, ownerEntityId);
+        _mapLayers.Coverage.SetValue(CoordinateKey(q, r), q, r, ownerEntityId);
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick, in KernelExecutionContext context)
@@ -265,24 +265,62 @@ internal sealed partial class WorldState
     internal int CoverageOwnerCellCount(int ownerEntityId)
     {
         EnsureEntity(ownerEntityId);
-        return _coverageLayer.ValueCellCount(ownerEntityId);
+        return _mapLayers.Coverage.ValueCellCount(ownerEntityId);
     }
 
     internal bool CoverageOwnerHasCells(int ownerEntityId)
     {
         EnsureEntity(ownerEntityId);
-        return _coverageLayer.ValueCellCount(ownerEntityId) > 0;
+        return _mapLayers.Coverage.ValueCellCount(ownerEntityId) > 0;
     }
 
     internal SpatialLayerCellCursor CoverageCells(int ownerEntityId)
     {
         EnsureEntity(ownerEntityId);
-        return _coverageLayer.CellsOfValue(ownerEntityId);
+        return _mapLayers.Coverage.CellsOfValue(ownerEntityId);
     }
 
     internal bool MoveNextCoverageCell(ref SpatialLayerCellCursor cursor, out int q, out int r)
     {
-        return _coverageLayer.MoveNextCell(ref cursor, out q, out r);
+        return _mapLayers.Coverage.MoveNextCell(ref cursor, out q, out r);
+    }
+
+    public float GetCellInfluence(int entityId, int q, int r)
+    {
+        EnsureEntity(entityId);
+        return _mapLayers.Influence.ValueAt(entityId, CoordinateKey(q, r));
+    }
+
+    public void SetCellInfluence(int entityId, int q, int r, float value, int tick, in KernelExecutionContext context)
+    {
+        EnsureEntity(entityId);
+        ValidatePositive(context.SourceCodeId);
+        var key = CoordinateKey(q, r);
+        var clamped = ClampInfluence(value);
+        var previous = _mapLayers.Influence.ValueAt(entityId, key);
+        if (global::System.MathF.Abs(clamped - previous) <= float.Epsilon)
+        {
+            return;
+        }
+
+        _mapLayers.Influence.SetValue(entityId, key, clamped);
+        AdvanceWorldVersion();
+        Write(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            tick,
+            WorldVersion,
+            q,
+            r,
+            context.SourceCodeId,
+            entityId,
+            previous,
+            clamped)),
+            context);
+    }
+
+    public void ModifyCellInfluence(int entityId, int q, int r, float delta, int tick, in KernelExecutionContext context)
+    {
+        var previous = GetCellInfluence(entityId, q, r);
+        SetCellInfluence(entityId, q, r, previous + delta, tick, context);
     }
 
     public void BeginTick(int tick)

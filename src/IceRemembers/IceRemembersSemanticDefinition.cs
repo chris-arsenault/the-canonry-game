@@ -69,8 +69,8 @@ public static class IceRemembersSemanticDefinition
             "0..100", "free", "Need — unspoiled quality; low values mark breached, opened, or compromised ground."),
 
         // Settlement: H + P + N
-        Stock(K.Settlement, Attr.Residents, SemanticStockClass.Anchor, SemanticFeedbackClass.Anchor,
-            "0..∞", "anchor", "Health (integrity). Dies at 0."),
+        Stock(K.Settlement, Attr.TempHp, SemanticStockClass.Anchor, SemanticFeedbackClass.Anchor,
+            "0..100", "anchor", "Temporary health. Dies at 0."),
         Stock(K.Settlement, Attr.Dominion, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
             "0..100", "free", "Projection — broad civic and territorial reach: political, cultural, mercantile, military."),
         Stock(K.Settlement, Attr.Shelter, SemanticStockClass.Free, SemanticFeedbackClass.Balancing,
@@ -102,7 +102,7 @@ public static class IceRemembersSemanticDefinition
         EntityVerb(Verb.RegionCleanse, K.Region,
             notes: "Slow geological calm purifies the land — the region settles and cleans itself."),
         EntityVerb(Verb.SettlementOverreach, K.Settlement,
-            notes: "The settlement overreaches — residents are spent on dominion that exceeds their capacity. Soldiers march too far, builders work to ruin, missionaries die in the wilderness; the city's reach grows at the cost of its people."),
+            notes: "The settlement overreaches — temporary health is spent on dominion that exceeds its capacity. Soldiers march too far, builders work to ruin, missionaries die in the wilderness; the city's reach grows at the cost of its people."),
     ];
 
     private static IReadOnlyList<SemanticVerbConfig> CreateHexHealthVerbs() =>
@@ -185,7 +185,7 @@ public static class IceRemembersSemanticDefinition
     [
         ..CreateDecayFlows(),
         ..CreateSelfSacrificeFlows(),
-        ..CreateHexHealthFlows(),
+        ..CreateResourceRecoveryFlows(),
         ..CreateUntouchedHexFlows(),
         ..CreateRingConversionFlows(),
     ];
@@ -204,7 +204,7 @@ public static class IceRemembersSemanticDefinition
         Decay(K.Region, Attr.Stability),
         Decay(K.Region, Attr.Holding),
         Decay(K.Region, Attr.Pristiness),
-        Decay(K.Settlement, Attr.Residents),
+        Decay(K.Settlement, Attr.TempHp),
         Decay(K.Settlement, Attr.Dominion),
         Decay(K.Settlement, Attr.Shelter),
     ];
@@ -219,21 +219,21 @@ public static class IceRemembersSemanticDefinition
             "A penguin keeps their warmth through the long dark at the cost of their body."),
         ..SelfSac(K.Region, Attr.Stability, Attr.Pristiness, Verb.RegionCleanse,
             "Slow geological calm purifies the land — the region settles and cleans itself."),
-        ..SelfSac(K.Settlement, Attr.Residents, Attr.Dominion, Verb.SettlementOverreach,
-            "The settlement overreaches — residents are spent on dominion: soldiers march too far, builders work to ruin, missionaries die in the wilderness."),
+        ..SelfSac(K.Settlement, Attr.TempHp, Attr.Dominion, Verb.SettlementOverreach,
+            "The settlement overreaches — temporary health is spent on dominion: soldiers march too far, builders work to ruin, missionaries die in the wilderness."),
     ];
 
-    private static IReadOnlyList<SemanticFlowConfig> CreateHexHealthFlows() =>
+    private static IReadOnlyList<SemanticFlowConfig> CreateResourceRecoveryFlows() =>
     [
-        HexToHealth(K.Penguin, Attr.Vitality, Res.Food, Verb.PenguinWarm,
+        ResourceRecovery(K.Penguin, Attr.Vitality, Res.Food, Verb.PenguinWarm,
             "Penguins draw warmth from the local hex's food abundance, shelter, and survivable company."),
-        HexToHealth(K.Artifact, Attr.Condition, Res.Wealth, Verb.ArtifactRepair,
+        ResourceRecovery(K.Artifact, Attr.Condition, Res.Wealth, Verb.ArtifactRepair,
             "Wealth repairs artifacts — patrons fund preservation, custodial care, and replacement of worn parts."),
-        HexToHealth(K.Faction, Attr.Cohesion, Res.Wealth, Verb.FactionOrganize,
+        ResourceRecovery(K.Faction, Attr.Cohesion, Res.Wealth, Verb.FactionOrganize,
             "Wealth organizes the faction — offices, meeting halls, couriers, and enforcement bind cohesion."),
-        HexToHealth(K.Region, Attr.Stability, Res.Food, Verb.RegionRoot,
+        ResourceRecovery(K.Region, Attr.Stability, Res.Food, Verb.RegionRoot,
             "Agricultural cultivation roots the region — soil management stabilizes the bedrock."),
-        HexToHealth(K.Settlement, Attr.Residents, Res.Population, Verb.SettlementGrow,
+        ResourceRecovery(K.Settlement, Attr.TempHp, Res.Population, Verb.SettlementGrow,
             "Settlements absorb population from their hex as immigrants join."),
     ];
 
@@ -354,8 +354,8 @@ public static class IceRemembersSemanticDefinition
             Mechanism = SemanticMechanism.Decay,
         };
 
-    // Hex → Health inflow. Source ref is a hex resource; target is the kind's Health.
-    private static SemanticFlowConfig HexToHealth(
+    // Local resource recovery inflow. Source ref is a map resource; target is the kind's Health.
+    private static SemanticFlowConfig ResourceRecovery(
         EntityKind kind,
         Attr health,
         Res resource,
@@ -368,8 +368,8 @@ public static class IceRemembersSemanticDefinition
             TargetKind = kind,
             TargetAttribute = A(health),
             Mechanism = SemanticMechanism.Inflow,
-            SignatureLabel = $"self; inflow from hex.{R(resource)}",
-            FormLabel = $"self; inflow from hex.{R(resource)}",
+            SignatureLabel = $"self; inflow from local.{R(resource)}",
+            FormLabel = $"self; inflow from local.{R(resource)}",
             Reasoning = reasoning,
             SourceRefs = [Resource(resource)],
         };

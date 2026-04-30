@@ -26,7 +26,6 @@ public static class ProcessOperationCodes
     public const int AddTargetAttribute = 9;
     public const int TransferAttribute = 10;
     public const int AddLocationResource = 11;
-    public const int HexToHealth = 12;
     public const int MoveTowardTargetPhysical = 13;
     public const int WanderPhysical = 14;
     public const int MoveTowardTargetSemantic = 15;
@@ -108,6 +107,20 @@ public static class RelationshipPolarityCodes
     public const int Neutral = 2;
 }
 
+public static class RelationshipMaintenanceConditionCodes
+{
+    public const int Always = 1;
+    public const int SameCulture = 2;
+    public const int DifferentCulture = 3;
+    public const int PhysicalDistanceWithin = 4;
+    public const int SemanticDistanceWithin = 5;
+    public const int PhysicalCoPresence = 6;
+    public const int SemanticCoPresence = 7;
+    public const int SourceInfluenceAtTarget = 8;
+    public const int TargetInfluenceAtSource = 9;
+    public const int ContactMemory = 10;
+}
+
 public static class ProcessEffectScopeCodes
 {
     public const int SelfAttribute = 1;
@@ -135,19 +148,6 @@ public static class ProcessProviderSelectorCodes
     public const int IncomingRelationship = 6;
 }
 
-public static class ProcessResourceSupplyModelCodes
-{
-    public const int AmbientHex = 1;
-    public const int NamedProviderNoHex = 2;
-}
-
-public static class ProcessResourceSupplyRoleCodes
-{
-    public const int None = 0;
-    public const int HexHealthRecovery = 1;
-    public const int HexResourceProducer = 2;
-}
-
 public static class ProcessWorkCommitmentCodes
 {
     public const int Off = 1;
@@ -158,6 +158,19 @@ public static class UpkeepAgingModelCodes
 {
     public const int Linear = 1;
     public const int LateLife = 2;
+}
+
+public static class EffectConditionCodes
+{
+    public const int RelatedInfluenceAtPhysicalLocation = 1;
+    public const int RelatedEntityDistance = 2;
+}
+
+public static class RelationshipMatchDirectionCodes
+{
+    public const int Outgoing = 1;
+    public const int Incoming = 2;
+    public const int Either = 3;
 }
 
 public static class GeneratorStatusCodes
@@ -252,6 +265,44 @@ public static class KernelProgramCodes
     public const int Degeneracy = 6;
     public const int Gambits = 7;
     public const int Planning = 8;
+    public const int Movement = 9;
+    public const int MapActivity = 10;
+    public const int LowAltitudeVerbs = 11;
+    public const int Effects = 12;
+}
+
+public static class LowAltitudeVerbTargetModeCodes
+{
+    public const int Explore = 1;
+    public const int EntityKind = 2;
+    public const int RelationshipTarget = 3;
+    public const int Terrain = 4;
+    public const int OwnInfluence = 5;
+    public const int ForeignInfluence = 6;
+}
+
+public static class LowAltitudeVerbOperationCodes
+{
+    public const int Move = 1;
+    public const int GrowInfluence = 2;
+    public const int ConsolidateInfluence = 3;
+    public const int ReduceInfluence = 4;
+    public const int ExpandCoverage = 5;
+    public const int MoveHeadquarters = 6;
+}
+
+public static class LowAltitudeVerbRelationshipDirectionCodes
+{
+    public const int Outgoing = 1;
+    public const int Incoming = 2;
+    public const int Either = 3;
+}
+
+public static class ProgramEnabledOverrideCodes
+{
+    public const int Unspecified = -1;
+    public const int Disabled = 0;
+    public const int Enabled = 1;
 }
 
 public static class PlannerKindCodes
@@ -265,6 +316,7 @@ public static class ActionFamilyCodes
 {
     public const int Process = 1;
     public const int Gambit = 2;
+    public const int LowAltitudeVerb = 3;
 }
 
 public static class PlanningStatusCodes
@@ -293,6 +345,8 @@ public static class TraceSubjectCodes
     public const int TargetDetail = 3;
     public const int Support = 4;
     public const int Locality = 5;
+    public const int MovementIntent = 6;
+    public const int InfluenceIntent = 7;
 }
 
 public static class TraceStatusCodes

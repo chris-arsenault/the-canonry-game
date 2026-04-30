@@ -174,30 +174,19 @@ internal sealed partial class ProcessProgramRuntime
         }
 
         var urgency = ObjectiveUrgency(simulation.World, entityId, objective);
-        if (urgency < MinimumObjectiveUrgency)
+        if (ObjectiveBelowUrgency(simulation, tick, entityId, objective, traceEnabled, urgency))
         {
-            if (traceEnabled)
-            {
-                EmitGoalTrace(simulation, tick, entityId, objective, 0, 0, TraceStatusCodes.BelowUrgency, urgency, 0f);
-            }
-
             return;
         }
 
-        var weight = EvaluateBestPlanForEffect(
+        var weight = EvaluateObjectiveProcessPlan(
             simulation,
             entityId,
             kindId,
             tick,
-            _objectiveEffectScopeCodes[objective],
-            _objectiveEffectValueIds[objective],
-            _objectiveEffectKindIds[objective],
-            forcedTargetId: 0,
+            objective,
             urgency,
-            depth: 0,
-            selectRoll: -1f,
             traceEnabled,
-            parentCandidateIndex: objective,
             ref candidateCount,
             out var rootProcessSlot,
             out var rootTargetId,
@@ -213,6 +202,23 @@ internal sealed partial class ProcessProgramRuntime
             return;
         }
 
+        if (ObjectiveProcessPlanReserved(
+            simulation,
+            tick,
+            entityId,
+            objective,
+            rootProcessSlot,
+            rootTargetId,
+            processSlot,
+            targetId,
+            urgency,
+            weight,
+            traceEnabled,
+            planCount))
+        {
+            return;
+        }
+
         planCount++;
         StoreObjectiveProcessPlan(simulation, objective, planCount, rootProcessSlot, rootTargetId, processSlot, targetId, weight);
 
@@ -221,6 +227,91 @@ internal sealed partial class ProcessProgramRuntime
             EmitGoalTrace(simulation, tick, entityId, objective, rootProcessSlot, rootTargetId, TraceStatusCodes.Offered, urgency, weight);
             EmitObjectiveActionSummaryTrace(simulation, tick, entityId, objective, planCount, processSlot, targetId, TraceStatusCodes.Offered, urgency, weight, weight);
         }
+    }
+
+    private bool ObjectiveBelowUrgency(
+        Simulation simulation,
+        int tick,
+        int entityId,
+        int objective,
+        bool traceEnabled,
+        float urgency)
+    {
+        if (urgency >= MinimumObjectiveUrgency)
+        {
+            return false;
+        }
+
+        if (traceEnabled)
+        {
+            EmitGoalTrace(simulation, tick, entityId, objective, 0, 0, TraceStatusCodes.BelowUrgency, urgency, 0f);
+        }
+
+        return true;
+    }
+
+    private float EvaluateObjectiveProcessPlan(
+        Simulation simulation,
+        int entityId,
+        int kindId,
+        int tick,
+        int objective,
+        float urgency,
+        bool traceEnabled,
+        ref int candidateCount,
+        out int rootProcessSlot,
+        out int rootTargetId,
+        out int processSlot,
+        out int targetId)
+    {
+        return EvaluateBestPlanForEffect(
+            simulation,
+            entityId,
+            kindId,
+            tick,
+            _objectiveEffectScopeCodes[objective],
+            _objectiveEffectValueIds[objective],
+            _objectiveEffectKindIds[objective],
+            forcedTargetId: 0,
+            urgency,
+            depth: 0,
+            selectRoll: -1f,
+            traceEnabled,
+            parentCandidateIndex: objective,
+            ref candidateCount,
+            out rootProcessSlot,
+            out rootTargetId,
+            out processSlot,
+            out targetId);
+    }
+
+    private bool ObjectiveProcessPlanReserved(
+        Simulation simulation,
+        int tick,
+        int entityId,
+        int objective,
+        int rootProcessSlot,
+        int rootTargetId,
+        int processSlot,
+        int targetId,
+        float urgency,
+        float weight,
+        bool traceEnabled,
+        int planCount)
+    {
+        if (!GoapProcessTargetReservationsEnabled() ||
+            !ProcessActionTargetAtCapacity(rootProcessSlot, rootTargetId, tick, capacity: 1))
+        {
+            return false;
+        }
+
+        if (traceEnabled)
+        {
+            EmitGoalTrace(simulation, tick, entityId, objective, rootProcessSlot, rootTargetId, TraceStatusCodes.CapacityReached, urgency, weight);
+            EmitObjectiveActionSummaryTrace(simulation, tick, entityId, objective, planCount + 1, processSlot, targetId, TraceStatusCodes.CapacityReached, urgency, weight, 0f);
+        }
+
+        return true;
     }
 
     private static bool ObjectiveProcessPlanInvalid(
@@ -353,6 +444,11 @@ internal sealed partial class ProcessProgramRuntime
             _committedPlanTargets.Set(entityId, _processPlanEffectKeys[plan], _processPlanRootTargetIds[plan]);
             _committedPlanProcessSlots.Set(entityId, _processPlanEffectKeys[plan], _processPlanRootProcessSlots[plan]);
             _committedPlanLocalities.Set(entityId, ProcessLocalityCommitmentKey, _processPlanLocalityKeys[plan]);
+            if (GoapProcessTargetReservationsEnabled())
+            {
+                ReserveProcessActionTarget(_processPlanRootTargetIds[plan], _processPlanRootProcessSlots[plan], tick);
+            }
+
             return total;
         }
 

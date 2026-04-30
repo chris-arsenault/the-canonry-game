@@ -102,6 +102,7 @@ public sealed class KernelRuntimeFactory
             })
             .WithDriverConfig(DriverConfigFor(request.FunctionProfile))
             .ConfigureSymbols(domain.ConfigureProjectionSymbols)
+            .ConfigurePrograms(programs => ApplyProgramEnabledOverrides(programs, kernelTuning.Programs.Enabled))
             .WithDomainStartupSeed(seedResult.Seed);
 
         configureConsumers?.Invoke(builder);
@@ -155,6 +156,40 @@ public sealed class KernelRuntimeFactory
             SliceInterval: TimeSpan.FromMilliseconds(16)),
         _ => throw new InvalidOperationException($"Unknown kernel function profile '{profile}'."),
     };
+
+    private static void ApplyProgramEnabledOverrides(
+        KernelProgramConfigurationContext programs,
+        ProgramEnabledTuningOptions enabled)
+    {
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Movement, enabled.Movement);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.LowAltitudeVerbs, enabled.LowAltitudeVerbs);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapActivity, enabled.MapActivity);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Effects, enabled.Effects);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Upkeep, enabled.Upkeep);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Processes, enabled.Processes);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Gambits, enabled.Gambits);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Relationships, enabled.Relationships);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Pressures, enabled.Pressures);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Generators, enabled.Generators);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Degeneracy, enabled.Degeneracy);
+    }
+
+    private static void ApplyProgramEnabledOverride(
+        KernelProgramConfigurationContext programs,
+        int programId,
+        int overrideCode)
+    {
+        if (overrideCode == ProgramEnabledOverrideCodes.Enabled)
+        {
+            programs.Enable(programId);
+            return;
+        }
+
+        if (overrideCode == ProgramEnabledOverrideCodes.Disabled)
+        {
+            programs.Disable(programId);
+        }
+    }
 }
 
 public sealed class KernelRuntime : IDisposable

@@ -22,20 +22,84 @@ public static partial class DomainCompiler
     private static int PlaneCode(PrimaryPlane plane) =>
         plane == PrimaryPlane.Semantic ? 2 : 1;
 
+    private static int EffectConditionCode(EffectCondition condition) => condition switch
+    {
+        EffectCondition.RelatedInfluenceAtPhysicalLocation =>
+            EffectConditionCodes.RelatedInfluenceAtPhysicalLocation,
+        EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
+        _ => throw new InvalidOperationException($"Unsupported effect condition '{condition}'."),
+    };
+
+    private static int EffectDirectionCode(EffectRelationshipDirection direction) => direction switch
+    {
+        EffectRelationshipDirection.Outgoing => RelationshipMatchDirectionCodes.Outgoing,
+        EffectRelationshipDirection.Incoming => RelationshipMatchDirectionCodes.Incoming,
+        EffectRelationshipDirection.Either => RelationshipMatchDirectionCodes.Either,
+        _ => throw new InvalidOperationException($"Unsupported effect relationship direction '{direction}'."),
+    };
+
     private static RelationshipProgram BuildRelationshipProgram(
         DomainConfig config,
         DomainIdRegistry ids)
     {
         var relationships = new List<RelationshipRuntimeRule>();
+        var maintenanceRules = new List<RelationshipMaintenanceRuntimeRule>();
         foreach (var relationship in config.Relationships)
         {
+            var relationshipKindId = ids.RelationshipKindIdOf(relationship.Name).Value;
             relationships.Add(new RelationshipRuntimeRule(
-                ids.RelationshipKindIdOf(relationship.Name).Value,
+                relationshipKindId,
                 relationship.CullThreshold));
+            foreach (var maintenance in relationship.Maintenance)
+            {
+                maintenanceRules.Add(new RelationshipMaintenanceRuntimeRule(
+                    relationshipKindId,
+                    RelationshipMaintenanceConditionCode(maintenance.Condition, maintenance.Plane),
+                    RelationshipMaintenancePlaneCode(maintenance.Condition, maintenance.Plane),
+                    maintenance.MaxDistance,
+                    maintenance.Threshold,
+                    maintenance.Delta));
+            }
         }
 
-        return new RelationshipProgram { Relationships = relationships };
+        return new RelationshipProgram { Relationships = relationships, MaintenanceRules = maintenanceRules };
     }
+
+    private static int RelationshipMaintenanceConditionCode(
+        RelationshipMaintenanceCondition condition,
+        PrimaryPlane? plane) =>
+        condition switch
+        {
+            RelationshipMaintenanceCondition.Always => RelationshipMaintenanceConditionCodes.Always,
+            RelationshipMaintenanceCondition.SameCulture => RelationshipMaintenanceConditionCodes.SameCulture,
+            RelationshipMaintenanceCondition.DifferentCulture => RelationshipMaintenanceConditionCodes.DifferentCulture,
+            RelationshipMaintenanceCondition.DistanceWithin => RelationshipMaintenanceDistanceConditionCode(plane),
+            RelationshipMaintenanceCondition.CoPresence => RelationshipMaintenanceCoPresenceConditionCode(plane),
+            RelationshipMaintenanceCondition.SourceInfluenceAtTarget => RelationshipMaintenanceConditionCodes.SourceInfluenceAtTarget,
+            RelationshipMaintenanceCondition.TargetInfluenceAtSource => RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource,
+            RelationshipMaintenanceCondition.ContactMemory => RelationshipMaintenanceConditionCodes.ContactMemory,
+            _ => throw new InvalidOperationException(
+                $"Unsupported relationship maintenance condition '{condition}'."),
+        };
+
+    private static int RelationshipMaintenancePlaneCode(
+        RelationshipMaintenanceCondition condition,
+        PrimaryPlane? plane) =>
+        condition is RelationshipMaintenanceCondition.DistanceWithin
+            or RelationshipMaintenanceCondition.CoPresence
+            or RelationshipMaintenanceCondition.ContactMemory
+                ? PlaneCode(plane ?? PrimaryPlane.Physical)
+                : PlaneCodes.None;
+
+    private static int RelationshipMaintenanceDistanceConditionCode(PrimaryPlane? plane) =>
+        PlaneCode(plane ?? PrimaryPlane.Physical) == PlaneCodes.Semantic
+            ? RelationshipMaintenanceConditionCodes.SemanticDistanceWithin
+            : RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin;
+
+    private static int RelationshipMaintenanceCoPresenceConditionCode(PrimaryPlane? plane) =>
+        PlaneCode(plane ?? PrimaryPlane.Physical) == PlaneCodes.Semantic
+            ? RelationshipMaintenanceConditionCodes.SemanticCoPresence
+            : RelationshipMaintenanceConditionCodes.PhysicalCoPresence;
 
     private static CompiledTerrainData BuildTerrainData(
         DomainConfig config,

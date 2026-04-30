@@ -125,8 +125,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanGambitSlots => State.CommittedPlanGambitSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
-    private PrimitiveIntTable _opportunityReservationTicks => State.OpportunityReservationTicks;
-    private PrimitiveIntTable _opportunityReservationCounts => State.OpportunityReservationCounts;
+    private PrimitiveIntTable _actionTargetReservationTicks => State.ActionTargetReservationTicks;
+    private PrimitiveIntTable _actionTargetReservationCounts => State.ActionTargetReservationCounts;
     private ref EpochStampSet _gambitVisited => ref _scratch.GambitVisited;
     private ref int _gambitCount => ref Data.GambitCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;

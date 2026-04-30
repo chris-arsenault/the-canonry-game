@@ -35,11 +35,11 @@ internal static class TestDefaultRegistry
             validSubtypes: new HashSet<string>(StringComparer.Ordinal) { "generic_settlement", "village", "town", "city", "fortress", "ruin" },
             attributes:
             [
-                new AttributeDefinition("residents", 0f, 100000f, 100f),
+                new AttributeDefinition("temp_hp", 0f, 100f, 90f),
                 new AttributeDefinition("security", 0f, 100f, 20f),
                 new AttributeDefinition("prestige", 0f, 100f, 10f),
             ],
-            healthAttribute: "residents"));
+            healthAttribute: "temp_hp"));
 
         registry.RegisterKind(new KindDefinition(
             TestKinds.Faction,

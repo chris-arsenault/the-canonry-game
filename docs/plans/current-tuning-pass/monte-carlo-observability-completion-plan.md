@@ -240,7 +240,7 @@ names. They should not serialize display strings into analysis rows.
 Snapshots should support independent cadences:
 
 - entity snapshots
-- resource snapshots
+- resource snapshots, retained for future resource work but not a current acceptance gate
 - pressure snapshots
 - map/coverage snapshots
 - generator state snapshots
@@ -270,8 +270,7 @@ truth and required completion work.
 | Map cell mutation history | Map/coverage trace/snapshot family | `map_cell_events` | Keep current projection. |
 | Map placement causality | Map/coverage trace/snapshot family | `placement_events` | Add only if generator analysis needs placement explanation; do not mix with aggregate map snapshots. |
 | Resource events | Resource trace/snapshot family | `resource_events` | Keep current delta projection. |
-| Resource snapshots | Resource trace/snapshot family | `resource_snapshots` | Add resource snapshot provider; deltas alone are insufficient. |
-| Resource ablation outcome comparison | Analysis table layer over process/map/lifecycle/generator outputs | Experiment comparison tables | Use variant metadata and existing outcome tables; do not require resource internals for outcome comparison. |
+| Resource snapshots | Resource trace/snapshot family | `resource_snapshots` | Retain the provider and output surface for future resource work; do not gate current tuning analysis on it. |
 | Pressure snapshots/internals | Pressure trace/snapshot family | `pressure_snapshots`, `pressure_events`, `pressure_source_snapshots` | Add pressure snapshot provider and source/delta rows if pressure internals are part of analysis. |
 | Generator pulse/eval counts | Generator trace family | `generator_events` | Keep current projection. |
 | Generated entity attribution | Generator trace family plus entity/relationship/map domains | `generator_outputs` joined to domain tables | Replace same-tick inference with explicit cause id or created output references in generator emission. |
@@ -296,7 +295,7 @@ as:
 | `process_pressure` | Process concentration, candidate counts, selection rates, scores, precondition/cooldown diagnostics. |
 | `planner_pressure` | Plan status, goal counts, candidate counts, selected goal/action, score distributions. |
 | `stock_dynamics` | Per-entity and aggregate stock variance, reversals, dwell bands, pinning duration, range traversed. |
-| `map_spread` | Occupied cells, spread, anisotropy, bounding area, occupancy within bounds. |
+| `map_spread` | Activity cells/events, activity entropy, top-cell concentration, axis anisotropy, strict empty radius. |
 | `coverage_development` | Named coverage counts, sizes, terrain mix, growth/shrink over time. |
 | `terrain_occupancy` | Entity and coverage occupancy by terrain. |
 | `resource_pressure` | Resource totals and stock bands from snapshots. |
@@ -325,7 +324,7 @@ Validation should include:
 
 | Validation | Purpose |
 |---|---|
-| Production path tests | Assert that runtime execution populates planner candidates, planner goals, resource snapshots, pressure snapshots, map snapshots, and generated entity attribution where applicable. |
+| Production path tests | Assert that runtime execution populates planner candidates, planner goals, pressure snapshots, map snapshots, and generated entity attribution where applicable. |
 | Short trace Monte Carlo run | Assert nonzero rows for expected trace-derived tables under `--trace`. |
 | Snapshot cadence test | Assert snapshot providers emit at configured cadences and record cadences in run metadata. |
 | Parquet-only test | Assert analysis output contains parquet/DuckDB artifacts and no CSV files. |

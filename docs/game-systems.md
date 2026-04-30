@@ -183,10 +183,10 @@ Each entity kind participates in a three-layer behavioral model that runs per en
 #### Process Examples (Domain-Defined, Not Engine-Level)
 
 These are examples of how the IceRemembers defines processes. They are data, not engine code:
-- **Grow** (Settlement): increases `residents` using ambient local `food` and `population`
+- **Grow** (Settlement): legacy process concept; settlement health is now `temp_hp`
 - **Irrigate** (Settlement): increases ambient local `food`, often as a support action for later growth
 - **Propaganda** (Settlement): shifts a target settlement's ideology
-- **Attract Population** (Settlement): steals `residents` from another settlement when prestige and ideology line up
+- **Attract Population** (Settlement): legacy process concept; settlement health is now `temp_hp`
 - **Eat / Move To Target / Wander** (NPC): a simple substitute loop showing multi-step movement without hardcoded chains
 
 Entity kinds differ only in what processes the domain registers for them, not in engine behavior.

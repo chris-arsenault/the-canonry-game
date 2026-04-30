@@ -222,25 +222,6 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
 }
 
 /// <summary>
-/// Hex→Health conversion. Reads the hex resource value at self's location and
-/// credits self's attribute by <c>ratePerHexValue × hex_value</c>.
-/// </summary>
-public sealed class HexToHealthMutation(
-    string attributeName,
-    ResourceType resource,
-    float ratePerHexValue = 2f,
-    bool targetLocation = false) : IMutation
-{
-    public string AttributeName { get; } = attributeName;
-    public ResourceType Resource { get; } = resource;
-    public float RatePerHexValue { get; } = ratePerHexValue;
-    public bool TargetLocation { get; } = targetLocation;
-
-    public string Describe() =>
-        $"hex_to_health({AttributeName}, {(TargetLocation ? "target" : "self")}.hex.{Resource.ToDomainName()}, rate={RatePerHexValue})";
-}
-
-/// <summary>
 /// Moves self one step along a path toward the resolved target.
 /// </summary>
 public sealed class MoveTowardTargetMutation(

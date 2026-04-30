@@ -72,6 +72,51 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
+    public void HexMapProjection_AppliesCellInfluenceAsNonExclusiveCellState()
+    {
+        var log = new KernelEventLog(capacity: 4);
+        var projection = new HexMapProjection();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+            Tick: 0,
+            WorldVersion: 1,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 5,
+            TerrainId: 10,
+            OwnerEntityId: 100))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: 2,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 6,
+            EntityId: 200,
+            PreviousInfluence: 0f,
+            CurrentInfluence: 35f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: 3,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 6,
+            EntityId: 300,
+            PreviousInfluence: 0f,
+            CurrentInfluence: 20f))));
+
+        pump.DrainAvailable();
+
+        Assert.True(projection.TryGetHex(new HexCoord(0, 0), out var cell));
+        Assert.Equal(100, cell.OwnerEntityId);
+        Assert.Equal([200, 300], cell.Influences.Select(influence => influence.EntityId).ToArray());
+        Assert.Equal([35f, 20f], cell.Influences.Select(influence => influence.Value).ToArray());
+    }
+
+    [Fact]
     public void PrimitiveProjectionPump_DisposeReleasesCursor()
     {
         var log = new KernelEventLog(capacity: 1, KernelEventOverflowPolicy.RejectWrite);

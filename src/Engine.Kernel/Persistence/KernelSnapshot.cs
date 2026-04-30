@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 7;
+    private const int FormatVersion = 14;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -67,6 +67,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.AttributeCapacity);
         writer.Write(options.ResourceCapacity);
         writer.Write(options.MapCellCapacity);
+        writer.Write(options.MapInfluenceCapacity);
         writer.Write(options.SystemCapacity);
         writer.Write(options.EventCapacity);
         writer.Write(options.EventCursorCapacity);
@@ -105,8 +106,12 @@ internal static class KernelSnapshotOptions
         writer.Write(options.DegeneracyDetectorCapacity);
         writer.Write(options.DegeneracyStateCapacity);
         writer.Write(options.LifecycleRuleCapacity);
+        writer.Write(options.MovementRuleCapacity);
+        writer.Write(options.LowAltitudeVerbRuleCapacity);
+        writer.Write(options.LowAltitudeVerbItemCapacity);
+        writer.Write(options.MapActivityCellCapacity);
+        writer.Write(options.EffectRuleCapacity);
         writer.Write(options.EntityAttributeCapacity);
-        writer.Write(options.UpkeepRuleCapacity);
         writer.Write(options.AttributeIdCapacity);
         writer.Write(options.KindIdCapacity);
         writer.Write(options.TerrainIdCapacity);
@@ -131,21 +136,43 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.PressureSourceCodeId);
         writer.Write(runtimeCodes.DegeneracySourceCodeId);
         writer.Write(runtimeCodes.PlanningSourceCodeId);
+        writer.Write(runtimeCodes.MovementSourceCodeId);
+        writer.Write(runtimeCodes.MapActivitySourceCodeId);
+        writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
+        writer.Write(runtimeCodes.EffectsSourceCodeId);
     }
 
     private static void WriteKernelTuning(
         global::System.IO.BinaryWriter writer,
         KernelTuningOptions kernelTuning)
     {
-        writer.Write(kernelTuning.Programs.Processes.ResourceSupplyModelCode);
+        WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
         writer.Write(kernelTuning.Programs.Processes.WorkCommitmentCode);
         writer.Write(kernelTuning.Programs.Planning.DefaultPlannerKindCode);
+        writer.Write(kernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
         writer.Write(kernelTuning.Programs.Planning.OpportunityTargetCapacity);
         WritePlanningKindOverrides(writer, kernelTuning.Programs.Planning.KindPlannerOverrides);
         WritePlanningEntityOverrides(writer, kernelTuning.Programs.Planning.EntityPlannerOverrides);
         writer.Write(kernelTuning.Programs.Pressures.Enabled);
         writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
+    }
+
+    private static void WriteProgramEnabledOverrides(
+        global::System.IO.BinaryWriter writer,
+        ProgramEnabledTuningOptions enabled)
+    {
+        writer.Write(enabled.Movement);
+        writer.Write(enabled.LowAltitudeVerbs);
+        writer.Write(enabled.MapActivity);
+        writer.Write(enabled.Effects);
+        writer.Write(enabled.Upkeep);
+        writer.Write(enabled.Processes);
+        writer.Write(enabled.Gambits);
+        writer.Write(enabled.Relationships);
+        writer.Write(enabled.Pressures);
+        writer.Write(enabled.Generators);
+        writer.Write(enabled.Degeneracy);
     }
 
     private static void WritePlanningKindOverrides(
@@ -192,6 +219,7 @@ internal static class KernelSnapshotOptions
             AttributeCapacity = reader.ReadInt32(),
             ResourceCapacity = reader.ReadInt32(),
             MapCellCapacity = reader.ReadInt32(),
+            MapInfluenceCapacity = reader.ReadInt32(),
             SystemCapacity = reader.ReadInt32(),
             EventCapacity = reader.ReadInt32(),
             EventCursorCapacity = reader.ReadInt32(),
@@ -238,8 +266,12 @@ internal static class KernelSnapshotOptions
         values.DegeneracyDetectorCapacity = reader.ReadInt32();
         values.DegeneracyStateCapacity = reader.ReadInt32();
         values.LifecycleRuleCapacity = reader.ReadInt32();
+        values.MovementRuleCapacity = reader.ReadInt32();
+        values.LowAltitudeVerbRuleCapacity = reader.ReadInt32();
+        values.LowAltitudeVerbItemCapacity = reader.ReadInt32();
+        values.MapActivityCellCapacity = reader.ReadInt32();
+        values.EffectRuleCapacity = reader.ReadInt32();
         values.EntityAttributeCapacity = reader.ReadInt32();
-        values.UpkeepRuleCapacity = reader.ReadInt32();
         values.AttributeIdCapacity = reader.ReadInt32();
         values.KindIdCapacity = reader.ReadInt32();
         values.TerrainIdCapacity = reader.ReadInt32();
@@ -264,15 +296,30 @@ internal static class KernelSnapshotOptions
         values.PressureSourceCodeId = reader.ReadInt32();
         values.DegeneracySourceCodeId = reader.ReadInt32();
         values.PlanningSourceCodeId = reader.ReadInt32();
+        values.MovementSourceCodeId = reader.ReadInt32();
+        values.MapActivitySourceCodeId = reader.ReadInt32();
+        values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
+        values.EffectsSourceCodeId = reader.ReadInt32();
     }
 
     private static void ReadKernelTuningValues(
         global::System.IO.BinaryReader reader,
         ref SnapshotOptionValues values)
     {
-        values.ProcessResourceSupplyModelCode = reader.ReadInt32();
+        values.MovementProgramEnabled = reader.ReadInt32();
+        values.LowAltitudeVerbProgramEnabled = reader.ReadInt32();
+        values.MapActivityProgramEnabled = reader.ReadInt32();
+        values.EffectsProgramEnabled = reader.ReadInt32();
+        values.UpkeepProgramEnabled = reader.ReadInt32();
+        values.ProcessesProgramEnabled = reader.ReadInt32();
+        values.GambitsProgramEnabled = reader.ReadInt32();
+        values.RelationshipsProgramEnabled = reader.ReadInt32();
+        values.PressuresProgramEnabled = reader.ReadInt32();
+        values.GeneratorsProgramEnabled = reader.ReadInt32();
+        values.DegeneracyProgramEnabled = reader.ReadInt32();
         values.ProcessWorkCommitmentCode = reader.ReadInt32();
         values.PlanningDefaultPlannerKindCode = reader.ReadInt32();
+        values.PlanningGoapTargetReservationsEnabled = reader.ReadBoolean();
         values.PlanningOpportunityTargetCapacity = reader.ReadInt32();
         values.PlanningKindPlannerOverrides = ReadPlanningKindOverrides(reader);
         values.PlanningEntityPlannerOverrides = ReadPlanningEntityOverrides(reader);
@@ -347,6 +394,7 @@ internal static class KernelSnapshotOptions
             AttributeCapacity = values.AttributeCapacity,
             ResourceCapacity = values.ResourceCapacity,
             MapCellCapacity = values.MapCellCapacity,
+            MapInfluenceCapacity = values.MapInfluenceCapacity,
             SystemCapacity = values.SystemCapacity,
             EventCapacity = values.EventCapacity,
             EventCursorCapacity = values.EventCursorCapacity,
@@ -374,8 +422,12 @@ internal static class KernelSnapshotOptions
             DegeneracyDetectorCapacity = values.DegeneracyDetectorCapacity,
             DegeneracyStateCapacity = values.DegeneracyStateCapacity,
             LifecycleRuleCapacity = values.LifecycleRuleCapacity,
+            MovementRuleCapacity = values.MovementRuleCapacity,
+            LowAltitudeVerbRuleCapacity = values.LowAltitudeVerbRuleCapacity,
+            LowAltitudeVerbItemCapacity = values.LowAltitudeVerbItemCapacity,
+            MapActivityCellCapacity = values.MapActivityCellCapacity,
+            EffectRuleCapacity = values.EffectRuleCapacity,
             EntityAttributeCapacity = values.EntityAttributeCapacity,
-            UpkeepRuleCapacity = values.UpkeepRuleCapacity,
             AttributeIdCapacity = values.AttributeIdCapacity,
             KindIdCapacity = values.KindIdCapacity,
             TerrainIdCapacity = values.TerrainIdCapacity,
@@ -401,21 +453,39 @@ internal static class KernelSnapshotOptions
             values.GeneratorSourceCodeId,
             values.PressureSourceCodeId,
             values.DegeneracySourceCodeId,
-            values.PlanningSourceCodeId);
+            values.PlanningSourceCodeId,
+            values.MovementSourceCodeId,
+            values.MapActivitySourceCodeId,
+            values.LowAltitudeVerbSourceCodeId,
+            values.EffectsSourceCodeId);
 
     private static KernelTuningOptions CreateKernelTuning(SnapshotOptionValues values) =>
         new()
         {
             Programs = new KernelProgramTuningOptions
             {
+                Enabled = new ProgramEnabledTuningOptions
+                {
+                    Movement = values.MovementProgramEnabled,
+                    LowAltitudeVerbs = values.LowAltitudeVerbProgramEnabled,
+                    MapActivity = values.MapActivityProgramEnabled,
+                    Effects = values.EffectsProgramEnabled,
+                    Upkeep = values.UpkeepProgramEnabled,
+                    Processes = values.ProcessesProgramEnabled,
+                    Gambits = values.GambitsProgramEnabled,
+                    Relationships = values.RelationshipsProgramEnabled,
+                    Pressures = values.PressuresProgramEnabled,
+                    Generators = values.GeneratorsProgramEnabled,
+                    Degeneracy = values.DegeneracyProgramEnabled,
+                },
                 Processes = new ProcessProgramTuningOptions
                 {
-                    ResourceSupplyModelCode = values.ProcessResourceSupplyModelCode,
                     WorkCommitmentCode = values.ProcessWorkCommitmentCode,
                 },
                 Planning = new PlanningProgramTuningOptions
                 {
                     DefaultPlannerKindCode = values.PlanningDefaultPlannerKindCode,
+                    GoapTargetReservationsEnabled = values.PlanningGoapTargetReservationsEnabled,
                     OpportunityTargetCapacity = values.PlanningOpportunityTargetCapacity,
                     KindPlannerOverrides = values.PlanningKindPlannerOverrides,
                     EntityPlannerOverrides = values.PlanningEntityPlannerOverrides,
@@ -442,6 +512,7 @@ internal static class KernelSnapshotOptions
         public int AttributeCapacity;
         public int ResourceCapacity;
         public int MapCellCapacity;
+        public int MapInfluenceCapacity;
         public int SystemCapacity;
         public int EventCapacity;
         public int EventCursorCapacity;
@@ -468,8 +539,12 @@ internal static class KernelSnapshotOptions
         public int DegeneracyDetectorCapacity;
         public int DegeneracyStateCapacity;
         public int LifecycleRuleCapacity;
+        public int MovementRuleCapacity;
+        public int LowAltitudeVerbRuleCapacity;
+        public int LowAltitudeVerbItemCapacity;
+        public int MapActivityCellCapacity;
+        public int EffectRuleCapacity;
         public int EntityAttributeCapacity;
-        public int UpkeepRuleCapacity;
         public int AttributeIdCapacity;
         public int KindIdCapacity;
         public int TerrainIdCapacity;
@@ -488,9 +563,24 @@ internal static class KernelSnapshotOptions
         public int PressureSourceCodeId;
         public int DegeneracySourceCodeId;
         public int PlanningSourceCodeId;
-        public int ProcessResourceSupplyModelCode;
+        public int MovementSourceCodeId;
+        public int MapActivitySourceCodeId;
+        public int LowAltitudeVerbSourceCodeId;
+        public int EffectsSourceCodeId;
+        public int MovementProgramEnabled;
+        public int LowAltitudeVerbProgramEnabled;
+        public int MapActivityProgramEnabled;
+        public int EffectsProgramEnabled;
+        public int UpkeepProgramEnabled;
+        public int ProcessesProgramEnabled;
+        public int GambitsProgramEnabled;
+        public int RelationshipsProgramEnabled;
+        public int PressuresProgramEnabled;
+        public int GeneratorsProgramEnabled;
+        public int DegeneracyProgramEnabled;
         public int ProcessWorkCommitmentCode;
         public int PlanningDefaultPlannerKindCode;
+        public bool PlanningGoapTargetReservationsEnabled;
         public int PlanningOpportunityTargetCapacity;
         public PlanningKindPlannerOverride[] PlanningKindPlannerOverrides;
         public PlanningEntityPlannerOverride[] PlanningEntityPlannerOverrides;

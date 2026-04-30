@@ -22,6 +22,12 @@ public sealed class DomainConfig
     /// <summary>Data-defined high-stakes entity gambits.</summary>
     public IReadOnlyList<GambitDefinition> Gambits { get; init; } = [];
 
+    /// <summary>
+    /// Data-defined low-altitude verbs. These are entity-centric, multi-tick
+    /// intents that drive physical/semantic movement or analogous map dynamics.
+    /// </summary>
+    public IReadOnlyList<LowAltitudeVerbConfig> LowAltitudeVerbs { get; init; } = [];
+
     /// <summary>Relationship kind definitions.</summary>
     public required IReadOnlyList<RelationshipConfig> Relationships { get; init; }
 
@@ -33,6 +39,9 @@ public sealed class DomainConfig
 
     /// <summary>Degeneracy detector definitions.</summary>
     public DegeneracyConfig Degeneracy { get; init; } = new();
+
+    /// <summary>Relationship/map-derived effects applied by the kernel effects program.</summary>
+    public EffectsConfig Effects { get; init; } = new();
 
     /// <summary>Lifecycle drain configuration per kind.</summary>
     public required IReadOnlyDictionary<EntityKind, LifecycleConfig> Lifecycles { get; init; }
@@ -61,8 +70,7 @@ public sealed class KindConfig
     public required IReadOnlyList<AttributeConfig> Attributes { get; init; }
     public string? HealthAttribute { get; init; }
     public IReadOnlyList<StandingDriveConfig> StandingDrives { get; init; } = [];
-    public IReadOnlyList<RecoveryHostQueryConfig> HexToHealthRecoveryHosts { get; init; } = [];
-    public IReadOnlyList<NamedProviderRecoveryHostConfig> NamedProviderRecoveryHosts { get; init; } = [];
+    public IReadOnlyList<RecoveryHostQueryConfig> ResourceRecoveryHosts { get; init; } = [];
 
     /// <summary>
     /// Design-time prose: what this kind represents in the world — distinct from
@@ -82,7 +90,7 @@ public sealed class KindConfig
 }
 
 /// <summary>
-/// ProcessProgram-visible host query for recovery verbs that heal from ambient hex
+/// ProcessProgram-visible host query for recovery verbs that read location
 /// resources. `AnyOfKinds` is a disjunction: any matching named entity kind can
 /// serve as the recovery site.
 /// </summary>
@@ -91,20 +99,76 @@ public sealed class RecoveryHostQueryConfig
     public required IReadOnlySet<EntityKind> AnyOfKinds { get; init; }
 }
 
-/// <summary>
-/// Alternate recovery provider used by the no-ambient-resource supply model.
-/// The provider's named attribute is consumed directly into the actor's health.
-/// </summary>
-public sealed class NamedProviderRecoveryHostConfig
-{
-    public required EntityKind Kind { get; init; }
-    public required string AttributeName { get; init; }
-}
-
 public enum PrimaryPlane
 {
     Physical,
     Semantic,
+}
+
+/// <summary>
+/// Low-altitude intent. A verb chooses a mid-term target, commits for a short
+/// duration, and produces movement or physical map influence.
+/// </summary>
+public sealed class LowAltitudeVerbConfig
+{
+    public required string Id { get; init; }
+    public string? DisplayName { get; init; }
+    public required EntityKind Kind { get; init; }
+    public PrimaryPlane? Plane { get; init; }
+    public LowAltitudeVerbOperation Operation { get; init; } = LowAltitudeVerbOperation.Move;
+    public required LowAltitudeVerbTargetMode TargetMode { get; init; }
+    public EntityKind? TargetKind { get; init; }
+    public string? RelationshipKind { get; init; }
+    public LowAltitudeVerbRelationshipDirection RelationshipDirection { get; init; } =
+        LowAltitudeVerbRelationshipDirection.Either;
+    public IReadOnlySet<string>? Terrains { get; init; }
+    public int MinCommitmentTicks { get; init; } = 30;
+    public int MaxCommitmentTicks { get; init; } = 90;
+    public int DwellTicks { get; init; } = 8;
+    public int TargetRadius { get; init; }
+    public int CandidateSampleCount { get; init; } = 16;
+    public float Weight { get; init; } = 1f;
+    public float ExploreWeight { get; init; } = 1f;
+    public float StalenessWeight { get; init; } = 1f;
+    public float HotspotWeight { get; init; } = 0.25f;
+    public float CrowdingWeight { get; init; } = 0.5f;
+    public float GeneratorAffordanceWeight { get; init; } = 0.5f;
+    public string? AffinityRelationshipKind { get; init; }
+    public LowAltitudeVerbRelationshipDirection AffinityRelationshipDirection { get; init; } =
+        LowAltitudeVerbRelationshipDirection.Either;
+    public float RelationshipAffinityWeight { get; init; }
+    public float InfluenceDelta { get; init; }
+    public int InfluenceRadius { get; init; }
+    public float CoverageGrowthChance { get; init; }
+    public float HeadquartersMoveChance { get; init; }
+    public float RequiredInfluence { get; init; }
+}
+
+public enum LowAltitudeVerbOperation
+{
+    Move,
+    GrowInfluence,
+    ConsolidateInfluence,
+    ReduceInfluence,
+    ExpandCoverage,
+    MoveHeadquarters,
+}
+
+public enum LowAltitudeVerbTargetMode
+{
+    Explore,
+    EntityKind,
+    RelationshipTarget,
+    Terrain,
+    OwnInfluence,
+    ForeignInfluence,
+}
+
+public enum LowAltitudeVerbRelationshipDirection
+{
+    Outgoing,
+    Incoming,
+    Either,
 }
 
 /// <summary>Low-urgency standing drive that participates in normal goal generation.</summary>
@@ -158,56 +222,9 @@ public sealed class AttributeConfig
     /// <summary>Variance on default value at initialization. 0 = exact, 0.5 = ±50%.</summary>
     public float DefaultVariance { get; init; }
 
-    /// <summary>
-    /// Optional critical-range hook. When this attribute falls into the shared critical
-    /// band for standard 0-100 scalar attributes, the engine applies the configured
-    /// per-tick effect to another attribute on the same entity.
-    /// </summary>
-    public CriticalEffectConfig? CriticalEffect { get; init; }
-
     /// <summary>Legacy comfort parameter for non-standard scalar urgency calculation.
     /// Higher baseline = slower urgency decay as value grows. 0 = use default formula.</summary>
     public float Baseline { get; init; }
-
-    /// <summary>Per-tick drift rate. Positive = increases each tick, negative = decreases.
-    /// Zero (default) = no drift. e.g., warmth drifts -0.35/tick, condition drifts -0.01/tick.</summary>
-    public float DriftRate { get; init; }
-
-    /// <summary>
-    /// Optional ambient location resource that adds a dynamic offset to this attribute's
-    /// per-tick drift. Useful for sustainment behaviors like warmth falling more slowly
-    /// on food-rich hexes than on barren ones.
-    /// </summary>
-    public ResourceType? LocationResourceDriftResource { get; init; }
-
-    /// <summary>
-    /// Per-unit offset applied from the ambient location resource. Negative values reduce
-    /// drift on rich hexes; positive values amplify drift.
-    /// </summary>
-    public float LocationResourceDriftPerUnit { get; init; }
-
-    /// <summary>
-    /// Minimum dynamic offset contributed by the ambient location resource.
-    /// </summary>
-    public float LocationResourceDriftMinOffset { get; init; }
-
-    /// <summary>
-    /// Maximum dynamic offset contributed by the ambient location resource.
-    /// </summary>
-    public float LocationResourceDriftMaxOffset { get; init; }
-
-}
-
-/// <summary>
-/// Domain-defined negative effect applied while an attribute remains in the shared
-/// critical band. The engine owns when the critical band is active; the domain owns
-/// what the penalty does.
-/// </summary>
-public sealed class CriticalEffectConfig
-{
-    public required string TargetAttribute { get; init; }
-    public required float DeltaPerTick { get; init; }
-    public string? Description { get; init; }
 }
 
 /// <summary>Relationship kind configuration.</summary>
@@ -220,6 +237,28 @@ public sealed class RelationshipConfig
     public bool IsSymmetric { get; init; }
     public bool IsExclusive { get; init; }
     public float CullThreshold { get; init; } = 0.05f;
+    public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
+}
+
+public sealed class RelationshipMaintenanceRuleConfig
+{
+    public required RelationshipMaintenanceCondition Condition { get; init; }
+    public PrimaryPlane? Plane { get; init; }
+    public int MaxDistance { get; init; }
+    public float Threshold { get; init; }
+    public required float Delta { get; init; }
+}
+
+public enum RelationshipMaintenanceCondition
+{
+    Always,
+    SameCulture,
+    DifferentCulture,
+    DistanceWithin,
+    CoPresence,
+    SourceInfluenceAtTarget,
+    TargetInfluenceAtSource,
+    ContactMemory,
 }
 
 /// <summary>
@@ -291,6 +330,43 @@ public enum DegeneracySeverity
     Normal,
     Warning,
     Critical,
+}
+
+public sealed class EffectsConfig
+{
+    public IReadOnlyList<AttributeDeltaEffectConfig> AttributeDeltaEffects { get; init; } = [];
+}
+
+/// <summary>
+/// Domain-authored per-tick attribute delta derived from live graph/map evidence.
+/// This is compiled to primitive ids and evaluated by the kernel effects program.
+/// </summary>
+public sealed class AttributeDeltaEffectConfig
+{
+    public required EntityKind Kind { get; init; }
+    public required string Attribute { get; init; }
+    public required EffectCondition Condition { get; init; }
+    public required string RelationshipKind { get; init; }
+    public EffectRelationshipDirection RelationshipDirection { get; init; } =
+        EffectRelationshipDirection.Either;
+    public PrimaryPlane Plane { get; init; } = PrimaryPlane.Physical;
+    public int MaxDistance { get; init; }
+    public float Threshold { get; init; }
+    public float MinimumRelationshipStrength { get; init; } = 0.1f;
+    public required float DeltaPerTick { get; init; }
+}
+
+public enum EffectCondition
+{
+    RelatedInfluenceAtPhysicalLocation,
+    RelatedEntityDistance,
+}
+
+public enum EffectRelationshipDirection
+{
+    Outgoing,
+    Incoming,
+    Either,
 }
 
 /// <summary>Lifecycle drain configuration for a kind.</summary>

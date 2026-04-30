@@ -26,9 +26,8 @@ experiments.
 | Tick coverage counts | Yes | `tick_snapshots.coverage_count`, `covered_cells`, and `uncovered_cells` populated from event-projected cells. | Parity restored. | Required now. |
 | Map cell mutation history | No | `map_cell_events` populated. | New capability. | Useful, not required now. |
 | Map placement causality | No | Not present. | Not a regression; not required now. | Later only. |
-| Resource events | Yes | Populated from primitive resource deltas. | Complete for deltas. | Useful now. |
-| Resource snapshots | Yes | `resource_snapshots` exists but production never writes it. | Deficient vs legacy. | Required only if we want resource internals now. |
-| Resource ablation outcome comparison | Yes indirectly | Can compare process/map/death/generator outcomes across variants. | Complete enough for first ablation. | Required now. |
+| Resource events | Yes | Populated from primitive resource deltas. | Complete for deltas. | Future only. |
+| Resource snapshots | Yes | `resource_snapshots` exists as a retained output surface. | Deferred. | Not part of current tuning analysis. |
 | Pressure snapshots/internals | No clear legacy equivalent | Not present. | Not a regression. | Later unless pressure ablation changes outcomes. |
 | Generator pulse/eval counts | Yes | Populated. | Complete enough. | Required now. |
 | Generated entity attribution | Yes, explicit in legacy fired message | Current `generated_entities` inferred by same-tick matching. | Weaker than legacy, but usable for counts. | Good enough now. |
@@ -45,7 +44,6 @@ experiments.
 | Process candidate diagnostics | Real deficiency or missing trace projection | H1 depends on knowing why non-movement verbs lose. | Reconstruct a `process_candidates`-equivalent parquet table from `trace_events`; only add kernel events if trace is insufficient. |
 | Stock fluctuation metrics | Query gap | H2 needs per-entity variance, reversal frequency, mid-band dwell, and pinning, not aggregate bands. | Add a parquet analysis table over `attribute_events` and/or `entity_attribute_snapshots`. |
 | Parquet-only analysis output | Architecture/output gap | CSVs should not be part of the solution. | Replace CSV artifact writer with DuckDB/parquet analysis tables. |
-| Resource snapshots | Legacy regression, but not first blocker | Needed to explain resource internals, not to compare first ablation outcomes. | Defer until after first ablation unless resource internals become the immediate question. |
 | Planner goal parity | Ambiguous replacement | Legacy `planner_goals` is empty, but `planner_trace_*` and `trace_events` may replace it. | Do not claim complete; validate after process-candidate reconstruction. |
 
 ## Current Interpretation

@@ -122,6 +122,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("lifecycle_reason_events");
         ExportTable("map_generation_events");
         ExportTable("map_cell_events");
+        ExportTable("cell_influence_events");
         ExportTable("map_snapshots");
         ExportTable("coverage_snapshots");
         ExportTable("coverage_terrain_snapshots");
@@ -194,6 +195,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("lifecycle_reason_events", typeof(LifecycleReasonEventRow));
         EnsureTable("map_generation_events", typeof(MapGenerationEventRow));
         EnsureTable("map_cell_events", typeof(MapCellEventRow));
+        EnsureTable("cell_influence_events", typeof(CellInfluenceEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
         EnsureTable("coverage_snapshots", typeof(CoverageSnapshotRow));
         EnsureTable("coverage_terrain_snapshots", typeof(CoverageTerrainSnapshotRow));
@@ -264,6 +266,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("lifecycle_reason_events", _pending.LifecycleReasonEvents);
         AppendTable("map_generation_events", _pending.MapGenerationEvents);
         AppendTable("map_cell_events", _pending.MapCellEvents);
+        AppendTable("cell_influence_events", _pending.CellInfluenceEvents);
         AppendTable("map_snapshots", _pending.MapSnapshots);
         AppendTable("coverage_snapshots", _pending.CoverageSnapshots);
         AppendTable("coverage_terrain_snapshots", _pending.CoverageTerrainSnapshots);
@@ -363,6 +366,7 @@ internal static class TelemetryBatchExtensions
         batch.LifecycleReasonEvents.Count +
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
+        batch.CellInfluenceEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +
         batch.CoverageTerrainSnapshots.Count +
@@ -428,6 +432,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.LifecycleReasonEvents, source.LifecycleReasonEvents);
         AppendRows(destination.MapGenerationEvents, source.MapGenerationEvents);
         AppendRows(destination.MapCellEvents, source.MapCellEvents);
+        AppendRows(destination.CellInfluenceEvents, source.CellInfluenceEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);
         AppendRows(destination.CoverageSnapshots, source.CoverageSnapshots);
         AppendRows(destination.CoverageTerrainSnapshots, source.CoverageTerrainSnapshots);

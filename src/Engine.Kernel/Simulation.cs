@@ -35,6 +35,10 @@ internal sealed partial class Simulation : IKernel
             new KernelTerrainData(options.TerrainIdCapacity));
         World = new WorldState(Events, options, KernelData);
         Planners = CreatePlanningRuntime(options);
+        Movement = CreateMovementRuntime(options);
+        LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
+        MapActivity = CreateMapActivityRuntime(options);
+        Effects = CreateEffectsRuntime(options);
         Processes = CreateProcessRuntime(options);
         Gambits = CreateGambitRuntime(options);
         Generators = CreateGeneratorRuntime(options);
@@ -51,6 +55,10 @@ internal sealed partial class Simulation : IKernel
         PressureSourceCodeId = options.RuntimeCodes.PressureSourceCodeId;
         DegeneracySourceCodeId = options.RuntimeCodes.DegeneracySourceCodeId;
         PlanningSourceCodeId = options.RuntimeCodes.PlanningSourceCodeId;
+        MovementSourceCodeId = options.RuntimeCodes.MovementSourceCodeId;
+        MapActivitySourceCodeId = options.RuntimeCodes.MapActivitySourceCodeId;
+        LowAltitudeVerbSourceCodeId = options.RuntimeCodes.LowAltitudeVerbSourceCodeId;
+        EffectsSourceCodeId = options.RuntimeCodes.EffectsSourceCodeId;
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
         _systemCadences = new int[options.SystemCapacity];
@@ -90,6 +98,28 @@ internal sealed partial class Simulation : IKernel
                 options.EntityCapacity,
                 options.ProcessObjectiveCapacity),
             options.KernelTuning.Programs);
+
+    private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
+        new(
+            new MovementProgramData(options.MovementRuleCapacity),
+            new MovementProgramState(),
+            options.KernelTuning.Programs);
+
+    private static LowAltitudeVerbProgramRuntime CreateLowAltitudeVerbRuntime(SimulationOptions options) =>
+        new(
+            new LowAltitudeVerbProgramData(options.LowAltitudeVerbRuleCapacity, options.LowAltitudeVerbItemCapacity),
+            new LowAltitudeVerbProgramState(options.EntityCapacity),
+            options.KernelTuning.Programs);
+
+    private static MapActivityProgramRuntime CreateMapActivityRuntime(SimulationOptions options) =>
+        new(
+            new MapActivityProgramData(),
+            new MapActivityProgramState(options.MapActivityCellCapacity));
+
+    private static EffectsProgramRuntime CreateEffectsRuntime(SimulationOptions options) =>
+        new(
+            new EffectsProgramData(options.EffectRuleCapacity),
+            new EffectsProgramState());
 
     private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
         new(
@@ -138,18 +168,22 @@ internal sealed partial class Simulation : IKernel
 
     private static UpkeepProgramRuntime CreateUpkeepRuntime(SimulationOptions options) =>
         new(
-            new UpkeepProgramData(options.UpkeepRuleCapacity, options.LifecycleRuleCapacity),
+            new UpkeepProgramData(options.LifecycleRuleCapacity),
             new UpkeepProgramState(),
             options.KernelTuning.Programs);
 
     private static RelationshipProgramRuntime CreateRelationshipRuntime(SimulationOptions options) =>
         new(
             new RelationshipProgramData(options.RelationshipRuleCapacity),
-            new RelationshipProgramState(),
+            new RelationshipProgramState(options.RelationshipCapacity),
             options.KernelTuning.Programs);
 
     private void RegisterDefaultPrograms()
     {
+        RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
+        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
+        RegisterProgram(KernelProgramCodes.MapActivity, 1, MapActivity);
+        RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
         RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
         RegisterProgram(KernelProgramCodes.Processes, 1, Processes);
@@ -164,6 +198,10 @@ internal sealed partial class Simulation : IKernel
     internal KernelEventLog Events { get; }
     internal KernelCommandRing Commands { get; }
     internal PlanningProgramRuntime Planners { get; }
+    internal MovementProgramRuntime Movement { get; }
+    internal LowAltitudeVerbProgramRuntime LowAltitudeVerbs { get; }
+    internal MapActivityProgramRuntime MapActivity { get; }
+    internal EffectsProgramRuntime Effects { get; }
     internal ProcessProgramRuntime Processes { get; }
     internal GambitProgramRuntime Gambits { get; }
     internal GeneratorProgramRuntime Generators { get; }
@@ -180,6 +218,10 @@ internal sealed partial class Simulation : IKernel
     internal int PressureSourceCodeId { get; }
     internal int DegeneracySourceCodeId { get; }
     internal int PlanningSourceCodeId { get; }
+    internal int MovementSourceCodeId { get; }
+    internal int MapActivitySourceCodeId { get; }
+    internal int LowAltitudeVerbSourceCodeId { get; }
+    internal int EffectsSourceCodeId { get; }
     internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
     public long CurrentVersion => WorldVersion;
@@ -445,6 +487,16 @@ internal sealed partial class Simulation : IKernel
     internal void SetCellState(int q, int r, int terrainId, int ownerEntityId, int tick)
     {
         World.SetCellState(q, r, terrainId, ownerEntityId, tick, _executionContext);
+    }
+
+    internal void SetCellInfluence(int entityId, int q, int r, float value, int tick)
+    {
+        World.SetCellInfluence(entityId, q, r, value, tick, _executionContext);
+    }
+
+    internal void ModifyCellInfluence(int entityId, int q, int r, float delta, int tick)
+    {
+        World.ModifyCellInfluence(entityId, q, r, delta, tick, _executionContext);
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick)
@@ -757,16 +809,31 @@ internal sealed partial class Simulation : IKernel
         }
     }
 
-    private int SourceCodeIdForProgram(int programId) => programId switch
+    private int SourceCodeIdForProgram(int programId)
     {
-        KernelProgramCodes.Upkeep => UpkeepSourceCodeId,
-        KernelProgramCodes.Relationships => RelationshipSourceCodeId,
+        var sourceCodeId = SourceCodeIdForCoreProgram(programId);
+        return sourceCodeId > 0 ? sourceCodeId : SourceCodeIdForLowAltitudeProgram(programId);
+    }
+
+    private int SourceCodeIdForCoreProgram(int programId) => programId switch
+    {
         KernelProgramCodes.Processes => ProcessSourceCodeId,
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Pressures => PressureSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
         KernelProgramCodes.Planning => PlanningSourceCodeId,
+        KernelProgramCodes.Effects => EffectsSourceCodeId,
+        _ => 0,
+    };
+
+    private int SourceCodeIdForLowAltitudeProgram(int programId) => programId switch
+    {
+        KernelProgramCodes.Movement => MovementSourceCodeId,
+        KernelProgramCodes.LowAltitudeVerbs => LowAltitudeVerbSourceCodeId,
+        KernelProgramCodes.MapActivity => MapActivitySourceCodeId,
+        KernelProgramCodes.Upkeep => UpkeepSourceCodeId,
+        KernelProgramCodes.Relationships => RelationshipSourceCodeId,
         _ => 0,
     };
 

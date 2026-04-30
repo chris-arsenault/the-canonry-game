@@ -65,11 +65,5 @@ public abstract class BehaviorDefinition
     /// <summary>Support opportunities that can improve downstream utility.</summary>
     public System.Collections.ObjectModel.Collection<ProcessSupportRule> SupportRules { get; } = [];
 
-    public int ResourceSupplyRoleCode { get; set; }
-
-    public EntityKind? NamedProviderKind { get; set; }
-
-    public string? NamedProviderAttribute { get; set; }
-
     public int WorkCommitmentTicks { get; set; }
 }

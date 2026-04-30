@@ -12,14 +12,16 @@ internal sealed partial class MonteCarloBatchAnalyzer
         builder.AppendLine();
         AppendBatchSection(builder, report.Overview);
         AppendFlagsSection(builder, report.Flags);
+        AppendMapSpreadSection(builder, report.MapSpread);
+        AppendRoamingSection(builder, report.RoamingSummary);
+        AppendLowAltitudeVerbSection(builder, report.LowAltitudeVerbUtilization);
+        AppendInfluenceSection(builder, report.InfluenceSummary);
         AppendMapGenerationSection(builder, report.MapGeneration);
         AppendGeneratorSection(builder, report.GeneratorBalance);
         AppendPlannerSection(builder, report.PlannerPressure);
         AppendProcessSection(builder, report.ProcessPressure);
         AppendAttributeSection(builder, report.AttributeBands);
-        AppendMapSpreadSection(builder, report.MapSpread);
         AppendLifecycleSection(builder, report.Lifecycle);
-        AppendResourceSection(builder, report.ResourcePressure);
         return builder.ToString();
     }
 
@@ -71,7 +73,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static void AppendGeneratorSection(StringBuilder builder, IReadOnlyList<GeneratorAnalysisRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Generator Balance");
+        builder.AppendLine("## Background Generator Balance");
         AppendTable(
             builder,
             rows.Take(8),
@@ -85,7 +87,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static void AppendPlannerSection(StringBuilder builder, IReadOnlyList<PlannerPressureRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Planner Pressure");
+        builder.AppendLine("## Background Planner Pressure");
         AppendTable(
             builder,
             rows,
@@ -100,7 +102,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static void AppendProcessSection(StringBuilder builder, IReadOnlyList<ProcessPressureRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Process Pressure");
+        builder.AppendLine("## Background Process Pressure");
         AppendTable(
             builder,
             rows.Take(12),
@@ -136,16 +138,67 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static void AppendMapSpreadSection(StringBuilder builder, IReadOnlyList<MapSpreadSummaryRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Map Spread");
+        builder.AppendLine("## Map Utilization");
         AppendTable(
             builder,
             rows.Take(10),
             ("run", row => row.RunId),
-            ("occupied", row => row.OccupiedCells.ToString(CultureInfo.InvariantCulture)),
-            ("share", row => FormatPercent(row.OccupiedCellShare)),
-            ("bbox_fill", row => FormatPercent(row.OccupancyWithinBoundingBox)),
-            ("mean_seed_dist", row => row.MeanDistanceFromSeed.ToString("F2", CultureInfo.InvariantCulture)),
-            ("anisotropy", row => row.Anisotropy.ToString("F2", CultureInfo.InvariantCulture)));
+            ("activity_cells", row => row.ActivityCells.ToString(CultureInfo.InvariantCulture)),
+            ("activity_share", row => FormatPercent(row.ActivityCellShare)),
+            ("entropy", row => row.ActivityEntropy.ToString("F2", CultureInfo.InvariantCulture)),
+            ("top_cell", row => FormatPercent(row.ActivityTopCellShare)),
+            ("empty_radius", row => row.LargestUnoccupiedStrictHexRadius.ToString(CultureInfo.InvariantCulture)),
+            ("anisotropy", row => row.ActivityAxisAnisotropy.ToString("F2", CultureInfo.InvariantCulture)));
+    }
+
+    private static void AppendRoamingSection(StringBuilder builder, IReadOnlyList<RoamingSummaryRow> rows)
+    {
+        builder.AppendLine();
+        builder.AppendLine("## Roaming Variance");
+        AppendTable(
+            builder,
+            rows,
+            ("kind", row => row.Kind),
+            ("plane", row => row.Plane),
+            ("entities", row => row.EntityCount.ToString(CultureInfo.InvariantCulture)),
+            ("movers", row => row.MoverCount.ToString(CultureInfo.InvariantCulture)),
+            ("zero_move", row => FormatPercent(row.ZeroMoveShare)),
+            ("avg_moves", row => row.AverageMoveCount.ToString("F2", CultureInfo.InvariantCulture)),
+            ("avg_unique", row => row.AverageUniquePositions.ToString("F2", CultureInfo.InvariantCulture)),
+            ("avg_radius", row => row.AverageRoamRadius.ToString("F2", CultureInfo.InvariantCulture)));
+    }
+
+    private static void AppendLowAltitudeVerbSection(StringBuilder builder, IReadOnlyList<LowAltitudeVerbSummaryRow> rows)
+    {
+        builder.AppendLine();
+        builder.AppendLine("## Low-Altitude Verb Utilization");
+        AppendTable(
+            builder,
+            rows.Take(16),
+            ("kind", row => row.Kind),
+            ("verb", row => row.Verb),
+            ("op", row => row.Operation),
+            ("target", row => row.TargetMode),
+            ("plane", row => row.Plane),
+            ("selected", row => row.SelectedCount.ToString(CultureInfo.InvariantCulture)),
+            ("offered", row => row.OfferedCount.ToString(CultureInfo.InvariantCulture)),
+            ("no_target", row => row.NoTargetCount.ToString(CultureInfo.InvariantCulture)),
+            ("select_rate", row => FormatPercent(row.SelectionRateWhenOffered)));
+    }
+
+    private static void AppendInfluenceSection(StringBuilder builder, IReadOnlyList<InfluenceSummaryRow> rows)
+    {
+        builder.AppendLine();
+        builder.AppendLine("## Influence Dynamics");
+        AppendTable(
+            builder,
+            rows,
+            ("kind", row => row.Kind),
+            ("entities", row => row.EntityCount.ToString(CultureInfo.InvariantCulture)),
+            ("avg_cells", row => row.AverageInfluencedCells.ToString("F2", CultureInfo.InvariantCulture)),
+            ("avg_delta", row => row.AverageNetInfluenceDelta.ToString("F2", CultureInfo.InvariantCulture)),
+            ("mean_dist", row => row.AverageMeanAnchorDistance.ToString("F2", CultureInfo.InvariantCulture)),
+            ("max_dist", row => row.AverageMaxAnchorDistance.ToString("F2", CultureInfo.InvariantCulture)));
     }
 
     private static void AppendLifecycleSection(StringBuilder builder, IReadOnlyList<LifecycleSummaryRow> rows)
@@ -161,21 +214,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("avg_death_tick", row => row.AverageDeathTick.ToString("F2", CultureInfo.InvariantCulture)),
             ("final_active", row => row.AverageFinalActive.ToString("F2", CultureInfo.InvariantCulture)),
             ("final_health", row => row.AverageFinalHealth.ToString("F2", CultureInfo.InvariantCulture)));
-    }
-
-    private static void AppendResourceSection(StringBuilder builder, IReadOnlyList<ResourcePressureRow> rows)
-    {
-        builder.AppendLine();
-        builder.AppendLine("## Resource Pressure");
-        AppendTable(
-            builder,
-            rows,
-            ("resource", row => row.ResourceType),
-            ("initial_total", row => row.AverageInitialTotal.ToString("F2", CultureInfo.InvariantCulture)),
-            ("avg_total", row => row.AverageTotalOverTime.ToString("F2", CultureInfo.InvariantCulture)),
-            ("final_total", row => row.AverageFinalTotal.ToString("F2", CultureInfo.InvariantCulture)),
-            ("final/initial", row => FormatPercent(row.FinalToInitialRatio)),
-            ("lowest_cell", row => row.LowestCellStock.ToString("F2", CultureInfo.InvariantCulture)));
     }
 
     private static void AppendTable<T>(

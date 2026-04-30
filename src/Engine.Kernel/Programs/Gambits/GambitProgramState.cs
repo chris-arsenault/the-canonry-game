@@ -14,8 +14,8 @@ internal sealed partial class GambitProgramState : IKernelProgramState
     internal readonly PrimitiveIntTable CommittedPlanTargets;
     internal readonly PrimitiveIntTable CommittedPlanGambitSlots;
     internal readonly PrimitiveIntTable CommittedPlanLocalities;
-    internal readonly PrimitiveIntTable OpportunityReservationTicks;
-    internal readonly PrimitiveIntTable OpportunityReservationCounts;
+    internal readonly PrimitiveIntTable ActionTargetReservationTicks;
+    internal readonly PrimitiveIntTable ActionTargetReservationCounts;
 
     public GambitProgramState(
         int gambitCapacity,
@@ -37,8 +37,8 @@ internal sealed partial class GambitProgramState : IKernelProgramState
         CommittedPlanTargets = new PrimitiveIntTable(gambitCommitmentCapacity);
         CommittedPlanGambitSlots = new PrimitiveIntTable(gambitCommitmentCapacity);
         CommittedPlanLocalities = new PrimitiveIntTable(gambitCommitmentCapacity);
-        OpportunityReservationTicks = new PrimitiveIntTable(gambitCommitmentCapacity);
-        OpportunityReservationCounts = new PrimitiveIntTable(gambitCommitmentCapacity);
+        ActionTargetReservationTicks = new PrimitiveIntTable(gambitCommitmentCapacity);
+        ActionTargetReservationCounts = new PrimitiveIntTable(gambitCommitmentCapacity);
     }
 
     public int ProgramId => KernelProgramCodes.Gambits;

@@ -5,22 +5,16 @@ using System.Globalization;
 internal sealed partial class MonteCarloBatchAnalyzer
 {
     private static List<AnalysisFlagRow> BuildFlags(
-        List<GeneratorAnalysisRow> generatorRows,
-        List<PlannerPressureRow> plannerRows,
         List<MapSpreadSummaryRow> mapRows,
         List<LifecycleSummaryRow> lifecycleRows,
-        List<ResourcePressureRow> resourceRows,
         List<MapGenerationSummaryRow> mapGenerationRows,
         TelemetryCoverage telemetryCoverage)
     {
         var flags = new List<AnalysisFlagRow>();
         AddTelemetryCoverageFlags(flags, telemetryCoverage);
         AddMapGenerationFlags(flags, mapGenerationRows);
-        AddGeneratorFlags(flags, generatorRows);
-        AddPlannerFlags(flags, plannerRows);
         AddMapSpreadFlags(flags, mapRows);
         AddLifecycleFlags(flags, lifecycleRows);
-        AddResourceFlags(flags, resourceRows);
         return flags;
     }
 
@@ -64,15 +58,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             flags.Add(new AnalysisFlagRow(
                 Category: "telemetry",
                 Severity: "info",
-                Message: "Process pressure uses process execution events only; per-process candidate diagnostics require future primitive candidate instrumentation."));
-        }
-
-        if (telemetryCoverage.ResourceSnapshotRows == 0 && telemetryCoverage.ResourceEventRows > 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "telemetry",
-                Severity: "warning",
-                Message: "Resource events were recorded, but resource snapshots are unavailable; resource pressure tables cannot report stock totals yet."));
+                Message: "Legacy process pressure is available as background context; current low-altitude tuning should use low-altitude verb utilization."));
         }
 
         if (telemetryCoverage.MapSnapshotRows == 0)
@@ -90,60 +76,35 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 Severity: "info",
                 Message: "Locality opportunity rows are unavailable; locality analysis is limited to selected planner traces and process-event locality rollups."));
         }
-    }
 
-    private static void AddGeneratorFlags(List<AnalysisFlagRow> flags, List<GeneratorAnalysisRow> generatorRows)
-    {
-        var zeroFire = generatorRows
-            .Where(row => row.Pulses > 0 && row.FiredCount == 0)
-            .OrderByDescending(row => row.Pulses)
-            .ThenBy(row => row.GeneratorId, StringComparer.Ordinal)
-            .Take(5)
-            .ToList();
-        if (zeroFire.Count > 0)
+        if (telemetryCoverage.LowAltitudeTraceRows == 0)
         {
             flags.Add(new AnalysisFlagRow(
-                Category: "generator_balance",
+                Category: "telemetry",
                 Severity: "warning",
-                Message: $"Configured generators with pulse activity but zero fires: {string.Join(", ", zeroFire.Select(row => row.GeneratorId))}."));
+                Message: "Low-altitude trace rows are unavailable; verb utilization cannot be judged. Run Monte Carlo with --trace for the active tuning pass."));
         }
 
-        var totalFires = generatorRows.Sum(row => row.FiredCount);
-        var topGenerator = generatorRows.OrderByDescending(row => row.FiredCount).FirstOrDefault();
-        if (totalFires > 0 && topGenerator is not null)
-        {
-            var topShare = topGenerator.FiredCount / (double)totalFires;
-            if (topShare >= 0.35d)
-            {
-                flags.Add(new AnalysisFlagRow(
-                    Category: "generator_balance",
-                    Severity: "warning",
-                    Message: string.Create(CultureInfo.InvariantCulture, $"{topGenerator.GeneratorId} accounts for {topShare:P1} of generator fires across the batch.")));
-            }
-        }
-    }
-
-    private static void AddPlannerFlags(List<AnalysisFlagRow> flags, List<PlannerPressureRow> plannerRows)
-    {
-        foreach (var planner in plannerRows.Where(row => row.StaleRate >= 0.25d || row.NoExecutionRate >= 0.4d))
+        if (telemetryCoverage.CellInfluenceRows == 0)
         {
             flags.Add(new AnalysisFlagRow(
-                Category: "planner",
+                Category: "telemetry",
                 Severity: "warning",
-                Message: string.Create(CultureInfo.InvariantCulture, $"{planner.Kind} planner is sticky: stale={planner.StaleRate:P1}, no_execution={planner.NoExecutionRate:P1}, top_process='{planner.TopExecutedProcess}'.")));
+                Message: "Cell influence rows are unavailable; settlement/faction influence shape cannot be judged."));
         }
     }
 
     private static void AddMapSpreadFlags(List<AnalysisFlagRow> flags, List<MapSpreadSummaryRow> mapRows)
     {
-        var averageOccupiedShare = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.OccupiedCellShare);
-        var averageAnisotropy = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.Anisotropy);
-        if (averageOccupiedShare > 0d && averageOccupiedShare <= 0.15d)
+        var averageActivityShare = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.ActivityCellShare);
+        var averageAnisotropy = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.ActivityAxisAnisotropy);
+        var averageEmptyRadius = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.LargestUnoccupiedStrictHexRadius);
+        if (averageActivityShare > 0d && averageActivityShare <= 0.15d)
         {
             flags.Add(new AnalysisFlagRow(
                 Category: "map",
                 Severity: "warning",
-                Message: string.Create(CultureInfo.InvariantCulture, $"Final occupied physical map share averages {averageOccupiedShare:P1}; expansion is still sparse.")));
+                Message: string.Create(CultureInfo.InvariantCulture, $"Physical activity cell share averages {averageActivityShare:P1}; expansion is still sparse.")));
         }
 
         if (averageAnisotropy >= 3.5d)
@@ -151,7 +112,15 @@ internal sealed partial class MonteCarloBatchAnalyzer
             flags.Add(new AnalysisFlagRow(
                 Category: "map",
                 Severity: "warning",
-                Message: string.Create(CultureInfo.InvariantCulture, $"Final physical placement anisotropy averages {averageAnisotropy:F2}; the map is still corridor-biased.")));
+                Message: string.Create(CultureInfo.InvariantCulture, $"Physical activity anisotropy averages {averageAnisotropy:F2}; the map is still corridor-biased.")));
+        }
+
+        if (averageEmptyRadius >= 8d)
+        {
+            flags.Add(new AnalysisFlagRow(
+                Category: "map",
+                Severity: "warning",
+                Message: string.Create(CultureInfo.InvariantCulture, $"Largest strict empty physical radius averages {averageEmptyRadius:F1}; large map regions remain unused.")));
         }
     }
 
@@ -182,14 +151,4 @@ internal sealed partial class MonteCarloBatchAnalyzer
         }
     }
 
-    private static void AddResourceFlags(List<AnalysisFlagRow> flags, List<ResourcePressureRow> resourceRows)
-    {
-        if (resourceRows.Count > 0 && resourceRows.TrueForAll(row => row.FinalToInitialRatio >= 0.9d))
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "resources",
-                Severity: "info",
-                Message: "Global resource stocks barely deplete across the batch; carrying-capacity pressure may still be too soft."));
-        }
-    }
 }

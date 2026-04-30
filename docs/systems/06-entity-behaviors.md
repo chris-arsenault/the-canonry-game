@@ -93,7 +93,7 @@ The planner is not a generic GOAP search over arbitrary world states. It is a bo
 The first support-planning path is already live:
 
 ```text
-Settlement wants residents
+Settlement wants temporary health
   -> Grow is legal but weak because local food is poor
   -> support rule proposes Irrigate
   -> Irrigate improves ambient food

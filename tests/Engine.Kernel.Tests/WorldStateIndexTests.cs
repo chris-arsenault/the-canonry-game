@@ -159,6 +159,54 @@ public sealed class WorldStateIndexTests
         Assert.Equal([(0, 0)], CoverageCellsOf(simulation.World, ownerB));
     }
 
+    [Fact]
+    public void MapLayerSetStoresExclusiveCoverageAndOverlappingInfluence()
+    {
+        var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
+        const int cellKey = 1;
+
+        layers.Coverage.SetValue(cellKey, 0, 0, value: 1);
+        layers.Influence.SetValue(entityId: 1, cellKey, value: 40f);
+        layers.Influence.SetValue(entityId: 2, cellKey, value: 60f);
+
+        Assert.Equal(1, layers.Coverage.ValueAt(cellKey));
+        Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, cellKey));
+        Assert.Equal(60f, layers.Influence.ValueAt(entityId: 2, cellKey));
+
+        layers.Coverage.SetValue(cellKey, 0, 0, value: 2);
+
+        Assert.Equal(2, layers.Coverage.ValueAt(cellKey));
+        Assert.Equal(0, layers.Coverage.ValueCellCount(1));
+        Assert.Equal(1, layers.Coverage.ValueCellCount(2));
+        Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, cellKey));
+        Assert.Equal(60f, layers.Influence.ValueAt(entityId: 2, cellKey));
+    }
+
+    [Fact]
+    public void MapLayerSetSnapshotRestoresCoverageAndInfluenceTogether()
+    {
+        var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
+        var loaded = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
+        const int cellKey = 2;
+        layers.Coverage.SetValue(cellKey, 1, -1, value: 3);
+        layers.Influence.SetValue(entityId: 3, cellKey, value: 75f);
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            layers.WriteSnapshot(writer);
+        }
+
+        stream.Position = 0;
+        using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            loaded.ReadSnapshot(reader);
+        }
+
+        Assert.Equal(3, loaded.Coverage.ValueAt(cellKey));
+        Assert.Equal(75f, loaded.Influence.ValueAt(entityId: 3, cellKey));
+    }
+
     private static Simulation CreateSimulation()
     {
         return new Simulation(new SimulationOptions
@@ -181,7 +229,7 @@ public sealed class WorldStateIndexTests
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
             EntityAttributeCapacity = 8,
-            UpkeepRuleCapacity = 8,
+            EffectRuleCapacity = 8,
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,

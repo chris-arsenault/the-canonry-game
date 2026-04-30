@@ -1,0 +1,641 @@
+namespace Engine.Kernel.Tests;
+
+using Engine.Eventing;
+using Engine.Kernel;
+
+public sealed class LowAltitudePhysicsProgramTests
+{
+    [Fact]
+    public void LowAltitudeVerbProgram_CommitsPhysicalTargetAndMovesWithVerbSource()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 11 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 77;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(3);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
+        simulation.SeedCell(2, 0, terrainId, ownerEntityId: 0);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 2, 0, 0, 0, 0, tick: 0);
+        simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            LowAltitudeVerbOperationCodes.Move,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 3,
+            maxCommitmentTicks: 3,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(actorId), simulation.World.EntityPhysicalR(actorId)));
+        AssertMovedByProgram(
+            simulation,
+            cursor,
+            actorId,
+            KernelProgramCodes.LowAltitudeVerbs,
+            simulation.LowAltitudeVerbSourceCodeId);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_CommitsSemanticTargetAndMovesWithVerbSource()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 13 });
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 88;
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 2, 0, -2, tick: 0);
+        simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Semantic,
+            LowAltitudeVerbOperationCodes.Move,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 3,
+            maxCommitmentTicks: 3,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal((1, 0, -1), (
+            simulation.World.EntitySemanticQ(actorId),
+            simulation.World.EntitySemanticR(actorId),
+            simulation.World.EntitySemanticS(actorId)));
+        AssertMovedByProgram(
+            simulation,
+            cursor,
+            actorId,
+            KernelProgramCodes.LowAltitudeVerbs,
+            simulation.LowAltitudeVerbSourceCodeId);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_EmitsMovementIntentTraceWithVerbIdWhenTraceEnabled()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 17, TraceEnabled = true });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 99;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var targetId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
+        simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            LowAltitudeVerbOperationCodes.Move,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 3,
+            maxCommitmentTicks: 3,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var trace = AssertTrace(simulation, cursor, actorId);
+        Assert.Equal(TraceSubjectCodes.MovementIntent, trace.TraceSubjectCode);
+        Assert.Equal(ActionFamilyCodes.LowAltitudeVerb, trace.ActionFamilyCode);
+        Assert.Equal(verbId, trace.ActionId);
+        Assert.Equal(targetId, trace.TargetEntityId);
+        Assert.Equal(TraceStatusCodes.Selected, trace.StatusCode);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_DoesNotRefreshDwellEveryTickAfterArrival()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 18 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 98;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        RegisterMovementVerb(
+            simulation,
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            minCommitmentTicks: 40,
+            maxCommitmentTicks: 40,
+            dwellTicks: 4);
+
+        simulation.AdvanceTicks(1);
+
+        var firstIntentId = simulation.LowAltitudeVerbs.State.IntentId(actorId);
+
+        simulation.AdvanceTicks(12);
+
+        Assert.True(simulation.LowAltitudeVerbs.State.IntentId(actorId) > firstIntentId);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_WeightsEntityTargetsByConfiguredRelationshipAffinity()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 23 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 96;
+        const int affinityRelationshipKindId = 9;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(2);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        _ = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
+        var relatedTargetId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, -1, 0, 0, 0, 0, tick: 0);
+        _ = simulation.CreateRelationship(
+            affinityRelationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            actorId,
+            relatedTargetId,
+            1f,
+            tick: 0);
+        simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            LowAltitudeVerbOperationCodes.Move,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 20,
+            maxCommitmentTicks: 20,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 2,
+            weight: 0.01f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            affinityRelationshipKindId: affinityRelationshipKindId,
+            affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
+            relationshipAffinityWeight: 1000f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(relatedTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_AssignsDivergentMovementShapeToSameVerbIntents()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 21 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 97;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(2);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var firstActorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var secondActorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var thirdActorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
+        RegisterMovementVerb(
+            simulation,
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            minCommitmentTicks: 40,
+            maxCommitmentTicks: 80,
+            dwellTicks: 12,
+            targetRadius: 1);
+
+        simulation.AdvanceTicks(1);
+
+        var firstShape = MovementShape(simulation, firstActorId);
+        var secondShape = MovementShape(simulation, secondActorId);
+        var thirdShape = MovementShape(simulation, thirdActorId);
+
+        Assert.True(firstShape != secondShape || firstShape != thirdShape || secondShape != thirdShape);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_RoamsOneStepDuringDwellWithPullTowardTarget()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 22 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 96;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        RegisterMovementVerb(
+            simulation,
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId,
+            minCommitmentTicks: 20,
+            maxCommitmentTicks: 20,
+            dwellTicks: 10);
+
+        simulation.AdvanceTicks(1);
+
+        var q = simulation.World.EntityPhysicalQ(actorId);
+        var r = simulation.World.EntityPhysicalR(actorId);
+        Assert.NotEqual((0, 0), (q, r));
+        Assert.True(HexDistance(q, r, 0, 0) <= 1);
+        Assert.True(simulation.LowAltitudeVerbs.State.ReachedTick(actorId) > 0);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_GrowsNonExclusiveCellInfluenceWithoutChangingOwner()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 19 });
+        const int terrainId = 1;
+        const int settlementKindId = 1;
+        const int factionKindId = 2;
+        const int verbId = 100;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(factionId, 0, 0, 20f, tick: 0);
+        RegisterInfluenceVerb(
+            simulation,
+            settlementKindId,
+            verbId,
+            LowAltitudeVerbOperationCodes.GrowInfluence,
+            LowAltitudeVerbTargetModeCodes.OwnInfluence,
+            influenceDelta: 10f,
+            influenceRadius: 0);
+
+        simulation.AdvanceTicks(2);
+
+        Assert.True(simulation.World.GetCellInfluence(settlementId, 0, 0) >= 45f);
+        Assert.Equal(20f, simulation.World.GetCellInfluence(factionId, 0, 0));
+        Assert.Equal(0, simulation.World.CoverageOwnerAt(0, 0));
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_ExpandCoverageClaimsOnePhysicalCellWhenInfluenceIsEstablished()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 23 });
+        const int terrainId = 1;
+        const int settlementKindId = 1;
+        const int verbId = 101;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        RegisterInfluenceVerb(
+            simulation,
+            settlementKindId,
+            verbId,
+            LowAltitudeVerbOperationCodes.ExpandCoverage,
+            LowAltitudeVerbTargetModeCodes.OwnInfluence,
+            influenceDelta: 30f,
+            influenceRadius: 1,
+            coverageGrowthChance: 1f,
+            requiredInfluence: 50f);
+
+        simulation.AdvanceTicks(2);
+
+        Assert.Equal(settlementId, simulation.World.CoverageOwnerAt(0, 0));
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_MoveHeadquartersMovesFactionPhysicalAnchorToInfluencedTarget()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 29 });
+        const int terrainId = 1;
+        const int factionKindId = 1;
+        const int settlementKindId = 2;
+        const int verbId = 102;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(2);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
+        var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(factionId, 1, 0, 80f, tick: 0);
+        RegisterInfluenceVerb(
+            simulation,
+            factionKindId,
+            verbId,
+            LowAltitudeVerbOperationCodes.MoveHeadquarters,
+            LowAltitudeVerbTargetModeCodes.EntityKind,
+            targetKindId: settlementKindId,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            headquartersMoveChance: 1f,
+            requiredInfluence: 50f);
+
+        simulation.AdvanceTicks(2);
+
+        Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(factionId), simulation.World.EntityPhysicalR(factionId)));
+    }
+
+    [Fact]
+    public void MovementProgram_MovesPhysicalEntityAndMapActivityRecordsPresence()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 7 });
+        const int terrainId = 1;
+        const int kindId = 1;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(2);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        simulation.Movement.RegisterRule(
+            kindId,
+            PlaneCodes.Physical,
+            moveChance: 1f,
+            exploreWeight: 2f,
+            stalenessWeight: 1f,
+            crowdingWeight: 0f);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.NotEqual((0, 0), (simulation.World.EntityPhysicalQ(entityId), simulation.World.EntityPhysicalR(entityId)));
+        var q = simulation.World.EntityPhysicalQ(entityId);
+        var r = simulation.World.EntityPhysicalR(entityId);
+        Assert.Equal(1, simulation.MapActivity.VisitCount(PlaneCodes.Physical, q, r));
+        Assert.Equal(1, simulation.MapActivity.LastVisitedTick(PlaneCodes.Physical, q, r));
+        AssertMovedByProgram(simulation, cursor, entityId, KernelProgramCodes.Movement, simulation.MovementSourceCodeId);
+    }
+
+    [Fact]
+    public void UpkeepProgram_OnlyLifecycleHealthChanges()
+    {
+        var simulation = new Simulation();
+        const int kindId = 1;
+        const int healthAttributeId = 1;
+        const int staticAttributeId = 2;
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 10f);
+        simulation.RegisterAttribute(kindId, staticAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
+        simulation.Upkeep.RegisterLifecycle(kindId, healthAttributeId, baseRate: 1f, ageCoefficient: 0f, variance: 0f);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(9f, simulation.World.GetAttribute(entityId, healthAttributeId));
+        Assert.Equal(50f, simulation.World.GetAttribute(entityId, staticAttributeId));
+    }
+
+    private static void SeedPhysicalNeighborhood(Simulation simulation, int terrainId)
+    {
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        for (var direction = 0; direction < 6; direction++)
+        {
+            simulation.SeedCell(DirectionQ(direction), DirectionR(direction), terrainId, ownerEntityId: 0);
+        }
+    }
+
+    private static void RegisterInfluenceVerb(
+        Simulation simulation,
+        int kindId,
+        int verbId,
+        int operationCode,
+        int targetModeCode,
+        float influenceDelta,
+        int influenceRadius,
+        int targetKindId = 0,
+        float coverageGrowthChance = 0f,
+        float headquartersMoveChance = 0f,
+        float requiredInfluence = 0f)
+    {
+        simulation.LowAltitudeVerbs.RegisterVerb(
+            kindId,
+            verbId,
+            PlaneCodes.Physical,
+            operationCode,
+            targetModeCode,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 1,
+            maxCommitmentTicks: 1,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 16,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: influenceDelta,
+            influenceRadius: influenceRadius,
+            coverageGrowthChance: coverageGrowthChance,
+            headquartersMoveChance: headquartersMoveChance,
+            requiredInfluence: requiredInfluence);
+    }
+
+    private static void RegisterMovementVerb(
+        Simulation simulation,
+        int kindId,
+        int verbId,
+        int planeCode,
+        int targetModeCode,
+        int targetKindId,
+        int minCommitmentTicks,
+        int maxCommitmentTicks,
+        int dwellTicks,
+        int targetRadius = 0)
+    {
+        simulation.LowAltitudeVerbs.RegisterVerb(
+            kindId,
+            verbId,
+            planeCode,
+            LowAltitudeVerbOperationCodes.Move,
+            targetModeCode,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: minCommitmentTicks,
+            maxCommitmentTicks: maxCommitmentTicks,
+            dwellTicks: dwellTicks,
+            targetRadius: targetRadius,
+            candidateSampleCount: 4,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+    }
+
+    private static (int Dwell, int Step, int Looseness, int Q, int R) MovementShape(Simulation simulation, int entityId) =>
+        (
+            simulation.LowAltitudeVerbs.State.IntentDwellTicks(entityId),
+            simulation.LowAltitudeVerbs.State.StepIntervalTicks(entityId),
+            simulation.LowAltitudeVerbs.State.PathLoosenessPermille(entityId),
+            simulation.LowAltitudeVerbs.State.TargetQ(entityId),
+            simulation.LowAltitudeVerbs.State.TargetR(entityId));
+
+    private static void AssertMovedByProgram(
+        Simulation simulation,
+        KernelEventCursor cursor,
+        int entityId,
+        int programId,
+        int sourceCodeId)
+    {
+        while (simulation.Events.TryRead(cursor, out var read))
+        {
+            if (read.Event.EventType != KernelEventType.EntityMoved)
+            {
+                continue;
+            }
+
+            var moved = read.Event.AsEntityMoved();
+            if (moved.EntityId != entityId)
+            {
+                continue;
+            }
+
+            Assert.Equal(programId, read.Event.ProgramId);
+            Assert.Equal(sourceCodeId, read.Event.SourceCodeId);
+            return;
+        }
+
+        Assert.Fail("Expected entity movement event.");
+    }
+
+    private static TraceKernelEvent AssertTrace(
+        Simulation simulation,
+        KernelEventCursor cursor,
+        int entityId)
+    {
+        var found = false;
+        var selected = default(TraceKernelEvent);
+        while (simulation.Events.TryRead(cursor, out var read))
+        {
+            if (read.Event.EventType != KernelEventType.Trace)
+            {
+                continue;
+            }
+
+            var trace = read.Event.AsTrace();
+            if (trace.EntityId == entityId)
+            {
+                found = true;
+                if (trace.StatusCode == TraceStatusCodes.Selected)
+                {
+                    selected = trace;
+                }
+            }
+        }
+
+        if (found)
+        {
+            return selected;
+        }
+
+        Assert.Fail("Expected movement intent trace event.");
+        return selected;
+    }
+
+    private static int HexDistance(int aq, int ar, int bq, int br)
+    {
+        var asCoord = -aq - ar;
+        var bsCoord = -bq - br;
+        return (Abs(aq - bq) + Abs(ar - br) + Abs(asCoord - bsCoord)) / 2;
+    }
+
+    private static int Abs(int value) => value < 0 ? -value : value;
+
+    private static int DirectionQ(int direction) => direction switch
+    {
+        0 => 1,
+        1 => 1,
+        2 => 0,
+        3 => -1,
+        4 => -1,
+        _ => 0,
+    };
+
+    private static int DirectionR(int direction) => direction switch
+    {
+        0 => 0,
+        1 => -1,
+        2 => -1,
+        3 => 0,
+        4 => 1,
+        _ => 1,
+    };
+}

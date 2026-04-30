@@ -49,6 +49,7 @@ public sealed class TelemetryBatch
     public Collection<LifecycleReasonEventRow> LifecycleReasonEvents { get; } = [];
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
     public Collection<MapCellEventRow> MapCellEvents { get; } = [];
+    public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = [];
     public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
     public Collection<CoverageSnapshotRow> CoverageSnapshots { get; } = [];
     public Collection<CoverageTerrainSnapshotRow> CoverageTerrainSnapshots { get; } = [];
@@ -597,6 +598,17 @@ public sealed record MapCellEventRow(
     int PreviousOwnerEntityId,
     int CurrentOwnerEntityId,
     int CauseId = 0);
+
+public sealed record CellInfluenceEventRow(
+    int RunId,
+    int Tick,
+    int SourceCodeId,
+    int EntityId,
+    int Q,
+    int R,
+    float PreviousInfluence,
+    float CurrentInfluence,
+    float Delta);
 
 public sealed record MapSnapshotRow(
     int RunId,

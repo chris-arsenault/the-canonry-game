@@ -146,45 +146,4 @@ public static class DomainLoader
         return validator;
     }
 
-    /// <summary>Initialize attributes for all entities in the graph from domain config.
-    /// Creates ScalarAttributes on entities with drift effects.</summary>
-    public static void InitializeEntityAttributes(
-        Engine.Graph.WorldGraph graph, DomainConfig config, Random? random = null)
-    {
-        ArgumentNullException.ThrowIfNull(graph);
-        ArgumentNullException.ThrowIfNull(config);
-
-        foreach (var (_, entity) in graph.AllEntities)
-        {
-            if (!config.Kinds.TryGetValue(entity.Kind, out var kindConfig))
-            {
-                continue;
-            }
-
-            foreach (var attr in kindConfig.Attributes)
-            {
-                if (!entity.Attributes.Has(attr.Name))
-                {
-                    var rng = random ?? Random.Shared;
-                    var defaultVal = attr.Default;
-                    if (attr.DefaultVariance > 0f)
-                    {
-                        var jitter = 1f + ((float)(rng.NextDouble() * 2.0 - 1.0) * attr.DefaultVariance);
-                        defaultVal = Math.Clamp(defaultVal * jitter, attr.Min, attr.Max);
-                    }
-
-                    var instance = new Attributes.ScalarValue(attr.Name, attr.Min, attr.Max, defaultVal);
-                    if (attr.DriftRate != 0f)
-                    {
-                        instance.AddTickEffect(new Attributes.AttributeEffect(
-                            $"innate_drift_{attr.Name}",
-                            $"Natural {attr.Name} drift",
-                            attr.DriftRate));
-                    }
-
-                    entity.Attributes.Add(instance);
-                }
-            }
-        }
-    }
 }

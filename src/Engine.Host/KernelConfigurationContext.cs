@@ -55,31 +55,23 @@ internal sealed class KernelConfigurationContext
             defaultValue,
             defaultVariance);
 
-    public int RegisterAttributeUpkeep(
-        int kindId,
-        AttributeRuntimeId attributeId,
-        float driftRate = 0f,
-        int locationResourceId = 0,
-        float locationResourceDriftPerUnit = 0f,
-        float locationResourceDriftMinOffset = 0f,
-        float locationResourceDriftMaxOffset = 0f,
-        int criticalTargetAttributeId = 0,
-        float criticalThreshold = 15f,
-        float criticalDelta = 0f) =>
-        _kernel.Upkeep.RegisterAttributeUpkeep(
-            kindId,
-            attributeId.Value,
-            driftRate,
-            locationResourceId,
-            locationResourceDriftPerUnit,
-            locationResourceDriftMinOffset,
-            locationResourceDriftMaxOffset,
-            criticalTargetAttributeId,
-            criticalThreshold,
-            criticalDelta);
-
     public int RegisterRelationshipKind(RelationshipKindRuntimeId kindId, float cullThreshold) =>
         _kernel.Relationships.RegisterRelationshipKind(kindId.Value, cullThreshold);
+
+    public int AddRelationshipMaintenanceRule(
+        RelationshipKindRuntimeId kindId,
+        int conditionCode,
+        int planeCode,
+        int maxDistance,
+        float threshold,
+        float delta) =>
+        _kernel.Relationships.AddMaintenanceRule(
+            kindId.Value,
+            conditionCode,
+            planeCode,
+            maxDistance,
+            threshold,
+            delta);
 
     public int RegisterPressure(
         PressureRuntimeId pressureId,
@@ -101,6 +93,109 @@ internal sealed class KernelConfigurationContext
         float ageCoefficient,
         float variance = 0.2f) =>
         _kernel.Upkeep.RegisterLifecycle(kindId, attributeId.Value, baseRate, ageCoefficient, variance);
+
+    public int RegisterAttributeDeltaEffect(
+        int kindId,
+        AttributeRuntimeId attributeId,
+        int conditionCode,
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        int planeCode,
+        int maxDistance,
+        float threshold,
+        float minimumRelationshipStrength,
+        float deltaPerTick) =>
+        _kernel.Effects.RegisterAttributeDeltaEffect(
+            kindId,
+            attributeId.Value,
+            conditionCode,
+            relationshipKindId,
+            relationshipDirectionCode,
+            planeCode,
+            maxDistance,
+            threshold,
+            minimumRelationshipStrength,
+            deltaPerTick);
+
+    public int RegisterMovementRule(
+        int kindId,
+        int planeCode,
+        float moveChance,
+        float exploreWeight,
+        float stalenessWeight,
+        float crowdingWeight) =>
+        _kernel.Movement.RegisterRule(
+            kindId,
+            planeCode,
+            moveChance,
+            exploreWeight,
+            stalenessWeight,
+            crowdingWeight);
+
+    public int RegisterLowAltitudeVerb(
+        int kindId,
+        int verbId,
+        int planeCode,
+        int operationCode,
+        int targetModeCode,
+        int targetKindId,
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        int minCommitmentTicks,
+        int maxCommitmentTicks,
+        int dwellTicks,
+        int targetRadius,
+        int candidateSampleCount,
+        float weight,
+        float exploreWeight,
+        float stalenessWeight,
+        float hotspotWeight,
+        float crowdingWeight,
+        float generatorAffordanceWeight,
+        int affinityRelationshipKindId,
+        int affinityRelationshipDirectionCode,
+        float relationshipAffinityWeight,
+        float influenceDelta,
+        int influenceRadius,
+        float coverageGrowthChance,
+        float headquartersMoveChance,
+        float requiredInfluence) =>
+        _kernel.LowAltitudeVerbs.RegisterVerb(
+            kindId,
+            verbId,
+            planeCode,
+            operationCode,
+            targetModeCode,
+            targetKindId,
+            relationshipKindId,
+            relationshipDirectionCode,
+            minCommitmentTicks,
+            maxCommitmentTicks,
+            dwellTicks,
+            targetRadius,
+            candidateSampleCount,
+            weight,
+            exploreWeight,
+            stalenessWeight,
+            hotspotWeight,
+            crowdingWeight,
+            generatorAffordanceWeight,
+            affinityRelationshipKindId,
+            affinityRelationshipDirectionCode,
+            relationshipAffinityWeight,
+            influenceDelta,
+            influenceRadius,
+            coverageGrowthChance,
+            headquartersMoveChance,
+            requiredInfluence);
+
+    public void AddLowAltitudeVerbTerrainFilter(int verbSlot, int terrainId) =>
+        _kernel.LowAltitudeVerbs.AddTerrainFilter(verbSlot, terrainId);
+
+    public void ConfigureMapActivity(float presenceHeat)
+    {
+        _kernel.MapActivity.Data.PresenceHeat = presenceHeat;
+    }
 
     public int RegisterProcessAttributeObjective(
         int kindId,
@@ -134,9 +229,6 @@ internal sealed class KernelConfigurationContext
         int entityCooldownTicks = 0,
         int targetMode = ProcessTargetModeCodes.Self,
         int targetKindId = 0,
-        int resourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.None,
-        int namedProviderKindId = 0,
-        int namedProviderAttributeId = 0,
         int workCommitmentTicks = 0) =>
         _kernel.Processes.RegisterProcess(
             kindId,
@@ -145,9 +237,6 @@ internal sealed class KernelConfigurationContext
             entityCooldownTicks,
             targetMode,
             targetKindId,
-            resourceSupplyRoleCode,
-            namedProviderKindId,
-            namedProviderAttributeId,
             workCommitmentTicks);
 
     public void AddProcessPrecondition(

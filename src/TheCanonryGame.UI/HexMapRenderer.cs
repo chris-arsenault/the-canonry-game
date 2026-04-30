@@ -34,6 +34,9 @@ public partial class HexMapRenderer : Node2D
     /// <summary>Whether to show territory overlay (faction colors on controlled settlements).</summary>
     [Export] public bool ShowTerritory { get; set; } = true;
 
+    /// <summary>Whether to show non-exclusive faction/settlement influence overlays.</summary>
+    [Export] public bool ShowInfluence { get; set; } = true;
+
     /// <summary>Whether to draw a thicker line along hex edges where two regions meet.</summary>
     [Export] public bool ShowRegionBorders { get; set; } = true;
 
@@ -62,6 +65,11 @@ public partial class HexMapRenderer : Node2D
             if (ShowTerritory)
             {
                 DrawTerritoryOverlay();
+            }
+
+            if (ShowInfluence)
+            {
+                DrawInfluenceOverlay();
             }
 
             if (ShowRegionBorders)
@@ -277,6 +285,38 @@ public partial class HexMapRenderer : Node2D
         }
     }
 
+    private void DrawInfluenceOverlay()
+    {
+        if (_map is null) return;
+
+        var ownerColors = AssignOwnerColors();
+
+        foreach (var hex in _map.HexesById.Values)
+        {
+            var center = HexToPixel(hex.Coord);
+            var band = 0;
+            foreach (var influence in hex.Influences.Where(item => item.Value > 0f).Take(4))
+            {
+                if (!ownerColors.TryGetValue(influence.EntityId, out var ownerColor))
+                {
+                    continue;
+                }
+
+                var size = HexSize * (0.72f - band * 0.12f);
+                if (size <= HexSize * 0.2f)
+                {
+                    break;
+                }
+
+                var alpha = 0.08f + Mathf.Clamp(influence.Value / 100f, 0f, 1f) * 0.24f;
+                var points = GetHexPoints(center, size);
+                DrawColoredPolygon(points, new Color(ownerColor, alpha));
+                DrawPolyline([.. points, points[0]], new Color(ownerColor, alpha + 0.08f), 1.2f, antialiased: true);
+                band++;
+            }
+        }
+    }
+
     private void DrawRegionBorders()
     {
         if (_map is null) return;
@@ -346,7 +386,7 @@ public partial class HexMapRenderer : Node2D
         if (_map is null) return colors;
 
         var ownerIds = _map.HexesById.Values
-            .Select(hex => hex.OwnerEntityId)
+            .SelectMany(hex => hex.Influences.Select(influence => influence.EntityId).Append(hex.OwnerEntityId))
             .Where(ownerId => ownerId > 0)
             .Distinct()
             .Order()

@@ -22,7 +22,7 @@ public static class RuntimeProcessGenerator
     private const float TransferUnit = 5f;
     private const float SoftGateMin = TransferUnit;
     private const float HexIncrement = 1f;
-    private const float HexToHealthRate = 2f;
+    private const float ResourceRecoveryRate = 2f;
     private const int ProximityRadius = 1;
 
     public static IReadOnlyList<ProcessDefinition> Generate(
@@ -162,7 +162,7 @@ public static class RuntimeProcessGenerator
         }
 
         return flow.Role == SemanticFlowRole.Inflow
-            ? BuildHexToHealth(verb, ownerKind, flow, kindConfig)
+            ? BuildResourceRecovery(verb, ownerKind, flow, kindConfig)
             : BuildUntouchedToHex(verb, ownerKind, flow);
     }
 
@@ -236,7 +236,7 @@ public static class RuntimeProcessGenerator
         return process;
     }
 
-    private static ProcessDefinition BuildHexToHealth(
+    private static ProcessDefinition BuildResourceRecovery(
         SemanticVerbConfig verb,
         EntityKind ownerKind,
         SemanticFlowConfig flow,
@@ -244,17 +244,16 @@ public static class RuntimeProcessGenerator
     {
         var healthAttr = flow.TargetAttribute;
         var resource = ResolveResource(flow.SourceRefs[0]);
-        var recoveryHosts = kindConfig.HexToHealthRecoveryHosts;
+        var recoveryHosts = kindConfig.ResourceRecoveryHosts;
 
         return recoveryHosts.Count == 0
-            ? BuildSelfDirectedHexToHealth(verb, ownerKind, kindConfig, healthAttr, resource)
-            : BuildHostedHexToHealth(verb, ownerKind, kindConfig, healthAttr, resource, recoveryHosts);
+            ? BuildSelfDirectedResourceRecovery(verb, ownerKind, healthAttr, resource)
+            : BuildHostedResourceRecovery(verb, ownerKind, kindConfig, healthAttr, resource, recoveryHosts);
     }
 
-    private static ProcessDefinition BuildSelfDirectedHexToHealth(
+    private static ProcessDefinition BuildSelfDirectedResourceRecovery(
         SemanticVerbConfig verb,
         EntityKind ownerKind,
-        KindConfig kindConfig,
         string healthAttr,
         ResourceType resource)
     {
@@ -277,19 +276,22 @@ public static class RuntimeProcessGenerator
             EntityCooldown = 1,
             RewardExpression = Expr.Mul(
                 Expr.SelfLocationResource(resource),
-                Expr.Lit(HexToHealthRate)),
+                Expr.Lit(ResourceRecoveryRate)),
         };
-        process.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate));
+        process.Mutations.Add(new CalculateMutation(
+            "resource_recovery",
+            Expr.Mul(
+                Expr.SelfLocationResource(resource),
+                Expr.Lit(ResourceRecoveryRate))));
+        process.Mutations.Add(new ModifySelfByVariableMutation(healthAttr, "resource_recovery"));
         process.GoalEffects.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
-        process.ResourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.HexHealthRecovery;
-        ApplyNamedProviderRecovery(process, kindConfig);
         return process;
     }
 
-    private static ProcessDefinition BuildHostedHexToHealth(
+    private static ProcessDefinition BuildHostedResourceRecovery(
         SemanticVerbConfig verb,
         EntityKind ownerKind,
         KindConfig kindConfig,
@@ -321,15 +323,18 @@ public static class RuntimeProcessGenerator
             EntityCooldown = 1,
             RewardExpression = Expr.Mul(
                 Expr.TargetLocationResource(resource),
-                Expr.Lit(HexToHealthRate)),
+                Expr.Lit(ResourceRecoveryRate)),
         };
-        process.Mutations.Add(new HexToHealthMutation(healthAttr, resource, HexToHealthRate, targetLocation: true));
+        process.Mutations.Add(new CalculateMutation(
+            "resource_recovery",
+            Expr.Mul(
+                Expr.TargetLocationResource(resource),
+                Expr.Lit(ResourceRecoveryRate))));
+        process.Mutations.Add(new ModifySelfByVariableMutation(healthAttr, "resource_recovery"));
         process.GoalEffects.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Self(healthAttr, ownerKind));
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(healthAttr, ownerKind));
-        process.ResourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.HexHealthRecovery;
-        ApplyNamedProviderRecovery(process, kindConfig);
         foreach (var hostQuery in recoveryHosts)
         {
             foreach (var hostKind in hostQuery.AnyOfKinds)
@@ -373,22 +378,7 @@ public static class RuntimeProcessGenerator
         process.Reads.Add(AttributeRef.Resource(resource.ToDomainName()));
         process.Writes.Add(AttributeRef.Self(sourceAttr, ownerKind));
         process.Writes.Add(AttributeRef.Resource(resource.ToDomainName()));
-        process.ResourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.HexResourceProducer;
         return process;
-    }
-
-    private static void ApplyNamedProviderRecovery(ProcessDefinition process, KindConfig kindConfig)
-    {
-        if (kindConfig.NamedProviderRecoveryHosts.Count == 0)
-        {
-            return;
-        }
-
-        var host = kindConfig.NamedProviderRecoveryHosts[0];
-        process.NamedProviderKind = host.Kind;
-        process.NamedProviderAttribute = host.AttributeName;
-        process.Reads.Add(AttributeRef.Target(host.AttributeName, host.Kind));
-        process.Writes.Add(AttributeRef.Target(host.AttributeName, host.Kind));
     }
 
     private static ProcessDefinition BuildConversion(

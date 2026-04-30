@@ -20,6 +20,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     public void AnalyzeToFiles_WritesSummaryArtifactsForSyntheticBatch()
     {
         var domain = IceRemembersRuntime.CreateDomainConfig();
+        var penguinVerbId = domain.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin).Id;
         var batchDirectory = CreateTempDirectory();
         var batch = CreateBatch(domain, includeGeneratorFire: true);
 
@@ -34,6 +35,13 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains(report.ProcessPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.SelectedCount == 1);
+        Assert.Contains(report.LowAltitudeVerbUtilization, row =>
+            row.Kind == IceRemembersKinds.Penguin.Value &&
+            row.Verb == penguinVerbId &&
+            row.SelectedCount == 1);
+        Assert.Contains(report.InfluenceSummary, row =>
+            row.Kind == IceRemembersKinds.Settlement.Value &&
+            row.AverageInfluencedCells > 0);
         Assert.Contains(report.MapGeneration, row =>
             row.Phase == "quality_validation" &&
             row.EventCount == 1);
@@ -41,12 +49,20 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         var analysisDirectory = Path.Combine(batchDirectory, "analysis");
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "summary.md")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_balance.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "low_altitude_verb_utilization.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "entity_roaming.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "roaming_summary.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "influence_dynamics.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "stock_dynamics.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_spread.parquet")));
         Assert.False(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
 
         var summary = File.ReadAllText(Path.Combine(analysisDirectory, "summary.md"));
         Assert.Contains("Monte Carlo Tuning Summary", summary, StringComparison.Ordinal);
+        Assert.Contains("Map Utilization", summary, StringComparison.Ordinal);
+        Assert.Contains("Roaming Variance", summary, StringComparison.Ordinal);
+        Assert.Contains("Low-Altitude Verb Utilization", summary, StringComparison.Ordinal);
+        Assert.Contains("Influence Dynamics", summary, StringComparison.Ordinal);
         Assert.Contains("Generator Balance", summary, StringComparison.Ordinal);
         Assert.Contains("Process Pressure", summary, StringComparison.Ordinal);
         Assert.Contains("Map Generation", summary, StringComparison.Ordinal);
@@ -74,32 +90,28 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
-    public void Analyze_UsesProcessExecutionEventsForProcessPressure()
+    public void Analyze_UsesPlannerCandidatesForLowAltitudeVerbPressure()
     {
         var domain = IceRemembersRuntime.CreateDomainConfig();
         var batchDirectory = CreateTempDirectory();
         var batch = CreateBatch(domain, includeGeneratorFire: true);
-        batch.ProcessCandidates.Clear();
 
         new DuckDbParquetTelemetryWriter(batchDirectory).Write(batch);
 
         var analyzer = new MonteCarloBatchAnalyzer(domain);
         var report = analyzer.Analyze(batchDirectory);
-        var processName = domain.Processes.First(process => process.TargetKind == IceRemembersKinds.Penguin).Name;
+        var verbId = domain.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin).Id;
 
         Assert.Contains(report.ProcessPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
-            row.ProcessName == processName &&
+            row.ProcessName == verbId &&
             row.SelectedCount == 1 &&
-            row.CandidateEvaluations == 0 &&
-            row.EvidenceSource == "process_events_execution");
+            row.CandidateEvaluations == 2 &&
+            row.EvidenceSource == "planner_candidates");
         Assert.Contains(report.PlannerPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.Evaluations == 1 &&
-            row.TopExecutedProcess == processName);
-        Assert.Contains(report.Flags, row =>
-            row.Category == "telemetry" &&
-            row.Message.Contains("process execution events", StringComparison.Ordinal));
+            row.TopExecutedProcess == verbId);
     }
 
     [Fact]
@@ -227,6 +239,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddRunAndSnapshotRows(batch, seed, includeGeneratorFire);
         AddEntityTelemetry(batch, seed);
         AddProcessTelemetry(batch, seed);
+        AddLowAltitudeTelemetry(batch, seed);
         AddResourceTelemetry(batch, seed);
         AddMapTelemetry(batch, seed);
         AddLifecycleTelemetry(batch, seed);
@@ -239,7 +252,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     {
         var penguinConfig = domain.Kinds[IceRemembersKinds.Penguin];
         var settlementConfig = domain.Kinds[IceRemembersKinds.Settlement];
-        var penguinProcess = domain.Processes.First(process => process.TargetKind == IceRemembersKinds.Penguin);
+        var penguinVerb = domain.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin);
 
         return new SyntheticBatchSeed(
             RunId: 1000,
@@ -252,14 +265,13 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             SanctuarySubtypeId: 21,
             CompactSubtypeId: 22,
             CultureId: 30,
-            ProcessId: 40,
+            VerbSymbolId: 40,
             GeneratorId: 50,
             FoodResourceId: 60,
             WealthResourceId: 61,
             ShelfTerrainId: 70,
             OceanTerrainId: 71,
-            PenguinProcessId: penguinProcess.Id,
-            PenguinProcessName: penguinProcess.Name,
+            PenguinVerbId: penguinVerb.Id,
             PenguinAttributeIds: AttributeIds(penguinConfig, firstId: 100),
             SettlementAttributeIds: AttributeIds(settlementConfig, firstId: 200));
     }
@@ -278,10 +290,10 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddSymbol(batch, ProjectionSymbolKind.Subtype, seed.CompactSubtypeId, "compact");
         AddSymbol(batch, ProjectionSymbolKind.Culture, seed.CultureId, IceRemembersCulture.Nightshelf.ToDomainName());
         batch.Symbols.Add(TelemetrySymbolIds.CreateWithId(
-            (int)ProjectionSymbolKind.Process,
-            seed.ProcessId,
-            seed.PenguinProcessId,
-            seed.PenguinProcessName));
+            (int)ProjectionSymbolKind.Verb,
+            seed.VerbSymbolId,
+            seed.PenguinVerbId,
+            seed.PenguinVerbId));
         AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "penguin_calls_the_unhuddled");
         AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "faction_seals_the_edge");
         AddSymbol(batch, ProjectionSymbolKind.Resource, seed.FoodResourceId, "Food");
@@ -315,55 +327,201 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static void AddProcessTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
-        AddProcessEvent(batch, seed, selectedGoalId: 1, candidateCount: 1);
-        AddProcessEvent(batch, seed, selectedGoalId: null, candidateCount: 0);
-        batch.ProcessCandidates.Add(new ProcessCandidateRow(
-            seed.RunId,
-            25,
-            1,
-            seed.PenguinKindId,
-            seed.ProcessId,
-            1,
-            ProviderId: 0,
-            1.25f,
-            PreconditionPassed: true,
-            PreconditionDiagnosticCode: 0,
-            OnCooldown: false,
-            WasSelected: true));
+        AddPlannerGoal(batch, seed);
+        AddPlannerCandidates(batch, seed);
+        batch.PlannerScores.Add(new PlannerScoreRow(seed.RunId, 25, 1, 1, 1, 1, TraceStatusCodes.Selected, 1.25f, 1.25f));
+        AddPlannerCommitRows(batch, seed);
     }
 
-    private static void AddProcessEvent(
-        TelemetryBatch batch,
-        SyntheticBatchSeed seed,
-        int? selectedGoalId,
-        int candidateCount) =>
-        batch.ProcessEvents.Add(new ProcessEventRow(
+    private static void AddLowAltitudeTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        AddLowAltitudeTraceTelemetry(batch, seed);
+        AddLowAltitudeMovementTelemetry(batch, seed);
+    }
+
+    private static void AddLowAltitudeTraceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.TraceEvents.Add(new TraceRow(
+            seed.RunId,
+            20,
+            PlanId: 2,
+            EntityId: 1,
+            TraceSubjectCodes.MovementIntent,
+            CandidateIndex: 1,
+            ParentCandidateIndex: LowAltitudeVerbOperationCodes.Move,
+            ActionFamilyCodes.LowAltitudeVerb,
+            ActionId: seed.VerbSymbolId,
+            EffectScopeCode: PlaneCodes.Physical,
+            EffectValueId: LowAltitudeVerbTargetModeCodes.Explore,
+            EffectKindId: seed.SettlementKindId,
+            TargetEntityId: 0,
+            TraceStatusCodes.Offered,
+            Urgency: 1f,
+            RewardOrBaseScore: 1f,
+            RawWeight: 1f,
+            AdjustedWeight: 1f));
+        batch.TraceEvents.Add(new TraceRow(
+            seed.RunId,
+            20,
+            PlanId: 2,
+            EntityId: 1,
+            TraceSubjectCodes.MovementIntent,
+            CandidateIndex: 1,
+            ParentCandidateIndex: LowAltitudeVerbOperationCodes.Move,
+            ActionFamilyCodes.LowAltitudeVerb,
+            ActionId: seed.VerbSymbolId,
+            EffectScopeCode: PlaneCodes.Physical,
+            EffectValueId: LowAltitudeVerbTargetModeCodes.Explore,
+            EffectKindId: seed.SettlementKindId,
+            TargetEntityId: 0,
+            TraceStatusCodes.Selected,
+            Urgency: 1f,
+            RewardOrBaseScore: 1f,
+            RawWeight: 1f,
+            AdjustedWeight: 1.2f));
+    }
+
+    private static void AddLowAltitudeMovementTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.MovementEvents.Add(new MovementEventRow(
+            seed.RunId,
+            21,
+            EntityId: 1,
+            PlaneCodes.Physical,
+            SourceCodeId: 0,
+            FromQ: 0,
+            FromR: 0,
+            FromS: 0,
+            ToQ: 1,
+            ToR: 0,
+            ToS: -1,
+            Distance: 1));
+        batch.MovementEvents.Add(new MovementEventRow(
+            seed.RunId,
+            22,
+            EntityId: 1,
+            PlaneCodes.Physical,
+            SourceCodeId: 0,
+            FromQ: 1,
+            FromR: 0,
+            FromS: -1,
+            ToQ: 2,
+            ToR: 0,
+            ToS: -2,
+            Distance: 1));
+    }
+
+    private static void AddPlannerGoal(TelemetryBatch batch, SyntheticBatchSeed seed) =>
+        batch.PlannerGoals.Add(new PlannerGoalRow(
             seed.RunId,
             25,
             1,
             seed.PenguinKindId,
-            selectedGoalId,
-            seed.ProcessId,
-            IsStale: false,
+            PlanId: 1,
+            GoalId: 1,
+            EffectScopeCode: PlaneCodes.Physical,
+            EffectValueId: 1,
+            EffectKindId: seed.SettlementKindId,
+            TargetEntityId: 2,
+            Urgency: 1f,
+            ParentGoalId: 0,
+            Depth: 0,
+            IsActionable: true,
+            BlockerRef: 0,
+            SupportRuleSourceId: 0));
+
+    private static void AddPlannerCandidates(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        AddPlannerCandidate(batch, seed, candidateIndex: 1, targetEntityId: 2, selected: true, diagnosticCode: 0);
+        AddPlannerCandidate(
+            batch,
+            seed,
+            candidateIndex: 2,
+            targetEntityId: 0,
+            selected: false,
+            diagnosticCode: TraceStatusCodes.NoTarget);
+    }
+
+    private static void AddPlannerCandidate(
+        TelemetryBatch batch,
+        SyntheticBatchSeed seed,
+        int candidateIndex,
+        int targetEntityId,
+        bool selected,
+        int diagnosticCode) =>
+        batch.PlannerCandidates.Add(new PlannerCandidateRow(
+            seed.RunId,
+            25,
+            1,
+            seed.PenguinKindId,
+            PlanId: 1,
+            GoalId: 1,
+            CandidateIndex: candidateIndex,
+            ParentCandidateIndex: 0,
+            ProcessId: seed.VerbSymbolId,
+            ActionId: seed.VerbSymbolId,
+            ProviderEntityId: 1,
+            TargetEntityId: targetEntityId,
+            EffectScopeCode: PlaneCodes.Physical,
+            EffectValueId: 1,
+            EffectKindId: selected ? seed.SettlementKindId : 0,
+            RawScore: selected ? 1.25f : 0f,
+            AdjustedScore: selected ? 1.25f : 0f,
+            RewardScore: selected ? 1.25f : 0f,
+            PreconditionStatusCode: diagnosticCode,
+            DiagnosticCode: diagnosticCode,
+            CooldownStateCode: 0,
+            LocalityId: 1,
+            Selected: selected));
+
+    private static void AddPlannerCommitRows(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.PlannerSteps.Add(new PlannerStepRow(
+            seed.RunId,
+            25,
+            1,
+            PlanId: 1,
+            GoalId: 1,
+            StepIndex: 1,
+            ProcessId: seed.VerbSymbolId,
+            ActionId: seed.VerbSymbolId,
+            TargetEntityId: 2,
+            RelationshipKindId: 0,
+            StepRoleCode: PlanningStepRoleCodes.Immediate));
+        batch.PlannerLocalities.Add(new PlannerLocalityRow(
+            seed.RunId,
+            25,
+            1,
+            seed.PenguinKindId,
+            PlanId: 1,
+            LocalityId: 1,
+            PlaneCode: PlaneCodes.Physical,
+            Q: 2,
+            R: 0,
+            S: 0,
+            AnchorEntityId: 2,
+            BundleScore: 1.25f,
+            GoalCount: 1,
+            DistinctTargetCount: 1,
+            DistinctEffectCount: 1,
+            Distance: 2,
+            IsCurrent: false,
+            IsCommitted: true,
+            Selected: true));
+        batch.ProcessExecutions.Add(new ProcessExecutionRow(
+            seed.RunId,
+            25,
+            1,
+            seed.PenguinKindId,
+            PlanId: 1,
+            GoalId: 1,
+            StepIndex: 1,
+            ProcessId: seed.VerbSymbolId,
+            TargetEntityId: 2,
             StateCode: (int)KernelEventState.Succeeded,
-            candidateCount,
-            VisitId: null,
-            LocalityId: null,
-            LocalityPlaneCode: null,
-            LocalityQ: null,
-            LocalityR: null,
-            LocalityS: null,
-            LocalityBundleScore: null,
-            LocalityGoalCount: null,
-            LocalityDistinctTargetCount: null,
-            LocalityDistinctEffectCount: null,
-            LocalityDistance: null,
-            LocalityIsCurrent: null,
-            LocalityIsCommitted: null,
-            LocalityArrived: null,
-            LocalityActionsRemaining: null,
-            LocalityRealizedActions: null,
-            LocalitySelectionReasonCode: null));
+            AffectedEntityId: 1,
+            LocalityId: 1));
+    }
 
     private static void AddResourceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
@@ -379,6 +537,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.OceanTerrainId, 40, 12, 0));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.ShelfTerrainId, 20, 10, 1));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.OceanTerrainId, 40, 18, 1));
+        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 2, 2, 0, 0f, 18f, 18f));
+        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 2, 3, 0, 0f, 12f, 12f));
         var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "quality_validation", "quality_validation");
         var description = TelemetrySymbolIds.Create(
             TelemetrySymbolKinds.MapGenerationDescription,
@@ -503,14 +663,13 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         int SanctuarySubtypeId,
         int CompactSubtypeId,
         int CultureId,
-        int ProcessId,
+        int VerbSymbolId,
         int GeneratorId,
         int FoodResourceId,
         int WealthResourceId,
         int ShelfTerrainId,
         int OceanTerrainId,
-        string PenguinProcessId,
-        string PenguinProcessName,
+        string PenguinVerbId,
         Dictionary<string, int> PenguinAttributeIds,
         Dictionary<string, int> SettlementAttributeIds);
 

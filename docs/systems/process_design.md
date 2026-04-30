@@ -152,7 +152,7 @@ These processes already exist and should be treated as seed verbs, not throwaway
 
 - `Grow`
   - Interface: `Region <-> Settlement`
-  - Role: converts ambient `food` and `population` into `residents`
+  - Role: legacy process concept; settlement health is now `temp_hp`
   - Design use: core settlement sustainment / expansion verb
 
 - `Propaganda`
@@ -162,7 +162,7 @@ These processes already exist and should be treated as seed verbs, not throwaway
 
 - `Attract Population`
   - Interface: `Settlement <-> Settlement`
-  - Role: pulls `residents` across settlements when prestige and ideology line up
+  - Role: legacy process concept; settlement health is now `temp_hp`
   - Design use: migration / concentration / decline verb
 
 ### NPC

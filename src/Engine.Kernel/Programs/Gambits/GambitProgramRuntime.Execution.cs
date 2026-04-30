@@ -126,9 +126,6 @@ internal sealed partial class GambitProgramRuntime
             case ProcessOperationCodes.AddLocationResource:
                 AddLocationResource(simulation, entityId, targetId, tick, step);
                 return true;
-            case ProcessOperationCodes.HexToHealth:
-                HexToHealth(simulation, entityId, targetId, tick, step);
-                return true;
             case ProcessOperationCodes.AddResource:
                 simulation.ModifyResource(_stepA[step], world.EntityPhysicalQ(entityId) + _stepB[step], world.EntityPhysicalR(entityId) + _stepC[step], _stepX[step], tick);
                 return true;
@@ -272,24 +269,6 @@ internal sealed partial class GambitProgramRuntime
             world.EntityPhysicalR(locationEntityId),
             _stepX[step],
             tick);
-    }
-
-    private void HexToHealth(
-        Simulation simulation,
-        int entityId,
-        int targetId,
-        int tick,
-        int step)
-    {
-        var world = simulation.World;
-        var locationEntityId = _stepC[step] == 0 ? entityId : targetId;
-        var resource = ResourceAtEntity(world, locationEntityId, _stepB[step]);
-        if (resource <= 0f)
-        {
-            return;
-        }
-
-        simulation.ModifyAttribute(entityId, _stepA[step], resource * _stepX[step], tick);
     }
 
     private float EvaluateMutationExpression(

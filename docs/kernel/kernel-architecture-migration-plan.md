@@ -49,8 +49,10 @@ This addresses tracker item 7.
 
 ## 6. Replace Runtime String APIs
 
-Migrate `AttributeRef`, `AttributeSet`, `Relationship`, `PressureSystem`, and
-`IMutationContext` from names to stable IDs.
+Migrate remaining runtime APIs such as `AttributeRef`, `Relationship`,
+`PressureSystem`, and `IMutationContext` from names to stable IDs. Attribute
+storage has already moved out of the legacy object model and into primitive
+kernel tables keyed by stable IDs.
 
 This is the main work for tracker items 1 and 2.
 
@@ -81,4 +83,3 @@ Move away from QuikGraph/enumerable traversal toward stable-handle adjacency and
 index storage with primitive IDs and no hot-path allocation.
 
 This addresses tracker item 6.
-

@@ -162,6 +162,15 @@ public static partial class DomainCompiler
                 process.Name);
         }
 
+        foreach (var verb in config.LowAltitudeVerbs)
+        {
+            symbols.Add(
+                DomainSymbolKind.Verb,
+                ids.VerbIdOf(verb.Id).Value,
+                verb.Id,
+                verb.DisplayName);
+        }
+
         foreach (var gambit in config.Gambits)
         {
             symbols.Add(
@@ -220,6 +229,7 @@ public static partial class DomainCompiler
         DomainIdCategory.Kind => DomainSymbolKind.Kind,
         DomainIdCategory.Attribute => DomainSymbolKind.Attribute,
         DomainIdCategory.Process => DomainSymbolKind.Process,
+        DomainIdCategory.Verb => DomainSymbolKind.Verb,
         DomainIdCategory.Gambit => DomainSymbolKind.Gambit,
         DomainIdCategory.StructuralFact => DomainSymbolKind.StructuralFact,
         DomainIdCategory.Pressure => DomainSymbolKind.Pressure,

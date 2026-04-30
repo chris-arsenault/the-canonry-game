@@ -83,7 +83,7 @@ public sealed class DomainIdRegistryTests
         var registry = compiled.Ids;
 
         Assert.True(registry.KindIdOf(IceRemembersKinds.Settlement).Value > 0);
-        Assert.True(registry.AttributeIdOf("residents").Value > 0);
+        Assert.True(registry.AttributeIdOf("temp_hp").Value > 0);
         Assert.True(registry.RelationshipKindIdOf("member_of").Value > 0);
         Assert.True(registry.RelationshipFactIdOf("called_unhuddled").Value > 0);
         Assert.True(registry.ResourceIdOf("food").Value > 0);
@@ -108,8 +108,8 @@ public sealed class DomainIdRegistryTests
             registry.KindIdOf(IceRemembersKinds.Settlement),
             clone.KindIdOf(IceRemembersKinds.Settlement));
         Assert.Equal(
-            registry.AttributeIdOf("residents"),
-            clone.AttributeIdOf("residents"));
+            registry.AttributeIdOf("temp_hp"),
+            clone.AttributeIdOf("temp_hp"));
         Assert.Equal(
             registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
             clone.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode));

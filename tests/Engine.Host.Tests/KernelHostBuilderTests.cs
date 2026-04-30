@@ -73,18 +73,18 @@ public sealed class KernelHostBuilderTests
         Assert.Equal(IceRemembersKinds.Settlement.Value, symbol.StableName);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.Attribute,
-            host.DomainIds.AttributeIdOf(IceRemembersAttributeId.Residents.ToDomainName()).Value,
+            host.DomainIds.AttributeIdOf(IceRemembersAttributeId.TempHp.ToDomainName()).Value,
             out var attributeSymbol));
-        Assert.Equal("Residents", attributeSymbol.DisplayName);
+        Assert.Equal("Temp HP", attributeSymbol.DisplayName);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.SourceCode,
             host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value,
             out var upkeepSymbol));
         Assert.Equal(DomainRuntimeNames.UpkeepSourceCode, upkeepSymbol.StableName);
         Assert.True(host.CompiledDomain.Programs.Generators.Generators.Count > 0);
-        var processSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Process);
+        var processSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Verb);
         Assert.True(host.Symbols.TryResolve(
-            ProjectionSymbolKind.Process,
+            ProjectionSymbolKind.Verb,
             processSymbolSeed.Id,
             out var processSymbol));
         Assert.Equal(processSymbolSeed.StableName, processSymbol.StableName);
@@ -101,8 +101,15 @@ public sealed class KernelHostBuilderTests
             out var structuralFactSymbol));
         Assert.Equal(structuralFactSeed.StableName, structuralFactSymbol.StableName);
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Upkeep));
+        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Movement));
+        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
+        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapActivity));
+        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Effects));
+        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Processes));
+        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Gambits));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Degeneracy));
+        Assert.NotEmpty(host.CompiledDomain.Programs.Effects.AttributeDeltaEffects);
     }
 
     [Fact]
@@ -294,6 +301,18 @@ public sealed class KernelHostBuilderTests
         Assert.NotEmpty(frosthaven.Attributes);
         Assert.All(frosthaven.Attributes.Values, attribute =>
             Assert.Equal(startupSourceCodeId, attribute.SourceCodeId));
+        Assert.InRange(
+            frosthaven.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.TempHp.ToDomainName()).Value].NewValue,
+            80f,
+            100f);
+        Assert.InRange(
+            frosthaven.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.Dominion.ToDomainName()).Value].NewValue,
+            30f,
+            70f);
+        Assert.InRange(
+            frosthaven.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.Shelter.ToDomainName()).Value].NewValue,
+            30f,
+            70f);
         Assert.Contains(ui.Resources.Values, resource =>
             resource.SourceCodeId == startupSourceCodeId && resource.NewValue > 0f);
         Assert.Contains(ui.Relationships.Keys, relationship =>

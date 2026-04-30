@@ -352,12 +352,6 @@ internal sealed partial class ProcessProgramRuntime
                 out selectedTargetId);
         }
 
-        if (NamedProviderRecoveryActive(processSlot))
-        {
-            var namedProvider = EvaluateKindProcessTargetChoices(simulation, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);
-            return SelectBestProcessTargetChoice(namedProvider, out selectedRootProcessSlot, out selectedRootTargetId, out selectedProcessSlot, out selectedTargetId);
-        }
-
         if (_processTargetModes[processSlot] == ProcessTargetModeCodes.Self)
         {
             var self = EvaluateProcessTargetPlanChoice(simulation, entityId, entityId, processSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, traceEnabled, parentCandidateIndex, ref candidateCount);

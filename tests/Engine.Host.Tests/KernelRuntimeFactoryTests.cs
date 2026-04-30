@@ -49,15 +49,25 @@ public sealed class KernelRuntimeFactoryTests
             {
               "kernelTuning": {
                 "programs": {
+                  "movement": {
+                    "enabled": false
+                  },
+                  "lowAltitudeVerbs": {
+                    "enabled": false
+                  },
                   "generators": {
                     "retryFireTargets": false
                   },
                   "processes": {
-                    "resourceSupplyModel": "named_provider_no_hex",
+                    "enabled": true,
                     "workCommitments": "pilot"
+                  },
+                  "gambits": {
+                    "enabled": true
                   },
                   "planning": {
                     "defaultPlanner": "opportunity",
+                    "goapTargetReservations": true,
                     "opportunityTargetCapacity": 3,
                     "kindPlannerOverrides": [
                       { "kindId": 1, "planner": "goap" }
@@ -81,17 +91,7 @@ public sealed class KernelRuntimeFactoryTests
         {
             var options = StartAndReadSavedOptions(path);
 
-            Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
-            Assert.Equal(ProcessResourceSupplyModelCodes.NamedProviderNoHex, options.KernelTuning.Programs.Processes.ResourceSupplyModelCode);
-            Assert.Equal(ProcessWorkCommitmentCodes.Pilot, options.KernelTuning.Programs.Processes.WorkCommitmentCode);
-            Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
-            Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
-            Assert.Contains(options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
-                item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
-            Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
-                item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
-            Assert.False(options.KernelTuning.Programs.Pressures.Enabled);
-            Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
+            AssertConfiguredTuningOptions(options);
         }
         finally
         {
@@ -152,12 +152,22 @@ public sealed class KernelRuntimeFactoryTests
             [kernel_tuning.programs.generators]
             retry_fire_targets = false
 
+            [kernel_tuning.programs.movement]
+            enabled = false
+
+            [kernel_tuning.programs.low_altitude_verbs]
+            enabled = false
+
             [kernel_tuning.programs.processes]
-            resource_supply_model = "named_provider_no_hex"
+            enabled = true
             work_commitments = "pilot"
+
+            [kernel_tuning.programs.gambits]
+            enabled = true
 
             [kernel_tuning.programs.planning]
             default_planner = "opportunity"
+            goap_target_reservations = true
             opportunity_target_capacity = 3
 
             [kernel_tuning.programs.planning.kind.1]
@@ -177,17 +187,7 @@ public sealed class KernelRuntimeFactoryTests
         {
             var options = StartAndReadSavedOptions(path);
 
-            Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
-            Assert.Equal(ProcessResourceSupplyModelCodes.NamedProviderNoHex, options.KernelTuning.Programs.Processes.ResourceSupplyModelCode);
-            Assert.Equal(ProcessWorkCommitmentCodes.Pilot, options.KernelTuning.Programs.Processes.WorkCommitmentCode);
-            Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
-            Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
-            Assert.Contains(options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
-                item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
-            Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
-                item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
-            Assert.False(options.KernelTuning.Programs.Pressures.Enabled);
-            Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
+            AssertConfiguredTuningOptions(options);
         }
         finally
         {
@@ -220,8 +220,66 @@ public sealed class KernelRuntimeFactoryTests
         }
     }
 
+    [Fact]
+    public void Start_AppliesProgramEnabledOverridesFromKernelConfig()
+    {
+        var path = WriteTempConfig(
+            ".json",
+            """
+            {
+              "kernelTuning": {
+                "programs": {
+                  "movement": {
+                    "enabled": false
+                  },
+                  "processes": {
+                    "enabled": true
+                  }
+                }
+              }
+            }
+            """);
+
+        try
+        {
+            var domain = new CountingDomainModule();
+            var factory = KernelRuntimeFactory.ForDomains(domain);
+            using var runtime = factory.Start(new KernelStartRequest(
+                domain.Name,
+                StartupSeedPolicy.Requested(100),
+                KernelFunctionProfile.Batch,
+                configFilePath: path));
+
+            Assert.False(runtime.Host.ProgramIsEnabled(KernelProgramCodes.Movement));
+            Assert.True(runtime.Host.ProgramIsEnabled(KernelProgramCodes.Processes));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static KernelStartRequest Request(string domainName, int seed) =>
         new(domainName, StartupSeedPolicy.Requested(seed), KernelFunctionProfile.Batch);
+
+    private static void AssertConfiguredTuningOptions(SimulationOptions options)
+    {
+        Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
+        Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.Movement);
+        Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
+        Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Processes);
+        Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);
+        Assert.Equal(ProcessWorkCommitmentCodes.Pilot, options.KernelTuning.Programs.Processes.WorkCommitmentCode);
+        Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
+        Assert.True(options.KernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
+        Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
+        Assert.Contains(options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
+            item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
+        Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
+            item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
+        Assert.False(options.KernelTuning.Programs.Pressures.Enabled);
+        Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
+    }
 
     private static SimulationOptions StartAndReadSavedOptions(string configFilePath)
     {

@@ -158,7 +158,6 @@ public static partial class DefinitionGraphValidator
         ValidateRpsRing(graph, errors);
         ValidateUntouchedAttributeOutflowToHex(graph, errors);
         ValidateMobilityAndDriftVerbs(graph, errors);
-        ValidateNonHealthScalarDecay(graph, errors);
         ValidateTransferPreconditionGates(graph, errors);
     }
 
@@ -446,35 +445,6 @@ public static partial class DefinitionGraphValidator
                 return true;
             default:
                 return false;
-        }
-    }
-
-    /// <summary>
-    /// The semantic catalog declares engine_decay on every scalar stock; at runtime
-    /// that shows up as <c>AttributeConfig.DriftRate</c>. Health attributes are
-    /// drained separately by the lifecycle system, so they're exempt. Every other
-    /// scalar attribute must declare a negative DriftRate — otherwise the agent
-    /// can fill the stock once and never face renewed deficit, collapsing the
-    /// process program's dynamic behavior.
-    /// </summary>
-    private static void ValidateNonHealthScalarDecay(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var (kind, kindNode) in graph.Kinds)
-        {
-            foreach (var (attrId, attrNode) in kindNode.Attributes)
-            {
-                if (attrNode.IsHealthAttribute) continue;
-                if (attrNode.Shape != DefinitionAttributeShape.Scalar) continue;
-
-                var driftRate = attrNode.SourceConfig.DriftRate;
-                if (driftRate >= 0f)
-                {
-                    errors.Add(
-                        $"Kind '{kind}' non-Health attribute '{attrId.Value}' has DriftRate={driftRate:F2}; " +
-                        "every non-Health scalar stock must decay (the semantic catalog declares engine_decay for it). " +
-                        "Set a negative DriftRate on the AttributeConfig.");
-                }
-            }
         }
     }
 
@@ -783,8 +753,6 @@ public static partial class DefinitionGraphValidator
         List<string> errors)
     {
         ValidateAttributeIdentity(keyKind, attributeId, attributeNode, errors);
-        ValidateAttributeCriticalEffect(keyKind, attributeId, attributeNode, graph, errors);
-        ValidateAttributeLocationDrift(keyKind, attributeId, attributeNode, graph, errors);
     }
 
     private static void ValidateAttributeIdentity(
@@ -811,39 +779,6 @@ public static partial class DefinitionGraphValidator
         if (attributeNode.SourceConfig.Name != attributeId.Value)
         {
             errors.Add($"Attribute node id '{attributeId}' does not match source config name '{attributeNode.SourceConfig.Name}'.");
-        }
-    }
-
-    private static void ValidateAttributeCriticalEffect(
-        EntityKind keyKind,
-        DefinitionAttributeId attributeId,
-        DefinitionAttributeNode attributeNode,
-        DefinitionGraph graph,
-        List<string> errors)
-    {
-        if (attributeNode.CriticalEffect is null)
-        {
-            return;
-        }
-
-        var targetKey = new DefinitionAttributeKey(keyKind, attributeNode.CriticalEffect.TargetAttributeId);
-        if (!graph.Attributes.ContainsKey(targetKey))
-        {
-            errors.Add($"Critical effect on '{keyKind}.{attributeId}' targets missing attribute '{attributeNode.CriticalEffect.TargetAttributeId}'.");
-        }
-    }
-
-    private static void ValidateAttributeLocationDrift(
-        EntityKind keyKind,
-        DefinitionAttributeId attributeId,
-        DefinitionAttributeNode attributeNode,
-        DefinitionGraph graph,
-        List<string> errors)
-    {
-        if (attributeNode.LocationResourceDrift is not null &&
-            !graph.Resources.ContainsKey(attributeNode.LocationResourceDrift.ResourceId))
-        {
-            errors.Add($"Location resource drift on '{keyKind}.{attributeId}' references undeclared resource '{attributeNode.LocationResourceDrift.ResourceId}'.");
         }
     }
 

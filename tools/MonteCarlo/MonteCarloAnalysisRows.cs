@@ -6,6 +6,9 @@ internal sealed class MonteCarloAnalysisReport
     public required IReadOnlyList<AnalysisFlagRow> Flags { get; init; }
     public required IReadOnlyList<GeneratorAnalysisRow> GeneratorBalance { get; init; }
     public required IReadOnlyList<GeneratedSubtypeCoverageRow> GeneratedSubtypeCoverage { get; init; }
+    public required IReadOnlyList<LowAltitudeVerbSummaryRow> LowAltitudeVerbUtilization { get; init; }
+    public required IReadOnlyList<RoamingSummaryRow> RoamingSummary { get; init; }
+    public required IReadOnlyList<InfluenceSummaryRow> InfluenceSummary { get; init; }
     public required IReadOnlyList<PlannerPressureRow> PlannerPressure { get; init; }
     public required IReadOnlyList<ProcessPressureRow> ProcessPressure { get; init; }
     public required IReadOnlyList<AttributeBandSummaryRow> AttributeBands { get; init; }
@@ -59,6 +62,36 @@ internal sealed record GeneratedSubtypeCoverageRow(
     string Subtype,
     int ProducedCount);
 
+internal sealed record LowAltitudeVerbSummaryRow(
+    string Kind,
+    string Verb,
+    string Operation,
+    string TargetMode,
+    string Plane,
+    int OfferedCount,
+    int SelectedCount,
+    int NoTargetCount,
+    double SelectionRateWhenOffered,
+    double AverageSelectedWeight);
+
+internal sealed record RoamingSummaryRow(
+    string Kind,
+    string Plane,
+    int EntityCount,
+    int MoverCount,
+    double ZeroMoveShare,
+    double AverageMoveCount,
+    double AverageUniquePositions,
+    double AverageRoamRadius);
+
+internal sealed record InfluenceSummaryRow(
+    string Kind,
+    int EntityCount,
+    double AverageInfluencedCells,
+    double AverageNetInfluenceDelta,
+    double AverageMeanAnchorDistance,
+    double AverageMaxAnchorDistance);
+
 internal sealed record PlannerPressureRow(
     string Kind,
     int Evaluations,
@@ -98,13 +131,15 @@ internal sealed record MapSpreadSummaryRow(
     string RunId,
     int SnapshotTick,
     int ActiveEntities,
-    int OccupiedCells,
-    double OccupiedCellShare,
-    int BoundingBoxArea,
-    double OccupancyWithinBoundingBox,
-    double MeanDistanceFromSeed,
-    double MaxDistanceFromSeed,
-    double Anisotropy);
+    int ActivityEventCount,
+    int ActivityCells,
+    double ActivityCellShare,
+    double ActivityEntropy,
+    double ActivityTopCellShare,
+    int ActivityBoundingBoxArea,
+    double ActivityCoverageWithinBoundingBox,
+    double ActivityAxisAnisotropy,
+    int LargestUnoccupiedStrictHexRadius);
 
 internal sealed record MapGenerationSummaryRow(
     string Phase,

@@ -193,8 +193,6 @@ public static class DefinitionGraphBuilder
             Shape = DefinitionAttributeShape.Scalar,
             SourceConfig = attribute,
             IsHealthAttribute = false,
-            CriticalEffect = BuildCriticalEffect(attribute.CriticalEffect),
-            LocationResourceDrift = BuildLocationResourceDrift(attribute),
         };
 
     private static DefinitionAttributeId? ApplyHealthAttribute(
@@ -219,8 +217,6 @@ public static class DefinitionGraphBuilder
             Key = healthNode.Key,
             Shape = healthNode.Shape,
             SourceConfig = healthNode.SourceConfig,
-            CriticalEffect = healthNode.CriticalEffect,
-            LocationResourceDrift = healthNode.LocationResourceDrift,
             IsHealthAttribute = true,
         };
         return healthId;
@@ -412,37 +408,6 @@ public static class DefinitionGraphBuilder
                 UrgencyScale = rule.UrgencyScale,
                 SourceRule = rule,
             }).ToList(),
-        };
-    }
-
-    private static DefinitionCriticalEffectNode? BuildCriticalEffect(CriticalEffectConfig? config)
-    {
-        if (config is null)
-        {
-            return null;
-        }
-
-        return new DefinitionCriticalEffectNode
-        {
-            TargetAttributeId = new DefinitionAttributeId(config.TargetAttribute),
-            DeltaPerTick = config.DeltaPerTick,
-            Description = config.Description,
-        };
-    }
-
-    private static DefinitionLocationResourceDriftNode? BuildLocationResourceDrift(AttributeConfig attribute)
-    {
-        if (attribute.LocationResourceDriftResource is null)
-        {
-            return null;
-        }
-
-        return new DefinitionLocationResourceDriftNode
-        {
-            ResourceId = new DefinitionResourceId(attribute.LocationResourceDriftResource.Value.ToDomainName()),
-            PerUnit = attribute.LocationResourceDriftPerUnit,
-            MinOffset = attribute.LocationResourceDriftMinOffset,
-            MaxOffset = attribute.LocationResourceDriftMaxOffset,
         };
     }
 

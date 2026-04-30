@@ -6,6 +6,23 @@ using Engine.Kernel;
 
 internal static class KernelStartupConfigLoader
 {
+    private static readonly ProgramSectionMapping[] ProgramSectionMappings =
+    [
+        new("KERNELTUNING.PROGRAMS.MOVEMENT", KernelProgramCodes.Movement),
+        new("KERNELTUNING.PROGRAMS.LOWALTITUDEVERBS", KernelProgramCodes.LowAltitudeVerbs),
+        new("KERNELTUNING.PROGRAMS.LOW_ALTITUDE_VERBS", KernelProgramCodes.LowAltitudeVerbs),
+        new("KERNELTUNING.PROGRAMS.MAPACTIVITY", KernelProgramCodes.MapActivity),
+        new("KERNELTUNING.PROGRAMS.MAP_ACTIVITY", KernelProgramCodes.MapActivity),
+        new("KERNELTUNING.PROGRAMS.EFFECTS", KernelProgramCodes.Effects),
+        new("KERNELTUNING.PROGRAMS.UPKEEP", KernelProgramCodes.Upkeep),
+        new("KERNELTUNING.PROGRAMS.PROCESSES", KernelProgramCodes.Processes),
+        new("KERNELTUNING.PROGRAMS.GAMBITS", KernelProgramCodes.Gambits),
+        new("KERNELTUNING.PROGRAMS.RELATIONSHIPS", KernelProgramCodes.Relationships),
+        new("KERNELTUNING.PROGRAMS.PRESSURES", KernelProgramCodes.Pressures),
+        new("KERNELTUNING.PROGRAMS.GENERATORS", KernelProgramCodes.Generators),
+        new("KERNELTUNING.PROGRAMS.DEGENERACY", KernelProgramCodes.Degeneracy),
+    ];
+
     public static KernelTuningOptions LoadKernelTuning(string? configFilePath)
     {
         var tuning = new KernelTuningOptions();
@@ -60,7 +77,38 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonPlanningTuning(programs, tuning);
         tuning = ApplyJsonPressureTuning(programs, tuning);
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
-        return ApplyJsonGeneratorTuning(programs, tuning);
+        tuning = ApplyJsonGeneratorTuning(programs, tuning);
+        return ApplyJsonProgramEnabledTuning(programs, tuning);
+    }
+
+    private static KernelTuningOptions ApplyJsonProgramEnabledTuning(JsonElement programs, KernelTuningOptions tuning)
+    {
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Movement, "movement");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.LowAltitudeVerbs, "lowAltitudeVerbs", "low_altitude_verbs");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapActivity, "mapActivity", "map_activity");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Effects, "effects");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Processes, "processes");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Gambits, "gambits");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Relationships, "relationships");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Pressures, "pressures");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
+        return ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Degeneracy, "degeneracy");
+    }
+
+    private static KernelTuningOptions ApplyJsonProgramEnabledValue(
+        JsonElement programs,
+        KernelTuningOptions tuning,
+        int programId,
+        params string[] programNames)
+    {
+        if (!TryGetObject(programs, out var program, programNames) ||
+            !TryGetBool(program, out var enabled, "enabled"))
+        {
+            return tuning;
+        }
+
+        return WithProgramEnabled(tuning, programId, enabled);
     }
 
     private static KernelTuningOptions ApplyJsonPlanningTuning(JsonElement programs, KernelTuningOptions tuning)
@@ -79,6 +127,11 @@ internal static class KernelStartupConfigLoader
         if (TryGetInt(planning, out var opportunityTargetCapacity, "opportunityTargetCapacity", "opportunity_target_capacity"))
         {
             tuning = WithOpportunityTargetCapacity(tuning, opportunityTargetCapacity);
+        }
+
+        if (TryGetBool(planning, out var goapReservations, "goapTargetReservations", "goap_target_reservations"))
+        {
+            tuning = WithGoapTargetReservations(tuning, goapReservations);
         }
 
         tuning = ApplyJsonPlanningKindOverrides(planning, tuning);
@@ -151,12 +204,6 @@ internal static class KernelStartupConfigLoader
         if (!TryGetObject(programs, out var processes, "processes"))
         {
             return tuning;
-        }
-
-        if (TryGetString(processes, out var resourceSupplyModel, "resourceSupplyModel", "resource_supply_model") &&
-            TryParseResourceSupplyModel(resourceSupplyModel, out var resourceSupplyModelCode))
-        {
-            tuning = WithResourceSupplyModel(tuning, resourceSupplyModelCode);
         }
 
         if (TryGetString(processes, out var workCommitments, "workCommitments", "work_commitments") &&
@@ -238,15 +285,15 @@ internal static class KernelStartupConfigLoader
     {
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.GENERATORS", StringComparison.Ordinal))
         {
-            return ApplyTomlGeneratorValue(key, value, tuning);
+            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlGeneratorValue(key, value, tuning));
         }
 
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.PRESSURES", StringComparison.Ordinal))
         {
-            return ApplyTomlPressureValue(key, value, tuning);
+            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlPressureValue(key, value, tuning));
         }
 
-        var scalar = ReadScalarValue(value);
+        var scalar = ReadBareTomlValue(value);
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.PLANNING", StringComparison.Ordinal))
         {
             return ApplyTomlPlanningValue(key, scalar, tuning);
@@ -264,7 +311,7 @@ internal static class KernelStartupConfigLoader
 
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.PROCESSES", StringComparison.Ordinal))
         {
-            return ApplyTomlProcessValue(key, scalar, tuning);
+            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlProcessValue(key, scalar, tuning));
         }
 
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.UPKEEP", StringComparison.Ordinal) &&
@@ -273,7 +320,85 @@ internal static class KernelStartupConfigLoader
             return ApplyTomlUpkeepValue(scalar, tuning);
         }
 
-        return tuning;
+        return ApplyTomlProgramEnabledValue(section, key, value, tuning);
+    }
+
+    private static KernelTuningOptions ApplyTomlProgramEnabledValue(
+        string section,
+        string key,
+        string value,
+        KernelTuningOptions tuning)
+    {
+        if (!string.Equals(key, "ENABLED", StringComparison.Ordinal) ||
+            !bool.TryParse(ReadBareTomlValue(value), out var enabled) ||
+            !TryProgramIdFromTomlSection(section, out var programId))
+        {
+            return tuning;
+        }
+
+        return WithProgramEnabled(tuning, programId, enabled);
+    }
+
+    private static bool TryProgramIdFromTomlSection(string section, out int programId)
+    {
+        for (var i = 0; i < ProgramSectionMappings.Length; i++)
+        {
+            if (string.Equals(section, ProgramSectionMappings[i].Section, StringComparison.Ordinal))
+            {
+                programId = ProgramSectionMappings[i].ProgramId;
+                return true;
+            }
+        }
+
+        programId = 0;
+        return false;
+    }
+
+    private readonly record struct ProgramSectionMapping(string Section, int ProgramId);
+
+    private static ProgramEnabledTuningOptions ProgramEnabledOverrideFor(
+        ProgramEnabledTuningOptions options,
+        int programId,
+        int code)
+    {
+        return TryProgramEnabledOverrideForCore(options, programId, code, out var updated)
+            ? updated
+            : ProgramEnabledOverrideForWorld(updated, programId, code);
+    }
+
+    private static bool TryProgramEnabledOverrideForCore(
+        ProgramEnabledTuningOptions options,
+        int programId,
+        int code,
+        out ProgramEnabledTuningOptions updated)
+    {
+        updated = programId switch
+        {
+            KernelProgramCodes.Movement => options with { Movement = code },
+            KernelProgramCodes.LowAltitudeVerbs => options with { LowAltitudeVerbs = code },
+            KernelProgramCodes.MapActivity => options with { MapActivity = code },
+            KernelProgramCodes.Effects => options with { Effects = code },
+            KernelProgramCodes.Upkeep => options with { Upkeep = code },
+            KernelProgramCodes.Processes => options with { Processes = code },
+            KernelProgramCodes.Gambits => options with { Gambits = code },
+            _ => options,
+        };
+        return !ReferenceEquals(options, updated);
+    }
+
+    private static ProgramEnabledTuningOptions ProgramEnabledOverrideForWorld(
+        ProgramEnabledTuningOptions options,
+        int programId,
+        int code)
+    {
+        return programId switch
+        {
+            KernelProgramCodes.Relationships => options with { Relationships = code },
+            KernelProgramCodes.Pressures => options with { Pressures = code },
+            KernelProgramCodes.Generators => options with { Generators = code },
+            KernelProgramCodes.Degeneracy => options with { Degeneracy = code },
+            _ => options,
+        };
     }
 
     private static KernelTuningOptions ApplyTomlPlanningValue(
@@ -291,6 +416,12 @@ internal static class KernelStartupConfigLoader
             int.TryParse(value, global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out var opportunityTargetCapacity))
         {
             return WithOpportunityTargetCapacity(tuning, opportunityTargetCapacity);
+        }
+
+        if (string.Equals(key, "GOAPTARGETRESERVATIONS", StringComparison.Ordinal) &&
+            bool.TryParse(value, out var goapReservations))
+        {
+            return WithGoapTargetReservations(tuning, goapReservations);
         }
 
         return tuning;
@@ -372,12 +503,6 @@ internal static class KernelStartupConfigLoader
         string value,
         KernelTuningOptions tuning)
     {
-        if (string.Equals(key, "RESOURCESUPPLYMODEL", StringComparison.Ordinal) &&
-            TryParseResourceSupplyModel(value, out var resourceSupplyModelCode))
-        {
-            return WithResourceSupplyModel(tuning, resourceSupplyModelCode);
-        }
-
         if (string.Equals(key, "WORKCOMMITMENTS", StringComparison.Ordinal) &&
             TryParseWorkCommitments(value, out var workCommitmentCode))
         {
@@ -401,16 +526,14 @@ internal static class KernelStartupConfigLoader
         };
     }
 
-    private static KernelTuningOptions WithResourceSupplyModel(KernelTuningOptions tuning, int code)
+    private static KernelTuningOptions WithProgramEnabled(KernelTuningOptions tuning, int programId, bool enabled)
     {
+        var code = enabled ? ProgramEnabledOverrideCodes.Enabled : ProgramEnabledOverrideCodes.Disabled;
         return tuning with
         {
             Programs = tuning.Programs with
             {
-                Processes = tuning.Programs.Processes with
-                {
-                    ResourceSupplyModelCode = code,
-                },
+                Enabled = ProgramEnabledOverrideFor(tuning.Programs.Enabled, programId, code),
             },
         };
     }
@@ -452,6 +575,20 @@ internal static class KernelStartupConfigLoader
                 Planning = tuning.Programs.Planning with
                 {
                     OpportunityTargetCapacity = capacity,
+                },
+            },
+        };
+    }
+
+    private static KernelTuningOptions WithGoapTargetReservations(KernelTuningOptions tuning, bool enabled)
+    {
+        return tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                Planning = tuning.Programs.Planning with
+                {
+                    GoapTargetReservationsEnabled = enabled,
                 },
             },
         };
@@ -614,25 +751,6 @@ internal static class KernelStartupConfigLoader
         return false;
     }
 
-    private static bool TryParseResourceSupplyModel(string value, out int code)
-    {
-        var normalized = Normalize(value);
-        if (string.Equals(normalized, "AMBIENTHEX", StringComparison.Ordinal))
-        {
-            code = ProcessResourceSupplyModelCodes.AmbientHex;
-            return true;
-        }
-
-        if (string.Equals(normalized, "NAMEDPROVIDERNOHEX", StringComparison.Ordinal))
-        {
-            code = ProcessResourceSupplyModelCodes.NamedProviderNoHex;
-            return true;
-        }
-
-        code = 0;
-        return false;
-    }
-
     private static bool TryParseWorkCommitments(string value, out int code)
     {
         var normalized = Normalize(value);
@@ -704,7 +822,7 @@ internal static class KernelStartupConfigLoader
                id > 0;
     }
 
-    private static string ReadScalarValue(string value)
+    private static string ReadBareTomlValue(string value)
     {
         var trimmed = value.Trim();
         return trimmed.Length >= 2 &&

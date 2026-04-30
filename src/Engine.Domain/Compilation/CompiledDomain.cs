@@ -28,7 +28,11 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId GeneratorSourceCodeId,
     SourceCodeId PressureSourceCodeId,
     SourceCodeId DegeneracySourceCodeId,
-    SourceCodeId PlanningSourceCodeId);
+    SourceCodeId PlanningSourceCodeId,
+    SourceCodeId MovementSourceCodeId,
+    SourceCodeId MapActivitySourceCodeId,
+    SourceCodeId LowAltitudeVerbSourceCodeId,
+    SourceCodeId EffectsSourceCodeId);
 
 public enum DomainSymbolKind
 {
@@ -45,6 +49,7 @@ public enum DomainSymbolKind
     Terrain,
     Pressure,
     Generator,
+    Verb,
     EventCode,
     ReasonCode,
     SourceCode,

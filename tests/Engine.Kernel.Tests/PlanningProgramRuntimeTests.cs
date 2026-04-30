@@ -532,6 +532,159 @@ public sealed class PlanningProgramRuntimeTests
     }
 
     [Fact]
+    public void GoapTargetReservationsAreDisabledByDefault()
+    {
+        var simulation = CreateSimulation();
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(targetKindId, attributeId, 0f, 100f, 10f);
+        simulation.Processes.RegisterStandingObjective(
+            actorKindId,
+            ProcessEffectScopeCodes.TargetAttribute,
+            attributeId,
+            targetKindId,
+            baseUrgency: 1f);
+        var firstActor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var secondActor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var targetId = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var process = simulation.Processes.RegisterProcess(
+            actorKindId,
+            processId: 156,
+            targetMode: ProcessTargetModeCodes.KindOther,
+            targetKindId: targetKindId);
+        simulation.Processes.SetGoalEffect(process, ProcessEffectScopeCodes.TargetAttribute, attributeId, targetKindId);
+        simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.TargetIsNotSelf);
+        simulation.Processes.AddExpressionOp(process, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(process, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Processes.AddStep(process, ProcessOperationCodes.AddTargetAttribute, attributeId, x: 20f);
+
+        var first = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(PlannerKindCodes.Goap, ActionFamilyCodes.Process, firstActor, actorKindId, Tick: 7, SelectionRoll: 0f));
+        var second = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(PlannerKindCodes.Goap, ActionFamilyCodes.Process, secondActor, actorKindId, Tick: 7, SelectionRoll: 0f));
+
+        Assert.Equal(PlanningStatusCodes.Succeeded, first.StatusCode);
+        Assert.Equal(PlanningStatusCodes.Succeeded, second.StatusCode);
+        Assert.Equal(process, first.ImmediateAction.ActionSlot);
+        Assert.Equal(process, second.ImmediateAction.ActionSlot);
+        Assert.Equal(targetId, first.ImmediateTargetEntityId);
+        Assert.Equal(targetId, second.ImmediateTargetEntityId);
+    }
+
+    [Fact]
+    public void GoapTargetReservationsBlockSameActionTargetButAllowDifferentActions()
+    {
+        var simulation = CreateSimulation(kernelTuning: new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Planning = new PlanningProgramTuningOptions
+                {
+                    GoapTargetReservationsEnabled = true,
+                },
+            },
+        });
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int growAttributeId = 10;
+        const int inspireAttributeId = 11;
+        simulation.RegisterAttribute(actorKindId, growAttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(targetKindId, growAttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(targetKindId, inspireAttributeId, 0f, 100f, 10f);
+        simulation.Processes.RegisterStandingObjective(
+            actorKindId,
+            ProcessEffectScopeCodes.TargetAttribute,
+            growAttributeId,
+            targetKindId,
+            baseUrgency: 1f);
+        simulation.Processes.RegisterStandingObjective(
+            actorKindId,
+            ProcessEffectScopeCodes.TargetAttribute,
+            inspireAttributeId,
+            targetKindId,
+            baseUrgency: 1f);
+        var firstActor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var secondActor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var targetId = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var grow = RegisterTargetAttributeProcess(simulation, actorKindId, targetKindId, processId: 157, growAttributeId);
+        var inspire = RegisterTargetAttributeProcess(simulation, actorKindId, targetKindId, processId: 158, inspireAttributeId);
+
+        var first = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(PlannerKindCodes.Goap, ActionFamilyCodes.Process, firstActor, actorKindId, Tick: 7, SelectionRoll: 0f));
+        var second = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(PlannerKindCodes.Goap, ActionFamilyCodes.Process, secondActor, actorKindId, Tick: 7, SelectionRoll: 0f));
+
+        Assert.Equal(PlanningStatusCodes.Succeeded, first.StatusCode);
+        Assert.Equal(PlanningStatusCodes.Succeeded, second.StatusCode);
+        Assert.Equal(grow, first.ImmediateAction.ActionSlot);
+        Assert.Equal(inspire, second.ImmediateAction.ActionSlot);
+        Assert.Equal(targetId, first.ImmediateTargetEntityId);
+        Assert.Equal(targetId, second.ImmediateTargetEntityId);
+    }
+
+    [Fact]
+    public void GoapGambitTargetReservationsUseSameActionTargetRule()
+    {
+        var simulation = CreateSimulation(kernelTuning: new KernelTuningOptions
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                Planning = new PlanningProgramTuningOptions
+                {
+                    GoapTargetReservationsEnabled = true,
+                },
+            },
+        });
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int growAttributeId = 10;
+        const int inspireAttributeId = 11;
+        simulation.RegisterAttribute(actorKindId, growAttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(targetKindId, growAttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(targetKindId, inspireAttributeId, 0f, 100f, 10f);
+        simulation.Gambits.RegisterStandingObjective(
+            actorKindId,
+            ProcessEffectScopeCodes.TargetAttribute,
+            growAttributeId,
+            targetKindId,
+            baseUrgency: 1f);
+        simulation.Gambits.RegisterStandingObjective(
+            actorKindId,
+            ProcessEffectScopeCodes.TargetAttribute,
+            inspireAttributeId,
+            targetKindId,
+            baseUrgency: 1f);
+        var firstActor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var secondActor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var targetId = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var grow = RegisterTargetAttributeGambit(simulation, actorKindId, targetKindId, gambitId: 357, growAttributeId);
+        var inspire = RegisterTargetAttributeGambit(simulation, actorKindId, targetKindId, gambitId: 358, inspireAttributeId);
+
+        var first = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(PlannerKindCodes.Goap, ActionFamilyCodes.Gambit, firstActor, actorKindId, Tick: 7, SelectionRoll: 0f));
+        var second = simulation.Planners.Plan(
+            simulation,
+            new PlanningRequest(PlannerKindCodes.Goap, ActionFamilyCodes.Gambit, secondActor, actorKindId, Tick: 7, SelectionRoll: 0f));
+
+        Assert.Equal(PlanningStatusCodes.Succeeded, first.StatusCode);
+        Assert.Equal(PlanningStatusCodes.Succeeded, second.StatusCode);
+        Assert.Equal(grow, first.ImmediateAction.ActionSlot);
+        Assert.Equal(inspire, second.ImmediateAction.ActionSlot);
+        Assert.Equal(targetId, first.ImmediateTargetEntityId);
+        Assert.Equal(targetId, second.ImmediateTargetEntityId);
+    }
+
+    [Fact]
     public void OpportunityPlannerCanBeSelectedPerKindForProcessTicks()
     {
         var simulation = CreateSimulation(kernelTuning: new KernelTuningOptions
@@ -755,7 +908,7 @@ public sealed class PlanningProgramRuntimeTests
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
             EntityAttributeCapacity = 8,
-            UpkeepRuleCapacity = 8,
+            EffectRuleCapacity = 8,
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,
@@ -763,6 +916,47 @@ public sealed class PlanningProgramRuntimeTests
             TraceEnabled = traceEnabled,
             Seed = 1,
         });
+    }
+
+    private static int RegisterTargetAttributeProcess(
+        Simulation simulation,
+        int actorKindId,
+        int targetKindId,
+        int processId,
+        int attributeId)
+    {
+        var process = simulation.Processes.RegisterProcess(
+            actorKindId,
+            processId,
+            targetMode: ProcessTargetModeCodes.KindOther,
+            targetKindId: targetKindId);
+        simulation.Processes.SetGoalEffect(process, ProcessEffectScopeCodes.TargetAttribute, attributeId, targetKindId);
+        simulation.Processes.AddPrecondition(process, ProcessPreconditionCodes.TargetIsNotSelf);
+        simulation.Processes.AddExpressionOp(process, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Processes.AddRewardExpressionOp(process, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Processes.AddStep(process, ProcessOperationCodes.AddTargetAttribute, attributeId, x: 20f);
+        return process;
+    }
+
+    private static int RegisterTargetAttributeGambit(
+        Simulation simulation,
+        int actorKindId,
+        int targetKindId,
+        int gambitId,
+        int attributeId)
+    {
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId,
+            targetMode: ProcessTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.SetGoalEffect(gambit, ProcessEffectScopeCodes.TargetAttribute, attributeId, targetKindId);
+        simulation.Gambits.AddPrecondition(gambit, ProcessPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 10f);
+        simulation.Gambits.AddStep(gambit, ProcessOperationCodes.AddTargetAttribute, attributeId, x: 20f);
+        return gambit;
     }
 
     private static void AssertImmediateAndRootProcessPlan(

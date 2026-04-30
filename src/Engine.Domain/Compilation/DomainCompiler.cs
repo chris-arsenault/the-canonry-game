@@ -37,7 +37,11 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.PressureSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.DegeneracySourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.PlanningSourceCode)),
+                ids.SourceCodeIdOf(DomainRuntimeNames.PlanningSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.MovementSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.MapActivitySourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode)),
             KernelData = BuildKernelData(config, ids),
             Programs = BuildPrograms(config, ids, graph),
             Symbols = BuildSymbols(config, ids),
@@ -71,56 +75,69 @@ public static partial class DomainCompiler
         DomainConfig config,
         DomainIdRegistry ids)
     {
-        var attributeRules = new List<AttributeUpkeepRule>();
         var lifecycleRules = new List<LifecycleUpkeepRule>();
-
-        foreach (var (kind, kindConfig) in config.Kinds)
-        {
-            var kindId = ids.KindIdOf(kind).Value;
-            foreach (var attribute in kindConfig.Attributes)
-            {
-                var locationResourceId = attribute.LocationResourceDriftResource is { } resourceType
-                    ? ids.ResourceIdOf(resourceType.ToDomainName()).Value
-                    : 0;
-                var criticalTargetAttributeId = attribute.CriticalEffect is { } criticalEffect
-                    ? ids.AttributeIdOf(criticalEffect.TargetAttribute).Value
-                    : 0;
-
-                if (attribute.DriftRate == 0f &&
-                    locationResourceId == 0 &&
-                    criticalTargetAttributeId == 0)
-                {
-                    continue;
-                }
-
-                attributeRules.Add(new AttributeUpkeepRule(
-                    kindId,
-                    ids.AttributeIdOf(attribute.Name).Value,
-                    attribute.DriftRate,
-                    locationResourceId,
-                    attribute.LocationResourceDriftPerUnit,
-                    attribute.LocationResourceDriftMinOffset,
-                    attribute.LocationResourceDriftMaxOffset,
-                    criticalTargetAttributeId,
-                    StandardNeedScale.Critical,
-                    attribute.CriticalEffect?.DeltaPerTick ?? 0f));
-            }
-        }
 
         foreach (var (kind, lifecycle) in config.Lifecycles)
         {
+            var kindId = ids.KindIdOf(kind).Value;
+            var healthAttributeId = ids.AttributeIdOf(lifecycle.HealthAttribute).Value;
             lifecycleRules.Add(new LifecycleUpkeepRule(
-                ids.KindIdOf(kind).Value,
-                ids.AttributeIdOf(lifecycle.HealthAttribute).Value,
+                kindId,
+                healthAttributeId,
                 lifecycle.BaseRate,
                 lifecycle.AgeCoefficient));
         }
 
         return new UpkeepProgram
         {
-            AttributeRules = attributeRules,
             LifecycleRules = lifecycleRules,
         };
+    }
+
+    private static EffectsProgram BuildEffectsProgram(
+        DomainConfig config,
+        DomainIdRegistry ids)
+    {
+        var attributeDeltaEffects = new List<AttributeDeltaEffectRule>();
+        foreach (var effect in config.Effects.AttributeDeltaEffects)
+        {
+            attributeDeltaEffects.Add(CompileAttributeDeltaEffectRule(config, ids, effect));
+        }
+
+        return new EffectsProgram { AttributeDeltaEffects = attributeDeltaEffects };
+    }
+
+    private static AttributeDeltaEffectRule CompileAttributeDeltaEffectRule(
+        DomainConfig config,
+        DomainIdRegistry ids,
+        AttributeDeltaEffectConfig effect)
+    {
+        EnsureKind(config, effect.Kind, "Attribute delta effect kind");
+        if (!config.Kinds[effect.Kind].Attributes.Any(attribute =>
+                string.Equals(attribute.Name, effect.Attribute, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
+        }
+
+        if (!config.Relationships.Any(relationship =>
+                string.Equals(relationship.Name, effect.RelationshipKind, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
+        }
+
+        return new AttributeDeltaEffectRule(
+            ids.KindIdOf(effect.Kind).Value,
+            ids.AttributeIdOf(effect.Attribute).Value,
+            EffectConditionCode(effect.Condition),
+            ids.RelationshipKindIdOf(effect.RelationshipKind).Value,
+            EffectDirectionCode(effect.RelationshipDirection),
+            PlaneCode(effect.Plane),
+            effect.MaxDistance,
+            effect.Threshold,
+            effect.MinimumRelationshipStrength,
+            effect.DeltaPerTick);
     }
 
     private static ProcessProgram BuildProcessProgram(
@@ -129,6 +146,7 @@ public static partial class DomainCompiler
     {
         return new ProcessProgram
         {
+            EnabledByDefault = false,
             Processes = BuildProcessRules(config, ids),
             Objectives = BuildProcessObjectives(config, ids),
         };
@@ -149,13 +167,6 @@ public static partial class DomainCompiler
                 process.EntityCooldown,
                 ResolveTargetMode(process, targetKindId),
                 targetKindId,
-                process.ResourceSupplyRoleCode,
-                process.NamedProviderKind is { } providerKind
-                    ? ids.KindIdOf(providerKind).Value
-                    : 0,
-                !string.IsNullOrWhiteSpace(process.NamedProviderAttribute)
-                    ? ids.AttributeIdOf(process.NamedProviderAttribute).Value
-                    : 0,
                 process.WorkCommitmentTicks,
                 CompileGoalEffects(process, ids),
                 CompileProviderSelectors(process, ids),
@@ -196,6 +207,7 @@ public static partial class DomainCompiler
 
         return new GambitProgram
         {
+            EnabledByDefault = false,
             Gambits = gambits,
         };
     }
@@ -864,14 +876,6 @@ public static partial class DomainCompiler
                     ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value,
                     resource.TargetLocation ? 1 : 0,
                     X: resource.Delta));
-                return true;
-            case HexToHealthMutation hex:
-                steps.Add(new ProcessProgramStepRule(
-                    ProcessProgramOperation.HexToHealth,
-                    ids.AttributeIdOf(hex.AttributeName).Value,
-                    ids.ResourceIdOf(hex.Resource.ToDomainName()).Value,
-                    hex.TargetLocation ? 1 : 0,
-                    X: hex.RatePerHexValue));
                 return true;
             default:
                 return false;

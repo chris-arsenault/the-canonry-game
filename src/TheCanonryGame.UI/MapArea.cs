@@ -10,10 +10,14 @@ namespace TheCanonryGame.UI;
 public partial class MapArea : Control
 {
     private Button? _planeToggleButton;
+    private Button? _influenceToggleButton;
     private Control? _legendPanel;
 
     [Signal]
     public delegate void PlaneToggleRequestedEventHandler();
+
+    [Signal]
+    public delegate void InfluenceToggleRequestedEventHandler();
 
     public override void _Ready()
     {
@@ -22,12 +26,18 @@ public partial class MapArea : Control
         SizeFlagsVertical = SizeFlags.ExpandFill;
 
         _planeToggleButton = GetNode<Button>("PlaneToggleButton");
+        _influenceToggleButton = GetNode<Button>("InfluenceToggleButton");
         _legendPanel = GetNode<Control>("LegendPanel");
 
         _planeToggleButton.CustomMinimumSize = new Vector2(150, 30);
         _planeToggleButton.TooltipText = "Toggle physical / semantic plane";
         _planeToggleButton.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
         _planeToggleButton.Pressed += () => EmitSignal(SignalName.PlaneToggleRequested);
+
+        _influenceToggleButton.CustomMinimumSize = new Vector2(150, 30);
+        _influenceToggleButton.TooltipText = "Toggle influence overlay";
+        _influenceToggleButton.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _influenceToggleButton.Pressed += () => EmitSignal(SignalName.InfluenceToggleRequested);
 
         PositionOverlays();
     }
@@ -52,11 +62,30 @@ public partial class MapArea : Control
             : "Semantic";
     }
 
+    public void SetInfluenceVisible(bool visible)
+    {
+        if (_influenceToggleButton is null)
+        {
+            return;
+        }
+
+        _influenceToggleButton.Text = visible
+            ? "Influence On"
+            : "Influence Off";
+    }
+
     private void PositionOverlays()
     {
         if (_planeToggleButton is not null)
         {
             _planeToggleButton.Position = new Vector2(UiTokens.Space4, Size.Y - UiTokens.Space6 - UiTokens.Space2);
+        }
+
+        if (_influenceToggleButton is not null)
+        {
+            _influenceToggleButton.Position = new Vector2(
+                UiTokens.Space4,
+                Size.Y - UiTokens.Space6 - UiTokens.Space2 - 34f);
         }
 
         if (_legendPanel is not null)

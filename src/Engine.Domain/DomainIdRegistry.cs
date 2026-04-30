@@ -19,6 +19,7 @@ public enum DomainIdCategory
     Subtype,
     Culture,
     Generator,
+    Verb,
     Detector,
     EventCode,
     ReasonCode,
@@ -58,6 +59,8 @@ public sealed class DomainIdRegistry
         new(static value => new CultureRuntimeId(value), static id => id.Value, "culture");
     private readonly StableNameRegistry<GeneratorRuntimeId> _generators =
         new(static value => new GeneratorRuntimeId(value), static id => id.Value, "generator");
+    private readonly StableNameRegistry<VerbRuntimeId> _verbs =
+        new(static value => new VerbRuntimeId(value), static id => id.Value, "verb");
     private readonly StableNameRegistry<DetectorRuntimeId> _detectors =
         new(static value => new DetectorRuntimeId(value), static id => id.Value, "detector");
     private readonly StableNameRegistry<EventCodeId> _eventCodes =
@@ -127,6 +130,10 @@ public sealed class DomainIdRegistry
     public GeneratorRuntimeId GeneratorIdOf(string stableName) => _generators.Resolve(stableName);
     public string GeneratorNameOf(GeneratorRuntimeId id) => _generators.NameOf(id);
 
+    public VerbRuntimeId RegisterVerb(string stableName) => _verbs.Register(stableName);
+    public VerbRuntimeId VerbIdOf(string stableName) => _verbs.Resolve(stableName);
+    public string VerbNameOf(VerbRuntimeId id) => _verbs.NameOf(id);
+
     public DetectorRuntimeId RegisterDetector(string stableName) => _detectors.Register(stableName);
     public DetectorRuntimeId DetectorIdOf(string stableName) => _detectors.Resolve(stableName);
     public string DetectorNameOf(DetectorRuntimeId id) => _detectors.NameOf(id);
@@ -168,6 +175,7 @@ public sealed class DomainIdRegistry
         foreach (var entry in _subtypes.Entries(DomainIdCategory.Subtype)) yield return entry;
         foreach (var entry in _cultures.Entries(DomainIdCategory.Culture)) yield return entry;
         foreach (var entry in _generators.Entries(DomainIdCategory.Generator)) yield return entry;
+        foreach (var entry in _verbs.Entries(DomainIdCategory.Verb)) yield return entry;
         foreach (var entry in _detectors.Entries(DomainIdCategory.Detector)) yield return entry;
         foreach (var entry in _eventCodes.Entries(DomainIdCategory.EventCode)) yield return entry;
         foreach (var entry in _reasonCodes.Entries(DomainIdCategory.ReasonCode)) yield return entry;
@@ -251,6 +259,9 @@ public sealed class DomainIdRegistry
                 return true;
             case DomainIdCategory.Generator:
                 clone.RegisterGenerator(entry.StableName);
+                return true;
+            case DomainIdCategory.Verb:
+                clone.RegisterVerb(entry.StableName);
                 return true;
             case DomainIdCategory.Detector:
                 clone.RegisterDetector(entry.StableName);

@@ -50,7 +50,7 @@ Important scopes:
 
 Examples:
 
-- `Self.Settlement.residents`
+- `Self.Settlement.temp_hp`
 - `Target.Settlement.civic_ideology`
 - `Relational.Settlement.located_at.matched`
 - `Structural.Npc.roam`
@@ -156,8 +156,8 @@ Want: lower npc warmth
 ### 2. Support Planning
 
 ```text
-Want: increase settlement residents
-  -> Grow serves residents
+Want: increase settlement temporary health
+  -> Grow serves temporary health
   -> Grow is legal, but local food is weak
   -> support rule proposes better local food
   -> Irrigate serves ambient food

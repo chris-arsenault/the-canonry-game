@@ -54,18 +54,13 @@ internal sealed partial class ProcessProgramRuntime
             return targetId == forcedTargetId;
         }
 
-        if (NamedProviderRecoveryActive(processSlot))
-        {
-            return NamedProviderTargetMatches(world, targetId, processSlot);
-        }
-
         var selectorStart = _processProviderSelectorStarts[processSlot];
         var selectorEnd = selectorStart + _processProviderSelectorCounts[processSlot];
         if (selectorEnd > selectorStart)
         {
             for (var selector = selectorStart; selector < selectorEnd; selector++)
             {
-                if (ProviderSelectorMatchesTarget(world, entityId, targetId, processSlot, selector))
+                if (ProviderSelectorMatchesTarget(world, entityId, targetId, selector))
                 {
                     return true;
                 }
@@ -75,12 +70,6 @@ internal sealed partial class ProcessProgramRuntime
         }
 
         return TargetModeMatchesProcess(world, entityId, processSlot, targetId);
-    }
-
-    private bool NamedProviderTargetMatches(WorldState world, int targetId, int processSlot)
-    {
-        return world.EntityKindId(targetId) == _processNamedProviderKindIds[processSlot] &&
-               world.HasAttribute(targetId, _processNamedProviderAttributeIds[processSlot]);
     }
 
     private bool TargetModeMatchesProcess(WorldState world, int entityId, int processSlot, int targetId)
@@ -101,14 +90,9 @@ internal sealed partial class ProcessProgramRuntime
             world.EntityKindId(targetId) == EffectiveTargetKindId(processSlot);
     }
 
-    private bool ProviderSelectorMatchesTarget(WorldState world, int entityId, int targetId, int processSlot, int selector)
+    private bool ProviderSelectorMatchesTarget(WorldState world, int entityId, int targetId, int selector)
     {
         var selectorKindId = _providerSelectorKindIds[selector];
-        if (NamedProviderRecoveryActive(processSlot))
-        {
-            return NamedProviderTargetMatches(world, targetId, processSlot);
-        }
-
         if (selectorKindId > 0 && world.EntityKindId(targetId) != selectorKindId)
         {
             return false;
@@ -246,18 +230,6 @@ internal sealed partial class ProcessProgramRuntime
     {
         selectedTargetId = 0;
         var targetMode = _processTargetModes[processSlot];
-        if (NamedProviderRecoveryActive(processSlot))
-        {
-            return EvaluateKindTargets(
-                simulation,
-                processSlot,
-                entityId,
-                tick,
-                ref candidateCount,
-                selectRoll,
-                out selectedTargetId);
-        }
-
         if (targetMode == ProcessTargetModeCodes.Self)
         {
             return EvaluateSelfTarget(
@@ -733,7 +705,7 @@ internal sealed partial class ProcessProgramRuntime
 
         if (code == ProcessPreconditionCodes.LocationResourceRange)
         {
-            return LocationResourceRangePasses(world, processSlot, pre, entityId, targetId);
+            return LocationResourceRangePasses(world, pre, entityId, targetId);
         }
 
         if (code == ProcessPreconditionCodes.PressureRange)
@@ -828,16 +800,6 @@ internal sealed partial class ProcessProgramRuntime
         blockerKindId = 0;
         blockerTargetId = 0;
         var code = _preconditionCodes[pre];
-        if (code == ProcessPreconditionCodes.LocationResourceRange &&
-            NamedProviderRecoveryActive(processSlot))
-        {
-            blockerScopeCode = ProcessEffectScopeCodes.TargetAttribute;
-            blockerValueId = _processNamedProviderAttributeIds[processSlot];
-            blockerKindId = _processNamedProviderKindIds[processSlot];
-            blockerTargetId = targetId;
-            return;
-        }
-
         _ = TryResolveAttributeBlocker(world, code, pre, entityId, targetId, ref blockerScopeCode, ref blockerValueId, ref blockerKindId, ref blockerTargetId) ||
             TryResolveContextBlocker(world, code, pre, entityId, targetId, ref blockerScopeCode, ref blockerValueId, ref blockerKindId, ref blockerTargetId);
     }
@@ -930,18 +892,8 @@ internal sealed partial class ProcessProgramRuntime
         return true;
     }
 
-    private bool LocationResourceRangePasses(WorldState world, int processSlot, int pre, int entityId, int targetId)
+    private bool LocationResourceRangePasses(WorldState world, int pre, int entityId, int targetId)
     {
-        if (NamedProviderRecoveryActive(processSlot))
-        {
-            return ValueInRange(
-                world.GetAttribute(targetId, _processNamedProviderAttributeIds[processSlot]),
-                _preC[pre],
-                _preD[pre],
-                _preX[pre],
-                _preY[pre]);
-        }
-
         var locationEntityId = _preB[pre] == 0 ? entityId : targetId;
         var value = world.GetResource(
             _preA[pre],

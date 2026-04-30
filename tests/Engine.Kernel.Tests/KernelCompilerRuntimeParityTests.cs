@@ -158,7 +158,7 @@ public sealed class KernelCompilerRuntimeParityTests
         bool useTarget,
         bool incoming)
     {
-        var simulation = CreateSimulation(entityCapacity: 96, relationshipCapacity: 128);
+        var simulation = CreateSimulation(entityCapacity: 96, relationshipCapacity: 128, pressuresEnabled: true);
         simulation.Pressures.RegisterPressure(PressureId, PressureScopeCodes.Entity, 0f, 0f, 1f);
         var actor = CreateEntity(simulation, ActorKindId, 0, 0);
         var target = CreateEntity(simulation, TargetKindId, 1, 0);
@@ -591,7 +591,7 @@ public sealed class KernelCompilerRuntimeParityTests
         simulation.SetAttribute(entityId, attributeId, value, tick: 0);
     }
 
-    private static Simulation CreateSimulation(int entityCapacity = 64, int relationshipCapacity = 64)
+    private static Simulation CreateSimulation(int entityCapacity = 64, int relationshipCapacity = 64, bool pressuresEnabled = false)
     {
         return new Simulation(new SimulationOptions
         {
@@ -616,11 +616,21 @@ public sealed class KernelCompilerRuntimeParityTests
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
             EntityAttributeCapacity = 8,
-            UpkeepRuleCapacity = 8,
+            EffectRuleCapacity = 8,
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 512,
             TerrainIdCapacity = 8,
             RelationshipKindIdCapacity = 512,
+            KernelTuning = new KernelTuningOptions
+            {
+                Programs = new KernelProgramTuningOptions
+                {
+                    Pressures = new PressureProgramTuningOptions
+                    {
+                        Enabled = pressuresEnabled,
+                    },
+                },
+            },
             Seed = 1,
         });
     }

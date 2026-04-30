@@ -245,6 +245,7 @@ public partial class Main : Node2D
         if (_mapArea is not null)
         {
             _mapArea.PlaneToggleRequested += OnTogglePlanePressed;
+            _mapArea.InfluenceToggleRequested += OnToggleInfluencePressed;
         }
 
         if (_entityLayer is not null)
@@ -308,9 +309,15 @@ public partial class Main : Node2D
         _entityLayer?.Initialize(_uiProjection, _projectionSymbols, _mapRenderer?.HexSize ?? 30f);
         if (_mapRenderer is not null)
         {
-            _entityLayer?.SetPlane(_mapRenderer.CurrentPlane);
-            _mapArea?.SetPlane(_mapRenderer.CurrentPlane);
+            RebindMapOverlayState(_mapRenderer);
         }
+    }
+
+    private void RebindMapOverlayState(HexMapRenderer mapRenderer)
+    {
+        _entityLayer?.SetPlane(mapRenderer.CurrentPlane);
+        _mapArea?.SetPlane(mapRenderer.CurrentPlane);
+        _mapArea?.SetInfluenceVisible(mapRenderer.ShowInfluence);
     }
 
     private void RebindEntityRuntime()
@@ -371,6 +378,18 @@ public partial class Main : Node2D
         _entityLayer?.SetPlane(_mapRenderer.CurrentPlane);
         _mapArea?.SetPlane(_mapRenderer.CurrentPlane);
         _hexTooltipPanel?.ClearTooltip();
+    }
+
+    private void OnToggleInfluencePressed()
+    {
+        if (_mapRenderer is null)
+        {
+            return;
+        }
+
+        _mapRenderer.ShowInfluence = !_mapRenderer.ShowInfluence;
+        _mapRenderer.Refresh();
+        _mapArea?.SetInfluenceVisible(_mapRenderer.ShowInfluence);
     }
 
     private void ToggleAttributeGraph()

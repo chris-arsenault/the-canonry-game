@@ -55,6 +55,21 @@ internal sealed partial class PrimitiveIntTable
         _values[slot] = value;
     }
 
+    public void Add(int firstKey, int secondKey, int delta)
+    {
+        ValidateKeys(firstKey, secondKey);
+        var slot = FindSlot(firstKey, secondKey, out var found);
+        if (!found)
+        {
+            _firstKeys[slot] = firstKey;
+            _secondKeys[slot] = secondKey;
+            _occupiedSlots[_count] = slot;
+            _count++;
+        }
+
+        _values[slot] += delta;
+    }
+
     public void Clear()
     {
         for (var i = 0; i < _count; i++)

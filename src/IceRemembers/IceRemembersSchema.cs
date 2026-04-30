@@ -4,7 +4,7 @@ using Engine.Resources;
 
 public enum IceRemembersAttributeId
 {
-    Residents,
+    TempHp,
     Dominion,
     Shelter,
     Cohesion,
@@ -25,7 +25,7 @@ public static class IceRemembersAttributeIdExtensions
 {
     private static readonly string[] DomainNames =
     [
-        "residents",
+        "temp_hp",
         "dominion",
         "shelter",
         "cohesion",
@@ -281,6 +281,23 @@ public enum IceRemembersVerbId
     SettlementPropaganda,
     SettlementSanctify,
     SettlementTrade,
+    PenguinExplore,
+    PenguinVisitRookery,
+    PenguinVisitRival,
+    PenguinGoFishing,
+    PenguinFollowArtifact,
+    ArtifactSeekBearer,
+    ArtifactReturnToShrine,
+    ArtifactDrawToScar,
+    ArtifactSinkSeaward,
+    SettlementCastLamplight,
+    SettlementBankTheHearth,
+    SettlementDrownOutClaim,
+    SettlementBuildTheRookery,
+    FactionSendEnvoys,
+    FactionHoldCouncil,
+    FactionBreakRivalHold,
+    FactionMoveSeat,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -346,6 +363,23 @@ public static class IceRemembersVerbIdExtensions
         "settlement_propaganda",
         "settlement_sanctify",
         "settlement_trade",
+        "penguin_explore",
+        "penguin_visit_rookery",
+        "penguin_visit_rival",
+        "penguin_go_fishing",
+        "penguin_follow_artifact",
+        "artifact_seek_bearer",
+        "artifact_return_to_shrine",
+        "artifact_draw_to_scar",
+        "artifact_sink_seaward",
+        "settlement_cast_lamplight",
+        "settlement_bank_the_hearth",
+        "settlement_drown_out_claim",
+        "settlement_build_the_rookery",
+        "faction_send_envoys",
+        "faction_hold_council",
+        "faction_break_rival_hold",
+        "faction_move_seat",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

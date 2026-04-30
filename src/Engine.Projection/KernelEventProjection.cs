@@ -32,7 +32,8 @@ public abstract class KernelEventProjector : IKernelEventProjection
             KernelEventType.GeneratorEnabledChanged or
             KernelEventType.PressureChanged or
             KernelEventType.CellCreated or
-            KernelEventType.CellChanged)
+            KernelEventType.CellChanged or
+            KernelEventType.CellInfluenceChanged)
         {
             ProjectWorldEvent(kernelEvent);
             return;
@@ -118,6 +119,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.CellChanged:
                 OnCellChanged(kernelEvent.Sequence, evt.AsCellChanged());
+                break;
+            case KernelEventType.CellInfluenceChanged:
+                OnCellInfluenceChanged(kernelEvent.Sequence, evt.AsCellInfluenceChanged());
                 break;
         }
     }
@@ -231,6 +235,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
     }
 

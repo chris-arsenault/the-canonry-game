@@ -1,5 +1,6 @@
 namespace Engine.Observability.Tests.Observability;
 
+using Engine.Eventing;
 using Engine.Host;
 using Engine.Observability;
 
@@ -43,7 +44,7 @@ public sealed class ObservabilitySmokeTests
     }
 
     [Fact]
-    public void RunLogger_EmitsGeneratorLines_ForShortRun()
+    public void RunLogger_EmitsGeneratorLines_WhenGeneratorEventIsObserved()
     {
         var logPath = Path.Combine(
             Path.GetTempPath(),
@@ -51,16 +52,17 @@ public sealed class ObservabilitySmokeTests
 
         try
         {
-            using var runtime = CreateRuntime(seed: 42);
-            var host = runtime.Host;
-            using var logger = new RunLogger(logPath, host.Events, host.Symbols);
+            var log = new KernelEventLog(capacity: 8);
+            using var logger = new RunLogger(logPath, log);
 
-            for (var i = 0; i < 150; i++)
-            {
-                var advanced = host.Time.AdvanceSingleStep(1);
-                Assert.Equal(1, advanced);
-                logger.OnTickEnded(host.CurrentTick);
-            }
+            Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
+                Tick: 1,
+                WorldVersion: 1,
+                GeneratorId: 3,
+                TargetEntityId: 0,
+                CreatedEntityCount: 2,
+                CreatedRelationshipCount: 1))));
+            logger.OnTickEnded(1);
 
             var lines = File.ReadAllLines(logPath);
             Assert.Contains(

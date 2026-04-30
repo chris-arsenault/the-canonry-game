@@ -21,6 +21,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<ResourceCellKey, float> _resourceValues = [];
     private readonly Dictionary<PressureKey, float> _pressureValues = [];
     private readonly Dictionary<(int EntityId, int ProcessId), PlannerStepRow> _lastSelectedStepByEntityProcess = [];
+    private readonly Dictionary<(int EntityId, int PlanId), int> _selectedLocalityByEntityPlan = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
     private readonly HashSet<PlannerStepKey> _recordedExecutedPlannerSteps = [];
@@ -569,6 +570,21 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousOwnerEntityId,
             evt.CurrentOwnerEntityId,
             CauseId: 0));
+        MarkProjected(sequence);
+    }
+
+    protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
+    {
+        _batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(
+            _runId,
+            evt.Tick,
+            evt.SourceCodeId,
+            evt.EntityId,
+            evt.Q,
+            evt.R,
+            evt.PreviousInfluence,
+            evt.CurrentInfluence,
+            evt.CurrentInfluence - evt.PreviousInfluence));
         MarkProjected(sequence);
     }
 

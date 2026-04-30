@@ -22,6 +22,7 @@ public sealed class KernelSnapshotTests
         {
             simulation.SetAttribute(actor, 10, 42f, tick: 0);
             simulation.SetResource(20, 0, 0, 5f, tick: 0);
+            simulation.SetCellInfluence(actor, 0, 0, 55f, tick: 0);
         }
         simulation.World.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
         var relationshipId = simulation.CreateRelationship(
@@ -91,7 +92,7 @@ public sealed class KernelSnapshotTests
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 4,
             EntityAttributeCapacity = 8,
-            UpkeepRuleCapacity = 4,
+            EffectRuleCapacity = 4,
             AttributeIdCapacity = 64,
             KindIdCapacity = 16,
             TerrainIdCapacity = 8,
@@ -108,12 +109,12 @@ public sealed class KernelSnapshotTests
             {
                 Processes = new ProcessProgramTuningOptions
                 {
-                    ResourceSupplyModelCode = ProcessResourceSupplyModelCodes.NamedProviderNoHex,
                     WorkCommitmentCode = ProcessWorkCommitmentCodes.Pilot,
                 },
                 Planning = new PlanningProgramTuningOptions
                 {
                     DefaultPlannerKindCode = PlannerKindCodes.Opportunity,
+                    GoapTargetReservationsEnabled = true,
                     OpportunityTargetCapacity = 3,
                     KindPlannerOverrides =
                     [
@@ -153,6 +154,7 @@ public sealed class KernelSnapshotTests
         Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
         Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
         Assert.Equal(5f, loaded.World.GetResource(20, 0, 0));
+        Assert.Equal(55f, loaded.World.GetCellInfluence(actor, 0, 0));
         Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
         Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
         Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));
@@ -162,9 +164,9 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
-        Assert.Equal(ProcessResourceSupplyModelCodes.NamedProviderNoHex, loaded.Options.KernelTuning.Programs.Processes.ResourceSupplyModelCode);
         Assert.Equal(ProcessWorkCommitmentCodes.Pilot, loaded.Options.KernelTuning.Programs.Processes.WorkCommitmentCode);
         Assert.Equal(PlannerKindCodes.Opportunity, loaded.Options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
+        Assert.True(loaded.Options.KernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
         Assert.Equal(3, loaded.Options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
         Assert.Contains(loaded.Options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
             item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
@@ -192,6 +194,7 @@ public sealed class KernelSnapshotTests
         Assert.Contains(KernelEventType.EntityStatusChanged, eventTypes);
         Assert.Contains(KernelEventType.AttributeChanged, eventTypes);
         Assert.Contains(KernelEventType.ResourceChanged, eventTypes);
+        Assert.Contains(KernelEventType.CellInfluenceChanged, eventTypes);
         Assert.Contains(KernelEventType.RelationshipChanged, eventTypes);
     }
 }

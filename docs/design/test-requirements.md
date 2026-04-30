@@ -6,10 +6,8 @@ Systems that need testing, what to verify, and expected fidelity. Written for an
 > monolith. The conceptual coverage targets still apply, but the engine has
 > since been split into a microkernel (`Engine.Kernel`), domain compilation
 > (`Engine.Domain`), and consumer projects. The `Location:` lines below have
-> been updated to point at the current homes; some legacy classes
-> (`GoalGenerator`, `EntityEvaluator`, `ScalarValue`/`AttributeSet`,
-> `LifecycleSystem`/`MaintenanceSystem`, `GraphAttributeQuery`) no longer exist
-> as discrete files — their responsibilities are now inside kernel program
+> been updated to point at the current homes; some legacy implementation
+> classes no longer exist as discrete files — their responsibilities are now inside kernel program
 > runtimes operating over primitive ID tables. See `docs/architecture.md` for
 > the runtime model and verify the current home of any system before writing
 > tests for it.
@@ -201,28 +199,25 @@ runs inside the kernel program runtimes
 **Location:** `src/Engine.Kernel/PrimitiveFloatTable.cs`,
 `src/Engine.Kernel/PrimitiveIntTable.cs`,
 `src/Engine.Kernel/KernelData/KernelEntityData.cs`,
-`src/Engine.Kernel/WorldState.cs` (attribute mutation API). The legacy
-`ScalarValue` / `AttributeSet` classes are gone; attributes are now
+`src/Engine.Kernel/WorldState.cs` (attribute mutation API). Attributes are now
 stored as primitive float values keyed by `(entityId, attributeId)` in
 fixed-capacity tables. Attribute metadata (min/max/default/variance) is
 registered through `Simulation.RegisterAttribute`.
 
 ### Tests needed:
 
-**ScalarValue:**
-- Value returns base when no static effects
-- Value composes static effects: base + sum(additive) * product(multiplicative)
-- Modify changes base, clamps to min/max
-- ApplyTickEffects: base changes by sum(tick deltas) * product(tick multipliers)
-- Trend tracks recent deltas (average of last N)
-- AddTickEffect / AddStaticEffect / RemoveEffectsBySource
+**Primitive Attributes:**
+- Registered attributes are keyed by `(entityKindId, attributeId)`.
+- Entity attribute values initialize from default plus variance.
+- Attribute mutation clamps values to registered min/max.
+- Missing attributes fail loudly in kernel-facing mutation paths.
+- Attribute changes emit primitive events with source code IDs.
 
-**AttributeSet:**
-- GetScalar returns ScalarValue or null
-- GetValue returns scalar value, 0 for missing attributes
-- Modify modifies scalar values and ignores missing attributes
-- ApplyTickEffects applies to all attributes
-- RemoveEffectsBySource applies to all attributes
+**EffectsProgram:**
+- Attribute-delta effects are registered independently from lifecycle upkeep.
+- Relationship-distance effects can add or drain an attribute.
+- Relationship-influence effects can add or drain an attribute at the entity's physical location.
+- Effects mutate only explicitly configured attributes.
 
 ---
 
@@ -269,22 +264,18 @@ into the kernel by `DomainCompiler`.
 
 ### Tests needed:
 
-**MaintenanceSystem:**
-- Calls ApplyTickEffects on all active entities
-- Skips historical entities
-
 **LifecycleSystem:**
-- InitializeEffects registers drain tick effect on health attribute for all active entities
-- UpdateDrainRates updates effect value based on age (baseRate + age * ageCoefficient)
-- CheckDeaths transitions entity to Historical when health ≤ 0
-- CheckDeaths emits EntityDied event
-- Historical entities not processed
-- Entities without lifecycle config not processed (regions)
+- Applies lifecycle health drain directly through `UpkeepProgram`.
+- Late-life aging can accelerate drain after the configured start age.
+- Transitions entities to historical when health reaches zero.
+- Emits lifecycle/death events through primitive kernel events.
+- Ignores entities without lifecycle config.
 
 **Integration:**
-- Drain effect is visible on entity.Attributes (ScalarValue.TickEffects contains the drain)
-- Drain increases with entity age
-- External modifications (processes) can counteract drain
+- Drain is visible as primitive attribute-change events sourced from upkeep.
+- Non-lifecycle health modifiers are visible as primitive attribute-change events sourced from effects.
+- Drain increases with entity age.
+- External modifications can counteract drain.
 
 ---
 

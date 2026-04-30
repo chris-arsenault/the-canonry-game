@@ -438,7 +438,11 @@ internal sealed class KernelHostBuilder
             codes.GeneratorSourceCodeId.Value,
             codes.PressureSourceCodeId.Value,
             codes.DegeneracySourceCodeId.Value,
-            codes.PlanningSourceCodeId.Value);
+            codes.PlanningSourceCodeId.Value,
+            codes.MovementSourceCodeId.Value,
+            codes.MapActivitySourceCodeId.Value,
+            codes.LowAltitudeVerbSourceCodeId.Value,
+            codes.EffectsSourceCodeId.Value);
 
     private static void ApplyDomainSymbols(
         KernelSymbolContext context,
@@ -506,6 +510,9 @@ internal sealed class KernelHostBuilder
         {
             case DomainSymbolKind.Process:
                 symbolKind = ProjectionSymbolKind.Process;
+                return true;
+            case DomainSymbolKind.Verb:
+                symbolKind = ProjectionSymbolKind.Verb;
                 return true;
             case DomainSymbolKind.Generator:
                 symbolKind = ProjectionSymbolKind.Generator;

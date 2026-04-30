@@ -39,20 +39,23 @@ public sealed class KernelSmokeTests
     }
 
     [Fact]
-    public void Simulation_SeededKindsActAndFactionsMoveSemantically()
+    public void Simulation_LowAltitudePhysicsMovesEntitiesAndOldWorkProgramsStayDisabled()
     {
         const int ticks = 150;
         using var runtime = CreateRuntime(seed: 42);
         var initialEntityCount = runtime.Ui.Entities.Count;
-        var factionKindId = runtime.DomainIds.KindIdOf(IceRemembersKinds.Faction).Value;
-        var startSemanticByFaction = ActiveEntities(runtime)
-            .Where(entity => entity.KindId == factionKindId)
+        var lowAltitudeVerbKindIds = new HashSet<int>
+        {
+            runtime.DomainIds.KindIdOf(IceRemembersKinds.Penguin).Value,
+            runtime.DomainIds.KindIdOf(IceRemembersKinds.Artifact).Value,
+        };
+        var startPhysicalByEntity = ActiveEntities(runtime)
+            .Where(entity => lowAltitudeVerbKindIds.Contains(entity.KindId))
             .ToDictionary(
                 entity => entity.EntityId,
                 entity => (
-                    entity.SemanticQ,
-                    entity.SemanticR,
-                    entity.SemanticS));
+                    entity.PhysicalQ,
+                    entity.PhysicalR));
 
         for (var i = 0; i < ticks; i++)
         {
@@ -61,33 +64,17 @@ public sealed class KernelSmokeTests
         }
 
         _ = runtime.Pump();
-        var actedKindIds = runtime.Ui.Entities.Values
-            .Where(entity => entity.LastProcessExecution is not null)
-            .Select(entity => entity.KindId)
-            .ToHashSet();
-
-        foreach (var kind in new[]
-                 {
-                     IceRemembersKinds.Penguin,
-                     IceRemembersKinds.Faction,
-                     IceRemembersKinds.Settlement,
-                     IceRemembersKinds.Artifact,
-                 })
-        {
-            var kindId = runtime.DomainIds.KindIdOf(kind).Value;
-            Assert.True(
-                actedKindIds.Contains(kindId),
-                $"{kind.Value} performed no process actions over {ticks} ticks.");
-        }
-
-        var factionMovedSemantically = startSemanticByFaction.Any(pair =>
+        var physicalEntityMoved = startPhysicalByEntity.Any(pair =>
         {
             var entityId = pair.Key;
             var start = pair.Value;
             return runtime.Ui.Entities.TryGetValue(entityId, out var entity) &&
-                (entity.SemanticQ, entity.SemanticR, entity.SemanticS) != start;
+                (entity.PhysicalQ, entity.PhysicalR) != start;
         });
-        Assert.True(factionMovedSemantically, "No faction changed semantic position.");
+        Assert.True(physicalEntityMoved, "No entity changed physical position.");
+
+        Assert.DoesNotContain(runtime.Ui.Entities.Values, entity => entity.LastProcessExecution is not null);
+        Assert.DoesNotContain(runtime.Ui.Entities.Values, entity => entity.LastGambitExecution is not null);
         Assert.True(runtime.Ui.Entities.Count > initialEntityCount, "Generators did not grow the world.");
     }
 

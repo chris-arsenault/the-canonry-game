@@ -119,7 +119,7 @@ Settlements currently use ambient resources directly.
 This gives the first support-planning chain:
 
 ```text
-Want residents
+Want settlement temporary health
   -> Grow is weak
   -> Irrigate improves local food
   -> better food makes Grow better later
@@ -170,7 +170,7 @@ Current role:
 - ambient background populace on a hex
 - unnamed labor / carry capacity / support substrate
 
-This is intentionally different from settlement `residents`, which is concentrated named settlement population.
+This is intentionally different from settlement `temp_hp`, which is a temporary lifecycle anchor rather than literal population.
 
 ---
 

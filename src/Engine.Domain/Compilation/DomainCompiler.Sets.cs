@@ -14,6 +14,10 @@ public static partial class DomainCompiler
     {
         return new KernelProgramSet
         {
+            Movement = BuildMovementProgram(config, ids),
+            LowAltitudeVerbs = BuildLowAltitudeVerbProgram(config, ids),
+            MapActivity = BuildMapActivityProgram(),
+            Effects = BuildEffectsProgram(config, ids),
             Upkeep = BuildUpkeepProgram(config, ids),
             Processes = BuildProcessProgram(config, ids),
             Gambits = BuildGambitProgram(config, ids),

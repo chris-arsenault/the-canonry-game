@@ -92,7 +92,7 @@ internal sealed partial class GambitProgramRuntime
                 totalWeight);
         }
 
-        ReserveOpportunityGambitTarget(selectedRootTargetId, selectedRootGambitSlot, request.Tick);
+        ReserveGambitActionTarget(selectedRootTargetId, selectedRootGambitSlot, request.Tick);
         return simulation.Planners.WriteSelectedPlan(
             request,
             selectedEffectKey,
@@ -319,13 +319,19 @@ internal sealed partial class GambitProgramRuntime
             return 0f;
         }
 
-        if (OpportunityGambitTargetAtCapacity(gambitSlot, targetId, tick))
+        if (GambitActionTargetAtCapacity(gambitSlot, targetId, tick, OpportunityTargetCapacity()))
         {
             EmitOpportunityGambitTraceIfNeeded(simulation, tick, entityId, candidateIndex, gambitSlot, effectScopeCode, effectValueId, effectKindId, targetId, TraceStatusCodes.CapacityReached, 0f, reward, 0f, traceEnabled);
             return 0f;
         }
 
         var urgency = OpportunityGambitUrgency(simulation.World, entityId, gambitSlot, targetId);
+        if (urgency <= 0f)
+        {
+            EmitOpportunityGambitTraceIfNeeded(simulation, tick, entityId, candidateIndex, gambitSlot, effectScopeCode, effectValueId, effectKindId, targetId, TraceStatusCodes.BelowUrgency, 0f, reward, 0f, traceEnabled);
+            return 0f;
+        }
+
         var weight = EvaluatePlanCandidate(
             simulation,
             entityId,
@@ -436,33 +442,42 @@ internal sealed partial class GambitProgramRuntime
         effectKindId = _gambitKindIds[gambitSlot];
     }
 
-    private bool OpportunityGambitTargetAtCapacity(int gambitSlot, int targetId, int tick)
+    private bool GoapGambitTargetReservationsEnabled()
     {
-        var configured = Tuning.Planning.OpportunityTargetCapacity;
-        var capacity = configured <= 0 ? 1 : configured;
-        return OpportunityGambitReservationCount(gambitSlot, targetId, tick) >= capacity;
+        return Tuning.Planning.GoapTargetReservationsEnabled;
     }
 
-    private int OpportunityGambitReservationCount(int gambitSlot, int targetId, int tick)
+    private bool GambitActionTargetAtCapacity(int gambitSlot, int targetId, int tick, int capacity)
     {
-        if (_opportunityReservationTicks.GetOrDefault(targetId, gambitSlot) != tick)
+        return GambitActionTargetReservationCount(gambitSlot, targetId, tick) >= capacity;
+    }
+
+    private int GambitActionTargetReservationCount(int gambitSlot, int targetId, int tick)
+    {
+        if (_actionTargetReservationTicks.GetOrDefault(targetId, gambitSlot) != tick)
         {
             return 0;
         }
 
-        return _opportunityReservationCounts.GetOrDefault(targetId, gambitSlot);
+        return _actionTargetReservationCounts.GetOrDefault(targetId, gambitSlot);
     }
 
-    private void ReserveOpportunityGambitTarget(int targetId, int gambitSlot, int tick)
+    private void ReserveGambitActionTarget(int targetId, int gambitSlot, int tick)
     {
         if (targetId <= 0 || gambitSlot <= 0)
         {
             return;
         }
 
-        var current = OpportunityGambitReservationCount(gambitSlot, targetId, tick);
-        _opportunityReservationTicks.Set(targetId, gambitSlot, tick);
-        _opportunityReservationCounts.Set(targetId, gambitSlot, current + 1);
+        var current = GambitActionTargetReservationCount(gambitSlot, targetId, tick);
+        _actionTargetReservationTicks.Set(targetId, gambitSlot, tick);
+        _actionTargetReservationCounts.Set(targetId, gambitSlot, current + 1);
+    }
+
+    private int OpportunityTargetCapacity()
+    {
+        var configured = Tuning.Planning.OpportunityTargetCapacity;
+        return configured <= 0 ? 1 : configured;
     }
 
     private bool GambitIsPositioningOnly(int gambitSlot)

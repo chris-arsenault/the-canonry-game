@@ -60,23 +60,6 @@ public sealed class DefinitionAttributeNode
     public required DefinitionAttributeShape Shape { get; init; }
     public required AttributeConfig SourceConfig { get; init; }
     public bool IsHealthAttribute { get; init; }
-    public DefinitionCriticalEffectNode? CriticalEffect { get; init; }
-    public DefinitionLocationResourceDriftNode? LocationResourceDrift { get; init; }
-}
-
-public sealed class DefinitionCriticalEffectNode
-{
-    public required DefinitionAttributeId TargetAttributeId { get; init; }
-    public required float DeltaPerTick { get; init; }
-    public string? Description { get; init; }
-}
-
-public sealed class DefinitionLocationResourceDriftNode
-{
-    public required DefinitionResourceId ResourceId { get; init; }
-    public required float PerUnit { get; init; }
-    public required float MinOffset { get; init; }
-    public required float MaxOffset { get; init; }
 }
 
 public sealed class DefinitionStandingDriveNode

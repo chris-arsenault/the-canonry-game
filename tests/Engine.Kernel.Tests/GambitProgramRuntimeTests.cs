@@ -114,7 +114,7 @@ public sealed class GambitProgramRuntimeTests
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
             EntityAttributeCapacity = 8,
-            UpkeepRuleCapacity = 8,
+            EffectRuleCapacity = 8,
             RelationshipRuleCapacity = 8,
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,

@@ -408,65 +408,51 @@ public sealed partial class ProcessProgramRuntimeTests
     }
 
     [Fact]
-    public void NamedProviderSupplyModel_RoutesHexRecoveryThroughProviderAttribute()
+    public void ResourceRecovery_CanBeExpressedWithGenericVariableOperations()
     {
-        var simulation = CreateSimulation(new KernelTuningOptions
-        {
-            Programs = new KernelProgramTuningOptions
-            {
-                Processes = new ProcessProgramTuningOptions
-                {
-                    ResourceSupplyModelCode = ProcessResourceSupplyModelCodes.NamedProviderNoHex,
-                },
-            },
-        });
+        var simulation = CreateSimulation();
         const int actorKindId = 1;
         const int providerKindId = 2;
-        const int unusedTargetKindId = 9;
         const int healthAttributeId = 10;
-        const int providerAttributeId = 11;
         const int resourceId = 20;
+        const int variableId = 9001;
         RegisterNeed(simulation, actorKindId, healthAttributeId, defaultValue: 10f);
-        simulation.RegisterAttribute(providerKindId, providerAttributeId, 0f, 100f, 20f);
         var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        _ = actor;
         var provider = simulation.CreateEntity(providerKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        {
+            simulation.SetResource(resourceId, 1, 0, 5f, tick: 0);
+        }
 
         var recover = simulation.Processes.RegisterProcess(
             actorKindId,
             processId: 300,
             targetMode: ProcessTargetModeCodes.KindOther,
-            targetKindId: unusedTargetKindId,
-            resourceSupplyRoleCode: ProcessResourceSupplyRoleCodes.HexHealthRecovery,
-            namedProviderKindId: providerKindId,
-            namedProviderAttributeId: providerAttributeId);
+            targetKindId: providerKindId);
         simulation.Processes.SetGoalEffect(recover, ProcessEffectScopeCodes.SelfAttribute, healthAttributeId, actorKindId);
-        simulation.Processes.AddProviderSelector(recover, ProcessProviderSelectorCodes.Resource, unusedTargetKindId, resourceId);
+        simulation.Processes.AddProviderSelector(recover, ProcessProviderSelectorCodes.Resource, providerKindId, resourceId);
         simulation.Processes.AddPrecondition(recover, ProcessPreconditionCodes.TargetIsNotSelf);
         simulation.Processes.AddPrecondition(recover, ProcessPreconditionCodes.LocationResourceRange, resourceId, 1, 1, 0, x: 1f);
         simulation.Processes.AddExpressionOp(recover, ProcessExpressionCodes.Literal, x: 1f);
         simulation.Processes.AddRewardExpressionOp(recover, ProcessExpressionCodes.TargetLocationResource, resourceId);
-        simulation.Processes.AddStep(recover, ProcessOperationCodes.HexToHealth, healthAttributeId, resourceId, 1, x: 2f);
+        var calculate = simulation.Processes.AddStep(recover, ProcessOperationCodes.CalculateVariable, variableId);
+        simulation.Processes.AddStepExpressionOp(calculate, ProcessExpressionCodes.TargetLocationResource, resourceId);
+        simulation.Processes.AddStepExpressionOp(calculate, ProcessExpressionCodes.Literal, x: 2f);
+        simulation.Processes.AddStepExpressionOp(calculate, ProcessExpressionCodes.Multiply);
+        simulation.Processes.AddStep(recover, ProcessOperationCodes.AddAttributeFromVariable, healthAttributeId, variableId, x: 1f);
 
         simulation.AdvanceTicks(1);
 
         Assert.Equal(20f, simulation.World.GetAttribute(actor, healthAttributeId));
-        Assert.Equal(15f, simulation.World.GetAttribute(provider, providerAttributeId));
-        Assert.Equal(0f, simulation.World.GetResource(resourceId, 1, 0));
+        Assert.Equal(5f, simulation.World.GetResource(resourceId, 1, 0));
+        Assert.Equal(providerKindId, simulation.World.EntityKindId(provider));
     }
 
     [Fact]
-    public void NamedProviderSupplyModel_DisablesHexResourceProducerProcesses()
+    public void LocationResourceProducer_AlwaysModifiesResourceWhenSelected()
     {
-        var simulation = CreateSimulation(new KernelTuningOptions
-        {
-            Programs = new KernelProgramTuningOptions
-            {
-                Processes = new ProcessProgramTuningOptions
-                {
-                    ResourceSupplyModelCode = ProcessResourceSupplyModelCodes.NamedProviderNoHex,
-                },
-            },
-        });
+        var simulation = CreateSimulation();
         const int kindId = 1;
         const int resourceId = 20;
         _ = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
@@ -474,8 +460,7 @@ public sealed partial class ProcessProgramRuntimeTests
         var gather = simulation.Processes.RegisterProcess(
             kindId,
             processId: 301,
-            targetMode: ProcessTargetModeCodes.Self,
-            resourceSupplyRoleCode: ProcessResourceSupplyRoleCodes.HexResourceProducer);
+            targetMode: ProcessTargetModeCodes.Self);
         simulation.Processes.AddPrecondition(gather, ProcessPreconditionCodes.TargetIsSelf);
         simulation.Processes.AddExpressionOp(gather, ProcessExpressionCodes.Literal, x: 1f);
         simulation.Processes.AddRewardExpressionOp(gather, ProcessExpressionCodes.Literal, x: 1f);
@@ -483,7 +468,7 @@ public sealed partial class ProcessProgramRuntimeTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(0f, simulation.World.GetResource(resourceId, 0, 0));
+        Assert.Equal(10f, simulation.World.GetResource(resourceId, 0, 0));
     }
 
     [Fact]

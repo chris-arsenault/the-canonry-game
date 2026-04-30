@@ -14,27 +14,20 @@ public class DefinitionGraphTests
     public void Build_FromIceRemembers_CreatesTypedGraph()
     {
         var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
-        var residents = new DefinitionAttributeId(IceRemembersAttributeId.Residents.ToDomainName());
+        var tempHp = new DefinitionAttributeId(IceRemembersAttributeId.TempHp.ToDomainName());
         var dominion = new DefinitionAttributeId(IceRemembersAttributeId.Dominion.ToDomainName());
-        var warmth = new DefinitionAttributeId(IceRemembersAttributeId.Warmth.ToDomainName());
-        var vitality = new DefinitionAttributeId(IceRemembersAttributeId.Vitality.ToDomainName());
         var food = new DefinitionResourceId(IceRemembersResource.Food.ToDomainName());
         var controlledBy = new DefinitionRelationshipId(IceRemembersRelationship.ControlledBy.ToDomainName());
         var culturalFriction = new DefinitionPressureId(IceRemembersPressure.CulturalFriction.ToDomainName());
 
         var settlement = Assert.Contains(TestKinds.Settlement, graph.Kinds);
-        Assert.Contains(residents, settlement.Attributes.Keys);
+        Assert.Contains(tempHp, settlement.Attributes.Keys);
         Assert.Contains(dominion, settlement.Attributes.Keys);
-        Assert.Equal(residents, settlement.HealthAttribute);
+        Assert.Equal(tempHp, settlement.HealthAttribute);
         Assert.Contains(food, graph.Resources.Keys);
         Assert.Contains(controlledBy, graph.Relationships.Keys);
         Assert.Contains(culturalFriction, graph.Pressures.Keys);
         Assert.Contains(TestKinds.Penguin, graph.Lifecycles.Keys);
-
-        Assert.Contains(
-            graph.Attributes.Values,
-            attribute => attribute.Key == new DefinitionAttributeKey(TestKinds.Penguin, warmth) &&
-                         attribute.CriticalEffect is { TargetAttributeId: var targetId } && targetId == vitality);
     }
 
     [Fact]

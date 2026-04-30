@@ -24,6 +24,7 @@ public enum KernelEventType
     PressureChanged = 19,
     CellCreated = 20,
     CellChanged = 21,
+    CellInfluenceChanged = 22,
     PlanStarted = 100,
     GoalConsidered = 101,
     GoalScored = 102,
@@ -385,6 +386,23 @@ public readonly record struct CellChangedKernelEvent(
     int PreviousOwnerEntityId,
     [KernelEventIntSlot(6, "current_owner_entity_id", KernelEventSemanticKind.EntityId)]
     int CurrentOwnerEntityId);
+
+[KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 0)]
+public readonly record struct CellInfluenceChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(1, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(3, "entity_id", KernelEventSemanticKind.EntityId)]
+    int EntityId,
+    [KernelEventFloatSlot(0, "previous_influence", KernelEventSemanticKind.RawScalar)]
+    float PreviousInfluence,
+    [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]
+    float CurrentInfluence);
 
 [KernelEventLayout(KernelEventType.PlanStarted, schemaMinor: 0)]
 public readonly record struct PlanStartedKernelEvent(

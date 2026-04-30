@@ -137,6 +137,8 @@ internal static class TelemetrySymbolIds
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.TargetDetail, "target_detail", "Target Detail"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.Support, "support", "Support"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.Locality, "locality", "Locality"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.MovementIntent, "movement_intent", "Movement Intent"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.InfluenceIntent, "influence_intent", "Influence Intent"));
 
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Offered, "offered", "Offered"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.BelowUrgency, "below_urgency", "Below Urgency"));
@@ -166,6 +168,7 @@ internal static class TelemetrySymbolIds
         AddKernelEventType(symbols, KernelEventType.GeneratorFired, "generator_fired", "Generator Fired");
         AddKernelEventType(symbols, KernelEventType.CellCreated, "cell_created", "Cell Created");
         AddKernelEventType(symbols, KernelEventType.CellChanged, "cell_changed", "Cell Changed");
+        AddKernelEventType(symbols, KernelEventType.CellInfluenceChanged, "cell_influence_changed", "Cell Influence Changed");
         AddKernelEventType(symbols, KernelEventType.Trace, "trace", "Trace");
     }
 

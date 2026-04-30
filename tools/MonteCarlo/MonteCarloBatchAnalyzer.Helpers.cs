@@ -6,6 +6,8 @@ using System.Numerics;
 
 using DuckDB.NET.Data;
 
+using Engine.Constants;
+
 internal sealed partial class MonteCarloBatchAnalyzer
 {
     private static IEnumerable<(string AttributeName, double Value)> ParseAttributes(string attributes)
@@ -38,38 +40,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         return Math.Clamp((value - min) / (max - min), 0d, 1d);
     }
 
-    private static double ComputeAnisotropy(IReadOnlyList<EntitySnapshotRecord> snapshots)
-    {
-        if (snapshots.Count < 2)
-        {
-            return 1d;
-        }
-
-        var meanQ = snapshots.Average(snapshot => snapshot.PhysicalQ);
-        var meanR = snapshots.Average(snapshot => snapshot.PhysicalR);
-        var sxx = snapshots.Average(snapshot => Math.Pow(snapshot.PhysicalQ - meanQ, 2));
-        var syy = snapshots.Average(snapshot => Math.Pow(snapshot.PhysicalR - meanR, 2));
-        var sxy = snapshots.Average(snapshot => (snapshot.PhysicalQ - meanQ) * (snapshot.PhysicalR - meanR));
-
-        var trace = sxx + syy;
-        var determinant = (sxx * syy) - (sxy * sxy);
-        var discriminant = Math.Sqrt(Math.Max(0d, (trace * trace * 0.25d) - determinant));
-        var lambda1 = (trace * 0.5d) + discriminant;
-        var lambda2 = (trace * 0.5d) - discriminant;
-
-        if (lambda1 <= 1e-9d)
-        {
-            return 1d;
-        }
-
-        if (lambda2 <= 1e-9d)
-        {
-            return lambda1;
-        }
-
-        return lambda1 / lambda2;
-    }
-
     private static double ComputeRatio(double numerator, double denominator)
     {
         if (denominator <= 0d)
@@ -79,6 +49,38 @@ internal sealed partial class MonteCarloBatchAnalyzer
 
         return numerator / denominator;
     }
+
+    private static string PlaneName(int planeCode) =>
+        planeCode switch
+        {
+            PlaneCodes.Physical => "physical",
+            PlaneCodes.Semantic => "semantic",
+            _ => planeCode.ToString(CultureInfo.InvariantCulture),
+        };
+
+    private static string LowAltitudeOperationName(int operationCode) =>
+        operationCode switch
+        {
+            LowAltitudeVerbOperationCodes.Move => "move",
+            LowAltitudeVerbOperationCodes.GrowInfluence => "grow_influence",
+            LowAltitudeVerbOperationCodes.ConsolidateInfluence => "consolidate_influence",
+            LowAltitudeVerbOperationCodes.ReduceInfluence => "reduce_influence",
+            LowAltitudeVerbOperationCodes.ExpandCoverage => "expand_coverage",
+            LowAltitudeVerbOperationCodes.MoveHeadquarters => "move_headquarters",
+            _ => operationCode.ToString(CultureInfo.InvariantCulture),
+        };
+
+    private static string LowAltitudeTargetModeName(int targetModeCode) =>
+        targetModeCode switch
+        {
+            LowAltitudeVerbTargetModeCodes.Explore => "explore",
+            LowAltitudeVerbTargetModeCodes.EntityKind => "entity_kind",
+            LowAltitudeVerbTargetModeCodes.RelationshipTarget => "relationship_target",
+            LowAltitudeVerbTargetModeCodes.Terrain => "terrain",
+            LowAltitudeVerbTargetModeCodes.OwnInfluence => "own_influence",
+            LowAltitudeVerbTargetModeCodes.ForeignInfluence => "foreign_influence",
+            _ => targetModeCode.ToString(CultureInfo.InvariantCulture),
+        };
 
     private static string PrimaryBlocker(ObservedGeneratorRow row)
     {
@@ -246,11 +248,13 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private sealed record TelemetryCoverage(
         int ProcessPlannerRows,
         int ProcessExecutionRows,
-        int ResourceEventRows,
-        int ResourceSnapshotRows,
         int MapSnapshotRows,
         int LocalityOpportunityRows,
-        int PlannerTraceRows);
+        int PlannerTraceRows,
+        int LowAltitudeTraceRows,
+        int CellInfluenceRows);
+
+    private sealed record OptionalRawTableDefinition(string TableName, string EmptySelectSql);
 
     private sealed record ObservedPlannerRow(
         string Kind,

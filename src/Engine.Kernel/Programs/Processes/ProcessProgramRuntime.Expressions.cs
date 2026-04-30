@@ -210,12 +210,6 @@ internal sealed partial class ProcessProgramRuntime
     {
         if (code == ProcessExpressionCodes.TargetLocationResource)
         {
-            if (NamedProviderRecoveryActive(processSlot))
-            {
-                Push(stack, ref stackCount, world.GetAttribute(targetId, _processNamedProviderAttributeIds[processSlot]));
-                return true;
-            }
-
             Push(stack, ref stackCount, ResourceAtEntity(world, targetId, a));
             return true;
         }

@@ -33,9 +33,6 @@ public sealed class Entity
     /// </summary>
     public SemanticHexCoord SemanticPosition { get; set; } = SemanticHexCoord.Origin;
 
-    /// <summary>Entity-owned attribute instances. Initialized from domain config at creation.</summary>
-    public Attributes.AttributeSet Attributes { get; } = new();
-
     /// <summary>Active goals. Max 3 primary + their sub-goals. Regenerated periodically.</summary>
     public System.Collections.ObjectModel.Collection<EntityGoal> Goals { get; } = [];
 

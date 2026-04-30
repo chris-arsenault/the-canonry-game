@@ -9,6 +9,7 @@ internal sealed record SimulationOptions
     public int AttributeCapacity { get; init; } = 65536;
     public int ResourceCapacity { get; init; } = 8192;
     public int MapCellCapacity { get; init; } = 2048;
+    public int MapInfluenceCapacity { get; init; } = 32768;
     public int SystemCapacity { get; init; } = 32;
     public int EventCapacity { get; init; } = 65536;
     public int EventCursorCapacity { get; init; } = 32;
@@ -36,8 +37,12 @@ internal sealed record SimulationOptions
     public int DegeneracyDetectorCapacity { get; init; } = 32;
     public int DegeneracyStateCapacity { get; init; } = 8192;
     public int LifecycleRuleCapacity { get; init; } = 256;
+    public int MovementRuleCapacity { get; init; } = 256;
+    public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
+    public int LowAltitudeVerbItemCapacity { get; init; } = 1024;
+    public int MapActivityCellCapacity { get; init; } = 32768;
+    public int EffectRuleCapacity { get; init; } = 512;
     public int EntityAttributeCapacity { get; init; } = 512;
-    public int UpkeepRuleCapacity { get; init; } = 512;
     public int AttributeIdCapacity { get; init; } = 1024;
     public int KindIdCapacity { get; init; } = 256;
     public int TerrainIdCapacity { get; init; } = 128;
@@ -57,6 +62,7 @@ internal sealed record KernelTuningOptions
 
 internal sealed record KernelProgramTuningOptions
 {
+    public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public ProcessProgramTuningOptions Processes { get; init; } = new();
     public PlanningProgramTuningOptions Planning { get; init; } = new();
     public PressureProgramTuningOptions Pressures { get; init; } = new();
@@ -64,9 +70,25 @@ internal sealed record KernelProgramTuningOptions
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
 }
 
+internal sealed record ProgramEnabledTuningOptions
+{
+    public int Movement { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int LowAltitudeVerbs { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int MapActivity { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Effects { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Upkeep { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Processes { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Gambits { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Relationships { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Pressures { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Generators { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int Degeneracy { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+}
+
 internal sealed record PlanningProgramTuningOptions
 {
     public int DefaultPlannerKindCode { get; init; } = PlannerKindCodes.Goap;
+    public bool GoapTargetReservationsEnabled { get; init; }
     public int OpportunityTargetCapacity { get; init; } = 2;
     public PlanningKindPlannerOverride[] KindPlannerOverrides { get; init; } = [];
     public PlanningEntityPlannerOverride[] EntityPlannerOverrides { get; init; } = [];
@@ -78,7 +100,6 @@ internal readonly record struct PlanningEntityPlannerOverride(int EntityId, int 
 
 internal sealed record ProcessProgramTuningOptions
 {
-    public int ResourceSupplyModelCode { get; init; } = ProcessResourceSupplyModelCodes.AmbientHex;
     public int WorkCommitmentCode { get; init; } = ProcessWorkCommitmentCodes.Off;
 }
 

@@ -20,7 +20,6 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private const int PreconditionFailed = 0;
     private const int PreconditionPassed = 1;
     private const int WorkCommitmentKey = 1;
-    private const float NamedProviderRecoveryUnit = 5f;
 
     private readonly ProcessProgramScratch _scratch;
     private int[] _processKindIds => Data.ProcessKindIds;
@@ -29,9 +28,6 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private int[] _processEntityCooldownTicks => Data.ProcessEntityCooldownTicks;
     private int[] _processTargetKindIds => Data.ProcessTargetKindIds;
     private int[] _processTargetModes => Data.ProcessTargetModes;
-    private int[] _processResourceSupplyRoleCodes => Data.ProcessResourceSupplyRoleCodes;
-    private int[] _processNamedProviderKindIds => Data.ProcessNamedProviderKindIds;
-    private int[] _processNamedProviderAttributeIds => Data.ProcessNamedProviderAttributeIds;
     private int[] _processWorkCommitmentTicks => Data.ProcessWorkCommitmentTicks;
     private int[] _processPreconditionStarts => Data.ProcessPreconditionStarts;
     private int[] _processPreconditionCounts => Data.ProcessPreconditionCounts;
@@ -137,8 +133,8 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private PrimitiveIntTable _workCommitmentProcessSlots => State.WorkCommitmentProcessSlots;
     private PrimitiveIntTable _workCommitmentTargetIds => State.WorkCommitmentTargetIds;
     private PrimitiveIntTable _workCommitmentRemainingTicks => State.WorkCommitmentRemainingTicks;
-    private PrimitiveIntTable _opportunityReservationTicks => State.OpportunityReservationTicks;
-    private PrimitiveIntTable _opportunityReservationCounts => State.OpportunityReservationCounts;
+    private PrimitiveIntTable _actionTargetReservationTicks => State.ActionTargetReservationTicks;
+    private PrimitiveIntTable _actionTargetReservationCounts => State.ActionTargetReservationCounts;
     private ref EpochStampSet _processVisited => ref _scratch.ProcessVisited;
     private ref int _processCount => ref Data.ProcessCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;
@@ -203,9 +199,6 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         int entityCooldownTicks = 0,
         int targetMode = ProcessTargetModeCodes.Self,
         int targetKindId = 0,
-        int resourceSupplyRoleCode = ProcessResourceSupplyRoleCodes.None,
-        int namedProviderKindId = 0,
-        int namedProviderAttributeId = 0,
         int workCommitmentTicks = 0)
     {
         ValidatePositive(kindId);
@@ -213,9 +206,6 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         ValidatePositive(targetMode);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(cooldownTicks);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(entityCooldownTicks);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(resourceSupplyRoleCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(namedProviderKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(namedProviderAttributeId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(workCommitmentTicks);
         if (_processCount + 1 >= _processKindIds.Length)
         {
@@ -230,9 +220,6 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         _processEntityCooldownTicks[slot] = entityCooldownTicks;
         _processTargetModes[slot] = targetMode;
         _processTargetKindIds[slot] = targetKindId;
-        _processResourceSupplyRoleCodes[slot] = resourceSupplyRoleCode;
-        _processNamedProviderKindIds[slot] = namedProviderKindId;
-        _processNamedProviderAttributeIds[slot] = namedProviderAttributeId;
         _processWorkCommitmentTicks[slot] = workCommitmentTicks;
         _processPreconditionStarts[slot] = _preconditionCount + 1;
         _processExpressionStarts[slot] = _expressionCount + 1;
@@ -718,7 +705,6 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     {
         return _processEnabled[processSlot] &&
                _processKindIds[processSlot] == kindId &&
-               ProcessEnabledBySupplyModel(processSlot) &&
                simulation.World.EntityIsActive(targetId) &&
                TargetEligibleForProcess(simulation.World, entityId, processSlot, targetId, targetId) &&
                PreconditionsResult(simulation, processSlot, entityId, targetId, tick) == PreconditionPassed;
@@ -776,30 +762,13 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
     private bool ProcessCanRunForEntity(int processSlot, int kindId, int entityId, int tick)
     {
         return _processEnabled[processSlot] &&
-               ProcessEnabledBySupplyModel(processSlot) &&
                _processKindIds[processSlot] == kindId &&
                tick >= _cooldowns.GetOrDefault(entityId, _processIds[processSlot]);
     }
 
-    private bool ProcessEnabledBySupplyModel(int processSlot)
-    {
-        return Tuning.Processes.ResourceSupplyModelCode == ProcessResourceSupplyModelCodes.AmbientHex ||
-               _processResourceSupplyRoleCodes[processSlot] != ProcessResourceSupplyRoleCodes.HexResourceProducer;
-    }
-
-    private bool NamedProviderRecoveryActive(int processSlot)
-    {
-        return Tuning.Processes.ResourceSupplyModelCode == ProcessResourceSupplyModelCodes.NamedProviderNoHex &&
-               _processResourceSupplyRoleCodes[processSlot] == ProcessResourceSupplyRoleCodes.HexHealthRecovery &&
-               _processNamedProviderKindIds[processSlot] > 0 &&
-               _processNamedProviderAttributeIds[processSlot] > 0;
-    }
-
     private int EffectiveTargetKindId(int processSlot)
     {
-        return NamedProviderRecoveryActive(processSlot)
-            ? _processNamedProviderKindIds[processSlot]
-            : _processTargetKindIds[processSlot];
+        return _processTargetKindIds[processSlot];
     }
 
     private bool HasProcessObjectives(int kindId)
@@ -887,24 +856,32 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
                 continue;
             }
 
-            var score = LocalityBundleScore(simulation.World, entityId, planCount, localityKey);
+            var score = LocalityBundleTelemetry(
+                simulation.World,
+                entityId,
+                planCount,
+                localityKey,
+                out var goalCount,
+                out var distinctTargetCount,
+                out var distinctEffectCount,
+                out var distance);
             var anchorTargetId = FirstTargetAtLocality(planCount, localityKey);
             EmitProcessTrace(
                 simulation,
                 tick,
                 entityId,
                 TraceSubjectCodes.Locality,
-                plan,
+                localityKey,
                 0,
                 0,
-                _processPlanEffectScopeCodes[plan],
-                _processPlanEffectValueIds[plan],
-                _processPlanEffectKindIds[plan],
+                distinctEffectCount,
+                goalCount,
+                distinctTargetCount,
                 anchorTargetId,
                 localityKey == selectedLocalityKey ? TraceStatusCodes.Selected : TraceStatusCodes.Offered,
                 0f,
                 score,
-                score,
+                distance,
                 score);
         }
     }
@@ -961,7 +938,29 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
 
     private float LocalityBundleScore(WorldState world, int entityId, int planCount, int localityKey)
     {
+        return LocalityBundleTelemetry(
+            world,
+            entityId,
+            planCount,
+            localityKey,
+            out _,
+            out _,
+            out _,
+            out _);
+    }
+
+    private float LocalityBundleTelemetry(
+        WorldState world,
+        int entityId,
+        int planCount,
+        int localityKey,
+        out int goalCount,
+        out int distinctTargetCount,
+        out int distinctEffectCount,
+        out int distance)
+    {
         var count = 0;
+        var distinctTargets = 0;
         var distinctEffects = 0;
         var totalWeight = 0f;
         var maxWeight = 0f;
@@ -983,15 +982,24 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
             {
                 distinctEffects++;
             }
+
+            if (FirstPlanForTargetAtLocality(plan, localityKey, _processPlanRootTargetIds[plan]))
+            {
+                distinctTargets++;
+            }
         }
 
+        goalCount = count;
+        distinctTargetCount = distinctTargets;
+        distinctEffectCount = distinctEffects;
         if (count == 0)
         {
+            distance = 0;
             return 0f;
         }
 
         var rootTargetId = FirstTargetAtLocality(planCount, localityKey);
-        var distance = rootTargetId > 0
+        distance = rootTargetId > 0
             ? HexDistance(
                 world.EntityPhysicalQ(entityId),
                 world.EntityPhysicalR(entityId),
@@ -1014,6 +1022,20 @@ internal sealed partial class ProcessProgramRuntime : IKernelProgramRuntime<Proc
         {
             if (_processPlanLocalityKeys[previous] == localityKey &&
                 _processPlanEffectKeys[previous] == effectKey)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool FirstPlanForTargetAtLocality(int plan, int localityKey, int targetId)
+    {
+        for (var previous = 1; previous < plan; previous++)
+        {
+            if (_processPlanLocalityKeys[previous] == localityKey &&
+                _processPlanRootTargetIds[previous] == targetId)
             {
                 return false;
             }

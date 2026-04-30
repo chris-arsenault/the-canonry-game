@@ -7,39 +7,25 @@ using Engine.Kernel;
 public sealed class RelationshipProgramRuntimeTests
 {
     [Fact]
-    public void Tick_IncreasesStrengthForNearbySameCultureEntities()
+    public void Tick_AppliesConfiguredDistanceRuleOnlyToMatchingKind()
     {
         var simulation = CreateSimulation();
         var source = simulation.CreateEntity(1, 1, cultureId: 7, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
         var target = simulation.CreateEntity(1, 1, cultureId: 7, physicalQ: 1, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
-        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
-        simulation.Relationships.ProximityMaxDistance = 10;
-        simulation.Relationships.ProximityMaxDelta = 0.01f;
-        simulation.Relationships.SharedCultureMatchDelta = 0.005f;
-        simulation.Relationships.SharedCultureMismatchDelta = -0.005f;
-        simulation.Relationships.NeglectDelta = 0f;
+        var maintained = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
+        var untouched = simulation.CreateRelationship(10, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin,
+            PlaneCodes.Physical,
+            maxDistance: 2,
+            threshold: 0f,
+            delta: 0.03f);
 
         simulation.Relationships.Tick(simulation, tick: 1);
 
-        Assert.True(simulation.World.RelationshipStrength(relationship) > 0.5f);
-    }
-
-    [Fact]
-    public void Tick_DistantDifferentCultureOnlyAppliesConfiguredDecay()
-    {
-        var simulation = CreateSimulation();
-        var source = simulation.CreateEntity(1, 1, cultureId: 7, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
-        var target = simulation.CreateEntity(1, 1, cultureId: 8, physicalQ: 10, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
-        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
-        simulation.Relationships.ProximityMaxDistance = 3;
-        simulation.Relationships.ProximityMaxDelta = 0.01f;
-        simulation.Relationships.SharedCultureMatchDelta = 0.005f;
-        simulation.Relationships.SharedCultureMismatchDelta = -0.01f;
-        simulation.Relationships.NeglectDelta = -0.01f;
-
-        simulation.Relationships.Tick(simulation, tick: 1);
-
-        Assert.Equal(0.48f, simulation.World.RelationshipStrength(relationship), 4);
+        Assert.True(simulation.World.RelationshipStrength(maintained) > 0.5f);
+        Assert.Equal(0.5f, simulation.World.RelationshipStrength(untouched));
     }
 
     [Fact]
@@ -48,16 +34,62 @@ public sealed class RelationshipProgramRuntimeTests
         var simulation = CreateSimulation();
         var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var target = simulation.CreateEntity(1, 1, 1, 0, 1, 0, 0, 0, 0);
-        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.02f, tick: 0);
+        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.06f, tick: 0);
         simulation.Relationships.RegisterRelationshipKind(9, cullThreshold: 0.05f);
-        simulation.Relationships.ProximityMaxDistance = 0;
-        simulation.Relationships.SharedCultureMatchDelta = 0f;
-        simulation.Relationships.SharedCultureMismatchDelta = 0f;
-        simulation.Relationships.NeglectDelta = -0.02f;
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.Always,
+            PlaneCodes.None,
+            maxDistance: 0,
+            threshold: 0f,
+            delta: -0.02f);
 
         simulation.Relationships.Tick(simulation, tick: 1);
 
         Assert.False(simulation.World.RelationshipIsActive(relationship));
+    }
+
+    [Fact]
+    public void Tick_StrengthensRelationshipFromInfluenceAtEndpoint()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        var target = simulation.CreateEntity(2, 1, cultureId: 1, physicalQ: 5, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Neutral, source, target, 0.5f, tick: 0);
+        simulation.SetCellInfluence(target, 0, 0, 60f, tick: 0);
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource,
+            PlaneCodes.None,
+            maxDistance: 0,
+            threshold: 60f,
+            delta: 0.02f);
+
+        simulation.Relationships.Tick(simulation, tick: 1);
+
+        Assert.Equal(0.52f, simulation.World.RelationshipStrength(relationship), 4);
+    }
+
+    [Fact]
+    public void Tick_UsesAccumulatedContactMemoryAsMaintenanceEvidence()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        var target = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: 1, physicalR: 0, semanticQ: 4, semanticR: 0, semanticS: -4, tick: 0);
+        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.ContactMemory,
+            PlaneCodes.Physical,
+            maxDistance: 0,
+            threshold: 2f,
+            delta: 0.02f);
+
+        simulation.Relationships.Tick(simulation, tick: 1);
+        simulation.Relationships.Tick(simulation, tick: 2);
+
+        Assert.Equal(2, simulation.Relationships.State.ContactTicks(relationship));
+        Assert.True(simulation.World.RelationshipStrength(relationship) > 0.529f);
     }
 
     [Fact]
@@ -67,11 +99,13 @@ public sealed class RelationshipProgramRuntimeTests
         var source = simulation.CreateEntity(1, 1, cultureId: 7, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
         var target = simulation.CreateEntity(1, 1, cultureId: 7, physicalQ: 1, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
         _ = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
-        simulation.Relationships.ProximityMaxDistance = 10;
-        simulation.Relationships.ProximityMaxDelta = 0.01f;
-        simulation.Relationships.SharedCultureMatchDelta = 0f;
-        simulation.Relationships.SharedCultureMismatchDelta = 0f;
-        simulation.Relationships.NeglectDelta = 0f;
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin,
+            PlaneCodes.Physical,
+            maxDistance: 10,
+            threshold: 0f,
+            delta: 0.01f);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         simulation.AdvanceTicks(1);

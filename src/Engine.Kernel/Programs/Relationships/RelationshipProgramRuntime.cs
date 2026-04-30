@@ -29,38 +29,17 @@ internal sealed class RelationshipProgramRuntime :
 
     public int Count => Data.Count;
 
-    public int ProximityMaxDistance
-    {
-        get => Data.ProximityMaxDistance;
-        set => Data.ProximityMaxDistance = value;
-    }
-
-    public float ProximityMaxDelta
-    {
-        get => Data.ProximityMaxDelta;
-        set => Data.ProximityMaxDelta = value;
-    }
-
-    public float SharedCultureMatchDelta
-    {
-        get => Data.SharedCultureMatchDelta;
-        set => Data.SharedCultureMatchDelta = value;
-    }
-
-    public float SharedCultureMismatchDelta
-    {
-        get => Data.SharedCultureMismatchDelta;
-        set => Data.SharedCultureMismatchDelta = value;
-    }
-
-    public float NeglectDelta
-    {
-        get => Data.NeglectDelta;
-        set => Data.NeglectDelta = value;
-    }
-
     public int RegisterRelationshipKind(int kindId, float cullThreshold) =>
         Data.RegisterRelationshipKind(kindId, cullThreshold);
+
+    public int AddMaintenanceRule(
+        int kindId,
+        int conditionCode,
+        int planeCode,
+        int maxDistance,
+        float threshold,
+        float delta) =>
+        Data.AddMaintenanceRule(kindId, conditionCode, planeCode, maxDistance, threshold, delta);
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -79,13 +58,18 @@ internal sealed class RelationshipProgramRuntime :
 
     private void TickRelationship(Simulation simulation, WorldState world, int relationshipId, int tick)
     {
+        UpdateContactMemory(world, relationshipId, tick);
+        var relationshipKindId = world.RelationshipKindId(relationshipId);
         var sourceId = world.RelationshipSourceId(relationshipId);
         var targetId = world.RelationshipTargetId(relationshipId);
-        var delta = Data.NeglectDelta;
-        delta += ComputeProximityDelta(world, sourceId, targetId);
-        delta += world.EntityCultureId(sourceId) == world.EntityCultureId(targetId)
-            ? Data.SharedCultureMatchDelta
-            : Data.SharedCultureMismatchDelta;
+        var delta = 0f;
+        for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
+        {
+            if (Data.MaintenanceKindId(rule) == relationshipKindId)
+            {
+                delta += ComputeRuleDelta(world, relationshipId, sourceId, targetId, rule);
+            }
+        }
 
         if (delta != 0f)
         {
@@ -98,25 +82,201 @@ internal sealed class RelationshipProgramRuntime :
         }
     }
 
-    private float ComputeProximityDelta(WorldState world, int sourceId, int targetId)
+    private void UpdateContactMemory(WorldState world, int relationshipId, int tick)
     {
-        if (Data.ProximityMaxDistance <= 0)
+        var sourceId = world.RelationshipSourceId(relationshipId);
+        var targetId = world.RelationshipTargetId(relationshipId);
+        if (PhysicalDistance(world, sourceId, targetId) <= 1 ||
+            SemanticDistance(world, sourceId, targetId) == 0)
+        {
+            State.RecordContact(relationshipId, tick);
+            return;
+        }
+
+        State.DecayContact(relationshipId);
+    }
+
+    private float ComputeRuleDelta(
+        WorldState world,
+        int relationshipId,
+        int sourceId,
+        int targetId,
+        int rule)
+    {
+        var evidence = Evidence(world, relationshipId, sourceId, targetId, rule);
+        return evidence <= 0f ? 0f : Data.MaintenanceDelta(rule) * evidence;
+    }
+
+    private float Evidence(
+        WorldState world,
+        int relationshipId,
+        int sourceId,
+        int targetId,
+        int rule)
+    {
+        var condition = Data.MaintenanceConditionCode(rule);
+        if (condition == RelationshipMaintenanceConditionCodes.Always)
+        {
+            return 1f;
+        }
+
+        if (TryCultureEvidence(world, sourceId, targetId, condition, out var evidence) ||
+            TryDistanceEvidence(world, sourceId, targetId, condition, rule, out evidence) ||
+            TryInfluenceEvidence(world, sourceId, targetId, condition, rule, out evidence))
+        {
+            return evidence;
+        }
+
+        return condition == RelationshipMaintenanceConditionCodes.ContactMemory
+            ? ContactEvidence(relationshipId, Data.MaintenanceThreshold(rule))
+            : 0f;
+    }
+
+    private static bool TryCultureEvidence(
+        WorldState world,
+        int sourceId,
+        int targetId,
+        int condition,
+        out float evidence)
+    {
+        if (condition == RelationshipMaintenanceConditionCodes.SameCulture)
+        {
+            evidence = world.EntityCultureId(sourceId) == world.EntityCultureId(targetId) ? 1f : 0f;
+            return true;
+        }
+
+        if (condition == RelationshipMaintenanceConditionCodes.DifferentCulture)
+        {
+            evidence = world.EntityCultureId(sourceId) != world.EntityCultureId(targetId) ? 1f : 0f;
+            return true;
+        }
+
+        evidence = 0f;
+        return false;
+    }
+
+    private bool TryDistanceEvidence(
+        WorldState world,
+        int sourceId,
+        int targetId,
+        int condition,
+        int rule,
+        out float evidence)
+    {
+        if (condition == RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin)
+        {
+            evidence = DistanceEvidence(PhysicalDistance(world, sourceId, targetId), Data.MaintenanceMaxDistance(rule));
+            return true;
+        }
+
+        if (condition == RelationshipMaintenanceConditionCodes.SemanticDistanceWithin)
+        {
+            evidence = DistanceEvidence(SemanticDistance(world, sourceId, targetId), Data.MaintenanceMaxDistance(rule));
+            return true;
+        }
+
+        return TryCoPresenceEvidence(world, sourceId, targetId, condition, out evidence);
+    }
+
+    private static bool TryCoPresenceEvidence(
+        WorldState world,
+        int sourceId,
+        int targetId,
+        int condition,
+        out float evidence)
+    {
+        if (condition == RelationshipMaintenanceConditionCodes.PhysicalCoPresence)
+        {
+            evidence = PhysicalDistance(world, sourceId, targetId) == 0 ? 1f : 0f;
+            return true;
+        }
+
+        if (condition == RelationshipMaintenanceConditionCodes.SemanticCoPresence)
+        {
+            evidence = SemanticDistance(world, sourceId, targetId) == 0 ? 1f : 0f;
+            return true;
+        }
+
+        evidence = 0f;
+        return false;
+    }
+
+    private bool TryInfluenceEvidence(
+        WorldState world,
+        int sourceId,
+        int targetId,
+        int condition,
+        int rule,
+        out float evidence)
+    {
+        if (condition == RelationshipMaintenanceConditionCodes.SourceInfluenceAtTarget)
+        {
+            evidence = InfluenceEvidence(
+                world.GetCellInfluence(sourceId, world.EntityPhysicalQ(targetId), world.EntityPhysicalR(targetId)),
+                Data.MaintenanceThreshold(rule));
+            return true;
+        }
+
+        if (condition == RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource)
+        {
+            evidence = InfluenceEvidence(
+                world.GetCellInfluence(targetId, world.EntityPhysicalQ(sourceId), world.EntityPhysicalR(sourceId)),
+                Data.MaintenanceThreshold(rule));
+            return true;
+        }
+
+        evidence = 0f;
+        return false;
+    }
+
+    private static float DistanceEvidence(int distance, int maxDistance)
+    {
+        if (maxDistance <= 0)
+        {
+            return distance == 0 ? 1f : 0f;
+        }
+
+        if (distance > maxDistance)
         {
             return 0f;
         }
 
-        var distance = HexDistance(
+        return 1f - (distance / (float)(maxDistance + 1));
+    }
+
+    private static float InfluenceEvidence(float influence, float threshold)
+    {
+        if (threshold <= 0f)
+        {
+            return influence > 0f ? 1f : 0f;
+        }
+
+        return Clamp01(influence / threshold);
+    }
+
+    private float ContactEvidence(int relationshipId, float threshold)
+    {
+        if (threshold <= 0f)
+        {
+            return State.ContactTicks(relationshipId) > 0 ? 1f : 0f;
+        }
+
+        return Clamp01(State.ContactTicks(relationshipId) / threshold);
+    }
+
+    private static int PhysicalDistance(WorldState world, int sourceId, int targetId) =>
+        HexDistance(
             world.EntityPhysicalQ(sourceId),
             world.EntityPhysicalR(sourceId),
             world.EntityPhysicalQ(targetId),
             world.EntityPhysicalR(targetId));
-        if (distance >= Data.ProximityMaxDistance)
-        {
-            return 0f;
-        }
 
-        var factor = 1f - (distance / (float)Data.ProximityMaxDistance);
-        return Data.ProximityMaxDelta * factor;
+    private static int SemanticDistance(WorldState world, int sourceId, int targetId)
+    {
+        var q = Abs(world.EntitySemanticQ(sourceId) - world.EntitySemanticQ(targetId));
+        var r = Abs(world.EntitySemanticR(sourceId) - world.EntitySemanticR(targetId));
+        var s = Abs(world.EntitySemanticS(sourceId) - world.EntitySemanticS(targetId));
+        return Max(q, Max(r, s));
     }
 
     private static int HexDistance(int aq, int ar, int bq, int br)
@@ -129,6 +289,18 @@ internal sealed class RelationshipProgramRuntime :
     private static int Abs(int value)
     {
         return value < 0 ? -value : value;
+    }
+
+    private static int Max(int left, int right) => left >= right ? left : right;
+
+    private static float Clamp01(float value)
+    {
+        if (value < 0f)
+        {
+            return 0f;
+        }
+
+        return value > 1f ? 1f : value;
     }
 
 }
