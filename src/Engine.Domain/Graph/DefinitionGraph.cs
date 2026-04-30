@@ -2,6 +2,7 @@ namespace Engine.Domain.Graph;
 
 using Engine.Domain.Config;
 using Engine.Gambits;
+using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Wiring;
@@ -13,6 +14,7 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
     public required IReadOnlyDictionary<string, DefinitionProcessNode> Processes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
+    public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
     public required IReadOnlyDictionary<DefinitionResourceId, DefinitionResourceNode> Resources { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
@@ -22,6 +24,38 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<DefinitionAttributeKey, DefinitionAttributeNode> Attributes { get; init; }
     public SemanticFlowGraph SemanticFlows { get; } = new();
 }
+
+public abstract class DefinitionGameplayNode
+{
+    public required string Id { get; init; }
+    public required IReadOnlyList<GameplayRead> Reads { get; init; }
+    public required IReadOnlyList<GameplayWrite> Writes { get; init; }
+}
+
+public sealed class DefinitionLowAltitudeVerbNode : DefinitionGameplayNode
+{
+    public required LowAltitudeVerbConfig SourceConfig { get; init; }
+}
+
+public sealed class DefinitionMapSignalNode : DefinitionGameplayNode
+{
+    public required string Source { get; init; }
+}
+
+public sealed class DefinitionEffectNode : DefinitionGameplayNode
+{
+    public required AttributeDeltaEffectConfig SourceConfig { get; init; }
+}
+
+public abstract record GameplayRead(string Label);
+
+public abstract record GameplayWrite(string Label);
+
+public sealed record MapSignalRead(string Label) : GameplayRead(Label);
+
+public sealed record InfluenceWrite(string Label) : GameplayWrite(Label);
+
+public sealed record AttributeDeltaWrite(string Label) : GameplayWrite(Label);
 
 public sealed record DefinitionAttributeKey(EntityKind Kind, DefinitionAttributeId AttributeId);
 

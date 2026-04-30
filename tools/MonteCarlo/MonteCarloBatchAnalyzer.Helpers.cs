@@ -61,24 +61,23 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static string LowAltitudeOperationName(int operationCode) =>
         operationCode switch
         {
-            LowAltitudeVerbOperationCodes.Move => "move",
-            LowAltitudeVerbOperationCodes.GrowInfluence => "grow_influence",
-            LowAltitudeVerbOperationCodes.ConsolidateInfluence => "consolidate_influence",
-            LowAltitudeVerbOperationCodes.ReduceInfluence => "reduce_influence",
-            LowAltitudeVerbOperationCodes.ExpandCoverage => "expand_coverage",
-            LowAltitudeVerbOperationCodes.MoveHeadquarters => "move_headquarters",
+            ProgramOpcodeCodes.MoveActor => "move_actor",
+            ProgramOpcodeCodes.AddOwnedCellScalar => "add_owned_cell_scalar",
+            ProgramOpcodeCodes.SubtractOtherCellScalar => "subtract_other_cell_scalar",
+            ProgramOpcodeCodes.TryClaimCell => "try_claim_cell",
+            ProgramOpcodeCodes.TryRelocateEntity => "try_relocate_entity",
             _ => operationCode.ToString(CultureInfo.InvariantCulture),
         };
 
     private static string LowAltitudeTargetModeName(int targetModeCode) =>
         targetModeCode switch
         {
-            LowAltitudeVerbTargetModeCodes.Explore => "explore",
-            LowAltitudeVerbTargetModeCodes.EntityKind => "entity_kind",
-            LowAltitudeVerbTargetModeCodes.RelationshipTarget => "relationship_target",
-            LowAltitudeVerbTargetModeCodes.Terrain => "terrain",
-            LowAltitudeVerbTargetModeCodes.OwnInfluence => "own_influence",
-            LowAltitudeVerbTargetModeCodes.ForeignInfluence => "foreign_influence",
+            TargetSelectorCodes.Explore => "explore",
+            TargetSelectorCodes.EntityKind => "entity_kind",
+            TargetSelectorCodes.RelationshipTarget => "relationship_target",
+            TargetSelectorCodes.Terrain => "terrain",
+            TargetSelectorCodes.SelfMapValue => "self_map_value",
+            TargetSelectorCodes.OtherMapValue => "other_map_value",
             _ => targetModeCode.ToString(CultureInfo.InvariantCulture),
         };
 

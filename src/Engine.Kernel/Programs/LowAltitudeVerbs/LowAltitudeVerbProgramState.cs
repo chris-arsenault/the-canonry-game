@@ -19,7 +19,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
     private readonly int[] _nextStepTicks;
     private readonly int[] _stepIntervalTicks;
     private readonly int[] _pathLoosenessPermille;
-    private readonly bool[] _homeInfluenceSeeded;
+    private readonly bool[] _initialInfluenceApplied;
     private int _nextIntentId;
 
     public LowAltitudeVerbProgramState(int entityCapacity)
@@ -40,7 +40,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _nextStepTicks = new int[entityCapacity + 1];
         _stepIntervalTicks = new int[entityCapacity + 1];
         _pathLoosenessPermille = new int[entityCapacity + 1];
-        _homeInfluenceSeeded = new bool[entityCapacity + 1];
+        _initialInfluenceApplied = new bool[entityCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
@@ -77,7 +77,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
 
     public int PathLoosenessPermille(int entityId) => _pathLoosenessPermille[entityId];
 
-    public bool HomeInfluenceSeeded(int entityId) => _homeInfluenceSeeded[entityId];
+    public bool InitialInfluenceApplied(int entityId) => _initialInfluenceApplied[entityId];
 
     public int NextIntentId() => _nextIntentId + 1;
 
@@ -158,10 +158,10 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _nextStepTicks[entityId] = tick + (interval <= 0 ? 1 : interval);
     }
 
-    public void MarkHomeInfluenceSeeded(int entityId)
+    public void MarkInitialInfluenceApplied(int entityId)
     {
         EnsureEntity(entityId);
-        _homeInfluenceSeeded[entityId] = true;
+        _initialInfluenceApplied[entityId] = true;
     }
 
     private void EnsureEntity(int entityId)

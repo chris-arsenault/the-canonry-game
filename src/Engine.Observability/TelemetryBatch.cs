@@ -604,6 +604,7 @@ public sealed record CellInfluenceEventRow(
     int Tick,
     int SourceCodeId,
     int EntityId,
+    int PlaneCode,
     int Q,
     int R,
     float PreviousInfluence,

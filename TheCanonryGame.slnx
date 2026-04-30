@@ -6,6 +6,7 @@
     <Project Path="src/Engine.Eventing/Engine.Eventing.csproj" />
     <Project Path="src/Engine.Eventing.Generators/Engine.Eventing.Generators.csproj" />
     <Project Path="src/Engine.Eventing.Schema/Engine.Eventing.Schema.csproj" />
+    <Project Path="src/Engine.Gameplay/Engine.Gameplay.csproj" />
     <Project Path="src/Engine.Host/Engine.Host.csproj" />
     <Project Path="src/Engine.Kernel/Engine.Kernel.csproj" />
     <Project Path="src/Engine.Kernel.Driver/Engine.Kernel.Driver.csproj" />
@@ -22,6 +23,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Engine.Eventing.Tests/Engine.Eventing.Tests.csproj" />
+    <Project Path="tests/Engine.Gameplay.Tests/Engine.Gameplay.Tests.csproj" />
     <Project Path="tests/Engine.Host.Tests/Engine.Host.Tests.csproj" />
     <Project Path="tests/Engine.Kernel.Driver.Tests/Engine.Kernel.Driver.Tests.csproj" />
     <Project Path="tests/Engine.Observability.Tests/Engine.Observability.Tests.csproj" />

@@ -264,8 +264,9 @@ internal sealed class MapSignalsProgramRuntime :
         if (planeCode == PlaneCodes.Physical)
         {
             mass += world.CoverageOwnerCellCount(entityId) * Data.KindCoverageAttractorScale(kindId);
-            mass += world.GetCellInfluence(entityId, q, r) * Data.KindInfluenceAttractorScale(kindId);
         }
+
+        mass += world.GetCellInfluence(entityId, planeCode, q, r) * Data.KindInfluenceAttractorScale(kindId);
 
         mass += simulation.MapActivity.Heat(planeCode, q, r) * Data.KindActivityAttractorScale(kindId);
         var healthAttributeId = Data.KindHealthAttributeId(kindId);
@@ -302,15 +303,18 @@ internal sealed class MapSignalsProgramRuntime :
     private float DynamicCapacityAt(WorldState world, int planeCode, int q, int r)
     {
         var capacity = BaseCapacityAt(world, planeCode, q, r) + State.CapacityAdditionAt(planeCode, q, r);
-        if (planeCode != PlaneCodes.Physical || !world.CellIsKnown(q, r))
+        if (planeCode == PlaneCodes.Physical && !world.CellIsKnown(q, r))
         {
             return capacity;
         }
 
-        var ownerId = world.CoverageOwnerAt(q, r);
-        if (ownerId > 0 && world.EntityIsActive(ownerId))
+        if (planeCode == PlaneCodes.Physical)
         {
-            capacity += Data.KindCapacityEmission(world.EntityKindId(ownerId));
+            var ownerId = world.CoverageOwnerAt(q, r);
+            if (ownerId > 0 && world.EntityIsActive(ownerId))
+            {
+                capacity += Data.KindCapacityEmission(world.EntityKindId(ownerId));
+            }
         }
 
         for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
@@ -320,7 +324,7 @@ internal sealed class MapSignalsProgramRuntime :
                 continue;
             }
 
-            var influence = world.GetCellInfluence(entityId, q, r);
+            var influence = world.GetCellInfluence(entityId, planeCode, q, r);
             if (influence > 0f)
             {
                 capacity += Data.KindCapacityEmission(world.EntityKindId(entityId)) * (influence / 100f);

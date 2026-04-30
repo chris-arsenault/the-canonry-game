@@ -10,6 +10,8 @@ Working folder for the current simulation-tuning session.
 - [deferred-locality-thickening.md](./deferred-locality-thickening.md)
 - [rendezvous-lite-request-plan.md](./rendezvous-lite-request-plan.md)
 - [concrete-next-moves-proposal.md](./concrete-next-moves-proposal.md)
+- [low-altitude-domain-mixing-inspection-plan.md](./low-altitude-domain-mixing-inspection-plan.md)
+- [semantic-plane-low-altitude-extension.md](./semantic-plane-low-altitude-extension.md)
 - [plan.txt](./plan.txt)
 
 ## Purpose

@@ -101,7 +101,6 @@ public sealed class KernelHostBuilderTests
             out var structuralFactSymbol));
         Assert.Equal(structuralFactSeed.StableName, structuralFactSymbol.StableName);
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Upkeep));
-        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Movement));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapActivity));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapSignals));

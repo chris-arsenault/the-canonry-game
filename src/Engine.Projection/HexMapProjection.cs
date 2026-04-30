@@ -185,6 +185,11 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
+        if (evt.PlaneCode != PlaneCodes.Physical)
+        {
+            return;
+        }
+
         var coord = new HexCoord(evt.Q, evt.R);
         if (!TryGetHex(coord, out var existing))
         {

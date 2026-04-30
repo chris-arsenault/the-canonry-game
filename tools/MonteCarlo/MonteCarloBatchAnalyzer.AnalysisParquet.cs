@@ -390,11 +390,12 @@ internal sealed partial class MonteCarloBatchAnalyzer
         GROUP BY kind_id, plane_code
         """;
 
-    private const string InfluenceDynamicsSql = """
+    private static readonly string InfluenceDynamicsSql = $"""
         WITH influence_events AS (
             SELECT
                 run_id,
                 entity_id,
+                plane_code,
                 q,
                 r,
                 SUM(delta) AS final_influence,
@@ -402,7 +403,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 SUM(CASE WHEN delta > 0 THEN 1 ELSE 0 END) AS positive_delta_events,
                 SUM(CASE WHEN delta < 0 THEN 1 ELSE 0 END) AS negative_delta_events
             FROM raw_cell_influence_events
-            GROUP BY run_id, entity_id, q, r
+            GROUP BY run_id, entity_id, plane_code, q, r
         ),
         influenced_cells AS (
             SELECT *,
@@ -422,6 +423,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
                     snapshot.physical_q,
                     snapshot.physical_r,
                     -(snapshot.physical_q + snapshot.physical_r) AS physical_s,
+                    snapshot.semantic_q,
+                    snapshot.semantic_r,
+                    snapshot.semantic_s,
                     ROW_NUMBER() OVER (PARTITION BY snapshot.run_id, snapshot.entity_id ORDER BY snapshot.tick DESC) AS rank
                 FROM raw_entity_snapshots snapshot
             ) ranked
@@ -431,6 +435,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT
                 cell.run_id,
                 cell.entity_id,
+                cell.plane_code,
                 cell.q,
                 cell.r,
                 COUNT(neighbor.q) AS same_entity_neighbor_count
@@ -438,6 +443,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             LEFT JOIN influenced_cells neighbor
               ON neighbor.run_id = cell.run_id
              AND neighbor.entity_id = cell.entity_id
+             AND neighbor.plane_code = cell.plane_code
              AND (
                     (neighbor.q = cell.q + 1 AND neighbor.r = cell.r) OR
                     (neighbor.q = cell.q - 1 AND neighbor.r = cell.r) OR
@@ -446,11 +452,12 @@ internal sealed partial class MonteCarloBatchAnalyzer
                     (neighbor.q = cell.q + 1 AND neighbor.r = cell.r - 1) OR
                     (neighbor.q = cell.q - 1 AND neighbor.r = cell.r + 1)
                  )
-            GROUP BY cell.run_id, cell.entity_id, cell.q, cell.r
+            GROUP BY cell.run_id, cell.entity_id, cell.plane_code, cell.q, cell.r
         )
         SELECT
             events.run_id,
             events.entity_id,
+            events.plane_code,
             COALESCE(entity.kind_id, 0) AS kind_id,
             COALESCE(entity.subtype_id, 0) AS subtype_id,
             SUM(events.event_count) AS event_count,
@@ -464,17 +471,29 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(SUM(neighbors.same_entity_neighbor_count), 0) AS neighbor_connection_count,
             COALESCE(AVG(CASE
                 WHEN events.final_influence >= 10.0 THEN
-                    (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2.0
+                    CASE WHEN events.plane_code = {PlaneCodes.Semantic} THEN
+                        (ABS(events.q - entity.semantic_q) + ABS(events.r - entity.semantic_r) + ABS((-(events.q + events.r)) - entity.semantic_s)) / 2.0
+                    ELSE
+                        (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2.0
+                    END
                 ELSE NULL
             END), 0.0) AS mean_anchor_distance,
             COALESCE(QUANTILE_CONT(CASE
                 WHEN events.final_influence >= 10.0 THEN
-                    (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2.0
+                    CASE WHEN events.plane_code = {PlaneCodes.Semantic} THEN
+                        (ABS(events.q - entity.semantic_q) + ABS(events.r - entity.semantic_r) + ABS((-(events.q + events.r)) - entity.semantic_s)) / 2.0
+                    ELSE
+                        (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2.0
+                    END
                 ELSE NULL
             END, 0.95), 0.0) AS p95_anchor_distance,
             COALESCE(MAX(CASE
                 WHEN events.final_influence >= 10.0 THEN
-                    (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2
+                    CASE WHEN events.plane_code = {PlaneCodes.Semantic} THEN
+                        (ABS(events.q - entity.semantic_q) + ABS(events.r - entity.semantic_r) + ABS((-(events.q + events.r)) - entity.semantic_s)) / 2
+                    ELSE
+                        (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2
+                    END
                 ELSE NULL
             END), 0) AS max_anchor_distance
         FROM influence_events events
@@ -482,11 +501,12 @@ internal sealed partial class MonteCarloBatchAnalyzer
           ON entity.run_id = events.run_id
          AND entity.entity_id = events.entity_id
         LEFT JOIN neighbor_counts neighbors
-          ON neighbors.run_id = events.run_id
+         ON neighbors.run_id = events.run_id
          AND neighbors.entity_id = events.entity_id
+         AND neighbors.plane_code = events.plane_code
          AND neighbors.q = events.q
          AND neighbors.r = events.r
-        GROUP BY events.run_id, events.entity_id, entity.kind_id, entity.subtype_id
+        GROUP BY events.run_id, events.entity_id, events.plane_code, entity.kind_id, entity.subtype_id
         """;
 
     private const string ProcessPressureSql = """
@@ -605,6 +625,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             UNION
             SELECT DISTINCT run_id, q, r
             FROM raw_cell_influence_events
+            WHERE plane_code = 1
             UNION
             SELECT DISTINCT run_id, physical_q AS q, physical_r AS r
             FROM raw_entity_snapshots
@@ -640,7 +661,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             UNION ALL
             SELECT run_id, tick, q, r
             FROM raw_cell_influence_events
-            WHERE tick > 0
+            WHERE plane_code = 1 AND tick > 0
         ),
         activity_by_snapshot AS (
             SELECT ticks.run_id, ticks.tick AS snapshot_tick, activity.q, activity.r, COUNT(*) AS activity_count

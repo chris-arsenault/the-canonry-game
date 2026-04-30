@@ -5,6 +5,7 @@ using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Gambits;
+using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Resources;
@@ -94,57 +95,6 @@ public static partial class DomainCompiler
             LifecycleRules = lifecycleRules,
         };
     }
-
-    private static EffectsProgram BuildEffectsProgram(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        var attributeDeltaEffects = new List<AttributeDeltaEffectRule>();
-        foreach (var effect in config.Effects.AttributeDeltaEffects)
-        {
-            attributeDeltaEffects.Add(CompileAttributeDeltaEffectRule(config, ids, effect));
-        }
-
-        return new EffectsProgram { AttributeDeltaEffects = attributeDeltaEffects };
-    }
-
-    private static AttributeDeltaEffectRule CompileAttributeDeltaEffectRule(
-        DomainConfig config,
-        DomainIdRegistry ids,
-        AttributeDeltaEffectConfig effect)
-    {
-        EnsureKind(config, effect.Kind, "Attribute delta effect kind");
-        if (!config.Kinds[effect.Kind].Attributes.Any(attribute =>
-                string.Equals(attribute.Name, effect.Attribute, StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException(
-                $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
-        }
-
-        if (EffectRequiresRelationship(effect.Condition) &&
-            !config.Relationships.Any(relationship =>
-                string.Equals(relationship.Name, effect.RelationshipKind, StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException(
-                $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
-        }
-
-        return new AttributeDeltaEffectRule(
-            ids.KindIdOf(effect.Kind).Value,
-            ids.AttributeIdOf(effect.Attribute).Value,
-            EffectConditionCode(effect.Condition),
-            effect.RelationshipKind is null ? 0 : ids.RelationshipKindIdOf(effect.RelationshipKind).Value,
-            EffectDirectionCode(effect.RelationshipDirection),
-            PlaneCode(effect.Plane),
-            effect.MaxDistance,
-            effect.Threshold,
-            effect.MinimumRelationshipStrength,
-            effect.DeltaPerTick);
-    }
-
-    private static bool EffectRequiresRelationship(EffectCondition condition) =>
-        condition is EffectCondition.RelatedInfluenceAtPhysicalLocation
-            or EffectCondition.RelatedEntityDistance;
 
     private static ProcessProgram BuildProcessProgram(
         DomainConfig config,

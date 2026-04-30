@@ -86,6 +86,7 @@ internal sealed record RoamingSummaryRow(
 
 internal sealed record InfluenceSummaryRow(
     string Kind,
+    string Plane,
     int EntityCount,
     double AverageInfluencedCells,
     double AverageNetInfluenceDelta,

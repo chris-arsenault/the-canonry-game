@@ -56,11 +56,33 @@ public sealed class RelationshipProgramRuntimeTests
         var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
         var target = simulation.CreateEntity(2, 1, cultureId: 1, physicalQ: 5, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
         var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Neutral, source, target, 0.5f, tick: 0);
-        simulation.SetCellInfluence(target, 0, 0, 60f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, 0, 0, 60f, tick: 0);
         simulation.Relationships.AddMaintenanceRule(
             9,
             RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource,
             PlaneCodes.None,
+            maxDistance: 0,
+            threshold: 60f,
+            delta: 0.02f);
+
+        simulation.Relationships.Tick(simulation, tick: 1);
+
+        Assert.Equal(0.52f, simulation.World.RelationshipStrength(relationship), 4);
+    }
+
+    [Fact]
+    public void Tick_StrengthensRelationshipFromSemanticInfluenceAtEndpoint()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: 0, physicalR: 0, semanticQ: 2, semanticR: -1, semanticS: -1, tick: 0);
+        var target = simulation.CreateEntity(2, 1, cultureId: 1, physicalQ: 5, physicalR: 0, semanticQ: -3, semanticR: 1, semanticS: 2, tick: 0);
+        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Neutral, source, target, 0.5f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, 1, 0, 60f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Semantic, 2, -1, 60f, tick: 0);
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource,
+            PlaneCodes.Semantic,
             maxDistance: 0,
             threshold: 60f,
             delta: 0.02f);

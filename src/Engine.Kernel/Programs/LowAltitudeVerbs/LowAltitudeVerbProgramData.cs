@@ -4,73 +4,142 @@ using Engine.Kernel.Programs;
 
 internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 {
-    private readonly int[] _kindIds;
-    private readonly int[] _verbIds;
-    private readonly int[] _planeCodes;
-    private readonly int[] _operationCodes;
-    private readonly int[] _targetModeCodes;
-    private readonly int[] _targetKindIds;
-    private readonly int[] _relationshipKindIds;
-    private readonly int[] _relationshipDirectionCodes;
-    private readonly int[] _terrainStarts;
-    private readonly int[] _terrainCounts;
-    private readonly int[] _terrainIds;
-    private readonly int[] _minCommitmentTicks;
-    private readonly int[] _maxCommitmentTicks;
-    private readonly int[] _dwellTicks;
-    private readonly int[] _targetRadii;
-    private readonly int[] _candidateSampleCounts;
-    private readonly float[] _weights;
-    private readonly float[] _exploreWeights;
-    private readonly float[] _stalenessWeights;
-    private readonly float[] _hotspotWeights;
-    private readonly float[] _crowdingWeights;
-    private readonly float[] _generatorAffordanceWeights;
-    private readonly int[] _affinityRelationshipKindIds;
-    private readonly int[] _affinityRelationshipDirectionCodes;
-    private readonly float[] _relationshipAffinityWeights;
-    private readonly float[] _influenceDeltas;
-    private readonly int[] _influenceRadii;
-    private readonly float[] _coverageGrowthChances;
-    private readonly float[] _headquartersMoveChances;
-    private readonly float[] _requiredInfluences;
+    private int[] _kindIds = [];
+    private int[] _verbIds = [];
+    private int[] _planeCodes = [];
+    private int[] _operationCodes = [];
+    private int[] _targetModeCodes = [];
+    private int[] _targetKindIds = [];
+    private int[] _relationshipKindIds = [];
+    private int[] _relationshipDirectionCodes = [];
+    private int[] _terrainStarts = [];
+    private int[] _terrainCounts = [];
+    private int[] _terrainIds = [];
+    private int[] StepStarts = [];
+    private int[] StepCounts = [];
+    private int[] StepOpcodes = [];
+    private int[] StepIntArguments = [];
+    private float[] StepFloatArguments = [];
+    private int[] _minCommitmentTicks = [];
+    private int[] _maxCommitmentTicks = [];
+    private int[] _dwellTicks = [];
+    private int[] _targetRadii = [];
+    private int[] _candidateSampleCounts = [];
+    private float[] _weights = [];
+    private float[] _exploreWeights = [];
+    private float[] _stalenessWeights = [];
+    private float[] _hotspotWeights = [];
+    private float[] _crowdingWeights = [];
+    private float[] _generatorAffordanceWeights = [];
+    private int[] _affinityRelationshipKindIds = [];
+    private int[] _affinityRelationshipDirectionCodes = [];
+    private float[] _relationshipAffinityWeights = [];
+    private float[] _influenceDeltas = [];
+    private int[] _influenceRadii = [];
+    private float[] _coverageGrowthChances = [];
+    private float[] _headquartersMoveChances = [];
+    private float[] _requiredInfluences = [];
+    private int[] _initialInfluenceKindIds = [];
+    private int[] _initialInfluencePlaneCodes = [];
+    private float[] _initialInfluenceValues = [];
+    private int[] _affordanceActorKindIds = [];
+    private int[] _affordanceCandidateKindIds = [];
+    private int[] _affordanceBindingKindIds = [];
+    private float[] _affordanceScores = [];
     private int _ruleCount;
     private int _terrainCount;
+    private int _stepCount;
+    private int _initialInfluenceRuleCount;
+    private int _affordanceKindPairCount;
 
     public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ruleCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemCapacity);
-        _kindIds = new int[ruleCapacity + 1];
-        _verbIds = new int[ruleCapacity + 1];
-        _planeCodes = new int[ruleCapacity + 1];
-        _operationCodes = new int[ruleCapacity + 1];
-        _targetModeCodes = new int[ruleCapacity + 1];
-        _targetKindIds = new int[ruleCapacity + 1];
-        _relationshipKindIds = new int[ruleCapacity + 1];
-        _relationshipDirectionCodes = new int[ruleCapacity + 1];
-        _terrainStarts = new int[ruleCapacity + 1];
-        _terrainCounts = new int[ruleCapacity + 1];
-        _terrainIds = new int[itemCapacity + 1];
-        _minCommitmentTicks = new int[ruleCapacity + 1];
-        _maxCommitmentTicks = new int[ruleCapacity + 1];
-        _dwellTicks = new int[ruleCapacity + 1];
-        _targetRadii = new int[ruleCapacity + 1];
-        _candidateSampleCounts = new int[ruleCapacity + 1];
-        _weights = new float[ruleCapacity + 1];
-        _exploreWeights = new float[ruleCapacity + 1];
-        _stalenessWeights = new float[ruleCapacity + 1];
-        _hotspotWeights = new float[ruleCapacity + 1];
-        _crowdingWeights = new float[ruleCapacity + 1];
-        _generatorAffordanceWeights = new float[ruleCapacity + 1];
-        _affinityRelationshipKindIds = new int[ruleCapacity + 1];
-        _affinityRelationshipDirectionCodes = new int[ruleCapacity + 1];
-        _relationshipAffinityWeights = new float[ruleCapacity + 1];
-        _influenceDeltas = new float[ruleCapacity + 1];
-        _influenceRadii = new int[ruleCapacity + 1];
-        _coverageGrowthChances = new float[ruleCapacity + 1];
-        _headquartersMoveChances = new float[ruleCapacity + 1];
-        _requiredInfluences = new float[ruleCapacity + 1];
+        var ruleLength = ruleCapacity + 1;
+        var itemLength = itemCapacity + 1;
+        InitializeRuleIdentityArrays(ruleLength);
+        InitializeTargetAndTerrainArrays(ruleLength, itemLength);
+        InitializeStepArrays(ruleLength, itemLength);
+        InitializeCommitmentArrays(ruleLength);
+        InitializeWeightArrays(ruleLength);
+        InitializeInfluenceArrays(ruleLength);
+        InitializeInitialInfluenceArrays(ruleLength);
+        InitializeAffordanceArrays(itemLength);
+    }
+
+    private void InitializeRuleIdentityArrays(int ruleLength)
+    {
+        _kindIds = new int[ruleLength];
+        _verbIds = new int[ruleLength];
+        _planeCodes = new int[ruleLength];
+        _operationCodes = new int[ruleLength];
+    }
+
+    private void InitializeTargetAndTerrainArrays(int ruleLength, int itemLength)
+    {
+        _targetModeCodes = new int[ruleLength];
+        _targetKindIds = new int[ruleLength];
+        _relationshipKindIds = new int[ruleLength];
+        _relationshipDirectionCodes = new int[ruleLength];
+        _terrainStarts = new int[ruleLength];
+        _terrainCounts = new int[ruleLength];
+        _terrainIds = new int[itemLength];
+    }
+
+    private void InitializeStepArrays(int ruleLength, int itemLength)
+    {
+        StepStarts = new int[ruleLength];
+        StepCounts = new int[ruleLength];
+        StepOpcodes = new int[itemLength];
+        StepIntArguments = new int[itemLength];
+        StepFloatArguments = new float[itemLength];
+    }
+
+    private void InitializeCommitmentArrays(int ruleLength)
+    {
+        _minCommitmentTicks = new int[ruleLength];
+        _maxCommitmentTicks = new int[ruleLength];
+        _dwellTicks = new int[ruleLength];
+        _targetRadii = new int[ruleLength];
+        _candidateSampleCounts = new int[ruleLength];
+    }
+
+    private void InitializeWeightArrays(int ruleLength)
+    {
+        _weights = new float[ruleLength];
+        _exploreWeights = new float[ruleLength];
+        _stalenessWeights = new float[ruleLength];
+        _hotspotWeights = new float[ruleLength];
+        _crowdingWeights = new float[ruleLength];
+        _generatorAffordanceWeights = new float[ruleLength];
+        _affinityRelationshipKindIds = new int[ruleLength];
+        _affinityRelationshipDirectionCodes = new int[ruleLength];
+        _relationshipAffinityWeights = new float[ruleLength];
+    }
+
+    private void InitializeInfluenceArrays(int ruleLength)
+    {
+        _influenceDeltas = new float[ruleLength];
+        _influenceRadii = new int[ruleLength];
+        _coverageGrowthChances = new float[ruleLength];
+        _headquartersMoveChances = new float[ruleLength];
+        _requiredInfluences = new float[ruleLength];
+    }
+
+    private void InitializeInitialInfluenceArrays(int ruleLength)
+    {
+        _initialInfluenceKindIds = new int[ruleLength];
+        _initialInfluencePlaneCodes = new int[ruleLength];
+        _initialInfluenceValues = new float[ruleLength];
+    }
+
+    private void InitializeAffordanceArrays(int itemLength)
+    {
+        _affordanceActorKindIds = new int[itemLength];
+        _affordanceCandidateKindIds = new int[itemLength];
+        _affordanceBindingKindIds = new int[itemLength];
+        _affordanceScores = new float[itemLength];
     }
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
@@ -79,36 +148,19 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int RuleCount => _ruleCount;
 
+    public int InitialInfluenceRuleCount => _initialInfluenceRuleCount;
+
+    public int AffordanceKindPairCount => _affordanceKindPairCount;
+
     public int RegisterVerb(
-        int kindId,
-        int verbId,
-        int planeCode,
-        int operationCode,
-        int targetModeCode,
-        int targetKindId,
-        int relationshipKindId,
-        int relationshipDirectionCode,
-        int minCommitmentTicks,
-        int maxCommitmentTicks,
-        int dwellTicks,
-        int targetRadius,
-        int candidateSampleCount,
-        float weight,
-        float exploreWeight,
-        float stalenessWeight,
-        float hotspotWeight,
-        float crowdingWeight,
-        float generatorAffordanceWeight,
-        int affinityRelationshipKindId,
-        int affinityRelationshipDirectionCode,
-        float relationshipAffinityWeight,
-        float influenceDelta,
-        int influenceRadius,
-        float coverageGrowthChance,
-        float headquartersMoveChance,
-        float requiredInfluence)
+        in LowAltitudeVerbRegistration registration)
     {
-        ValidateRegistration(kindId, verbId, planeCode, operationCode, targetModeCode);
+        ValidateRegistration(
+            registration.KindId,
+            registration.VerbId,
+            registration.PlaneCode,
+            registration.OperationCode,
+            registration.TargetModeCode);
 
         if (_ruleCount + 1 >= _kindIds.Length)
         {
@@ -117,35 +169,36 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
         _ruleCount++;
         var slot = _ruleCount;
-        _kindIds[slot] = kindId;
-        _verbIds[slot] = verbId;
-        _planeCodes[slot] = planeCode;
-        _operationCodes[slot] = operationCode;
-        _targetModeCodes[slot] = targetModeCode;
-        _targetKindIds[slot] = targetKindId;
-        _relationshipKindIds[slot] = relationshipKindId;
-        _relationshipDirectionCodes[slot] = relationshipDirectionCode;
-        _minCommitmentTicks[slot] = global::System.Math.Max(1, minCommitmentTicks);
-        _maxCommitmentTicks[slot] = global::System.Math.Max(_minCommitmentTicks[slot], maxCommitmentTicks);
-        _dwellTicks[slot] = global::System.Math.Max(0, dwellTicks);
-        _targetRadii[slot] = global::System.Math.Max(0, targetRadius);
-        _candidateSampleCounts[slot] = global::System.Math.Max(1, candidateSampleCount);
-        _weights[slot] = global::System.Math.Max(0.01f, weight);
-        _exploreWeights[slot] = exploreWeight;
-        _stalenessWeights[slot] = stalenessWeight;
-        _hotspotWeights[slot] = hotspotWeight;
-        _crowdingWeights[slot] = crowdingWeight;
-        _generatorAffordanceWeights[slot] = generatorAffordanceWeight;
-        _affinityRelationshipKindIds[slot] = affinityRelationshipKindId;
-        _affinityRelationshipDirectionCodes[slot] = affinityRelationshipDirectionCode == 0
+        _kindIds[slot] = registration.KindId;
+        _verbIds[slot] = registration.VerbId;
+        _planeCodes[slot] = registration.PlaneCode;
+        _operationCodes[slot] = registration.OperationCode;
+        _targetModeCodes[slot] = registration.TargetModeCode;
+        _targetKindIds[slot] = registration.TargetKindId;
+        _relationshipKindIds[slot] = registration.RelationshipKindId;
+        _relationshipDirectionCodes[slot] = registration.RelationshipDirectionCode;
+        _minCommitmentTicks[slot] = global::System.Math.Max(1, registration.MinTicks);
+        _maxCommitmentTicks[slot] = global::System.Math.Max(_minCommitmentTicks[slot], registration.MaxTicks);
+        _dwellTicks[slot] = global::System.Math.Max(0, registration.DwellTicks);
+        _targetRadii[slot] = global::System.Math.Max(0, registration.TargetRadius);
+        _candidateSampleCounts[slot] = global::System.Math.Max(1, registration.CandidateSampleCount);
+        _weights[slot] = global::System.Math.Max(0.01f, registration.Weight);
+        _exploreWeights[slot] = registration.ExploreWeight;
+        _stalenessWeights[slot] = registration.StalenessWeight;
+        _hotspotWeights[slot] = registration.HotspotWeight;
+        _crowdingWeights[slot] = registration.CrowdingWeight;
+        _generatorAffordanceWeights[slot] = registration.GeneratorAffordanceWeight;
+        _affinityRelationshipKindIds[slot] = registration.AffinityRelationshipKindId;
+        _affinityRelationshipDirectionCodes[slot] = registration.AffinityRelationshipDirectionCode == 0
             ? LowAltitudeVerbRelationshipDirectionCodes.Either
-            : affinityRelationshipDirectionCode;
-        _relationshipAffinityWeights[slot] = relationshipAffinityWeight;
-        _influenceDeltas[slot] = global::System.Math.Max(0f, influenceDelta);
-        _influenceRadii[slot] = global::System.Math.Max(0, influenceRadius);
-        _coverageGrowthChances[slot] = Clamp01(coverageGrowthChance);
-        _headquartersMoveChances[slot] = Clamp01(headquartersMoveChance);
-        _requiredInfluences[slot] = ClampInfluence(requiredInfluence);
+            : registration.AffinityRelationshipDirectionCode;
+        _relationshipAffinityWeights[slot] = registration.RelationshipAffinityWeight;
+        _influenceDeltas[slot] = global::System.Math.Max(0f, registration.InfluenceDelta);
+        _influenceRadii[slot] = global::System.Math.Max(0, registration.InfluenceRadius);
+        _coverageGrowthChances[slot] = Clamp01(registration.CoverageChance);
+        _headquartersMoveChances[slot] = Clamp01(registration.RelocationChance);
+        _requiredInfluences[slot] = ClampInfluence(registration.RequiredMapValue);
+        RegisterPrimitiveSteps(slot, registration.OperationCode);
         return slot;
     }
 
@@ -166,6 +219,44 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _terrainCount++;
         _terrainIds[_terrainCount] = terrainId;
         _terrainCounts[verbSlot]++;
+    }
+
+    public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue)
+    {
+        ValidatePositive(kindId);
+        ValidatePlaneCode(planeCode);
+        if (_initialInfluenceRuleCount + 1 >= _initialInfluenceKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _initialInfluenceRuleCount++;
+        _initialInfluenceKindIds[_initialInfluenceRuleCount] = kindId;
+        _initialInfluencePlaneCodes[_initialInfluenceRuleCount] = planeCode;
+        _initialInfluenceValues[_initialInfluenceRuleCount] = ClampInfluence(influenceValue);
+        return _initialInfluenceRuleCount;
+    }
+
+    public int RegisterGeneratorAffordance(
+        int actorKindId,
+        int candidateKindId,
+        int bindingKindId,
+        float affordanceScore)
+    {
+        ValidatePositive(actorKindId);
+        ValidatePositive(candidateKindId);
+        ValidatePositive(bindingKindId);
+        if (_affordanceKindPairCount + 1 >= _affordanceActorKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _affordanceKindPairCount++;
+        _affordanceActorKindIds[_affordanceKindPairCount] = actorKindId;
+        _affordanceCandidateKindIds[_affordanceKindPairCount] = candidateKindId;
+        _affordanceBindingKindIds[_affordanceKindPairCount] = bindingKindId;
+        _affordanceScores[_affordanceKindPairCount] = global::System.Math.Max(0f, affordanceScore);
+        return _affordanceKindPairCount;
     }
 
     public int KindId(int rule) => _kindIds[rule];
@@ -222,6 +313,30 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float RequiredInfluence(int rule) => _requiredInfluences[rule];
 
+    public int InitialInfluenceKindId(int rule) => _initialInfluenceKindIds[rule];
+
+    public int InitialInfluencePlaneCode(int rule) => _initialInfluencePlaneCodes[rule];
+
+    public float InitialInfluenceValue(int rule) => _initialInfluenceValues[rule];
+
+    public int StepCount(int rule) => StepCounts[rule];
+
+    public int StepStart(int rule) => StepStarts[rule];
+
+    public int StepOpcode(int step) => StepOpcodes[step];
+
+    public int StepArgument(int step) => StepIntArguments[step];
+
+    public float StepFloatArgument(int step) => StepFloatArguments[step];
+
+    public int AffordanceActorKindId(int rule) => _affordanceActorKindIds[rule];
+
+    public int AffordanceCandidateKindId(int rule) => _affordanceCandidateKindIds[rule];
+
+    public int AffordanceBindingKindId(int rule) => _affordanceBindingKindIds[rule];
+
+    public float AffordanceScore(int rule) => _affordanceScores[rule];
+
     public bool TerrainAllowed(int rule, int terrainId)
     {
         var count = _terrainCounts[rule];
@@ -269,6 +384,46 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         ValidateTargetModeCode(targetModeCode);
     }
 
+    private void RegisterPrimitiveSteps(int rule, int operationCode)
+    {
+        StepStarts[rule] = _stepCount + 1;
+        switch (operationCode)
+        {
+            case ProgramOpcodeCodes.MoveActor:
+                AddStep(ProgramOpcodeCodes.MoveActor, 0, 0f);
+                break;
+            case ProgramOpcodeCodes.AddOwnedCellScalar:
+                AddStep(ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+                break;
+            case ProgramOpcodeCodes.SubtractOtherCellScalar:
+                AddStep(ProgramOpcodeCodes.SubtractOtherCellScalar, 0, 0f);
+                break;
+            case ProgramOpcodeCodes.TryClaimCell:
+                AddStep(ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+                AddStep(ProgramOpcodeCodes.TryClaimCell, 0, 0f);
+                break;
+            case ProgramOpcodeCodes.TryRelocateEntity:
+                AddStep(ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+                AddStep(ProgramOpcodeCodes.TryRelocateEntity, 0, 0f);
+                break;
+        }
+
+        StepCounts[rule] = _stepCount - StepStarts[rule] + 1;
+    }
+
+    private void AddStep(int opcode, int intArgument, float floatArgument)
+    {
+        if (_stepCount + 1 >= StepOpcodes.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _stepCount++;
+        StepOpcodes[_stepCount] = opcode;
+        StepIntArguments[_stepCount] = intArgument;
+        StepFloatArguments[_stepCount] = floatArgument;
+    }
+
     private static void ValidatePlaneCode(int planeCode)
     {
         if (planeCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
@@ -279,12 +434,12 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     private static void ValidateTargetModeCode(int targetModeCode)
     {
-        if (targetModeCode is not LowAltitudeVerbTargetModeCodes.Explore and
-            not LowAltitudeVerbTargetModeCodes.EntityKind and
-            not LowAltitudeVerbTargetModeCodes.RelationshipTarget and
-            not LowAltitudeVerbTargetModeCodes.Terrain and
-            not LowAltitudeVerbTargetModeCodes.OwnInfluence and
-            not LowAltitudeVerbTargetModeCodes.ForeignInfluence)
+        if (targetModeCode is not TargetSelectorCodes.Explore and
+            not TargetSelectorCodes.EntityKind and
+            not TargetSelectorCodes.RelationshipTarget and
+            not TargetSelectorCodes.Terrain and
+            not TargetSelectorCodes.SelfMapValue and
+            not TargetSelectorCodes.OtherMapValue)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(targetModeCode));
         }
@@ -292,12 +447,11 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     private static void ValidateOperationCode(int operationCode)
     {
-        if (operationCode is not LowAltitudeVerbOperationCodes.Move and
-            not LowAltitudeVerbOperationCodes.GrowInfluence and
-            not LowAltitudeVerbOperationCodes.ConsolidateInfluence and
-            not LowAltitudeVerbOperationCodes.ReduceInfluence and
-            not LowAltitudeVerbOperationCodes.ExpandCoverage and
-            not LowAltitudeVerbOperationCodes.MoveHeadquarters)
+        if (operationCode is not ProgramOpcodeCodes.MoveActor and
+            not ProgramOpcodeCodes.AddOwnedCellScalar and
+            not ProgramOpcodeCodes.SubtractOtherCellScalar and
+            not ProgramOpcodeCodes.TryClaimCell and
+            not ProgramOpcodeCodes.TryRelocateEntity)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(operationCode));
         }

@@ -22,7 +22,7 @@ public sealed class KernelSnapshotTests
         {
             simulation.SetAttribute(actor, 10, 42f, tick: 0);
             simulation.SetResource(20, 0, 0, 5f, tick: 0);
-            simulation.SetCellInfluence(actor, 0, 0, 55f, tick: 0);
+            simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 55f, tick: 0);
         }
         simulation.World.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
         var relationshipId = simulation.CreateRelationship(
@@ -154,7 +154,7 @@ public sealed class KernelSnapshotTests
         Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
         Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
         Assert.Equal(5f, loaded.World.GetResource(20, 0, 0));
-        Assert.Equal(55f, loaded.World.GetCellInfluence(actor, 0, 0));
+        Assert.Equal(55f, loaded.World.GetCellInfluence(actor, PlaneCodes.Physical, 0, 0));
         Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
         Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
         Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));

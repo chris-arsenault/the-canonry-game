@@ -194,6 +194,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             builder,
             rows,
             ("kind", row => row.Kind),
+            ("plane", row => row.Plane),
             ("entities", row => row.EntityCount.ToString(CultureInfo.InvariantCulture)),
             ("avg_cells", row => row.AverageInfluencedCells.ToString("F2", CultureInfo.InvariantCulture)),
             ("avg_delta", row => row.AverageNetInfluenceDelta.ToString("F2", CultureInfo.InvariantCulture)),

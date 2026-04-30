@@ -5,6 +5,7 @@ using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Gambits;
+using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Resources;
@@ -22,25 +23,8 @@ public static partial class DomainCompiler
     private static int PlaneCode(PrimaryPlane plane) =>
         plane == PrimaryPlane.Semantic ? 2 : 1;
 
-    private static int EffectConditionCode(EffectCondition condition) => condition switch
-    {
-        EffectCondition.RelatedInfluenceAtPhysicalLocation =>
-            EffectConditionCodes.RelatedInfluenceAtPhysicalLocation,
-        EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
-        EffectCondition.MapSupportAtLocation => EffectConditionCodes.MapSupportAtLocation,
-        EffectCondition.MapThreatAtLocation => EffectConditionCodes.MapThreatAtLocation,
-        EffectCondition.MapCrowdingPressure => EffectConditionCodes.MapCrowdingPressure,
-        EffectCondition.MapCrowdingComfort => EffectConditionCodes.MapCrowdingComfort,
-        _ => throw new InvalidOperationException($"Unsupported effect condition '{condition}'."),
-    };
-
-    private static int EffectDirectionCode(EffectRelationshipDirection direction) => direction switch
-    {
-        EffectRelationshipDirection.Outgoing => RelationshipMatchDirectionCodes.Outgoing,
-        EffectRelationshipDirection.Incoming => RelationshipMatchDirectionCodes.Incoming,
-        EffectRelationshipDirection.Either => RelationshipMatchDirectionCodes.Either,
-        _ => throw new InvalidOperationException($"Unsupported effect relationship direction '{direction}'."),
-    };
+    private static int GameplayPlaneCode(string plane) =>
+        string.Equals(plane, "semantic", StringComparison.OrdinalIgnoreCase) ? 2 : 1;
 
     private static RelationshipProgram BuildRelationshipProgram(
         DomainConfig config,
@@ -71,7 +55,7 @@ public static partial class DomainCompiler
 
     private static int RelationshipMaintenanceConditionCode(
         RelationshipMaintenanceCondition condition,
-        PrimaryPlane? plane) =>
+        string? plane) =>
         condition switch
         {
             RelationshipMaintenanceCondition.Always => RelationshipMaintenanceConditionCodes.Always,
@@ -88,20 +72,34 @@ public static partial class DomainCompiler
 
     private static int RelationshipMaintenancePlaneCode(
         RelationshipMaintenanceCondition condition,
-        PrimaryPlane? plane) =>
-        condition is RelationshipMaintenanceCondition.DistanceWithin
-            or RelationshipMaintenanceCondition.CoPresence
-            or RelationshipMaintenanceCondition.ContactMemory
-                ? PlaneCode(plane ?? PrimaryPlane.Physical)
-                : PlaneCodes.None;
+        string? plane)
+    {
+        if (RelationshipMaintenanceUsesPlane(condition))
+        {
+            return GameplayPlaneCode(plane ?? "physical");
+        }
 
-    private static int RelationshipMaintenanceDistanceConditionCode(PrimaryPlane? plane) =>
-        PlaneCode(plane ?? PrimaryPlane.Physical) == PlaneCodes.Semantic
+        return PlaneCodes.None;
+    }
+
+    private static bool RelationshipMaintenanceUsesPlane(RelationshipMaintenanceCondition condition) =>
+        condition switch
+        {
+            RelationshipMaintenanceCondition.DistanceWithin => true,
+            RelationshipMaintenanceCondition.CoPresence => true,
+            RelationshipMaintenanceCondition.ContactMemory => true,
+            RelationshipMaintenanceCondition.SourceInfluenceAtTarget => true,
+            RelationshipMaintenanceCondition.TargetInfluenceAtSource => true,
+            _ => false,
+        };
+
+    private static int RelationshipMaintenanceDistanceConditionCode(string? plane) =>
+        GameplayPlaneCode(plane ?? "physical") == PlaneCodes.Semantic
             ? RelationshipMaintenanceConditionCodes.SemanticDistanceWithin
             : RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin;
 
-    private static int RelationshipMaintenanceCoPresenceConditionCode(PrimaryPlane? plane) =>
-        PlaneCode(plane ?? PrimaryPlane.Physical) == PlaneCodes.Semantic
+    private static int RelationshipMaintenanceCoPresenceConditionCode(string? plane) =>
+        GameplayPlaneCode(plane ?? "physical") == PlaneCodes.Semantic
             ? RelationshipMaintenanceConditionCodes.SemanticCoPresence
             : RelationshipMaintenanceConditionCodes.PhysicalCoPresence;
 
@@ -264,17 +262,6 @@ public static partial class DomainCompiler
         if (!config.Kinds.ContainsKey(kind))
         {
             throw new InvalidOperationException($"{context} references unknown kind '{kind}'.");
-        }
-    }
-
-    private static void EnsureKindAttribute(DomainConfig config, EntityKind kind, string attributeName, string context)
-    {
-        EnsureKind(config, kind, context);
-        if (!config.Kinds[kind].Attributes.Any(attribute =>
-                string.Equals(attribute.Name, attributeName, StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException(
-                $"{context} for kind '{kind}' references unknown attribute '{attributeName}'.");
         }
     }
 

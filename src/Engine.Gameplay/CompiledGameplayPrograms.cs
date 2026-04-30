@@ -1,0 +1,106 @@
+namespace Engine.Gameplay;
+
+public sealed class LowAltitudeVerbProgram
+{
+    public bool EnabledByDefault { get; init; } = true;
+    public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
+    public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
+    public IReadOnlyList<CompiledGeneratorAffordanceRule> GeneratorAffordances { get; init; } = [];
+}
+
+public sealed record LowAltitudeVerbRule(
+    int KindId,
+    int VerbId,
+    int PlaneCode,
+    int OperationCode,
+    int TargetModeCode,
+    int TargetKindId,
+    int RelationshipKindId,
+    int RelationshipDirectionCode,
+    IReadOnlyList<int> TerrainIds,
+    int MinCommitmentTicks,
+    int MaxCommitmentTicks,
+    int DwellTicks,
+    int TargetRadius,
+    int CandidateSampleCount,
+    float Weight,
+    float ExploreWeight,
+    float StalenessWeight,
+    float HotspotWeight,
+    float CrowdingWeight,
+    float GeneratorAffordanceWeight,
+    int AffinityRelationshipKindId,
+    int AffinityRelationshipDirectionCode,
+    float RelationshipAffinityWeight,
+    float InfluenceDelta,
+    int InfluenceRadius,
+    float CoverageGrowthChance,
+    float HeadquartersMoveChance,
+    float RequiredInfluence);
+
+public sealed record CompiledInitialInfluenceRule(
+    int KindId,
+    int PlaneCode,
+    float InfluenceValue);
+
+public sealed record CompiledGeneratorAffordanceRule(
+    int ActorKindId,
+    int CandidateKindId,
+    int BindingKindId,
+    float AffordanceScore);
+
+public sealed class MapActivityProgram
+{
+    public bool EnabledByDefault { get; init; } = true;
+    public float PresenceHeat { get; init; } = 1f;
+}
+
+public sealed class MapSignalsProgram
+{
+    public bool EnabledByDefault { get; init; } = true;
+    public float SemanticBaseCapacity { get; init; } = 2f;
+    public int CrowdingRadius { get; init; } = 1;
+    public IReadOnlyList<TerrainMapSignalRule> Terrains { get; init; } = [];
+    public IReadOnlyList<KindMapSignalRule> Kinds { get; init; } = [];
+    public IReadOnlyList<RelationshipMapSignalRule> Relationships { get; init; } = [];
+}
+
+public sealed record TerrainMapSignalRule(int TerrainId, float BaseCapacity);
+
+public sealed record KindMapSignalRule(
+    int KindId,
+    int HealthAttributeId,
+    int SignalRadius,
+    float CapacityEmission,
+    float SupportEmission,
+    float ThreatEmission,
+    float BaseAttractorMass,
+    float CoverageAttractorScale,
+    float InfluenceAttractorScale,
+    float ActivityAttractorScale,
+    float HealthAttractorScale,
+    int AttractorRadius);
+
+public sealed record RelationshipMapSignalRule(
+    int RelationshipKindId,
+    int SignalRadius,
+    float SupportEmission,
+    float ThreatEmission);
+
+public sealed class EffectsProgram
+{
+    public bool EnabledByDefault { get; init; } = true;
+    public IReadOnlyList<AttributeDeltaEffectRule> AttributeDeltaEffects { get; init; } = [];
+}
+
+public sealed record AttributeDeltaEffectRule(
+    int KindId,
+    int AttributeId,
+    int ConditionCode,
+    int RelationshipKindId,
+    int RelationshipDirectionCode,
+    int PlaneCode,
+    int MaxDistance,
+    float Threshold,
+    float MinimumRelationshipStrength,
+    float DeltaPerTick);

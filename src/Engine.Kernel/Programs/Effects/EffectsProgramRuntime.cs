@@ -110,7 +110,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private float EffectEvidence(Simulation simulation, int entityId, int rule)
     {
         var conditionCode = _attributeDeltaConditionCodes[rule];
-        if (conditionCode == EffectConditionCodes.RelatedInfluenceAtPhysicalLocation)
+        if (conditionCode == EffectConditionCodes.RelationshipMapValueAtLocation)
         {
             return RelatedInfluenceEvidence(simulation.World, entityId, rule);
         }
@@ -120,28 +120,28 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             return RelatedDistanceEvidence(simulation.World, entityId, rule);
         }
 
-        if (conditionCode == EffectConditionCodes.MapSupportAtLocation)
+        if (conditionCode == EffectConditionCodes.LocalPositiveSignal)
         {
             return ThresholdEvidence(
                 simulation.MapSignals.EntitySupport(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule]);
         }
 
-        if (conditionCode == EffectConditionCodes.MapThreatAtLocation)
+        if (conditionCode == EffectConditionCodes.LocalNegativeSignal)
         {
             return ThresholdEvidence(
                 simulation.MapSignals.EntityThreat(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule]);
         }
 
-        if (conditionCode == EffectConditionCodes.MapCrowdingPressure)
+        if (conditionCode == EffectConditionCodes.LocalPressureSignal)
         {
             return ThresholdEvidence(
                 simulation.MapSignals.EntityCrowdingPressure(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule]);
         }
 
-        return conditionCode == EffectConditionCodes.MapCrowdingComfort
+        return conditionCode == EffectConditionCodes.LocalComfortSignal
             ? ThresholdEvidence(
                 simulation.MapSignals.EntityCrowdingComfort(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule])
@@ -185,8 +185,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 entityId,
                 _attributeDeltaRelationshipKindIds[rule],
                 _attributeDeltaMinimumRelationshipStrengths[rule]);
-        var q = world.EntityPhysicalQ(entityId);
-        var r = world.EntityPhysicalR(entityId);
+        var planeCode = _attributeDeltaPlaneCodes[rule];
+        var q = CurrentQ(world, entityId, planeCode);
+        var r = CurrentR(world, entityId, planeCode);
         var total = 0f;
         while (world.MoveNextRelationship(ref cursor, out var relationshipId))
         {
@@ -198,7 +199,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 continue;
             }
 
-            var influence = world.GetCellInfluence(otherEntityId, q, r);
+            var influence = world.GetCellInfluence(otherEntityId, planeCode, q, r);
             if (influence <= 0f)
             {
                 continue;
@@ -305,6 +306,12 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         planeCode == PlaneCodes.Semantic
             ? SemanticDistance(world, sourceId, targetId)
             : PhysicalDistance(world, sourceId, targetId);
+
+    private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
+
+    private static int CurrentR(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
 
     private static int PhysicalDistance(WorldState world, int sourceId, int targetId) =>
         HexDistance(

@@ -65,6 +65,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 CAST(NULL AS BIGINT) AS tick,
                 CAST(NULL AS BIGINT) AS source_code_id,
                 CAST(NULL AS BIGINT) AS entity_id,
+                CAST(NULL AS BIGINT) AS plane_code,
                 CAST(NULL AS BIGINT) AS q,
                 CAST(NULL AS BIGINT) AS r,
                 CAST(NULL AS DOUBLE) AS previous_influence,
@@ -445,7 +446,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         var configured = _domainConfig.Processes
             .Select(process => (Kind: process.TargetKind.Value, Name: process.Id))
-            .Concat(_domainConfig.LowAltitudeVerbs.Select(verb => (Kind: verb.Kind.Value, Name: verb.Id)))
+            .Concat((_domainConfig.Gameplay?.LowAltitudeVerbs ?? [])
+                .Select(verb => (Kind: verb.Kind, Name: verb.Id)))
             .ToList();
 
         var rows = configured

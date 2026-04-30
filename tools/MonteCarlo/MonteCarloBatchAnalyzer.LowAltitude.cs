@@ -34,6 +34,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static List<InfluenceSummaryRow> LoadInfluenceSummaryRows(DuckDBConnection connection) =>
         Query(connection, InfluenceSummaryRowsSql, reader => new InfluenceSummaryRow(
             Kind: ReadString(reader, "kind"),
+            Plane: PlaneName(ReadInt(reader, "plane_code")),
             EntityCount: ReadInt(reader, "entity_count"),
             AverageInfluencedCells: ReadDouble(reader, "average_influenced_cells"),
             AverageNetInfluenceDelta: ReadDouble(reader, "average_net_influence_delta"),
@@ -232,12 +233,13 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT
                 run_id,
                 entity_id,
+                plane_code,
                 q,
                 r,
                 SUM(delta) AS final_influence,
                 COUNT(*) AS event_count
             FROM raw_cell_influence_events
-            GROUP BY run_id, entity_id, q, r
+            GROUP BY run_id, entity_id, plane_code, q, r
         ),
         final_entities AS (
             SELECT *
@@ -249,6 +251,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
                     snapshot.physical_q,
                     snapshot.physical_r,
                     -(snapshot.physical_q + snapshot.physical_r) AS physical_s,
+                    snapshot.semantic_q,
+                    snapshot.semantic_r,
+                    snapshot.semantic_s,
                     ROW_NUMBER() OVER (PARTITION BY snapshot.run_id, snapshot.entity_id ORDER BY snapshot.tick DESC) AS rank
                 FROM raw_entity_snapshots snapshot
             ) ranked
@@ -258,27 +263,37 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT
                 events.run_id,
                 events.entity_id,
+                events.plane_code,
                 COALESCE(entity.kind_id, 0) AS kind_id,
                 COUNT(CASE WHEN events.final_influence >= 10.0 THEN 1 ELSE NULL END) AS influenced_cells,
                 COALESCE(SUM(events.final_influence), 0.0) AS net_influence_delta,
                 COALESCE(AVG(CASE
                     WHEN events.final_influence >= 10.0 THEN
-                        (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2.0
+                        CASE WHEN events.plane_code = {PlaneCodes.Semantic} THEN
+                            (ABS(events.q - entity.semantic_q) + ABS(events.r - entity.semantic_r) + ABS((-(events.q + events.r)) - entity.semantic_s)) / 2.0
+                        ELSE
+                            (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2.0
+                        END
                     ELSE NULL
                 END), 0.0) AS mean_anchor_distance,
                 COALESCE(MAX(CASE
                     WHEN events.final_influence >= 10.0 THEN
-                        (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2
+                        CASE WHEN events.plane_code = {PlaneCodes.Semantic} THEN
+                            (ABS(events.q - entity.semantic_q) + ABS(events.r - entity.semantic_r) + ABS((-(events.q + events.r)) - entity.semantic_s)) / 2
+                        ELSE
+                            (ABS(events.q - entity.physical_q) + ABS(events.r - entity.physical_r) + ABS((-(events.q + events.r)) - entity.physical_s)) / 2
+                        END
                     ELSE NULL
                 END), 0) AS max_anchor_distance
             FROM influence_events events
             LEFT JOIN final_entities entity
-              ON entity.run_id = events.run_id
+             ON entity.run_id = events.run_id
              AND entity.entity_id = events.entity_id
-            GROUP BY events.run_id, events.entity_id, entity.kind_id
+            GROUP BY events.run_id, events.entity_id, events.plane_code, entity.kind_id
         )
         SELECT
             COALESCE(kind_symbol.stable_name, CAST(by_entity.kind_id AS VARCHAR)) AS kind,
+            by_entity.plane_code,
             COUNT(*) AS entity_count,
             COALESCE(AVG(CAST(influenced_cells AS DOUBLE)), 0.0) AS average_influenced_cells,
             COALESCE(AVG(CAST(net_influence_delta AS DOUBLE)), 0.0) AS average_net_influence_delta,
@@ -286,9 +301,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(AVG(CAST(max_anchor_distance AS DOUBLE)), 0.0) AS average_max_anchor_distance
         FROM by_entity
         LEFT JOIN symbol_lookup kind_symbol
-          ON kind_symbol.symbol_kind = {(int)ProjectionSymbolKind.Kind}
+         ON kind_symbol.symbol_kind = {(int)ProjectionSymbolKind.Kind}
          AND kind_symbol.id = by_entity.kind_id
-        GROUP BY kind
-        ORDER BY kind;
+        GROUP BY kind, by_entity.plane_code
+        ORDER BY kind, by_entity.plane_code;
         """;
 }

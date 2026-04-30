@@ -52,12 +52,40 @@ public sealed class MapSignalsProgramTests
             attractorRadius: 0);
         var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.World.SetCoverageOwner(0, 0, entity);
-        simulation.SetCellInfluence(entity, 0, 0, 50f, tick: 0);
+        simulation.SetCellInfluence(entity, PlaneCodes.Physical, 0, 0, 50f, tick: 0);
 
         simulation.AdvanceTicks(1);
 
         Assert.Equal(11f, simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Physical));
         Assert.Equal(36f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Physical));
+    }
+
+    [Fact]
+    public void MapSignalsProgram_SemanticInfluenceRaisesSemanticCapacityAndAttractorMass()
+    {
+        var simulation = new Simulation();
+        const int kindId = 1;
+        simulation.MapSignals.RegisterKindSignal(
+            kindId,
+            healthAttributeId: 0,
+            signalRadius: 0,
+            capacityEmission: 4f,
+            supportEmission: 0f,
+            threatEmission: 0f,
+            baseAttractorMass: 2f,
+            coverageAttractorScale: 1f,
+            influenceAttractorScale: 0.5f,
+            activityAttractorScale: 0f,
+            healthAttractorScale: 0f,
+            attractorRadius: 0);
+        var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
+        simulation.SetCellInfluence(entity, PlaneCodes.Physical, 0, 0, 50f, tick: 0);
+        simulation.SetCellInfluence(entity, PlaneCodes.Semantic, 2, -1, 50f, tick: 0);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(8f, simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Semantic));
+        Assert.Equal(27f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Semantic));
     }
 
     [Fact]
@@ -89,7 +117,7 @@ public sealed class MapSignalsProgramTests
         simulation.Effects.RegisterAttributeDeltaEffect(
             targetKindId,
             healthAttributeId,
-            EffectConditionCodes.MapSupportAtLocation,
+            EffectConditionCodes.LocalPositiveSignal,
             relationshipKindId: 0,
             RelationshipMatchDirectionCodes.Either,
             PlaneCodes.Physical,
@@ -100,7 +128,7 @@ public sealed class MapSignalsProgramTests
         simulation.Effects.RegisterAttributeDeltaEffect(
             targetKindId,
             healthAttributeId,
-            EffectConditionCodes.MapCrowdingPressure,
+            EffectConditionCodes.LocalPressureSignal,
             relationshipKindId: 0,
             RelationshipMatchDirectionCodes.Either,
             PlaneCodes.Physical,
@@ -130,7 +158,7 @@ public sealed class MapSignalsProgramTests
         var actor = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var highAttractor = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 3, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 1, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(highAttractor, 3, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(highAttractor, PlaneCodes.Physical, 3, 0, 100f, tick: 0);
         RegisterAttractorSeekingVerb(simulation, actorKindId, targetKindId, verbId);
         simulation.SetProgramEnabled(KernelProgramCodes.LowAltitudeVerbs, enabled: false);
         simulation.AdvanceTicks(1);
@@ -182,8 +210,8 @@ public sealed class MapSignalsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbOperationCodes.Move,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             relationshipKindId: 0,
             relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,

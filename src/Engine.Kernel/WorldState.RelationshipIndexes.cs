@@ -502,6 +502,14 @@ internal sealed partial class WorldState
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
     }
 
+    private static void ValidateInfluencePlaneCode(int planeCode)
+    {
+        if (planeCode is not (PlaneCodes.Physical or PlaneCodes.Semantic))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
+        }
+    }
+
     private static float ClampInfluence(float value)
     {
         if (value < 0f)

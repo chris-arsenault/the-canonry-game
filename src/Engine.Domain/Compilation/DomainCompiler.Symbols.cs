@@ -162,7 +162,7 @@ public static partial class DomainCompiler
                 process.Name);
         }
 
-        foreach (var verb in config.LowAltitudeVerbs)
+        foreach (var verb in config.Gameplay?.LowAltitudeVerbs ?? [])
         {
             symbols.Add(
                 DomainSymbolKind.Verb,

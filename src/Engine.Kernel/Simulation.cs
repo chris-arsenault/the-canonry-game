@@ -35,7 +35,6 @@ internal sealed partial class Simulation : IKernel
             new KernelTerrainData(options.TerrainIdCapacity));
         World = new WorldState(Events, options, KernelData);
         Planners = CreatePlanningRuntime(options);
-        Movement = CreateMovementRuntime(options);
         LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
         MapActivity = CreateMapActivityRuntime(options);
         MapSignals = CreateMapSignalsRuntime(options);
@@ -104,12 +103,6 @@ internal sealed partial class Simulation : IKernel
                 options.MapCellCapacity,
                 options.EntityCapacity,
                 options.ProcessObjectiveCapacity),
-            options.KernelTuning.Programs);
-
-    private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
-        new(
-            new MovementProgramData(options.MovementRuleCapacity),
-            new MovementProgramState(),
             options.KernelTuning.Programs);
 
     private static LowAltitudeVerbProgramRuntime CreateLowAltitudeVerbRuntime(SimulationOptions options) =>
@@ -195,7 +188,6 @@ internal sealed partial class Simulation : IKernel
 
     private void RegisterDefaultPrograms()
     {
-        RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
         RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
         RegisterProgram(KernelProgramCodes.MapActivity, 1, MapActivity);
         RegisterProgram(KernelProgramCodes.MapSignals, 1, MapSignals);
@@ -207,6 +199,53 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Pressures, 5, Pressures);
         RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
         RegisterProgram(KernelProgramCodes.Degeneracy, 10, Degeneracy);
+        ValidateProgramDependencies();
+    }
+
+    private void ValidateProgramDependencies()
+    {
+        ValidateProgramDependency(new ProgramDependency(
+            KernelProgramCodes.MapSignals,
+            KernelProgramCodes.MapActivity,
+            ProgramDependencyLag.SameTick));
+        ValidateProgramDependency(new ProgramDependency(
+            KernelProgramCodes.Effects,
+            KernelProgramCodes.MapSignals,
+            ProgramDependencyLag.SameTick));
+
+        // LowAltitudeVerbs intentionally reads previous-tick MapActivity and
+        // MapSignals snapshots because it runs before those programs refresh
+        // same-tick data.
+        ValidateProgramDependency(new ProgramDependency(
+            KernelProgramCodes.LowAltitudeVerbs,
+            KernelProgramCodes.MapActivity,
+            ProgramDependencyLag.PreviousTick));
+        ValidateProgramDependency(new ProgramDependency(
+            KernelProgramCodes.LowAltitudeVerbs,
+            KernelProgramCodes.MapSignals,
+            ProgramDependencyLag.PreviousTick));
+    }
+
+    private void ValidateProgramDependency(ProgramDependency dependency)
+    {
+        if (dependency.DependencyLag == ProgramDependencyLag.PreviousTick)
+        {
+            return;
+        }
+
+        var readerHandle = _programs.SystemHandleOf(dependency.ReaderProgramId);
+        var writerHandle = _programs.SystemHandleOf(dependency.WriterProgramId);
+        if (writerHandle <= readerHandle)
+        {
+            return;
+        }
+
+        var violation = new ProgramDependencyViolation(
+            dependency.ReaderProgramId,
+            dependency.WriterProgramId,
+            dependency.DependencyLag);
+        _ = violation;
+        throw new global::System.InvalidOperationException();
     }
 
     internal WorldState World { get; }
@@ -214,7 +253,6 @@ internal sealed partial class Simulation : IKernel
     internal KernelEventLog Events { get; }
     internal KernelCommandRing Commands { get; }
     internal PlanningProgramRuntime Planners { get; }
-    internal MovementProgramRuntime Movement { get; }
     internal LowAltitudeVerbProgramRuntime LowAltitudeVerbs { get; }
     internal MapActivityProgramRuntime MapActivity { get; }
     internal MapSignalsProgramRuntime MapSignals { get; }
@@ -245,6 +283,29 @@ internal sealed partial class Simulation : IKernel
     public long CurrentVersion => WorldVersion;
     public long WorldVersion => World.WorldVersion;
     internal SimulationOptions Options { get; }
+
+    internal LowAltitudeSignalSnapshot ReadLowAltitudeSignalSnapshot(
+        int planeCode,
+        int q,
+        int r,
+        int targetEntityId)
+    {
+        var attractorMass = MapSignals.AttractorMassAt(planeCode, q, r);
+        if (targetEntityId > 0)
+        {
+            attractorMass += MapSignals.EntityAttractorMass(targetEntityId, planeCode);
+        }
+
+        return new LowAltitudeSignalSnapshot
+        {
+            VisitCount = MapActivity.VisitCount(planeCode, q, r),
+            LastVisitedTick = MapActivity.LastVisitedTick(planeCode, q, r),
+            Heat = MapActivity.Heat(planeCode, q, r),
+            CurrentOccupancy = MapActivity.CurrentOccupancy(planeCode, q, r),
+            CrowdingPressure = MapSignals.CrowdingPressureAt(planeCode, q, r),
+            AttractorMass = attractorMass,
+        };
+    }
 
     internal int RegisterAttribute(
         int kindId,
@@ -507,14 +568,14 @@ internal sealed partial class Simulation : IKernel
         World.SetCellState(q, r, terrainId, ownerEntityId, tick, _executionContext);
     }
 
-    internal void SetCellInfluence(int entityId, int q, int r, float value, int tick)
+    internal void SetCellInfluence(int entityId, int planeCode, int q, int r, float value, int tick)
     {
-        World.SetCellInfluence(entityId, q, r, value, tick, _executionContext);
+        World.SetCellInfluence(entityId, planeCode, q, r, value, tick, _executionContext);
     }
 
-    internal void ModifyCellInfluence(int entityId, int q, int r, float delta, int tick)
+    internal void ModifyCellInfluence(int entityId, int planeCode, int q, int r, float delta, int tick)
     {
-        World.ModifyCellInfluence(entityId, q, r, delta, tick, _executionContext);
+        World.ModifyCellInfluence(entityId, planeCode, q, r, delta, tick, _executionContext);
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick)

@@ -4,6 +4,7 @@ using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Gameplay;
 
 public static partial class DomainCompiler
 {
@@ -12,13 +13,15 @@ public static partial class DomainCompiler
         DomainIdRegistry ids,
         DefinitionGraph graph)
     {
+        var gameplayPrograms = GameplayCompiler
+            .CompileGameplay(config.Gameplay ?? new GameplayDefinition(), new DomainGameplayCompilationContext(config, ids))
+            .Programs;
         return new KernelProgramSet
         {
-            Movement = BuildMovementProgram(config, ids),
-            LowAltitudeVerbs = BuildLowAltitudeVerbProgram(config, ids),
-            MapActivity = BuildMapActivityProgram(),
-            MapSignals = BuildMapSignalsProgram(config, ids),
-            Effects = BuildEffectsProgram(config, ids),
+            LowAltitudeVerbs = gameplayPrograms.LowAltitudeVerbs,
+            MapActivity = gameplayPrograms.MapActivity,
+            MapSignals = gameplayPrograms.MapSignals,
+            Effects = gameplayPrograms.Effects,
             Upkeep = BuildUpkeepProgram(config, ids),
             Processes = BuildProcessProgram(config, ids),
             Gambits = BuildGambitProgram(config, ids),

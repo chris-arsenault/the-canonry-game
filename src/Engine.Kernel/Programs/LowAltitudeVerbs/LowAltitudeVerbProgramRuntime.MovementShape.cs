@@ -8,7 +8,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         VerbTargetCandidate candidate,
         int tick)
     {
-        if (Data.OperationCode(candidate.RuleSlot) != LowAltitudeVerbOperationCodes.Move)
+        if (Data.OperationCode(candidate.RuleSlot) != ProgramOpcodeCodes.MoveActor)
         {
             return candidate;
         }
@@ -58,14 +58,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private int DestinationScatterRadius(int entityId, int intentId, int rule)
     {
-        if (Data.TargetModeCode(rule) is LowAltitudeVerbTargetModeCodes.EntityKind
-            or LowAltitudeVerbTargetModeCodes.RelationshipTarget)
+        if (Data.TargetModeCode(rule) is TargetSelectorCodes.EntityKind
+            or TargetSelectorCodes.RelationshipTarget)
         {
             var baseRadius = Data.TargetRadius(rule);
             return baseRadius <= 0 ? 0 : baseRadius + EntityJitter(entityId, intentId, rule, maxExclusive: 2);
         }
 
-        return Data.TargetModeCode(rule) == LowAltitudeVerbTargetModeCodes.Terrain
+        return Data.TargetModeCode(rule) == TargetSelectorCodes.Terrain
             ? Data.TargetRadius(rule)
             : 0;
     }
@@ -85,7 +85,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private int IntentStepIntervalTicks(int entityId, int intentId, int rule)
     {
-        if (Data.OperationCode(rule) != LowAltitudeVerbOperationCodes.Move)
+        if (Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor)
         {
             return 1;
         }
@@ -101,7 +101,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private int IntentPathLoosenessPermille(int entityId, int intentId, int rule)
     {
-        if (Data.OperationCode(rule) != LowAltitudeVerbOperationCodes.Move)
+        if (Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor)
         {
             return 0;
         }

@@ -177,10 +177,10 @@ internal sealed partial class WorldState
 
     private void EmitSnapshotInfluence(KernelExecutionContext context, int tick, long version)
     {
-        _mapLayers.Influence.ForEach((entityId, coordinateKey, value) =>
+        _mapLayers.Influence.ForEach((entityId, planeCode, coordinateKey, value) =>
         {
             if (_entityAllocated[entityId] &&
-                TryResolveCoordinateKey(coordinateKey, out var q, out var r))
+                TryResolveCoordinateKey(coordinateKey, planeCode == PlaneCodes.Semantic ? 4 : 0, out var q, out var r))
             {
                 Write(KernelEvent.From(new CellInfluenceChangedKernelEvent(
                     tick,
@@ -188,6 +188,7 @@ internal sealed partial class WorldState
                     q,
                     r,
                     context.SourceCodeId,
+                    planeCode,
                     entityId,
                     0f,
                     value)),
@@ -225,12 +226,16 @@ internal sealed partial class WorldState
         }
     }
 
-    private bool TryResolveCoordinateKey(int coordinateKey, out int q, out int r)
+    private bool TryResolveCoordinateKey(int coordinateKey, out int q, out int r) =>
+        TryResolveCoordinateKey(coordinateKey, extraRadius: 0, out q, out r);
+
+    private bool TryResolveCoordinateKey(int coordinateKey, int extraRadius, out int q, out int r)
     {
-        for (q = -_mapRadius; q <= _mapRadius; q++)
+        var radius = _mapRadius + extraRadius;
+        for (q = -radius; q <= radius; q++)
         {
-            var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
-            var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
+            var minR = global::System.Math.Max(-radius, -q - radius);
+            var maxR = global::System.Math.Min(radius, -q + radius);
             for (r = minR; r <= maxR; r++)
             {
                 if (CoordinateKey(q, r) == coordinateKey)

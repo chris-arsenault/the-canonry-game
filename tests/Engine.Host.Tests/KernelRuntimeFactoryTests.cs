@@ -229,7 +229,7 @@ public sealed class KernelRuntimeFactoryTests
             {
               "kernelTuning": {
                 "programs": {
-                  "movement": {
+                  "lowAltitudeVerbs": {
                     "enabled": false
                   },
                   "processes": {
@@ -250,7 +250,7 @@ public sealed class KernelRuntimeFactoryTests
                 KernelFunctionProfile.Batch,
                 configFilePath: path));
 
-            Assert.False(runtime.Host.ProgramIsEnabled(KernelProgramCodes.Movement));
+            Assert.False(runtime.Host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
             Assert.True(runtime.Host.ProgramIsEnabled(KernelProgramCodes.Processes));
         }
         finally

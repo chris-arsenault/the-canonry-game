@@ -122,6 +122,49 @@ public sealed class UiProjectionStateTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
+        WritePrimitiveEntityAndMutationEvents(log);
+
+        pump.DrainAvailable();
+
+        var entity = projection.Entities[10];
+        Assert.Equal(2, entity.KindId);
+        Assert.Equal(3, entity.SubtypeId);
+        Assert.Equal(4, entity.CultureId);
+        Assert.Equal(10, entity.NameSeed);
+        Assert.Equal(EntityStatusCodes.Active, entity.StatusCode);
+        Assert.Equal(7, entity.PhysicalQ);
+        Assert.Equal(8, entity.PhysicalR);
+        Assert.Equal(14.5f, entity.Attributes[30].NewValue);
+        Assert.Equal(50, entity.LastProcessExecution?.ProcessId);
+        Assert.True(entity.WasCreatedFromEvent);
+        Assert.True(projection.IsComplete);
+    }
+
+    [Fact]
+    public void Projection_ReplaysRelationshipResourceGeneratorAndDecisionEvents()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        WriteRelationshipResourceGeneratorAndDecisionEvents(log);
+
+        pump.DrainAvailable();
+
+        Assert.Equal(5f, projection.Resources[new UiResourceKey(7, 2, 3)].NewValue);
+        var relationship = projection.Relationships[new UiRelationshipKey(20, 21, 10)];
+        Assert.True(relationship.IsActive);
+        Assert.Equal(2, relationship.FactCount);
+        Assert.Equal(1, projection.Generators[40].TotalFired);
+        Assert.Equal(40, projection.GeneratorFires[0].GeneratorId);
+        Assert.Equal(60, projection.Entities[20].LastGambitExecution?.GambitId);
+    }
+
+    private static void WritePrimitiveEntityAndMutationEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
             Tick: 1,
             WorldVersion: 1,
@@ -165,33 +208,10 @@ public sealed class UiProjectionStateTests
             AffectedEntityId1: 0,
             AffectedEntityCount: 1,
             State: KernelEventState.Succeeded))));
-
-        pump.DrainAvailable();
-
-        var entity = projection.Entities[10];
-        Assert.Equal(2, entity.KindId);
-        Assert.Equal(3, entity.SubtypeId);
-        Assert.Equal(4, entity.CultureId);
-        Assert.Equal(10, entity.NameSeed);
-        Assert.Equal(EntityStatusCodes.Active, entity.StatusCode);
-        Assert.Equal(7, entity.PhysicalQ);
-        Assert.Equal(8, entity.PhysicalR);
-        Assert.Equal(14.5f, entity.Attributes[30].NewValue);
-        Assert.Equal(50, entity.LastProcessExecution?.ProcessId);
-        Assert.True(entity.WasCreatedFromEvent);
-        Assert.True(projection.IsComplete);
     }
 
-    [Fact]
-    public void Projection_ReplaysRelationshipResourceGeneratorAndDecisionEvents()
+    private static void WriteRelationshipResourceGeneratorAndDecisionEvents(KernelEventLog log)
     {
-        var log = new KernelEventLog(capacity: 16);
-        var projection = new UiProjectionState();
-        using var pump = new KernelEventProjectionPump(
-            log,
-            KernelEventCursorStart.EarliestAvailable,
-            projection);
-
         Assert.True(log.TryWrite(KernelEvent.From(new ResourceChangedKernelEvent(
             Tick: 1,
             WorldVersion: 1,
@@ -242,16 +262,6 @@ public sealed class UiProjectionStateTests
             AffectedEntityId1: 0,
             AffectedEntityCount: 1,
             State: KernelEventState.Succeeded))));
-
-        pump.DrainAvailable();
-
-        Assert.Equal(5f, projection.Resources[new UiResourceKey(7, 2, 3)].NewValue);
-        var relationship = projection.Relationships[new UiRelationshipKey(20, 21, 10)];
-        Assert.True(relationship.IsActive);
-        Assert.Equal(2, relationship.FactCount);
-        Assert.Equal(1, projection.Generators[40].TotalFired);
-        Assert.Equal(40, projection.GeneratorFires[0].GeneratorId);
-        Assert.Equal(60, projection.Entities[20].LastGambitExecution?.GambitId);
     }
 
     [Fact]

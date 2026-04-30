@@ -2,6 +2,7 @@ namespace Engine.Domain.Tests.Domain;
 
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
+using Engine.Gameplay;
 using IceRemembers;
 using Engine.Kinds;
 
@@ -114,17 +115,16 @@ public class DomainConfigTests
     public void IceRemembers_EffectsCarryRelationshipDrivenHealthDeltas()
     {
         var config = IceRemembersDefinition.Create();
-        var effects = config.Effects.AttributeDeltaEffects;
+        var effects = config.Gameplay?.Effects.AttributeDeltaEffects ?? [];
 
-        Assert.DoesNotContain(effects, effect => effect.Kind == TestKinds.Region);
-        foreach (var kind in new[] { TestKinds.Penguin, TestKinds.Faction, TestKinds.Settlement, TestKinds.Artifact })
+        foreach (var kind in new[] { TestKinds.Region, TestKinds.Penguin, TestKinds.Faction, TestKinds.Settlement, TestKinds.Artifact })
         {
-            var kindEffects = effects.Where(effect => effect.Kind == kind).ToList();
+            var kindEffects = effects.Where(effect => effect.Kind == kind.Value).ToList();
             Assert.Contains(kindEffects, effect =>
-                effect.Condition == EffectCondition.RelatedInfluenceAtPhysicalLocation &&
+                effect.Condition == EffectCondition.RelatedInfluenceAtLocation &&
                 effect.DeltaPerTick > 0f);
             Assert.Contains(kindEffects, effect =>
-                effect.Condition == EffectCondition.RelatedInfluenceAtPhysicalLocation &&
+                effect.Condition == EffectCondition.RelatedInfluenceAtLocation &&
                 effect.DeltaPerTick < 0f);
             Assert.Contains(kindEffects, effect =>
                 effect.Condition == EffectCondition.RelatedEntityDistance &&

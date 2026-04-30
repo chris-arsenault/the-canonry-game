@@ -19,6 +19,7 @@ public static partial class DefinitionGraphValidator
         ValidateLifecycleNodes(graph, errors);
         ValidateProcessSet(graph, errors);
         ValidateGambitSet(graph, errors);
+        ValidateGameplay(graph, errors);
         ValidateSemanticSet(graph, errors);
         ValidateGeneratorSet(graph, errors);
 
@@ -143,6 +144,50 @@ public static partial class DefinitionGraphValidator
         foreach (var supportRule in supportRules)
         {
             ValidateRefs($"{behaviorId}.support", [supportRule.DesiredEffect], graph, errors);
+        }
+    }
+
+    private static void ValidateGameplay(DefinitionGraph graph, List<string> errors)
+    {
+        foreach (var node in graph.GameplayNodes)
+        {
+            switch (node)
+            {
+                case DefinitionLowAltitudeVerbNode lowAltitudeVerb:
+                    ValidateLowAltitudeVerb(lowAltitudeVerb, errors);
+                    break;
+                case DefinitionMapSignalNode mapSignals:
+                    ValidateMapSignals(mapSignals, errors);
+                    break;
+                case DefinitionEffectNode effect:
+                    ValidateEffects(effect, errors);
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateLowAltitudeVerb(DefinitionLowAltitudeVerbNode node, List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(node.SourceConfig.Id))
+        {
+            errors.Add("Low-altitude gameplay verb must declare an id.");
+        }
+    }
+
+    private static void ValidateMapSignals(DefinitionMapSignalNode node, List<string> errors)
+    {
+        if (node.Writes.Count == 0)
+        {
+            errors.Add($"Gameplay map signal node '{node.Id}' must declare writes.");
+        }
+    }
+
+    private static void ValidateEffects(DefinitionEffectNode node, List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(node.SourceConfig.Kind) ||
+            string.IsNullOrWhiteSpace(node.SourceConfig.Attribute))
+        {
+            errors.Add($"Gameplay effect node '{node.Id}' must declare kind and attribute.");
         }
     }
 

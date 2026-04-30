@@ -79,7 +79,7 @@ public sealed class EffectsProgramTests
         simulation.Effects.RegisterAttributeDeltaEffect(
             kindId,
             healthAttributeId,
-            EffectConditionCodes.RelatedInfluenceAtPhysicalLocation,
+            EffectConditionCodes.RelationshipMapValueAtLocation,
             relationshipKindId,
             RelationshipMatchDirectionCodes.Either,
             PlaneCodes.Physical,
@@ -96,7 +96,7 @@ public sealed class EffectsProgramTests
             influencer,
             strength: 1f,
             tick: 0);
-        simulation.SetCellInfluence(influencer, 0, 0, 50f, tick: 0);
+        simulation.SetCellInfluence(influencer, PlaneCodes.Physical, 0, 0, 50f, tick: 0);
 
         simulation.AdvanceTicks(1);
 
@@ -114,7 +114,7 @@ public sealed class EffectsProgramTests
         simulation.Effects.RegisterAttributeDeltaEffect(
             kindId,
             healthAttributeId,
-            EffectConditionCodes.RelatedInfluenceAtPhysicalLocation,
+            EffectConditionCodes.RelationshipMapValueAtLocation,
             relationshipKindId,
             RelationshipMatchDirectionCodes.Either,
             PlaneCodes.Physical,
@@ -131,11 +131,47 @@ public sealed class EffectsProgramTests
             influencer,
             strength: 1f,
             tick: 0);
-        simulation.SetCellInfluence(influencer, 0, 0, 50f, tick: 0);
+        simulation.SetCellInfluence(influencer, PlaneCodes.Physical, 0, 0, 50f, tick: 0);
 
         simulation.AdvanceTicks(1);
 
         Assert.Equal(47f, simulation.World.GetAttribute(entity, healthAttributeId));
+    }
+
+    [Fact]
+    public void AttributeDeltaEffect_RelatedInfluenceAtLocationUsesConfiguredSemanticPlane()
+    {
+        const int kindId = 1;
+        const int healthAttributeId = 1;
+        const int relationshipKindId = 8;
+        var simulation = CreateSimulation();
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
+        simulation.Effects.RegisterAttributeDeltaEffect(
+            kindId,
+            healthAttributeId,
+            EffectConditionCodes.RelationshipMapValueAtLocation,
+            relationshipKindId,
+            RelationshipMatchDirectionCodes.Either,
+            PlaneCodes.Semantic,
+            maxDistance: 0,
+            threshold: 50f,
+            minimumRelationshipStrength: 0.1f,
+            deltaPerTick: 2f);
+        var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
+        var influencer = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 1, 0, -3, 1, 2, tick: 0);
+        simulation.World.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            entity,
+            influencer,
+            strength: 1f,
+            tick: 0);
+        simulation.SetCellInfluence(influencer, PlaneCodes.Physical, 1, 0, 50f, tick: 0);
+        simulation.SetCellInfluence(influencer, PlaneCodes.Semantic, 2, -1, 50f, tick: 0);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(52f, simulation.World.GetAttribute(entity, healthAttributeId));
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 namespace Engine.Domain.Config;
 
 using Engine.Gambits;
+using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Resources;
 using Engine.Wiring;
@@ -22,12 +23,6 @@ public sealed class DomainConfig
     /// <summary>Data-defined high-stakes entity gambits.</summary>
     public IReadOnlyList<GambitDefinition> Gambits { get; init; } = [];
 
-    /// <summary>
-    /// Data-defined low-altitude verbs. These are entity-centric, multi-tick
-    /// intents that drive physical/semantic movement or analogous map dynamics.
-    /// </summary>
-    public IReadOnlyList<LowAltitudeVerbConfig> LowAltitudeVerbs { get; init; } = [];
-
     /// <summary>Relationship kind definitions.</summary>
     public required IReadOnlyList<RelationshipConfig> Relationships { get; init; }
 
@@ -40,16 +35,6 @@ public sealed class DomainConfig
     /// <summary>Degeneracy detector definitions.</summary>
     public DegeneracyConfig Degeneracy { get; init; } = new();
 
-    /// <summary>Relationship/map-derived effects applied by the kernel effects program.</summary>
-    public EffectsConfig Effects { get; init; } = new();
-
-    /// <summary>
-    /// Dynamic spatial signals derived from terrain, influence, coverage, activity,
-    /// occupancy, and relationships. These are consumed by effects and
-    /// low-altitude verbs; they do not create or destroy graph structure.
-    /// </summary>
-    public MapSignalsConfig MapSignals { get; init; } = new();
-
     /// <summary>Lifecycle drain configuration per kind.</summary>
     public required IReadOnlyDictionary<EntityKind, LifecycleConfig> Lifecycles { get; init; }
 
@@ -61,6 +46,13 @@ public sealed class DomainConfig
 
     /// <summary>Culture definitions.</summary>
     public required IReadOnlyList<CultureConfig> Cultures { get; init; }
+
+    /// <summary>
+    /// Reusable gameplay-system selections and authored gameplay parameters.
+    /// Domain content chooses and names gameplay modules; Engine.Gameplay owns
+    /// reusable mechanics, validation, and compile-down to kernel program data.
+    /// </summary>
+    public GameplayDefinition? Gameplay { get; init; }
 
     /// <summary>
     /// Optional higher-order semantic stock/flow model for reasoning and validation.
@@ -110,72 +102,6 @@ public enum PrimaryPlane
 {
     Physical,
     Semantic,
-}
-
-/// <summary>
-/// Low-altitude intent. A verb chooses a mid-term target, commits for a short
-/// duration, and produces movement or physical map influence.
-/// </summary>
-public sealed class LowAltitudeVerbConfig
-{
-    public required string Id { get; init; }
-    public string? DisplayName { get; init; }
-    public required EntityKind Kind { get; init; }
-    public PrimaryPlane? Plane { get; init; }
-    public LowAltitudeVerbOperation Operation { get; init; } = LowAltitudeVerbOperation.Move;
-    public required LowAltitudeVerbTargetMode TargetMode { get; init; }
-    public EntityKind? TargetKind { get; init; }
-    public string? RelationshipKind { get; init; }
-    public LowAltitudeVerbRelationshipDirection RelationshipDirection { get; init; } =
-        LowAltitudeVerbRelationshipDirection.Either;
-    public IReadOnlySet<string>? Terrains { get; init; }
-    public int MinCommitmentTicks { get; init; } = 30;
-    public int MaxCommitmentTicks { get; init; } = 90;
-    public int DwellTicks { get; init; } = 8;
-    public int TargetRadius { get; init; }
-    public int CandidateSampleCount { get; init; } = 16;
-    public float Weight { get; init; } = 1f;
-    public float ExploreWeight { get; init; } = 1f;
-    public float StalenessWeight { get; init; } = 1f;
-    public float HotspotWeight { get; init; } = 0.25f;
-    public float CrowdingWeight { get; init; } = 0.5f;
-    public float GeneratorAffordanceWeight { get; init; } = 0.5f;
-    public string? AffinityRelationshipKind { get; init; }
-    public LowAltitudeVerbRelationshipDirection AffinityRelationshipDirection { get; init; } =
-        LowAltitudeVerbRelationshipDirection.Either;
-    public float RelationshipAffinityWeight { get; init; }
-    public float InfluenceDelta { get; init; }
-    public int InfluenceRadius { get; init; }
-    public float CoverageGrowthChance { get; init; }
-    public float HeadquartersMoveChance { get; init; }
-    public float RequiredInfluence { get; init; }
-}
-
-public enum LowAltitudeVerbOperation
-{
-    Move,
-    GrowInfluence,
-    ConsolidateInfluence,
-    ReduceInfluence,
-    ExpandCoverage,
-    MoveHeadquarters,
-}
-
-public enum LowAltitudeVerbTargetMode
-{
-    Explore,
-    EntityKind,
-    RelationshipTarget,
-    Terrain,
-    OwnInfluence,
-    ForeignInfluence,
-}
-
-public enum LowAltitudeVerbRelationshipDirection
-{
-    Outgoing,
-    Incoming,
-    Either,
 }
 
 /// <summary>Low-urgency standing drive that participates in normal goal generation.</summary>
@@ -247,27 +173,6 @@ public sealed class RelationshipConfig
     public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
 }
 
-public sealed class RelationshipMaintenanceRuleConfig
-{
-    public required RelationshipMaintenanceCondition Condition { get; init; }
-    public PrimaryPlane? Plane { get; init; }
-    public int MaxDistance { get; init; }
-    public float Threshold { get; init; }
-    public required float Delta { get; init; }
-}
-
-public enum RelationshipMaintenanceCondition
-{
-    Always,
-    SameCulture,
-    DifferentCulture,
-    DistanceWithin,
-    CoPresence,
-    SourceInfluenceAtTarget,
-    TargetInfluenceAtSource,
-    ContactMemory,
-}
-
 /// <summary>
 /// A typed assertion attached to a relationship instance. Relationship kind keeps
 /// broad graph meaning; facts preserve the more specific event meaning.
@@ -337,86 +242,6 @@ public enum DegeneracySeverity
     Normal,
     Warning,
     Critical,
-}
-
-public sealed class MapSignalsConfig
-{
-    public float SemanticBaseCapacity { get; init; } = 2f;
-    public int CrowdingRadius { get; init; } = 1;
-    public IReadOnlyList<TerrainMapSignalConfig> Terrains { get; init; } = [];
-    public IReadOnlyList<KindMapSignalConfig> Kinds { get; init; } = [];
-    public IReadOnlyList<RelationshipMapSignalConfig> Relationships { get; init; } = [];
-}
-
-public sealed class TerrainMapSignalConfig
-{
-    public required string Terrain { get; init; }
-    public required float BaseCapacity { get; init; }
-}
-
-public sealed class KindMapSignalConfig
-{
-    public required EntityKind Kind { get; init; }
-    public string? HealthAttribute { get; init; }
-    public int SignalRadius { get; init; } = 1;
-    public float CapacityEmission { get; init; }
-    public float SupportEmission { get; init; }
-    public float ThreatEmission { get; init; }
-    public float BaseAttractorMass { get; init; } = 1f;
-    public float CoverageAttractorScale { get; init; }
-    public float InfluenceAttractorScale { get; init; }
-    public float ActivityAttractorScale { get; init; }
-    public float HealthAttractorScale { get; init; }
-    public int AttractorRadius { get; init; } = 1;
-}
-
-public sealed class RelationshipMapSignalConfig
-{
-    public required string RelationshipKind { get; init; }
-    public int SignalRadius { get; init; } = 1;
-    public float SupportEmission { get; init; }
-    public float ThreatEmission { get; init; }
-}
-
-public sealed class EffectsConfig
-{
-    public IReadOnlyList<AttributeDeltaEffectConfig> AttributeDeltaEffects { get; init; } = [];
-}
-
-/// <summary>
-/// Domain-authored per-tick attribute delta derived from live graph/map evidence.
-/// This is compiled to primitive ids and evaluated by the kernel effects program.
-/// </summary>
-public sealed class AttributeDeltaEffectConfig
-{
-    public required EntityKind Kind { get; init; }
-    public required string Attribute { get; init; }
-    public required EffectCondition Condition { get; init; }
-    public string? RelationshipKind { get; init; }
-    public EffectRelationshipDirection RelationshipDirection { get; init; } =
-        EffectRelationshipDirection.Either;
-    public PrimaryPlane Plane { get; init; } = PrimaryPlane.Physical;
-    public int MaxDistance { get; init; }
-    public float Threshold { get; init; }
-    public float MinimumRelationshipStrength { get; init; } = 0.1f;
-    public required float DeltaPerTick { get; init; }
-}
-
-public enum EffectCondition
-{
-    RelatedInfluenceAtPhysicalLocation,
-    RelatedEntityDistance,
-    MapSupportAtLocation,
-    MapThreatAtLocation,
-    MapCrowdingPressure,
-    MapCrowdingComfort,
-}
-
-public enum EffectRelationshipDirection
-{
-    Outgoing,
-    Incoming,
-    Either,
 }
 
 /// <summary>Lifecycle drain configuration for a kind.</summary>

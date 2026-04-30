@@ -84,19 +84,22 @@ internal sealed class MapScalarEntityLayer
 
     internal int Count => _values.Count;
 
-    internal float ValueAt(int entityId, int cellKey)
+    internal float ValueAt(int entityId, int planeCode, int cellKey)
     {
-        return _values.GetOrDefault(entityId, cellKey);
+        return _values.GetOrDefault(EntityPlaneKey(entityId, planeCode), cellKey);
     }
 
-    internal void SetValue(int entityId, int cellKey, float value)
+    internal void SetValue(int entityId, int planeCode, int cellKey, float value)
     {
-        _values.Set(entityId, cellKey, value);
+        _values.Set(EntityPlaneKey(entityId, planeCode), cellKey, value);
     }
 
-    internal void ForEach(global::System.Action<int, int, float> visitor)
+    internal void ForEach(global::System.Action<int, int, int, float> visitor)
     {
-        _values.ForEach(visitor);
+        _values.ForEach((entityPlaneKey, cellKey, value) =>
+        {
+            visitor(EntityIdFromKey(entityPlaneKey), PlaneCodeFromKey(entityPlaneKey), cellKey, value);
+        });
     }
 
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
@@ -108,4 +111,15 @@ internal sealed class MapScalarEntityLayer
     {
         _values.ReadSnapshot(reader);
     }
+
+    private static int EntityPlaneKey(int entityId, int planeCode)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(planeCode);
+        return (entityId << 2) | planeCode;
+    }
+
+    private static int EntityIdFromKey(int key) => key >> 2;
+
+    private static int PlaneCodeFromKey(int key) => key & 3;
 }

@@ -58,8 +58,8 @@ internal sealed class RelationshipProgramRuntime :
 
     private void TickRelationship(Simulation simulation, WorldState world, int relationshipId, int tick)
     {
-        UpdateContactMemory(world, relationshipId, tick);
         var relationshipKindId = world.RelationshipKindId(relationshipId);
+        UpdateContactMemory(world, relationshipId, relationshipKindId, tick);
         var sourceId = world.RelationshipSourceId(relationshipId);
         var targetId = world.RelationshipTargetId(relationshipId);
         var delta = 0f;
@@ -82,14 +82,31 @@ internal sealed class RelationshipProgramRuntime :
         }
     }
 
-    private void UpdateContactMemory(WorldState world, int relationshipId, int tick)
+    private void UpdateContactMemory(WorldState world, int relationshipId, int relationshipKindId, int tick)
     {
         var sourceId = world.RelationshipSourceId(relationshipId);
         var targetId = world.RelationshipTargetId(relationshipId);
-        if (PhysicalDistance(world, sourceId, targetId) <= 1 ||
-            SemanticDistance(world, sourceId, targetId) == 0)
+        var sawContactMemoryRule = false;
+        for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
         {
-            State.RecordContact(relationshipId, tick);
+            if (Data.MaintenanceKindId(rule) != relationshipKindId ||
+                Data.MaintenanceConditionCode(rule) != RelationshipMaintenanceConditionCodes.ContactMemory)
+            {
+                continue;
+            }
+
+            sawContactMemoryRule = true;
+            var planeCode = Data.MaintenancePlaneCode(rule);
+            if (planeCode != PlaneCodes.None &&
+                PlaneDistance(world, sourceId, targetId, planeCode) <= 1)
+            {
+                State.RecordContact(relationshipId, tick);
+                return;
+            }
+        }
+
+        if (!sawContactMemoryRule)
+        {
             return;
         }
 
@@ -211,16 +228,38 @@ internal sealed class RelationshipProgramRuntime :
     {
         if (condition == RelationshipMaintenanceConditionCodes.SourceInfluenceAtTarget)
         {
+            var planeCode = InfluencePlaneCode(rule);
+            if (planeCode == PlaneCodes.None)
+            {
+                evidence = 0f;
+                return true;
+            }
+
             evidence = InfluenceEvidence(
-                world.GetCellInfluence(sourceId, world.EntityPhysicalQ(targetId), world.EntityPhysicalR(targetId)),
+                world.GetCellInfluence(
+                    sourceId,
+                    planeCode,
+                    CurrentQ(world, targetId, planeCode),
+                    CurrentR(world, targetId, planeCode)),
                 Data.MaintenanceThreshold(rule));
             return true;
         }
 
         if (condition == RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource)
         {
+            var planeCode = InfluencePlaneCode(rule);
+            if (planeCode == PlaneCodes.None)
+            {
+                evidence = 0f;
+                return true;
+            }
+
             evidence = InfluenceEvidence(
-                world.GetCellInfluence(targetId, world.EntityPhysicalQ(sourceId), world.EntityPhysicalR(sourceId)),
+                world.GetCellInfluence(
+                    targetId,
+                    planeCode,
+                    CurrentQ(world, sourceId, planeCode),
+                    CurrentR(world, sourceId, planeCode)),
                 Data.MaintenanceThreshold(rule));
             return true;
         }
@@ -278,6 +317,22 @@ internal sealed class RelationshipProgramRuntime :
         var s = Abs(world.EntitySemanticS(sourceId) - world.EntitySemanticS(targetId));
         return Max(q, Max(r, s));
     }
+
+    private int InfluencePlaneCode(int rule)
+    {
+        return Data.MaintenancePlaneCode(rule);
+    }
+
+    private static int PlaneDistance(WorldState world, int sourceId, int targetId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic
+            ? SemanticDistance(world, sourceId, targetId)
+            : PhysicalDistance(world, sourceId, targetId);
+
+    private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
+
+    private static int CurrentR(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
 
     private static int HexDistance(int aq, int ar, int bq, int br)
     {

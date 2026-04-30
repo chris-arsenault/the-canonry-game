@@ -285,25 +285,34 @@ internal sealed partial class WorldState
         return _mapLayers.Coverage.MoveNextCell(ref cursor, out q, out r);
     }
 
-    public float GetCellInfluence(int entityId, int q, int r)
+    public float GetCellInfluence(int entityId, int planeCode, int q, int r)
     {
         EnsureEntity(entityId);
-        return _mapLayers.Influence.ValueAt(entityId, CoordinateKey(q, r));
+        ValidateInfluencePlaneCode(planeCode);
+        return _mapLayers.Influence.ValueAt(entityId, planeCode, CoordinateKey(q, r));
     }
 
-    public void SetCellInfluence(int entityId, int q, int r, float value, int tick, in KernelExecutionContext context)
+    public void SetCellInfluence(
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        float value,
+        int tick,
+        in KernelExecutionContext context)
     {
         EnsureEntity(entityId);
+        ValidateInfluencePlaneCode(planeCode);
         ValidatePositive(context.SourceCodeId);
         var key = CoordinateKey(q, r);
         var clamped = ClampInfluence(value);
-        var previous = _mapLayers.Influence.ValueAt(entityId, key);
+        var previous = _mapLayers.Influence.ValueAt(entityId, planeCode, key);
         if (global::System.MathF.Abs(clamped - previous) <= float.Epsilon)
         {
             return;
         }
 
-        _mapLayers.Influence.SetValue(entityId, key, clamped);
+        _mapLayers.Influence.SetValue(entityId, planeCode, key, clamped);
         AdvanceWorldVersion();
         Write(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             tick,
@@ -311,16 +320,24 @@ internal sealed partial class WorldState
             q,
             r,
             context.SourceCodeId,
+            planeCode,
             entityId,
             previous,
             clamped)),
             context);
     }
 
-    public void ModifyCellInfluence(int entityId, int q, int r, float delta, int tick, in KernelExecutionContext context)
+    public void ModifyCellInfluence(
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        float delta,
+        int tick,
+        in KernelExecutionContext context)
     {
-        var previous = GetCellInfluence(entityId, q, r);
-        SetCellInfluence(entityId, q, r, previous + delta, tick, context);
+        var previous = GetCellInfluence(entityId, planeCode, q, r);
+        SetCellInfluence(entityId, planeCode, q, r, previous + delta, tick, context);
     }
 
     public void BeginTick(int tick)

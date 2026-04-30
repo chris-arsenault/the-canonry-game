@@ -122,7 +122,7 @@ public static partial class DomainCompiler
 
     private static void RegisterBehaviorCatalog(DomainConfig config, CatalogRegistrationState state)
     {
-        foreach (var verb in config.LowAltitudeVerbs)
+        foreach (var verb in config.Gameplay?.LowAltitudeVerbs ?? [])
         {
             RegisterOnceStrict(state.Verbs, verb.Id, state.Registry.RegisterVerb, "verb");
         }
@@ -184,10 +184,9 @@ public static partial class DomainCompiler
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.DegeneracySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.PlanningSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MovementSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MapActivitySourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MapSignalsSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.LowAltitudeVerbSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.EffectsSourceCode, state.Registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MapControlSourceCode, state.Registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplaySourceCode, state.Registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplayEffectsSourceCode, state.Registry.RegisterSourceCode, "source code");
     }
 
     private static void RegisterDegeneracyCatalog(DomainConfig config, CatalogRegistrationState state)

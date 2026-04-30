@@ -20,7 +20,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     public void AnalyzeToFiles_WritesSummaryArtifactsForSyntheticBatch()
     {
         var domain = IceRemembersRuntime.CreateDomainConfig();
-        var penguinVerbId = domain.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin).Id;
+        var penguinVerbId = domain.Gameplay!.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin.Value).Id;
         var batchDirectory = CreateTempDirectory();
         var batch = CreateBatch(domain, includeGeneratorFire: true);
 
@@ -100,7 +100,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
         var analyzer = new MonteCarloBatchAnalyzer(domain);
         var report = analyzer.Analyze(batchDirectory);
-        var verbId = domain.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin).Id;
+        var verbId = domain.Gameplay!.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin.Value).Id;
 
         Assert.Contains(report.ProcessPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
@@ -252,7 +252,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     {
         var penguinConfig = domain.Kinds[IceRemembersKinds.Penguin];
         var settlementConfig = domain.Kinds[IceRemembersKinds.Settlement];
-        var penguinVerb = domain.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin);
+        var penguinVerb = domain.Gameplay!.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin.Value);
 
         return new SyntheticBatchSeed(
             RunId: 1000,
@@ -348,11 +348,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             EntityId: 1,
             TraceSubjectCodes.MovementIntent,
             CandidateIndex: 1,
-            ParentCandidateIndex: LowAltitudeVerbOperationCodes.Move,
+            ParentCandidateIndex: ProgramOpcodeCodes.MoveActor,
             ActionFamilyCodes.LowAltitudeVerb,
             ActionId: seed.VerbSymbolId,
             EffectScopeCode: PlaneCodes.Physical,
-            EffectValueId: LowAltitudeVerbTargetModeCodes.Explore,
+            EffectValueId: TargetSelectorCodes.Explore,
             EffectKindId: seed.SettlementKindId,
             TargetEntityId: 0,
             TraceStatusCodes.Offered,
@@ -367,11 +367,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             EntityId: 1,
             TraceSubjectCodes.MovementIntent,
             CandidateIndex: 1,
-            ParentCandidateIndex: LowAltitudeVerbOperationCodes.Move,
+            ParentCandidateIndex: ProgramOpcodeCodes.MoveActor,
             ActionFamilyCodes.LowAltitudeVerb,
             ActionId: seed.VerbSymbolId,
             EffectScopeCode: PlaneCodes.Physical,
-            EffectValueId: LowAltitudeVerbTargetModeCodes.Explore,
+            EffectValueId: TargetSelectorCodes.Explore,
             EffectKindId: seed.SettlementKindId,
             TargetEntityId: 0,
             TraceStatusCodes.Selected,
@@ -537,8 +537,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.OceanTerrainId, 40, 12, 0));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.ShelfTerrainId, 20, 10, 1));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.OceanTerrainId, 40, 18, 1));
-        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 2, 2, 0, 0f, 18f, 18f));
-        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 2, 3, 0, 0f, 12f, 12f));
+        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
+        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
         var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "quality_validation", "quality_validation");
         var description = TelemetrySymbolIds.Create(
             TelemetrySymbolKinds.MapGenerationDescription,

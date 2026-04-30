@@ -95,6 +95,7 @@ public sealed class PrimitiveEventProjectionTests
             Q: 0,
             R: 0,
             SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Physical,
             EntityId: 200,
             PreviousInfluence: 0f,
             CurrentInfluence: 35f))));
@@ -104,6 +105,7 @@ public sealed class PrimitiveEventProjectionTests
             Q: 0,
             R: 0,
             SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Physical,
             EntityId: 300,
             PreviousInfluence: 0f,
             CurrentInfluence: 20f))));

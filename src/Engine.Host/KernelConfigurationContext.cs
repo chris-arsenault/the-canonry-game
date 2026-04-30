@@ -117,21 +117,6 @@ internal sealed class KernelConfigurationContext
             minimumRelationshipStrength,
             deltaPerTick);
 
-    public int RegisterMovementRule(
-        int kindId,
-        int planeCode,
-        float moveChance,
-        float exploreWeight,
-        float stalenessWeight,
-        float crowdingWeight) =>
-        _kernel.Movement.RegisterRule(
-            kindId,
-            planeCode,
-            moveChance,
-            exploreWeight,
-            stalenessWeight,
-            crowdingWeight);
-
     public int RegisterLowAltitudeVerb(
         int kindId,
         int verbId,
@@ -191,6 +176,23 @@ internal sealed class KernelConfigurationContext
 
     public void AddLowAltitudeVerbTerrainFilter(int verbSlot, int terrainId) =>
         _kernel.LowAltitudeVerbs.AddTerrainFilter(verbSlot, terrainId);
+
+    public int RegisterLowAltitudeInitialInfluence(
+        int kindId,
+        int planeCode,
+        float influenceValue) =>
+        _kernel.LowAltitudeVerbs.RegisterInitialInfluence(kindId, planeCode, influenceValue);
+
+    public int RegisterLowAltitudeGeneratorAffordance(
+        int actorKindId,
+        int candidateKindId,
+        int bindingKindId,
+        float affordanceScore) =>
+        _kernel.LowAltitudeVerbs.RegisterGeneratorAffordance(
+            actorKindId,
+            candidateKindId,
+            bindingKindId,
+            affordanceScore);
 
     public void ConfigureMapActivity(float presenceHeat)
     {

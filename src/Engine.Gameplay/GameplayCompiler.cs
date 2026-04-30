@@ -1,0 +1,351 @@
+namespace Engine.Gameplay;
+
+using Engine.Constants;
+
+public static class GameplayCompiler
+{
+    public static GameplayCompileResult CompileGameplay(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(context);
+
+        return new GameplayCompileResult(
+            definition.Modules.Count,
+            new GameplayKernelProgramSet
+            {
+                LowAltitudeVerbs = CompileLowAltitudeVerbProgram(definition, context),
+                MapActivity = new MapActivityProgram(),
+                MapSignals = CompileMapSignalsProgram(definition, context),
+                Effects = CompileEffectsProgram(definition, context),
+            });
+    }
+
+    private static LowAltitudeVerbProgram CompileLowAltitudeVerbProgram(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<LowAltitudeVerbRule>();
+        foreach (var verb in definition.LowAltitudeVerbs)
+        {
+            var ownerPlaneCode = verb.Plane is null
+                ? context.PrimaryPlaneCodeForKind(verb.Kind, $"Low-altitude verb '{verb.Id}' kind")
+                : PlaneCode(verb.Plane);
+            rules.Add(new LowAltitudeVerbRule(
+                context.ResolveKindId(verb.Kind, $"Low-altitude verb '{verb.Id}' kind"),
+                context.ResolveVerbId(verb.Id),
+                ownerPlaneCode,
+                OperationCode(verb.Operation),
+                TargetModeCode(verb.TargetMode),
+                verb.TargetKind is null
+                    ? 0
+                    : context.ResolveKindId(verb.TargetKind, $"Low-altitude verb '{verb.Id}' target kind"),
+                verb.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(verb.RelationshipKind),
+                RelationshipDirectionCode(verb.RelationshipDirection),
+                CompileTerrainIds(verb.Terrains, context),
+                verb.MinCommitmentTicks,
+                verb.MaxCommitmentTicks,
+                verb.DwellTicks,
+                verb.TargetRadius,
+                verb.CandidateSampleCount,
+                verb.Weight,
+                verb.ExploreWeight,
+                verb.StalenessWeight,
+                verb.HotspotWeight,
+                verb.CrowdingWeight,
+                verb.GeneratorAffordanceWeight,
+                verb.AffinityRelationshipKind is null ? 0 : context.ResolveRelationshipKindId(verb.AffinityRelationshipKind),
+                RelationshipDirectionCode(verb.AffinityRelationshipDirection),
+                verb.RelationshipAffinityWeight,
+                verb.InfluenceDelta,
+                verb.InfluenceRadius,
+                verb.CoverageGrowthChance,
+                verb.HeadquartersMoveChance,
+                verb.RequiredInfluence));
+        }
+
+        return new LowAltitudeVerbProgram
+        {
+            Verbs = rules,
+            InitialInfluence = CompileInitialInfluenceRules(definition, context),
+            GeneratorAffordances = CompileGeneratorAffordances(context),
+        };
+    }
+
+    private static List<CompiledInitialInfluenceRule> CompileInitialInfluenceRules(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<CompiledInitialInfluenceRule>();
+        foreach (var rule in definition.InitialInfluence)
+        {
+            rules.Add(new CompiledInitialInfluenceRule(
+                context.ResolveKindId(rule.Kind, "Initial influence kind"),
+                PlaneCode(rule.Plane),
+                rule.InfluenceValue));
+        }
+
+        return rules;
+    }
+
+    private static List<CompiledGeneratorAffordanceRule> CompileGeneratorAffordances(
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<CompiledGeneratorAffordanceRule>();
+        foreach (var affordance in context.GeneratorAffordances())
+        {
+            rules.Add(new CompiledGeneratorAffordanceRule(
+                context.ResolveKindId(affordance.ActorKind, "Generator affordance actor kind"),
+                context.ResolveKindId(affordance.CandidateKind, "Generator affordance candidate kind"),
+                context.ResolveKindId(affordance.BindingKind, "Generator affordance binding kind"),
+                1f));
+        }
+
+        return rules;
+    }
+
+
+    private static MapSignalsProgram CompileMapSignalsProgram(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var mapSignals = definition.MapSignals;
+        return new MapSignalsProgram
+        {
+            SemanticBaseCapacity = mapSignals.SemanticBaseCapacity,
+            CrowdingRadius = mapSignals.CrowdingRadius,
+            Terrains = CompileTerrainMapSignals(mapSignals, context),
+            Kinds = CompileKindMapSignals(mapSignals, context),
+            Relationships = CompileRelationshipMapSignals(mapSignals, context),
+        };
+    }
+
+    private static List<TerrainMapSignalRule> CompileTerrainMapSignals(
+        MapSignalsConfig mapSignals,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<TerrainMapSignalRule>();
+        foreach (var terrain in mapSignals.Terrains)
+        {
+            if (!context.TerrainExists(terrain.Terrain))
+            {
+                throw new InvalidOperationException(
+                    $"Map signal terrain references unknown terrain '{terrain.Terrain}'.");
+            }
+
+            rules.Add(new TerrainMapSignalRule(
+                context.ResolveTerrainId(terrain.Terrain),
+                terrain.BaseCapacity));
+        }
+
+        return rules;
+    }
+
+    private static List<KindMapSignalRule> CompileKindMapSignals(
+        MapSignalsConfig mapSignals,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<KindMapSignalRule>();
+        foreach (var kind in mapSignals.Kinds)
+        {
+            var healthAttribute = kind.HealthAttribute ?? context.HealthAttributeForKind(kind.Kind, "Map signal kind");
+            var healthAttributeId = 0;
+            if (!string.IsNullOrWhiteSpace(healthAttribute))
+            {
+                if (!context.KindHasAttribute(kind.Kind, healthAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Map signal health attribute references unknown attribute '{healthAttribute}'.");
+                }
+
+                healthAttributeId = context.ResolveAttributeId(healthAttribute);
+            }
+
+            rules.Add(new KindMapSignalRule(
+                context.ResolveKindId(kind.Kind, "Map signal kind"),
+                healthAttributeId,
+                kind.SignalRadius,
+                kind.CapacityEmission,
+                kind.SupportEmission,
+                kind.ThreatEmission,
+                kind.BaseAttractorMass,
+                kind.CoverageAttractorScale,
+                kind.InfluenceAttractorScale,
+                kind.ActivityAttractorScale,
+                kind.HealthAttractorScale,
+                kind.AttractorRadius));
+        }
+
+        return rules;
+    }
+
+    private static List<RelationshipMapSignalRule> CompileRelationshipMapSignals(
+        MapSignalsConfig mapSignals,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<RelationshipMapSignalRule>();
+        foreach (var relationship in mapSignals.Relationships)
+        {
+            if (!context.RelationshipExists(relationship.RelationshipKind))
+            {
+                throw new InvalidOperationException(
+                    $"Map signal relationship references unknown relationship '{relationship.RelationshipKind}'.");
+            }
+
+            rules.Add(new RelationshipMapSignalRule(
+                context.ResolveRelationshipKindId(relationship.RelationshipKind),
+                relationship.SignalRadius,
+                relationship.SupportEmission,
+                relationship.ThreatEmission));
+        }
+
+        return rules;
+    }
+
+    private static EffectsProgram CompileEffectsProgram(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<AttributeDeltaEffectRule>();
+        foreach (var effect in definition.Effects.AttributeDeltaEffects)
+        {
+            if (!context.KindHasAttribute(effect.Kind, effect.Attribute))
+            {
+                throw new InvalidOperationException(
+                    $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
+            }
+
+            if (EffectRequiresRelationship(effect.Condition) &&
+                (effect.RelationshipKind is null || !context.RelationshipExists(effect.RelationshipKind)))
+            {
+                throw new InvalidOperationException(
+                    $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
+            }
+
+            rules.Add(new AttributeDeltaEffectRule(
+                context.ResolveKindId(effect.Kind, "Attribute delta effect kind"),
+                context.ResolveAttributeId(effect.Attribute),
+                ConditionCode(effect.Condition),
+                effect.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(effect.RelationshipKind),
+                RelationshipDirectionCode(effect.RelationshipDirection),
+                PlaneCode(effect.Plane),
+                effect.MaxDistance,
+                effect.Threshold,
+                effect.MinimumRelationshipStrength,
+                effect.DeltaPerTick));
+        }
+
+        return new EffectsProgram { AttributeDeltaEffects = rules };
+    }
+
+    private static List<int> CompileTerrainIds(IReadOnlySet<string>? terrains, IGameplayCompilationContext context)
+    {
+        if (terrains is null || terrains.Count == 0)
+        {
+            return [];
+        }
+
+        var terrainIds = new List<int>(terrains.Count);
+        foreach (var terrain in terrains)
+        {
+            terrainIds.Add(context.ResolveTerrainId(terrain));
+        }
+
+        return terrainIds;
+    }
+
+    private static int OperationCode(LowAltitudeVerbOperation operation) => operation switch
+    {
+        LowAltitudeVerbOperation.Move => ProgramOpcodeCodes.MoveActor,
+        LowAltitudeVerbOperation.GrowInfluence => ProgramOpcodeCodes.AddOwnedCellScalar,
+        LowAltitudeVerbOperation.ConsolidateInfluence => ProgramOpcodeCodes.AddOwnedCellScalar,
+        LowAltitudeVerbOperation.ReduceInfluence => ProgramOpcodeCodes.SubtractOtherCellScalar,
+        LowAltitudeVerbOperation.ExpandCoverage => ProgramOpcodeCodes.TryClaimCell,
+        LowAltitudeVerbOperation.MoveHeadquarters => ProgramOpcodeCodes.TryRelocateEntity,
+        _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+    };
+
+    private static int TargetModeCode(LowAltitudeVerbTargetMode mode) => mode switch
+    {
+        LowAltitudeVerbTargetMode.Explore => TargetSelectorCodes.Explore,
+        LowAltitudeVerbTargetMode.EntityKind => TargetSelectorCodes.EntityKind,
+        LowAltitudeVerbTargetMode.RelationshipTarget => TargetSelectorCodes.RelationshipTarget,
+        LowAltitudeVerbTargetMode.Terrain => TargetSelectorCodes.Terrain,
+        LowAltitudeVerbTargetMode.OwnInfluence => TargetSelectorCodes.SelfMapValue,
+        LowAltitudeVerbTargetMode.ForeignInfluence => TargetSelectorCodes.OtherMapValue,
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
+    };
+
+    private static int RelationshipDirectionCode(LowAltitudeVerbRelationshipDirection direction) => direction switch
+    {
+        LowAltitudeVerbRelationshipDirection.Outgoing => RelationshipMatchDirectionCodes.Outgoing,
+        LowAltitudeVerbRelationshipDirection.Incoming => RelationshipMatchDirectionCodes.Incoming,
+        LowAltitudeVerbRelationshipDirection.Either => RelationshipMatchDirectionCodes.Either,
+        _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+    };
+
+    private static int RelationshipDirectionCode(EffectRelationshipDirection direction) => direction switch
+    {
+        EffectRelationshipDirection.Outgoing => RelationshipMatchDirectionCodes.Outgoing,
+        EffectRelationshipDirection.Incoming => RelationshipMatchDirectionCodes.Incoming,
+        EffectRelationshipDirection.Either => RelationshipMatchDirectionCodes.Either,
+        _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+    };
+
+    private static int ConditionCode(EffectCondition condition) => condition switch
+    {
+        EffectCondition.RelatedInfluenceAtLocation => EffectConditionCodes.RelationshipMapValueAtLocation,
+        EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
+        EffectCondition.MapSupportAtLocation => EffectConditionCodes.LocalPositiveSignal,
+        EffectCondition.MapThreatAtLocation => EffectConditionCodes.LocalNegativeSignal,
+        EffectCondition.MapCrowdingPressure => EffectConditionCodes.LocalPressureSignal,
+        EffectCondition.MapCrowdingComfort => EffectConditionCodes.LocalComfortSignal,
+        _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
+    };
+
+    private static int PlaneCode(string plane) =>
+        string.Equals(plane, "semantic", StringComparison.OrdinalIgnoreCase)
+            ? PlaneCodes.Semantic
+            : PlaneCodes.Physical;
+
+    private static bool EffectRequiresRelationship(EffectCondition condition) =>
+        condition is EffectCondition.RelatedInfluenceAtLocation
+            or EffectCondition.RelatedEntityDistance;
+}
+
+public interface IGameplayCompilationContext
+{
+    int ResolveKindId(string kind, string context);
+    int PrimaryPlaneCodeForKind(string kind, string context);
+    int ResolveVerbId(string verb);
+    int ResolveTerrainId(string terrain);
+    int ResolveRelationshipKindId(string relationship);
+    int ResolveAttributeId(string attribute);
+    bool TerrainExists(string terrain);
+    bool RelationshipExists(string relationship);
+    bool KindHasAttribute(string kind, string attribute);
+    string? HealthAttributeForKind(string kind, string context);
+    IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances();
+}
+
+/// <summary>
+/// Adapter boundary normally backed by the domain's DomainIdRegistry.
+/// </summary>
+public sealed record GeneratorAffordanceDefinition(
+    string ActorKind,
+    string CandidateKind,
+    string BindingKind);
+
+/// <summary>
+/// Gameplay-owned KernelPrograms payload compiled down for host installation.
+/// </summary>
+public sealed class GameplayKernelProgramSet
+{
+    public required LowAltitudeVerbProgram LowAltitudeVerbs { get; init; }
+    public required MapActivityProgram MapActivity { get; init; }
+    public required MapSignalsProgram MapSignals { get; init; }
+    public required EffectsProgram Effects { get; init; }
+}
+
+public sealed record GameplayCompileResult(int ModuleCount, GameplayKernelProgramSet Programs);

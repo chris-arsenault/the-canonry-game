@@ -71,6 +71,7 @@
         "type": "Project",
         "dependencies": {
           "Engine.Constants": "[1.0.0, )",
+          "Engine.Gameplay": "[1.0.0, )",
           "Engine.WorldGen": "[1.0.0, )",
           "MessagePack": "[3.1.4, )",
           "QuikGraph": "[2.5.0, )"
@@ -85,6 +86,12 @@
           "Engine.Eventing": "[1.0.0, )"
         }
       },
+      "engine.gameplay": {
+        "type": "Project",
+        "dependencies": {
+          "Engine.Constants": "[1.0.0, )"
+        }
+      },
       "engine.host": {
         "type": "Project",
         "dependencies": {
@@ -92,6 +99,7 @@
           "Engine.Domain": "[1.0.0, )",
           "Engine.Eventing": "[1.0.0, )",
           "Engine.Eventing.Schema": "[1.0.0, )",
+          "Engine.Gameplay": "[1.0.0, )",
           "Engine.Kernel": "[1.0.0, )",
           "Engine.Kernel.Driver": "[1.0.0, )",
           "Engine.Observability": "[1.0.0, )",

@@ -10,6 +10,7 @@
     <ProjectReference Include="..\Engine.Domain\Engine.Domain.csproj" />
     <ProjectReference Include="..\Engine.Eventing\Engine.Eventing.csproj" />
     <ProjectReference Include="..\Engine.Eventing.Schema\Engine.Eventing.Schema.csproj" />
+    <ProjectReference Include="..\Engine.Gameplay\Engine.Gameplay.csproj" />
     <ProjectReference Include="..\Engine.Kernel\Engine.Kernel.csproj" />
     <ProjectReference Include="..\Engine.Kernel.Driver\Engine.Kernel.Driver.csproj" />
     <ProjectReference Include="..\Engine.Observability\Engine.Observability.csproj" />

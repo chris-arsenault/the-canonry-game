@@ -24,8 +24,8 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbOperationCodes.Move,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             relationshipKindId: 0,
             relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
@@ -71,8 +71,8 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Semantic,
-            LowAltitudeVerbOperationCodes.Move,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             relationshipKindId: 0,
             relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
@@ -125,8 +125,8 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbOperationCodes.Move,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             relationshipKindId: 0,
             relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
@@ -176,7 +176,7 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             minCommitmentTicks: 40,
             maxCommitmentTicks: 40,
@@ -217,8 +217,8 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbOperationCodes.Move,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             relationshipKindId: 0,
             relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
@@ -267,7 +267,7 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             minCommitmentTicks: 40,
             maxCommitmentTicks: 80,
@@ -301,7 +301,7 @@ public sealed class LowAltitudePhysicsProgramTests
             actorKindId,
             verbId,
             PlaneCodes.Physical,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            TargetSelectorCodes.EntityKind,
             targetKindId,
             minCommitmentTicks: 20,
             maxCommitmentTicks: 20,
@@ -329,21 +329,44 @@ public sealed class LowAltitudePhysicsProgramTests
         SeedPhysicalNeighborhood(simulation, terrainId);
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(factionId, 0, 0, 20f, tick: 0);
+        simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 0, 0, 20f, tick: 0);
         RegisterInfluenceVerb(
             simulation,
             settlementKindId,
             verbId,
-            LowAltitudeVerbOperationCodes.GrowInfluence,
-            LowAltitudeVerbTargetModeCodes.OwnInfluence,
+            ProgramOpcodeCodes.AddOwnedCellScalar,
+            TargetSelectorCodes.SelfMapValue,
             influenceDelta: 10f,
             influenceRadius: 0);
 
         simulation.AdvanceTicks(2);
 
-        Assert.True(simulation.World.GetCellInfluence(settlementId, 0, 0) >= 45f);
-        Assert.Equal(20f, simulation.World.GetCellInfluence(factionId, 0, 0));
+        Assert.True(simulation.World.GetCellInfluence(settlementId, PlaneCodes.Physical, 0, 0) >= 45f);
+        Assert.Equal(20f, simulation.World.GetCellInfluence(factionId, PlaneCodes.Physical, 0, 0));
         Assert.Equal(0, simulation.World.CoverageOwnerAt(0, 0));
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_GrowsSemanticInfluenceWithoutKnownPhysicalCell()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 31 });
+        const int kindId = 1;
+        const int verbId = 103;
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
+        RegisterInfluenceVerb(
+            simulation,
+            kindId,
+            verbId,
+            ProgramOpcodeCodes.AddOwnedCellScalar,
+            TargetSelectorCodes.SelfMapValue,
+            influenceDelta: 10f,
+            influenceRadius: 0,
+            planeCode: PlaneCodes.Semantic);
+
+        simulation.AdvanceTicks(2);
+
+        Assert.True(simulation.World.GetCellInfluence(entityId, PlaneCodes.Semantic, 2, -1) >= 45f);
+        Assert.Equal(0f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 2, -1));
     }
 
     [Fact]
@@ -361,8 +384,8 @@ public sealed class LowAltitudePhysicsProgramTests
             simulation,
             settlementKindId,
             verbId,
-            LowAltitudeVerbOperationCodes.ExpandCoverage,
-            LowAltitudeVerbTargetModeCodes.OwnInfluence,
+            ProgramOpcodeCodes.TryClaimCell,
+            TargetSelectorCodes.SelfMapValue,
             influenceDelta: 30f,
             influenceRadius: 1,
             coverageGrowthChance: 1f,
@@ -387,13 +410,13 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
         var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(factionId, 1, 0, 80f, tick: 0);
+        simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 1, 0, 80f, tick: 0);
         RegisterInfluenceVerb(
             simulation,
             factionKindId,
             verbId,
-            LowAltitudeVerbOperationCodes.MoveHeadquarters,
-            LowAltitudeVerbTargetModeCodes.EntityKind,
+            ProgramOpcodeCodes.TryRelocateEntity,
+            TargetSelectorCodes.EntityKind,
             targetKindId: settlementKindId,
             influenceDelta: 0f,
             influenceRadius: 0,
@@ -472,12 +495,13 @@ public sealed class LowAltitudePhysicsProgramTests
         int targetKindId = 0,
         float coverageGrowthChance = 0f,
         float headquartersMoveChance = 0f,
-        float requiredInfluence = 0f)
+        float requiredInfluence = 0f,
+        int planeCode = PlaneCodes.Physical)
     {
         simulation.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
-            PlaneCodes.Physical,
+            planeCode,
             operationCode,
             targetModeCode,
             targetKindId,
@@ -517,7 +541,7 @@ public sealed class LowAltitudePhysicsProgramTests
             kindId,
             verbId,
             planeCode,
-            LowAltitudeVerbOperationCodes.Move,
+            ProgramOpcodeCodes.MoveActor,
             targetModeCode,
             targetKindId,
             relationshipKindId: 0,

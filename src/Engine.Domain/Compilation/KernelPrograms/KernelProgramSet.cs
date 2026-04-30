@@ -1,8 +1,9 @@
 namespace Engine.Domain.Compilation.KernelPrograms;
 
+using Engine.Gameplay;
+
 public sealed class KernelProgramSet
 {
-    public required MovementProgram Movement { get; init; }
     public required LowAltitudeVerbProgram LowAltitudeVerbs { get; init; }
     public required MapActivityProgram MapActivity { get; init; }
     public required MapSignalsProgram MapSignals { get; init; }

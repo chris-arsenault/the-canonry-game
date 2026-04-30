@@ -2,6 +2,7 @@ namespace Engine.Host;
 
 using Engine.Domain;
 using Engine.Domain.Compilation.KernelPrograms;
+using Engine.Gameplay;
 using Engine.Kernel;
 using Engine.Kernel.Programs;
 
@@ -16,11 +17,7 @@ internal static class KernelProgramInstaller
         ArgumentNullException.ThrowIfNull(programs);
         ArgumentNullException.ThrowIfNull(programConfig);
 
-        InstallMovement(context, programs.Movement);
-        InstallLowAltitudeVerbs(context, programs.LowAltitudeVerbs);
-        InstallMapActivity(context, programs.MapActivity);
-        InstallMapSignals(context, programs.MapSignals);
-        InstallEffects(context, programs.Effects);
+        InstallGameplay(context, programs);
         InstallUpkeep(context, programs.Upkeep);
         InstallProcesses(context, programs.Processes);
         InstallGambits(context, programs.Gambits);
@@ -29,9 +26,6 @@ internal static class KernelProgramInstaller
         InstallGenerators(context, programs.Generators);
         InstallDegeneracy(context, programs.Degeneracy);
 
-        context.SetProgramEnabled(
-            KernelProgramCodes.Movement,
-            programConfig.IsEnabled(KernelProgramCodes.Movement, programs.Movement.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.LowAltitudeVerbs,
             programConfig.IsEnabled(KernelProgramCodes.LowAltitudeVerbs, programs.LowAltitudeVerbs.EnabledByDefault));
@@ -67,26 +61,21 @@ internal static class KernelProgramInstaller
             programConfig.IsEnabled(KernelProgramCodes.Degeneracy, programs.Degeneracy.EnabledByDefault));
     }
 
-    private static void InstallMovement(KernelConfigurationContext context, MovementProgram program)
+    // Installs the GameplayCompiler output as kernel primitive tables; the host does not compile gameplay.
+    private static void InstallGameplay(KernelConfigurationContext context, KernelProgramSet programs)
     {
-        foreach (var rule in program.Rules)
-        {
-            context.RegisterMovementRule(
-                rule.KindId,
-                rule.PlaneCode,
-                rule.MoveChance,
-                rule.ExploreWeight,
-                rule.StalenessWeight,
-                rule.CrowdingWeight);
-        }
+        ConfigureMapActivity(context, programs.MapActivity);
+        ConfigureMapSignals(context, programs.MapSignals);
+        ConfigureLowAltitudeVerbs(context, programs.LowAltitudeVerbs);
+        ConfigureGameplayEffects(context, programs.Effects);
     }
 
-    private static void InstallMapActivity(KernelConfigurationContext context, MapActivityProgram program)
+    private static void ConfigureMapActivity(KernelConfigurationContext context, MapActivityProgram program)
     {
         context.ConfigureMapActivity(program.PresenceHeat);
     }
 
-    private static void InstallMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
+    private static void ConfigureMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
     {
         context.ConfigureMapSignals(program.SemanticBaseCapacity, program.CrowdingRadius);
         foreach (var terrain in program.Terrains)
@@ -121,7 +110,7 @@ internal static class KernelProgramInstaller
         }
     }
 
-    private static void InstallLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)
+    private static void ConfigureLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)
     {
         foreach (var verb in program.Verbs)
         {
@@ -158,6 +147,23 @@ internal static class KernelProgramInstaller
                 context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);
             }
         }
+
+        foreach (var rule in program.InitialInfluence)
+        {
+            context.RegisterLowAltitudeInitialInfluence(
+                rule.KindId,
+                rule.PlaneCode,
+                rule.InfluenceValue);
+        }
+
+        foreach (var rule in program.GeneratorAffordances)
+        {
+            context.RegisterLowAltitudeGeneratorAffordance(
+                rule.ActorKindId,
+                rule.CandidateKindId,
+                rule.BindingKindId,
+                rule.AffordanceScore);
+        }
     }
 
     private static void InstallUpkeep(KernelConfigurationContext context, UpkeepProgram program)
@@ -173,7 +179,7 @@ internal static class KernelProgramInstaller
         }
     }
 
-    private static void InstallEffects(KernelConfigurationContext context, EffectsProgram program)
+    private static void ConfigureGameplayEffects(KernelConfigurationContext context, EffectsProgram program)
     {
         foreach (var effect in program.AttributeDeltaEffects)
         {

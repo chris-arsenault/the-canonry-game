@@ -2,6 +2,7 @@ namespace Engine.Domain.Tests.Domain.Graph;
 
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Gameplay;
 using IceRemembers;
 using Engine.Kinds;
 using Engine.Processes;
@@ -59,53 +60,63 @@ public class RuntimeProcessGeneratorTests
     public void IceRemembers_LowAltitudeVerbs_CoverMobileAndInfluencePhysics()
     {
         var config = IceRemembersDefinition.Create();
-        var ownerKinds = config.LowAltitudeVerbs
+        var verbs = config.Gameplay?.LowAltitudeVerbs ?? [];
+        var ownerKinds = verbs
             .Select(verb => verb.Kind)
-            .Distinct()
-            .ToHashSet();
+            .Distinct(StringComparer.Ordinal)
+            .ToHashSet(StringComparer.Ordinal);
 
         Assert.Equal(
-            new HashSet<EntityKind>
+            new HashSet<string>(StringComparer.Ordinal)
             {
-                IceRemembersKinds.Penguin,
-                IceRemembersKinds.Artifact,
-                IceRemembersKinds.Settlement,
-                IceRemembersKinds.Faction,
+                IceRemembersKinds.Penguin.Value,
+                IceRemembersKinds.Artifact.Value,
+                IceRemembersKinds.Settlement.Value,
+                IceRemembersKinds.Faction.Value,
+                IceRemembersKinds.Region.Value,
             },
             ownerKinds);
-        Assert.Equal(18, config.LowAltitudeVerbs.Count);
+        Assert.Equal(38, verbs.Count);
+        Assert.Contains(verbs, verb =>
+            verb.Kind == IceRemembersKinds.Region.Value &&
+            verb.Plane == "semantic");
+        Assert.Contains(verbs, verb =>
+            verb.Kind == IceRemembersKinds.Penguin.Value &&
+            verb.Operation == LowAltitudeVerbOperation.GrowInfluence &&
+            verb.Plane == "semantic");
     }
 
     [Fact]
     public void IceRemembers_LowAltitudeVerbs_TargetKnownWorldAffordances()
     {
         var config = IceRemembersDefinition.Create();
+        var verbs = config.Gameplay?.LowAltitudeVerbs ?? [];
 
-        Assert.Contains(config.LowAltitudeVerbs, verb =>
+        Assert.Contains(verbs, verb =>
             verb.Id == "penguin_explore" &&
             verb.TargetMode == LowAltitudeVerbTargetMode.Explore &&
             verb.GeneratorAffordanceWeight > 0f);
-        Assert.Contains(config.LowAltitudeVerbs, verb =>
+        Assert.Contains(verbs, verb =>
             verb.Id == "penguin_go_fishing" &&
             verb.TargetMode == LowAltitudeVerbTargetMode.Terrain &&
             verb.Terrains is not null &&
             verb.Terrains.Contains("ocean"));
-        Assert.Contains(config.LowAltitudeVerbs, verb =>
+        Assert.Contains(verbs, verb =>
             verb.Id == "penguin_follow_artifact" &&
             verb.TargetMode == LowAltitudeVerbTargetMode.EntityKind &&
-            verb.TargetKind == IceRemembersKinds.Artifact &&
+            verb.TargetKind == IceRemembersKinds.Artifact.Value &&
             verb.GeneratorAffordanceWeight > 1f);
-        Assert.Contains(config.LowAltitudeVerbs, verb =>
+        Assert.Contains(verbs, verb =>
             verb.Id == "artifact_seek_bearer" &&
             verb.TargetMode == LowAltitudeVerbTargetMode.EntityKind &&
-            verb.TargetKind == IceRemembersKinds.Penguin &&
+            verb.TargetKind == IceRemembersKinds.Penguin.Value &&
             verb.GeneratorAffordanceWeight > 1f);
-        Assert.Contains(config.LowAltitudeVerbs, verb =>
+        Assert.Contains(verbs, verb =>
             verb.Id == "settlement_build_the_rookery" &&
             verb.Operation == LowAltitudeVerbOperation.ExpandCoverage &&
             verb.TargetMode == LowAltitudeVerbTargetMode.OwnInfluence &&
             verb.CoverageGrowthChance > 0f);
-        Assert.Contains(config.LowAltitudeVerbs, verb =>
+        Assert.Contains(verbs, verb =>
             verb.Id == "faction_move_seat" &&
             verb.Operation == LowAltitudeVerbOperation.MoveHeadquarters &&
             verb.TargetMode == LowAltitudeVerbTargetMode.OwnInfluence &&

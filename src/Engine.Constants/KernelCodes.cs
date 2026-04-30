@@ -162,12 +162,12 @@ public static class UpkeepAgingModelCodes
 
 public static class EffectConditionCodes
 {
-    public const int RelatedInfluenceAtPhysicalLocation = 1;
+    public const int RelationshipMapValueAtLocation = 1;
     public const int RelatedEntityDistance = 2;
-    public const int MapSupportAtLocation = 3;
-    public const int MapThreatAtLocation = 4;
-    public const int MapCrowdingPressure = 5;
-    public const int MapCrowdingComfort = 6;
+    public const int LocalPositiveSignal = 3;
+    public const int LocalNegativeSignal = 4;
+    public const int LocalPressureSignal = 5;
+    public const int LocalComfortSignal = 6;
 }
 
 public static class RelationshipMatchDirectionCodes
@@ -276,24 +276,29 @@ public static class KernelProgramCodes
     public const int MapSignals = 13;
 }
 
-public static class LowAltitudeVerbTargetModeCodes
+public static class ProgramDependencyLagCodes
+{
+    public const int SameTick = 1;
+    public const int PreviousTick = 2;
+}
+
+public static class TargetSelectorCodes
 {
     public const int Explore = 1;
     public const int EntityKind = 2;
     public const int RelationshipTarget = 3;
     public const int Terrain = 4;
-    public const int OwnInfluence = 5;
-    public const int ForeignInfluence = 6;
+    public const int SelfMapValue = 5;
+    public const int OtherMapValue = 6;
 }
 
-public static class LowAltitudeVerbOperationCodes
+public static class ProgramOpcodeCodes
 {
-    public const int Move = 1;
-    public const int GrowInfluence = 2;
-    public const int ConsolidateInfluence = 3;
-    public const int ReduceInfluence = 4;
-    public const int ExpandCoverage = 5;
-    public const int MoveHeadquarters = 6;
+    public const int MoveActor = 1;
+    public const int AddOwnedCellScalar = 2;
+    public const int SubtractOtherCellScalar = 3;
+    public const int TryClaimCell = 4;
+    public const int TryRelocateEntity = 5;
 }
 
 public static class LowAltitudeVerbRelationshipDirectionCodes

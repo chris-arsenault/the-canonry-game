@@ -16,8 +16,11 @@ public static class DomainRuntimeNames
     public const string DegeneracySourceCode = "degeneracy";
     public const string PlanningSourceCode = "planning";
     public const string MovementSourceCode = "movement";
-    public const string MapActivitySourceCode = "map_activity";
-    public const string MapSignalsSourceCode = "map_signals";
-    public const string LowAltitudeVerbSourceCode = "low_altitude_verb";
-    public const string EffectsSourceCode = "effects";
+    public const string GameplaySourceCode = "gameplay";
+    public const string MapControlSourceCode = "map_control";
+    public const string GameplayEffectsSourceCode = "gameplay_effects";
+    public const string MapActivitySourceCode = MapControlSourceCode;
+    public const string MapSignalsSourceCode = MapControlSourceCode;
+    public const string LowAltitudeVerbSourceCode = GameplaySourceCode;
+    public const string EffectsSourceCode = GameplayEffectsSourceCode;
 }

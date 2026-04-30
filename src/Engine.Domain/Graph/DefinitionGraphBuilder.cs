@@ -2,6 +2,7 @@ namespace Engine.Domain.Graph;
 
 using Engine.Domain.Config;
 using Engine.Gambits;
+using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Processes;
 using Engine.Resources;
@@ -26,6 +27,7 @@ public static class DefinitionGraphBuilder
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
         var processNodes = BuildProcessNodes(config.Processes, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
         var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
+        var gameplayNodes = BuildGameplayNodes(config.Gameplay);
 
         var graph = new DefinitionGraph
         {
@@ -33,6 +35,7 @@ public static class DefinitionGraphBuilder
             Kinds = kindNodes,
             Processes = processNodes,
             Gambits = gambitNodes,
+            GameplayNodes = gameplayNodes,
             Generators = generatorNodes,
             Resources = resourceNodes,
             Relationships = relationshipNodes,
@@ -46,6 +49,54 @@ public static class DefinitionGraphBuilder
 
         DefinitionGraphValidator.ValidateOrThrow(graph);
         return graph;
+    }
+
+    private static List<DefinitionGameplayNode> BuildGameplayNodes(GameplayDefinition? gameplay)
+    {
+        if (gameplay is null)
+        {
+            return [];
+        }
+
+        var nodes = new List<DefinitionGameplayNode>();
+        foreach (var verb in gameplay.LowAltitudeVerbs)
+        {
+            nodes.Add(new DefinitionLowAltitudeVerbNode
+            {
+                Id = $"LowAltitudeVerb:{verb.Id}",
+                SourceConfig = verb,
+                Reads = [new MapSignalRead($"{verb.Kind}:{verb.TargetMode}")],
+                Writes = verb.Operation == LowAltitudeVerbOperation.Move
+                    ? [new InfluenceWrite($"{verb.Kind}:movement-intent")]
+                    : [new InfluenceWrite($"{verb.Kind}:{verb.Operation}")],
+            });
+        }
+
+        if (gameplay.MapSignals.Kinds.Count > 0 ||
+            gameplay.MapSignals.Terrains.Count > 0 ||
+            gameplay.MapSignals.Relationships.Count > 0)
+        {
+            nodes.Add(new DefinitionMapSignalNode
+            {
+                Id = "MapSignals",
+                Source = "MapSignals",
+                Reads = [new MapSignalRead("map-activity"), new MapSignalRead("relationships")],
+                Writes = [new InfluenceWrite("map-signals")],
+            });
+        }
+
+        foreach (var effect in gameplay.Effects.AttributeDeltaEffects)
+        {
+            nodes.Add(new DefinitionEffectNode
+            {
+                Id = $"AttributeDeltaEffect:{effect.Kind}:{effect.Attribute}:{effect.Condition}",
+                SourceConfig = effect,
+                Reads = [new MapSignalRead($"{effect.Kind}:{effect.Condition}")],
+                Writes = [new AttributeDeltaWrite($"{effect.Kind}:{effect.Attribute}")],
+            });
+        }
+
+        return nodes;
     }
 
     private static Dictionary<EntityKind, DefinitionKindNode> BuildKindNodes(

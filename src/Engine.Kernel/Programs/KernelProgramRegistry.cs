@@ -79,6 +79,20 @@ internal sealed partial class KernelProgramRegistry
         return enabled;
     }
 
+    public int SystemHandleOf(int programId)
+    {
+        ValidatePositive(programId);
+        for (var i = 0; i < _count; i++)
+        {
+            if (_programIds[i] == programId)
+            {
+                return _systemHandles[i];
+            }
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
     private static void ValidatePositive(int value)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
