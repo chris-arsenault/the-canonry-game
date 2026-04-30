@@ -5,7 +5,6 @@ using Engine.Kernel.Programs;
 internal sealed partial class MapSignalsProgramData : IKernelProgramData
 {
     private readonly float[] _terrainBaseCapacities;
-    private readonly int[] _kindHealthAttributeIds;
     private readonly int[] _kindSignalRadii;
     private readonly float[] _kindCapacityEmissions;
     private readonly float[] _kindSupportEmissions;
@@ -14,11 +13,15 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
     private readonly float[] _kindCoverageAttractorScales;
     private readonly float[] _kindInfluenceAttractorScales;
     private readonly float[] _kindActivityAttractorScales;
-    private readonly float[] _kindHealthAttractorScales;
     private readonly int[] _kindAttractorRadii;
+    private readonly int[] _kindScalarStarts;
+    private readonly int[] _kindScalarCounts;
+    private readonly int[] _scalarAttributeIds;
+    private readonly float[] _scalarAttractorScales;
     private readonly int[] _relationshipSignalRadii;
     private readonly float[] _relationshipSupportEmissions;
     private readonly float[] _relationshipThreatEmissions;
+    private int _scalarCount;
 
     public MapSignalsProgramData(
         int terrainCapacity,
@@ -29,7 +32,6 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kindCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(relationshipKindCapacity);
         _terrainBaseCapacities = new float[terrainCapacity + 1];
-        _kindHealthAttributeIds = new int[kindCapacity + 1];
         _kindSignalRadii = new int[kindCapacity + 1];
         _kindCapacityEmissions = new float[kindCapacity + 1];
         _kindSupportEmissions = new float[kindCapacity + 1];
@@ -38,8 +40,11 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         _kindCoverageAttractorScales = new float[kindCapacity + 1];
         _kindInfluenceAttractorScales = new float[kindCapacity + 1];
         _kindActivityAttractorScales = new float[kindCapacity + 1];
-        _kindHealthAttractorScales = new float[kindCapacity + 1];
         _kindAttractorRadii = new int[kindCapacity + 1];
+        _kindScalarStarts = new int[kindCapacity + 1];
+        _kindScalarCounts = new int[kindCapacity + 1];
+        _scalarAttributeIds = new int[(kindCapacity * 4) + 1];
+        _scalarAttractorScales = new float[(kindCapacity * 4) + 1];
         _relationshipSignalRadii = new int[relationshipKindCapacity + 1];
         _relationshipSupportEmissions = new float[relationshipKindCapacity + 1];
         _relationshipThreatEmissions = new float[relationshipKindCapacity + 1];
@@ -47,7 +52,7 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.MapSignals;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 
     public float SemanticBaseCapacity { get; set; } = 2f;
 
@@ -61,7 +66,6 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
 
     public void RegisterKindSignal(
         int kindId,
-        int healthAttributeId,
         int signalRadius,
         float capacityEmission,
         float supportEmission,
@@ -70,12 +74,9 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         float coverageAttractorScale,
         float influenceAttractorScale,
         float activityAttractorScale,
-        float healthAttractorScale,
         int attractorRadius)
     {
         ValidateIndex(kindId, _kindSignalRadii.Length);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(healthAttributeId);
-        _kindHealthAttributeIds[kindId] = healthAttributeId;
         _kindSignalRadii[kindId] = global::System.Math.Max(0, signalRadius);
         _kindCapacityEmissions[kindId] = capacityEmission;
         _kindSupportEmissions[kindId] = supportEmission;
@@ -84,8 +85,27 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         _kindCoverageAttractorScales[kindId] = coverageAttractorScale;
         _kindInfluenceAttractorScales[kindId] = influenceAttractorScale;
         _kindActivityAttractorScales[kindId] = activityAttractorScale;
-        _kindHealthAttractorScales[kindId] = healthAttractorScale;
         _kindAttractorRadii[kindId] = global::System.Math.Max(0, attractorRadius);
+    }
+
+    public void AddKindAttractorScalar(int kindId, int attributeId, float attractorScale)
+    {
+        ValidateIndex(kindId, _kindSignalRadii.Length);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attributeId);
+        if (_scalarCount + 1 >= _scalarAttributeIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        if (_kindScalarCounts[kindId] == 0)
+        {
+            _kindScalarStarts[kindId] = _scalarCount + 1;
+        }
+
+        _scalarCount++;
+        _scalarAttributeIds[_scalarCount] = attributeId;
+        _scalarAttractorScales[_scalarCount] = attractorScale;
+        _kindScalarCounts[kindId]++;
     }
 
     public void RegisterRelationshipSignal(
@@ -110,8 +130,6 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         return _terrainBaseCapacities[terrainId];
     }
 
-    public int KindHealthAttributeId(int kindId) => ValueAt(_kindHealthAttributeIds, kindId);
-
     public int KindSignalRadius(int kindId) => ValueAt(_kindSignalRadii, kindId);
 
     public float KindCapacityEmission(int kindId) => ValueAt(_kindCapacityEmissions, kindId);
@@ -128,9 +146,15 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
 
     public float KindActivityAttractorScale(int kindId) => ValueAt(_kindActivityAttractorScales, kindId);
 
-    public float KindHealthAttractorScale(int kindId) => ValueAt(_kindHealthAttractorScales, kindId);
-
     public int KindAttractorRadius(int kindId) => ValueAt(_kindAttractorRadii, kindId);
+
+    public int KindScalarStart(int kindId) => ValueAt(_kindScalarStarts, kindId);
+
+    public int KindScalarCount(int kindId) => ValueAt(_kindScalarCounts, kindId);
+
+    public int ScalarAttributeId(int scalar) => ValueAt(_scalarAttributeIds, scalar);
+
+    public float ScalarAttractorScale(int scalar) => ValueAt(_scalarAttractorScales, scalar);
 
     public int RelationshipSignalRadius(int relationshipKindId) => ValueAt(_relationshipSignalRadii, relationshipKindId);
 

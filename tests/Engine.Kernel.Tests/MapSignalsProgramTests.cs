@@ -39,7 +39,6 @@ public sealed class MapSignalsProgramTests
         simulation.MapSignals.RegisterTerrainCapacity(terrainId, 1f);
         simulation.MapSignals.RegisterKindSignal(
             kindId,
-            healthAttributeId,
             signalRadius: 0,
             capacityEmission: 4f,
             supportEmission: 0f,
@@ -48,8 +47,8 @@ public sealed class MapSignalsProgramTests
             coverageAttractorScale: 1f,
             influenceAttractorScale: 0.5f,
             activityAttractorScale: 0f,
-            healthAttractorScale: 0.1f,
             attractorRadius: 0);
+        simulation.MapSignals.AddKindAttractorScalar(kindId, healthAttributeId, attractorScale: 0.1f);
         var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.World.SetCoverageOwner(0, 0, entity);
         simulation.SetCellInfluence(entity, PlaneCodes.Physical, 0, 0, 50f, tick: 0);
@@ -67,7 +66,6 @@ public sealed class MapSignalsProgramTests
         const int kindId = 1;
         simulation.MapSignals.RegisterKindSignal(
             kindId,
-            healthAttributeId: 0,
             signalRadius: 0,
             capacityEmission: 4f,
             supportEmission: 0f,
@@ -76,7 +74,6 @@ public sealed class MapSignalsProgramTests
             coverageAttractorScale: 1f,
             influenceAttractorScale: 0.5f,
             activityAttractorScale: 0f,
-            healthAttractorScale: 0f,
             attractorRadius: 0);
         var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
         simulation.SetCellInfluence(entity, PlaneCodes.Physical, 0, 0, 50f, tick: 0);
@@ -103,7 +100,6 @@ public sealed class MapSignalsProgramTests
         simulation.MapSignals.RegisterTerrainCapacity(terrainId, 1f);
         simulation.MapSignals.RegisterKindSignal(
             supportKindId,
-            healthAttributeId: 0,
             signalRadius: 0,
             capacityEmission: 0f,
             supportEmission: 5f,
@@ -112,7 +108,6 @@ public sealed class MapSignalsProgramTests
             coverageAttractorScale: 0f,
             influenceAttractorScale: 0f,
             activityAttractorScale: 0f,
-            healthAttractorScale: 0f,
             attractorRadius: 0);
         simulation.Effects.RegisterAttributeDeltaEffect(
             targetKindId,
@@ -187,7 +182,6 @@ public sealed class MapSignalsProgramTests
         simulation.MapSignals.RegisterTerrainCapacity(terrainId, 2f);
         simulation.MapSignals.RegisterKindSignal(
             targetKindId,
-            healthAttributeId,
             signalRadius: 0,
             capacityEmission: 0f,
             supportEmission: 0f,
@@ -196,7 +190,6 @@ public sealed class MapSignalsProgramTests
             coverageAttractorScale: 0f,
             influenceAttractorScale: 2f,
             activityAttractorScale: 0f,
-            healthAttractorScale: 0f,
             attractorRadius: 0);
     }
 

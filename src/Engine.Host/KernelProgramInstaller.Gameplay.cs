@@ -1,0 +1,172 @@
+namespace Engine.Host;
+
+using Engine.Domain;
+using Engine.Domain.Compilation.KernelPrograms;
+using Engine.Gameplay;
+using Engine.Kernel;
+
+internal static partial class KernelProgramInstaller
+{
+    // Installs the GameplayCompiler output as kernel primitive tables; the host does not compile gameplay.
+    private static void InstallGameplay(KernelConfigurationContext context, KernelProgramSet programs)
+    {
+        ConfigureMapActivity(context, programs.MapActivity);
+        ConfigureMapSignals(context, programs.MapSignals);
+        ConfigureLowAltitudeVerbs(context, programs.LowAltitudeVerbs);
+        ConfigureGameplayEffects(context, programs.Effects);
+    }
+
+    private static void ConfigureMapActivity(KernelConfigurationContext context, MapActivityProgram program)
+    {
+        context.ConfigureMapActivity(program.PresenceHeat);
+    }
+
+    private static void ConfigureMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
+    {
+        context.ConfigureMapSignals(program.SemanticBaseCapacity, program.CrowdingRadius);
+        foreach (var terrain in program.Terrains)
+        {
+            context.RegisterTerrainMapSignal(terrain.TerrainId, terrain.BaseCapacity);
+        }
+
+        foreach (var kind in program.Kinds)
+        {
+            context.RegisterKindMapSignal(
+                kind.KindId,
+                kind.SignalRadius,
+                kind.CapacityEmission,
+                kind.SupportEmission,
+                kind.ThreatEmission,
+                kind.BaseAttractorMass,
+                kind.CoverageAttractorScale,
+                kind.InfluenceAttractorScale,
+                kind.ActivityAttractorScale,
+                kind.AttractorRadius);
+            AddKindMapSignalAttractorScalars(context, kind);
+        }
+
+        foreach (var relationship in program.Relationships)
+        {
+            context.RegisterRelationshipMapSignal(
+                relationship.RelationshipKindId,
+                relationship.SignalRadius,
+                relationship.SupportEmission,
+                relationship.ThreatEmission);
+        }
+    }
+
+    private static void AddKindMapSignalAttractorScalars(
+        KernelConfigurationContext context,
+        KindMapSignalRule kind)
+    {
+        foreach (var scalarInput in kind.AttractorScalarInputs)
+        {
+            context.AddKindMapSignalAttractorScalar(
+                kind.KindId,
+                scalarInput.AttributeId,
+                scalarInput.AttractorScale);
+        }
+    }
+
+    private static void ConfigureLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)
+    {
+        context.ConfigureLowAltitudeSemanticBounds(
+            program.SemanticBounds.MinQ,
+            program.SemanticBounds.MaxQ,
+            program.SemanticBounds.MinR,
+            program.SemanticBounds.MaxR);
+
+        foreach (var verb in program.Verbs)
+        {
+            RegisterLowAltitudeVerb(context, verb);
+        }
+
+        foreach (var rule in program.InitialInfluence)
+        {
+            context.RegisterLowAltitudeInitialInfluence(
+                rule.KindId,
+                rule.PlaneCode,
+                rule.InfluenceValue);
+        }
+
+        foreach (var rule in program.GeneratorAffordances)
+        {
+            context.RegisterLowAltitudeGeneratorAffordance(
+                rule.ActorKindId,
+                rule.CandidateKindId,
+                rule.BindingKindId,
+                rule.AffordanceScore);
+        }
+    }
+
+    private static void RegisterLowAltitudeVerb(KernelConfigurationContext context, LowAltitudeVerbRule verb)
+    {
+        var slot = context.RegisterLowAltitudeVerb(
+            verb.KindId,
+            verb.VerbId,
+            verb.PlaneCode,
+            verb.OperationCode,
+            verb.TargetModeCode,
+            verb.TargetKindId,
+            verb.RelationshipKindId,
+            verb.RelationshipDirectionCode,
+            verb.MinCommitmentTicks,
+            verb.MaxCommitmentTicks,
+            verb.DwellTicks,
+            verb.TargetRadius,
+            verb.CandidateSampleCount,
+            verb.Weight,
+            verb.ExploreWeight,
+            verb.StalenessWeight,
+            verb.HotspotWeight,
+            verb.CrowdingWeight,
+            verb.GeneratorAffordanceWeight,
+            verb.AffinityRelationshipKindId,
+            verb.AffinityRelationshipDirectionCode,
+            verb.RelationshipAffinityWeight,
+            verb.InfluenceDelta,
+            verb.InfluenceRadius,
+            verb.CoverageGrowthChance,
+            verb.HeadquartersMoveChance,
+            verb.RequiredInfluence);
+        foreach (var terrainId in verb.TerrainIds)
+        {
+            context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);
+        }
+
+        AddLowAltitudeVerbPrimitiveSteps(context, slot, verb.PrimitiveSteps);
+    }
+
+    private static void AddLowAltitudeVerbPrimitiveSteps(
+        KernelConfigurationContext context,
+        int slot,
+        IReadOnlyList<CompiledProgramStep> steps)
+    {
+        foreach (var step in steps)
+        {
+            context.AddLowAltitudeVerbPrimitiveStep(
+                slot,
+                step.Opcode,
+                step.IntArgument,
+                step.FloatArgument);
+        }
+    }
+
+    private static void ConfigureGameplayEffects(KernelConfigurationContext context, EffectsProgram program)
+    {
+        foreach (var effect in program.AttributeDeltaEffects)
+        {
+            context.RegisterAttributeDeltaEffect(
+                effect.KindId,
+                new AttributeRuntimeId(effect.AttributeId),
+                effect.ConditionCode,
+                effect.RelationshipKindId,
+                effect.RelationshipDirectionCode,
+                effect.PlaneCode,
+                effect.MaxDistance,
+                effect.Threshold,
+                effect.MinimumRelationshipStrength,
+                effect.DeltaPerTick);
+        }
+    }
+}

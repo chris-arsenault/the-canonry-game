@@ -40,7 +40,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return selected;
     }
 
-    private static bool TryScatteredDestination(
+    private bool TryScatteredDestination(
         Simulation simulation,
         VerbTargetCandidate candidate,
         int radius,
@@ -53,7 +53,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var dr = simulation.NextInclusive(minDr, maxDr);
         q = candidate.Q + dq;
         r = candidate.R + dr;
-        return candidate.PlaneCode == PlaneCodes.Semantic || simulation.World.CellIsKnown(q, r);
+        return CoordinateAllowed(simulation.World, candidate.PlaneCode, q, r);
     }
 
     private int DestinationScatterRadius(int entityId, int intentId, int rule)
@@ -192,7 +192,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         var q = currentQ + DirectionQ(direction);
         var r = currentR + DirectionR(direction);
-        if (planeCode == PlaneCodes.Physical && !world.CellIsKnown(q, r))
+        if (!CoordinateAllowed(world, planeCode, q, r))
         {
             return;
         }
@@ -306,7 +306,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int targetR,
         int pathLooseness)
     {
-        if (planeCode == PlaneCodes.Physical && !world.CellIsKnown(q, r))
+        if (!CoordinateAllowed(world, planeCode, q, r))
         {
             return false;
         }
@@ -362,6 +362,19 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         return true;
+    }
+
+    private bool CoordinateAllowed(WorldState world, int planeCode, int q, int r)
+    {
+        if (planeCode == PlaneCodes.Semantic)
+        {
+            return q >= Data.SemanticMinQ &&
+                q <= Data.SemanticMaxQ &&
+                r >= Data.SemanticMinR &&
+                r <= Data.SemanticMaxR;
+        }
+
+        return world.CellIsKnown(q, r);
     }
 
     private static int EntityJitter(int entityId, int intentId, int salt, int maxExclusive)

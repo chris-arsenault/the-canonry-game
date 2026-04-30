@@ -190,6 +190,9 @@ internal sealed class KernelConfigurationContext
         float influenceValue) =>
         _kernel.LowAltitudeVerbs.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
+    public void ConfigureLowAltitudeSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
+        _kernel.LowAltitudeVerbs.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
+
     public int RegisterLowAltitudeGeneratorAffordance(
         int actorKindId,
         int candidateKindId,
@@ -217,7 +220,6 @@ internal sealed class KernelConfigurationContext
 
     public void RegisterKindMapSignal(
         int kindId,
-        int healthAttributeId,
         int signalRadius,
         float capacityEmission,
         float supportEmission,
@@ -226,11 +228,9 @@ internal sealed class KernelConfigurationContext
         float coverageAttractorScale,
         float influenceAttractorScale,
         float activityAttractorScale,
-        float healthAttractorScale,
         int attractorRadius) =>
         _kernel.MapSignals.RegisterKindSignal(
             kindId,
-            healthAttributeId,
             signalRadius,
             capacityEmission,
             supportEmission,
@@ -239,8 +239,10 @@ internal sealed class KernelConfigurationContext
             coverageAttractorScale,
             influenceAttractorScale,
             activityAttractorScale,
-            healthAttractorScale,
             attractorRadius);
+
+    public void AddKindMapSignalAttractorScalar(int kindId, int attributeId, float attractorScale) =>
+        _kernel.MapSignals.AddKindAttractorScalar(kindId, attributeId, attractorScale);
 
     public void RegisterRelationshipMapSignal(
         int relationshipKindId,

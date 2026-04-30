@@ -47,9 +47,6 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
             string.Equals(candidate.Name, attribute, StringComparison.Ordinal));
     }
 
-    public string? HealthAttributeForKind(string kind, string context) =>
-        _config.Kinds[ResolveKind(kind, context)].HealthAttribute;
-
     public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances()
     {
         var affordances = new List<GeneratorAffordanceDefinition>();

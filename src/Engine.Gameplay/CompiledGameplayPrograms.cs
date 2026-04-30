@@ -3,10 +3,17 @@ namespace Engine.Gameplay;
 public sealed class LowAltitudeVerbProgram
 {
     public bool EnabledByDefault { get; init; } = true;
+    public CompiledSemanticPlaneBounds SemanticBounds { get; init; } = new(-24, 24, -24, 24);
     public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
     public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
     public IReadOnlyList<CompiledGeneratorAffordanceRule> GeneratorAffordances { get; init; } = [];
 }
+
+public sealed record CompiledSemanticPlaneBounds(
+    int MinQ,
+    int MaxQ,
+    int MinR,
+    int MaxR);
 
 public sealed record LowAltitudeVerbRule(
     int KindId,
@@ -75,7 +82,6 @@ public sealed record TerrainMapSignalRule(int TerrainId, float BaseCapacity);
 
 public sealed record KindMapSignalRule(
     int KindId,
-    int HealthAttributeId,
     int SignalRadius,
     float CapacityEmission,
     float SupportEmission,
@@ -84,8 +90,12 @@ public sealed record KindMapSignalRule(
     float CoverageAttractorScale,
     float InfluenceAttractorScale,
     float ActivityAttractorScale,
-    float HealthAttractorScale,
-    int AttractorRadius);
+    int AttractorRadius,
+    IReadOnlyList<MapSignalScalarInputRule> AttractorScalarInputs);
+
+public sealed record MapSignalScalarInputRule(
+    int AttributeId,
+    float AttractorScale);
 
 public sealed record RelationshipMapSignalRule(
     int RelationshipKindId,

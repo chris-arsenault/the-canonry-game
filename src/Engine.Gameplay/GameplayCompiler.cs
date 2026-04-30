@@ -74,11 +74,15 @@ public static class GameplayCompiler
 
         return new LowAltitudeVerbProgram
         {
+            SemanticBounds = CompileSemanticBounds(definition.SemanticPlane),
             Verbs = rules,
             InitialInfluence = CompileInitialInfluenceRules(definition, context),
             GeneratorAffordances = CompileGeneratorAffordances(context),
         };
     }
+
+    private static CompiledSemanticPlaneBounds CompileSemanticBounds(SemanticPlaneConfig semanticPlane) =>
+        new(semanticPlane.MinQ, semanticPlane.MaxQ, semanticPlane.MinR, semanticPlane.MaxR);
 
     private static List<CompiledInitialInfluenceRule> CompileInitialInfluenceRules(
         GameplayDefinition definition,
@@ -156,22 +160,8 @@ public static class GameplayCompiler
         var rules = new List<KindMapSignalRule>();
         foreach (var kind in mapSignals.Kinds)
         {
-            var healthAttribute = kind.HealthAttribute ?? context.HealthAttributeForKind(kind.Kind, "Map signal kind");
-            var healthAttributeId = 0;
-            if (!string.IsNullOrWhiteSpace(healthAttribute))
-            {
-                if (!context.KindHasAttribute(kind.Kind, healthAttribute))
-                {
-                    throw new InvalidOperationException(
-                        $"Map signal health attribute references unknown attribute '{healthAttribute}'.");
-                }
-
-                healthAttributeId = context.ResolveAttributeId(healthAttribute);
-            }
-
             rules.Add(new KindMapSignalRule(
                 context.ResolveKindId(kind.Kind, "Map signal kind"),
-                healthAttributeId,
                 kind.SignalRadius,
                 kind.CapacityEmission,
                 kind.SupportEmission,
@@ -180,11 +170,32 @@ public static class GameplayCompiler
                 kind.CoverageAttractorScale,
                 kind.InfluenceAttractorScale,
                 kind.ActivityAttractorScale,
-                kind.HealthAttractorScale,
-                kind.AttractorRadius));
+                kind.AttractorRadius,
+                CompileMapSignalScalarInputs(kind, context)));
         }
 
         return rules;
+    }
+
+    private static List<MapSignalScalarInputRule> CompileMapSignalScalarInputs(
+        KindMapSignalConfig kind,
+        IGameplayCompilationContext context)
+    {
+        var scalarInputs = new List<MapSignalScalarInputRule>();
+        foreach (var scalar in kind.AttractorScalarInputs)
+        {
+            if (!context.KindHasAttribute(kind.Kind, scalar.Attribute))
+            {
+                throw new InvalidOperationException(
+                    $"Map signal scalar input references unknown attribute '{scalar.Attribute}'.");
+            }
+
+            scalarInputs.Add(new MapSignalScalarInputRule(
+                context.ResolveAttributeId(scalar.Attribute),
+                scalar.AttractorScale));
+        }
+
+        return scalarInputs;
     }
 
     private static List<RelationshipMapSignalRule> CompileRelationshipMapSignals(
@@ -321,7 +332,6 @@ public interface IGameplayCompilationContext
     bool TerrainExists(string terrain);
     bool RelationshipExists(string relationship);
     bool KindHasAttribute(string kind, string attribute);
-    string? HealthAttributeForKind(string kind, string context);
     IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances();
 }
 

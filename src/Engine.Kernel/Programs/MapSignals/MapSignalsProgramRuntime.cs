@@ -20,7 +20,6 @@ internal sealed class MapSignalsProgramRuntime :
 
     public void RegisterKindSignal(
         int kindId,
-        int healthAttributeId,
         int signalRadius,
         float capacityEmission,
         float supportEmission,
@@ -29,11 +28,9 @@ internal sealed class MapSignalsProgramRuntime :
         float coverageAttractorScale,
         float influenceAttractorScale,
         float activityAttractorScale,
-        float healthAttractorScale,
         int attractorRadius) =>
         Data.RegisterKindSignal(
             kindId,
-            healthAttributeId,
             signalRadius,
             capacityEmission,
             supportEmission,
@@ -42,8 +39,10 @@ internal sealed class MapSignalsProgramRuntime :
             coverageAttractorScale,
             influenceAttractorScale,
             activityAttractorScale,
-            healthAttractorScale,
             attractorRadius);
+
+    public void AddKindAttractorScalar(int kindId, int attributeId, float attractorScale) =>
+        Data.AddKindAttractorScalar(kindId, attributeId, attractorScale);
 
     public void RegisterRelationshipSignal(
         int relationshipKindId,
@@ -269,14 +268,25 @@ internal sealed class MapSignalsProgramRuntime :
         mass += world.GetCellInfluence(entityId, planeCode, q, r) * Data.KindInfluenceAttractorScale(kindId);
 
         mass += simulation.MapActivity.Heat(planeCode, q, r) * Data.KindActivityAttractorScale(kindId);
-        var healthAttributeId = Data.KindHealthAttributeId(kindId);
-        if (healthAttributeId > 0)
-        {
-            mass += world.GetAttribute(entityId, healthAttributeId) * Data.KindHealthAttractorScale(kindId);
-        }
+        mass += AttractorScalarMass(world, entityId, kindId);
 
         mass += support - threat;
         return mass < 0f ? 0f : mass;
+    }
+
+    private float AttractorScalarMass(WorldState world, int entityId, int kindId)
+    {
+        var mass = 0f;
+        var start = Data.KindScalarStart(kindId);
+        var count = Data.KindScalarCount(kindId);
+        for (var offset = 0; offset < count; offset++)
+        {
+            var scalar = start + offset;
+            mass += world.GetAttribute(entityId, Data.ScalarAttributeId(scalar)) *
+                Data.ScalarAttractorScale(scalar);
+        }
+
+        return mass;
     }
 
     private void EmitAttractorAround(int planeCode, int centerQ, int centerR, int radius, float mass)

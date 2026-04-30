@@ -24,8 +24,6 @@ public sealed class KindMapSignalConfig
 {
     public required string Kind { get; init; }
 
-    public string? HealthAttribute { get; init; }
-
     public int SignalRadius { get; init; } = 1;
 
     public float CapacityEmission { get; init; }
@@ -42,9 +40,16 @@ public sealed class KindMapSignalConfig
 
     public float ActivityAttractorScale { get; init; }
 
-    public float HealthAttractorScale { get; init; }
+    public IReadOnlyList<MapSignalScalarInputConfig> AttractorScalarInputs { get; init; } = [];
 
     public int AttractorRadius { get; init; } = 1;
+}
+
+public sealed class MapSignalScalarInputConfig
+{
+    public required string Attribute { get; init; }
+
+    public required float AttractorScale { get; init; }
 }
 
 public sealed class RelationshipMapSignalConfig

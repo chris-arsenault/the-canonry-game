@@ -148,6 +148,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue) =>
         Data.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
+    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
+        Data.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
+
     public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument) =>
         Data.AddPrimitiveStep(rule, opcode, intArgument, floatArgument);
 
@@ -956,6 +959,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     private bool TryRandomCoordinate(Simulation simulation, int planeCode, out int q, out int r, out int s)
     {
+        if (planeCode == PlaneCodes.Semantic)
+        {
+            return TryRandomSemanticCoordinate(simulation, out q, out r, out s);
+        }
+
         var radius = global::System.Math.Max(1, simulation.World.MapRadius);
         for (var attempt = 0; attempt < 16; attempt++)
         {
@@ -967,7 +975,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 continue;
             }
 
-            if (planeCode == PlaneCodes.Semantic || simulation.World.CellIsKnown(q, r))
+            if (simulation.World.CellIsKnown(q, r))
             {
                 return true;
             }
@@ -976,7 +984,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         q = 0;
         r = 0;
         s = 0;
-        return planeCode == PlaneCodes.Semantic || simulation.World.CellIsKnown(0, 0);
+        return simulation.World.CellIsKnown(0, 0);
+    }
+
+    private bool TryRandomSemanticCoordinate(Simulation simulation, out int q, out int r, out int s)
+    {
+        q = simulation.NextInclusive(Data.SemanticMinQ, Data.SemanticMaxQ);
+        r = simulation.NextInclusive(Data.SemanticMinR, Data.SemanticMaxR);
+        s = -q - r;
+        return true;
     }
 
     private void EmitIntentTrace(

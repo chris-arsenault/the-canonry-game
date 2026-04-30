@@ -20,12 +20,11 @@ public sealed class GameplayCompilerTests
         {
             LowAltitudeVerbs =
             [
-                new LowAltitudeVerbConfig
+                new MovementLowAltitudeVerbConfig
                 {
                     Id = "bad_semantic_terrain",
                     Kind = "actor",
                     Plane = "semantic",
-                    Operation = LowAltitudeVerbOperation.Move,
                     TargetMode = LowAltitudeVerbTargetMode.Terrain,
                     Terrains = new HashSet<string>(StringComparer.Ordinal) { "ocean" },
                 },
@@ -42,21 +41,58 @@ public sealed class GameplayCompilerTests
         {
             LowAltitudeVerbs =
             [
-                new LowAltitudeVerbConfig
+                new CoverageExpansionLowAltitudeVerbConfig
                 {
                     Id = "bad_semantic_claim",
                     Kind = "actor",
                     Plane = "semantic",
-                    Operation = LowAltitudeVerbOperation.ExpandCoverage,
                     TargetMode = LowAltitudeVerbTargetMode.OwnInfluence,
-                    InfluenceDelta = 1f,
-                    CoverageGrowthChance = 1f,
-                    RequiredInfluence = 50f,
+                    Delta = 1f,
+                    GrowthChance = 1f,
+                    RequiredMapValue = 50f,
                 },
             ],
         });
 
         Assert.Contains(result.Errors, error => error.Code == "InvalidVerbPlane");
+    }
+
+    [Fact]
+    public void Validate_RejectsInvalidSemanticPlaneBounds()
+    {
+        var result = GameplayValidator.Validate(new GameplayDefinition
+        {
+            SemanticPlane = new SemanticPlaneConfig
+            {
+                MinQ = 4,
+                MaxQ = -4,
+                MinR = -4,
+                MaxR = 4,
+            },
+        });
+
+        Assert.Contains(result.Errors, error => error.Code == "InvalidSemanticPlaneBounds");
+    }
+
+    [Fact]
+    public void Validate_RejectsInfluenceShapeUsingMovementOperation()
+    {
+        var result = GameplayValidator.Validate(new GameplayDefinition
+        {
+            LowAltitudeVerbs =
+            [
+                new InfluenceLowAltitudeVerbConfig
+                {
+                    Id = "bad_influence_shape",
+                    Kind = "actor",
+                    InfluenceOperation = LowAltitudeVerbOperation.Move,
+                    TargetMode = LowAltitudeVerbTargetMode.OwnInfluence,
+                    Delta = 1f,
+                },
+            ],
+        });
+
+        Assert.Contains(result.Errors, error => error.Code == "InvalidInfluenceShapeOperation");
     }
 
     [Fact]
@@ -66,16 +102,15 @@ public sealed class GameplayCompilerTests
         {
             LowAltitudeVerbs =
             [
-                new LowAltitudeVerbConfig
+                new CoverageExpansionLowAltitudeVerbConfig
                 {
                     Id = "claim",
                     Kind = "actor",
                     Plane = "physical",
-                    Operation = LowAltitudeVerbOperation.ExpandCoverage,
                     TargetMode = LowAltitudeVerbTargetMode.OwnInfluence,
-                    InfluenceDelta = 1f,
-                    CoverageGrowthChance = 1f,
-                    RequiredInfluence = 50f,
+                    Delta = 1f,
+                    GrowthChance = 1f,
+                    RequiredMapValue = 50f,
                 },
             ],
         }, new TestGameplayContext());
@@ -85,6 +120,57 @@ public sealed class GameplayCompilerTests
         Assert.Equal(
             [ProgramOpcodeCodes.AddOwnedCellScalar, ProgramOpcodeCodes.TryClaimCell],
             verb.PrimitiveSteps.Select(step => step.Opcode).ToArray());
+    }
+
+    [Fact]
+    public void CompileGameplay_PropagatesSemanticPlaneBounds()
+    {
+        var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
+        {
+            SemanticPlane = new SemanticPlaneConfig
+            {
+                MinQ = -7,
+                MaxQ = 9,
+                MinR = -5,
+                MaxR = 11,
+            },
+        }, new TestGameplayContext());
+
+        Assert.Equal(-7, result.Programs.LowAltitudeVerbs.SemanticBounds.MinQ);
+        Assert.Equal(9, result.Programs.LowAltitudeVerbs.SemanticBounds.MaxQ);
+        Assert.Equal(-5, result.Programs.LowAltitudeVerbs.SemanticBounds.MinR);
+        Assert.Equal(11, result.Programs.LowAltitudeVerbs.SemanticBounds.MaxR);
+    }
+
+    [Fact]
+    public void CompileGameplay_CompilesMapSignalScalarInputs()
+    {
+        var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
+        {
+            MapSignals = new MapSignalsConfig
+            {
+                Kinds =
+                [
+                    new KindMapSignalConfig
+                    {
+                        Kind = "actor",
+                        AttractorScalarInputs =
+                        [
+                            new MapSignalScalarInputConfig
+                            {
+                                Attribute = "health",
+                                AttractorScale = 0.25f,
+                            },
+                        ],
+                    },
+                ],
+            },
+        }, new TestGameplayContext());
+
+        var kindSignal = Assert.Single(result.Programs.MapSignals.Kinds);
+        var scalarInput = Assert.Single(kindSignal.AttractorScalarInputs);
+        Assert.Equal(40, scalarInput.AttributeId);
+        Assert.Equal(0.25f, scalarInput.AttractorScale);
     }
 
     private sealed class EmptyGameplayContext : IGameplayCompilationContext
@@ -98,7 +184,6 @@ public sealed class GameplayCompilerTests
         public bool TerrainExists(string terrain) => throw new NotSupportedException();
         public bool RelationshipExists(string relationship) => throw new NotSupportedException();
         public bool KindHasAttribute(string kind, string attribute) => throw new NotSupportedException();
-        public string? HealthAttributeForKind(string kind, string context) => throw new NotSupportedException();
         public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => [];
     }
 
@@ -113,7 +198,6 @@ public sealed class GameplayCompilerTests
         public bool TerrainExists(string terrain) => true;
         public bool RelationshipExists(string relationship) => true;
         public bool KindHasAttribute(string kind, string attribute) => true;
-        public string? HealthAttributeForKind(string kind, string context) => null;
         public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => [];
     }
 }

@@ -190,9 +190,9 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
         RegisterProgram(KernelProgramCodes.MapActivity, 1, MapActivity);
         RegisterProgram(KernelProgramCodes.MapSignals, 1, MapSignals);
+        RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
         RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
-        RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
         RegisterProgram(KernelProgramCodes.Processes, 1, Processes);
         RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
         RegisterProgram(KernelProgramCodes.Pressures, 5, Pressures);

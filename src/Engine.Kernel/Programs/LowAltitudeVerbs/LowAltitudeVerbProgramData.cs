@@ -51,6 +51,10 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int _stepCount;
     private int _initialInfluenceRuleCount;
     private int _affordanceKindPairCount;
+    private int _semanticMinQ = -24;
+    private int _semanticMaxQ = 24;
+    private int _semanticMinR = -24;
+    private int _semanticMaxR = 24;
 
     public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity)
     {
@@ -144,13 +148,34 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
     public int RuleCount => _ruleCount;
 
     public int InitialInfluenceRuleCount => _initialInfluenceRuleCount;
 
     public int AffordanceKindPairCount => _affordanceKindPairCount;
+
+    public int SemanticMinQ => _semanticMinQ;
+
+    public int SemanticMaxQ => _semanticMaxQ;
+
+    public int SemanticMinR => _semanticMinR;
+
+    public int SemanticMaxR => _semanticMaxR;
+
+    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
+    {
+        if (minQ > maxQ || minR > maxR)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(minQ));
+        }
+
+        _semanticMinQ = minQ;
+        _semanticMaxQ = maxQ;
+        _semanticMinR = minR;
+        _semanticMaxR = maxR;
+    }
 
     public int RegisterVerb(
         in LowAltitudeVerbRegistration registration)

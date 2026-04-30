@@ -13,8 +13,6 @@ using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using Fact = IceRemembers.IceRemembersStructuralFact;
 using K = IceRemembers.IceRemembersKinds;
-using Mode = Engine.Gameplay.LowAltitudeTargets;
-using Op = Engine.Gameplay.LowAltitudeOperations;
 using Press = IceRemembers.IceRemembersPressure;
 using Rel = IceRemembers.IceRemembersRelationship;
 using RelFact = IceRemembers.IceRemembersRelationshipFact;
@@ -26,7 +24,7 @@ using Verb = IceRemembers.IceRemembersVerbId;
 /// The Ice Remembers domain definition. This provides the engine with the
 /// world's canonical kinds, relationships, resources, cultures, and semantics.
 /// </summary>
-public static class IceRemembersDefinition
+public static partial class IceRemembersDefinition
 {
     private const float HealthDefault = 90f;
     private const float HealthDefaultVariance = 1f / 9f;
@@ -83,14 +81,6 @@ public static class IceRemembersDefinition
             [K.Artifact] = CreateArtifactKind(),
         };
 
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateLowAltitudeVerbs() =>
-    [
-        ..CreatePhysicalMovementVerbs(),
-        ..CreateSemanticMovementVerbs(),
-        ..CreateSemanticInfluenceVerbs(),
-        ..CreatePhysicalInfluenceVerbs(),
-    ];
-
     private static GameplayDefinition CreateGameplayDefinition() =>
         new()
         {
@@ -102,6 +92,13 @@ public static class IceRemembersDefinition
                 new GameplayModule("attribute_effects"),
             ],
             LowAltitudeVerbs = CreateLowAltitudeVerbs(),
+            SemanticPlane = new SemanticPlaneConfig
+            {
+                MinQ = -24,
+                MaxQ = 24,
+                MinR = -24,
+                MaxR = 24,
+            },
             InitialInfluence = CreateInitialInfluenceRules(),
             Effects = CreateEffects(),
             MapSignals = CreateMapSignals(),
@@ -128,224 +125,6 @@ public static class IceRemembersDefinition
 
     private static InitialInfluenceRule InitialInfluence(EntityKind kind, PrimaryPlane plane, float value) =>
         new(kind.Value, GameplayPlaneName(plane), value);
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalMovementVerbs() =>
-    [
-        MovementVerb(Verb.PenguinExplore, "Explore the White", K.Penguin, Mode.Explore,
-            ticks: (45, 120), dwell: 2, samples: 24, weights: (1.4f, 2.2f, 1.8f, 0.1f, 0.9f, 0.2f)),
-        MovementVerb(Verb.PenguinVisitRookery, "Visit the Rookery", K.Penguin, Mode.EntityKind,
-            targetKind: K.Settlement, ticks: (30, 90), dwell: 18, radius: 1, samples: 12, weights: (1.0f, 0.2f, 0.4f, 0.7f, 0.15f, 0.4f),
-            affinityRelationshipKind: L(Rel.HomeBase), affinityWeight: 1.4f),
-        MovementVerb(Verb.PenguinVisitRival, "Trail a Rival", K.Penguin, Mode.RelationshipTarget,
-            relationshipKind: L(Rel.RivalOf), ticks: (25, 70), dwell: 8, radius: 1, weights: (0.45f, 0.2f, 0.4f, 0.2f, 0.1f, 0.6f),
-            affinityRelationshipKind: L(Rel.RivalOf), affinityWeight: 1.6f),
-        MovementVerb(Verb.PenguinGoFishing, "Go Fishing", K.Penguin, Mode.Terrain,
-            terrains: MaritimeTerrains(), ticks: (35, 100), dwell: 16, radius: 1, samples: 28, weights: (1.1f, 1.2f, 1.4f, 0.3f, 0.35f, 0.3f)),
-        MovementVerb(Verb.PenguinFollowArtifact, "Follow a Relic", K.Penguin, Mode.EntityKind,
-            targetKind: K.Artifact, ticks: (25, 80), dwell: 10, radius: 1, samples: 10, weights: (0.65f, 0.2f, 0.4f, 0.15f, 0.2f, 1.6f),
-            affinityRelationshipKind: L(Rel.Holds), affinityWeight: 1.8f),
-        MovementVerb(Verb.ArtifactCirculate, "Circulate", K.Artifact, Mode.Explore,
-            ticks: (55, 150), dwell: 4, samples: 24, weights: (1.2f, 1.7f, 1.3f, 0.35f, 0.45f, 0.4f)),
-        MovementVerb(Verb.ArtifactSeekBearer, "Seek a Bearer", K.Artifact, Mode.EntityKind,
-            targetKind: K.Penguin, ticks: (30, 90), dwell: 12, radius: 1, samples: 12, weights: (0.75f, 0.2f, 0.3f, 0.2f, 0.2f, 1.6f),
-            affinityRelationshipKind: L(Rel.Holds), affinityDirection: LowAltitudeVerbRelationshipDirection.Incoming, affinityWeight: 1.6f),
-        MovementVerb(Verb.ArtifactReturnToShrine, "Return to Shrine", K.Artifact, Mode.EntityKind,
-            targetKind: K.Settlement, ticks: (35, 110), dwell: 18, radius: 1, samples: 12, weights: (0.75f, 0.2f, 0.4f, 0.55f, 0.1f, 0.7f),
-            affinityRelationshipKind: L(Rel.Anchored), affinityWeight: 1.4f),
-        MovementVerb(Verb.ArtifactDrawToScar, "Draw Toward a Scar", K.Artifact, Mode.EntityKind,
-            targetKind: K.Region, ticks: (40, 120), dwell: 10, radius: 1, samples: 14, weights: (0.65f, 0.4f, 0.6f, 0.25f, 0.2f, 1.1f)),
-        MovementVerb(Verb.ArtifactSinkSeaward, "Sink Seaward", K.Artifact, Mode.Terrain,
-            terrains: MaritimeTerrains(), ticks: (35, 120), dwell: 14, radius: 1, samples: 28, weights: (0.7f, 1.0f, 1.1f, 0.25f, 0.2f, 0.5f)),
-    ];
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticMovementVerbs() =>
-    [
-        MovementVerb(Verb.SettlementDeliberate, "Deliberate", K.Settlement, Mode.EntityKind,
-            targetKind: K.Faction, ticks: (50, 140), dwell: 14, radius: 1, samples: 14, weights: (0.7f, 0.2f, 0.7f, 0.4f, 0.2f, 0.5f), plane: PrimaryPlane.Semantic),
-        MovementVerb(Verb.SettlementGossip, "Gossip", K.Settlement, Mode.Explore,
-            ticks: (40, 110), dwell: 10, samples: 24, weights: (0.9f, 1.1f, 1.4f, 0.35f, 0.35f, 0.2f), plane: PrimaryPlane.Semantic),
-        MovementVerb(Verb.FactionPreach, "Preach", K.Faction, Mode.EntityKind,
-            targetKind: K.Settlement, ticks: (45, 130), dwell: 12, radius: 1, samples: 16, weights: (0.85f, 0.2f, 0.6f, 0.5f, 0.25f, 0.7f), plane: PrimaryPlane.Semantic),
-        MovementVerb(Verb.FactionQuarrel, "Quarrel", K.Faction, Mode.Explore,
-            ticks: (35, 95), dwell: 8, samples: 24, weights: (0.75f, 0.9f, 1.2f, 0.25f, 0.35f, 0.2f), plane: PrimaryPlane.Semantic),
-        MovementVerb(Verb.RegionCommune, "Commune", K.Region, Mode.EntityKind,
-            targetKind: K.Artifact, ticks: (60, 160), dwell: 16, radius: 1, samples: 12, weights: (0.6f, 0.2f, 0.6f, 0.45f, 0.15f, 0.5f), plane: PrimaryPlane.Semantic),
-        MovementVerb(Verb.RegionDream, "Dream", K.Region, Mode.Explore,
-            ticks: (55, 150), dwell: 12, samples: 24, weights: (0.8f, 1.0f, 1.5f, 0.25f, 0.25f, 0.2f), plane: PrimaryPlane.Semantic),
-    ];
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticInfluenceVerbs() =>
-    [
-        InfluenceVerb(Verb.PenguinWitness, "Leave Witness", K.Penguin,
-            Op.GrowInfluence, Mode.OwnInfluence,
-            ticks: (30, 85), dwell: 8, influence: (2.5f, 1, 0f, 0f, 0f), samples: 18, weights: (0.7f, 0.5f, 0.8f, 0.2f, 0.2f, 0.4f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.PenguinCreateWorks, "Create Works", K.Penguin,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (35, 100), dwell: 12, influence: (4f, 0, 0f, 0f, 0f), samples: 16, weights: (0.45f, 0.2f, 0.4f, 0.45f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.ArtifactChannel, "Channel", K.Artifact,
-            Op.GrowInfluence, Mode.OwnInfluence,
-            ticks: (35, 100), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 18, weights: (0.7f, 0.4f, 0.7f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.ArtifactDevote, "Consecrate a Wake", K.Artifact,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (40, 115), dwell: 12, influence: (5f, 0, 0f, 0f, 0f), samples: 16, weights: (0.45f, 0.2f, 0.4f, 0.5f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.ArtifactCorrupt, "Bleed Corruption", K.Artifact,
-            Op.ReduceInfluence, Mode.ForeignInfluence,
-            ticks: (35, 100), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.5f, 0.2f, 0.5f, 0.45f, 0.05f, 0.25f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.SettlementPropaganda, "Paint the Hearth-Signs", K.Settlement,
-            Op.GrowInfluence, Mode.OwnInfluence,
-            ticks: (35, 95), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.85f, 0.7f, 1.0f, 0.35f, 0.25f, 0.35f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.SettlementSanctify, "Sanctify the Public Floor", K.Settlement,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (30, 85), dwell: 12, influence: (5.5f, 0, 0f, 0f, 0f), samples: 18, weights: (0.65f, 0.2f, 0.5f, 0.55f, 0.05f, 0.15f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.SettlementClaimsEcho, "Claim Echoes", K.Settlement,
-            Op.ReduceInfluence, Mode.ForeignInfluence,
-            ticks: (35, 100), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.45f, 0.2f, 0.5f, 0.4f, 0.05f, 0.25f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.FactionIndoctrinate, "Set the Doctrine", K.Faction,
-            Op.GrowInfluence, Mode.EntityKind,
-            targetKind: K.Settlement, ticks: (35, 100), dwell: 8, influence: (3f, 1, 0f, 0f, 0f), samples: 18, weights: (0.85f, 0.2f, 0.5f, 0.65f, 0.1f, 0.7f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.FactionRally, "Rally the Oath", K.Faction,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (30, 90), dwell: 12, influence: (5f, 0, 0f, 0f, 0f), samples: 18, weights: (0.7f, 0.2f, 0.5f, 0.55f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.FactionAgitate, "Agitate the Rival Chorus", K.Faction,
-            Op.ReduceInfluence, Mode.ForeignInfluence,
-            ticks: (35, 100), dwell: 8, influence: (4.5f, 1, 0f, 0f, 0f), samples: 24, weights: (0.55f, 0.2f, 0.5f, 0.45f, 0.05f, 0.35f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.RegionAttune, "Attune the Place-Spirit", K.Region,
-            Op.GrowInfluence, Mode.OwnInfluence,
-            ticks: (45, 125), dwell: 12, influence: (3f, 1, 0f, 0f, 0f), samples: 20, weights: (0.8f, 0.7f, 1.1f, 0.25f, 0.15f, 0.25f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.RegionRoot, "Root the Old Dream", K.Region,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (45, 125), dwell: 16, influence: (5f, 0, 0f, 0f, 0f), samples: 18, weights: (0.6f, 0.2f, 0.6f, 0.45f, 0.05f, 0.15f), plane: PrimaryPlane.Semantic),
-        InfluenceVerb(Verb.RegionCleanse, "Cleanse the Thinness", K.Region,
-            Op.ReduceInfluence, Mode.ForeignInfluence,
-            ticks: (45, 130), dwell: 12, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.45f, 0.2f, 0.6f, 0.35f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
-    ];
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalInfluenceVerbs() =>
-    [
-        InfluenceVerb(Verb.SettlementCastLamplight, "Cast Lamplight", K.Settlement,
-            Op.GrowInfluence, Mode.OwnInfluence,
-            ticks: (35, 95), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 24, weights: (1.15f, 1.0f, 1.2f, 0.3f, 0.25f, 0.4f)),
-        InfluenceVerb(Verb.SettlementBankTheHearth, "Bank the Hearth", K.Settlement,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (25, 70), dwell: 12, influence: (7f, 0, 0f, 0f, 0f), samples: 18, weights: (0.8f, 0.3f, 0.4f, 0.7f, 0.05f, 0.1f)),
-        InfluenceVerb(Verb.SettlementDrownOutClaim, "Drown Out a Claim", K.Settlement,
-            Op.ReduceInfluence, Mode.ForeignInfluence,
-            ticks: (30, 85), dwell: 8, influence: (5f, 1, 0f, 0f, 0f), samples: 24, weights: (0.65f, 0.2f, 0.3f, 0.4f, 0.05f, 0.2f)),
-        InfluenceVerb(Verb.SettlementBuildTheRookery, "Build the Rookery", K.Settlement,
-            Op.ExpandCoverage, Mode.OwnInfluence,
-            ticks: (45, 130), dwell: 16, influence: (3f, 1, 0.025f, 0f, 58f), samples: 24, weights: (0.35f, 0.4f, 0.5f, 0.4f, 0.05f, 0.3f)),
-        InfluenceVerb(Verb.FactionSendEnvoys, "Send Envoys", K.Faction,
-            Op.GrowInfluence, Mode.EntityKind,
-            targetKind: K.Settlement, ticks: (35, 100), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 18, weights: (1.0f, 0.2f, 0.4f, 0.7f, 0.1f, 0.8f),
-            affinityRelationshipKind: L(Rel.ControlledBy), affinityDirection: LowAltitudeVerbRelationshipDirection.Incoming, affinityWeight: 1.1f),
-        InfluenceVerb(Verb.FactionHoldCouncil, "Hold Council", K.Faction,
-            Op.ConsolidateInfluence, Mode.OwnInfluence,
-            ticks: (25, 80), dwell: 12, influence: (6f, 1, 0f, 0f, 0f), samples: 20, weights: (0.9f, 0.3f, 0.5f, 0.5f, 0.05f, 0.2f)),
-        InfluenceVerb(Verb.FactionBreakRivalHold, "Break a Rival Hold", K.Faction,
-            Op.ReduceInfluence, Mode.ForeignInfluence,
-            ticks: (30, 90), dwell: 8, influence: (5.5f, 1, 0f, 0f, 0f), samples: 26, weights: (0.7f, 0.2f, 0.3f, 0.4f, 0.05f, 0.35f)),
-        InfluenceVerb(Verb.FactionMoveSeat, "Move the Seat", K.Faction,
-            Op.MoveHeadquarters, Mode.OwnInfluence,
-            ticks: (45, 140), dwell: 18, influence: (2f, 0, 0f, 0.04f, 65f), samples: 24, weights: (0.25f, 0.3f, 0.7f, 0.25f, 0.1f, 0.4f)),
-    ];
-
-    private static LowAltitudeVerbConfig MovementVerb(
-        Verb verb,
-        string displayName,
-        EntityKind kind,
-        LowAltitudeVerbTargetMode mode,
-        (int Min, int Max) ticks,
-        int dwell,
-        (float Base, float Explore, float Stale, float Hot, float Crowd, float Generator) weights,
-        EntityKind? targetKind = null,
-        string? relationshipKind = null,
-        IReadOnlySet<string>? terrains = null,
-        int radius = 0,
-        int samples = 16,
-        string? affinityRelationshipKind = null,
-        LowAltitudeVerbRelationshipDirection affinityDirection = LowAltitudeVerbRelationshipDirection.Either,
-        float affinityWeight = 0f,
-        PrimaryPlane plane = PrimaryPlane.Physical) =>
-        new()
-        {
-            Id = V(verb),
-            DisplayName = displayName,
-            Kind = kind.Value,
-            Plane = GameplayPlaneName(plane),
-            TargetMode = mode,
-            TargetKind = targetKind?.Value,
-            RelationshipKind = relationshipKind,
-            Terrains = terrains,
-            MinCommitmentTicks = ticks.Min,
-            MaxCommitmentTicks = ticks.Max,
-            DwellTicks = dwell,
-            TargetRadius = radius,
-            CandidateSampleCount = samples,
-            Weight = weights.Base,
-            ExploreWeight = weights.Explore,
-            StalenessWeight = weights.Stale,
-            HotspotWeight = weights.Hot,
-            CrowdingWeight = weights.Crowd,
-            GeneratorAffordanceWeight = weights.Generator,
-            AffinityRelationshipKind = affinityRelationshipKind,
-            AffinityRelationshipDirection = affinityDirection,
-            RelationshipAffinityWeight = affinityWeight,
-        };
-
-    private static LowAltitudeVerbConfig InfluenceVerb(
-        Verb verb,
-        string displayName,
-        EntityKind kind,
-        LowAltitudeVerbOperation operation,
-        LowAltitudeVerbTargetMode mode,
-        (int Min, int Max) ticks,
-        int dwell,
-        (float Delta, int Radius, float CoverageChance, float HeadquartersChance, float Required) influence,
-        (float Base, float Explore, float Stale, float Hot, float Crowd, float Generator) weights,
-        EntityKind? targetKind = null,
-        string? relationshipKind = null,
-        int samples = 16,
-        string? affinityRelationshipKind = null,
-        LowAltitudeVerbRelationshipDirection affinityDirection = LowAltitudeVerbRelationshipDirection.Either,
-        float affinityWeight = 0f,
-        PrimaryPlane plane = PrimaryPlane.Physical) =>
-        new()
-        {
-            Id = V(verb),
-            DisplayName = displayName,
-            Kind = kind.Value,
-            Plane = GameplayPlaneName(plane),
-            Operation = operation,
-            TargetMode = mode,
-            TargetKind = targetKind?.Value,
-            RelationshipKind = relationshipKind,
-            MinCommitmentTicks = ticks.Min,
-            MaxCommitmentTicks = ticks.Max,
-            DwellTicks = dwell,
-            TargetRadius = 0,
-            CandidateSampleCount = samples,
-            Weight = weights.Base,
-            ExploreWeight = weights.Explore,
-            StalenessWeight = weights.Stale,
-            HotspotWeight = weights.Hot,
-            CrowdingWeight = weights.Crowd,
-            GeneratorAffordanceWeight = weights.Generator,
-            AffinityRelationshipKind = affinityRelationshipKind,
-            AffinityRelationshipDirection = affinityDirection,
-            RelationshipAffinityWeight = affinityWeight,
-            InfluenceDelta = influence.Delta,
-            InfluenceRadius = influence.Radius,
-            CoverageGrowthChance = influence.CoverageChance,
-            HeadquartersMoveChance = influence.HeadquartersChance,
-            RequiredInfluence = influence.Required,
-        };
-
-    private static HashSet<string> MaritimeTerrains() =>
-    [
-        TerrainName(Terrain.Ocean),
-        TerrainName(Terrain.Reef),
-        TerrainName(Terrain.Shelf),
-    ];
 
     private static KindConfig CreateRegionKind() =>
         new()
@@ -893,7 +672,6 @@ public static class IceRemembersDefinition
         new()
         {
             Kind = kind.Value,
-            HealthAttribute = A(healthAttribute),
             SignalRadius = radius,
             CapacityEmission = capacity,
             SupportEmission = support,
@@ -902,8 +680,15 @@ public static class IceRemembersDefinition
             CoverageAttractorScale = coverageScale,
             InfluenceAttractorScale = influenceScale,
             ActivityAttractorScale = activityScale,
-            HealthAttractorScale = healthScale,
             AttractorRadius = attractorRadius,
+            AttractorScalarInputs =
+            [
+                new MapSignalScalarInputConfig
+                {
+                    Attribute = A(healthAttribute),
+                    AttractorScale = healthScale,
+                },
+            ],
         };
 
     private static RelationshipMapSignalConfig RelationshipSignal(Rel relationship, float support, float threat) =>

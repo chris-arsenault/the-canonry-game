@@ -6,9 +6,22 @@ public static class GameplayValidator
     {
         ArgumentNullException.ThrowIfNull(definition);
         var errors = new List<GameplayValidationError>();
+        ValidateSemanticPlane(definition.SemanticPlane, errors);
         ValidateLowAltitudeVerbDefinitions(definition.LowAltitudeVerbs, errors);
         ValidateRelationshipMaintenancePlanes(definition, errors);
         return new GameplayValidationResult(errors);
+    }
+
+    private static void ValidateSemanticPlane(
+        SemanticPlaneConfig semanticPlane,
+        List<GameplayValidationError> errors)
+    {
+        if (semanticPlane.MinQ > semanticPlane.MaxQ || semanticPlane.MinR > semanticPlane.MaxR)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidSemanticPlaneBounds",
+                "Semantic plane bounds must have minimum coordinates less than or equal to maximum coordinates."));
+        }
     }
 
     private static void ValidateLowAltitudeVerbDefinitions(
@@ -43,6 +56,7 @@ public static class GameplayValidator
         }
 
         var shape = LowAltitudeVerbShape.For(verb.Operation);
+        ValidateAuthoredVerbShape(verb, errors);
         if (!shape.AllowsPlane(plane))
         {
             errors.Add(new GameplayValidationError(
@@ -60,6 +74,42 @@ public static class GameplayValidator
         ValidateTargetFields(verb, plane, errors);
         ValidateInfluenceFields(verb, shape, errors);
         ValidateTiming(verb, errors);
+    }
+
+    private static void ValidateAuthoredVerbShape(
+        LowAltitudeVerbConfig verb,
+        List<GameplayValidationError> errors)
+    {
+        switch (verb)
+        {
+            case MovementLowAltitudeVerbConfig:
+                break;
+            case InfluenceLowAltitudeVerbConfig:
+                ValidateInfluenceVerbShape(verb, errors);
+                break;
+            case CoverageExpansionLowAltitudeVerbConfig:
+            case AnchorRelocationLowAltitudeVerbConfig:
+                break;
+            default:
+                errors.Add(new GameplayValidationError(
+                    "UnsupportedVerbShape",
+                    $"Low-altitude verb '{verb.Id}' uses unsupported authored verb shape."));
+                break;
+        }
+    }
+
+    private static void ValidateInfluenceVerbShape(
+        LowAltitudeVerbConfig verb,
+        List<GameplayValidationError> errors)
+    {
+        if (verb.Operation is not LowAltitudeVerbOperation.GrowInfluence and
+            not LowAltitudeVerbOperation.ConsolidateInfluence and
+            not LowAltitudeVerbOperation.ReduceInfluence)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidInfluenceShapeOperation",
+                $"Low-altitude verb '{verb.Id}' influence shape cannot use operation '{verb.Operation}'."));
+        }
     }
 
     private static void ValidateTargetFields(

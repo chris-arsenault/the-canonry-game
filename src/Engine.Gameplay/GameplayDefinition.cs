@@ -13,6 +13,8 @@ public sealed class GameplayDefinition
     public IReadOnlyList<InitialInfluenceRule> InitialInfluence { get; init; } = [];
 
     public IReadOnlyList<MapControlDefinition> MapControl { get; init; } = [];
+
+    public SemanticPlaneConfig SemanticPlane { get; init; } = new();
 }
 
 public sealed record GameplayModule(string Id);
@@ -46,3 +48,11 @@ public sealed record MapControlDefinition(
     string Influence,
     string Coverage,
     string Territory);
+
+public sealed class SemanticPlaneConfig
+{
+    public int MinQ { get; init; } = -24;
+    public int MaxQ { get; init; } = 24;
+    public int MinR { get; init; } = -24;
+    public int MaxR { get; init; } = 24;
+}

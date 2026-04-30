@@ -4,13 +4,13 @@ namespace Engine.Gameplay;
 /// Low-altitude intent. A verb chooses a mid-term target, commits for a short
 /// duration, and produces movement or analogous map influence.
 /// </summary>
-public sealed class LowAltitudeVerbConfig
+public abstract class LowAltitudeVerbConfig
 {
     public required string Id { get; init; }
     public string? DisplayName { get; init; }
     public required string Kind { get; init; }
     public string? Plane { get; init; }
-    public LowAltitudeVerbOperation Operation { get; init; } = LowAltitudeVerbOperation.Move;
+    public abstract LowAltitudeVerbOperation Operation { get; }
     public required LowAltitudeVerbTargetMode TargetMode { get; init; }
     public string? TargetKind { get; init; }
     public string? RelationshipKind { get; init; }
@@ -32,11 +32,55 @@ public sealed class LowAltitudeVerbConfig
     public LowAltitudeVerbRelationshipDirection AffinityRelationshipDirection { get; init; } =
         LowAltitudeVerbRelationshipDirection.Either;
     public float RelationshipAffinityWeight { get; init; }
-    public float InfluenceDelta { get; init; }
-    public int InfluenceRadius { get; init; }
-    public float CoverageGrowthChance { get; init; }
-    public float HeadquartersMoveChance { get; init; }
-    public float RequiredInfluence { get; init; }
+    public virtual float InfluenceDelta => 0f;
+    public virtual int InfluenceRadius => 0;
+    public virtual float CoverageGrowthChance => 0f;
+    public virtual float HeadquartersMoveChance => 0f;
+    public virtual float RequiredInfluence => 0f;
+}
+
+public sealed class MovementLowAltitudeVerbConfig : LowAltitudeVerbConfig
+{
+    public override LowAltitudeVerbOperation Operation => LowAltitudeVerbOperation.Move;
+}
+
+public sealed class InfluenceLowAltitudeVerbConfig : LowAltitudeVerbConfig
+{
+    public required LowAltitudeVerbOperation InfluenceOperation { get; init; }
+    public required float Delta { get; init; }
+    public int Radius { get; init; }
+
+    public override LowAltitudeVerbOperation Operation => InfluenceOperation;
+    public override float InfluenceDelta => Delta;
+    public override int InfluenceRadius => Radius;
+}
+
+public sealed class CoverageExpansionLowAltitudeVerbConfig : LowAltitudeVerbConfig
+{
+    public required float Delta { get; init; }
+    public int Radius { get; init; }
+    public required float GrowthChance { get; init; }
+    public required float RequiredMapValue { get; init; }
+
+    public override LowAltitudeVerbOperation Operation => LowAltitudeVerbOperation.ExpandCoverage;
+    public override float InfluenceDelta => Delta;
+    public override int InfluenceRadius => Radius;
+    public override float CoverageGrowthChance => GrowthChance;
+    public override float RequiredInfluence => RequiredMapValue;
+}
+
+public sealed class AnchorRelocationLowAltitudeVerbConfig : LowAltitudeVerbConfig
+{
+    public required float Delta { get; init; }
+    public int Radius { get; init; }
+    public required float RelocationChance { get; init; }
+    public required float RequiredMapValue { get; init; }
+
+    public override LowAltitudeVerbOperation Operation => LowAltitudeVerbOperation.MoveHeadquarters;
+    public override float InfluenceDelta => Delta;
+    public override int InfluenceRadius => Radius;
+    public override float HeadquartersMoveChance => RelocationChance;
+    public override float RequiredInfluence => RequiredMapValue;
 }
 
 public enum LowAltitudeVerbOperation
