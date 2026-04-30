@@ -4,7 +4,7 @@ using Engine.Domain.Config;
 using Engine.Kinds;
 
 /// <summary>
-/// A lightweight process program commitment to a locality on one plane for a short horizon.
+/// A lightweight behavior program commitment to a locality on one plane for a short horizon.
 /// The evaluator may keep this across ticks so arrival can pay off with multiple
 /// actions instead of immediately dissolving back into one-goal planning.
 /// </summary>

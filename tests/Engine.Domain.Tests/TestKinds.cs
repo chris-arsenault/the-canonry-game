@@ -2,7 +2,7 @@ namespace Engine.Domain.Tests;
 
 using Engine.Kinds;
 
-internal static class TestKinds
+public static class TestKinds
 {
     public static readonly KindId Region = KindId.Register("region");
     public static readonly KindId Settlement = KindId.Register("settlement");

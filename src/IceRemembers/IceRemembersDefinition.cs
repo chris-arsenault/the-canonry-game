@@ -5,13 +5,13 @@ using Engine.Gameplay;
 using Engine.Graph;
 using Engine.Kinds;
 using Engine.Pressure;
-using Engine.Processes;
 using Engine.Wiring;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using Fact = IceRemembers.IceRemembersStructuralFact;
+using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Press = IceRemembers.IceRemembersPressure;
 using Rel = IceRemembers.IceRemembersRelationship;
@@ -47,7 +47,7 @@ public static partial class IceRemembersDefinition
         return new DomainConfig
         {
             Kinds = kinds,
-            Processes = [],
+            Gambits = CreateGambits(),
             Relationships = CreateRelationships(),
             RelationshipFacts = CreateRelationshipFacts(),
             Pressures = CreatePressures(),
@@ -69,6 +69,7 @@ public static partial class IceRemembersDefinition
     private static string P(Press pressure) => pressure.ToDomainName();
     private static string R(Res resource) => resource.ToDomainName();
     private static string V(Verb verb) => verb.ToVerbId();
+    private static string G(GambitId gambit) => gambit.ToGambitId();
     private static string TerrainName(Terrain terrain) => terrain.ToDomainName();
 
     private static Dictionary<EntityKind, KindConfig> CreateKinds() =>
@@ -94,10 +95,10 @@ public static partial class IceRemembersDefinition
             LowAltitudeVerbs = CreateLowAltitudeVerbs(),
             SemanticPlane = new SemanticPlaneConfig
             {
-                MinQ = -24,
-                MaxQ = 24,
-                MinR = -24,
-                MaxR = 24,
+                MinQ = -20,
+                MaxQ = 20,
+                MinR = -20,
+                MaxR = 20,
             },
             InitialInfluence = CreateInitialInfluenceRules(),
             Effects = CreateEffects(),

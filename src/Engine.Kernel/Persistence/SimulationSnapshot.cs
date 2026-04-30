@@ -18,7 +18,6 @@ internal sealed partial class Simulation
         EffectsProgramSnapshot.Write(writer, Effects);
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
-        ProcessProgramSnapshot.Write(writer, Processes);
         GambitProgramSnapshot.Write(writer, Gambits);
         PressureProgramSnapshot.Write(writer, Pressures);
         GeneratorProgramSnapshot.Write(writer, Generators);
@@ -39,7 +38,6 @@ internal sealed partial class Simulation
         EffectsProgramSnapshot.Read(reader, Effects);
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);
-        ProcessProgramSnapshot.Read(reader, Processes);
         GambitProgramSnapshot.Read(reader, Gambits);
         PressureProgramSnapshot.Read(reader, Pressures);
         GeneratorProgramSnapshot.Read(reader, Generators);

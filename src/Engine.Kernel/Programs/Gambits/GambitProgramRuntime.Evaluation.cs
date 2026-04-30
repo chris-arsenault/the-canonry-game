@@ -31,10 +31,10 @@ internal sealed partial class GambitProgramRuntime
         }
 
         return _providerSelectorCodes[selector] is
-            ProcessProviderSelectorCodes.TargetAttribute or
-            ProcessProviderSelectorCodes.LocationAttribute or
-            ProcessProviderSelectorCodes.OutgoingRelationship or
-            ProcessProviderSelectorCodes.IncomingRelationship;
+            BehaviorProviderSelectorCodes.TargetAttribute or
+            BehaviorProviderSelectorCodes.LocationAttribute or
+            BehaviorProviderSelectorCodes.OutgoingRelationship or
+            BehaviorProviderSelectorCodes.IncomingRelationship;
     }
 
     private bool TargetEligibleForGambit(
@@ -75,12 +75,12 @@ internal sealed partial class GambitProgramRuntime
     private bool TargetModeMatchesGambit(WorldState world, int entityId, int gambitSlot, int targetId)
     {
         var targetMode = _gambitTargetModes[gambitSlot];
-        if (targetMode == ProcessTargetModeCodes.Self)
+        if (targetMode == BehaviorTargetModeCodes.Self)
         {
             return targetId == entityId;
         }
 
-        if (targetMode != ProcessTargetModeCodes.KindOther)
+        if (targetMode != BehaviorTargetModeCodes.KindOther)
         {
             return targetId != entityId;
         }
@@ -111,13 +111,13 @@ internal sealed partial class GambitProgramRuntime
     private bool BasicProviderSelectorMatches(WorldState world, int entityId, int targetId, int selector)
     {
         var code = _providerSelectorCodes[selector];
-        if (code == ProcessProviderSelectorCodes.TargetAttribute ||
-            code == ProcessProviderSelectorCodes.Structural)
+        if (code == BehaviorProviderSelectorCodes.TargetAttribute ||
+            code == BehaviorProviderSelectorCodes.Structural)
         {
             return true;
         }
 
-        if (code == ProcessProviderSelectorCodes.Resource)
+        if (code == BehaviorProviderSelectorCodes.Resource)
         {
             return world.GetResource(
                 _providerSelectorValueIds[selector],
@@ -125,7 +125,7 @@ internal sealed partial class GambitProgramRuntime
                 world.EntityPhysicalR(targetId)) > 0f;
         }
 
-        return code == ProcessProviderSelectorCodes.LocationAttribute &&
+        return code == BehaviorProviderSelectorCodes.LocationAttribute &&
             world.EntityPhysicalQ(entityId) == world.EntityPhysicalQ(targetId) &&
             world.EntityPhysicalR(entityId) == world.EntityPhysicalR(targetId);
     }
@@ -133,12 +133,12 @@ internal sealed partial class GambitProgramRuntime
     private bool RelationshipProviderSelectorMatches(WorldState world, int entityId, int targetId, int selector)
     {
         var code = _providerSelectorCodes[selector];
-        if (code == ProcessProviderSelectorCodes.OutgoingRelationship)
+        if (code == BehaviorProviderSelectorCodes.OutgoingRelationship)
         {
             return RelationshipSelectorMatchesTarget(world, entityId, targetId, selector);
         }
 
-        return code == ProcessProviderSelectorCodes.IncomingRelationship &&
+        return code == BehaviorProviderSelectorCodes.IncomingRelationship &&
             RelationshipSelectorMatchesTarget(world, targetId, entityId, selector);
     }
 
@@ -174,8 +174,8 @@ internal sealed partial class GambitProgramRuntime
     {
         return effectScopeCode switch
         {
-            ProcessEffectScopeCodes.TargetAttribute or ProcessEffectScopeCodes.Relational => targetId,
-            ProcessEffectScopeCodes.Structural when targetId != entityId => targetId,
+            BehaviorEffectScopeCodes.TargetAttribute or BehaviorEffectScopeCodes.Relational => targetId,
+            BehaviorEffectScopeCodes.Structural when targetId != entityId => targetId,
             _ => entityId,
         };
     }
@@ -207,14 +207,14 @@ internal sealed partial class GambitProgramRuntime
     {
         return _objectiveCodes[objective] switch
         {
-            ProcessObjectiveUrgencyCodes.StandardNeed => StandardNeedUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective])),
-            ProcessObjectiveUrgencyCodes.Baseline => BaselineUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective]), _objectiveBaselines[objective]),
-            ProcessObjectiveUrgencyCodes.RangeDefault => RangeUrgency(
+            BehaviorObjectiveUrgencyCodes.StandardNeed => StandardNeedUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective])),
+            BehaviorObjectiveUrgencyCodes.Baseline => BaselineUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective]), _objectiveBaselines[objective]),
+            BehaviorObjectiveUrgencyCodes.RangeDefault => RangeUrgency(
                 world.GetAttribute(entityId, _objectiveAttributeIds[objective]),
                 _objectiveMinimums[objective],
                 _objectiveMaximums[objective],
                 _objectiveDefaults[objective]),
-            ProcessObjectiveUrgencyCodes.Fixed => _objectiveBaseUrgencies[objective],
+            BehaviorObjectiveUrgencyCodes.Fixed => _objectiveBaseUrgencies[objective],
             _ => 0f,
         };
     }
@@ -230,7 +230,7 @@ internal sealed partial class GambitProgramRuntime
     {
         selectedTargetId = 0;
         var targetMode = _gambitTargetModes[gambitSlot];
-        if (targetMode == ProcessTargetModeCodes.Self)
+        if (targetMode == BehaviorTargetModeCodes.Self)
         {
             return EvaluateSelfTarget(
                 simulation,
@@ -242,7 +242,7 @@ internal sealed partial class GambitProgramRuntime
                 out selectedTargetId);
         }
 
-        if (targetMode == ProcessTargetModeCodes.KindOther && _gambitTargetKindIds[gambitSlot] > 0)
+        if (targetMode == BehaviorTargetModeCodes.KindOther && _gambitTargetKindIds[gambitSlot] > 0)
         {
             return EvaluateKindTargets(
                 simulation,
@@ -558,7 +558,7 @@ internal sealed partial class GambitProgramRuntime
         ref int stackCount)
     {
         var code = _preconditionCodes[pre];
-        if (code == ProcessPreconditionCodes.And)
+        if (code == BehaviorPreconditionCodes.And)
         {
             var right = PopBool(stack, ref stackCount);
             var left = PopBool(stack, ref stackCount);
@@ -566,7 +566,7 @@ internal sealed partial class GambitProgramRuntime
             return true;
         }
 
-        if (code == ProcessPreconditionCodes.Or)
+        if (code == BehaviorPreconditionCodes.Or)
         {
             var right = PopBool(stack, ref stackCount);
             var left = PopBool(stack, ref stackCount);
@@ -574,7 +574,7 @@ internal sealed partial class GambitProgramRuntime
             return true;
         }
 
-        if (code != ProcessPreconditionCodes.Not)
+        if (code != BehaviorPreconditionCodes.Not)
         {
             return false;
         }
@@ -586,7 +586,7 @@ internal sealed partial class GambitProgramRuntime
     private bool PreconditionPasses(Simulation simulation, int gambitSlot, int pre, int entityId, int targetId, int tick)
     {
         var code = _preconditionCodes[pre];
-        if (code == ProcessPreconditionCodes.Always)
+        if (code == BehaviorPreconditionCodes.Always)
         {
             return true;
         }
@@ -611,28 +611,28 @@ internal sealed partial class GambitProgramRuntime
 
     private static bool IsSimplePrecondition(int code)
     {
-        return code is ProcessPreconditionCodes.TargetIsSelf or
-            ProcessPreconditionCodes.TargetIsNotSelf or
-            ProcessPreconditionCodes.HasColocatedEntity;
+        return code is BehaviorPreconditionCodes.TargetIsSelf or
+            BehaviorPreconditionCodes.TargetIsNotSelf or
+            BehaviorPreconditionCodes.HasColocatedEntity;
     }
 
     private static bool IsRangePrecondition(int code)
     {
-        return code is ProcessPreconditionCodes.SelfAttributeRange or
-            ProcessPreconditionCodes.TargetAttributeRange or
-            ProcessPreconditionCodes.PlaneDistance or
-            ProcessPreconditionCodes.LocationResourceRange or
-            ProcessPreconditionCodes.PressureRange or
-            ProcessPreconditionCodes.CooldownElapsed or
-            ProcessPreconditionCodes.EntityCountAtLeast;
+        return code is BehaviorPreconditionCodes.SelfAttributeRange or
+            BehaviorPreconditionCodes.TargetAttributeRange or
+            BehaviorPreconditionCodes.PlaneDistance or
+            BehaviorPreconditionCodes.LocationResourceRange or
+            BehaviorPreconditionCodes.PressureRange or
+            BehaviorPreconditionCodes.CooldownElapsed or
+            BehaviorPreconditionCodes.EntityCountAtLeast;
     }
 
     private static bool IsRelationshipPrecondition(int code)
     {
-        return code is ProcessPreconditionCodes.SelfHasRelationshipToTarget or
-            ProcessPreconditionCodes.TargetHasRelationshipToSelf or
-            ProcessPreconditionCodes.RelatedEntityMatchesTarget or
-            ProcessPreconditionCodes.RelationshipExists;
+        return code is BehaviorPreconditionCodes.SelfHasRelationshipToTarget or
+            BehaviorPreconditionCodes.TargetHasRelationshipToSelf or
+            BehaviorPreconditionCodes.RelatedEntityMatchesTarget or
+            BehaviorPreconditionCodes.RelationshipExists;
     }
 
     private static bool SimplePreconditionPasses(
@@ -641,17 +641,17 @@ internal sealed partial class GambitProgramRuntime
         int entityId,
         int targetId)
     {
-        if (code == ProcessPreconditionCodes.TargetIsSelf)
+        if (code == BehaviorPreconditionCodes.TargetIsSelf)
         {
             return targetId == entityId;
         }
 
-        if (code == ProcessPreconditionCodes.TargetIsNotSelf)
+        if (code == BehaviorPreconditionCodes.TargetIsNotSelf)
         {
             return targetId != entityId;
         }
 
-        return code == ProcessPreconditionCodes.HasColocatedEntity &&
+        return code == BehaviorPreconditionCodes.HasColocatedEntity &&
             HasColocatedEntity(world, entityId);
     }
 
@@ -665,12 +665,12 @@ internal sealed partial class GambitProgramRuntime
         int tick)
     {
         var world = simulation.World;
-        if (code == ProcessPreconditionCodes.SelfAttributeRange)
+        if (code == BehaviorPreconditionCodes.SelfAttributeRange)
         {
             return ValueInRange(world.GetAttribute(entityId, _preA[pre]), _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
         }
 
-        if (code == ProcessPreconditionCodes.TargetAttributeRange)
+        if (code == BehaviorPreconditionCodes.TargetAttributeRange)
         {
             return ValueInRange(world.GetAttribute(targetId, _preA[pre]), _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
         }
@@ -688,27 +688,27 @@ internal sealed partial class GambitProgramRuntime
         int tick)
     {
         var world = simulation.World;
-        if (code == ProcessPreconditionCodes.PlaneDistance)
+        if (code == BehaviorPreconditionCodes.PlaneDistance)
         {
             return PlaneDistance(world, entityId, targetId, _preB[pre]) <= _preA[pre];
         }
 
-        if (code == ProcessPreconditionCodes.LocationResourceRange)
+        if (code == BehaviorPreconditionCodes.LocationResourceRange)
         {
             return LocationResourceRangePasses(world, pre, entityId, targetId);
         }
 
-        if (code == ProcessPreconditionCodes.PressureRange)
+        if (code == BehaviorPreconditionCodes.PressureRange)
         {
             return PressureRangePasses(simulation, pre, entityId);
         }
 
-        if (code == ProcessPreconditionCodes.CooldownElapsed)
+        if (code == BehaviorPreconditionCodes.CooldownElapsed)
         {
             return CountRecentActions(entityId, _gambitIds[gambitSlot], tick - _preA[pre] + 1) == 0;
         }
 
-        return code == ProcessPreconditionCodes.EntityCountAtLeast &&
+        return code == BehaviorPreconditionCodes.EntityCountAtLeast &&
             ActiveEntityCountOfKind(world, _preA[pre]) >= _preB[pre];
     }
 
@@ -719,26 +719,26 @@ internal sealed partial class GambitProgramRuntime
         int entityId,
         int targetId)
     {
-        if (code == ProcessPreconditionCodes.SelfHasRelationshipToTarget ||
-            code == ProcessPreconditionCodes.RelatedEntityMatchesTarget)
+        if (code == BehaviorPreconditionCodes.SelfHasRelationshipToTarget ||
+            code == BehaviorPreconditionCodes.RelatedEntityMatchesTarget)
         {
             return RelationshipPasses(world, entityId, targetId, pre);
         }
 
-        if (code == ProcessPreconditionCodes.TargetHasRelationshipToSelf)
+        if (code == BehaviorPreconditionCodes.TargetHasRelationshipToSelf)
         {
             return RelationshipPasses(world, targetId, entityId, pre);
         }
 
-        return code == ProcessPreconditionCodes.RelationshipExists &&
+        return code == BehaviorPreconditionCodes.RelationshipExists &&
             RelationshipPasses(world, _preC[pre], _preD[pre], pre);
     }
 
     private static bool PreconditionIsCompositionOp(int code)
     {
-        return code is ProcessPreconditionCodes.And or
-            ProcessPreconditionCodes.Or or
-            ProcessPreconditionCodes.Not;
+        return code is BehaviorPreconditionCodes.And or
+            BehaviorPreconditionCodes.Or or
+            BehaviorPreconditionCodes.Not;
     }
 
     private static int ActiveEntityCountOfKind(WorldState world, int kindId)
@@ -804,21 +804,21 @@ internal sealed partial class GambitProgramRuntime
         ref int blockerKindId,
         ref int blockerTargetId)
     {
-        if (code == ProcessPreconditionCodes.SelfAttributeRange)
+        if (code == BehaviorPreconditionCodes.SelfAttributeRange)
         {
-            blockerScopeCode = ProcessEffectScopeCodes.SelfAttribute;
+            blockerScopeCode = BehaviorEffectScopeCodes.SelfAttribute;
             blockerValueId = _preA[pre];
             blockerKindId = world.EntityKindId(entityId);
             blockerTargetId = entityId;
             return true;
         }
 
-        if (code != ProcessPreconditionCodes.TargetAttributeRange)
+        if (code != BehaviorPreconditionCodes.TargetAttributeRange)
         {
             return false;
         }
 
-        blockerScopeCode = ProcessEffectScopeCodes.TargetAttribute;
+        blockerScopeCode = BehaviorEffectScopeCodes.TargetAttribute;
         blockerValueId = _preA[pre];
         blockerKindId = world.EntityKindId(targetId);
         blockerTargetId = targetId;
@@ -836,17 +836,17 @@ internal sealed partial class GambitProgramRuntime
         ref int blockerKindId,
         ref int blockerTargetId)
     {
-        if (code == ProcessPreconditionCodes.LocationResourceRange)
+        if (code == BehaviorPreconditionCodes.LocationResourceRange)
         {
-            blockerScopeCode = ProcessEffectScopeCodes.Resource;
+            blockerScopeCode = BehaviorEffectScopeCodes.Resource;
             blockerValueId = _preA[pre];
             blockerTargetId = _preB[pre] == 0 ? entityId : targetId;
             return true;
         }
 
-        if (code == ProcessPreconditionCodes.PlaneDistance)
+        if (code == BehaviorPreconditionCodes.PlaneDistance)
         {
-            blockerScopeCode = ProcessEffectScopeCodes.Structural;
+            blockerScopeCode = BehaviorEffectScopeCodes.Structural;
             blockerValueId = _preC[pre];
             blockerKindId = world.EntityKindId(entityId);
             blockerTargetId = targetId != entityId ? targetId : entityId;
@@ -866,15 +866,15 @@ internal sealed partial class GambitProgramRuntime
         ref int blockerKindId,
         ref int blockerTargetId)
     {
-        if (code != ProcessPreconditionCodes.SelfHasRelationshipToTarget &&
-            code != ProcessPreconditionCodes.TargetHasRelationshipToSelf &&
-            code != ProcessPreconditionCodes.RelatedEntityMatchesTarget &&
-            code != ProcessPreconditionCodes.RelationshipExists)
+        if (code != BehaviorPreconditionCodes.SelfHasRelationshipToTarget &&
+            code != BehaviorPreconditionCodes.TargetHasRelationshipToSelf &&
+            code != BehaviorPreconditionCodes.RelatedEntityMatchesTarget &&
+            code != BehaviorPreconditionCodes.RelationshipExists)
         {
             return false;
         }
 
-        blockerScopeCode = ProcessEffectScopeCodes.Relational;
+        blockerScopeCode = BehaviorEffectScopeCodes.Relational;
         blockerValueId = _preA[pre];
         blockerKindId = world.EntityKindId(targetId);
         blockerTargetId = targetId;

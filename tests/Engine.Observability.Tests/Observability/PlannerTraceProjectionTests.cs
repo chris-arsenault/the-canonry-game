@@ -65,7 +65,7 @@ public sealed class PlannerTraceProjectionTests
             EntityId: 11,
             GoalId: 30,
             StepIndex: 0,
-            ProcessId: 40,
+            ActionId: 40,
             TargetEntityId: 12,
             RelationshipKindId: 60))));
         Assert.True(log.TryWrite(KernelEvent.From(new PlanCommittedKernelEvent(
@@ -96,7 +96,7 @@ public sealed class PlannerTraceProjectionTests
         Assert.Equal(1.0f, score.RunningTotal);
 
         var step = Assert.Single(batch.PlannerTraceSteps);
-        Assert.Equal(40, step.ProcessId);
+        Assert.Equal(40, step.ActionId);
         Assert.Equal(60, step.RelationshipKindId);
     }
 

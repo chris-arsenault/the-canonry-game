@@ -7,7 +7,7 @@ namespace Engine.Domain.Config;
 /// </summary>
 public static class StandardNeedScale
 {
-    /// <summary>At or above this value, the attribute is comfortable and produces no process program urgency.</summary>
+    /// <summary>At or above this value, the attribute is comfortable and produces no behavior program urgency.</summary>
     public const float Comfortable = 70f;
 
     /// <summary>Below this value, the attribute becomes meaningfully concerning.</summary>

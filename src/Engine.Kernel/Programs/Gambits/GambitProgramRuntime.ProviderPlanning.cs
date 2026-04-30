@@ -56,9 +56,9 @@ internal sealed partial class GambitProgramRuntime
     private float EvaluateProviderSelectorTargets(Simulation simulation, int entityId, int gambitSlot, int tick, int effectScopeCode, int effectValueId, int effectKindId, float urgency, int depth, int selector, float bestWeight, ref int candidateCount, ref int selectedRootGambitSlot, ref int selectedRootTargetId, ref int selectedGambitSlot, ref int selectedTargetId)
     {
         var code = _providerSelectorCodes[selector];
-        if (code == ProcessProviderSelectorCodes.TargetAttribute ||
-            code == ProcessProviderSelectorCodes.Structural ||
-            code == ProcessProviderSelectorCodes.Resource)
+        if (code == BehaviorProviderSelectorCodes.TargetAttribute ||
+            code == BehaviorProviderSelectorCodes.Structural ||
+            code == BehaviorProviderSelectorCodes.Resource)
         {
             return EvaluateKindProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
@@ -66,7 +66,7 @@ internal sealed partial class GambitProgramRuntime
                 ref candidateCount, ref selectedRootGambitSlot, ref selectedRootTargetId, ref selectedGambitSlot, ref selectedTargetId);
         }
 
-        if (code == ProcessProviderSelectorCodes.LocationAttribute)
+        if (code == BehaviorProviderSelectorCodes.LocationAttribute)
         {
             return EvaluateLocationProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
@@ -74,12 +74,12 @@ internal sealed partial class GambitProgramRuntime
                 ref candidateCount, ref selectedRootGambitSlot, ref selectedRootTargetId, ref selectedGambitSlot, ref selectedTargetId);
         }
 
-        if (code == ProcessProviderSelectorCodes.OutgoingRelationship ||
-            code == ProcessProviderSelectorCodes.IncomingRelationship)
+        if (code == BehaviorProviderSelectorCodes.OutgoingRelationship ||
+            code == BehaviorProviderSelectorCodes.IncomingRelationship)
         {
             return EvaluateRelationshipProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
-                urgency, depth, selector, code == ProcessProviderSelectorCodes.OutgoingRelationship, bestWeight,
+                urgency, depth, selector, code == BehaviorProviderSelectorCodes.OutgoingRelationship, bestWeight,
                 ref candidateCount, ref selectedRootGambitSlot, ref selectedRootTargetId, ref selectedGambitSlot, ref selectedTargetId);
         }
 
@@ -305,7 +305,7 @@ internal sealed partial class GambitProgramRuntime
             return bestWeight;
         }
 
-        if (_providerSelectorCodes[selector] == ProcessProviderSelectorCodes.Resource &&
+        if (_providerSelectorCodes[selector] == BehaviorProviderSelectorCodes.Resource &&
             world.GetResource(
                 _providerSelectorValueIds[selector],
                 world.EntityPhysicalQ(targetId),
@@ -411,12 +411,12 @@ internal sealed partial class GambitProgramRuntime
     private float AdjustedGambitPlanReward(WorldState world, int gambitSlot, int entityId, int targetId)
     {
         var reward = EvaluateReward(world, gambitSlot, entityId, targetId);
-        if (_gambitTargetModes[gambitSlot] == ProcessTargetModeCodes.Self && reward < MinimumSelfDirectedReward)
+        if (_gambitTargetModes[gambitSlot] == BehaviorTargetModeCodes.Self && reward < MinimumSelfDirectedReward)
         {
             return MinimumSelfDirectedReward;
         }
 
-        return _gambitTargetModes[gambitSlot] == ProcessTargetModeCodes.Self || reward > 0f ? reward : 0f;
+        return _gambitTargetModes[gambitSlot] == BehaviorTargetModeCodes.Self || reward > 0f ? reward : 0f;
     }
 
     private float EvaluateBlockedGambitPlanCandidate(

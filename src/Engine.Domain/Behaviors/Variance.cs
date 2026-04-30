@@ -1,4 +1,4 @@
-namespace Engine.Processes;
+namespace Engine.Behaviors;
 
 /// <summary>Shared variance helpers for mutations.</summary>
 internal static class Variance

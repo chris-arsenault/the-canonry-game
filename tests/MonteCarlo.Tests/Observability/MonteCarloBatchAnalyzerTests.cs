@@ -32,7 +32,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains(report.GeneratorBalance, row =>
             row.GeneratorId == "penguin_calls_the_unhuddled" &&
             row.FiredCount == 1);
-        Assert.Contains(report.ProcessPressure, row =>
+        Assert.Contains(report.ActionPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.SelectedCount == 1);
         Assert.Contains(report.LowAltitudeVerbUtilization, row =>
@@ -64,7 +64,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains("Low-Altitude Verb Utilization", summary, StringComparison.Ordinal);
         Assert.Contains("Influence Dynamics", summary, StringComparison.Ordinal);
         Assert.Contains("Generator Balance", summary, StringComparison.Ordinal);
-        Assert.Contains("Process Pressure", summary, StringComparison.Ordinal);
+        Assert.Contains("Action Pressure", summary, StringComparison.Ordinal);
         Assert.Contains("Map Generation", summary, StringComparison.Ordinal);
     }
 
@@ -102,16 +102,16 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         var report = analyzer.Analyze(batchDirectory);
         var verbId = domain.Gameplay!.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin.Value).Id;
 
-        Assert.Contains(report.ProcessPressure, row =>
+        Assert.Contains(report.ActionPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
-            row.ProcessName == verbId &&
+            row.ActionName == verbId &&
             row.SelectedCount == 1 &&
             row.CandidateEvaluations == 2 &&
             row.EvidenceSource == "planner_candidates");
         Assert.Contains(report.PlannerPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.Evaluations == 1 &&
-            row.TopExecutedProcess == verbId);
+            row.TopExecutedAction == verbId);
     }
 
     [Fact]
@@ -458,7 +458,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             GoalId: 1,
             CandidateIndex: candidateIndex,
             ParentCandidateIndex: 0,
-            ProcessId: seed.VerbSymbolId,
             ActionId: seed.VerbSymbolId,
             ProviderEntityId: 1,
             TargetEntityId: targetEntityId,
@@ -483,7 +482,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             PlanId: 1,
             GoalId: 1,
             StepIndex: 1,
-            ProcessId: seed.VerbSymbolId,
             ActionId: seed.VerbSymbolId,
             TargetEntityId: 2,
             RelationshipKindId: 0,
@@ -508,7 +506,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             IsCurrent: false,
             IsCommitted: true,
             Selected: true));
-        batch.ProcessExecutions.Add(new ProcessExecutionRow(
+        batch.ActionExecutions.Add(new ActionExecutionRow(
             seed.RunId,
             25,
             1,
@@ -516,7 +514,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             PlanId: 1,
             GoalId: 1,
             StepIndex: 1,
-            ProcessId: seed.VerbSymbolId,
+            ActionId: seed.VerbSymbolId,
             TargetEntityId: 2,
             StateCode: (int)KernelEventState.Succeeded,
             AffectedEntityId: 1,

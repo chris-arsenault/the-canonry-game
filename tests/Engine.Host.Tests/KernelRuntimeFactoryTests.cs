@@ -55,10 +55,6 @@ public sealed class KernelRuntimeFactoryTests
                   "generators": {
                     "retryFireTargets": false
                   },
-                  "processes": {
-                    "enabled": true,
-                    "workCommitments": "pilot"
-                  },
                   "gambits": {
                     "enabled": true
                   },
@@ -155,10 +151,6 @@ public sealed class KernelRuntimeFactoryTests
             [kernel_tuning.programs.low_altitude_verbs]
             enabled = false
 
-            [kernel_tuning.programs.processes]
-            enabled = true
-            work_commitments = "pilot"
-
             [kernel_tuning.programs.gambits]
             enabled = true
 
@@ -229,7 +221,7 @@ public sealed class KernelRuntimeFactoryTests
                   "lowAltitudeVerbs": {
                     "enabled": false
                   },
-                  "processes": {
+                  "gambits": {
                     "enabled": true
                   }
                 }
@@ -248,7 +240,7 @@ public sealed class KernelRuntimeFactoryTests
                 configFilePath: path));
 
             Assert.False(runtime.Host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
-            Assert.True(runtime.Host.ProgramIsEnabled(KernelProgramCodes.Processes));
+            Assert.True(runtime.Host.ProgramIsEnabled(KernelProgramCodes.Gambits));
         }
         finally
         {
@@ -263,9 +255,7 @@ public sealed class KernelRuntimeFactoryTests
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
-        Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Processes);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);
-        Assert.Equal(ProcessWorkCommitmentCodes.Pilot, options.KernelTuning.Programs.Processes.WorkCommitmentCode);
         Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
         Assert.True(options.KernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
         Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);

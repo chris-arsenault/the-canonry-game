@@ -166,7 +166,6 @@ public sealed class KernelRuntimeFactory
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapSignals, enabled.MapSignals);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Effects, enabled.Effects);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Upkeep, enabled.Upkeep);
-        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Processes, enabled.Processes);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Gambits, enabled.Gambits);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Relationships, enabled.Relationships);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Pressures, enabled.Pressures);

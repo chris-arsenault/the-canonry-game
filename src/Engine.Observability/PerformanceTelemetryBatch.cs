@@ -37,8 +37,6 @@ public sealed record TickPerformanceRow(
     double ElapsedMilliseconds,
     int ActiveEntities,
     int ActiveRelationships,
-    int ProcessEvents,
-    int ProcessCandidates,
     int GeneratorEvents,
     int TotalMessages,
     long ManagedMemoryBytes);

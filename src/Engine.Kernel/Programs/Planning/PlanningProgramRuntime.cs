@@ -107,7 +107,6 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
     {
         return request.ActionFamilyCode switch
         {
-            ActionFamilyCodes.Process => simulation.Processes.PlanGoap(simulation, request),
             ActionFamilyCodes.Gambit => simulation.Gambits.PlanGoap(simulation, request),
             _ => EmptyDecision(PlanningStatusCodes.UnsupportedActionFamily, request.ActionFamilyCode, 0, 0f),
         };
@@ -117,7 +116,6 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
     {
         return request.ActionFamilyCode switch
         {
-            ActionFamilyCodes.Process => simulation.Processes.PlanOpportunity(simulation, request),
             ActionFamilyCodes.Gambit => simulation.Gambits.PlanOpportunity(simulation, request),
             _ => EmptyDecision(PlanningStatusCodes.UnsupportedActionFamily, request.ActionFamilyCode, 0, 0f),
         };
@@ -369,7 +367,6 @@ internal sealed class PlanningProgramRuntime : IKernelProgramRuntime<PlanningPro
     {
         return action.ActionFamilyCode switch
         {
-            ActionFamilyCodes.Process => simulation.Processes.ProcessIdForSlot(action.ActionSlot),
             ActionFamilyCodes.Gambit => simulation.Gambits.GambitIdForSlot(action.ActionSlot),
             _ => action.ActionSlot,
         };

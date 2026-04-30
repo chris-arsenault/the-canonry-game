@@ -66,6 +66,7 @@ public sealed class LowAltitudePhysicsProgramTests
         const int actorKindId = 1;
         const int targetKindId = 2;
         const int verbId = 88;
+        simulation.World.SetMapRadius(3);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 2, 0, -2, tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -108,6 +109,52 @@ public sealed class LowAltitudePhysicsProgramTests
             actorId,
             KernelProgramCodes.LowAltitudeVerbs,
             simulation.LowAltitudeVerbSourceCodeId);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_SemanticMovementDoesNotLeaveVisualMapRadius()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 29 });
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 89;
+        simulation.World.SetMapRadius(1);
+        simulation.LowAltitudeVerbs.ConfigureSemanticBounds(-4, 4, -4, 4);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 1, 1, -2, tick: 0);
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Semantic,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 8,
+            maxCommitmentTicks: 8,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
+
+        simulation.AdvanceTicks(8);
+
+        var q = simulation.World.EntitySemanticQ(actorId);
+        var r = simulation.World.EntitySemanticR(actorId);
+        Assert.True(HexDistance(0, 0, q, r) <= simulation.World.MapRadius);
+        Assert.Equal(-q - r, simulation.World.EntitySemanticS(actorId));
     }
 
     [Fact]

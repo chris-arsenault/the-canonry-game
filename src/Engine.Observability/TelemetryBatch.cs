@@ -27,9 +27,7 @@ public sealed class TelemetryBatch
     public Collection<PlannerStepRow> PlannerSteps { get; } = [];
     public Collection<PlannerLocalityRow> PlannerLocalities { get; } = [];
     public Collection<TraceRow> TraceEvents { get; } = [];
-    public Collection<ProcessEventRow> ProcessEvents { get; } = [];
-    public Collection<ProcessExecutionRow> ProcessExecutions { get; } = [];
-    public Collection<ProcessCandidateRow> ProcessCandidates { get; } = [];
+    public Collection<ActionExecutionRow> ActionExecutions { get; } = [];
     public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
     public Collection<AttributeEventRow> AttributeEvents { get; } = [];
     public Collection<MovementEventRow> MovementEvents { get; } = [];
@@ -217,7 +215,7 @@ public sealed record PlannerTraceStepRow(
     int PlanId,
     int GoalId,
     int StepIndex,
-    int ProcessId,
+    int ActionId,
     int TargetEntityId,
     int RelationshipKindId);
 
@@ -230,7 +228,6 @@ public sealed record PlannerCandidateRow(
     int GoalId,
     int CandidateIndex,
     int ParentCandidateIndex,
-    int ProcessId,
     int ActionId,
     int ProviderEntityId,
     int TargetEntityId,
@@ -264,7 +261,6 @@ public sealed record PlannerStepRow(
     int PlanId,
     int GoalId,
     int StepIndex,
-    int ProcessId,
     int ActionId,
     int TargetEntityId,
     int RelationshipKindId,
@@ -311,35 +307,7 @@ public sealed record TraceRow(
     float RawWeight,
     float AdjustedWeight);
 
-public sealed record ProcessEventRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int? SelectedGoalId,
-    int? ExecutedProcessId,
-    bool IsStale,
-    int StateCode,
-    int CandidateCount,
-    int? VisitId,
-    int? LocalityId,
-    int? LocalityPlaneCode,
-    int? LocalityQ,
-    int? LocalityR,
-    int? LocalityS,
-    float? LocalityBundleScore,
-    int? LocalityGoalCount,
-    int? LocalityDistinctTargetCount,
-    int? LocalityDistinctEffectCount,
-    int? LocalityDistance,
-    bool? LocalityIsCurrent,
-    bool? LocalityIsCommitted,
-    bool? LocalityArrived,
-    int? LocalityActionsRemaining,
-    int? LocalityRealizedActions,
-    int? LocalitySelectionReasonCode);
-
-public sealed record ProcessExecutionRow(
+public sealed record ActionExecutionRow(
     int RunId,
     int Tick,
     int EntityId,
@@ -347,25 +315,11 @@ public sealed record ProcessExecutionRow(
     int PlanId,
     int GoalId,
     int StepIndex,
-    int ProcessId,
+    int ActionId,
     int TargetEntityId,
     int StateCode,
     int AffectedEntityId,
     int LocalityId);
-
-public sealed record ProcessCandidateRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int ProcessId,
-    int GoalId,
-    int ProviderId,
-    float Score,
-    bool PreconditionPassed,
-    int PreconditionDiagnosticCode,
-    bool OnCooldown,
-    bool WasSelected);
 
 public sealed record LocalityOpportunityRow(
     int RunId,

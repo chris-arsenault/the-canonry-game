@@ -143,13 +143,13 @@ internal sealed partial class GambitProgramRuntime
         global::System.ReadOnlySpan<float> variableValues,
         int variableCount)
     {
-        if (code == ProcessExpressionCodes.Literal)
+        if (code == BehaviorExpressionCodes.Literal)
         {
             Push(stack, ref stackCount, x);
             return true;
         }
 
-        if (code == ProcessExpressionCodes.SelfAttribute)
+        if (code == BehaviorExpressionCodes.SelfAttribute)
         {
             Push(stack, ref stackCount, world.GetAttribute(entityId, a));
             return true;
@@ -170,13 +170,13 @@ internal sealed partial class GambitProgramRuntime
         global::System.ReadOnlySpan<float> variableValues,
         int variableCount)
     {
-        if (code == ProcessExpressionCodes.TargetAttribute)
+        if (code == BehaviorExpressionCodes.TargetAttribute)
         {
             Push(stack, ref stackCount, world.GetAttribute(targetId, a));
             return true;
         }
 
-        if (code == ProcessExpressionCodes.SelfLocationResource)
+        if (code == BehaviorExpressionCodes.SelfLocationResource)
         {
             Push(stack, ref stackCount, ResourceAtEntity(world, entityId, a));
             return true;
@@ -197,19 +197,19 @@ internal sealed partial class GambitProgramRuntime
         global::System.ReadOnlySpan<float> variableValues,
         int variableCount)
     {
-        if (code == ProcessExpressionCodes.TargetLocationResource)
+        if (code == BehaviorExpressionCodes.TargetLocationResource)
         {
             Push(stack, ref stackCount, ResourceAtEntity(world, targetId, a));
             return true;
         }
 
-        if (code == ProcessExpressionCodes.Variable)
+        if (code == BehaviorExpressionCodes.Variable)
         {
             Push(stack, ref stackCount, VariableValue(variableIds, variableValues, variableCount, a));
             return true;
         }
 
-        if (code != ProcessExpressionCodes.Distance)
+        if (code != BehaviorExpressionCodes.Distance)
         {
             return false;
         }
@@ -223,13 +223,13 @@ internal sealed partial class GambitProgramRuntime
         global::System.Span<float> stack,
         ref int stackCount)
     {
-        if (code == ProcessExpressionCodes.Add)
+        if (code == BehaviorExpressionCodes.Add)
         {
             PushBinary(stack, ref stackCount, Pop(stack, ref stackCount) + Pop(stack, ref stackCount));
             return true;
         }
 
-        if (code == ProcessExpressionCodes.Subtract)
+        if (code == BehaviorExpressionCodes.Subtract)
         {
             Subtract(stack, ref stackCount);
             return true;
@@ -243,13 +243,13 @@ internal sealed partial class GambitProgramRuntime
         global::System.Span<float> stack,
         ref int stackCount)
     {
-        if (code == ProcessExpressionCodes.Multiply)
+        if (code == BehaviorExpressionCodes.Multiply)
         {
             PushBinary(stack, ref stackCount, Pop(stack, ref stackCount) * Pop(stack, ref stackCount));
             return true;
         }
 
-        if (code == ProcessExpressionCodes.Divide)
+        if (code == BehaviorExpressionCodes.Divide)
         {
             Divide(stack, ref stackCount);
             return true;
@@ -263,25 +263,25 @@ internal sealed partial class GambitProgramRuntime
         global::System.Span<float> stack,
         ref int stackCount)
     {
-        if (code == ProcessExpressionCodes.Min)
+        if (code == BehaviorExpressionCodes.Min)
         {
             Min(stack, ref stackCount);
             return true;
         }
 
-        if (code == ProcessExpressionCodes.Max)
+        if (code == BehaviorExpressionCodes.Max)
         {
             Max(stack, ref stackCount);
             return true;
         }
 
-        if (code == ProcessExpressionCodes.Clamp)
+        if (code == BehaviorExpressionCodes.Clamp)
         {
             Clamp(stack, ref stackCount);
             return true;
         }
 
-        if (code != ProcessExpressionCodes.Abs)
+        if (code != BehaviorExpressionCodes.Abs)
         {
             return false;
         }

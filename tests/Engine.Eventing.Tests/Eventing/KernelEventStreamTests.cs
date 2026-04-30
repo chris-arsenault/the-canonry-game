@@ -10,12 +10,12 @@ public sealed class KernelEventStreamTests
         var stream = new KernelEventLog(capacity: 4);
         var cursor = stream.CreateCursor(KernelEventCursorStart.EarliestAvailable);
 
-        Assert.True(stream.TryWrite(KernelEvent.From(new ProcessExecutedKernelEvent(
+        Assert.True(stream.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
             Tick: 1,
             WorldVersion: 101,
             ActorId: 10,
             ActorKindId: 2,
-            ProcessId: 20,
+            GambitId: 20,
             AffectedEntityId0: 30,
             AffectedEntityId1: 31,
             AffectedEntityCount: 2,
@@ -31,12 +31,12 @@ public sealed class KernelEventStreamTests
 
         Assert.True(stream.TryRead(cursor, out var first));
         Assert.Equal(0, first.Sequence);
-        Assert.Equal(KernelEventType.ProcessExecuted, first.Event.EventType);
-        var firstPayload = first.Event.AsProcessExecuted();
+        Assert.Equal(KernelEventType.GambitExecuted, first.Event.EventType);
+        var firstPayload = first.Event.AsGambitExecuted();
         Assert.Equal(1, firstPayload.Tick);
         Assert.Equal(101, firstPayload.WorldVersion);
         Assert.Equal(10, firstPayload.ActorId);
-        Assert.Equal(20, firstPayload.ProcessId);
+        Assert.Equal(20, firstPayload.GambitId);
         Assert.Equal(2, firstPayload.AffectedEntityCount);
         Assert.Equal(KernelEventState.Succeeded, firstPayload.State);
 

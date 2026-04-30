@@ -61,25 +61,25 @@ internal sealed partial class GambitProgramRuntime
     {
         switch (operationCode)
         {
-            case ProcessOperationCodes.AddAttribute:
+            case BehaviorOperationCodes.AddAttribute:
                 simulation.ModifyAttribute(entityId, _stepA[step], _stepX[step], tick);
                 return true;
-            case ProcessOperationCodes.SetAttribute:
+            case BehaviorOperationCodes.SetAttribute:
                 simulation.SetAttribute(entityId, _stepA[step], _stepX[step], tick);
                 return true;
-            case ProcessOperationCodes.AddTargetAttribute:
+            case BehaviorOperationCodes.AddTargetAttribute:
                 simulation.ModifyAttribute(targetId, _stepA[step], _stepX[step], tick);
                 return true;
-            case ProcessOperationCodes.TransferAttribute:
+            case BehaviorOperationCodes.TransferAttribute:
                 TransferAttribute(simulation, entityId, targetId, tick, step);
                 return true;
-            case ProcessOperationCodes.AddAttributeFromVariable:
+            case BehaviorOperationCodes.AddAttributeFromVariable:
                 AddAttributeFromVariable(simulation, entityId, tick, step, variableIds, variableValues, variableCount);
                 return true;
-            case ProcessOperationCodes.AddTargetAttributeFromVariable:
+            case BehaviorOperationCodes.AddTargetAttributeFromVariable:
                 AddAttributeFromVariable(simulation, targetId, tick, step, variableIds, variableValues, variableCount);
                 return true;
-            case ProcessOperationCodes.CalculateVariable:
+            case BehaviorOperationCodes.CalculateVariable:
                 SetVariable(
                     variableIds,
                     variableValues,
@@ -96,22 +96,22 @@ internal sealed partial class GambitProgramRuntime
     {
         switch (operationCode)
         {
-            case ProcessOperationCodes.MovePhysical:
+            case BehaviorOperationCodes.MovePhysical:
                 simulation.MoveEntityPhysical(entityId, world.EntityPhysicalQ(entityId) + _stepA[step], world.EntityPhysicalR(entityId) + _stepB[step], tick);
                 return true;
-            case ProcessOperationCodes.MoveSemantic:
+            case BehaviorOperationCodes.MoveSemantic:
                 simulation.MoveEntitySemantic(entityId, world.EntitySemanticQ(entityId) + _stepA[step], world.EntitySemanticR(entityId) + _stepB[step], world.EntitySemanticS(entityId) + _stepC[step], tick);
                 return true;
-            case ProcessOperationCodes.MoveTowardTargetPhysical:
+            case BehaviorOperationCodes.MoveTowardTargetPhysical:
                 MoveTowardTargetPhysical(simulation, world, entityId, targetId, tick);
                 return true;
-            case ProcessOperationCodes.WanderPhysical:
+            case BehaviorOperationCodes.WanderPhysical:
                 WanderPhysical(simulation, world, entityId, tick);
                 return true;
-            case ProcessOperationCodes.MoveTowardTargetSemantic:
+            case BehaviorOperationCodes.MoveTowardTargetSemantic:
                 MoveTowardTargetSemantic(simulation, world, entityId, targetId, tick);
                 return true;
-            case ProcessOperationCodes.WanderSemantic:
+            case BehaviorOperationCodes.WanderSemantic:
                 WanderSemantic(simulation, world, entityId, tick);
                 return true;
             default:
@@ -123,13 +123,13 @@ internal sealed partial class GambitProgramRuntime
     {
         switch (operationCode)
         {
-            case ProcessOperationCodes.AddLocationResource:
+            case BehaviorOperationCodes.AddLocationResource:
                 AddLocationResource(simulation, entityId, targetId, tick, step);
                 return true;
-            case ProcessOperationCodes.AddResource:
+            case BehaviorOperationCodes.AddResource:
                 simulation.ModifyResource(_stepA[step], world.EntityPhysicalQ(entityId) + _stepB[step], world.EntityPhysicalR(entityId) + _stepC[step], _stepX[step], tick);
                 return true;
-            case ProcessOperationCodes.AddPressure:
+            case BehaviorOperationCodes.AddPressure:
                 simulation.Pressures.ApplyDelta(_stepA[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepX[step]);
                 world.AdvanceWorldVersion();
                 return true;
@@ -142,16 +142,16 @@ internal sealed partial class GambitProgramRuntime
     {
         switch (operationCode)
         {
-            case ProcessOperationCodes.SetStatus:
+            case BehaviorOperationCodes.SetStatus:
                 simulation.SetEntityStatus(entityId, _stepA[step], tick);
                 return true;
-            case ProcessOperationCodes.CreateRelationship:
+            case BehaviorOperationCodes.CreateRelationship:
                 simulation.CreateRelationship(_stepA[step], _stepC[step], entityId, _stepB[step] > 0 ? _stepB[step] : targetId, _stepX[step], tick, _stepD[step], factCount: _stepD[step] > 0 ? 1 : 0);
                 return true;
-            case ProcessOperationCodes.SetRelationshipStrength:
+            case BehaviorOperationCodes.SetRelationshipStrength:
                 SetRelationshipStrength(simulation, world, entityId, targetId, tick, step);
                 return true;
-            case ProcessOperationCodes.CreateEntity:
+            case BehaviorOperationCodes.CreateEntity:
                 CreateEntity(simulation, entityId, tick, step);
                 return true;
             default:
@@ -163,14 +163,20 @@ internal sealed partial class GambitProgramRuntime
     {
         switch (operationCode)
         {
-            case ProcessOperationCodes.SetHistorical:
-                simulation.SetEntityStatus(_stepA[step] > 0 ? _stepA[step] : entityId, EntityStatusCodes.Historical, tick);
+            case BehaviorOperationCodes.SetHistorical:
+                simulation.SetEntityStatus(HistoricalEntityId(entityId, targetId, step), EntityStatusCodes.Historical, tick);
                 return true;
-            case ProcessOperationCodes.AddRelatedEntitiesAttribute:
+            case BehaviorOperationCodes.AddRelatedEntitiesAttribute:
                 AddRelatedEntitiesAttribute(simulation, world, entityId, targetId, tick, step);
                 return true;
-            case ProcessOperationCodes.CreateFixedRelationship:
+            case BehaviorOperationCodes.CreateFixedRelationship:
                 simulation.CreateRelationship(_stepA[step], _stepD[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepC[step] > 0 ? _stepC[step] : targetId, _stepX[step], tick);
+                return true;
+            case BehaviorOperationCodes.CreateEndpointRelationship:
+                CreateEndpointRelationship(simulation, entityId, targetId, tick, step);
+                return true;
+            case BehaviorOperationCodes.SetEndpointRelationshipStrength:
+                SetEndpointRelationshipStrength(simulation, world, entityId, targetId, tick, step);
                 return true;
             default:
                 return false;
@@ -305,6 +311,35 @@ internal sealed partial class GambitProgramRuntime
         }
 
         simulation.SetRelationshipStrength(relationshipId, _stepX[step], tick);
+    }
+
+    private void SetEndpointRelationshipStrength(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)
+    {
+        var sourceId = EndpointEntityId(entityId, targetId, _stepB[step]);
+        var relationshipTargetId = EndpointEntityId(entityId, targetId, _stepC[step]);
+        var relationshipId = world.FindRelationship(sourceId, relationshipTargetId, _stepA[step]);
+        if (relationshipId == 0)
+        {
+            return;
+        }
+
+        simulation.SetRelationshipStrength(relationshipId, _stepX[step], tick);
+    }
+
+    private void CreateEndpointRelationship(Simulation simulation, int entityId, int targetId, int tick, int step)
+    {
+        simulation.CreateRelationship(
+            _stepA[step],
+            _stepD[step],
+            EndpointEntityId(entityId, targetId, _stepB[step]),
+            EndpointEntityId(entityId, targetId, _stepC[step]),
+            _stepX[step],
+            tick);
+    }
+
+    private int HistoricalEntityId(int entityId, int targetId, int step)
+    {
+        return _stepA[step] > 0 ? _stepA[step] : EndpointEntityId(entityId, targetId, _stepB[step]);
     }
 
     private void MoveTowardTargetPhysical(Simulation simulation, WorldState world, int entityId, int targetId, int tick)
@@ -655,7 +690,7 @@ internal sealed partial class GambitProgramRuntime
 
     private static int EndpointEntityId(int entityId, int targetId, int endpointCode)
     {
-        return endpointCode == ProcessEndpointCodes.Target ? targetId : entityId;
+        return endpointCode == BehaviorEndpointCodes.Target ? targetId : entityId;
     }
 
     private static float ResourceAtEntity(WorldState world, int entityId, int resourceId)

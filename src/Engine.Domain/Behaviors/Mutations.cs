@@ -1,4 +1,4 @@
-namespace Engine.Processes;
+namespace Engine.Behaviors;
 
 using System.Globalization;
 
@@ -10,7 +10,7 @@ using Engine.Resources;
 /// <summary>
 /// A mutation: a single effect applied to the world when a data-driven behavior executes.
 /// Mutations are config-DSL records — the kernel compiles them into primitive
-/// <c>ProcessProgramStepRule</c> ops via pattern matching in <c>DomainCompiler</c>.
+/// <c>BehaviorProgramStepRule</c> ops via pattern matching in <c>DomainCompiler</c>.
 /// They are not executed by the kernel at runtime.
 /// </summary>
 public interface IMutation
@@ -43,6 +43,45 @@ public sealed class CreateRelationshipMutation(
     public float Strength { get; } = strength;
 
     public string Describe() => $"create_relationship({SourceId}->{TargetId}, {RelationshipKind}, strength={Strength})";
+}
+
+/// <summary>
+/// Creates a relationship between the current behavior's self/target endpoints.
+/// This is the runtime form gambits usually want: source and target are resolved
+/// from the selected actor and selected target rather than fixed seed IDs.
+/// </summary>
+public sealed class CreateContextRelationshipMutation(
+    TransferEndpoint source,
+    TransferEndpoint target,
+    string kind,
+    RelationshipPolarity polarity,
+    float strength) : IMutation
+{
+    public TransferEndpoint Source { get; } = source;
+    public TransferEndpoint Target { get; } = target;
+    public string RelationshipKind { get; } = kind;
+    public RelationshipPolarity Polarity { get; } = polarity;
+    public float Strength { get; } = strength;
+
+    public string Describe() => $"create_relationship({Source}->{Target}, {RelationshipKind}, strength={Strength})";
+}
+
+/// <summary>
+/// Sets strength on an existing relationship between the current behavior's
+/// self/target endpoints. Missing relationships are intentionally no-ops.
+/// </summary>
+public sealed class SetContextRelationshipStrengthMutation(
+    TransferEndpoint source,
+    TransferEndpoint target,
+    string kind,
+    float strength) : IMutation
+{
+    public TransferEndpoint Source { get; } = source;
+    public TransferEndpoint Target { get; } = target;
+    public string RelationshipKind { get; } = kind;
+    public float Strength { get; } = strength;
+
+    public string Describe() => $"set_relationship_strength({Source}->{Target}, {RelationshipKind}, strength={Strength})";
 }
 
 /// <summary>
@@ -82,6 +121,12 @@ public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
     public string Describe() => $"set_historical({EntityId})";
 }
 
+/// <summary>Transitions the resolved target entity to historical status.</summary>
+public sealed class SetTargetHistoricalMutation : IMutation
+{
+    public string Describe() => "set_historical(target)";
+}
+
 /// <summary>
 /// Modifies the current entity's attribute by a delta with optional variance.
 /// Actual delta = delta * (1 + random(-variance, +variance)).
@@ -96,7 +141,7 @@ public sealed class ModifySelfAttributeMutation(string attributeName, float delt
 }
 
 /// <summary>
-/// Modifies an attribute on the resolved target entity (from the process-provider pair).
+/// Modifies an attribute on the resolved target entity (from the behavior-provider pair).
 /// </summary>
 public sealed class ModifyTargetAttributeMutation(string attributeName, float delta, float variance = 0f) : IMutation
 {
@@ -107,7 +152,7 @@ public sealed class ModifyTargetAttributeMutation(string attributeName, float de
     public string Describe() => $"modify_target({AttributeName}, delta={Delta}, var={VarianceValue})";
 }
 
-/// <summary>Which entity (relative to the process context) an endpoint refers to.</summary>
+/// <summary>Which entity (relative to the behavior context) an endpoint refers to.</summary>
 public enum TransferEndpoint
 {
     Self,

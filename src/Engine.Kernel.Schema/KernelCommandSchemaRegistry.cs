@@ -25,7 +25,7 @@ internal enum KernelCommandSemanticKind
     SubmitterId = 5,
     SubmitterSequence = 6,
     EntityId = 7,
-    ProcessId = 8,
+    ActionId = 8,
     GeneratorId = 9,
     PressureId = 10,
     DetectorId = 11,

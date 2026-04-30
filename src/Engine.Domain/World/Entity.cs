@@ -2,7 +2,6 @@ namespace Engine.Graph;
 
 using Engine.Domain;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.WorldGen;
 
 /// <summary>
@@ -33,80 +32,19 @@ public sealed class Entity
     /// </summary>
     public SemanticHexCoord SemanticPosition { get; set; } = SemanticHexCoord.Origin;
 
-    /// <summary>Active goals. Max 3 primary + their sub-goals. Regenerated periodically.</summary>
-    public System.Collections.ObjectModel.Collection<EntityGoal> Goals { get; } = [];
-
-    /// <summary>Tick when goals were last generated.</summary>
-    public int GoalsGeneratedAt { get; set; }
-
-    /// <summary>Engine-produced evaluation report from the last tick. UI reads this.</summary>
-    public EvaluationReport? LastEvaluation { get; set; }
-
-    /// <summary>
-    /// Short-horizon locality commitment used by the process program to make movement choose
-    /// destinations that unlock multiple follow-up actions instead of replanning
-    /// every tick from scratch.
-    /// </summary>
-    public LocalityVisitIntent? ActiveVisitIntent { get; set; }
-
-    /// <summary>Per-process cooldown tracking: process runtime id → tick when cooldown expires.</summary>
-    public Dictionary<ProcessRuntimeId, int> ProcessCooldowns { get; } = [];
-
-    /// <summary>Per-definition last execution tick keyed by primitive runtime id.</summary>
-    public Dictionary<ProcessRuntimeId, int> LastDefinitionExecutionTicks { get; } = [];
-
     /// <summary>Entity-wide cooldown: tick when entity can act again.</summary>
     public int EntityCooldownUntil { get; set; }
-
-    /// <summary>Primitive id of the last process or action that executed for this entity.</summary>
-    public ProcessRuntimeId LastActionProcessId { get; set; }
-
-    /// <summary>Tick when the last process or action executed.</summary>
-    public int? LastActionTick { get; set; }
-
-    /// <summary>Recent action history for frequency display. (tick, process id).</summary>
-    public Queue<(int Tick, ProcessRuntimeId ProcessId)> ActionHistory { get; } = new();
 
     /// <summary>Health value history for graphing. (tick, value).</summary>
     public Queue<(int Tick, float Value)> HealthHistory { get; } = new();
 
     private const int MaxHistorySize = 60;
 
-    /// <summary>Record an action in the history.</summary>
-    public void RecordAction(int tick, ProcessRuntimeId processId)
-    {
-        LastActionProcessId = processId;
-        LastActionTick = tick;
-        LastDefinitionExecutionTicks[processId] = tick;
-
-        ActionHistory.Enqueue((tick, processId));
-        while (ActionHistory.Count > MaxHistorySize) ActionHistory.Dequeue();
-    }
-
     /// <summary>Record a health value snapshot.</summary>
     public void RecordHealth(int tick, float value)
     {
         HealthHistory.Enqueue((tick, value));
         while (HealthHistory.Count > MaxHistorySize) HealthHistory.Dequeue();
-    }
-
-    /// <summary>
-    /// Count how many times <paramref name="processId"/> fired on this entity at or
-    /// after <paramref name="sinceTick"/>. Used by the utility AI to soft-penalize
-    /// recent repetition — a process fired N times recently gets its score scaled
-    /// down, encouraging the process program to consider alternatives without hard-locking.
-    /// </summary>
-    public int CountRecentActions(ProcessRuntimeId processId, int sinceTick)
-    {
-        var count = 0;
-        foreach (var (tick, recordedProcessId) in ActionHistory)
-        {
-            if (tick >= sinceTick && recordedProcessId == processId)
-            {
-                count++;
-            }
-        }
-        return count;
     }
 
     public Entity(

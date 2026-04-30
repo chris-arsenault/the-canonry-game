@@ -2,7 +2,7 @@ namespace Engine.WorldGen.Tests.Map;
 
 using Engine.WorldGen;
 
-internal static class WorldGenTestData
+public static class WorldGenTestData
 {
     public const string Wastes = "wastes";
     public const string Tundra = "tundra";

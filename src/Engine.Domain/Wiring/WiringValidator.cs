@@ -3,7 +3,7 @@ namespace Engine.Wiring;
 using Engine.Kinds;
 
 /// <summary>
-/// Validates that registered processes and gambits form complete feedback loops.
+/// Validates that registered behaviors and gambits form complete feedback loops.
 /// Runs at simulation startup. Refuses to start if wiring is incomplete.
 ///
 /// Validations:
@@ -12,8 +12,8 @@ using Engine.Kinds;
 /// 3. Every entity kind participates in at least one cycle
 /// 4. Every entity kind has a sustaining path (something increases health)
 /// 5. Every entity kind has a threatening path (something decreases health)
-/// 6. ProcessProgram goal effects must correspond to execution writes
-/// 7. ProcessProgram blockers must be satisfiable by some reachable goal-effect chain
+/// 6. BehaviorProgram goal effects must correspond to execution writes
+/// 7. BehaviorProgram blockers must be satisfiable by some reachable goal-effect chain
 /// </summary>
 public sealed class WiringValidator
 {
@@ -150,7 +150,7 @@ public sealed class WiringValidator
                 {
                     errors.Add(new WiringError(
                         WiringErrorType.GoalEffectNotWritten,
-                        $"ProcessProgram goal effect '{goalEffect}' declared by '{contract.OwnerName}' is not present in its execution writes."));
+                        $"BehaviorProgram goal effect '{goalEffect}' declared by '{contract.OwnerName}' is not present in its execution writes."));
                 }
             }
         }
@@ -162,13 +162,13 @@ public sealed class WiringValidator
     {
         foreach (var contract in _contracts)
         {
-            foreach (var blocker in contract.ProcessBlockers)
+            foreach (var blocker in contract.BehaviorBlockers)
             {
                 if (!allGoalEffects.ContainsKey(blocker))
                 {
                     errors.Add(new WiringError(
                         WiringErrorType.UnreachableBlocker,
-                        $"ProcessProgram blocker '{blocker}' emitted by '{contract.OwnerName}' has no serving goal effect."));
+                        $"BehaviorProgram blocker '{blocker}' emitted by '{contract.OwnerName}' has no serving goal effect."));
                 }
             }
         }
@@ -180,13 +180,13 @@ public sealed class WiringValidator
     {
         foreach (var contract in _contracts)
         {
-            foreach (var supportEffect in contract.ProcessSupportEffects)
+            foreach (var supportEffect in contract.BehaviorSupportEffects)
             {
                 if (!allGoalEffects.ContainsKey(supportEffect))
                 {
                     errors.Add(new WiringError(
                         WiringErrorType.UnreachableSupportEffect,
-                        $"ProcessProgram support effect '{supportEffect}' declared by '{contract.OwnerName}' has no serving goal effect."));
+                        $"BehaviorProgram support effect '{supportEffect}' declared by '{contract.OwnerName}' has no serving goal effect."));
                 }
             }
         }
@@ -198,11 +198,11 @@ public sealed class WiringValidator
     {
         foreach (var goalEffect in allGoalEffects.Keys)
         {
-            if (!HasReachableProcessPath(goalEffect, []))
+            if (!HasReachableBehaviorPath(goalEffect, []))
             {
                 errors.Add(new WiringError(
                     WiringErrorType.UnreachableGoalEffect,
-                    $"ProcessProgram goal effect '{goalEffect}' has no reachable blocker chain to an actionable process."));
+                    $"BehaviorProgram goal effect '{goalEffect}' has no reachable blocker chain to an actionable behavior."));
             }
         }
     }
@@ -284,7 +284,7 @@ public sealed class WiringValidator
         return attrRef;
     }
 
-    private bool HasReachableProcessPath(
+    private bool HasReachableBehaviorPath(
         AttributeRef effect,
         HashSet<AttributeRef> visiting)
     {
@@ -297,20 +297,20 @@ public sealed class WiringValidator
         {
             foreach (var contract in _contracts.Where(c => c.GoalEffects.Contains(effect)))
             {
-                if (contract.HasOpaqueProcessBranches)
+                if (contract.HasOpaqueBehaviorBranches)
                 {
                     return true;
                 }
 
-                if (contract.ProcessBlockers.Count == 0)
+                if (contract.BehaviorBlockers.Count == 0)
                 {
                     return true;
                 }
 
                 var allBlockersReachable = true;
-                foreach (var blocker in contract.ProcessBlockers)
+                foreach (var blocker in contract.BehaviorBlockers)
                 {
-                    if (!HasReachableProcessPath(blocker, visiting))
+                    if (!HasReachableBehaviorPath(blocker, visiting))
                     {
                         allBlockersReachable = false;
                         break;

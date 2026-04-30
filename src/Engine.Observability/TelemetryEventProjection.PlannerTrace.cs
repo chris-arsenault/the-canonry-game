@@ -4,39 +4,6 @@ using Engine.Eventing;
 
 internal sealed partial class TelemetryEventProjection
 {
-    private void RecordProcessExecution(in ProcessExecutedKernelEvent evt)
-    {
-        var matched = _lastSelectedStepByEntityProcess.GetValueOrDefault((evt.ActorId, evt.ProcessId));
-        RecordMatchedPlannerStep(matched);
-        _batch.ProcessExecutions.Add(ProcessExecutionRowFrom(evt, matched));
-    }
-
-    private void RecordMatchedPlannerStep(PlannerStepRow? matched)
-    {
-        if (matched is null || !_recordedExecutedPlannerSteps.Add(PlannerStepKey.From(matched)))
-        {
-            return;
-        }
-
-        _batch.PlannerSteps.Add(matched);
-        AddSelectedPlannerStepCandidate(matched);
-    }
-
-    private ProcessExecutionRow ProcessExecutionRowFrom(in ProcessExecutedKernelEvent evt, PlannerStepRow? matched) =>
-        new(
-            _runId,
-            evt.Tick,
-            evt.ActorId,
-            evt.ActorKindId,
-            matched?.PlanId ?? 0,
-            matched?.GoalId ?? 0,
-            matched?.StepIndex ?? 0,
-            evt.ProcessId,
-            evt.AffectedEntityId1 > 0 ? evt.AffectedEntityId1 : evt.ActorId,
-            (int)evt.State,
-            evt.AffectedEntityId0,
-            LocalityIdFor(evt, matched));
-
     private void AddSelectedPlannerStepCandidate(PlannerStepRow step)
     {
         var entity = GetOrCreateEntity(step.EntityId);
@@ -66,7 +33,6 @@ internal sealed partial class TelemetryEventProjection
             step.GoalId,
             step.StepIndex,
             ParentCandidateIndex: 0,
-            step.ProcessId,
             ActionId: step.ActionId,
             ProviderEntityId: step.EntityId,
             step.TargetEntityId,
@@ -174,7 +140,6 @@ internal sealed partial class TelemetryEventProjection
             goalId,
             evt.CandidateIndex,
             evt.ParentCandidateIndex,
-            ProcessIdForTrace(evt),
             evt.ActionId,
             evt.EntityId,
             evt.TargetEntityId,
@@ -200,9 +165,6 @@ internal sealed partial class TelemetryEventProjection
             evt.RawWeight,
             evt.AdjustedWeight));
     }
-
-    private static int ProcessIdForTrace(in TraceKernelEvent evt) =>
-        evt.ActionFamilyCode == ActionFamilyCodes.Process ? evt.ActionId : 0;
 
     private void AddMovementIntentRows(in TraceKernelEvent evt, ObservedEntityProjection entity)
     {
@@ -242,7 +204,6 @@ internal sealed partial class TelemetryEventProjection
             evt.CandidateIndex,
             evt.CandidateIndex,
             evt.ParentCandidateIndex,
-            ProcessId: evt.ActionId,
             evt.ActionId,
             ProviderEntityId: evt.EntityId,
             evt.TargetEntityId,
@@ -301,7 +262,6 @@ internal sealed partial class TelemetryEventProjection
             evt.PlanId,
             evt.CandidateIndex,
             StepIndex: 1,
-            ProcessId: evt.ActionId,
             evt.ActionId,
             evt.TargetEntityId,
             RelationshipKindId: 0,
@@ -330,7 +290,7 @@ internal sealed partial class TelemetryEventProjection
             Selected: true));
 
     private void AddSelectedMovementIntentExecution(in TraceKernelEvent evt, ObservedEntityProjection entity) =>
-        _batch.ProcessExecutions.Add(new ProcessExecutionRow(
+        _batch.ActionExecutions.Add(new ActionExecutionRow(
             _runId,
             evt.Tick,
             evt.EntityId,
@@ -338,7 +298,7 @@ internal sealed partial class TelemetryEventProjection
             evt.PlanId,
             evt.CandidateIndex,
             StepIndex: 1,
-            ProcessId: evt.ActionId,
+            ActionId: evt.ActionId,
             evt.TargetEntityId,
             StateCode: (int)KernelEventState.Succeeded,
             AffectedEntityId: evt.EntityId,
@@ -346,9 +306,6 @@ internal sealed partial class TelemetryEventProjection
 
     private static int MovementIntentDiagnosticCode(int statusCode) =>
         statusCode is TraceStatusCodes.Offered or TraceStatusCodes.Selected ? 0 : statusCode;
-
-    private int LocalityIdFor(in ProcessExecutedKernelEvent evt, PlannerStepRow? matched) =>
-        matched is null ? 0 : LocalityIdFor(evt.ActorId, matched.PlanId);
 
     private int LocalityIdFor(int entityId, int planId) =>
         _selectedLocalityByEntityPlan.GetValueOrDefault((entityId, planId));

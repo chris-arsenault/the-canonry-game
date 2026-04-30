@@ -1,7 +1,7 @@
 namespace Engine.Domain.Graph;
 
+using Engine.Behaviors;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Wiring;
 
 public static partial class DefinitionGraphValidator
@@ -17,7 +17,6 @@ public static partial class DefinitionGraphValidator
         ValidateRelationshipKeys(graph, errors);
         ValidatePressureKeys(graph, errors);
         ValidateLifecycleNodes(graph, errors);
-        ValidateProcessSet(graph, errors);
         ValidateGambitSet(graph, errors);
         ValidateGameplay(graph, errors);
         ValidateSemanticSet(graph, errors);
@@ -72,24 +71,6 @@ public static partial class DefinitionGraphValidator
         foreach (var (kind, lifecycleNode) in graph.Lifecycles)
         {
             ValidateLifecycleNode(kind, lifecycleNode, graph, errors);
-        }
-    }
-
-    private static void ValidateProcessSet(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var process in graph.Processes.Values)
-        {
-            ValidateBehaviorNode(
-                "Process",
-                process.Id,
-                process.TargetKind,
-                process.Reads,
-                process.Writes,
-                process.GoalEffects,
-                process.ProviderSelectors,
-                process.SupportRules,
-                graph,
-                errors);
         }
     }
 
@@ -193,17 +174,23 @@ public static partial class DefinitionGraphValidator
 
     private static void ValidateSemanticSet(DefinitionGraph graph, List<string> errors)
     {
+        ValidateKindAttributeCategoryShape(graph, errors);
+        ValidateTransferPreconditionGates(graph, errors);
+
+        if (graph.SemanticFlows.Verbs.Count == 0 && graph.SemanticFlows.Flows.Count == 0)
+        {
+            return;
+        }
+
         ValidateSemanticFlows(graph, errors);
         ValidateSemanticVerbParticipation(graph, errors);
         ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
-        ValidateKindAttributeCategoryShape(graph, errors);
         ValidateHealthInflowFromHex(graph, errors);
         ValidateSelfSacrificeFromHealth(graph, errors);
         ValidateRpsRing(graph, errors);
         ValidateUntouchedAttributeOutflowToHex(graph, errors);
         ValidateMobilityAndDriftVerbs(graph, errors);
-        ValidateTransferPreconditionGates(graph, errors);
     }
 
     private static void ValidateGeneratorSet(DefinitionGraph graph, List<string> errors)
@@ -417,9 +404,9 @@ public static partial class DefinitionGraphValidator
     }
 
     /// <summary>
-    /// Every process that issues a <see cref="TransferAttributeMutation"/> must
+    /// Every gambit that issues a <see cref="TransferAttributeMutation"/> must
     /// gate its source side at stock ≥ transfer amount. The transfer mutation is
-    /// all-or-nothing; without the gate, a process would be allowed to fire when
+    /// all-or-nothing; without the gate, a behavior would be allowed to fire when
     /// it can't actually move the authored rate, and the mutation would silently
     /// abort — making the authored economy dishonest. This encodes the soft-gate
     /// invariant so it's impossible to author a transfer without the matching
@@ -427,11 +414,6 @@ public static partial class DefinitionGraphValidator
     /// </summary>
     private static void ValidateTransferPreconditionGates(DefinitionGraph graph, List<string> errors)
     {
-        foreach (var (id, processNode) in graph.Processes)
-        {
-            ValidateTransferPreconditionGate(id, "Process", processNode.SourceDefinition, errors);
-        }
-
         foreach (var (id, gambitNode) in graph.Gambits)
         {
             ValidateTransferPreconditionGate(id, "Gambit", gambitNode.SourceDefinition, errors);

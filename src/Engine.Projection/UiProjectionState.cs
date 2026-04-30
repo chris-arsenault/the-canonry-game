@@ -181,39 +181,6 @@ public sealed class UiProjectionState : KernelEventProjector
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
-    protected override void OnProcessEvaluated(long sequence, in ProcessEvaluatedKernelEvent evt)
-    {
-        var entity = GetOrCreateEntity(evt.EntityId);
-        entity.KindId = evt.KindId;
-        entity.LastProcessEvaluation = new UiProcessEvaluationProjection(
-            evt.Tick,
-            evt.SelectedGoalId,
-            evt.ExecutedProcessId,
-            evt.CandidateCount,
-            evt.State,
-            evt.WorldVersion);
-        entity.LastUpdatedTick = evt.Tick;
-        entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-    }
-
-    protected override void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
-    {
-        var entity = GetOrCreateEntity(evt.ActorId);
-        entity.KindId = evt.ActorKindId;
-        entity.LastProcessExecution = new UiProcessExecutionProjection(
-            evt.Tick,
-            evt.ProcessId,
-            evt.AffectedEntityId0,
-            evt.AffectedEntityId1,
-            evt.AffectedEntityCount,
-            evt.State,
-            evt.WorldVersion);
-        entity.LastUpdatedTick = evt.Tick;
-        entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-    }
-
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
@@ -374,10 +341,6 @@ public sealed class UiEntityProjection(int entityId)
 
     public UiGoalGenerationProjection? LastGoalGeneration { get; internal set; }
 
-    public UiProcessEvaluationProjection? LastProcessEvaluation { get; internal set; }
-
-    public UiProcessExecutionProjection? LastProcessExecution { get; internal set; }
-
     public UiGambitExecutionProjection? LastGambitExecution { get; internal set; }
 }
 
@@ -459,23 +422,6 @@ public sealed record UiGoalGenerationProjection(
     int Tick,
     int GoalCount,
     int ActionableGoalCount,
-    KernelEventState State,
-    long WorldVersion);
-
-public sealed record UiProcessEvaluationProjection(
-    int Tick,
-    int SelectedGoalId,
-    int ExecutedProcessId,
-    int CandidateCount,
-    KernelEventState State,
-    long WorldVersion);
-
-public sealed record UiProcessExecutionProjection(
-    int Tick,
-    int ProcessId,
-    int AffectedEntityId0,
-    int AffectedEntityId1,
-    int AffectedEntityCount,
     KernelEventState State,
     long WorldVersion);
 

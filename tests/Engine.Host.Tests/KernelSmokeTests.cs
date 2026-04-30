@@ -39,7 +39,7 @@ public sealed class KernelSmokeTests
     }
 
     [Fact]
-    public void Simulation_LowAltitudePhysicsMovesEntitiesAndOldWorkProgramsStayDisabled()
+    public void Simulation_LowAltitudePhysicsMovesEntitiesWithoutLegacyActionProgram()
     {
         const int ticks = 150;
         using var runtime = CreateRuntime(seed: 42);
@@ -73,8 +73,6 @@ public sealed class KernelSmokeTests
         });
         Assert.True(physicalEntityMoved, "No entity changed physical position.");
 
-        Assert.DoesNotContain(runtime.Ui.Entities.Values, entity => entity.LastProcessExecution is not null);
-        Assert.DoesNotContain(runtime.Ui.Entities.Values, entity => entity.LastGambitExecution is not null);
         Assert.True(runtime.Ui.Entities.Count > initialEntityCount, "Generators did not grow the world.");
     }
 

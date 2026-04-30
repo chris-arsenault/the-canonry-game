@@ -119,19 +119,19 @@ public partial class EntityRow : VBoxContainer
         IProjectionSymbolCatalog? symbols,
         int currentTick)
     {
-        var last = entity.LastProcessExecution;
+        var last = entity.LastGambitExecution;
         if (last is null)
         {
             return null;
         }
 
-        var processName = ProjectionDisplay.DisplayName(
+        var actionName = ProjectionDisplay.DisplayName(
             symbols,
-            ProjectionSymbolKind.Process,
-            last.ProcessId,
-            $"Process {last.ProcessId}");
+            ProjectionSymbolKind.Gambit,
+            last.GambitId,
+            $"Gambit {last.GambitId}");
         var age = System.Math.Max(0, currentTick - last.Tick);
         var ageText = age == 0 ? "now" : $"{age}t ago";
-        return $"    {processName} | {ageText}";
+        return $"    {actionName} | {ageText}";
     }
 }

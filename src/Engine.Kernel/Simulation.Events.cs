@@ -24,45 +24,6 @@ internal sealed partial class Simulation
             enabled)));
     }
 
-    internal void EmitProcessEvaluated(
-        int tick,
-        int entityId,
-        int kindId,
-        int selectedGoalId,
-        int processId,
-        int candidateCount,
-        KernelEventState state)
-    {
-        WriteKernelEvent(KernelEvent.From(new ProcessEvaluatedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            selectedGoalId,
-            processId,
-            candidateCount,
-            state)));
-    }
-
-    internal void EmitProcessExecuted(
-        int tick,
-        int entityId,
-        int targetId,
-        int kindId,
-        int processId)
-    {
-        WriteKernelEvent(KernelEvent.From(new ProcessExecutedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            kindId,
-            processId,
-            entityId,
-            targetId == entityId ? 0 : targetId,
-            targetId == entityId ? 1 : 2,
-            KernelEventState.Succeeded)));
-    }
-
     internal void EmitGambitEvaluated(
         int tick,
         int entityId,
@@ -246,7 +207,7 @@ internal sealed partial class Simulation
         int entityId,
         int goalId,
         int stepIndex,
-        int processId,
+        int actionId,
         int targetEntityId,
         int relationshipKindId)
     {
@@ -257,7 +218,7 @@ internal sealed partial class Simulation
             entityId,
             goalId,
             stepIndex,
-            processId,
+            actionId,
             targetEntityId,
             relationshipKindId)));
     }

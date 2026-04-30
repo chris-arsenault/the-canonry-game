@@ -28,7 +28,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
 
     private static void WritePlannerAnalysis(DuckDBConnection connection, string analysisDirectory)
     {
-        ExportAnalysisTable(connection, analysisDirectory, "process_pressure", ProcessPressureSql);
+        ExportAnalysisTable(connection, analysisDirectory, "action_pressure", ActionPressureSql);
         ExportAnalysisTable(connection, analysisDirectory, "planner_pressure", PlannerPressureSql);
         ExportAnalysisTable(connection, analysisDirectory, "stock_dynamics", StockDynamicsSql);
     }
@@ -106,7 +106,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 14, COUNT(*) FROM raw_planner_scores UNION ALL
             SELECT 15, COUNT(*) FROM raw_planner_steps UNION ALL
             SELECT 16, COUNT(*) FROM raw_planner_localities UNION ALL
-            SELECT 17, COUNT(*) FROM raw_process_executions UNION ALL
+            SELECT 17, COUNT(*) FROM raw_action_executions UNION ALL
             SELECT 18, COUNT(*) FROM raw_map_cell_events UNION ALL
             SELECT 19, COUNT(*) FROM raw_map_snapshots UNION ALL
             SELECT 20, COUNT(*) FROM raw_coverage_snapshots UNION ALL
@@ -509,10 +509,10 @@ internal sealed partial class MonteCarloBatchAnalyzer
         GROUP BY events.run_id, events.entity_id, events.plane_code, entity.kind_id, entity.subtype_id
         """;
 
-    private const string ProcessPressureSql = """
+    private const string ActionPressureSql = """
         SELECT
             kind_id,
-            process_id,
+            action_id,
             COUNT(*) AS candidate_evaluations,
             SUM(CASE WHEN selected THEN 1 ELSE 0 END) AS selected_count,
             CASE WHEN COUNT(*) = 0 THEN 0.0 ELSE SUM(CASE WHEN selected THEN 1 ELSE 0 END)::DOUBLE / COUNT(*) END AS selection_rate_when_offered,
@@ -522,17 +522,17 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(MAX(diagnostic_code), 0) AS top_failure_diagnostic_code,
             1 AS evidence_source_code
         FROM raw_planner_candidates
-        GROUP BY kind_id, process_id
+        GROUP BY kind_id, action_id
         """;
 
     private const string PlannerPressureSql = """
         WITH execution_counts AS (
-            SELECT kind_id, process_id, COUNT(*) AS selected_count
-            FROM raw_process_executions
-            GROUP BY kind_id, process_id
+            SELECT kind_id, action_id, COUNT(*) AS selected_count
+            FROM raw_action_executions
+            GROUP BY kind_id, action_id
         ),
         ranked_execution AS (
-            SELECT *, ROW_NUMBER() OVER (PARTITION BY kind_id ORDER BY selected_count DESC, process_id) AS rank
+            SELECT *, ROW_NUMBER() OVER (PARTITION BY kind_id ORDER BY selected_count DESC, action_id) AS rank
             FROM execution_counts
         )
         SELECT
@@ -543,14 +543,14 @@ internal sealed partial class MonteCarloBatchAnalyzer
             0.0 AS stale_rate,
             COALESCE(AVG(CASE WHEN executions.entity_id IS NULL THEN 1.0 ELSE 0.0 END), 0.0) AS no_execution_rate,
             COALESCE(AVG(CAST(candidates.candidate_index AS DOUBLE)), 0.0) AS average_candidate_count,
-            COALESCE(MAX(CASE WHEN ranked.rank = 1 THEN ranked.process_id ELSE 0 END), 0) AS top_executed_process_id,
+            COALESCE(MAX(CASE WHEN ranked.rank = 1 THEN ranked.action_id ELSE 0 END), 0) AS top_executed_action_id,
             CASE
                 WHEN COALESCE(SUM(ranked.selected_count), 0) = 0 THEN 0.0
                 ELSE COALESCE(MAX(CASE WHEN ranked.rank = 1 THEN ranked.selected_count ELSE 0 END), 0)::DOUBLE /
                      COALESCE(SUM(ranked.selected_count), 1)
-            END AS top_process_share_of_executions
+            END AS top_action_share_of_executions
         FROM raw_planner_candidates candidates
-        LEFT JOIN raw_process_executions executions
+        LEFT JOIN raw_action_executions executions
           ON executions.run_id = candidates.run_id
          AND executions.entity_id = candidates.entity_id
          AND executions.plan_id = candidates.plan_id

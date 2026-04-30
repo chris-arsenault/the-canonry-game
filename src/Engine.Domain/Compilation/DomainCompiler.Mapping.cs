@@ -1,5 +1,6 @@
 namespace Engine.Domain.Compilation;
 
+using Engine.Behaviors;
 using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
@@ -7,17 +8,16 @@ using Engine.Domain.Graph;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Resources;
 using Engine.Wiring;
 using Engine.WorldGen;
 
 public static partial class DomainCompiler
 {
-    private static ProcessProgramEndpoint EndpointCode(TransferEndpoint endpoint) => endpoint switch
+    private static BehaviorProgramEndpoint EndpointCode(TransferEndpoint endpoint) => endpoint switch
     {
-        TransferEndpoint.Target => ProcessProgramEndpoint.Target,
-        _ => ProcessProgramEndpoint.Self,
+        TransferEndpoint.Target => BehaviorProgramEndpoint.Target,
+        _ => BehaviorProgramEndpoint.Self,
     };
 
     private static int PlaneCode(PrimaryPlane plane) =>
@@ -700,40 +700,14 @@ public static partial class DomainCompiler
         _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
     };
 
-    private static bool AttributeCreatesObjective(AttributeConfig attribute) =>
-        // Preserve legacy goal-generator behavior: every scalar attribute can
-        // create a planner demand. Category affects domain meaning, not whether
-        // capacity/projection stocks participate in planning.
-        attribute.Category is
-            AttributeCategory.Health or
-            AttributeCategory.Capacity or
-            AttributeCategory.Projection or
-            AttributeCategory.Need or
-            AttributeCategory.Drive;
-
-    private static ProcessObjectiveUrgency ObjectiveUrgency(AttributeConfig attribute)
+    private static BehaviorProgramEffectScope EffectScope(AttributeRef reference) => reference.Scope switch
     {
-        if (StandardNeedScale.AppliesTo(attribute))
-        {
-            return ProcessObjectiveUrgency.StandardNeed;
-        }
-
-        if (attribute.Baseline > 0f)
-        {
-            return ProcessObjectiveUrgency.Baseline;
-        }
-
-        return ProcessObjectiveUrgency.RangeDefault;
-    }
-
-    private static ProcessProgramEffectScope EffectScope(AttributeRef reference) => reference.Scope switch
-    {
-        RefScope.Self => ProcessProgramEffectScope.SelfAttribute,
-        RefScope.Target => ProcessProgramEffectScope.TargetAttribute,
-        RefScope.Resource => ProcessProgramEffectScope.Resource,
-        RefScope.Structural => ProcessProgramEffectScope.Structural,
-        RefScope.Relational => ProcessProgramEffectScope.Relational,
-        _ => throw new InvalidOperationException($"Unsupported process effect scope '{reference.Scope}'."),
+        RefScope.Self => BehaviorProgramEffectScope.SelfAttribute,
+        RefScope.Target => BehaviorProgramEffectScope.TargetAttribute,
+        RefScope.Resource => BehaviorProgramEffectScope.Resource,
+        RefScope.Structural => BehaviorProgramEffectScope.Structural,
+        RefScope.Relational => BehaviorProgramEffectScope.Relational,
+        _ => throw new InvalidOperationException($"Unsupported behavior effect scope '{reference.Scope}'."),
     };
 
     private static int EffectValueId(AttributeRef reference, DomainIdRegistry ids) => reference.Scope switch
@@ -742,7 +716,7 @@ public static partial class DomainCompiler
         RefScope.Resource => ids.ResourceIdOf(reference.Name).Value,
         RefScope.Structural => ids.StructuralFactIdOf(reference.Name).Value,
         RefScope.Relational => ids.RelationshipKindIdOf(reference.RelationshipKind ?? reference.Name).Value,
-        _ => throw new InvalidOperationException($"Unsupported process effect scope '{reference.Scope}'."),
+        _ => throw new InvalidOperationException($"Unsupported behavior effect scope '{reference.Scope}'."),
     };
 
     private static int BoundaryGroupId(Dictionary<string, int> boundaryGroups, string stableName)

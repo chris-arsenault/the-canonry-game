@@ -1,5 +1,6 @@
 namespace Engine.Domain.Compilation;
 
+using Engine.Behaviors;
 using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
@@ -7,7 +8,6 @@ using Engine.Domain.Graph;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Resources;
 using Engine.Wiring;
 using Engine.WorldGen;
@@ -30,7 +30,6 @@ public static partial class DomainCompiler
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode),
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode),
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipStrengthChangedCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.ProcessSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.GambitSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode),
@@ -95,46 +94,6 @@ public static partial class DomainCompiler
         };
     }
 
-    private static ProcessProgram BuildProcessProgram(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        return new ProcessProgram
-        {
-            EnabledByDefault = false,
-            Processes = BuildProcessRules(config, ids),
-            Objectives = BuildProcessObjectives(config, ids),
-        };
-    }
-
-    private static List<CompiledProcessRule> BuildProcessRules(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        var processes = new List<CompiledProcessRule>();
-        foreach (var process in config.Processes)
-        {
-            var targetKindId = ResolveTargetKindId(process, ids);
-            processes.Add(new CompiledProcessRule(
-                ids.KindIdOf(process.TargetKind).Value,
-                ids.ProcessIdOf(process.Id).Value,
-                process.Cooldown,
-                process.EntityCooldown,
-                ResolveTargetMode(process, targetKindId),
-                targetKindId,
-                process.WorkCommitmentTicks,
-                CompileGoalEffects(process, ids),
-                CompileProviderSelectors(process, ids),
-                CompileSupportRules(process, ids),
-                CompilePreconditions(process.Precondition, ids),
-                CompileExpression(process.ScoreExpression, ids),
-                CompileExpression(process.RewardExpression, ids),
-                CompileSteps(process, ids)));
-        }
-
-        return processes;
-    }
-
     private static GambitProgram BuildGambitProgram(
         DomainConfig config,
         DomainIdRegistry ids)
@@ -162,70 +121,14 @@ public static partial class DomainCompiler
 
         return new GambitProgram
         {
-            EnabledByDefault = false,
+            EnabledByDefault = gambits.Count > 0,
             Gambits = gambits,
         };
     }
 
-    private static List<ProcessObjectiveRule> BuildProcessObjectives(
-        DomainConfig config,
-        DomainIdRegistry ids)
+    private static int ResolveTargetKindId(BehaviorDefinition behavior, DomainIdRegistry ids)
     {
-        var objectives = new List<ProcessObjectiveRule>();
-        foreach (var (kind, kindConfig) in config.Kinds)
-        {
-            var kindId = ids.KindIdOf(kind).Value;
-            foreach (var attribute in kindConfig.Attributes)
-            {
-                if (!AttributeCreatesObjective(attribute))
-                {
-                    continue;
-                }
-
-                objectives.Add(new ProcessObjectiveRule(
-                    kindId,
-                    ProcessProgramEffectScope.SelfAttribute,
-                    ids.AttributeIdOf(attribute.Name).Value,
-                    kindId,
-                    ObjectiveUrgency(attribute),
-                    ids.AttributeIdOf(attribute.Name).Value,
-                    attribute.Min,
-                    attribute.Max,
-                    attribute.Default,
-                    attribute.Baseline,
-                    0f));
-            }
-
-            foreach (var standingDrive in kindConfig.StandingDrives)
-            {
-                if (standingDrive.BaseUrgency < 0.01f)
-                {
-                    continue;
-                }
-
-                objectives.Add(new ProcessObjectiveRule(
-                    kindId,
-                    EffectScope(standingDrive.DesiredEffect),
-                    EffectValueId(standingDrive.DesiredEffect, ids),
-                    standingDrive.DesiredEffect.Kind is { } effectKind
-                        ? ids.KindIdOf(effectKind).Value
-                        : 0,
-                    ProcessObjectiveUrgency.Fixed,
-                    0,
-                    0f,
-                    0f,
-                    0f,
-                    0f,
-                    standingDrive.BaseUrgency));
-            }
-        }
-
-        return objectives;
-    }
-
-    private static int ResolveTargetKindId(BehaviorDefinition process, DomainIdRegistry ids)
-    {
-        foreach (var selector in process.ProviderSelectors)
+        foreach (var selector in behavior.ProviderSelectors)
         {
             if (selector.Kind is { } kind)
             {
@@ -233,7 +136,7 @@ public static partial class DomainCompiler
             }
         }
 
-        foreach (var effect in process.GoalEffects)
+        foreach (var effect in behavior.GoalEffects)
         {
             if (effect.Scope == RefScope.Target && effect.Kind is { } kind)
             {
@@ -244,31 +147,31 @@ public static partial class DomainCompiler
         return 0;
     }
 
-    private static ProcessProgramTargetMode ResolveTargetMode(BehaviorDefinition process, int targetKindId)
+    private static BehaviorProgramTargetMode ResolveTargetMode(BehaviorDefinition behavior, int targetKindId)
     {
-        if (ContainsPrecondition<TargetIsSelf>(process.Precondition))
+        if (ContainsPrecondition<TargetIsSelf>(behavior.Precondition))
         {
-            return ProcessProgramTargetMode.Self;
+            return BehaviorProgramTargetMode.Self;
         }
 
-        if (ContainsPrecondition<TargetIsNotSelf>(process.Precondition))
+        if (ContainsPrecondition<TargetIsNotSelf>(behavior.Precondition))
         {
             return targetKindId > 0
-                ? ProcessProgramTargetMode.KindOther
-                : ProcessProgramTargetMode.AnyOther;
+                ? BehaviorProgramTargetMode.KindOther
+                : BehaviorProgramTargetMode.AnyOther;
         }
 
-        return ProcessProgramTargetMode.Self;
+        return BehaviorProgramTargetMode.Self;
     }
 
-    private static List<ProcessProgramEffectRule> CompileGoalEffects(
-        BehaviorDefinition process,
+    private static List<BehaviorProgramEffectRule> CompileGoalEffects(
+        BehaviorDefinition behavior,
         DomainIdRegistry ids)
     {
-        var effects = new List<ProcessProgramEffectRule>();
-        foreach (var effect in process.GoalEffects)
+        var effects = new List<BehaviorProgramEffectRule>();
+        foreach (var effect in behavior.GoalEffects)
         {
-            effects.Add(new ProcessProgramEffectRule(
+            effects.Add(new BehaviorProgramEffectRule(
                 EffectScope(effect),
                 EffectValueId(effect, ids),
                 effect.Kind is { } kind ? ids.KindIdOf(kind).Value : 0));
@@ -277,14 +180,14 @@ public static partial class DomainCompiler
         return effects;
     }
 
-    private static List<ProcessProgramProviderSelectorRule> CompileProviderSelectors(
-        BehaviorDefinition process,
+    private static List<BehaviorProgramProviderSelectorRule> CompileProviderSelectors(
+        BehaviorDefinition behavior,
         DomainIdRegistry ids)
     {
-        var selectors = new List<ProcessProgramProviderSelectorRule>();
-        foreach (var selector in process.ProviderSelectors)
+        var selectors = new List<BehaviorProgramProviderSelectorRule>();
+        foreach (var selector in behavior.ProviderSelectors)
         {
-            selectors.Add(new ProcessProgramProviderSelectorRule(
+            selectors.Add(new BehaviorProgramProviderSelectorRule(
                 ProviderSelectorCode(selector),
                 selector.Kind is { } kind ? ids.KindIdOf(kind).Value : 0,
                 ProviderSelectorValueId(selector, ids),
@@ -296,14 +199,14 @@ public static partial class DomainCompiler
         return selectors;
     }
 
-    private static List<ProcessProgramSupportRule> CompileSupportRules(
-        BehaviorDefinition process,
+    private static List<BehaviorProgramSupportRule> CompileSupportRules(
+        BehaviorDefinition behavior,
         DomainIdRegistry ids)
     {
-        var supportRules = new List<ProcessProgramSupportRule>();
-        foreach (var rule in process.SupportRules)
+        var supportRules = new List<BehaviorProgramSupportRule>();
+        foreach (var rule in behavior.SupportRules)
         {
-            supportRules.Add(new ProcessProgramSupportRule(
+            supportRules.Add(new BehaviorProgramSupportRule(
                 EffectScope(rule.DesiredEffect),
                 EffectValueId(rule.DesiredEffect, ids),
                 rule.DesiredEffect.Kind is { } kind ? ids.KindIdOf(kind).Value : 0,
@@ -315,13 +218,13 @@ public static partial class DomainCompiler
         return supportRules;
     }
 
-    private static ProcessProgramProviderSelector ProviderSelectorCode(AttributeRef selector) => selector.Scope switch
+    private static BehaviorProgramProviderSelector ProviderSelectorCode(AttributeRef selector) => selector.Scope switch
     {
-        RefScope.Target => ProcessProgramProviderSelector.TargetAttribute,
-        RefScope.Structural => ProcessProgramProviderSelector.Structural,
-        RefScope.Resource => ProcessProgramProviderSelector.Resource,
-        RefScope.Location => ProcessProgramProviderSelector.LocationAttribute,
-        RefScope.Related or RefScope.Relational => ProcessProgramProviderSelector.OutgoingRelationship,
+        RefScope.Target => BehaviorProgramProviderSelector.TargetAttribute,
+        RefScope.Structural => BehaviorProgramProviderSelector.Structural,
+        RefScope.Resource => BehaviorProgramProviderSelector.Resource,
+        RefScope.Location => BehaviorProgramProviderSelector.LocationAttribute,
+        RefScope.Related or RefScope.Relational => BehaviorProgramProviderSelector.OutgoingRelationship,
         _ => throw new InvalidOperationException($"Unsupported kernel provider selector scope '{selector.Scope}'."),
     };
 
@@ -350,17 +253,17 @@ public static partial class DomainCompiler
         return ids.RelationshipFactIdOf(selector.Name).Value;
     }
 
-    private static List<ProcessProgramPreconditionOp> CompilePreconditions(
+    private static List<BehaviorProgramPreconditionOp> CompilePreconditions(
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
-        var ops = new List<ProcessProgramPreconditionOp>();
+        var ops = new List<BehaviorProgramPreconditionOp>();
         CompilePreconditionExpression(ops, precondition, ids);
         return ops;
     }
 
     private static void CompilePreconditionExpression(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
@@ -372,25 +275,25 @@ public static partial class DomainCompiler
             return;
         }
 
-        throw new InvalidOperationException($"Unsupported kernel process precondition '{precondition.GetType().Name}'.");
+        throw new InvalidOperationException($"Unsupported kernel behavior precondition '{precondition.GetType().Name}'.");
     }
 
     private static bool TryCompileCompositePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
         switch (precondition)
         {
             case AndPrecondition and:
-                CompilePreconditionChildren(ops, and.Children, ids, ProcessProgramPrecondition.And);
+                CompilePreconditionChildren(ops, and.Children, ids, BehaviorProgramPrecondition.And);
                 return true;
             case OrPrecondition or:
-                CompilePreconditionChildren(ops, or.Children, ids, ProcessProgramPrecondition.Or);
+                CompilePreconditionChildren(ops, or.Children, ids, BehaviorProgramPrecondition.Or);
                 return true;
             case NotPrecondition not:
                 CompilePreconditionExpression(ops, not.Inner, ids);
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.Not));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.Not));
                 return true;
             default:
                 return false;
@@ -398,22 +301,22 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileSimplePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         IPrecondition precondition)
     {
         switch (precondition)
         {
             case AlwaysTrue:
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.Always));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.Always));
                 return true;
             case TargetIsSelf:
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.TargetIsSelf));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.TargetIsSelf));
                 return true;
             case TargetIsNotSelf:
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.TargetIsNotSelf));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.TargetIsNotSelf));
                 return true;
             case HasColocatedNamedEntityPrecondition:
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.HasColocatedEntity));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.HasColocatedEntity));
                 return true;
             default:
                 return false;
@@ -421,17 +324,17 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileRangePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
         switch (precondition)
         {
             case SelfAttributeThreshold self:
-                AddAttributeRangePrecondition(ops, self.AttributeName, self.Min, self.Max, ids, ProcessProgramPrecondition.SelfAttributeRange);
+                AddAttributeRangePrecondition(ops, self.AttributeName, self.Min, self.Max, ids, BehaviorProgramPrecondition.SelfAttributeRange);
                 return true;
             case TargetAttributeThreshold target:
-                AddAttributeRangePrecondition(ops, target.AttributeName, target.Min, target.Max, ids, ProcessProgramPrecondition.TargetAttributeRange);
+                AddAttributeRangePrecondition(ops, target.AttributeName, target.Min, target.Max, ids, BehaviorProgramPrecondition.TargetAttributeRange);
                 return true;
             case WithinPlaneDistancePrecondition distance:
                 AddPlaneDistancePrecondition(ops, distance, ids);
@@ -443,10 +346,10 @@ public static partial class DomainCompiler
                 AddPressurePrecondition(ops, pressure, ids);
                 return true;
             case CooldownCheck cooldown:
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.CooldownElapsed, cooldown.MinimumTicksSinceFire));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.CooldownElapsed, cooldown.MinimumTicksSinceFire));
                 return true;
             case EntityCountCheck count:
-                ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.EntityCountAtLeast, ids.KindIdOf(count.Kind).Value, count.Min));
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EntityCountAtLeast, ids.KindIdOf(count.Kind).Value, count.Min));
                 return true;
             default:
                 return false;
@@ -454,21 +357,21 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileRelationshipPrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
         switch (precondition)
         {
             case SelfHasRelationshipToTarget relationship:
-                AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, ProcessProgramPrecondition.SelfHasRelationshipToTarget);
+                AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, BehaviorProgramPrecondition.SelfHasRelationshipToTarget);
                 return true;
             case TargetHasRelationshipToSelf relationship:
-                AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, ProcessProgramPrecondition.TargetHasRelationshipToSelf);
+                AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, BehaviorProgramPrecondition.TargetHasRelationshipToSelf);
                 return true;
             case RelatedEntityMatchesTarget relationship:
-                ops.Add(new ProcessProgramPreconditionOp(
-                    ProcessProgramPrecondition.RelatedEntityMatchesTarget,
+                ops.Add(new BehaviorProgramPreconditionOp(
+                    BehaviorProgramPrecondition.RelatedEntityMatchesTarget,
                     ids.RelationshipKindIdOf(relationship.RelationshipKind).Value));
                 return true;
             case RelationshipExists relationship:
@@ -480,14 +383,14 @@ public static partial class DomainCompiler
     }
 
     private static void AddAttributeRangePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         string attributeName,
         float? min,
         float? max,
         DomainIdRegistry ids,
-        ProcessProgramPrecondition operatorCode)
+        BehaviorProgramPrecondition operatorCode)
     {
-        ops.Add(new ProcessProgramPreconditionOp(
+        ops.Add(new BehaviorProgramPreconditionOp(
             operatorCode,
             ids.AttributeIdOf(attributeName).Value,
             min.HasValue ? 1 : 0,
@@ -497,24 +400,24 @@ public static partial class DomainCompiler
     }
 
     private static void AddPlaneDistancePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         WithinPlaneDistancePrecondition distance,
         DomainIdRegistry ids)
     {
-        ops.Add(new ProcessProgramPreconditionOp(
-            ProcessProgramPrecondition.PlaneDistance,
+        ops.Add(new BehaviorProgramPreconditionOp(
+            BehaviorProgramPrecondition.PlaneDistance,
             distance.MaxDistance,
             PlaneCode(distance.Plane),
             ids.StructuralFactIdOf(distance.InRangeFactName).Value));
     }
 
     private static void AddLocationResourcePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         LocationResourceThreshold resource,
         DomainIdRegistry ids)
     {
-        ops.Add(new ProcessProgramPreconditionOp(
-            ProcessProgramPrecondition.LocationResourceRange,
+        ops.Add(new BehaviorProgramPreconditionOp(
+            BehaviorProgramPrecondition.LocationResourceRange,
             ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value,
             resource.TargetLocation ? 1 : 0,
             resource.Min.HasValue ? 1 : 0,
@@ -524,12 +427,12 @@ public static partial class DomainCompiler
     }
 
     private static void AddPressurePrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         PressureThreshold pressure,
         DomainIdRegistry ids)
     {
-        ops.Add(new ProcessProgramPreconditionOp(
-            ProcessProgramPrecondition.PressureRange,
+        ops.Add(new BehaviorProgramPreconditionOp(
+            BehaviorProgramPrecondition.PressureRange,
             ids.PressureIdOf(pressure.PressureName).Value,
             pressure.ScopeId.Value,
             pressure.Min.HasValue ? 1 : 0,
@@ -539,13 +442,13 @@ public static partial class DomainCompiler
     }
 
     private static void AddRelationshipStrengthPrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         string relationshipKind,
         float? minStrength,
         DomainIdRegistry ids,
-        ProcessProgramPrecondition operatorCode)
+        BehaviorProgramPrecondition operatorCode)
     {
-        ops.Add(new ProcessProgramPreconditionOp(
+        ops.Add(new BehaviorProgramPreconditionOp(
             operatorCode,
             ids.RelationshipKindIdOf(relationshipKind).Value,
             minStrength.HasValue ? 1 : 0,
@@ -553,12 +456,12 @@ public static partial class DomainCompiler
     }
 
     private static void AddRelationshipExistsPrecondition(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         RelationshipExists relationship,
         DomainIdRegistry ids)
     {
-        ops.Add(new ProcessProgramPreconditionOp(
-            ProcessProgramPrecondition.RelationshipExists,
+        ops.Add(new BehaviorProgramPreconditionOp(
+            BehaviorProgramPrecondition.RelationshipExists,
             ids.RelationshipKindIdOf(relationship.RelationshipKind).Value,
             relationship.MinStrength.HasValue ? 1 : 0,
             relationship.SourceId.Value,
@@ -567,14 +470,14 @@ public static partial class DomainCompiler
     }
 
     private static void CompilePreconditionChildren(
-        List<ProcessProgramPreconditionOp> ops,
+        List<BehaviorProgramPreconditionOp> ops,
         IReadOnlyList<IPrecondition> children,
         DomainIdRegistry ids,
-        ProcessProgramPrecondition operatorCode)
+        BehaviorProgramPrecondition operatorCode)
     {
         if (children.Count == 0)
         {
-            ops.Add(new ProcessProgramPreconditionOp(ProcessProgramPrecondition.Always));
+            ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.Always));
             return;
         }
 
@@ -582,21 +485,21 @@ public static partial class DomainCompiler
         for (var i = 1; i < children.Count; i++)
         {
             CompilePreconditionExpression(ops, children[i], ids);
-            ops.Add(new ProcessProgramPreconditionOp(operatorCode));
+            ops.Add(new BehaviorProgramPreconditionOp(operatorCode));
         }
     }
 
-    private static List<ProcessProgramExpressionOp> CompileExpression(
+    private static List<BehaviorProgramExpressionOp> CompileExpression(
         IExpression expression,
         DomainIdRegistry ids)
     {
-        var ops = new List<ProcessProgramExpressionOp>();
+        var ops = new List<BehaviorProgramExpressionOp>();
         CompileExpression(ops, expression, ids);
         return ops;
     }
 
     private static void CompileExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         IExpression expression,
         DomainIdRegistry ids)
     {
@@ -609,33 +512,33 @@ public static partial class DomainCompiler
 
         if (expression is Jitter)
         {
-            throw new InvalidOperationException("Jitter expressions are not supported by compiled kernel process programs.");
+            throw new InvalidOperationException("Jitter expressions are not supported by compiled kernel behavior programs.");
         }
 
-        throw new InvalidOperationException($"Unsupported kernel process expression '{expression.GetType().Name}'.");
+        throw new InvalidOperationException($"Unsupported kernel behavior expression '{expression.GetType().Name}'.");
     }
 
     private static bool TryCompileTerminalExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         IExpression expression,
         DomainIdRegistry ids)
     {
         switch (expression)
         {
             case Literal literal:
-                ops.Add(new ProcessProgramExpressionOp(ProcessProgramExpression.Literal, X: literal.Value));
+                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Literal, X: literal.Value));
                 return true;
             case AttributePath attr:
                 AddAttributeExpression(ops, attr, ids);
                 return true;
             case VariableRef variable:
-                ops.Add(new ProcessProgramExpressionOp(ProcessProgramExpression.Variable, StableRuntimeCode(variable.VariableName)));
+                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Variable, StableRuntimeCode(variable.VariableName)));
                 return true;
             case LocationResourcePath resource:
                 AddLocationResourceExpression(ops, resource, ids);
                 return true;
             case Distance:
-                ops.Add(new ProcessProgramExpressionOp(ProcessProgramExpression.Distance));
+                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Distance));
                 return true;
             default:
                 return false;
@@ -643,29 +546,29 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileBinaryExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         IExpression expression,
         DomainIdRegistry ids)
     {
         switch (expression)
         {
             case Add add:
-                AddBinaryExpression(ops, add.Left, add.Right, ids, ProcessProgramExpression.Add);
+                AddBinaryExpression(ops, add.Left, add.Right, ids, BehaviorProgramExpression.Add);
                 return true;
             case Subtract subtract:
-                AddBinaryExpression(ops, subtract.Left, subtract.Right, ids, ProcessProgramExpression.Subtract);
+                AddBinaryExpression(ops, subtract.Left, subtract.Right, ids, BehaviorProgramExpression.Subtract);
                 return true;
             case Multiply multiply:
-                AddBinaryExpression(ops, multiply.Left, multiply.Right, ids, ProcessProgramExpression.Multiply);
+                AddBinaryExpression(ops, multiply.Left, multiply.Right, ids, BehaviorProgramExpression.Multiply);
                 return true;
             case Divide divide:
-                AddBinaryExpression(ops, divide.Left, divide.Right, ids, ProcessProgramExpression.Divide);
+                AddBinaryExpression(ops, divide.Left, divide.Right, ids, BehaviorProgramExpression.Divide);
                 return true;
             case Min min:
-                AddBinaryExpression(ops, min.A, min.B, ids, ProcessProgramExpression.Min);
+                AddBinaryExpression(ops, min.A, min.B, ids, BehaviorProgramExpression.Min);
                 return true;
             case Max max:
-                AddBinaryExpression(ops, max.A, max.B, ids, ProcessProgramExpression.Max);
+                AddBinaryExpression(ops, max.A, max.B, ids, BehaviorProgramExpression.Max);
                 return true;
             default:
                 return false;
@@ -673,7 +576,7 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileUnaryExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         IExpression expression,
         DomainIdRegistry ids)
     {
@@ -683,11 +586,11 @@ public static partial class DomainCompiler
                 CompileExpression(ops, clamp.Value, ids);
                 CompileExpression(ops, clamp.Min, ids);
                 CompileExpression(ops, clamp.Max, ids);
-                ops.Add(new ProcessProgramExpressionOp(ProcessProgramExpression.Clamp));
+                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Clamp));
                 return true;
             case Abs abs:
                 CompileExpression(ops, abs.Value, ids);
-                ops.Add(new ProcessProgramExpressionOp(ProcessProgramExpression.Abs));
+                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Abs));
                 return true;
             default:
                 return false;
@@ -695,47 +598,47 @@ public static partial class DomainCompiler
     }
 
     private static void AddAttributeExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         AttributePath attr,
         DomainIdRegistry ids)
     {
-        ops.Add(new ProcessProgramExpressionOp(
+        ops.Add(new BehaviorProgramExpressionOp(
             attr.EntityRef == "target"
-                ? ProcessProgramExpression.TargetAttribute
-                : ProcessProgramExpression.SelfAttribute,
+                ? BehaviorProgramExpression.TargetAttribute
+                : BehaviorProgramExpression.SelfAttribute,
             ids.AttributeIdOf(attr.AttributeName).Value));
     }
 
     private static void AddLocationResourceExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         LocationResourcePath resource,
         DomainIdRegistry ids)
     {
-        ops.Add(new ProcessProgramExpressionOp(
+        ops.Add(new BehaviorProgramExpressionOp(
             resource.EntityRef == "target"
-                ? ProcessProgramExpression.TargetLocationResource
-                : ProcessProgramExpression.SelfLocationResource,
+                ? BehaviorProgramExpression.TargetLocationResource
+                : BehaviorProgramExpression.SelfLocationResource,
             ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value));
     }
 
     private static void AddBinaryExpression(
-        List<ProcessProgramExpressionOp> ops,
+        List<BehaviorProgramExpressionOp> ops,
         IExpression left,
         IExpression right,
         DomainIdRegistry ids,
-        ProcessProgramExpression operatorCode)
+        BehaviorProgramExpression operatorCode)
     {
         CompileExpression(ops, left, ids);
         CompileExpression(ops, right, ids);
-        ops.Add(new ProcessProgramExpressionOp(operatorCode));
+        ops.Add(new BehaviorProgramExpressionOp(operatorCode));
     }
 
-    private static List<ProcessProgramStepRule> CompileSteps(
-        BehaviorDefinition process,
+    private static List<BehaviorProgramStepRule> CompileSteps(
+        BehaviorDefinition behavior,
         DomainIdRegistry ids)
     {
-        var steps = new List<ProcessProgramStepRule>();
-        foreach (var mutation in process.Mutations)
+        var steps = new List<BehaviorProgramStepRule>();
+        foreach (var mutation in behavior.Mutations)
         {
             CompileStep(steps, mutation, ids);
         }
@@ -744,7 +647,7 @@ public static partial class DomainCompiler
     }
 
     private static void CompileStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         IMutation mutation,
         DomainIdRegistry ids)
     {
@@ -757,11 +660,11 @@ public static partial class DomainCompiler
             return;
         }
 
-        throw new InvalidOperationException($"Unsupported kernel process mutation '{mutation.GetType().Name}'.");
+        throw new InvalidOperationException($"Unsupported kernel behavior mutation '{mutation.GetType().Name}'.");
     }
 
     private static bool TryCompileCreateStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         IMutation mutation,
         DomainIdRegistry ids)
     {
@@ -771,16 +674,38 @@ public static partial class DomainCompiler
                 AddCreateEntityStep(steps, createEntity, ids);
                 return true;
             case CreateRelationshipMutation createRelationship:
-                steps.Add(new ProcessProgramStepRule(
-                    ProcessProgramOperation.CreateFixedRelationship,
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.CreateFixedRelationship,
                     ids.RelationshipKindIdOf(createRelationship.RelationshipKind).Value,
                     createRelationship.SourceId.Value,
                     createRelationship.TargetId.Value,
                     (int)createRelationship.Polarity,
                     createRelationship.Strength));
                 return true;
+            case CreateContextRelationshipMutation createRelationship:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.CreateEndpointRelationship,
+                    ids.RelationshipKindIdOf(createRelationship.RelationshipKind).Value,
+                    (int)EndpointCode(createRelationship.Source),
+                    (int)EndpointCode(createRelationship.Target),
+                    (int)createRelationship.Polarity,
+                    createRelationship.Strength));
+                return true;
+            case SetContextRelationshipStrengthMutation relationshipStrength:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.SetEndpointRelationshipStrength,
+                    ids.RelationshipKindIdOf(relationshipStrength.RelationshipKind).Value,
+                    (int)EndpointCode(relationshipStrength.Source),
+                    (int)EndpointCode(relationshipStrength.Target),
+                    X: relationshipStrength.Strength));
+                return true;
             case SetHistoricalMutation historical:
-                steps.Add(new ProcessProgramStepRule(ProcessProgramOperation.SetHistorical, historical.EntityId.Value));
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetHistorical, historical.EntityId.Value));
+                return true;
+            case SetTargetHistoricalMutation:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.SetHistorical,
+                    B: (int)BehaviorProgramEndpoint.Target));
                 return true;
             default:
                 return false;
@@ -788,17 +713,17 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileAttributeStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         IMutation mutation,
         DomainIdRegistry ids)
     {
         switch (mutation)
         {
             case ModifySelfAttributeMutation modify:
-                AddAttributeStep(steps, ProcessProgramOperation.AddAttribute, modify.AttributeName, modify.Delta, ids);
+                AddAttributeStep(steps, BehaviorProgramOperation.AddAttribute, modify.AttributeName, modify.Delta, ids);
                 return true;
             case ModifyTargetAttributeMutation modify:
-                AddAttributeStep(steps, ProcessProgramOperation.AddTargetAttribute, modify.AttributeName, modify.Delta, ids);
+                AddAttributeStep(steps, BehaviorProgramOperation.AddTargetAttribute, modify.AttributeName, modify.Delta, ids);
                 return true;
             case TransferAttributeMutation transfer:
                 AddTransferAttributeStep(steps, transfer, ids);
@@ -812,22 +737,22 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileResourceStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         IMutation mutation,
         DomainIdRegistry ids)
     {
         switch (mutation)
         {
             case ModifyPressureMutation modify:
-                steps.Add(new ProcessProgramStepRule(
-                    ProcessProgramOperation.AddPressure,
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.AddPressure,
                     ids.PressureIdOf(modify.PressureName).Value,
                     modify.ScopeId.Value,
                     X: modify.Delta));
                 return true;
             case ModifyLocationResourceMutation resource:
-                steps.Add(new ProcessProgramStepRule(
-                    ProcessProgramOperation.AddLocationResource,
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.AddLocationResource,
                     ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value,
                     resource.TargetLocation ? 1 : 0,
                     X: resource.Delta));
@@ -838,44 +763,44 @@ public static partial class DomainCompiler
     }
 
     private static bool TryCompileVariableStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         IMutation mutation,
         DomainIdRegistry ids)
     {
         switch (mutation)
         {
             case CalculateMutation calculate:
-                steps.Add(new ProcessProgramStepRule(
-                    ProcessProgramOperation.CalculateVariable,
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.CalculateVariable,
                     StableRuntimeCode(calculate.VariableName),
                     Expression: CompileExpression(calculate.Expression, ids)));
                 return true;
             case ModifySelfByVariableMutation modify:
-                AddVariableAttributeStep(steps, ProcessProgramOperation.AddAttributeFromVariable, modify.AttributeName, modify.VariableName, ids);
+                AddVariableAttributeStep(steps, BehaviorProgramOperation.AddAttributeFromVariable, modify.AttributeName, modify.VariableName, ids);
                 return true;
             case ModifyTargetByVariableMutation modify:
-                AddVariableAttributeStep(steps, ProcessProgramOperation.AddTargetAttributeFromVariable, modify.AttributeName, modify.VariableName, ids);
+                AddVariableAttributeStep(steps, BehaviorProgramOperation.AddTargetAttributeFromVariable, modify.AttributeName, modify.VariableName, ids);
                 return true;
             default:
                 return false;
         }
     }
 
-    private static bool TryCompileMovementStep(List<ProcessProgramStepRule> steps, IMutation mutation)
+    private static bool TryCompileMovementStep(List<BehaviorProgramStepRule> steps, IMutation mutation)
     {
         switch (mutation)
         {
             case MoveTowardTargetMutation:
-                steps.Add(new ProcessProgramStepRule(ProcessProgramOperation.MoveTowardTargetPhysical));
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.MoveTowardTargetPhysical));
                 return true;
             case WanderMutation:
-                steps.Add(new ProcessProgramStepRule(ProcessProgramOperation.WanderPhysical));
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.WanderPhysical));
                 return true;
             case MoveTowardTargetOnSemanticPlaneMutation:
-                steps.Add(new ProcessProgramStepRule(ProcessProgramOperation.MoveTowardTargetSemantic));
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.MoveTowardTargetSemantic));
                 return true;
             case WanderOnSemanticPlaneMutation:
-                steps.Add(new ProcessProgramStepRule(ProcessProgramOperation.WanderSemantic));
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.WanderSemantic));
                 return true;
             default:
                 return false;
@@ -883,12 +808,12 @@ public static partial class DomainCompiler
     }
 
     private static void AddCreateEntityStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         CreateEntityMutation createEntity,
         DomainIdRegistry ids)
     {
-        steps.Add(new ProcessProgramStepRule(
-            ProcessProgramOperation.CreateEntity,
+        steps.Add(new BehaviorProgramStepRule(
+            BehaviorProgramOperation.CreateEntity,
             ids.KindIdOf(createEntity.Kind).Value,
             ids.SubtypeIdOf(createEntity.Subtype).Value,
             ids.CultureIdOf(createEntity.Culture).Value,
@@ -898,25 +823,25 @@ public static partial class DomainCompiler
     }
 
     private static void AddAttributeStep(
-        List<ProcessProgramStepRule> steps,
-        ProcessProgramOperation operation,
+        List<BehaviorProgramStepRule> steps,
+        BehaviorProgramOperation operation,
         string attributeName,
         float delta,
         DomainIdRegistry ids)
     {
-        steps.Add(new ProcessProgramStepRule(
+        steps.Add(new BehaviorProgramStepRule(
             operation,
             ids.AttributeIdOf(attributeName).Value,
             X: delta));
     }
 
     private static void AddTransferAttributeStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         TransferAttributeMutation transfer,
         DomainIdRegistry ids)
     {
-        steps.Add(new ProcessProgramStepRule(
-            ProcessProgramOperation.TransferAttribute,
+        steps.Add(new BehaviorProgramStepRule(
+            BehaviorProgramOperation.TransferAttribute,
             (int)EndpointCode(transfer.Source),
             ids.AttributeIdOf(transfer.SourceAttribute).Value,
             (int)EndpointCode(transfer.Destination),
@@ -925,29 +850,29 @@ public static partial class DomainCompiler
     }
 
     private static void AddRelatedEntitiesAttributeStep(
-        List<ProcessProgramStepRule> steps,
+        List<BehaviorProgramStepRule> steps,
         ModifyRelatedEntitiesAttributeMutation related,
         DomainIdRegistry ids)
     {
-        steps.Add(new ProcessProgramStepRule(
-            ProcessProgramOperation.AddRelatedEntitiesAttribute,
+        steps.Add(new BehaviorProgramStepRule(
+            BehaviorProgramOperation.AddRelatedEntitiesAttribute,
             ids.RelationshipKindIdOf(related.RelationshipKind).Value,
             ids.AttributeIdOf(related.AttributeName).Value,
             related.Direction == RelationshipTraversalDirection.Incoming
-                ? (int)ProcessProgramRelationshipTraversalDirection.Incoming
-                : (int)ProcessProgramRelationshipTraversalDirection.Outgoing,
+                ? (int)BehaviorProgramRelationshipTraversalDirection.Incoming
+                : (int)BehaviorProgramRelationshipTraversalDirection.Outgoing,
             related.UseTargetEntity ? 1 : 0,
             related.Delta));
     }
 
     private static void AddVariableAttributeStep(
-        List<ProcessProgramStepRule> steps,
-        ProcessProgramOperation operation,
+        List<BehaviorProgramStepRule> steps,
+        BehaviorProgramOperation operation,
         string attributeName,
         string variableName,
         DomainIdRegistry ids)
     {
-        steps.Add(new ProcessProgramStepRule(
+        steps.Add(new BehaviorProgramStepRule(
             operation,
             ids.AttributeIdOf(attributeName).Value,
             StableRuntimeCode(variableName),

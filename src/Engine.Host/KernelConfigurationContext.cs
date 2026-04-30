@@ -255,123 +255,12 @@ internal sealed class KernelConfigurationContext
             supportEmission,
             threatEmission);
 
-    public int RegisterProcessAttributeObjective(
-        int kindId,
-        AttributeRuntimeId attributeId,
-        int urgencyCode,
-        float minimum,
-        float maximum,
-        float defaultValue,
-        float baseline) =>
-        _kernel.Processes.RegisterAttributeObjective(
-            kindId,
-            attributeId.Value,
-            urgencyCode,
-            minimum,
-            maximum,
-            defaultValue,
-            baseline);
-
-    public int RegisterProcessFixedObjective(
-        int kindId,
-        int scopeCode,
-        int valueId,
-        int effectKindId,
-        float baseUrgency) =>
-        _kernel.Processes.RegisterFixedObjective(kindId, scopeCode, valueId, effectKindId, baseUrgency);
-
-    public int RegisterProcess(
-        int kindId,
-        int processId,
-        int cooldownTicks = 0,
-        int entityCooldownTicks = 0,
-        int targetMode = ProcessTargetModeCodes.Self,
-        int targetKindId = 0,
-        int workCommitmentTicks = 0) =>
-        _kernel.Processes.RegisterProcess(
-            kindId,
-            processId,
-            cooldownTicks,
-            entityCooldownTicks,
-            targetMode,
-            targetKindId,
-            workCommitmentTicks);
-
-    public void AddProcessPrecondition(
-        int processSlot,
-        int preconditionCode,
-        int a = 0,
-        int b = 0,
-        int c = 0,
-        int d = 0,
-        float x = 0f,
-        float y = 0f) =>
-        _kernel.Processes.AddPrecondition(processSlot, preconditionCode, a, b, c, d, x, y);
-
-    public void AddProcessScoreExpressionOp(int processSlot, int expressionCode, int a = 0, float x = 0f) =>
-        _kernel.Processes.AddExpressionOp(processSlot, expressionCode, a, x);
-
-    public void AddProcessRewardExpressionOp(int processSlot, int expressionCode, int a = 0, float x = 0f) =>
-        _kernel.Processes.AddRewardExpressionOp(processSlot, expressionCode, a, x);
-
-    public void AddProcessGoalEffect(int processSlot, int scopeCode, int valueId, int kindId) =>
-        _kernel.Processes.AddGoalEffect(processSlot, scopeCode, valueId, kindId);
-
-    public void AddProcessProviderSelector(
-        int processSlot,
-        int selectorCode,
-        int kindId = 0,
-        int valueId = 0,
-        int relationshipKindId = 0,
-        int factId = 0,
-        float minimumStrength = 0f) =>
-        _kernel.Processes.AddProviderSelector(
-            processSlot,
-            selectorCode,
-            kindId,
-            valueId,
-            relationshipKindId,
-            factId,
-            minimumStrength);
-
-    public int AddProcessSupportRule(
-        int processSlot,
-        int effectScopeCode,
-        int effectValueId,
-        int effectKindId,
-        float desiredMinimum,
-        float urgencyScale = 1f) =>
-        _kernel.Processes.AddSupportRule(
-            processSlot,
-            effectScopeCode,
-            effectValueId,
-            effectKindId,
-            desiredMinimum,
-            urgencyScale);
-
-    public void AddProcessSupportExpressionOp(int supportRuleSlot, int expressionCode, int a = 0, float x = 0f) =>
-        _kernel.Processes.AddSupportExpressionOp(supportRuleSlot, expressionCode, a, x);
-
-    public int AddProcessStep(
-        int processSlot,
-        int operationCode,
-        int a = 0,
-        int b = 0,
-        int c = 0,
-        int d = 0,
-        float x = 0f,
-        float y = 0f) =>
-        _kernel.Processes.AddStep(processSlot, operationCode, a, b, c, d, x, y);
-
-    public void AddProcessStepExpressionOp(int stepSlot, int expressionCode, int a = 0, float x = 0f) =>
-        _kernel.Processes.AddStepExpressionOp(stepSlot, expressionCode, a, x);
-
     public int RegisterGambit(
         int kindId,
         int gambitId,
         int cooldownTicks = 0,
         int entityCooldownTicks = 0,
-        int targetMode = ProcessTargetModeCodes.Self,
+        int targetMode = BehaviorTargetModeCodes.Self,
         int targetKindId = 0,
         float successChance = 1f) =>
         _kernel.Gambits.RegisterGambit(

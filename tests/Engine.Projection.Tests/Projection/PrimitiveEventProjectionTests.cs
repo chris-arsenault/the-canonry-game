@@ -15,12 +15,12 @@ public sealed class PrimitiveEventProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        Assert.True(log.TryWrite(KernelEvent.From(new ProcessExecutedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
             Tick: 10,
             WorldVersion: 11,
             ActorId: 1,
             ActorKindId: 2,
-            ProcessId: 3,
+            GambitId: 3,
             AffectedEntityId0: 4,
             AffectedEntityId1: 0,
             AffectedEntityCount: 1,
@@ -29,8 +29,8 @@ public sealed class PrimitiveEventProjectionTests
         pump.DrainAvailable();
 
         var entity = projection.Entities[1];
-        Assert.Equal(3, entity.LastProcessExecution?.ProcessId);
-        Assert.Equal(4, entity.LastProcessExecution?.AffectedEntityId0);
+        Assert.Equal(3, entity.LastGambitExecution?.GambitId);
+        Assert.Equal(4, entity.LastGambitExecution?.AffectedEntityId0);
     }
 
     [Fact]

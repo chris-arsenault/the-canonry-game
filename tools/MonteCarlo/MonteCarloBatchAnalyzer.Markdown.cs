@@ -19,7 +19,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         AppendMapGenerationSection(builder, report.MapGeneration);
         AppendGeneratorSection(builder, report.GeneratorBalance);
         AppendPlannerSection(builder, report.PlannerPressure);
-        AppendProcessSection(builder, report.ProcessPressure);
+        AppendActionSection(builder, report.ActionPressure);
         AppendAttributeSection(builder, report.AttributeBands);
         AppendLifecycleSection(builder, report.Lifecycle);
         return builder.ToString();
@@ -95,19 +95,19 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("stale", row => FormatPercent(row.StaleRate)),
             ("no_exec", row => FormatPercent(row.NoExecutionRate)),
             ("avg_candidates", row => row.AverageCandidateCount.ToString("F2", CultureInfo.InvariantCulture)),
-            ("top_process", row => row.TopExecutedProcess),
-            ("top_share", row => FormatPercent(row.TopProcessShareOfExecutions)));
+            ("top_action", row => row.TopExecutedAction),
+            ("top_share", row => FormatPercent(row.TopActionShareOfExecutions)));
     }
 
-    private static void AppendProcessSection(StringBuilder builder, IReadOnlyList<ProcessPressureRow> rows)
+    private static void AppendActionSection(StringBuilder builder, IReadOnlyList<ActionPressureRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Background Process Pressure");
+        builder.AppendLine("## Background Action Pressure");
         AppendTable(
             builder,
             rows.Take(12),
             ("kind", row => row.Kind),
-            ("process", row => row.ProcessName),
+            ("action", row => row.ActionName),
             ("selected", row => row.SelectedCount.ToString(CultureInfo.InvariantCulture)),
             ("offered", row => row.CandidateEvaluations.ToString(CultureInfo.InvariantCulture)),
             ("select_rate", row => FormatPercent(row.SelectionRateWhenOffered)),

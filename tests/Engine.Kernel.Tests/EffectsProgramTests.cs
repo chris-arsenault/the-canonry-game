@@ -18,7 +18,6 @@ public sealed class EffectsProgramTests
                 RelationshipCreatedCodeId: 1,
                 RelationshipCulledCodeId: 2,
                 RelationshipStrengthChangedCodeId: 3,
-                ProcessSourceCodeId: 10,
                 GambitSourceCodeId: 11,
                 UpkeepSourceCodeId: 12,
                 StartupSourceCodeId: 13,

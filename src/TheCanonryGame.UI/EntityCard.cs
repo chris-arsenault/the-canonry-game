@@ -240,11 +240,8 @@ public partial class EntityCard : PanelContainer
 
     private void AppendProcesses(StringBuilder sb, UiEntityProjection entity, string whisper)
     {
-        sb.AppendLine(SectionHeader("Processes"));
-        if (entity.LastProcessEvaluation is null &&
-            entity.LastProcessExecution is null &&
-            entity.LastGoalGeneration is null &&
-            entity.LastGambitExecution is null)
+        sb.AppendLine(SectionHeader("Actions"));
+        if (entity.LastGoalGeneration is null && entity.LastGambitExecution is null)
         {
             sb.AppendLine($"  [color={whisper}]none[/color]");
             return;
@@ -253,19 +250,6 @@ public partial class EntityCard : PanelContainer
         if (entity.LastGoalGeneration is { } goals)
         {
             sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  goals generated: {goals.GoalCount} [color={whisper}]actionable {goals.ActionableGoalCount} @ t{goals.Tick}[/color]");
-        }
-
-        if (entity.LastProcessEvaluation is { } evaluation)
-        {
-            var selectedGoal = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Goal, evaluation.SelectedGoalId, $"Goal {evaluation.SelectedGoalId}");
-            var process = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Process, evaluation.ExecutedProcessId, $"Process {evaluation.ExecutedProcessId}");
-            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  evaluated: {selectedGoal} / {process} [color={whisper}]candidates {evaluation.CandidateCount} @ t{evaluation.Tick}[/color]");
-        }
-
-        if (entity.LastProcessExecution is { } execution)
-        {
-            var process = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Process, execution.ProcessId, $"Process {execution.ProcessId}");
-            sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  executed: {process} [color={whisper}]affected {execution.AffectedEntityCount} @ t{execution.Tick}[/color]");
         }
 
         if (entity.LastGambitExecution is { } gambit)

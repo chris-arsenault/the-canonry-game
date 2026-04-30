@@ -9,7 +9,7 @@ public enum ProjectionSymbolKind
     Subtype = 2,
     Culture = 3,
     Attribute = 4,
-    Process = 5,
+    Behavior = 5,
     StructuralFact = 6,
     RelationshipKind = 7,
     RelationshipFact = 8,

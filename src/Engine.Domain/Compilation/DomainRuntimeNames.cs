@@ -6,7 +6,6 @@ public static class DomainRuntimeNames
     public const string RelationshipCreatedCode = "created";
     public const string RelationshipCulledCode = "culled";
     public const string RelationshipStrengthChangedCode = "strength_changed";
-    public const string ProcessSourceCode = "process";
     public const string GambitSourceCode = "gambit";
     public const string UpkeepSourceCode = "upkeep";
     public const string StartupSourceCode = "startup";

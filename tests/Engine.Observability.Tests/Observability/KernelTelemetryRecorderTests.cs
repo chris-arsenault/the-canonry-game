@@ -26,13 +26,13 @@ public sealed class KernelTelemetryRecorderTests
             .RegisterSymbol(ProjectionSymbolKind.Subtype, 2, "village", "Village")
             .RegisterSymbol(ProjectionSymbolKind.Culture, 3, "north", "North")
             .RegisterSymbol(ProjectionSymbolKind.Attribute, 4, "health", "Health")
-            .RegisterSymbol(ProjectionSymbolKind.SourceCode, 5, "process", "Process")
+            .RegisterSymbol(ProjectionSymbolKind.SourceCode, 5, "low_altitude", "Low Altitude")
             .RegisterSymbol(ProjectionSymbolKind.Resource, 6, "food", "Food")
             .RegisterSymbol(ProjectionSymbolKind.EventCode, 7, "relationship_added", "Relationship Added")
             .RegisterSymbol(ProjectionSymbolKind.RelationshipKind, 8, "allied_with", "Allied With")
             .RegisterSymbol(ProjectionSymbolKind.RelationshipFact, 9, "nearby", "Nearby")
             .RegisterSymbol(ProjectionSymbolKind.Generator, 10, "found_settlement", "Found Settlement")
-            .RegisterSymbol(ProjectionSymbolKind.Process, 11, "forage", "Forage")
+            .RegisterSymbol(ProjectionSymbolKind.Verb, 11, "forage", "Forage")
             .RegisterEntityName(100, "Hearthhome")
             .RegisterEntityName(101, "New Hall")
             .RegisterEntityName(200, "Waystone");
@@ -41,7 +41,7 @@ public sealed class KernelTelemetryRecorderTests
     {
         WriteEntityCreationEvents(log);
         WriteStateChangeEvents(log);
-        WriteProcessAndGeneratorEvents(log);
+        WriteActionAndGeneratorEvents(log);
     }
 
     private static void WriteEntityCreationEvents(KernelEventLog log)
@@ -132,28 +132,19 @@ public sealed class KernelTelemetryRecorderTests
             CurrentOwnerEntityId: 101))));
     }
 
-    private static void WriteProcessAndGeneratorEvents(KernelEventLog log)
+    private static void WriteActionAndGeneratorEvents(KernelEventLog log)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new ProcessEvaluatedKernelEvent(
-            Tick: 2,
-            WorldVersion: 5,
-            EntityId: 100,
-            KindId: 1,
-            SelectedGoalId: 30,
-            ExecutedProcessId: 11,
-            CandidateCount: 4,
-            State: KernelEventState.Succeeded))));
         Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
             Tick: 2,
             WorldVersion: 5,
-            PlanId: ActionFamilyCodes.Process,
+            PlanId: ActionFamilyCodes.LowAltitudeVerb,
             EntityId: 100,
             TraceSubjectCode: TraceSubjectCodes.TargetDetail,
             CandidateIndex: 1,
             ParentCandidateIndex: 0,
-            ActionFamilyCode: ActionFamilyCodes.Process,
+            ActionFamilyCode: ActionFamilyCodes.LowAltitudeVerb,
             ActionId: 11,
-            EffectScopeCode: ProcessEffectScopeCodes.SelfAttribute,
+            EffectScopeCode: BehaviorEffectScopeCodes.SelfAttribute,
             EffectValueId: 4,
             EffectKindId: 1,
             TargetEntityId: 100,
@@ -227,10 +218,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(9, relationship.FactId0);
         Assert.Equal(1, relationship.FactCount);
 
-        var process = Assert.Single(batch.ProcessEvents);
-        Assert.Equal(11, process.ExecutedProcessId);
-        Assert.Equal(4, process.CandidateCount);
-
         var trace = Assert.Single(batch.TraceEvents);
         Assert.Equal(TraceSubjectCodes.TargetDetail, trace.TraceSubjectCode);
         Assert.Equal(TraceStatusCodes.Actionable, trace.StatusCode);
@@ -282,15 +269,25 @@ public sealed class KernelTelemetryRecorderTests
             SemanticQ: 0,
             SemanticR: 0,
             SemanticS: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new ProcessEvaluatedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
             Tick: 1,
             WorldVersion: 2,
+            PlanId: ActionFamilyCodes.LowAltitudeVerb,
             EntityId: 100,
-            KindId: 1,
-            SelectedGoalId: 0,
-            ExecutedProcessId: 11,
-            CandidateCount: 3,
-            State: KernelEventState.Succeeded))));
+            TraceSubjectCode: TraceSubjectCodes.TargetDetail,
+            CandidateIndex: 1,
+            ParentCandidateIndex: 0,
+            ActionFamilyCode: ActionFamilyCodes.LowAltitudeVerb,
+            ActionId: 11,
+            EffectScopeCode: BehaviorEffectScopeCodes.SelfAttribute,
+            EffectValueId: 4,
+            EffectKindId: 1,
+            TargetEntityId: 100,
+            StatusCode: TraceStatusCodes.Actionable,
+            Urgency: 0.5f,
+            RewardOrBaseScore: 0.75f,
+            RawWeight: 1.25f,
+            AdjustedWeight: 1.5f))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 1,
             WorldVersion: 3,
@@ -303,8 +300,6 @@ public sealed class KernelTelemetryRecorderTests
         var tick = Assert.Single(recorder.Batch.TickPerformance);
 
         Assert.Equal(1, tick.ActiveEntities);
-        Assert.Equal(1, tick.ProcessEvents);
-        Assert.Equal(3, tick.ProcessCandidates);
         Assert.Equal(1, tick.GeneratorEvents);
         Assert.Equal(3, tick.TotalMessages);
 

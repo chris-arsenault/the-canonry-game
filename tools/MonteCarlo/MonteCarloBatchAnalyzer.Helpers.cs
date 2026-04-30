@@ -225,18 +225,18 @@ internal sealed partial class MonteCarloBatchAnalyzer
             0);
     }
 
-    private sealed record ObservedProcessRow(
+    private sealed record ObservedActionRow(
         string Kind,
-        string ProcessName,
+        string ActionName,
         int CandidateEvaluations,
         int SelectedCount,
         double AverageScore,
         double PreconditionPassRate,
         double CooldownRate)
     {
-        public static ObservedProcessRow Empty(string kind, string processName) => new(
+        public static ObservedActionRow Empty(string kind, string actionName) => new(
             kind,
-            processName,
+            actionName,
             0,
             0,
             0d,
@@ -245,8 +245,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
     }
 
     private sealed record TelemetryCoverage(
-        int ProcessPlannerRows,
-        int ProcessExecutionRows,
+        int PlannerCandidateRows,
+        int ActionExecutionRows,
         int MapSnapshotRows,
         int LocalityOpportunityRows,
         int PlannerTraceRows,

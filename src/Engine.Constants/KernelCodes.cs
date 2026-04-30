@@ -13,7 +13,7 @@ public static class PlaneCodes
     public const int Semantic = 2;
 }
 
-public static class ProcessOperationCodes
+public static class BehaviorOperationCodes
 {
     public const int AddAttribute = 1;
     public const int SetAttribute = 2;
@@ -38,22 +38,24 @@ public static class ProcessOperationCodes
     public const int AddAttributeFromVariable = 23;
     public const int AddTargetAttributeFromVariable = 24;
     public const int CreateFixedRelationship = 25;
+    public const int CreateEndpointRelationship = 26;
+    public const int SetEndpointRelationshipStrength = 27;
 }
 
-public static class ProcessTargetModeCodes
+public static class BehaviorTargetModeCodes
 {
     public const int Self = 1;
     public const int AnyOther = 2;
     public const int KindOther = 3;
 }
 
-public static class ProcessEndpointCodes
+public static class BehaviorEndpointCodes
 {
     public const int Self = 1;
     public const int Target = 2;
 }
 
-public static class ProcessPreconditionCodes
+public static class BehaviorPreconditionCodes
 {
     public const int TargetIsSelf = 1;
     public const int TargetIsNotSelf = 2;
@@ -75,7 +77,7 @@ public static class ProcessPreconditionCodes
     public const int HasColocatedEntity = 18;
 }
 
-public static class ProcessExpressionCodes
+public static class BehaviorExpressionCodes
 {
     public const int Literal = 1;
     public const int SelfAttribute = 2;
@@ -121,7 +123,7 @@ public static class RelationshipMaintenanceConditionCodes
     public const int ContactMemory = 10;
 }
 
-public static class ProcessEffectScopeCodes
+public static class BehaviorEffectScopeCodes
 {
     public const int SelfAttribute = 1;
     public const int TargetAttribute = 2;
@@ -130,7 +132,7 @@ public static class ProcessEffectScopeCodes
     public const int Relational = 5;
 }
 
-public static class ProcessObjectiveUrgencyCodes
+public static class BehaviorObjectiveUrgencyCodes
 {
     public const int StandardNeed = 1;
     public const int Baseline = 2;
@@ -138,7 +140,7 @@ public static class ProcessObjectiveUrgencyCodes
     public const int Fixed = 4;
 }
 
-public static class ProcessProviderSelectorCodes
+public static class BehaviorProviderSelectorCodes
 {
     public const int TargetAttribute = 1;
     public const int Structural = 2;
@@ -146,12 +148,6 @@ public static class ProcessProviderSelectorCodes
     public const int LocationAttribute = 4;
     public const int OutgoingRelationship = 5;
     public const int IncomingRelationship = 6;
-}
-
-public static class ProcessWorkCommitmentCodes
-{
-    public const int Off = 1;
-    public const int Pilot = 2;
 }
 
 public static class UpkeepAgingModelCodes
@@ -262,7 +258,6 @@ public static class DegeneracySeverityCodes
 public static class KernelProgramCodes
 {
     public const int Upkeep = 1;
-    public const int Processes = 2;
     public const int Relationships = 3;
     public const int Pressures = 4;
     public const int Generators = 5;
@@ -329,9 +324,8 @@ public static class PlannerKindCodes
 
 public static class ActionFamilyCodes
 {
-    public const int Process = 1;
-    public const int Gambit = 2;
-    public const int LowAltitudeVerb = 3;
+    public const int Gambit = 1;
+    public const int LowAltitudeVerb = 2;
 }
 
 public static class PlanningStatusCodes

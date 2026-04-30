@@ -82,12 +82,12 @@ public sealed class KernelHostBuilderTests
             out var upkeepSymbol));
         Assert.Equal(DomainRuntimeNames.UpkeepSourceCode, upkeepSymbol.StableName);
         Assert.True(host.CompiledDomain.Programs.Generators.Generators.Count > 0);
-        var processSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Verb);
+        var verbSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Verb);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.Verb,
-            processSymbolSeed.Id,
-            out var processSymbol));
-        Assert.Equal(processSymbolSeed.StableName, processSymbol.StableName);
+            verbSymbolSeed.Id,
+            out var verbSymbol));
+        Assert.Equal(verbSymbolSeed.StableName, verbSymbol.StableName);
         var detectorSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Detector);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.Detector,
@@ -105,8 +105,7 @@ public sealed class KernelHostBuilderTests
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapActivity));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapSignals));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Effects));
-        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Processes));
-        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Gambits));
+        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Gambits));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Degeneracy));
         Assert.NotEmpty(host.CompiledDomain.Programs.Effects.AttributeDeltaEffects);
@@ -170,7 +169,7 @@ public sealed class KernelHostBuilderTests
         _ = domain.RegisterAttribute("test_attribute");
         _ = domain.RegisterResource("test_resource");
         _ = domain.RegisterRelationshipKind("test_relationship");
-        _ = domain.RegisterSourceCode("process");
+        _ = domain.RegisterSourceCode("behavior");
     }
 
     private static void ConfigureGenericStartupSymbols(KernelSymbolContext symbols)

@@ -189,7 +189,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int gambitId,
         int cooldownTicks = 0,
         int entityCooldownTicks = 0,
-        int targetMode = ProcessTargetModeCodes.Self,
+        int targetMode = BehaviorTargetModeCodes.Self,
         int targetKindId = 0,
         float successChance = 1f)
     {
@@ -399,7 +399,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
         ValidatePositive(urgencyCode);
-        var slot = RegisterObjective(kindId, urgencyCode, ProcessEffectScopeCodes.SelfAttribute, attributeId, kindId);
+        var slot = RegisterObjective(kindId, urgencyCode, BehaviorEffectScopeCodes.SelfAttribute, attributeId, kindId);
         _objectiveAttributeIds[slot] = attributeId;
         _objectiveMinimums[slot] = minimum;
         _objectiveMaximums[slot] = maximum;
@@ -432,7 +432,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
             throw new global::System.InvalidOperationException();
         }
 
-        var slot = RegisterObjective(kindId, ProcessObjectiveUrgencyCodes.Fixed, scopeCode, valueId, effectKindId);
+        var slot = RegisterObjective(kindId, BehaviorObjectiveUrgencyCodes.Fixed, scopeCode, valueId, effectKindId);
         _objectiveBaseUrgencies[slot] = baseUrgency;
         return slot;
     }

@@ -9,7 +9,6 @@ public sealed class KernelProgramSet
     public required MapSignalsProgram MapSignals { get; init; }
     public required EffectsProgram Effects { get; init; }
     public required UpkeepProgram Upkeep { get; init; }
-    public required ProcessProgram Processes { get; init; }
     public required GambitProgram Gambits { get; init; }
     public required RelationshipProgram Relationships { get; init; }
     public required PressureProgram Pressures { get; init; }

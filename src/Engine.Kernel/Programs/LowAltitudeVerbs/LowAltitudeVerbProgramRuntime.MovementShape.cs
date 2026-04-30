@@ -368,10 +368,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         if (planeCode == PlaneCodes.Semantic)
         {
-            return q >= Data.SemanticMinQ &&
-                q <= Data.SemanticMaxQ &&
-                r >= Data.SemanticMinR &&
-                r <= Data.SemanticMaxR;
+            return SemanticCoordinateAllowed(world, q, r);
         }
 
         return world.CellIsKnown(q, r);

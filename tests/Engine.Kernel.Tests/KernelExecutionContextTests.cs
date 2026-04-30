@@ -92,7 +92,7 @@ public sealed class KernelExecutionContextTests
         var simulation = new Simulation();
         var initial = simulation.ExecutionContext;
         var outer = new KernelExecutionContext(
-            KernelProgramCodes.Processes,
+            KernelProgramCodes.Gambits,
             SourceCodeId: 101);
         var inner = new KernelExecutionContext(
             KernelProgramCodes.Planning,
@@ -168,21 +168,20 @@ public sealed class KernelExecutionContextTests
 
         using (simulation.EnterExecutionContext(
                    sourceCodeId,
-                   KernelProgramCodes.Processes))
+                   KernelProgramCodes.Gambits))
         {
-            simulation.EmitProcessEvaluated(
+            simulation.EmitGambitEvaluated(
                 tick: 0,
                 entityId: 1,
                 kindId: 1,
-                selectedGoalId: 2,
-                processId: 3,
+                gambitId: 3,
                 candidateCount: 4,
                 state: KernelEventState.Succeeded);
         }
 
         Assert.True(simulation.Events.TryRead(cursor, out var read));
-        Assert.Equal(KernelEventType.ProcessEvaluated, read.Event.EventType);
-        Assert.Equal(KernelProgramCodes.Processes, read.Event.ProgramId);
+        Assert.Equal(KernelEventType.GambitEvaluated, read.Event.EventType);
+        Assert.Equal(KernelProgramCodes.Gambits, read.Event.ProgramId);
         Assert.Equal(sourceCodeId, read.Event.SourceCodeId);
     }
 
@@ -318,7 +317,6 @@ public sealed class KernelExecutionContextTests
     private static int[] AllProgramIds() =>
     [
         KernelProgramCodes.Upkeep,
-        KernelProgramCodes.Processes,
         KernelProgramCodes.Relationships,
         KernelProgramCodes.Pressures,
         KernelProgramCodes.Generators,

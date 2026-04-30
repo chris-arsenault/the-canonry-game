@@ -127,16 +127,10 @@ public static partial class DomainCompiler
             RegisterOnceStrict(state.Verbs, verb.Id, state.Registry.RegisterVerb, "verb");
         }
 
-        foreach (var process in config.Processes)
-        {
-            RegisterOnceStrict(state.Processes, process.Id, state.Registry.RegisterProcess, "process");
-            RegisterProcessStructuralFacts(process, state.StructuralFacts, state.Registry);
-        }
-
         foreach (var gambit in config.Gambits)
         {
             RegisterOnceStrict(state.Gambits, gambit.Id, state.Registry.RegisterGambit, "gambit");
-            RegisterProcessStructuralFacts(gambit, state.StructuralFacts, state.Registry);
+            RegisterBehaviorStructuralFacts(gambit, state.StructuralFacts, state.Registry);
         }
 
         RegisterStandingDriveFacts(config.Kinds.Values, state);
@@ -174,7 +168,6 @@ public static partial class DomainCompiler
 
     private static void RegisterSourceCodes(CatalogRegistrationState state)
     {
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.ProcessSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GambitSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.UpkeepSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.StartupSourceCode, state.Registry.RegisterSourceCode, "source code");
@@ -202,7 +195,6 @@ public static partial class DomainCompiler
         public DomainIdRegistry Registry { get; } = new();
         public HashSet<string> Kinds { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Attributes { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> Processes { get; } = new(StringComparer.Ordinal);
         public HashSet<string> StructuralFacts { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipKinds { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipFacts { get; } = new(StringComparer.Ordinal);

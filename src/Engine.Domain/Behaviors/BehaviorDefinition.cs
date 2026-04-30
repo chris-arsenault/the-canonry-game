@@ -1,10 +1,10 @@
-namespace Engine.Processes;
+namespace Engine.Behaviors;
 
 using Engine.Kinds;
 using Engine.Wiring;
 
 /// <summary>
-/// Shared data-driven behavior contract used by low-altitude processes and
+/// Shared data-driven behavior contract used by low-altitude behaviors and
 /// higher-stakes gambits. Runtime scheduling semantics live in their programs.
 /// </summary>
 public abstract class BehaviorDefinition
@@ -63,7 +63,7 @@ public abstract class BehaviorDefinition
     public HashSet<AttributeRef> ProviderSelectors { get; } = [];
 
     /// <summary>Support opportunities that can improve downstream utility.</summary>
-    public System.Collections.ObjectModel.Collection<ProcessSupportRule> SupportRules { get; } = [];
+    public System.Collections.ObjectModel.Collection<BehaviorSupportRule> SupportRules { get; } = [];
 
     public int WorkCommitmentTicks { get; set; }
 }

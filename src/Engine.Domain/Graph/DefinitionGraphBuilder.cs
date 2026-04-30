@@ -4,7 +4,6 @@ using Engine.Domain.Config;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Resources;
 using Engine.Wiring;
 
@@ -25,7 +24,6 @@ public static class DefinitionGraphBuilder
         var pressureNodes = BuildPressureNodes(config.Pressures);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
-        var processNodes = BuildProcessNodes(config.Processes, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
         var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
         var gameplayNodes = BuildGameplayNodes(config.Gameplay);
 
@@ -33,7 +31,6 @@ public static class DefinitionGraphBuilder
         {
             RingOrder = config.Semantics?.RingOrder ?? [],
             Kinds = kindNodes,
-            Processes = processNodes,
             Gambits = gambitNodes,
             GameplayNodes = gameplayNodes,
             Generators = generatorNodes,
@@ -125,23 +122,6 @@ public static class DefinitionGraphBuilder
         }
 
         return attributeIndex;
-    }
-
-    private static Dictionary<string, DefinitionProcessNode> BuildProcessNodes(
-        IReadOnlyList<ProcessDefinition> processes,
-        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
-        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes,
-        Dictionary<DefinitionPressureId, DefinitionPressureNode> pressureNodes)
-    {
-        var processNodes = new Dictionary<string, DefinitionProcessNode>(StringComparer.Ordinal);
-        foreach (var process in processes)
-        {
-            EnsureTargetKindExists("Process", process.Id, process.TargetKind, kindNodes);
-            processNodes[process.Id] = BuildProcessNode(process, kindNodes, resourceNodes, relationshipNodes, pressureNodes);
-        }
-
-        return processNodes;
     }
 
     private static Dictionary<string, DefinitionGambitNode> BuildGambitNodes(
@@ -406,33 +386,6 @@ public static class DefinitionGraphBuilder
         }
 
         return nodes;
-    }
-
-    private static DefinitionProcessNode BuildProcessNode(
-        ProcessDefinition process,
-        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
-        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes,
-        Dictionary<DefinitionPressureId, DefinitionPressureNode> pressureNodes)
-    {
-        return new DefinitionProcessNode
-        {
-            Id = process.Id,
-            Name = process.Name,
-            TargetKind = process.TargetKind,
-            SourceDefinition = process,
-            Reads = ConvertRefs(process.Reads, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
-            Writes = ConvertRefs(process.Writes, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
-            GoalEffects = ConvertRefs(process.GoalEffects, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
-            ProviderSelectors = ConvertRefs(process.ProviderSelectors, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
-            SupportRules = process.SupportRules.Select(rule => new DefinitionSupportRuleNode
-            {
-                DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, resourceNodes, relationshipNodes, pressureNodes),
-                DesiredMinimum = rule.DesiredMinimum,
-                UrgencyScale = rule.UrgencyScale,
-                SourceRule = rule,
-            }).ToList(),
-        };
     }
 
     private static DefinitionGambitNode BuildGambitNode(

@@ -17,12 +17,12 @@ public sealed class GambitProgramRuntimeTests
         var gambit = simulation.Gambits.RegisterGambit(
             kindId,
             gambitId: 100,
-            targetMode: ProcessTargetModeCodes.Self,
+            targetMode: BehaviorTargetModeCodes.Self,
             successChance: 1f);
-        simulation.Gambits.AddPrecondition(gambit, ProcessPreconditionCodes.TargetIsSelf);
-        simulation.Gambits.AddExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddRewardExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddStep(gambit, ProcessOperationCodes.AddAttribute, attributeId, x: 20f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
 
         simulation.AdvanceTicks(1);
 
@@ -47,12 +47,12 @@ public sealed class GambitProgramRuntimeTests
         var gambit = simulation.Gambits.RegisterGambit(
             kindId,
             gambitId: 101,
-            targetMode: ProcessTargetModeCodes.Self,
+            targetMode: BehaviorTargetModeCodes.Self,
             successChance: 0f);
-        simulation.Gambits.AddPrecondition(gambit, ProcessPreconditionCodes.TargetIsSelf);
-        simulation.Gambits.AddExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddRewardExpressionOp(gambit, ProcessExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddStep(gambit, ProcessOperationCodes.AddAttribute, attributeId, x: 20f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
 
         simulation.AdvanceTicks(1);
 
@@ -63,6 +63,110 @@ public sealed class GambitProgramRuntimeTests
             static evt => evt.AsGambitExecuted());
         Assert.Equal(101, executed.GambitId);
         Assert.Equal(KernelEventState.Failed, executed.State);
+    }
+
+    [Fact]
+    public void SuccessfulGambitCanCreateEndpointRelationshipFromTargetToSelf()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int relationshipKindId = 40;
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 102,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(
+            gambit,
+            BehaviorOperationCodes.CreateEndpointRelationship,
+            relationshipKindId,
+            BehaviorEndpointCodes.Target,
+            BehaviorEndpointCodes.Self,
+            RelationshipPolarityCodes.Negative,
+            x: 0.75f);
+
+        simulation.AdvanceTicks(1);
+
+        var relationship = simulation.World.FindRelationship(target, actor, relationshipKindId);
+        Assert.True(relationship > 0);
+        Assert.Equal(RelationshipPolarityCodes.Negative, simulation.World.RelationshipPolarityCode(relationship));
+        Assert.Equal(0.75f, simulation.World.RelationshipStrength(relationship));
+    }
+
+    [Fact]
+    public void SuccessfulGambitCanSetEndpointRelationshipStrength()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int relationshipKindId = 40;
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        var relationship = simulation.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            target,
+            actor,
+            0.9f,
+            tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 103,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(
+            gambit,
+            BehaviorOperationCodes.SetEndpointRelationshipStrength,
+            relationshipKindId,
+            BehaviorEndpointCodes.Target,
+            BehaviorEndpointCodes.Self,
+            x: 0.1f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0.1f, simulation.World.RelationshipStrength(relationship));
+    }
+
+    [Fact]
+    public void SuccessfulGambitCanMakeTargetHistorical()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 104,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(
+            gambit,
+            BehaviorOperationCodes.SetHistorical,
+            b: BehaviorEndpointCodes.Target);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(EntityStatusCodes.Active, simulation.World.EntityStatus(actor));
+        Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(target));
     }
 
     private static T LastEvent<T>(
@@ -98,10 +202,6 @@ public sealed class GambitProgramRuntimeTests
             ResourceCapacity = 32,
             MapCellCapacity = 128,
             EventCapacity = 256,
-            ProcessCapacity = 4,
-            ProcessStepCapacity = 32,
-            ProcessCooldownCapacity = 32,
-            ProcessObjectiveCapacity = 4,
             GambitCapacity = 4,
             GambitStepCapacity = 32,
             GambitCooldownCapacity = 32,

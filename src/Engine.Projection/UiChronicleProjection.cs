@@ -44,12 +44,6 @@ public sealed class UiChronicleProjection : KernelEventProjector
         Add(evt.Tick, $"E{evt.EntityId} moved on {plane} to ({evt.ToQ},{evt.ToR},{evt.ToS})");
     }
 
-    protected override void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
-    {
-        var process = Resolve(ProjectionSymbolKind.Process, evt.ProcessId, $"Process {evt.ProcessId}");
-        Add(evt.Tick, $"E{evt.ActorId} performed {process}");
-    }
-
     protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)
     {
         var gambit = Resolve(ProjectionSymbolKind.Gambit, evt.GambitId, $"Gambit {evt.GambitId}");

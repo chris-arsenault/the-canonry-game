@@ -2,7 +2,7 @@ namespace Engine.Domain.Tests;
 
 using Engine.WorldGen;
 
-internal static class TestTerrainCatalog
+public static class TestTerrainCatalog
 {
     public const string DefaultTerrain = "wastes";
 

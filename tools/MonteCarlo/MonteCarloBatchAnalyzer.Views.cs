@@ -117,50 +117,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
              AND attrs.entity_id = es.entity_id
             """),
         new(
-            "process_events",
-            $"""
-            SELECT runs.run_id, pe.tick, pe.entity_id,
-                   COALESCE(kind_symbol.stable_name, CAST(pe.kind_id AS VARCHAR)) AS kind,
-                   CASE WHEN pe.selected_goal_id IS NULL THEN NULL ELSE 'goal_' || CAST(pe.selected_goal_id AS VARCHAR) END AS selected_goal_id,
-                   process_symbol.stable_name AS executed_process_name,
-                   pe.is_stale, CAST(pe.state_code AS VARCHAR) AS status_note, pe.candidate_count,
-                   CAST(pe.visit_id AS VARCHAR) AS visit_id,
-                   CAST(pe.locality_id AS VARCHAR) AS locality_key,
-                   CAST(pe.locality_plane_code AS VARCHAR) AS locality_plane,
-                   pe.locality_q, pe.locality_r, pe.locality_s, pe.locality_bundle_score,
-                   pe.locality_goal_count, pe.locality_distinct_target_count, pe.locality_distinct_effect_count,
-                   pe.locality_distance, pe.locality_is_current, pe.locality_is_committed, pe.locality_arrived,
-                   pe.locality_actions_remaining, pe.locality_realized_actions,
-                   CAST(pe.locality_selection_reason_code AS VARCHAR) AS locality_selection_reason
-            FROM raw_process_events pe
-            JOIN raw_runs rr ON rr.run_id = pe.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup kind_symbol
-              ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
-             AND kind_symbol.id = pe.kind_id
-            LEFT JOIN symbol_lookup process_symbol
-              ON process_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Process}
-             AND process_symbol.id = pe.executed_process_id
-            """),
-        new(
-            "process_planner_events",
-            """
-            SELECT *
-            FROM process_events
-            WHERE executed_process_name IS NULL
-               OR selected_goal_id IS NOT NULL
-               OR candidate_count > 0
-            """),
-        new(
-            "process_execution_events",
-            """
-            SELECT *
-            FROM process_events
-            WHERE executed_process_name IS NOT NULL
-              AND selected_goal_id IS NULL
-              AND candidate_count = 0
-            """),
-        new(
             "resource_snapshots",
             $"""
             SELECT runs.run_id, rs.tick,

@@ -11,7 +11,7 @@ public sealed class WorldStateResourceTests
         var simulation = CreateSimulation();
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
-        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.SetResource(resourceId: 1, q: 2, r: -1, value: 5f, tick: 0);
         }
@@ -31,7 +31,7 @@ public sealed class WorldStateResourceTests
     {
         var simulation = CreateSimulation();
 
-        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.SetResource(resourceId: 1, q: 0, r: 0, value: 4f, tick: 0);
             simulation.SetResource(resourceId: 1, q: 0, r: 0, value: -10f, tick: 1);
@@ -45,7 +45,7 @@ public sealed class WorldStateResourceTests
     {
         var simulation = CreateSimulation();
 
-        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.ModifyResource(1, 0, 0, 8f, tick: 0);
             simulation.ModifyResource(1, 0, 0, 3f, tick: 1);

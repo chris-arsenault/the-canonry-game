@@ -99,8 +99,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("planner_steps");
         ExportTable("planner_localities");
         ExportTable("trace_events");
-        ExportTable("process_events");
-        ExportTable("process_executions");
+        ExportTable("action_executions");
         ExportTable("attribute_events");
         ExportTable("movement_events");
     }
@@ -169,9 +168,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("planner_steps", typeof(PlannerStepRow));
         EnsureTable("planner_localities", typeof(PlannerLocalityRow));
         EnsureTable("trace_events", typeof(TraceRow));
-        EnsureTable("process_events", typeof(ProcessEventRow));
-        EnsureTable("process_executions", typeof(ProcessExecutionRow));
-        EnsureTable("process_candidates", typeof(ProcessCandidateRow));
+        EnsureTable("action_executions", typeof(ActionExecutionRow));
         EnsureTable("locality_opportunities", typeof(LocalityOpportunityRow));
         EnsureTable("attribute_events", typeof(AttributeEventRow));
         EnsureTable("movement_events", typeof(MovementEventRow));
@@ -240,9 +237,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("planner_steps", _pending.PlannerSteps);
         AppendTable("planner_localities", _pending.PlannerLocalities);
         AppendTable("trace_events", _pending.TraceEvents);
-        AppendTable("process_events", _pending.ProcessEvents);
-        AppendTable("process_executions", _pending.ProcessExecutions);
-        AppendTable("process_candidates", _pending.ProcessCandidates);
+        AppendTable("action_executions", _pending.ActionExecutions);
         AppendTable("locality_opportunities", _pending.LocalityOpportunities);
         AppendTable("attribute_events", _pending.AttributeEvents);
         AppendTable("movement_events", _pending.MovementEvents);
@@ -342,9 +337,7 @@ internal static class TelemetryBatchExtensions
         batch.PlannerSteps.Count +
         batch.PlannerLocalities.Count +
         batch.TraceEvents.Count +
-        batch.ProcessEvents.Count +
-        batch.ProcessExecutions.Count +
-        batch.ProcessCandidates.Count +
+        batch.ActionExecutions.Count +
         batch.LocalityOpportunities.Count +
         batch.AttributeEvents.Count +
         batch.MovementEvents.Count;
@@ -406,9 +399,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.PlannerSteps, source.PlannerSteps);
         AppendRows(destination.PlannerLocalities, source.PlannerLocalities);
         AppendRows(destination.TraceEvents, source.TraceEvents);
-        AppendRows(destination.ProcessEvents, source.ProcessEvents);
-        AppendRows(destination.ProcessExecutions, source.ProcessExecutions);
-        AppendRows(destination.ProcessCandidates, source.ProcessCandidates);
+        AppendRows(destination.ActionExecutions, source.ActionExecutions);
         AppendRows(destination.LocalityOpportunities, source.LocalityOpportunities);
         AppendRows(destination.AttributeEvents, source.AttributeEvents);
         AppendRows(destination.MovementEvents, source.MovementEvents);

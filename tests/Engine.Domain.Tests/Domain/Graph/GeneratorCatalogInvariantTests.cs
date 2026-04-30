@@ -574,7 +574,6 @@ public class GeneratorCatalogInvariantTests
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
-            Processes = config.Processes,
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
             Pressures = config.Pressures,

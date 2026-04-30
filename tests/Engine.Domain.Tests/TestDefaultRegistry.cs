@@ -3,7 +3,7 @@ namespace Engine.Domain.Tests;
 using Engine.Graph;
 using Engine.Kinds;
 
-internal static class TestDefaultRegistry
+public static class TestDefaultRegistry
 {
     public static KindRegistry Create()
     {

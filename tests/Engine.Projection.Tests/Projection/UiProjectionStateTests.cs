@@ -135,7 +135,7 @@ public sealed class UiProjectionStateTests
         Assert.Equal(7, entity.PhysicalQ);
         Assert.Equal(8, entity.PhysicalR);
         Assert.Equal(14.5f, entity.Attributes[30].NewValue);
-        Assert.Equal(50, entity.LastProcessExecution?.ProcessId);
+        Assert.Equal(50, entity.LastGambitExecution?.GambitId);
         Assert.True(entity.WasCreatedFromEvent);
         Assert.True(projection.IsComplete);
     }
@@ -198,12 +198,12 @@ public sealed class UiProjectionStateTests
             SourceCodeId: 40,
             OldValue: 12f,
             NewValue: 14.5f))));
-        Assert.True(log.TryWrite(KernelEvent.From(new ProcessExecutedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
             Tick: 4,
             WorldVersion: 4,
             ActorId: 10,
             ActorKindId: 2,
-            ProcessId: 50,
+            GambitId: 50,
             AffectedEntityId0: 11,
             AffectedEntityId1: 0,
             AffectedEntityCount: 1,

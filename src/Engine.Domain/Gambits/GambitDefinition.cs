@@ -1,11 +1,11 @@
 namespace Engine.Gambits;
 
+using Engine.Behaviors;
 using Engine.Kinds;
-using Engine.Processes;
 
 /// <summary>
 /// A high-stakes entity undertaking. Gambits run in their own program layer so
-/// their planner and risk model can diverge from routine processes over time.
+/// their planner and risk model can diverge from routine behaviors over time.
 /// </summary>
 public sealed class GambitDefinition : BehaviorDefinition
 {

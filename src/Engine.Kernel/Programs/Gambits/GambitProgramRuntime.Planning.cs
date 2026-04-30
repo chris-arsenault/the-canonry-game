@@ -639,13 +639,13 @@ internal sealed partial class GambitProgramRuntime
                 out selectedTargetId);
         }
 
-        if (_gambitTargetModes[gambitSlot] == ProcessTargetModeCodes.Self)
+        if (_gambitTargetModes[gambitSlot] == BehaviorTargetModeCodes.Self)
         {
             var self = EvaluateGambitTargetPlanChoice(simulation, entityId, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);
             return SelectBestGambitTargetChoice(self, out selectedRootGambitSlot, out selectedRootTargetId, out selectedGambitSlot, out selectedTargetId);
         }
 
-        if (_gambitTargetModes[gambitSlot] == ProcessTargetModeCodes.KindOther &&
+        if (_gambitTargetModes[gambitSlot] == BehaviorTargetModeCodes.KindOther &&
             _gambitTargetKindIds[gambitSlot] > 0)
         {
             var kind = EvaluateKindGambitTargetChoices(simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);

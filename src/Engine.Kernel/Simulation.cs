@@ -39,7 +39,6 @@ internal sealed partial class Simulation : IKernel
         MapActivity = CreateMapActivityRuntime(options);
         MapSignals = CreateMapSignalsRuntime(options);
         Effects = CreateEffectsRuntime(options);
-        Processes = CreateProcessRuntime(options);
         Gambits = CreateGambitRuntime(options);
         Generators = CreateGeneratorRuntime(options);
         Pressures = CreatePressureRuntime(options);
@@ -60,7 +59,7 @@ internal sealed partial class Simulation : IKernel
 
     private static PlanningProgramRuntime CreatePlanningRuntime(SimulationOptions options)
     {
-        var objectiveCapacity = options.ProcessObjectiveCapacity + options.GambitObjectiveCapacity;
+        var objectiveCapacity = options.GambitObjectiveCapacity;
         return new PlanningProgramRuntime(
             new PlanningProgramData(options.KernelTuning.Programs.Planning.DefaultPlannerKindCode),
             new PlanningProgramState(options.PlanningOverrideCapacity),
@@ -70,7 +69,6 @@ internal sealed partial class Simulation : IKernel
 
     private void AssignRuntimeCodes(KernelRuntimeCodes codes)
     {
-        ProcessSourceCodeId = codes.ProcessSourceCodeId;
         GambitSourceCodeId = codes.GambitSourceCodeId;
         UpkeepSourceCodeId = codes.UpkeepSourceCodeId;
         StartupSourceCodeId = codes.StartupSourceCodeId;
@@ -84,25 +82,6 @@ internal sealed partial class Simulation : IKernel
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
         EffectsSourceCodeId = codes.EffectsSourceCodeId;
     }
-
-    private static ProcessProgramRuntime CreateProcessRuntime(SimulationOptions options) =>
-        new(
-            new ProcessProgramData(
-                options.ProcessCapacity,
-                options.ProcessStepCapacity,
-                options.ProcessObjectiveCapacity,
-                options.ProcessProviderSelectorCapacity,
-                options.ProcessSupportRuleCapacity),
-            new ProcessProgramState(
-                options.ProcessCapacity,
-                options.ProcessCooldownCapacity,
-                options.EntityCapacity,
-                options.ProcessCommitmentCapacity),
-            new ProcessProgramScratch(
-                options.MapCellCapacity,
-                options.EntityCapacity,
-                options.ProcessObjectiveCapacity),
-            options.KernelTuning.Programs);
 
     private static LowAltitudeVerbProgramRuntime CreateLowAltitudeVerbRuntime(SimulationOptions options) =>
         new(
@@ -193,7 +172,6 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
         RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
-        RegisterProgram(KernelProgramCodes.Processes, 1, Processes);
         RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
         RegisterProgram(KernelProgramCodes.Pressures, 5, Pressures);
         RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
@@ -317,14 +295,12 @@ internal sealed partial class Simulation : IKernel
     internal MapActivityProgramRuntime MapActivity { get; }
     internal MapSignalsProgramRuntime MapSignals { get; }
     internal EffectsProgramRuntime Effects { get; }
-    internal ProcessProgramRuntime Processes { get; }
     internal GambitProgramRuntime Gambits { get; }
     internal GeneratorProgramRuntime Generators { get; }
     internal PressureProgramRuntime Pressures { get; }
     internal DegeneracyProgramRuntime Degeneracy { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
-    internal int ProcessSourceCodeId { get; private set; }
     internal int GambitSourceCodeId { get; private set; }
     internal int UpkeepSourceCodeId { get; private set; }
     internal int StartupSourceCodeId { get; private set; }
@@ -955,7 +931,6 @@ internal sealed partial class Simulation : IKernel
 
     private int SourceCodeIdForCoreProgram(int programId) => programId switch
     {
-        KernelProgramCodes.Processes => ProcessSourceCodeId,
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Pressures => PressureSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,

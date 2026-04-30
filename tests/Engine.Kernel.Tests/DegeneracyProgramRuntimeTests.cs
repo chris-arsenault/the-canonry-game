@@ -30,7 +30,7 @@ public sealed class DegeneracyProgramRuntimeTests
             warningThreshold: 0.5f,
             criticalThreshold: 0.8f);
         simulation.Degeneracy.Tick(simulation, tick: 1);
-        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.SetAttribute(firstEntityId, attributeId, value: 9f, tick: 2);
         }

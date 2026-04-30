@@ -94,7 +94,7 @@ internal sealed class RunLogger : IDisposable
         _writer.WriteLine("# The Canonry kernel event log");
         _writer.WriteLine($"# started_utc: {now}");
         _writer.WriteLine("# source: KernelEventLog");
-        _writer.WriteLine("# legend: act=process optional tgt=entity; gen=generator fire; death=status transition to historical");
+        _writer.WriteLine("# legend: act=gambit optional tgt=entity; gen=generator fire; death=status transition to historical");
     }
 
     private sealed class RunLogProjection(IProjectionSymbolCatalog? symbols) : KernelEventProjector
@@ -150,19 +150,6 @@ internal sealed class RunLogger : IDisposable
             }
         }
 
-        protected override void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
-        {
-            Summary(evt.Tick).Actions++;
-            var process = ResolveDisplayName(ProjectionSymbolKind.Process, evt.ProcessId, $"process_{evt.ProcessId}");
-            var actor = ResolveEntityTarget(evt.ActorId);
-            var target = evt.AffectedEntityCount > 0 && evt.AffectedEntityId0 != evt.ActorId
-                ? $" tgt={ResolveEntityTarget(evt.AffectedEntityId0)}" : string.Empty;
-            Add(
-                _actionLinesByTick,
-                evt.Tick,
-$"  act {actor} {process}{target}");
-        }
-
         protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
         {
             Summary(evt.Tick).GeneratorFires++;
@@ -174,6 +161,19 @@ $"  act {actor} {process}{target}");
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"  gen {generator} -> {target} created_entities={evt.CreatedEntityCount} created_relationships={evt.CreatedRelationshipCount}"));
+        }
+
+        protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)
+        {
+            Summary(evt.Tick).Actions++;
+            var gambit = ResolveDisplayName(ProjectionSymbolKind.Gambit, evt.GambitId, $"gambit_{evt.GambitId}");
+            var actor = ResolveEntityTarget(evt.ActorId);
+            var target = evt.AffectedEntityCount > 0 && evt.AffectedEntityId0 != evt.ActorId
+                ? $" tgt={ResolveEntityTarget(evt.AffectedEntityId0)}" : string.Empty;
+            Add(
+                _actionLinesByTick,
+                evt.Tick,
+                $"  act {actor} {gambit}{target}");
         }
 
         private ObservedEntityProjection GetOrCreateEntity(int entityId)

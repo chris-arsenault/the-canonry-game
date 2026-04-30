@@ -10,8 +10,8 @@ public static class TelemetrySymbolKinds
     public const int PerformancePhase = 1006;
     public const int PerformanceSystem = 1007;
     public const int PerformanceExportStep = 1008;
-    public const int ProcessProvider = 1009;
-    public const int ProcessPreconditionDiagnostic = 1010;
+    public const int BehaviorProvider = 1009;
+    public const int BehaviorPreconditionDiagnostic = 1010;
     public const int EntityStatus = 1011;
     public const int Plane = 1012;
     public const int RelationshipPolarity = 1013;

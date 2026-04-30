@@ -430,7 +430,6 @@ internal sealed class KernelHostBuilder
             codes.RelationshipCreatedCodeId.Value,
             codes.RelationshipCulledCodeId.Value,
             codes.RelationshipStrengthChangedCodeId.Value,
-            codes.ProcessSourceCodeId.Value,
             codes.GambitSourceCodeId.Value,
             codes.UpkeepSourceCodeId.Value,
             codes.StartupSourceCodeId.Value,
@@ -508,9 +507,6 @@ internal sealed class KernelHostBuilder
     {
         switch (kind)
         {
-            case DomainSymbolKind.Process:
-                symbolKind = ProjectionSymbolKind.Process;
-                return true;
             case DomainSymbolKind.Verb:
                 symbolKind = ProjectionSymbolKind.Verb;
                 return true;

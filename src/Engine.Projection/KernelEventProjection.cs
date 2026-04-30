@@ -73,12 +73,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
         var evt = kernelEvent.Event;
         switch (evt.EventType)
         {
-            case KernelEventType.ProcessEvaluated:
-                OnProcessEvaluated(kernelEvent.Sequence, evt.AsProcessEvaluated());
-                break;
-            case KernelEventType.ProcessExecuted:
-                OnProcessExecuted(kernelEvent.Sequence, evt.AsProcessExecuted());
-                break;
             case KernelEventType.GoalGenerated:
                 OnGoalGenerated(kernelEvent.Sequence, evt.AsGoalGenerated());
                 break;
@@ -183,14 +177,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnRelationshipChanged(long sequence, in RelationshipChangedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnProcessEvaluated(long sequence, in ProcessEvaluatedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
     {
     }
 

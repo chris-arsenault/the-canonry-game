@@ -99,7 +99,7 @@ internal sealed class PlannerTraceProjection : KernelEventProjector
             evt.PlanId,
             evt.GoalId,
             evt.StepIndex,
-            evt.ProcessId,
+            evt.ActionId,
             evt.TargetEntityId,
             evt.RelationshipKindId));
     }

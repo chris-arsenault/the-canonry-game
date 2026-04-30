@@ -75,14 +75,6 @@ public sealed class KernelEventPayloadTests
 
     private static void AssertRuntimeEventsRoundTrip()
     {
-        var processEvaluated = new ProcessEvaluatedKernelEvent(
-            7, 8, 9, 10, 11, 12, 13, KernelEventState.Succeeded | KernelEventState.Stale);
-        Assert.Equal(processEvaluated, KernelEvent.From(processEvaluated).AsProcessEvaluated());
-
-        var processExecuted = new ProcessExecutedKernelEvent(
-            8, 9, 10, 11, 12, 13, 14, 2, KernelEventState.Overflowed);
-        Assert.Equal(processExecuted, KernelEvent.From(processExecuted).AsProcessExecuted());
-
         var goalGenerated = new GoalGeneratedKernelEvent(9, 10, 11, 12, 13, 14, KernelEventState.Truncated);
         Assert.Equal(goalGenerated, KernelEvent.From(goalGenerated).AsGoalGenerated());
 

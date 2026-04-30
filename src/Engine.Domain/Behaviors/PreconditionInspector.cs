@@ -1,30 +1,30 @@
-namespace Engine.Processes;
+namespace Engine.Behaviors;
 
 using Engine.Kinds;
 using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
-/// Static process program-facing inspection of preconditions.
+/// Static behavior program-facing inspection of preconditions.
 /// Used for validation, not runtime execution.
 /// </summary>
 public static class PreconditionInspector
 {
-    public static ProcessPreconditionAnalysis Analyze(BehaviorDefinition definition)
+    public static BehaviorPreconditionAnalysis Analyze(BehaviorDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
 
         var blockers = new HashSet<AttributeRef>();
-        var hasOpaqueProcessBranches = CollectProcessBlockers(
+        var hasOpaqueBehaviorBranches = CollectBehaviorBlockers(
             definition.Precondition,
             definition.TargetKind,
             InferTargetKinds(definition),
             blockers);
 
-        return new ProcessPreconditionAnalysis(blockers, hasOpaqueProcessBranches);
+        return new BehaviorPreconditionAnalysis(blockers, hasOpaqueBehaviorBranches);
     }
 
-    private static bool CollectProcessBlockers(
+    private static bool CollectBehaviorBlockers(
         IPrecondition precondition,
         EntityKind selfKind,
         IReadOnlySet<EntityKind> targetKinds,
@@ -37,7 +37,7 @@ public static class PreconditionInspector
                     var opaque = false;
                     foreach (var child in andPrecondition.Children)
                     {
-                        opaque |= CollectProcessBlockers(child, selfKind, targetKinds, blockers);
+                        opaque |= CollectBehaviorBlockers(child, selfKind, targetKinds, blockers);
                     }
 
                     return opaque;
@@ -46,7 +46,7 @@ public static class PreconditionInspector
                 return true;
 
             case SelfAttributeThreshold selfThreshold:
-                if (selfThreshold.ProcessRelevant)
+                if (selfThreshold.BehaviorRelevant)
                 {
                     blockers.Add(AttributeRef.Self(selfThreshold.AttributeName, selfKind));
                 }
@@ -59,7 +59,7 @@ public static class PreconditionInspector
                 AddTargetRelationBlockers(relatedEntityMatchesTarget, targetKinds, blockers);
                 return false;
             case LocationResourceThreshold locationResourceThreshold:
-                if (locationResourceThreshold.ProcessRelevant)
+                if (locationResourceThreshold.BehaviorRelevant)
                 {
                     blockers.Add(AttributeRef.Resource(locationResourceThreshold.ResourceType.ToDomainName()));
                 }
@@ -75,7 +75,7 @@ public static class PreconditionInspector
         IReadOnlySet<EntityKind> targetKinds,
         HashSet<AttributeRef> blockers)
     {
-        if (!threshold.ProcessRelevant)
+        if (!threshold.BehaviorRelevant)
         {
             return;
         }
@@ -91,7 +91,7 @@ public static class PreconditionInspector
         IReadOnlySet<EntityKind> targetKinds,
         HashSet<AttributeRef> blockers)
     {
-        if (!precondition.ProcessRelevant)
+        if (!precondition.BehaviorRelevant)
         {
             return;
         }
@@ -118,6 +118,6 @@ public static class PreconditionInspector
     }
 }
 
-public readonly record struct ProcessPreconditionAnalysis(
-    IReadOnlySet<AttributeRef> ProcessBlockers,
-    bool HasOpaqueProcessBranches);
+public readonly record struct BehaviorPreconditionAnalysis(
+    IReadOnlySet<AttributeRef> BehaviorBlockers,
+    bool HasOpaqueBehaviorBranches);

@@ -30,8 +30,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "planner_steps",
         "planner_localities",
         "trace_events",
-        "process_events",
-        "process_executions",
+        "action_executions",
         "attribute_events",
         "movement_events",
         "resource_events",
@@ -107,8 +106,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var lowAltitudeRows = LoadLowAltitudeVerbRows(connection);
         var roamingRows = LoadRoamingSummaryRows(connection);
         var influenceRows = LoadInfluenceSummaryRows(connection);
-        var processRows = LoadProcessPressureRows(connection);
-        var plannerRows = LoadPlannerPressureRows(connection, processRows);
+        var actionRows = LoadActionPressureRows(connection);
+        var plannerRows = LoadPlannerPressureRows(connection, actionRows);
         var resourceRows = LoadResourcePressureRows(connection);
         var mapGenerationRows = LoadMapGenerationRows(connection);
         var terrainRows = LoadTerrainOccupancyRows(connection);
@@ -132,7 +131,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             RoamingSummary = roamingRows,
             InfluenceSummary = influenceRows,
             PlannerPressure = plannerRows,
-            ProcessPressure = processRows,
+            ActionPressure = actionRows,
             AttributeBands = attributeRows,
             MapSpread = mapRows,
             MapGeneration = mapGenerationRows,
@@ -379,8 +378,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         var sql = $"""
             SELECT
-                (SELECT COUNT(*) FROM process_planner_events) AS process_planner_rows,
-                (SELECT COUNT(*) FROM process_execution_events) AS process_execution_rows,
+                (SELECT COUNT(*) FROM raw_planner_candidates) AS planner_candidate_rows,
+                (SELECT COUNT(*) FROM raw_action_executions) AS action_execution_rows,
                 (SELECT COUNT(*) FROM raw_map_snapshots) AS map_snapshot_rows,
                 (SELECT COUNT(*) FROM raw_planner_localities) AS locality_opportunity_rows,
                 (SELECT COUNT(*) FROM raw_planner_traces) AS planner_trace_rows,
@@ -389,8 +388,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             """;
 
         return QuerySingle(connection, sql, reader => new TelemetryCoverage(
-            ProcessPlannerRows: ReadInt(reader, "process_planner_rows"),
-            ProcessExecutionRows: ReadInt(reader, "process_execution_rows"),
+            PlannerCandidateRows: ReadInt(reader, "planner_candidate_rows"),
+            ActionExecutionRows: ReadInt(reader, "action_execution_rows"),
             MapSnapshotRows: ReadInt(reader, "map_snapshot_rows"),
             LocalityOpportunityRows: ReadInt(reader, "locality_opportunity_rows"),
             PlannerTraceRows: ReadInt(reader, "planner_trace_rows"),
@@ -398,19 +397,19 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             CellInfluenceRows: ReadInt(reader, "cell_influence_rows")));
     }
 
-    private List<ProcessPressureRow> LoadProcessPressureRows(DuckDBConnection connection)
+    private List<ActionPressureRow> LoadActionPressureRows(DuckDBConnection connection)
     {
         var observed = LoadObservedActionRows(connection);
-        return BuildProcessPressureRows(observed, "planner_candidates");
+        return BuildActionPressureRows(observed, "planner_candidates");
     }
 
-    private static Dictionary<(string Kind, string ProcessName), ObservedProcessRow> LoadObservedActionRows(
+    private static Dictionary<(string Kind, string ActionName), ObservedActionRow> LoadObservedActionRows(
         DuckDBConnection connection)
     {
         var summarySql = $"""
             SELECT
                 COALESCE(kind_symbol.stable_name, CAST(candidate.kind_id AS VARCHAR)) AS kind,
-                COALESCE(action_symbol.stable_name, CAST(candidate.action_id AS VARCHAR)) AS process_name,
+                COALESCE(action_symbol.stable_name, CAST(candidate.action_id AS VARCHAR)) AS action_name,
                 COUNT(*) AS candidate_evaluations,
                 SUM(CASE WHEN candidate.selected THEN 1 ELSE 0 END) AS selected_count,
                 COALESCE(AVG(CAST(candidate.adjusted_score AS DOUBLE)), 0.0) AS average_score,
@@ -423,42 +422,40 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             LEFT JOIN symbol_lookup action_symbol
               ON action_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Verb}
              AND action_symbol.id = candidate.action_id
-            GROUP BY kind, process_name;
+            GROUP BY kind, action_name;
             """;
 
         return Query(connection, summarySql, reader =>
             {
-                return new ObservedProcessRow(
+                return new ObservedActionRow(
                     Kind: ReadString(reader, "kind"),
-                    ProcessName: ReadString(reader, "process_name"),
+                    ActionName: ReadString(reader, "action_name"),
                     CandidateEvaluations: ReadInt(reader, "candidate_evaluations"),
                     SelectedCount: ReadInt(reader, "selected_count"),
                     AverageScore: ReadDouble(reader, "average_score"),
                     PreconditionPassRate: ReadDouble(reader, "precondition_pass_rate"),
                     CooldownRate: ReadDouble(reader, "cooldown_rate"));
             })
-            .ToDictionary(row => (row.Kind, row.ProcessName), row => row);
+            .ToDictionary(row => (row.Kind, row.ActionName), row => row);
     }
 
-    private List<ProcessPressureRow> BuildProcessPressureRows(
-        Dictionary<(string Kind, string ProcessName), ObservedProcessRow> observed,
+    private List<ActionPressureRow> BuildActionPressureRows(
+        Dictionary<(string Kind, string ActionName), ObservedActionRow> observed,
         string evidenceSource)
     {
-        var configured = _domainConfig.Processes
-            .Select(process => (Kind: process.TargetKind.Value, Name: process.Id))
-            .Concat((_domainConfig.Gameplay?.LowAltitudeVerbs ?? [])
-                .Select(verb => (Kind: verb.Kind, Name: verb.Id)))
+        var configured = (_domainConfig.Gameplay?.LowAltitudeVerbs ?? [])
+            .Select(verb => (Kind: verb.Kind, Name: verb.Id))
             .ToList();
 
         var rows = configured
             .Select(action =>
             {
                 var observedRow = observed.GetValueOrDefault((action.Kind, action.Name)) ??
-                                  ObservedProcessRow.Empty(action.Kind, action.Name);
+                                  ObservedActionRow.Empty(action.Kind, action.Name);
 
-                return new ProcessPressureRow(
+                return new ActionPressureRow(
                     Kind: action.Kind,
-                    ProcessName: action.Name,
+                    ActionName: action.Name,
                     CandidateEvaluations: observedRow.CandidateEvaluations,
                     SelectedCount: observedRow.SelectedCount,
                     SelectionRateWhenOffered: observedRow.CandidateEvaluations == 0
@@ -475,7 +472,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .OrderBy(row => row.Kind, StringComparer.Ordinal)
             .ThenByDescending(row => row.SelectedCount)
             .ThenByDescending(row => row.CandidateEvaluations)
-            .ThenBy(row => row.ProcessName, StringComparer.Ordinal)
+            .ThenBy(row => row.ActionName, StringComparer.Ordinal)
             .ToList();
     }
 
@@ -488,7 +485,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             COUNT(DISTINCT CASE WHEN execution.entity_id IS NOT NULL THEN candidate.plan_id ELSE NULL END) AS executed_evaluations,
             COALESCE(AVG(CAST(candidate_count.candidate_count AS DOUBLE)), 0.0) AS average_candidate_count
         FROM raw_planner_candidates candidate
-        LEFT JOIN raw_process_executions execution
+        LEFT JOIN raw_action_executions execution
           ON execution.run_id = candidate.run_id
          AND execution.entity_id = candidate.entity_id
          AND execution.plan_id = candidate.plan_id
@@ -509,7 +506,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
     private List<PlannerPressureRow> LoadPlannerPressureRows(
         DuckDBConnection connection,
-        List<ProcessPressureRow> processRows)
+        List<ActionPressureRow> actionRows)
     {
         var observed = Query(connection, PlannerPressureRowsSql, reader => new ObservedPlannerRow(
             Kind: ReadString(reader, "kind"),
@@ -520,21 +517,21 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             AverageCandidateCount: ReadDouble(reader, "average_candidate_count")))
             .ToDictionary(row => row.Kind, row => row, StringComparer.Ordinal);
 
-        var processByKind = processRows
+        var actionByKind = actionRows
             .GroupBy(row => row.Kind, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
                 group => group
                     .OrderByDescending(row => row.SelectedCount)
                     .ThenByDescending(row => row.CandidateEvaluations)
-                    .ThenBy(row => row.ProcessName, StringComparer.Ordinal)
+                    .ThenBy(row => row.ActionName, StringComparer.Ordinal)
                     .ToList(),
                 StringComparer.Ordinal);
 
         var rows = _domainConfig.Kinds.Keys.Select(kind =>
         {
             var observedRow = observed.GetValueOrDefault(kind.Value) ?? ObservedPlannerRow.Empty(kind.Value);
-            var ranked = processByKind.GetValueOrDefault(kind.Value) ?? [];
+            var ranked = actionByKind.GetValueOrDefault(kind.Value) ?? [];
             var top = ranked.FirstOrDefault();
             var totalSelected = ranked.Sum(row => row.SelectedCount);
 
@@ -544,8 +541,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 StaleRate: observedRow.Evaluations == 0 ? 0d : observedRow.StaleEvaluations / (double)observedRow.Evaluations,
                 NoExecutionRate: observedRow.Evaluations == 0 ? 0d : observedRow.NoExecutionEvaluations / (double)observedRow.Evaluations,
                 AverageCandidateCount: observedRow.AverageCandidateCount,
-                TopExecutedProcess: top?.ProcessName ?? string.Empty,
-                TopProcessShareOfExecutions: totalSelected == 0 || top is null ? 0d : top.SelectedCount / (double)totalSelected);
+                TopExecutedAction: top?.ActionName ?? string.Empty,
+                TopActionShareOfExecutions: totalSelected == 0 || top is null ? 0d : top.SelectedCount / (double)totalSelected);
         });
 
         return rows

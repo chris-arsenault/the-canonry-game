@@ -10,7 +10,7 @@ internal sealed class MonteCarloAnalysisReport
     public required IReadOnlyList<RoamingSummaryRow> RoamingSummary { get; init; }
     public required IReadOnlyList<InfluenceSummaryRow> InfluenceSummary { get; init; }
     public required IReadOnlyList<PlannerPressureRow> PlannerPressure { get; init; }
-    public required IReadOnlyList<ProcessPressureRow> ProcessPressure { get; init; }
+    public required IReadOnlyList<ActionPressureRow> ActionPressure { get; init; }
     public required IReadOnlyList<AttributeBandSummaryRow> AttributeBands { get; init; }
     public required IReadOnlyList<MapSpreadSummaryRow> MapSpread { get; init; }
     public required IReadOnlyList<MapGenerationSummaryRow> MapGeneration { get; init; }
@@ -99,12 +99,12 @@ internal sealed record PlannerPressureRow(
     double StaleRate,
     double NoExecutionRate,
     double AverageCandidateCount,
-    string TopExecutedProcess,
-    double TopProcessShareOfExecutions);
+    string TopExecutedAction,
+    double TopActionShareOfExecutions);
 
-internal sealed record ProcessPressureRow(
+internal sealed record ActionPressureRow(
     string Kind,
-    string ProcessName,
+    string ActionName,
     int CandidateEvaluations,
     int SelectedCount,
     double SelectionRateWhenOffered,

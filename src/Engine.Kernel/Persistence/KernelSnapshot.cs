@@ -78,13 +78,6 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryWriter writer,
         SimulationOptions options)
     {
-        writer.Write(options.ProcessCapacity);
-        writer.Write(options.ProcessStepCapacity);
-        writer.Write(options.ProcessCooldownCapacity);
-        writer.Write(options.ProcessObjectiveCapacity);
-        writer.Write(options.ProcessProviderSelectorCapacity);
-        writer.Write(options.ProcessSupportRuleCapacity);
-        writer.Write(options.ProcessCommitmentCapacity);
         writer.Write(options.PlanningOverrideCapacity);
         writer.Write(options.GambitCapacity);
         writer.Write(options.GambitStepCapacity);
@@ -127,7 +120,6 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.RelationshipCreatedCodeId);
         writer.Write(runtimeCodes.RelationshipCulledCodeId);
         writer.Write(runtimeCodes.RelationshipStrengthChangedCodeId);
-        writer.Write(runtimeCodes.ProcessSourceCodeId);
         writer.Write(runtimeCodes.GambitSourceCodeId);
         writer.Write(runtimeCodes.UpkeepSourceCodeId);
         writer.Write(runtimeCodes.StartupSourceCodeId);
@@ -147,7 +139,6 @@ internal static class KernelSnapshotOptions
         KernelTuningOptions kernelTuning)
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
-        writer.Write(kernelTuning.Programs.Processes.WorkCommitmentCode);
         writer.Write(kernelTuning.Programs.Planning.DefaultPlannerKindCode);
         writer.Write(kernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
         writer.Write(kernelTuning.Programs.Planning.OpportunityTargetCapacity);
@@ -167,7 +158,6 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.MapSignals);
         writer.Write(enabled.Effects);
         writer.Write(enabled.Upkeep);
-        writer.Write(enabled.Processes);
         writer.Write(enabled.Gambits);
         writer.Write(enabled.Relationships);
         writer.Write(enabled.Pressures);
@@ -238,13 +228,6 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryReader reader,
         ref SnapshotOptionValues values)
     {
-        values.ProcessCapacity = reader.ReadInt32();
-        values.ProcessStepCapacity = reader.ReadInt32();
-        values.ProcessCooldownCapacity = reader.ReadInt32();
-        values.ProcessObjectiveCapacity = reader.ReadInt32();
-        values.ProcessProviderSelectorCapacity = reader.ReadInt32();
-        values.ProcessSupportRuleCapacity = reader.ReadInt32();
-        values.ProcessCommitmentCapacity = reader.ReadInt32();
         values.PlanningOverrideCapacity = reader.ReadInt32();
         values.GambitCapacity = reader.ReadInt32();
         values.GambitStepCapacity = reader.ReadInt32();
@@ -287,7 +270,6 @@ internal static class KernelSnapshotOptions
         values.RelationshipCreatedCodeId = reader.ReadInt32();
         values.RelationshipCulledCodeId = reader.ReadInt32();
         values.RelationshipStrengthChangedCodeId = reader.ReadInt32();
-        values.ProcessSourceCodeId = reader.ReadInt32();
         values.GambitSourceCodeId = reader.ReadInt32();
         values.UpkeepSourceCodeId = reader.ReadInt32();
         values.StartupSourceCodeId = reader.ReadInt32();
@@ -311,13 +293,11 @@ internal static class KernelSnapshotOptions
         values.MapSignalsProgramEnabled = reader.ReadInt32();
         values.EffectsProgramEnabled = reader.ReadInt32();
         values.UpkeepProgramEnabled = reader.ReadInt32();
-        values.ProcessesProgramEnabled = reader.ReadInt32();
         values.GambitsProgramEnabled = reader.ReadInt32();
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.PressuresProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.DegeneracyProgramEnabled = reader.ReadInt32();
-        values.ProcessWorkCommitmentCode = reader.ReadInt32();
         values.PlanningDefaultPlannerKindCode = reader.ReadInt32();
         values.PlanningGoapTargetReservationsEnabled = reader.ReadBoolean();
         values.PlanningOpportunityTargetCapacity = reader.ReadInt32();
@@ -400,13 +380,6 @@ internal static class KernelSnapshotOptions
             EventCursorCapacity = values.EventCursorCapacity,
             EventSchemaValidator = options?.EventSchemaValidator,
             CommandCapacity = values.CommandCapacity,
-            ProcessCapacity = values.ProcessCapacity,
-            ProcessStepCapacity = values.ProcessStepCapacity,
-            ProcessCooldownCapacity = values.ProcessCooldownCapacity,
-            ProcessObjectiveCapacity = values.ProcessObjectiveCapacity,
-            ProcessProviderSelectorCapacity = values.ProcessProviderSelectorCapacity,
-            ProcessSupportRuleCapacity = values.ProcessSupportRuleCapacity,
-            ProcessCommitmentCapacity = values.ProcessCommitmentCapacity,
             PlanningOverrideCapacity = values.PlanningOverrideCapacity,
             GambitCapacity = values.GambitCapacity,
             GambitStepCapacity = values.GambitStepCapacity,
@@ -445,7 +418,6 @@ internal static class KernelSnapshotOptions
             values.RelationshipCreatedCodeId,
             values.RelationshipCulledCodeId,
             values.RelationshipStrengthChangedCodeId,
-            values.ProcessSourceCodeId,
             values.GambitSourceCodeId,
             values.UpkeepSourceCodeId,
             values.StartupSourceCodeId,
@@ -471,16 +443,11 @@ internal static class KernelSnapshotOptions
                     MapSignals = values.MapSignalsProgramEnabled,
                     Effects = values.EffectsProgramEnabled,
                     Upkeep = values.UpkeepProgramEnabled,
-                    Processes = values.ProcessesProgramEnabled,
                     Gambits = values.GambitsProgramEnabled,
                     Relationships = values.RelationshipsProgramEnabled,
                     Pressures = values.PressuresProgramEnabled,
                     Generators = values.GeneratorsProgramEnabled,
                     Degeneracy = values.DegeneracyProgramEnabled,
-                },
-                Processes = new ProcessProgramTuningOptions
-                {
-                    WorkCommitmentCode = values.ProcessWorkCommitmentCode,
                 },
                 Planning = new PlanningProgramTuningOptions
                 {
@@ -517,13 +484,6 @@ internal static class KernelSnapshotOptions
         public int EventCapacity;
         public int EventCursorCapacity;
         public int CommandCapacity;
-        public int ProcessCapacity;
-        public int ProcessStepCapacity;
-        public int ProcessCooldownCapacity;
-        public int ProcessObjectiveCapacity;
-        public int ProcessProviderSelectorCapacity;
-        public int ProcessSupportRuleCapacity;
-        public int ProcessCommitmentCapacity;
         public int PlanningOverrideCapacity;
         public int GambitCapacity;
         public int GambitStepCapacity;
@@ -554,7 +514,6 @@ internal static class KernelSnapshotOptions
         public int RelationshipCreatedCodeId;
         public int RelationshipCulledCodeId;
         public int RelationshipStrengthChangedCodeId;
-        public int ProcessSourceCodeId;
         public int GambitSourceCodeId;
         public int UpkeepSourceCodeId;
         public int StartupSourceCodeId;
@@ -572,13 +531,11 @@ internal static class KernelSnapshotOptions
         public int MapSignalsProgramEnabled;
         public int EffectsProgramEnabled;
         public int UpkeepProgramEnabled;
-        public int ProcessesProgramEnabled;
         public int GambitsProgramEnabled;
         public int RelationshipsProgramEnabled;
         public int PressuresProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int DegeneracyProgramEnabled;
-        public int ProcessWorkCommitmentCode;
         public int PlanningDefaultPlannerKindCode;
         public bool PlanningGoapTargetReservationsEnabled;
         public int PlanningOpportunityTargetCapacity;

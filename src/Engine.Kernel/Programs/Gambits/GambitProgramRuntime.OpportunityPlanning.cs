@@ -437,7 +437,7 @@ internal sealed partial class GambitProgramRuntime
             return;
         }
 
-        effectScopeCode = ProcessEffectScopeCodes.Structural;
+        effectScopeCode = BehaviorEffectScopeCodes.Structural;
         effectValueId = _gambitIds[gambitSlot];
         effectKindId = _gambitKindIds[gambitSlot];
     }
@@ -503,10 +503,10 @@ internal sealed partial class GambitProgramRuntime
     private static bool GambitOperationIsPositioning(int operationCode)
     {
         return operationCode is
-            ProcessOperationCodes.MoveTowardTargetPhysical or
-            ProcessOperationCodes.WanderPhysical or
-            ProcessOperationCodes.MoveTowardTargetSemantic or
-            ProcessOperationCodes.WanderSemantic;
+            BehaviorOperationCodes.MoveTowardTargetPhysical or
+            BehaviorOperationCodes.WanderPhysical or
+            BehaviorOperationCodes.MoveTowardTargetSemantic or
+            BehaviorOperationCodes.WanderSemantic;
     }
 
     private void EmitOpportunityGambitTraceIfNeeded(

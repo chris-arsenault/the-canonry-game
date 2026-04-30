@@ -56,12 +56,12 @@ public class WiringValidatorTests
         var validator = new WiringValidator();
         validator.RegisterHealthAttribute(TestKinds.Penguin, "hp");
 
-        // Process A reads warmth, writes hp (sustaining)
+        // Behavior A reads warmth, writes hp (sustaining)
         validator.RegisterContract(new WiringContract("eat",
             reads: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) }));
 
-        // Process B reads hp, writes warmth (creating a cycle)
+        // Behavior B reads hp, writes warmth (creating a cycle)
         validator.RegisterContract(new WiringContract("metabolize",
             reads: new HashSet<AttributeRef> { AttributeRef.Self("hp", TestKinds.Penguin) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) }));
@@ -112,7 +112,7 @@ public class WiringValidatorTests
             reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
-            processBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
+            behaviorBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableBlocker &&
@@ -131,14 +131,14 @@ public class WiringValidatorTests
             reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
-            processBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
+            behaviorBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         validator.RegisterContract(new WiringContract(
             "stockpile",
             reads: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
             goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
-            processBlockers: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) }));
+            behaviorBlockers: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) }));
 
         var errors = validator.Validate();
         Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableGoalEffect &&
@@ -157,7 +157,7 @@ public class WiringValidatorTests
             reads: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
-            processBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
+            behaviorBlockers: new HashSet<AttributeRef> { AttributeRef.Self("sustenance", TestKinds.Settlement) }));
 
         validator.RegisterContract(new WiringContract(
             "stockpile",
@@ -179,7 +179,7 @@ public class WiringValidatorTests
             reads: new HashSet<AttributeRef> { AttributeRef.Resource("food") },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
-            processSupportEffects: new HashSet<AttributeRef> { AttributeRef.Resource("food") }));
+            behaviorSupportEffects: new HashSet<AttributeRef> { AttributeRef.Resource("food") }));
 
         var errors = validator.Validate();
 
@@ -259,7 +259,7 @@ public class WiringValidatorTests
     {
         var validator = new WiringValidator();
 
-        // Reads from map cell (external input, not written by processes)
+        // Reads from map cell (external input, not written by behaviors)
         validator.RegisterContract(new WiringContract("harvest",
             reads: new HashSet<AttributeRef> { AttributeRef.MapCell("fertility") },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("prosperity", TestKinds.Settlement) }));
@@ -287,7 +287,7 @@ public class WiringValidatorTests
         var validator = new WiringValidator();
         validator.RegisterHealthAttribute(TestKinds.Penguin, "hp");
 
-        // Process that reads and writes warmth but NOT hp
+        // Behavior that reads and writes warmth but NOT hp
         validator.RegisterContract(new WiringContract("starve",
             reads: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("warmth", TestKinds.Penguin) }));
@@ -356,7 +356,7 @@ public class WiringValidatorTests
         var validator = Engine.Domain.Loader.DomainLoader.LoadAndValidateWiring(config);
         var errors = validator.Validate();
 
-        // Known gaps — real processes are WIP. Just verify no unexpected error types.
+        // Known gaps — real behaviors are WIP. Just verify no unexpected error types.
         Assert.All(errors, e =>
             Assert.True(
                 e.Type == Engine.Wiring.WiringErrorType.DeadEnd

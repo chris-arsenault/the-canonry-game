@@ -9,8 +9,6 @@ public enum KernelEventType
     AttributeChanged = 4,
     ResourceChanged = 5,
     RelationshipChanged = 6,
-    ProcessEvaluated = 7,
-    ProcessExecuted = 8,
     GoalGenerated = 9,
     DegeneracyDetected = 10,
     GeneratorEvaluated = 11,
@@ -190,42 +188,6 @@ public readonly record struct RelationshipChangedKernelEvent(
     float PreviousStrength,
     [KernelEventFloatSlot(1, "new_strength", KernelEventSemanticKind.Strength)]
     float NewStrength);
-
-[KernelEventLayout(KernelEventType.ProcessEvaluated, schemaMinor: 0)]
-public readonly record struct ProcessEvaluatedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(1, "kind_id", KernelEventSemanticKind.KindId)]
-    int KindId,
-    [KernelEventIntSlot(2, "selected_goal_id", KernelEventSemanticKind.GoalId)]
-    int SelectedGoalId,
-    [KernelEventIntSlot(3, "executed_process_id", KernelEventSemanticKind.ProcessId)]
-    int ExecutedProcessId,
-    [KernelEventIntSlot(4, "candidate_count", KernelEventSemanticKind.Count)]
-    int CandidateCount,
-    [KernelEventIntSlot(5, "state", KernelEventSemanticKind.StatusCode)]
-    KernelEventState State);
-
-[KernelEventLayout(KernelEventType.ProcessExecuted, schemaMinor: 0)]
-public readonly record struct ProcessExecutedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "actor_id", KernelEventSemanticKind.EntityId)]
-    int ActorId,
-    [KernelEventIntSlot(1, "actor_kind_id", KernelEventSemanticKind.KindId)]
-    int ActorKindId,
-    [KernelEventIntSlot(2, "process_id", KernelEventSemanticKind.ProcessId)]
-    int ProcessId,
-    [KernelEventIntSlot(3, "affected_entity_id_0", KernelEventSemanticKind.EntityId)]
-    int AffectedEntityId0,
-    [KernelEventIntSlot(4, "affected_entity_id_1", KernelEventSemanticKind.EntityId)]
-    int AffectedEntityId1,
-    [KernelEventIntSlot(5, "affected_entity_count", KernelEventSemanticKind.Count)]
-    int AffectedEntityCount,
-    [KernelEventIntSlot(6, "state", KernelEventSemanticKind.StatusCode)]
-    KernelEventState State);
 
 [KernelEventLayout(KernelEventType.GoalGenerated, schemaMinor: 0)]
 public readonly record struct GoalGeneratedKernelEvent(
@@ -478,8 +440,8 @@ public readonly record struct PlanStepEmittedKernelEvent(
     int GoalId,
     [KernelEventIntSlot(3, "step_index", KernelEventSemanticKind.Index)]
     int StepIndex,
-    [KernelEventIntSlot(4, "process_id", KernelEventSemanticKind.ProcessId)]
-    int ProcessId,
+    [KernelEventIntSlot(4, "action_id", KernelEventSemanticKind.ActionId)]
+    int ActionId,
     [KernelEventIntSlot(5, "target_entity_id", KernelEventSemanticKind.EntityId)]
     int TargetEntityId,
     [KernelEventIntSlot(6, "relationship_kind_id", KernelEventSemanticKind.RelationshipKindId)]

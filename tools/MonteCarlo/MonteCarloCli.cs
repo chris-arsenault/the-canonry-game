@@ -375,9 +375,7 @@ internal static class MonteCarloCli
         batch.PlannerSteps.Count +
         batch.PlannerLocalities.Count +
         batch.TraceEvents.Count +
-        batch.ProcessEvents.Count +
-        batch.ProcessExecutions.Count +
-        batch.ProcessCandidates.Count +
+        batch.ActionExecutions.Count +
         batch.LocalityOpportunities.Count +
         batch.AttributeEvents.Count +
         batch.MovementEvents.Count +

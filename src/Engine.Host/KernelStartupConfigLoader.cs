@@ -16,7 +16,6 @@ internal static class KernelStartupConfigLoader
         new("KERNELTUNING.PROGRAMS.MAP_SIGNALS", KernelProgramCodes.MapSignals),
         new("KERNELTUNING.PROGRAMS.EFFECTS", KernelProgramCodes.Effects),
         new("KERNELTUNING.PROGRAMS.UPKEEP", KernelProgramCodes.Upkeep),
-        new("KERNELTUNING.PROGRAMS.PROCESSES", KernelProgramCodes.Processes),
         new("KERNELTUNING.PROGRAMS.GAMBITS", KernelProgramCodes.Gambits),
         new("KERNELTUNING.PROGRAMS.RELATIONSHIPS", KernelProgramCodes.Relationships),
         new("KERNELTUNING.PROGRAMS.PRESSURES", KernelProgramCodes.Pressures),
@@ -74,7 +73,6 @@ internal static class KernelStartupConfigLoader
             return tuning;
         }
 
-        tuning = ApplyJsonProcessTuning(programs, tuning);
         tuning = ApplyJsonPlanningTuning(programs, tuning);
         tuning = ApplyJsonPressureTuning(programs, tuning);
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
@@ -89,7 +87,6 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapSignals, "mapSignals", "map_signals");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Effects, "effects");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
-        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Processes, "processes");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Gambits, "gambits");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Relationships, "relationships");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Pressures, "pressures");
@@ -200,22 +197,6 @@ internal static class KernelStartupConfigLoader
         return WithRetryFireTargets(tuning, retry);
     }
 
-    private static KernelTuningOptions ApplyJsonProcessTuning(JsonElement programs, KernelTuningOptions tuning)
-    {
-        if (!TryGetObject(programs, out var processes, "processes"))
-        {
-            return tuning;
-        }
-
-        if (TryGetString(processes, out var workCommitments, "workCommitments", "work_commitments") &&
-            TryParseWorkCommitments(workCommitments, out var workCommitmentCode))
-        {
-            tuning = WithWorkCommitments(tuning, workCommitmentCode);
-        }
-
-        return tuning;
-    }
-
     private static KernelTuningOptions ApplyJsonPressureTuning(JsonElement programs, KernelTuningOptions tuning)
     {
         if (!TryGetObject(programs, out var pressures, "pressures") ||
@@ -310,11 +291,6 @@ internal static class KernelStartupConfigLoader
             return ApplyTomlPlanningEntityOverride(section, key, scalar, tuning);
         }
 
-        if (string.Equals(section, "KERNELTUNING.PROGRAMS.PROCESSES", StringComparison.Ordinal))
-        {
-            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlProcessValue(key, scalar, tuning));
-        }
-
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.UPKEEP", StringComparison.Ordinal) &&
             string.Equals(key, "AGINGMODEL", StringComparison.Ordinal))
         {
@@ -380,7 +356,6 @@ internal static class KernelStartupConfigLoader
             KernelProgramCodes.MapSignals => options with { MapSignals = code },
             KernelProgramCodes.Effects => options with { Effects = code },
             KernelProgramCodes.Upkeep => options with { Upkeep = code },
-            KernelProgramCodes.Processes => options with { Processes = code },
             KernelProgramCodes.Gambits => options with { Gambits = code },
             _ => options,
         };
@@ -499,20 +474,6 @@ internal static class KernelStartupConfigLoader
             : tuning;
     }
 
-    private static KernelTuningOptions ApplyTomlProcessValue(
-        string key,
-        string value,
-        KernelTuningOptions tuning)
-    {
-        if (string.Equals(key, "WORKCOMMITMENTS", StringComparison.Ordinal) &&
-            TryParseWorkCommitments(value, out var workCommitmentCode))
-        {
-            return WithWorkCommitments(tuning, workCommitmentCode);
-        }
-
-        return tuning;
-    }
-
     private static KernelTuningOptions WithRetryFireTargets(KernelTuningOptions tuning, bool retry)
     {
         return tuning with
@@ -535,20 +496,6 @@ internal static class KernelStartupConfigLoader
             Programs = tuning.Programs with
             {
                 Enabled = ProgramEnabledOverrideFor(tuning.Programs.Enabled, programId, code),
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithWorkCommitments(KernelTuningOptions tuning, int code)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Processes = tuning.Programs.Processes with
-                {
-                    WorkCommitmentCode = code,
-                },
             },
         };
     }
@@ -749,25 +696,6 @@ internal static class KernelStartupConfigLoader
             return true;
         }
 
-        return false;
-    }
-
-    private static bool TryParseWorkCommitments(string value, out int code)
-    {
-        var normalized = Normalize(value);
-        if (string.Equals(normalized, "OFF", StringComparison.Ordinal))
-        {
-            code = ProcessWorkCommitmentCodes.Off;
-            return true;
-        }
-
-        if (string.Equals(normalized, "PILOT", StringComparison.Ordinal))
-        {
-            code = ProcessWorkCommitmentCodes.Pilot;
-            return true;
-        }
-
-        code = 0;
         return false;
     }
 

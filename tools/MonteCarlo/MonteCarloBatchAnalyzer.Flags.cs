@@ -46,19 +46,19 @@ internal sealed partial class MonteCarloBatchAnalyzer
         List<AnalysisFlagRow> flags,
         TelemetryCoverage telemetryCoverage)
     {
-        if (telemetryCoverage.ProcessExecutionRows == 0 && telemetryCoverage.ProcessPlannerRows > 0)
+        if (telemetryCoverage.ActionExecutionRows == 0 && telemetryCoverage.PlannerCandidateRows > 0)
         {
             flags.Add(new AnalysisFlagRow(
                 Category: "telemetry",
                 Severity: "warning",
-                Message: "Planner evaluations were recorded, but process execution rows are unavailable; process pressure cannot report selected process utilization."));
+                Message: "Planner evaluations were recorded, but action execution rows are unavailable; action pressure cannot report selected action utilization."));
         }
-        else if (telemetryCoverage.ProcessExecutionRows > 0)
+        else if (telemetryCoverage.ActionExecutionRows > 0)
         {
             flags.Add(new AnalysisFlagRow(
                 Category: "telemetry",
                 Severity: "info",
-                Message: "Legacy process pressure is available as background context; current low-altitude tuning should use low-altitude verb utilization."));
+                Message: "Action execution telemetry is available as background context; current low-altitude tuning should use low-altitude verb utilization."));
         }
 
         if (telemetryCoverage.MapSnapshotRows == 0)
@@ -74,7 +74,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             flags.Add(new AnalysisFlagRow(
                 Category: "telemetry",
                 Severity: "info",
-                Message: "Locality opportunity rows are unavailable; locality analysis is limited to selected planner traces and process-event locality rollups."));
+                Message: "Locality opportunity rows are unavailable; locality analysis is limited to selected planner traces and action locality rollups."));
         }
 
         if (telemetryCoverage.LowAltitudeTraceRows == 0)

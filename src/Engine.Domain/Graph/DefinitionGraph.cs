@@ -1,10 +1,10 @@
 namespace Engine.Domain.Graph;
 
+using Engine.Behaviors;
 using Engine.Domain.Config;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Wiring;
 using Engine.WorldGen;
 
@@ -12,7 +12,6 @@ public sealed class DefinitionGraph
 {
     public IReadOnlyList<EntityKind> RingOrder { get; init; } = [];
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
-    public required IReadOnlyDictionary<string, DefinitionProcessNode> Processes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
     public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
@@ -140,7 +139,7 @@ public sealed class DefinitionSupportRuleNode
     public required TypedDefinitionRef DesiredEffect { get; init; }
     public required float DesiredMinimum { get; init; }
     public required float UrgencyScale { get; init; }
-    public required ProcessSupportRule SourceRule { get; init; }
+    public required BehaviorSupportRule SourceRule { get; init; }
 }
 
 public sealed class DefinitionGeneratorNode
@@ -247,19 +246,6 @@ public sealed class DefinitionGeneratorTrigger
     public required EntityKind OnKind { get; init; }
     public DefinitionAttributeId? AttributeId { get; init; }
     public TriggerDirection Direction { get; init; } = TriggerDirection.Any;
-}
-
-public sealed class DefinitionProcessNode
-{
-    public required string Id { get; init; }
-    public required string Name { get; init; }
-    public required EntityKind TargetKind { get; init; }
-    public required ProcessDefinition SourceDefinition { get; init; }
-    public required IReadOnlySet<TypedDefinitionRef> Reads { get; init; }
-    public required IReadOnlySet<TypedDefinitionRef> Writes { get; init; }
-    public required IReadOnlySet<TypedDefinitionRef> GoalEffects { get; init; }
-    public required IReadOnlySet<TypedDefinitionRef> ProviderSelectors { get; init; }
-    public required IReadOnlyList<DefinitionSupportRuleNode> SupportRules { get; init; }
 }
 
 public sealed class DefinitionGambitNode

@@ -1,12 +1,12 @@
 namespace Engine.Domain.Loader;
 
+using Engine.Behaviors;
 using Engine.Domain.Compilation;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Kinds;
 using Engine.Lifecycle;
 using Engine.Pressure;
-using Engine.Processes;
 using Engine.Wiring;
 
 /// <summary>
@@ -109,7 +109,7 @@ public static class DomainLoader
         }
     }
 
-    /// <summary>Extract wiring contracts from process definitions and validate.</summary>
+    /// <summary>Extract wiring contracts from behavior definitions and validate.</summary>
     public static WiringValidator LoadAndValidateWiring(DomainConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
@@ -122,24 +122,24 @@ public static class DomainLoader
             validator.RegisterHealthAttribute(kind, kindConfig.HealthAttribute);
         }
 
-        // Extract contracts from process definitions
-        foreach (var procDef in config.Processes)
+        // Extract contracts from gambit definitions.
+        foreach (var gambit in config.Gambits)
         {
-            if (procDef.Reads.Count > 0 ||
-                procDef.Writes.Count > 0 ||
-                procDef.GoalEffects.Count > 0 ||
-                procDef.ProviderSelectors.Count > 0)
+            if (gambit.Reads.Count > 0 ||
+                gambit.Writes.Count > 0 ||
+                gambit.GoalEffects.Count > 0 ||
+                gambit.ProviderSelectors.Count > 0)
             {
-                var processAnalysis = PreconditionInspector.Analyze(procDef);
+                var behaviorAnalysis = PreconditionInspector.Analyze(gambit);
                 validator.RegisterContract(new WiringContract(
-                    procDef.Id,
-                    procDef.Reads,
-                    procDef.Writes,
-                    goalEffects: procDef.GoalEffects,
-                    providerSelectors: procDef.ProviderSelectors,
-                    processBlockers: processAnalysis.ProcessBlockers,
-                    processSupportEffects: procDef.SupportRules.Select(r => r.DesiredEffect).ToHashSet(),
-                    hasOpaqueProcessBranches: processAnalysis.HasOpaqueProcessBranches));
+                    gambit.Id,
+                    gambit.Reads,
+                    gambit.Writes,
+                    goalEffects: gambit.GoalEffects,
+                    providerSelectors: gambit.ProviderSelectors,
+                    behaviorBlockers: behaviorAnalysis.BehaviorBlockers,
+                    behaviorSupportEffects: gambit.SupportRules.Select(r => r.DesiredEffect).ToHashSet(),
+                    hasOpaqueBehaviorBranches: behaviorAnalysis.HasOpaqueBehaviorBranches));
             }
         }
 

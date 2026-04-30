@@ -4,7 +4,7 @@ using Engine.Kinds;
 
 /// <summary>
 /// A structured reference to a value in the simulation. Used by wiring contracts
-/// to declare what processes/gambits read from and write to.
+/// to declare what behaviors/gambits read from and write to.
 /// Not a string -- a typed path through the simulation state.
 /// </summary>
 public sealed class AttributeRef : IEquatable<AttributeRef>
@@ -47,7 +47,7 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Related(string relationshipKind, string attributeName, EntityKind targetKind) =>
         new(RefScope.Related, attributeName, targetKind, relationshipKind);
 
-    /// <summary>ProcessProgram fact about the relationship between self and the resolved target.</summary>
+    /// <summary>BehaviorProgram fact about the relationship between self and the resolved target.</summary>
     public static AttributeRef TargetRelation(string relationshipKind, EntityKind? targetKind = null, string factName = "matched") =>
         new(RefScope.Relational, factName, targetKind, relationshipKind);
 
@@ -63,7 +63,7 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Pressure(string pressureName) =>
         new(RefScope.Pressure, pressureName);
 
-    /// <summary>Named structural/process program fact.</summary>
+    /// <summary>Named structural/behavior program fact.</summary>
     public static AttributeRef StructuralFact(string name, EntityKind? kind = null) =>
         new(RefScope.Structural, name, kind);
 
@@ -101,7 +101,7 @@ public enum RefScope
     /// <summary>Attribute on the entity itself.</summary>
     Self,
 
-    /// <summary>Attribute on the process target/provider.</summary>
+    /// <summary>Attribute on the behavior target/provider.</summary>
     Target,
 
     /// <summary>Attribute on an entity at this entity's location.</summary>
@@ -110,7 +110,7 @@ public enum RefScope
     /// <summary>Attribute on a related entity (via relationship traversal).</summary>
     Related,
 
-    /// <summary>ProcessProgram fact about the relationship between self and the resolved target.</summary>
+    /// <summary>BehaviorProgram fact about the relationship between self and the resolved target.</summary>
     Relational,
 
     /// <summary>Property of the entity's hex cell.</summary>

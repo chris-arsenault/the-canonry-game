@@ -18,7 +18,6 @@ internal static partial class KernelProgramInstaller
 
         InstallGameplay(context, programs);
         InstallUpkeep(context, programs.Upkeep);
-        InstallProcesses(context, programs.Processes);
         InstallGambits(context, programs.Gambits);
         InstallRelationships(context, programs.Relationships);
         InstallPressures(context, programs.Pressures);
@@ -40,9 +39,6 @@ internal static partial class KernelProgramInstaller
         context.SetProgramEnabled(
             KernelProgramCodes.Upkeep,
             programConfig.IsEnabled(KernelProgramCodes.Upkeep, programs.Upkeep.EnabledByDefault));
-        context.SetProgramEnabled(
-            KernelProgramCodes.Processes,
-            programConfig.IsEnabled(KernelProgramCodes.Processes, programs.Processes.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Gambits,
             programConfig.IsEnabled(KernelProgramCodes.Gambits, programs.Gambits.EnabledByDefault));
@@ -70,166 +66,6 @@ internal static partial class KernelProgramInstaller
                 lifecycle.BaseRate,
                 lifecycle.AgeCoefficient,
                 lifecycle.Variance);
-        }
-    }
-
-    private static void InstallProcesses(
-        KernelConfigurationContext context,
-        ProcessProgram program)
-    {
-        foreach (var objective in program.Objectives)
-        {
-            InstallProcessObjective(context, objective);
-        }
-
-        foreach (var process in program.Processes)
-        {
-            InstallProcess(context, process);
-        }
-    }
-
-    private static void InstallProcessObjective(KernelConfigurationContext context, ProcessObjectiveRule objective)
-    {
-        if (objective.Urgency == ProcessObjectiveUrgency.Fixed)
-        {
-            context.RegisterProcessFixedObjective(
-                objective.KindId,
-                EffectScopeCode(objective.EffectScope),
-                objective.EffectValueId,
-                objective.EffectKindId,
-                objective.BaseUrgency);
-            return;
-        }
-
-        context.RegisterProcessAttributeObjective(
-            objective.KindId,
-            new AttributeRuntimeId(objective.AttributeId),
-            UrgencyCode(objective.Urgency),
-            objective.Minimum,
-            objective.Maximum,
-            objective.DefaultValue,
-            objective.Baseline);
-    }
-
-    private static void InstallProcess(KernelConfigurationContext context, CompiledProcessRule process)
-    {
-        var processSlot = context.RegisterProcess(
-            process.KindId,
-            process.ProcessId,
-            process.CooldownTicks,
-            process.EntityCooldownTicks,
-            TargetModeCode(process.TargetMode),
-            process.TargetKindId,
-            process.WorkCommitmentTicks);
-        InstallProcessGoalEffects(context, processSlot, process);
-        InstallProcessPreconditions(context, processSlot, process);
-        InstallProcessExpressions(context, processSlot, process);
-        InstallProcessProviderSelectors(context, processSlot, process);
-        InstallProcessSupportRules(context, processSlot, process);
-        InstallProcessSteps(context, processSlot, process);
-    }
-
-    private static void InstallProcessGoalEffects(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
-    {
-        foreach (var goalEffect in process.GoalEffects)
-        {
-            context.AddProcessGoalEffect(
-                processSlot,
-                EffectScopeCode(goalEffect.Scope),
-                goalEffect.ValueId,
-                goalEffect.KindId);
-        }
-    }
-
-    private static void InstallProcessPreconditions(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
-    {
-        foreach (var precondition in process.Preconditions)
-        {
-            context.AddProcessPrecondition(
-                processSlot,
-                PreconditionCode(precondition.Code),
-                precondition.A,
-                precondition.B,
-                precondition.C,
-                precondition.D,
-                precondition.X,
-                precondition.Y);
-        }
-    }
-
-    private static void InstallProcessExpressions(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
-    {
-        foreach (var expression in process.ScoreExpression)
-        {
-            context.AddProcessScoreExpressionOp(processSlot, ExpressionCode(expression.Code), expression.A, expression.X);
-        }
-
-        foreach (var expression in process.RewardExpression)
-        {
-            context.AddProcessRewardExpressionOp(processSlot, ExpressionCode(expression.Code), expression.A, expression.X);
-        }
-    }
-
-    private static void InstallProcessProviderSelectors(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
-    {
-        foreach (var selector in process.ProviderSelectors)
-        {
-            context.AddProcessProviderSelector(
-                processSlot,
-                ProviderSelectorCode(selector.Selector),
-                selector.KindId,
-                selector.ValueId,
-                selector.RelationshipKindId,
-                selector.FactId,
-                selector.MinimumStrength);
-        }
-    }
-
-    private static void InstallProcessSupportRules(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
-    {
-        foreach (var support in process.SupportRules)
-        {
-            var supportSlot = context.AddProcessSupportRule(
-                processSlot,
-                EffectScopeCode(support.EffectScope),
-                support.EffectValueId,
-                support.EffectKindId,
-                support.DesiredMinimum,
-                support.UrgencyScale);
-            foreach (var expression in support.CurrentValueExpression)
-            {
-                context.AddProcessSupportExpressionOp(supportSlot, ExpressionCode(expression.Code), expression.A, expression.X);
-            }
-        }
-    }
-
-    private static void InstallProcessSteps(KernelConfigurationContext context, int processSlot, CompiledProcessRule process)
-    {
-        foreach (var step in process.Steps)
-        {
-            var stepSlot = context.AddProcessStep(
-                processSlot,
-                OperationCode(step.Operation),
-                step.A,
-                step.B,
-                step.C,
-                step.D,
-                step.X,
-                step.Y);
-            InstallProcessStepExpression(context, stepSlot, step);
-        }
-    }
-
-    private static void InstallProcessStepExpression(KernelConfigurationContext context, int stepSlot, ProcessProgramStepRule step)
-    {
-        if (step.Expression is null)
-        {
-            return;
-        }
-
-        foreach (var expression in step.Expression)
-        {
-            context.AddProcessStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
         }
     }
 
@@ -340,7 +176,7 @@ internal static partial class KernelProgramInstaller
         }
     }
 
-    private static void InstallGambitStepExpression(KernelConfigurationContext context, int stepSlot, ProcessProgramStepRule step)
+    private static void InstallGambitStepExpression(KernelConfigurationContext context, int stepSlot, BehaviorProgramStepRule step)
     {
         if (step.Expression is null)
         {
@@ -623,15 +459,15 @@ internal static partial class KernelProgramInstaller
         }
     }
 
-    private static int TargetModeCode(ProcessProgramTargetMode mode) => mode switch
+    private static int TargetModeCode(BehaviorProgramTargetMode mode) => mode switch
     {
-        ProcessProgramTargetMode.Self => ProcessTargetModeCodes.Self,
-        ProcessProgramTargetMode.AnyOther => ProcessTargetModeCodes.AnyOther,
-        ProcessProgramTargetMode.KindOther => ProcessTargetModeCodes.KindOther,
+        BehaviorProgramTargetMode.Self => BehaviorTargetModeCodes.Self,
+        BehaviorProgramTargetMode.AnyOther => BehaviorTargetModeCodes.AnyOther,
+        BehaviorProgramTargetMode.KindOther => BehaviorTargetModeCodes.KindOther,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
 
-    private static int OperationCode(ProcessProgramOperation operation)
+    private static int OperationCode(BehaviorProgramOperation operation)
     {
         if (TryAttributeOperationCode(operation, out var code) ||
             TryMovementOperationCode(operation, out code) ||
@@ -644,67 +480,83 @@ internal static partial class KernelProgramInstaller
         throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
     }
 
-    private static bool TryAttributeOperationCode(ProcessProgramOperation operation, out int code)
+    private static bool TryAttributeOperationCode(BehaviorProgramOperation operation, out int code)
     {
         code = operation switch
         {
-            ProcessProgramOperation.None => 0,
-            ProcessProgramOperation.AddAttribute => ProcessOperationCodes.AddAttribute,
-            ProcessProgramOperation.SetAttribute => ProcessOperationCodes.SetAttribute,
-            ProcessProgramOperation.AddTargetAttribute => ProcessOperationCodes.AddTargetAttribute,
-            ProcessProgramOperation.TransferAttribute => ProcessOperationCodes.TransferAttribute,
-            ProcessProgramOperation.CalculateVariable => ProcessOperationCodes.CalculateVariable,
-            ProcessProgramOperation.AddAttributeFromVariable => ProcessOperationCodes.AddAttributeFromVariable,
-            ProcessProgramOperation.AddTargetAttributeFromVariable => ProcessOperationCodes.AddTargetAttributeFromVariable,
+            BehaviorProgramOperation.None => 0,
+            BehaviorProgramOperation.AddAttribute => BehaviorOperationCodes.AddAttribute,
+            BehaviorProgramOperation.SetAttribute => BehaviorOperationCodes.SetAttribute,
+            BehaviorProgramOperation.AddTargetAttribute => BehaviorOperationCodes.AddTargetAttribute,
+            BehaviorProgramOperation.TransferAttribute => BehaviorOperationCodes.TransferAttribute,
+            BehaviorProgramOperation.CalculateVariable => BehaviorOperationCodes.CalculateVariable,
+            BehaviorProgramOperation.AddAttributeFromVariable => BehaviorOperationCodes.AddAttributeFromVariable,
+            BehaviorProgramOperation.AddTargetAttributeFromVariable => BehaviorOperationCodes.AddTargetAttributeFromVariable,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryMovementOperationCode(ProcessProgramOperation operation, out int code)
+    private static bool TryMovementOperationCode(BehaviorProgramOperation operation, out int code)
     {
         code = operation switch
         {
-            ProcessProgramOperation.MovePhysical => ProcessOperationCodes.MovePhysical,
-            ProcessProgramOperation.MoveSemantic => ProcessOperationCodes.MoveSemantic,
-            ProcessProgramOperation.MoveTowardTargetPhysical => ProcessOperationCodes.MoveTowardTargetPhysical,
-            ProcessProgramOperation.WanderPhysical => ProcessOperationCodes.WanderPhysical,
-            ProcessProgramOperation.MoveTowardTargetSemantic => ProcessOperationCodes.MoveTowardTargetSemantic,
-            ProcessProgramOperation.WanderSemantic => ProcessOperationCodes.WanderSemantic,
+            BehaviorProgramOperation.MovePhysical => BehaviorOperationCodes.MovePhysical,
+            BehaviorProgramOperation.MoveSemantic => BehaviorOperationCodes.MoveSemantic,
+            BehaviorProgramOperation.MoveTowardTargetPhysical => BehaviorOperationCodes.MoveTowardTargetPhysical,
+            BehaviorProgramOperation.WanderPhysical => BehaviorOperationCodes.WanderPhysical,
+            BehaviorProgramOperation.MoveTowardTargetSemantic => BehaviorOperationCodes.MoveTowardTargetSemantic,
+            BehaviorProgramOperation.WanderSemantic => BehaviorOperationCodes.WanderSemantic,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryEntityOperationCode(ProcessProgramOperation operation, out int code)
+    private static bool TryEntityOperationCode(BehaviorProgramOperation operation, out int code)
     {
+        if (TryRelationshipOperationCode(operation, out code))
+        {
+            return true;
+        }
+
         code = operation switch
         {
-            ProcessProgramOperation.SetStatus => ProcessOperationCodes.SetStatus,
-            ProcessProgramOperation.CreateRelationship => ProcessOperationCodes.CreateRelationship,
-            ProcessProgramOperation.SetRelationshipStrength => ProcessOperationCodes.SetRelationshipStrength,
-            ProcessProgramOperation.CreateEntity => ProcessOperationCodes.CreateEntity,
-            ProcessProgramOperation.SetHistorical => ProcessOperationCodes.SetHistorical,
-            ProcessProgramOperation.AddRelatedEntitiesAttribute => ProcessOperationCodes.AddRelatedEntitiesAttribute,
-            ProcessProgramOperation.CreateFixedRelationship => ProcessOperationCodes.CreateFixedRelationship,
+            BehaviorProgramOperation.SetStatus => BehaviorOperationCodes.SetStatus,
+            BehaviorProgramOperation.CreateEntity => BehaviorOperationCodes.CreateEntity,
+            BehaviorProgramOperation.SetHistorical => BehaviorOperationCodes.SetHistorical,
+            BehaviorProgramOperation.AddRelatedEntitiesAttribute => BehaviorOperationCodes.AddRelatedEntitiesAttribute,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryContextOperationCode(ProcessProgramOperation operation, out int code)
+    private static bool TryRelationshipOperationCode(BehaviorProgramOperation operation, out int code)
     {
         code = operation switch
         {
-            ProcessProgramOperation.AddResource => ProcessOperationCodes.AddResource,
-            ProcessProgramOperation.AddLocationResource => ProcessOperationCodes.AddLocationResource,
-            ProcessProgramOperation.AddPressure => ProcessOperationCodes.AddPressure,
+            BehaviorProgramOperation.CreateRelationship => BehaviorOperationCodes.CreateRelationship,
+            BehaviorProgramOperation.SetRelationshipStrength => BehaviorOperationCodes.SetRelationshipStrength,
+            BehaviorProgramOperation.CreateFixedRelationship => BehaviorOperationCodes.CreateFixedRelationship,
+            BehaviorProgramOperation.CreateEndpointRelationship => BehaviorOperationCodes.CreateEndpointRelationship,
+            BehaviorProgramOperation.SetEndpointRelationshipStrength => BehaviorOperationCodes.SetEndpointRelationshipStrength,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static int PreconditionCode(ProcessProgramPrecondition precondition)
+    private static bool TryContextOperationCode(BehaviorProgramOperation operation, out int code)
+    {
+        code = operation switch
+        {
+            BehaviorProgramOperation.AddResource => BehaviorOperationCodes.AddResource,
+            BehaviorProgramOperation.AddLocationResource => BehaviorOperationCodes.AddLocationResource,
+            BehaviorProgramOperation.AddPressure => BehaviorOperationCodes.AddPressure,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static int PreconditionCode(BehaviorProgramPrecondition precondition)
     {
         if (TryAttributePreconditionCode(precondition, out var code) ||
             TryRelationshipPreconditionCode(precondition, out code) ||
@@ -717,61 +569,61 @@ internal static partial class KernelProgramInstaller
         throw new ArgumentOutOfRangeException(nameof(precondition), precondition, null);
     }
 
-    private static bool TryAttributePreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    private static bool TryAttributePreconditionCode(BehaviorProgramPrecondition precondition, out int code)
     {
         code = precondition switch
         {
-            ProcessProgramPrecondition.TargetIsSelf => ProcessPreconditionCodes.TargetIsSelf,
-            ProcessProgramPrecondition.TargetIsNotSelf => ProcessPreconditionCodes.TargetIsNotSelf,
-            ProcessProgramPrecondition.SelfAttributeRange => ProcessPreconditionCodes.SelfAttributeRange,
-            ProcessProgramPrecondition.TargetAttributeRange => ProcessPreconditionCodes.TargetAttributeRange,
-            ProcessProgramPrecondition.Always => ProcessPreconditionCodes.Always,
+            BehaviorProgramPrecondition.TargetIsSelf => BehaviorPreconditionCodes.TargetIsSelf,
+            BehaviorProgramPrecondition.TargetIsNotSelf => BehaviorPreconditionCodes.TargetIsNotSelf,
+            BehaviorProgramPrecondition.SelfAttributeRange => BehaviorPreconditionCodes.SelfAttributeRange,
+            BehaviorProgramPrecondition.TargetAttributeRange => BehaviorPreconditionCodes.TargetAttributeRange,
+            BehaviorProgramPrecondition.Always => BehaviorPreconditionCodes.Always,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryRelationshipPreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    private static bool TryRelationshipPreconditionCode(BehaviorProgramPrecondition precondition, out int code)
     {
         code = precondition switch
         {
-            ProcessProgramPrecondition.SelfHasRelationshipToTarget => ProcessPreconditionCodes.SelfHasRelationshipToTarget,
-            ProcessProgramPrecondition.TargetHasRelationshipToSelf => ProcessPreconditionCodes.TargetHasRelationshipToSelf,
-            ProcessProgramPrecondition.RelatedEntityMatchesTarget => ProcessPreconditionCodes.RelatedEntityMatchesTarget,
-            ProcessProgramPrecondition.RelationshipExists => ProcessPreconditionCodes.RelationshipExists,
+            BehaviorProgramPrecondition.SelfHasRelationshipToTarget => BehaviorPreconditionCodes.SelfHasRelationshipToTarget,
+            BehaviorProgramPrecondition.TargetHasRelationshipToSelf => BehaviorPreconditionCodes.TargetHasRelationshipToSelf,
+            BehaviorProgramPrecondition.RelatedEntityMatchesTarget => BehaviorPreconditionCodes.RelatedEntityMatchesTarget,
+            BehaviorProgramPrecondition.RelationshipExists => BehaviorPreconditionCodes.RelationshipExists,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryCompositionPreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    private static bool TryCompositionPreconditionCode(BehaviorProgramPrecondition precondition, out int code)
     {
         code = precondition switch
         {
-            ProcessProgramPrecondition.And => ProcessPreconditionCodes.And,
-            ProcessProgramPrecondition.Or => ProcessPreconditionCodes.Or,
-            ProcessProgramPrecondition.Not => ProcessPreconditionCodes.Not,
+            BehaviorProgramPrecondition.And => BehaviorPreconditionCodes.And,
+            BehaviorProgramPrecondition.Or => BehaviorPreconditionCodes.Or,
+            BehaviorProgramPrecondition.Not => BehaviorPreconditionCodes.Not,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryContextPreconditionCode(ProcessProgramPrecondition precondition, out int code)
+    private static bool TryContextPreconditionCode(BehaviorProgramPrecondition precondition, out int code)
     {
         code = precondition switch
         {
-            ProcessProgramPrecondition.PlaneDistance => ProcessPreconditionCodes.PlaneDistance,
-            ProcessProgramPrecondition.LocationResourceRange => ProcessPreconditionCodes.LocationResourceRange,
-            ProcessProgramPrecondition.PressureRange => ProcessPreconditionCodes.PressureRange,
-            ProcessProgramPrecondition.CooldownElapsed => ProcessPreconditionCodes.CooldownElapsed,
-            ProcessProgramPrecondition.EntityCountAtLeast => ProcessPreconditionCodes.EntityCountAtLeast,
-            ProcessProgramPrecondition.HasColocatedEntity => ProcessPreconditionCodes.HasColocatedEntity,
+            BehaviorProgramPrecondition.PlaneDistance => BehaviorPreconditionCodes.PlaneDistance,
+            BehaviorProgramPrecondition.LocationResourceRange => BehaviorPreconditionCodes.LocationResourceRange,
+            BehaviorProgramPrecondition.PressureRange => BehaviorPreconditionCodes.PressureRange,
+            BehaviorProgramPrecondition.CooldownElapsed => BehaviorPreconditionCodes.CooldownElapsed,
+            BehaviorProgramPrecondition.EntityCountAtLeast => BehaviorPreconditionCodes.EntityCountAtLeast,
+            BehaviorProgramPrecondition.HasColocatedEntity => BehaviorPreconditionCodes.HasColocatedEntity,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static int ExpressionCode(ProcessProgramExpression expression)
+    private static int ExpressionCode(BehaviorProgramExpression expression)
     {
         if (TryValueExpressionCode(expression, out var code) ||
             TryOperatorExpressionCode(expression, out code) ||
@@ -783,74 +635,66 @@ internal static partial class KernelProgramInstaller
         throw new ArgumentOutOfRangeException(nameof(expression), expression, null);
     }
 
-    private static bool TryValueExpressionCode(ProcessProgramExpression expression, out int code)
+    private static bool TryValueExpressionCode(BehaviorProgramExpression expression, out int code)
     {
         code = expression switch
         {
-            ProcessProgramExpression.Literal => ProcessExpressionCodes.Literal,
-            ProcessProgramExpression.SelfAttribute => ProcessExpressionCodes.SelfAttribute,
-            ProcessProgramExpression.TargetAttribute => ProcessExpressionCodes.TargetAttribute,
-            ProcessProgramExpression.SelfLocationResource => ProcessExpressionCodes.SelfLocationResource,
-            ProcessProgramExpression.TargetLocationResource => ProcessExpressionCodes.TargetLocationResource,
+            BehaviorProgramExpression.Literal => BehaviorExpressionCodes.Literal,
+            BehaviorProgramExpression.SelfAttribute => BehaviorExpressionCodes.SelfAttribute,
+            BehaviorProgramExpression.TargetAttribute => BehaviorExpressionCodes.TargetAttribute,
+            BehaviorProgramExpression.SelfLocationResource => BehaviorExpressionCodes.SelfLocationResource,
+            BehaviorProgramExpression.TargetLocationResource => BehaviorExpressionCodes.TargetLocationResource,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryOperatorExpressionCode(ProcessProgramExpression expression, out int code)
+    private static bool TryOperatorExpressionCode(BehaviorProgramExpression expression, out int code)
     {
         code = expression switch
         {
-            ProcessProgramExpression.Add => ProcessExpressionCodes.Add,
-            ProcessProgramExpression.Subtract => ProcessExpressionCodes.Subtract,
-            ProcessProgramExpression.Multiply => ProcessExpressionCodes.Multiply,
-            ProcessProgramExpression.Divide => ProcessExpressionCodes.Divide,
-            ProcessProgramExpression.Min => ProcessExpressionCodes.Min,
-            ProcessProgramExpression.Max => ProcessExpressionCodes.Max,
-            ProcessProgramExpression.Clamp => ProcessExpressionCodes.Clamp,
-            ProcessProgramExpression.Abs => ProcessExpressionCodes.Abs,
+            BehaviorProgramExpression.Add => BehaviorExpressionCodes.Add,
+            BehaviorProgramExpression.Subtract => BehaviorExpressionCodes.Subtract,
+            BehaviorProgramExpression.Multiply => BehaviorExpressionCodes.Multiply,
+            BehaviorProgramExpression.Divide => BehaviorExpressionCodes.Divide,
+            BehaviorProgramExpression.Min => BehaviorExpressionCodes.Min,
+            BehaviorProgramExpression.Max => BehaviorExpressionCodes.Max,
+            BehaviorProgramExpression.Clamp => BehaviorExpressionCodes.Clamp,
+            BehaviorProgramExpression.Abs => BehaviorExpressionCodes.Abs,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static bool TryReferenceExpressionCode(ProcessProgramExpression expression, out int code)
+    private static bool TryReferenceExpressionCode(BehaviorProgramExpression expression, out int code)
     {
         code = expression switch
         {
-            ProcessProgramExpression.Variable => ProcessExpressionCodes.Variable,
-            ProcessProgramExpression.Distance => ProcessExpressionCodes.Distance,
+            BehaviorProgramExpression.Variable => BehaviorExpressionCodes.Variable,
+            BehaviorProgramExpression.Distance => BehaviorExpressionCodes.Distance,
             _ => -1,
         };
         return code >= 0;
     }
 
-    private static int EffectScopeCode(ProcessProgramEffectScope scope) => scope switch
+    private static int EffectScopeCode(BehaviorProgramEffectScope scope) => scope switch
     {
-        ProcessProgramEffectScope.SelfAttribute => ProcessEffectScopeCodes.SelfAttribute,
-        ProcessProgramEffectScope.TargetAttribute => ProcessEffectScopeCodes.TargetAttribute,
-        ProcessProgramEffectScope.Resource => ProcessEffectScopeCodes.Resource,
-        ProcessProgramEffectScope.Structural => ProcessEffectScopeCodes.Structural,
-        ProcessProgramEffectScope.Relational => ProcessEffectScopeCodes.Relational,
+        BehaviorProgramEffectScope.SelfAttribute => BehaviorEffectScopeCodes.SelfAttribute,
+        BehaviorProgramEffectScope.TargetAttribute => BehaviorEffectScopeCodes.TargetAttribute,
+        BehaviorProgramEffectScope.Resource => BehaviorEffectScopeCodes.Resource,
+        BehaviorProgramEffectScope.Structural => BehaviorEffectScopeCodes.Structural,
+        BehaviorProgramEffectScope.Relational => BehaviorEffectScopeCodes.Relational,
         _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null),
     };
 
-    private static int UrgencyCode(ProcessObjectiveUrgency urgency) => urgency switch
+    private static int ProviderSelectorCode(BehaviorProgramProviderSelector selector) => selector switch
     {
-        ProcessObjectiveUrgency.StandardNeed => ProcessObjectiveUrgencyCodes.StandardNeed,
-        ProcessObjectiveUrgency.Baseline => ProcessObjectiveUrgencyCodes.Baseline,
-        ProcessObjectiveUrgency.RangeDefault => ProcessObjectiveUrgencyCodes.RangeDefault,
-        _ => throw new ArgumentOutOfRangeException(nameof(urgency), urgency, null),
-    };
-
-    private static int ProviderSelectorCode(ProcessProgramProviderSelector selector) => selector switch
-    {
-        ProcessProgramProviderSelector.TargetAttribute => ProcessProviderSelectorCodes.TargetAttribute,
-        ProcessProgramProviderSelector.Structural => ProcessProviderSelectorCodes.Structural,
-        ProcessProgramProviderSelector.Resource => ProcessProviderSelectorCodes.Resource,
-        ProcessProgramProviderSelector.LocationAttribute => ProcessProviderSelectorCodes.LocationAttribute,
-        ProcessProgramProviderSelector.OutgoingRelationship => ProcessProviderSelectorCodes.OutgoingRelationship,
-        ProcessProgramProviderSelector.IncomingRelationship => ProcessProviderSelectorCodes.IncomingRelationship,
+        BehaviorProgramProviderSelector.TargetAttribute => BehaviorProviderSelectorCodes.TargetAttribute,
+        BehaviorProgramProviderSelector.Structural => BehaviorProviderSelectorCodes.Structural,
+        BehaviorProgramProviderSelector.Resource => BehaviorProviderSelectorCodes.Resource,
+        BehaviorProgramProviderSelector.LocationAttribute => BehaviorProviderSelectorCodes.LocationAttribute,
+        BehaviorProgramProviderSelector.OutgoingRelationship => BehaviorProviderSelectorCodes.OutgoingRelationship,
+        BehaviorProgramProviderSelector.IncomingRelationship => BehaviorProviderSelectorCodes.IncomingRelationship,
         _ => throw new ArgumentOutOfRangeException(nameof(selector), selector, null),
     };
 

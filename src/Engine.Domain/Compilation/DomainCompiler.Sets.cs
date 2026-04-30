@@ -23,7 +23,6 @@ public static partial class DomainCompiler
             MapSignals = gameplayPrograms.MapSignals,
             Effects = gameplayPrograms.Effects,
             Upkeep = BuildUpkeepProgram(config, ids),
-            Processes = BuildProcessProgram(config, ids),
             Gambits = BuildGambitProgram(config, ids),
             Relationships = BuildRelationshipProgram(config, ids),
             Pressures = BuildPressureProgram(config, ids),

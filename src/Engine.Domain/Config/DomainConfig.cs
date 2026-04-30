@@ -17,9 +17,6 @@ public sealed class DomainConfig
     /// <summary>Kind definitions: valid subtypes, attribute schemas, health attributes.</summary>
     public required IReadOnlyDictionary<EntityKind, KindConfig> Kinds { get; init; }
 
-    /// <summary>Data-defined low-altitude processes.</summary>
-    public required IReadOnlyList<Processes.ProcessDefinition> Processes { get; init; }
-
     /// <summary>Data-defined high-stakes entity gambits.</summary>
     public IReadOnlyList<GambitDefinition> Gambits { get; init; } = [];
 
@@ -56,7 +53,7 @@ public sealed class DomainConfig
 
     /// <summary>
     /// Optional higher-order semantic stock/flow model for reasoning and validation.
-    /// This is domain-authored structured data, not derived from runtime process wiring.
+    /// This is domain-authored structured data, not derived from runtime behavior wiring.
     /// </summary>
     public SemanticDomainConfig? Semantics { get; init; }
 }
@@ -89,7 +86,7 @@ public sealed class KindConfig
 }
 
 /// <summary>
-/// ProcessProgram-visible host query for recovery verbs that read location
+/// BehaviorProgram-visible host query for recovery verbs that read location
 /// resources. `AnyOfKinds` is a disjunction: any matching named entity kind can
 /// serve as the recovery site.
 /// </summary>

@@ -15,13 +15,6 @@ internal sealed record SimulationOptions
     public int EventCursorCapacity { get; init; } = 32;
     public IKernelEventSchemaValidator? EventSchemaValidator { get; init; }
     public int CommandCapacity { get; init; } = 1024;
-    public int ProcessCapacity { get; init; } = 512;
-    public int ProcessStepCapacity { get; init; } = 4096;
-    public int ProcessCooldownCapacity { get; init; } = 8192;
-    public int ProcessObjectiveCapacity { get; init; } = 1024;
-    public int ProcessProviderSelectorCapacity { get; init; } = 1024;
-    public int ProcessSupportRuleCapacity { get; init; } = 1024;
-    public int ProcessCommitmentCapacity { get; init; } = 8192;
     public int PlanningOverrideCapacity { get; init; } = 512;
     public int GambitCapacity { get; init; } = 256;
     public int GambitStepCapacity { get; init; } = 2048;
@@ -63,7 +56,6 @@ internal sealed record KernelTuningOptions
 internal sealed record KernelProgramTuningOptions
 {
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
-    public ProcessProgramTuningOptions Processes { get; init; } = new();
     public PlanningProgramTuningOptions Planning { get; init; } = new();
     public PressureProgramTuningOptions Pressures { get; init; } = new();
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
@@ -77,7 +69,6 @@ internal sealed record ProgramEnabledTuningOptions
     public int MapSignals { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Effects { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Upkeep { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
-    public int Processes { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Gambits { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Relationships { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Pressures { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
@@ -97,11 +88,6 @@ internal sealed record PlanningProgramTuningOptions
 internal readonly record struct PlanningKindPlannerOverride(int KindId, int PlannerKindCode);
 
 internal readonly record struct PlanningEntityPlannerOverride(int EntityId, int PlannerKindCode);
-
-internal sealed record ProcessProgramTuningOptions
-{
-    public int WorkCommitmentCode { get; init; } = ProcessWorkCommitmentCodes.Off;
-}
 
 internal sealed record PressureProgramTuningOptions
 {

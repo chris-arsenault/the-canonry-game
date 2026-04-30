@@ -1,11 +1,11 @@
-namespace Engine.Processes;
+namespace Engine.Behaviors;
 
 using Engine.Resources;
 
 /// <summary>
 /// A composable expression that evaluates to a float given entity state.
 /// Expressions are config-DSL records; the kernel compiles them into primitive
-/// <c>ProcessProgramExpressionOp</c> sequences via pattern matching in
+/// <c>BehaviorProgramExpressionOp</c> sequences via pattern matching in
 /// <c>DomainCompiler</c> and does not evaluate them at runtime.
 /// </summary>
 #pragma warning disable CA1040 // Marker interface for compiler pattern matching
@@ -98,7 +98,7 @@ public sealed class Abs(IExpression value) : IExpression
 }
 
 /// <summary>
-/// Adds random jitter at runtime. Not supported by compiled kernel process programs;
+/// Adds random jitter at runtime. Not supported by compiled kernel behavior programs;
 /// the compiler raises an error if a Jitter expression is encountered.
 /// </summary>
 public sealed class Jitter(IExpression value, float variance) : IExpression

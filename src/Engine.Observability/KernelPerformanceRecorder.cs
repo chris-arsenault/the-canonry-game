@@ -96,8 +96,6 @@ internal sealed class KernelPerformanceRecorder : IDisposable
             elapsedMilliseconds,
             _projection.ActiveEntityCount,
             _projection.ActiveRelationshipCount,
-            counters.ProcessEvents,
-            counters.ProcessCandidates,
             counters.GeneratorEvents,
             counters.TotalMessages,
             _peakManagedMemoryBytes));
@@ -255,21 +253,6 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
         Count(evt.Tick).TotalMessages++;
     }
 
-    protected override void OnProcessEvaluated(long sequence, in ProcessEvaluatedKernelEvent evt)
-    {
-        var counters = Count(evt.Tick);
-        counters.TotalMessages++;
-        counters.ProcessEvents++;
-        counters.ProcessCandidates += evt.CandidateCount;
-    }
-
-    protected override void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
-    {
-        var counters = Count(evt.Tick);
-        counters.TotalMessages++;
-        counters.ProcessEvents++;
-    }
-
     protected override void OnGeneratorEvaluated(long sequence, in GeneratorEvaluatedKernelEvent evt)
     {
         var counters = Count(evt.Tick);
@@ -335,10 +318,6 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
 
 internal sealed class KernelTickMessageCounters
 {
-    public int ProcessEvents { get; set; }
-
-    public int ProcessCandidates { get; set; }
-
     public int GeneratorEvents { get; set; }
 
     public int TotalMessages { get; set; }

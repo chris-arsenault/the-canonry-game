@@ -1,12 +1,12 @@
 namespace Engine.Domain.Compilation;
 
+using Engine.Behaviors;
 using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Gambits;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Resources;
 using Engine.Wiring;
 using Engine.WorldGen;
@@ -153,15 +153,6 @@ public static partial class DomainCompiler
         DomainIdRegistry ids,
         DomainSymbolAccumulator symbols)
     {
-        foreach (var process in config.Processes)
-        {
-            symbols.Add(
-                DomainSymbolKind.Process,
-                ids.ProcessIdOf(process.Id).Value,
-                process.Id,
-                process.Name);
-        }
-
         foreach (var verb in config.Gameplay?.LowAltitudeVerbs ?? [])
         {
             symbols.Add(
@@ -228,7 +219,6 @@ public static partial class DomainCompiler
     {
         DomainIdCategory.Kind => DomainSymbolKind.Kind,
         DomainIdCategory.Attribute => DomainSymbolKind.Attribute,
-        DomainIdCategory.Process => DomainSymbolKind.Process,
         DomainIdCategory.Verb => DomainSymbolKind.Verb,
         DomainIdCategory.Gambit => DomainSymbolKind.Gambit,
         DomainIdCategory.StructuralFact => DomainSymbolKind.StructuralFact,
@@ -274,17 +264,17 @@ public static partial class DomainCompiler
         };
     }
 
-    private static void RegisterProcessStructuralFacts(
-        BehaviorDefinition process,
+    private static void RegisterBehaviorStructuralFacts(
+        BehaviorDefinition behavior,
         HashSet<string> structuralFacts,
         DomainIdRegistry registry)
     {
-        RegisterStructuralFacts(process.Reads, structuralFacts, registry);
-        RegisterStructuralFacts(process.Writes, structuralFacts, registry);
-        RegisterStructuralFacts(process.GoalEffects, structuralFacts, registry);
-        RegisterStructuralFacts(process.ProviderSelectors, structuralFacts, registry);
-        RegisterPreconditionStructuralFacts(process.Precondition, structuralFacts, registry);
-        foreach (var supportRule in process.SupportRules)
+        RegisterStructuralFacts(behavior.Reads, structuralFacts, registry);
+        RegisterStructuralFacts(behavior.Writes, structuralFacts, registry);
+        RegisterStructuralFacts(behavior.GoalEffects, structuralFacts, registry);
+        RegisterStructuralFacts(behavior.ProviderSelectors, structuralFacts, registry);
+        RegisterPreconditionStructuralFacts(behavior.Precondition, structuralFacts, registry);
+        foreach (var supportRule in behavior.SupportRules)
         {
             RegisterStructuralFactRef(supportRule.DesiredEffect, structuralFacts, registry);
         }

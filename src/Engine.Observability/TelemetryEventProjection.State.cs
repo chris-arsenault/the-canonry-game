@@ -71,7 +71,7 @@ internal readonly record struct PlannerStepKey(
     int PlanId,
     int GoalId,
     int StepIndex,
-    int ProcessId)
+    int ActionId)
 {
     public static PlannerStepKey From(PlannerStepRow step) =>
         new(
@@ -80,7 +80,7 @@ internal readonly record struct PlannerStepKey(
             step.PlanId,
             step.GoalId,
             step.StepIndex,
-            step.ProcessId);
+            step.ActionId);
 }
 
 internal sealed class GeneratorStateProjection(int generatorId)

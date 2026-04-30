@@ -1,7 +1,7 @@
 namespace Engine.Domain.Graph;
 
+using Engine.Behaviors;
 using Engine.Kinds;
-using Engine.Processes;
 using Engine.Wiring;
 
 public static partial class DefinitionGraphValidator

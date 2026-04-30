@@ -390,3 +390,30 @@ public static class IceRemembersVerbIdExtensions
             : throw new ArgumentOutOfRangeException(nameof(verbId), verbId, "Unknown test-domain verb id");
     }
 }
+
+public enum IceRemembersGambitId
+{
+    PenguinWieldsArtifact,
+    FactionDeclaresWar,
+    FactionBetraysOath,
+    PenguinSlaysRival,
+}
+
+public static class IceRemembersGambitIdExtensions
+{
+    private static readonly string[] DomainNames =
+    [
+        "penguin_wields_artifact",
+        "faction_declares_war",
+        "faction_betrays_oath",
+        "penguin_slays_rival",
+    ];
+
+    public static string ToGambitId(this IceRemembersGambitId gambitId)
+    {
+        var index = (int)gambitId;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(gambitId), gambitId, "Unknown Ice Remembers gambit id");
+    }
+}

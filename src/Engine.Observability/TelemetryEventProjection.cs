@@ -20,11 +20,10 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
     private readonly Dictionary<ResourceCellKey, float> _resourceValues = [];
     private readonly Dictionary<PressureKey, float> _pressureValues = [];
-    private readonly Dictionary<(int EntityId, int ProcessId), PlannerStepRow> _lastSelectedStepByEntityProcess = [];
     private readonly Dictionary<(int EntityId, int PlanId), int> _selectedLocalityByEntityPlan = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
-    private readonly HashSet<PlannerStepKey> _recordedExecutedPlannerSteps = [];
+    private readonly HashSet<PlannerStepKey> _recordedPlannerSteps = [];
     private readonly Dictionary<int, Queue<ObservedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
@@ -589,81 +588,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnProcessEvaluated(long sequence, in ProcessEvaluatedKernelEvent evt)
-    {
-        var entity = GetOrCreateEntity(evt.EntityId);
-        entity.KindId = evt.KindId;
-        entity.LastUpdatedTick = evt.Tick;
-        entity.WorldVersion = evt.WorldVersion;
-
-        _batch.ProcessEvents.Add(new ProcessEventRow(
-            _runId,
-            evt.Tick,
-            evt.EntityId,
-            evt.KindId,
-            evt.SelectedGoalId > 0 ? evt.SelectedGoalId : null,
-            evt.ExecutedProcessId > 0 ? evt.ExecutedProcessId : null,
-            evt.State.HasFlag(KernelEventState.Stale),
-            (int)evt.State,
-            evt.CandidateCount,
-            VisitId: null,
-            LocalityId: null,
-            LocalityPlaneCode: null,
-            LocalityQ: null,
-            LocalityR: null,
-            LocalityS: null,
-            LocalityBundleScore: null,
-            LocalityGoalCount: null,
-            LocalityDistinctTargetCount: null,
-            LocalityDistinctEffectCount: null,
-            LocalityDistance: null,
-            LocalityIsCurrent: null,
-            LocalityIsCommitted: null,
-            LocalityArrived: null,
-            LocalityActionsRemaining: null,
-            LocalityRealizedActions: null,
-            LocalitySelectionReasonCode: null));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnProcessExecuted(long sequence, in ProcessExecutedKernelEvent evt)
-    {
-        var entity = GetOrCreateEntity(evt.ActorId);
-        entity.KindId = evt.ActorKindId;
-        entity.LastUpdatedTick = evt.Tick;
-        entity.WorldVersion = evt.WorldVersion;
-
-        _batch.ProcessEvents.Add(new ProcessEventRow(
-            _runId,
-            evt.Tick,
-            evt.ActorId,
-            evt.ActorKindId,
-            SelectedGoalId: null,
-            evt.ProcessId,
-            evt.State.HasFlag(KernelEventState.Stale),
-            (int)evt.State,
-            CandidateCount: 0,
-            VisitId: null,
-            LocalityId: null,
-            LocalityPlaneCode: null,
-            LocalityQ: null,
-            LocalityR: null,
-            LocalityS: null,
-            LocalityBundleScore: null,
-            LocalityGoalCount: null,
-            LocalityDistinctTargetCount: null,
-            LocalityDistinctEffectCount: null,
-            LocalityDistance: null,
-            LocalityIsCurrent: null,
-            LocalityIsCommitted: null,
-            LocalityArrived: null,
-            LocalityActionsRemaining: null,
-            LocalityRealizedActions: null,
-            LocalitySelectionReasonCode: null));
-        RecordProcessExecution(evt);
-        MarkProjected(sequence);
-    }
-
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
@@ -697,14 +621,14 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PlanId,
             evt.GoalId,
             evt.StepIndex,
-            evt.ProcessId,
-            ActionId: evt.ProcessId,
+            evt.ActionId,
             evt.TargetEntityId,
             evt.RelationshipKindId,
             PlanningStepRoleCodes.Immediate);
-        if (evt.ProcessId > 0)
+        if (evt.ActionId > 0 && _recordedPlannerSteps.Add(PlannerStepKey.From(step)))
         {
-            _lastSelectedStepByEntityProcess[(evt.EntityId, evt.ProcessId)] = step;
+            _batch.PlannerSteps.Add(step);
+            AddSelectedPlannerStepCandidate(step);
         }
 
         MarkProjected(sequence);

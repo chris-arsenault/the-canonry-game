@@ -90,7 +90,7 @@ public sealed class DomainIdRegistryTests
         Assert.True(registry.CultureIdOf(DomainRuntimeNames.NoneCultureId).Value > 0);
         Assert.True(registry.GeneratorIdOf("penguin_calls_the_unhuddled").Value > 0);
         Assert.True(registry.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value > 0);
-        Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.ProcessSourceCode).Value > 0);
+        Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode).Value > 0);
         Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value > 0);
         Assert.Contains(compiled.Symbols, symbol =>
             symbol.Kind == DomainSymbolKind.Kind &&

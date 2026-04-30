@@ -18,7 +18,7 @@ public sealed class KernelSnapshotTests
         var actor = simulation.CreateEntity(1, 3, 4, 0, 0, 0, 0, 0, tick: 0);
         var target = simulation.CreateEntity(2, 3, 4, 1, 0, 1, 0, 0, tick: 0);
         simulation.World.SetCoverageOwner(0, 0, actor);
-        using (simulation.EnterExecutionContext(simulation.ProcessSourceCodeId, programId: 0))
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.SetAttribute(actor, 10, 42f, tick: 0);
             simulation.SetResource(20, 0, 0, 5f, tick: 0);
@@ -69,14 +69,6 @@ public sealed class KernelSnapshotTests
             EventCapacity = 8,
             EventCursorCapacity = 8,
             CommandCapacity = 16,
-            ProcessCapacity = 4,
-            ProcessStepCapacity = 16,
-            ProcessCooldownCapacity = 16,
-            ProcessObjectiveCapacity = 4,
-            ProcessProviderSelectorCapacity = 4,
-            ProcessSupportRuleCapacity = 4,
-            ProcessCommitmentCapacity = 16,
-            PlanningOverrideCapacity = 16,
             GambitCapacity = 4,
             GambitStepCapacity = 16,
             GambitCooldownCapacity = 16,
@@ -107,10 +99,6 @@ public sealed class KernelSnapshotTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                Processes = new ProcessProgramTuningOptions
-                {
-                    WorkCommitmentCode = ProcessWorkCommitmentCodes.Pilot,
-                },
                 Planning = new PlanningProgramTuningOptions
                 {
                     DefaultPlannerKindCode = PlannerKindCodes.Opportunity,
@@ -164,7 +152,6 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
-        Assert.Equal(ProcessWorkCommitmentCodes.Pilot, loaded.Options.KernelTuning.Programs.Processes.WorkCommitmentCode);
         Assert.Equal(PlannerKindCodes.Opportunity, loaded.Options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
         Assert.True(loaded.Options.KernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
         Assert.Equal(3, loaded.Options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);

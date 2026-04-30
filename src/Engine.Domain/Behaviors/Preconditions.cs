@@ -1,4 +1,4 @@
-namespace Engine.Processes;
+namespace Engine.Behaviors;
 
 using Engine.Domain;
 using Engine.Graph;
@@ -8,7 +8,7 @@ using Engine.Wiring;
 
 /// <summary>
 /// A composable precondition tree node. Preconditions are config-DSL records;
-/// the kernel compiles them into primitive <c>ProcessProgramPreconditionOp</c>
+/// the kernel compiles them into primitive <c>BehaviorProgramPreconditionOp</c>
 /// sequences via pattern matching in <c>DomainCompiler</c> and does not evaluate
 /// them at runtime.
 /// </summary>
@@ -39,26 +39,26 @@ public sealed class OrPrecondition(IReadOnlyList<IPrecondition> children) : IPre
 // --- Leaf Preconditions ---
 
 /// <summary>Checks a pressure value against a threshold.</summary>
-public sealed class PressureThreshold(string pressureName, EntityId scopeId, float? min, float? max, bool processRelevant = false) : IPrecondition
+public sealed class PressureThreshold(string pressureName, EntityId scopeId, float? min, float? max, bool behaviorRelevant = false) : IPrecondition
 {
     public string PressureName { get; } = pressureName;
     public EntityId ScopeId { get; } = scopeId;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"pressure({PressureName}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
 }
 
 /// <summary>Checks an entity's attribute value against a threshold.</summary>
-public sealed class AttributeThreshold(EntityId entityId, string attributeName, float? min, float? max, bool processRelevant = true) : IPrecondition
+public sealed class AttributeThreshold(EntityId entityId, string attributeName, float? min, float? max, bool behaviorRelevant = true) : IPrecondition
 {
     public EntityId EntityId { get; } = entityId;
     public string AttributeName { get; } = attributeName;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"attribute({EntityId}, {AttributeName}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
@@ -89,11 +89,11 @@ public sealed class RelationshipExists(
 /// <summary>
 /// Checks that the resolved target has a named relationship back to self.
 /// </summary>
-public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? minStrength = null, bool processRelevant = false) : IPrecondition
+public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? minStrength = null, bool behaviorRelevant = false) : IPrecondition
 {
     public string RelationshipKind { get; } = relationshipKind;
     public float? MinStrength { get; } = minStrength;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"target_has_relationship_to_self({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
@@ -102,11 +102,11 @@ public sealed class TargetHasRelationshipToSelf(string relationshipKind, float? 
 /// <summary>
 /// Checks that self has a named relationship to the resolved target.
 /// </summary>
-public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? minStrength = null, bool processRelevant = false) : IPrecondition
+public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? minStrength = null, bool behaviorRelevant = false) : IPrecondition
 {
     public string RelationshipKind { get; } = relationshipKind;
     public float? MinStrength { get; } = minStrength;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"self_has_relationship_to_target({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
@@ -115,10 +115,10 @@ public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? 
 /// <summary>
 /// Checks whether the entity reached the resolved target through a named relationship.
 /// </summary>
-public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool processRelevant = true) : IPrecondition
+public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool behaviorRelevant = true) : IPrecondition
 {
     public string RelationshipKind { get; } = relationshipKind;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() => $"related_matches_target({RelationshipKind})";
 }
@@ -131,13 +131,13 @@ public sealed class LocationResourceThreshold(
     float? min,
     float? max,
     bool targetLocation = false,
-    bool processRelevant = true) : IPrecondition
+    bool behaviorRelevant = true) : IPrecondition
 {
     public ResourceType ResourceType { get; } = resourceType;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
     public bool TargetLocation { get; } = targetLocation;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"{(TargetLocation ? "target" : "self")}_location_resource({ResourceType.ToDomainName()}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
@@ -152,24 +152,24 @@ public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
 }
 
 /// <summary>Checks the current entity's own attribute against a threshold.</summary>
-public sealed class SelfAttributeThreshold(string attributeName, float? min, float? max, bool processRelevant = true) : IPrecondition
+public sealed class SelfAttributeThreshold(string attributeName, float? min, float? max, bool behaviorRelevant = true) : IPrecondition
 {
     public string AttributeName { get; } = attributeName;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"self.{AttributeName} {(Min.HasValue ? $">= {Min}" : "")} {(Max.HasValue ? $"<= {Max}" : "")}";
 }
 
 /// <summary>Checks the resolved target entity's attribute against a threshold.</summary>
-public sealed class TargetAttributeThreshold(string attributeName, float? min, float? max, bool processRelevant = true) : IPrecondition
+public sealed class TargetAttributeThreshold(string attributeName, float? min, float? max, bool behaviorRelevant = true) : IPrecondition
 {
     public string AttributeName { get; } = attributeName;
     public float? Min { get; } = min;
     public float? Max { get; } = max;
-    public bool ProcessRelevant { get; } = processRelevant;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() =>
         $"target.{AttributeName} {(Min.HasValue ? $">= {Min}" : "")} {(Max.HasValue ? $"<= {Max}" : "")}";
