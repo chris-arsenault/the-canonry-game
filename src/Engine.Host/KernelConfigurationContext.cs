@@ -174,6 +174,13 @@ internal sealed class KernelConfigurationContext
             headquartersMoveChance,
             requiredInfluence);
 
+    public void AddLowAltitudeVerbPrimitiveStep(
+        int verbSlot,
+        int opcode,
+        int intArgument,
+        float floatArgument) =>
+        _kernel.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, opcode, intArgument, floatArgument);
+
     public void AddLowAltitudeVerbTerrainFilter(int verbSlot, int terrainId) =>
         _kernel.LowAltitudeVerbs.AddTerrainFilter(verbSlot, terrainId);
 

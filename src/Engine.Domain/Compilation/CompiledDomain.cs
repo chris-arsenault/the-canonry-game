@@ -29,7 +29,6 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId PressureSourceCodeId,
     SourceCodeId DegeneracySourceCodeId,
     SourceCodeId PlanningSourceCodeId,
-    SourceCodeId MovementSourceCodeId,
     SourceCodeId MapActivitySourceCodeId,
     SourceCodeId MapSignalsSourceCodeId,
     SourceCodeId LowAltitudeVerbSourceCodeId,

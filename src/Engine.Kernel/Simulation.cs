@@ -79,7 +79,6 @@ internal sealed partial class Simulation : IKernel
         PressureSourceCodeId = codes.PressureSourceCodeId;
         DegeneracySourceCodeId = codes.DegeneracySourceCodeId;
         PlanningSourceCodeId = codes.PlanningSourceCodeId;
-        MovementSourceCodeId = codes.MovementSourceCodeId;
         MapActivitySourceCodeId = codes.MapActivitySourceCodeId;
         MapSignalsSourceCodeId = codes.MapSignalsSourceCodeId;
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
@@ -202,50 +201,111 @@ internal sealed partial class Simulation : IKernel
         ValidateProgramDependencies();
     }
 
+    // PreviousTick reads are previous-tick dependencies: they intentionally consume materialized state from
+    // the prior tick so low-altitude decisions are not order-coupled to same-tick signal production.
+    private static readonly ProgramMetadata[] ProgramDependencyMetadata =
+    [
+        new(
+            KernelProgramCodes.LowAltitudeVerbs,
+            [
+                new ProgramReadDependency(
+                    ProgramDependencyResourceCodes.MapActivitySignals,
+                    ProgramDependencyLag.PreviousTick),
+                new ProgramReadDependency(
+                    ProgramDependencyResourceCodes.MapSignals,
+                    ProgramDependencyLag.PreviousTick),
+            ],
+            []),
+        new(
+            KernelProgramCodes.MapActivity,
+            [],
+            [
+                new ProgramWriteDependency(
+                    ProgramDependencyResourceCodes.MapActivitySignals,
+                    ProgramDependencyLag.SameTick),
+            ]),
+        new(
+            KernelProgramCodes.MapSignals,
+            [
+                new ProgramReadDependency(
+                    ProgramDependencyResourceCodes.MapActivitySignals,
+                    ProgramDependencyLag.SameTick),
+            ],
+            [
+                new ProgramWriteDependency(
+                    ProgramDependencyResourceCodes.MapSignals,
+                    ProgramDependencyLag.SameTick),
+            ]),
+        new(
+            KernelProgramCodes.Effects,
+            [
+                new ProgramReadDependency(
+                    ProgramDependencyResourceCodes.MapSignals,
+                    ProgramDependencyLag.SameTick),
+            ],
+            []),
+    ];
+
     private void ValidateProgramDependencies()
     {
-        ValidateProgramDependency(new ProgramDependency(
-            KernelProgramCodes.MapSignals,
-            KernelProgramCodes.MapActivity,
-            ProgramDependencyLag.SameTick));
-        ValidateProgramDependency(new ProgramDependency(
-            KernelProgramCodes.Effects,
-            KernelProgramCodes.MapSignals,
-            ProgramDependencyLag.SameTick));
-
-        // LowAltitudeVerbs intentionally reads previous-tick MapActivity and
-        // MapSignals snapshots because it runs before those programs refresh
-        // same-tick data.
-        ValidateProgramDependency(new ProgramDependency(
-            KernelProgramCodes.LowAltitudeVerbs,
-            KernelProgramCodes.MapActivity,
-            ProgramDependencyLag.PreviousTick));
-        ValidateProgramDependency(new ProgramDependency(
-            KernelProgramCodes.LowAltitudeVerbs,
-            KernelProgramCodes.MapSignals,
-            ProgramDependencyLag.PreviousTick));
+        for (var metadataIndex = 0; metadataIndex < ProgramDependencyMetadata.Length; metadataIndex++)
+        {
+            var metadata = ProgramDependencyMetadata[metadataIndex];
+            for (var readIndex = 0; readIndex < metadata.Reads.Length; readIndex++)
+            {
+                ValidateProgramReadDependency(metadata.ProgramId, metadata.Reads[readIndex]);
+            }
+        }
     }
 
-    private void ValidateProgramDependency(ProgramDependency dependency)
+    private void ValidateProgramReadDependency(int readerProgramId, ProgramReadDependency read)
     {
-        if (dependency.DependencyLag == ProgramDependencyLag.PreviousTick)
+        if (read.DependencyLag == ProgramDependencyLag.PreviousTick)
         {
             return;
         }
 
-        var readerHandle = _programs.SystemHandleOf(dependency.ReaderProgramId);
-        var writerHandle = _programs.SystemHandleOf(dependency.WriterProgramId);
-        if (writerHandle <= readerHandle)
+        var readerHandle = _programs.SystemHandleOf(readerProgramId);
+        for (var metadataIndex = 0; metadataIndex < ProgramDependencyMetadata.Length; metadataIndex++)
         {
-            return;
-        }
+            var writerMetadata = ProgramDependencyMetadata[metadataIndex];
+            for (var writeIndex = 0; writeIndex < writerMetadata.Writes.Length; writeIndex++)
+            {
+                var write = writerMetadata.Writes[writeIndex];
+                if (write.ResourceCode != read.ResourceCode)
+                {
+                    continue;
+                }
 
-        var violation = new ProgramDependencyViolation(
-            dependency.ReaderProgramId,
-            dependency.WriterProgramId,
-            dependency.DependencyLag);
-        _ = violation;
-        throw new global::System.InvalidOperationException();
+                ValidateProgramWritePrecedesRead(
+                    readerProgramId,
+                    readerHandle,
+                    writerMetadata.ProgramId,
+                    read,
+                    write);
+            }
+        }
+    }
+
+    private void ValidateProgramWritePrecedesRead(
+        int readerProgramId,
+        int readerHandle,
+        int writerProgramId,
+        ProgramReadDependency read,
+        ProgramWriteDependency write)
+    {
+        var writerHandle = _programs.SystemHandleOf(writerProgramId);
+        if (write.DependencyLag == ProgramDependencyLag.SameTick &&
+            writerHandle > readerHandle)
+        {
+            var violation = new ProgramDependencyViolation(
+                readerProgramId,
+                writerProgramId,
+                read.DependencyLag,
+                read.ResourceCode);
+            _ = violation;
+            throw new global::System.InvalidOperationException();
+        }
     }
 
     internal WorldState World { get; }
@@ -273,7 +333,6 @@ internal sealed partial class Simulation : IKernel
     internal int PressureSourceCodeId { get; private set; }
     internal int DegeneracySourceCodeId { get; private set; }
     internal int PlanningSourceCodeId { get; private set; }
-    internal int MovementSourceCodeId { get; private set; }
     internal int MapActivitySourceCodeId { get; private set; }
     internal int MapSignalsSourceCodeId { get; private set; }
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
@@ -909,7 +968,6 @@ internal sealed partial class Simulation : IKernel
 
     private int SourceCodeIdForLowAltitudeProgram(int programId) => programId switch
     {
-        KernelProgramCodes.Movement => MovementSourceCodeId,
         KernelProgramCodes.LowAltitudeVerbs => LowAltitudeVerbSourceCodeId,
         KernelProgramCodes.MapActivity => MapActivitySourceCodeId,
         KernelProgramCodes.Upkeep => UpkeepSourceCodeId,

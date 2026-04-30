@@ -148,6 +148,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue) =>
         Data.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
+    public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument) =>
+        Data.AddPrimitiveStep(rule, opcode, intArgument, floatArgument);
+
     public int RegisterGeneratorAffordance(
         int actorKindId,
         int candidateKindId,

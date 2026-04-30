@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 15;
+    private const int FormatVersion = 16;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -106,7 +106,6 @@ internal static class KernelSnapshotOptions
         writer.Write(options.DegeneracyDetectorCapacity);
         writer.Write(options.DegeneracyStateCapacity);
         writer.Write(options.LifecycleRuleCapacity);
-        writer.Write(options.MovementRuleCapacity);
         writer.Write(options.LowAltitudeVerbRuleCapacity);
         writer.Write(options.LowAltitudeVerbItemCapacity);
         writer.Write(options.MapActivityCellCapacity);
@@ -137,7 +136,6 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.PressureSourceCodeId);
         writer.Write(runtimeCodes.DegeneracySourceCodeId);
         writer.Write(runtimeCodes.PlanningSourceCodeId);
-        writer.Write(runtimeCodes.MovementSourceCodeId);
         writer.Write(runtimeCodes.MapActivitySourceCodeId);
         writer.Write(runtimeCodes.MapSignalsSourceCodeId);
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
@@ -164,7 +162,6 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryWriter writer,
         ProgramEnabledTuningOptions enabled)
     {
-        writer.Write(enabled.Movement);
         writer.Write(enabled.LowAltitudeVerbs);
         writer.Write(enabled.MapActivity);
         writer.Write(enabled.MapSignals);
@@ -269,7 +266,6 @@ internal static class KernelSnapshotOptions
         values.DegeneracyDetectorCapacity = reader.ReadInt32();
         values.DegeneracyStateCapacity = reader.ReadInt32();
         values.LifecycleRuleCapacity = reader.ReadInt32();
-        values.MovementRuleCapacity = reader.ReadInt32();
         values.LowAltitudeVerbRuleCapacity = reader.ReadInt32();
         values.LowAltitudeVerbItemCapacity = reader.ReadInt32();
         values.MapActivityCellCapacity = reader.ReadInt32();
@@ -300,7 +296,6 @@ internal static class KernelSnapshotOptions
         values.PressureSourceCodeId = reader.ReadInt32();
         values.DegeneracySourceCodeId = reader.ReadInt32();
         values.PlanningSourceCodeId = reader.ReadInt32();
-        values.MovementSourceCodeId = reader.ReadInt32();
         values.MapActivitySourceCodeId = reader.ReadInt32();
         values.MapSignalsSourceCodeId = reader.ReadInt32();
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
@@ -311,7 +306,6 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryReader reader,
         ref SnapshotOptionValues values)
     {
-        values.MovementProgramEnabled = reader.ReadInt32();
         values.LowAltitudeVerbProgramEnabled = reader.ReadInt32();
         values.MapActivityProgramEnabled = reader.ReadInt32();
         values.MapSignalsProgramEnabled = reader.ReadInt32();
@@ -428,7 +422,6 @@ internal static class KernelSnapshotOptions
             DegeneracyDetectorCapacity = values.DegeneracyDetectorCapacity,
             DegeneracyStateCapacity = values.DegeneracyStateCapacity,
             LifecycleRuleCapacity = values.LifecycleRuleCapacity,
-            MovementRuleCapacity = values.MovementRuleCapacity,
             LowAltitudeVerbRuleCapacity = values.LowAltitudeVerbRuleCapacity,
             LowAltitudeVerbItemCapacity = values.LowAltitudeVerbItemCapacity,
             MapActivityCellCapacity = values.MapActivityCellCapacity,
@@ -461,7 +454,6 @@ internal static class KernelSnapshotOptions
             values.PressureSourceCodeId,
             values.DegeneracySourceCodeId,
             values.PlanningSourceCodeId,
-            values.MovementSourceCodeId,
             values.MapActivitySourceCodeId,
             values.MapSignalsSourceCodeId,
             values.LowAltitudeVerbSourceCodeId,
@@ -474,7 +466,6 @@ internal static class KernelSnapshotOptions
             {
                 Enabled = new ProgramEnabledTuningOptions
                 {
-                    Movement = values.MovementProgramEnabled,
                     LowAltitudeVerbs = values.LowAltitudeVerbProgramEnabled,
                     MapActivity = values.MapActivityProgramEnabled,
                     MapSignals = values.MapSignalsProgramEnabled,
@@ -548,7 +539,6 @@ internal static class KernelSnapshotOptions
         public int DegeneracyDetectorCapacity;
         public int DegeneracyStateCapacity;
         public int LifecycleRuleCapacity;
-        public int MovementRuleCapacity;
         public int LowAltitudeVerbRuleCapacity;
         public int LowAltitudeVerbItemCapacity;
         public int MapActivityCellCapacity;
@@ -573,12 +563,10 @@ internal static class KernelSnapshotOptions
         public int PressureSourceCodeId;
         public int DegeneracySourceCodeId;
         public int PlanningSourceCodeId;
-        public int MovementSourceCodeId;
         public int MapActivitySourceCodeId;
         public int MapSignalsSourceCodeId;
         public int LowAltitudeVerbSourceCodeId;
         public int EffectsSourceCodeId;
-        public int MovementProgramEnabled;
         public int LowAltitudeVerbProgramEnabled;
         public int MapActivityProgramEnabled;
         public int MapSignalsProgramEnabled;

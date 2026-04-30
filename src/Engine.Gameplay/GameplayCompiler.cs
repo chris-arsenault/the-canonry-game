@@ -10,6 +10,11 @@ public static class GameplayCompiler
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(context);
+        var validation = GameplayValidator.Validate(definition);
+        if (!validation.IsValid)
+        {
+            throw new InvalidOperationException(validation.Errors[0].Message);
+        }
 
         return new GameplayCompileResult(
             definition.Modules.Count,
@@ -29,6 +34,7 @@ public static class GameplayCompiler
         var rules = new List<LowAltitudeVerbRule>();
         foreach (var verb in definition.LowAltitudeVerbs)
         {
+            var shape = LowAltitudeVerbShape.For(verb.Operation);
             var ownerPlaneCode = verb.Plane is null
                 ? context.PrimaryPlaneCodeForKind(verb.Kind, $"Low-altitude verb '{verb.Id}' kind")
                 : PlaneCode(verb.Plane);
@@ -36,7 +42,7 @@ public static class GameplayCompiler
                 context.ResolveKindId(verb.Kind, $"Low-altitude verb '{verb.Id}' kind"),
                 context.ResolveVerbId(verb.Id),
                 ownerPlaneCode,
-                OperationCode(verb.Operation),
+                shape.OperationCode,
                 TargetModeCode(verb.TargetMode),
                 verb.TargetKind is null
                     ? 0
@@ -62,7 +68,8 @@ public static class GameplayCompiler
                 verb.InfluenceRadius,
                 verb.CoverageGrowthChance,
                 verb.HeadquartersMoveChance,
-                verb.RequiredInfluence));
+                verb.RequiredInfluence,
+                shape.PrimitiveSteps));
         }
 
         return new LowAltitudeVerbProgram
@@ -254,17 +261,6 @@ public static class GameplayCompiler
 
         return terrainIds;
     }
-
-    private static int OperationCode(LowAltitudeVerbOperation operation) => operation switch
-    {
-        LowAltitudeVerbOperation.Move => ProgramOpcodeCodes.MoveActor,
-        LowAltitudeVerbOperation.GrowInfluence => ProgramOpcodeCodes.AddOwnedCellScalar,
-        LowAltitudeVerbOperation.ConsolidateInfluence => ProgramOpcodeCodes.AddOwnedCellScalar,
-        LowAltitudeVerbOperation.ReduceInfluence => ProgramOpcodeCodes.SubtractOtherCellScalar,
-        LowAltitudeVerbOperation.ExpandCoverage => ProgramOpcodeCodes.TryClaimCell,
-        LowAltitudeVerbOperation.MoveHeadquarters => ProgramOpcodeCodes.TryRelocateEntity,
-        _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
-    };
 
     private static int TargetModeCode(LowAltitudeVerbTargetMode mode) => mode switch
     {

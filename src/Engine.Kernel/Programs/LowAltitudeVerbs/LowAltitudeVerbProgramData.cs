@@ -198,8 +198,20 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _coverageGrowthChances[slot] = Clamp01(registration.CoverageChance);
         _headquartersMoveChances[slot] = Clamp01(registration.RelocationChance);
         _requiredInfluences[slot] = ClampInfluence(registration.RequiredMapValue);
-        RegisterPrimitiveSteps(slot, registration.OperationCode);
         return slot;
+    }
+
+    public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument)
+    {
+        EnsureRule(rule);
+        ValidateOperationCode(opcode);
+        if (StepCounts[rule] == 0)
+        {
+            StepStarts[rule] = _stepCount + 1;
+        }
+
+        AddStep(opcode, intArgument, floatArgument);
+        StepCounts[rule]++;
     }
 
     public void AddTerrainFilter(int verbSlot, int terrainId)
@@ -382,33 +394,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         ValidatePlaneCode(planeCode);
         ValidateOperationCode(operationCode);
         ValidateTargetModeCode(targetModeCode);
-    }
-
-    private void RegisterPrimitiveSteps(int rule, int operationCode)
-    {
-        StepStarts[rule] = _stepCount + 1;
-        switch (operationCode)
-        {
-            case ProgramOpcodeCodes.MoveActor:
-                AddStep(ProgramOpcodeCodes.MoveActor, 0, 0f);
-                break;
-            case ProgramOpcodeCodes.AddOwnedCellScalar:
-                AddStep(ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
-                break;
-            case ProgramOpcodeCodes.SubtractOtherCellScalar:
-                AddStep(ProgramOpcodeCodes.SubtractOtherCellScalar, 0, 0f);
-                break;
-            case ProgramOpcodeCodes.TryClaimCell:
-                AddStep(ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
-                AddStep(ProgramOpcodeCodes.TryClaimCell, 0, 0f);
-                break;
-            case ProgramOpcodeCodes.TryRelocateEntity:
-                AddStep(ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
-                AddStep(ProgramOpcodeCodes.TryRelocateEntity, 0, 0f);
-                break;
-        }
-
-        StepCounts[rule] = _stepCount - StepStarts[rule] + 1;
     }
 
     private void AddStep(int opcode, int intArgument, float floatArgument)

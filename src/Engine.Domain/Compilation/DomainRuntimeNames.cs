@@ -15,7 +15,6 @@ public static class DomainRuntimeNames
     public const string PressureSourceCode = "pressure";
     public const string DegeneracySourceCode = "degeneracy";
     public const string PlanningSourceCode = "planning";
-    public const string MovementSourceCode = "movement";
     public const string GameplaySourceCode = "gameplay";
     public const string MapControlSourceCode = "map_control";
     public const string GameplayEffectsSourceCode = "gameplay_effects";

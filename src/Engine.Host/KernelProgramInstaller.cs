@@ -146,6 +146,8 @@ internal static class KernelProgramInstaller
             {
                 context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);
             }
+
+            AddLowAltitudeVerbPrimitiveSteps(context, slot, verb.PrimitiveSteps);
         }
 
         foreach (var rule in program.InitialInfluence)
@@ -163,6 +165,21 @@ internal static class KernelProgramInstaller
                 rule.CandidateKindId,
                 rule.BindingKindId,
                 rule.AffordanceScore);
+        }
+    }
+
+    private static void AddLowAltitudeVerbPrimitiveSteps(
+        KernelConfigurationContext context,
+        int slot,
+        IReadOnlyList<CompiledProgramStep> steps)
+    {
+        foreach (var step in steps)
+        {
+            context.AddLowAltitudeVerbPrimitiveStep(
+                slot,
+                step.Opcode,
+                step.IntArgument,
+                step.FloatArgument);
         }
     }
 

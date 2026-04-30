@@ -269,7 +269,6 @@ public static class KernelProgramCodes
     public const int Degeneracy = 6;
     public const int Gambits = 7;
     public const int Planning = 8;
-    public const int Movement = 9;
     public const int MapActivity = 10;
     public const int LowAltitudeVerbs = 11;
     public const int Effects = 12;
@@ -280,6 +279,12 @@ public static class ProgramDependencyLagCodes
 {
     public const int SameTick = 1;
     public const int PreviousTick = 2;
+}
+
+public static class ProgramDependencyResourceCodes
+{
+    public const int MapActivitySignals = 1;
+    public const int MapSignals = 2;
 }
 
 public static class TargetSelectorCodes

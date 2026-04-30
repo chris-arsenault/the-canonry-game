@@ -2,25 +2,24 @@ namespace Engine.Kernel;
 
 using Engine.Constants;
 
-internal readonly record struct ProgramDependency(
-    int ReaderProgramId,
-    int WriterProgramId,
-    int DependencyLag);
+internal readonly record struct ProgramMetadata(
+    int ProgramId,
+    ProgramReadDependency[] Reads,
+    ProgramWriteDependency[] Writes);
 
 internal readonly record struct ProgramReadDependency(
-    int ReaderProgramId,
-    int SourceProgramId,
+    int ResourceCode,
     int DependencyLag);
 
 internal readonly record struct ProgramWriteDependency(
-    int WriterProgramId,
-    int TargetProgramId,
+    int ResourceCode,
     int DependencyLag);
 
 internal readonly record struct ProgramDependencyViolation(
     int ReaderProgramId,
     int WriterProgramId,
-    int DependencyLag);
+    int DependencyLag,
+    int ResourceCode);
 
 internal static class ProgramDependencyLag
 {

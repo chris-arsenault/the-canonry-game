@@ -49,9 +49,6 @@ public sealed class KernelRuntimeFactoryTests
             {
               "kernelTuning": {
                 "programs": {
-                  "movement": {
-                    "enabled": false
-                  },
                   "lowAltitudeVerbs": {
                     "enabled": false
                   },
@@ -265,7 +262,6 @@ public sealed class KernelRuntimeFactoryTests
     private static void AssertConfiguredTuningOptions(SimulationOptions options)
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
-        Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.Movement);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Processes);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);

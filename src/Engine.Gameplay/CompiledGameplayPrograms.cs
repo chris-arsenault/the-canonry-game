@@ -36,7 +36,13 @@ public sealed record LowAltitudeVerbRule(
     int InfluenceRadius,
     float CoverageGrowthChance,
     float HeadquartersMoveChance,
-    float RequiredInfluence);
+    float RequiredInfluence,
+    IReadOnlyList<CompiledProgramStep> PrimitiveSteps);
+
+public sealed record CompiledProgramStep(
+    int Opcode,
+    int IntArgument,
+    float FloatArgument);
 
 public sealed record CompiledInitialInfluenceRule(
     int KindId,

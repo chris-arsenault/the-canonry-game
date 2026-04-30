@@ -439,7 +439,6 @@ internal sealed class KernelHostBuilder
             codes.PressureSourceCodeId.Value,
             codes.DegeneracySourceCodeId.Value,
             codes.PlanningSourceCodeId.Value,
-            codes.MovementSourceCodeId.Value,
             codes.MapActivitySourceCodeId.Value,
             codes.MapSignalsSourceCodeId.Value,
             codes.LowAltitudeVerbSourceCodeId.Value,

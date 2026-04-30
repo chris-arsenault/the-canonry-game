@@ -37,7 +37,6 @@ internal sealed record SimulationOptions
     public int DegeneracyDetectorCapacity { get; init; } = 32;
     public int DegeneracyStateCapacity { get; init; } = 8192;
     public int LifecycleRuleCapacity { get; init; } = 256;
-    public int MovementRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbItemCapacity { get; init; } = 1024;
     public int MapActivityCellCapacity { get; init; } = 32768;
@@ -73,7 +72,6 @@ internal sealed record KernelProgramTuningOptions
 
 internal sealed record ProgramEnabledTuningOptions
 {
-    public int Movement { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int LowAltitudeVerbs { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int MapActivity { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int MapSignals { get; init; } = ProgramEnabledOverrideCodes.Unspecified;

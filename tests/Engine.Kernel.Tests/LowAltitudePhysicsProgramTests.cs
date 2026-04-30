@@ -20,7 +20,7 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.SeedCell(2, 0, terrainId, ownerEntityId: 0);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 2, 0, 0, 0, 0, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
             PlaneCodes.Physical,
@@ -45,6 +45,7 @@ public sealed class LowAltitudePhysicsProgramTests
             coverageGrowthChance: 0f,
             headquartersMoveChance: 0f,
             requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         simulation.AdvanceTicks(1);
@@ -67,7 +68,7 @@ public sealed class LowAltitudePhysicsProgramTests
         const int verbId = 88;
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 2, 0, -2, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
             PlaneCodes.Semantic,
@@ -92,6 +93,7 @@ public sealed class LowAltitudePhysicsProgramTests
             coverageGrowthChance: 0f,
             headquartersMoveChance: 0f,
             requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         simulation.AdvanceTicks(1);
@@ -121,7 +123,7 @@ public sealed class LowAltitudePhysicsProgramTests
         SeedPhysicalNeighborhood(simulation, terrainId);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var targetId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
             PlaneCodes.Physical,
@@ -146,6 +148,7 @@ public sealed class LowAltitudePhysicsProgramTests
             coverageGrowthChance: 0f,
             headquartersMoveChance: 0f,
             requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         simulation.AdvanceTicks(1);
@@ -213,7 +216,7 @@ public sealed class LowAltitudePhysicsProgramTests
             relatedTargetId,
             1f,
             tick: 0);
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
             PlaneCodes.Physical,
@@ -241,6 +244,7 @@ public sealed class LowAltitudePhysicsProgramTests
             coverageGrowthChance: 0f,
             headquartersMoveChance: 0f,
             requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
 
         simulation.AdvanceTicks(1);
 
@@ -330,6 +334,7 @@ public sealed class LowAltitudePhysicsProgramTests
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 0, 0, 20f, tick: 0);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, 35f);
         RegisterInfluenceVerb(
             simulation,
             settlementKindId,
@@ -353,6 +358,7 @@ public sealed class LowAltitudePhysicsProgramTests
         const int kindId = 1;
         const int verbId = 103;
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Semantic, 35f);
         RegisterInfluenceVerb(
             simulation,
             kindId,
@@ -380,6 +386,7 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(1);
         SeedPhysicalNeighborhood(simulation, terrainId);
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, 35f);
         RegisterInfluenceVerb(
             simulation,
             settlementKindId,
@@ -429,35 +436,6 @@ public sealed class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
-    public void MovementProgram_MovesPhysicalEntityAndMapActivityRecordsPresence()
-    {
-        var simulation = new Simulation(new SimulationOptions { Seed = 7 });
-        const int terrainId = 1;
-        const int kindId = 1;
-        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(2);
-        SeedPhysicalNeighborhood(simulation, terrainId);
-        simulation.Movement.RegisterRule(
-            kindId,
-            PlaneCodes.Physical,
-            moveChance: 1f,
-            exploreWeight: 2f,
-            stalenessWeight: 1f,
-            crowdingWeight: 0f);
-        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
-
-        simulation.AdvanceTicks(1);
-
-        Assert.NotEqual((0, 0), (simulation.World.EntityPhysicalQ(entityId), simulation.World.EntityPhysicalR(entityId)));
-        var q = simulation.World.EntityPhysicalQ(entityId);
-        var r = simulation.World.EntityPhysicalR(entityId);
-        Assert.Equal(1, simulation.MapActivity.VisitCount(PlaneCodes.Physical, q, r));
-        Assert.Equal(1, simulation.MapActivity.LastVisitedTick(PlaneCodes.Physical, q, r));
-        AssertMovedByProgram(simulation, cursor, entityId, KernelProgramCodes.Movement, simulation.MovementSourceCodeId);
-    }
-
-    [Fact]
     public void UpkeepProgram_OnlyLifecycleHealthChanges()
     {
         var simulation = new Simulation();
@@ -498,7 +476,7 @@ public sealed class LowAltitudePhysicsProgramTests
         float requiredInfluence = 0f,
         int planeCode = PlaneCodes.Physical)
     {
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
             planeCode,
@@ -523,6 +501,7 @@ public sealed class LowAltitudePhysicsProgramTests
             coverageGrowthChance: coverageGrowthChance,
             headquartersMoveChance: headquartersMoveChance,
             requiredInfluence: requiredInfluence);
+        AddPrimitiveSteps(simulation, verbSlot, operationCode);
     }
 
     private static void RegisterMovementVerb(
@@ -537,7 +516,7 @@ public sealed class LowAltitudePhysicsProgramTests
         int dwellTicks,
         int targetRadius = 0)
     {
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
             planeCode,
@@ -562,6 +541,17 @@ public sealed class LowAltitudePhysicsProgramTests
             coverageGrowthChance: 0f,
             headquartersMoveChance: 0f,
             requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
+    }
+
+    private static void AddPrimitiveSteps(Simulation simulation, int verbSlot, int operationCode)
+    {
+        if (operationCode is ProgramOpcodeCodes.TryClaimCell or ProgramOpcodeCodes.TryRelocateEntity)
+        {
+            simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+        }
+
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, operationCode, 0, 0f);
     }
 
     private static (int Dwell, int Step, int Looseness, int Q, int R) MovementShape(Simulation simulation, int entityId) =>

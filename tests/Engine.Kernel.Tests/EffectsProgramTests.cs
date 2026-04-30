@@ -27,7 +27,6 @@ public sealed class EffectsProgramTests
                 PressureSourceCodeId: 16,
                 DegeneracySourceCodeId: 17,
                 PlanningSourceCodeId: 18,
-                MovementSourceCodeId: 19,
                 MapActivitySourceCodeId: 20,
                 MapSignalsSourceCodeId: 21,
                 LowAltitudeVerbSourceCodeId: 22,

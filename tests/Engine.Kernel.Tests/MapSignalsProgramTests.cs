@@ -206,7 +206,7 @@ public sealed class MapSignalsProgramTests
         int targetKindId,
         int verbId)
     {
-        simulation.LowAltitudeVerbs.RegisterVerb(
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
             PlaneCodes.Physical,
@@ -231,5 +231,6 @@ public sealed class MapSignalsProgramTests
             coverageGrowthChance: 0f,
             headquartersMoveChance: 0f,
             requiredInfluence: 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.MoveActor, 0, 0f);
     }
 }

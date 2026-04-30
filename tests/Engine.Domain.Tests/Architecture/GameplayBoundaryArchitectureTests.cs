@@ -308,7 +308,7 @@ public sealed class GameplayBoundaryArchitectureTests
         {
             "ValidateLowAltitudeVerb",
             "ExpandCoverage",
-            "MoveAnchor",
+            "MoveHeadquarters",
             "Terrain",
             "Semantic",
             "Physical",
@@ -837,6 +837,30 @@ public sealed class GameplayBoundaryArchitectureTests
 
         Assert.DoesNotContain("MovementProgram Movement", programSet, StringComparison.Ordinal);
         Assert.Contains("LowAltitude", programSet, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StaleMovementProgramSurface_IsRemovedFromLiveRuntimeAndConfig()
+    {
+        var root = FindRepoRoot();
+        var liveSource = string.Concat(
+            ReadSource(root, "src/Engine.Constants/KernelCodes.cs"),
+            ReadSource(root, "src/Engine.Kernel/SimulationOptions.cs"),
+            ReadSource(root, "src/Engine.Kernel/KernelRuntimeCodes.cs"),
+            ReadSource(root, "src/Engine.Host/KernelStartupConfigLoader.cs"),
+            ReadSource(root, "src/Engine.Kernel/Persistence/KernelSnapshot.cs"));
+        var forbiddenFragments = new[]
+        {
+            "KernelProgramCodes.Movement",
+            "public const int Movement =",
+            "MovementSourceCodeId",
+            "MovementRuleCapacity",
+            "MovementProgramEnabled",
+            "KERNELTUNING.PROGRAMS.MOVEMENT",
+        };
+        var violations = ContainedFragments(liveSource, forbiddenFragments);
+
+        Assert.Empty(violations);
     }
 
     [Fact]
