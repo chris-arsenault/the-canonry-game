@@ -38,6 +38,7 @@ internal sealed partial class Simulation : IKernel
         Movement = CreateMovementRuntime(options);
         LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
         MapActivity = CreateMapActivityRuntime(options);
+        MapSignals = CreateMapSignalsRuntime(options);
         Effects = CreateEffectsRuntime(options);
         Processes = CreateProcessRuntime(options);
         Gambits = CreateGambitRuntime(options);
@@ -46,19 +47,7 @@ internal sealed partial class Simulation : IKernel
         Degeneracy = CreateDegeneracyRuntime(options);
         Upkeep = CreateUpkeepRuntime(options);
         Relationships = CreateRelationshipRuntime(options);
-        ProcessSourceCodeId = options.RuntimeCodes.ProcessSourceCodeId;
-        GambitSourceCodeId = options.RuntimeCodes.GambitSourceCodeId;
-        UpkeepSourceCodeId = options.RuntimeCodes.UpkeepSourceCodeId;
-        StartupSourceCodeId = options.RuntimeCodes.StartupSourceCodeId;
-        RelationshipSourceCodeId = options.RuntimeCodes.RelationshipSourceCodeId;
-        GeneratorSourceCodeId = options.RuntimeCodes.GeneratorSourceCodeId;
-        PressureSourceCodeId = options.RuntimeCodes.PressureSourceCodeId;
-        DegeneracySourceCodeId = options.RuntimeCodes.DegeneracySourceCodeId;
-        PlanningSourceCodeId = options.RuntimeCodes.PlanningSourceCodeId;
-        MovementSourceCodeId = options.RuntimeCodes.MovementSourceCodeId;
-        MapActivitySourceCodeId = options.RuntimeCodes.MapActivitySourceCodeId;
-        LowAltitudeVerbSourceCodeId = options.RuntimeCodes.LowAltitudeVerbSourceCodeId;
-        EffectsSourceCodeId = options.RuntimeCodes.EffectsSourceCodeId;
+        AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
         _systemCadences = new int[options.SystemCapacity];
@@ -78,6 +67,24 @@ internal sealed partial class Simulation : IKernel
             new PlanningProgramState(options.PlanningOverrideCapacity),
             new PlanningProgramScratch(objectiveCapacity, objectiveCapacity + 2),
             options.KernelTuning.Programs);
+    }
+
+    private void AssignRuntimeCodes(KernelRuntimeCodes codes)
+    {
+        ProcessSourceCodeId = codes.ProcessSourceCodeId;
+        GambitSourceCodeId = codes.GambitSourceCodeId;
+        UpkeepSourceCodeId = codes.UpkeepSourceCodeId;
+        StartupSourceCodeId = codes.StartupSourceCodeId;
+        RelationshipSourceCodeId = codes.RelationshipSourceCodeId;
+        GeneratorSourceCodeId = codes.GeneratorSourceCodeId;
+        PressureSourceCodeId = codes.PressureSourceCodeId;
+        DegeneracySourceCodeId = codes.DegeneracySourceCodeId;
+        PlanningSourceCodeId = codes.PlanningSourceCodeId;
+        MovementSourceCodeId = codes.MovementSourceCodeId;
+        MapActivitySourceCodeId = codes.MapActivitySourceCodeId;
+        MapSignalsSourceCodeId = codes.MapSignalsSourceCodeId;
+        LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
+        EffectsSourceCodeId = codes.EffectsSourceCodeId;
     }
 
     private static ProcessProgramRuntime CreateProcessRuntime(SimulationOptions options) =>
@@ -115,6 +122,14 @@ internal sealed partial class Simulation : IKernel
         new(
             new MapActivityProgramData(),
             new MapActivityProgramState(options.MapActivityCellCapacity));
+
+    private static MapSignalsProgramRuntime CreateMapSignalsRuntime(SimulationOptions options) =>
+        new(
+            new MapSignalsProgramData(
+                options.TerrainIdCapacity,
+                options.KindIdCapacity,
+                options.RelationshipKindIdCapacity),
+            new MapSignalsProgramState(options.MapSignalCellCapacity, options.EntityCapacity));
 
     private static EffectsProgramRuntime CreateEffectsRuntime(SimulationOptions options) =>
         new(
@@ -183,6 +198,7 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
         RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
         RegisterProgram(KernelProgramCodes.MapActivity, 1, MapActivity);
+        RegisterProgram(KernelProgramCodes.MapSignals, 1, MapSignals);
         RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
         RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
@@ -201,6 +217,7 @@ internal sealed partial class Simulation : IKernel
     internal MovementProgramRuntime Movement { get; }
     internal LowAltitudeVerbProgramRuntime LowAltitudeVerbs { get; }
     internal MapActivityProgramRuntime MapActivity { get; }
+    internal MapSignalsProgramRuntime MapSignals { get; }
     internal EffectsProgramRuntime Effects { get; }
     internal ProcessProgramRuntime Processes { get; }
     internal GambitProgramRuntime Gambits { get; }
@@ -209,19 +226,20 @@ internal sealed partial class Simulation : IKernel
     internal DegeneracyProgramRuntime Degeneracy { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
-    internal int ProcessSourceCodeId { get; }
-    internal int GambitSourceCodeId { get; }
-    internal int UpkeepSourceCodeId { get; }
-    internal int StartupSourceCodeId { get; }
-    internal int RelationshipSourceCodeId { get; }
-    internal int GeneratorSourceCodeId { get; }
-    internal int PressureSourceCodeId { get; }
-    internal int DegeneracySourceCodeId { get; }
-    internal int PlanningSourceCodeId { get; }
-    internal int MovementSourceCodeId { get; }
-    internal int MapActivitySourceCodeId { get; }
-    internal int LowAltitudeVerbSourceCodeId { get; }
-    internal int EffectsSourceCodeId { get; }
+    internal int ProcessSourceCodeId { get; private set; }
+    internal int GambitSourceCodeId { get; private set; }
+    internal int UpkeepSourceCodeId { get; private set; }
+    internal int StartupSourceCodeId { get; private set; }
+    internal int RelationshipSourceCodeId { get; private set; }
+    internal int GeneratorSourceCodeId { get; private set; }
+    internal int PressureSourceCodeId { get; private set; }
+    internal int DegeneracySourceCodeId { get; private set; }
+    internal int PlanningSourceCodeId { get; private set; }
+    internal int MovementSourceCodeId { get; private set; }
+    internal int MapActivitySourceCodeId { get; private set; }
+    internal int MapSignalsSourceCodeId { get; private set; }
+    internal int LowAltitudeVerbSourceCodeId { get; private set; }
+    internal int EffectsSourceCodeId { get; private set; }
     internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
     public long CurrentVersion => WorldVersion;
@@ -823,6 +841,7 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
         KernelProgramCodes.Planning => PlanningSourceCodeId,
+        KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
         _ => 0,
     };

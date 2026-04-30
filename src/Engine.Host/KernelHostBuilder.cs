@@ -441,6 +441,7 @@ internal sealed class KernelHostBuilder
             codes.PlanningSourceCodeId.Value,
             codes.MovementSourceCodeId.Value,
             codes.MapActivitySourceCodeId.Value,
+            codes.MapSignalsSourceCodeId.Value,
             codes.LowAltitudeVerbSourceCodeId.Value,
             codes.EffectsSourceCodeId.Value);
 

@@ -41,6 +41,7 @@ internal sealed record SimulationOptions
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbItemCapacity { get; init; } = 1024;
     public int MapActivityCellCapacity { get; init; } = 32768;
+    public int MapSignalCellCapacity { get; init; } = 32768;
     public int EffectRuleCapacity { get; init; } = 512;
     public int EntityAttributeCapacity { get; init; } = 512;
     public int AttributeIdCapacity { get; init; } = 1024;
@@ -75,6 +76,7 @@ internal sealed record ProgramEnabledTuningOptions
     public int Movement { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int LowAltitudeVerbs { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int MapActivity { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int MapSignals { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Effects { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Upkeep { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Processes { get; init; } = ProgramEnabledOverrideCodes.Unspecified;

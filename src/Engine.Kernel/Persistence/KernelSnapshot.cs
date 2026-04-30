@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 14;
+    private const int FormatVersion = 15;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -110,6 +110,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.LowAltitudeVerbRuleCapacity);
         writer.Write(options.LowAltitudeVerbItemCapacity);
         writer.Write(options.MapActivityCellCapacity);
+        writer.Write(options.MapSignalCellCapacity);
         writer.Write(options.EffectRuleCapacity);
         writer.Write(options.EntityAttributeCapacity);
         writer.Write(options.AttributeIdCapacity);
@@ -138,6 +139,7 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.PlanningSourceCodeId);
         writer.Write(runtimeCodes.MovementSourceCodeId);
         writer.Write(runtimeCodes.MapActivitySourceCodeId);
+        writer.Write(runtimeCodes.MapSignalsSourceCodeId);
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
         writer.Write(runtimeCodes.EffectsSourceCodeId);
     }
@@ -165,6 +167,7 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.Movement);
         writer.Write(enabled.LowAltitudeVerbs);
         writer.Write(enabled.MapActivity);
+        writer.Write(enabled.MapSignals);
         writer.Write(enabled.Effects);
         writer.Write(enabled.Upkeep);
         writer.Write(enabled.Processes);
@@ -270,6 +273,7 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeVerbRuleCapacity = reader.ReadInt32();
         values.LowAltitudeVerbItemCapacity = reader.ReadInt32();
         values.MapActivityCellCapacity = reader.ReadInt32();
+        values.MapSignalCellCapacity = reader.ReadInt32();
         values.EffectRuleCapacity = reader.ReadInt32();
         values.EntityAttributeCapacity = reader.ReadInt32();
         values.AttributeIdCapacity = reader.ReadInt32();
@@ -298,6 +302,7 @@ internal static class KernelSnapshotOptions
         values.PlanningSourceCodeId = reader.ReadInt32();
         values.MovementSourceCodeId = reader.ReadInt32();
         values.MapActivitySourceCodeId = reader.ReadInt32();
+        values.MapSignalsSourceCodeId = reader.ReadInt32();
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
         values.EffectsSourceCodeId = reader.ReadInt32();
     }
@@ -309,6 +314,7 @@ internal static class KernelSnapshotOptions
         values.MovementProgramEnabled = reader.ReadInt32();
         values.LowAltitudeVerbProgramEnabled = reader.ReadInt32();
         values.MapActivityProgramEnabled = reader.ReadInt32();
+        values.MapSignalsProgramEnabled = reader.ReadInt32();
         values.EffectsProgramEnabled = reader.ReadInt32();
         values.UpkeepProgramEnabled = reader.ReadInt32();
         values.ProcessesProgramEnabled = reader.ReadInt32();
@@ -426,6 +432,7 @@ internal static class KernelSnapshotOptions
             LowAltitudeVerbRuleCapacity = values.LowAltitudeVerbRuleCapacity,
             LowAltitudeVerbItemCapacity = values.LowAltitudeVerbItemCapacity,
             MapActivityCellCapacity = values.MapActivityCellCapacity,
+            MapSignalCellCapacity = values.MapSignalCellCapacity,
             EffectRuleCapacity = values.EffectRuleCapacity,
             EntityAttributeCapacity = values.EntityAttributeCapacity,
             AttributeIdCapacity = values.AttributeIdCapacity,
@@ -456,6 +463,7 @@ internal static class KernelSnapshotOptions
             values.PlanningSourceCodeId,
             values.MovementSourceCodeId,
             values.MapActivitySourceCodeId,
+            values.MapSignalsSourceCodeId,
             values.LowAltitudeVerbSourceCodeId,
             values.EffectsSourceCodeId);
 
@@ -469,6 +477,7 @@ internal static class KernelSnapshotOptions
                     Movement = values.MovementProgramEnabled,
                     LowAltitudeVerbs = values.LowAltitudeVerbProgramEnabled,
                     MapActivity = values.MapActivityProgramEnabled,
+                    MapSignals = values.MapSignalsProgramEnabled,
                     Effects = values.EffectsProgramEnabled,
                     Upkeep = values.UpkeepProgramEnabled,
                     Processes = values.ProcessesProgramEnabled,
@@ -543,6 +552,7 @@ internal static class KernelSnapshotOptions
         public int LowAltitudeVerbRuleCapacity;
         public int LowAltitudeVerbItemCapacity;
         public int MapActivityCellCapacity;
+        public int MapSignalCellCapacity;
         public int EffectRuleCapacity;
         public int EntityAttributeCapacity;
         public int AttributeIdCapacity;
@@ -565,11 +575,13 @@ internal static class KernelSnapshotOptions
         public int PlanningSourceCodeId;
         public int MovementSourceCodeId;
         public int MapActivitySourceCodeId;
+        public int MapSignalsSourceCodeId;
         public int LowAltitudeVerbSourceCodeId;
         public int EffectsSourceCodeId;
         public int MovementProgramEnabled;
         public int LowAltitudeVerbProgramEnabled;
         public int MapActivityProgramEnabled;
+        public int MapSignalsProgramEnabled;
         public int EffectsProgramEnabled;
         public int UpkeepProgramEnabled;
         public int ProcessesProgramEnabled;

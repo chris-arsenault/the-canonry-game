@@ -1026,6 +1026,12 @@ internal sealed partial class WorldState
         return _relationshipKindId[relationshipId];
     }
 
+    public int RelationshipPolarityCode(int relationshipId)
+    {
+        EnsureRelationship(relationshipId);
+        return _relationshipPolarityCode[relationshipId];
+    }
+
     public int RelationshipSourceId(int relationshipId)
     {
         EnsureRelationship(relationshipId);

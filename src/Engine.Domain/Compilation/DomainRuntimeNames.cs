@@ -17,6 +17,7 @@ public static class DomainRuntimeNames
     public const string PlanningSourceCode = "planning";
     public const string MovementSourceCode = "movement";
     public const string MapActivitySourceCode = "map_activity";
+    public const string MapSignalsSourceCode = "map_signals";
     public const string LowAltitudeVerbSourceCode = "low_altitude_verb";
     public const string EffectsSourceCode = "effects";
 }

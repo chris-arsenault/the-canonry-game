@@ -40,6 +40,7 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.PlanningSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MovementSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapActivitySourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.MapSignalsSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode)),
             KernelData = BuildKernelData(config, ids),
@@ -120,7 +121,8 @@ public static partial class DomainCompiler
                 $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
         }
 
-        if (!config.Relationships.Any(relationship =>
+        if (EffectRequiresRelationship(effect.Condition) &&
+            !config.Relationships.Any(relationship =>
                 string.Equals(relationship.Name, effect.RelationshipKind, StringComparison.Ordinal)))
         {
             throw new InvalidOperationException(
@@ -131,7 +133,7 @@ public static partial class DomainCompiler
             ids.KindIdOf(effect.Kind).Value,
             ids.AttributeIdOf(effect.Attribute).Value,
             EffectConditionCode(effect.Condition),
-            ids.RelationshipKindIdOf(effect.RelationshipKind).Value,
+            effect.RelationshipKind is null ? 0 : ids.RelationshipKindIdOf(effect.RelationshipKind).Value,
             EffectDirectionCode(effect.RelationshipDirection),
             PlaneCode(effect.Plane),
             effect.MaxDistance,
@@ -139,6 +141,10 @@ public static partial class DomainCompiler
             effect.MinimumRelationshipStrength,
             effect.DeltaPerTick);
     }
+
+    private static bool EffectRequiresRelationship(EffectCondition condition) =>
+        condition is EffectCondition.RelatedInfluenceAtPhysicalLocation
+            or EffectCondition.RelatedEntityDistance;
 
     private static ProcessProgram BuildProcessProgram(
         DomainConfig config,

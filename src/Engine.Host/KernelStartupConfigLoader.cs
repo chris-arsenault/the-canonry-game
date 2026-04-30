@@ -13,6 +13,8 @@ internal static class KernelStartupConfigLoader
         new("KERNELTUNING.PROGRAMS.LOW_ALTITUDE_VERBS", KernelProgramCodes.LowAltitudeVerbs),
         new("KERNELTUNING.PROGRAMS.MAPACTIVITY", KernelProgramCodes.MapActivity),
         new("KERNELTUNING.PROGRAMS.MAP_ACTIVITY", KernelProgramCodes.MapActivity),
+        new("KERNELTUNING.PROGRAMS.MAPSIGNALS", KernelProgramCodes.MapSignals),
+        new("KERNELTUNING.PROGRAMS.MAP_SIGNALS", KernelProgramCodes.MapSignals),
         new("KERNELTUNING.PROGRAMS.EFFECTS", KernelProgramCodes.Effects),
         new("KERNELTUNING.PROGRAMS.UPKEEP", KernelProgramCodes.Upkeep),
         new("KERNELTUNING.PROGRAMS.PROCESSES", KernelProgramCodes.Processes),
@@ -86,6 +88,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Movement, "movement");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.LowAltitudeVerbs, "lowAltitudeVerbs", "low_altitude_verbs");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapActivity, "mapActivity", "map_activity");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapSignals, "mapSignals", "map_signals");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Effects, "effects");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Processes, "processes");
@@ -377,6 +380,7 @@ internal static class KernelStartupConfigLoader
             KernelProgramCodes.Movement => options with { Movement = code },
             KernelProgramCodes.LowAltitudeVerbs => options with { LowAltitudeVerbs = code },
             KernelProgramCodes.MapActivity => options with { MapActivity = code },
+            KernelProgramCodes.MapSignals => options with { MapSignals = code },
             KernelProgramCodes.Effects => options with { Effects = code },
             KernelProgramCodes.Upkeep => options with { Upkeep = code },
             KernelProgramCodes.Processes => options with { Processes = code },

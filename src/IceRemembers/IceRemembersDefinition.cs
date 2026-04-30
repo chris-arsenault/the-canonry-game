@@ -52,6 +52,7 @@ public static class IceRemembersDefinition
             Pressures = CreatePressures(),
             Degeneracy = IceRemembersDegeneracyDefinition.Create(),
             Effects = CreateEffects(),
+            MapSignals = CreateMapSignals(),
             Lifecycles = CreateLifecycles(),
             Resources = CreateResources(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
@@ -694,8 +695,102 @@ public static class IceRemembersDefinition
             RelationshipStress(kind, attribute, Rel.CorruptedBy, -0.05f, maxDistance: 2),
             RelationshipStress(kind, attribute, Rel.BetrayedBy, -0.045f, maxDistance: 1),
             RelationshipStress(kind, attribute, Rel.WardAgainst, -0.03f, maxDistance: 1),
+            MapSignalEffect(kind, attribute, EffectCondition.MapSupportAtLocation, 0.035f, threshold: 5f),
+            MapSignalEffect(kind, attribute, EffectCondition.MapCrowdingComfort, 0.025f, threshold: 0.5f),
+            MapSignalEffect(kind, attribute, EffectCondition.MapThreatAtLocation, -0.04f, threshold: 4f),
+            MapSignalEffect(kind, attribute, EffectCondition.MapCrowdingPressure, -0.08f, threshold: 0.5f),
         ]);
     }
+
+    private static MapSignalsConfig CreateMapSignals() =>
+        new()
+        {
+            SemanticBaseCapacity = 2f,
+            CrowdingRadius = 1,
+            Terrains =
+            [
+                TerrainSignal(Terrain.Wastes, 0.7f),
+                TerrainSignal(Terrain.Crags, 0.8f),
+                TerrainSignal(Terrain.Tundra, 2.0f),
+                TerrainSignal(Terrain.Ice, 1.0f),
+                TerrainSignal(Terrain.HotSprings, 4.0f),
+                TerrainSignal(Terrain.Shelf, 1.3f),
+                TerrainSignal(Terrain.Reef, 2.5f),
+                TerrainSignal(Terrain.Ocean, 0.6f),
+            ],
+            Kinds =
+            [
+                KindSignal(K.Settlement, Attr.TempHp, radius: 2, capacity: 3.0f, support: 2.5f, threat: 0f,
+                    baseMass: 12f, coverageScale: 0.35f, influenceScale: 0.12f, activityScale: 0.05f, healthScale: 0.08f, attractorRadius: 2),
+                KindSignal(K.Faction, Attr.Cohesion, radius: 2, capacity: 1.0f, support: 1.2f, threat: 0f,
+                    baseMass: 8f, coverageScale: 0.2f, influenceScale: 0.10f, activityScale: 0.04f, healthScale: 0.06f, attractorRadius: 2),
+                KindSignal(K.Penguin, Attr.Vitality, radius: 1, capacity: 0.2f, support: 0.2f, threat: 0f,
+                    baseMass: 2f, coverageScale: 0f, influenceScale: 0.02f, activityScale: 0.02f, healthScale: 0.02f, attractorRadius: 1),
+                KindSignal(K.Artifact, Attr.Condition, radius: 1, capacity: 0.3f, support: 0.4f, threat: 0.2f,
+                    baseMass: 10f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.04f, healthScale: 0.08f, attractorRadius: 2),
+                KindSignal(K.Region, Attr.Stability, radius: 2, capacity: 1.5f, support: 0.3f, threat: 0.3f,
+                    baseMass: 6f, coverageScale: 0.10f, influenceScale: 0.03f, activityScale: 0.02f, healthScale: 0.03f, attractorRadius: 2),
+            ],
+            Relationships =
+            [
+                RelationshipSignal(Rel.AlliedWith, support: 2.0f, threat: 0f),
+                RelationshipSignal(Rel.HomeBase, support: 2.5f, threat: 0f),
+                RelationshipSignal(Rel.Anchored, support: 2.0f, threat: 0f),
+                RelationshipSignal(Rel.ControlledBy, support: 1.2f, threat: 0f),
+                RelationshipSignal(Rel.CleansedBy, support: 1.5f, threat: 0f),
+                RelationshipSignal(Rel.ConduitOf, support: 1.2f, threat: 0f),
+                RelationshipSignal(Rel.RivalOf, support: 0f, threat: 1.5f),
+                RelationshipSignal(Rel.AtWarWith, support: 0f, threat: 3.0f),
+                RelationshipSignal(Rel.CorruptedBy, support: 0f, threat: 2.0f),
+                RelationshipSignal(Rel.BetrayedBy, support: 0f, threat: 1.5f),
+                RelationshipSignal(Rel.WardAgainst, support: 0f, threat: 1.0f),
+            ],
+        };
+
+    private static TerrainMapSignalConfig TerrainSignal(Terrain terrain, float baseCapacity) =>
+        new()
+        {
+            Terrain = TerrainName(terrain),
+            BaseCapacity = baseCapacity,
+        };
+
+    private static KindMapSignalConfig KindSignal(
+        EntityKind kind,
+        Attr healthAttribute,
+        int radius,
+        float capacity,
+        float support,
+        float threat,
+        float baseMass,
+        float coverageScale,
+        float influenceScale,
+        float activityScale,
+        float healthScale,
+        int attractorRadius) =>
+        new()
+        {
+            Kind = kind,
+            HealthAttribute = A(healthAttribute),
+            SignalRadius = radius,
+            CapacityEmission = capacity,
+            SupportEmission = support,
+            ThreatEmission = threat,
+            BaseAttractorMass = baseMass,
+            CoverageAttractorScale = coverageScale,
+            InfluenceAttractorScale = influenceScale,
+            ActivityAttractorScale = activityScale,
+            HealthAttractorScale = healthScale,
+            AttractorRadius = attractorRadius,
+        };
+
+    private static RelationshipMapSignalConfig RelationshipSignal(Rel relationship, float support, float threat) =>
+        new()
+        {
+            RelationshipKind = L(relationship),
+            SignalRadius = 1,
+            SupportEmission = support,
+            ThreatEmission = threat,
+        };
 
     private static AttributeDeltaEffectConfig InfluenceShelter(
         EntityKind kind,
@@ -749,6 +844,22 @@ public static class IceRemembersDefinition
         float deltaPerTick,
         int maxDistance) =>
         RelationshipAttributeDeltaEffect(kind, attribute, relationship, deltaPerTick, maxDistance);
+
+    private static AttributeDeltaEffectConfig MapSignalEffect(
+        EntityKind kind,
+        Attr attribute,
+        EffectCondition condition,
+        float deltaPerTick,
+        float threshold) =>
+        new()
+        {
+            Kind = kind,
+            Attribute = A(attribute),
+            Condition = condition,
+            Plane = PrimaryPlane.Physical,
+            Threshold = threshold,
+            DeltaPerTick = deltaPerTick,
+        };
 
     private static AttributeDeltaEffectConfig RelationshipAttributeDeltaEffect(
         EntityKind kind,

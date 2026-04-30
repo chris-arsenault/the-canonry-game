@@ -164,6 +164,7 @@ public sealed class KernelRuntimeFactory
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Movement, enabled.Movement);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.LowAltitudeVerbs, enabled.LowAltitudeVerbs);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapActivity, enabled.MapActivity);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapSignals, enabled.MapSignals);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Effects, enabled.Effects);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Upkeep, enabled.Upkeep);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Processes, enabled.Processes);

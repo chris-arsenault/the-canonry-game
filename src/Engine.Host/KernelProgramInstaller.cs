@@ -19,6 +19,7 @@ internal static class KernelProgramInstaller
         InstallMovement(context, programs.Movement);
         InstallLowAltitudeVerbs(context, programs.LowAltitudeVerbs);
         InstallMapActivity(context, programs.MapActivity);
+        InstallMapSignals(context, programs.MapSignals);
         InstallEffects(context, programs.Effects);
         InstallUpkeep(context, programs.Upkeep);
         InstallProcesses(context, programs.Processes);
@@ -37,6 +38,9 @@ internal static class KernelProgramInstaller
         context.SetProgramEnabled(
             KernelProgramCodes.MapActivity,
             programConfig.IsEnabled(KernelProgramCodes.MapActivity, programs.MapActivity.EnabledByDefault));
+        context.SetProgramEnabled(
+            KernelProgramCodes.MapSignals,
+            programConfig.IsEnabled(KernelProgramCodes.MapSignals, programs.MapSignals.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Effects,
             programConfig.IsEnabled(KernelProgramCodes.Effects, programs.Effects.EnabledByDefault));
@@ -80,6 +84,41 @@ internal static class KernelProgramInstaller
     private static void InstallMapActivity(KernelConfigurationContext context, MapActivityProgram program)
     {
         context.ConfigureMapActivity(program.PresenceHeat);
+    }
+
+    private static void InstallMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
+    {
+        context.ConfigureMapSignals(program.SemanticBaseCapacity, program.CrowdingRadius);
+        foreach (var terrain in program.Terrains)
+        {
+            context.RegisterTerrainMapSignal(terrain.TerrainId, terrain.BaseCapacity);
+        }
+
+        foreach (var kind in program.Kinds)
+        {
+            context.RegisterKindMapSignal(
+                kind.KindId,
+                kind.HealthAttributeId,
+                kind.SignalRadius,
+                kind.CapacityEmission,
+                kind.SupportEmission,
+                kind.ThreatEmission,
+                kind.BaseAttractorMass,
+                kind.CoverageAttractorScale,
+                kind.InfluenceAttractorScale,
+                kind.ActivityAttractorScale,
+                kind.HealthAttractorScale,
+                kind.AttractorRadius);
+        }
+
+        foreach (var relationship in program.Relationships)
+        {
+            context.RegisterRelationshipMapSignal(
+                relationship.RelationshipKindId,
+                relationship.SignalRadius,
+                relationship.SupportEmission,
+                relationship.ThreatEmission);
+        }
     }
 
     private static void InstallLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)

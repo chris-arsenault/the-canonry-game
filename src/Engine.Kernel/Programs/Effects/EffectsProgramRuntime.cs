@@ -43,7 +43,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
         ValidatePositive(conditionCode);
-        ValidatePositive(relationshipKindId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
         ValidatePositive(relationshipDirectionCode);
         ValidatePositive(planeCode);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxDistance);
@@ -93,7 +93,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 continue;
             }
 
-            var evidence = EffectEvidence(simulation.World, entityId, rule);
+            var evidence = EffectEvidence(simulation, entityId, rule);
             if (evidence <= 0f)
             {
                 continue;
@@ -107,16 +107,44 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         }
     }
 
-    private float EffectEvidence(WorldState world, int entityId, int rule)
+    private float EffectEvidence(Simulation simulation, int entityId, int rule)
     {
         var conditionCode = _attributeDeltaConditionCodes[rule];
         if (conditionCode == EffectConditionCodes.RelatedInfluenceAtPhysicalLocation)
         {
-            return RelatedInfluenceEvidence(world, entityId, rule);
+            return RelatedInfluenceEvidence(simulation.World, entityId, rule);
         }
 
-        return conditionCode == EffectConditionCodes.RelatedEntityDistance
-            ? RelatedDistanceEvidence(world, entityId, rule)
+        if (conditionCode == EffectConditionCodes.RelatedEntityDistance)
+        {
+            return RelatedDistanceEvidence(simulation.World, entityId, rule);
+        }
+
+        if (conditionCode == EffectConditionCodes.MapSupportAtLocation)
+        {
+            return ThresholdEvidence(
+                simulation.MapSignals.EntitySupport(entityId, _attributeDeltaPlaneCodes[rule]),
+                _attributeDeltaThresholds[rule]);
+        }
+
+        if (conditionCode == EffectConditionCodes.MapThreatAtLocation)
+        {
+            return ThresholdEvidence(
+                simulation.MapSignals.EntityThreat(entityId, _attributeDeltaPlaneCodes[rule]),
+                _attributeDeltaThresholds[rule]);
+        }
+
+        if (conditionCode == EffectConditionCodes.MapCrowdingPressure)
+        {
+            return ThresholdEvidence(
+                simulation.MapSignals.EntityCrowdingPressure(entityId, _attributeDeltaPlaneCodes[rule]),
+                _attributeDeltaThresholds[rule]);
+        }
+
+        return conditionCode == EffectConditionCodes.MapCrowdingComfort
+            ? ThresholdEvidence(
+                simulation.MapSignals.EntityCrowdingComfort(entityId, _attributeDeltaPlaneCodes[rule]),
+                _attributeDeltaThresholds[rule])
             : 0f;
     }
 

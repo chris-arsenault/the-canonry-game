@@ -31,6 +31,7 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId PlanningSourceCodeId,
     SourceCodeId MovementSourceCodeId,
     SourceCodeId MapActivitySourceCodeId,
+    SourceCodeId MapSignalsSourceCodeId,
     SourceCodeId LowAltitudeVerbSourceCodeId,
     SourceCodeId EffectsSourceCodeId);
 

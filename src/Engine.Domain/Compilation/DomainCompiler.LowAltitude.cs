@@ -70,6 +70,91 @@ public static partial class DomainCompiler
 
     private static MapActivityProgram BuildMapActivityProgram() => new();
 
+    private static MapSignalsProgram BuildMapSignalsProgram(DomainConfig config, DomainIdRegistry ids)
+    {
+        return new MapSignalsProgram
+        {
+            SemanticBaseCapacity = config.MapSignals.SemanticBaseCapacity,
+            CrowdingRadius = config.MapSignals.CrowdingRadius,
+            Terrains = CompileTerrainMapSignals(config, ids),
+            Kinds = CompileKindMapSignals(config, ids),
+            Relationships = CompileRelationshipMapSignals(config, ids),
+        };
+    }
+
+    private static List<TerrainMapSignalRule> CompileTerrainMapSignals(DomainConfig config, DomainIdRegistry ids)
+    {
+        var terrainRules = new List<TerrainMapSignalRule>();
+        foreach (var terrain in config.MapSignals.Terrains)
+        {
+            if (!config.Terrains.Any(candidate => string.Equals(candidate.Name, terrain.Terrain, StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    $"Map signal terrain references unknown terrain '{terrain.Terrain}'.");
+            }
+
+            terrainRules.Add(new TerrainMapSignalRule(
+                ids.TerrainIdOf(terrain.Terrain).Value,
+                terrain.BaseCapacity));
+        }
+
+        return terrainRules;
+    }
+
+    private static List<KindMapSignalRule> CompileKindMapSignals(DomainConfig config, DomainIdRegistry ids)
+    {
+        var kindRules = new List<KindMapSignalRule>();
+        foreach (var kind in config.MapSignals.Kinds)
+        {
+            EnsureKind(config, kind.Kind, "Map signal kind");
+            var healthAttribute = kind.HealthAttribute ?? config.Kinds[kind.Kind].HealthAttribute;
+            var healthAttributeId = 0;
+            if (!string.IsNullOrWhiteSpace(healthAttribute))
+            {
+                EnsureKindAttribute(config, kind.Kind, healthAttribute, "Map signal health attribute");
+                healthAttributeId = ids.AttributeIdOf(healthAttribute).Value;
+            }
+
+            kindRules.Add(new KindMapSignalRule(
+                ids.KindIdOf(kind.Kind).Value,
+                healthAttributeId,
+                kind.SignalRadius,
+                kind.CapacityEmission,
+                kind.SupportEmission,
+                kind.ThreatEmission,
+                kind.BaseAttractorMass,
+                kind.CoverageAttractorScale,
+                kind.InfluenceAttractorScale,
+                kind.ActivityAttractorScale,
+                kind.HealthAttractorScale,
+                kind.AttractorRadius));
+        }
+
+        return kindRules;
+    }
+
+    private static List<RelationshipMapSignalRule> CompileRelationshipMapSignals(DomainConfig config, DomainIdRegistry ids)
+    {
+        var relationshipRules = new List<RelationshipMapSignalRule>();
+        foreach (var relationship in config.MapSignals.Relationships)
+        {
+            if (!config.Relationships.Any(candidate =>
+                    string.Equals(candidate.Name, relationship.RelationshipKind, StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    $"Map signal relationship references unknown relationship '{relationship.RelationshipKind}'.");
+            }
+
+            relationshipRules.Add(new RelationshipMapSignalRule(
+                ids.RelationshipKindIdOf(relationship.RelationshipKind).Value,
+                relationship.SignalRadius,
+                relationship.SupportEmission,
+                relationship.ThreatEmission));
+        }
+
+        return relationshipRules;
+    }
+
     private static List<int> CompileTerrainIds(IReadOnlySet<string>? terrains, DomainIdRegistry ids)
     {
         if (terrains is null || terrains.Count == 0)

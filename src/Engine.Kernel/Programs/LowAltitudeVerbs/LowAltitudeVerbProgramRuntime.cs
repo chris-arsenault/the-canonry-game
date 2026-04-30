@@ -634,7 +634,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var s = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
         var targetKindId = world.EntityKindId(targetEntityId);
         var affordance = GeneratorAffordanceScore(simulation, world.EntityKindId(entityId), targetKindId);
-        var weight = LocationWeight(simulation, rule, planeCode, q, r, tick, affordance);
+        var weight = LocationWeight(simulation, rule, planeCode, q, r, tick, affordance, targetEntityId);
         weight += RelationshipAffinityWeight(world, entityId, targetEntityId, rule);
         totalWeight += weight;
         if (simulation.NextFloat() * totalWeight <= weight)
@@ -697,20 +697,29 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int q,
         int r,
         int tick,
-        float generatorAffordance)
+        float generatorAffordance,
+        int targetEntityId = 0)
     {
         var visits = simulation.MapActivity.VisitCount(planeCode, q, r);
         var lastVisited = simulation.MapActivity.LastVisitedTick(planeCode, q, r);
         var heat = simulation.MapActivity.Heat(planeCode, q, r);
         var occupancy = simulation.MapActivity.CurrentOccupancy(planeCode, q, r);
+        var crowdingPressure = simulation.MapSignals.CrowdingPressureAt(planeCode, q, r);
+        var attractorMass = simulation.MapSignals.AttractorMassAt(planeCode, q, r);
+        if (targetEntityId > 0)
+        {
+            attractorMass += simulation.MapSignals.EntityAttractorMass(targetEntityId, planeCode);
+        }
+
         var staleness = lastVisited <= 0 ? 1f : Clamp01((tick - lastVisited) / 120f);
         var heatScore = Clamp01(heat / 100f);
+        var attractorScore = Clamp01(attractorMass / 100f);
         var weight = Data.Weight(rule);
         weight += Data.ExploreWeight(rule) / (1f + visits);
         weight += Data.StalenessWeight(rule) * staleness;
-        weight += Data.HotspotWeight(rule) * heatScore;
+        weight += Data.HotspotWeight(rule) * (heatScore + attractorScore);
         weight += Data.GeneratorAffordanceWeight(rule) * generatorAffordance;
-        weight -= Data.CrowdingWeight(rule) * occupancy;
+        weight -= Data.CrowdingWeight(rule) * (occupancy + crowdingPressure);
         return weight <= 0.01f ? 0.01f : weight;
     }
 

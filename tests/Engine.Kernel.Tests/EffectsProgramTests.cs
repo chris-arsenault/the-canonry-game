@@ -29,7 +29,8 @@ public sealed class EffectsProgramTests
                 PlanningSourceCodeId: 18,
                 MovementSourceCodeId: 19,
                 MapActivitySourceCodeId: 20,
-                LowAltitudeVerbSourceCodeId: 21,
+                MapSignalsSourceCodeId: 21,
+                LowAltitudeVerbSourceCodeId: 22,
                 EffectsSourceCodeId: effectsSourceCodeId),
         });
 

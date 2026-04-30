@@ -197,6 +197,53 @@ internal sealed class KernelConfigurationContext
         _kernel.MapActivity.Data.PresenceHeat = presenceHeat;
     }
 
+    public void ConfigureMapSignals(float semanticBaseCapacity, int crowdingRadius)
+    {
+        _kernel.MapSignals.Data.SemanticBaseCapacity = semanticBaseCapacity;
+        _kernel.MapSignals.Data.CrowdingRadius = Math.Max(0, crowdingRadius);
+    }
+
+    public void RegisterTerrainMapSignal(int terrainId, float baseCapacity) =>
+        _kernel.MapSignals.RegisterTerrainCapacity(terrainId, baseCapacity);
+
+    public void RegisterKindMapSignal(
+        int kindId,
+        int healthAttributeId,
+        int signalRadius,
+        float capacityEmission,
+        float supportEmission,
+        float threatEmission,
+        float baseAttractorMass,
+        float coverageAttractorScale,
+        float influenceAttractorScale,
+        float activityAttractorScale,
+        float healthAttractorScale,
+        int attractorRadius) =>
+        _kernel.MapSignals.RegisterKindSignal(
+            kindId,
+            healthAttributeId,
+            signalRadius,
+            capacityEmission,
+            supportEmission,
+            threatEmission,
+            baseAttractorMass,
+            coverageAttractorScale,
+            influenceAttractorScale,
+            activityAttractorScale,
+            healthAttractorScale,
+            attractorRadius);
+
+    public void RegisterRelationshipMapSignal(
+        int relationshipKindId,
+        int signalRadius,
+        float supportEmission,
+        float threatEmission) =>
+        _kernel.MapSignals.RegisterRelationshipSignal(
+            relationshipKindId,
+            signalRadius,
+            supportEmission,
+            threatEmission);
+
     public int RegisterProcessAttributeObjective(
         int kindId,
         AttributeRuntimeId attributeId,

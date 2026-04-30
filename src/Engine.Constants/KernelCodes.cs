@@ -164,6 +164,10 @@ public static class EffectConditionCodes
 {
     public const int RelatedInfluenceAtPhysicalLocation = 1;
     public const int RelatedEntityDistance = 2;
+    public const int MapSupportAtLocation = 3;
+    public const int MapThreatAtLocation = 4;
+    public const int MapCrowdingPressure = 5;
+    public const int MapCrowdingComfort = 6;
 }
 
 public static class RelationshipMatchDirectionCodes
@@ -269,6 +273,7 @@ public static class KernelProgramCodes
     public const int MapActivity = 10;
     public const int LowAltitudeVerbs = 11;
     public const int Effects = 12;
+    public const int MapSignals = 13;
 }
 
 public static class LowAltitudeVerbTargetModeCodes

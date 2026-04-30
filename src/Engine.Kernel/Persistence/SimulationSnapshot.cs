@@ -15,6 +15,7 @@ internal sealed partial class Simulation
         MovementProgramSnapshot.Write(writer, Movement);
         LowAltitudeVerbProgramSnapshot.Write(writer, LowAltitudeVerbs);
         MapActivityProgramSnapshot.Write(writer, MapActivity);
+        MapSignalsProgramSnapshot.Write(writer, MapSignals);
         EffectsProgramSnapshot.Write(writer, Effects);
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
@@ -36,6 +37,7 @@ internal sealed partial class Simulation
         MovementProgramSnapshot.Read(reader, Movement);
         LowAltitudeVerbProgramSnapshot.Read(reader, LowAltitudeVerbs);
         MapActivityProgramSnapshot.Read(reader, MapActivity);
+        MapSignalsProgramSnapshot.Read(reader, MapSignals);
         EffectsProgramSnapshot.Read(reader, Effects);
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);

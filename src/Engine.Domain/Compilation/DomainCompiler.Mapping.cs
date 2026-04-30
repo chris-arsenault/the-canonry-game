@@ -27,6 +27,10 @@ public static partial class DomainCompiler
         EffectCondition.RelatedInfluenceAtPhysicalLocation =>
             EffectConditionCodes.RelatedInfluenceAtPhysicalLocation,
         EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
+        EffectCondition.MapSupportAtLocation => EffectConditionCodes.MapSupportAtLocation,
+        EffectCondition.MapThreatAtLocation => EffectConditionCodes.MapThreatAtLocation,
+        EffectCondition.MapCrowdingPressure => EffectConditionCodes.MapCrowdingPressure,
+        EffectCondition.MapCrowdingComfort => EffectConditionCodes.MapCrowdingComfort,
         _ => throw new InvalidOperationException($"Unsupported effect condition '{condition}'."),
     };
 
@@ -260,6 +264,17 @@ public static partial class DomainCompiler
         if (!config.Kinds.ContainsKey(kind))
         {
             throw new InvalidOperationException($"{context} references unknown kind '{kind}'.");
+        }
+    }
+
+    private static void EnsureKindAttribute(DomainConfig config, EntityKind kind, string attributeName, string context)
+    {
+        EnsureKind(config, kind, context);
+        if (!config.Kinds[kind].Attributes.Any(attribute =>
+                string.Equals(attribute.Name, attributeName, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"{context} for kind '{kind}' references unknown attribute '{attributeName}'.");
         }
     }
 

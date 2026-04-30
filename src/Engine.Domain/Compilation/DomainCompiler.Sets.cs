@@ -17,6 +17,7 @@ public static partial class DomainCompiler
             Movement = BuildMovementProgram(config, ids),
             LowAltitudeVerbs = BuildLowAltitudeVerbProgram(config, ids),
             MapActivity = BuildMapActivityProgram(),
+            MapSignals = BuildMapSignalsProgram(config, ids),
             Effects = BuildEffectsProgram(config, ids),
             Upkeep = BuildUpkeepProgram(config, ids),
             Processes = BuildProcessProgram(config, ids),

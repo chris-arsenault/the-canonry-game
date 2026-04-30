@@ -5,6 +5,7 @@ public sealed class KernelProgramSet
     public required MovementProgram Movement { get; init; }
     public required LowAltitudeVerbProgram LowAltitudeVerbs { get; init; }
     public required MapActivityProgram MapActivity { get; init; }
+    public required MapSignalsProgram MapSignals { get; init; }
     public required EffectsProgram Effects { get; init; }
     public required UpkeepProgram Upkeep { get; init; }
     public required ProcessProgram Processes { get; init; }

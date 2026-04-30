@@ -43,6 +43,13 @@ public sealed class DomainConfig
     /// <summary>Relationship/map-derived effects applied by the kernel effects program.</summary>
     public EffectsConfig Effects { get; init; } = new();
 
+    /// <summary>
+    /// Dynamic spatial signals derived from terrain, influence, coverage, activity,
+    /// occupancy, and relationships. These are consumed by effects and
+    /// low-altitude verbs; they do not create or destroy graph structure.
+    /// </summary>
+    public MapSignalsConfig MapSignals { get; init; } = new();
+
     /// <summary>Lifecycle drain configuration per kind.</summary>
     public required IReadOnlyDictionary<EntityKind, LifecycleConfig> Lifecycles { get; init; }
 
@@ -332,6 +339,45 @@ public enum DegeneracySeverity
     Critical,
 }
 
+public sealed class MapSignalsConfig
+{
+    public float SemanticBaseCapacity { get; init; } = 2f;
+    public int CrowdingRadius { get; init; } = 1;
+    public IReadOnlyList<TerrainMapSignalConfig> Terrains { get; init; } = [];
+    public IReadOnlyList<KindMapSignalConfig> Kinds { get; init; } = [];
+    public IReadOnlyList<RelationshipMapSignalConfig> Relationships { get; init; } = [];
+}
+
+public sealed class TerrainMapSignalConfig
+{
+    public required string Terrain { get; init; }
+    public required float BaseCapacity { get; init; }
+}
+
+public sealed class KindMapSignalConfig
+{
+    public required EntityKind Kind { get; init; }
+    public string? HealthAttribute { get; init; }
+    public int SignalRadius { get; init; } = 1;
+    public float CapacityEmission { get; init; }
+    public float SupportEmission { get; init; }
+    public float ThreatEmission { get; init; }
+    public float BaseAttractorMass { get; init; } = 1f;
+    public float CoverageAttractorScale { get; init; }
+    public float InfluenceAttractorScale { get; init; }
+    public float ActivityAttractorScale { get; init; }
+    public float HealthAttractorScale { get; init; }
+    public int AttractorRadius { get; init; } = 1;
+}
+
+public sealed class RelationshipMapSignalConfig
+{
+    public required string RelationshipKind { get; init; }
+    public int SignalRadius { get; init; } = 1;
+    public float SupportEmission { get; init; }
+    public float ThreatEmission { get; init; }
+}
+
 public sealed class EffectsConfig
 {
     public IReadOnlyList<AttributeDeltaEffectConfig> AttributeDeltaEffects { get; init; } = [];
@@ -346,7 +392,7 @@ public sealed class AttributeDeltaEffectConfig
     public required EntityKind Kind { get; init; }
     public required string Attribute { get; init; }
     public required EffectCondition Condition { get; init; }
-    public required string RelationshipKind { get; init; }
+    public string? RelationshipKind { get; init; }
     public EffectRelationshipDirection RelationshipDirection { get; init; } =
         EffectRelationshipDirection.Either;
     public PrimaryPlane Plane { get; init; } = PrimaryPlane.Physical;
@@ -360,6 +406,10 @@ public enum EffectCondition
 {
     RelatedInfluenceAtPhysicalLocation,
     RelatedEntityDistance,
+    MapSupportAtLocation,
+    MapThreatAtLocation,
+    MapCrowdingPressure,
+    MapCrowdingComfort,
 }
 
 public enum EffectRelationshipDirection

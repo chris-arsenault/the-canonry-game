@@ -104,6 +104,7 @@ public sealed class KernelHostBuilderTests
         Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Movement));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapActivity));
+        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapSignals));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Effects));
         Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Processes));
         Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Gambits));
