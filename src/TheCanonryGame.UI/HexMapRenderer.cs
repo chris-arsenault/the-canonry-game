@@ -74,7 +74,16 @@ public partial class HexMapRenderer : Node2D
 
             if (ShowRegionBorders)
             {
+                DrawSubdivisionBorders(
+                    (cell, neighbor) => cell.ContinentId != neighbor.ContinentId,
+                    new Color(UiTokens.Aurora.R, UiTokens.Aurora.G, UiTokens.Aurora.B, 0.85f),
+                    4.5f);
+                DrawSubdivisionBorders(
+                    (cell, neighbor) => cell.SuperregionId != neighbor.SuperregionId,
+                    new Color(UiTokens.Gilt.R, UiTokens.Gilt.G, UiTokens.Gilt.B, 0.7f),
+                    3.2f);
                 DrawRegionBorders();
+                DrawSubdivisionLabels();
             }
         }
         else
@@ -349,6 +358,100 @@ public partial class HexMapRenderer : Node2D
                 DrawLine(a, b, borderColor, borderWidth, antialiased: true);
             }
         }
+    }
+
+    private void DrawSubdivisionBorders(
+        Func<HexProjection, HexProjection, bool> isBoundary,
+        Color borderColor,
+        float borderWidth)
+    {
+        if (_map is null) return;
+
+        foreach (var cell in _map.HexesById.Values)
+        {
+            var center = HexToPixel(cell.Coord);
+            var points = GetHexPoints(center);
+
+            for (var d = 0; d < 6; d++)
+            {
+                var neighborCoord = cell.Coord.Neighbor(d);
+                if (!_map.TryGetHex(neighborCoord, out var neighbor))
+                {
+                    continue;
+                }
+
+                if (!IsCanonicalEdgeOwner(cell.Coord, neighborCoord)) continue;
+                if (!isBoundary(cell, neighbor)) continue;
+
+                var edgeIdx = (6 - d) % 6;
+                var a = points[edgeIdx];
+                var b = points[(edgeIdx + 1) % 6];
+                DrawLine(a, b, borderColor, borderWidth, antialiased: true);
+            }
+        }
+    }
+
+    private void DrawSubdivisionLabels()
+    {
+        if (_map is null) return;
+
+        DrawSubdivisionLabelGroups(
+            ProjectionSymbolKind.Continent,
+            cell => cell.ContinentId,
+            fontSize: 34,
+            minCells: 80,
+            color: new Color(UiTokens.Aurora.R, UiTokens.Aurora.G, UiTokens.Aurora.B, 0.34f));
+        DrawSubdivisionLabelGroups(
+            ProjectionSymbolKind.Superregion,
+            cell => cell.SuperregionId,
+            fontSize: 20,
+            minCells: 36,
+            color: new Color(UiTokens.Gilt.R, UiTokens.Gilt.G, UiTokens.Gilt.B, 0.58f));
+    }
+
+    private void DrawSubdivisionLabelGroups(
+        ProjectionSymbolKind symbolKind,
+        Func<HexProjection, int> idSelector,
+        int fontSize,
+        int minCells,
+        Color color)
+    {
+        if (_map is null) return;
+
+        foreach (var group in _map.HexesById.Values.GroupBy(idSelector).Where(group => group.Key > 0))
+        {
+            var cells = group.ToArray();
+            if (cells.Length < minCells)
+            {
+                continue;
+            }
+
+            var center = AverageHexCenter(cells);
+            var text = ProjectionDisplay.DisplayName(_symbols, symbolKind, group.Key, $"{symbolKind} {group.Key}");
+            DrawCenteredMapLabel(center, text, fontSize, color);
+        }
+    }
+
+    private Vector2 AverageHexCenter(IEnumerable<HexProjection> cells)
+    {
+        var total = Vector2.Zero;
+        var count = 0;
+        foreach (var cell in cells)
+        {
+            total += HexToPixel(cell.Coord);
+            count++;
+        }
+
+        return count == 0 ? Vector2.Zero : total / count;
+    }
+
+    private void DrawCenteredMapLabel(Vector2 center, string text, int fontSize, Color color)
+    {
+        var width = Mathf.Max(HexSize * 12f, text.Length * fontSize * 0.75f);
+        var origin = center - new Vector2(width / 2f, -fontSize / 2f);
+        var shadow = new Color(UiTokens.Basalt.R, UiTokens.Basalt.G, UiTokens.Basalt.B, color.A * 0.75f);
+        DrawString(UiTheme.DisplayFont, origin + new Vector2(2f, 2f), text, HorizontalAlignment.Center, width, fontSize, shadow);
+        DrawString(UiTheme.DisplayFont, origin, text, HorizontalAlignment.Center, width, fontSize, color);
     }
 
     private static bool IsCanonicalEdgeOwner(HexCoord self, HexCoord neighbor)

@@ -4,6 +4,7 @@ using Engine.Domain;
 using Engine.Domain.Compilation;
 using Engine.Domain.Startup;
 using Engine.Graph;
+using Engine.Projection;
 
 internal static class DomainStartupSeedInstaller
 {
@@ -44,12 +45,25 @@ internal static class DomainStartupSeedInstaller
         ArgumentNullException.ThrowIfNull(seed);
 
         var entityIds = BuildEntityIdMap(seed);
+        RegisterMapSubdivisionSymbols(context, seed);
         RegisterEntityNames(context, seed, entityIds);
         SeedEntities(context, seed, entityIds);
         SeedCells(context, seed, entityIds);
         SeedResources(context, seed);
         SeedAttributes(context, seed, entityIds);
         SeedRelationships(context, seed, entityIds);
+    }
+
+    private static void RegisterMapSubdivisionSymbols(KernelStartupContext context, DomainStartupSeed seed)
+    {
+        foreach (var subdivision in seed.MapSubdivisions)
+        {
+            context.Symbols.RegisterSymbol(
+                ToProjectionSymbolKind(subdivision.Level),
+                subdivision.Id,
+                subdivision.StableName,
+                subdivision.DisplayName);
+        }
     }
 
     private static void RegisterEntityNames(
@@ -97,7 +111,9 @@ internal static class DomainStartupSeedInstaller
                 cell.Q,
                 cell.R,
                 context.DomainIds.TerrainIdOf(cell.Terrain).Value,
-                ResolveOptionalEntityId(entityIds, cell.OwnerSeedEntityId));
+                ResolveOptionalEntityId(entityIds, cell.OwnerSeedEntityId),
+                cell.SuperregionId,
+                cell.ContinentId);
         }
     }
 
@@ -204,4 +220,12 @@ internal static class DomainStartupSeedInstaller
     }
 
     private static int PolarityCode(RelationshipPolarity polarity) => (int)polarity;
+
+    private static ProjectionSymbolKind ToProjectionSymbolKind(DomainMapSubdivisionLevel level) =>
+        level switch
+        {
+            DomainMapSubdivisionLevel.Continent => ProjectionSymbolKind.Continent,
+            DomainMapSubdivisionLevel.Superregion => ProjectionSymbolKind.Superregion,
+            _ => throw new ArgumentOutOfRangeException(nameof(level), level, "Unknown map subdivision level."),
+        };
 }

@@ -282,6 +282,10 @@ public sealed class KernelHostBuilderTests
 
         Assert.Equal(startupSeed.Cells.Count, map.HexesById.Count);
         Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
+        Assert.True(host.Symbols.TryResolve(ProjectionSymbolKind.Continent, 1, out var continentSymbol));
+        Assert.Equal("The Near Shelf", continentSymbol.DisplayName);
+        Assert.True(host.Symbols.TryResolve(ProjectionSymbolKind.Superregion, 21, out var superregionSymbol));
+        Assert.Equal("Farwake Reach", superregionSymbol.DisplayName);
 
         var frosthavenSeed = startupSeed.Entities.Single(entity => entity.DisplayName == "Frosthaven");
         var frosthavenEntityId = StartupEntityId(startupSeed, frosthavenSeed.SeedEntityId);

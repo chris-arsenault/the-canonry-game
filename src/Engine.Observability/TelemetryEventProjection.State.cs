@@ -98,6 +98,8 @@ internal sealed class ObservedMapCellProjection(
     ObservedMapCellKey key,
     int terrainId,
     int ownerEntityId,
+    int superregionId,
+    int continentId,
     int lastUpdatedTick,
     long worldVersion)
 {
@@ -106,6 +108,10 @@ internal sealed class ObservedMapCellProjection(
     public int TerrainId { get; } = terrainId;
 
     public int OwnerEntityId { get; } = ownerEntityId;
+
+    public int SuperregionId { get; } = superregionId;
+
+    public int ContinentId { get; } = continentId;
 
     public int LastUpdatedTick { get; } = lastUpdatedTick;
 

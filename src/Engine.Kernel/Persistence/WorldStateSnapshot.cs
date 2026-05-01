@@ -90,7 +90,9 @@ internal sealed partial class WorldState
                     r,
                     context.SourceCodeId,
                     CellTerrainId(q, r),
-                    CoverageOwnerAt(q, r))),
+                    CoverageOwnerAt(q, r),
+                    CellSuperregionId(q, r),
+                    CellContinentId(q, r))),
                     context);
             }
         }

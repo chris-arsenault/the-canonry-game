@@ -152,8 +152,13 @@ public partial class HexTooltipPanel : PanelContainer
 
         var terrain = FormatTerrain(cell);
         var owner = FormatOwner(cell);
+        var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
+        var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
         var resourceLines = FormatResourceLines(coord);
-        return $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}\n{resourceLines}";
+        return
+            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}\n" +
+            $"{continent}   {superregion}\n" +
+            resourceLines;
     }
 
     private string FormatTerrain(HexProjection cell) =>
@@ -162,6 +167,9 @@ public partial class HexTooltipPanel : PanelContainer
             ProjectionSymbolKind.Terrain,
             cell.TerrainId,
             $"Terrain {cell.TerrainId}");
+
+    private string FormatSubdivision(ProjectionSymbolKind kind, int id) =>
+        ProjectionDisplay.DisplayName(_symbols, kind, id, $"{kind} {id}");
 
     private string FormatOwner(HexProjection cell)
     {

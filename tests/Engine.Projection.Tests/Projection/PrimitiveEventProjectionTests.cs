@@ -50,7 +50,9 @@ public sealed class PrimitiveEventProjectionTests
             R: -1,
             SourceCodeId: 5,
             TerrainId: 10,
-            OwnerEntityId: 100))));
+            OwnerEntityId: 100,
+            SuperregionId: 2,
+            ContinentId: 1))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -60,13 +62,17 @@ public sealed class PrimitiveEventProjectionTests
             PreviousTerrainId: 10,
             CurrentTerrainId: 11,
             PreviousOwnerEntityId: 100,
-            CurrentOwnerEntityId: 200))));
+            CurrentOwnerEntityId: 200,
+            SuperregionId: 2,
+            ContinentId: 1))));
 
         pump.DrainAvailable();
 
         Assert.True(projection.TryGetHex(new HexCoord(1, -1), out var cell));
         Assert.Equal(11, cell.TerrainId);
         Assert.Equal(200, cell.OwnerEntityId);
+        Assert.Equal(2, cell.SuperregionId);
+        Assert.Equal(1, cell.ContinentId);
         Assert.Equal(2, cell.Tick);
         Assert.Equal(2, cell.WorldVersion);
     }
@@ -88,7 +94,9 @@ public sealed class PrimitiveEventProjectionTests
             R: 0,
             SourceCodeId: 5,
             TerrainId: 10,
-            OwnerEntityId: 100))));
+            OwnerEntityId: 100,
+            SuperregionId: 3,
+            ContinentId: 1))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             Tick: 1,
             WorldVersion: 2,

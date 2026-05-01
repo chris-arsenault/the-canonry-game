@@ -33,16 +33,20 @@ internal sealed class KernelStartupContext
         int q,
         int r,
         int terrainId,
-        int ownerEntityId) =>
-        _kernel.SeedCell(q, r, terrainId, ownerEntityId);
+        int ownerEntityId,
+        int superregionId = 0,
+        int continentId = 0) =>
+        _kernel.SeedCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
 
     public void SeedCell(
         int q,
         int r,
         int terrainId,
         int ownerEntityId,
-        ReadOnlySpan<CellResourceSeed> resources) =>
-        _kernel.SeedCell(q, r, terrainId, ownerEntityId, resources);
+        ReadOnlySpan<CellResourceSeed> resources,
+        int superregionId = 0,
+        int continentId = 0) =>
+        _kernel.SeedCell(q, r, terrainId, ownerEntityId, resources, superregionId, continentId);
 
     public void SeedEntity(
         int entityId,

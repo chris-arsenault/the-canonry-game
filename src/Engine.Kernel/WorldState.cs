@@ -11,6 +11,8 @@ internal sealed partial class WorldState
     private readonly PrimitiveFloatTable _attributes;
     private readonly PrimitiveFloatTable _resources;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
+    private readonly PrimitiveIntTable _mapCellSuperregionIds;
+    private readonly PrimitiveIntTable _mapCellContinentIds;
     private readonly MapLayerSet _mapLayers;
     private readonly KernelDataSet _kernelData;
     private bool[] _entityAllocated = [];
@@ -77,6 +79,8 @@ internal sealed partial class WorldState
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _resources = new PrimitiveFloatTable(options.ResourceCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
+        _mapCellSuperregionIds = new PrimitiveIntTable(options.MapCellCapacity);
+        _mapCellContinentIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapLayers = new MapLayerSet(options.EntityCapacity, options.MapCellCapacity, options.MapInfluenceCapacity);
         InitializeEntityStorage(options);
         InitializeRelationshipStorage(options);
@@ -168,7 +172,7 @@ internal sealed partial class WorldState
     public void SetCell(int q, int r, int terrainId)
     {
         ValidatePositive(terrainId);
-        WriteCell(q, r, terrainId, CoverageOwnerAt(q, r));
+        WriteCell(q, r, terrainId, CoverageOwnerAt(q, r), CellSuperregionId(q, r), CellContinentId(q, r));
     }
 
     public bool CellIsKnown(int q, int r)
@@ -184,7 +188,7 @@ internal sealed partial class WorldState
     public void SetCellTerrain(int q, int r, int terrainId)
     {
         ValidatePositive(terrainId);
-        WriteCell(q, r, terrainId, CoverageOwnerAt(q, r));
+        WriteCell(q, r, terrainId, CoverageOwnerAt(q, r), CellSuperregionId(q, r), CellContinentId(q, r));
     }
 
     public void SetCellTerrain(int q, int r, int terrainId, int tick, in KernelExecutionContext context)
@@ -192,19 +196,45 @@ internal sealed partial class WorldState
         SetCellState(q, r, terrainId, CoverageOwnerAt(q, r), tick, context);
     }
 
-    public void MaterializeCell(int q, int r, int terrainId, int ownerEntityId)
+    public void MaterializeCell(
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId,
+        int superregionId = 0,
+        int continentId = 0)
     {
         ValidatePositive(terrainId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
-        WriteCell(q, r, terrainId, ownerEntityId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(superregionId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(continentId);
+        WriteCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
         AdvanceWorldVersion();
     }
 
-    private void WriteCell(int q, int r, int terrainId, int ownerEntityId)
+    private void WriteCell(
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId,
+        int superregionId,
+        int continentId)
     {
         var key = CoordinateKey(q, r);
         _mapCellTerrainIds.Set(key, 1, terrainId);
+        _mapCellSuperregionIds.Set(key, 1, superregionId);
+        _mapCellContinentIds.Set(key, 1, continentId);
         _mapLayers.Coverage.SetValue(key, q, r, ownerEntityId);
+    }
+
+    internal int CellSuperregionId(int q, int r)
+    {
+        return _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r), 1);
+    }
+
+    internal int CellContinentId(int q, int r)
+    {
+        return _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r), 1);
     }
 
     public int TerrainBoundaryGroupId(int terrainId)
@@ -242,12 +272,14 @@ internal sealed partial class WorldState
 
         var previousTerrainId = CellTerrainId(q, r);
         var previousOwnerEntityId = CoverageOwnerAt(q, r);
+        var superregionId = CellSuperregionId(q, r);
+        var continentId = CellContinentId(q, r);
         if (previousTerrainId == terrainId && previousOwnerEntityId == ownerEntityId)
         {
             return;
         }
 
-        WriteCell(q, r, terrainId, ownerEntityId);
+        WriteCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
         AdvanceWorldVersion();
         Write(KernelEvent.From(new CellChangedKernelEvent(
             tick,
@@ -258,7 +290,9 @@ internal sealed partial class WorldState
             previousTerrainId,
             terrainId,
             previousOwnerEntityId,
-            ownerEntityId)),
+            ownerEntityId,
+            superregionId,
+            continentId)),
             context);
     }
 

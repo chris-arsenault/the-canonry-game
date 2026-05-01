@@ -30,11 +30,15 @@ internal static partial class IceRemembersSeedBuilder
         float Rugged,
         float Fertility);
 
-    private static void PaintTerrain(HexGrid grid, Random random)
+    private static void PaintTerrain(
+        HexGrid grid,
+        Random random,
+        MapSubdivisionMap subdivisionMap)
     {
+        ArgumentNullException.ThrowIfNull(subdivisionMap);
         var seeds = PickTerrainSeeds(grid, random);
         var salts = NextTerrainSalts(random);
-        var coldness = PaintBaseTerrain(grid, random, seeds, salts);
+        var coldness = PaintBaseTerrain(grid, random, seeds, salts, subdivisionMap);
         ApplyMaritimeTerrain(grid, random, coldness, salts);
     }
 
@@ -43,33 +47,41 @@ internal static partial class IceRemembersSeedBuilder
             PickSeedCoords(
                 grid,
                 random,
-                count: 3,
-                minDistance: grid.Radius / 2,
-                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) >= (grid.Radius * 3) / 4),
-            PickSeedCoords(
-                grid,
-                random,
-                count: 3,
+                count: 5,
                 minDistance: grid.Radius / 3,
-                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) >= grid.Radius / 2),
+                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) >= grid.Radius / 3),
             PickSeedCoords(
                 grid,
                 random,
-                count: 3,
-                minDistance: grid.Radius / 4,
-                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) <= (grid.Radius * 3) / 4),
-            PickSeedCoords(
-                grid,
-                random,
-                count: 3,
-                minDistance: grid.Radius / 4,
-                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) is >= 4 and <= 16),
+                count: 4,
+                minDistance: grid.Radius / 3,
+                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) >= grid.Radius / 3),
             PickSeedCoords(
                 grid,
                 random,
                 count: 4,
                 minDistance: grid.Radius / 4,
-                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) is >= 5 and <= 18));
+                coord => HexCoord.Distance(coord, new HexCoord(0, 0)) <= (grid.Radius * 5) / 6),
+            PickSeedCoords(
+                grid,
+                random,
+                count: 4,
+                minDistance: grid.Radius / 4,
+                coord =>
+                {
+                    var distance = HexCoord.Distance(coord, new HexCoord(0, 0));
+                    return distance >= grid.Radius / 5 && distance <= (grid.Radius * 9) / 10;
+                }),
+            PickSeedCoords(
+                grid,
+                random,
+                count: 5,
+                minDistance: grid.Radius / 4,
+                coord =>
+                {
+                    var distance = HexCoord.Distance(coord, new HexCoord(0, 0));
+                    return distance >= grid.Radius / 4 && distance <= (grid.Radius * 9) / 10;
+                }));
 
     private static TerrainSalts NextTerrainSalts(Random random) =>
         new(
@@ -85,12 +97,13 @@ internal static partial class IceRemembersSeedBuilder
         HexGrid grid,
         Random random,
         TerrainSeedSet seeds,
-        TerrainSalts salts)
+        TerrainSalts salts,
+        MapSubdivisionMap subdivisionMap)
     {
         var coldness = new Dictionary<HexCoord, float>();
         foreach (var cell in grid.AllCells)
         {
-            var influence = CalculateTerrainInfluence(cell.Coord, grid.Radius, seeds, salts);
+            var influence = CalculateTerrainInfluence(grid, cell.Coord, seeds, salts, subdivisionMap);
             coldness[cell.Coord] = influence.Cold;
 
             var terrain = DetermineBaseTerrain(influence);
@@ -102,27 +115,88 @@ internal static partial class IceRemembersSeedBuilder
     }
 
     private static TerrainInfluence CalculateTerrainInfluence(
+        HexGrid grid,
         HexCoord coord,
-        int gridRadius,
         TerrainSeedSet seeds,
-        TerrainSalts salts)
+        TerrainSalts salts,
+        MapSubdivisionMap subdivisionMap)
     {
+        var gridRadius = grid.Radius;
+        var subdivision = subdivisionMap.GetCell(coord);
+        var boundaryWater = ContinentBoundaryWater(grid, subdivisionMap, coord, salts.Ocean ^ 4093);
+        var bias = SuperregionTerrainBias(subdivision.SuperregionId);
         var radiusBias = HexCoord.Distance(coord, new HexCoord(0, 0)) / (float)gridRadius;
         var ocean = ComputeInfluence(coord, seeds.Ocean, radius: gridRadius * 0.55f)
-            + (radiusBias * 0.18f)
-            + (CellNoise(coord, salts.Ocean) * 0.14f);
+            + (radiusBias * 0.08f)
+            + (boundaryWater * 0.9f)
+            + bias.Ocean
+            + (CellNoise(coord, salts.Ocean) * 0.12f);
         var cold = ComputeInfluence(coord, seeds.Ice, radius: gridRadius * 0.5f)
-            + (radiusBias * 0.2f)
-            + (CellNoise(coord, salts.Cold) * 0.12f);
+            + (radiusBias * 0.12f)
+            + bias.Cold
+            + (CellNoise(coord, salts.Cold) * 0.1f);
         var geothermal = ComputeInfluence(coord, seeds.Geothermal, radius: gridRadius * 0.24f)
-            + (CellNoise(coord, salts.Geothermal) * 0.12f);
+            + bias.Geothermal
+            + (CellNoise(coord, salts.Geothermal) * 0.11f);
         var arid = ComputeInfluence(coord, seeds.Waste, radius: gridRadius * 0.3f)
-            + (CellNoise(coord, salts.Waste) * 0.15f);
+            + bias.Arid
+            + (CellNoise(coord, salts.Waste) * 0.13f);
         var rugged = ComputeInfluence(coord, seeds.Crag, radius: gridRadius * 0.22f)
-            + (CellNoise(coord, salts.Crag) * 0.12f);
+            + bias.Rugged
+            + (CellNoise(coord, salts.Crag) * 0.11f);
 
         return new TerrainInfluence(ocean, cold, geothermal, arid, rugged, CellNoise(coord, salts.Fertility));
     }
+
+    private static float ContinentBoundaryWater(
+        HexGrid grid,
+        MapSubdivisionMap subdivisionMap,
+        HexCoord coord,
+        int salt)
+    {
+        var continentId = subdivisionMap.GetCell(coord).ContinentId;
+        for (var radius = 1; radius <= 3; radius++)
+        {
+            foreach (var candidate in HexCoord.CoordsInRadius(coord, radius))
+            {
+                if (!grid.ContainsCoord(candidate))
+                {
+                    continue;
+                }
+
+                if (subdivisionMap.GetCell(candidate).ContinentId != continentId)
+                {
+                    var width = radius switch
+                    {
+                        1 => 0.95f,
+                        2 => 0.7f,
+                        _ => 0.45f,
+                    };
+                    return Math.Clamp(width + (CellNoise(coord, salt) * 0.1f), 0f, 1f);
+                }
+            }
+        }
+
+        return 0f;
+    }
+
+    private static (
+        float Ocean,
+        float Cold,
+        float Geothermal,
+        float Arid,
+        float Rugged) SuperregionTerrainBias(int superregionId) =>
+        superregionId switch
+        {
+            NorthlandsSuperregionId => (0.04f, 0.22f, 0.02f, 0.02f, 0.06f),
+            HeartlandsSuperregionId => (0.02f, 0.08f, 0.2f, 0.08f, 0.02f),
+            CoastlandsSuperregionId => (0.2f, 0.08f, 0.03f, 0.03f, 0.02f),
+            FarwakeSuperregionId => (0.28f, 0.08f, 0.02f, 0.02f, 0.02f),
+            BlackwaterSuperregionId => (0.32f, 0.04f, 0.02f, 0.04f, 0.08f),
+            WhiteEmptySuperregionId => (0.02f, 0.18f, 0.02f, 0.18f, 0.05f),
+            DeepEmptySuperregionId => (0.04f, 0.12f, 0.01f, 0.24f, 0.16f),
+            _ => (0f, 0f, 0f, 0f, 0f),
+        };
 
     private static void ApplyMaritimeTerrain(
         HexGrid grid,
@@ -249,19 +323,19 @@ internal static partial class IceRemembersSeedBuilder
     }
 
     private static bool IsOceanTerrain(TerrainInfluence influence) =>
-        influence.Ocean >= 0.78f;
+        influence.Ocean >= 0.72f;
 
     private static bool IsGeothermalTerrain(TerrainInfluence influence) =>
-        influence.Geothermal >= 0.76f && influence.Ocean < 0.62f;
+        influence.Geothermal >= 0.68f && influence.Ocean < 0.66f;
 
     private static bool IsRuggedTerrain(TerrainInfluence influence) =>
-        influence.Rugged >= 0.74f && influence.Ocean < 0.65f;
+        influence.Rugged >= 0.66f && influence.Ocean < 0.67f;
 
     private static bool IsIceTerrain(TerrainInfluence influence) =>
-        influence.Cold >= 0.72f && influence.Ocean < 0.66f;
+        influence.Cold >= 0.66f && influence.Ocean < 0.7f;
 
     private static bool IsWasteTerrain(TerrainInfluence influence) =>
-        influence.Arid >= 0.72f && influence.Geothermal < 0.68f && influence.Ocean < 0.64f;
+        influence.Arid >= 0.66f && influence.Geothermal < 0.68f && influence.Ocean < 0.64f;
 
     private static (float Elevation, float Fertility) TerrainProfileFor(
         IceRemembersTerrain terrain,

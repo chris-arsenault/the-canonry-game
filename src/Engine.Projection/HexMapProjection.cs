@@ -58,6 +58,8 @@ public sealed record HexProjection(
     HexCoord Coord,
     int TerrainId,
     int OwnerEntityId,
+    int SuperregionId,
+    int ContinentId,
     IReadOnlyList<HexInfluenceProjection> Influences,
     int Tick,
     long WorldVersion,
@@ -168,7 +170,9 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             evt.Q,
             evt.R,
             evt.TerrainId,
-            evt.OwnerEntityId);
+            evt.OwnerEntityId,
+            evt.SuperregionId,
+            evt.ContinentId);
     }
 
     protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
@@ -180,7 +184,9 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             evt.Q,
             evt.R,
             evt.CurrentTerrainId,
-            evt.CurrentOwnerEntityId);
+            evt.CurrentOwnerEntityId,
+            evt.SuperregionId,
+            evt.ContinentId);
     }
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
@@ -214,7 +220,9 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         int q,
         int r,
         int terrainId,
-        int ownerEntityId)
+        int ownerEntityId,
+        int superregionId,
+        int continentId)
     {
         var coord = new HexCoord(q, r);
         var hexId = CellId(q, r);
@@ -228,6 +236,8 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             coord,
             terrainId,
             ownerEntityId,
+            superregionId,
+            continentId,
             existing?.Influences ?? [],
             tick,
             worldVersion,

@@ -24,6 +24,8 @@ public enum ProjectionSymbolKind
     Detector = 17,
     Goal = 18,
     Verb = 19,
+    Continent = 20,
+    Superregion = 21,
 }
 
 public readonly record struct ProjectionSymbolKey(ProjectionSymbolKind Kind, int Id);

@@ -522,7 +522,14 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
     {
         var key = new ObservedMapCellKey(evt.Q, evt.R);
-        UpsertMapCell(key, evt.TerrainId, evt.OwnerEntityId, evt.Tick, evt.WorldVersion);
+        UpsertMapCell(
+            key,
+            evt.TerrainId,
+            evt.OwnerEntityId,
+            evt.SuperregionId,
+            evt.ContinentId,
+            evt.Tick,
+            evt.WorldVersion);
         var causeId = evt.SourceCodeId;
         _batch.MapCellEvents.Add(new MapCellEventRow(
             _runId,
@@ -531,6 +538,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SourceCodeId,
             evt.Q,
             evt.R,
+            evt.SuperregionId,
+            evt.ContinentId,
             PreviousTerrainId: 0,
             evt.TerrainId,
             PreviousOwnerEntityId: 0,
@@ -556,7 +565,14 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
     {
         var key = new ObservedMapCellKey(evt.Q, evt.R);
-        UpsertMapCell(key, evt.CurrentTerrainId, evt.CurrentOwnerEntityId, evt.Tick, evt.WorldVersion);
+        UpsertMapCell(
+            key,
+            evt.CurrentTerrainId,
+            evt.CurrentOwnerEntityId,
+            evt.SuperregionId,
+            evt.ContinentId,
+            evt.Tick,
+            evt.WorldVersion);
         _batch.MapCellEvents.Add(new MapCellEventRow(
             _runId,
             evt.Tick,
@@ -564,6 +580,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SourceCodeId,
             evt.Q,
             evt.R,
+            evt.SuperregionId,
+            evt.ContinentId,
             evt.PreviousTerrainId,
             evt.CurrentTerrainId,
             evt.PreviousOwnerEntityId,
@@ -774,6 +792,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         ObservedMapCellKey key,
         int terrainId,
         int ownerEntityId,
+        int superregionId,
+        int continentId,
         int tick,
         long worldVersion)
     {
@@ -781,6 +801,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             key,
             terrainId,
             ownerEntityId,
+            superregionId,
+            continentId,
             tick,
             worldVersion);
     }

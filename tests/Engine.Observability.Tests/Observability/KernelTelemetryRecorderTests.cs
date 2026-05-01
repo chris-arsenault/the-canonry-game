@@ -83,7 +83,9 @@ public sealed class KernelTelemetryRecorderTests
             R: -1,
             SourceCodeId: 5,
             TerrainId: 12,
-            OwnerEntityId: 100))));
+            OwnerEntityId: 100,
+            SuperregionId: 4,
+            ContinentId: 2))));
         Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 1,
             WorldVersion: 3,
@@ -129,7 +131,9 @@ public sealed class KernelTelemetryRecorderTests
             PreviousTerrainId: 12,
             CurrentTerrainId: 13,
             PreviousOwnerEntityId: 100,
-            CurrentOwnerEntityId: 101))));
+            CurrentOwnerEntityId: 101,
+            SuperregionId: 4,
+            ContinentId: 2))));
     }
 
     private static void WriteActionAndGeneratorEvents(KernelEventLog log)
@@ -201,6 +205,8 @@ public sealed class KernelTelemetryRecorderTests
             row => row.EventTypeCode == (int)KernelEventType.CellCreated);
         Assert.Equal(12, createdCell.CurrentTerrainId);
         Assert.Equal(100, createdCell.CurrentOwnerEntityId);
+        Assert.Equal(4, createdCell.SuperregionId);
+        Assert.Equal(2, createdCell.ContinentId);
 
         var changedCell = Assert.Single(
             batch.MapCellEvents,
@@ -209,6 +215,8 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(13, changedCell.CurrentTerrainId);
         Assert.Equal(100, changedCell.PreviousOwnerEntityId);
         Assert.Equal(101, changedCell.CurrentOwnerEntityId);
+        Assert.Equal(4, changedCell.SuperregionId);
+        Assert.Equal(2, changedCell.ContinentId);
 
         var relationship = Assert.Single(batch.RelationshipEvents);
         Assert.Equal(7, relationship.ChangeCodeId);

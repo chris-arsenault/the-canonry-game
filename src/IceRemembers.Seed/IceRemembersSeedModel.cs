@@ -14,17 +14,29 @@ internal sealed class SeedAssembly
     private readonly List<SeedEntity> _entities = [];
     private readonly List<DomainSeedRelationship> _relationships = [];
 
-    public SeedAssembly(HexGrid grid, MapCoverageMap coverageMap)
+    public SeedAssembly(
+        HexGrid grid,
+        MapCoverageMap coverageMap,
+        MapSubdivisionMap subdivisionMap,
+        IReadOnlyList<DomainMapSubdivision> mapSubdivisions)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(coverageMap);
+        ArgumentNullException.ThrowIfNull(subdivisionMap);
+        ArgumentNullException.ThrowIfNull(mapSubdivisions);
         Grid = grid;
         CoverageMap = coverageMap;
+        SubdivisionMap = subdivisionMap;
+        MapSubdivisions = mapSubdivisions;
     }
 
     public HexGrid Grid { get; }
 
     public MapCoverageMap CoverageMap { get; }
+
+    public MapSubdivisionMap SubdivisionMap { get; }
+
+    public IReadOnlyList<DomainMapSubdivision> MapSubdivisions { get; }
 
     public IReadOnlyList<SeedEntity> Entities => _entities;
 
@@ -90,6 +102,7 @@ internal sealed class SeedAssembly
             cells,
             resources,
             relationships,
+            MapSubdivisions,
             Attributes: []);
     }
 
@@ -113,11 +126,17 @@ internal sealed class SeedAssembly
         Grid.AllCells
             .OrderBy(cell => cell.Coord.Q)
             .ThenBy(cell => cell.Coord.R)
-            .Select(cell => new DomainSeedCell(
-                cell.Coord.Q,
-                cell.Coord.R,
-                cell.Terrain.StableName,
-                CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId))
+            .Select(cell =>
+            {
+                var subdivision = SubdivisionMap.GetCell(cell.Coord);
+                return new DomainSeedCell(
+                    cell.Coord.Q,
+                    cell.Coord.R,
+                    cell.Terrain.StableName,
+                    CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId,
+                    subdivision.SuperregionId,
+                    subdivision.ContinentId);
+            })
             .ToArray();
 
     private DomainSeedResource[] CreateStartupResources() =>

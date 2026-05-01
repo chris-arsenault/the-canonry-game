@@ -7,8 +7,8 @@ internal sealed record SimulationOptions
     public int EntityCapacity { get; init; } = 4096;
     public int RelationshipCapacity { get; init; } = 8192;
     public int AttributeCapacity { get; init; } = 65536;
-    public int ResourceCapacity { get; init; } = 8192;
-    public int MapCellCapacity { get; init; } = 2048;
+    public int ResourceCapacity { get; init; } = 65536;
+    public int MapCellCapacity { get; init; } = 16384;
     public int MapInfluenceCapacity { get; init; } = 32768;
     public int SystemCapacity { get; init; } = 32;
     public int EventCapacity { get; init; } = 65536;

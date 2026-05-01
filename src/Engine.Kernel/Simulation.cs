@@ -394,10 +394,12 @@ internal sealed partial class Simulation : IKernel
         int q,
         int r,
         int terrainId,
-        int ownerEntityId)
+        int ownerEntityId,
+        int superregionId = 0,
+        int continentId = 0)
     {
         AssertStartupSeedTick();
-        CreateCell(q, r, terrainId, ownerEntityId);
+        CreateCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
     }
 
     internal void SeedCell(
@@ -405,10 +407,12 @@ internal sealed partial class Simulation : IKernel
         int r,
         int terrainId,
         int ownerEntityId,
-        global::System.ReadOnlySpan<CellResourceSeed> resources)
+        global::System.ReadOnlySpan<CellResourceSeed> resources,
+        int superregionId = 0,
+        int continentId = 0)
     {
         AssertStartupSeedTick();
-        CreateCell(q, r, terrainId, ownerEntityId);
+        CreateCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
         for (var i = 0; i < resources.Length; i++)
         {
             var resource = resources[i];
@@ -420,10 +424,12 @@ internal sealed partial class Simulation : IKernel
         int q,
         int r,
         int terrainId,
-        int ownerEntityId)
+        int ownerEntityId,
+        int superregionId = 0,
+        int continentId = 0)
     {
         AssertExecutionSource();
-        World.MaterializeCell(q, r, terrainId, ownerEntityId);
+        World.MaterializeCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
         WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
             CurrentTick,
             WorldVersion,
@@ -431,7 +437,9 @@ internal sealed partial class Simulation : IKernel
             r,
             _executionContext.SourceCodeId,
             terrainId,
-            ownerEntityId)));
+            ownerEntityId,
+            superregionId,
+            continentId)));
     }
 
     internal void SeedEntity(

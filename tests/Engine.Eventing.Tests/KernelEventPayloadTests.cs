@@ -105,10 +105,10 @@ public sealed class KernelEventPayloadTests
         var generatorEnabledChanged = new GeneratorEnabledChangedKernelEvent(17, 18, 19, 1);
         Assert.Equal(generatorEnabledChanged, KernelEvent.From(generatorEnabledChanged).AsGeneratorEnabledChanged());
 
-        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4);
+        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4, 5, 6);
         Assert.Equal(cellCreated, KernelEvent.From(cellCreated).AsCellCreated());
 
-        var cellChanged = new CellChangedKernelEvent(19, 20, 2, -2, 3, 4, 5, 6, 7);
+        var cellChanged = new CellChangedKernelEvent(19, 20, 2, -2, 3, 4, 5, 6, 7, 8, 9);
         Assert.Equal(cellChanged, KernelEvent.From(cellChanged).AsCellChanged());
 
         var cellInfluenceChanged = new CellInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 6, 10f, 25f);

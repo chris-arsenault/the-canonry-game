@@ -547,6 +547,8 @@ public sealed record MapCellEventRow(
     int SourceCodeId,
     int Q,
     int R,
+    int SuperregionId,
+    int ContinentId,
     int PreviousTerrainId,
     int CurrentTerrainId,
     int PreviousOwnerEntityId,

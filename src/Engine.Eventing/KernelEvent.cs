@@ -315,7 +315,7 @@ public readonly record struct GeneratorEnabledChangedKernelEvent(
     [KernelEventIntSlot(1, "enabled", KernelEventSemanticKind.Enabled)]
     int Enabled);
 
-[KernelEventLayout(KernelEventType.CellCreated, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.CellCreated, schemaMinor: 2)]
 public readonly record struct CellCreatedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -328,9 +328,13 @@ public readonly record struct CellCreatedKernelEvent(
     [KernelEventIntSlot(3, "terrain_id", KernelEventSemanticKind.TerrainId)]
     int TerrainId,
     [KernelEventIntSlot(4, "owner_entity_id", KernelEventSemanticKind.EntityId)]
-    int OwnerEntityId);
+    int OwnerEntityId,
+    [KernelEventIntSlot(5, "superregion_id", KernelEventSemanticKind.SuperregionId)]
+    int SuperregionId,
+    [KernelEventIntSlot(6, "continent_id", KernelEventSemanticKind.ContinentId)]
+    int ContinentId);
 
-[KernelEventLayout(KernelEventType.CellChanged, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.CellChanged, schemaMinor: 1)]
 public readonly record struct CellChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -347,7 +351,11 @@ public readonly record struct CellChangedKernelEvent(
     [KernelEventIntSlot(5, "previous_owner_entity_id", KernelEventSemanticKind.EntityId)]
     int PreviousOwnerEntityId,
     [KernelEventIntSlot(6, "current_owner_entity_id", KernelEventSemanticKind.EntityId)]
-    int CurrentOwnerEntityId);
+    int CurrentOwnerEntityId,
+    [KernelEventIntSlot(7, "superregion_id", KernelEventSemanticKind.SuperregionId)]
+    int SuperregionId,
+    [KernelEventIntSlot(8, "continent_id", KernelEventSemanticKind.ContinentId)]
+    int ContinentId);
 
 [KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 2)]
 public readonly record struct CellInfluenceChangedKernelEvent(
