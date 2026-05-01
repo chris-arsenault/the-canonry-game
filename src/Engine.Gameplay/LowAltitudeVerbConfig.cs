@@ -28,6 +28,7 @@ public abstract class LowAltitudeVerbConfig
     public float HotspotWeight { get; init; } = 0.25f;
     public float CrowdingWeight { get; init; } = 0.5f;
     public float GeneratorAffordanceWeight { get; init; } = 0.5f;
+    public ForeignInfluenceTargetingConfig? ForeignInfluenceTargeting { get; init; }
     public string? AffinityRelationshipKind { get; init; }
     public LowAltitudeVerbRelationshipDirection AffinityRelationshipDirection { get; init; } =
         LowAltitudeVerbRelationshipDirection.Either;
@@ -37,6 +38,14 @@ public abstract class LowAltitudeVerbConfig
     public virtual float CoverageGrowthChance => 0f;
     public virtual float HeadquartersMoveChance => 0f;
     public virtual float RequiredInfluence => 0f;
+}
+
+public sealed class ForeignInfluenceTargetingConfig
+{
+    public bool BlockPositiveRelationships { get; init; }
+    public bool AllowNegativeRelationships { get; init; }
+    public float MinimumRelationshipStrength { get; init; } = 0.05f;
+    public float AllowUnrelatedInfluenceAtOrAbove { get; init; } = -1f;
 }
 
 public sealed class MovementLowAltitudeVerbConfig : LowAltitudeVerbConfig

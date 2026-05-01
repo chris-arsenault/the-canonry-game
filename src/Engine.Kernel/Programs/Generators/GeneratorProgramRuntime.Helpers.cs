@@ -279,6 +279,9 @@ internal sealed partial class GeneratorProgramRuntime
         return value < 0 ? -value : value;
     }
 
+    private static int MaxAbs(int a, int b, int c) =>
+        global::System.Math.Max(Abs(a), global::System.Math.Max(Abs(b), Abs(c)));
+
     private static void ValidatePositive(int value)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);

@@ -323,6 +323,7 @@ internal sealed partial class Simulation : IKernel
         int planeCode,
         int q,
         int r,
+        int tick,
         int targetEntityId)
     {
         var attractorMass = MapSignals.AttractorMassAt(planeCode, q, r);
@@ -335,7 +336,7 @@ internal sealed partial class Simulation : IKernel
         {
             VisitCount = MapActivity.VisitCount(planeCode, q, r),
             LastVisitedTick = MapActivity.LastVisitedTick(planeCode, q, r),
-            Heat = MapActivity.Heat(planeCode, q, r),
+            Heat = MapActivity.Heat(planeCode, q, r, tick),
             CurrentOccupancy = MapActivity.CurrentOccupancy(planeCode, q, r),
             CrowdingPressure = MapSignals.CrowdingPressureAt(planeCode, q, r),
             AttractorMass = attractorMass,
@@ -703,13 +704,25 @@ internal sealed partial class Simulation : IKernel
 
     internal KernelExecutionScope EnterExecutionContext(
         int sourceCodeId,
-        int programId)
+        int programId,
+        int actionId = 0)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceCodeId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(programId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(actionId);
         var previous = _executionContext;
         var previousDepth = _executionContextDepth;
-        _executionContext = new KernelExecutionContext(programId, sourceCodeId);
+        _executionContext = new KernelExecutionContext(programId, sourceCodeId, actionId);
+        _executionContextDepth = previousDepth + 1;
+        return new KernelExecutionScope(this, previous, previousDepth);
+    }
+
+    internal KernelExecutionScope EnterActionExecutionContext(int actionId)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(actionId);
+        var previous = _executionContext;
+        var previousDepth = _executionContextDepth;
+        _executionContext = previous with { ActionId = actionId };
         _executionContextDepth = previousDepth + 1;
         return new KernelExecutionScope(this, previous, previousDepth);
     }

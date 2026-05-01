@@ -89,6 +89,10 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] RelationshipFactId3 = [];
     internal int[] RelationshipFactCounts = [];
     internal float[] RelationshipStrengths = [];
+    internal int SemanticMinQ = -24;
+    internal int SemanticMaxQ = 24;
+    internal int SemanticMinR = -24;
+    internal int SemanticMaxR = 24;
     internal int GeneratorCount;
     internal int SubtypeCount;
     internal int RelationshipKindFilterCount;
@@ -225,5 +229,18 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
+
+    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
+    {
+        if (minQ > maxQ || minR > maxR)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(minQ));
+        }
+
+        SemanticMinQ = minQ;
+        SemanticMaxQ = maxQ;
+        SemanticMinR = minR;
+        SemanticMaxR = maxR;
+    }
 }

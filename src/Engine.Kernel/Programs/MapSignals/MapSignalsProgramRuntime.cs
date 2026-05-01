@@ -94,7 +94,7 @@ internal sealed class MapSignalsProgramRuntime :
         State.BeginTick();
         EmitKindFields(simulation);
         EmitRelationshipFields(simulation);
-        ComputeEntitySignals(simulation);
+        ComputeEntitySignals(simulation, tick);
     }
 
     private void EmitKindFields(Simulation simulation)
@@ -209,7 +209,7 @@ internal sealed class MapSignalsProgramRuntime :
         }
     }
 
-    private void ComputeEntitySignals(Simulation simulation)
+    private void ComputeEntitySignals(Simulation simulation, int tick)
     {
         var world = simulation.World;
         for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
@@ -219,12 +219,12 @@ internal sealed class MapSignalsProgramRuntime :
                 continue;
             }
 
-            ComputeEntitySignalsForPlane(simulation, entityId, PlaneCodes.Physical);
-            ComputeEntitySignalsForPlane(simulation, entityId, PlaneCodes.Semantic);
+            ComputeEntitySignalsForPlane(simulation, entityId, PlaneCodes.Physical, tick);
+            ComputeEntitySignalsForPlane(simulation, entityId, PlaneCodes.Semantic, tick);
         }
     }
 
-    private void ComputeEntitySignalsForPlane(Simulation simulation, int entityId, int planeCode)
+    private void ComputeEntitySignalsForPlane(Simulation simulation, int entityId, int planeCode, int tick)
     {
         var world = simulation.World;
         var q = CurrentQ(world, entityId, planeCode);
@@ -235,7 +235,7 @@ internal sealed class MapSignalsProgramRuntime :
         var comfort = CrowdingComfort(occupancy, capacity);
         var support = SupportAt(planeCode, q, r);
         var threat = ThreatAt(planeCode, q, r);
-        var attractor = EntityAttractorMass(simulation, entityId, planeCode, q, r, support, threat);
+        var attractor = EntityAttractorMass(simulation, entityId, planeCode, q, r, tick, support, threat);
 
         State.SetEntityCapacity(entityId, planeCode, capacity);
         State.SetEntitySupport(entityId, planeCode, support);
@@ -254,6 +254,7 @@ internal sealed class MapSignalsProgramRuntime :
         int planeCode,
         int q,
         int r,
+        int tick,
         float support,
         float threat)
     {
@@ -267,7 +268,7 @@ internal sealed class MapSignalsProgramRuntime :
 
         mass += world.GetCellInfluence(entityId, planeCode, q, r) * Data.KindInfluenceAttractorScale(kindId);
 
-        mass += simulation.MapActivity.Heat(planeCode, q, r) * Data.KindActivityAttractorScale(kindId);
+        mass += simulation.MapActivity.Heat(planeCode, q, r, tick) * Data.KindActivityAttractorScale(kindId);
         mass += AttractorScalarMass(world, entityId, kindId);
 
         mass += support - threat;

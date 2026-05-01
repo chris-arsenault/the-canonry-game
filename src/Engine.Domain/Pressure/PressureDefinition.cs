@@ -10,7 +10,7 @@ public enum PressureScope
     /// <summary>Computed per geographic region.</summary>
     Regional,
 
-    /// <summary>Computed per entity (typically a nation).</summary>
+    /// <summary>Computed per entity.</summary>
     Entity,
 }
 

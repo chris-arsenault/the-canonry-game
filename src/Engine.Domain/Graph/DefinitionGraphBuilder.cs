@@ -179,7 +179,6 @@ public static class DefinitionGraphBuilder
     {
         var attributes = BuildAttributeNodes(kind, kindConfig.Attributes);
         var healthAttribute = ApplyHealthAttribute(kind, kindConfig, attributes);
-        var standingDrives = BuildStandingDrives(kindConfig.StandingDrives);
 
         return new DefinitionKindNode
         {
@@ -188,7 +187,6 @@ public static class DefinitionGraphBuilder
             Subtypes = new HashSet<string>(kindConfig.Subtypes, StringComparer.Ordinal),
             Attributes = attributes,
             HealthAttribute = healthAttribute,
-            StandingDrives = standingDrives,
             Description = kindConfig.Description,
             PrimaryPlane = kindConfig.PrimaryPlane,
         };
@@ -252,21 +250,6 @@ public static class DefinitionGraphBuilder
         };
         return healthId;
     }
-
-    private static List<DefinitionStandingDriveNode> BuildStandingDrives(
-        IReadOnlyList<StandingDriveConfig> standingDrives) =>
-        standingDrives
-            .Select(drive => new DefinitionStandingDriveNode
-            {
-                DesiredEffect = ConvertRef(
-                    drive.DesiredEffect,
-                    kindNodes: null,
-                    resourceNodes: null,
-                    relationshipNodes: null,
-                    pressureNodes: null),
-                BaseUrgency = drive.BaseUrgency,
-            })
-            .ToList();
 
     private static Dictionary<DefinitionResourceId, DefinitionResourceNode> BuildResourceNodes(
         IReadOnlyList<ResourceConfig> resources)

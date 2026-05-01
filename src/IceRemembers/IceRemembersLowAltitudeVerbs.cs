@@ -76,6 +76,9 @@ public static partial class IceRemembersDefinition
         InfluenceVerb(Verb.PenguinCreateWorks, "Create Works", K.Penguin,
             Op.ConsolidateInfluence, Mode.OwnInfluence,
             ticks: (35, 100), dwell: 12, influence: (4f, 0, 0f, 0f, 0f), samples: 16, weights: (0.45f, 0.2f, 0.4f, 0.45f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.PenguinBreakChorus, "Break the Chorus", K.Penguin,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (30, 85), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.5f, 0.3f, 0.6f, 0.35f, 0.1f, 0.25f), plane: PrimaryPlane.Semantic),
         InfluenceVerb(Verb.ArtifactChannel, "Channel", K.Artifact,
             Op.GrowInfluence, Mode.OwnInfluence,
             ticks: (35, 100), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 18, weights: (0.7f, 0.4f, 0.7f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
@@ -116,6 +119,9 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalInfluenceVerbs() =>
     [
+        InfluenceVerb(Verb.PenguinScatterClaimMarks, "Scatter Claim-Marks", K.Penguin,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (25, 75), dwell: 6, influence: (3f, 1, 0f, 0f, 0f), samples: 24, weights: (0.6f, 0.8f, 1.0f, 0.25f, 0.1f, 0.3f)),
         InfluenceVerb(Verb.SettlementCastLamplight, "Cast Lamplight", K.Settlement,
             Op.GrowInfluence, Mode.OwnInfluence,
             ticks: (35, 95), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 24, weights: (1.15f, 1.0f, 1.2f, 0.3f, 0.25f, 0.4f)),
@@ -296,12 +302,26 @@ public static partial class IceRemembersDefinition
             HotspotWeight = weights.Hot,
             CrowdingWeight = weights.Crowd,
             GeneratorAffordanceWeight = weights.Generator,
+            ForeignInfluenceTargeting = ForeignInfluenceTargetingFor(operation, mode),
             AffinityRelationshipKind = affinityRelationshipKind,
             AffinityRelationshipDirection = affinityDirection,
             RelationshipAffinityWeight = affinityWeight,
             Delta = influence.Delta,
             Radius = influence.Radius,
         };
+
+    private static ForeignInfluenceTargetingConfig? ForeignInfluenceTargetingFor(
+        LowAltitudeVerbOperation operation,
+        LowAltitudeVerbTargetMode mode) =>
+        operation == ReduceInfluence && mode == Mode.ForeignInfluence
+            ? new ForeignInfluenceTargetingConfig
+            {
+                BlockPositiveRelationships = true,
+                AllowNegativeRelationships = true,
+                MinimumRelationshipStrength = 0.05f,
+                AllowUnrelatedInfluenceAtOrAbove = 50f,
+            }
+            : null;
 
     private static CoverageExpansionLowAltitudeVerbConfig CoverageExpansionVerbConfig(
         Verb verb,

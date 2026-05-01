@@ -60,7 +60,7 @@ public sealed class RelationshipProgramRuntimeTests
         simulation.Relationships.AddMaintenanceRule(
             9,
             RelationshipMaintenanceConditionCodes.TargetInfluenceAtSource,
-            PlaneCodes.None,
+            PlaneCodes.Physical,
             maxDistance: 0,
             threshold: 60f,
             delta: 0.02f);

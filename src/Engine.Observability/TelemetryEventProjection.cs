@@ -578,6 +578,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             _runId,
             evt.Tick,
             evt.SourceCodeId,
+            evt.ActionId,
             evt.EntityId,
             evt.PlaneCode,
             evt.Q,

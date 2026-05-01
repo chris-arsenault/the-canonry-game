@@ -408,14 +408,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         return slot;
     }
 
-    public int RegisterStandingObjective(
-        int kindId,
-        int scopeCode,
-        int valueId,
-        int effectKindId,
-        float baseUrgency) =>
-        RegisterFixedObjective(kindId, scopeCode, valueId, effectKindId, baseUrgency);
-
     public int RegisterFixedObjective(
         int kindId,
         int scopeCode,

@@ -35,6 +35,7 @@ public static class GameplayCompiler
         foreach (var verb in definition.LowAltitudeVerbs)
         {
             var shape = LowAltitudeVerbShape.For(verb.Operation);
+            var foreignTargeting = CompileForeignInfluenceTargeting(verb);
             var ownerPlaneCode = verb.Plane is null
                 ? context.PrimaryPlaneCodeForKind(verb.Kind, $"Low-altitude verb '{verb.Id}' kind")
                 : PlaneCode(verb.Plane);
@@ -61,6 +62,11 @@ public static class GameplayCompiler
                 verb.HotspotWeight,
                 verb.CrowdingWeight,
                 verb.GeneratorAffordanceWeight,
+                foreignTargeting.Enabled,
+                foreignTargeting.BlockPositiveRelationships,
+                foreignTargeting.AllowNegativeRelationships,
+                foreignTargeting.MinimumRelationshipStrength,
+                foreignTargeting.AllowUnrelatedInfluenceAtOrAbove,
                 verb.AffinityRelationshipKind is null ? 0 : context.ResolveRelationshipKindId(verb.AffinityRelationshipKind),
                 RelationshipDirectionCode(verb.AffinityRelationshipDirection),
                 verb.RelationshipAffinityWeight,
@@ -79,6 +85,21 @@ public static class GameplayCompiler
             InitialInfluence = CompileInitialInfluenceRules(definition, context),
             GeneratorAffordances = CompileGeneratorAffordances(context),
         };
+    }
+
+    private static CompiledForeignInfluenceTargeting CompileForeignInfluenceTargeting(LowAltitudeVerbConfig verb)
+    {
+        if (verb.ForeignInfluenceTargeting is not { } targeting)
+        {
+            return new CompiledForeignInfluenceTargeting(false, false, false, 0f, -1f);
+        }
+
+        return new CompiledForeignInfluenceTargeting(
+            true,
+            targeting.BlockPositiveRelationships,
+            targeting.AllowNegativeRelationships,
+            targeting.MinimumRelationshipStrength,
+            targeting.AllowUnrelatedInfluenceAtOrAbove);
     }
 
     private static CompiledSemanticPlaneBounds CompileSemanticBounds(SemanticPlaneConfig semanticPlane) =>
@@ -319,6 +340,13 @@ public static class GameplayCompiler
     private static bool EffectRequiresRelationship(EffectCondition condition) =>
         condition is EffectCondition.RelatedInfluenceAtLocation
             or EffectCondition.RelatedEntityDistance;
+
+    private sealed record CompiledForeignInfluenceTargeting(
+        bool Enabled,
+        bool BlockPositiveRelationships,
+        bool AllowNegativeRelationships,
+        float MinimumRelationshipStrength,
+        float AllowUnrelatedInfluenceAtOrAbove);
 }
 
 public interface IGameplayCompilationContext

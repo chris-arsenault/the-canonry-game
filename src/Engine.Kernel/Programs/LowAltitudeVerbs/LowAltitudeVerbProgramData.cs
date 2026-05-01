@@ -31,6 +31,11 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private float[] _hotspotWeights = [];
     private float[] _crowdingWeights = [];
     private float[] _generatorAffordanceWeights = [];
+    private int[] _foreignInfluenceFilterEnabled = [];
+    private int[] _foreignInfluenceBlockPositiveRelationships = [];
+    private int[] _foreignInfluenceAllowNegativeRelationships = [];
+    private float[] _foreignInfluenceMinimumRelationshipStrengths = [];
+    private float[] _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = [];
     private int[] _affinityRelationshipKindIds = [];
     private int[] _affinityRelationshipDirectionCodes = [];
     private float[] _relationshipAffinityWeights = [];
@@ -117,6 +122,11 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _hotspotWeights = new float[ruleLength];
         _crowdingWeights = new float[ruleLength];
         _generatorAffordanceWeights = new float[ruleLength];
+        _foreignInfluenceFilterEnabled = new int[ruleLength];
+        _foreignInfluenceBlockPositiveRelationships = new int[ruleLength];
+        _foreignInfluenceAllowNegativeRelationships = new int[ruleLength];
+        _foreignInfluenceMinimumRelationshipStrengths = new float[ruleLength];
+        _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = new float[ruleLength];
         _affinityRelationshipKindIds = new int[ruleLength];
         _affinityRelationshipDirectionCodes = new int[ruleLength];
         _relationshipAffinityWeights = new float[ruleLength];
@@ -148,7 +158,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 
     public int RuleCount => _ruleCount;
 
@@ -213,6 +223,11 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _hotspotWeights[slot] = registration.HotspotWeight;
         _crowdingWeights[slot] = registration.CrowdingWeight;
         _generatorAffordanceWeights[slot] = registration.GeneratorAffordanceWeight;
+        _foreignInfluenceFilterEnabled[slot] = ClampFlag(registration.ForeignInfluenceFilterEnabled);
+        _foreignInfluenceBlockPositiveRelationships[slot] = ClampFlag(registration.ForeignInfluenceBlockPositiveRelationships);
+        _foreignInfluenceAllowNegativeRelationships[slot] = ClampFlag(registration.ForeignInfluenceAllowNegativeRelationships);
+        _foreignInfluenceMinimumRelationshipStrengths[slot] = global::System.Math.Max(0f, registration.ForeignInfluenceMinimumRelationshipStrength);
+        _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[slot] = ClampDisabledInfluence(registration.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
         _affinityRelationshipKindIds[slot] = registration.AffinityRelationshipKindId;
         _affinityRelationshipDirectionCodes[slot] = registration.AffinityRelationshipDirectionCode == 0
             ? LowAltitudeVerbRelationshipDirectionCodes.Either
@@ -333,6 +348,16 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     public float CrowdingWeight(int rule) => _crowdingWeights[rule];
 
     public float GeneratorAffordanceWeight(int rule) => _generatorAffordanceWeights[rule];
+
+    public bool ForeignInfluenceFilterEnabled(int rule) => _foreignInfluenceFilterEnabled[rule] != 0;
+
+    public bool ForeignInfluenceBlocksPositiveRelationships(int rule) => _foreignInfluenceBlockPositiveRelationships[rule] != 0;
+
+    public bool ForeignInfluenceAllowsNegativeRelationships(int rule) => _foreignInfluenceAllowNegativeRelationships[rule] != 0;
+
+    public float ForeignInfluenceMinimumRelationshipStrength(int rule) => _foreignInfluenceMinimumRelationshipStrengths[rule];
+
+    public float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove(int rule) => _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[rule];
 
     public int AffinityRelationshipKindId(int rule) => _affinityRelationshipKindIds[rule];
 
@@ -486,4 +511,16 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
         return value > 100f ? 100f : value;
     }
+
+    private static float ClampDisabledInfluence(float value)
+    {
+        if (value < 0f)
+        {
+            return -1f;
+        }
+
+        return value > 100f ? 100f : value;
+    }
+
+    private static int ClampFlag(int value) => value == 0 ? 0 : 1;
 }

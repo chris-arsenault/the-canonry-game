@@ -1,6 +1,7 @@
 namespace Engine.Domain.Graph;
 
 using Engine.Behaviors;
+using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Wiring;
 
@@ -51,6 +52,13 @@ public static partial class DefinitionGraphValidator
             if (relationshipNode.Id != relationshipId)
             {
                 errors.Add($"Relationship node key '{relationshipId}' does not match node id '{relationshipNode.Id}'.");
+            }
+
+            foreach (var error in GameplayValidator.ValidateRelationshipMaintenance(
+                relationshipId.Value,
+                relationshipNode.SourceConfig.Maintenance))
+            {
+                errors.Add($"Relationship '{relationshipId.Value}' maintenance: {error.Message}");
             }
         }
     }
@@ -765,11 +773,6 @@ public static partial class DefinitionGraphValidator
         }
 
         ValidateKindHealthAttribute(keyKind, kindNode, errors);
-
-        foreach (var standingDrive in kindNode.StandingDrives)
-        {
-            ValidateRefs($"{keyKind}.standing_drive", [standingDrive.DesiredEffect], graph, errors);
-        }
     }
 
     private static void ValidateAttributeNode(

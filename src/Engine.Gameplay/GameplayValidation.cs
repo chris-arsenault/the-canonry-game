@@ -8,8 +8,21 @@ public static class GameplayValidator
         var errors = new List<GameplayValidationError>();
         ValidateSemanticPlane(definition.SemanticPlane, errors);
         ValidateLowAltitudeVerbDefinitions(definition.LowAltitudeVerbs, errors);
-        ValidateRelationshipMaintenancePlanes(definition, errors);
         return new GameplayValidationResult(errors);
+    }
+
+    public static IReadOnlyList<GameplayValidationError> ValidateRelationshipMaintenance(
+        string relationshipId,
+        IReadOnlyList<RelationshipMaintenanceRuleConfig> rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        var errors = new List<GameplayValidationError>();
+        for (var index = 0; index < rules.Count; index++)
+        {
+            ValidateRelationshipMaintenancePlane(relationshipId, index, rules[index], errors);
+        }
+
+        return errors;
     }
 
     private static void ValidateSemanticPlane(
@@ -73,6 +86,7 @@ public static class GameplayValidator
 
         ValidateTargetFields(verb, plane, errors);
         ValidateInfluenceFields(verb, shape, errors);
+        ValidateForeignInfluenceTargeting(verb, errors);
         ValidateTiming(verb, errors);
     }
 
@@ -261,6 +275,39 @@ public static class GameplayValidator
         }
     }
 
+    private static void ValidateForeignInfluenceTargeting(
+        LowAltitudeVerbConfig verb,
+        List<GameplayValidationError> errors)
+    {
+        var targeting = verb.ForeignInfluenceTargeting;
+        if (targeting is null)
+        {
+            return;
+        }
+
+        if (verb.TargetMode != LowAltitudeVerbTargetMode.ForeignInfluence ||
+            verb.Operation != LowAltitudeVerbOperation.ReduceInfluence)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidForeignInfluenceTargeting",
+                $"Low-altitude verb '{verb.Id}' can only configure foreign influence targeting on ReduceInfluence/ForeignInfluence."));
+        }
+
+        if (targeting.MinimumRelationshipStrength < 0f)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidForeignInfluenceTargeting",
+                $"Low-altitude verb '{verb.Id}' foreign influence targeting cannot use negative relationship strength."));
+        }
+
+        if (targeting.AllowUnrelatedInfluenceAtOrAbove > 100f)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidForeignInfluenceTargeting",
+                $"Low-altitude verb '{verb.Id}' foreign influence targeting threshold must be at most 100."));
+        }
+    }
+
     private static void RequireField(
         LowAltitudeVerbConfig verb,
         bool present,
@@ -285,14 +332,48 @@ public static class GameplayValidator
         }
     }
 
-    private static void ValidateRelationshipMaintenancePlanes(
-        GameplayDefinition definition,
+    private static void ValidateRelationshipMaintenancePlane(
+        string relationshipId,
+        int index,
+        RelationshipMaintenanceRuleConfig rule,
         List<GameplayValidationError> errors)
     {
-        _ = definition;
-        _ = errors;
-        // RelationshipMaintenance SourceInfluenceAtTarget, TargetInfluenceAtSource, ContactMemory, and Plane validation lives here.
+        var usesPlane = RelationshipMaintenanceUsesPlane(rule.Condition);
+        var hasPlane = !string.IsNullOrWhiteSpace(rule.Plane);
+        if (usesPlane && !hasPlane)
+        {
+            errors.Add(new GameplayValidationError(
+                "MissingRelationshipMaintenancePlane",
+                $"RelationshipMaintenance '{relationshipId}' rule {index} condition '{rule.Condition}' requires Plane."));
+            return;
+        }
+
+        if (!usesPlane && hasPlane)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidRelationshipMaintenancePlane",
+                $"RelationshipMaintenance '{relationshipId}' rule {index} condition '{rule.Condition}' cannot carry Plane."));
+            return;
+        }
+
+        if (hasPlane && !IsPhysical(rule.Plane!) && !IsSemantic(rule.Plane!))
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidRelationshipMaintenancePlane",
+                $"RelationshipMaintenance '{relationshipId}' rule {index} uses unsupported Plane '{rule.Plane}'."));
+        }
     }
+
+    private static bool RelationshipMaintenanceUsesPlane(RelationshipMaintenanceCondition condition) =>
+        condition switch
+        {
+            RelationshipMaintenanceCondition.DistanceWithin => true,
+            RelationshipMaintenanceCondition.CoPresence => true,
+            RelationshipMaintenanceCondition.ContactMemory => true,
+            RelationshipMaintenanceCondition.SourceInfluenceAtTarget => true,
+            RelationshipMaintenanceCondition.TargetInfluenceAtSource => true,
+            _ => false,
+        };
 
     private static bool IsPhysical(string plane) =>
         string.Equals(plane, "physical", StringComparison.OrdinalIgnoreCase);

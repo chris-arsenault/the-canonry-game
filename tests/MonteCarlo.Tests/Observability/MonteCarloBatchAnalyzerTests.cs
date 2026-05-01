@@ -535,8 +535,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.OceanTerrainId, 40, 12, 0));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.ShelfTerrainId, 20, 10, 1));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.OceanTerrainId, 40, 18, 1));
-        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
-        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
+        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
+        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
         var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "quality_validation", "quality_validation");
         var description = TelemetrySymbolIds.Create(
             TelemetrySymbolKinds.MapGenerationDescription,

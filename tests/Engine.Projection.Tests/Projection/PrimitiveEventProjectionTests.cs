@@ -97,6 +97,7 @@ public sealed class PrimitiveEventProjectionTests
             SourceCodeId: 6,
             PlaneCode: PlaneCodes.Physical,
             EntityId: 200,
+            ActionId: 0,
             PreviousInfluence: 0f,
             CurrentInfluence: 35f))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
@@ -107,6 +108,7 @@ public sealed class PrimitiveEventProjectionTests
             SourceCodeId: 6,
             PlaneCode: PlaneCodes.Physical,
             EntityId: 300,
+            ActionId: 0,
             PreviousInfluence: 0f,
             CurrentInfluence: 20f))));
 

@@ -349,7 +349,7 @@ public readonly record struct CellChangedKernelEvent(
     [KernelEventIntSlot(6, "current_owner_entity_id", KernelEventSemanticKind.EntityId)]
     int CurrentOwnerEntityId);
 
-[KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 2)]
 public readonly record struct CellInfluenceChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -363,6 +363,8 @@ public readonly record struct CellInfluenceChangedKernelEvent(
     int PlaneCode,
     [KernelEventIntSlot(4, "entity_id", KernelEventSemanticKind.EntityId)]
     int EntityId,
+    [KernelEventIntSlot(5, "action_id", KernelEventSemanticKind.ActionId)]
+    int ActionId,
     [KernelEventFloatSlot(0, "previous_influence", KernelEventSemanticKind.RawScalar)]
     float PreviousInfluence,
     [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]

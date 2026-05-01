@@ -76,7 +76,7 @@ public static partial class DomainCompiler
     {
         if (RelationshipMaintenanceUsesPlane(condition))
         {
-            return GameplayPlaneCode(plane ?? "physical");
+            return RequiredRelationshipMaintenancePlaneCode(condition, plane);
         }
 
         return PlaneCodes.None;
@@ -94,14 +94,27 @@ public static partial class DomainCompiler
         };
 
     private static int RelationshipMaintenanceDistanceConditionCode(string? plane) =>
-        GameplayPlaneCode(plane ?? "physical") == PlaneCodes.Semantic
+        RequiredRelationshipMaintenancePlaneCode(RelationshipMaintenanceCondition.DistanceWithin, plane) == PlaneCodes.Semantic
             ? RelationshipMaintenanceConditionCodes.SemanticDistanceWithin
             : RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin;
 
     private static int RelationshipMaintenanceCoPresenceConditionCode(string? plane) =>
-        GameplayPlaneCode(plane ?? "physical") == PlaneCodes.Semantic
+        RequiredRelationshipMaintenancePlaneCode(RelationshipMaintenanceCondition.CoPresence, plane) == PlaneCodes.Semantic
             ? RelationshipMaintenanceConditionCodes.SemanticCoPresence
             : RelationshipMaintenanceConditionCodes.PhysicalCoPresence;
+
+    private static int RequiredRelationshipMaintenancePlaneCode(
+        RelationshipMaintenanceCondition condition,
+        string? plane)
+    {
+        if (string.IsNullOrWhiteSpace(plane))
+        {
+            throw new InvalidOperationException(
+                $"Relationship maintenance condition '{condition}' requires an explicit plane.");
+        }
+
+        return GameplayPlaneCode(plane);
+    }
 
     private static CompiledTerrainData BuildTerrainData(
         DomainConfig config,

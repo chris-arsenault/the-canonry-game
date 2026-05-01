@@ -18,7 +18,7 @@ internal static partial class KernelProgramInstaller
 
     private static void ConfigureMapActivity(KernelConfigurationContext context, MapActivityProgram program)
     {
-        context.ConfigureMapActivity(program.PresenceHeat);
+        context.ConfigureMapActivity(program.PresenceHeat, program.HeatDecayPerTick, program.HeatEmaAlpha);
     }
 
     private static void ConfigureMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
@@ -70,7 +70,7 @@ internal static partial class KernelProgramInstaller
 
     private static void ConfigureLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)
     {
-        context.ConfigureLowAltitudeSemanticBounds(
+        context.ConfigureGameplaySemanticBounds(
             program.SemanticBounds.MinQ,
             program.SemanticBounds.MaxQ,
             program.SemanticBounds.MinR,
@@ -128,7 +128,12 @@ internal static partial class KernelProgramInstaller
             verb.InfluenceRadius,
             verb.CoverageGrowthChance,
             verb.HeadquartersMoveChance,
-            verb.RequiredInfluence);
+            verb.RequiredInfluence,
+            verb.ForeignInfluenceFilterEnabled ? 1 : 0,
+            verb.ForeignInfluenceBlockPositiveRelationships ? 1 : 0,
+            verb.ForeignInfluenceAllowNegativeRelationships ? 1 : 0,
+            verb.ForeignInfluenceMinimumRelationshipStrength,
+            verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
         foreach (var terrainId in verb.TerrainIds)
         {
             context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);

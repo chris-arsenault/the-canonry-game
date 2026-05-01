@@ -322,6 +322,7 @@ internal sealed partial class WorldState
             context.SourceCodeId,
             planeCode,
             entityId,
+            context.ActionId,
             previous,
             clamped)),
             context);

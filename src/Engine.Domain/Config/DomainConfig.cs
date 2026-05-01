@@ -65,8 +65,6 @@ public sealed class KindConfig
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required IReadOnlyList<AttributeConfig> Attributes { get; init; }
     public string? HealthAttribute { get; init; }
-    public IReadOnlyList<StandingDriveConfig> StandingDrives { get; init; } = [];
-    public IReadOnlyList<RecoveryHostQueryConfig> ResourceRecoveryHosts { get; init; } = [];
 
     /// <summary>
     /// Design-time prose: what this kind represents in the world — distinct from
@@ -85,27 +83,10 @@ public sealed class KindConfig
     public required PrimaryPlane PrimaryPlane { get; init; }
 }
 
-/// <summary>
-/// BehaviorProgram-visible host query for recovery verbs that read location
-/// resources. `AnyOfKinds` is a disjunction: any matching named entity kind can
-/// serve as the recovery site.
-/// </summary>
-public sealed class RecoveryHostQueryConfig
-{
-    public required IReadOnlySet<EntityKind> AnyOfKinds { get; init; }
-}
-
 public enum PrimaryPlane
 {
     Physical,
     Semantic,
-}
-
-/// <summary>Low-urgency standing drive that participates in normal goal generation.</summary>
-public sealed class StandingDriveConfig
-{
-    public required AttributeRef DesiredEffect { get; init; }
-    public float BaseUrgency { get; init; }
 }
 
 /// <summary>
@@ -151,10 +132,6 @@ public sealed class AttributeConfig
 
     /// <summary>Variance on default value at initialization. 0 = exact, 0.5 = ±50%.</summary>
     public float DefaultVariance { get; init; }
-
-    /// <summary>Legacy comfort parameter for non-standard scalar urgency calculation.
-    /// Higher baseline = slower urgency decay as value grows. 0 = use default formula.</summary>
-    public float Baseline { get; init; }
 }
 
 /// <summary>Relationship kind configuration.</summary>

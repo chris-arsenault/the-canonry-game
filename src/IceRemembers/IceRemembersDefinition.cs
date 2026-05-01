@@ -10,7 +10,6 @@ using Engine.Wiring;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
-using Fact = IceRemembers.IceRemembersStructuralFact;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Press = IceRemembers.IceRemembersPressure;
@@ -63,7 +62,6 @@ public static partial class IceRemembersDefinition
 
     private static string A(Attr attribute) => attribute.ToDomainName();
     private static string C(Culture culture) => culture.ToDomainName();
-    private static string F(Fact fact) => fact.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
     private static string LF(RelFact fact) => fact.ToDomainName();
     private static string P(Press pressure) => pressure.ToDomainName();
@@ -132,13 +130,6 @@ public static partial class IceRemembersDefinition
         {
             Category = EntityCategory.Spatial,
             Subtypes = new HashSet<string>(StringComparer.Ordinal) { "face", "shelf", "depths", "reach", "sea", "scar" },
-            ResourceRecoveryHosts =
-            [
-                new RecoveryHostQueryConfig
-                {
-                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement, K.Artifact },
-                },
-            ],
             Attributes =
             [
                 HealthAttribute(Attr.Stability, "Stability"),
@@ -155,13 +146,6 @@ public static partial class IceRemembersDefinition
         {
             Category = EntityCategory.Spatial,
             Subtypes = new HashSet<string>(StringComparer.Ordinal) { "rookery", "colony", "holdfast", "sanctuary", "harbor", "reefhold" },
-            ResourceRecoveryHosts =
-            [
-                new RecoveryHostQueryConfig
-                {
-                    AnyOfKinds = new HashSet<EntityKind> { K.Region, K.Artifact },
-                },
-            ],
             Attributes =
             [
                 HealthAttribute(Attr.TempHp, "Temp HP"),
@@ -177,23 +161,8 @@ public static partial class IceRemembersDefinition
         {
             Category = EntityCategory.Agency,
             Subtypes = new HashSet<string>(StringComparer.Ordinal) { "order", "compact", "cell", "choir" },
-            ResourceRecoveryHosts =
-            [
-                new RecoveryHostQueryConfig
-                {
-                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
-                },
-            ],
             Attributes = CreateFactionAttributes(),
             HealthAttribute = A(Attr.Cohesion),
-            StandingDrives =
-            [
-                new StandingDriveConfig
-                {
-                    DesiredEffect = AttributeRef.StructuralFact(F(Fact.TerritorialOrder), K.Faction),
-                    BaseUrgency = 0.035f,
-                },
-            ],
             PrimaryPlane = PrimaryPlane.Semantic,
         };
 
@@ -224,23 +193,8 @@ public static partial class IceRemembersDefinition
         {
             Category = EntityCategory.Agency,
             Subtypes = new HashSet<string>(StringComparer.Ordinal) { "warden", "broker", "witness", "exile" },
-            ResourceRecoveryHosts =
-            [
-                new RecoveryHostQueryConfig
-                {
-                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
-                },
-            ],
             Attributes = CreatePenguinAttributes(),
             HealthAttribute = A(Attr.Vitality),
-            StandingDrives =
-            [
-                new StandingDriveConfig
-                {
-                    DesiredEffect = AttributeRef.StructuralFact(F(Fact.Roam), K.Penguin),
-                    BaseUrgency = 0.03f,
-                },
-            ],
             PrimaryPlane = PrimaryPlane.Physical,
         };
 
@@ -280,13 +234,6 @@ public static partial class IceRemembersDefinition
         {
             Category = EntityCategory.Asset,
             Subtypes = new HashSet<string>(StringComparer.Ordinal) { "relic", "instrument", "weapon", "tome", "seal" },
-            ResourceRecoveryHosts =
-            [
-                new RecoveryHostQueryConfig
-                {
-                    AnyOfKinds = new HashSet<EntityKind> { K.Settlement },
-                },
-            ],
             Attributes = CreateArtifactAttributes(),
             HealthAttribute = A(Attr.Condition),
             PrimaryPlane = PrimaryPlane.Physical,

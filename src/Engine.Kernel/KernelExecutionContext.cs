@@ -2,7 +2,8 @@ namespace Engine.Kernel;
 
 internal readonly record struct KernelExecutionContext(
     int ProgramId,
-    int SourceCodeId);
+    int SourceCodeId,
+    int ActionId = 0);
 
 internal readonly record struct KernelExecutionScope : global::System.IDisposable
 {

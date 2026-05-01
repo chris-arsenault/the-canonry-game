@@ -510,7 +510,7 @@ internal static partial class IceRemembersSeedBuilder
         if (availableHexes.Count == 0)
         {
             throw new InvalidOperationException(
-                "No free walkable hexes remain for NPC placement; grid may be too small or too many fixed entities.");
+                "No free walkable hexes remain for penguin placement; grid may be too small or too many fixed entities.");
         }
 
         return availableHexes[random.Next(availableHexes.Count)];

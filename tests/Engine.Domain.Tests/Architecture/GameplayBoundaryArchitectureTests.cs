@@ -864,15 +864,17 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void GameplayBoundaryPlan_RemainsTrackedInCurrentTuningDocs()
+    public void GameplayBoundaryPrinciples_AreTrackedInStableSystemsDocs()
     {
         var root = FindRepoRoot();
-        var plan = ReadSource(root, "docs/plans/current-tuning-pass/low-altitude-domain-mixing-inspection-plan.md");
+        var plan = string.Concat(
+            ReadSource(root, "docs/architecture.md"),
+            ReadSource(root, "docs/systems/simulation-principles.md"));
         var requiredFragments = new[]
         {
             "Engine.Gameplay",
             "kernel",
-            "domain",
+            "Low altitude",
             "gameplay",
         };
         var missing = MissingFragments(plan, requiredFragments);

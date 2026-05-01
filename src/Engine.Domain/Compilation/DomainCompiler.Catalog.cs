@@ -132,21 +132,6 @@ public static partial class DomainCompiler
             RegisterOnceStrict(state.Gambits, gambit.Id, state.Registry.RegisterGambit, "gambit");
             RegisterBehaviorStructuralFacts(gambit, state.StructuralFacts, state.Registry);
         }
-
-        RegisterStandingDriveFacts(config.Kinds.Values, state);
-    }
-
-    private static void RegisterStandingDriveFacts(
-        IEnumerable<KindConfig> kindConfigs,
-        CatalogRegistrationState state)
-    {
-        foreach (var kindConfig in kindConfigs)
-        {
-            foreach (var standingDrive in kindConfig.StandingDrives)
-            {
-                RegisterStructuralFactRef(standingDrive.DesiredEffect, state.StructuralFacts, state.Registry);
-            }
-        }
     }
 
     private static void RegisterRuntimeCatalog(CatalogRegistrationState state)

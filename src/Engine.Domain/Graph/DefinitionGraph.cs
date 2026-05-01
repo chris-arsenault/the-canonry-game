@@ -82,7 +82,6 @@ public sealed class DefinitionKindNode
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeId, DefinitionAttributeNode> Attributes { get; init; }
     public DefinitionAttributeId? HealthAttribute { get; init; }
-    public required IReadOnlyList<DefinitionStandingDriveNode> StandingDrives { get; init; }
     public string? Description { get; init; }
     public required Engine.Domain.Config.PrimaryPlane PrimaryPlane { get; init; }
 }
@@ -93,12 +92,6 @@ public sealed class DefinitionAttributeNode
     public required DefinitionAttributeShape Shape { get; init; }
     public required AttributeConfig SourceConfig { get; init; }
     public bool IsHealthAttribute { get; init; }
-}
-
-public sealed class DefinitionStandingDriveNode
-{
-    public required TypedDefinitionRef DesiredEffect { get; init; }
-    public required float BaseUrgency { get; init; }
 }
 
 public sealed class DefinitionResourceNode
@@ -388,7 +381,7 @@ public enum SemanticVerbRole
 
     /// <summary>
     /// Enablement verb: gets the entity into position to act. Physical entities
-    /// (NPC, Artifact) move on the map hex grid. Abstract entities (Settlement,
+    /// (Penguin, Artifact) move on the map hex grid. Abstract entities (Settlement,
     /// Faction, Region) move on the semantic-coord plane toward targets.
     /// Exactly one per entity kind.
     /// </summary>

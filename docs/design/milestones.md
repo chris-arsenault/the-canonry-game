@@ -1,102 +1,59 @@
 # Project Milestones
 
-Definitions for what each phase means. The review agents have been treating MVP as a shippable product. It is not. These definitions clarify what "done" means at each stage.
+These milestones define project readiness. MVP means developer validation, not
+public release.
 
----
+## MVP: Minimum Viable Prototype
 
-## MVP (Minimum Viable Prototype)
+Audience: developer only.
 
-**Audience:** The developer (me). Nobody else sees this.
+Purpose: determine whether observing and lightly steering the simulation is
+interesting enough to keep investing.
 
-**Purpose:** Determine whether the core simulation loop is interesting enough to invest further. Can I watch the world, understand what's happening, make card changes, and see meaningful consequences? Does the altitude model (low-altitude physics -> pressure -> cards) actually produce emergent behavior that's worth observing?
+Done means:
 
-**What "done" looks like:**
-- A fixed test map with 5 MVP entity kinds (Region, Settlement, Nation, NPC, Artifact)
-- Low-altitude physics running (entity behaviors, relationships, lifecycle, resources)
-- Pressure computation working
-- A handful of test cards (generators, systems, actions) placeable via test UI
-- Event log showing what's happening
-- Basic map visualization (entity markers, territory, at least one overlay)
-- Save/load functional
-- I can sit and watch the simulation for 30+ minutes and find it interesting
-- I can swap cards and see the world change in response
+- The Ice Remembers domain runs with the current five kinds: region,
+  settlement, faction, penguin, artifact.
+- Low-altitude physics creates visible movement, influence, relationship drift,
+  aging, and death.
+- Generators create named connected bundles.
+- A small set of gambits creates meaningful relationship/status changes.
+- The map, tableau, entity details, and event log make behavior observable.
+- Monte Carlo telemetry can measure the simulation quality goals.
+- A 30+ minute run produces enough world motion and named history to study.
 
-**What it is NOT:**
-- Pretty
-- Balanced
-- Complete
-- Playable by anyone other than me
-- Running on the final engine (could be a throwaway prototype)
+Not required:
 
-**Quality bar:** Functional, observable, modifiable. Bugs are expected. Art is placeholder. UI is developer-facing.
-
----
+- balance
+- public UX polish
+- full card deck loop
+- final art
+- full procedural content breadth
 
 ## Tech Demo
 
-**Audience:** Close friends and family. 5-10 people who can tolerate jank.
+Audience: small external testers.
 
-**Purpose:** Validate that the game is interesting to someone other than the developer. Does watching and steering the simulation hold attention for a meaningful session? Is the card system comprehensible? Is the feedback loop (observe -> understand -> act -> observe consequences) legible?
+Done means:
 
-**What "done" looks like:**
-- One complete narrative domain (The Ice Remembers) with real subtypes, real cards, real naming
-- One or more playable archetypes with a real starting deck
-- Deck/hand/tableau mechanics functional (draw, play, remove with cost)
-- Map visualization polished enough to be readable
-- Event log useful for understanding what's happening
-- UI layout navigable (map, tableau, hand, entity details all accessible)
-- Anti-degeneracy detectors and warnings functional
-- A 1-2 hour playable session that doesn't require developer guidance
-- Known bugs documented, not necessarily fixed
-- Still one domain, still limited card pool, still rough edges
-
-**What it is NOT:**
-- Bug-free
-- Feature-complete
-- Balanced beyond "doesn't obviously break"
-- Ready for public feedback
-- Monetizable
-
-**Quality bar:** Playable, comprehensible, interesting for at least one session without hand-holding.
-
----
+- One coherent Ice Remembers slice with real naming, subtypes, generators,
+  gambits, and enough deck/tableau interaction to steer the world.
+- Procedural map and seed generation are good enough to avoid overfitting to one
+  hand-authored seed.
+- UI supports observing map utilization, entity details, tableau diagnostics,
+  and event history without developer guidance.
+- Anti-degeneracy warnings expose bad trends without ending the run.
+- Save/load is reliable enough for multi-session testing.
 
 ## Early Access
 
-**Audience:** Public (or semi-public). Players who accept unfinished games.
+Audience: public players comfortable with unfinished systems.
 
-**Purpose:** Broader validation and community feedback. Balance tuning with real player data. Feature prioritization based on actual player behavior.
+Done means:
 
-**What "done" looks like:**
-- Complete The Ice Remembers domain with full card pool
-- Multiple archetypes
-- Deck modification events functional
-- Card enhancement/modification (Balatro-inspired) functional
-- Procedural map generation
-- Multiple post-MVP entity kinds implemented (at least Faction and Monster)
-- Degenerate state metrics with warnings (possibly soft fail thresholds)
-- Meta-progression across runs
-- Polished UI
-- Save/load robust
-- Performance acceptable for 4+ hour sessions
-- Tutorial or guided onboarding
-- Patron mode (favored nation) functional
-
-**What it is NOT:**
-- Final content
-- All entity kinds implemented
-- Multiple domains
-- Fully balanced
-- Multiplayer
-
-**Quality bar:** Publishable, retainable, worth paying for (even in early access framing).
-
----
-
-## How This Affects Design Docs
-
-When the design docs say "MVP," they mean the first milestone above: **can I sit and watch this simulation and find it interesting?** The bar is personal validation, not public readiness.
-
-Reviewers should evaluate MVP scope against this bar, not against a public release bar. A system that's "not polished enough for players" is fine for MVP if it's functional enough for the developer to evaluate the core loop.
-
-Post-MVP features are not deferred because they're unimportant. They're deferred because they don't help answer the MVP question: "is this interesting?"
+- Full starter card loop: deck, hand, tableau, costs, modifications.
+- Multiple archetypes or starting theories.
+- Broader generator and gambit pool.
+- Meta-progression and onboarding.
+- Robust procedural maps and longer-run performance.
+- Enough polish for players to understand why the world changed.

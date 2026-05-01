@@ -36,6 +36,11 @@ public sealed record LowAltitudeVerbRule(
     float HotspotWeight,
     float CrowdingWeight,
     float GeneratorAffordanceWeight,
+    bool ForeignInfluenceFilterEnabled,
+    bool ForeignInfluenceBlockPositiveRelationships,
+    bool ForeignInfluenceAllowNegativeRelationships,
+    float ForeignInfluenceMinimumRelationshipStrength,
+    float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove,
     int AffinityRelationshipKindId,
     int AffinityRelationshipDirectionCode,
     float RelationshipAffinityWeight,
@@ -66,6 +71,8 @@ public sealed class MapActivityProgram
 {
     public bool EnabledByDefault { get; init; } = true;
     public float PresenceHeat { get; init; } = 1f;
+    public float HeatDecayPerTick { get; init; } = 0.99f;
+    public float HeatEmaAlpha { get; init; } = 0.01f;
 }
 
 public sealed class MapSignalsProgram

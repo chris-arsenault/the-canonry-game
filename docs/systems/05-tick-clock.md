@@ -1,93 +1,58 @@
 # System 5: Tick Clock
 
-Time management. Drives everything.
+The tick clock is the deterministic heartbeat of the simulation. All world
+mutation happens inside `Simulation.AdvanceTicks`.
 
----
+## Core Rules
 
-## Purpose
+There is one simulation clock. Systems do not own separate clocks; they register
+a cadence and run when the current tick matches that cadence.
 
-The tick clock advances the simulation. Every change in the world happens because a tick occurred and a system processed it. The clock is the heartbeat of the simulation -- without it, everything is frozen.
+Within a tick, program order is strict. Earlier same-tick writes are visible to
+later programs. Programs that intentionally read previous-tick derived signals
+must declare that dependency explicitly.
 
----
+Speed control changes how quickly ticks are requested by the host or driver. It
+does not change the deterministic tick sequence.
 
-## Design Decisions
+## Current Program Order
 
-### One clock, no formal tick types
+```text
+LowAltitudeVerbs
+MapActivity
+MapSignals
+Relationships
+Effects
+Upkeep
+Gambits
+Pressures
+Generators
+Degeneracy
+```
 
-There is a single simulation clock. It ticks at a constant rate. There are no distinct "actor ticks," "system ticks," or "generation ticks" as separate clocks. Individual systems register to run at whatever cadence makes sense for them -- some every tick, some every N ticks. The distinction between fast-updating systems (entity movement) and slow-updating systems (generation) is a matter of cadence configuration, not separate clock infrastructure.
+Important dependency notes:
 
-The earlier design references to "actor ticks," "system ticks," and "generation ticks" described update frequencies, not separate clocks. These terms may still be useful as shorthand for "systems that run frequently" vs. "systems that run infrequently," but there is no architectural distinction.
+- `LowAltitudeVerbs` reads previous-tick map activity and map signals.
+- `MapActivity` records the current physical and semantic presence state.
+- `MapSignals` reads same-tick map activity and writes support, threat,
+  crowding, capacity, and attractor fields.
+- `Relationships` can use same-tick position, influence, contact memory, and
+  relationship maintenance config.
+- `Effects` reads same-tick map signals and relationship/influence evidence.
+- `Upkeep` applies lifecycle drain and moves dead entities to historical status.
+- `Gambits` and `Generators` see the low-altitude state created before them in
+  the same tick.
 
-### Ticks map to in-world time
+## Cadence
 
-Each tick represents a fixed amount of in-world time. The exact mapping is TBD -- the canonry used 1 tick = 1 year, which is too high-level for this game. Likely candidates:
-- 1 tick = 1 day (allows seasonal cycles, hero travel, daily resource production)
-- 1 tick = 1 week (faster macro progression, still supports hero-level events)
-- 1 tick = some abstract unit that isn't calendar-mapped
+Every registered program has a cadence. A program with cadence `1` runs every
+tick. A program with cadence `5` keeps its registration order but only runs on
+eligible ticks.
 
-The mapping affects:
-- **Lifecycle:** how many ticks a hero lives, how fast settlements grow
-- **Seasons:** how many ticks per season/year cycle
-- **Speed feel:** how much in-world time passes per second of real time at 1x speed
-- **Session length:** how many in-world years pass in a 4+ hour session
+Cadence is a performance and pacing tool, not a separate simulation phase.
 
-This needs playtesting to find the right feel. The architecture should treat the mapping as a configurable constant, not a hard-coded assumption.
+## Open Questions
 
-### Speed control: ticks per frame
-
-Speed control works by varying how many ticks are processed per rendered frame:
-- **Pause:** 0 ticks per frame. The simulation is frozen. The player can inspect, plan, and configure the tableau.
-- **1x:** baseline tick rate. Ticks happen at a pace that feels like "watching the world unfold."
-- **2x, 4x, etc.:** multiple ticks per frame. The simulation advances faster. The player sees the world evolve more quickly.
-
-Preferred model: 2x means ticks happen twice as fast (each tick still represents the same in-world time, but more of them happen per second). This preserves simulation determinism -- a run at 1x and a run at 4x produce identical results, just at different speeds.
-
-If performance cannot support this (if ticks become too expensive to run multiple per frame at high speeds), the fallback is increasing the in-world time each tick represents at higher speeds. This is a performance concession, not a design preference.
-
-### Strict execution ordering within a tick
-
-All systems execute in a defined, strict order within each tick. The results of an earlier scheduled program are visible to later scheduled programs, but later writes are not visible to earlier programs until the next tick.
-
-**Current built-in program order:**
-1. Upkeep
-2. Relationships
-3. Processes
-4. Gambits
-5. Pressures
-6. Generators
-7. Degeneracy
-
-This ordering is strict for determinism and sanity. A card cannot react to state that was just created by another card in the same tick. A low-altitude system cannot see a card effect until the next tick. This creates a clean one-tick delay between cause and visible effect, which is acceptable at the game's contemplative pace.
-
-There is no separate phase layer in the runtime scheduler. Program registration order is the ordering contract.
-
----
-
-## Cadence Configuration
-
-Each system registers a cadence: how many ticks between its updates.
-
-- **Every tick (cadence 1):** entity movement, resource consumption, relationship strength shifts. The fast-updating low-altitude systems.
-- **Every N ticks (cadence N):** pressure recomputation might run every 5 ticks. Seasonal changes every ~90 ticks (if 1 tick = 1 day). Generator precondition checks every 10-20 ticks. The exact numbers are configurable and will be tuned through playtesting.
-- Cadence does not change ordering. A system with cadence 10 keeps its registration position and skips 9 out of 10 ticks.
-
----
-
-## Interactions with Other Systems
-
-| System | How Tick Clock Interacts |
-|--------|--------------------------|
-| All systems | Every system is driven by the tick clock. Systems register with a cadence and run in registration order. |
-| Map/Spatial (#4) | Seasons cycle based on tick count (periodic function). |
-| Lifecycle (#9) | Entity aging is a function of ticks elapsed. |
-| Save/Load (#15) | Current tick count is part of serialized state. Restoring a save resumes from the saved tick. |
-
----
-
-## Open Questions (Deferred)
-
-- **In-world time mapping.** What does 1 tick equal? Needs playtesting. Affects lifecycle, seasons, pacing, and session length.
-- **Speed levels.** How many speed options (1x, 2x, 4x, 8x, max?). Whether a "skip to next event" option exists.
-- **Ordering model.** Whether registration order remains sufficient as the built-in program list grows, or whether the scheduler needs an explicit ordered schedule definition.
-- **Performance budget per tick.** How expensive can a single tick be before speed control breaks down. Determines how complex individual systems can be and how many entities the simulation can support.
-- **Tick visualization.** Whether the player sees a tick counter, an in-world calendar, or both. How time is communicated in the UI.
+The in-world meaning of one tick is still a design parameter. The architecture
+supports calendar mapping later, but current simulation quality should be
+judged by behavior over ticks rather than by a fixed day/week/year mapping.

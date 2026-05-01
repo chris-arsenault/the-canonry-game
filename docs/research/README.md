@@ -2,8 +2,8 @@
 
 Background research that informed the design. Reference material — not
 canonical design — kept here so the reasoning is visible without
-re-deriving it. Designs that crystallized out of this research live in
-[`docs/design/`](../design/).
+re-deriving it. Some research files reference superseded process/planner
+models; treat them as historical inputs, not current architecture.
 
 ## Top-level
 
@@ -27,15 +27,13 @@ model in [`docs/design/principles.md`](../design/principles.md) and the
 
 ## Simulation
 
-Process / behavior / planning research. Crystallized into the
-[entities and relationships design](../design/entities.md), the
-[loops](../design/loops.md), and the per-system docs in
-[`docs/systems/`](../systems/).
+Process / behavior / planning research. The current runtime shape is captured
+in [`docs/systems/06-entity-behaviors.md`](../systems/06-entity-behaviors.md)
+and [`docs/systems/simulation-principles.md`](../systems/simulation-principles.md).
 
 - [`simulation/formal-system-design.md`](simulation/formal-system-design.md)
 - [`simulation/formal-system-design-addon.md`](simulation/formal-system-design-addon.md)
 - [`simulation/entity-behavior-models.md`](simulation/entity-behavior-models.md)
-- [`simulation/needs-and-enabler-processes.md`](simulation/needs-and-enabler-processes.md)
 
 ## Graph
 

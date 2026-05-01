@@ -6,7 +6,7 @@ using MonteCarloTool;
 
 #pragma warning disable CA1515, CA2100 // xUnit requires public test types; SQL strings use constants and fixture-owned paths.
 
-// Executable gap ledger for docs/plans/current-tuning-pass/monte-carlo-observability-completion-plan.md.
+// Executable output-contract ledger for Monte Carlo observability.
 //
 // These tests intentionally stay at the Monte Carlo output boundary. They do not inspect kernel
 // internals. Their purpose is to pin the gap analysis to a concrete parquet contract so a later
@@ -578,7 +578,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("planner_localities", "run_id,tick,entity_id,kind_id,plan_id,locality_id,plane_code,q,r,s,anchor_entity_id,bundle_score,goal_count,distinct_target_count,distinct_effect_count,distance,is_current,is_committed,selected", "Locality bundles belong to the planner/action trace family.");
         data.Add("action_executions", "run_id,tick,entity_id,kind_id,plan_id,goal_id,step_index,action_id,target_entity_id,state_code,affected_entity_id,locality_id", "Executed actions must be queryable without mixing planner rows.");
         data.Add("map_cell_events", "run_id,tick,event_type_code,source_code_id,cause_id,q,r,previous_terrain_id,current_terrain_id,previous_owner_entity_id,current_owner_entity_id", "Cell mutation history owns terrain and coverage changes.");
-        data.Add("cell_influence_events", "run_id,tick,source_code_id,entity_id,plane_code,q,r,previous_influence,current_influence,delta", "Cell influence events own plane-aware influence deltas for the low-altitude map layer.");
+        data.Add("cell_influence_events", "run_id,tick,source_code_id,action_id,entity_id,plane_code,q,r,previous_influence,current_influence,delta", "Cell influence events own plane-aware influence deltas for the low-altitude map layer.");
         data.Add("map_snapshots", "run_id,tick,terrain_id,cell_count,covered_cell_count,active_entity_count", "Map snapshots own terrain aggregates.");
         data.Add("coverage_snapshots", "run_id,tick,owner_entity_id,coverage_kind_code,cell_count,min_q,max_q,min_r,max_r,active_entity_count", "Coverage snapshots own named territory size and spread.");
         data.Add("coverage_terrain_snapshots", "run_id,tick,owner_entity_id,terrain_id,cell_count", "Coverage terrain snapshots explain named coverage terrain mix.");

@@ -63,6 +63,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 CAST(NULL AS BIGINT) AS run_id,
                 CAST(NULL AS BIGINT) AS tick,
                 CAST(NULL AS BIGINT) AS source_code_id,
+                CAST(NULL AS BIGINT) AS action_id,
                 CAST(NULL AS BIGINT) AS entity_id,
                 CAST(NULL AS BIGINT) AS plane_code,
                 CAST(NULL AS BIGINT) AS q,

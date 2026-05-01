@@ -34,22 +34,20 @@ temperament: volatile or stable, interconnected or isolated, competitive or
 cooperative.
 
 **Actions — what actors can do.** Actions define the possibility space for
-the world's agents. Factions, settlements, NPCs, regions, and artifacts
-evaluate available actions each tick and choose based on their state and
-situation. The player doesn't perform actions — they make actions possible.
-"Forge Alliance" doesn't forge an alliance; it makes alliance-forging a
-thing actors in this world can do.
+the world's agents. In current implementation these are gambits: large,
+targetable acts such as wielding an artifact, declaring war, betrayal, or
+killing an enemy. The player doesn't perform actions — they make actions
+possible.
 
 ## Core Principles
 
 ### 1. The world is always alive
 
-Game systems always run. Relationships form and shift. Resources accumulate
-and deplete. Populations grow and shrink. Cultural differences create
-friction. Artifacts degrade and accumulate resonance. Entities age and die.
-Pressure builds. These are the physics of the world — not configurable, not
-optional, always on. The world doesn't need the player to exist. It needs
-the player to have a nature.
+Game systems always run. Entities move or exert influence. Relationships
+shift. Artifacts degrade and resonate. Entities age and die. Map activity,
+support, threat, crowding, and influence accumulate as evidence. These are
+the physics of the world — not configurable, not optional, always on. The
+world doesn't need the player to exist. It needs the player to have a nature.
 
 ### 2. The deck defines nature, not state
 
@@ -131,11 +129,10 @@ by visible game systems + active cards + world state. Transparency violates
 the central thesis if traded away.
 
 **Not entity-agnostic.** Entity kinds, subtypes, relationship kinds, and
-status values are hard-coded. A nation is a nation with nation-specific
-behaviors, not a generic entity that happens to have nation-like properties.
-Validated through canonry experience: cognitive overhead of entity-agnostic
-design exceeded the flexibility benefit. What remains declarative is the
-simulation content (cards), not the schema.
+status values are declared domain schema, not arbitrary strings. The engine no
+longer owns concrete narrative kinds, but the domain still has real kinds with
+real behavior and validation. What remains reusable is the compiled gameplay
+machinery, not a shapeless entity blob.
 
 **Not generative-AI-driven.** Entirely procedural and mechanical. No LLM
 calls, no AI-generated text, no neural network inference at runtime. Names
@@ -165,7 +162,7 @@ one-shot hand cards representing divine intervention — the exception that
 proves the rule of indirect control.)
 
 **Not a multi-tableau game.** One global tableau, not a separate card set
-per nation/culture. Five-plus tableaux is cognitive overload and fights the
+per faction/culture. Five-plus tableaux is cognitive overload and fights the
 contemplative tempo. (Patron mode adds targeted cards to the global tableau,
 not a second tableau.)
 
@@ -197,23 +194,26 @@ for the first prototype.
 
 ## Engine vs. domain boundary
 
-**Engine-level (hard-coded):** Entity kinds are defined in engine code. The
-engine knows what a "settlement" is, what a "region" is. Adding a new
-entity kind requires engine changes.
+**Engine-level:** the kernel owns primitive execution, fixed buffers,
+program order, event emission, IDs, and generic program runtimes. It must not
+contain narrative-domain nouns or concrete domain kinds.
 
-**Domain-level (defined per domain):** Subtypes, relationship kinds,
-attribute schemas, pressure definitions, status values, and processes are
-defined by the narrative domain module. The domain CAN be programmatic; it
-does not have to be JSON. Domains define subtypes (e.g. "ice-warden" is an
-NPC subtype in The Ice Remembers), relationship kinds, and attribute
-configurations.
+**Gameplay-level:** reusable mechanics such as low-altitude verb shapes,
+map signals, map control, and effects live in `Engine.Gameplay`. They
+compile authored gameplay config into primitive kernel data.
 
-**Declarative content:** Generators, systems, and actions (cards) are
-data-driven, defined in DSL. New cards require only data changes.
+**Domain-level:** kinds, subtypes, attributes, cultures, relationship kinds,
+pressure definitions, generators, gambits, terrain, names, and lore belong
+to the narrative domain module. The domain can be programmatic; it does not
+have to be JSON.
 
-A second domain can define entirely new subtypes, new relationship kinds,
-new attribute configurations, new processes, and new cards without engine
-changes. It cannot define new entity kinds.
+**Declarative content:** generators, gambits, and future cards are
+data-driven. New content should usually be a domain/gameplay data change,
+not a kernel change.
+
+A second domain can define different kinds and relationship catalogs by
+registering them through the domain layer. It cannot make the kernel branch
+on its own narrative concepts.
 
 ## Open design areas
 
@@ -226,9 +226,9 @@ on paper.
 - Card draw / availability mechanics (deck draw, world-state unlocks,
   drafting, market).
 - Card swap rules (free / cooldown / cost / era-locked).
-- Exact game-systems-vs-simulation-systems boundary: which behaviors are
-  always-on physics vs card-defined.
-- Favored nation mode integration with these principles.
+- Exact card/runtime boundary: which gambits and generators are always-on
+  defaults vs enabled by the player's tableau.
+- Favored entity or faction mode integration with these principles.
 - Intervention card design (hand cards, draw, costs, frequency).
 - Hidden event cards (backlogged: cards visible on the tableau with hidden
   trigger preconditions).

@@ -13,11 +13,8 @@ The kernel split is in place — `Engine.Kernel`, `Engine.Domain`,
 `Engine.Observability`, `Engine.Observability.Export`, and
 `Engine.WorldGen` — and `Engine.Kernel/BannedSymbols.txt` enforces the
 no-string, no-LINQ, no-allocation, no-async, no-I/O rules at build time.
-The codebase is not yet fully compliant inside the kernel boundary
-(planner/evaluator hot-path allocations, graph storage, query indexing —
-see `invarient_progress_tracking.md`). Existing violations are migration
-debt, not precedent. New work must move the engine toward these rules and
-must not introduce avoidable new violations.
+Existing violations are migration debt, not precedent. New work must move the
+engine toward these rules and must not introduce avoidable new violations.
 
 ## Core Rule
 
@@ -249,9 +246,9 @@ represent the current intended game behavior, not a temporary test convenience.
 
 Current tuning keys:
 
-- `programs.processes.resource_supply_model`: `ambient_hex` or
-  `named_provider_no_hex`.
-- `programs.processes.work_commitments`: `off` or `pilot`.
+- `programs.planning.default_planner`: `goap`, `htn`, or `opportunity`.
+- `programs.planning.goap_target_reservations_enabled`: `true` or `false`.
+- `programs.planning.opportunity_target_capacity`: integer target capacity.
 - `programs.pressures.enabled`: `true` or `false`; default is `false`.
 - `programs.upkeep.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.

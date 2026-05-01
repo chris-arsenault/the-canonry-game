@@ -166,6 +166,47 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void Fire_UsesConfiguredSemanticBoundsForProducedPlacement()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        simulation.World.SetMapRadius(5);
+        simulation.Generators.ConfigureSemanticBounds(-1, 1, -1, 1);
+        simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 4, 0, -4, tick: 0);
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        simulation.Generators.AddProduced(
+            slot,
+            CreatedRef,
+            CreatedKindId,
+            CreatedSubtypeId,
+            createIfMissing: 1,
+            hasQuery: 0,
+            queryAdjacentToTarget: 0,
+            queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
+            physicalPlacementCode: GeneratorPlacementCodes.Near,
+            semanticPlacementCode: GeneratorPlacementCodes.On,
+            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            createChance: 1f,
+            coverageModeCode: GeneratorCoverageModeCodes.None,
+            coverageSourceRefCode: 0,
+            coverageDesiredCellCount: 0,
+            coverageMinimumCellCount: 0,
+            coverageMinimumSourceRemainingCellCount: 0,
+            coverageRespectTerrainBoundaries: 0,
+            coverageTransformTerrainId: 0);
+
+        simulation.AdvanceTicks(1);
+
+        var created = simulation.World.EntityHighWatermark;
+        var q = simulation.World.EntitySemanticQ(created);
+        var r = simulation.World.EntitySemanticR(created);
+        Assert.InRange(q, -1, 1);
+        Assert.InRange(r, -1, 1);
+        Assert.True(HexDistance(0, 0, q, r) <= 1);
+    }
+
+    [Fact]
     public void RetryFireTargets_WhenEnabled_TriesAnotherTargetAfterFireFailure()
     {
         var simulation = CreateSimulation(seed: 1, retryFireTargets: true);
@@ -458,6 +499,13 @@ public sealed class GeneratorProgramRuntimeTests
                 simulation.CreateCell(q, r, terrainId: 1, ownerEntityId: 0);
             }
         }
+    }
+
+    private static int HexDistance(int aq, int ar, int bq, int br)
+    {
+        var asCoord = -aq - ar;
+        var bsCoord = -bq - br;
+        return (Math.Abs(aq - bq) + Math.Abs(ar - br) + Math.Abs(asCoord - bsCoord)) / 2;
     }
 
     private static KernelEventType[] ReadAvailableEventTypes(Simulation simulation, KernelEventCursor cursor)

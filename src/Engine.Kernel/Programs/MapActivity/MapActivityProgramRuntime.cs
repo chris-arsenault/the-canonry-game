@@ -15,7 +15,8 @@ internal sealed class MapActivityProgramRuntime :
 
     public MapActivityProgramState State { get; }
 
-    public float Heat(int planeCode, int q, int r) => State.Heat(planeCode, q, r);
+    public float Heat(int planeCode, int q, int r, int tick) =>
+        State.Heat(planeCode, q, r, tick, Data.HeatDecayPerTick);
 
     public int VisitCount(int planeCode, int q, int r) => State.VisitCount(planeCode, q, r);
 
@@ -40,14 +41,17 @@ internal sealed class MapActivityProgramRuntime :
                 world.EntityPhysicalQ(entityId),
                 world.EntityPhysicalR(entityId),
                 tick,
-                Data.PresenceHeat);
+                Data.PresenceHeat,
+                Data.HeatDecayPerTick,
+                Data.HeatEmaAlpha);
             State.RecordPresence(
                 PlaneCodes.Semantic,
                 world.EntitySemanticQ(entityId),
                 world.EntitySemanticR(entityId),
                 tick,
-                Data.PresenceHeat);
+                Data.PresenceHeat,
+                Data.HeatDecayPerTick,
+                Data.HeatEmaAlpha);
         }
     }
 }
-

@@ -184,24 +184,6 @@ public static class IceRemembersPressureExtensions
     };
 }
 
-public enum IceRemembersStructuralFact
-{
-    Roam,
-    SettlementContribution,
-    TerritorialOrder,
-}
-
-public static class IceRemembersStructuralFactExtensions
-{
-    public static string ToDomainName(this IceRemembersStructuralFact fact) => fact switch
-    {
-        IceRemembersStructuralFact.Roam => "roam",
-        IceRemembersStructuralFact.SettlementContribution => "settlement_contribution",
-        IceRemembersStructuralFact.TerritorialOrder => "territorial_order",
-        _ => throw new ArgumentOutOfRangeException(nameof(fact), fact, "Unknown test-domain structural fact"),
-    };
-}
-
 public enum IceRemembersCulture
 {
     AuroraStack,
@@ -298,6 +280,8 @@ public enum IceRemembersVerbId
     FactionHoldCouncil,
     FactionBreakRivalHold,
     FactionMoveSeat,
+    PenguinBreakChorus,
+    PenguinScatterClaimMarks,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -380,6 +364,8 @@ public static class IceRemembersVerbIdExtensions
         "faction_hold_council",
         "faction_break_rival_hold",
         "faction_move_seat",
+        "penguin_break_chorus",
+        "penguin_scatter_claim_marks",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

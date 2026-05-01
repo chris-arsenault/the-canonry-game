@@ -86,7 +86,7 @@ internal sealed partial class GeneratorProgramRuntime
         }
     }
 
-    private static void ResolveSemanticPlacement(
+    private void ResolveSemanticPlacement(
         Simulation simulation,
         int anchorEntityId,
         int placementCode,
@@ -99,7 +99,7 @@ internal sealed partial class GeneratorProgramRuntime
         switch (placementCode)
         {
             case GeneratorPlacementCodes.On:
-                if (IsSemanticInVisualBounds(world, originQ, originR) && !IsSemanticOccupied(world, originQ, originR))
+                if (SemanticCoordinateAllowed(world, originQ, originR) && !IsSemanticOccupied(world, originQ, originR))
                 {
                     q = originQ;
                     r = originR;
@@ -116,14 +116,14 @@ internal sealed partial class GeneratorProgramRuntime
             case GeneratorPlacementCodes.Across:
                 var mirroredQ = -originQ;
                 var mirroredR = -originR;
-                if (IsSemanticInVisualBounds(world, mirroredQ, mirroredR) && !IsSemanticOccupied(world, mirroredQ, mirroredR))
+                if (SemanticCoordinateAllowed(world, mirroredQ, mirroredR) && !IsSemanticOccupied(world, mirroredQ, mirroredR))
                 {
                     q = mirroredQ;
                     r = mirroredR;
                     return;
                 }
 
-                if (FindFreeSemanticHex(world, mirroredQ, mirroredR, maxRadius: world.MapRadius, out q, out r))
+                if (FindFreeSemanticHex(world, mirroredQ, mirroredR, maxRadius: EffectiveSemanticRadius(world), out q, out r))
                 {
                     return;
                 }
@@ -141,12 +141,17 @@ internal sealed partial class GeneratorProgramRuntime
         }
     }
 
-    private static void ResolveSemanticFallback(WorldState world, int originQ, int originR, out int q, out int r)
+    private void ResolveSemanticFallback(WorldState world, int originQ, int originR, out int q, out int r)
     {
-        if (IsSemanticInVisualBounds(world, originQ, originR))
+        if (SemanticCoordinateAllowed(world, originQ, originR))
         {
             q = originQ;
             r = originR;
+            return;
+        }
+
+        if (FindFreeSemanticHex(world, 0, 0, maxRadius: EffectiveSemanticRadius(world), out q, out r))
+        {
             return;
         }
 
@@ -831,7 +836,7 @@ internal sealed partial class GeneratorProgramRuntime
         return false;
     }
 
-    private static bool FindFreeSemanticHex(
+    private bool FindFreeSemanticHex(
         WorldState world,
         int originQ,
         int originR,
@@ -850,7 +855,7 @@ internal sealed partial class GeneratorProgramRuntime
                     q = originQ + dq;
                     r = originR + dr;
                     if (HexDistance(originQ, originR, q, r) == radius &&
-                        IsSemanticInVisualBounds(world, q, r) &&
+                        SemanticCoordinateAllowed(world, q, r) &&
                         !IsSemanticOccupied(world, q, r))
                     {
                         return true;
@@ -864,7 +869,23 @@ internal sealed partial class GeneratorProgramRuntime
         return false;
     }
 
-    private static bool IsSemanticInVisualBounds(WorldState world, int q, int r) =>
-        HexDistance(0, 0, q, r) <= world.MapRadius;
+    private bool SemanticCoordinateAllowed(WorldState world, int q, int r)
+    {
+        var s = -q - r;
+        return q >= Data.SemanticMinQ &&
+            q <= Data.SemanticMaxQ &&
+            r >= Data.SemanticMinR &&
+            r <= Data.SemanticMaxR &&
+            MaxAbs(q, r, s) <= EffectiveSemanticRadius(world);
+    }
+
+    private int EffectiveSemanticRadius(WorldState world)
+    {
+        var configuredRadius = MaxAbs(
+            MaxAbs(Data.SemanticMinQ, Data.SemanticMaxQ, 0),
+            MaxAbs(Data.SemanticMinR, Data.SemanticMaxR, 0),
+            0);
+        return global::System.Math.Max(0, global::System.Math.Min(world.MapRadius, configuredRadius));
+    }
 
 }

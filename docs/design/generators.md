@@ -18,7 +18,7 @@ fires it. They are the mechanism by which the simulation introduces new
 actors, factions, settlements, and artifacts over time, rather than
 starting with a fixed census and only losing pieces.
 
-A generator is not just "spawn an NPC" — it spawns **a bundle** (entities +
+A generator is not just "spawn a penguin" — it spawns **a bundle** (entities +
 relationships + placement), because the interesting narrative units are
 relational: a settlement with a founding leader who belongs to a faction,
 not three lonely pieces.
@@ -26,8 +26,8 @@ not three lonely pieces.
 ### Simulation altitudes
 
 - **Low altitude** — continuous simulation of named entities already in the
-  world: movement, resource conversion, local process execution,
-  relationship updates.
+  world: movement, influence, map signals, relationship maintenance, health,
+  aging, and death.
 - **Mid altitude** — systematic change in the graph: wars hardening,
   alliances fraying, corruption spreading, sanctity stabilizing.
 - **High altitude** — generators. Major world events that intermittently
@@ -396,7 +396,7 @@ so the backlog stays explicit.
   produces a diplomat") would give the semantic model more to chew on.
 - All current generators are additive. None remove or transform
   entities. A healthy catalog has generators that **collapse** state —
-  famine, exile, dissolution of factions into NPCs. Spawn-only
+  famine, exile, dissolution of factions into penguins. Spawn-only
   generators tend toward demographic explosion and are the main reason
   sims get boring after hour 2.
 
@@ -407,7 +407,7 @@ so the backlog stays explicit.
   faction, or have any named-entity relationship.
 - A "no out-of-domain cultures" rule. A generator could currently
   produce an entity with culture `none` (via region inheritance).
-  That's semantically odd for NPCs/factions; require Npc/Faction
+  That's semantically odd for penguins/factions; require Penguin/Faction
   produces to resolve to a culture in the `Cultures` list.
 - A cap on `Produces.Count`. A generator producing 10 entities is
   almost certainly a bug or a quest, not a generator. 3–4 is probably

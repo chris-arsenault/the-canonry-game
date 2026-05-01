@@ -21,6 +21,11 @@ internal readonly struct LowAltitudeVerbRegistration
     public float HotspotWeight { get; init; }
     public float CrowdingWeight { get; init; }
     public float GeneratorAffordanceWeight { get; init; }
+    public int ForeignInfluenceFilterEnabled { get; init; }
+    public int ForeignInfluenceBlockPositiveRelationships { get; init; }
+    public int ForeignInfluenceAllowNegativeRelationships { get; init; }
+    public float ForeignInfluenceMinimumRelationshipStrength { get; init; }
+    public float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove { get; init; }
     public int AffinityRelationshipKindId { get; init; }
     public int AffinityRelationshipDirectionCode { get; init; }
     public float RelationshipAffinityWeight { get; init; }

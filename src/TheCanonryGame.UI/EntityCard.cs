@@ -172,7 +172,7 @@ public partial class EntityCard : PanelContainer
         AppendAttributes(sb, entity, whisper);
         sb.AppendLine();
         AppendRelationships(sb, whisper);
-        AppendProcesses(sb, entity, whisper);
+        AppendActions(sb, entity, whisper);
 
         _content.Text = sb.ToString();
         QueueScrollRestore();
@@ -238,7 +238,7 @@ public partial class EntityCard : PanelContainer
         }
     }
 
-    private void AppendProcesses(StringBuilder sb, UiEntityProjection entity, string whisper)
+    private void AppendActions(StringBuilder sb, UiEntityProjection entity, string whisper)
     {
         sb.AppendLine(SectionHeader("Actions"));
         if (entity.LastGoalGeneration is null && entity.LastGambitExecution is null)

@@ -144,7 +144,12 @@ internal sealed class KernelConfigurationContext
         int influenceRadius,
         float coverageGrowthChance,
         float headquartersMoveChance,
-        float requiredInfluence) =>
+        float requiredInfluence,
+        int foreignInfluenceFilterEnabled = 0,
+        int foreignInfluenceBlockPositiveRelationships = 0,
+        int foreignInfluenceAllowNegativeRelationships = 0,
+        float foreignInfluenceMinimumRelationshipStrength = 0f,
+        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f) =>
         _kernel.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
@@ -172,7 +177,12 @@ internal sealed class KernelConfigurationContext
             influenceRadius,
             coverageGrowthChance,
             headquartersMoveChance,
-            requiredInfluence);
+            requiredInfluence,
+            foreignInfluenceFilterEnabled,
+            foreignInfluenceBlockPositiveRelationships,
+            foreignInfluenceAllowNegativeRelationships,
+            foreignInfluenceMinimumRelationshipStrength,
+            foreignInfluenceAllowUnrelatedInfluenceAtOrAbove);
 
     public void AddLowAltitudeVerbPrimitiveStep(
         int verbSlot,
@@ -190,8 +200,14 @@ internal sealed class KernelConfigurationContext
         float influenceValue) =>
         _kernel.LowAltitudeVerbs.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
-    public void ConfigureLowAltitudeSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
+    public void ConfigureGameplaySemanticBounds(int minQ, int maxQ, int minR, int maxR)
+    {
         _kernel.LowAltitudeVerbs.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
+        _kernel.Generators.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
+    }
+
+    public void ConfigureLowAltitudeSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
+        ConfigureGameplaySemanticBounds(minQ, maxQ, minR, maxR);
 
     public int RegisterLowAltitudeGeneratorAffordance(
         int actorKindId,
@@ -204,9 +220,11 @@ internal sealed class KernelConfigurationContext
             bindingKindId,
             affordanceScore);
 
-    public void ConfigureMapActivity(float presenceHeat)
+    public void ConfigureMapActivity(float presenceHeat, float heatDecayPerTick, float heatEmaAlpha)
     {
         _kernel.MapActivity.Data.PresenceHeat = presenceHeat;
+        _kernel.MapActivity.Data.HeatDecayPerTick = heatDecayPerTick;
+        _kernel.MapActivity.Data.HeatEmaAlpha = heatEmaAlpha;
     }
 
     public void ConfigureMapSignals(float semanticBaseCapacity, int crowdingRadius)

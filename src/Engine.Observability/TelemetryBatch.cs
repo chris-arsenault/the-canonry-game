@@ -557,6 +557,7 @@ public sealed record CellInfluenceEventRow(
     int RunId,
     int Tick,
     int SourceCodeId,
+    int ActionId,
     int EntityId,
     int PlaneCode,
     int Q,

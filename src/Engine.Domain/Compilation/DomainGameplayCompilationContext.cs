@@ -50,23 +50,48 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
     public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances()
     {
         var affordances = new List<GeneratorAffordanceDefinition>();
+        var seen = new HashSet<GeneratorAffordanceDefinition>();
         if (_config.Semantics is null)
         {
-            return affordances;
+            return [];
         }
 
         foreach (var generator in _config.Semantics.Generators)
         {
             var targetKind = generator.Target.Kind.Value;
+            AddAffordance(affordances, seen, targetKind, targetKind, targetKind);
             foreach (var binding in generator.SecondaryTargets)
             {
                 var bindingKind = binding.Kind.Value;
-                affordances.Add(new GeneratorAffordanceDefinition(targetKind, bindingKind, bindingKind));
-                affordances.Add(new GeneratorAffordanceDefinition(bindingKind, targetKind, bindingKind));
+                AddAffordance(affordances, seen, targetKind, bindingKind, bindingKind);
+                AddAffordance(affordances, seen, bindingKind, targetKind, bindingKind);
+                AddAffordance(affordances, seen, bindingKind, bindingKind, bindingKind);
+            }
+
+            foreach (var produced in generator.Produces)
+            {
+                var producedKind = produced.Kind.Value;
+                AddAffordance(affordances, seen, targetKind, producedKind, producedKind);
+                AddAffordance(affordances, seen, producedKind, targetKind, producedKind);
+                AddAffordance(affordances, seen, producedKind, producedKind, producedKind);
             }
         }
 
         return affordances;
+    }
+
+    private static void AddAffordance(
+        List<GeneratorAffordanceDefinition> affordances,
+        HashSet<GeneratorAffordanceDefinition> seen,
+        string actorKind,
+        string candidateKind,
+        string bindingKind)
+    {
+        var affordance = new GeneratorAffordanceDefinition(actorKind, candidateKind, bindingKind);
+        if (seen.Add(affordance))
+        {
+            affordances.Add(affordance);
+        }
     }
 
     private EntityKind ResolveKind(string kindName, string context)

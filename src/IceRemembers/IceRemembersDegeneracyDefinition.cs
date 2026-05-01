@@ -10,10 +10,10 @@ public static class IceRemembersDegeneracyDefinition
 {
     private const string SettlementDepopulationId = "settlement_collapse";
     private const string PoliticalMonocultureId = "political_monoculture";
-    private const string NpcExtinctionId = "npc_extinction";
+    private const string PenguinExtinctionId = "penguin_extinction";
     private const string SettlementDepopulationReason = "settlement_collapse_transition";
     private const string PoliticalMonocultureReason = "political_monoculture_transition";
-    private const string NpcExtinctionReason = "npc_extinction_transition";
+    private const string PenguinExtinctionReason = "penguin_extinction_transition";
 
     public static DegeneracyConfig Create() => new()
     {
@@ -51,10 +51,10 @@ public static class IceRemembersDegeneracyDefinition
             },
             new DegeneracyDetectorConfig
             {
-                Id = NpcExtinctionId,
-                DisplayName = "NPC Extinction",
+                Id = PenguinExtinctionId,
+                DisplayName = "Penguin Extinction",
                 Description = "Too few penguins remain active.",
-                ReasonCode = NpcExtinctionReason,
+                ReasonCode = PenguinExtinctionReason,
                 Metric = DegeneracyMetric.ActiveKindCount,
                 ThresholdDirection = DegeneracyThresholdDirection.LowIsBad,
                 NoSubjectsSeverity = DegeneracySeverity.Critical,
