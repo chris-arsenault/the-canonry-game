@@ -35,6 +35,8 @@ public enum BehaviorProgramOperation
     CreateFixedRelationship,
     CreateEndpointRelationship,
     SetEndpointRelationshipStrength,
+    MoveTargetToSelfPhysical,
+    SetTargetCoverageTerrain,
 }
 
 public enum BehaviorProgramEndpoint
@@ -62,6 +64,7 @@ public enum BehaviorProgramPrecondition
     Always,
     SelfHasRelationshipToTarget,
     TargetHasRelationshipToSelf,
+    SelfHasOutgoingRelationship,
     RelatedEntityMatchesTarget,
     RelationshipExists,
     PressureRange,
@@ -71,6 +74,9 @@ public enum BehaviorProgramPrecondition
     Not,
     EntityCountAtLeast,
     HasColocatedEntity,
+    ContestedInfluence,
+    SharedInfluence,
+    EndpointRelationshipCountBelow,
 }
 
 public enum BehaviorProgramExpression

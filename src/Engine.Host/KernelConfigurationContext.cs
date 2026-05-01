@@ -55,8 +55,8 @@ internal sealed class KernelConfigurationContext
             defaultValue,
             defaultVariance);
 
-    public int RegisterRelationshipKind(RelationshipKindRuntimeId kindId, float cullThreshold) =>
-        _kernel.Relationships.RegisterRelationshipKind(kindId.Value, cullThreshold);
+    public int RegisterRelationshipKind(RelationshipKindRuntimeId kindId, float cullThreshold, bool targetFollowsSourcePhysical = false) =>
+        _kernel.Relationships.RegisterRelationshipKind(kindId.Value, cullThreshold, targetFollowsSourcePhysical);
 
     public int AddRelationshipMaintenanceRule(
         RelationshipKindRuntimeId kindId,

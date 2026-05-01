@@ -42,6 +42,10 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains(report.InfluenceSummary, row =>
             row.Kind == IceRemembersKinds.Settlement.Value &&
             row.AverageInfluencedCells > 0);
+        Assert.Contains(report.GambitSuccess, row =>
+            row.GambitId == "penguin_wields_artifact" &&
+            row.AttemptCount == 2 &&
+            row.SuccessCount == 1);
         Assert.Contains(report.MapGeneration, row =>
             row.Phase == "quality_validation" &&
             row.EventCount == 1);
@@ -53,6 +57,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "entity_roaming.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "roaming_summary.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "influence_dynamics.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "gambit_success_rate.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "stock_dynamics.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_spread.parquet")));
         Assert.False(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
@@ -63,6 +68,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains("Roaming Variance", summary, StringComparison.Ordinal);
         Assert.Contains("Low-Altitude Verb Utilization", summary, StringComparison.Ordinal);
         Assert.Contains("Influence Dynamics", summary, StringComparison.Ordinal);
+        Assert.Contains("Gambit Success Rate", summary, StringComparison.Ordinal);
         Assert.Contains("Generator Balance", summary, StringComparison.Ordinal);
         Assert.Contains("Action Pressure", summary, StringComparison.Ordinal);
         Assert.Contains("Map Generation", summary, StringComparison.Ordinal);
@@ -240,6 +246,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddEntityTelemetry(batch, seed);
         AddProcessTelemetry(batch, seed);
         AddLowAltitudeTelemetry(batch, seed);
+        AddGambitTelemetry(batch, seed);
         AddResourceTelemetry(batch, seed);
         AddMapTelemetry(batch, seed);
         AddLifecycleTelemetry(batch, seed);
@@ -267,6 +274,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             CultureId: 30,
             VerbSymbolId: 40,
             GeneratorId: 50,
+            GambitId: 55,
             FoodResourceId: 60,
             WealthResourceId: 61,
             ShelfTerrainId: 70,
@@ -296,6 +304,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             seed.PenguinVerbId));
         AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "penguin_calls_the_unhuddled");
         AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "faction_seals_the_edge");
+        AddSymbol(batch, ProjectionSymbolKind.Gambit, seed.GambitId, "penguin_wields_artifact");
         AddSymbol(batch, ProjectionSymbolKind.Resource, seed.FoodResourceId, "Food");
         AddSymbol(batch, ProjectionSymbolKind.Resource, seed.WealthResourceId, "Wealth");
         AddSymbol(batch, ProjectionSymbolKind.Terrain, seed.ShelfTerrainId, "Shelf");
@@ -529,6 +538,32 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 25, seed.WealthResourceId, 5f, 0.25f, 0f, 1f));
     }
 
+    private static void AddGambitTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.GambitEvents.Add(new GambitEventRow(
+            RunId: seed.RunId,
+            Tick: 24,
+            EventTypeCode: (int)KernelEventType.GambitExecuted,
+            GambitId: seed.GambitId,
+            ActorId: 1,
+            ActorKindId: seed.PenguinKindId,
+            TargetEntityId: 7,
+            StateCode: (int)KernelEventState.Succeeded,
+            Succeeded: true,
+            AffectedEntityCount: 2));
+        batch.GambitEvents.Add(new GambitEventRow(
+            RunId: seed.RunId,
+            Tick: 25,
+            EventTypeCode: (int)KernelEventType.GambitExecuted,
+            GambitId: seed.GambitId,
+            ActorId: 1,
+            ActorKindId: seed.PenguinKindId,
+            TargetEntityId: 7,
+            StateCode: (int)KernelEventState.Failed,
+            Succeeded: false,
+            AffectedEntityCount: 2));
+    }
+
     private static void AddMapTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.ShelfTerrainId, 20, 8, 2));
@@ -663,6 +698,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         int CultureId,
         int VerbSymbolId,
         int GeneratorId,
+        int GambitId,
         int FoodResourceId,
         int WealthResourceId,
         int ShelfTerrainId,

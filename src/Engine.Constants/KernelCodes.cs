@@ -40,6 +40,8 @@ public static class BehaviorOperationCodes
     public const int CreateFixedRelationship = 25;
     public const int CreateEndpointRelationship = 26;
     public const int SetEndpointRelationshipStrength = 27;
+    public const int MoveTargetToSelfPhysical = 28;
+    public const int SetTargetCoverageTerrain = 29;
 }
 
 public static class BehaviorTargetModeCodes
@@ -75,6 +77,10 @@ public static class BehaviorPreconditionCodes
     public const int Not = 16;
     public const int EntityCountAtLeast = 17;
     public const int HasColocatedEntity = 18;
+    public const int ContestedInfluence = 19;
+    public const int SelfHasOutgoingRelationship = 20;
+    public const int SharedInfluence = 21;
+    public const int EndpointRelationshipCountBelow = 22;
 }
 
 public static class BehaviorExpressionCodes

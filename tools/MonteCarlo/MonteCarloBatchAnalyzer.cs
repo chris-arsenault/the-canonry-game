@@ -41,6 +41,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "pressure_source_snapshots",
         "relationship_events",
         "relationship_snapshots",
+        "gambit_events",
         "generator_events",
         "generator_outputs",
         "generator_state_snapshots",
@@ -102,6 +103,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
         var telemetryCoverage = LoadTelemetryCoverage(connection);
         var overview = LoadBatchOverview(connection);
+        var gambitRows = LoadGambitSuccessRows(connection);
         var generatorRows = LoadGeneratorRows(connection, overview.RunCount);
         var generatedCoverage = LoadGeneratedCoverageRows(connection);
         var lowAltitudeRows = LoadLowAltitudeVerbRows(connection);
@@ -126,6 +128,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         {
             Overview = overview,
             Flags = flags,
+            GambitSuccess = gambitRows,
             GeneratorBalance = generatorRows,
             GeneratedSubtypeCoverage = generatedCoverage,
             LowAltitudeVerbUtilization = lowAltitudeRows,
@@ -285,6 +288,42 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         var observed = LoadObservedGeneratorRows(connection);
         return BuildGeneratorRows(observed, runCount);
+    }
+
+    private static List<GambitSuccessRow> LoadGambitSuccessRows(DuckDBConnection connection)
+    {
+        var sql = $"""
+            SELECT
+                COALESCE(ANY_VALUE(gambit_symbol.stable_name), CAST(event.gambit_id AS VARCHAR)) AS gambit_id,
+                COUNT(*) AS attempt_count,
+                SUM(CASE WHEN event.succeeded THEN 1 ELSE 0 END) AS success_count,
+                SUM(CASE WHEN event.succeeded THEN 0 ELSE 1 END) AS failure_count,
+                CASE
+                    WHEN COUNT(*) = 0 THEN 0.0
+                    ELSE SUM(CASE WHEN event.succeeded THEN 1 ELSE 0 END)::DOUBLE / COUNT(*)
+                END AS success_rate,
+                MIN(event.tick) AS first_attempt_tick,
+                MAX(event.tick) AS last_attempt_tick,
+                COUNT(DISTINCT event.actor_id) AS distinct_actors,
+                COUNT(DISTINCT event.target_entity_id) AS distinct_targets
+            FROM raw_gambit_events event
+            LEFT JOIN symbol_lookup gambit_symbol
+              ON gambit_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Gambit}
+             AND gambit_symbol.id = event.gambit_id
+            GROUP BY event.gambit_id
+            ORDER BY attempt_count DESC, gambit_id;
+            """;
+
+        return Query(connection, sql, reader => new GambitSuccessRow(
+            GambitId: ReadString(reader, "gambit_id"),
+            AttemptCount: ReadInt(reader, "attempt_count"),
+            SuccessCount: ReadInt(reader, "success_count"),
+            FailureCount: ReadInt(reader, "failure_count"),
+            SuccessRate: ReadDouble(reader, "success_rate"),
+            FirstAttemptTick: ReadInt(reader, "first_attempt_tick"),
+            LastAttemptTick: ReadInt(reader, "last_attempt_tick"),
+            DistinctActors: ReadInt(reader, "distinct_actors"),
+            DistinctTargets: ReadInt(reader, "distinct_targets")));
     }
 
     private static Dictionary<string, ObservedGeneratorRow> LoadObservedGeneratorRows(DuckDBConnection connection)

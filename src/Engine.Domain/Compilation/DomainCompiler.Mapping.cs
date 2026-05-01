@@ -37,7 +37,8 @@ public static partial class DomainCompiler
             var relationshipKindId = ids.RelationshipKindIdOf(relationship.Name).Value;
             relationships.Add(new RelationshipRuntimeRule(
                 relationshipKindId,
-                relationship.CullThreshold));
+                relationship.CullThreshold,
+                relationship.TargetFollowsSourcePhysical));
             foreach (var maintenance in relationship.Maintenance)
             {
                 maintenanceRules.Add(new RelationshipMaintenanceRuntimeRule(

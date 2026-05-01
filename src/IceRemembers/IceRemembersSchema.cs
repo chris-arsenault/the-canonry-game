@@ -380,9 +380,9 @@ public static class IceRemembersVerbIdExtensions
 public enum IceRemembersGambitId
 {
     PenguinWieldsArtifact,
-    FactionDeclaresWar,
-    FactionBetraysOath,
-    PenguinSlaysRival,
+    FactionDeclaresTerritorialWar,
+    SettlementOpensTradeRoute,
+    ArtifactCleansesScar,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -390,9 +390,9 @@ public static class IceRemembersGambitIdExtensions
     private static readonly string[] DomainNames =
     [
         "penguin_wields_artifact",
-        "faction_declares_war",
-        "faction_betrays_oath",
-        "penguin_slays_rival",
+        "faction_declares_territorial_war",
+        "settlement_opens_trade_route",
+        "artifact_cleanses_scar",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

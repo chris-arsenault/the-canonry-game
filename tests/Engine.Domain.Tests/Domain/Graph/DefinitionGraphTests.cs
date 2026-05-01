@@ -184,6 +184,22 @@ public class DefinitionGraphTests
                   flow.TargetAttribute == IceRemembersAttributeId.Echo.ToDomainName() &&
                   flow.Role == SemanticFlowRole.Outflow))
             .ToList();
+        brokenFlows.Add(new SemanticFlowConfig
+        {
+            VerbId = "test_echo_probe",
+            Role = SemanticFlowRole.Inflow,
+            TargetKind = TestKinds.Penguin,
+            TargetAttribute = IceRemembersAttributeId.Vitality.ToDomainName(),
+            SourceRefs = [AttributeRef.Self(IceRemembersAttributeId.Echo.ToDomainName(), TestKinds.Penguin)],
+        });
+        var brokenVerbs = semantics.Verbs
+            .Append(new SemanticVerbConfig
+            {
+                Id = "test_echo_probe",
+                OwnerType = SemanticOwnerType.Entity,
+                OwnerKind = TestKinds.Penguin,
+            })
+            .ToList();
 
         var brokenConfig = new DomainConfig
         {
@@ -198,7 +214,7 @@ public class DefinitionGraphTests
             Semantics = new SemanticDomainConfig
             {
                 Stocks = brokenStocks,
-                Verbs = semantics.Verbs,
+                Verbs = brokenVerbs,
                 Flows = brokenFlows,
                 Modifiers = semantics.Modifiers,
             },

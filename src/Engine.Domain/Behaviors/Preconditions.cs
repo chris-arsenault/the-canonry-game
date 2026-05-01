@@ -113,6 +113,41 @@ public sealed class SelfHasRelationshipToTarget(string relationshipKind, float? 
 }
 
 /// <summary>
+/// Checks that self has any outgoing relationship of the requested kind,
+/// regardless of the currently resolved target.
+/// </summary>
+public sealed class SelfHasOutgoingRelationship(string relationshipKind, float? minStrength = null, bool behaviorRelevant = false) : IPrecondition
+{
+    public string RelationshipKind { get; } = relationshipKind;
+    public float? MinStrength { get; } = minStrength;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
+
+    public string Describe() =>
+        $"self_has_outgoing_relationship({RelationshipKind}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+}
+
+/// <summary>
+/// Checks that the selected endpoint has fewer than N distinct counterpart
+/// entities connected by a relationship kind.
+/// </summary>
+public sealed class EndpointRelationshipCountBelow(
+    TransferEndpoint endpoint,
+    string relationshipKind,
+    int maximumExclusive,
+    float? minStrength = null,
+    bool behaviorRelevant = false) : IPrecondition
+{
+    public TransferEndpoint Endpoint { get; } = endpoint;
+    public string RelationshipKind { get; } = relationshipKind;
+    public int MaximumExclusive { get; } = maximumExclusive;
+    public float? MinStrength { get; } = minStrength;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
+
+    public string Describe() =>
+        $"{Endpoint}_relationship_count({RelationshipKind}) < {MaximumExclusive}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")}";
+}
+
+/// <summary>
 /// Checks whether the entity reached the resolved target through a named relationship.
 /// </summary>
 public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool behaviorRelevant = true) : IPrecondition
@@ -212,6 +247,41 @@ public sealed class WithinPlaneDistancePrecondition(int maxDistance, Engine.Doma
         Plane == Engine.Domain.Config.PrimaryPlane.Physical
             ? $"physical_distance ≤ {MaxDistance}"
             : $"semantic_distance ≤ {MaxDistance}";
+}
+
+/// <summary>
+/// Requires self and target to have overlapping influence on at least one cell
+/// of the selected plane. Used for territorial actions without teaching the
+/// kernel any domain-specific relationship or kind names.
+/// </summary>
+public sealed class ContestedInfluencePrecondition(
+    Engine.Domain.Config.PrimaryPlane plane,
+    float selfMinimum,
+    float targetMinimum) : IPrecondition
+{
+    public Engine.Domain.Config.PrimaryPlane Plane { get; } = plane;
+    public float SelfMinimum { get; } = selfMinimum;
+    public float TargetMinimum { get; } = targetMinimum;
+
+    public string Describe() =>
+        $"contested_influence({Plane}, self >= {SelfMinimum}, target >= {TargetMinimum})";
+}
+
+/// <summary>
+/// Requires self and target to both influence at least one cell of the selected plane.
+/// This is neutral overlap language for constructive gambits like trade routes.
+/// </summary>
+public sealed class SharedInfluencePrecondition(
+    Engine.Domain.Config.PrimaryPlane plane,
+    float selfMinimum,
+    float targetMinimum) : IPrecondition
+{
+    public Engine.Domain.Config.PrimaryPlane Plane { get; } = plane;
+    public float SelfMinimum { get; } = selfMinimum;
+    public float TargetMinimum { get; } = targetMinimum;
+
+    public string Describe() =>
+        $"shared_influence({Plane}, self >= {SelfMinimum}, target >= {TargetMinimum})";
 }
 
 /// <summary>Inverts the result of a wrapped precondition.</summary>

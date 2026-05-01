@@ -166,8 +166,8 @@ public sealed class WorldStateIndexTests
         const int cellKey = 1;
 
         layers.Coverage.SetValue(cellKey, 0, 0, value: 1);
-        layers.Influence.SetValue(entityId: 1, PlaneCodes.Physical, cellKey, value: 40f);
-        layers.Influence.SetValue(entityId: 2, PlaneCodes.Physical, cellKey, value: 60f);
+        layers.Influence.SetValue(entityId: 1, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 40f);
+        layers.Influence.SetValue(entityId: 2, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 60f);
 
         Assert.Equal(1, layers.Coverage.ValueAt(cellKey));
         Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
@@ -190,7 +190,7 @@ public sealed class WorldStateIndexTests
         var loaded = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 2;
         layers.Coverage.SetValue(cellKey, 1, -1, value: 3);
-        layers.Influence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, value: 75f);
+        layers.Influence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, q: 1, r: -1, value: 75f);
 
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
@@ -206,6 +206,48 @@ public sealed class WorldStateIndexTests
 
         Assert.Equal(3, loaded.Coverage.ValueAt(cellKey));
         Assert.Equal(75f, loaded.Influence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
+        Assert.Equal([(1, -1, 75f)], InfluenceCellsOf(loaded.Influence, entityId: 3, PlaneCodes.Semantic));
+    }
+
+    [Fact]
+    public void MaintainsInfluenceLayerReverseIndexByEntityAndPlane()
+    {
+        var simulation = CreateSimulation();
+        var influencerA = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var influencerB = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(influencerA, PlaneCodes.Physical, 0, 0, 40f, tick: 0);
+        simulation.SetCellInfluence(influencerA, PlaneCodes.Physical, 1, 0, 55f, tick: 0);
+        simulation.SetCellInfluence(influencerA, PlaneCodes.Semantic, 2, -1, 65f, tick: 0);
+        simulation.SetCellInfluence(influencerB, PlaneCodes.Physical, 0, 0, 75f, tick: 0);
+
+        Assert.Equal(2, simulation.World.InfluenceCellCount(influencerA, PlaneCodes.Physical));
+        Assert.Equal([(0, 0, 40f), (1, 0, 55f)], InfluenceCellsOf(simulation.World, influencerA, PlaneCodes.Physical));
+        Assert.Equal([(2, -1, 65f)], InfluenceCellsOf(simulation.World, influencerA, PlaneCodes.Semantic));
+        Assert.Equal([(0, 0, 75f)], InfluenceCellsOf(simulation.World, influencerB, PlaneCodes.Physical));
+
+        simulation.SetCellInfluence(influencerA, PlaneCodes.Physical, 0, 0, 0f, tick: 1);
+
+        Assert.Equal(1, simulation.World.InfluenceCellCount(influencerA, PlaneCodes.Physical));
+        Assert.Equal([(1, 0, 55f)], InfluenceCellsOf(simulation.World, influencerA, PlaneCodes.Physical));
+        Assert.Equal(0f, simulation.World.GetCellInfluence(influencerA, PlaneCodes.Physical, 0, 0));
+    }
+
+    [Fact]
+    public void InfluenceLayerIteratesEntityPlaneCellsAfterPageBoundaryRemoval()
+    {
+        var simulation = CreateSimulation();
+        var influencer = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        for (var i = 0; i < 20; i++)
+        {
+            simulation.SetCellInfluence(influencer, PlaneCodes.Physical, i, -i, 25f + i, tick: 0);
+        }
+
+        simulation.SetCellInfluence(influencer, PlaneCodes.Physical, 0, 0, 0f, tick: 1);
+
+        var cells = InfluenceCellsOf(simulation.World, influencer, PlaneCodes.Physical);
+        Assert.Equal(19, cells.Length);
+        Assert.DoesNotContain((0, 0, 25f), cells);
+        Assert.Contains((19, -19, 44f), cells);
     }
 
     private static Simulation CreateSimulation()
@@ -261,6 +303,34 @@ public sealed class WorldStateIndexTests
         while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
         {
             result[count++] = (q, r);
+        }
+
+        Array.Sort(result, 0, count);
+        return result[..count];
+    }
+
+    private static (int Q, int R, float Value)[] InfluenceCellsOf(WorldState world, int entityId, int planeCode)
+    {
+        var result = new (int Q, int R, float Value)[64];
+        var count = 0;
+        var cursor = world.InfluenceCells(entityId, planeCode);
+        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var value))
+        {
+            result[count++] = (q, r, value);
+        }
+
+        Array.Sort(result, 0, count);
+        return result[..count];
+    }
+
+    private static (int Q, int R, float Value)[] InfluenceCellsOf(MapScalarEntityLayer layer, int entityId, int planeCode)
+    {
+        var result = new (int Q, int R, float Value)[64];
+        var count = 0;
+        var cursor = layer.CellsOfValue(entityId, planeCode);
+        while (layer.MoveNextCell(ref cursor, out var q, out var r, out var value))
+        {
+            result[count++] = (q, r, value);
         }
 
         Array.Sort(result, 0, count);

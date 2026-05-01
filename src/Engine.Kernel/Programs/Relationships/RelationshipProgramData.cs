@@ -5,6 +5,7 @@ using Engine.Kernel.Programs;
 internal sealed partial class RelationshipProgramData : IKernelProgramData
 {
     private readonly int[] _kindIds;
+    private readonly int[] _targetFollowsSourcePhysical;
     private readonly float[] _cullThresholds;
     private readonly int[] _maintenanceKindIds;
     private readonly int[] _maintenanceConditionCodes;
@@ -19,6 +20,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(relationshipRuleCapacity);
         _kindIds = new int[relationshipRuleCapacity + 1];
+        _targetFollowsSourcePhysical = new int[relationshipRuleCapacity + 1];
         _cullThresholds = new float[relationshipRuleCapacity + 1];
         var maintenanceCapacity = relationshipRuleCapacity * 4;
         _maintenanceKindIds = new int[maintenanceCapacity + 1];
@@ -31,7 +33,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Relationships;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
     public int Count => _ruleCount;
 
@@ -39,7 +41,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
 
     public int RuleCapacity => _kindIds.Length - 1;
 
-    public int RegisterRelationshipKind(int kindId, float cullThreshold)
+    public int RegisterRelationshipKind(int kindId, float cullThreshold, bool targetFollowsSourcePhysical = false)
     {
         ValidatePositive(kindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(cullThreshold);
@@ -51,6 +53,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         _ruleCount++;
         var slot = _ruleCount;
         _kindIds[slot] = kindId;
+        _targetFollowsSourcePhysical[slot] = targetFollowsSourcePhysical ? 1 : 0;
         _cullThresholds[slot] = cullThreshold;
         return slot;
     }
@@ -95,6 +98,12 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         return _cullThresholds[ruleSlot];
     }
 
+    public bool RuleTargetFollowsSourcePhysical(int ruleSlot)
+    {
+        EnsureRule(ruleSlot);
+        return _targetFollowsSourcePhysical[ruleSlot] != 0;
+    }
+
     public int MaintenanceKindId(int ruleSlot) => _maintenanceKindIds[ruleSlot];
 
     public int MaintenanceConditionCode(int ruleSlot) => _maintenanceConditionCodes[ruleSlot];
@@ -118,6 +127,19 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         }
 
         return 0.05f;
+    }
+
+    public bool TargetFollowsSourcePhysical(int kindId)
+    {
+        for (var rule = 1; rule <= _ruleCount; rule++)
+        {
+            if (_kindIds[rule] == kindId)
+            {
+                return _targetFollowsSourcePhysical[rule] != 0;
+            }
+        }
+
+        return false;
     }
 
     private void EnsureRule(int ruleSlot)

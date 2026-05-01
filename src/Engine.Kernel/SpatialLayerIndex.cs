@@ -116,10 +116,16 @@ internal sealed partial class SpatialLayerIndex
         {
             Page = _firstPageByValue[value],
             Offset = 0,
+            Value = value,
         };
     }
 
     internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r)
+    {
+        return MoveNextCell(ref cursor, out _, out q, out r);
+    }
+
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int cellKey, out int q, out int r)
     {
         while (cursor.Page > 0)
         {
@@ -127,6 +133,7 @@ internal sealed partial class SpatialLayerIndex
             {
                 var entry = _pageEntries[PageEntryIndex(cursor.Page, cursor.Offset)];
                 cursor.Offset++;
+                cellKey = _entryCellKeys[entry];
                 q = _entryQ[entry];
                 r = _entryR[entry];
                 return true;
@@ -136,6 +143,7 @@ internal sealed partial class SpatialLayerIndex
             cursor.Offset = 0;
         }
 
+        cellKey = 0;
         q = 0;
         r = 0;
         return false;

@@ -302,6 +302,26 @@ public sealed class MoveTowardTargetOnSemanticPlaneMutation : IMutation
 }
 
 /// <summary>
+/// Moves the resolved target onto self's physical cell. Persistent attachment is
+/// represented by relationship config; this mutation handles the moment the
+/// behavior establishes the relationship.
+/// </summary>
+public sealed class MoveTargetToSelfPhysicalMutation : IMutation
+{
+    public string Describe() => "move_target_to_self_physical";
+}
+
+/// <summary>
+/// Changes every map cell owned by the resolved target's named coverage to a terrain.
+/// </summary>
+public sealed class SetTargetCoverageTerrainMutation(string terrainName) : IMutation
+{
+    public string TerrainName { get; } = terrainName;
+
+    public string Describe() => $"set_target_coverage_terrain({TerrainName})";
+}
+
+/// <summary>
 /// Semantic-plane drift. Steps self's SemanticPosition to a uniformly random
 /// neighbor on the autonomy/resonance/tradition plane.
 /// </summary>

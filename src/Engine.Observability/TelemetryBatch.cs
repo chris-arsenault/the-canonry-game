@@ -39,6 +39,7 @@ public sealed class TelemetryBatch
     public Collection<PressureSourceSnapshotRow> PressureSourceSnapshots { get; } = [];
     public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
     public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
+    public Collection<GambitEventRow> GambitEvents { get; } = [];
     public Collection<GeneratorEventRow> GeneratorEvents { get; } = [];
     public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = [];
     public Collection<GeneratorStateSnapshotRow> GeneratorStateSnapshots { get; } = [];
@@ -451,6 +452,18 @@ public sealed record RelationshipSnapshotRow(
     float AverageStrength,
     float MinimumStrength,
     float MaximumStrength);
+
+public sealed record GambitEventRow(
+    int RunId,
+    int Tick,
+    int EventTypeCode,
+    int GambitId,
+    int ActorId,
+    int ActorKindId,
+    int TargetEntityId,
+    int StateCode,
+    bool Succeeded,
+    int AffectedEntityCount);
 
 public sealed record GeneratorEventRow(
     int RunId,

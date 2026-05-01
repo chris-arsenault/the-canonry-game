@@ -114,6 +114,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("pressure_source_snapshots");
         ExportTable("relationship_events");
         ExportTable("relationship_snapshots");
+        ExportTable("gambit_events");
         ExportTable("generator_events");
         ExportTable("generator_outputs");
         ExportTable("generator_state_snapshots");
@@ -184,6 +185,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("pressure_source_snapshots", typeof(PressureSourceSnapshotRow));
         EnsureTable("relationship_events", typeof(RelationshipEventRow));
         EnsureTable("relationship_snapshots", typeof(RelationshipSnapshotRow));
+        EnsureTable("gambit_events", typeof(GambitEventRow));
         EnsureTable("generator_events", typeof(GeneratorEventRow));
         EnsureTable("generator_outputs", typeof(GeneratorOutputRow));
         EnsureTable("generator_state_snapshots", typeof(GeneratorStateSnapshotRow));
@@ -253,6 +255,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("pressure_source_snapshots", _pending.PressureSourceSnapshots);
         AppendTable("relationship_events", _pending.RelationshipEvents);
         AppendTable("relationship_snapshots", _pending.RelationshipSnapshots);
+        AppendTable("gambit_events", _pending.GambitEvents);
         AppendTable("generator_events", _pending.GeneratorEvents);
         AppendTable("generator_outputs", _pending.GeneratorOutputs);
         AppendTable("generator_state_snapshots", _pending.GeneratorStateSnapshots);
@@ -351,6 +354,7 @@ internal static class TelemetryBatchExtensions
         batch.PressureSourceSnapshots.Count +
         batch.RelationshipEvents.Count +
         batch.RelationshipSnapshots.Count +
+        batch.GambitEvents.Count +
         batch.GeneratorEvents.Count +
         batch.GeneratorOutputs.Count +
         batch.GeneratorStateSnapshots.Count +
@@ -415,6 +419,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.PressureSourceSnapshots, source.PressureSourceSnapshots);
         AppendRows(destination.RelationshipEvents, source.RelationshipEvents);
         AppendRows(destination.RelationshipSnapshots, source.RelationshipSnapshots);
+        AppendRows(destination.GambitEvents, source.GambitEvents);
         AppendRows(destination.GeneratorEvents, source.GeneratorEvents);
         AppendRows(destination.GeneratorOutputs, source.GeneratorOutputs);
         AppendRows(destination.GeneratorStateSnapshots, source.GeneratorStateSnapshots);

@@ -74,7 +74,7 @@ public class GeneratorCatalogInvariantTests
             Target = new SemanticGeneratorTarget
             {
                 Kind = TestKinds.Settlement,
-                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "sanctuary" },
+                    Subtypes = new HashSet<string>(StringComparer.Ordinal) { "never_seeded_sanctuary" },
             },
             Produces =
             [
@@ -111,7 +111,7 @@ public class GeneratorCatalogInvariantTests
 
         Assert.Single(issues);
         Assert.Contains("requires target subtype", issues[0], StringComparison.Ordinal);
-        Assert.Contains("sanctuary", issues[0], StringComparison.Ordinal);
+        Assert.Contains("never_seeded_sanctuary", issues[0], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -428,9 +428,9 @@ public class GeneratorCatalogInvariantTests
         CreateSubtypeKeeperGenerator(
             "sanctuary_names_keeper",
             "Sanctuary Names Keeper",
-            "sanctuary",
+            "cycle_sanctuary",
             "$scholar",
-            "ruler",
+            "cycle_keeper",
             "reader");
 
     private static SemanticGeneratorConfig CreateSubtypeKeeperGenerator(
@@ -480,7 +480,7 @@ public class GeneratorCatalogInvariantTests
             Target = new SemanticGeneratorTarget
             {
                 Kind = TestKinds.Penguin,
-                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "ruler" },
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "cycle_keeper" },
             },
             Produces =
             [
@@ -488,7 +488,7 @@ public class GeneratorCatalogInvariantTests
                 {
                     Ref = "$sanctuary",
                     Kind = TestKinds.Settlement,
-                    Subtype = "sanctuary",
+                    Subtype = "cycle_sanctuary",
                     Role = "new_site",
                     InheritCultureFrom = "$target",
                 },

@@ -17,6 +17,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         AppendLowAltitudeVerbSection(builder, report.LowAltitudeVerbUtilization);
         AppendInfluenceSection(builder, report.InfluenceSummary);
         AppendMapGenerationSection(builder, report.MapGeneration);
+        AppendGambitSection(builder, report.GambitSuccess);
         AppendGeneratorSection(builder, report.GeneratorBalance);
         AppendPlannerSection(builder, report.PlannerPressure);
         AppendActionSection(builder, report.ActionPressure);
@@ -82,6 +83,20 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("eligible", row => row.EligiblePulses.ToString(CultureInfo.InvariantCulture)),
             ("select_rate", row => FormatPercent(row.SelectionRateWhenEligible)),
             ("blocker", row => row.PrimaryBlocker));
+    }
+
+    private static void AppendGambitSection(StringBuilder builder, IReadOnlyList<GambitSuccessRow> rows)
+    {
+        builder.AppendLine();
+        builder.AppendLine("## Gambit Success Rate");
+        AppendTable(
+            builder,
+            rows.Take(8),
+            ("gambit", row => row.GambitId),
+            ("attempts", row => row.AttemptCount.ToString(CultureInfo.InvariantCulture)),
+            ("successes", row => row.SuccessCount.ToString(CultureInfo.InvariantCulture)),
+            ("success_rate", row => FormatPercent(row.SuccessRate)),
+            ("ticks", row => string.Create(CultureInfo.InvariantCulture, $"{row.FirstAttemptTick}-{row.LastAttemptTick}")));
     }
 
     private static void AppendPlannerSection(StringBuilder builder, IReadOnlyList<PlannerPressureRow> rows)

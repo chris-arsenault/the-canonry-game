@@ -40,6 +40,7 @@ internal sealed partial class GambitProgramRuntime
         if (ExecuteAttributeStep(simulation, entityId, targetId, tick, step, operationCode, variableIds, variableValues, ref variableCount) ||
             ExecuteMovementStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
             ExecuteResourceStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
+            ExecuteMapStep(simulation, world, targetId, tick, step, operationCode) ||
             ExecuteEntityStep(simulation, world, entityId, targetId, tick, step, operationCode))
         {
             return;
@@ -114,6 +115,9 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.WanderSemantic:
                 WanderSemantic(simulation, world, entityId, tick);
                 return true;
+            case BehaviorOperationCodes.MoveTargetToSelfPhysical:
+                simulation.MoveEntityPhysical(targetId, world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId), tick);
+                return true;
             default:
                 return false;
         }
@@ -132,6 +136,18 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.AddPressure:
                 simulation.Pressures.ApplyDelta(_stepA[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepX[step]);
                 world.AdvanceWorldVersion();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private bool ExecuteMapStep(Simulation simulation, WorldState world, int targetId, int tick, int step, int operationCode)
+    {
+        switch (operationCode)
+        {
+            case BehaviorOperationCodes.SetTargetCoverageTerrain:
+                SetTargetCoverageTerrain(simulation, world, targetId, tick, _stepA[step]);
                 return true;
             default:
                 return false;
@@ -180,6 +196,15 @@ internal sealed partial class GambitProgramRuntime
                 return true;
             default:
                 return false;
+        }
+    }
+
+    private static void SetTargetCoverageTerrain(Simulation simulation, WorldState world, int targetId, int tick, int terrainId)
+    {
+        var cursor = world.CoverageCells(targetId);
+        while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
+        {
+            simulation.SetCellTerrain(q, r, terrainId, tick);
         }
     }
 

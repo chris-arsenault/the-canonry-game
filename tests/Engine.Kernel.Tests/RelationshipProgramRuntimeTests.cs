@@ -50,6 +50,36 @@ public sealed class RelationshipProgramRuntimeTests
     }
 
     [Fact]
+    public void Tick_MovesAttachedTargetToSourcePhysicalLocation()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: -1, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        var target = simulation.CreateEntity(2, 1, cultureId: 1, physicalQ: 2, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        simulation.Relationships.RegisterRelationshipKind(9, cullThreshold: 0.05f, targetFollowsSourcePhysical: true);
+        simulation.CreateRelationship(9, (int)RelationshipPolarity.Neutral, source, target, 0.5f, tick: 0);
+
+        simulation.Relationships.Tick(simulation, tick: 1);
+
+        Assert.Equal(simulation.World.EntityPhysicalQ(source), simulation.World.EntityPhysicalQ(target));
+        Assert.Equal(simulation.World.EntityPhysicalR(source), simulation.World.EntityPhysicalR(target));
+    }
+
+    [Fact]
+    public void Tick_DoesNotMoveTargetForNonAttachedRelationship()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: -1, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        var target = simulation.CreateEntity(2, 1, cultureId: 1, physicalQ: 2, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        simulation.Relationships.RegisterRelationshipKind(9, cullThreshold: 0.05f);
+        simulation.CreateRelationship(9, (int)RelationshipPolarity.Neutral, source, target, 0.5f, tick: 0);
+
+        simulation.Relationships.Tick(simulation, tick: 1);
+
+        Assert.Equal(2, simulation.World.EntityPhysicalQ(target));
+        Assert.Equal(0, simulation.World.EntityPhysicalR(target));
+    }
+
+    [Fact]
     public void Tick_StrengthensRelationshipFromInfluenceAtEndpoint()
     {
         var simulation = CreateSimulation();

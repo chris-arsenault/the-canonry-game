@@ -4,6 +4,7 @@ internal sealed class MonteCarloAnalysisReport
 {
     public required BatchOverviewRow Overview { get; init; }
     public required IReadOnlyList<AnalysisFlagRow> Flags { get; init; }
+    public required IReadOnlyList<GambitSuccessRow> GambitSuccess { get; init; }
     public required IReadOnlyList<GeneratorAnalysisRow> GeneratorBalance { get; init; }
     public required IReadOnlyList<GeneratedSubtypeCoverageRow> GeneratedSubtypeCoverage { get; init; }
     public required IReadOnlyList<LowAltitudeVerbSummaryRow> LowAltitudeVerbUtilization { get; init; }
@@ -31,6 +32,17 @@ internal sealed record BatchOverviewRow(
     double AverageFinalUncoveredCells);
 
 internal sealed record AnalysisFlagRow(string Category, string Severity, string Message);
+
+internal sealed record GambitSuccessRow(
+    string GambitId,
+    int AttemptCount,
+    int SuccessCount,
+    int FailureCount,
+    double SuccessRate,
+    int FirstAttemptTick,
+    int LastAttemptTick,
+    int DistinctActors,
+    int DistinctTargets);
 
 internal sealed record GeneratorAnalysisRow(
     string GeneratorId,

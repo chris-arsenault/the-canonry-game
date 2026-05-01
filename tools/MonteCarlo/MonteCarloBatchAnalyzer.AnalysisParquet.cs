@@ -20,6 +20,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
     {
         ExportAnalysisTable(connection, analysisDirectory, "analysis_overview", AnalysisOverviewSql);
         ExportAnalysisTable(connection, analysisDirectory, "analysis_readiness", AnalysisReadinessSql);
+        ExportAnalysisTable(connection, analysisDirectory, "gambit_success_rate", GambitSuccessRateSql);
         ExportAnalysisTable(connection, analysisDirectory, "generator_balance", GeneratorBalanceSql);
         ExportAnalysisTable(connection, analysisDirectory, "generated_subtype_coverage", GeneratedSubtypeCoverageSql);
         ExportAnalysisTable(connection, analysisDirectory, "lifecycle", LifecycleSql);
@@ -122,7 +123,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 30, COUNT(*) FROM raw_relationship_snapshots UNION ALL
             SELECT 31, COUNT(*) FROM raw_lifecycle_events UNION ALL
             SELECT 32, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
-            SELECT 33, COUNT(*) FROM raw_cell_influence_events
+            SELECT 33, COUNT(*) FROM raw_cell_influence_events UNION ALL
+            SELECT 34, COUNT(*) FROM raw_gambit_events
         ),
         features(feature_code, source_table_code) AS (
             VALUES
@@ -132,7 +134,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 (16, 16), (17, 17), (18, 18), (19, 19), (20, 20),
                 (21, 21), (22, 22), (23, 23), (24, 24), (25, 25),
                 (26, 26), (27, 27), (28, 28), (29, 29), (30, 30),
-                (31, 31), (32, 32), (33, 33)
+                (31, 31), (32, 32), (33, 33), (34, 34)
         )
         SELECT
             feature_code,
@@ -143,6 +145,24 @@ internal sealed partial class MonteCarloBatchAnalyzer
             CASE WHEN source_row_count > 0 THEN 1 ELSE 2 END AS status_code
         FROM features
         JOIN source_counts USING (source_table_code)
+        """;
+
+    private const string GambitSuccessRateSql = """
+        SELECT
+            gambit_id,
+            COUNT(*) AS attempt_count,
+            SUM(CASE WHEN succeeded THEN 1 ELSE 0 END) AS success_count,
+            SUM(CASE WHEN succeeded THEN 0 ELSE 1 END) AS failure_count,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0.0
+                ELSE SUM(CASE WHEN succeeded THEN 1 ELSE 0 END)::DOUBLE / COUNT(*)
+            END AS success_rate,
+            MIN(tick) AS first_attempt_tick,
+            MAX(tick) AS last_attempt_tick,
+            COUNT(DISTINCT actor_id) AS distinct_actors,
+            COUNT(DISTINCT target_entity_id) AS distinct_targets
+        FROM raw_gambit_events
+        GROUP BY gambit_id
         """;
 
     private static readonly string GeneratorBalanceSql = $$"""

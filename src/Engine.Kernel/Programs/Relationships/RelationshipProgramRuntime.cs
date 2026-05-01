@@ -29,8 +29,8 @@ internal sealed class RelationshipProgramRuntime :
 
     public int Count => Data.Count;
 
-    public int RegisterRelationshipKind(int kindId, float cullThreshold) =>
-        Data.RegisterRelationshipKind(kindId, cullThreshold);
+    public int RegisterRelationshipKind(int kindId, float cullThreshold, bool targetFollowsSourcePhysical = false) =>
+        Data.RegisterRelationshipKind(kindId, cullThreshold, targetFollowsSourcePhysical);
 
     public int AddMaintenanceRule(
         int kindId,
@@ -79,7 +79,30 @@ internal sealed class RelationshipProgramRuntime :
         if (world.RelationshipStrength(relationshipId) <= Data.CullThreshold(world.RelationshipKindId(relationshipId)))
         {
             simulation.CullRelationship(relationshipId, tick);
+            return;
         }
+
+        if (Data.TargetFollowsSourcePhysical(relationshipKindId))
+        {
+            MoveTargetToSourcePhysical(simulation, world, sourceId, targetId, tick);
+        }
+    }
+
+    private static void MoveTargetToSourcePhysical(Simulation simulation, WorldState world, int sourceId, int targetId, int tick)
+    {
+        if (!world.EntityIsActive(sourceId) || !world.EntityIsActive(targetId))
+        {
+            return;
+        }
+
+        var sourceQ = world.EntityPhysicalQ(sourceId);
+        var sourceR = world.EntityPhysicalR(sourceId);
+        if (world.EntityPhysicalQ(targetId) == sourceQ && world.EntityPhysicalR(targetId) == sourceR)
+        {
+            return;
+        }
+
+        simulation.MoveEntityPhysical(targetId, sourceQ, sourceR, tick);
     }
 
     private void UpdateContactMemory(WorldState world, int relationshipId, int relationshipKindId, int tick)

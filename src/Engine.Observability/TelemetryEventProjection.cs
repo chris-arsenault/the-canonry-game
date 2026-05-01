@@ -769,6 +769,17 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         entity.KindId = evt.ActorKindId;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+        _batch.GambitEvents.Add(new GambitEventRow(
+            _runId,
+            evt.Tick,
+            (int)KernelEventType.GambitExecuted,
+            evt.GambitId,
+            evt.ActorId,
+            evt.ActorKindId,
+            evt.AffectedEntityId1 == 0 ? evt.ActorId : evt.AffectedEntityId1,
+            (int)evt.State,
+            (evt.State & KernelEventState.Succeeded) != KernelEventState.None,
+            evt.AffectedEntityCount));
         MarkProjected(sequence);
     }
 

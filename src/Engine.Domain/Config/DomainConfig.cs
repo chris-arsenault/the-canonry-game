@@ -143,6 +143,7 @@ public sealed class RelationshipConfig
     public required IReadOnlySet<EntityCategory> ValidTargetCategories { get; init; }
     public bool IsSymmetric { get; init; }
     public bool IsExclusive { get; init; }
+    public bool TargetFollowsSourcePhysical { get; init; }
     public float CullThreshold { get; init; } = 0.05f;
     public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
 }

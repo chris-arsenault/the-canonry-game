@@ -10,15 +10,18 @@ using Attr = IceRemembers.IceRemembersAttributeId;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
+using Terrain = IceRemembers.IceRemembersTerrain;
 
 public static partial class IceRemembersDefinition
 {
+    private const float InitialGambitSuccessChance = 0.25f;
+
     private static IReadOnlyList<GambitDefinition> CreateGambits() =>
     [
         PenguinWieldsArtifact(),
-        FactionDeclaresWar(),
-        FactionBetraysOath(),
-        PenguinSlaysRival(),
+        FactionDeclaresTerritorialWar(),
+        SettlementOpensTradeRoute(),
+        ArtifactCleansesScar(),
     ];
 
     private static GambitDefinition PenguinWieldsArtifact()
@@ -31,92 +34,102 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 new WithinPlaneDistancePrecondition(1, PrimaryPlane.Physical),
-                Not(new SelfHasRelationshipToTarget(L(Rel.Holds)))),
+                new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.Holds), maximumExclusive: 1),
+                new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.Holds), maximumExclusive: 1)),
             score: 0.8f,
             reward: 8f,
-            success: 0.78f,
+            success: InitialGambitSuccessChance,
             cooldown: 90,
             entityCooldown: 18);
-        AddRelationshipContract(gambit, Rel.Holds, K.Artifact);
+        AddRelationshipWrite(gambit, Rel.Holds, K.Artifact);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Echo), K.Penguin));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Power), K.Artifact));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 0.82f));
+        gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
         return gambit;
     }
 
-    private static GambitDefinition FactionDeclaresWar()
+    private static GambitDefinition FactionDeclaresTerritorialWar()
     {
         var gambit = NewGambit(
-            GambitId.FactionDeclaresWar,
-            "Declare War Across the Ice",
+            GambitId.FactionDeclaresTerritorialWar,
+            "Declare Territorial War",
             K.Faction,
             K.Faction,
             All(
                 new TargetIsNotSelf(),
-                BeyondPlaneDistance(10, PrimaryPlane.Semantic),
+                new ContestedInfluencePrecondition(PrimaryPlane.Physical, selfMinimum: 12f, targetMinimum: 55f),
                 Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
                 Not(new TargetHasRelationshipToSelf(L(Rel.AtWarWith))),
-                new SelfAttributeThreshold(A(Attr.Cohesion), min: 35f, max: null)),
-            score: 0.55f,
+                new SelfAttributeThreshold(A(Attr.Cohesion), min: 45f, max: null, behaviorRelevant: false)),
+            score: 0.5f,
             reward: 12f,
-            success: 0.86f,
+            success: InitialGambitSuccessChance,
             cooldown: 140,
             entityCooldown: 30);
-        AddRelationshipContract(gambit, Rel.AtWarWith, K.Faction);
+        AddRelationshipWrite(gambit, Rel.AtWarWith, K.Faction);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
         return gambit;
     }
 
-    private static GambitDefinition FactionBetraysOath()
+    private static GambitDefinition SettlementOpensTradeRoute()
     {
         var gambit = NewGambit(
-            GambitId.FactionBetraysOath,
-            "Betray an Oath",
-            K.Faction,
-            K.Faction,
+            GambitId.SettlementOpensTradeRoute,
+            "Open a Trade Route",
+            K.Settlement,
+            K.Settlement,
             All(
                 new TargetIsNotSelf(),
-                new SelfHasRelationshipToTarget(L(Rel.AlliedWith), minStrength: 0.35f),
-                BeyondPlaneDistance(5, PrimaryPlane.Semantic),
-                Not(new SelfHasRelationshipToTarget(L(Rel.BetrayedBy)))),
-            score: 0.35f,
+                new WithinPlaneDistancePrecondition(10, PrimaryPlane.Physical),
+                new WithinPlaneDistancePrecondition(3, PrimaryPlane.Semantic),
+                new SharedInfluencePrecondition(PrimaryPlane.Physical, selfMinimum: 20f, targetMinimum: 20f),
+                new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.TradeRoute), maximumExclusive: 2),
+                new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.TradeRoute), maximumExclusive: 2),
+                Not(new SelfHasRelationshipToTarget(L(Rel.TradeRoute))),
+                Not(new TargetHasRelationshipToSelf(L(Rel.TradeRoute))),
+                new SelfAttributeThreshold(A(Attr.TempHp), min: 45f, max: null, behaviorRelevant: false),
+                new TargetAttributeThreshold(A(Attr.TempHp), min: 35f, max: null, behaviorRelevant: false)),
+            score: 0.45f,
             reward: 9f,
-            success: 0.68f,
-            cooldown: 120,
+            success: InitialGambitSuccessChance,
+            cooldown: 110,
             entityCooldown: 24);
-        gambit.ProviderSelectors.Add(AttributeRef.TargetRelation(L(Rel.AlliedWith), K.Faction));
-        AddRelationshipContract(gambit, Rel.BetrayedBy, K.Faction);
-        gambit.Reads.Add(AttributeRef.TargetRelation(L(Rel.AlliedWith), K.Faction));
-        gambit.Writes.Add(AttributeRef.TargetRelation(L(Rel.AlliedWith), K.Faction));
-        gambit.Mutations.Add(new SetContextRelationshipStrengthMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.AlliedWith), 0f));
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.BetrayedBy, RelationshipPolarity.Negative, 0.76f));
+        AddRelationshipWrite(gambit, Rel.TradeRoute, K.Settlement);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.TempHp), K.Settlement));
+        gambit.Reads.Add(AttributeRef.Target(A(Attr.TempHp), K.Settlement));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
         return gambit;
     }
 
-    private static GambitDefinition PenguinSlaysRival()
+    private static GambitDefinition ArtifactCleansesScar()
     {
         var gambit = NewGambit(
-            GambitId.PenguinSlaysRival,
-            "Slay a Rival",
-            K.Penguin,
-            K.Penguin,
+            GambitId.ArtifactCleansesScar,
+            "Cleanse a Scar",
+            K.Artifact,
+            K.Region,
             All(
                 new TargetIsNotSelf(),
-                new SelfHasRelationshipToTarget(L(Rel.RivalOf), minStrength: 0.25f),
-                new WithinPlaneDistancePrecondition(1, PrimaryPlane.Physical),
-                new TargetAttributeThreshold(A(Attr.Vitality), min: null, max: 55f)),
+                new WithinPlaneDistancePrecondition(2, PrimaryPlane.Physical),
+                Not(new SelfHasRelationshipToTarget(L(Rel.CleansedBy))),
+                new SelfAttributeThreshold(A(Attr.Condition), min: 40f, max: null, behaviorRelevant: false),
+                new SelfAttributeThreshold(A(Attr.Power), min: 45f, max: null, behaviorRelevant: false),
+                new TargetAttributeThreshold(A(Attr.Pristiness), min: null, max: 45f, behaviorRelevant: false)),
             score: 0.42f,
             reward: 10f,
-            success: 0.58f,
-            cooldown: 110,
-            entityCooldown: 28);
-        gambit.ProviderSelectors.Add(AttributeRef.TargetRelation(L(Rel.RivalOf), K.Penguin));
-        AddRelationshipContract(gambit, Rel.BetrayedBy, K.Penguin);
-        gambit.Reads.Add(AttributeRef.Target(A(Attr.Vitality), K.Penguin));
-        gambit.Mutations.Add(new SetTargetHistoricalMutation());
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.BetrayedBy, RelationshipPolarity.Negative, 0.64f));
+            success: InitialGambitSuccessChance,
+            cooldown: 120,
+            entityCooldown: 30);
+        AddRelationshipWrite(gambit, Rel.CleansedBy, K.Region);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Condition), K.Artifact));
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Power), K.Artifact));
+        gambit.Reads.Add(AttributeRef.Target(A(Attr.Pristiness), K.Region));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.CleansedBy, RelationshipPolarity.Positive, 0.78f));
+        gambit.Mutations.Add(new SetTargetCoverageTerrainMutation(Terrain.HotSprings.ToDomainName()));
         return gambit;
     }
 
@@ -145,13 +158,12 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static void AddRelationshipContract(
+    private static void AddRelationshipWrite(
         GambitDefinition gambit,
         Rel relationship,
         EntityKind targetKind)
     {
         var relation = AttributeRef.TargetRelation(L(relationship), targetKind);
-        gambit.GoalEffects.Add(relation);
         gambit.Writes.Add(relation);
     }
 
@@ -160,9 +172,6 @@ public static partial class IceRemembersDefinition
 
     private static NotPrecondition Not(IPrecondition precondition) =>
         new NotPrecondition(precondition);
-
-    private static NotPrecondition BeyondPlaneDistance(int maxDistance, PrimaryPlane plane) =>
-        Not(new WithinPlaneDistancePrecondition(maxDistance, plane));
 
     private static CreateContextRelationshipMutation Relationship(
         TransferEndpoint source,

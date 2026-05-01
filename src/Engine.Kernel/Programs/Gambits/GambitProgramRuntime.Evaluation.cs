@@ -624,13 +624,17 @@ internal sealed partial class GambitProgramRuntime
             BehaviorPreconditionCodes.LocationResourceRange or
             BehaviorPreconditionCodes.PressureRange or
             BehaviorPreconditionCodes.CooldownElapsed or
-            BehaviorPreconditionCodes.EntityCountAtLeast;
+            BehaviorPreconditionCodes.EntityCountAtLeast or
+            BehaviorPreconditionCodes.ContestedInfluence or
+            BehaviorPreconditionCodes.SharedInfluence;
     }
 
     private static bool IsRelationshipPrecondition(int code)
     {
         return code is BehaviorPreconditionCodes.SelfHasRelationshipToTarget or
             BehaviorPreconditionCodes.TargetHasRelationshipToSelf or
+            BehaviorPreconditionCodes.SelfHasOutgoingRelationship or
+            BehaviorPreconditionCodes.EndpointRelationshipCountBelow or
             BehaviorPreconditionCodes.RelatedEntityMatchesTarget or
             BehaviorPreconditionCodes.RelationshipExists;
     }
@@ -708,6 +712,16 @@ internal sealed partial class GambitProgramRuntime
             return CountRecentActions(entityId, _gambitIds[gambitSlot], tick - _preA[pre] + 1) == 0;
         }
 
+        if (code == BehaviorPreconditionCodes.ContestedInfluence)
+        {
+            return InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
+        }
+
+        if (code == BehaviorPreconditionCodes.SharedInfluence)
+        {
+            return InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
+        }
+
         return code == BehaviorPreconditionCodes.EntityCountAtLeast &&
             ActiveEntityCountOfKind(world, _preA[pre]) >= _preB[pre];
     }
@@ -728,6 +742,16 @@ internal sealed partial class GambitProgramRuntime
         if (code == BehaviorPreconditionCodes.TargetHasRelationshipToSelf)
         {
             return RelationshipPasses(world, targetId, entityId, pre);
+        }
+
+        if (code == BehaviorPreconditionCodes.SelfHasOutgoingRelationship)
+        {
+            return SelfOutgoingRelationshipPasses(world, entityId, pre);
+        }
+
+        if (code == BehaviorPreconditionCodes.EndpointRelationshipCountBelow)
+        {
+            return EndpointRelationshipCountBelowPasses(world, entityId, targetId, pre);
         }
 
         return code == BehaviorPreconditionCodes.RelationshipExists &&
@@ -853,6 +877,24 @@ internal sealed partial class GambitProgramRuntime
             return true;
         }
 
+        if (code == BehaviorPreconditionCodes.ContestedInfluence)
+        {
+            blockerScopeCode = BehaviorEffectScopeCodes.Structural;
+            blockerValueId = _preA[pre];
+            blockerKindId = world.EntityKindId(targetId);
+            blockerTargetId = targetId;
+            return true;
+        }
+
+        if (code == BehaviorPreconditionCodes.SharedInfluence)
+        {
+            blockerScopeCode = BehaviorEffectScopeCodes.Structural;
+            blockerValueId = _preA[pre];
+            blockerKindId = world.EntityKindId(targetId);
+            blockerTargetId = targetId;
+            return true;
+        }
+
         return TryResolveRelationshipBlocker(world, code, pre, targetId, ref blockerScopeCode, ref blockerValueId, ref blockerKindId, ref blockerTargetId);
     }
 
@@ -868,6 +910,8 @@ internal sealed partial class GambitProgramRuntime
     {
         if (code != BehaviorPreconditionCodes.SelfHasRelationshipToTarget &&
             code != BehaviorPreconditionCodes.TargetHasRelationshipToSelf &&
+            code != BehaviorPreconditionCodes.SelfHasOutgoingRelationship &&
+            code != BehaviorPreconditionCodes.EndpointRelationshipCountBelow &&
             code != BehaviorPreconditionCodes.RelatedEntityMatchesTarget &&
             code != BehaviorPreconditionCodes.RelationshipExists)
         {
@@ -898,11 +942,145 @@ internal sealed partial class GambitProgramRuntime
                (_preB[pre] == 0 || world.RelationshipStrength(relationshipId) >= _preX[pre]);
     }
 
+    private bool SelfOutgoingRelationshipPasses(WorldState world, int entityId, int pre)
+    {
+        var cursor = world.OutgoingRelationshipsOfKind(entityId, _preA[pre]);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            if (_preB[pre] == 0 || world.RelationshipStrength(relationshipId) >= _preX[pre])
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool EndpointRelationshipCountBelowPasses(WorldState world, int entityId, int targetId, int pre)
+    {
+        var endpointId = _preB[pre] == BehaviorEndpointCodes.Target ? targetId : entityId;
+        var count = DistinctRelationshipEndpointCount(world, endpointId, _preA[pre], _preD[pre], _preX[pre]);
+        return count < _preC[pre];
+    }
+
+    private static int DistinctRelationshipEndpointCount(
+        WorldState world,
+        int endpointId,
+        int relationshipKindId,
+        int hasMinimumStrength,
+        float minimumStrength)
+    {
+        var count = 0;
+        var outgoing = world.OutgoingRelationshipsOfKind(endpointId, relationshipKindId);
+        while (world.MoveNextRelationship(ref outgoing, out var outgoingRelationshipId))
+        {
+            if (RelationshipMeetsMinimum(world, outgoingRelationshipId, hasMinimumStrength, minimumStrength))
+            {
+                count++;
+            }
+        }
+
+        var incoming = world.IncomingRelationshipsOfKind(endpointId, relationshipKindId);
+        while (world.MoveNextRelationship(ref incoming, out var incomingRelationshipId))
+        {
+            if (!RelationshipMeetsMinimum(world, incomingRelationshipId, hasMinimumStrength, minimumStrength))
+            {
+                continue;
+            }
+
+            var counterpartId = world.RelationshipSourceId(incomingRelationshipId);
+            if (!OutgoingRelationshipToCounterpartExists(
+                    world,
+                    endpointId,
+                    counterpartId,
+                    relationshipKindId,
+                    hasMinimumStrength,
+                    minimumStrength))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static bool OutgoingRelationshipToCounterpartExists(
+        WorldState world,
+        int endpointId,
+        int counterpartId,
+        int relationshipKindId,
+        int hasMinimumStrength,
+        float minimumStrength)
+    {
+        var outgoing = world.OutgoingRelationshipsOfKind(endpointId, relationshipKindId);
+        while (world.MoveNextRelationship(ref outgoing, out var relationshipId))
+        {
+            if (world.RelationshipTargetId(relationshipId) == counterpartId &&
+                RelationshipMeetsMinimum(world, relationshipId, hasMinimumStrength, minimumStrength))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool RelationshipMeetsMinimum(
+        WorldState world,
+        int relationshipId,
+        int hasMinimumStrength,
+        float minimumStrength)
+    {
+        return hasMinimumStrength == 0 || world.RelationshipStrength(relationshipId) >= minimumStrength;
+    }
+
     private bool PressureRangePasses(Simulation simulation, int pre, int entityId)
     {
         var scopeEntityId = _preB[pre] > 0 ? _preB[pre] : entityId;
         var value = simulation.Pressures.GetValue(_preA[pre], scopeEntityId);
         return ValueInRange(value, _preC[pre], _preD[pre], _preX[pre], _preY[pre]);
+    }
+
+    private static bool InfluenceOverlapPasses(
+        WorldState world,
+        int entityId,
+        int targetId,
+        int planeCode,
+        float selfMinimum,
+        float targetMinimum)
+    {
+        var selfCellCount = world.InfluenceCellCount(entityId, planeCode);
+        var targetCellCount = world.InfluenceCellCount(targetId, planeCode);
+        if (selfCellCount == 0 || targetCellCount == 0)
+        {
+            return false;
+        }
+
+        return selfCellCount <= targetCellCount
+            ? InfluenceOverlapPassesFromCursor(world, entityId, targetId, planeCode, selfMinimum, targetMinimum)
+            : InfluenceOverlapPassesFromCursor(world, targetId, entityId, planeCode, targetMinimum, selfMinimum);
+    }
+
+    private static bool InfluenceOverlapPassesFromCursor(
+        WorldState world,
+        int cursorEntityId,
+        int otherEntityId,
+        int planeCode,
+        float cursorMinimum,
+        float otherMinimum)
+    {
+        var cursor = world.InfluenceCells(cursorEntityId, planeCode);
+        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var influence))
+        {
+            if (influence >= cursorMinimum &&
+                (planeCode != PlaneCodes.Physical || world.CellIsKnown(q, r)) &&
+                world.GetCellInfluence(otherEntityId, planeCode, q, r) >= otherMinimum)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

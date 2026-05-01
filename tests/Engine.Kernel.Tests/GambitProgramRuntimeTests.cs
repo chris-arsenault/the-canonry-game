@@ -169,6 +169,273 @@ public sealed class GambitProgramRuntimeTests
         Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(target));
     }
 
+    [Fact]
+    public void ContestedInfluencePreconditionRequiresOverlap()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        simulation.World.SetMapRadius(1);
+        simulation.World.SetCell(0, 0, terrainId: 1);
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 15f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, 0, 0, 60f, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 105,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.ContestedInfluence,
+            PlaneCodes.Physical,
+            x: 12f,
+            y: 55f);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(30f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void ContestedInfluencePreconditionRejectsSeparatedInfluence()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        simulation.World.SetMapRadius(1);
+        simulation.World.SetCell(0, 0, terrainId: 1);
+        simulation.World.SetCell(1, 0, terrainId: 1);
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 15f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, 1, 0, 60f, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 106,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.ContestedInfluence,
+            PlaneCodes.Physical,
+            x: 12f,
+            y: 55f);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(10f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void SuccessfulGambitCanMoveTargetToSelfPhysical()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 107,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.MoveTargetToSelfPhysical);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(simulation.World.EntityPhysicalQ(actor), simulation.World.EntityPhysicalQ(target));
+        Assert.Equal(simulation.World.EntityPhysicalR(actor), simulation.World.EntityPhysicalR(target));
+    }
+
+    [Fact]
+    public void SuccessfulGambitCanTransformTargetCoverageTerrain()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int originalTerrainId = 1;
+        const int transformedTerrainId = 2;
+        simulation.RegisterTerrain(originalTerrainId, boundaryGroupId: 1);
+        simulation.RegisterTerrain(transformedTerrainId, boundaryGroupId: 1);
+        _ = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.CreateCell(1, 0, originalTerrainId, target);
+        simulation.CreateCell(1, -1, originalTerrainId, target);
+        simulation.CreateCell(-1, 0, originalTerrainId, ownerEntityId: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 108,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.SetTargetCoverageTerrain, transformedTerrainId);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(transformedTerrainId, simulation.World.CellTerrainId(1, 0));
+        Assert.Equal(transformedTerrainId, simulation.World.CellTerrainId(1, -1));
+        Assert.Equal(originalTerrainId, simulation.World.CellTerrainId(-1, 0));
+    }
+
+    [Fact]
+    public void SelfHasOutgoingRelationshipPreconditionCanBlockActorRegardlessOfTarget()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        const int relationshipKindId = 40;
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var heldTarget = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        _ = simulation.CreateEntity(targetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
+        simulation.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Neutral,
+            actor,
+            heldTarget,
+            0.9f,
+            tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 109,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.SelfHasOutgoingRelationship, relationshipKindId);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.Not);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(10f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void EndpointRelationshipCountBelowCountsReciprocalPairAsOneCounterpart()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        const int relationshipKindId = 40;
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var existingCounterpart = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        _ = simulation.CreateEntity(targetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
+        simulation.CreateRelationship(relationshipKindId, RelationshipPolarityCodes.Positive, actor, existingCounterpart, 0.9f, tick: 0);
+        simulation.CreateRelationship(relationshipKindId, RelationshipPolarityCodes.Positive, existingCounterpart, actor, 0.9f, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 110,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointRelationshipCountBelow, relationshipKindId, BehaviorEndpointCodes.Self, 2);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(30f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void EndpointRelationshipCountBelowCanBlockTargetAlreadyHeldByAnotherActor()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        const int relationshipKindId = 40;
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var otherActor = simulation.CreateEntity(actorKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
+        simulation.CreateRelationship(relationshipKindId, RelationshipPolarityCodes.Neutral, otherActor, target, 0.9f, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 111,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointRelationshipCountBelow, relationshipKindId, BehaviorEndpointCodes.Target, 1);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(10f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void SharedInfluencePreconditionRequiresOverlap()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        simulation.World.SetMapRadius(1);
+        simulation.World.SetCell(0, 0, terrainId: 1);
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 25f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, 0, 0, 25f, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 112,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.SharedInfluence,
+            PlaneCodes.Physical,
+            x: 20f,
+            y: 20f);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(30f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
     private static T LastEvent<T>(
         Simulation simulation,
         KernelEventType eventType,

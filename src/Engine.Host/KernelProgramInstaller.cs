@@ -75,7 +75,8 @@ internal static partial class KernelProgramInstaller
         {
             context.RegisterRelationshipKind(
                 new RelationshipKindRuntimeId(relationship.RelationshipKindId),
-                relationship.CullThreshold);
+                relationship.CullThreshold,
+                relationship.TargetFollowsSourcePhysical);
         }
 
         foreach (var rule in program.MaintenanceRules)
@@ -472,6 +473,7 @@ internal static partial class KernelProgramInstaller
         if (TryAttributeOperationCode(operation, out var code) ||
             TryMovementOperationCode(operation, out code) ||
             TryEntityOperationCode(operation, out code) ||
+            TryMapOperationCode(operation, out code) ||
             TryContextOperationCode(operation, out code))
         {
             return code;
@@ -507,6 +509,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.WanderPhysical => BehaviorOperationCodes.WanderPhysical,
             BehaviorProgramOperation.MoveTowardTargetSemantic => BehaviorOperationCodes.MoveTowardTargetSemantic,
             BehaviorProgramOperation.WanderSemantic => BehaviorOperationCodes.WanderSemantic,
+            BehaviorProgramOperation.MoveTargetToSelfPhysical => BehaviorOperationCodes.MoveTargetToSelfPhysical,
             _ => -1,
         };
         return code >= 0;
@@ -539,6 +542,16 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.CreateFixedRelationship => BehaviorOperationCodes.CreateFixedRelationship,
             BehaviorProgramOperation.CreateEndpointRelationship => BehaviorOperationCodes.CreateEndpointRelationship,
             BehaviorProgramOperation.SetEndpointRelationshipStrength => BehaviorOperationCodes.SetEndpointRelationshipStrength,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryMapOperationCode(BehaviorProgramOperation operation, out int code)
+    {
+        code = operation switch
+        {
+            BehaviorProgramOperation.SetTargetCoverageTerrain => BehaviorOperationCodes.SetTargetCoverageTerrain,
             _ => -1,
         };
         return code >= 0;
@@ -589,6 +602,8 @@ internal static partial class KernelProgramInstaller
         {
             BehaviorProgramPrecondition.SelfHasRelationshipToTarget => BehaviorPreconditionCodes.SelfHasRelationshipToTarget,
             BehaviorProgramPrecondition.TargetHasRelationshipToSelf => BehaviorPreconditionCodes.TargetHasRelationshipToSelf,
+            BehaviorProgramPrecondition.SelfHasOutgoingRelationship => BehaviorPreconditionCodes.SelfHasOutgoingRelationship,
+            BehaviorProgramPrecondition.EndpointRelationshipCountBelow => BehaviorPreconditionCodes.EndpointRelationshipCountBelow,
             BehaviorProgramPrecondition.RelatedEntityMatchesTarget => BehaviorPreconditionCodes.RelatedEntityMatchesTarget,
             BehaviorProgramPrecondition.RelationshipExists => BehaviorPreconditionCodes.RelationshipExists,
             _ => -1,
@@ -618,6 +633,8 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.CooldownElapsed => BehaviorPreconditionCodes.CooldownElapsed,
             BehaviorProgramPrecondition.EntityCountAtLeast => BehaviorPreconditionCodes.EntityCountAtLeast,
             BehaviorProgramPrecondition.HasColocatedEntity => BehaviorPreconditionCodes.HasColocatedEntity,
+            BehaviorProgramPrecondition.ContestedInfluence => BehaviorPreconditionCodes.ContestedInfluence,
+            BehaviorProgramPrecondition.SharedInfluence => BehaviorPreconditionCodes.SharedInfluence,
             _ => -1,
         };
         return code >= 0;

@@ -339,6 +339,20 @@ public static partial class DomainCompiler
             case WithinPlaneDistancePrecondition distance:
                 AddPlaneDistancePrecondition(ops, distance, ids);
                 return true;
+            case ContestedInfluencePrecondition contested:
+                ops.Add(new BehaviorProgramPreconditionOp(
+                    BehaviorProgramPrecondition.ContestedInfluence,
+                    PlaneCode(contested.Plane),
+                    X: contested.SelfMinimum,
+                    Y: contested.TargetMinimum));
+                return true;
+            case SharedInfluencePrecondition shared:
+                ops.Add(new BehaviorProgramPreconditionOp(
+                    BehaviorProgramPrecondition.SharedInfluence,
+                    PlaneCode(shared.Plane),
+                    X: shared.SelfMinimum,
+                    Y: shared.TargetMinimum));
+                return true;
             case LocationResourceThreshold resource:
                 AddLocationResourcePrecondition(ops, resource, ids);
                 return true;
@@ -368,6 +382,18 @@ public static partial class DomainCompiler
                 return true;
             case TargetHasRelationshipToSelf relationship:
                 AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, BehaviorProgramPrecondition.TargetHasRelationshipToSelf);
+                return true;
+            case SelfHasOutgoingRelationship relationship:
+                AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, BehaviorProgramPrecondition.SelfHasOutgoingRelationship);
+                return true;
+            case EndpointRelationshipCountBelow relationship:
+                ops.Add(new BehaviorProgramPreconditionOp(
+                    BehaviorProgramPrecondition.EndpointRelationshipCountBelow,
+                    ids.RelationshipKindIdOf(relationship.RelationshipKind).Value,
+                    (int)EndpointCode(relationship.Endpoint),
+                    relationship.MaximumExclusive,
+                    relationship.MinStrength.HasValue ? 1 : 0,
+                    X: relationship.MinStrength ?? 0f));
                 return true;
             case RelatedEntityMatchesTarget relationship:
                 ops.Add(new BehaviorProgramPreconditionOp(
@@ -655,6 +681,7 @@ public static partial class DomainCompiler
             TryCompileAttributeStep(steps, mutation, ids) ||
             TryCompileResourceStep(steps, mutation, ids) ||
             TryCompileVariableStep(steps, mutation, ids) ||
+            TryCompileMapStep(steps, mutation, ids) ||
             TryCompileMovementStep(steps, mutation))
         {
             return;
@@ -786,6 +813,23 @@ public static partial class DomainCompiler
         }
     }
 
+    private static bool TryCompileMapStep(
+        List<BehaviorProgramStepRule> steps,
+        IMutation mutation,
+        DomainIdRegistry ids)
+    {
+        switch (mutation)
+        {
+            case SetTargetCoverageTerrainMutation setTerrain:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.SetTargetCoverageTerrain,
+                    ids.TerrainIdOf(setTerrain.TerrainName).Value));
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private static bool TryCompileMovementStep(List<BehaviorProgramStepRule> steps, IMutation mutation)
     {
         switch (mutation)
@@ -798,6 +842,9 @@ public static partial class DomainCompiler
                 return true;
             case MoveTowardTargetOnSemanticPlaneMutation:
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.MoveTowardTargetSemantic));
+                return true;
+            case MoveTargetToSelfPhysicalMutation:
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.MoveTargetToSelfPhysical));
                 return true;
             case WanderOnSemanticPlaneMutation:
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.WanderSemantic));
