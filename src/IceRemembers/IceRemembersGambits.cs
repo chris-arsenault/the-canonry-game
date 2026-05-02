@@ -47,6 +47,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Power), K.Artifact));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 0.82f));
         gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
+        gambit.Description = "A penguin within reach of an unclaimed artifact picks it up. The bond binds them physically — the artifact follows.";
         return gambit;
     }
 
@@ -72,6 +73,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
+        gambit.Description = "Two factions contesting the same ground formalise their conflict. War is declared in both directions; cohesion sours, the ice begins to record.";
         return gambit;
     }
 
@@ -103,6 +105,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.TempHp), K.Settlement));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
+        gambit.Description = "Two viable settlements with overlapping influence open a trade route. Wares move; brokers begin to read the path.";
         return gambit;
     }
 
@@ -131,6 +134,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Pristiness), K.Region));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.CleansedBy, RelationshipPolarity.Positive, 0.78f));
         gambit.Mutations.Add(new SetTargetCoverageTerrainMutation(Terrain.HotSprings.ToDomainName()));
+        gambit.Description = "An intact, powerful artifact within reach of a wounded region cleanses the scar. The ice forgets the cold; hot springs surface.";
         return gambit;
     }
 
@@ -155,6 +159,7 @@ public static partial class IceRemembersDefinition
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.AtWarWith)));
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.AtWarWith)));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.BetrayedBy, RelationshipPolarity.Negative, 0.72f));
+        gambit.Description = "A faction near collapse asks for terms. The war ends; what remains is the long memory of betrayal.";
         return gambit;
     }
 

@@ -28,11 +28,13 @@ internal sealed class CardDefinition
         int cooldown = 10,
         int cadence = 1,
         int lifespan = 100,
-        int generatorId = 0)
+        int generatorId = 0,
+        int gambitId = 0)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentNullException.ThrowIfNull(condition);
         ArgumentOutOfRangeException.ThrowIfNegative(generatorId);
+        ArgumentOutOfRangeException.ThrowIfNegative(gambitId);
 
         Id = id;
         RuntimeId = CardRuntimeId.FromStableName(id);
@@ -40,6 +42,7 @@ internal sealed class CardDefinition
         _condition = condition;
         Type = type;
         GeneratorId = generatorId;
+        GambitId = gambitId;
         Name = name;
         ManaCost = manaCost;
         Cooldown = cooldown;
@@ -64,6 +67,8 @@ internal sealed class CardDefinition
     public CardType Type { get; }
 
     public int GeneratorId { get; }
+
+    public int GambitId { get; }
 
     public int ManaCost
     {

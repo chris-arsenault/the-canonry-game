@@ -168,7 +168,8 @@ public static partial class DomainCompiler
                 DomainSymbolKind.Gambit,
                 ids.GambitIdOf(gambit.Id).Value,
                 gambit.Id,
-                gambit.Name);
+                gambit.Name,
+                gambit.Description);
         }
     }
 

@@ -50,12 +50,21 @@ internal sealed class GameRuntimeTableau
     {
         ArgumentNullException.ThrowIfNull(card);
 
-        var generatorId = card.Definition.GeneratorId;
-        if (generatorId <= 0)
+        if (card.Definition.GeneratorId > 0)
         {
-            return new GameTableauCardState(card, 0, false, card.IsActive, card.FireCount, card.LastFiredTick);
+            return GetGeneratorCardState(card, card.Definition.GeneratorId);
         }
 
+        if (card.Definition.GambitId > 0)
+        {
+            return GetGambitCardState(card, card.Definition.GambitId);
+        }
+
+        return new GameTableauCardState(card, 0, false, card.IsActive, card.FireCount, card.LastFiredTick);
+    }
+
+    private GameTableauCardState GetGeneratorCardState(CardInstance card, int generatorId)
+    {
         var isKnown = _projection.Generators.TryGetValue(generatorId, out var generator);
         return new GameTableauCardState(
             card,
@@ -64,6 +73,18 @@ internal sealed class GameRuntimeTableau
             !isKnown || generator!.IsEnabled,
             generator?.TotalFired ?? 0,
             generator?.LastFire?.Tick);
+    }
+
+    private GameTableauCardState GetGambitCardState(CardInstance card, int gambitId)
+    {
+        var isKnown = _projection.Gambits.TryGetValue(gambitId, out var gambit);
+        return new GameTableauCardState(
+            card,
+            0,
+            isKnown,
+            IsEnabled: true,
+            gambit?.TotalSucceeded ?? 0,
+            gambit?.LastSucceededTick);
     }
 
     public bool RequestSetEnabled(CardInstance card, bool enabled)
@@ -142,7 +163,8 @@ internal sealed class GameRuntimeTableau
                 cooldown: 0,
                 cadence: 0,
                 lifespan: int.MaxValue,
-                generatorId: 0)
+                generatorId: 0,
+                gambitId: symbol.Id)
             {
                 Description = symbol.Description ?? string.Empty,
             };

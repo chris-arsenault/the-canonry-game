@@ -14,6 +14,7 @@ public sealed class UiProjectionState : KernelEventProjector
     private readonly Dictionary<UiResourceKey, UiResourceProjection> _resources = [];
     private readonly Dictionary<int, UiGeneratorProjection> _generators = [];
     private readonly List<UiGeneratorFireProjection> _generatorFires = [];
+    private readonly Dictionary<int, UiGambitProjection> _gambits = [];
     private readonly List<UiDegeneracyProjection> _degeneracyEvents = [];
 
     public static IReadOnlyList<UiProjectionMigrationItem> FutureMigrationItems { get; } =
@@ -45,6 +46,8 @@ public sealed class UiProjectionState : KernelEventProjector
     public IReadOnlyDictionary<int, UiGeneratorProjection> Generators => _generators;
 
     public IReadOnlyList<UiGeneratorFireProjection> GeneratorFires => _generatorFires;
+
+    public IReadOnlyDictionary<int, UiGambitProjection> Gambits => _gambits;
 
     public IReadOnlyList<UiDegeneracyProjection> DegeneracyEvents => _degeneracyEvents;
 
@@ -250,6 +253,14 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+
+        if ((evt.State & KernelEventState.Succeeded) != KernelEventState.None)
+        {
+            var gambit = GetOrCreateGambit(evt.GambitId);
+            gambit.TotalSucceeded++;
+            gambit.LastSucceededTick = evt.Tick;
+        }
+
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -291,6 +302,18 @@ public sealed class UiProjectionState : KernelEventProjector
         generator = new UiGeneratorProjection(generatorId);
         _generators.Add(generatorId, generator);
         return generator;
+    }
+
+    private UiGambitProjection GetOrCreateGambit(int gambitId)
+    {
+        if (_gambits.TryGetValue(gambitId, out var gambit))
+        {
+            return gambit;
+        }
+
+        gambit = new UiGambitProjection(gambitId);
+        _gambits.Add(gambitId, gambit);
+        return gambit;
     }
 
     private void MarkProjected(long sequence, int tick, long worldVersion)
@@ -357,6 +380,15 @@ public sealed class UiGeneratorProjection(int generatorId)
     public UiGeneratorEvaluationProjection? LastEvaluation { get; internal set; }
 
     public UiGeneratorFireProjection? LastFire { get; internal set; }
+}
+
+public sealed class UiGambitProjection(int gambitId)
+{
+    public int GambitId { get; } = gambitId;
+
+    public int TotalSucceeded { get; internal set; }
+
+    public int? LastSucceededTick { get; internal set; }
 }
 
 public readonly record struct UiRelationshipKey(

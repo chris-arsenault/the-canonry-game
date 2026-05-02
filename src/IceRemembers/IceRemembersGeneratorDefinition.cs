@@ -26,6 +26,7 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "war_makes_wardens",
         Name = "War Makes Wardens",
+        Description = "When a faction is at war, wardens take up posts at a hardened holdfast. Sometimes a weapon is left in the keep.",
         Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
         TargetSaturation = SaturationIncoming(Rel.ControlledBy, 1),
         Produces =
@@ -48,6 +49,7 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "ice_settles_accounts",
         Name = "Ice Settles Accounts",
+        Description = "The reckoning. The ice calls a price for the war: a penguin of the faction's culture does not return, a memorial seal closes the account, and the war ends.",
         Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
         SecondaryTargets =
         [
@@ -83,6 +85,7 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "what_the_spring_remembers",
         Name = "What the Spring Remembers",
+        Description = "A cleansed hot spring draws a witness and an anchored relic. Where the warmth holds long enough, a sanctuary may form, and a choir may settle to sing what the ice forgot.",
         Target = TargetWithIncoming(K.Region, Rel.CleansedBy),
         SecondaryTargets =
         [
@@ -111,6 +114,7 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "war_breaks_the_land",
         Name = "War Breaks the Land",
+        Description = "Sustained war scars the outer face into wastes. Survivors sometimes form a compact in the ruin; weapons are left where the fighting cracked.",
         Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
         TargetSaturation = SaturationIncoming(Rel.CorruptedBy, 2),
         Produces =
@@ -133,6 +137,7 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "routes_draw_readers",
         Name = "Routes Draw Readers",
+        Description = "An active trade route attracts a broker and a waystation harbor. Where the wealth concentrates, a formal order may take charge of what passes through.",
         Target = TargetWithOutgoing(K.Settlement, Rel.TradeRoute),
         TargetSaturation = SaturationIncoming(Rel.FoundedFrom, 1),
         Produces =
@@ -158,6 +163,7 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "what_the_artifact_knows",
         Name = "What the Artifact Knows",
+        Description = "A penguin who has carried an artifact long enough recognises a place to stop. They put down a rookery, seal the artifact into the ground, and a small cell may form around them.",
         Target = TargetWithOutgoing(K.Penguin, Rel.Holds),
         TargetSaturation = SaturationOutgoing(Rel.HomeBase, 1),
         Produces =

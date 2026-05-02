@@ -24,6 +24,9 @@ public sealed class GambitDefinition : BehaviorDefinition
     /// deferred; the runtime treats successful selection as execution.
     /// </summary>
     public float SuccessChance { get; set; } = 1f;
+
+    /// <summary>Authoring-time description of the gambit's intent.</summary>
+    public string Description { get; set; } = string.Empty;
 }
 
 /// <summary>Stable primitive gambit identity used by compiled runtime programs.</summary>
