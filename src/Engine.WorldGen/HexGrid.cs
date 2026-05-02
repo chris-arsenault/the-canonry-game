@@ -67,12 +67,12 @@ public sealed class HexGrid
         }
     }
 
-    /// <summary>Set the terrain and attributes of a cell. Used during map generation.</summary>
-    public void SetCell(HexCoord coord, string terrainName, float elevation = 0f, float fertility = 0.5f)
+    /// <summary>Set the terrain of a cell. Used during map generation.</summary>
+    public void SetCell(HexCoord coord, string terrainName)
     {
         if (_cells.TryGetValue(coord, out var cell))
         {
-            cell.SetTerrain(_terrainCatalog.Resolve(terrainName), elevation, fertility);
+            cell.SetTerrain(_terrainCatalog.Resolve(terrainName));
         }
     }
 }

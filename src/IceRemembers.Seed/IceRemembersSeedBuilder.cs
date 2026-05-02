@@ -654,20 +654,20 @@ internal static partial class IceRemembersSeedBuilder
         HexCoord hostCoord) =>
         HexCoord.CoordsInRadius(hostCoord, radius: 2)
             .Where(coord => grid.ContainsCoord(coord) && HexCoord.Distance(hostCoord, coord) is > 0 and <= 2)
-            .Select(coord => grid.GetCell(coord))
-            .Where(cell => cell is not null && !float.IsPositiveInfinity(cell.MovementCost))
-            .Select(cell => cell!.Coord)
             .Where(coord => !takenPhysical.Contains(coord))
             .OrderBy(coord => HexCoord.Distance(hostCoord, coord))
+            .ThenBy(coord => coord.Q)
+            .ThenBy(coord => coord.R)
             .ToList();
 
     private static List<HexCoord> FindFallbackPenguinHexes(
         HexGrid grid,
         HashSet<HexCoord> takenPhysical) =>
         grid.AllCells
-            .Where(cell => !float.IsPositiveInfinity(cell.MovementCost))
             .Select(cell => cell.Coord)
             .Where(coord => !takenPhysical.Contains(coord))
+            .OrderBy(coord => coord.Q)
+            .ThenBy(coord => coord.R)
             .ToList();
 
     private static void AssignPenguinSemanticPosition(
@@ -757,7 +757,6 @@ internal static partial class IceRemembersSeedBuilder
     {
         var candidates = grid.AllCells
             .Where(cell =>
-                !float.IsPositiveInfinity(cell.MovementCost) &&
                 !takenPhysical.Contains(cell.Coord) &&
                 takenPhysical.All(existing => HexCoord.Distance(existing, cell.Coord) >= minimumDistance))
             .Select(cell => (Cell: cell, Score: scorer(cell)))
@@ -768,7 +767,7 @@ internal static partial class IceRemembersSeedBuilder
         if (candidates.Count == 0)
         {
             candidates = grid.AllCells
-                .Where(cell => !float.IsPositiveInfinity(cell.MovementCost) && !takenPhysical.Contains(cell.Coord))
+                .Where(cell => !takenPhysical.Contains(cell.Coord))
                 .Select(cell => (Cell: cell, Score: scorer(cell)))
                 .OrderByDescending(candidate => candidate.Score)
                 .Take(8)
@@ -801,7 +800,6 @@ internal static partial class IceRemembersSeedBuilder
         return TerrainScore(cell.Terrain, IceRemembersTerrain.HotSprings, 36f)
             + TerrainScore(cell.Terrain, IceRemembersTerrain.Tundra, 24f)
             + TerrainScore(cell.Terrain, IceRemembersTerrain.Wastes, 8f)
-            + (cell.Habitability * 30f)
             + (CountTerrainsInRadius(grid, cell.Coord, 2, IceRemembersTerrain.HotSprings, IceRemembersTerrain.Tundra) * 3f)
             + centerBias;
     }
@@ -851,8 +849,7 @@ internal static partial class IceRemembersSeedBuilder
             + TerrainScore(cell.Terrain, IceRemembersTerrain.Tundra, 16f)
             + TerrainScore(cell.Terrain, IceRemembersTerrain.Crags, 20f)
             + TerrainScore(cell.Terrain, IceRemembersTerrain.Wastes, 18f)
-            + (CountAdjacentTerrains(grid, cell.Coord, IceRemembersTerrain.Crags, IceRemembersTerrain.Wastes) * 5f)
-            + (cell.Habitability * 18f);
+            + (CountAdjacentTerrains(grid, cell.Coord, IceRemembersTerrain.Crags, IceRemembersTerrain.Wastes) * 5f);
     }
 
     private static float DriftwatchScore(HexGrid grid, MapCoverageMap coverageMap, MapCoverage coastlands, HexCell cell)
@@ -878,7 +875,6 @@ internal static partial class IceRemembersSeedBuilder
         return CoverageAffinity(coverageMap, heartlands, cell.Coord, 22f, 8f)
             + TerrainScore(cell.Terrain, IceRemembersTerrain.HotSprings, 20f)
             + TerrainScore(cell.Terrain, IceRemembersTerrain.Tundra, 18f)
-            + (cell.Habitability * 28f)
             + (20f - HexCoord.Distance(cell.Coord, new HexCoord(0, 0)));
     }
 

@@ -18,11 +18,6 @@ text = "GENERATOR"
 [node name="HeaderSpacer" type="Control" parent="Body/HeaderRow"]
 size_flags_horizontal = 3
 
-[node name="StatBadge" type="PanelContainer" parent="Body/HeaderRow"]
-
-[node name="StatBadgeLabel" type="Label" parent="Body/HeaderRow/StatBadge"]
-text = ""
-
 [node name="NameLabel" type="Label" parent="Body"]
 text = "Card Name"
 autowrap_mode = 3

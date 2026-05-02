@@ -66,11 +66,10 @@ internal static class IceRemembersSeedQualityValidator
             return;
         }
 
-        ValidateEntityTerrain(entity, coord, cell, terrainCatalog, issues);
+        ValidateEntityTerrain(coord, cell, terrainCatalog, issues);
     }
 
     private static void ValidateEntityTerrain(
-        DomainSeedEntity entity,
         HexCoord coord,
         DomainSeedCell cell,
         TerrainCatalog terrainCatalog,
@@ -78,11 +77,7 @@ internal static class IceRemembersSeedQualityValidator
     {
         try
         {
-            var terrain = terrainCatalog.Resolve(cell.Terrain);
-            if (float.IsPositiveInfinity(terrain.MovementCost))
-            {
-                issues.Add($"{EntityLabel(entity)} is on blocked terrain at {coord}");
-            }
+            _ = terrainCatalog.Resolve(cell.Terrain);
         }
         catch (KeyNotFoundException)
         {

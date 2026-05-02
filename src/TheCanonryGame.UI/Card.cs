@@ -13,7 +13,6 @@ namespace TheCanonryGame.UI;
 public partial class Card : PanelContainer
 {
     private Label? _typeBadgeLabel;
-    private Label? _statBadgeLabel;
     private Label? _nameLabel;
     private TextureRect? _art;
     private Label? _subtitleLabel;
@@ -21,7 +20,6 @@ public partial class Card : PanelContainer
     private Label? _statusLabel;
     private Button? _toggleButton;
     private PanelContainer? _typeBadge;
-    private PanelContainer? _statBadge;
     private PanelContainer? _artFrame;
     private ColorRect? _hRule;
     private int _runtimeIdValue;
@@ -44,11 +42,6 @@ public partial class Card : PanelContainer
         _typeBadgeLabel = GetNode<Label>("Body/HeaderRow/TypeBadge/TypeBadgeLabel");
         _typeBadgeLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
         _typeBadgeLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
-
-        _statBadge = GetNode<PanelContainer>("Body/HeaderRow/StatBadge");
-        _statBadgeLabel = GetNode<Label>("Body/HeaderRow/StatBadge/StatBadgeLabel");
-        _statBadgeLabel.AddThemeFontOverride("font", UiTheme.MonoFont);
-        _statBadgeLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
 
         _nameLabel = GetNode<Label>("Body/NameLabel");
         _nameLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
@@ -124,19 +117,6 @@ public partial class Card : PanelContainer
             _typeBadgeLabel.Text = TypeLabelText(card.Definition.Type);
             _typeBadgeLabel.AddThemeColorOverride("font_color", accent);
         }
-
-        var statText = StatBadgeText(card);
-        if (_statBadge is not null)
-        {
-            _statBadge.Visible = !string.IsNullOrEmpty(statText);
-            _statBadge.AddThemeStyleboxOverride("panel", UiTheme.BadgeStyle(UiTokens.Whisper));
-        }
-
-        if (_statBadgeLabel is not null)
-        {
-            _statBadgeLabel.Text = statText ?? string.Empty;
-            _statBadgeLabel.AddThemeColorOverride("font_color", UiTokens.Parchment);
-        }
     }
 
     private void BindBody(CardInstance card, GameTableauCardState state)
@@ -188,21 +168,6 @@ public partial class Card : PanelContainer
         CardType.System => "SYSTEM",
         _ => "CARD",
     };
-
-    private static string? StatBadgeText(CardInstance card)
-    {
-        if (card.Definition.Type == CardType.Generator)
-        {
-            return card.Definition.Cadence > 0 ? $"·{card.Definition.Cadence}t" : null;
-        }
-
-        if (card.Definition.Type == CardType.Action)
-        {
-            return card.Definition.Cooldown > 0 ? $"cd {card.Definition.Cooldown}" : null;
-        }
-
-        return null;
-    }
 
     private static string SubtitleText(CardInstance card)
     {

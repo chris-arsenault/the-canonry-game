@@ -16,7 +16,7 @@ internal sealed record GameTableauGeneratorFire(string GeneratorName, int Tick);
 
 internal sealed class GameRuntimeTableau
 {
-    private readonly TableauManager _tableau = new(manaCap: 0f);
+    private readonly TableauManager _tableau = new();
     private readonly UiProjectionState _projection;
     private readonly IProjectionSymbolCatalog _symbols;
     private readonly GameIntentPort _intents;
@@ -38,10 +38,6 @@ internal sealed class GameRuntimeTableau
 
     public IReadOnlyList<CardInstance> Cards => _tableau.ActiveCards;
 
-    public float CurrentMana => _tableau.CurrentMana;
-
-    public float ManaCap => _tableau.ManaCap;
-
     public int EnabledCardCount => Cards.Count(card => GetCardState(card).IsEnabled);
 
     public int TotalGeneratorFires => _projection.GeneratorFires.Count;
@@ -60,7 +56,7 @@ internal sealed class GameRuntimeTableau
             return GetGambitCardState(card, card.Definition.GambitId);
         }
 
-        return new GameTableauCardState(card, 0, false, card.IsActive, card.FireCount, card.LastFiredTick);
+        return new GameTableauCardState(card, 0, false, IsEnabled: false, TotalFired: 0, LastFireTick: null);
     }
 
     private GameTableauCardState GetGeneratorCardState(CardInstance card, int generatorId)
@@ -133,11 +129,6 @@ internal sealed class GameRuntimeTableau
                 $"generator:{symbol.StableName}",
                 symbol.DisplayName,
                 CardType.Generator,
-                AlwaysCardCondition.Instance,
-                manaCost: 0,
-                cooldown: 0,
-                cadence: 25,
-                lifespan: int.MaxValue,
                 generatorId: symbol.Id)
             {
                 Description = symbol.Description ?? string.Empty,
@@ -158,12 +149,6 @@ internal sealed class GameRuntimeTableau
                 $"gambit:{symbol.StableName}",
                 symbol.DisplayName,
                 CardType.Action,
-                AlwaysCardCondition.Instance,
-                manaCost: 0,
-                cooldown: 0,
-                cadence: 0,
-                lifespan: int.MaxValue,
-                generatorId: 0,
                 gambitId: symbol.Id)
             {
                 Description = symbol.Description ?? string.Empty,

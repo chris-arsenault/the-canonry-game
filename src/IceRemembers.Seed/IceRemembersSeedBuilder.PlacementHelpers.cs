@@ -12,10 +12,8 @@ internal static partial class IceRemembersSeedBuilder
         {
             var candidates = HexCoord.CoordsInRadius(origin, radius)
                 .Where(coord => grid.ContainsCoord(coord) && !taken.Contains(coord))
-                .Select(grid.GetCell)
-                .Where(cell => cell is not null && !float.IsPositiveInfinity(cell.MovementCost))
-                .OrderByDescending(cell => cell!.Habitability)
-                .Select(cell => cell!.Coord)
+                .OrderBy(coord => coord.Q)
+                .ThenBy(coord => coord.R)
                 .ToList();
 
             if (candidates.Count > 0)

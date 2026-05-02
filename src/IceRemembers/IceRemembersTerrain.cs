@@ -48,14 +48,14 @@ public static class IceRemembersTerrainCatalog
     public static TerrainCatalog CreateWorldGenCatalog() =>
         new(
         [
-            Terrain(IceRemembersTerrain.Tundra, "Tundra", 1.1f, 0.75f, "frozen_land", 4f, 6f, 2f, 4f, 3f, 5f),
-            Terrain(IceRemembersTerrain.HotSprings, "Hot Springs", 1f, 0.95f, "sanctuary", 5f, 7f, 2f, 4f, 4f, 6f),
-            Terrain(IceRemembersTerrain.Shelf, "Shelf", 1.8f, 0.45f, "maritime", 1f, 3f, 1f, 2f, 1f, 2f),
-            Terrain(IceRemembersTerrain.Crags, "Crags", 4f, 0.1f, "harsh_land", 0f, 2f, 2f, 5f, 0f, 2f),
-            Terrain(IceRemembersTerrain.Wastes, "Wastes", 1.4f, 0.2f, "harsh_land", 0f, 1f, 1f, 3f, 0f, 2f),
-            Terrain(IceRemembersTerrain.Ocean, "Ocean", 1f, 0f, "maritime", 0f, 1f, 0f, 1f, 0f, 1f),
-            Terrain(IceRemembersTerrain.Reef, "Reef", 1.6f, 0.55f, "maritime", 2f, 5f, 3f, 5f, 2f, 4f),
-            Terrain(IceRemembersTerrain.Ice, "Ice", 2.5f, 0.3f, "frozen_land", 0f, 2f, 0f, 2f, 0f, 3f),
+            Terrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land"),
+            Terrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary"),
+            Terrain(IceRemembersTerrain.Shelf, "Shelf", "maritime"),
+            Terrain(IceRemembersTerrain.Crags, "Crags", "harsh_land"),
+            Terrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land"),
+            Terrain(IceRemembersTerrain.Ocean, "Ocean", "maritime"),
+            Terrain(IceRemembersTerrain.Reef, "Reef", "maritime"),
+            Terrain(IceRemembersTerrain.Ice, "Ice", "frozen_land"),
         ]);
 
     private static TerrainConfig DomainTerrain(
@@ -72,25 +72,9 @@ public static class IceRemembersTerrainCatalog
     private static TerrainDefinition Terrain(
         IceRemembersTerrain terrain,
         string displayName,
-        float movementCost,
-        float habitabilityFactor,
-        string boundaryGroup,
-        float foodMin,
-        float foodMax,
-        float wealthMin,
-        float wealthMax,
-        float populationMin,
-        float populationMax) =>
+        string boundaryGroup) =>
         new(
             terrain.ToDomainName(),
             displayName,
-            movementCost,
-            habitabilityFactor,
-            boundaryGroup,
-            new Dictionary<string, AmbientValueRange>(StringComparer.Ordinal)
-            {
-                [IceRemembersResource.Food.ToDomainName()] = new(foodMin, foodMax),
-                [IceRemembersResource.Wealth.ToDomainName()] = new(wealthMin, wealthMax),
-                [IceRemembersResource.Population.ToDomainName()] = new(populationMin, populationMax),
-            });
+            boundaryGroup);
 }

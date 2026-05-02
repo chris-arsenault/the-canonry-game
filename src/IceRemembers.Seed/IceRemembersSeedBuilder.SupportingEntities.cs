@@ -253,6 +253,6 @@ internal static partial class IceRemembersSeedBuilder
               TerrainScore(cell.Terrain, IceRemembersTerrain.Ice, 10f) +
               TerrainScore(cell.Terrain, IceRemembersTerrain.Wastes, 8f);
 
-        return affinity + terrain + (cell.Habitability * 18f);
+        return affinity + terrain;
     }
 }

@@ -3,27 +3,7 @@ namespace Engine.WorldGen;
 public sealed record TerrainDefinition(
     string StableName,
     string DisplayName,
-    float MovementCost,
-    float HabitabilityFactor,
-    string BoundaryGroup,
-    IReadOnlyDictionary<string, AmbientValueRange> AmbientResources)
-{
-    public TerrainDefinition(
-        string stableName,
-        string displayName,
-        float movementCost,
-        float habitabilityFactor,
-        string boundaryGroup)
-        : this(
-            stableName,
-            displayName,
-            movementCost,
-            habitabilityFactor,
-            boundaryGroup,
-            new Dictionary<string, AmbientValueRange>(StringComparer.Ordinal))
-    {
-    }
-}
+    string BoundaryGroup);
 
 public sealed class TerrainCatalog
 {
