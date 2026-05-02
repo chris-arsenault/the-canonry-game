@@ -63,6 +63,13 @@ make lint       # analyzer lint + format verification
 make clean      # remove .artifacts/
 ```
 
+The default test suite excludes the long Monte Carlo output-gap acceptance
+ledger. Run it explicitly when changing Monte Carlo parquet output contracts:
+
+```bash
+CANONRY_RUN_MONTE_CARLO_ACCEPTANCE=1 dotnet test tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj -c Release
+```
+
 To play in Godot:
 
 1. Open the project in Godot 4.6.

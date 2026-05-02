@@ -12,9 +12,7 @@ internal static partial class IceRemembersSeedBuilder
     private static readonly (string Name, string Subtype)[] OrcaPlans =
     [
         ("Grandmother Deep", "matriarch"),
-        ("Krathund Gnurl", "matriarch"),
         ("Grandfather Blood", "elder"),
-        ("Tide-Splitter", "scout"),
         ("Tidescream", "scout"),
     ];
 
@@ -36,9 +34,9 @@ internal static partial class IceRemembersSeedBuilder
 
     private static readonly AbilityPlan[] AbilityPlans =
     [
-        new("Ice-Reading", "craft", IceRemembersCulture.AuroraStack, "heartlands", "Captain Greyfeather", "Elder Deepcurrent"),
-        new("Fire-Core Craft", "craft", IceRemembersCulture.Nightshelf, "coastlands", "Trader Shellback", "Captain Greyfeather"),
-        new("Wake-Song", "rite", IceRemembersCulture.WakeSingers, "farwake", "Singer Underwake", "Elder Deepcurrent"),
+        new("Ice-Reading", "craft", IceRemembersCulture.AuroraStack, "heartlands", "High-Beak Auditor Selka", "Grandmother Deep"),
+        new("Fire-Core Craft", "craft", IceRemembersCulture.Nightshelf, "coastlands", "Shadow-Broker Nyla", "Keeper Hollows"),
+        new("Wake-Song", "rite", IceRemembersCulture.WakeSingers, "farwake", "Tidescream", "Grandmother Deep"),
     ];
 
     private static void CreateOrcas(

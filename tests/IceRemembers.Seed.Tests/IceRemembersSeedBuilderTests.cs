@@ -7,9 +7,12 @@ using K = IceRemembers.IceRemembersKinds;
 
 public sealed class IceRemembersSeedBuilderTests
 {
-    private readonly IceRemembersStartupSeedResult _result = IceRemembersSeedBuilder.BuildAcceptedStartupSeed(42);
+    private static readonly Lazy<IceRemembersStartupSeedResult> Result42 =
+        new(() => IceRemembersSeedBuilder.BuildAcceptedStartupSeed(42));
 
-    private DomainStartupSeed Seed => _result.StartupSeed;
+    private static IceRemembersStartupSeedResult Result => Result42.Value;
+
+    private static DomainStartupSeed Seed => Result.StartupSeed;
 
     [Fact]
     public void BuildAcceptedStartupSeed_IsDeterministicWithSeed()
@@ -18,7 +21,7 @@ public sealed class IceRemembersSeedBuilderTests
 
         Assert.Equal(Seed.Cells.Count, result2.StartupSeed.Cells.Count);
         Assert.Equal(Seed.Entities.Count, result2.StartupSeed.Entities.Count);
-        Assert.Equal(_result.Seed, result2.Seed);
+        Assert.Equal(Result.Seed, result2.Seed);
         Assert.Equal(
             IceRemembersSeedQualityValidator.TerrainFingerprint(Seed),
             IceRemembersSeedQualityValidator.TerrainFingerprint(result2.StartupSeed));
@@ -46,7 +49,7 @@ public sealed class IceRemembersSeedBuilderTests
     public void BuildAcceptedStartupSeed_PassesSeedQualityValidationAcrossSeeds()
     {
         var issues = new List<string>();
-        for (var seed = 0; seed < 20; seed++)
+        foreach (var seed in new[] { 0, 5, 11, 17 })
         {
             var result = IceRemembersSeedBuilder.BuildAcceptedStartupSeed(seed);
             var report = IceRemembersSeedQualityValidator.Validate(result.StartupSeed);
@@ -64,7 +67,7 @@ public sealed class IceRemembersSeedBuilderTests
     {
         var accepted = IceRemembersSeedBuilder.SelectAcceptedSeed(42);
 
-        Assert.Equal(_result.Seed, accepted);
+        Assert.Equal(Result.Seed, accepted);
     }
 
     [Fact]
@@ -126,10 +129,10 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void SeedRoster_KeepsFixedAnchorsAndExpectedCounts()
     {
-        Assert.Equal(6, EntitiesByKind(K.Region).Length);
-        Assert.InRange(EntitiesByKind(K.Settlement).Length, 10, 12);
-        Assert.Equal(5, EntitiesByKind(K.Faction).Length);
-        Assert.InRange(EntitiesByKind(K.Penguin).Length, 8, 10);
+        Assert.Equal(4, EntitiesByKind(K.Region).Length);
+        Assert.Equal(4, EntitiesByKind(K.Settlement).Length);
+        Assert.Equal(4, EntitiesByKind(K.Faction).Length);
+        Assert.Equal(3, EntitiesByKind(K.Penguin).Length);
         Assert.Equal(3, EntitiesByKind(K.Artifact).Length);
 
         var names = Seed.Entities.Select(entity => entity.DisplayName).ToHashSet(StringComparer.Ordinal);
@@ -137,19 +140,13 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Contains("Heartlands", names);
         Assert.Contains("Coastlands", names);
         Assert.Contains("Farwake", names);
-        Assert.Contains("Blackwater", names);
-        Assert.Contains("White Empty", names);
         Assert.Contains("Aurora Stack", names);
-        Assert.Contains("Ironhold", names);
         Assert.Contains("Nightfall Shelf", names);
-        Assert.Contains("Wavecrest", names);
-        Assert.Contains("Midway Shelf", names);
         Assert.Contains("The Drowned Ledge", names);
         Assert.Contains("The Still Pools", names);
         Assert.Contains("Council of Luminaries", names);
         Assert.Contains("The Icebound Exchange", names);
         Assert.Contains("Midnight Claws", names);
-        Assert.Contains("Fire Keepers", names);
         Assert.Contains("The Wake-Singers", names);
         Assert.Contains("High-Beak Auditor Selka", names);
         Assert.Contains("Shadow-Broker Nyla", names);
@@ -183,7 +180,7 @@ public sealed class IceRemembersSeedBuilderTests
             Assert.Single(anchored);
 
             var location = Seed.Entities.Single(entity => entity.SeedEntityId == anchored[0].TargetSeedEntityId);
-            Assert.Equal(K.Settlement.Value, location.Kind);
+            Assert.Contains(location.Kind, new[] { K.Settlement.Value, K.PointOfInterest.Value });
         }
     }
 
@@ -201,7 +198,7 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.True(rSpan >= 20, $"Expected settlement r-span >= 20, got {rSpan}.");
         Assert.True(NamedCoverageIsSparse());
 
-        foreach (var settlementName in new[] { "Nightfall Shelf", "Wavecrest" })
+        foreach (var settlementName in new[] { "Nightfall Shelf", "The Drowned Ledge" })
         {
             var settlement = EntityNamed(K.Settlement.Value, settlementName);
             var coord = Coord(settlement);

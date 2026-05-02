@@ -27,7 +27,7 @@ public class RuntimeGeneratorBuilderTests
         Assert.Equal("rookery", Assert.Single(generator.Target.Subtypes!));
         Assert.Equal(IceRemembersKinds.Penguin, Assert.Single(generator.Produces).Kind);
         Assert.Equal(new DefinitionRelationshipId("home_base"), Assert.Single(generator.Relationships).RelationshipId);
-        Assert.Equal(new DefinitionAttributeId("temp_hp"), Assert.Single(generator.Triggers).AttributeId);
+        Assert.Equal(TestKinds.Settlement, Assert.Single(generator.Triggers).OnKind);
     }
 
     [Fact]

@@ -17,7 +17,7 @@ using MonteCarloTool;
 public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
     : IClassFixture<MonteCarloOutputGapFixture>
 {
-    [Theory]
+    [MonteCarloAcceptanceTheory]
     [MemberData(nameof(RawDomainContracts))]
     public void RawOutput_DocumentedDomainTableMustSatisfyAcceptanceContract(string tableName, string columns, string reason)
     {
@@ -37,7 +37,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             column => IsStringType(column.Type));
     }
 
-    [Theory]
+    [MonteCarloAcceptanceTheory]
     [MemberData(nameof(AnalysisContracts))]
     public void AnalysisOutput_DocumentedAnalysisTableMustSatisfyAcceptanceContract(string tableName, string columns, string reason)
     {
@@ -57,7 +57,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             column => IsStringType(column.Type));
     }
 
-    [Theory]
+    [MonteCarloAcceptanceTheory]
     [MemberData(nameof(LegacyParallelOutputs))]
     public void RawOutput_LegacyParallelTablesMustNotBeExportedAsParquet(string tableName, string replacement)
     {
@@ -71,7 +71,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             $"{tableName}: legacy parallel parquet should be removed; use canonical output '{replacement}'.");
     }
 
-    [Theory]
+    [MonteCarloAcceptanceTheory]
     [MemberData(nameof(LegacyCsvArtifacts))]
     public void AnalysisOutput_LegacyCsvArtifactsMustNotBeWritten(string fileName)
     {
@@ -82,7 +82,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         Assert.False(fixture.AnalysisFileExists(fileName), $"{fileName}: structured analysis output must be parquet-only.");
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void PlannerActionOutput_SelectedCandidatesMustJoinGoalsStepsAndExecutions()
     {
         // This closes the planner/action causality gap: candidates, goals, committed steps, and
@@ -129,7 +129,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void PlannerActionOutput_CandidatesMustIncludeLosersAndDiagnosticsNotOnlyWinningRows()
     {
         // A selected-only candidate export would make action utilization look complete while hiding
@@ -149,7 +149,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """) > 0);
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void PlannerActionOutput_SelectedLocalityMustJoinCommittedActionExecution()
     {
         // Locality opportunities are only useful if the selected bundle can be tied to the action
@@ -170,7 +170,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void GeneratorOutput_FiredCreatedCountsMustBeExplainedByGeneratorOutputs()
     {
         // This replaces same-tick inference. Every created entity/relationship/map mutation caused
@@ -202,7 +202,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void GeneratorOutput_EntityOutputsMustJoinEntityDomainRows()
     {
         // Generator observability should reference entity-domain facts, not duplicate entity state.
@@ -225,7 +225,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void MapCoverageOutput_CoverageTerrainSnapshotsMustSumToCoverageSnapshots()
     {
         // Owner-level coverage and owner-by-terrain coverage are the same map/coverage domain.
@@ -250,7 +250,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void MapCoverageOutput_MapSnapshotsMustAgreeWithTickSnapshotCellTotals()
     {
         // Terrain aggregate snapshots and tick coverage counts must agree on total map size.
@@ -273,7 +273,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void PlacementOutput_SelectedPlacementsMustHaveGeneratorOrMapCause()
     {
         // Placement events are useful only if they explain a spatial decision made by a generator or
@@ -291,7 +291,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void EntityOutput_AttributeSnapshotsMustSupportPerEntityStockDynamics()
     {
         // Aggregate attribute bands are not enough. Individual entity/attribute samples over time
@@ -311,7 +311,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """) > 0);
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void EntityOutput_KindHealthSummariesMustNotBeZeroFilledPlaceholders()
     {
         // The completion plan calls out the current zero health summary problem directly. Health
@@ -329,7 +329,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void LifecycleOutput_HistoricalTransitionsMustHaveLifecycleReasons()
     {
         // Lifecycle events tell us what happened. Lifecycle reasons close the tuning gap by making
@@ -350,7 +350,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void SnapshotOutput_RunMetadataMustRecordSnapshotCadencesAndVariantIdentity()
     {
         // Cadence metadata is part of interpreting sparse snapshot rows. Without it, missing rows
@@ -375,7 +375,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         }
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void AnalysisOutput_ReadinessMustCoverEverySemanticFeatureAndReportNoHiddenGaps()
     {
         // analysis_readiness is the guard against claiming completion when a source table is empty,
@@ -396,7 +396,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             """));
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void AnalysisOutput_ActionUtilizationMustBeDerivedFromPlannerCandidates()
     {
         // This prevents the old fallback where action utilization used execution counts only and
@@ -410,7 +410,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         Assert.True(fixture.AnalysisQueryLong(["action_utilization"], "SELECT COUNT(*) FROM action_utilization WHERE evidence_source_code <> 0;") > 0);
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void AnalysisOutput_StockDynamicsMustBeDerivedFromEntityAttributeSnapshots()
     {
         // Stock dynamics should answer the actual tuning question: are individual stocks fluctuating
@@ -433,7 +433,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
             "SELECT COUNT(*) FROM stock_dynamics WHERE reversal_count > 0 OR normalized_range > 0;") > 0);
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void AnalysisOutput_MapAndCoverageReportsMustBeDerivedFromMapCoverageSources()
     {
         // Map spread and coverage development are separate analysis products over the same
@@ -446,7 +446,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         Assert.True(fixture.AnalysisQueryLong(["terrain_occupancy"], "SELECT COUNT(*) FROM terrain_occupancy WHERE terrain_id <> 0;") > 0);
     }
 
-    [Fact]
+    [MonteCarloAcceptanceFact]
     public void AnalysisOutput_ExperimentComparisonMustJoinExperimentVariants()
     {
         // Cross-variant tuning cannot be done from filenames or ad hoc run directories. The parquet
@@ -595,6 +595,11 @@ public sealed class MonteCarloOutputGapFixture : IDisposable
     {
         _outputDirectory = Path.Combine(Path.GetTempPath(), "canonry-monte-carlo-output-gap-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_outputDirectory);
+        if (!MonteCarloAcceptanceTestSwitch.IsEnabled)
+        {
+            return;
+        }
+
         var configPath = Path.Combine(_outputDirectory, "kernel-tuning.json");
         File.WriteAllText(
             configPath,

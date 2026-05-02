@@ -27,4 +27,8 @@
     <ProjectReference Include="..\..\tools\MonteCarlo\MonteCarlo.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(CANONRY_RUN_MONTE_CARLO_ACCEPTANCE)' != '1'">
+    <Compile Remove="Observability\MonteCarloOutputGapTests.cs" />
+  </ItemGroup>
+
 </Project>
