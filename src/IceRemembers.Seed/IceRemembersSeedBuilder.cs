@@ -395,9 +395,7 @@ internal static partial class IceRemembersSeedBuilder
             HexCoord Northlands,
             HexCoord Heartlands,
             HexCoord Coastlands,
-            HexCoord Farwake,
-            HexCoord Blackwater,
-            HexCoord WhiteEmpty) anchors)
+            HexCoord Farwake) anchors)
     {
         regions["northlands"] = CreateSeedCoverage(
             grid,
@@ -435,24 +433,6 @@ internal static partial class IceRemembersSeedBuilder
             desiredCellCount: 112,
             minimumCellCount: 72,
             preferredTerrains: TerrainSet(IceRemembersTerrain.Ocean, IceRemembersTerrain.Reef, IceRemembersTerrain.Shelf));
-        regions["blackwater"] = CreateSeedCoverage(
-            grid,
-            coverageMap,
-            seed,
-            regions["blackwater"],
-            anchors.Blackwater,
-            desiredCellCount: 96,
-            minimumCellCount: 64,
-            preferredTerrains: TerrainSet(IceRemembersTerrain.Ocean, IceRemembersTerrain.Reef, IceRemembersTerrain.Shelf));
-        regions["whiteempty"] = CreateSeedCoverage(
-            grid,
-            coverageMap,
-            seed,
-            regions["whiteempty"],
-            anchors.WhiteEmpty,
-            desiredCellCount: 144,
-            minimumCellCount: 96,
-            preferredTerrains: TerrainSet(IceRemembersTerrain.Ice, IceRemembersTerrain.Wastes, IceRemembersTerrain.Crags, IceRemembersTerrain.Tundra));
     }
 
     private static (
