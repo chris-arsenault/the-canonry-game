@@ -33,6 +33,7 @@ internal sealed class GameRuntimeTableau
         _symbols = symbols;
         _intents = intents;
         BuildGeneratorCards();
+        BuildGambitCards();
     }
 
     public IReadOnlyList<CardInstance> Cards => _tableau.ActiveCards;
@@ -114,14 +115,78 @@ internal sealed class GameRuntimeTableau
                 AlwaysCardCondition.Instance,
                 manaCost: 0,
                 cooldown: 0,
-                cadence: 0,
+                cadence: 25,
                 lifespan: int.MaxValue,
                 generatorId: symbol.Id)
             {
                 Description = symbol.Description ?? string.Empty,
             };
             card.Tags.Add("generator");
+            AddKindHintTag(card, GeneratorKindHint(symbol.StableName));
             _tableau.PlaceCard(card, currentTick: 0);
         }
     }
+
+    private void BuildGambitCards()
+    {
+        foreach (var symbol in _symbols.Symbols.Values
+            .Where(symbol => symbol.Kind == ProjectionSymbolKind.Gambit)
+            .OrderBy(symbol => symbol.DisplayName, StringComparer.Ordinal))
+        {
+            var card = new CardDefinition(
+                $"gambit:{symbol.StableName}",
+                symbol.DisplayName,
+                CardType.Action,
+                AlwaysCardCondition.Instance,
+                manaCost: 0,
+                cooldown: 0,
+                cadence: 0,
+                lifespan: int.MaxValue,
+                generatorId: 0)
+            {
+                Description = symbol.Description ?? string.Empty,
+            };
+            card.Tags.Add("gambit");
+            AddKindHintTag(card, GambitKindHint(symbol.StableName));
+            _tableau.PlaceCard(card, currentTick: 0);
+        }
+    }
+
+    private static void AddKindHintTag(CardDefinition card, string? kindHint)
+    {
+        if (string.IsNullOrEmpty(kindHint))
+        {
+            return;
+        }
+
+        card.Tags.Add(kindHint);
+        card.Tags.Add($"kind:{kindHint}");
+    }
+
+    private static string? GambitKindHint(string stableName)
+    {
+        // Gambit ids are actor_kind first: penguin_wields_artifact, faction_declares_*, etc.
+        var underscore = stableName.IndexOf('_', StringComparison.Ordinal);
+        var head = underscore > 0 ? stableName[..underscore] : stableName;
+        return head switch
+        {
+            "penguin" => "penguin",
+            "faction" => "faction",
+            "settlement" => "settlement",
+            "artifact" => "artifact",
+            "region" => "region",
+            _ => null,
+        };
+    }
+
+    private static string? GeneratorKindHint(string stableName) => stableName switch
+    {
+        "war_makes_wardens" => "penguin",
+        "ice_settles_accounts" => "artifact",
+        "what_the_spring_remembers" => "region",
+        "war_breaks_the_land" => "region",
+        "routes_draw_readers" => "settlement",
+        "what_the_artifact_knows" => "settlement",
+        _ => null,
+    };
 }

@@ -18,7 +18,7 @@ public partial class TableauPanel : PanelContainer
     private readonly Dictionary<CardRuntimeId, CardInstance> _cardsById = [];
     private readonly Dictionary<CardRuntimeId, int> _lastFireCounts = [];
     private GameRuntimeTableau? _tableau;
-    private VBoxContainer? _rows;
+    private HFlowContainer? _rows;
     private Label? _summaryLabel;
     private Label? _recentLabel;
     private PackedScene? _cardScene;
@@ -51,8 +51,9 @@ public partial class TableauPanel : PanelContainer
         GetNode<ColorRect>("Outer/TopHairline").Color = UiTokens.Hairline;
         GetNode<ColorRect>("Outer/BottomHairline").Color = UiTokens.Hairline;
 
-        _rows = GetNode<VBoxContainer>("Outer/Scroll/Rows");
-        _rows.AddThemeConstantOverride("separation", UiTokens.Space2);
+        _rows = GetNode<HFlowContainer>("Outer/Scroll/Rows");
+        _rows.AddThemeConstantOverride("h_separation", UiTokens.Space3);
+        _rows.AddThemeConstantOverride("v_separation", UiTokens.Space3);
 
         _recentLabel = GetNode<Label>("Outer/RecentLabel");
         StyleBodyLabel(_recentLabel);
@@ -85,7 +86,8 @@ public partial class TableauPanel : PanelContainer
 
         _cardsById.Clear();
         var snapshot = cards
-            .OrderBy(card => card.Definition.Name, StringComparer.Ordinal)
+            .OrderBy(card => CardTypeOrder(card.Definition.Type))
+            .ThenBy(card => card.Definition.Name, StringComparer.Ordinal)
             .Select(card =>
             {
                 _cardsById[card.Definition.RuntimeId] = card;
@@ -148,6 +150,14 @@ public partial class TableauPanel : PanelContainer
             .Select(fire => $"{fire.GeneratorName} @ t{fire.Tick}");
         return "Recent fires: " + string.Join("  |  ", recent);
     }
+
+    private static int CardTypeOrder(CardType type) => type switch
+    {
+        CardType.Generator => 0,
+        CardType.Action => 1,
+        CardType.System => 2,
+        _ => 3,
+    };
 
     private static void StyleBodyLabel(Label label)
     {

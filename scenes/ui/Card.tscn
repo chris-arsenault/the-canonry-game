@@ -3,24 +3,56 @@
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/Card.cs" id="1_card"]
 
 [node name="Card" type="PanelContainer"]
+custom_minimum_size = Vector2(220, 340)
 script = ExtResource("1_card")
 
-[node name="Row" type="HBoxContainer" parent="."]
+[node name="Body" type="VBoxContainer" parent="."]
 
-[node name="Face" type="TextureRect" parent="Row"]
-custom_minimum_size = Vector2(52, 64)
-expand_mode = 1
-stretch_mode = 5
+[node name="HeaderRow" type="HBoxContainer" parent="Body"]
 
-[node name="NameColumn" type="VBoxContainer" parent="Row"]
+[node name="TypeBadge" type="PanelContainer" parent="Body/HeaderRow"]
+
+[node name="TypeBadgeLabel" type="Label" parent="Body/HeaderRow/TypeBadge"]
+text = "GENERATOR"
+
+[node name="HeaderSpacer" type="Control" parent="Body/HeaderRow"]
 size_flags_horizontal = 3
 
-[node name="NameLabel" type="Label" parent="Row/NameColumn"]
-text = "Card"
+[node name="StatBadge" type="PanelContainer" parent="Body/HeaderRow"]
 
-[node name="StatusLabel" type="Label" parent="Row/NameColumn"]
+[node name="StatBadgeLabel" type="Label" parent="Body/HeaderRow/StatBadge"]
 text = ""
 
-[node name="ToggleButton" type="Button" parent="Row"]
-custom_minimum_size = Vector2(92, 30)
+[node name="NameLabel" type="Label" parent="Body"]
+text = "Card Name"
+autowrap_mode = 3
+
+[node name="ArtFrame" type="PanelContainer" parent="Body"]
+custom_minimum_size = Vector2(0, 140)
+size_flags_horizontal = 3
+
+[node name="Art" type="TextureRect" parent="Body/ArtFrame"]
+expand_mode = 1
+stretch_mode = 6
+
+[node name="SubtitleLabel" type="Label" parent="Body"]
+text = ""
+
+[node name="DescriptionLabel" type="Label" parent="Body"]
+text = ""
+autowrap_mode = 3
+size_flags_vertical = 3
+
+[node name="HRule" type="ColorRect" parent="Body"]
+custom_minimum_size = Vector2(0, 1)
+size_flags_horizontal = 3
+
+[node name="FooterRow" type="HBoxContainer" parent="Body"]
+
+[node name="StatusLabel" type="Label" parent="Body/FooterRow"]
+text = ""
+size_flags_horizontal = 3
+
+[node name="ToggleButton" type="Button" parent="Body/FooterRow"]
+custom_minimum_size = Vector2(78, 26)
 text = "Enable"

@@ -24,8 +24,9 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Rows" type="VBoxContainer" parent="Outer/Scroll"]
+[node name="Rows" type="HFlowContainer" parent="Outer/Scroll"]
 size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="BottomHairline" type="ColorRect" parent="Outer"]
 custom_minimum_size = Vector2(0, 1)
