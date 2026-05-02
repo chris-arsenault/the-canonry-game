@@ -9,18 +9,11 @@ using Engine.Kinds;
 public class RuntimeGeneratorBuilderTests
 {
     [Fact]
-    public void Build_FromIceRemembers_ProjectsMvpGenerators()
+    public void Build_FromIceRemembers_HasNoActiveGeneratorsWhileCatalogIsRebuilt()
     {
         var generators = IceRemembersGeneratorDefinition.Create();
 
-        Assert.Equal(7, generators.Count);
-        Assert.Contains(generators, generator => generator.Id == "penguin_calls_the_unhuddled");
-        Assert.Contains(generators, generator => generator.Id == "faction_seals_the_edge");
-        Assert.Contains(generators, generator => generator.Id == "region_opens_the_old_holding");
-        Assert.Contains(generators, generator => generator.Id == "artifact_cracks_the_berg");
-        Assert.Contains(generators, generator => generator.Id == "settlement_names_the_office");
-        Assert.Contains(generators, generator => generator.Id == "sea_raises_the_reefhold");
-        Assert.Contains(generators, generator => generator.Id == "the_shelf_yields_a_tome");
+        Assert.Empty(generators);
     }
 
     [Fact]
@@ -59,6 +52,26 @@ public class RuntimeGeneratorBuilderTests
         Assert.Equal(2, produced.Subtypes!.Count);
         Assert.Contains("warden", produced.Subtypes);
         Assert.Contains("exile", produced.Subtypes);
+    }
+
+    [Fact]
+    public void Build_GeneratorTargetRelationshipRequirements_ProjectsTypedNode()
+    {
+        var generator = CreateValidGenerator(
+            target: new SemanticGeneratorTarget
+            {
+                Kind = TestKinds.Settlement,
+                RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { "trade_route" },
+                RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { "controlled_by" },
+                RequiredRelationships = new HashSet<string>(StringComparer.Ordinal) { "home_base" },
+            });
+
+        var graph = DomainLoader.BuildDefinitionGraph(WithGenerators(generator));
+        var target = graph.Generators["test_penguin_package"].Target;
+
+        Assert.Equal("trade_route", Assert.Single(target.RequiredOutgoingRelationships!));
+        Assert.Equal("controlled_by", Assert.Single(target.RequiredIncomingRelationships!));
+        Assert.Equal("home_base", Assert.Single(target.RequiredRelationships!));
     }
 
     [Fact]
@@ -185,7 +198,7 @@ public class RuntimeGeneratorBuilderTests
             targetSaturation: new SemanticTargetSaturation
             {
                 RelationshipKind = "home_base",
-                RequiredFact = "called_unhuddled",
+                RequiredFact = "test_fact",
                 Direction = TargetSaturationDirection.IncomingToTarget,
                 MaxExisting = 0,
             },
@@ -196,7 +209,7 @@ public class RuntimeGeneratorBuilderTests
                     SourceRef = "$hero",
                     DestinationRef = "$target",
                     Kind = "home_base",
-                    Facts = new HashSet<string>(StringComparer.Ordinal) { "called_unhuddled" },
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { "test_fact" },
                 },
             ]);
 
@@ -205,11 +218,11 @@ public class RuntimeGeneratorBuilderTests
         var saturation = graph.Generators["test_penguin_package"].TargetSaturation;
         Assert.NotNull(saturation);
         Assert.Equal(new DefinitionRelationshipId("home_base"), saturation.RelationshipId);
-        Assert.Equal(new DefinitionRelationshipFactId("called_unhuddled"), saturation.RequiredFactId);
+        Assert.Equal(new DefinitionRelationshipFactId("test_fact"), saturation.RequiredFactId);
         Assert.Equal(TargetSaturationDirection.IncomingToTarget, saturation.Direction);
         Assert.Equal(0, saturation.MaxExisting);
         Assert.Contains(
-            new DefinitionRelationshipFactId("called_unhuddled"),
+            new DefinitionRelationshipFactId("test_fact"),
             Assert.Single(graph.Generators["test_penguin_package"].Relationships).FactIds);
     }
 
@@ -220,7 +233,7 @@ public class RuntimeGeneratorBuilderTests
             targetSaturation: new SemanticTargetSaturation
             {
                 RelationshipKind = "home_base",
-                RequiredFact = "called_unhuddled",
+                RequiredFact = "test_fact",
                 Direction = TargetSaturationDirection.Symmetric,
                 MaxExisting = 0,
             });
@@ -237,7 +250,7 @@ public class RuntimeGeneratorBuilderTests
             targetSaturation: new SemanticTargetSaturation
             {
                 RelationshipKind = "home_base",
-                RequiredFact = "called_unhuddled",
+                RequiredFact = "test_fact",
                 Direction = TargetSaturationDirection.OutgoingFromTarget,
                 MaxExisting = 0,
             },
@@ -248,7 +261,7 @@ public class RuntimeGeneratorBuilderTests
                     SourceRef = "$hero",
                     DestinationRef = "$target",
                     Kind = "home_base",
-                    Facts = new HashSet<string>(StringComparer.Ordinal) { "called_unhuddled" },
+                    Facts = new HashSet<string>(StringComparer.Ordinal) { "test_fact" },
                 },
             ]);
 
@@ -331,13 +344,22 @@ public class RuntimeGeneratorBuilderTests
     {
         var config = IceRemembersDefinition.Create();
         var semantics = config.Semantics!;
+        var relationshipFacts = new List<RelationshipFactConfig>(config.RelationshipFacts)
+        {
+            new()
+            {
+                Name = "test_fact",
+                DisplayName = "Test Fact",
+                Description = "Synthetic relationship fact for generator builder tests.",
+            },
+        };
 
         return new DomainConfig
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
             Relationships = config.Relationships,
-            RelationshipFacts = config.RelationshipFacts,
+            RelationshipFacts = relationshipFacts,
             Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,

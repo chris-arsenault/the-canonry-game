@@ -19,7 +19,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     [Fact]
     public void AnalyzeToFiles_WritesSummaryArtifactsForSyntheticBatch()
     {
-        var domain = IceRemembersRuntime.CreateDomainConfig();
+        var domain = WithAnalyzerTestGenerators(IceRemembersRuntime.CreateDomainConfig());
         var penguinVerbId = domain.Gameplay!.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin.Value).Id;
         var batchDirectory = CreateTempDirectory();
         var batch = CreateBatch(domain, includeGeneratorFire: true);
@@ -30,7 +30,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         var report = analyzer.AnalyzeToFiles(batchDirectory);
 
         Assert.Contains(report.GeneratorBalance, row =>
-            row.GeneratorId == "penguin_calls_the_unhuddled" &&
+            row.GeneratorId == "analysis_test_generator_alpha" &&
             row.FiredCount == 1);
         Assert.Contains(report.ActionPressure, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
@@ -77,7 +77,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     [Fact]
     public void Analyze_IncludesConfiguredGeneratorsEvenWhenTheyNeverFire()
     {
-        var domain = IceRemembersRuntime.CreateDomainConfig();
+        var domain = WithAnalyzerTestGenerators(IceRemembersRuntime.CreateDomainConfig());
         var batchDirectory = CreateTempDirectory();
         var batch = CreateBatch(domain, includeGeneratorFire: false);
 
@@ -87,11 +87,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         var report = analyzer.Analyze(batchDirectory);
 
         Assert.Contains(report.GeneratorBalance, row =>
-            row.GeneratorId == "penguin_calls_the_unhuddled" &&
+            row.GeneratorId == "analysis_test_generator_alpha" &&
             row.Pulses == 0 &&
             row.FiredCount == 0);
         Assert.Contains(report.GeneratorBalance, row =>
-            row.GeneratorId == "faction_seals_the_edge" &&
+            row.GeneratorId == "analysis_test_generator_beta" &&
             row.FiredCount == 0);
     }
 
@@ -255,6 +255,48 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         return batch;
     }
 
+    private static DomainConfig WithAnalyzerTestGenerators(DomainConfig config)
+    {
+        var semantics = config.Semantics!;
+        return new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Gambits = config.Gambits,
+            Relationships = config.Relationships,
+            RelationshipFacts = config.RelationshipFacts,
+            Pressures = config.Pressures,
+            Degeneracy = config.Degeneracy,
+            Lifecycles = config.Lifecycles,
+            Resources = config.Resources,
+            Terrains = config.Terrains,
+            Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
+            Semantics = new SemanticDomainConfig
+            {
+                RingOrder = semantics.RingOrder,
+                Stocks = semantics.Stocks,
+                Verbs = semantics.Verbs,
+                Flows = semantics.Flows,
+                Modifiers = semantics.Modifiers,
+                Generators =
+                [
+                    AnalyzerTestGenerator("analysis_test_generator_alpha"),
+                    AnalyzerTestGenerator("analysis_test_generator_beta"),
+                ],
+            },
+        };
+    }
+
+    private static SemanticGeneratorConfig AnalyzerTestGenerator(string id) =>
+        new()
+        {
+            Id = id,
+            Name = id,
+            Target = new SemanticGeneratorTarget { Kind = IceRemembersKinds.Penguin },
+            Produces = [],
+            Triggers = [],
+        };
+
     private static SyntheticBatchSeed CreateBatchSeed(DomainConfig domain)
     {
         var penguinConfig = domain.Kinds[IceRemembersKinds.Penguin];
@@ -302,8 +344,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             seed.VerbSymbolId,
             seed.PenguinVerbId,
             seed.PenguinVerbId));
-        AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "penguin_calls_the_unhuddled");
-        AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "faction_seals_the_edge");
+        AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "analysis_test_generator_alpha");
+        AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "analysis_test_generator_beta");
         AddSymbol(batch, ProjectionSymbolKind.Gambit, seed.GambitId, "penguin_wields_artifact");
         AddSymbol(batch, ProjectionSymbolKind.Resource, seed.FoodResourceId, "Food");
         AddSymbol(batch, ProjectionSymbolKind.Resource, seed.WealthResourceId, "Wealth");

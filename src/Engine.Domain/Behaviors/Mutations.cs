@@ -67,6 +67,22 @@ public sealed class CreateContextRelationshipMutation(
 }
 
 /// <summary>
+/// Removes an existing relationship between the current behavior's self/target endpoints.
+/// Missing relationships are intentionally no-ops.
+/// </summary>
+public sealed class RemoveContextRelationshipMutation(
+    TransferEndpoint source,
+    TransferEndpoint target,
+    string kind) : IMutation
+{
+    public TransferEndpoint Source { get; } = source;
+    public TransferEndpoint Target { get; } = target;
+    public string RelationshipKind { get; } = kind;
+
+    public string Describe() => $"remove_relationship({Source}->{Target}, {RelationshipKind})";
+}
+
+/// <summary>
 /// Sets strength on an existing relationship between the current behavior's
 /// self/target endpoints. Missing relationships are intentionally no-ops.
 /// </summary>

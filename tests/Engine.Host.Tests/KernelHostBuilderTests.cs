@@ -81,7 +81,7 @@ public sealed class KernelHostBuilderTests
             host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value,
             out var upkeepSymbol));
         Assert.Equal(DomainRuntimeNames.UpkeepSourceCode, upkeepSymbol.StableName);
-        Assert.True(host.CompiledDomain.Programs.Generators.Generators.Count > 0);
+        Assert.NotEmpty(host.CompiledDomain.Programs.Generators.Generators);
         var verbSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Verb);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.Verb,

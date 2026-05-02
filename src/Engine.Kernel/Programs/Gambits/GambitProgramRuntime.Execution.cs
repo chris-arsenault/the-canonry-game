@@ -194,6 +194,9 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.SetEndpointRelationshipStrength:
                 SetEndpointRelationshipStrength(simulation, world, entityId, targetId, tick, step);
                 return true;
+            case BehaviorOperationCodes.RemoveEndpointRelationship:
+                RemoveEndpointRelationship(simulation, world, entityId, targetId, tick, step);
+                return true;
             default:
                 return false;
         }
@@ -349,6 +352,19 @@ internal sealed partial class GambitProgramRuntime
         }
 
         simulation.SetRelationshipStrength(relationshipId, _stepX[step], tick);
+    }
+
+    private void RemoveEndpointRelationship(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)
+    {
+        var sourceId = EndpointEntityId(entityId, targetId, _stepB[step]);
+        var relationshipTargetId = EndpointEntityId(entityId, targetId, _stepC[step]);
+        var relationshipId = world.FindRelationship(sourceId, relationshipTargetId, _stepA[step]);
+        if (relationshipId == 0)
+        {
+            return;
+        }
+
+        simulation.CullRelationship(relationshipId, tick);
     }
 
     private void CreateEndpointRelationship(Simulation simulation, int entityId, int targetId, int tick, int step)

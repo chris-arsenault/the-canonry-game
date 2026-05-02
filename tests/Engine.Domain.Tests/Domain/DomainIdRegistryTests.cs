@@ -85,10 +85,8 @@ public sealed class DomainIdRegistryTests
         Assert.True(registry.KindIdOf(IceRemembersKinds.Settlement).Value > 0);
         Assert.True(registry.AttributeIdOf("temp_hp").Value > 0);
         Assert.True(registry.RelationshipKindIdOf("member_of").Value > 0);
-        Assert.True(registry.RelationshipFactIdOf("called_unhuddled").Value > 0);
         Assert.True(registry.ResourceIdOf("food").Value > 0);
         Assert.True(registry.CultureIdOf(DomainRuntimeNames.NoneCultureId).Value > 0);
-        Assert.True(registry.GeneratorIdOf("penguin_calls_the_unhuddled").Value > 0);
         Assert.True(registry.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value > 0);
         Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode).Value > 0);
         Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value > 0);

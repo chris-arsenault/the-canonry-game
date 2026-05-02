@@ -35,6 +35,7 @@ public enum BehaviorProgramOperation
     CreateFixedRelationship,
     CreateEndpointRelationship,
     SetEndpointRelationshipStrength,
+    RemoveEndpointRelationship,
     MoveTargetToSelfPhysical,
     SetTargetCoverageTerrain,
 }

@@ -14,7 +14,6 @@ using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Press = IceRemembers.IceRemembersPressure;
 using Rel = IceRemembers.IceRemembersRelationship;
-using RelFact = IceRemembers.IceRemembersRelationshipFact;
 using Res = IceRemembers.IceRemembersResource;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Verb = IceRemembers.IceRemembersVerbId;
@@ -63,7 +62,6 @@ public static partial class IceRemembersDefinition
     private static string A(Attr attribute) => attribute.ToDomainName();
     private static string C(Culture culture) => culture.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
-    private static string LF(RelFact fact) => fact.ToDomainName();
     private static string P(Press pressure) => pressure.ToDomainName();
     private static string R(Res resource) => resource.ToDomainName();
     private static string V(Verb verb) => verb.ToVerbId();
@@ -421,51 +419,7 @@ public static partial class IceRemembersDefinition
             Delta = delta,
         };
 
-    private static List<RelationshipFactConfig> CreateRelationshipFacts() =>
-    [
-        new()
-        {
-            Name = LF(RelFact.CalledUnhuddled),
-            DisplayName = "Called Unhuddled",
-            Description = "This relationship was created when an unhuddled refuge gathered around a penguin.",
-        },
-        new()
-        {
-            Name = LF(RelFact.SealedThinPlace),
-            DisplayName = "Sealed Thin Place",
-            Description = "This relationship participates in a faction's sacrifice to contain a thin place.",
-        },
-        new()
-        {
-            Name = LF(RelFact.OpenedOldHolding),
-            DisplayName = "Opened Old Holding",
-            Description = "This relationship marks a region yielding something it had held.",
-        },
-        new()
-        {
-            Name = LF(RelFact.CrackedBerg),
-            DisplayName = "Cracked Berg",
-            Description = "This relationship marks an artifact rupturing the Berg into a scar.",
-        },
-        new()
-        {
-            Name = LF(RelFact.NamedOffice),
-            DisplayName = "Named Office",
-            Description = "This relationship marks authority hardening around a named office.",
-        },
-        new()
-        {
-            Name = LF(RelFact.RaisedReefhold),
-            DisplayName = "Raised Reefhold",
-            Description = "This relationship marks a harbor pushing a reefhold into named existence.",
-        },
-        new()
-        {
-            Name = LF(RelFact.YieldedTome),
-            DisplayName = "Yielded Tome",
-            Description = "This relationship marks a shelf yielding a tome and custody site.",
-        },
-    ];
+    private static List<RelationshipFactConfig> CreateRelationshipFacts() => [];
 
     private static List<PressureConfig> CreatePressures()
     {

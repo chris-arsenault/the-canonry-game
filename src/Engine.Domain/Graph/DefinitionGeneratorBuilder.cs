@@ -48,6 +48,7 @@ public static class DefinitionGeneratorBuilder
         var relationships = BuildRelationships(config, graph, runtimeIds, declaredRefs);
         var targetSaturation = BuildTargetSaturation(config, graph, runtimeIds, relationships);
         var triggers = BuildTriggers(config, graph);
+        var effects = BuildEffects(config, graph, runtimeIds, declaredRefs);
 
         return new DefinitionGeneratorNode
         {
@@ -60,6 +61,7 @@ public static class DefinitionGeneratorBuilder
             SecondaryTargets = secondaryTargets,
             Produces = produces,
             Relationships = relationships,
+            Effects = effects,
             Triggers = triggers,
             PulseWeight = config.PulseWeight,
             MaxRunsPerSim = config.MaxRunsPerSim,
@@ -73,6 +75,9 @@ public static class DefinitionGeneratorBuilder
     {
         EnsureKindDeclared(graph, config.Target.Kind, $"Generator '{config.Id}' target");
         ValidateSubtypes(graph, config.Target.Kind, config.Target.Subtypes, $"Generator '{config.Id}' target");
+        ValidateRelationshipNames(graph, config.Target.RequiredOutgoingRelationships, $"Generator '{config.Id}' target");
+        ValidateRelationshipNames(graph, config.Target.RequiredIncomingRelationships, $"Generator '{config.Id}' target");
+        ValidateRelationshipNames(graph, config.Target.RequiredRelationships, $"Generator '{config.Id}' target");
 
         return new DefinitionGeneratorTarget
         {
@@ -81,6 +86,9 @@ public static class DefinitionGeneratorBuilder
                 ? null
                 : new HashSet<string>(config.Target.Subtypes, StringComparer.Ordinal),
             AllowWilderness = config.Target.AllowWilderness,
+            RequiredOutgoingRelationships = CopyRelationshipSet(config.Target.RequiredOutgoingRelationships),
+            RequiredIncomingRelationships = CopyRelationshipSet(config.Target.RequiredIncomingRelationships),
+            RequiredRelationships = CopyRelationshipSet(config.Target.RequiredRelationships),
         };
     }
 
@@ -337,6 +345,42 @@ public static class DefinitionGeneratorBuilder
         }
     }
 
+    private static List<IDefinitionGeneratorEffect> BuildEffects(
+        SemanticGeneratorConfig config,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        HashSet<string> declaredRefs) =>
+        config.Effects
+            .Select(effect => BuildEffect(config.Id, effect, graph, runtimeIds, declaredRefs))
+            .ToList();
+
+    private static IDefinitionGeneratorEffect BuildEffect(
+        string generatorId,
+        ISemanticGeneratorEffect effect,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        HashSet<string> declaredRefs)
+    {
+        switch (effect)
+        {
+            case SetBindingHistoricalEffect setHistorical:
+                {
+                    EnsureDeclaredRef(generatorId, setHistorical.BindingRef, declaredRefs, "BindingRef");
+                    return new DefinitionSetBindingHistoricalEffect(setHistorical.BindingRef);
+                }
+            case RemoveTargetRelationshipsEffect removeRelationships:
+                {
+                    var context = $"Generator '{generatorId}' RemoveTargetRelationships effect";
+                    var relationshipId = ResolveRelationshipId(graph!, removeRelationships.RelationshipKind, context);
+                    return new DefinitionRemoveTargetRelationshipsEffect(
+                        runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value);
+                }
+            default:
+                throw new DefinitionGraphException(
+                    $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'.");
+        }
+    }
+
     private static void EnsureKindDeclared(DefinitionGraph graph, EntityKind kind, string context)
     {
         if (!graph.Kinds.ContainsKey(kind))
@@ -438,6 +482,11 @@ public static class DefinitionGeneratorBuilder
             ResolveRelationshipId(graph, relationshipKind, context);
         }
     }
+
+    private static HashSet<string>? CopyRelationshipSet(IReadOnlySet<string>? relationshipKinds) =>
+        relationshipKinds is null
+            ? null
+            : new HashSet<string>(relationshipKinds, StringComparer.Ordinal);
 
     private static void ValidateQueryAttributeConditions(
         DefinitionGraph graph,

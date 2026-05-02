@@ -4,610 +4,296 @@ using Engine.Domain.Config;
 using Engine.Kinds;
 using Engine.WorldGen;
 
-using Attr = IceRemembers.IceRemembersAttributeId;
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
-using RelFact = IceRemembers.IceRemembersRelationshipFact;
+using Terrain = IceRemembers.IceRemembersTerrain;
 
 public static class IceRemembersGeneratorDefinition
 {
     public static IReadOnlyList<SemanticGeneratorConfig> Create() =>
     [
-        PenguinCallsTheUnhuddled(),
-        FactionSealsTheEdge(),
-        RegionOpensTheOldHolding(),
-        ArtifactCracksTheBerg(),
-        SettlementNamesTheOffice(),
-        SeaRaisesTheReefhold(),
-        ShelfYieldsATome(),
+        WarMakesWardens(),
+        IceSettlesAccounts(),
+        WhatTheSpringRemembers(),
+        WarBreaksTheLand(),
+        RoutesDrawReaders(),
+        WhatTheArtifactKnows(),
     ];
 
-    private static SemanticGeneratorConfig PenguinCallsTheUnhuddled() =>
-        new()
-        {
-            Id = "penguin_calls_the_unhuddled",
-            Name = "Penguin Calls the Unhuddled",
-            Description = "A high-echo penguin survives long enough that the cold-lost gather into a named refuge.",
-            Target = Target(K.Penguin),
-            TargetSaturation = Saturation(
-                Rel.MemberOf,
-                RelFact.CalledUnhuddled,
-                TargetSaturationDirection.OutgoingFromTarget),
-            Produces = PenguinCallsTheUnhuddledProduced(),
-            Relationships = PenguinCallsTheUnhuddledRelationships(),
-            Triggers = [Trigger(K.Penguin, Attr.Echo)],
-            PulseWeight = 2,
-        };
+    private static string L(Rel relationship) => relationship.ToDomainName();
 
-    private static IReadOnlyList<SemanticProducedEntity> PenguinCallsTheUnhuddledProduced() =>
-    [
-        new()
-        {
-            Ref = "$refuge",
-            Kind = K.Settlement,
-            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "sanctuary", "rookery" },
-            Role = "unhuddled_refuge",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$compact",
-            Kind = K.Faction,
-            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "compact", "cell" },
-            Role = "exile_compact",
-            PlacementRef = "$refuge",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$first_follower",
-            Kind = K.Penguin,
-            Subtype = "exile",
-            Role = "first_follower",
-            SemanticPlacement = SemanticPlacement.Across,
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$third_follower",
-            Kind = K.Penguin,
-            Subtype = "exile",
-            Role = "third_follower",
-            CreateIfMissing = false,
-            Query = new SemanticEntityQuery
+    private static SemanticGeneratorConfig WarMakesWardens() => new()
+    {
+        Id = "war_makes_wardens",
+        Name = "War Makes Wardens",
+        Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
+        TargetSaturation = SaturationIncoming(Rel.ControlledBy, 1),
+        Produces =
+        [
+            Required("$warden", K.Penguin, "warden", "$target", "$target"),
+            Required("$holdfast", K.Settlement, "holdfast", "$target", "$target"),
+            Optional("$weapon", K.Artifact, "weapon", "$holdfast", "$target", chance: 0.55f, on: true),
+        ],
+        Relationships =
+        [
+            R("$warden", "$target", Rel.MemberOf, 0.88f),
+            R("$warden", "$holdfast", Rel.HomeBase, 0.90f),
+            R("$holdfast", "$target", Rel.ControlledBy, 0.85f),
+            R("$weapon", "$holdfast", Rel.NativeTo, 0.82f),
+        ],
+        Triggers = TriggerOn(K.Faction),
+    };
+
+    private static SemanticGeneratorConfig IceSettlesAccounts() => new()
+    {
+        Id = "ice_settles_accounts",
+        Name = "Ice Settles Accounts",
+        Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
             {
-                AdjacentToTarget = true,
-                WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(Rel.LedBy) },
+                Ref = "$offered",
+                Kind = K.Penguin,
+                Query = new SemanticEntityQuery { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget },
             },
-            InheritCultureFrom = "$target",
-        },
-    ];
+        ],
+        TargetSaturation = SaturationIncoming(Rel.Memorializes, 1),
+        Produces =
+        [
+            Required("$seal", K.Artifact, "seal", "$target", "$target", on: true),
+            Required("$witness", K.Penguin, "witness", "$target", "$target"),
+            Optional("$exile", K.Penguin, "exile", "$target", "$target", chance: 0.40f),
+        ],
+        Effects =
+        [
+            new SetBindingHistoricalEffect("$offered"),
+            new RemoveTargetRelationshipsEffect(L(Rel.AtWarWith)),
+        ],
+        Relationships =
+        [
+            R("$seal", "$target", Rel.Memorializes, 0.90f),
+            R("$witness", "$target", Rel.MemberOf, 0.85f),
+            R("$exile", "$target", Rel.BetrayedBy, 0.70f),
+        ],
+        Triggers = TriggerOn(K.Faction),
+    };
 
-    private static IReadOnlyList<SemanticGeneratorRelationship> PenguinCallsTheUnhuddledRelationships() =>
-    [
-        Relationship("$refuge", "$compact", Rel.ControlledBy),
-        RelationshipWithFact("$target", "$compact", Rel.MemberOf, RelFact.CalledUnhuddled),
-        Relationship("$target", "$refuge", Rel.HomeBase),
-        Relationship("$first_follower", "$compact", Rel.MemberOf),
-        Relationship("$first_follower", "$refuge", Rel.HomeBase),
-        ReplaceRelationship("$third_follower", "$compact", Rel.MemberOf),
-        Relationship("$third_follower", "$refuge", Rel.HomeBase),
-    ];
+    private static SemanticGeneratorConfig WhatTheSpringRemembers() => new()
+    {
+        Id = "what_the_spring_remembers",
+        Name = "What the Spring Remembers",
+        Target = TargetWithIncoming(K.Region, Rel.CleansedBy),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction },
+        ],
+        TargetSaturation = SaturationIncoming(Rel.Anchored, 1),
+        Produces =
+        [
+            Required("$relic", K.Artifact, "relic", "$target", "$patron", on: true),
+            Required("$witness", K.Penguin, "witness", "$target", "$patron"),
+            Optional("$sanctuary", K.Settlement, "sanctuary", "$target", "$patron", chance: 0.55f),
+            Optional("$choir", K.Faction, "choir", "$target", "$patron", chance: 0.35f),
+        ],
+        Relationships =
+        [
+            R("$relic", "$target", Rel.Anchored, 0.90f),
+            R("$witness", "$patron", Rel.MemberOf, 0.85f),
+            R("$sanctuary", "$patron", Rel.ControlledBy, 0.80f),
+            R("$sanctuary", "$target", Rel.FoundedFrom, 0.85f),
+            R("$choir", "$patron", Rel.AlliedWith, 0.70f),
+        ],
+        Triggers = TriggerOn(K.Region),
+    };
 
-    private static SemanticGeneratorConfig FactionSealsTheEdge() =>
+    private static SemanticGeneratorConfig WarBreaksTheLand() => new()
+    {
+        Id = "war_breaks_the_land",
+        Name = "War Breaks the Land",
+        Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
+        TargetSaturation = SaturationIncoming(Rel.CorruptedBy, 2),
+        Produces =
+        [
+            ScarRegion("$scar", "$target"),
+            Optional("$weapon", K.Artifact, "weapon", "$scar", "$target", chance: 0.35f, on: true),
+            Optional("$compact", K.Faction, "compact", "$scar", "$target", chance: 0.40f),
+        ],
+        Relationships =
+        [
+            R("$scar", "$target", Rel.CorruptedBy, 0.82f),
+            R("$weapon", "$scar", Rel.Anchored, 0.85f),
+            R("$scar", "$compact", Rel.ClaimedBy, 0.78f),
+            R("$compact", "$target", Rel.RivalOf, 0.75f),
+        ],
+        Triggers = TriggerOn(K.Faction),
+    };
+
+    private static SemanticGeneratorConfig RoutesDrawReaders() => new()
+    {
+        Id = "routes_draw_readers",
+        Name = "Routes Draw Readers",
+        Target = TargetWithOutgoing(K.Settlement, Rel.TradeRoute),
+        TargetSaturation = SaturationIncoming(Rel.FoundedFrom, 1),
+        Produces =
+        [
+            Required("$broker", K.Penguin, "broker", "$target", "$target"),
+            HarborAcross("$harbor", "$target"),
+            Optional("$order", K.Faction, "order", "$harbor", "$target", chance: 0.40f),
+            Optional("$instrument", K.Artifact, "instrument", "$harbor", "$target", chance: 0.45f, on: true),
+        ],
+        Relationships =
+        [
+            R("$broker", "$harbor", Rel.HomeBase, 0.88f),
+            R("$harbor", "$target", Rel.FoundedFrom, 0.90f),
+            R("$harbor", "$target", Rel.TradeRoute, 0.72f),
+            R("$harbor", "$order", Rel.ControlledBy, 0.82f),
+            R("$broker", "$order", Rel.MemberOf, 0.80f),
+            R("$instrument", "$harbor", Rel.NativeTo, 0.82f),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+    };
+
+    private static SemanticGeneratorConfig WhatTheArtifactKnows() => new()
+    {
+        Id = "what_the_artifact_knows",
+        Name = "What the Artifact Knows",
+        Target = TargetWithOutgoing(K.Penguin, Rel.Holds),
+        TargetSaturation = SaturationOutgoing(Rel.HomeBase, 1),
+        Produces =
+        [
+            Required("$rookery", K.Settlement, "rookery", "$target", "$target"),
+            Required("$seal", K.Artifact, "seal", "$rookery", "$target", on: true),
+            Optional("$cell", K.Faction, "cell", "$target", "$target", chance: 0.45f),
+        ],
+        Relationships =
+        [
+            R("$target", "$rookery", Rel.HomeBase, 0.90f),
+            R("$seal", "$rookery", Rel.Anchored, 0.88f),
+            R("$rookery", "$cell", Rel.ControlledBy, 0.82f),
+            R("$cell", "$target", Rel.LedBy, 0.85f),
+        ],
+        Triggers = TriggerOn(K.Penguin),
+    };
+
+    private static SemanticGeneratorTarget TargetWithOutgoing(EntityKind kind, Rel required) =>
         new()
         {
-            Id = "faction_seals_the_edge",
-            Name = "Faction Seals the Edge",
-            Description = "A cohesive faction sacrifices a holdfast, a warden, and a seal to contain a thin place where corruption leaks through.",
-            Target = Target(K.Faction),
-            TargetSaturation = Saturation(
-                Rel.ControlledBy,
-                RelFact.SealedThinPlace,
-                TargetSaturationDirection.IncomingToTarget),
-            SecondaryTargets = FactionSealsTheEdgeTargets(),
-            Produces = FactionSealsTheEdgeProduced(),
-            Relationships = FactionSealsTheEdgeRelationships(),
-            Triggers = [Trigger(K.Faction, Attr.Cohesion)],
-            PulseWeight = 3,
+            Kind = kind,
+            RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
         };
 
-    private static IReadOnlyList<SemanticGeneratorBindingTarget> FactionSealsTheEdgeTargets() =>
-    [
+    private static SemanticGeneratorTarget TargetWithIncoming(EntityKind kind, Rel required) =>
         new()
         {
-            Ref = "$leak_region",
-            Kind = K.Region,
-            Query = new SemanticEntityQuery
-            {
-                AttributeConditions =
-                [
-                    new SemanticQueryAttributeCondition
-                    {
-                        AttributeName = A(Attr.Pristiness),
-                        Direction = TriggerDirection.Low,
-                    },
-                ],
-            },
-        },
+            Kind = kind,
+            RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
+        };
+
+    private static SemanticTargetSaturation SaturationIncoming(Rel kind, int max) =>
+        new()
+        {
+            RelationshipKind = L(kind),
+            Direction = TargetSaturationDirection.IncomingToTarget,
+            MaxExisting = max,
+        };
+
+    private static SemanticTargetSaturation SaturationOutgoing(Rel kind, int max) =>
+        new()
+        {
+            RelationshipKind = L(kind),
+            Direction = TargetSaturationDirection.OutgoingFromTarget,
+            MaxExisting = max,
+        };
+
+    private static IReadOnlyList<SemanticGeneratorTrigger> TriggerOn(EntityKind kind) =>
+    [
+        new() { OnKind = kind, Direction = TriggerDirection.Any },
     ];
 
-    private static IReadOnlyList<SemanticProducedEntity> FactionSealsTheEdgeProduced() =>
-    [
+    private static SemanticProducedEntity Required(
+        string @ref,
+        EntityKind kind,
+        string subtype,
+        string placementRef,
+        string cultureRef,
+        bool on = false) =>
         new()
         {
-            Ref = "$holdfast",
+            Ref = @ref,
+            Kind = kind,
+            Subtype = subtype,
+            Role = subtype,
+            PhysicalPlacement = on ? SemanticPlacement.On : SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Near,
+            PlacementRef = placementRef,
+            InheritCultureFrom = cultureRef,
+        };
+
+    private static SemanticProducedEntity Optional(
+        string @ref,
+        EntityKind kind,
+        string subtype,
+        string placementRef,
+        string cultureRef,
+        float chance,
+        bool on = false) =>
+        new()
+        {
+            Ref = @ref,
+            Kind = kind,
+            Subtype = subtype,
+            Role = subtype,
+            CreateChance = chance,
+            PhysicalPlacement = on ? SemanticPlacement.On : SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Near,
+            PlacementRef = placementRef,
+            InheritCultureFrom = cultureRef,
+        };
+
+    private static SemanticProducedEntity HarborAcross(string @ref, string placementRef) =>
+        new()
+        {
+            Ref = @ref,
             Kind = K.Settlement,
-            Subtype = "holdfast",
-            Role = "edge_holdfast",
-            PhysicalPlacement = SemanticPlacement.InRegionLocality,
-            PlacementRef = "$leak_region",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$warden",
-            Kind = K.Penguin,
-            Subtype = "warden",
-            Role = "edge_warden",
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$holdfast",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$seal",
-            Kind = K.Artifact,
-            Subtype = "seal",
-            Role = "edge_seal",
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$holdfast",
-            InheritCultureFrom = "$target",
-        },
-    ];
-
-    private static IReadOnlyList<SemanticGeneratorRelationship> FactionSealsTheEdgeRelationships() =>
-    [
-        RelationshipWithFact("$holdfast", "$target", Rel.ControlledBy, RelFact.SealedThinPlace),
-        Relationship("$warden", "$target", Rel.MemberOf),
-        Relationship("$warden", "$holdfast", Rel.HomeBase),
-        Relationship("$warden", "$seal", Rel.Holds),
-        Relationship("$seal", "$holdfast", Rel.Anchored),
-        Relationship("$seal", "$leak_region", Rel.WardAgainst),
-    ];
-
-    private static SemanticGeneratorConfig RegionOpensTheOldHolding() =>
-        new()
-        {
-            Id = "region_opens_the_old_holding",
-            Name = "Region Opens the Old Holding",
-            Description = "A region yields up what it has held too long, naming a relic and its witness into the world.",
-            Target = Target(K.Region),
-            TargetSaturation = Saturation(
-                Rel.NativeTo,
-                RelFact.OpenedOldHolding,
-                TargetSaturationDirection.IncomingToTarget),
-            Produces = RegionOpensTheOldHoldingProduced(),
-            Relationships = RegionOpensTheOldHoldingRelationships(),
-            Triggers = [Trigger(K.Region, Attr.Holding)],
+            Subtype = "harbor",
+            Role = "harbor",
+            PhysicalPlacement = SemanticPlacement.Across,
+            SemanticPlacement = SemanticPlacement.Near,
+            PlacementRef = placementRef,
+            InheritCultureFrom = placementRef,
         };
 
-    private static IReadOnlyList<SemanticProducedEntity> RegionOpensTheOldHoldingProduced() =>
-    [
+    private static SemanticProducedEntity ScarRegion(string @ref, string cultureRef) =>
         new()
         {
-            Ref = "$relic",
-            Kind = K.Artifact,
-            Subtype = "relic",
-            Role = "old_relic",
-            PhysicalPlacement = SemanticPlacement.InRegionLocality,
-            SemanticPlacement = SemanticPlacement.Across,
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$witness",
-            Kind = K.Penguin,
-            Subtype = "witness",
-            Role = "witness",
-            PlacementRef = "$relic",
-            InheritCultureFrom = "$target",
-        },
-    ];
-
-    private static IReadOnlyList<SemanticGeneratorRelationship> RegionOpensTheOldHoldingRelationships() =>
-    [
-        RelationshipWithFact("$relic", "$target", Rel.NativeTo, RelFact.OpenedOldHolding),
-        Relationship("$witness", "$relic", Rel.Holds),
-    ];
-
-    private static SemanticGeneratorConfig ArtifactCracksTheBerg() =>
-        new()
-        {
-            Id = "artifact_cracks_the_berg",
-            Name = "Artifact Cracks the Berg",
-            Description = "A resonant artifact breaks the Berg's holding and names a scar-region into being.",
-            Target = Target(K.Artifact),
-            TargetSaturation = Saturation(
-                Rel.CorruptedBy,
-                RelFact.CrackedBerg,
-                TargetSaturationDirection.IncomingToTarget),
-            Produces = ArtifactCracksTheBergProduced(),
-            Relationships = ArtifactCracksTheBergRelationships(),
-            Triggers = [Trigger(K.Artifact, Attr.Resonance)],
-        };
-
-    private static IReadOnlyList<SemanticProducedEntity> ArtifactCracksTheBergProduced() =>
-    [
-        new()
-        {
-            Ref = "$scar",
+            Ref = @ref,
             Kind = K.Region,
             Subtype = "scar",
-            Role = "cracked_berg",
-            PhysicalPlacement = SemanticPlacement.Across,
-            SemanticPlacement = SemanticPlacement.Across,
-            InheritCultureFrom = "$target",
-            Coverage = CrackedBergCoverage(),
-        },
-        new()
-        {
-            Ref = "$choir",
-            Kind = K.Faction,
-            Subtype = "choir",
-            Role = "scar_choir",
+            Role = "scar",
             PhysicalPlacement = SemanticPlacement.Near,
-            SemanticPlacement = SemanticPlacement.Across,
-            PlacementRef = "$scar",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$splinter",
-            Kind = K.Artifact,
-            Subtype = "relic",
-            Role = "splinter",
-            CreateChance = 0.35f,
-            SemanticPlacement = SemanticPlacement.Across,
-            PlacementRef = "$scar",
-            InheritCultureFrom = "$target",
-        },
-    ];
-
-    private static SemanticRegionCoverage CrackedBergCoverage() =>
-        new()
-        {
-            Mode = CoveragePlacementMode.SplitFromExisting,
-            DesiredCellCount = 12,
-            MinimumCellCount = 8,
-            MinimumSourceRemainingCellCount = 24,
-            TransformTerrain = IceRemembersTerrain.Crags.ToDomainName(),
-        };
-
-    private static IReadOnlyList<SemanticGeneratorRelationship> ArtifactCracksTheBergRelationships() =>
-    [
-        Relationship("$scar", "$choir", Rel.ControlledBy),
-        Relationship("$target", "$scar", Rel.Anchored),
-        RelationshipWithFact("$scar", "$target", Rel.CorruptedBy, RelFact.CrackedBerg),
-        Relationship("$splinter", "$target", Rel.PartOf),
-        Relationship("$splinter", "$scar", Rel.NativeTo),
-    ];
-
-    private static SemanticGeneratorConfig SettlementNamesTheOffice() =>
-        new()
-        {
-            Id = "settlement_names_the_office",
-            Name = "Warden Bears the Office",
-            Description = "A named warden or broker gathers authority around themselves until office hardens into an order and a seal.",
-            Target = Target(K.Penguin, new HashSet<string>(StringComparer.Ordinal) { "warden", "broker" }),
-            TargetSaturation = Saturation(
-                Rel.MemberOf,
-                RelFact.NamedOffice,
-                TargetSaturationDirection.OutgoingFromTarget),
-            Produces = SettlementNamesTheOfficeProduced(),
-            Relationships = SettlementNamesTheOfficeRelationships(),
-            Triggers = [Trigger(K.Penguin, Attr.Echo)],
-            PulseWeight = 2,
-        };
-
-    private static IReadOnlyList<SemanticProducedEntity> SettlementNamesTheOfficeProduced() =>
-    [
-        new()
-        {
-            Ref = "$office",
-            Kind = K.Faction,
-            Subtype = "order",
-            Role = "named_office",
-            PhysicalPlacement = SemanticPlacement.On,
+            SemanticPlacement = SemanticPlacement.Near,
             PlacementRef = "$target",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$seal",
-            Kind = K.Artifact,
-            Subtype = "seal",
-            Role = "office_seal",
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$target",
-            InheritCultureFrom = "$target",
-        },
-    ];
-
-    private static IReadOnlyList<SemanticGeneratorRelationship> SettlementNamesTheOfficeRelationships() =>
-    [
-        RelationshipWithFact("$target", "$office", Rel.MemberOf, RelFact.NamedOffice),
-        Relationship("$target", "$seal", Rel.Holds),
-        Relationship("$seal", "$office", Rel.ClaimedBy),
-    ];
-
-    private static SemanticGeneratorConfig SeaRaisesTheReefhold() =>
-        new()
-        {
-            Id = "sea_raises_the_reefhold",
-            Name = "Sea Raises the Reefhold",
-            Description = "A harbor settlement pushes work and watchfulness out onto dangerous water until a reefhold, sea-name, and working instrument take on lives of their own.",
-            Target = Target(K.Settlement, new HashSet<string>(StringComparer.Ordinal) { "harbor" }),
-            TargetSaturation = Saturation(
-                Rel.TradeRoute,
-                RelFact.RaisedReefhold,
-                TargetSaturationDirection.IncomingToTarget),
-            Produces = SeaRaisesTheReefholdProduced(),
-            Relationships = SeaRaisesTheReefholdRelationships(),
-            Triggers = [Trigger(K.Settlement, Attr.Shelter)],
+            InheritCultureFrom = cultureRef,
+            Coverage = new SemanticRegionCoverage
+            {
+                Mode = CoveragePlacementMode.CreateNew,
+                DesiredCellCount = 8,
+                MinimumCellCount = 4,
+                TransformTerrain = Terrain.Wastes.ToDomainName(),
+            },
         };
 
-    private static IReadOnlyList<SemanticProducedEntity> SeaRaisesTheReefholdProduced() =>
-    [
+    private static SemanticGeneratorRelationship R(
+        string source,
+        string destination,
+        Rel kind,
+        float strength) =>
         new()
         {
-            Ref = "$reefhold",
-            Kind = K.Settlement,
-            Subtype = "reefhold",
-            Role = "offshore_hold",
-            PhysicalPlacement = SemanticPlacement.Across,
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$sea",
-            Kind = K.Region,
-            Subtype = "sea",
-            Role = "named_water",
-            PhysicalPlacement = SemanticPlacement.Across,
-            SemanticPlacement = SemanticPlacement.Across,
-            InheritCultureFrom = "$target",
-            Query = SeaRegionQuery(),
-            Coverage = SeaRegionCoverage(),
-        },
-        new()
-        {
-            Ref = "$cell",
-            Kind = K.Faction,
-            Subtype = "cell",
-            Role = "reef_keepers",
-            CreateChance = 0.5f,
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$reefhold",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$instrument",
-            Kind = K.Artifact,
-            Subtype = "instrument",
-            Role = "sea_instrument",
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$reefhold",
-            InheritCultureFrom = "$target",
-        },
-    ];
-
-    private static SemanticEntityQuery SeaRegionQuery() =>
-        new()
-        {
-            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "sea" },
-            AdjacentToTarget = true,
+            SourceRef = source,
+            DestinationRef = destination,
+            Kind = L(kind),
+            Strength = strength,
         };
-
-    private static SemanticRegionCoverage SeaRegionCoverage() =>
-        new()
-        {
-            Mode = CoveragePlacementMode.CreateNew,
-            DesiredCellCount = 20,
-            MinimumCellCount = 12,
-            PreferredTerrains = ReefOceanShelfTerrains(),
-            AllowedTerrains = ReefOceanShelfTerrains(),
-            TransformTerrain = IceRemembersTerrain.Ocean.ToDomainName(),
-        };
-
-    private static IReadOnlyList<SemanticGeneratorRelationship> SeaRaisesTheReefholdRelationships() =>
-    [
-        RelationshipWithFact("$reefhold", "$target", Rel.TradeRoute, RelFact.RaisedReefhold),
-        Relationship("$reefhold", "$cell", Rel.ControlledBy),
-        Relationship("$instrument", "$reefhold", Rel.Anchored),
-        Relationship("$instrument", "$sea", Rel.NativeTo),
-    ];
-
-    private static SemanticGeneratorConfig ShelfYieldsATome() =>
-        new()
-        {
-            Id = "the_shelf_yields_a_tome",
-            Name = "The Shelf Yields a Tome",
-            Description = "A shelf gives up a named text, and a rookery forms around the act of keeping and reading it.",
-            Target = Target(K.Region),
-            TargetSaturation = Saturation(
-                Rel.FoundedFrom,
-                RelFact.YieldedTome,
-                TargetSaturationDirection.IncomingToTarget),
-            Produces = ShelfYieldsATomeProduced(),
-            Relationships = ShelfYieldsATomeRelationships(),
-            Triggers = [Trigger(K.Region, Attr.Holding)],
-        };
-
-    private static IReadOnlyList<SemanticProducedEntity> ShelfYieldsATomeProduced() =>
-    [
-        new()
-        {
-            Ref = "$shelf",
-            Kind = K.Region,
-            Subtype = "shelf",
-            Role = "yielded_shelf",
-            PhysicalPlacement = SemanticPlacement.Across,
-            SemanticPlacement = SemanticPlacement.Across,
-            InheritCultureFrom = "$target",
-            Query = ShelfRegionQuery(),
-            Coverage = ShelfRegionCoverage(),
-        },
-        new()
-        {
-            Ref = "$tome",
-            Kind = K.Artifact,
-            Subtype = "tome",
-            Role = "yielded_tome",
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$rookery",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$rookery",
-            Kind = K.Settlement,
-            Subtype = "rookery",
-            Role = "copying_rookery",
-            PhysicalPlacement = SemanticPlacement.InRegionLocality,
-            PlacementRef = "$shelf",
-            InheritCultureFrom = "$target",
-        },
-        new()
-        {
-            Ref = "$witness",
-            Kind = K.Penguin,
-            Subtype = "witness",
-            Role = "first_reader",
-            CreateChance = 0.5f,
-            PhysicalPlacement = SemanticPlacement.On,
-            PlacementRef = "$rookery",
-            InheritCultureFrom = "$target",
-        },
-    ];
-
-    private static SemanticEntityQuery ShelfRegionQuery() =>
-        new()
-        {
-            Subtypes = new HashSet<string>(StringComparer.Ordinal) { "shelf" },
-            AdjacentToTarget = true,
-        };
-
-    private static SemanticRegionCoverage ShelfRegionCoverage() =>
-        new()
-        {
-            Mode = CoveragePlacementMode.CreateNew,
-            DesiredCellCount = 16,
-            MinimumCellCount = 10,
-            PreferredTerrains = ShelfReefIceTerrains(),
-            AllowedTerrains = ShelfReefIceTerrains(),
-        };
-
-    private static IReadOnlyList<SemanticGeneratorRelationship> ShelfYieldsATomeRelationships() =>
-    [
-        RelationshipWithFact("$shelf", "$target", Rel.FoundedFrom, RelFact.YieldedTome),
-        Relationship("$rookery", "$shelf", Rel.FoundedFrom),
-        Relationship("$tome", "$shelf", Rel.NativeTo),
-        Relationship("$tome", "$rookery", Rel.Anchored),
-        Relationship("$witness", "$rookery", Rel.HomeBase),
-        Relationship("$witness", "$tome", Rel.Holds),
-    ];
-
-    private static HashSet<string> ReefOceanShelfTerrains() =>
-        new(StringComparer.Ordinal)
-        {
-            IceRemembersTerrain.Reef.ToDomainName(),
-            IceRemembersTerrain.Ocean.ToDomainName(),
-            IceRemembersTerrain.Shelf.ToDomainName(),
-        };
-
-    private static HashSet<string> ShelfReefIceTerrains() =>
-        new(StringComparer.Ordinal)
-        {
-            IceRemembersTerrain.Shelf.ToDomainName(),
-            IceRemembersTerrain.Reef.ToDomainName(),
-            IceRemembersTerrain.Ice.ToDomainName(),
-        };
-
-    private static SemanticGeneratorTarget Target(EntityKind kind) =>
-        new()
-        {
-            Kind = kind,
-        };
-
-    private static SemanticGeneratorTarget Target(EntityKind kind, IReadOnlySet<string> subtypes) =>
-        new()
-        {
-            Kind = kind,
-            Subtypes = subtypes,
-        };
-
-    private static SemanticTargetSaturation Saturation(
-        Rel relationship,
-        RelFact fact,
-        TargetSaturationDirection direction) =>
-        new()
-        {
-            RelationshipKind = L(relationship),
-            RequiredFact = LF(fact),
-            Direction = direction,
-            MaxExisting = 0,
-        };
-
-    private static SemanticGeneratorTrigger Trigger(
-        EntityKind kind,
-        Attr attribute,
-        TriggerDirection direction = TriggerDirection.High) =>
-        new()
-        {
-            OnKind = kind,
-            AttributeName = A(attribute),
-            Direction = direction,
-        };
-
-    private static SemanticGeneratorRelationship Relationship(
-        string sourceRef,
-        string destinationRef,
-        Rel relationship) =>
-        new()
-        {
-            SourceRef = sourceRef,
-            DestinationRef = destinationRef,
-            Kind = L(relationship),
-        };
-
-    private static SemanticGeneratorRelationship RelationshipWithFact(
-        string sourceRef,
-        string destinationRef,
-        Rel relationship,
-        RelFact fact) =>
-        new()
-        {
-            SourceRef = sourceRef,
-            DestinationRef = destinationRef,
-            Kind = L(relationship),
-            Facts = new HashSet<string>(StringComparer.Ordinal) { LF(fact) },
-        };
-
-    private static SemanticGeneratorRelationship ReplaceRelationship(
-        string sourceRef,
-        string destinationRef,
-        Rel relationship) =>
-        new()
-        {
-            SourceRef = sourceRef,
-            DestinationRef = destinationRef,
-            Kind = L(relationship),
-            ReplaceExistingOutgoingOfSameKind = true,
-        };
-
-    private static string A(Attr attribute) => attribute.ToDomainName();
-    private static string L(Rel relationship) => relationship.ToDomainName();
-    private static string LF(RelFact fact) => fact.ToDomainName();
 }

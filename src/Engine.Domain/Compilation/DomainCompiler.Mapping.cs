@@ -348,13 +348,15 @@ public static partial class DomainCompiler
                 ids.KindIdOf(generator.Target.Kind).Value,
                 CompileGeneratorSubtypeIds(generator.Target.Subtypes, ids),
                 generator.Target.AllowWilderness,
+                CompileGeneratorTargetRelationshipRequirements(generator.Target, ids),
                 Math.Max(generator.PulseWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
                 CompileGeneratorTargetSaturation(generator.TargetSaturation),
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
-                CompileGeneratorRelationships(generator.Relationships, graph, refCodes)));
+                CompileGeneratorRelationships(generator.Relationships, graph, refCodes),
+                CompileGeneratorEffects(generator.Effects, refCodes)));
         }
 
         return new GeneratorProgram { Generators = generators };
@@ -392,6 +394,14 @@ public static partial class DomainCompiler
                 ToGeneratorSaturationDirection(saturation.Direction),
                 saturation.MaxExisting);
     }
+
+    private static GeneratorTargetRelationshipRequirements CompileGeneratorTargetRelationshipRequirements(
+        DefinitionGeneratorTarget target,
+        DomainIdRegistry ids) =>
+        new(
+            CompileRelationshipKindIds(target.RequiredOutgoingRelationships, ids),
+            CompileRelationshipKindIds(target.RequiredIncomingRelationships, ids),
+            CompileRelationshipKindIds(target.RequiredRelationships, ids));
 
     private static List<GeneratorTriggerRule> CompileGeneratorTriggers(
         IReadOnlyList<DefinitionGeneratorTrigger> triggers,
@@ -543,6 +553,33 @@ public static partial class DomainCompiler
                 relationship.ReplaceExistingOutgoingOfSameKind ||
                 graph.Relationships[relationship.RelationshipId].SourceConfig.IsExclusive,
                 relationship.FactRuntimeIds.Order().ToList()));
+        }
+
+        return compiled;
+    }
+
+    private static List<GeneratorEffectRule> CompileGeneratorEffects(
+        IReadOnlyList<IDefinitionGeneratorEffect> effects,
+        Dictionary<string, int> refCodes)
+    {
+        var compiled = new List<GeneratorEffectRule>();
+        foreach (var effect in effects)
+        {
+            switch (effect)
+            {
+                case DefinitionSetBindingHistoricalEffect setHistorical:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.SetBindingHistorical,
+                        refCodes[setHistorical.BindingRef]));
+                    break;
+                case DefinitionRemoveTargetRelationshipsEffect removeRelationships:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.RemoveTargetRelationships,
+                        removeRelationships.RelationshipKindId));
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unsupported generator effect type '{effect.GetType().Name}'.");
+            }
         }
 
         return compiled;

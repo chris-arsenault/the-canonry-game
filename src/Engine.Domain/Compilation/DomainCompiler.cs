@@ -726,6 +726,13 @@ public static partial class DomainCompiler
                     (int)EndpointCode(relationshipStrength.Target),
                     X: relationshipStrength.Strength));
                 return true;
+            case RemoveContextRelationshipMutation removeRelationship:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.RemoveEndpointRelationship,
+                    ids.RelationshipKindIdOf(removeRelationship.RelationshipKind).Value,
+                    (int)EndpointCode(removeRelationship.Source),
+                    (int)EndpointCode(removeRelationship.Target)));
+                return true;
             case SetHistoricalMutation historical:
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetHistorical, historical.EntityId.Value));
                 return true;

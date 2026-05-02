@@ -12,19 +12,30 @@ public sealed record CompiledGeneratorRule(
     int TargetKindId,
     IReadOnlyList<int> TargetSubtypeIds,
     bool TargetAllowWilderness,
+    GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
     int PulseWeight,
     int MaxRuns,
     GeneratorTargetSaturationRule? TargetSaturation,
     IReadOnlyList<GeneratorTriggerRule> Triggers,
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,
-    IReadOnlyList<GeneratorRelationshipRule> Relationships);
+    IReadOnlyList<GeneratorRelationshipRule> Relationships,
+    IReadOnlyList<GeneratorEffectRule> Effects);
+
+public sealed record GeneratorEffectRule(
+    int EffectTypeCode,
+    int RefOrKindId);
 
 public sealed record GeneratorTargetSaturationRule(
     int RelationshipKindId,
     int RequiredFactId,
     GeneratorProgramSaturationDirection Direction,
     int MaxExisting);
+
+public sealed record GeneratorTargetRelationshipRequirements(
+    IReadOnlyList<int> RequiredOutgoingRelationshipKindIds,
+    IReadOnlyList<int> RequiredIncomingRelationshipKindIds,
+    IReadOnlyList<int> RequiredRelationshipKindIds);
 
 public sealed record GeneratorTriggerRule(
     int KindId,

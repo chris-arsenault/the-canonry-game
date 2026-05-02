@@ -17,6 +17,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private bool[] _enabled => State.Enabled;
     private int[] _targetSubtypeStarts => Data.TargetSubtypeStarts;
     private int[] _targetSubtypeCounts => Data.TargetSubtypeCounts;
+    private int[] _targetRequiredOutgoingStarts => Data.TargetRequiredOutgoingStarts;
+    private int[] _targetRequiredOutgoingCounts => Data.TargetRequiredOutgoingCounts;
+    private int[] _targetRequiredIncomingStarts => Data.TargetRequiredIncomingStarts;
+    private int[] _targetRequiredIncomingCounts => Data.TargetRequiredIncomingCounts;
+    private int[] _targetRequiredAnyStarts => Data.TargetRequiredAnyStarts;
+    private int[] _targetRequiredAnyCounts => Data.TargetRequiredAnyCounts;
     private int[] _triggerStarts => Data.TriggerStarts;
     private int[] _triggerCounts => Data.TriggerCounts;
     private int[] _bindingStarts => Data.BindingStarts;
@@ -25,6 +31,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedCounts => Data.ProducedCounts;
     private int[] _relationshipStarts => Data.RelationshipStarts;
     private int[] _relationshipCounts => Data.RelationshipCounts;
+    private int[] _effectStarts => Data.EffectStarts;
+    private int[] _effectCounts => Data.EffectCounts;
     private int[] _saturationRelationshipKindIds => Data.SaturationRelationshipKindIds;
     private int[] _saturationFactIds => Data.SaturationFactIds;
     private int[] _saturationDirectionCodes => Data.SaturationDirectionCodes;
@@ -98,6 +106,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _relationshipFactId3 => Data.RelationshipFactId3;
     private int[] _relationshipFactCounts => Data.RelationshipFactCounts;
     private float[] _relationshipStrengths => Data.RelationshipStrengths;
+    private int[] _effectTypeCodes => Data.EffectTypeCodes;
+    private int[] _effectRefOrKindIds => Data.EffectRefOrKindIds;
     private int[] _scratchQ => _scratch.Q;
     private int[] _scratchR => _scratch.R;
     private int[] _scratchScore => _scratch.Score;
@@ -122,6 +132,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private ref int _bindingCount => ref Data.BindingCount;
     private ref int _producedCount => ref Data.ProducedCount;
     private ref int _relationshipCount => ref Data.RelationshipCount;
+    private ref int _effectCount => ref Data.EffectCount;
     private ref int _openGeneratorSlot => ref Data.OpenGeneratorSlot;
     private ref int _openBindingSlot => ref Data.OpenBindingSlot;
     private ref int _openProducedSlot => ref Data.OpenProducedSlot;
@@ -203,10 +214,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _pulseWeights[slot] = pulseWeight;
         _maxRuns[slot] = maxRuns;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
+        _targetRequiredOutgoingStarts[slot] = _relationshipKindFilterCount + 1;
+        _targetRequiredIncomingStarts[slot] = _relationshipKindFilterCount + 1;
+        _targetRequiredAnyStarts[slot] = _relationshipKindFilterCount + 1;
         _triggerStarts[slot] = _triggerCount + 1;
         _bindingStarts[slot] = _bindingCount + 1;
         _producedStarts[slot] = _producedCount + 1;
         _relationshipStarts[slot] = _relationshipCount + 1;
+        _effectStarts[slot] = _effectCount + 1;
         _enabled[slot] = true;
         _openGeneratorSlot = slot;
         return slot;
@@ -217,6 +232,42 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         EnsureOpenGenerator(generatorSlot);
         AddSubtypeId(subtypeId);
         _targetSubtypeCounts[generatorSlot]++;
+    }
+
+    public void AddTargetRequiredOutgoingRelationship(int generatorSlot, int relationshipKindId)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        if (_targetRequiredOutgoingCounts[generatorSlot] == 0)
+        {
+            _targetRequiredOutgoingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
+        }
+
+        AddRelationshipKindFilterId(relationshipKindId);
+        _targetRequiredOutgoingCounts[generatorSlot]++;
+    }
+
+    public void AddTargetRequiredIncomingRelationship(int generatorSlot, int relationshipKindId)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        if (_targetRequiredIncomingCounts[generatorSlot] == 0)
+        {
+            _targetRequiredIncomingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
+        }
+
+        AddRelationshipKindFilterId(relationshipKindId);
+        _targetRequiredIncomingCounts[generatorSlot]++;
+    }
+
+    public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        if (_targetRequiredAnyCounts[generatorSlot] == 0)
+        {
+            _targetRequiredAnyStarts[generatorSlot] = _relationshipKindFilterCount + 1;
+        }
+
+        AddRelationshipKindFilterId(relationshipKindId);
+        _targetRequiredAnyCounts[generatorSlot]++;
     }
 
     public void SetTargetSaturation(
@@ -529,6 +580,22 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _relationshipFactId3[_relationshipCount] = factId3;
         _relationshipFactCounts[_relationshipCount] = factCount;
         _relationshipCounts[generatorSlot]++;
+    }
+
+    public void AddEffect(int generatorSlot, int effectTypeCode, int refOrKindId)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        ValidatePositive(effectTypeCode);
+        ValidatePositive(refOrKindId);
+        if (_effectCount + 1 >= _effectTypeCodes.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _effectCount++;
+        _effectTypeCodes[_effectCount] = effectTypeCode;
+        _effectRefOrKindIds[_effectCount] = refOrKindId;
+        _effectCounts[generatorSlot]++;
     }
 
     public void DisableGenerator(int generatorSlot)
@@ -894,6 +961,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         if (!world.EntityIsActive(targetId) ||
             world.EntityKindId(targetId) != _targetKindIds[generatorSlot] ||
             !SubtypeMatches(world.EntitySubtypeId(targetId), _targetSubtypeStarts[generatorSlot], _targetSubtypeCounts[generatorSlot]) ||
+            !TargetRelationshipRequirementsPass(world, generatorSlot, targetId) ||
             ExceedsTargetSaturation(world, generatorSlot, targetId) ||
             !TriggersPass(world, generatorSlot, targetId))
         {
@@ -920,6 +988,70 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             ref refCount,
             selectRandom: false,
             simulation: null);
+    }
+
+    private bool TargetRelationshipRequirementsPass(WorldState world, int generatorSlot, int targetId)
+    {
+        return RequiredDirectedRelationshipsPass(
+                world,
+                targetId,
+                _targetRequiredOutgoingStarts[generatorSlot],
+                _targetRequiredOutgoingCounts[generatorSlot],
+                outgoing: true) &&
+            RequiredDirectedRelationshipsPass(
+                world,
+                targetId,
+                _targetRequiredIncomingStarts[generatorSlot],
+                _targetRequiredIncomingCounts[generatorSlot],
+                outgoing: false) &&
+            RequiredAnyDirectionRelationshipsPass(
+                world,
+                targetId,
+                _targetRequiredAnyStarts[generatorSlot],
+                _targetRequiredAnyCounts[generatorSlot]);
+    }
+
+    private bool RequiredDirectedRelationshipsPass(
+        WorldState world,
+        int targetId,
+        int start,
+        int count,
+        bool outgoing)
+    {
+        var end = start + count;
+        for (var filter = start; filter < end; filter++)
+        {
+            if (!HasRelationshipOfKind(world, targetId, _relationshipKindFilterIds[filter], outgoing))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool RequiredAnyDirectionRelationshipsPass(WorldState world, int targetId, int start, int count)
+    {
+        var end = start + count;
+        for (var filter = start; filter < end; filter++)
+        {
+            var relationshipKindId = _relationshipKindFilterIds[filter];
+            if (!HasRelationshipOfKind(world, targetId, relationshipKindId, outgoing: true) &&
+                !HasRelationshipOfKind(world, targetId, relationshipKindId, outgoing: false))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasRelationshipOfKind(WorldState world, int entityId, int relationshipKindId, bool outgoing)
+    {
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
+            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+        return world.MoveNextRelationship(ref cursor, out _);
     }
 
     private bool ResolveSecondaryBindings(

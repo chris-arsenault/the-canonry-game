@@ -141,10 +141,10 @@ public class WorldGraphTests
             settlement.Id,
             0.8f,
             tick: 0,
-            facts: ["sealed_thin_place"]);
+            facts: ["test_fact"]);
 
-        Assert.Contains("sealed_thin_place", rel.Facts);
-        Assert.True(rel.HasFact("sealed_thin_place"));
+        Assert.Contains("test_fact", rel.Facts);
+        Assert.True(rel.HasFact("test_fact"));
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class WorldGraphTests
             settlement.Id,
             0.8f,
             tick: 0,
-            facts: ["sealed_thin_place"],
+            facts: ["test_fact"],
             kindId: relationshipKindId,
             factId0: relationshipFactId,
             factCount: 1);

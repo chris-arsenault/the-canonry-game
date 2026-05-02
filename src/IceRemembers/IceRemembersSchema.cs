@@ -102,32 +102,6 @@ public enum IceRemembersRelationship
     BetrayedBy,
 }
 
-public enum IceRemembersRelationshipFact
-{
-    CalledUnhuddled,
-    SealedThinPlace,
-    OpenedOldHolding,
-    CrackedBerg,
-    NamedOffice,
-    RaisedReefhold,
-    YieldedTome,
-}
-
-public static class IceRemembersRelationshipFactExtensions
-{
-    public static string ToDomainName(this IceRemembersRelationshipFact fact) => fact switch
-    {
-        IceRemembersRelationshipFact.CalledUnhuddled => "called_unhuddled",
-        IceRemembersRelationshipFact.SealedThinPlace => "sealed_thin_place",
-        IceRemembersRelationshipFact.OpenedOldHolding => "opened_old_holding",
-        IceRemembersRelationshipFact.CrackedBerg => "cracked_berg",
-        IceRemembersRelationshipFact.NamedOffice => "named_office",
-        IceRemembersRelationshipFact.RaisedReefhold => "raised_reefhold",
-        IceRemembersRelationshipFact.YieldedTome => "yielded_tome",
-        _ => throw new ArgumentOutOfRangeException(nameof(fact), fact, "Unknown Ice Remembers relationship fact"),
-    };
-}
-
 public static class IceRemembersRelationshipExtensions
 {
     private static readonly string[] DomainNames =
@@ -383,6 +357,7 @@ public enum IceRemembersGambitId
     FactionDeclaresTerritorialWar,
     SettlementOpensTradeRoute,
     ArtifactCleansesScar,
+    FactionSuesForPeace,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -393,6 +368,7 @@ public static class IceRemembersGambitIdExtensions
         "faction_declares_territorial_war",
         "settlement_opens_trade_route",
         "artifact_cleanses_scar",
+        "faction_sues_for_peace",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

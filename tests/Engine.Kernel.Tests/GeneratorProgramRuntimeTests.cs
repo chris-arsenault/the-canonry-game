@@ -93,6 +93,44 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void TargetRequiredIncomingRelationship_BlocksGeneratorUntilRelationshipExists()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var source = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredIncomingRelationship(slot, RelationshipKindId);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void TargetRequiredRelationship_AcceptsEitherDirection()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredRelationship(slot, RelationshipKindId);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.8f, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
     public void Fire_CreatesEntityAndRelationshipAndEmitsEvents()
     {
         var simulation = CreateSimulation();

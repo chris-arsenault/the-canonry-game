@@ -19,7 +19,7 @@ public class DomainConfigTests
         Assert.Equal(5, config.Lifecycles.Count);
         Assert.Equal(3, config.Resources.Count);
         Assert.Equal(3, config.Cultures.Count);
-        Assert.Equal(7, config.Semantics!.Generators.Count);
+        Assert.Empty(config.Semantics!.Generators);
     }
 
     [Fact]

@@ -53,6 +53,41 @@ public class GeneratorCatalogInvariantTests
     }
 
     [Fact]
+    public void Validate_IceRemembersGeneratorCatalog_DoesNotUseAttributePreconditions()
+    {
+        var issues = new List<string>();
+
+        foreach (var generator in IceRemembersDefinition.Create().Semantics!.Generators)
+        {
+            foreach (var trigger in generator.Triggers)
+            {
+                if (!string.IsNullOrWhiteSpace(trigger.AttributeName) || trigger.Direction != TriggerDirection.Any)
+                {
+                    issues.Add($"{generator.Id} has attribute trigger '{trigger.AttributeName}'.");
+                }
+            }
+
+            foreach (var binding in generator.SecondaryTargets)
+            {
+                if (binding.Query?.AttributeConditions.Count > 0)
+                {
+                    issues.Add($"{generator.Id} binding '{binding.Ref}' has attribute query conditions.");
+                }
+            }
+
+            foreach (var produced in generator.Produces)
+            {
+                if (produced.Query?.AttributeConditions.Count > 0)
+                {
+                    issues.Add($"{generator.Id} produce '{produced.Ref}' has attribute query conditions.");
+                }
+            }
+        }
+
+        Assert.Empty(issues);
+    }
+
+    [Fact]
     public void Validate_GeneratorReachability_AllowsGeneratorUnlockedByAnotherGenerator()
     {
         var issues = FindSeedReachabilityIssues(

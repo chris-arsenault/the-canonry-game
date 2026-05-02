@@ -42,6 +42,7 @@ public static class BehaviorOperationCodes
     public const int SetEndpointRelationshipStrength = 27;
     public const int MoveTargetToSelfPhysical = 28;
     public const int SetTargetCoverageTerrain = 29;
+    public const int RemoveEndpointRelationship = 30;
 }
 
 public static class BehaviorTargetModeCodes
@@ -400,4 +401,10 @@ public static class GeneratorProgramConstants
 {
     public const int TargetReferenceCode = 1;
     public const int DefaultCadenceTicks = 25;
+}
+
+public static class GeneratorEffectTypeCodes
+{
+    public const int SetBindingHistorical = 1;
+    public const int RemoveTargetRelationships = 2;
 }

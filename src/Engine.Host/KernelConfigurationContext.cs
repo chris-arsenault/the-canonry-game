@@ -377,6 +377,15 @@ internal sealed class KernelConfigurationContext
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
 
+    public void AddGeneratorTargetRequiredOutgoingRelationship(int generatorSlot, int relationshipKindId) =>
+        _kernel.Generators.AddTargetRequiredOutgoingRelationship(generatorSlot, relationshipKindId);
+
+    public void AddGeneratorTargetRequiredIncomingRelationship(int generatorSlot, int relationshipKindId) =>
+        _kernel.Generators.AddTargetRequiredIncomingRelationship(generatorSlot, relationshipKindId);
+
+    public void AddGeneratorTargetRequiredRelationship(int generatorSlot, int relationshipKindId) =>
+        _kernel.Generators.AddTargetRequiredRelationship(generatorSlot, relationshipKindId);
+
     public void SetGeneratorTargetSaturation(
         int generatorSlot,
         int relationshipKindId,
@@ -519,6 +528,9 @@ internal sealed class KernelConfigurationContext
             factId2,
             factId3,
             factCount);
+
+    public void AddGeneratorEffect(int generatorSlot, int effectTypeCode, int refOrKindId) =>
+        _kernel.Generators.AddEffect(generatorSlot, effectTypeCode, refOrKindId);
 
     public void SetProgramEnabled(int programId, bool enabled) =>
         _kernel.SetProgramEnabled(programId, enabled);

@@ -22,6 +22,7 @@ public static partial class IceRemembersDefinition
         FactionDeclaresTerritorialWar(),
         SettlementOpensTradeRoute(),
         ArtifactCleansesScar(),
+        FactionSuesForPeace(),
     ];
 
     private static GambitDefinition PenguinWieldsArtifact()
@@ -130,6 +131,30 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Pristiness), K.Region));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.CleansedBy, RelationshipPolarity.Positive, 0.78f));
         gambit.Mutations.Add(new SetTargetCoverageTerrainMutation(Terrain.HotSprings.ToDomainName()));
+        return gambit;
+    }
+
+    private static GambitDefinition FactionSuesForPeace()
+    {
+        var gambit = NewGambit(
+            GambitId.FactionSuesForPeace,
+            "Sue for Peace",
+            K.Faction,
+            K.Faction,
+            All(
+                new TargetIsNotSelf(),
+                new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
+                new SelfAttributeThreshold(A(Attr.Cohesion), min: null, max: 35f, behaviorRelevant: false)),
+            score: 0.55f,
+            reward: 10f,
+            success: InitialGambitSuccessChance,
+            cooldown: 160,
+            entityCooldown: 40);
+        AddRelationshipWrite(gambit, Rel.AtWarWith, K.Faction);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
+        gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.AtWarWith)));
+        gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.AtWarWith)));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.BetrayedBy, RelationshipPolarity.Negative, 0.72f));
         return gambit;
     }
 

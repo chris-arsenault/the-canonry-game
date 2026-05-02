@@ -244,6 +244,15 @@ internal static partial class KernelProgramInstaller
         InstallGeneratorBindings(context, generatorSlot, generator);
         InstallGeneratorProducedEntities(context, generatorSlot, generator);
         InstallGeneratorRelationships(context, generatorSlot, generator);
+        InstallGeneratorEffects(context, generatorSlot, generator);
+    }
+
+    private static void InstallGeneratorEffects(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
+    {
+        foreach (var effect in generator.Effects)
+        {
+            context.AddGeneratorEffect(generatorSlot, effect.EffectTypeCode, effect.RefOrKindId);
+        }
     }
 
     private static void InstallGeneratorTarget(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
@@ -251,6 +260,21 @@ internal static partial class KernelProgramInstaller
         foreach (var subtypeId in generator.TargetSubtypeIds)
         {
             context.AddGeneratorTargetSubtype(generatorSlot, subtypeId);
+        }
+
+        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.RequiredOutgoingRelationshipKindIds)
+        {
+            context.AddGeneratorTargetRequiredOutgoingRelationship(generatorSlot, relationshipKindId);
+        }
+
+        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.RequiredIncomingRelationshipKindIds)
+        {
+            context.AddGeneratorTargetRequiredIncomingRelationship(generatorSlot, relationshipKindId);
+        }
+
+        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.RequiredRelationshipKindIds)
+        {
+            context.AddGeneratorTargetRequiredRelationship(generatorSlot, relationshipKindId);
         }
 
         if (generator.TargetSaturation is { } saturation)
@@ -542,6 +566,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.CreateFixedRelationship => BehaviorOperationCodes.CreateFixedRelationship,
             BehaviorProgramOperation.CreateEndpointRelationship => BehaviorOperationCodes.CreateEndpointRelationship,
             BehaviorProgramOperation.SetEndpointRelationshipStrength => BehaviorOperationCodes.SetEndpointRelationshipStrength,
+            BehaviorProgramOperation.RemoveEndpointRelationship => BehaviorOperationCodes.RemoveEndpointRelationship,
             _ => -1,
         };
         return code >= 0;

@@ -41,7 +41,7 @@ public sealed class KernelSmokeTests
     [Fact]
     public void Simulation_LowAltitudePhysicsMovesEntitiesWithoutLegacyActionProgram()
     {
-        const int ticks = 150;
+        const int ticks = 600;
         using var runtime = CreateRuntime(seed: 42);
         var initialEntityCount = runtime.Ui.Entities.Count;
         var lowAltitudeVerbKindIds = new HashSet<int>

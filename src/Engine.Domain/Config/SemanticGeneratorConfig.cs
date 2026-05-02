@@ -13,6 +13,7 @@ public sealed class SemanticGeneratorConfig
     public IReadOnlyList<SemanticGeneratorBindingTarget> SecondaryTargets { get; init; } = [];
     public required IReadOnlyList<SemanticProducedEntity> Produces { get; init; }
     public IReadOnlyList<SemanticGeneratorRelationship> Relationships { get; init; } = [];
+    public IReadOnlyList<ISemanticGeneratorEffect> Effects { get; init; } = [];
     public required IReadOnlyList<SemanticGeneratorTrigger> Triggers { get; init; }
     public int PulseWeight { get; init; } = 1;
     public int? MaxRunsPerSim { get; init; }
@@ -23,6 +24,9 @@ public sealed class SemanticGeneratorTarget
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AllowWilderness { get; init; }
+    public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
+    public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
+    public IReadOnlySet<string>? RequiredRelationships { get; init; }
 }
 
 public sealed class SemanticTargetSaturation
@@ -98,6 +102,27 @@ public enum QueryTargetCultureMatch
     Any,
     SameAsTarget,
     DifferentFromTarget,
+}
+
+public interface ISemanticGeneratorEffect
+{
+    string Describe();
+}
+
+/// <summary>Sets a resolved secondary binding entity to historical status after the generator fires.</summary>
+public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Describe() => $"set_binding_historical({BindingRef})";
+}
+
+/// <summary>Removes all relationships of a kind on the target entity after the generator fires.</summary>
+public sealed class RemoveTargetRelationshipsEffect(string relationshipKind) : ISemanticGeneratorEffect
+{
+    public string RelationshipKind { get; } = relationshipKind;
+
+    public string Describe() => $"remove_target_relationships({RelationshipKind})";
 }
 
 public sealed class SemanticGeneratorRelationship

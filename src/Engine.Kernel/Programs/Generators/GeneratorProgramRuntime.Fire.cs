@@ -59,6 +59,7 @@ internal sealed partial class GeneratorProgramRuntime
             refEntityIds,
             refCount,
             tick);
+        ExecuteEffects(simulation, world, generatorSlot, targetId, refCodes, refEntityIds, refCount, tick);
         _runCounts[generatorSlot]++;
         WriteGeneratorFired(simulation, tick, generatorSlot, targetId, createdEntityCount, createdRelationshipCount);
         return true;
@@ -352,6 +353,62 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return created;
+    }
+
+    private void ExecuteEffects(
+        Simulation simulation,
+        WorldState world,
+        int generatorSlot,
+        int targetId,
+        global::System.Span<int> refCodes,
+        global::System.Span<int> refEntityIds,
+        int refCount,
+        int tick)
+    {
+        var effectStart = _effectStarts[generatorSlot];
+        var effectCount = _effectCounts[generatorSlot];
+        for (var e = effectStart; e < effectStart + effectCount; e++)
+        {
+            var effectType = _effectTypeCodes[e];
+            var refOrKindId = _effectRefOrKindIds[e];
+            switch (effectType)
+            {
+                case GeneratorEffectTypeCodes.SetBindingHistorical:
+                    {
+                        var bindingEntityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+                        if (bindingEntityId > 0)
+                        {
+                            simulation.SetEntityStatus(bindingEntityId, EntityStatusCodes.Historical, tick);
+                        }
+
+                        break;
+                    }
+
+                case GeneratorEffectTypeCodes.RemoveTargetRelationships:
+                    RemoveAllRelationshipsOfKind(simulation, world, targetId, refOrKindId, tick);
+                    break;
+            }
+        }
+    }
+
+    private static void RemoveAllRelationshipsOfKind(
+        Simulation simulation,
+        WorldState world,
+        int entityId,
+        int relationshipKindId,
+        int tick)
+    {
+        simulation.CullOutgoingRelationshipsOfKind(entityId, relationshipKindId, tick);
+        while (true)
+        {
+            var cursor = world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+            if (!world.MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                return;
+            }
+
+            simulation.CullRelationship(relationshipId, tick);
+        }
     }
 
     private static void CullOutgoingRelationshipsOfKind(

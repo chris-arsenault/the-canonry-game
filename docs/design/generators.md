@@ -44,12 +44,14 @@ Each generator names:
 
 - **A target kind** — what kind of existing entity it looks at to decide
   "am I applicable here right now?" (e.g. Region, Settlement, Faction).
-- **One or more triggers** — attribute thresholds on the target that gate
-  applicability (Low / High / Critical / Any), e.g. *"Pristiness is High."*
+- **One or more dynamic preconditions** — relationships, facts,
+  saturation limits, subtype filters, or other current-world conditions
+  that gate applicability. Static attribute dependence is intentionally
+  avoided in the active catalog.
 - **A produce list** — entities that get spawned, each with a role and
   optional create-chance.
 - **A relationship list** — how produced entities wire to each other and
-  to the trigger target (and optionally to a secondary existing target).
+  to the target (and optionally to a secondary existing target).
 - **A pulse weight** — relative likelihood this generator wins the pulse
   lottery.
 - **(Optional) Non-creation consequences** — additional effects on existing
@@ -65,7 +67,7 @@ Both physical and semantic hex coordinates are assigned.
 - Every 25 ticks the system asks: *which generators are applicable
   somewhere right now?*
 - Applicable = on the tableau AND has at least one target entity whose
-  trigger passes.
+  gates pass.
 - **One winner fires per pulse**, weighted-random by `PulseWeight` — NOT
   by how many targets it has. (Otherwise a generator targeting settlements
   would crowd out one targeting factions just because there are more
@@ -78,10 +80,11 @@ Both physical and semantic hex coordinates are assigned.
 
 Authoring violations fail the build, not the runtime.
 
-1. **Every generator has at least one trigger.** No "fires randomly out of
-   nothing" — the world must have a reason.
-2. **Trigger kind matches target kind.** You can't target Regions and
-   trigger off a Settlement attribute.
+1. **Every generator has at least one target gate.** No "fires randomly
+   out of nothing" — the world must have a reason. The active catalog uses
+   relationship and saturation gates rather than attribute thresholds.
+2. **Target gates match target kind.** You can't target Regions and gate
+   off an unrelated Settlement-only condition.
 3. **The generated graph stays connected to the existing world.** The
    target exists to guarantee that a generator fires into the current
    world rather than producing an isolated mini-graph.
@@ -113,8 +116,7 @@ Authoring violations fail the build, not the runtime.
 
 - Target entity must be `Active` (not Historical).
 - Target subtype must match if filter present.
-- Trigger attribute value crosses threshold (Low ≤ Concern,
-  High ≥ Comfortable, etc.).
+- Required target relationships must exist.
 - Saturation cap not hit.
 - `MaxRunsPerSim` not exceeded.
 - For `AllowWilderness`: region must have a free physical hex nearby.
@@ -155,218 +157,48 @@ Authoring guidance that we think is right but won't fail a build over.
    cleanses an institution. These are part of the event's meaning, not
    a separate hidden action system.
 
-## Subtype proposal
+## Subtypes
 
-First-pass subtype families per kind. Not encoded schema yet — design
-proposal stable enough to author against. The rule: a subtype represents a
-real authored role in the world, not a narrow one-off flavor label, and
-the set is broad enough to support future generators.
+Current subtype families per kind. The rule: a subtype represents a real
+authored role in the world, not a narrow one-off flavor label, and the set
+is broad enough to support future generators.
 
 | Kind | Proposed subtypes | Rationale |
 | --- | --- | --- |
-| `Penguin` | `Outcast`, `Commander`, `Ruler`, `Mystic` | Founder/outcast energy, fortress commanders, civic leaders, sanctuary/catastrophe spiritual figures. |
-| `Faction` | `ExileBand`, `CivicOrder`, `FrontierHost`, `Cult` | Displaced polities, institutional urban orders, militarized frontier powers, sacred/dangerous organizations. |
+| `Penguin` | `Warden`, `Broker`, `Witness`, `Exile` | Guardians, negotiators, memory-keepers, and displaced figures. |
+| `Faction` | `Order`, `Compact`, `Cell`, `Choir` | Durable institutions, survival compacts, small operational groups, and devotional organizations. |
 | `Settlement` | `Rookery`, `Colony`, `Holdfast`, `Sanctuary`, `Harbor`, `Reefhold` | Direct size levels (`Rookery`/`Colony`) plus durable role-based forms: hardened survival, sacred refuge, trade-facing edge, intentionally built offshore. |
 | `Artifact` | `Relic`, `Instrument`, `Weapon`, `Tome`, `Seal` | Sacred inheritances, operational instruments, weapon-objects, dangerous written artifacts, containment/closure objects. |
 | `Region` | `Face`, `Shelf`, `Depths`, `Reach`, `Sea`, `Scar` | Structural position in/around the Berg: exposed outer face, held ice, deep interior strata, opened margin, open water, wounded ground. |
 
 ### Coverage read
 
-- Strong: `Faction`, `Settlement`, `Artifact` — each subtype has a clear
-  generator path.
-- Weaker: `Penguin.Mystic` is only lightly grounded so far;
-  `Region.Heartland` (if added) is not yet exercised by starter
-  generators.
+- Strong: `Settlement`, `Artifact`, `Region` — the active set exercises
+  `Holdfast`, `Reefhold`, `Scar`, `Sea`, `Relic`, `Instrument`, and `Seal`.
+- Weaker: `Penguin` and `Faction` coverage is intentionally partial while
+  generators are being rebuilt around the new simulation dynamics.
 
 That's acceptable for a first pass. Stable subtype families to design
 against matters more than full generator coverage right now.
 
 ### Open subtype questions
 
-- Should `Penguin.Ruler` and `Penguin.Commander` collapse into a broader
-  `Leader`, or keep the distinction because civic and martial emergence
-  feel different?
 - `Choir` covers explicitly devotional faction work; `Order` remains the
   broader disciplined form — keep both?
-- Do we need a `Region.Heartland` even without current generator support,
-  because world-shape balance needs a stable-core category from the
-  beginning?
+- Do `Penguin.Broker` and `Penguin.Witness` need more generator support,
+  or should they emerge primarily through gambits and relationship drift?
 
 ## Catalog: current generators
 
-Five starter generators, one per target kind, plus two coverage-focused
-expansions for subkind variety. All satisfiable from seed state.
+There are currently **no active Ice Remembers generators**. The previous
+catalog was deleted because its event shapes were not grounded enough in
+the rebuilt simulation layer.
 
-### Aggregate creation balance (5-generator starter)
-
-- **Guaranteed kinds:** Penguin × 2, Faction × 4, Settlement × 3,
-  Region × 1, Artifact × 3.
-- **Optional kinds:** +1 Artifact, +1 Penguin.
-- **Guaranteed relationships:** `ControlledBy`, `MemberOf`, `HomeBase`,
-  `Holds`, `ClaimedBy`, `Anchored` or `NativeTo`, `CorruptedBy`.
-- **Optional relationships:** `RivalOf`, `Memorializes`, `PartOf`.
-
-### `penguin_calls_the_unhuddled` (target: Penguin)
-
-A high-echo exile survives long enough that the cold-lost gather around
-them, becoming a named refuge and compact.
-
-- **Trigger:** `Echo` High; warmth pressure or social marginality;
-  instability around the target's situation.
-- **Creates:** Settlement (sanctuary/refuge), Faction (exile compact),
-  Penguin (first follower).
-- **Relationships:** refuge `ControlledBy` new faction; target `MemberOf`
-  new faction; target `HomeBase` refuge; lieutenant `MemberOf` new
-  faction; lieutenant `HomeBase` refuge.
-- **Why starter:** introduces `HomeBase` and `MemberOf` into the world
-  rather than depending on them. Cross-kind: target is Penguin, center of
-  gravity is Settlement+Faction.
-- **Open questions:** preferred Penguin subtype (exile / witness / other)
-  after subtype pass; default faction skew (religious / political /
-  survivalist); refuge subtype (sanctuary / camp / frontier hamlet);
-  optional `ClaimedBy` conflict hook now or later.
-
-### `faction_seals_the_edge` (target: Faction)
-
-A cohesive faction pushes fire-cores, aurora light, or offerings to the
-edge of its reach and seals a threatened boundary with a holdfast,
-warden, and warding seal.
-
-- **Trigger:** `Cohesion` High; `Reach` High or growing territorial
-  pressure; edge pressure / external threat / internal need to make reach
-  spatially explicit.
-- **Optional secondary targets:** existing Region that can plausibly
-  receive a frontier settlement; existing Faction whose pressure /
-  rivalry / shadow helps explain the stronghold.
-- **Creates:** Settlement (holdfast), Penguin (edge warden), Artifact
-  (seal/wardstone/banner).
-- **Relationships:** holdfast `ControlledBy` target faction; commander
-  `MemberOf` target faction; commander `HomeBase` holdfast; warden
-  `Holds` artifact; artifact `Anchored` to holdfast; artifact `ClaimedBy`
-  target faction; optional `RivalOf` toward existing faction; optional
-  stronger version: holdfast `ClaimedBy` rival faction.
-- **Why starter:** strengthens artifact creation without making the
-  whole event artifact-dependent. Cross-kind: target is Faction, center
-  of gravity is Settlement+Penguin+Artifact.
-- **Open questions:** holdfast expression (keep / watchpost / citadel /
-  cliff-cut bastion); artifact default (political insignia / military
-  standard / ritual ward); whether `Holds` and `Anchored` are mutually
-  exclusive variants or the banner moves between commander and holdfast.
-
-### `settlement_names_the_office` (target: Settlement)
-
-A settlement with strong dominion makes authority explicit by naming an
-office, seating a leader, and binding the role to a seal.
-
-- **Trigger:** `Dominion` High; `Shelter` High or general civic
-  stability; pressure toward formalization, named authority, or
-  institutional consolidation.
-- **Optional secondary target:** existing Region whose broader importance
-  the settlement is trying to answer or dominate.
-- **Creates:** Faction (named office / civic order), Penguin (office
-  holder), Artifact (office seal / tome / regalia).
-- **Relationships:** target settlement `ControlledBy` new faction; leader
-  `MemberOf` new faction; leader `HomeBase` target settlement; leader
-  `Holds` artifact; artifact `Anchored` to target settlement; artifact
-  `ClaimedBy` new faction.
-- **Why starter:** stronger institutional event than simple
-  daughter-colony formation. Cross-kind: target is Settlement, center of
-  gravity is Faction+Penguin+Artifact.
-- **Open questions:** faction subtype preference (`order`/`compact`/
-  `choir`); leader subtype (magistrate / war-leader / speaker / prince /
-  founder-ruler); artifact default (seal / charter / crown / baton /
-  banner / civic relic); whether `ControlledBy` is guaranteed or whether
-  some variants produce the order without full political control.
-
-### `region_opens_the_old_holding` (target: Region)
-
-A pristine or unstable region becomes permeable: deep ice, old shadow, or
-sealed memory opens into a sanctuary/holding-place, and a custodial order
-forms around it.
-
-- **Trigger:** latent significance, remoteness, holding, or instability
-  in the region; `Pristiness` or other region-state pressure that makes
-  revelation plausible.
-- **Creates:** Settlement (sanctuary / old holding), Faction
-  (custodians), Artifact (relic / seal); optional Penguin (keeper).
-- **Relationships:** settlement `ControlledBy` new faction; artifact
-  `Anchored` to settlement; artifact `NativeTo` target region; artifact
-  `ClaimedBy` new faction; optional penguin `MemberOf`/`HomeBase`;
-  optional historical `Memorializes`; optional `CleansedBy` or
-  `CorruptedBy` for moral-polarity variants.
-- **Why starter:** the landscape itself causes the event, rather than
-  using the region as a generic backdrop for social emergence.
-  Cross-kind: target is Region, center of gravity is
-  Settlement+Faction+Artifact.
-- **Open questions:** sanctuary subtype (shrine-town / excavation camp /
-  cloister / vault-settlement / hidden refuge); faction default
-  (custodians / excavators / pilgrims / opportunists); artifact mood
-  (sacred / historical / dangerous); whether old holdings usually carry
-  both `Anchored` and `NativeTo` or pick one in variants.
-
-### `artifact_cracks_the_berg` (target: Artifact, secondary target: Region)
-
-A high-power or high-resonance artifact breaks the ice's holding. A true
-scar-region is named into being, with a choir / cell / order rising to
-occupy or worship the rupture.
-
-- **Trigger:** `Resonance` High or `Power` High; a vulnerable or
-  symbolically loaded `Region` as secondary target; pressure for rupture,
-  overflow, corruption, or catastrophic emergence.
-- **Creates:** Region (scar — a true new named region), Faction (choir /
-  order / cell); optional Artifact (splinter / broken relic).
-- **Relationships:** new region `CorruptedBy` target artifact; new region
-  `ControlledBy` new faction; target artifact `Anchored` to new region;
-  optional splinter `PartOf` target artifact; optional splinter
-  `NativeTo` new region; optional new faction `RivalOf` controller of
-  surrounding parent region.
-- **Non-creation consequences:** secondary target region loses integrity
-  as the new region tears out of it; local safety, pristiness, and
-  symbolic stability are degraded around the rupture.
-- **Why starter:** one unmistakably catastrophic, high-altitude event.
-  Makes artifacts capable of reshaping the named map, not just modifying
-  holders or sites. Strongest cross-kind result of any starter.
-- **Open questions:** whether the target artifact also becomes `NativeTo`
-  the scar or `Anchored` carries the stronger rupture meaning; whether
-  the new faction is always present or some future variant creates only
-  the region; splinter subtype (shard / echo / idol-fragment / cursed
-  tool); whether the parent region needs an explicit relationship to the
-  new region later.
-
-### Coverage expansions
-
-Two coverage-focused additions targeting weak subkinds. Target kind is
-intentionally flexible until the next semantic pass.
-
-**`sea_raises_the_reefhold`** — a dangerous water-edge becomes newly
-legible as a named sea, and a built reefhold rises to meet it. Pushes
-the catalog toward oceanic / non-scar regions / smaller faction forms.
-Creates `Settlement.Reefhold` + `Region.Sea`, optional
-`Faction.Cell` + `Artifact.Instrument`. Improves coverage on
-`reefhold` / `sea` / `cell` / `instrument`.
-
-**`the_shelf_yields_a_tome`** — a named shelf becomes legible through the
-recovery of a tome, optionally stabilizing into a rookery and scholar.
-Adds a quieter, scholarly, archival emergence the catalog otherwise
-lacks. Creates `Artifact.Tome` + `Region.Shelf`, optional
-`Settlement.Rookery` + `Penguin.Scholar`. Improves coverage on
-`tome` / `shelf` / `rookery` / `scholar` and expands artifact vocabulary
-toward text and memory rather than only warding and relics.
-
-## Adjustment notes
-
-Visible from current coverage stats; not final decisions.
-
-1. **Settlement overproduction reduced.** Replacing the colony generator
-   with the civic-order generator dropped guaranteed Settlement creation
-   from 4 to 3 and improved artifact coverage.
-2. **Add optional Penguin creation** in `region_opens_the_old_holding`
-   (custodian / discoverer / hierophant) and `artifact_cracks_the_berg`
-   (prophet / war-chief / first witness). The starter set currently
-   guarantees only 2 Penguins, both fairly role-functional.
-3. **Pull in more existing-Region secondary targets** in
-   `faction_seals_the_edge` and `settlement_names_the_office` to ground
-   them spatially without forcing daughter-settlement creation.
+The next catalog pass should start from the gambit-created relationships
+that the simulation already produces, such as `Holds`, `AtWarWith`,
+`TradeRoute`, and `CleansedBy`, then define four reviewed generators with
+cross-kind production. Target subkind filters should stay broad until the
+catalog is large enough for subtype coverage to be meaningful.
 
 ## Open design questions (system-level)
 
@@ -388,14 +220,12 @@ Recommendations for future passes, separated from blocking design work
 so the backlog stays explicit.
 
 **Catalog content.**
-- The current set is scaffolding, not a designed world. Four-to-seven
-  generators is too few to feel like a living world over a 4-hour
-  session. Expect 15–30 before it breathes.
-- Triggers are too on-the-nose. Multi-attribute triggers
-  ("settlement with high shelter AND a neighboring rival faction
-  produces a diplomat") would give the semantic model more to chew on.
-- All current generators are additive. None remove or transform
-  entities. A healthy catalog has generators that **collapse** state —
+- The active catalog is empty while the first four simulation-facing
+  generators are redesigned.
+- Generator gates should come from actual simulation dynamics, especially
+  gambit-created relationships, not from static attribute thresholds.
+- A healthy catalog has generators that **collapse** state as well as
+  create state —
   famine, exile, dissolution of factions into penguins. Spawn-only
   generators tend toward demographic explosion and are the main reason
   sims get boring after hour 2.

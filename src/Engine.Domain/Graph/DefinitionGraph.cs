@@ -146,10 +146,30 @@ public sealed class DefinitionGeneratorNode
     public required IReadOnlyList<DefinitionGeneratorBindingTarget> SecondaryTargets { get; init; }
     public required IReadOnlyList<DefinitionProducedEntity> Produces { get; init; }
     public required IReadOnlyList<DefinitionGeneratorRelationship> Relationships { get; init; }
+    public IReadOnlyList<IDefinitionGeneratorEffect> Effects { get; init; } = [];
     public required IReadOnlyList<DefinitionGeneratorTrigger> Triggers { get; init; }
     public int PulseWeight { get; init; }
     public int? MaxRunsPerSim { get; init; }
     public required SemanticGeneratorConfig SourceConfig { get; init; }
+}
+
+public interface IDefinitionGeneratorEffect
+{
+    string Describe();
+}
+
+public sealed class DefinitionSetBindingHistoricalEffect(string bindingRef) : IDefinitionGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Describe() => $"set_binding_historical({BindingRef})";
+}
+
+public sealed class DefinitionRemoveTargetRelationshipsEffect(int relationshipKindId) : IDefinitionGeneratorEffect
+{
+    public int RelationshipKindId { get; } = relationshipKindId;
+
+    public string Describe() => $"remove_target_relationships(kind={RelationshipKindId})";
 }
 
 public sealed class DefinitionGeneratorTarget
@@ -157,6 +177,9 @@ public sealed class DefinitionGeneratorTarget
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AllowWilderness { get; init; }
+    public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
+    public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
+    public IReadOnlySet<string>? RequiredRelationships { get; init; }
 }
 
 public sealed class DefinitionTargetSaturation

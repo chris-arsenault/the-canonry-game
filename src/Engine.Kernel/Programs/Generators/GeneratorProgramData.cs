@@ -12,6 +12,12 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
     internal int[] TargetSubtypeCounts = [];
+    internal int[] TargetRequiredOutgoingStarts = [];
+    internal int[] TargetRequiredOutgoingCounts = [];
+    internal int[] TargetRequiredIncomingStarts = [];
+    internal int[] TargetRequiredIncomingCounts = [];
+    internal int[] TargetRequiredAnyStarts = [];
+    internal int[] TargetRequiredAnyCounts = [];
     internal int[] TriggerStarts = [];
     internal int[] TriggerCounts = [];
     internal int[] BindingStarts = [];
@@ -20,6 +26,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedCounts = [];
     internal int[] RelationshipStarts = [];
     internal int[] RelationshipCounts = [];
+    internal int[] EffectStarts = [];
+    internal int[] EffectCounts = [];
     internal int[] SaturationRelationshipKindIds = [];
     internal int[] SaturationFactIds = [];
     internal int[] SaturationDirectionCodes = [];
@@ -89,6 +97,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] RelationshipFactId3 = [];
     internal int[] RelationshipFactCounts = [];
     internal float[] RelationshipStrengths = [];
+    internal int[] EffectTypeCodes = [];
+    internal int[] EffectRefOrKindIds = [];
     internal int SemanticMinQ = -24;
     internal int SemanticMaxQ = 24;
     internal int SemanticMinR = -24;
@@ -102,6 +112,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int BindingCount;
     internal int ProducedCount;
     internal int RelationshipCount;
+    internal int EffectCount;
     internal int OpenGeneratorSlot;
     internal int OpenBindingSlot;
     internal int OpenProducedSlot;
@@ -116,6 +127,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         InitializeBindingArrays(itemCapacity);
         InitializeProducedArrays(itemCapacity);
         InitializeRelationshipArrays(itemCapacity);
+        InitializeEffectArrays(itemCapacity);
     }
 
     private void InitializeGeneratorArrays(int generatorCapacity)
@@ -128,6 +140,12 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
         TargetSubtypeCounts = new int[generatorCapacity + 1];
+        TargetRequiredOutgoingStarts = new int[generatorCapacity + 1];
+        TargetRequiredOutgoingCounts = new int[generatorCapacity + 1];
+        TargetRequiredIncomingStarts = new int[generatorCapacity + 1];
+        TargetRequiredIncomingCounts = new int[generatorCapacity + 1];
+        TargetRequiredAnyStarts = new int[generatorCapacity + 1];
+        TargetRequiredAnyCounts = new int[generatorCapacity + 1];
         TriggerStarts = new int[generatorCapacity + 1];
         TriggerCounts = new int[generatorCapacity + 1];
         BindingStarts = new int[generatorCapacity + 1];
@@ -136,10 +154,18 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedCounts = new int[generatorCapacity + 1];
         RelationshipStarts = new int[generatorCapacity + 1];
         RelationshipCounts = new int[generatorCapacity + 1];
+        EffectStarts = new int[generatorCapacity + 1];
+        EffectCounts = new int[generatorCapacity + 1];
         SaturationRelationshipKindIds = new int[generatorCapacity + 1];
         SaturationFactIds = new int[generatorCapacity + 1];
         SaturationDirectionCodes = new int[generatorCapacity + 1];
         SaturationMaxExisting = new int[generatorCapacity + 1];
+    }
+
+    private void InitializeEffectArrays(int itemCapacity)
+    {
+        EffectTypeCodes = new int[itemCapacity + 1];
+        EffectRefOrKindIds = new int[itemCapacity + 1];
     }
 
     private void InitializeSharedItemArrays(int itemCapacity)
@@ -229,7 +255,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 4;
 
     public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
     {
