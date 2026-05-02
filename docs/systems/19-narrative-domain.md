@@ -8,11 +8,10 @@ simulation is running, not just what names appear in the UI.
 The domain owns:
 
 - kinds and subtypes;
-- attributes and health attributes;
+- health attributes and traits;
 - cultures and naming;
 - relationship kinds and relationship facts;
 - terrain and map-generation terms;
-- pressure definitions;
 - low-altitude gameplay config;
 - gambits;
 - generators;

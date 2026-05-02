@@ -440,9 +440,9 @@ Not pixel art, not 8-bit, not flat vector.
 
 ---
 
-## 6 · Attribute icons (Ice Remembers domain)
+## 6 · Resource and health icons (Ice Remembers domain)
 
-Used wherever an attribute value is displayed (EntityCard, hex tooltip, legend). These are domain-specific to Ice Remembers. Generate at 256×256, centered, simple enough to read at 14×14 rendered.
+Used wherever a resource or health value is displayed (EntityCard, hex tooltip, legend). Traits may get separate icons later, but the active runtime no longer has non-health attributes. Generate at 256×256, centered, simple enough to read at 14×14 rendered.
 
 Common prompt suffix: `centered sigil-style ink drawing on warm-cream #E7E3D5 background, simple enough to read at small size, not pixel art, not 8-bit, not flat vector, not cartoon`
 
@@ -474,58 +474,81 @@ on warm-cream #E7E3D5 background. 1:1 square, centered.
 Not pixel art, not 8-bit, not flat vector, not chibi.
 ```
 
-### 6.4 Warmth (`attr-warmth.png`)
+### 6.4 Temp HP (`health-temp-hp.png`)
 
 ```
-A small ink sigil of a simple flame — three tongues, symmetric, no
-detail beyond silhouette. Ember #D97742 wash inside the flame, dark
-ink outline. Warm-cream #E7E3D5 background. 1:1 square, centered.
-Not pixel art, not 8-bit, not flat vector.
-```
-
-### 6.5 Echo (`attr-echo.png`)
-
-```
-A small ink sigil of concentric expanding wave-rings, four rings
-radiating outward from a center dot — symbolic of social resonance
-and influence spreading. Dark ink on warm-cream #E7E3D5 background.
-1:1 square, centered, symmetric.
-Not pixel art, not 8-bit, not flat vector.
-```
-
-### 6.6 Dominion (`attr-dominion.png`)
-
-```
-A small ink sigil of a simple crown-like form — three rounded points
-over a horizontal band, reduced to essential silhouette. Dark ink
-on warm-cream #E7E3D5 background. 1:1 square, centered, symmetric.
-Not pixel art, not 8-bit, not flat vector, not cartoon.
-```
-
-### 6.7 Power (`attr-power.png`)
-
-```
-A small ink sigil of an angular lightning-like mark — a single bold
-zig-zag stroke, no gradient, no glow, just weight. Dark ink on
-warm-cream #E7E3D5 background. 1:1 square, centered.
-Not pixel art, not 8-bit, not flat vector, not neon.
-```
-
-### 6.8 Holding (`attr-holding.png`)
-
-```
-A small ink sigil of a hand grasping a small stone, seen in profile
-silhouette, reduced to essential curves. Dark ink on warm-cream
+A small ink sigil of a sheltered flame inside a low dome doorway.
+Ember #D97742 wash inside the flame, dark ink outline. Warm-cream
 #E7E3D5 background. 1:1 square, centered.
-Not pixel art, not 8-bit, not flat vector, not cartoon.
+Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.9 Provisions (`attr-provisions.png`)
+### 6.5 Cohesion (`health-cohesion.png`)
 
 ```
-A small ink sigil of a simple sack or bundle tied at the top with
-a single diagonal line for the tie. Dark ink on warm-cream #E7E3D5
+A small ink sigil of three interlocked cords tied into a compact knot.
+Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered,
+symmetric.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.6 Vitality (`health-vitality.png`)
+
+```
+A small ink sigil of a penguin footprint with a tiny pulse line through
+it, reduced to essential shapes. Dark ink on warm-cream #E7E3D5
 background. 1:1 square, centered.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.7 Stability (`health-stability.png`)
+
+```
+A small ink sigil of a cracked ice slab braced by two simple support
+lines. Dark ink on warm-cream #E7E3D5 background. 1:1 square,
+centered.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.8 Condition (`health-condition.png`)
+
+```
+A small ink sigil of a relic shard with one repaired fracture line.
+Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.9 Endurance (`health-endurance.png`)
+
+```
+A small ink sigil of a long wake line behind a simple orca dorsal fin.
+Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.10 Presence (`health-presence.png`)
+
+```
+A small ink sigil of a map pin over a natural landmark dot-ring.
+Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.11 Clarity (`health-clarity.png`)
+
+```
+A small ink sigil of a clear angular lens with one clean highlight
+slash. Dark ink on warm-cream #E7E3D5 background. 1:1 square,
+centered.
+Not pixel art, not 8-bit, not flat vector.
+```
+
+### 6.12 Containment (`health-containment.png`)
+
+```
+A small ink sigil of three concentric seal rings locked by a short
+crossbar. Dark ink on warm-cream #E7E3D5 background. 1:1 square,
+centered.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
@@ -637,7 +660,7 @@ Not pixel art, not 8-bit, not flat vector.
 
 After generation, each category needs a slightly different treatment. High-level plan for the Python pass:
 
-### Sprites (entities, event icons, attribute icons, control icons)
+### Sprites (entities, event icons, resource/health icons, control icons)
 - Background removal via `rembg` (good enough for our aesthetic)
 - Auto-crop to content bounding box with a small padding
 - Resize to target sizes: 64/128/256 as PNG with alpha

@@ -13,6 +13,12 @@ internal sealed partial class GambitProgramRuntime
         public int TargetId;
     }
 
+    private sealed class GambitTargetPlanState(int candidateCount)
+    {
+        public int CandidateCount = candidateCount;
+        public GambitPlanChoice Best;
+    }
+
     private float EvaluatePlannedCandidates(
         Simulation simulation,
         int entityId,
@@ -275,7 +281,7 @@ internal sealed partial class GambitProgramRuntime
 
         var rootTargetId = FirstTargetAtLocality(planCount, localityKey);
         var distance = rootTargetId > 0
-            ? HexDistance(
+            ? KernelQuery.HexDistance(
                 world.EntityPhysicalQ(entityId),
                 world.EntityPhysicalR(entityId),
                 world.EntityPhysicalQ(rootTargetId),
@@ -668,16 +674,19 @@ internal sealed partial class GambitProgramRuntime
         int depth,
         ref int candidateCount)
     {
-        var best = default(GambitPlanChoice);
+        var state = new GambitTargetPlanState(candidateCount);
         var world = simulation.World;
-        for (var targetId = world.FirstEntityOfKind(_gambitTargetKindIds[gambitSlot]);
-             targetId > 0;
-             targetId = world.NextEntityOfKind(targetId))
-        {
-            best = EvaluateGambitTargetIfActive(simulation, entityId, targetId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, best, ref candidateCount);
-        }
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            _gambitTargetKindIds[gambitSlot],
+            targetId =>
+            {
+                EvaluateGambitTargetIfActive(simulation, entityId, targetId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, state);
+                return true;
+            });
 
-        return best;
+        candidateCount = state.CandidateCount;
+        return state.Best;
     }
 
     private GambitPlanChoice EvaluateAllGambitTargetChoices(
@@ -692,17 +701,21 @@ internal sealed partial class GambitProgramRuntime
         int depth,
         ref int candidateCount)
     {
-        var best = default(GambitPlanChoice);
+        var state = new GambitTargetPlanState(candidateCount);
         var world = simulation.World;
-        for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
-        {
-            best = EvaluateGambitTargetIfActive(simulation, entityId, targetId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, best, ref candidateCount);
-        }
+        KernelQuery.ForEachEntity(
+            world,
+            targetId =>
+            {
+                EvaluateGambitTargetIfActive(simulation, entityId, targetId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, state);
+                return true;
+            });
 
-        return best;
+        candidateCount = state.CandidateCount;
+        return state.Best;
     }
 
-    private GambitPlanChoice EvaluateGambitTargetIfActive(
+    private void EvaluateGambitTargetIfActive(
         Simulation simulation,
         int entityId,
         int targetId,
@@ -713,17 +726,19 @@ internal sealed partial class GambitProgramRuntime
         int effectKindId,
         float urgency,
         int depth,
-        GambitPlanChoice best,
-        ref int candidateCount)
+        GambitTargetPlanState state)
     {
         var world = simulation.World;
         if (!world.EntityIsActive(targetId) || targetId == entityId)
         {
-            return best;
+            return;
         }
 
-        var candidate = EvaluateGambitTargetPlanChoice(simulation, entityId, targetId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref candidateCount);
-        return candidate.Weight > best.Weight ? candidate : best;
+        var candidate = EvaluateGambitTargetPlanChoice(simulation, entityId, targetId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId, urgency, depth, ref state.CandidateCount);
+        if (candidate.Weight > state.Best.Weight)
+        {
+            state.Best = candidate;
+        }
     }
 
     private GambitPlanChoice EvaluateGambitTargetPlanChoice(

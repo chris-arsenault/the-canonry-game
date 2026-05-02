@@ -8,27 +8,36 @@ internal sealed partial class KernelEntityData
     private readonly float[] _maximums;
     private readonly float[] _defaultValues;
     private readonly float[] _defaultVariances;
+    private readonly int[] _traitKindIds;
+    private readonly int[] _traitIds;
+    private readonly float[] _traitAssignmentChances;
     private readonly float[] _attributeMinimums;
     private readonly float[] _attributeMaximums;
     private readonly bool[] _attributeBoundsRegistered;
     private int _attributeCount;
+    private int _traitCount;
 
-    public KernelEntityData(int attributeDefinitionCapacity, int attributeIdCapacity)
+    public KernelEntityData(int attributeDefinitionCapacity, int attributeIdCapacity, int traitDefinitionCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attributeDefinitionCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(attributeIdCapacity);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(traitDefinitionCapacity);
         _kindIds = new int[attributeDefinitionCapacity + 1];
         _attributeIds = new int[attributeDefinitionCapacity + 1];
         _minimums = new float[attributeDefinitionCapacity + 1];
         _maximums = new float[attributeDefinitionCapacity + 1];
         _defaultValues = new float[attributeDefinitionCapacity + 1];
         _defaultVariances = new float[attributeDefinitionCapacity + 1];
+        _traitKindIds = new int[traitDefinitionCapacity + 1];
+        _traitIds = new int[traitDefinitionCapacity + 1];
+        _traitAssignmentChances = new float[traitDefinitionCapacity + 1];
         _attributeMinimums = new float[attributeIdCapacity + 1];
         _attributeMaximums = new float[attributeIdCapacity + 1];
         _attributeBoundsRegistered = new bool[attributeIdCapacity + 1];
     }
 
     public int AttributeCount => _attributeCount;
+    public int TraitCount => _traitCount;
 
     public int RegisterAttribute(
         int kindId,
@@ -55,6 +64,25 @@ internal sealed partial class KernelEntityData
         _maximums[slot] = maximum;
         _defaultValues[slot] = defaultValue;
         _defaultVariances[slot] = defaultVariance;
+        return slot;
+    }
+
+    public int RegisterTrait(int kindId, int traitId, float assignmentChance)
+    {
+        ValidatePositive(kindId);
+        ValidatePositive(traitId);
+        if (float.IsNaN(assignmentChance) ||
+            assignmentChance is < 0f or > 1f ||
+            _traitCount + 1 >= _traitKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _traitCount++;
+        var slot = _traitCount;
+        _traitKindIds[slot] = kindId;
+        _traitIds[slot] = traitId;
+        _traitAssignmentChances[slot] = assignmentChance;
         return slot;
     }
 
@@ -108,6 +136,20 @@ internal sealed partial class KernelEntityData
             }
 
             simulation.SetAttribute(entityId, _attributeIds[slot], value, tick);
+        }
+
+        for (var slot = 1; slot <= _traitCount; slot++)
+        {
+            if (_traitKindIds[slot] != kindId)
+            {
+                continue;
+            }
+
+            var chance = _traitAssignmentChances[slot];
+            if (chance >= 1f || simulation.NextFloat() < chance)
+            {
+                world.AddTrait(entityId, _traitIds[slot], tick);
+            }
         }
     }
 

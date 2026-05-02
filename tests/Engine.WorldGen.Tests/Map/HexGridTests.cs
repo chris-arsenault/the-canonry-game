@@ -47,17 +47,15 @@ public class HexGridTests
     }
 
     [Fact]
-    public void SetCell_ChangesTerrainAndAttributes()
+    public void SetCell_ChangesTerrain()
     {
         var grid = WorldGenTestData.Grid(3);
 
-        grid.SetCell(new HexCoord(1, 0), WorldGenTestData.Crags, elevation: 500f, fertility: 0.1f);
+        grid.SetCell(new HexCoord(1, 0), WorldGenTestData.Crags);
 
         var cell = grid.GetCell(new HexCoord(1, 0));
         Assert.NotNull(cell);
         Assert.Equal(WorldGenTestData.Crags, cell.Terrain.StableName);
-        Assert.Equal(500f, cell.Elevation);
-        Assert.Equal(0.1f, cell.Fertility);
     }
 
     [Fact]
@@ -97,59 +95,10 @@ public class HexGridTests
 
 public class HexCellTests
 {
-    [Theory]
-    [InlineData(WorldGenTestData.Tundra, 1.1f)]
-    [InlineData(WorldGenTestData.Crags, 4f)]
-    [InlineData(WorldGenTestData.Shelf, 1.8f)]
-    public void MovementCost_VariesByTerrain(string terrain, float expected)
-    {
-        var cell = WorldGenTestData.Cell(terrain);
-        Assert.Equal(expected, cell.MovementCost);
-    }
-
     [Fact]
-    public void MovementCost_OceanIsInfinity()
+    public void Constructor_StoresTerrain()
     {
         var cell = WorldGenTestData.Cell(WorldGenTestData.Ocean);
-        Assert.Equal(float.PositiveInfinity, cell.MovementCost);
-    }
-
-    [Fact]
-    public void Habitability_OceanIsZero()
-    {
-        var cell = WorldGenTestData.Cell(WorldGenTestData.Ocean, fertility: 1f);
-        Assert.Equal(0f, cell.Habitability);
-    }
-
-    [Fact]
-    public void Habitability_HotSpringsWithHighFertilityIsHigh()
-    {
-        var cell = WorldGenTestData.Cell(WorldGenTestData.HotSprings, fertility: 1f);
-        Assert.True(cell.Habitability > 0.8f);
-    }
-
-    [Fact]
-    public void Habitability_CragsWithLowFertilityIsLow()
-    {
-        var cell = WorldGenTestData.Cell(WorldGenTestData.Crags, fertility: 0.2f);
-        Assert.True(cell.Habitability < 0.1f);
-    }
-
-    [Fact]
-    public void Fertility_ClampedToRange()
-    {
-        var cell = WorldGenTestData.Cell(WorldGenTestData.Tundra, fertility: 2f);
-        Assert.Equal(1f, cell.Fertility);
-    }
-
-    [Fact]
-    public void Resources_CanBeAdded()
-    {
-        var cell = WorldGenTestData.Cell(WorldGenTestData.Crags);
-        cell.Resources.Add("iron");
-        cell.Resources.Add("gold_ore");
-
-        Assert.Contains("iron", cell.Resources);
-        Assert.Equal(2, cell.Resources.Count);
+        Assert.Equal(WorldGenTestData.Ocean, cell.Terrain.StableName);
     }
 }

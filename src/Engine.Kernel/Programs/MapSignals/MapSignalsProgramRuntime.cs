@@ -64,8 +64,8 @@ internal sealed class MapSignalsProgramRuntime :
     public float ThreatAt(int planeCode, int q, int r) =>
         State.ThreatAt(planeCode, q, r);
 
-    public float CrowdingPressureAt(int planeCode, int q, int r) =>
-        State.CrowdingPressureAt(planeCode, q, r);
+    public float CrowdingLoadAt(int planeCode, int q, int r) =>
+        State.CrowdingLoadAt(planeCode, q, r);
 
     public float CrowdingComfortAt(int planeCode, int q, int r) =>
         State.CrowdingComfortAt(planeCode, q, r);
@@ -79,8 +79,8 @@ internal sealed class MapSignalsProgramRuntime :
     public float EntityThreat(int entityId, int planeCode) =>
         State.EntityThreat(entityId, planeCode);
 
-    public float EntityCrowdingPressure(int entityId, int planeCode) =>
-        State.EntityCrowdingPressure(entityId, planeCode);
+    public float EntityCrowdingLoad(int entityId, int planeCode) =>
+        State.EntityCrowdingLoad(entityId, planeCode);
 
     public float EntityCrowdingComfort(int entityId, int planeCode) =>
         State.EntityCrowdingComfort(entityId, planeCode);
@@ -231,7 +231,7 @@ internal sealed class MapSignalsProgramRuntime :
         var r = CurrentR(world, entityId, planeCode);
         var capacity = DynamicCapacityAt(world, planeCode, q, r);
         var occupancy = LocalOccupancy(simulation, planeCode, q, r, Data.CrowdingRadius);
-        var pressure = CrowdingPressure(occupancy, capacity);
+        var load = CrowdingLoad(occupancy, capacity);
         var comfort = CrowdingComfort(occupancy, capacity);
         var support = SupportAt(planeCode, q, r);
         var threat = ThreatAt(planeCode, q, r);
@@ -240,10 +240,10 @@ internal sealed class MapSignalsProgramRuntime :
         State.SetEntityCapacity(entityId, planeCode, capacity);
         State.SetEntitySupport(entityId, planeCode, support);
         State.SetEntityThreat(entityId, planeCode, threat);
-        State.SetEntityCrowdingPressure(entityId, planeCode, pressure);
+        State.SetEntityCrowdingLoad(entityId, planeCode, load);
         State.SetEntityCrowdingComfort(entityId, planeCode, comfort);
         State.SetEntityAttractorMass(entityId, planeCode, attractor);
-        State.SetCrowdingPressure(planeCode, q, r, pressure);
+        State.SetCrowdingLoad(planeCode, q, r, load);
         State.SetCrowdingComfort(planeCode, q, r, comfort);
         EmitAttractorAround(planeCode, q, r, Data.KindAttractorRadius(world.EntityKindId(entityId)), attractor);
     }
@@ -377,7 +377,7 @@ internal sealed class MapSignalsProgramRuntime :
         return occupancy;
     }
 
-    private static float CrowdingPressure(int occupancy, float capacity)
+    private static float CrowdingLoad(int occupancy, float capacity)
     {
         if (capacity <= 0f)
         {

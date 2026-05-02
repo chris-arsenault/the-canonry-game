@@ -34,7 +34,7 @@ internal sealed partial class GeneratorProgramRuntime
         switch (placementCode)
         {
             case GeneratorPlacementCodes.On:
-                if (!IsPhysicalOccupied(world, originQ, originR))
+                if (!KernelQuery.PhysicalCellIsOccupied(world, originQ, originR))
                 {
                     q = originQ;
                     r = originR;
@@ -99,7 +99,7 @@ internal sealed partial class GeneratorProgramRuntime
         switch (placementCode)
         {
             case GeneratorPlacementCodes.On:
-                if (SemanticCoordinateAllowed(world, originQ, originR) && !IsSemanticOccupied(world, originQ, originR))
+                if (SemanticCoordinateAllowed(world, originQ, originR) && !KernelQuery.SemanticCellIsOccupied(world, originQ, originR))
                 {
                     q = originQ;
                     r = originR;
@@ -116,7 +116,7 @@ internal sealed partial class GeneratorProgramRuntime
             case GeneratorPlacementCodes.Across:
                 var mirroredQ = -originQ;
                 var mirroredR = -originR;
-                if (SemanticCoordinateAllowed(world, mirroredQ, mirroredR) && !IsSemanticOccupied(world, mirroredQ, mirroredR))
+                if (SemanticCoordinateAllowed(world, mirroredQ, mirroredR) && !KernelQuery.SemanticCellIsOccupied(world, mirroredQ, mirroredR))
                 {
                     q = mirroredQ;
                     r = mirroredR;
@@ -163,8 +163,8 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int producedSlot,
         int ownerEntityId,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int originQ,
         int originR,
@@ -210,16 +210,16 @@ internal sealed partial class GeneratorProgramRuntime
             var r = _scratchClaimedR[i];
             if (_producedCoverageTransformTerrainIds[producedSlot] > 0)
             {
-                simulation.SetCellState(
+                KernelEffectExecutor.SetCellState(
+                    simulation,
                     q,
                     r,
                     _producedCoverageTransformTerrainIds[producedSlot],
-                    ownerEntityId,
-                    simulation.CurrentTick);
+                    ownerEntityId);
             }
             else
             {
-                simulation.SetCoverageOwner(q, r, ownerEntityId, simulation.CurrentTick);
+                KernelEffectExecutor.SetCoverageOwner(simulation, q, r, ownerEntityId);
             }
         }
 
@@ -400,7 +400,7 @@ internal sealed partial class GeneratorProgramRuntime
         int sourceOwnerId,
         int boundaryGroupId)
     {
-        return HexDistance(originQ, originR, q, r) == radius &&
+        return KernelQuery.HexDistance(originQ, originR, q, r) == radius &&
             CoverageCellIsEligible(world, producedSlot, q, r, sourceOwnerId, boundaryGroupId, alreadyClaimedCount: 0);
     }
 
@@ -617,24 +617,31 @@ internal sealed partial class GeneratorProgramRuntime
     {
         firstQ = 0;
         firstR = 0;
+        var selectedFirstQ = 0;
+        var selectedFirstR = 0;
         var remainingCount = 0;
-        var cursor = world.CoverageCells(sourceOwnerId);
-        while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
-        {
-            if (CoverageRemovalContains(q, r, removedQ, removedR, alreadyClaimedCount))
+        KernelQuery.ForEachCoverageCell(
+            world,
+            sourceOwnerId,
+            (q, r) =>
             {
-                continue;
-            }
+                if (CoverageRemovalContains(q, r, removedQ, removedR, alreadyClaimedCount))
+                {
+                    return true;
+                }
 
-            if (remainingCount == 0)
-            {
-                firstQ = q;
-                firstR = r;
-            }
+                if (remainingCount == 0)
+                {
+                    selectedFirstQ = q;
+                    selectedFirstR = r;
+                }
 
-            remainingCount++;
-        }
+                remainingCount++;
+                return true;
+            });
 
+        firstQ = selectedFirstQ;
+        firstR = selectedFirstR;
         return remainingCount;
     }
 
@@ -720,7 +727,7 @@ internal sealed partial class GeneratorProgramRuntime
             return int.MaxValue;
         }
 
-        var score = HexDistance(originQ, originR, q, r) * 10;
+        var score = KernelQuery.HexDistance(originQ, originR, q, r) * 10;
         var terrainId = world.CellTerrainId(q, r);
         if (!TerrainInFilter(terrainId, _producedCoveragePreferredTerrainStarts[producedSlot], _producedCoveragePreferredTerrainCounts[producedSlot], emptyPasses: true))
         {
@@ -774,7 +781,7 @@ internal sealed partial class GeneratorProgramRuntime
                 {
                     q = originQ + dq;
                     r = originR + dr;
-                    if (HexDistance(originQ, originR, q, r) == radius && IsFreePhysical(world, q, r))
+                    if (KernelQuery.HexDistance(originQ, originR, q, r) == radius && IsFreePhysical(world, q, r))
                     {
                         return true;
                     }
@@ -795,14 +802,18 @@ internal sealed partial class GeneratorProgramRuntime
     {
         var world = simulation.World;
         var candidateCount = 0;
-        var cursor = world.CoverageCells(coverageOwnerId);
-        while (world.MoveNextCoverageCell(ref cursor, out var cq, out var cr))
-        {
-            if (IsFreePhysical(world, cq, cr))
+        KernelQuery.ForEachCoverageCell(
+            world,
+            coverageOwnerId,
+            (cq, cr) =>
             {
-                candidateCount++;
-            }
-        }
+                if (IsFreePhysical(world, cq, cr))
+                {
+                    candidateCount++;
+                }
+
+                return true;
+            });
 
         if (candidateCount == 0)
         {
@@ -813,27 +824,34 @@ internal sealed partial class GeneratorProgramRuntime
 
         var selected = simulation.NextInt(candidateCount);
         var seen = 0;
-        cursor = world.CoverageCells(coverageOwnerId);
-        while (world.MoveNextCoverageCell(ref cursor, out var cq, out var cr))
-        {
-            if (!IsFreePhysical(world, cq, cr))
+        var selectedQ = 0;
+        var selectedR = 0;
+        var found = false;
+        KernelQuery.ForEachCoverageCell(
+            world,
+            coverageOwnerId,
+            (cq, cr) =>
             {
-                continue;
-            }
+                if (!IsFreePhysical(world, cq, cr))
+                {
+                    return true;
+                }
 
-            if (seen == selected)
-            {
-                q = cq;
-                r = cr;
+                if (seen == selected)
+                {
+                    selectedQ = cq;
+                    selectedR = cr;
+                    found = true;
+                    return false;
+                }
+
+                seen++;
                 return true;
-            }
+            });
 
-            seen++;
-        }
-
-        q = 0;
-        r = 0;
-        return false;
+        q = selectedQ;
+        r = selectedR;
+        return found;
     }
 
     private bool FindFreeSemanticHex(
@@ -854,9 +872,9 @@ internal sealed partial class GeneratorProgramRuntime
                 {
                     q = originQ + dq;
                     r = originR + dr;
-                    if (HexDistance(originQ, originR, q, r) == radius &&
+                    if (KernelQuery.HexDistance(originQ, originR, q, r) == radius &&
                         SemanticCoordinateAllowed(world, q, r) &&
-                        !IsSemanticOccupied(world, q, r))
+                        !KernelQuery.SemanticCellIsOccupied(world, q, r))
                     {
                         return true;
                     }

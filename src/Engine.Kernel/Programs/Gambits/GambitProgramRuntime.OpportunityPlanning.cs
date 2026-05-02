@@ -21,6 +21,24 @@ internal sealed partial class GambitProgramRuntime
         public int EffectKeyValue;
     }
 
+    private sealed class OpportunitySelectionState(
+        int candidateCount,
+        int selectedGambitSlot,
+        int selectedTargetId,
+        int selectedRootGambitSlot,
+        int selectedRootTargetId,
+        int selectedEffectKey,
+        int selectedLocalityKey)
+    {
+        public int CandidateCount = candidateCount;
+        public int SelectedGambitSlot = selectedGambitSlot;
+        public int SelectedTargetId = selectedTargetId;
+        public int SelectedRootGambitSlot = selectedRootGambitSlot;
+        public int SelectedRootTargetId = selectedRootTargetId;
+        public int SelectedEffectKey = selectedEffectKey;
+        public int SelectedLocalityKey = selectedLocalityKey;
+    }
+
     internal PlanningDecision PlanOpportunity(Simulation simulation, in PlanningRequest request)
     {
         var candidateCount = 0;
@@ -176,37 +194,49 @@ internal sealed partial class GambitProgramRuntime
         ref int selectedLocalityKey)
     {
         var world = simulation.World;
-        for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
-        {
-            var candidate = EvaluateOpportunityGambitTarget(simulation, entityId, gambitSlot, targetId, tick, traceEnabled, world, ref candidateCount);
-            if (candidate.Weight <= 0f)
+        var state = new OpportunitySelectionState(
+            candidateCount,
+            selectedGambitSlot,
+            selectedTargetId,
+            selectedRootGambitSlot,
+            selectedRootTargetId,
+            selectedEffectKey,
+            selectedLocalityKey);
+        KernelQuery.ForEachEntity(
+            world,
+            targetId =>
             {
-                continue;
-            }
+                var candidate = EvaluateOpportunityGambitTarget(simulation, entityId, gambitSlot, targetId, tick, traceEnabled, world, state);
+                if (candidate.Weight <= 0f)
+                {
+                    return true;
+                }
 
-            total += candidate.Weight;
-            if (selectRoll < 0f || selectRoll > total)
-            {
-                continue;
-            }
+                total += candidate.Weight;
+                if (selectRoll < 0f || selectRoll > total)
+                {
+                    return true;
+                }
 
-            SelectOpportunityGambitCandidate(
-                simulation,
-                world,
-                tick,
-                entityId,
-                candidate,
-                gambitSlot,
-                targetId,
-                ref selectedGambitSlot,
-                ref selectedTargetId,
-                ref selectedRootGambitSlot,
-                ref selectedRootTargetId,
-                ref selectedEffectKey,
-                ref selectedLocalityKey);
-            return total;
-        }
+                SelectOpportunityGambitCandidate(
+                    simulation,
+                    world,
+                    tick,
+                    entityId,
+                    candidate,
+                    gambitSlot,
+                    targetId,
+                    state);
+                return false;
+            });
 
+        candidateCount = state.CandidateCount;
+        selectedGambitSlot = state.SelectedGambitSlot;
+        selectedTargetId = state.SelectedTargetId;
+        selectedRootGambitSlot = state.SelectedRootGambitSlot;
+        selectedRootTargetId = state.SelectedRootTargetId;
+        selectedEffectKey = state.SelectedEffectKey;
+        selectedLocalityKey = state.SelectedLocalityKey;
         return total;
     }
 
@@ -218,15 +248,15 @@ internal sealed partial class GambitProgramRuntime
         int tick,
         bool traceEnabled,
         WorldState world,
-        ref int candidateCount)
+        OpportunitySelectionState state)
     {
         if (!TargetEligibleForGambit(world, entityId, gambitSlot, forcedTargetId: 0, targetId))
         {
             return default;
         }
 
-        candidateCount++;
-        var candidateIndex = candidateCount;
+        state.CandidateCount++;
+        var candidateIndex = state.CandidateCount;
         var weight = EvaluateOpportunityGambitCandidate(
             simulation,
             entityId,
@@ -235,7 +265,7 @@ internal sealed partial class GambitProgramRuntime
             tick,
             candidateIndex,
             traceEnabled,
-            ref candidateCount,
+            ref state.CandidateCount,
             out var leafGambitSlot,
             out var leafTargetId,
             out var effectScopeCode,
@@ -263,19 +293,14 @@ internal sealed partial class GambitProgramRuntime
         OpportunityGambitCandidate candidate,
         int gambitSlot,
         int targetId,
-        ref int selectedGambitSlot,
-        ref int selectedTargetId,
-        ref int selectedRootGambitSlot,
-        ref int selectedRootTargetId,
-        ref int selectedEffectKey,
-        ref int selectedLocalityKey)
+        OpportunitySelectionState state)
     {
-        selectedGambitSlot = candidate.LeafGambitSlot;
-        selectedTargetId = candidate.LeafTargetId;
-        selectedRootGambitSlot = gambitSlot;
-        selectedRootTargetId = targetId;
-        selectedEffectKey = candidate.EffectKeyValue;
-        selectedLocalityKey = LocalityKey(world, targetId);
+        state.SelectedGambitSlot = candidate.LeafGambitSlot;
+        state.SelectedTargetId = candidate.LeafTargetId;
+        state.SelectedRootGambitSlot = gambitSlot;
+        state.SelectedRootTargetId = targetId;
+        state.SelectedEffectKey = candidate.EffectKeyValue;
+        state.SelectedLocalityKey = LocalityKey(world, targetId);
         EmitOpportunityGambitTrace(
             simulation,
             tick,
@@ -392,8 +417,8 @@ internal sealed partial class GambitProgramRuntime
             fit = OpportunityBaseFit;
         }
 
-        var physicalDistance = PlaneDistance(world, entityId, targetId, PlaneCodes.Physical);
-        var semanticDistance = PlaneDistance(world, entityId, targetId, PlaneCodes.Semantic);
+        var physicalDistance = KernelQuery.PlaneDistance(world, entityId, targetId, PlaneCodes.Physical);
+        var semanticDistance = KernelQuery.PlaneDistance(world, entityId, targetId, PlaneCodes.Semantic);
         return fit / (1f +
             (physicalDistance * OpportunityPhysicalDistancePenalty) +
             (semanticDistance * OpportunitySemanticDistancePenalty));

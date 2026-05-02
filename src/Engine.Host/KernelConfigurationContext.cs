@@ -55,6 +55,12 @@ internal sealed class KernelConfigurationContext
             defaultValue,
             defaultVariance);
 
+    public int RegisterTrait(
+        int kindId,
+        TraitRuntimeId traitId,
+        float assignmentChance) =>
+        _kernel.RegisterTrait(kindId, traitId.Value, assignmentChance);
+
     public int RegisterRelationshipKind(RelationshipKindRuntimeId kindId, float cullThreshold, bool targetFollowsSourcePhysical = false) =>
         _kernel.Relationships.RegisterRelationshipKind(kindId.Value, cullThreshold, targetFollowsSourcePhysical);
 
@@ -72,19 +78,6 @@ internal sealed class KernelConfigurationContext
             maxDistance,
             threshold,
             delta);
-
-    public int RegisterPressure(
-        PressureRuntimeId pressureId,
-        int scopeCode,
-        float baseline,
-        float homeostasisRate,
-        float smoothingFactor) =>
-        _kernel.Pressures.RegisterPressure(
-            pressureId.Value,
-            scopeCode,
-            baseline,
-            homeostasisRate,
-            smoothingFactor);
 
     public int RegisterLifecycleUpkeep(
         int kindId,
@@ -104,7 +97,9 @@ internal sealed class KernelConfigurationContext
         int maxDistance,
         float threshold,
         float minimumRelationshipStrength,
-        float deltaPerTick) =>
+        float deltaPerTick,
+        int requiredTargetTraitId = 0,
+        int requiredRelatedTraitId = 0) =>
         _kernel.Effects.RegisterAttributeDeltaEffect(
             kindId,
             attributeId.Value,
@@ -115,7 +110,9 @@ internal sealed class KernelConfigurationContext
             maxDistance,
             threshold,
             minimumRelationshipStrength,
-            deltaPerTick);
+            deltaPerTick,
+            requiredTargetTraitId,
+            requiredRelatedTraitId);
 
     public int RegisterLowAltitudeVerb(
         int kindId,
@@ -219,6 +216,29 @@ internal sealed class KernelConfigurationContext
             candidateKindId,
             bindingKindId,
             affordanceScore);
+
+    public int RegisterLowAltitudeTraitWeightModifier(
+        int kindId,
+        int traitId,
+        int verbId,
+        float weightDelta,
+        float exploreWeightDelta,
+        float stalenessWeightDelta,
+        float hotspotWeightDelta,
+        float crowdingWeightDelta,
+        float generatorAffordanceWeightDelta,
+        float relationshipAffinityWeightDelta) =>
+        _kernel.LowAltitudeVerbs.RegisterTraitWeightModifier(
+            kindId,
+            traitId,
+            verbId,
+            weightDelta,
+            exploreWeightDelta,
+            stalenessWeightDelta,
+            hotspotWeightDelta,
+            crowdingWeightDelta,
+            generatorAffordanceWeightDelta,
+            relationshipAffinityWeightDelta);
 
     public void ConfigureMapActivity(float presenceHeat, float heatDecayPerTick, float heatEmaAlpha)
     {
@@ -359,6 +379,14 @@ internal sealed class KernelConfigurationContext
     public void AddGambitStepExpressionOp(int stepSlot, int expressionCode, int a = 0, float x = 0f) =>
         _kernel.Gambits.AddStepExpressionOp(stepSlot, expressionCode, a, x);
 
+    public int RegisterTraitGambitModifier(
+        int gambitId,
+        int traitId,
+        int bearerCode,
+        float scoreDelta,
+        float successChanceDelta) =>
+        _kernel.Gambits.RegisterTraitModifier(gambitId, traitId, bearerCode, scoreDelta, successChanceDelta);
+
     public int RegisterGenerator(
         int generatorId,
         int cadenceTicks,
@@ -399,13 +427,8 @@ internal sealed class KernelConfigurationContext
             directionCode,
             maxExisting);
 
-    public void AddGeneratorTrigger(
-        int generatorSlot,
-        int kindId,
-        int attributeId,
-        int directionCode,
-        float threshold) =>
-        _kernel.Generators.AddTrigger(generatorSlot, kindId, attributeId, directionCode, threshold);
+    public void AddGeneratorTrigger(int generatorSlot, int kindId) =>
+        _kernel.Generators.AddTrigger(generatorSlot, kindId);
 
     public int AddGeneratorSecondaryBinding(
         int generatorSlot,
@@ -428,13 +451,6 @@ internal sealed class KernelConfigurationContext
 
     public void AddGeneratorBindingWithoutIncomingRelationship(int bindingSlot, int relationshipKindId) =>
         _kernel.Generators.AddBindingWithoutIncomingRelationship(bindingSlot, relationshipKindId);
-
-    public void AddGeneratorBindingAttributeCondition(
-        int bindingSlot,
-        int attributeId,
-        int directionCode,
-        float threshold) =>
-        _kernel.Generators.AddBindingAttributeCondition(bindingSlot, attributeId, directionCode, threshold);
 
     public int AddGeneratorProduced(
         int generatorSlot,
@@ -490,13 +506,6 @@ internal sealed class KernelConfigurationContext
 
     public void AddGeneratorProducedQueryWithoutIncomingRelationship(int producedSlot, int relationshipKindId) =>
         _kernel.Generators.AddProducedQueryWithoutIncomingRelationship(producedSlot, relationshipKindId);
-
-    public void AddGeneratorProducedQueryAttributeCondition(
-        int producedSlot,
-        int attributeId,
-        int directionCode,
-        float threshold) =>
-        _kernel.Generators.AddProducedQueryAttributeCondition(producedSlot, attributeId, directionCode, threshold);
 
     public void AddGeneratorProducedCoveragePreferredTerrain(int producedSlot, int terrainId) =>
         _kernel.Generators.AddProducedCoveragePreferredTerrain(producedSlot, terrainId);

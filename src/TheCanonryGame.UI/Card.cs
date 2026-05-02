@@ -12,10 +12,26 @@ namespace TheCanonryGame.UI;
 
 public partial class Card : PanelContainer
 {
+    private static readonly Dictionary<string, string[]> ProducedLabelsByCardId =
+        new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["generator:war_makes_wardens"] = ["warden", "holdfast", "?weapon"],
+            ["generator:ice_settles_accounts"] = ["seal", "witness", "?exile"],
+            ["generator:what_the_spring_remembers"] = ["relic", "witness", "?sanctuary", "?choir"],
+            ["generator:war_breaks_the_land"] = ["scar", "?weapon", "?compact"],
+            ["generator:routes_draw_readers"] = ["broker", "harbor", "?order", "?instrument"],
+            ["generator:what_the_artifact_knows"] = ["rookery", "seal", "?cell"],
+            ["gambit:penguin_wields_artifact"] = ["holds"],
+            ["gambit:faction_declares_territorial_war"] = ["at_war_with"],
+            ["gambit:settlement_opens_trade_route"] = ["trade_route"],
+            ["gambit:artifact_cleanses_scar"] = ["cleansed_by", "-> hot_springs"],
+            ["gambit:faction_sues_for_peace"] = ["betrayed_by", "-at_war_with"],
+        };
+
     private Label? _typeBadgeLabel;
     private Label? _nameLabel;
     private TextureRect? _art;
-    private Label? _subtitleLabel;
+    private Label? _createsLabel;
     private Label? _descriptionLabel;
     private Label? _statusLabel;
     private Button? _toggleButton;
@@ -31,6 +47,7 @@ public partial class Card : PanelContainer
     {
         SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
         SizeFlagsVertical = SizeFlags.ShrinkBegin;
+        ClipContents = true;
 
         var body = GetNode<VBoxContainer>("Body");
         body.AddThemeConstantOverride("separation", UiTokens.Space2);
@@ -52,10 +69,10 @@ public partial class Card : PanelContainer
         _artFrame.AddThemeStyleboxOverride("panel", UiTheme.InsetStyle());
         _art = GetNode<TextureRect>("Body/ArtFrame/Art");
 
-        _subtitleLabel = GetNode<Label>("Body/SubtitleLabel");
-        _subtitleLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
-        _subtitleLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
-        _subtitleLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        _createsLabel = GetNode<Label>("Body/CreatesLabel");
+        _createsLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        _createsLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        _createsLabel.AddThemeColorOverride("font_color", UiTokens.Aurora);
 
         _descriptionLabel = GetNode<Label>("Body/DescriptionLabel");
         _descriptionLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
@@ -94,7 +111,7 @@ public partial class Card : PanelContainer
         AddThemeStyleboxOverride("panel", UiTheme.CardStyle(accent));
 
         BindHeader(card, accent);
-        BindBody(card, state);
+        BindBody(card, state, accent);
         BindFooter(card, state);
     }
 
@@ -119,7 +136,7 @@ public partial class Card : PanelContainer
         }
     }
 
-    private void BindBody(CardInstance card, GameTableauCardState state)
+    private void BindBody(CardInstance card, GameTableauCardState state, Color accent)
     {
         _ = state;
         if (_nameLabel is not null)
@@ -132,10 +149,10 @@ public partial class Card : PanelContainer
             _art.Texture = ResolveFace(card);
         }
 
-        if (_subtitleLabel is not null)
+        if (_createsLabel is not null)
         {
-            _subtitleLabel.Text = SubtitleText(card);
-            _subtitleLabel.Visible = !string.IsNullOrEmpty(_subtitleLabel.Text);
+            _createsLabel.Text = CreatesText(card);
+            _createsLabel.AddThemeColorOverride("font_color", accent);
         }
 
         if (_descriptionLabel is not null)
@@ -169,20 +186,23 @@ public partial class Card : PanelContainer
         _ => "CARD",
     };
 
-    private static string SubtitleText(CardInstance card)
+    private static string CreatesText(CardInstance card)
     {
-        var kindHint = ResolveKindHint(card);
-        var typeWord = card.Definition.Type == CardType.Generator ? "generator" : "gambit";
-        return string.IsNullOrEmpty(kindHint)
-            ? typeWord
-            : $"{kindHint} · {typeWord}";
+        var produces = ResolveProduces(card.Definition.Id);
+        if (produces.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var prefix = card.Definition.Type == CardType.Generator ? "creates" : "binds";
+        return $"{prefix}  {string.Join(" · ", produces)}";
     }
 
     private static string DescriptionText(CardInstance card)
     {
         var description = card.Definition.Description?.Trim();
         return string.IsNullOrEmpty(description)
-            ? "(no description recorded)"
+            ? string.Empty
             : description;
     }
 
@@ -242,4 +262,11 @@ public partial class Card : PanelContainer
 
         return null;
     }
+
+    // What each generator/gambit produces, derived from the IceRemembers
+    // catalog. Cards don't carry produced-entity metadata directly, so this
+    // mapping mirrors what the kernel actually creates. Optional produces
+    // and removed relationships are marked with prefixes.
+    private static string[] ResolveProduces(string cardId) =>
+        ProducedLabelsByCardId.TryGetValue(cardId, out var produces) ? produces : [];
 }

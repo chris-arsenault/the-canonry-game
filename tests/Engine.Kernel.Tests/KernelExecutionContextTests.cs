@@ -318,7 +318,6 @@ public sealed class KernelExecutionContextTests
     [
         KernelProgramCodes.Upkeep,
         KernelProgramCodes.Relationships,
-        KernelProgramCodes.Pressures,
         KernelProgramCodes.Generators,
         KernelProgramCodes.Degeneracy,
         KernelProgramCodes.Gambits,

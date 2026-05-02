@@ -8,13 +8,13 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
     private readonly PrimitiveFloatTable _capacityAdditions;
     private readonly PrimitiveFloatTable _support;
     private readonly PrimitiveFloatTable _threat;
-    private readonly PrimitiveFloatTable _crowdingPressure;
+    private readonly PrimitiveFloatTable _crowdingLoad;
     private readonly PrimitiveFloatTable _crowdingComfort;
     private readonly PrimitiveFloatTable _attractorMass;
     private readonly PrimitiveFloatTable _entityCapacity;
     private readonly PrimitiveFloatTable _entitySupport;
     private readonly PrimitiveFloatTable _entityThreat;
-    private readonly PrimitiveFloatTable _entityCrowdingPressure;
+    private readonly PrimitiveFloatTable _entityCrowdingLoad;
     private readonly PrimitiveFloatTable _entityCrowdingComfort;
     private readonly PrimitiveFloatTable _entityAttractorMass;
 
@@ -23,13 +23,13 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
         _capacityAdditions = new PrimitiveFloatTable(cellCapacity);
         _support = new PrimitiveFloatTable(cellCapacity);
         _threat = new PrimitiveFloatTable(cellCapacity);
-        _crowdingPressure = new PrimitiveFloatTable(cellCapacity);
+        _crowdingLoad = new PrimitiveFloatTable(cellCapacity);
         _crowdingComfort = new PrimitiveFloatTable(cellCapacity);
         _attractorMass = new PrimitiveFloatTable(cellCapacity);
         _entityCapacity = new PrimitiveFloatTable(entityCapacity);
         _entitySupport = new PrimitiveFloatTable(entityCapacity);
         _entityThreat = new PrimitiveFloatTable(entityCapacity);
-        _entityCrowdingPressure = new PrimitiveFloatTable(entityCapacity);
+        _entityCrowdingLoad = new PrimitiveFloatTable(entityCapacity);
         _entityCrowdingComfort = new PrimitiveFloatTable(entityCapacity);
         _entityAttractorMass = new PrimitiveFloatTable(entityCapacity);
     }
@@ -43,13 +43,13 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
         _capacityAdditions.Clear();
         _support.Clear();
         _threat.Clear();
-        _crowdingPressure.Clear();
+        _crowdingLoad.Clear();
         _crowdingComfort.Clear();
         _attractorMass.Clear();
         _entityCapacity.Clear();
         _entitySupport.Clear();
         _entityThreat.Clear();
-        _entityCrowdingPressure.Clear();
+        _entityCrowdingLoad.Clear();
         _entityCrowdingComfort.Clear();
         _entityAttractorMass.Clear();
     }
@@ -66,8 +66,8 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
     public void AddAttractorMass(int planeCode, int q, int r, float value) =>
         Add(_attractorMass, planeCode, q, r, value);
 
-    public void SetCrowdingPressure(int planeCode, int q, int r, float value) =>
-        Set(_crowdingPressure, planeCode, q, r, value);
+    public void SetCrowdingLoad(int planeCode, int q, int r, float value) =>
+        Set(_crowdingLoad, planeCode, q, r, value);
 
     public void SetCrowdingComfort(int planeCode, int q, int r, float value) =>
         Set(_crowdingComfort, planeCode, q, r, value);
@@ -81,8 +81,8 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
     public void SetEntityThreat(int entityId, int planeCode, float value) =>
         _entityThreat.Set(entityId, planeCode, value);
 
-    public void SetEntityCrowdingPressure(int entityId, int planeCode, float value) =>
-        _entityCrowdingPressure.Set(entityId, planeCode, value);
+    public void SetEntityCrowdingLoad(int entityId, int planeCode, float value) =>
+        _entityCrowdingLoad.Set(entityId, planeCode, value);
 
     public void SetEntityCrowdingComfort(int entityId, int planeCode, float value) =>
         _entityCrowdingComfort.Set(entityId, planeCode, value);
@@ -99,8 +99,8 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
     public float ThreatAt(int planeCode, int q, int r) =>
         Get(_threat, planeCode, q, r);
 
-    public float CrowdingPressureAt(int planeCode, int q, int r) =>
-        Get(_crowdingPressure, planeCode, q, r);
+    public float CrowdingLoadAt(int planeCode, int q, int r) =>
+        Get(_crowdingLoad, planeCode, q, r);
 
     public float CrowdingComfortAt(int planeCode, int q, int r) =>
         Get(_crowdingComfort, planeCode, q, r);
@@ -117,8 +117,8 @@ internal sealed partial class MapSignalsProgramState : IKernelProgramState
     public float EntityThreat(int entityId, int planeCode) =>
         _entityThreat.GetOrDefault(entityId, planeCode);
 
-    public float EntityCrowdingPressure(int entityId, int planeCode) =>
-        _entityCrowdingPressure.GetOrDefault(entityId, planeCode);
+    public float EntityCrowdingLoad(int entityId, int planeCode) =>
+        _entityCrowdingLoad.GetOrDefault(entityId, planeCode);
 
     public float EntityCrowdingComfort(int entityId, int planeCode) =>
         _entityCrowdingComfort.GetOrDefault(entityId, planeCode);

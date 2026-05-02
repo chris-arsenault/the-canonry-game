@@ -6,48 +6,7 @@ internal sealed partial class GeneratorProgramRuntime
 {
     private static bool IsFreePhysical(WorldState world, int q, int r)
     {
-        return world.CellIsKnown(q, r) && !IsPhysicalOccupied(world, q, r);
-    }
-
-    private static bool IsPhysicalOccupied(WorldState world, int q, int r)
-    {
-        for (var entityId = world.FirstPhysicalEntityAt(q, r);
-             entityId > 0;
-             entityId = world.NextPhysicalEntityAt(entityId))
-        {
-            if (world.EntityIsActive(entityId) &&
-                world.EntityPhysicalQ(entityId) == q &&
-                world.EntityPhysicalR(entityId) == r)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsSemanticOccupied(WorldState world, int q, int r)
-    {
-        for (var entityId = world.FirstSemanticEntityAt(q, r);
-             entityId > 0;
-             entityId = world.NextSemanticEntityAt(entityId))
-        {
-            if (world.EntityIsActive(entityId) &&
-                world.EntitySemanticQ(entityId) == q &&
-                world.EntitySemanticR(entityId) == r)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int HexDistance(int aq, int ar, int bq, int br)
-    {
-        var aS = -aq - ar;
-        var bS = -bq - br;
-        return (Abs(aq - bq) + Abs(ar - br) + Abs(aS - bS)) / 2;
+        return world.CellIsKnown(q, r) && !KernelQuery.PhysicalCellIsOccupied(world, q, r);
     }
 
     private static int DirectionQ(int direction)
@@ -76,7 +35,7 @@ internal sealed partial class GeneratorProgramRuntime
         };
     }
 
-    private static void SetRef(global::System.Span<int> refCodes, global::System.Span<int> refEntityIds, ref int refCount, int refCode, int entityId)
+    private static void SetRef(int[] refCodes, int[] refEntityIds, ref int refCount, int refCode, int entityId)
     {
         for (var i = 0; i < refCount; i++)
         {
@@ -97,7 +56,7 @@ internal sealed partial class GeneratorProgramRuntime
         refCount++;
     }
 
-    private static int ResolveRef(global::System.Span<int> refCodes, global::System.Span<int> refEntityIds, int refCount, int refCode)
+    private static int ResolveRef(int[] refCodes, int[] refEntityIds, int refCount, int refCode)
     {
         for (var i = 0; i < refCount; i++)
         {
@@ -110,7 +69,7 @@ internal sealed partial class GeneratorProgramRuntime
         return 0;
     }
 
-    private static bool RefAlreadyBound(global::System.Span<int> refEntityIds, int refCount, int entityId)
+    private static bool RefAlreadyBound(int[] refEntityIds, int refCount, int entityId)
     {
         for (var i = 0; i < refCount; i++)
         {
@@ -123,7 +82,7 @@ internal sealed partial class GeneratorProgramRuntime
         return false;
     }
 
-    private static bool ScratchContains(global::System.Span<int> qs, global::System.Span<int> rs, int count, int q, int r)
+    private static bool ScratchContains(int[] qs, int[] rs, int count, int q, int r)
     {
         for (var i = 0; i < count; i++)
         {
@@ -139,7 +98,7 @@ internal sealed partial class GeneratorProgramRuntime
     private static void MarkCreatedEntitiesHistorical(
         Simulation simulation,
         WorldState world,
-        global::System.Span<int> createdEntityIds,
+        int[] createdEntityIds,
         int createdEntityCount,
         int tick)
     {
@@ -147,7 +106,7 @@ internal sealed partial class GeneratorProgramRuntime
         {
             if (createdEntityIds[i] > 0 && world.EntityIsActive(createdEntityIds[i]))
             {
-                simulation.SetEntityStatus(createdEntityIds[i], EntityStatusCodes.Historical, tick);
+                KernelEffectExecutor.SetEntityStatus(simulation, createdEntityIds[i], EntityStatusCodes.Historical);
             }
         }
     }
@@ -224,21 +183,6 @@ internal sealed partial class GeneratorProgramRuntime
 
         _terrainFilterCount++;
         _terrainFilterIds[_terrainFilterCount] = terrainId;
-    }
-
-    private void AddAttributeCondition(int attributeId, int directionCode, float threshold)
-    {
-        ValidatePositive(attributeId);
-        ValidatePositive(directionCode);
-        if (_attributeConditionCount + 1 >= _attributeConditionAttributeIds.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _attributeConditionCount++;
-        _attributeConditionAttributeIds[_attributeConditionCount] = attributeId;
-        _attributeConditionDirectionCodes[_attributeConditionCount] = directionCode;
-        _attributeConditionThresholds[_attributeConditionCount] = threshold;
     }
 
     private void EnsureOpenGenerator(int generatorSlot)

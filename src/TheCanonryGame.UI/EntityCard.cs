@@ -171,6 +171,8 @@ public partial class EntityCard : PanelContainer
         sb.AppendLine();
         AppendAttributes(sb, entity, whisper);
         sb.AppendLine();
+        AppendTraits(sb, entity, whisper);
+        sb.AppendLine();
         AppendRelationships(sb, whisper);
         AppendActions(sb, entity, whisper);
 
@@ -195,6 +197,26 @@ public partial class EntityCard : PanelContainer
                 attr.AttributeId,
                 $"Attribute {attr.AttributeId}");
             sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  {name}: [b]{attr.NewValue:F1}[/b] [color={whisper}]from {attr.OldValue:F1}[/color]");
+        }
+    }
+
+    private void AppendTraits(StringBuilder sb, UiEntityProjection entity, string whisper)
+    {
+        sb.AppendLine(SectionHeader("Traits"));
+        if (entity.Traits.Count == 0)
+        {
+            sb.AppendLine($"  [color={whisper}]none[/color]");
+            return;
+        }
+
+        foreach (var traitId in entity.Traits.Order())
+        {
+            var name = ProjectionDisplay.DisplayName(
+                _symbols,
+                ProjectionSymbolKind.Trait,
+                traitId,
+                $"Trait {traitId}");
+            sb.AppendLine($"  {name}");
         }
     }
 

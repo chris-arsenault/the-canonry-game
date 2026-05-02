@@ -8,9 +8,9 @@ and observability.
 ## Core Runtime State
 
 The runtime world is a graph of named entities. Each entity has a kind, subtype,
-culture, status, attributes, physical coordinates, semantic coordinates, and
-relationships. Relationships are typed, directional or symmetric, polar, and
-strength-bearing.
+culture, status, health, traits, physical coordinates, semantic coordinates,
+and relationships. Relationships are typed, directional or symmetric, polar,
+and strength-bearing.
 
 The map is a physical hex grid with terrain and named coverage. Regions and
 settlements are not a separate abstraction from map coverage: they are named
@@ -58,7 +58,7 @@ programs:
 - `MapSignals`: terrain, entity, relationship, activity, crowding, support,
   threat, and attractor fields.
 - `Relationships`: existing relationship strength drift and culling.
-- `Effects`: health and attribute modifiers derived from relationship,
+- `Effects`: health modifiers derived from relationship,
   influence, distance, support, threat, and crowding evidence.
 - `Upkeep`: lifecycle drain and historical-status transition on death.
 
@@ -72,7 +72,6 @@ Relationships
 Effects
 Upkeep
 Gambits
-Pressures
 Generators
 Degeneracy
 ```
@@ -113,17 +112,18 @@ DuckDB, or Python. The stable simulation-quality metrics are described in
 
 - [01 Entity Graph](./systems/01-entity-graph.md)
 - [02 Entity Kinds](./systems/02-entity-kinds.md)
-- [03 Attributes](./systems/03-attributes.md)
+- [03 Health And Traits](./systems/03-attributes.md)
 - [04 Map Spatial](./systems/04-map-spatial.md)
 - [05 Tick Clock](./systems/05-tick-clock.md)
 - [06 Entity Behaviors](./systems/06-entity-behaviors.md)
 - [07 Relationships](./systems/07-relationships.md)
 - [09 Lifecycle](./systems/09-lifecycle.md)
 - [10 Map Visualization](./systems/10-map-visualization.md)
-- [11 Pressure](./systems/11-pressure.md)
+- [11 Removed Macro Aggregate](./systems/11-removed-macro-aggregate.md)
 - [12 Deck](./systems/12-deck.md)
 - [13 Tableau Mana](./systems/13-tableau-mana.md)
 - [15 Domain Definition Graph](./systems/15-domain-definition-graph.md)
 - [16 Generator Executor](./systems/16-generator-executor.md)
 - [18 Action Executor](./systems/18-action-executor.md)
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
+- [20 Shared Query And Effect Executor Plan](./systems/20-shared-query-effect-executor-plan.md)

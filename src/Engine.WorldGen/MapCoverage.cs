@@ -131,17 +131,7 @@ public sealed class MapCoverageMap
             {
                 foreach (var cellCoord in result.ClaimedCells)
                 {
-                    var cell = grid.GetCell(cellCoord);
-                    if (cell is null)
-                    {
-                        continue;
-                    }
-
-                    // Extension point: today transforms only rewrite terrain class.
-                    // If region creation later needs richer effects (elevation, ambient
-                    // resources, hazards), extend this seam rather than special-casing
-                    // generators.
-                    grid.SetCell(cellCoord, transformedTerrain, cell.Elevation, cell.Fertility);
+                    grid.SetCell(cellCoord, transformedTerrain);
                 }
             }
 
@@ -191,9 +181,7 @@ public sealed class MapCoverageMap
         ArgumentNullException.ThrowIfNull(coverage);
         ArgumentNullException.ThrowIfNull(grid);
 
-        var totalFertility = 0f;
         var terrainCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var allResources = new HashSet<string>(StringComparer.Ordinal);
         var cellCount = 0;
 
         foreach (var coord in coverage.Cells)
@@ -205,23 +193,16 @@ public sealed class MapCoverageMap
             }
 
             cellCount++;
-            totalFertility += cell.Fertility;
 
             terrainCounts[cell.Terrain.StableName] =
                 terrainCounts.GetValueOrDefault(cell.Terrain.StableName) + 1;
-
-            foreach (var resource in cell.Resources)
-            {
-                allResources.Add(resource);
-            }
         }
 
-        var avgFertility = cellCount > 0 ? totalFertility / cellCount : 0f;
         var dominantTerrain = terrainCounts.Count > 0
             ? terrainCounts.MaxBy(kv => kv.Value).Key
             : "wastes";
 
-        return new CoverageAggregates(avgFertility, dominantTerrain, allResources, cellCount);
+        return new CoverageAggregates(dominantTerrain, cellCount);
     }
 
     private MapCoveragePlacementResult CreateNewCoverage(
@@ -536,20 +517,14 @@ public sealed class MapCoverageMap
 
 public sealed class CoverageAggregates
 {
-    public float AverageFertility { get; }
     public string DominantTerrain { get; }
-    public IReadOnlySet<string> Resources { get; }
     public int CellCount { get; }
 
     public CoverageAggregates(
-        float averageFertility,
         string dominantTerrain,
-        IReadOnlySet<string> resources,
         int cellCount)
     {
-        AverageFertility = averageFertility;
         DominantTerrain = dominantTerrain;
-        Resources = resources;
         CellCount = cellCount;
     }
 }

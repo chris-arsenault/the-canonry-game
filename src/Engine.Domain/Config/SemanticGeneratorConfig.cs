@@ -81,7 +81,6 @@ public sealed class SemanticEntityQuery
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;
-    public IReadOnlyList<SemanticQueryAttributeCondition> AttributeConditions { get; init; } = [];
 }
 
 public sealed class SemanticGeneratorBindingTarget
@@ -89,12 +88,6 @@ public sealed class SemanticGeneratorBindingTarget
     public required string Ref { get; init; }
     public required EntityKind Kind { get; init; }
     public SemanticEntityQuery? Query { get; init; }
-}
-
-public sealed class SemanticQueryAttributeCondition
-{
-    public required string AttributeName { get; init; }
-    public TriggerDirection Direction { get; init; } = TriggerDirection.Any;
 }
 
 public enum QueryTargetCultureMatch
@@ -138,8 +131,6 @@ public sealed class SemanticGeneratorRelationship
 public sealed class SemanticGeneratorTrigger
 {
     public required EntityKind OnKind { get; init; }
-    public string? AttributeName { get; init; }
-    public TriggerDirection Direction { get; init; } = TriggerDirection.Any;
 }
 
 public enum SemanticPlacement
@@ -148,12 +139,4 @@ public enum SemanticPlacement
     Near,
     Across,
     InRegionLocality,
-}
-
-public enum TriggerDirection
-{
-    High,
-    Low,
-    Critical,
-    Any,
 }

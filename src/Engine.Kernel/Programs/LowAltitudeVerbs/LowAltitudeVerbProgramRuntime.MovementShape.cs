@@ -29,7 +29,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 continue;
             }
 
-            var weight = LocationWeight(simulation, candidate.RuleSlot, candidate.PlaneCode, q, r, tick, 0f);
+            var weight = LocationWeight(simulation, entityId, candidate.RuleSlot, candidate.PlaneCode, q, r, tick, 0f);
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
             {
@@ -156,6 +156,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             AddDwellCandidate(
                 simulation,
                 world,
+                entityId,
                 rule,
                 tick,
                 planeCode,
@@ -178,6 +179,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private void AddDwellCandidate(
         Simulation simulation,
         WorldState world,
+        int entityId,
         int rule,
         int tick,
         int planeCode,
@@ -205,7 +207,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         var pull = 1f / (1f + distance);
-        var activityWeight = LocationWeight(simulation, rule, planeCode, q, r, tick, 0f);
+        var activityWeight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0f);
         var weight = (pull * 4f) + activityWeight;
         totalWeight += weight;
         if (simulation.NextFloat() * totalWeight <= weight)
@@ -242,6 +244,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             TryAddStepCandidate(
                 simulation,
                 world,
+                entityId,
                 rule,
                 tick,
                 planeCode,
@@ -262,6 +265,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private void TryAddStepCandidate(
         Simulation simulation,
         WorldState world,
+        int entityId,
         int rule,
         int tick,
         int planeCode,
@@ -284,7 +288,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         var currentDistance = HexDistance(currentQ, currentR, targetQ, targetR);
         var candidateDistance = HexDistance(q, r, targetQ, targetR);
-        var weight = StepCandidateWeight(simulation, rule, planeCode, q, r, tick, currentDistance, candidateDistance, pathLooseness);
+        var weight = StepCandidateWeight(simulation, entityId, rule, planeCode, q, r, tick, currentDistance, candidateDistance, pathLooseness);
         totalWeight += weight;
         if (simulation.NextFloat() * totalWeight <= weight)
         {
@@ -321,6 +325,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private float StepCandidateWeight(
         Simulation simulation,
+        int entityId,
         int rule,
         int planeCode,
         int q,
@@ -333,7 +338,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var progressWeight = candidateDistance < currentDistance
             ? 1f / (1f + candidateDistance)
             : pathLooseness / 1000f;
-        var activityWeight = LocationWeight(simulation, rule, planeCode, q, r, tick, 0f);
+        var activityWeight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0f);
         return progressWeight * 8f + activityWeight;
     }
 

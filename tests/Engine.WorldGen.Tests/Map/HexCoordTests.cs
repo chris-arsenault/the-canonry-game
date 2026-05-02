@@ -26,9 +26,12 @@ public class HexCoordTests
     [Fact]
     public void Distance_IsSymmetric()
     {
-        var a = new HexCoord(1, 2);
-        var b = new HexCoord(-3, 1);
-        Assert.Equal(HexCoord.Distance(a, b), HexCoord.Distance(b, a));
+        var first = new HexCoord(1, 2);
+        var second = new HexCoord(-3, 1);
+        var forward = HexCoord.Distance(first, second);
+        var reverse = HexCoord.Distance(second, first);
+
+        Assert.Equal(forward, reverse);
     }
 
     [Fact]

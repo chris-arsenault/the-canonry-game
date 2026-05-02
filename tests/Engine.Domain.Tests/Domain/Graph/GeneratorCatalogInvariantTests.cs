@@ -20,7 +20,7 @@ public class GeneratorCatalogInvariantTests
     }
 
     [Fact]
-    public void Validate_IceRemembersGeneratorCatalog_UsesFactBackedTargetSaturation()
+    public void Validate_IceRemembersGeneratorCatalog_TargetSaturationMatchesGeneratedRelationships()
     {
         var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var issues = new List<string>();
@@ -33,54 +33,13 @@ public class GeneratorCatalogInvariantTests
                 continue;
             }
 
-            if (saturation.RequiredFactId is null)
-            {
-                issues.Add($"{generator.Id} target saturation has no required relationship fact.");
-                continue;
-            }
-
             var hasMatchingRelationship = generator.Relationships.Any(relationship =>
                 relationship.RelationshipId == saturation.RelationshipId &&
-                relationship.FactIds.Contains(saturation.RequiredFactId.Value) &&
+                (saturation.RequiredFactId is null || relationship.FactIds.Contains(saturation.RequiredFactId.Value)) &&
                 TargetSaturationDirectionMatchesRelationship(saturation.Direction, relationship));
             if (!hasMatchingRelationship)
             {
                 issues.Add($"{generator.Id} target saturation does not match a generated relationship.");
-            }
-        }
-
-        Assert.Empty(issues);
-    }
-
-    [Fact]
-    public void Validate_IceRemembersGeneratorCatalog_DoesNotUseAttributePreconditions()
-    {
-        var issues = new List<string>();
-
-        foreach (var generator in IceRemembersDefinition.Create().Semantics!.Generators)
-        {
-            foreach (var trigger in generator.Triggers)
-            {
-                if (!string.IsNullOrWhiteSpace(trigger.AttributeName) || trigger.Direction != TriggerDirection.Any)
-                {
-                    issues.Add($"{generator.Id} has attribute trigger '{trigger.AttributeName}'.");
-                }
-            }
-
-            foreach (var binding in generator.SecondaryTargets)
-            {
-                if (binding.Query?.AttributeConditions.Count > 0)
-                {
-                    issues.Add($"{generator.Id} binding '{binding.Ref}' has attribute query conditions.");
-                }
-            }
-
-            foreach (var produced in generator.Produces)
-            {
-                if (produced.Query?.AttributeConditions.Count > 0)
-                {
-                    issues.Add($"{generator.Id} produce '{produced.Ref}' has attribute query conditions.");
-                }
             }
         }
 
@@ -136,8 +95,6 @@ public class GeneratorCatalogInvariantTests
                 new SemanticGeneratorTrigger
                 {
                     OnKind = TestKinds.Settlement,
-                    AttributeName = "shelter",
-                    Direction = TriggerDirection.High,
                 },
             ],
         };
@@ -181,8 +138,6 @@ public class GeneratorCatalogInvariantTests
                 new SemanticGeneratorTrigger
                 {
                     OnKind = TestKinds.Faction,
-                    AttributeName = "cohesion",
-                    Direction = TriggerDirection.Low,
                 },
             ]);
 
@@ -204,25 +159,6 @@ public class GeneratorCatalogInvariantTests
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
 
         Assert.Contains("target references unknown subtype 'missing_subtype'", ex.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Validate_GeneratorTriggerAttributeMissingOnKind_ThrowsActionableMessage()
-    {
-        var generator = CreateBaseGenerator(
-            triggers:
-            [
-                new SemanticGeneratorTrigger
-                {
-                    OnKind = TestKinds.Settlement,
-                    AttributeName = "missing_attribute",
-                    Direction = TriggerDirection.Low,
-                },
-            ]);
-
-        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
-
-        Assert.Contains("unknown attribute 'missing_attribute'", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -410,8 +346,6 @@ public class GeneratorCatalogInvariantTests
                 new SemanticGeneratorTrigger
                 {
                     OnKind = TestKinds.Region,
-                    AttributeName = "pristiness",
-                    Direction = TriggerDirection.High,
                 },
             ],
         };
@@ -447,7 +381,7 @@ public class GeneratorCatalogInvariantTests
                     Kind = "founded_from",
                 },
             ],
-            Triggers = [HighSettlementShelterTrigger()],
+            Triggers = [HighSettlementHealthTrigger()],
         };
 
     private static SemanticGeneratorConfig CreateReefholdKeeperGenerator() =>
@@ -504,7 +438,7 @@ public class GeneratorCatalogInvariantTests
                     Kind = "home_base",
                 },
             ],
-            Triggers = [HighSettlementShelterTrigger()],
+            Triggers = [HighSettlementHealthTrigger()],
         };
 
     private static SemanticGeneratorConfig CreateWitnessRaisesSanctuaryGenerator() =>
@@ -542,18 +476,14 @@ public class GeneratorCatalogInvariantTests
                 new SemanticGeneratorTrigger
                 {
                     OnKind = TestKinds.Penguin,
-                    AttributeName = "echo",
-                    Direction = TriggerDirection.High,
                 },
             ],
         };
 
-    private static SemanticGeneratorTrigger HighSettlementShelterTrigger() =>
+    private static SemanticGeneratorTrigger HighSettlementHealthTrigger() =>
         new()
         {
             OnKind = TestKinds.Settlement,
-            AttributeName = "shelter",
-            Direction = TriggerDirection.High,
         };
 
     private static SemanticGeneratorConfig CreateBaseGenerator(
@@ -594,8 +524,6 @@ public class GeneratorCatalogInvariantTests
                 new SemanticGeneratorTrigger
                 {
                     OnKind = TestKinds.Settlement,
-                    AttributeName = "shelter",
-                    Direction = TriggerDirection.Low,
                 },
             ],
         };
@@ -609,12 +537,13 @@ public class GeneratorCatalogInvariantTests
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
+            Gambits = config.Gambits,
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
-            Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,
             Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {
                 Stocks = semantics.Stocks,

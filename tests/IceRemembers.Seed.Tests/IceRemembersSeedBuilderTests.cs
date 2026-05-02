@@ -79,22 +79,20 @@ public sealed class IceRemembersSeedBuilderTests
             subdivision.Level == DomainMapSubdivisionLevel.Continent));
         Assert.Equal(7, startupSeed.MapSubdivisions.Count(subdivision =>
             subdivision.Level == DomainMapSubdivisionLevel.Superregion));
-        Assert.Contains(startupSeed.Entities, entity => entity.DisplayName == "Frosthaven");
+        Assert.Contains(startupSeed.Entities, entity => entity.DisplayName == "Aurora Stack");
         Assert.Contains(startupSeed.Cells, cell => cell.OwnerSeedEntityId is not null);
         Assert.All(startupSeed.Cells, cell =>
         {
             Assert.True(cell.SuperregionId > 0, $"Cell {cell.Q},{cell.R} has no superregion.");
             Assert.True(cell.ContinentId > 0, $"Cell {cell.Q},{cell.R} has no continent.");
         });
-        Assert.Contains(startupSeed.Resources, resource =>
-            resource.Resource == IceRemembersResource.Food.ToDomainName() &&
-            resource.Value > 0f);
+        Assert.Empty(startupSeed.Resources);
         Assert.Contains(startupSeed.Relationships, relationship =>
             relationship.RelationshipKind == IceRemembersRelationship.ControlledBy.ToDomainName());
     }
 
     [Fact]
-    public void Grid_UsesIceRemembersTerrainCatalogAndAmbientResourceBands()
+    public void Grid_UsesIceRemembersTerrainCatalog()
     {
         var terrainNames = Seed.Cells
             .Select(cell => cell.Terrain)
@@ -105,16 +103,6 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Contains(T(IceRemembersTerrain.Tundra), terrainNames);
         Assert.Contains(T(IceRemembersTerrain.Crags), terrainNames);
         Assert.Contains(T(IceRemembersTerrain.Ocean), terrainNames);
-
-        var catalog = IceRemembersTerrainCatalog.CreateWorldGenCatalog();
-        foreach (var resource in Seed.Resources)
-        {
-            var terrain = TerrainAt(resource.Q, resource.R);
-            var range = catalog.Resolve(terrain).AmbientResources[resource.Resource];
-            Assert.True(
-                range.Contains(resource.Value),
-                $"{resource.Q},{resource.R} {resource.Resource} {resource.Value} outside [{range.Min}, {range.Max}] for {terrain}");
-        }
     }
 
     [Fact]
@@ -136,29 +124,13 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
-    public void TerrainProfiles_UseExpectedPopulationBands()
-    {
-        var catalog = IceRemembersTerrainCatalog.CreateWorldGenCatalog();
-
-        Assert.Equal(
-            new AmbientValueRange(0f, 3f),
-            PopulationRange(catalog, IceRemembersTerrain.Ice));
-        Assert.Equal(
-            new AmbientValueRange(0f, 1f),
-            PopulationRange(catalog, IceRemembersTerrain.Ocean));
-        Assert.Equal(
-            new AmbientValueRange(3f, 5f),
-            PopulationRange(catalog, IceRemembersTerrain.Tundra));
-    }
-
-    [Fact]
     public void SeedRoster_KeepsFixedAnchorsAndExpectedCounts()
     {
         Assert.Equal(6, EntitiesByKind(K.Region).Length);
         Assert.InRange(EntitiesByKind(K.Settlement).Length, 10, 12);
-        Assert.Equal(3, EntitiesByKind(K.Faction).Length);
-        Assert.InRange(EntitiesByKind(K.Penguin).Length, 6, 8);
-        Assert.InRange(EntitiesByKind(K.Artifact).Length, 2, 3);
+        Assert.Equal(5, EntitiesByKind(K.Faction).Length);
+        Assert.InRange(EntitiesByKind(K.Penguin).Length, 8, 10);
+        Assert.Equal(3, EntitiesByKind(K.Artifact).Length);
 
         var names = Seed.Entities.Select(entity => entity.DisplayName).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("Northlands", names);
@@ -167,17 +139,26 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Contains("Farwake", names);
         Assert.Contains("Blackwater", names);
         Assert.Contains("White Empty", names);
-        Assert.Contains("Frosthaven", names);
+        Assert.Contains("Aurora Stack", names);
         Assert.Contains("Ironhold", names);
-        Assert.Contains("Driftwatch", names);
+        Assert.Contains("Nightfall Shelf", names);
         Assert.Contains("Wavecrest", names);
-        Assert.Contains("Midpoint", names);
-        Assert.Contains("Stillwake", names);
-        Assert.Contains("Deepcall", names);
-        Assert.Contains("Northern Compact", names);
-        Assert.Contains("Southern Order", names);
-        Assert.Contains("Farwake Choir", names);
-        Assert.Contains("Stormcleaver", names);
+        Assert.Contains("Midway Shelf", names);
+        Assert.Contains("The Drowned Ledge", names);
+        Assert.Contains("The Still Pools", names);
+        Assert.Contains("Council of Luminaries", names);
+        Assert.Contains("The Icebound Exchange", names);
+        Assert.Contains("Midnight Claws", names);
+        Assert.Contains("Fire Keepers", names);
+        Assert.Contains("The Wake-Singers", names);
+        Assert.Contains("High-Beak Auditor Selka", names);
+        Assert.Contains("Shadow-Broker Nyla", names);
+        Assert.Contains("Keeper Hollows", names);
+        Assert.Contains("Grandmother Deep", names);
+        Assert.Contains("Tidescream", names);
+        Assert.Contains("The Radiant Ring", names);
+        Assert.Contains("The Hollows Chart", names);
+        Assert.Contains("The Dreaming Tooth", names);
     }
 
     [Fact]
@@ -194,9 +175,6 @@ public sealed class IceRemembersSeedBuilderTests
 
             var cell = CellAt(Coord(penguin));
             Assert.NotNull(cell);
-            var terrain = IceRemembersTerrainCatalog.CreateWorldGenCatalog().Resolve(cell.Terrain);
-            Assert.False(float.IsPositiveInfinity(terrain.MovementCost),
-                $"Penguin {penguin.DisplayName} spawned on blocked terrain cost at {Coord(penguin)}.");
         }
 
         foreach (var artifact in EntitiesByKind(K.Artifact))
@@ -223,7 +201,7 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.True(rSpan >= 20, $"Expected settlement r-span >= 20, got {rSpan}.");
         Assert.True(NamedCoverageIsSparse());
 
-        foreach (var settlementName in new[] { "Driftwatch", "Wavecrest" })
+        foreach (var settlementName in new[] { "Nightfall Shelf", "Wavecrest" })
         {
             var settlement = EntityNamed(K.Settlement.Value, settlementName);
             var coord = Coord(settlement);
@@ -239,12 +217,12 @@ public sealed class IceRemembersSeedBuilderTests
                 $"{settlementName} should be on or next to maritime terrain, got {cell.Terrain} at {coord}.");
         }
 
-        var frosthaven = EntityNamed(K.Settlement.Value, "Frosthaven");
-        var frosthavenCell = CellAt(Coord(frosthaven));
-        Assert.NotNull(frosthavenCell);
+        var auroraStack = EntityNamed(K.Settlement.Value, "Aurora Stack");
+        var auroraStackCell = CellAt(Coord(auroraStack));
+        Assert.NotNull(auroraStackCell);
         Assert.True(
-            IsAnyTerrain(frosthavenCell.Terrain, IceRemembersTerrain.Ice, IceRemembersTerrain.Tundra, IceRemembersTerrain.Shelf),
-            $"Frosthaven should be on cold terrain, got {frosthavenCell.Terrain}.");
+            IsAnyTerrain(auroraStackCell.Terrain, IceRemembersTerrain.Ice, IceRemembersTerrain.Tundra, IceRemembersTerrain.Shelf),
+            $"Aurora Stack should be on cold terrain, got {auroraStackCell.Terrain}.");
     }
 
     [Fact]
@@ -331,14 +309,14 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void SeedCivilizations_HaveTwoNearbyClustersAndOneRemoteCluster()
     {
-        var northern = EntityNamed(K.Faction.Value, "Northern Compact");
-        var southern = EntityNamed(K.Faction.Value, "Southern Order");
-        var farwake = EntityNamed(K.Faction.Value, "Farwake Choir");
+        var council = EntityNamed(K.Faction.Value, "Council of Luminaries");
+        var claws = EntityNamed(K.Faction.Value, "Midnight Claws");
+        var wakeSingers = EntityNamed(K.Faction.Value, "The Wake-Singers");
 
-        var nearDistance = HexCoord.Distance(Coord(northern), Coord(southern));
+        var nearDistance = HexCoord.Distance(Coord(council), Coord(claws));
         var farDistance = Math.Min(
-            HexCoord.Distance(Coord(farwake), Coord(northern)),
-            HexCoord.Distance(Coord(farwake), Coord(southern)));
+            HexCoord.Distance(Coord(wakeSingers), Coord(council)),
+            HexCoord.Distance(Coord(wakeSingers), Coord(claws)));
 
         Assert.True(nearDistance <= 28, $"Expected close civilization pair, got distance {nearDistance}.");
         Assert.True(farDistance >= 25, $"Expected remote civilization, got distance {farDistance}.");
@@ -363,9 +341,6 @@ public sealed class IceRemembersSeedBuilderTests
     private DomainSeedCell? CellAt(HexCoord coord) =>
         Seed.Cells.FirstOrDefault(cell => cell.Q == coord.Q && cell.R == coord.R);
 
-    private string TerrainAt(int q, int r) =>
-        Seed.Cells.Single(cell => cell.Q == q && cell.R == r).Terrain;
-
     private bool NamedCoverageIsSparse()
     {
         var covered = Seed.Cells.Count(cell => cell.OwnerSeedEntityId is not null);
@@ -375,9 +350,6 @@ public sealed class IceRemembersSeedBuilderTests
     private static HexCoord Coord(DomainSeedEntity entity) => new(entity.PhysicalQ, entity.PhysicalR);
 
     private static string T(IceRemembersTerrain terrain) => terrain.ToDomainName();
-
-    private static AmbientValueRange PopulationRange(TerrainCatalog catalog, IceRemembersTerrain terrain) =>
-        catalog.Resolve(T(terrain)).AmbientResources[IceRemembersResource.Population.ToDomainName()];
 
     private static bool IsAnyTerrain(string terrainName, params IceRemembersTerrain[] terrains) =>
         terrains.Any(terrain => string.Equals(terrainName, T(terrain), StringComparison.Ordinal));

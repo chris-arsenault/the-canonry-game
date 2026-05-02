@@ -14,6 +14,8 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     internal readonly float[] AttributeDeltaThresholds;
     internal readonly float[] AttributeDeltaMinimumRelationshipStrengths;
     internal readonly float[] AttributeDeltaDeltas;
+    internal readonly int[] AttributeDeltaRequiredTargetTraitIds;
+    internal readonly int[] AttributeDeltaRequiredRelatedTraitIds;
     internal int AttributeDeltaRuleCount;
 
     public EffectsProgramData(int effectRuleCapacity)
@@ -29,6 +31,8 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
         AttributeDeltaThresholds = new float[effectRuleCapacity + 1];
         AttributeDeltaMinimumRelationshipStrengths = new float[effectRuleCapacity + 1];
         AttributeDeltaDeltas = new float[effectRuleCapacity + 1];
+        AttributeDeltaRequiredTargetTraitIds = new int[effectRuleCapacity + 1];
+        AttributeDeltaRequiredRelatedTraitIds = new int[effectRuleCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Effects;

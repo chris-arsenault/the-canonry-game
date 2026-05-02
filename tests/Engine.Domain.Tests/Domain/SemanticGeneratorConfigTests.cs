@@ -54,7 +54,6 @@ public class SemanticGeneratorConfigTests
         Assert.Equal(SemanticPlacement.Near, config.Produces[0].SemanticPlacement);
         Assert.Null(config.Produces[0].Subtypes);
         Assert.Null(config.Produces[0].Query);
-        Assert.Equal(TriggerDirection.Any, config.Triggers[0].Direction);
     }
 
     [Fact]

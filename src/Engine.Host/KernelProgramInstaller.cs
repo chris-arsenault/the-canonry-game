@@ -20,7 +20,6 @@ internal static partial class KernelProgramInstaller
         InstallUpkeep(context, programs.Upkeep);
         InstallGambits(context, programs.Gambits);
         InstallRelationships(context, programs.Relationships);
-        InstallPressures(context, programs.Pressures);
         InstallGenerators(context, programs.Generators);
         InstallDegeneracy(context, programs.Degeneracy);
 
@@ -45,9 +44,6 @@ internal static partial class KernelProgramInstaller
         context.SetProgramEnabled(
             KernelProgramCodes.Relationships,
             programConfig.IsEnabled(KernelProgramCodes.Relationships, programs.Relationships.EnabledByDefault));
-        context.SetProgramEnabled(
-            KernelProgramCodes.Pressures,
-            programConfig.IsEnabled(KernelProgramCodes.Pressures, programs.Pressures.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Generators,
             programConfig.IsEnabled(KernelProgramCodes.Generators, programs.Generators.EnabledByDefault));
@@ -98,6 +94,16 @@ internal static partial class KernelProgramInstaller
         foreach (var gambit in program.Gambits)
         {
             InstallGambit(context, gambit);
+        }
+
+        foreach (var modifier in program.TraitModifiers)
+        {
+            context.RegisterTraitGambitModifier(
+                modifier.GambitId,
+                modifier.TraitId,
+                modifier.BearerCode,
+                modifier.ScoreDelta,
+                modifier.SuccessChanceDelta);
         }
     }
 
@@ -190,19 +196,6 @@ internal static partial class KernelProgramInstaller
         }
     }
 
-    private static void InstallPressures(KernelConfigurationContext context, PressureProgram program)
-    {
-        foreach (var pressure in program.Pressures)
-        {
-            context.RegisterPressure(
-                new PressureRuntimeId(pressure.PressureId),
-                PressureScopeCode(pressure.Scope),
-                pressure.Baseline,
-                pressure.HomeostasisRate,
-                pressure.SmoothingFactor);
-        }
-    }
-
     private static void InstallDegeneracy(KernelConfigurationContext context, DegeneracyProgram program)
     {
         foreach (var detector in program.Detectors)
@@ -291,10 +284,7 @@ internal static partial class KernelProgramInstaller
         {
             context.AddGeneratorTrigger(
                 generatorSlot,
-                trigger.KindId,
-                trigger.AttributeId,
-                GeneratorTriggerDirectionCode(trigger.Direction),
-                trigger.Threshold);
+                trigger.KindId);
         }
     }
 
@@ -444,14 +434,6 @@ internal static partial class KernelProgramInstaller
             context.AddGeneratorBindingWithoutIncomingRelationship(bindingSlot, relationshipKindId);
         }
 
-        foreach (var condition in query.AttributeConditions)
-        {
-            context.AddGeneratorBindingAttributeCondition(
-                bindingSlot,
-                condition.AttributeId,
-                GeneratorTriggerDirectionCode(condition.Direction),
-                condition.Threshold);
-        }
     }
 
     private static void InstallGeneratorProducedQuery(
@@ -474,14 +456,6 @@ internal static partial class KernelProgramInstaller
             context.AddGeneratorProducedQueryWithoutIncomingRelationship(producedSlot, relationshipKindId);
         }
 
-        foreach (var condition in query.AttributeConditions)
-        {
-            context.AddGeneratorProducedQueryAttributeCondition(
-                producedSlot,
-                condition.AttributeId,
-                GeneratorTriggerDirectionCode(condition.Direction),
-                condition.Threshold);
-        }
     }
 
     private static int TargetModeCode(BehaviorProgramTargetMode mode) => mode switch
@@ -588,7 +562,6 @@ internal static partial class KernelProgramInstaller
         {
             BehaviorProgramOperation.AddResource => BehaviorOperationCodes.AddResource,
             BehaviorProgramOperation.AddLocationResource => BehaviorOperationCodes.AddLocationResource,
-            BehaviorProgramOperation.AddPressure => BehaviorOperationCodes.AddPressure,
             _ => -1,
         };
         return code >= 0;
@@ -654,7 +627,6 @@ internal static partial class KernelProgramInstaller
         {
             BehaviorProgramPrecondition.PlaneDistance => BehaviorPreconditionCodes.PlaneDistance,
             BehaviorProgramPrecondition.LocationResourceRange => BehaviorPreconditionCodes.LocationResourceRange,
-            BehaviorProgramPrecondition.PressureRange => BehaviorPreconditionCodes.PressureRange,
             BehaviorProgramPrecondition.CooldownElapsed => BehaviorPreconditionCodes.CooldownElapsed,
             BehaviorProgramPrecondition.EntityCountAtLeast => BehaviorPreconditionCodes.EntityCountAtLeast,
             BehaviorProgramPrecondition.HasColocatedEntity => BehaviorPreconditionCodes.HasColocatedEntity,
@@ -740,13 +712,6 @@ internal static partial class KernelProgramInstaller
         _ => throw new ArgumentOutOfRangeException(nameof(selector), selector, null),
     };
 
-    private static int PressureScopeCode(PressureRuntimeScope scope) => scope switch
-    {
-        PressureRuntimeScope.Coverage => PressureScopeCodes.Coverage,
-        PressureRuntimeScope.Entity => PressureScopeCodes.Entity,
-        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null),
-    };
-
     private static int GeneratorSaturationDirectionCode(GeneratorProgramSaturationDirection direction) => direction switch
     {
         GeneratorProgramSaturationDirection.OutgoingFromTarget => GeneratorSaturationDirectionCodes.OutgoingFromTarget,
@@ -770,15 +735,6 @@ internal static partial class KernelProgramInstaller
         GeneratorProgramCultureMatch.SameAsTarget => GeneratorCultureMatchCodes.SameAsTarget,
         GeneratorProgramCultureMatch.DifferentFromTarget => GeneratorCultureMatchCodes.DifferentFromTarget,
         _ => throw new ArgumentOutOfRangeException(nameof(cultureMatch), cultureMatch, null),
-    };
-
-    private static int GeneratorTriggerDirectionCode(GeneratorProgramTriggerDirection direction) => direction switch
-    {
-        GeneratorProgramTriggerDirection.High => GeneratorTriggerDirectionCodes.High,
-        GeneratorProgramTriggerDirection.Low => GeneratorTriggerDirectionCodes.Low,
-        GeneratorProgramTriggerDirection.Critical => GeneratorTriggerDirectionCodes.Critical,
-        GeneratorProgramTriggerDirection.Any => GeneratorTriggerDirectionCodes.Any,
-        _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
     };
 
     private static int GeneratorCoverageModeCode(GeneratorProgramCoverageMode mode) => mode switch

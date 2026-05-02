@@ -214,7 +214,7 @@ internal sealed partial class GambitProgramRuntime
             return false;
         }
 
-        Push(stack, ref stackCount, PlaneDistance(world, entityId, targetId, PlaneCodes.Physical));
+        Push(stack, ref stackCount, KernelQuery.PlaneDistance(world, entityId, targetId, PlaneCodes.Physical));
         return true;
     }
 

@@ -22,8 +22,8 @@ three before declaring success.
 
 ## Altitude Boundaries
 
-Low altitude is the per-tick substrate. It may move entities, change scalar
-attributes, write map activity and influence, and drift existing relationship
+Low altitude is the per-tick substrate. It may move entities, change health,
+read traits, write map activity and influence, and drift existing relationship
 strengths. It should not create named entities, introduce relationship kinds, or
 declare major narrative outcomes.
 
@@ -44,14 +44,14 @@ Locality is an implementation ingredient, not a primary success criterion.
 Do not optimize for "more local actions" unless doing so improves map use,
 entity roaming, influence shape, relationship dynamics, or lifecycle churn.
 
-Resources and pressures are not primary low-altitude drivers today. Their
-telemetry may remain for future analysis, but current low-altitude quality
-should be judged through movement, influence, map signals, health effects,
-upkeep, relationships, gambits, and generators.
+Resources are not primary low-altitude drivers today. The former macro
+aggregate layer has been removed rather than retained as telemetry. Current
+low-altitude quality should be judged through movement, influence, map signals,
+health effects, upkeep, relationships, gambits, and generators.
 
-Attributes should provide individual variance and lifecycle state. They should
-not force a recovery treadmill where entities spend the simulation maintaining
-stocks instead of producing visible map life.
+Health provides lifecycle state. Traits provide mostly static individual
+variance. Neither should force a recovery treadmill where entities spend the
+simulation maintaining stocks instead of producing visible map life.
 
 ## Map Metrics
 

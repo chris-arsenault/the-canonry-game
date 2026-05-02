@@ -295,29 +295,7 @@ public static class DefinitionGeneratorBuilder
         return new DefinitionGeneratorTrigger
         {
             OnKind = trigger.OnKind,
-            AttributeId = ResolveTriggerAttribute(generatorId, graph, trigger),
-            Direction = trigger.Direction,
         };
-    }
-
-    private static DefinitionAttributeId? ResolveTriggerAttribute(
-        string generatorId,
-        DefinitionGraph graph,
-        SemanticGeneratorTrigger trigger)
-    {
-        if (string.IsNullOrWhiteSpace(trigger.AttributeName))
-        {
-            return null;
-        }
-
-        var attributeId = new DefinitionAttributeId(trigger.AttributeName);
-        if (!graph.Kinds[trigger.OnKind].Attributes.ContainsKey(attributeId))
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' trigger references unknown attribute '{trigger.AttributeName}' on kind '{trigger.OnKind}'.");
-        }
-
-        return attributeId;
     }
 
     private static void ValidateQuery(
@@ -329,7 +307,6 @@ public static class DefinitionGeneratorBuilder
         ValidateSubtypes(graph, kind, query?.Subtypes, context);
         ValidateRelationshipNames(graph, query?.WithoutOutgoingRelationships, context);
         ValidateRelationshipNames(graph, query?.WithoutIncomingRelationships, context);
-        ValidateQueryAttributeConditions(graph, kind, query?.AttributeConditions, context);
     }
 
     private static void AddDeclaredRef(
@@ -488,28 +465,6 @@ public static class DefinitionGeneratorBuilder
             ? null
             : new HashSet<string>(relationshipKinds, StringComparer.Ordinal);
 
-    private static void ValidateQueryAttributeConditions(
-        DefinitionGraph graph,
-        EntityKind kind,
-        IReadOnlyList<SemanticQueryAttributeCondition>? conditions,
-        string context)
-    {
-        if (conditions is null)
-        {
-            return;
-        }
-
-        foreach (var condition in conditions)
-        {
-            var attributeId = new DefinitionAttributeId(condition.AttributeName);
-            if (!graph.Kinds[kind].Attributes.ContainsKey(attributeId))
-            {
-                throw new DefinitionGraphException(
-                    $"{context} references unknown attribute '{condition.AttributeName}' on kind '{kind}'.");
-            }
-        }
-    }
-
     private static DefinitionEntityQuery? BuildQuery(
         DefinitionGraph graph,
         EntityKind kind,
@@ -535,13 +490,6 @@ public static class DefinitionGeneratorBuilder
                 ? null
                 : new HashSet<string>(query.WithoutIncomingRelationships, StringComparer.Ordinal),
             TargetCultureMatch = query.TargetCultureMatch,
-            AttributeConditions = query.AttributeConditions
-                .Select(condition => new DefinitionQueryAttributeCondition
-                {
-                    AttributeId = new DefinitionAttributeId(condition.AttributeName),
-                    Direction = condition.Direction,
-                })
-                .ToList(),
         };
     }
 

@@ -37,11 +37,7 @@ public sealed record GeneratorTargetRelationshipRequirements(
     IReadOnlyList<int> RequiredIncomingRelationshipKindIds,
     IReadOnlyList<int> RequiredRelationshipKindIds);
 
-public sealed record GeneratorTriggerRule(
-    int KindId,
-    int AttributeId,
-    GeneratorProgramTriggerDirection Direction,
-    float Threshold);
+public sealed record GeneratorTriggerRule(int KindId);
 
 public sealed record GeneratorBindingRule(
     int RefCode,
@@ -68,13 +64,7 @@ public sealed record GeneratorEntityQueryRule(
     bool AdjacentToTarget,
     GeneratorProgramCultureMatch CultureMatch,
     IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
-    IReadOnlyList<int> WithoutIncomingRelationshipKindIds,
-    IReadOnlyList<GeneratorAttributeConditionRule> AttributeConditions);
-
-public sealed record GeneratorAttributeConditionRule(
-    int AttributeId,
-    GeneratorProgramTriggerDirection Direction,
-    float Threshold);
+    IReadOnlyList<int> WithoutIncomingRelationshipKindIds);
 
 public sealed record GeneratorCoverageRule(
     GeneratorProgramCoverageMode Mode,
@@ -115,14 +105,6 @@ public enum GeneratorProgramCultureMatch
     Any,
     SameAsTarget,
     DifferentFromTarget,
-}
-
-public enum GeneratorProgramTriggerDirection
-{
-    High,
-    Low,
-    Critical,
-    Any,
 }
 
 public enum GeneratorProgramCoverageMode

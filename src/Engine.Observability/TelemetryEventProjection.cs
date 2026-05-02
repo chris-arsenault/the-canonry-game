@@ -19,7 +19,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
     private readonly Dictionary<ResourceCellKey, float> _resourceValues = [];
-    private readonly Dictionary<PressureKey, float> _pressureValues = [];
     private readonly Dictionary<(int EntityId, int PlanId), int> _selectedLocalityByEntityPlan = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
@@ -203,7 +202,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
         RecordResourceSnapshots(tick);
-        RecordPressureSnapshots(tick);
         RecordGeneratorStateSnapshots(tick);
     }
 
@@ -272,28 +270,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             {
                 _batch.ResourceTerrainSnapshots.Add(row);
             }
-        }
-    }
-
-    private void RecordPressureSnapshots(int tick)
-    {
-        foreach (var pair in _pressureValues)
-        {
-            _batch.PressureSnapshots.Add(new PressureSnapshotRow(
-                _runId,
-                tick,
-                pair.Key.PressureId,
-                pair.Key.ScopeCode,
-                pair.Key.ScopeEntityId,
-                pair.Value));
-            _batch.PressureSourceSnapshots.Add(new PressureSourceSnapshotRow(
-                _runId,
-                tick,
-                pair.Key.PressureId,
-                pair.Key.ScopeCode,
-                pair.Key.ScopeEntityId,
-                SourceCodeId: 0,
-                pair.Value));
         }
     }
 
@@ -467,23 +443,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.NewValue,
             evt.NewValue - evt.OldValue,
             evt.SourceCodeId));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnPressureChanged(long sequence, in PressureChangedKernelEvent evt)
-    {
-        var key = new PressureKey(evt.PressureId, evt.ScopeCode, evt.ScopeEntityId);
-        _pressureValues[key] = evt.NewValue;
-        _batch.PressureEvents.Add(new PressureEventRow(
-            _runId,
-            evt.Tick,
-            evt.PressureId,
-            evt.ScopeCode,
-            evt.ScopeEntityId,
-            evt.SourceCodeId,
-            evt.OldValue,
-            evt.NewValue,
-            evt.NewValue - evt.OldValue));
         MarkProjected(sequence);
     }
 

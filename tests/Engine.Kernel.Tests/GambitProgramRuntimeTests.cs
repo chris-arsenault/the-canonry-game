@@ -475,8 +475,6 @@ public sealed class GambitProgramRuntimeTests
             GambitObjectiveCapacity = 4,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 32,
-            PressureCapacity = 4,
-            PressureValueCapacity = 16,
             DegeneracyDetectorCapacity = 4,
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,

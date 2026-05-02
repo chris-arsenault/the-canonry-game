@@ -9,6 +9,7 @@ internal sealed partial class WorldState
 
     private readonly KernelEventLog _events;
     private readonly PrimitiveFloatTable _attributes;
+    private readonly PrimitiveIntTable _traits;
     private readonly PrimitiveFloatTable _resources;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
     private readonly PrimitiveIntTable _mapCellSuperregionIds;
@@ -77,6 +78,7 @@ internal sealed partial class WorldState
         global::System.ArgumentNullException.ThrowIfNull(events); global::System.ArgumentNullException.ThrowIfNull(options);
         global::System.ArgumentNullException.ThrowIfNull(kernelData); _events = events; _kernelData = kernelData;
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
+        _traits = new PrimitiveIntTable(options.TraitCapacity);
         _resources = new PrimitiveFloatTable(options.ResourceCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellSuperregionIds = new PrimitiveIntTable(options.MapCellCapacity);
@@ -360,6 +362,40 @@ internal sealed partial class WorldState
     {
         var previous = GetAttribute(entityId, attributeId);
         SetAttribute(entityId, attributeId, previous + delta, tick, context);
+    }
+
+    public bool HasTrait(int entityId, int traitId)
+    {
+        EnsureEntity(entityId);
+        ValidatePositive(traitId);
+        return _traits.GetOrDefault(entityId, traitId) != 0;
+    }
+
+    public void AddTrait(int entityId, int traitId, int tick)
+    {
+        AddTrait(entityId, traitId, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+    }
+
+    public void AddTrait(int entityId, int traitId, int tick, in KernelExecutionContext context)
+    {
+        EnsureEntity(entityId);
+        ValidatePositive(traitId);
+        ValidatePositive(context.SourceCodeId);
+        if (HasTrait(entityId, traitId))
+        {
+            return;
+        }
+
+        _traits.Set(entityId, traitId, 1);
+        _entityUpdatedAt[entityId] = tick;
+        AdvanceWorldVersion();
+        Write(KernelEvent.From(new TraitAssignedKernelEvent(
+            tick,
+            WorldVersion,
+            entityId,
+            traitId,
+            context.SourceCodeId)),
+            context);
     }
 
     public float GetResource(int resourceId, int q, int r)

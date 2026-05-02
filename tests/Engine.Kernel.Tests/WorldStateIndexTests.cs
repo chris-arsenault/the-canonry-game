@@ -266,8 +266,6 @@ public sealed class WorldStateIndexTests
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 32,
             GambitObjectiveCapacity = 16,
-            PressureCapacity = 4,
-            PressureValueCapacity = 16,
             DegeneracyDetectorCapacity = 4,
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,

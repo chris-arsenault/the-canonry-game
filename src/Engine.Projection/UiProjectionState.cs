@@ -145,6 +145,15 @@ public sealed class UiProjectionState : KernelEventProjector
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
+    protected override void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
+    {
+        var entity = GetOrCreateEntity(evt.EntityId);
+        entity.Traits.Add(evt.TraitId);
+        entity.LastUpdatedTick = evt.Tick;
+        entity.WorldVersion = evt.WorldVersion;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
     protected override void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
     {
         var key = new UiResourceKey(evt.ResourceId, evt.Q, evt.R);
@@ -359,6 +368,8 @@ public sealed class UiEntityProjection(int entityId)
     public bool WasCreatedFromEvent { get; internal set; }
 
     public Dictionary<int, UiAttributeProjection> Attributes { get; } = [];
+
+    public HashSet<int> Traits { get; } = [];
 
     public UiMovementProjection? LastMove { get; internal set; }
 

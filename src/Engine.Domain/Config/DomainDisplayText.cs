@@ -30,19 +30,33 @@ public static class DomainDisplayText
             return attributeName;
         }
 
-        var attribute = kindConfig.Attributes.FirstOrDefault(a => string.Equals(a.Name, attributeName, StringComparison.Ordinal));
-        if (attribute is null)
+        var health = kindConfig.Health;
+        if (!string.Equals(health.Name, attributeName, StringComparison.Ordinal))
         {
             return attributeName;
         }
 
         if (!string.IsNullOrWhiteSpace(cultureId)
-            && attribute.CultureDisplayNames is not null
-            && attribute.CultureDisplayNames.TryGetValue(cultureId, out var cultureDisplayName))
+            && health.CultureDisplayNames is not null
+            && health.CultureDisplayNames.TryGetValue(cultureId, out var cultureDisplayName))
         {
             return cultureDisplayName;
         }
 
-        return attribute.DisplayName ?? attribute.Name;
+        return health.DisplayName ?? health.Name;
+    }
+
+    public static string GetTraitDisplayName(this DomainConfig config, EntityKind kind, string traitName)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentException.ThrowIfNullOrEmpty(traitName);
+
+        if (!config.Kinds.TryGetValue(kind, out var kindConfig))
+        {
+            return traitName;
+        }
+
+        var trait = kindConfig.Traits.FirstOrDefault(t => string.Equals(t.Name, traitName, StringComparison.Ordinal));
+        return trait?.DisplayName ?? traitName;
     }
 }

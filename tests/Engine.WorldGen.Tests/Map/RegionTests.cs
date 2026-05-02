@@ -71,6 +71,8 @@ public class RegionTests
         var coord = new HexCoord(0, 0);
         regionMap.AssignCell(coord, region);
         regionMap.AssignCell(coord, region);
+
+        Assert.Same(region, regionMap.GetCoverageForCell(coord));
     }
 
     [Fact]
@@ -150,29 +152,6 @@ public class RegionTests
     }
 
     [Fact]
-    public void ComputeAggregates_CorrectAverageFertility()
-    {
-        var grid = WorldGenTestData.Grid(2);
-        var regionMap = new MapCoverageMap();
-        var region = new MapCoverage("Test", 1);
-        regionMap.RegisterCoverage(region);
-
-        foreach (var cell in grid.AllCells)
-        {
-            regionMap.AssignCell(cell.Coord, region);
-        }
-
-        grid.SetCell(new HexCoord(0, 0), WorldGenTestData.Tundra, fertility: 1.0f);
-        grid.SetCell(new HexCoord(1, 0), WorldGenTestData.Tundra, fertility: 0.0f);
-
-        var agg = regionMap.ComputeAggregates(region, grid);
-
-        Assert.True(agg.AverageFertility > 0f);
-        Assert.True(agg.AverageFertility < 1f);
-        Assert.Equal(grid.CellCount, agg.CellCount);
-    }
-
-    [Fact]
     public void ComputeAggregates_DominantTerrain()
     {
         var grid = WorldGenTestData.Grid(2);
@@ -188,32 +167,9 @@ public class RegionTests
 
         grid.SetCell(new HexCoord(0, 0), WorldGenTestData.Tundra);
 
-        var agg = regionMap.ComputeAggregates(region, grid);
+        var agg = MapCoverageMap.ComputeAggregates(region, grid);
 
         Assert.Equal(WorldGenTestData.Crags, agg.DominantTerrain);
-    }
-
-    [Fact]
-    public void ComputeAggregates_CollectsResources()
-    {
-        var grid = WorldGenTestData.Grid(2);
-        var regionMap = new MapCoverageMap();
-        var region = new MapCoverage("Rich", 1);
-        regionMap.RegisterCoverage(region);
-
-        foreach (var cell in grid.AllCells)
-        {
-            regionMap.AssignCell(cell.Coord, region);
-        }
-
-        grid.GetCell(new HexCoord(0, 0))!.Resources.Add("iron");
-        grid.GetCell(new HexCoord(1, 0))!.Resources.Add("gold_ore");
-        grid.GetCell(new HexCoord(1, 0))!.Resources.Add("iron");
-
-        var agg = regionMap.ComputeAggregates(region, grid);
-
-        Assert.Contains("iron", agg.Resources);
-        Assert.Contains("gold_ore", agg.Resources);
-        Assert.Equal(2, agg.Resources.Count);
+        Assert.Equal(grid.CellCount, agg.CellCount);
     }
 }

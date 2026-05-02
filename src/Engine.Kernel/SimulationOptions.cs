@@ -7,6 +7,7 @@ internal sealed record SimulationOptions
     public int EntityCapacity { get; init; } = 4096;
     public int RelationshipCapacity { get; init; } = 8192;
     public int AttributeCapacity { get; init; } = 65536;
+    public int TraitCapacity { get; init; } = 65536;
     public int ResourceCapacity { get; init; } = 65536;
     public int MapCellCapacity { get; init; } = 16384;
     public int MapInfluenceCapacity { get; init; } = 32768;
@@ -25,8 +26,6 @@ internal sealed record SimulationOptions
     public int GambitCommitmentCapacity { get; init; } = 4096;
     public int GeneratorCapacity { get; init; } = 256;
     public int GeneratorItemCapacity { get; init; } = 4096;
-    public int PressureCapacity { get; init; } = 128;
-    public int PressureValueCapacity { get; init; } = 8192;
     public int DegeneracyDetectorCapacity { get; init; } = 32;
     public int DegeneracyStateCapacity { get; init; } = 8192;
     public int LifecycleRuleCapacity { get; init; } = 256;
@@ -36,7 +35,9 @@ internal sealed record SimulationOptions
     public int MapSignalCellCapacity { get; init; } = 32768;
     public int EffectRuleCapacity { get; init; } = 512;
     public int EntityAttributeCapacity { get; init; } = 512;
+    public int EntityTraitCapacity { get; init; } = 512;
     public int AttributeIdCapacity { get; init; } = 1024;
+    public int TraitIdCapacity { get; init; } = 1024;
     public int KindIdCapacity { get; init; } = 256;
     public int TerrainIdCapacity { get; init; } = 128;
     public int RelationshipRuleCapacity { get; init; } = 256;
@@ -57,7 +58,6 @@ internal sealed record KernelProgramTuningOptions
 {
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public PlanningProgramTuningOptions Planning { get; init; } = new();
-    public PressureProgramTuningOptions Pressures { get; init; } = new();
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
 }
@@ -71,7 +71,6 @@ internal sealed record ProgramEnabledTuningOptions
     public int Upkeep { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Gambits { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Relationships { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
-    public int Pressures { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Generators { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Degeneracy { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
 }
@@ -88,11 +87,6 @@ internal sealed record PlanningProgramTuningOptions
 internal readonly record struct PlanningKindPlannerOverride(int KindId, int PlannerKindCode);
 
 internal readonly record struct PlanningEntityPlannerOverride(int EntityId, int PlannerKindCode);
-
-internal sealed record PressureProgramTuningOptions
-{
-    public bool Enabled { get; init; }
-}
 
 internal sealed record UpkeepProgramTuningOptions
 {

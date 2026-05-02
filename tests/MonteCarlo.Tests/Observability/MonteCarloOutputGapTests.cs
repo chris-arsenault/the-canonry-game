@@ -132,7 +132,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
     [Fact]
     public void PlannerActionOutput_CandidatesMustIncludeLosersAndDiagnosticsNotOnlyWinningRows()
     {
-        // A selected-only candidate export would make action pressure look complete while hiding
+        // A selected-only candidate export would make action utilization look complete while hiding
         // why non-movement verbs lose. The output must include rejected/non-selected candidates.
         fixture.AssertRawTablesExist("planner_candidates");
 
@@ -292,54 +292,6 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
     }
 
     [Fact]
-    public void PressureOutput_EventsAndSnapshotsMustUseTheSamePressureScopes()
-    {
-        // Pressure events and pressure snapshots are one pressure domain. Event scopes that never
-        // appear in snapshots would make pressure internals impossible to analyze.
-        fixture.AssertRawTablesExist("pressure_events", "pressure_snapshots");
-
-        Assert.Equal(0, fixture.RawQueryLong(
-            ["pressure_events", "pressure_snapshots"],
-            """
-            SELECT COUNT(*)
-            FROM pressure_events evt
-            LEFT JOIN pressure_snapshots snap
-              ON snap.run_id = evt.run_id
-             AND snap.pressure_id = evt.pressure_id
-             AND snap.scope_code = evt.scope_code
-             AND snap.scope_entity_id = evt.scope_entity_id
-            WHERE snap.pressure_id IS NULL;
-            """));
-    }
-
-    [Fact]
-    public void PressureOutput_SourceSnapshotsMustRollUpToPressureSnapshots()
-    {
-        // Source contribution snapshots are the planned explanation path for pressure internals.
-        // They must be numerically tied to the pressure snapshot table.
-        fixture.AssertRawTablesExist("pressure_snapshots", "pressure_source_snapshots");
-
-        Assert.Equal(0, fixture.RawQueryLong(
-            ["pressure_snapshots", "pressure_source_snapshots"],
-            """
-            WITH source_sum AS (
-                SELECT run_id, tick, pressure_id, scope_code, scope_entity_id, SUM(contribution) AS value
-                FROM pressure_source_snapshots
-                GROUP BY run_id, tick, pressure_id, scope_code, scope_entity_id
-            )
-            SELECT COUNT(*)
-            FROM pressure_snapshots pressure
-            LEFT JOIN source_sum source
-              ON source.run_id = pressure.run_id
-             AND source.tick = pressure.tick
-             AND source.pressure_id = pressure.pressure_id
-             AND source.scope_code = pressure.scope_code
-             AND source.scope_entity_id = pressure.scope_entity_id
-            WHERE ABS(COALESCE(source.value, -1) - pressure.value) > 0.001;
-            """));
-    }
-
-    [Fact]
     public void EntityOutput_AttributeSnapshotsMustSupportPerEntityStockDynamics()
     {
         // Aggregate attribute bands are not enough. Individual entity/attribute samples over time
@@ -415,7 +367,6 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
                      "trace_enabled",
                      "entity_snapshot_cadence",
                      "resource_snapshot_cadence",
-                     "pressure_snapshot_cadence",
                      "map_snapshot_cadence",
                      "generator_snapshot_cadence",
                  })
@@ -446,17 +397,17 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
     }
 
     [Fact]
-    public void AnalysisOutput_ActionPressureMustBeDerivedFromPlannerCandidates()
+    public void AnalysisOutput_ActionUtilizationMustBeDerivedFromPlannerCandidates()
     {
-        // This prevents the old fallback where action pressure used execution counts only and
+        // This prevents the old fallback where action utilization used execution counts only and
         // silently lost candidate/precondition/cooldown diagnostics.
         fixture.AssertRawTablesExist("planner_candidates");
-        fixture.AssertAnalysisTablesExist("action_pressure");
+        fixture.AssertAnalysisTablesExist("action_utilization");
 
         Assert.Equal(
             fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates;"),
-            fixture.AnalysisQueryLong(["action_pressure"], "SELECT COALESCE(SUM(candidate_evaluations), 0) FROM action_pressure;"));
-        Assert.True(fixture.AnalysisQueryLong(["action_pressure"], "SELECT COUNT(*) FROM action_pressure WHERE evidence_source_code <> 0;") > 0);
+            fixture.AnalysisQueryLong(["action_utilization"], "SELECT COALESCE(SUM(candidate_evaluations), 0) FROM action_utilization;"));
+        Assert.True(fixture.AnalysisQueryLong(["action_utilization"], "SELECT COUNT(*) FROM action_utilization WHERE evidence_source_code <> 0;") > 0);
     }
 
     [Fact]
@@ -545,8 +496,8 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         var data = new TheoryData<string>();
         data.Add("generator_balance.csv");
         data.Add("generated_subtype_coverage.csv");
-        data.Add("planner_pressure.csv");
-        data.Add("action_pressure.csv");
+        data.Add("planner_utilization.csv");
+        data.Add("action_utilization.csv");
         data.Add("attribute_bands.csv");
         data.Add("map_spread.csv");
         data.Add("map_generation.csv");
@@ -561,7 +512,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         ArgumentNullException.ThrowIfNull(data);
 
         data.Add("runs", "run_id,seed,domain_id,started_unix_milliseconds", "Run metadata is the root key for every output join.");
-        data.Add("experiment_variants", "run_id,experiment_id,variant_id,config_hash_id,git_sha_id,trace_enabled,entity_snapshot_cadence,resource_snapshot_cadence,pressure_snapshot_cadence,map_snapshot_cadence,generator_snapshot_cadence", "Variant metadata and snapshot cadences are required for cross-run comparisons.");
+        data.Add("experiment_variants", "run_id,experiment_id,variant_id,config_hash_id,git_sha_id,trace_enabled,entity_snapshot_cadence,resource_snapshot_cadence,map_snapshot_cadence,generator_snapshot_cadence", "Variant metadata and snapshot cadences are required for cross-run comparisons.");
         data.Add("tick_snapshots", "run_id,tick,active_entities,historical_entities,total_generator_fires,active_relationships,coverage_count,covered_cells,uncovered_cells,physical_spread,semantic_spread", "Tick snapshots provide coarse run state and coverage denominators.");
         data.Add("kind_snapshots", "run_id,tick,kind_id,subtype_id,active_count,historical_count,average_health,minimum_health,maximum_health", "Kind health summaries must be computed, not zero-filled.");
         data.Add("entity_events", "run_id,tick,event_type_code,source_code_id,entity_id,kind_id,subtype_id,culture_id,previous_status_code,current_status_code,physical_q,physical_r,semantic_q,semantic_r,semantic_s", "Entity events own identity and status changes.");
@@ -583,9 +534,6 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("coverage_snapshots", "run_id,tick,owner_entity_id,coverage_kind_code,cell_count,min_q,max_q,min_r,max_r,active_entity_count", "Coverage snapshots own named territory size and spread.");
         data.Add("coverage_terrain_snapshots", "run_id,tick,owner_entity_id,terrain_id,cell_count", "Coverage terrain snapshots explain named coverage terrain mix.");
         data.Add("placement_events", "run_id,tick,cause_id,anchor_entity_id,placement_mode_code,plane_code,q,r,s,terrain_id,coverage_owner_entity_id,rejection_reason_code,selected", "Placement events explain spatial creation decisions.");
-        data.Add("pressure_events", "run_id,tick,pressure_id,scope_code,scope_entity_id,source_code_id,old_value,new_value,delta", "Pressure events own pressure deltas.");
-        data.Add("pressure_snapshots", "run_id,tick,pressure_id,scope_code,scope_entity_id,value", "Pressure snapshots own current pressure values.");
-        data.Add("pressure_source_snapshots", "run_id,tick,pressure_id,scope_code,scope_entity_id,source_code_id,contribution", "Pressure source snapshots explain pressure internals.");
         data.Add("generator_events", "run_id,tick,event_type_code,generator_id,status_code,cause_id,target_pool_count,inactive_rejected_count,subtype_rejected_count,saturation_rejected_count,secondary_target_rejected_count,wilderness_rejected_count,trigger_rejected_count,candidate_count,failed_fire_count,selected_target_entity_id,created_entity_count,created_relationship_count,created_map_cell_count", "Generator events own eligibility and fire counts.");
         data.Add("generator_outputs", "run_id,tick,cause_id,generator_id,output_domain_code,output_entity_id,output_relationship_kind_id,output_source_entity_id,output_target_entity_id,output_q,output_r,output_s,placement_event_id", "Generator outputs explicitly attribute created domain rows.");
         data.Add("generator_state_snapshots", "run_id,tick,generator_id,enabled,cadence,cooldown_remaining,run_count,last_run_tick", "Generator state snapshots explain availability.");
@@ -609,13 +557,12 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("entity_roaming", "run_id,entity_id,kind_id,subtype_id,culture_id,status_code,plane_code,move_count,total_distance,unique_positions,roam_radius_max,roam_radius_p95,path_efficiency", "Entity roaming measures physical and semantic variance without treating movement volume as failure.");
         data.Add("roaming_summary", "kind_id,plane_code,entity_count,mover_count,zero_move_share,average_move_count,average_unique_positions,average_roam_radius,p50_roam_radius,p75_roam_radius,p95_roam_radius,overclustered_roam_share", "Roaming summary tracks whether entities actually traverse meaningful space by kind and plane.");
         data.Add("influence_dynamics", "run_id,entity_id,kind_id,subtype_id,event_count,positive_delta_events,negative_delta_events,net_influence_delta,influenced_cell_count,average_final_influence,max_final_influence,isolated_cell_count,neighbor_connection_count,mean_anchor_distance,p95_anchor_distance,max_anchor_distance", "Influence dynamics tracks low-altitude settlement/faction influence shape and discontinuity.");
-        data.Add("action_pressure", "kind_id,action_id,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic_code,evidence_source_code", "Action pressure must include candidate and blocker diagnostics.");
-        data.Add("planner_pressure", "kind_id,evaluations,goal_count,candidate_count,stale_rate,no_execution_rate,average_candidate_count,top_executed_action_id,top_action_share_of_executions", "Planner pressure summarizes planner status and selected actions.");
+        data.Add("action_utilization", "kind_id,action_id,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic_code,evidence_source_code", "Action utilization must include candidate and blocker diagnostics.");
+        data.Add("planner_utilization", "kind_id,evaluations,goal_count,candidate_count,stale_rate,no_execution_rate,average_candidate_count,top_executed_action_id,top_action_share_of_executions", "Planner utilization summarizes planner status and selected actions.");
         data.Add("stock_dynamics", "run_id,entity_id,kind_id,attribute_id,sample_count,minimum_observed,maximum_observed,variance,reversal_count,dwell_low_ticks,dwell_mid_ticks,dwell_high_ticks,pinned_low_ticks,pinned_high_ticks,normalized_range", "Stock dynamics answers whether entity stocks fluctuate or pin.");
         data.Add("map_spread", "run_id,snapshot_tick,total_cell_count,active_entities,activity_event_count,activity_cells,activity_cell_share,activity_entropy,activity_top_cell_share,activity_bounding_box_area,activity_coverage_within_bounding_box,activity_axis_anisotropy,largest_unoccupied_strict_hex_radius", "Map spread measures activity footprint, concentration, corridor bias, and strict empty radius.");
         data.Add("coverage_development", "run_id,owner_entity_id,coverage_kind_code,initial_cell_count,final_cell_count,cell_growth,terrain_mix_count,active_entities_inside", "Coverage development measures named coverage growth.");
         data.Add("terrain_occupancy", "terrain_id,average_final_active_entities,average_named_coverage_share", "Terrain occupancy explains terrain utilization.");
-        data.Add("pressure_dynamics", "pressure_id,scope_code,scope_entity_id,average_value,maximum_value,source_count", "Pressure dynamics summarizes pressure snapshots and source contributions.");
         data.Add("lifecycle", "kind_id,deaths,deaths_per_run,average_death_tick,average_final_active,average_final_historical,average_final_health", "Lifecycle summarizes deaths and kind health outcomes.");
         data.Add("experiment_comparison", "experiment_id,variant_id,run_count,average_fires_per_run,average_final_active_entities,average_final_physical_spread,average_final_uncovered_cells", "Experiment comparison is keyed by structured variant metadata.");
     }
@@ -653,13 +600,7 @@ public sealed class MonteCarloOutputGapFixture : IDisposable
             configPath,
             """
             {
-              "kernelTuning": {
-                "programs": {
-                  "pressures": {
-                    "enabled": true
-                  }
-                }
-              }
+              "kernelTuning": {}
             }
             """);
 

@@ -31,7 +31,7 @@ internal sealed partial class Simulation : IKernel
             schemaValidator: options.EventSchemaValidator);
         Commands = new KernelCommandRing(options.CommandCapacity);
         KernelData = new KernelDataSet(
-            new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity),
+            new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
             new KernelTerrainData(options.TerrainIdCapacity));
         World = new WorldState(Events, options, KernelData);
         Planners = CreatePlanningRuntime(options);
@@ -41,7 +41,6 @@ internal sealed partial class Simulation : IKernel
         Effects = CreateEffectsRuntime(options);
         Gambits = CreateGambitRuntime(options);
         Generators = CreateGeneratorRuntime(options);
-        Pressures = CreatePressureRuntime(options);
         Degeneracy = CreateDegeneracyRuntime(options);
         Upkeep = CreateUpkeepRuntime(options);
         Relationships = CreateRelationshipRuntime(options);
@@ -74,7 +73,6 @@ internal sealed partial class Simulation : IKernel
         StartupSourceCodeId = codes.StartupSourceCodeId;
         RelationshipSourceCodeId = codes.RelationshipSourceCodeId;
         GeneratorSourceCodeId = codes.GeneratorSourceCodeId;
-        PressureSourceCodeId = codes.PressureSourceCodeId;
         DegeneracySourceCodeId = codes.DegeneracySourceCodeId;
         PlanningSourceCodeId = codes.PlanningSourceCodeId;
         MapActivitySourceCodeId = codes.MapActivitySourceCodeId;
@@ -140,12 +138,6 @@ internal sealed partial class Simulation : IKernel
             options.KernelTuning.Programs);
     }
 
-    private static PressureProgramRuntime CreatePressureRuntime(SimulationOptions options) =>
-        new(
-            new PressureProgramData(options.PressureCapacity),
-            new PressureProgramState(options.PressureCapacity, options.PressureValueCapacity),
-            options.KernelTuning.Programs);
-
     private static DegeneracyProgramRuntime CreateDegeneracyRuntime(SimulationOptions options) =>
         new(
             new DegeneracyProgramData(options.DegeneracyDetectorCapacity),
@@ -173,7 +165,6 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
         RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
-        RegisterProgram(KernelProgramCodes.Pressures, 5, Pressures);
         RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
         RegisterProgram(KernelProgramCodes.Degeneracy, 10, Degeneracy);
         ValidateProgramDependencies();
@@ -297,7 +288,6 @@ internal sealed partial class Simulation : IKernel
     internal EffectsProgramRuntime Effects { get; }
     internal GambitProgramRuntime Gambits { get; }
     internal GeneratorProgramRuntime Generators { get; }
-    internal PressureProgramRuntime Pressures { get; }
     internal DegeneracyProgramRuntime Degeneracy { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
@@ -306,7 +296,6 @@ internal sealed partial class Simulation : IKernel
     internal int StartupSourceCodeId { get; private set; }
     internal int RelationshipSourceCodeId { get; private set; }
     internal int GeneratorSourceCodeId { get; private set; }
-    internal int PressureSourceCodeId { get; private set; }
     internal int DegeneracySourceCodeId { get; private set; }
     internal int PlanningSourceCodeId { get; private set; }
     internal int MapActivitySourceCodeId { get; private set; }
@@ -338,7 +327,7 @@ internal sealed partial class Simulation : IKernel
             LastVisitedTick = MapActivity.LastVisitedTick(planeCode, q, r),
             Heat = MapActivity.Heat(planeCode, q, r, tick),
             CurrentOccupancy = MapActivity.CurrentOccupancy(planeCode, q, r),
-            CrowdingPressure = MapSignals.CrowdingPressureAt(planeCode, q, r),
+            CrowdingLoad = MapSignals.CrowdingLoadAt(planeCode, q, r),
             AttractorMass = attractorMass,
         };
     }
@@ -358,6 +347,11 @@ internal sealed partial class Simulation : IKernel
             maximum,
             defaultValue,
             defaultVariance);
+    }
+
+    internal int RegisterTrait(int kindId, int traitId, float assignmentChance)
+    {
+        return KernelData.Entities.RegisterTrait(kindId, traitId, assignmentChance);
     }
 
     internal int RegisterTerrain(int terrainId, int boundaryGroupId)
@@ -953,7 +947,6 @@ internal sealed partial class Simulation : IKernel
     private int SourceCodeIdForCoreProgram(int programId) => programId switch
     {
         KernelProgramCodes.Gambits => GambitSourceCodeId,
-        KernelProgramCodes.Pressures => PressureSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
         KernelProgramCodes.Planning => PlanningSourceCodeId,

@@ -36,9 +36,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "resource_events",
         "resource_snapshots",
         "resource_terrain_snapshots",
-        "pressure_events",
-        "pressure_snapshots",
-        "pressure_source_snapshots",
         "relationship_events",
         "relationship_snapshots",
         "gambit_events",
@@ -95,10 +92,10 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         using var connection = OpenBatch(batchDirectory);
 
         var attributeConfigs = _domainConfig.Kinds
-            .SelectMany(kind => kind.Value.Attributes.Select(attribute =>
-                new KeyValuePair<(string Kind, string Attribute), AttributeConfig>(
-                    (kind.Key.Value, attribute.Name),
-                    attribute)))
+            .Select(kind =>
+                new KeyValuePair<(string Kind, string Attribute), HealthConfig>(
+                    (kind.Key.Value, kind.Value.Health.Name),
+                    kind.Value.Health))
             .ToDictionary(pair => pair.Key, pair => pair.Value);
 
         var telemetryCoverage = LoadTelemetryCoverage(connection);
@@ -109,9 +106,9 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var lowAltitudeRows = LoadLowAltitudeVerbRows(connection);
         var roamingRows = LoadRoamingSummaryRows(connection);
         var influenceRows = LoadInfluenceSummaryRows(connection);
-        var actionRows = LoadActionPressureRows(connection);
-        var plannerRows = LoadPlannerPressureRows(connection, actionRows);
-        var resourceRows = LoadResourcePressureRows(connection);
+        var actionRows = LoadActionUtilizationRows(connection);
+        var plannerRows = LoadPlannerUtilizationRows(connection, actionRows);
+        var resourceRows = LoadResourceDynamicsRows(connection);
         var mapGenerationRows = LoadMapGenerationRows(connection);
         var terrainRows = LoadTerrainOccupancyRows(connection);
         var lifecycleRows = LoadLifecycleRows(connection, overview.RunCount);
@@ -134,14 +131,14 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             LowAltitudeVerbUtilization = lowAltitudeRows,
             RoamingSummary = roamingRows,
             InfluenceSummary = influenceRows,
-            PlannerPressure = plannerRows,
-            ActionPressure = actionRows,
+            PlannerUtilization = plannerRows,
+            ActionUtilization = actionRows,
             AttributeBands = attributeRows,
             MapSpread = mapRows,
             MapGeneration = mapGenerationRows,
             TerrainOccupancy = terrainRows,
             Lifecycle = lifecycleRows,
-            ResourcePressure = resourceRows,
+            ResourceDynamics = resourceRows,
         };
     }
 
@@ -437,10 +434,10 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             CellInfluenceRows: ReadInt(reader, "cell_influence_rows")));
     }
 
-    private List<ActionPressureRow> LoadActionPressureRows(DuckDBConnection connection)
+    private List<ActionUtilizationRow> LoadActionUtilizationRows(DuckDBConnection connection)
     {
         var observed = LoadObservedActionRows(connection);
-        return BuildActionPressureRows(observed, "planner_candidates");
+        return BuildActionUtilizationRows(observed, "planner_candidates");
     }
 
     private static Dictionary<(string Kind, string ActionName), ObservedActionRow> LoadObservedActionRows(
@@ -479,7 +476,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToDictionary(row => (row.Kind, row.ActionName), row => row);
     }
 
-    private List<ActionPressureRow> BuildActionPressureRows(
+    private List<ActionUtilizationRow> BuildActionUtilizationRows(
         Dictionary<(string Kind, string ActionName), ObservedActionRow> observed,
         string evidenceSource)
     {
@@ -493,7 +490,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 var observedRow = observed.GetValueOrDefault((action.Kind, action.Name)) ??
                                   ObservedActionRow.Empty(action.Kind, action.Name);
 
-                return new ActionPressureRow(
+                return new ActionUtilizationRow(
                     Kind: action.Kind,
                     ActionName: action.Name,
                     CandidateEvaluations: observedRow.CandidateEvaluations,
@@ -516,7 +513,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToList();
     }
 
-    private static readonly string PlannerPressureRowsSql = $"""
+    private static readonly string PlannerUtilizationRowsSql = $"""
         SELECT
             COALESCE(kind_symbol.stable_name, CAST(candidate.kind_id AS VARCHAR)) AS kind,
             COUNT(DISTINCT candidate.plan_id) AS evaluations,
@@ -544,11 +541,11 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         GROUP BY kind;
         """;
 
-    private List<PlannerPressureRow> LoadPlannerPressureRows(
+    private List<PlannerUtilizationRow> LoadPlannerUtilizationRows(
         DuckDBConnection connection,
-        List<ActionPressureRow> actionRows)
+        List<ActionUtilizationRow> actionRows)
     {
-        var observed = Query(connection, PlannerPressureRowsSql, reader => new ObservedPlannerRow(
+        var observed = Query(connection, PlannerUtilizationRowsSql, reader => new ObservedPlannerRow(
             Kind: ReadString(reader, "kind"),
             Evaluations: ReadInt(reader, "evaluations"),
             StaleEvaluations: ReadInt(reader, "stale_evaluations"),
@@ -575,7 +572,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             var top = ranked.FirstOrDefault();
             var totalSelected = ranked.Sum(row => row.SelectedCount);
 
-            return new PlannerPressureRow(
+            return new PlannerUtilizationRow(
                 Kind: kind.Value,
                 Evaluations: observedRow.Evaluations,
                 StaleRate: observedRow.Evaluations == 0 ? 0d : observedRow.StaleEvaluations / (double)observedRow.Evaluations,
@@ -590,7 +587,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToList();
     }
 
-    private List<ResourcePressureRow> LoadResourcePressureRows(DuckDBConnection connection)
+    private List<ResourceDynamicsRow> LoadResourceDynamicsRows(DuckDBConnection connection)
     {
         const string overviewSql = """
             SELECT
@@ -602,7 +599,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             """;
 
         var endpoints = LoadResourceEndpointTotals(connection);
-        return Query(connection, overviewSql, reader => BuildResourcePressureRow(reader, endpoints))
+        return Query(connection, overviewSql, reader => BuildResourceDynamicsRow(reader, endpoints))
             .OrderBy(row => row.ResourceType, StringComparer.Ordinal)
             .ToList();
     }
@@ -658,13 +655,13 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
     }
 
-    private static ResourcePressureRow BuildResourcePressureRow(
+    private static ResourceDynamicsRow BuildResourceDynamicsRow(
         DbDataReader reader,
         Dictionary<string, (double Initial, double Final)> endpoints)
     {
         var resourceType = ReadString(reader, "resource_type");
         var endpoint = endpoints.GetValueOrDefault(resourceType);
-        return new ResourcePressureRow(
+        return new ResourceDynamicsRow(
             ResourceType: resourceType,
             AverageTotalOverTime: ReadDouble(reader, "average_total_over_time"),
             AverageInitialTotal: endpoint.Initial,
@@ -865,7 +862,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
     private static List<AttributeBandSummaryRow> BuildAttributeBandRows(
         List<EntitySnapshotRecord> snapshots,
-        Dictionary<(string Kind, string Attribute), AttributeConfig> attributeConfigs)
+        Dictionary<(string Kind, string Attribute), HealthConfig> attributeConfigs)
     {
         var aggregates = BuildAttributeBandAggregates(snapshots, attributeConfigs);
         return aggregates
@@ -879,7 +876,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     private static Dictionary<(string Kind, string Subtype, string Attribute), AttributeBandAccumulator>
         BuildAttributeBandAggregates(
             List<EntitySnapshotRecord> snapshots,
-            Dictionary<(string Kind, string Attribute), AttributeConfig> attributeConfigs)
+            Dictionary<(string Kind, string Attribute), HealthConfig> attributeConfigs)
     {
         var aggregates = new Dictionary<(string Kind, string Subtype, string Attribute), AttributeBandAccumulator>();
         foreach (var snapshot in snapshots)

@@ -109,9 +109,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("resource_events");
         ExportTable("resource_snapshots");
         ExportTable("resource_terrain_snapshots");
-        ExportTable("pressure_events");
-        ExportTable("pressure_snapshots");
-        ExportTable("pressure_source_snapshots");
         ExportTable("relationship_events");
         ExportTable("relationship_snapshots");
         ExportTable("gambit_events");
@@ -180,9 +177,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("resource_events", typeof(ResourceEventRow));
         EnsureTable("resource_snapshots", typeof(ResourceSnapshotRow));
         EnsureTable("resource_terrain_snapshots", typeof(ResourceTerrainSnapshotRow));
-        EnsureTable("pressure_events", typeof(PressureEventRow));
-        EnsureTable("pressure_snapshots", typeof(PressureSnapshotRow));
-        EnsureTable("pressure_source_snapshots", typeof(PressureSourceSnapshotRow));
         EnsureTable("relationship_events", typeof(RelationshipEventRow));
         EnsureTable("relationship_snapshots", typeof(RelationshipSnapshotRow));
         EnsureTable("gambit_events", typeof(GambitEventRow));
@@ -250,9 +244,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("resource_events", _pending.ResourceEvents);
         AppendTable("resource_snapshots", _pending.ResourceSnapshots);
         AppendTable("resource_terrain_snapshots", _pending.ResourceTerrainSnapshots);
-        AppendTable("pressure_events", _pending.PressureEvents);
-        AppendTable("pressure_snapshots", _pending.PressureSnapshots);
-        AppendTable("pressure_source_snapshots", _pending.PressureSourceSnapshots);
         AppendTable("relationship_events", _pending.RelationshipEvents);
         AppendTable("relationship_snapshots", _pending.RelationshipSnapshots);
         AppendTable("gambit_events", _pending.GambitEvents);
@@ -349,9 +340,6 @@ internal static class TelemetryBatchExtensions
         batch.ResourceEvents.Count +
         batch.ResourceSnapshots.Count +
         batch.ResourceTerrainSnapshots.Count +
-        batch.PressureEvents.Count +
-        batch.PressureSnapshots.Count +
-        batch.PressureSourceSnapshots.Count +
         batch.RelationshipEvents.Count +
         batch.RelationshipSnapshots.Count +
         batch.GambitEvents.Count +
@@ -414,9 +402,6 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.ResourceEvents, source.ResourceEvents);
         AppendRows(destination.ResourceSnapshots, source.ResourceSnapshots);
         AppendRows(destination.ResourceTerrainSnapshots, source.ResourceTerrainSnapshots);
-        AppendRows(destination.PressureEvents, source.PressureEvents);
-        AppendRows(destination.PressureSnapshots, source.PressureSnapshots);
-        AppendRows(destination.PressureSourceSnapshots, source.PressureSourceSnapshots);
         AppendRows(destination.RelationshipEvents, source.RelationshipEvents);
         AppendRows(destination.RelationshipSnapshots, source.RelationshipSnapshots);
         AppendRows(destination.GambitEvents, source.GambitEvents);

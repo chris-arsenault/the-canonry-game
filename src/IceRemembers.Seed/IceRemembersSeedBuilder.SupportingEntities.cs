@@ -141,22 +141,24 @@ internal static partial class IceRemembersSeedBuilder
     }
 
     private static IEnumerable<(string Subtype, string Name, string Culture, int Faction, float Loyalty)>
-        CreateSupportingPenguinPlans(Random random, SeedEntity factionA, SeedEntity factionB, SeedEntity factionC)
+        CreateSupportingPenguinPlans(Random random, SeedEntity factionA, SeedEntity factionB)
     {
         var count = 2 + random.Next(3);
         var names = new HashSet<string>(StringComparer.Ordinal)
         {
+            "High-Beak Auditor Selka",
+            "Shadow-Broker Nyla",
             "Captain Greyfeather",
             "Trader Shellback",
             "Elder Deepcurrent",
-            "Singer Underwake",
+            "Keeper Hollows",
         };
 
         for (var i = 0; i < count; i++)
         {
             var factionRoll = random.NextSingle();
-            var faction = PickSupportingPenguinFaction(factionRoll, factionA, factionB, factionC);
-            var culture = Pick(PenguinCulturesForFaction(faction, factionA, factionB), random);
+            var faction = factionRoll < 0.55f ? factionA : factionB;
+            var culture = Pick(PenguinCulturesForFaction(faction, factionA), random);
             var name = UniqueName(
                 $"{Pick(PenguinGivenNames, random)} {Pick(PenguinByNames, random)}",
                 names);
@@ -170,70 +172,10 @@ internal static partial class IceRemembersSeedBuilder
         }
     }
 
-    private static SeedEntity PickSupportingPenguinFaction(
-        float roll,
-        SeedEntity factionA,
-        SeedEntity factionB,
-        SeedEntity factionC)
-    {
-        if (roll < 0.42f)
-        {
-            return factionA;
-        }
-
-        return roll < 0.75f ? factionB : factionC;
-    }
-
     private static IceRemembersCulture[] PenguinCulturesForFaction(
         SeedEntity faction,
-        SeedEntity factionA,
-        SeedEntity factionB)
-    {
-        if (faction == factionA)
-        {
-            return NorthernPenguinCultures;
-        }
-
-        if (faction == factionB)
-        {
-            return SouthernPenguinCultures;
-        }
-
-        return FarPenguinCultures;
-    }
-
-    private static void CreateSupportingArtifacts(
-        SeedAssembly seed,
-        HexGrid grid,
-        Random random,
-        HashSet<HexCoord> takenPhysical,
-        HashSet<SemanticHexCoord> takenSemantic,
-        List<SeedEntity> allSettlements)
-    {
-        var count = 1 + random.Next(2);
-        var usedNames = new HashSet<string>(StringComparer.Ordinal) { "Stormcleaver" };
-
-        for (var i = 0; i < count; i++)
-        {
-            var host = allSettlements[random.Next(allSettlements.Count)];
-            var hostCoord = host.Coordinates;
-            var coord = ChooseNearbyFreeCell(grid, takenPhysical, hostCoord, searchRadius: 5)
-                ?? throw new InvalidOperationException($"Could not place supporting artifact near {host.Name}.");
-            var subtype = Pick(SupportingArtifactSubtypes, random);
-            var name = UniqueName(Pick(SupportingArtifactNames, random), usedNames);
-
-            var artifact = CreateEntity(
-                seed,
-                K.Artifact,
-                subtype,
-                name,
-                host.Culture,
-                coordinates: (coord.Q, coord.R));
-            takenPhysical.Add(coord);
-            SetSemanticProjected(artifact, coord, takenSemantic, RandomSemanticBias(random));
-            CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, artifact.SeedEntityId, host.SeedEntityId, 0.7f);
-        }
-    }
+        SeedEntity factionA) =>
+        faction == factionA ? NorthernPenguinCultures : SouthernPenguinCultures;
 
     private static float SupportingSettlementScore(
         HexGrid grid,

@@ -16,7 +16,6 @@ public static partial class DefinitionGraphValidator
         ValidateKindNodes(graph, errors);
         ValidateResourceKeys(graph, errors);
         ValidateRelationshipKeys(graph, errors);
-        ValidatePressureKeys(graph, errors);
         ValidateLifecycleNodes(graph, errors);
         ValidateGambitSet(graph, errors);
         ValidateGameplay(graph, errors);
@@ -59,17 +58,6 @@ public static partial class DefinitionGraphValidator
                 relationshipNode.SourceConfig.Maintenance))
             {
                 errors.Add($"Relationship '{relationshipId.Value}' maintenance: {error.Message}");
-            }
-        }
-    }
-
-    private static void ValidatePressureKeys(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var (pressureId, pressureNode) in graph.Pressures)
-        {
-            if (pressureNode.Id != pressureId)
-            {
-                errors.Add($"Pressure node key '{pressureId}' does not match node id '{pressureNode.Id}'.");
             }
         }
     }
@@ -182,7 +170,8 @@ public static partial class DefinitionGraphValidator
 
     private static void ValidateSemanticSet(DefinitionGraph graph, List<string> errors)
     {
-        ValidateKindAttributeCategoryShape(graph, errors);
+        ValidateKindHealthAttributeShape(graph, errors);
+        ValidateKindTraits(graph, errors);
         ValidateTransferPreconditionGates(graph, errors);
 
         if (graph.SemanticFlows.Verbs.Count == 0 && graph.SemanticFlows.Flows.Count == 0)
@@ -194,11 +183,6 @@ public static partial class DefinitionGraphValidator
         ValidateSemanticVerbParticipation(graph, errors);
         ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
-        ValidateHealthInflowFromHex(graph, errors);
-        ValidateSelfSacrificeFromHealth(graph, errors);
-        ValidateRpsRing(graph, errors);
-        ValidateUntouchedAttributeOutflowToHex(graph, errors);
-        ValidateMobilityAndDriftVerbs(graph, errors);
     }
 
     private static void ValidateGeneratorSet(DefinitionGraph graph, List<string> errors)
@@ -276,142 +260,6 @@ public static partial class DefinitionGraphValidator
     }
 
     /// <summary>
-    /// Every kind's Health attribute must have at least one inflow whose source ref
-    /// is a hex resource. Hex resources are the canonical supply for Health.
-    /// </summary>
-    private static void ValidateHealthInflowFromHex(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var (kind, kindNode) in graph.Kinds)
-        {
-            if (kindNode.HealthAttribute is not DefinitionAttributeId healthId)
-            {
-                continue;
-            }
-
-            var hasHexInflow = graph.SemanticFlows.Flows.Any(flow =>
-                flow.Role == SemanticFlowRole.Inflow &&
-                flow.TargetStock.Id is AttributeStockId stockId &&
-                stockId.Key.Kind == kind &&
-                stockId.Key.AttributeId == healthId &&
-                flow.SourceRefs.Any(src => src.ValueId is ResourceValueId));
-
-            if (!hasHexInflow)
-            {
-                errors.Add(
-                    $"Kind '{kind}' health attribute '{healthId.Value}' has no hex-resource inflow. Author an inflow whose source ref is a hex resource.");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Every kind must declare exactly one self-sacrifice flow whose source is the
-    /// Health attribute and whose target is one of the other two attributes (Outward
-    /// or Internal). This guarantees every kind has a last-resort H→X drain action.
-    /// </summary>
-    private static void ValidateSelfSacrificeFromHealth(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var (kind, kindNode) in graph.Kinds)
-        {
-            if (kindNode.HealthAttribute is not DefinitionAttributeId healthId)
-            {
-                continue;
-            }
-
-            var selfSacFlows = graph.SemanticFlows.Flows
-                .Where(flow =>
-                    flow.Role == SemanticFlowRole.Inflow &&
-                    flow.TargetStock.Id is AttributeStockId targetId &&
-                    targetId.Key.Kind == kind &&
-                    !targetId.Key.AttributeId.Equals(healthId) &&
-                    flow.SourceRefs.Any(src =>
-                        src.Scope == RefScope.Self &&
-                        src.Kind == kind &&
-                        src.ValueId is AttributeValueId healthVal &&
-                        healthVal.AttributeId.Equals(healthId)))
-                .ToList();
-
-            AddSelfSacrificeCountError(kind, healthId, selfSacFlows.Count, errors);
-        }
-    }
-
-    private static void AddSelfSacrificeCountError(
-        EntityKind kind,
-        DefinitionAttributeId healthId,
-        int selfSacrificeCount,
-        List<string> errors)
-    {
-        if (selfSacrificeCount == 0)
-        {
-            errors.Add(
-                $"Kind '{kind}' has no self-sacrifice flow from Health ('{healthId.Value}'). Author one inflow on K.O or K.I whose source ref is Self(K, {healthId.Value}).");
-            return;
-        }
-
-        if (selfSacrificeCount > 1)
-        {
-            errors.Add(
-                $"Kind '{kind}' declares {selfSacrificeCount} self-sacrifice flows from Health; exactly one is required.");
-        }
-    }
-
-    /// <summary>
-    /// RPS ring invariant. Given a domain-authored ring ordering:
-    ///   For every K_N in the ring there must be at least one mass-flow projected edge
-    ///   from K_N to K_{N+1} (the +1 edge) and at least one from K_N to K_{N+2} (the +2
-    ///   edge). Endpoints must be non-Health attributes on each side. Authors are free
-    ///   to choose which non-Health attribute on each side carries the edge — the ring
-    ///   only constrains kind-pair connectivity, not attribute roles.
-    /// </summary>
-    private static void ValidateRpsRing(DefinitionGraph graph, List<string> errors)
-    {
-        if (graph.RingOrder.Count == 0)
-        {
-            return;
-        }
-
-        var kindsInGraph = new HashSet<EntityKind>(graph.Kinds.Keys);
-        if (!graph.RingOrder.All(kindsInGraph.Contains))
-        {
-            return;
-        }
-
-        var projectedEdges = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows)
-            .Where(edge =>
-                !edge.IsGateOnly &&
-                edge.SourceId is AttributeStockId &&
-                edge.TargetId is AttributeStockId)
-            .Select(edge => (
-                SourceKind: ((AttributeStockId)edge.SourceId).Key.Kind,
-                SourceAttr: ((AttributeStockId)edge.SourceId).Key.AttributeId,
-                TargetKind: ((AttributeStockId)edge.TargetId).Key.Kind,
-                TargetAttr: ((AttributeStockId)edge.TargetId).Key.AttributeId))
-            .ToHashSet();
-
-        for (var n = 0; n < graph.RingOrder.Count; n++)
-        {
-            var kN = graph.RingOrder[n];
-            var kNext = graph.RingOrder[(n + 1) % graph.RingOrder.Count];
-            var kSkip = graph.RingOrder[(n + 2) % graph.RingOrder.Count];
-
-            var nHealth = graph.Kinds[kN].HealthAttribute;
-            var nextHealth = graph.Kinds[kNext].HealthAttribute;
-            var skipHealth = graph.Kinds[kSkip].HealthAttribute;
-
-            if (!HasNonHealthEdge(projectedEdges, kN, kNext, nHealth, nextHealth))
-            {
-                errors.Add(
-                    $"RPS ring: missing +1 edge from {kN} to {kNext} (need at least one non-Health attribute pair).");
-            }
-
-            if (!HasNonHealthEdge(projectedEdges, kN, kSkip, nHealth, skipHealth))
-            {
-                errors.Add(
-                    $"RPS ring: missing +2 edge from {kN} to {kSkip} (need at least one non-Health attribute pair).");
-            }
-        }
-    }
-
-    /// <summary>
     /// Every gambit that issues a <see cref="TransferAttributeMutation"/> must
     /// gate its source side at stock ≥ transfer amount. The transfer mutation is
     /// all-or-nothing; without the gate, a behavior would be allowed to fire when
@@ -483,170 +331,54 @@ public static partial class DefinitionGraphValidator
         }
     }
 
-    /// <summary>
-    /// Every entity kind must declare exactly one mobility verb (enablement: physical
-    /// or semantic-plane movement into position) and exactly one drift verb (downtime
-    /// random-step behavior on its assigned grid).
-    /// </summary>
-    private static void ValidateMobilityAndDriftVerbs(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var kind in graph.Kinds.Keys)
-        {
-            ValidateVerbRoleCount(graph, kind, SemanticVerbRole.Mobility, errors);
-            ValidateVerbRoleCount(graph, kind, SemanticVerbRole.Drift, errors);
-        }
-    }
-
-    private static void ValidateVerbRoleCount(
-        DefinitionGraph graph,
-        EntityKind kind,
-        SemanticVerbRole role,
-        List<string> errors)
-    {
-        var count = graph.SemanticFlows.Verbs
-            .Count(verb =>
-                verb.OwnerType == SemanticOwnerType.Entity &&
-                verb.OwnerKind == kind &&
-                verb.Role == role);
-
-        if (count == 0)
-        {
-            errors.Add(
-                $"Kind '{kind}' has no {role} verb. Declare exactly one entity-owned verb with Role = SemanticVerbRole.{role}.");
-        }
-        else if (count > 1)
-        {
-            errors.Add(
-                $"Kind '{kind}' declares {count} {role} verbs; exactly one is required.");
-        }
-    }
-
-    private static bool HasNonHealthEdge(
-        HashSet<(EntityKind SourceKind, DefinitionAttributeId SourceAttr, EntityKind TargetKind, DefinitionAttributeId TargetAttr)> edges,
-        EntityKind sourceKind,
-        EntityKind targetKind,
-        DefinitionAttributeId? sourceHealth,
-        DefinitionAttributeId? targetHealth) =>
-        edges.Any(edge =>
-            edge.SourceKind == sourceKind &&
-            edge.TargetKind == targetKind &&
-            (sourceHealth is null || !edge.SourceAttr.Equals(sourceHealth.Value)) &&
-            (targetHealth is null || !edge.TargetAttr.Equals(targetHealth.Value)));
-
-    /// <summary>
-    /// The attribute not involved in the self-sacrifice (the untouched one) must
-    /// outflow to a hex resource. Provides the production side of the hex cycle.
-    /// </summary>
-    private static void ValidateUntouchedAttributeOutflowToHex(DefinitionGraph graph, List<string> errors)
+    private static void ValidateKindHealthAttributeShape(DefinitionGraph graph, List<string> errors)
     {
         foreach (var (kind, kindNode) in graph.Kinds)
         {
+            if (kindNode.Attributes.Count != 1)
+            {
+                errors.Add(
+                    $"Kind '{kind}' declares {kindNode.Attributes.Count} attributes; exactly one health attribute is required.");
+                continue;
+            }
+
             if (kindNode.HealthAttribute is not DefinitionAttributeId healthId)
             {
+                errors.Add(
+                    $"Kind '{kind}' must declare HealthAttribute for its single mutable scalar.");
                 continue;
             }
 
-            var sacTarget = FindSelfSacrificeTarget(graph, kind, healthId);
-            if (sacTarget == default)
-            {
-                continue;
-            }
-
-            var untouched = kindNode.Attributes.Keys
-                .FirstOrDefault(id => id != healthId && id != sacTarget);
-            if (untouched == default)
-            {
-                continue;
-            }
-
-            if (!HasHexOutflow(graph, kind, untouched))
+            if (!kindNode.Attributes.TryGetValue(healthId, out var healthAttr) ||
+                !healthAttr.IsHealthAttribute)
             {
                 errors.Add(
-                    $"Kind '{kind}' untouched attribute '{untouched.Value}' has no outflow to a hex resource. Author an outflow on {kind}.{untouched.Value} whose source ref is a hex resource.");
+                    $"Kind '{kind}' declares health attribute '{healthId.Value}' but it is not the kind's single attribute.");
             }
         }
     }
 
-    private static DefinitionAttributeId FindSelfSacrificeTarget(
-        DefinitionGraph graph,
-        EntityKind kind,
-        DefinitionAttributeId healthId) =>
-        graph.SemanticFlows.Flows
-            .Where(flow => IsSelfSacrificeFlow(flow, kind, healthId))
-            .Select(flow => ((AttributeStockId)flow.TargetStock.Id).Key.AttributeId)
-            .FirstOrDefault();
-
-    private static bool IsSelfSacrificeFlow(
-        SemanticFlowEdge flow,
-        EntityKind kind,
-        DefinitionAttributeId healthId) =>
-        flow.Role == SemanticFlowRole.Inflow &&
-        flow.TargetStock.Id is AttributeStockId target &&
-        target.Key.Kind == kind &&
-        target.Key.AttributeId != healthId &&
-        flow.SourceRefs.Any(src =>
-            src.Scope == RefScope.Self &&
-            src.Kind == kind &&
-            src.ValueId is AttributeValueId va &&
-            va.AttributeId == healthId);
-
-    private static bool HasHexOutflow(
-        DefinitionGraph graph,
-        EntityKind kind,
-        DefinitionAttributeId untouched) =>
-        graph.SemanticFlows.Flows.Any(flow =>
-            flow.Role == SemanticFlowRole.Outflow &&
-            flow.TargetStock.Id is AttributeStockId source &&
-            source.Key.Kind == kind &&
-            source.Key.AttributeId == untouched &&
-            flow.SourceRefs.Any(src => src.ValueId is ResourceValueId));
-
-    private static void ValidateKindAttributeCategoryShape(DefinitionGraph graph, List<string> errors)
+    private static void ValidateKindTraits(DefinitionGraph graph, List<string> errors)
     {
         foreach (var (kind, kindNode) in graph.Kinds)
         {
-            var attributes = kindNode.Attributes.Values.ToList();
-
-            if (attributes.Count != 3)
+            foreach (var (traitId, traitNode) in kindNode.Traits)
             {
-                errors.Add(
-                    $"Kind '{kind}' declares {attributes.Count} attributes; exactly 3 are required (Health + one of Capacity/Projection + one of Need/Drive).");
-                continue;
-            }
+                if (traitNode.Key.Kind != kind || traitNode.Key.TraitId != traitId)
+                {
+                    errors.Add($"Trait node key '{kind}.{traitId}' does not match node key '{traitNode.Key}'.");
+                }
 
-            var healthCount = attributes.Count(a => a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Health);
-            var outwardCount = attributes.Count(a =>
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Capacity ||
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Projection);
-            var internalCount = attributes.Count(a =>
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Need ||
-                a.SourceConfig.Category == Engine.Domain.Config.AttributeCategory.Drive);
+                if (string.IsNullOrWhiteSpace(traitNode.SourceConfig.Name))
+                {
+                    errors.Add($"Kind '{kind}' declares a trait with a blank name.");
+                }
 
-            if (healthCount != 1)
-            {
-                errors.Add(
-                    $"Kind '{kind}' has {healthCount} Health attributes; exactly one is required.");
-            }
-
-            if (outwardCount != 1)
-            {
-                errors.Add(
-                    $"Kind '{kind}' has {outwardCount} outward attributes (Capacity or Projection); exactly one is required.");
-            }
-
-            if (internalCount != 1)
-            {
-                errors.Add(
-                    $"Kind '{kind}' has {internalCount} internal attributes (Need or Drive); exactly one is required.");
-            }
-
-            if (kindNode.HealthAttribute is DefinitionAttributeId healthId)
-            {
-                if (kindNode.Attributes.TryGetValue(healthId, out var healthAttr) &&
-                    healthAttr.SourceConfig.Category != Engine.Domain.Config.AttributeCategory.Health)
+                if (traitNode.SourceConfig.AssignmentChance is < 0f or > 1f ||
+                    float.IsNaN(traitNode.SourceConfig.AssignmentChance))
                 {
                     errors.Add(
-                        $"Kind '{kind}' declares health attribute '{healthId.Value}' but its Category is '{healthAttr.SourceConfig.Category}', not Health.");
+                        $"Trait '{traitNode.SourceConfig.Name}' assignment chance must be in the 0..1 range.");
                 }
             }
         }
@@ -852,10 +584,10 @@ public static partial class DefinitionGraphValidator
                 $"Lifecycle for kind '{keyKind}' uses health attribute '{lifecycleNode.HealthAttribute}' but kind health is '{kindNode.HealthAttribute}'.");
         }
 
-        if (lifecycleNode.SourceConfig.HealthAttribute != lifecycleNode.HealthAttribute.Value)
+        if (lifecycleNode.SourceConfig.Health != lifecycleNode.HealthAttribute.Value)
         {
             errors.Add(
-                $"Lifecycle node health id '{lifecycleNode.HealthAttribute}' does not match source config name '{lifecycleNode.SourceConfig.HealthAttribute}'.");
+                $"Lifecycle node health id '{lifecycleNode.HealthAttribute}' does not match source config name '{lifecycleNode.SourceConfig.Health}'.");
         }
     }
 
@@ -877,9 +609,6 @@ public static partial class DefinitionGraphValidator
                     errors.Add($"Definition ref on '{ownerId}' uses undeclared resource '{resourceValue.ResourceId}'.");
                     break;
 
-                case PressureValueId pressureValue when !graph.Pressures.ContainsKey(pressureValue.PressureId):
-                    errors.Add($"Definition ref on '{ownerId}' uses undeclared pressure '{pressureValue.PressureId}'.");
-                    break;
             }
 
             if ((reference.Scope == RefScope.Related || reference.Scope == RefScope.Relational) &&

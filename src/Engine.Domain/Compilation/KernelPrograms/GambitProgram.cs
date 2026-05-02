@@ -4,7 +4,15 @@ public sealed class GambitProgram
 {
     public bool EnabledByDefault { get; init; } = true;
     public IReadOnlyList<CompiledGambitRule> Gambits { get; init; } = [];
+    public IReadOnlyList<CompiledTraitGambitModifierRule> TraitModifiers { get; init; } = [];
 }
+
+public sealed record CompiledTraitGambitModifierRule(
+    int GambitId,
+    int TraitId,
+    int BearerCode,
+    float ScoreDelta,
+    float SuccessChanceDelta);
 
 public sealed record CompiledGambitRule(
     int KindId,

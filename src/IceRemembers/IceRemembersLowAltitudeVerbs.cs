@@ -18,9 +18,13 @@ public static partial class IceRemembersDefinition
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateLowAltitudeVerbs() =>
     [
         ..CreatePhysicalMovementVerbs(),
+        ..CreateNewKindsPhysicalMovementVerbs(),
         ..CreateSemanticMovementVerbs(),
+        ..CreateNewKindsSemanticMovementVerbs(),
         ..CreateSemanticInfluenceVerbs(),
+        ..CreateNewKindsSemanticInfluenceVerbs(),
         ..CreatePhysicalInfluenceVerbs(),
+        ..CreateNewKindsPhysicalInfluenceVerbs(),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalMovementVerbs() =>
@@ -52,6 +56,38 @@ public static partial class IceRemembersDefinition
             terrains: MaritimeTerrains(), ticks: (35, 120), dwell: 14, radius: 1, samples: 28, weights: (0.7f, 1.0f, 1.1f, 0.25f, 0.2f, 0.5f)),
     ];
 
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsPhysicalMovementVerbs() =>
+    [
+        MovementVerb(Verb.OrcaHuntTheMark, "Hunt the Mark", K.Orca, Mode.EntityKind,
+            targetKind: K.Penguin, ticks: (30, 90), dwell: 10, radius: 1, samples: 14, weights: (0.7f, 0.2f, 0.4f, 0.5f, 0.2f, 1.0f),
+            affinityRelationshipKind: L(Rel.RivalOf), affinityWeight: 1.6f),
+        MovementVerb(Verb.OrcaPatrolTheCurrents, "Patrol the Currents", K.Orca, Mode.Terrain,
+            terrains: MaritimeTerrains(), ticks: (40, 120), dwell: 18, radius: 1, samples: 28, weights: (1.0f, 1.1f, 1.3f, 0.3f, 0.3f, 0.3f)),
+        MovementVerb(Verb.OrcaSoundThePod, "Sound the Pod", K.Orca, Mode.RelationshipTarget,
+            relationshipKind: L(Rel.AlliedWith), ticks: (25, 75), dwell: 12, radius: 1, weights: (0.55f, 0.2f, 0.4f, 0.25f, 0.1f, 0.7f),
+            affinityRelationshipKind: L(Rel.AlliedWith), affinityWeight: 1.5f),
+        MovementVerb(Verb.MonsterStirWithinBonds, "Stir Within Bonds", K.Monster, Mode.Explore,
+            ticks: (50, 140), dwell: 6, samples: 18, weights: (0.6f, 1.4f, 1.6f, 0.15f, 0.2f, 0.3f)),
+        MovementVerb(Verb.MonsterPressTowardHeat, "Press toward Heat", K.Monster, Mode.Terrain,
+            terrains: HotTerrains(), ticks: (40, 120), dwell: 14, radius: 1, samples: 24, weights: (0.7f, 0.9f, 1.1f, 0.4f, 0.2f, 0.5f)),
+        MovementVerb(Verb.MonsterSurfaceAtTheFissure, "Surface at the Fissure", K.Monster, Mode.EntityKind,
+            targetKind: K.PointOfInterest, ticks: (45, 130), dwell: 14, radius: 1, samples: 12, weights: (0.55f, 0.3f, 0.5f, 0.4f, 0.15f, 1.1f)),
+        MovementVerb(Verb.AbilitySurfaceInTheReach, "Surface in the Reach", K.Ability, Mode.Explore,
+            ticks: (60, 160), dwell: 6, samples: 22, weights: (0.5f, 1.2f, 1.4f, 0.2f, 0.2f, 0.3f)),
+        MovementVerb(Verb.PointOfInterestYieldBounty, "Yield Bounty", K.PointOfInterest, Mode.Terrain,
+            terrains: MaritimeTerrains(), ticks: (50, 140), dwell: 16, radius: 1, samples: 20, weights: (0.5f, 0.8f, 1.0f, 0.25f, 0.2f, 0.4f)),
+        MovementVerb(Verb.TransportSailTheShelf, "Sail the Shelf", K.Transport, Mode.Terrain,
+            terrains: MaritimeTerrains(), ticks: (35, 110), dwell: 12, radius: 1, samples: 28, weights: (1.0f, 1.0f, 1.2f, 0.3f, 0.25f, 0.4f)),
+        MovementVerb(Verb.TransportMakePort, "Make Port", K.Transport, Mode.EntityKind,
+            targetKind: K.Settlement, ticks: (35, 110), dwell: 18, radius: 1, samples: 12, weights: (0.85f, 0.2f, 0.4f, 0.6f, 0.15f, 0.6f),
+            affinityRelationshipKind: L(Rel.Holds), affinityDirection: LowAltitudeVerbRelationshipDirection.Incoming, affinityWeight: 1.5f),
+        MovementVerb(Verb.TransportPatrolTheReach, "Patrol the Reach", K.Transport, Mode.Explore,
+            ticks: (45, 130), dwell: 8, samples: 24, weights: (0.9f, 1.4f, 1.6f, 0.2f, 0.25f, 0.3f)),
+        MovementVerb(Verb.TransportAnswerTheCaptain, "Answer the Captain", K.Transport, Mode.RelationshipTarget,
+            relationshipKind: L(Rel.Holds), ticks: (25, 75), dwell: 14, radius: 1, weights: (0.55f, 0.2f, 0.3f, 0.45f, 0.1f, 0.5f),
+            affinityRelationshipKind: L(Rel.Holds), affinityDirection: LowAltitudeVerbRelationshipDirection.Incoming, affinityWeight: 1.7f),
+    ];
+
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticMovementVerbs() =>
     [
         MovementVerb(Verb.SettlementDeliberate, "Deliberate", K.Settlement, Mode.EntityKind,
@@ -66,6 +102,39 @@ public static partial class IceRemembersDefinition
             targetKind: K.Artifact, ticks: (60, 160), dwell: 16, radius: 1, samples: 12, weights: (0.6f, 0.2f, 0.6f, 0.45f, 0.15f, 0.5f), plane: PrimaryPlane.Semantic),
         MovementVerb(Verb.RegionDream, "Dream", K.Region, Mode.Explore,
             ticks: (55, 150), dwell: 12, samples: 24, weights: (0.8f, 1.0f, 1.5f, 0.25f, 0.25f, 0.2f), plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsSemanticMovementVerbs() =>
+    [
+        MovementVerb(Verb.OrcaCarryTheDeedName, "Carry the Deed-Name", K.Orca, Mode.Explore,
+            ticks: (50, 140), dwell: 8, samples: 22, weights: (0.6f, 1.0f, 1.4f, 0.2f, 0.2f, 0.25f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.PointOfInterestResonateThroughTheStratum, "Resonate Through the Stratum", K.PointOfInterest, Mode.Explore,
+            ticks: (60, 160), dwell: 14, samples: 22, weights: (0.55f, 1.0f, 1.5f, 0.2f, 0.15f, 0.25f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.PointOfInterestCallToAWanderer, "Call to a Wanderer", K.PointOfInterest, Mode.EntityKind,
+            targetKind: K.Penguin, ticks: (50, 140), dwell: 12, radius: 1, samples: 14, weights: (0.55f, 0.2f, 0.5f, 0.4f, 0.15f, 0.6f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.PointOfInterestEchoToAReader, "Echo to a Reader", K.PointOfInterest, Mode.EntityKind,
+            targetKind: K.Ability, ticks: (55, 150), dwell: 12, radius: 1, samples: 12, weights: (0.5f, 0.2f, 0.5f, 0.35f, 0.15f, 0.7f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.AbilityDriftToABearer, "Drift to a Bearer", K.Ability, Mode.EntityKind,
+            targetKind: K.Penguin, ticks: (40, 120), dwell: 14, radius: 1, samples: 14, weights: (0.65f, 0.2f, 0.4f, 0.45f, 0.15f, 1.0f),
+            affinityRelationshipKind: L(Rel.PracticedBy), affinityDirection: LowAltitudeVerbRelationshipDirection.Outgoing, affinityWeight: 1.6f, plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.AbilityMigrateTheForm, "Migrate the Form", K.Ability, Mode.EntityKind,
+            targetKind: K.Region, ticks: (55, 150), dwell: 16, radius: 1, samples: 12, weights: (0.55f, 0.4f, 0.6f, 0.3f, 0.15f, 0.7f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.AbilityPassThroughTheLineage, "Pass through the Lineage", K.Ability, Mode.RelationshipTarget,
+            relationshipKind: L(Rel.PracticedBy), ticks: (35, 100), dwell: 12, radius: 1, weights: (0.55f, 0.2f, 0.5f, 0.35f, 0.1f, 0.9f),
+            affinityRelationshipKind: L(Rel.PracticedBy), affinityWeight: 1.5f, plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.AbilityRetreatToSanctuary, "Retreat to Sanctuary", K.Ability, Mode.EntityKind,
+            targetKind: K.Settlement, ticks: (45, 130), dwell: 18, radius: 1, samples: 12, weights: (0.5f, 0.2f, 0.4f, 0.5f, 0.1f, 0.6f),
+            affinityRelationshipKind: L(Rel.Anchored), affinityWeight: 1.4f, plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.MonsterReachThroughTheLayer, "Reach Through the Layer", K.Monster, Mode.Explore,
+            ticks: (60, 170), dwell: 8, samples: 20, weights: (0.5f, 1.2f, 1.5f, 0.2f, 0.2f, 0.4f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.TransportCarryTheCharter, "Carry the Charter", K.Transport, Mode.EntityKind,
+            targetKind: K.Faction, ticks: (45, 130), dwell: 12, radius: 1, samples: 12, weights: (0.55f, 0.2f, 0.5f, 0.45f, 0.15f, 0.7f),
+            affinityRelationshipKind: L(Rel.Holds), affinityDirection: LowAltitudeVerbRelationshipDirection.Incoming, affinityWeight: 1.4f, plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.OccurrenceSpreadTheWord, "Spread the Word", K.Occurrence, Mode.EntityKind,
+            targetKind: K.Settlement, ticks: (40, 120), dwell: 14, radius: 1, samples: 14, weights: (0.7f, 0.3f, 0.5f, 0.55f, 0.2f, 0.6f), plane: PrimaryPlane.Semantic),
+        MovementVerb(Verb.OccurrenceDrawTheFaction, "Draw the Faction", K.Occurrence, Mode.RelationshipTarget,
+            relationshipKind: L(Rel.AlliedWith), ticks: (35, 100), dwell: 14, radius: 1, weights: (0.55f, 0.2f, 0.4f, 0.4f, 0.1f, 0.8f),
+            affinityRelationshipKind: L(Rel.AlliedWith), affinityWeight: 1.5f, plane: PrimaryPlane.Semantic),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticInfluenceVerbs() =>
@@ -117,6 +186,49 @@ public static partial class IceRemembersDefinition
             ticks: (45, 130), dwell: 12, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.45f, 0.2f, 0.6f, 0.35f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
     ];
 
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsSemanticInfluenceVerbs() =>
+    [
+        InfluenceVerb(Verb.OrcaSingTheLiturgy, "Sing the Liturgy", K.Orca,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (35, 100), dwell: 10, influence: (3.5f, 1, 0f, 0f, 0f), samples: 18, weights: (0.7f, 0.4f, 0.7f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.OrcaLayTheDeepCurrent, "Lay the Deep Current", K.Orca,
+            Op.ConsolidateInfluence, Mode.OwnInfluence,
+            ticks: (40, 120), dwell: 14, influence: (5f, 0, 0f, 0f, 0f), samples: 16, weights: (0.5f, 0.2f, 0.5f, 0.45f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.PointOfInterestLayTheSign, "Lay the Sign", K.PointOfInterest,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (45, 125), dwell: 12, influence: (3f, 1, 0f, 0f, 0f), samples: 20, weights: (0.65f, 0.5f, 0.9f, 0.25f, 0.15f, 0.3f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.PointOfInterestHoldTheLayer, "Hold the Layer", K.PointOfInterest,
+            Op.ConsolidateInfluence, Mode.OwnInfluence,
+            ticks: (50, 140), dwell: 16, influence: (5f, 0, 0f, 0f, 0f), samples: 18, weights: (0.55f, 0.2f, 0.5f, 0.45f, 0.05f, 0.15f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.PointOfInterestDrainTheApproach, "Drain the Approach", K.PointOfInterest,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (40, 115), dwell: 10, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.45f, 0.2f, 0.5f, 0.35f, 0.05f, 0.25f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.AbilitySpreadTheForm, "Spread the Form", K.Ability,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (35, 100), dwell: 10, influence: (3f, 1, 0f, 0f, 0f), samples: 18, weights: (0.65f, 0.4f, 0.7f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.AbilityAnnealTheLineage, "Anneal the Lineage", K.Ability,
+            Op.ConsolidateInfluence, Mode.OwnInfluence,
+            ticks: (40, 115), dwell: 14, influence: (4.5f, 0, 0f, 0f, 0f), samples: 16, weights: (0.5f, 0.2f, 0.5f, 0.45f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.AbilitySuppressARivalForm, "Suppress a Rival Form", K.Ability,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (35, 100), dwell: 10, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.5f, 0.2f, 0.5f, 0.4f, 0.05f, 0.3f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.MonsterHumBelow, "Hum Below", K.Monster,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (45, 130), dwell: 12, influence: (3f, 1, 0f, 0f, 0f), samples: 20, weights: (0.6f, 0.4f, 0.7f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.MonsterWhisperToABearer, "Whisper to a Bearer", K.Monster,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (40, 115), dwell: 10, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.5f, 0.2f, 0.5f, 0.4f, 0.05f, 0.3f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.TransportCastTheLookout, "Cast the Lookout", K.Transport,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (35, 100), dwell: 8, influence: (3f, 1, 0f, 0f, 0f), samples: 18, weights: (0.7f, 0.4f, 0.6f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.OccurrenceGatherTheCrowds, "Gather the Crowds", K.Occurrence,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (35, 100), dwell: 10, influence: (4f, 1, 0f, 0f, 0f), samples: 18, weights: (0.75f, 0.5f, 0.7f, 0.4f, 0.2f, 0.5f), plane: PrimaryPlane.Semantic),
+        InfluenceVerb(Verb.OccurrenceBurnTheWitnesses, "Burn the Witnesses", K.Occurrence,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (40, 115), dwell: 10, influence: (4.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.6f, 0.2f, 0.5f, 0.4f, 0.05f, 0.4f), plane: PrimaryPlane.Semantic),
+    ];
+
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalInfluenceVerbs() =>
     [
         InfluenceVerb(Verb.PenguinScatterClaimMarks, "Scatter Claim-Marks", K.Penguin,
@@ -147,6 +259,35 @@ public static partial class IceRemembersDefinition
         InfluenceVerb(Verb.FactionMoveSeat, "Move the Seat", K.Faction,
             Op.MoveHeadquarters, Mode.OwnInfluence,
             ticks: (45, 140), dwell: 18, influence: (2f, 0, 0f, 0.04f, 65f), samples: 24, weights: (0.25f, 0.3f, 0.7f, 0.25f, 0.1f, 0.4f)),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsPhysicalInfluenceVerbs() =>
+    [
+        InfluenceVerb(Verb.OrcaMarkTheHuntingGround, "Mark the Hunting Ground", K.Orca,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (30, 90), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.85f, 0.7f, 1.0f, 0.3f, 0.2f, 0.4f)),
+        InfluenceVerb(Verb.OrcaCullTheEncroachment, "Cull the Encroachment", K.Orca,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (30, 90), dwell: 8, influence: (5f, 1, 0f, 0f, 0f), samples: 24, weights: (0.65f, 0.2f, 0.4f, 0.4f, 0.05f, 0.4f)),
+        InfluenceVerb(Verb.PointOfInterestPulseTheBounty, "Pulse the Bounty", K.PointOfInterest,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (40, 115), dwell: 12, influence: (3f, 1, 0f, 0f, 0f), samples: 20, weights: (0.75f, 0.6f, 0.9f, 0.3f, 0.2f, 0.35f)),
+        InfluenceVerb(Verb.MonsterBleedDread, "Bleed Dread", K.Monster,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (35, 100), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.7f, 0.4f, 0.7f, 0.3f, 0.2f, 0.4f)),
+        InfluenceVerb(Verb.MonsterStainTheIce, "Stain the Ice", K.Monster,
+            Op.ConsolidateInfluence, Mode.OwnInfluence,
+            ticks: (40, 115), dwell: 14, influence: (5f, 0, 0f, 0f, 0f), samples: 18, weights: (0.5f, 0.2f, 0.5f, 0.45f, 0.05f, 0.2f)),
+        InfluenceVerb(Verb.TransportShowTheFlag, "Show the Flag", K.Transport,
+            Op.GrowInfluence, Mode.OwnInfluence,
+            ticks: (35, 100), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.95f, 0.7f, 0.9f, 0.35f, 0.2f, 0.4f)),
+        InfluenceVerb(Verb.TransportRunTheTrade, "Run the Trade", K.Transport,
+            Op.GrowInfluence, Mode.EntityKind,
+            targetKind: K.Settlement, ticks: (35, 100), dwell: 10, influence: (3.5f, 1, 0f, 0f, 0f), samples: 18, weights: (0.85f, 0.2f, 0.4f, 0.6f, 0.1f, 0.7f),
+            affinityRelationshipKind: L(Rel.Holds), affinityDirection: LowAltitudeVerbRelationshipDirection.Incoming, affinityWeight: 1.2f),
+        InfluenceVerb(Verb.TransportBreakARivalHold, "Break a Rival Hold", K.Transport,
+            Op.ReduceInfluence, Mode.ForeignInfluence,
+            ticks: (35, 100), dwell: 10, influence: (5f, 1, 0f, 0f, 0f), samples: 24, weights: (0.65f, 0.2f, 0.4f, 0.45f, 0.05f, 0.4f)),
     ];
 
     private static MovementLowAltitudeVerbConfig MovementVerb(
@@ -416,5 +557,10 @@ public static partial class IceRemembersDefinition
         TerrainName(Terrain.Ocean),
         TerrainName(Terrain.Reef),
         TerrainName(Terrain.Shelf),
+    ];
+
+    private static HashSet<string> HotTerrains() =>
+    [
+        TerrainName(Terrain.HotSprings),
     ];
 }

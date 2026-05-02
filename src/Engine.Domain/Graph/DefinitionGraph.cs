@@ -10,7 +10,6 @@ using Engine.WorldGen;
 
 public sealed class DefinitionGraph
 {
-    public IReadOnlyList<EntityKind> RingOrder { get; init; } = [];
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
     public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
@@ -18,7 +17,6 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<DefinitionResourceId, DefinitionResourceNode> Resources { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> RelationshipFacts { get; init; }
-    public required IReadOnlyDictionary<DefinitionPressureId, DefinitionPressureNode> Pressures { get; init; }
     public required IReadOnlyDictionary<EntityKind, DefinitionLifecycleNode> Lifecycles { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeKey, DefinitionAttributeNode> Attributes { get; init; }
     public SemanticFlowGraph SemanticFlows { get; } = new();
@@ -58,6 +56,8 @@ public sealed record AttributeDeltaWrite(string Label) : GameplayWrite(Label);
 
 public sealed record DefinitionAttributeKey(EntityKind Kind, DefinitionAttributeId AttributeId);
 
+public sealed record DefinitionTraitKey(EntityKind Kind, DefinitionTraitId TraitId);
+
 public abstract record SemanticStockId
 {
     public abstract string Label { get; }
@@ -81,6 +81,7 @@ public sealed class DefinitionKindNode
     public required int RuntimeId { get; init; }
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeId, DefinitionAttributeNode> Attributes { get; init; }
+    public required IReadOnlyDictionary<DefinitionTraitId, DefinitionTraitNode> Traits { get; init; }
     public DefinitionAttributeId? HealthAttribute { get; init; }
     public string? Description { get; init; }
     public required Engine.Domain.Config.PrimaryPlane PrimaryPlane { get; init; }
@@ -90,8 +91,15 @@ public sealed class DefinitionAttributeNode
 {
     public required DefinitionAttributeKey Key { get; init; }
     public required DefinitionAttributeShape Shape { get; init; }
-    public required AttributeConfig SourceConfig { get; init; }
+    public required HealthConfig SourceConfig { get; init; }
     public bool IsHealthAttribute { get; init; }
+}
+
+public sealed class DefinitionTraitNode
+{
+    public required DefinitionTraitKey Key { get; init; }
+    public required int RuntimeId { get; init; }
+    public required TraitConfig SourceConfig { get; init; }
 }
 
 public sealed class DefinitionResourceNode
@@ -112,12 +120,6 @@ public sealed class DefinitionRelationshipFactNode
     public required DefinitionRelationshipFactId Id { get; init; }
     public required int RuntimeId { get; init; }
     public required RelationshipFactConfig SourceConfig { get; init; }
-}
-
-public sealed class DefinitionPressureNode
-{
-    public required DefinitionPressureId Id { get; init; }
-    public required PressureConfig SourceConfig { get; init; }
 }
 
 public sealed class DefinitionLifecycleNode
@@ -229,7 +231,6 @@ public sealed class DefinitionEntityQuery
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;
-    public IReadOnlyList<DefinitionQueryAttributeCondition> AttributeConditions { get; init; } = [];
 }
 
 public sealed class DefinitionGeneratorBindingTarget
@@ -237,12 +238,6 @@ public sealed class DefinitionGeneratorBindingTarget
     public required string Ref { get; init; }
     public required EntityKind Kind { get; init; }
     public DefinitionEntityQuery? Query { get; init; }
-}
-
-public sealed class DefinitionQueryAttributeCondition
-{
-    public required DefinitionAttributeId AttributeId { get; init; }
-    public TriggerDirection Direction { get; init; } = TriggerDirection.Any;
 }
 
 public sealed class DefinitionGeneratorRelationship
@@ -260,8 +255,6 @@ public sealed class DefinitionGeneratorRelationship
 public sealed class DefinitionGeneratorTrigger
 {
     public required EntityKind OnKind { get; init; }
-    public DefinitionAttributeId? AttributeId { get; init; }
-    public TriggerDirection Direction { get; init; } = TriggerDirection.Any;
 }
 
 public sealed class DefinitionGambitNode
@@ -292,11 +285,6 @@ public sealed record AttributeValueId(DefinitionAttributeId AttributeId) : Defin
 public sealed record ResourceValueId(DefinitionResourceId ResourceId) : DefinitionValueId
 {
     public override string Label => ResourceId.Value;
-}
-
-public sealed record PressureValueId(DefinitionPressureId PressureId) : DefinitionValueId
-{
-    public override string Label => PressureId.Value;
 }
 
 public sealed record StructuralValueId(string Name) : DefinitionValueId

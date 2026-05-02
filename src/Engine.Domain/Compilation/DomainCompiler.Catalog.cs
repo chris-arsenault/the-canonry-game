@@ -27,7 +27,8 @@ public static partial class DomainCompiler
         {
             RegisterOnceStrict(state.Kinds, kind.Value, state.Registry.RegisterKind, "kind");
             RegisterSubtypes(kindConfig.Subtypes, state);
-            RegisterAttributes(kindConfig.Attributes, state);
+            RegisterHealth(kindConfig.Health, state);
+            RegisterTraits(kindConfig.Traits, state);
         }
     }
 
@@ -39,18 +40,22 @@ public static partial class DomainCompiler
         }
     }
 
-    private static void RegisterAttributes(IEnumerable<AttributeConfig> attributes, CatalogRegistrationState state)
+    private static void RegisterHealth(HealthConfig health, CatalogRegistrationState state)
     {
-        foreach (var attribute in attributes)
+        RegisterOnce(state.Attributes, health.Name, state.Registry.RegisterAttribute);
+    }
+
+    private static void RegisterTraits(IEnumerable<TraitConfig> traits, CatalogRegistrationState state)
+    {
+        foreach (var trait in traits)
         {
-            RegisterOnce(state.Attributes, attribute.Name, state.Registry.RegisterAttribute);
+            RegisterOnceStrict(state.Traits, trait.Name, state.Registry.RegisterTrait, "trait");
         }
     }
 
     private static void RegisterWorldCatalog(DomainConfig config, CatalogRegistrationState state)
     {
         RegisterRelationshipCatalog(config, state);
-        RegisterPressureCatalog(config, state);
         RegisterResourceCatalog(config, state);
         RegisterTerrainCatalog(config, state);
     }
@@ -65,14 +70,6 @@ public static partial class DomainCompiler
         foreach (var fact in config.RelationshipFacts)
         {
             RegisterOnceStrict(state.RelationshipFacts, fact.Name, state.Registry.RegisterRelationshipFact, "relationship fact");
-        }
-    }
-
-    private static void RegisterPressureCatalog(DomainConfig config, CatalogRegistrationState state)
-    {
-        foreach (var pressure in config.Pressures)
-        {
-            RegisterOnceStrict(state.Pressures, pressure.Name, state.Registry.RegisterPressure, "pressure");
         }
     }
 
@@ -158,7 +155,6 @@ public static partial class DomainCompiler
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.StartupSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.RelationshipSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GeneratorSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.PressureSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.DegeneracySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.PlanningSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MapControlSourceCode, state.Registry.RegisterSourceCode, "source code");
@@ -180,10 +176,10 @@ public static partial class DomainCompiler
         public DomainIdRegistry Registry { get; } = new();
         public HashSet<string> Kinds { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Attributes { get; } = new(StringComparer.Ordinal);
+        public HashSet<string> Traits { get; } = new(StringComparer.Ordinal);
         public HashSet<string> StructuralFacts { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipKinds { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipFacts { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> Pressures { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Resources { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Terrains { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Subtypes { get; } = new(StringComparer.Ordinal);

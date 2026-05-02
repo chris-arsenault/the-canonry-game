@@ -115,16 +115,6 @@ public sealed class ModifyAttributeMutation(EntityId entityId, string attributeN
     public string Describe() => $"modify_attribute({EntityId}, {AttributeName}, delta={Delta}, var={VarianceValue})";
 }
 
-/// <summary>Directly modifies a pressure value.</summary>
-public sealed class ModifyPressureMutation(string pressureName, EntityId scopeId, float delta) : IMutation
-{
-    public string PressureName { get; } = pressureName;
-    public EntityId ScopeId { get; } = scopeId;
-    public float Delta { get; } = delta;
-
-    public string Describe() => $"modify_pressure({PressureName}, scope={ScopeId}, delta={Delta})";
-}
-
 // Future marker, status, or fact mutations should be designed as explicit
 // domain contracts. The old generic entity tag mutation was removed because it
 // had no authored semantics.

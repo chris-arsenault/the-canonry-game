@@ -26,14 +26,14 @@ public sealed class DomainIdRegistryTests
         var registry = new DomainIdRegistry();
 
         var attribute = registry.RegisterAttribute("health");
-        var pressure = registry.RegisterPressure("health");
+        var trait = registry.RegisterTrait("health");
         var source = registry.RegisterSourceCode("health");
 
         Assert.Equal(1, attribute.Value);
-        Assert.Equal(1, pressure.Value);
+        Assert.Equal(1, trait.Value);
         Assert.Equal(1, source.Value);
         Assert.Equal("health", registry.AttributeNameOf(attribute));
-        Assert.Equal("health", registry.PressureNameOf(pressure));
+        Assert.Equal("health", registry.TraitNameOf(trait));
         Assert.Equal("health", registry.SourceCodeNameOf(source));
     }
 

@@ -25,7 +25,6 @@ public static partial class DomainCompiler
             Upkeep = BuildUpkeepProgram(config, ids),
             Gambits = BuildGambitProgram(config, ids),
             Relationships = BuildRelationshipProgram(config, ids),
-            Pressures = BuildPressureProgram(config, ids),
             Generators = BuildGeneratorProgram(config, ids, graph),
             Degeneracy = BuildDegeneracyProgram(config, ids),
         };

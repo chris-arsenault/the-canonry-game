@@ -10,7 +10,7 @@ Gambits let entities do meaningful things that are too large for low-altitude
 physics and too small for generators.
 
 Low altitude creates the live substrate: movement, influence, support, threat,
-health pressure, and relationship drift. Gambits read that world state and
+health loss/recovery, and relationship drift. Gambits read that world state and
 attempt discrete actions. Generators later read the resulting graph and create
 new named entities when major event conditions are met.
 
@@ -26,12 +26,12 @@ A gambit declares:
 - success chance;
 - ordered effects.
 
-Effects are usually graph and attribute mutations:
+Effects are usually graph and health mutations:
 
 - create a relationship;
 - change relationship strength;
 - reverse or cull a relationship;
-- modify actor or target attributes;
+- modify actor or target health;
 - mark historical outcomes.
 
 Entity creation belongs to generators and should be rare in gambits.
@@ -55,6 +55,7 @@ entities decide whether and when to act.
 ## Design Bias
 
 Good gambits produce graph consequences that other systems understand. Prefer
-relationship and attribute effects over one-off tags or isolated bookkeeping.
-If a gambit creates a fact that no generator, relationship rule, projection, or
-future card can read, it is probably not doing useful simulation work.
+relationship strength, relationship facts, health effects, traits, and locality
+queries over one-off tags or isolated bookkeeping. If a gambit needs a numeric
+gate, relationship strength should be the first option unless health is the
+actual subject of the action.

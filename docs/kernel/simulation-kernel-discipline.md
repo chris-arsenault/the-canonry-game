@@ -90,7 +90,6 @@ At startup, domain content should compile string names into stable IDs:
 - `ProcessId`
 - `RelationshipKindId`
 - `ResourceId`
-- `PressureId`
 - `CardId`
 - reason/event codes
 
@@ -249,7 +248,6 @@ Current tuning keys:
 - `programs.planning.default_planner`: `goap`, `htn`, or `opportunity`.
 - `programs.planning.goap_target_reservations_enabled`: `true` or `false`.
 - `programs.planning.opportunity_target_capacity`: integer target capacity.
-- `programs.pressures.enabled`: `true` or `false`; default is `false`.
 - `programs.upkeep.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.
 

@@ -12,9 +12,9 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
-        global::System.Span<int> refCodes = _refCodes;
-        global::System.Span<int> refEntityIds = _refEntityIds;
-        global::System.Span<int> createdEntityIds = _createdEntityIds;
+        int[] refCodes = _refCodes;
+        int[] refEntityIds = _refEntityIds;
+        int[] createdEntityIds = _createdEntityIds;
         var refCount = 0;
         var createdEntityCount = 0;
         SetRef(refCodes, refEntityIds, ref refCount, GeneratorProgramConstants.TargetReferenceCode, targetId);
@@ -85,9 +85,9 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
-        global::System.Span<int> createdEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
+        int[] createdEntityIds,
         ref int refCount,
         ref int createdEntityCount,
         int tick)
@@ -124,9 +124,9 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
-        global::System.Span<int> createdEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
+        int[] createdEntityIds,
         ref int refCount,
         ref int createdEntityCount,
         int tick)
@@ -180,8 +180,8 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount)
     {
         if (_producedHasQuery[produced] == 0)
@@ -206,9 +206,7 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQueryWithoutOutgoingStarts[produced],
             _producedQueryWithoutOutgoingCounts[produced],
             _producedQueryWithoutIncomingStarts[produced],
-            _producedQueryWithoutIncomingCounts[produced],
-            _producedQueryAttributeConditionStarts[produced],
-            _producedQueryAttributeConditionCounts[produced]);
+            _producedQueryWithoutIncomingCounts[produced]);
     }
 
     private bool CreateMissingProducedEntity(
@@ -216,9 +214,9 @@ internal sealed partial class GeneratorProgramRuntime
         WorldState world,
         int produced,
         int targetId,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
-        global::System.Span<int> createdEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
+        int[] createdEntityIds,
         ref int refCount,
         ref int createdEntityCount,
         int tick)
@@ -250,7 +248,8 @@ internal sealed partial class GeneratorProgramRuntime
             out var semanticQ,
             out var semanticR);
 
-        var createdEntityId = simulation.CreateEntity(
+        var createdEntityId = KernelEffectExecutor.CreateEntity(
+            simulation,
             _producedKindIds[produced],
             subtypeId,
             world.EntityCultureId(cultureSourceId),
@@ -258,8 +257,7 @@ internal sealed partial class GeneratorProgramRuntime
             physicalR,
             semanticQ,
             semanticR,
-            -semanticQ - semanticR,
-            tick);
+            -semanticQ - semanticR);
         createdEntityIds[createdEntityCount] = createdEntityId;
         createdEntityCount++;
         SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], createdEntityId);
@@ -285,9 +283,9 @@ internal sealed partial class GeneratorProgramRuntime
         int createdEntityId,
         int physicalQ,
         int physicalR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
-        global::System.Span<int> createdEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
+        int[] createdEntityIds,
         int refCount,
         int createdEntityCount,
         int tick)
@@ -305,7 +303,7 @@ internal sealed partial class GeneratorProgramRuntime
 
         if (anchorQ != physicalQ || anchorR != physicalR)
         {
-            simulation.MoveEntityPhysical(createdEntityId, anchorQ, anchorR, tick);
+            KernelEffectExecutor.MovePhysical(simulation, createdEntityId, anchorQ, anchorR);
         }
 
         return true;
@@ -315,8 +313,8 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         WorldState world,
         int generatorSlot,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int tick)
     {
@@ -334,16 +332,16 @@ internal sealed partial class GeneratorProgramRuntime
 
             if (_relationshipReplaceExistingOutgoing[relationship] != 0)
             {
-                CullOutgoingRelationshipsOfKind(simulation, sourceId, _relationshipKindIds[relationship], tick);
+                KernelEffectExecutor.CullOutgoingRelationshipsOfKind(simulation, sourceId, _relationshipKindIds[relationship]);
             }
 
-            simulation.CreateRelationship(
+            KernelEffectExecutor.CreateRelationship(
+                simulation,
                 _relationshipKindIds[relationship],
                 0,
                 sourceId,
                 destinationId,
                 _relationshipStrengths[relationship],
-                tick,
                 _relationshipFactId0[relationship],
                 _relationshipFactId1[relationship],
                 _relationshipFactId2[relationship],
@@ -360,8 +358,8 @@ internal sealed partial class GeneratorProgramRuntime
         WorldState world,
         int generatorSlot,
         int targetId,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int tick)
     {
@@ -378,46 +376,17 @@ internal sealed partial class GeneratorProgramRuntime
                         var bindingEntityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
                         if (bindingEntityId > 0)
                         {
-                            simulation.SetEntityStatus(bindingEntityId, EntityStatusCodes.Historical, tick);
+                            KernelEffectExecutor.SetEntityStatus(simulation, bindingEntityId, EntityStatusCodes.Historical);
                         }
 
                         break;
                     }
 
                 case GeneratorEffectTypeCodes.RemoveTargetRelationships:
-                    RemoveAllRelationshipsOfKind(simulation, world, targetId, refOrKindId, tick);
+                    KernelEffectExecutor.CullAllRelationshipsOfKind(simulation, world, targetId, refOrKindId);
                     break;
             }
         }
-    }
-
-    private static void RemoveAllRelationshipsOfKind(
-        Simulation simulation,
-        WorldState world,
-        int entityId,
-        int relationshipKindId,
-        int tick)
-    {
-        simulation.CullOutgoingRelationshipsOfKind(entityId, relationshipKindId, tick);
-        while (true)
-        {
-            var cursor = world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
-            if (!world.MoveNextRelationship(ref cursor, out var relationshipId))
-            {
-                return;
-            }
-
-            simulation.CullRelationship(relationshipId, tick);
-        }
-    }
-
-    private static void CullOutgoingRelationshipsOfKind(
-        Simulation simulation,
-        int sourceEntityId,
-        int relationshipKindId,
-        int tick)
-    {
-        simulation.CullOutgoingRelationshipsOfKind(sourceEntityId, relationshipKindId, tick);
     }
 
     private bool ExceedsTargetSaturation(WorldState world, int generatorSlot, int targetId)
@@ -450,23 +419,20 @@ internal sealed partial class GeneratorProgramRuntime
         bool outgoing)
     {
         var count = 0;
-        var cursor = outgoing
-            ? world.OutgoingRelationshipsOfKind(targetId, _saturationRelationshipKindIds[generatorSlot])
-            : world.IncomingRelationshipsOfKind(targetId, _saturationRelationshipKindIds[generatorSlot]);
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            if (TargetSaturationRelationshipMatches(world, generatorSlot, relationshipId))
+        KernelQuery.ForEachRelatedEndpoint(
+            world,
+            targetId,
+            _saturationRelationshipKindIds[generatorSlot],
+            minimumStrength: 0f,
+            requiredFactId: _saturationFactIds[generatorSlot],
+            outgoing,
+            (_, _) =>
             {
                 count++;
-            }
-        }
+                return true;
+            });
 
         return count;
-    }
-
-    private bool TargetSaturationRelationshipMatches(WorldState world, int generatorSlot, int relationshipId)
-    {
-        return world.RelationshipHasFact(relationshipId, _saturationFactIds[generatorSlot]);
     }
 
     private bool TriggersPass(WorldState world, int generatorSlot, int targetId)
@@ -486,21 +452,7 @@ internal sealed partial class GeneratorProgramRuntime
 
     private bool TriggerPasses(WorldState world, int trigger, int targetId)
     {
-        var direction = _triggerDirectionCodes[trigger];
-        if (direction == GeneratorTriggerDirectionCodes.Any)
-        {
-            return true;
-        }
-
-        if (_triggerAttributeIds[trigger] == 0)
-        {
-            return false;
-        }
-
-        return DirectionPasses(
-            world.GetAttribute(targetId, _triggerAttributeIds[trigger]),
-            direction,
-            _triggerThresholds[trigger]);
+        return world.EntityKindId(targetId) == _triggerKindIds[trigger];
     }
 
     private int SelectEntityForQuery(
@@ -510,8 +462,8 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int subtypeStart,
         int subtypeCount,
@@ -520,9 +472,7 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount,
-        int attributeConditionStart,
-        int attributeConditionCount)
+        int withoutIncomingCount)
     {
         var candidateCount = CountMatchingEntitiesForQuery(
             world,
@@ -540,9 +490,7 @@ internal sealed partial class GeneratorProgramRuntime
             withoutOutgoingStart,
             withoutOutgoingCount,
             withoutIncomingStart,
-            withoutIncomingCount,
-            attributeConditionStart,
-            attributeConditionCount);
+            withoutIncomingCount);
         if (candidateCount == 0)
         {
             return 0;
@@ -565,9 +513,7 @@ internal sealed partial class GeneratorProgramRuntime
             withoutOutgoingStart,
             withoutOutgoingCount,
             withoutIncomingStart,
-            withoutIncomingCount,
-            attributeConditionStart,
-            attributeConditionCount);
+            withoutIncomingCount);
     }
 
     private int SelectMatchingEntityForQuery(
@@ -577,8 +523,8 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int subtypeStart,
         int subtypeCount,
@@ -587,46 +533,47 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount,
-        int attributeConditionStart,
-        int attributeConditionCount)
+        int withoutIncomingCount)
     {
         var seen = 0;
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
-        {
-            if (!EntityMatchesQuery(
-                    world,
-                    entityId,
-                    kindId,
-                    targetId,
-                    targetOriginQ,
-                    targetOriginR,
-                    refCodes,
-                    refEntityIds,
-                    refCount,
-                    subtypeStart,
-                    subtypeCount,
-                    adjacentToTarget,
-                    cultureMatchCode,
-                    withoutOutgoingStart,
-                    withoutOutgoingCount,
-                    withoutIncomingStart,
-                    withoutIncomingCount,
-                    attributeConditionStart,
-                    attributeConditionCount))
+        var selectedEntityId = 0;
+        KernelQuery.ForEachEntity(
+            world,
+            entityId =>
             {
-                continue;
-            }
+                if (!EntityMatchesQuery(
+                        world,
+                        entityId,
+                        kindId,
+                        targetId,
+                        targetOriginQ,
+                        targetOriginR,
+                        refCodes,
+                        refEntityIds,
+                        refCount,
+                        subtypeStart,
+                        subtypeCount,
+                        adjacentToTarget,
+                        cultureMatchCode,
+                        withoutOutgoingStart,
+                        withoutOutgoingCount,
+                        withoutIncomingStart,
+                        withoutIncomingCount))
+                {
+                    return true;
+                }
 
-            if (seen == selectedOrdinal)
-            {
-                return entityId;
-            }
+                if (seen == selectedOrdinal)
+                {
+                    selectedEntityId = entityId;
+                    return false;
+                }
 
-            seen++;
-        }
+                seen++;
+                return true;
+            });
 
-        return 0;
+        return selectedEntityId;
     }
 
     private int CountMatchingEntitiesForQuery(
@@ -635,8 +582,8 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int subtypeStart,
         int subtypeCount,
@@ -645,39 +592,38 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount,
-        int attributeConditionStart,
-        int attributeConditionCount)
+        int withoutIncomingCount)
     {
         var count = 0;
-        for (var entityId = world.FirstEntityOfKind(kindId);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
-        {
-            if (EntityMatchesQuery(
-                    world,
-                    entityId,
-                    kindId,
-                    targetId,
-                    targetOriginQ,
-                    targetOriginR,
-                    refCodes,
-                    refEntityIds,
-                    refCount,
-                    subtypeStart,
-                    subtypeCount,
-                    adjacentToTarget,
-                    cultureMatchCode,
-                    withoutOutgoingStart,
-                    withoutOutgoingCount,
-                    withoutIncomingStart,
-                    withoutIncomingCount,
-                    attributeConditionStart,
-                    attributeConditionCount))
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            kindId,
+            entityId =>
             {
-                count++;
-            }
-        }
+                if (EntityMatchesQuery(
+                        world,
+                        entityId,
+                        kindId,
+                        targetId,
+                        targetOriginQ,
+                        targetOriginR,
+                        refCodes,
+                        refEntityIds,
+                        refCount,
+                        subtypeStart,
+                        subtypeCount,
+                        adjacentToTarget,
+                        cultureMatchCode,
+                        withoutOutgoingStart,
+                        withoutOutgoingCount,
+                        withoutIncomingStart,
+                        withoutIncomingCount))
+                {
+                    count++;
+                }
+
+                return true;
+            });
 
         return count;
     }
@@ -689,8 +635,8 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int targetOriginQ,
         int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
+        int[] refCodes,
+        int[] refEntityIds,
         int refCount,
         int subtypeStart,
         int subtypeCount,
@@ -699,12 +645,10 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount,
-        int attributeConditionStart,
-        int attributeConditionCount)
+        int withoutIncomingCount)
     {
         return EntityBasicsMatchQuery(world, entityId, kindId, targetId, refEntityIds, refCount, subtypeStart, subtypeCount) &&
-               EntityFiltersMatchQuery(world, entityId, targetId, cultureMatchCode, withoutOutgoingStart, withoutOutgoingCount, withoutIncomingStart, withoutIncomingCount, attributeConditionStart, attributeConditionCount) &&
+               EntityFiltersMatchQuery(world, entityId, targetId, cultureMatchCode, withoutOutgoingStart, withoutOutgoingCount, withoutIncomingStart, withoutIncomingCount) &&
                EntityAdjacencyMatchesQuery(world, entityId, targetOriginQ, targetOriginR, adjacentToTarget);
     }
 
@@ -713,15 +657,14 @@ internal sealed partial class GeneratorProgramRuntime
         int entityId,
         int kindId,
         int targetId,
-        global::System.Span<int> refEntityIds,
+        int[] refEntityIds,
         int refCount,
         int subtypeStart,
         int subtypeCount)
     {
-        return world.EntityIsActive(entityId) &&
+        return KernelQuery.EntityIsActiveKind(world, entityId, kindId) &&
                entityId != targetId &&
                !RefAlreadyBound(refEntityIds, refCount, entityId) &&
-               world.EntityKindId(entityId) == kindId &&
                SubtypeMatches(world.EntitySubtypeId(entityId), subtypeStart, subtypeCount);
     }
 
@@ -733,15 +676,12 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount,
-        int attributeConditionStart,
-        int attributeConditionCount)
+        int withoutIncomingCount)
     {
         return
                CultureMatches(world, entityId, targetId, cultureMatchCode) &&
                RelationshipFiltersPass(world, entityId, withoutOutgoingStart, withoutOutgoingCount, outgoing: true) &&
-               RelationshipFiltersPass(world, entityId, withoutIncomingStart, withoutIncomingCount, outgoing: false) &&
-               AttributeConditionsPass(world, entityId, attributeConditionStart, attributeConditionCount);
+               RelationshipFiltersPass(world, entityId, withoutIncomingStart, withoutIncomingCount, outgoing: false);
     }
 
     private static bool EntityAdjacencyMatchesQuery(
@@ -752,7 +692,7 @@ internal sealed partial class GeneratorProgramRuntime
         int adjacentToTarget)
     {
         return adjacentToTarget == 0 ||
-            HexDistance(world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId), targetOriginQ, targetOriginR) == 1;
+            KernelQuery.HexDistance(world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId), targetOriginQ, targetOriginR) == 1;
     }
 
     private bool SubtypeMatches(int subtypeId, int start, int count)
@@ -794,45 +734,13 @@ internal sealed partial class GeneratorProgramRuntime
         var end = start + count;
         for (var filter = start; filter < end; filter++)
         {
-            var cursor = outgoing
-                ? world.OutgoingRelationshipsOfKind(entityId, _relationshipKindFilterIds[filter])
-                : world.IncomingRelationshipsOfKind(entityId, _relationshipKindFilterIds[filter]);
-            if (world.MoveNextRelationship(ref cursor, out _))
+            if (KernelQuery.HasRelationshipOfKind(world, entityId, _relationshipKindFilterIds[filter], outgoing))
             {
                 return false;
             }
         }
 
         return true;
-    }
-
-    private bool AttributeConditionsPass(WorldState world, int entityId, int start, int count)
-    {
-        var end = start + count;
-        for (var condition = start; condition < end; condition++)
-        {
-            if (!DirectionPasses(
-                    world.GetAttribute(entityId, _attributeConditionAttributeIds[condition]),
-                    _attributeConditionDirectionCodes[condition],
-                    _attributeConditionThresholds[condition]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool DirectionPasses(float value, int directionCode, float threshold)
-    {
-        return directionCode switch
-        {
-            GeneratorTriggerDirectionCodes.Low => value <= threshold,
-            GeneratorTriggerDirectionCodes.Critical => value <= threshold,
-            GeneratorTriggerDirectionCodes.High => value >= threshold,
-            GeneratorTriggerDirectionCodes.Any => true,
-            _ => false,
-        };
     }
 
 }

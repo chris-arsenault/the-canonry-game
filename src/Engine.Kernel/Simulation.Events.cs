@@ -110,25 +110,6 @@ internal sealed partial class Simulation
             reasonCodeId)));
     }
 
-    internal void EmitPressureChanged(
-        int tick,
-        int pressureId,
-        int scopeCode,
-        int scopeEntityId,
-        float oldValue,
-        float newValue)
-    {
-        WriteKernelEvent(KernelEvent.From(new PressureChangedKernelEvent(
-            tick,
-            WorldVersion,
-            pressureId,
-            scopeCode,
-            scopeEntityId,
-            PressureSourceCodeId,
-            oldValue,
-            newValue)));
-    }
-
     internal void EmitPlanStarted(
         int tick,
         int planId,

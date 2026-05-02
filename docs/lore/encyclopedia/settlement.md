@@ -1,31 +1,40 @@
 # Settlement
 
-A named constructed place: rookery, colony, holdfast, sanctuary, harbor, or
-reefhold. Settlements are physical coverage plus semantic civic presence.
+*Archivist's register: civic place entry, general.*
 
-## Subtypes
+A settlement is where a people have persuaded the Berg to tolerate repetition:
+eggs warmed in the same chamber, nets cast from the same edge, ledgers balanced
+under the same lamp, names counted in the same hall, debts collected by the same
+door. Some settlements become cities in all but name. Some remain a rookery, a
+holdfast, or a stubborn light on an otherwise empty route.
 
-- `rookery`
-- `colony`
-- `holdfast`
-- `sanctuary`
-- `harbor`
-- `reefhold`
+No settlement on Aurora Berg is self-sufficient. This is the first civic truth
+and the one most likely to be forgotten during speeches.
 
-## Attributes
+## Common Sorts
 
-- `temp_hp`: health; reaches zero and the settlement becomes historical.
-- `dominion`: civic and territorial projection.
-- `shelter`: habitability, safety, and ability to sustain named life.
+- **Rookeries** are built around eggs, chicks, huddles, and continuity.
+- **Colonies** carry administration: councils, markets, work crews, stores,
+  routes, and civic arguments.
+- **Holdfasts** exist because something must be defended there.
+- **Sanctuaries** promise refuge, although the price of refuge is often silence.
+- **Harbors** face trade, fishing, passage, and the risk of open water.
+- **Reefholds** belong to the uncertain edge between sea claim and land claim.
 
-## Low-Altitude Behavior
+## What Settlements Need
 
-Settlements move on the semantic plane through deliberation and gossip. On the
-physical plane they grow influence, consolidate influence, reduce hostile
-influence, and rarely expand coverage.
+Warmth, food, routes, witnesses, and a story about why staying is wiser than
+leaving. Aurora settlements often rise in tiers, arranging status and light as
+architecture. Nightshelf settlements run by tunnels, caches, coded doors, and
+the social art of knowing who knows which route. Mixed settlements survive by
+being useful before they are loved.
 
-## High-Altitude Role
+When supplies thin, a settlement's private shape appears. Some post ration
+arithmetic where everyone can see it. Some hide bad numbers in sealed ledgers.
+Some keep the warming-chamber lit and let every other hall go dark.
 
-Settlements are common generator outputs and generator targets. They can become
-holdfasts, sanctuaries, reefholds, colonies, and trade anchors depending on the
-active generator set.
+## Chronicle Use
+
+Use settlements as living arrangements under pressure. Give each settlement a
+work, a dependency, a local taboo, and a thing it insists is not a weakness. If a
+settlement falls, ask what routine continued one day too long.

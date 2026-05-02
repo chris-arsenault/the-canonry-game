@@ -13,7 +13,7 @@ historical rather than being erased.
 ## Current Contract
 
 - Entities have a domain-declared kind, subtype, culture, status, coordinates,
-  and attributes.
+  health, and traits.
 - Relationships are typed edges with polarity, strength, optional facts, and
   domain validation.
 - The graph topology is sparse and meaningful. Generators and gambits create or
@@ -27,7 +27,8 @@ historical rather than being erased.
 ## Boundaries
 
 - The graph owns identity and edges.
-- Attribute values are keyed by entity but are not a separate graph topology.
+- Health values and traits are keyed by entity but are not a separate graph
+  topology.
 - Physical and semantic placement are entity state used by map and relationship
   programs.
 - Map coverage and influence are map-owned spatial state, even when attached to

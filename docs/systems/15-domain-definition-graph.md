@@ -7,9 +7,9 @@ runtime world state.
 
 The definition graph keeps the domain honest. It answers questions such as:
 
-- do all referenced kinds, attributes, resources, relationships, pressures, and
-  generators exist?
-- do semantic stocks point at real domain attributes or resources?
+- do all referenced kinds, health attributes, traits, resources, relationships,
+  and generators exist?
+- do semantic stocks point at real domain health attributes or resources?
 - do generators create connected bundles?
 - do authored gameplay nodes declare reads and writes?
 - do semantic loops and coverage rules match the intended stock model?
@@ -21,10 +21,10 @@ This replaces loose worksheet reasoning with build-time validation.
 The graph contains:
 
 - kind nodes;
-- attribute nodes;
+- health attribute nodes;
+- trait nodes;
 - resource nodes;
 - relationship and relationship-fact nodes;
-- pressure nodes;
 - lifecycle nodes;
 - generator nodes;
 - gambit nodes;
@@ -40,7 +40,7 @@ Gameplay nodes represent reusable mechanics compiled through `Engine.Gameplay`:
 
 - low-altitude verbs;
 - map signals;
-- attribute effects.
+- health effects.
 
 They are included so semantic drift checks see the current primary behavior
 surface instead of only older graph concepts.

@@ -59,10 +59,6 @@ public sealed class AttributeRef : IEquatable<AttributeRef>
     public static AttributeRef Resource(string resourceName) =>
         new(RefScope.Resource, resourceName);
 
-    /// <summary>Pressure value in entity's region</summary>
-    public static AttributeRef Pressure(string pressureName) =>
-        new(RefScope.Pressure, pressureName);
-
     /// <summary>Named structural/behavior program fact.</summary>
     public static AttributeRef StructuralFact(string name, EntityKind? kind = null) =>
         new(RefScope.Structural, name, kind);
@@ -118,9 +114,6 @@ public enum RefScope
 
     /// <summary>Resource value at entity's location.</summary>
     Resource,
-
-    /// <summary>Pressure value in entity's region.</summary>
-    Pressure,
 
     /// <summary>Structural property (coordinates, subtype, status).</summary>
     Structural,

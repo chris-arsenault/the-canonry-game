@@ -9,11 +9,12 @@ using Engine.Kinds;
 public class RuntimeGeneratorBuilderTests
 {
     [Fact]
-    public void Build_FromIceRemembers_HasNoActiveGeneratorsWhileCatalogIsRebuilt()
+    public void Build_FromIceRemembers_CompilesActiveGeneratorCatalog()
     {
-        var generators = IceRemembersGeneratorDefinition.Create();
+        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
 
-        Assert.Empty(generators);
+        Assert.NotEmpty(graph.Generators);
+        Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, graph.Generators.Count);
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class RuntimeGeneratorBuilderTests
         Assert.Equal("rookery", Assert.Single(generator.Target.Subtypes!));
         Assert.Equal(IceRemembersKinds.Penguin, Assert.Single(generator.Produces).Kind);
         Assert.Equal(new DefinitionRelationshipId("home_base"), Assert.Single(generator.Relationships).RelationshipId);
-        Assert.Equal(new DefinitionAttributeId("shelter"), Assert.Single(generator.Triggers).AttributeId);
+        Assert.Equal(new DefinitionAttributeId("temp_hp"), Assert.Single(generator.Triggers).AttributeId);
     }
 
     [Fact]
@@ -113,24 +114,6 @@ public class RuntimeGeneratorBuilderTests
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
 
         Assert.Contains("$typo", ex.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Build_GeneratorWithUnknownTriggerAttribute_Throws()
-    {
-        var generator = CreateValidGenerator(
-            triggers:
-            [
-                new SemanticGeneratorTrigger
-                {
-                    OnKind = TestKinds.Settlement,
-                    AttributeName = "not_a_real_attribute",
-                },
-            ]);
-
-        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
-
-        Assert.Contains("not_a_real_attribute", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -334,8 +317,6 @@ public class RuntimeGeneratorBuilderTests
                 new SemanticGeneratorTrigger
                 {
                     OnKind = TestKinds.Settlement,
-                    AttributeName = "shelter",
-                    Direction = TriggerDirection.Low,
                 },
             ],
         };
@@ -358,12 +339,13 @@ public class RuntimeGeneratorBuilderTests
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
+            Gambits = config.Gambits,
             Relationships = config.Relationships,
             RelationshipFacts = relationshipFacts,
-            Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,
             Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {
                 Stocks = semantics.Stocks,

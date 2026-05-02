@@ -107,5 +107,10 @@ dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_event = false:suggestion
 
+[tests/**/*.cs]
+# xUnit v2 test classes remain public for discovery, and ConfigureAwait adds noise in tests.
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA2007.severity = none
+
 [*.{json,yaml,yml}]
 indent_size = 2

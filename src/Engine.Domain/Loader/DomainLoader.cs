@@ -6,7 +6,6 @@ using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Kinds;
 using Engine.Lifecycle;
-using Engine.Pressure;
 using Engine.Wiring;
 
 /// <summary>
@@ -32,16 +31,18 @@ public static class DomainLoader
 
         foreach (var (kind, kindConfig) in config.Kinds)
         {
-            var attributes = kindConfig.Attributes
-                .Select(a => new AttributeDefinition(a.Name, a.Min, a.Max, a.Default))
-                .ToList();
+            var health = kindConfig.Health;
+            var attributes = new[]
+            {
+                new AttributeDefinition(health.Name, health.Min, health.Max, health.Default),
+            };
 
             registry.RegisterKind(new KindDefinition(
                 kind,
                 kindConfig.Category,
                 new HashSet<string>(kindConfig.Subtypes, StringComparer.Ordinal),
                 attributes,
-                kindConfig.HealthAttribute));
+                health.Name));
         }
 
         foreach (var relConfig in config.Relationships)
@@ -68,45 +69,11 @@ public static class DomainLoader
 
         foreach (var (kind, lc) in config.Lifecycles)
         {
-            lifecycleConfig.Register(kind, lc.HealthAttribute,
+            lifecycleConfig.Register(kind, lc.Health,
                 new LinearAging { BaseRate = lc.BaseRate, AgeCoefficient = lc.AgeCoefficient });
         }
 
         return lifecycleConfig;
-    }
-
-    /// <summary>Build PressureDefinitions from domain config.</summary>
-    public static IEnumerable<PressureDefinition> LoadPressureDefinitions(DomainConfig config)
-    {
-        ArgumentNullException.ThrowIfNull(config);
-        return LoadPressureDefinitions(config, DomainCompiler.BuildCatalog(config));
-    }
-
-    public static IEnumerable<PressureDefinition> LoadPressureDefinitions(
-        DomainConfig config,
-        global::Engine.Domain.DomainIdRegistry runtimeIds)
-    {
-        ArgumentNullException.ThrowIfNull(config);
-        ArgumentNullException.ThrowIfNull(runtimeIds);
-
-        return LoadPressureDefinitionsCore(config, runtimeIds);
-    }
-
-    private static IEnumerable<PressureDefinition> LoadPressureDefinitionsCore(
-        DomainConfig config,
-        global::Engine.Domain.DomainIdRegistry runtimeIds)
-    {
-        foreach (var pc in config.Pressures)
-        {
-            yield return new PressureDefinition(
-                pc.Name,
-                pc.Scope,
-                pc.Baseline,
-                pc.HomeostasisRate,
-                pc.SmoothingFactor,
-                runtimeIds.PressureIdOf(pc.Name));
-            // Contributing factors will be added via wiring contracts (#35)
-        }
     }
 
     /// <summary>Extract wiring contracts from behavior definitions and validate.</summary>
@@ -119,7 +86,7 @@ public static class DomainLoader
         // Register health attributes per kind
         foreach (var (kind, kindConfig) in config.Kinds)
         {
-            validator.RegisterHealthAttribute(kind, kindConfig.HealthAttribute);
+            validator.RegisterHealthAttribute(kind, kindConfig.Health.Name);
         }
 
         // Extract contracts from gambit definitions.

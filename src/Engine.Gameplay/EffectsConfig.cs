@@ -39,7 +39,7 @@ public enum EffectCondition
     RelatedEntityDistance,
     MapSupportAtLocation,
     MapThreatAtLocation,
-    MapCrowdingPressure,
+    MapCrowdingLoad,
     MapCrowdingComfort,
 }
 

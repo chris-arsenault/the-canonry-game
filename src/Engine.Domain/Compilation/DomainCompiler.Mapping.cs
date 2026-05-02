@@ -133,24 +133,6 @@ public static partial class DomainCompiler
         return new CompiledTerrainData { Terrains = terrains };
     }
 
-    private static PressureProgram BuildPressureProgram(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        var pressures = new List<PressureRuntimeRule>();
-        foreach (var pressure in config.Pressures)
-        {
-            pressures.Add(new PressureRuntimeRule(
-                ids.PressureIdOf(pressure.Name).Value,
-                PressureScope(pressure.Scope),
-                pressure.Baseline,
-                pressure.HomeostasisRate,
-                pressure.SmoothingFactor));
-        }
-
-        return new PressureProgram { Pressures = pressures };
-    }
-
     private static DegeneracyProgram BuildDegeneracyProgram(
         DomainConfig config,
         DomainIdRegistry ids)
@@ -179,7 +161,7 @@ public static partial class DomainCompiler
         switch (detector.Metric)
         {
             case DegeneracyMetric.AttributeDeclineRatio:
-                attributeId = ResolveDegeneracyAttributeId(config, ids, detector.PrimaryKind, detector.Attribute, detector.Id);
+                attributeId = ResolveDegeneracyAttributeId(config, ids, detector.PrimaryKind, detector.Health, detector.Id);
                 EnsureNoSecondaryKind(detector);
                 EnsureNoRelationshipKind(detector);
                 break;
@@ -241,10 +223,10 @@ public static partial class DomainCompiler
                 $"Degeneracy detector '{detectorId}' requires Attribute for attribute decline metrics.");
         }
 
-        if (!config.Kinds[kind].Attributes.Any(attribute => string.Equals(attribute.Name, attributeName, StringComparison.Ordinal)))
+        if (!string.Equals(config.Kinds[kind].Health.Name, attributeName, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"Degeneracy detector '{detectorId}' references unknown attribute '{attributeName}' on kind '{kind}'.");
+                $"Degeneracy detector '{detectorId}' references unknown health '{attributeName}' on kind '{kind}'.");
         }
 
         return ids.AttributeIdOf(attributeName).Value;
@@ -290,10 +272,10 @@ public static partial class DomainCompiler
 
     private static void EnsureNoAttribute(DegeneracyDetectorConfig detector)
     {
-        if (!string.IsNullOrWhiteSpace(detector.Attribute))
+        if (!string.IsNullOrWhiteSpace(detector.Health))
         {
             throw new InvalidOperationException(
-                $"Degeneracy detector '{detector.Id}' does not support Attribute for metric '{detector.Metric}'.");
+                $"Degeneracy detector '{detector.Id}' does not support Health for metric '{detector.Metric}'.");
         }
     }
 
@@ -410,12 +392,7 @@ public static partial class DomainCompiler
         var compiled = new List<GeneratorTriggerRule>();
         foreach (var trigger in triggers)
         {
-            var direction = ToGeneratorTriggerDirection(trigger.Direction);
-            compiled.Add(new GeneratorTriggerRule(
-                ids.KindIdOf(trigger.OnKind).Value,
-                trigger.AttributeId is { } attributeId ? ids.AttributeIdOf(attributeId.Value).Value : 0,
-                direction,
-                GeneratorTriggerThreshold(direction)));
+            compiled.Add(new GeneratorTriggerRule(ids.KindIdOf(trigger.OnKind).Value));
         }
 
         return compiled;
@@ -485,25 +462,7 @@ public static partial class DomainCompiler
             query.AdjacentToTarget,
             ToGeneratorCultureMatch(query.TargetCultureMatch),
             CompileRelationshipKindIds(query.WithoutOutgoingRelationships, ids),
-            CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids),
-            CompileGeneratorAttributeConditions(query.AttributeConditions, ids));
-    }
-
-    private static List<GeneratorAttributeConditionRule> CompileGeneratorAttributeConditions(
-        IReadOnlyList<DefinitionQueryAttributeCondition> conditions,
-        DomainIdRegistry ids)
-    {
-        var compiled = new List<GeneratorAttributeConditionRule>();
-        foreach (var condition in conditions)
-        {
-            var direction = ToGeneratorTriggerDirection(condition.Direction);
-            compiled.Add(new GeneratorAttributeConditionRule(
-                ids.AttributeIdOf(condition.AttributeId.Value).Value,
-                direction,
-                GeneratorTriggerThreshold(direction)));
-        }
-
-        return compiled;
+            CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids));
     }
 
     private static GeneratorCoverageRule? CompileGeneratorCoverage(
@@ -694,29 +653,11 @@ public static partial class DomainCompiler
             _ => throw new ArgumentOutOfRangeException(nameof(cultureMatch), cultureMatch, null),
         };
 
-    private static GeneratorProgramTriggerDirection ToGeneratorTriggerDirection(
-        TriggerDirection direction) => direction switch
-        {
-            TriggerDirection.High => GeneratorProgramTriggerDirection.High,
-            TriggerDirection.Low => GeneratorProgramTriggerDirection.Low,
-            TriggerDirection.Critical => GeneratorProgramTriggerDirection.Critical,
-            TriggerDirection.Any => GeneratorProgramTriggerDirection.Any,
-            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
-        };
-
     private static GeneratorProgramCoverageMode ToGeneratorCoverageMode(CoveragePlacementMode mode) => mode switch
     {
         CoveragePlacementMode.CreateNew => GeneratorProgramCoverageMode.CreateNew,
         CoveragePlacementMode.SplitFromExisting => GeneratorProgramCoverageMode.SplitFromExisting,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
-    };
-
-    private static float GeneratorTriggerThreshold(GeneratorProgramTriggerDirection direction) => direction switch
-    {
-        GeneratorProgramTriggerDirection.High => StandardNeedScale.Comfortable,
-        GeneratorProgramTriggerDirection.Low => StandardNeedScale.Concern,
-        GeneratorProgramTriggerDirection.Critical => StandardNeedScale.Critical,
-        _ => 0f,
     };
 
     private static DegeneracyProgramMetric ToDegeneracyProgramMetric(DegeneracyMetric metric) => metric switch
@@ -782,12 +723,5 @@ public static partial class DomainCompiler
         boundaryGroups.Add(stableName, id);
         return id;
     }
-
-    private static PressureRuntimeScope PressureScope(Engine.Pressure.PressureScope scope) => scope switch
-    {
-        Engine.Pressure.PressureScope.Regional => PressureRuntimeScope.Coverage,
-        Engine.Pressure.PressureScope.Entity => PressureRuntimeScope.Entity,
-        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null),
-    };
 
 }

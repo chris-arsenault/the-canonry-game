@@ -20,17 +20,19 @@ Useful precondition families:
 - relationship existence or absence
 - relationship fact existence
 - relationship saturation limit
-- attribute threshold
+- relationship strength threshold
+- health threshold
+- trait presence or absence
 - physical or semantic distance
 - map coverage or influence
-- pressure threshold
+- map-signal threshold
 - cooldown / cadence
 - target availability
 
 ## Effects
 
 Generators may create named entity bundles. Gambits should usually avoid entity
-creation and instead change relationships, facts, status, or attributes.
+creation and instead change relationships, facts, status, health, or traits.
 
 Effect families:
 
@@ -40,11 +42,15 @@ Effect families:
 - modify relationship strength or polarity
 - modify status
 - modify subtype
-- modify attribute
+- modify health
+- assign trait
 - place entity physically or semantically
 
 ## Architecture Rules
 
+- If a numeric gate is required, prefer relationship strength. Use health only
+  when survival, damage, repair, or decay is the gate. Locality-based queries
+  are acceptable when map or semantic context is the point.
 - Do not duplicate targeting systems for primary and secondary targets. Use the
   same resolve-or-create query path with explicit `create_if_missing`.
 - Do not create card-only marker edges when a real relationship plus fact would

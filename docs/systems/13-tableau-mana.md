@@ -25,7 +25,7 @@ Each active generator or gambit should expose:
 - Tableau cards are commitments. Removing one should not undo graph history.
 - Tableau activity should be inspectable; hidden card logic creates bad tuning.
 - Generators create named entities. Gambits mostly change relationships, status,
-  or attributes.
+  health, or traits.
 - Low-altitude verbs are not tableau cards.
 
 ## Mana

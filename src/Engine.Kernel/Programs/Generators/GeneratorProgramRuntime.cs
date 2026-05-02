@@ -44,13 +44,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _subtypeIds => Data.SubtypeIds;
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
     private int[] _terrainFilterIds => Data.TerrainFilterIds;
-    private int[] _attributeConditionAttributeIds => Data.AttributeConditionAttributeIds;
-    private int[] _attributeConditionDirectionCodes => Data.AttributeConditionDirectionCodes;
-    private float[] _attributeConditionThresholds => Data.AttributeConditionThresholds;
     private int[] _triggerKindIds => Data.TriggerKindIds;
-    private int[] _triggerAttributeIds => Data.TriggerAttributeIds;
-    private int[] _triggerDirectionCodes => Data.TriggerDirectionCodes;
-    private float[] _triggerThresholds => Data.TriggerThresholds;
     private int[] _bindingRefCodes => Data.BindingRefCodes;
     private int[] _bindingKindIds => Data.BindingKindIds;
     private int[] _bindingAdjacentToTarget => Data.BindingAdjacentToTarget;
@@ -61,8 +55,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _bindingWithoutOutgoingCounts => Data.BindingWithoutOutgoingCounts;
     private int[] _bindingWithoutIncomingStarts => Data.BindingWithoutIncomingStarts;
     private int[] _bindingWithoutIncomingCounts => Data.BindingWithoutIncomingCounts;
-    private int[] _bindingAttributeConditionStarts => Data.BindingAttributeConditionStarts;
-    private int[] _bindingAttributeConditionCounts => Data.BindingAttributeConditionCounts;
     private int[] _producedRefCodes => Data.ProducedRefCodes;
     private int[] _producedKindIds => Data.ProducedKindIds;
     private int[] _producedSubtypeIds => Data.ProducedSubtypeIds;
@@ -83,8 +75,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedQueryWithoutOutgoingCounts => Data.ProducedQueryWithoutOutgoingCounts;
     private int[] _producedQueryWithoutIncomingStarts => Data.ProducedQueryWithoutIncomingStarts;
     private int[] _producedQueryWithoutIncomingCounts => Data.ProducedQueryWithoutIncomingCounts;
-    private int[] _producedQueryAttributeConditionStarts => Data.ProducedQueryAttributeConditionStarts;
-    private int[] _producedQueryAttributeConditionCounts => Data.ProducedQueryAttributeConditionCounts;
     private int[] _producedCoverageModeCodes => Data.ProducedCoverageModeCodes;
     private int[] _producedCoverageSourceRefCodes => Data.ProducedCoverageSourceRefCodes;
     private int[] _producedCoverageDesiredCellCounts => Data.ProducedCoverageDesiredCellCounts;
@@ -127,7 +117,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private ref int _subtypeCount => ref Data.SubtypeCount;
     private ref int _relationshipKindFilterCount => ref Data.RelationshipKindFilterCount;
     private ref int _terrainFilterCount => ref Data.TerrainFilterCount;
-    private ref int _attributeConditionCount => ref Data.AttributeConditionCount;
     private ref int _triggerCount => ref Data.TriggerCount;
     private ref int _bindingCount => ref Data.BindingCount;
     private ref int _producedCount => ref Data.ProducedCount;
@@ -288,17 +277,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _saturationMaxExisting[generatorSlot] = maxExisting;
     }
 
-    public void AddTrigger(
-        int generatorSlot,
-        int kindId,
-        int attributeId,
-        int directionCode,
-        float threshold)
+    public void AddTrigger(int generatorSlot, int kindId)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(kindId);
-        ValidatePositive(directionCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(attributeId);
         if (_triggerCount + 1 >= _triggerKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -306,9 +288,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
         _triggerCount++;
         _triggerKindIds[_triggerCount] = kindId;
-        _triggerAttributeIds[_triggerCount] = attributeId;
-        _triggerDirectionCodes[_triggerCount] = directionCode;
-        _triggerThresholds[_triggerCount] = threshold;
         _triggerCounts[generatorSlot]++;
     }
 
@@ -336,7 +315,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _bindingSubtypeStarts[_bindingCount] = _subtypeCount + 1;
         _bindingWithoutOutgoingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
         _bindingWithoutIncomingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
-        _bindingAttributeConditionStarts[_bindingCount] = _attributeConditionCount + 1;
         _bindingCounts[generatorSlot]++;
         _openBindingSlot = _bindingCount;
         return _bindingCount;
@@ -361,17 +339,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         EnsureOpenBinding(bindingSlot);
         AddRelationshipKindFilterId(relationshipKindId);
         _bindingWithoutIncomingCounts[bindingSlot]++;
-    }
-
-    public void AddBindingAttributeCondition(
-        int bindingSlot,
-        int attributeId,
-        int directionCode,
-        float threshold)
-    {
-        EnsureOpenBinding(bindingSlot);
-        AddAttributeCondition(attributeId, directionCode, threshold);
-        _bindingAttributeConditionCounts[bindingSlot]++;
     }
 
     public int AddProduced(
@@ -487,7 +454,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _producedQuerySubtypeStarts[producedSlot] = _subtypeCount + 1;
         _producedQueryWithoutOutgoingStarts[producedSlot] = _relationshipKindFilterCount + 1;
         _producedQueryWithoutIncomingStarts[producedSlot] = _relationshipKindFilterCount + 1;
-        _producedQueryAttributeConditionStarts[producedSlot] = _attributeConditionCount + 1;
         _producedCoveragePreferredTerrainStarts[producedSlot] = _terrainFilterCount + 1;
         _producedCoverageAllowedTerrainStarts[producedSlot] = _terrainFilterCount + 1;
     }
@@ -518,17 +484,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         EnsureOpenProduced(producedSlot);
         AddRelationshipKindFilterId(relationshipKindId);
         _producedQueryWithoutIncomingCounts[producedSlot]++;
-    }
-
-    public void AddProducedQueryAttributeCondition(
-        int producedSlot,
-        int attributeId,
-        int directionCode,
-        float threshold)
-    {
-        EnsureOpenProduced(producedSlot);
-        AddAttributeCondition(attributeId, directionCode, threshold);
-        _producedQueryAttributeConditionCounts[producedSlot]++;
     }
 
     public void AddProducedCoveragePreferredTerrain(int producedSlot, int terrainId)
@@ -820,19 +775,20 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int CountEligibleTargets(WorldState world, int generatorSlot)
     {
         var count = 0;
-        global::System.Span<int> refCodes = _refCodes;
-        global::System.Span<int> refEntityIds = _refEntityIds;
-        for (var entityId = world.FirstEntityOfKind(_targetKindIds[generatorSlot]);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
-        {
-            if (!TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+        var refCodes = _refCodes;
+        var refEntityIds = _refEntityIds;
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            _targetKindIds[generatorSlot],
+            entityId =>
             {
-                continue;
-            }
+                if (TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                {
+                    count++;
+                }
 
-            count++;
-        }
+                return true;
+            });
 
         return count;
     }
@@ -842,26 +798,30 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var selectedOrdinal = simulation.NextInt(_pulseCandidateCounts[generatorSlot]);
         var seen = 0;
         var world = simulation.World;
-        global::System.Span<int> refCodes = _refCodes;
-        global::System.Span<int> refEntityIds = _refEntityIds;
-        for (var entityId = world.FirstEntityOfKind(_targetKindIds[generatorSlot]);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
-        {
-            if (!TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+        var refCodes = _refCodes;
+        var refEntityIds = _refEntityIds;
+        var selectedTargetId = 0;
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            _targetKindIds[generatorSlot],
+            entityId =>
             {
-                continue;
-            }
+                if (!TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                {
+                    return true;
+                }
 
-            if (seen == selectedOrdinal)
-            {
-                return entityId;
-            }
+                if (seen == selectedOrdinal)
+                {
+                    selectedTargetId = entityId;
+                    return false;
+                }
 
-            seen++;
-        }
+                seen++;
+                return true;
+            });
 
-        return 0;
+        return selectedTargetId;
     }
 
     private int SelectEligibleTarget(
@@ -888,27 +848,31 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var selectedOrdinal = simulation.NextInt(candidateCount);
         var seen = 0;
         var world = simulation.World;
-        global::System.Span<int> refCodes = _refCodes;
-        global::System.Span<int> refEntityIds = _refEntityIds;
-        for (var entityId = world.FirstEntityOfKind(_targetKindIds[generatorSlot]);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
-        {
-            if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
-                !TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+        var refCodes = _refCodes;
+        var refEntityIds = _refEntityIds;
+        var selectedTargetId = 0;
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            _targetKindIds[generatorSlot],
+            entityId =>
             {
-                continue;
-            }
+                if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
+                    !TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                {
+                    return true;
+                }
 
-            if (seen == selectedOrdinal)
-            {
-                return entityId;
-            }
+                if (seen == selectedOrdinal)
+                {
+                    selectedTargetId = entityId;
+                    return false;
+                }
 
-            seen++;
-        }
+                seen++;
+                return true;
+            });
 
-        return 0;
+        return selectedTargetId;
     }
 
     private int CountEligibleTargetsExcluding(
@@ -918,20 +882,21 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int rejectedTargetCount)
     {
         var count = 0;
-        global::System.Span<int> refCodes = _refCodes;
-        global::System.Span<int> refEntityIds = _refEntityIds;
-        for (var entityId = world.FirstEntityOfKind(_targetKindIds[generatorSlot]);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
-        {
-            if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
-                !TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+        var refCodes = _refCodes;
+        var refEntityIds = _refEntityIds;
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            _targetKindIds[generatorSlot],
+            entityId =>
             {
-                continue;
-            }
+                if (!RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) &&
+                    TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                {
+                    count++;
+                }
 
-            count++;
-        }
+                return true;
+            });
 
         return count;
     }
@@ -947,158 +912,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         }
 
         return false;
-    }
-
-    private bool TargetPasses(
-        WorldState world,
-        int generatorSlot,
-        int targetId,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
-        out int refCount)
-    {
-        refCount = 0;
-        if (!world.EntityIsActive(targetId) ||
-            world.EntityKindId(targetId) != _targetKindIds[generatorSlot] ||
-            !SubtypeMatches(world.EntitySubtypeId(targetId), _targetSubtypeStarts[generatorSlot], _targetSubtypeCounts[generatorSlot]) ||
-            !TargetRelationshipRequirementsPass(world, generatorSlot, targetId) ||
-            ExceedsTargetSaturation(world, generatorSlot, targetId) ||
-            !TriggersPass(world, generatorSlot, targetId))
-        {
-            return false;
-        }
-
-        var targetOriginQ = world.EntityPhysicalQ(targetId);
-        var targetOriginR = world.EntityPhysicalR(targetId);
-        if (_targetAllowWilderness[generatorSlot] != 0 &&
-            !FindFreePhysicalHex(world, targetOriginQ, targetOriginR, maxRadius: 5, out targetOriginQ, out targetOriginR))
-        {
-            return false;
-        }
-
-        SetRef(refCodes, refEntityIds, ref refCount, GeneratorProgramConstants.TargetReferenceCode, targetId);
-        return ResolveSecondaryBindings(
-            world,
-            generatorSlot,
-            targetId,
-            targetOriginQ,
-            targetOriginR,
-            refCodes,
-            refEntityIds,
-            ref refCount,
-            selectRandom: false,
-            simulation: null);
-    }
-
-    private bool TargetRelationshipRequirementsPass(WorldState world, int generatorSlot, int targetId)
-    {
-        return RequiredDirectedRelationshipsPass(
-                world,
-                targetId,
-                _targetRequiredOutgoingStarts[generatorSlot],
-                _targetRequiredOutgoingCounts[generatorSlot],
-                outgoing: true) &&
-            RequiredDirectedRelationshipsPass(
-                world,
-                targetId,
-                _targetRequiredIncomingStarts[generatorSlot],
-                _targetRequiredIncomingCounts[generatorSlot],
-                outgoing: false) &&
-            RequiredAnyDirectionRelationshipsPass(
-                world,
-                targetId,
-                _targetRequiredAnyStarts[generatorSlot],
-                _targetRequiredAnyCounts[generatorSlot]);
-    }
-
-    private bool RequiredDirectedRelationshipsPass(
-        WorldState world,
-        int targetId,
-        int start,
-        int count,
-        bool outgoing)
-    {
-        var end = start + count;
-        for (var filter = start; filter < end; filter++)
-        {
-            if (!HasRelationshipOfKind(world, targetId, _relationshipKindFilterIds[filter], outgoing))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool RequiredAnyDirectionRelationshipsPass(WorldState world, int targetId, int start, int count)
-    {
-        var end = start + count;
-        for (var filter = start; filter < end; filter++)
-        {
-            var relationshipKindId = _relationshipKindFilterIds[filter];
-            if (!HasRelationshipOfKind(world, targetId, relationshipKindId, outgoing: true) &&
-                !HasRelationshipOfKind(world, targetId, relationshipKindId, outgoing: false))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool HasRelationshipOfKind(WorldState world, int entityId, int relationshipKindId, bool outgoing)
-    {
-        var cursor = outgoing
-            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
-            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
-        return world.MoveNextRelationship(ref cursor, out _);
-    }
-
-    private bool ResolveSecondaryBindings(
-        WorldState world,
-        int generatorSlot,
-        int targetId,
-        int targetOriginQ,
-        int targetOriginR,
-        global::System.Span<int> refCodes,
-        global::System.Span<int> refEntityIds,
-        ref int refCount,
-        bool selectRandom,
-        Simulation? simulation)
-    {
-        var first = _bindingStarts[generatorSlot];
-        var end = first + _bindingCounts[generatorSlot];
-        for (var binding = first; binding < end; binding++)
-        {
-            var entityId = SelectEntityForQuery(
-                world,
-                selectRandom ? simulation : null,
-                _bindingKindIds[binding],
-                targetId,
-                targetOriginQ,
-                targetOriginR,
-                refCodes,
-                refEntityIds,
-                refCount,
-                _bindingSubtypeStarts[binding],
-                _bindingSubtypeCounts[binding],
-                _bindingAdjacentToTarget[binding],
-                _bindingCultureMatchCodes[binding],
-                _bindingWithoutOutgoingStarts[binding],
-                _bindingWithoutOutgoingCounts[binding],
-                _bindingWithoutIncomingStarts[binding],
-                _bindingWithoutIncomingCounts[binding],
-                _bindingAttributeConditionStarts[binding],
-                _bindingAttributeConditionCounts[binding]);
-            if (entityId == 0)
-            {
-                return false;
-            }
-
-            SetRef(refCodes, refEntityIds, ref refCount, _bindingRefCodes[binding], entityId);
-        }
-
-        return true;
     }
 
 }

@@ -34,9 +34,6 @@ public sealed class KernelSnapshotTests
             tick: 0,
             factId0: 70,
             factCount: 1);
-        simulation.Pressures.RegisterPressure(40, PressureScopeCodes.Entity, 1f, 0f, 1f);
-        simulation.Pressures.ApplyDelta(40, actor, 6f);
-        simulation.Pressures.Tick(simulation, tick: 0);
         simulation.Generators.RegisterGenerator(
             generatorId: 50,
             cadence: 1,
@@ -78,8 +75,6 @@ public sealed class KernelSnapshotTests
             GambitCommitmentCapacity = 16,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 16,
-            PressureCapacity = 4,
-            PressureValueCapacity = 16,
             DegeneracyDetectorCapacity = 4,
             DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 4,
@@ -113,10 +108,6 @@ public sealed class KernelSnapshotTests
                         new PlanningEntityPlannerOverride(2, PlannerKindCodes.Opportunity),
                     ],
                 },
-                Pressures = new PressureProgramTuningOptions
-                {
-                    Enabled = true,
-                },
                 Upkeep = new UpkeepProgramTuningOptions
                 {
                     AgingModelCode = UpkeepAgingModelCodes.LateLife,
@@ -148,7 +139,6 @@ public sealed class KernelSnapshotTests
         Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));
         Assert.Equal(2, loaded.World.TerrainBoundaryGroupId(1));
         Assert.Equal(0.75f, loaded.World.RelationshipStrength(relationshipId));
-        Assert.Equal(7f, loaded.Pressures.GetValue(40, actor));
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
@@ -161,7 +151,6 @@ public sealed class KernelSnapshotTests
             item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
         Assert.Equal(PlannerKindCodes.Goap, loaded.Planners.PlannerKindFor(1, actor));
         Assert.Equal(PlannerKindCodes.Opportunity, loaded.Planners.PlannerKindFor(1, target));
-        Assert.True(loaded.Options.KernelTuning.Programs.Pressures.Enabled);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(expectedRandom, loaded.NextInt(10000));

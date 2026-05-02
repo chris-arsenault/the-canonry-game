@@ -35,13 +35,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] SubtypeIds = [];
     internal int[] RelationshipKindFilterIds = [];
     internal int[] TerrainFilterIds = [];
-    internal int[] AttributeConditionAttributeIds = [];
-    internal int[] AttributeConditionDirectionCodes = [];
-    internal float[] AttributeConditionThresholds = [];
     internal int[] TriggerKindIds = [];
-    internal int[] TriggerAttributeIds = [];
-    internal int[] TriggerDirectionCodes = [];
-    internal float[] TriggerThresholds = [];
     internal int[] BindingRefCodes = [];
     internal int[] BindingKindIds = [];
     internal int[] BindingAdjacentToTarget = [];
@@ -52,8 +46,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] BindingWithoutOutgoingCounts = [];
     internal int[] BindingWithoutIncomingStarts = [];
     internal int[] BindingWithoutIncomingCounts = [];
-    internal int[] BindingAttributeConditionStarts = [];
-    internal int[] BindingAttributeConditionCounts = [];
     internal int[] ProducedRefCodes = [];
     internal int[] ProducedKindIds = [];
     internal int[] ProducedSubtypeIds = [];
@@ -74,8 +66,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedQueryWithoutOutgoingCounts = [];
     internal int[] ProducedQueryWithoutIncomingStarts = [];
     internal int[] ProducedQueryWithoutIncomingCounts = [];
-    internal int[] ProducedQueryAttributeConditionStarts = [];
-    internal int[] ProducedQueryAttributeConditionCounts = [];
     internal int[] ProducedCoverageModeCodes = [];
     internal int[] ProducedCoverageSourceRefCodes = [];
     internal int[] ProducedCoverageDesiredCellCounts = [];
@@ -107,7 +97,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int SubtypeCount;
     internal int RelationshipKindFilterCount;
     internal int TerrainFilterCount;
-    internal int AttributeConditionCount;
     internal int TriggerCount;
     internal int BindingCount;
     internal int ProducedCount;
@@ -173,17 +162,11 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         SubtypeIds = new int[itemCapacity + 1];
         RelationshipKindFilterIds = new int[itemCapacity + 1];
         TerrainFilterIds = new int[itemCapacity + 1];
-        AttributeConditionAttributeIds = new int[itemCapacity + 1];
-        AttributeConditionDirectionCodes = new int[itemCapacity + 1];
-        AttributeConditionThresholds = new float[itemCapacity + 1];
     }
 
     private void InitializeTriggerArrays(int itemCapacity)
     {
         TriggerKindIds = new int[itemCapacity + 1];
-        TriggerAttributeIds = new int[itemCapacity + 1];
-        TriggerDirectionCodes = new int[itemCapacity + 1];
-        TriggerThresholds = new float[itemCapacity + 1];
     }
 
     private void InitializeBindingArrays(int itemCapacity)
@@ -198,8 +181,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingWithoutOutgoingCounts = new int[itemCapacity + 1];
         BindingWithoutIncomingStarts = new int[itemCapacity + 1];
         BindingWithoutIncomingCounts = new int[itemCapacity + 1];
-        BindingAttributeConditionStarts = new int[itemCapacity + 1];
-        BindingAttributeConditionCounts = new int[itemCapacity + 1];
     }
 
     private void InitializeProducedArrays(int itemCapacity)
@@ -224,8 +205,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedQueryWithoutOutgoingCounts = new int[itemCapacity + 1];
         ProducedQueryWithoutIncomingStarts = new int[itemCapacity + 1];
         ProducedQueryWithoutIncomingCounts = new int[itemCapacity + 1];
-        ProducedQueryAttributeConditionStarts = new int[itemCapacity + 1];
-        ProducedQueryAttributeConditionCounts = new int[itemCapacity + 1];
         ProducedCoverageModeCodes = new int[itemCapacity + 1];
         ProducedCoverageSourceRefCodes = new int[itemCapacity + 1];
         ProducedCoverageDesiredCellCounts = new int[itemCapacity + 1];

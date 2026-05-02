@@ -1,8 +1,8 @@
 # Generators
 
 Generators are the high-altitude layer of the simulation: world events that
-intermittently bring **new named entities** into being. They are not pressure
-release; they are creation. The deck of generators the player runs is a
+intermittently bring **new named entities** into being. They are creation, not
+an aggregate release valve. The deck of generators the player runs is a
 statement about what kinds of worlds are allowed to come into being.
 
 This document is the canonical generator design — system rules, authoring
@@ -44,10 +44,10 @@ Each generator names:
 
 - **A target kind** — what kind of existing entity it looks at to decide
   "am I applicable here right now?" (e.g. Region, Settlement, Faction).
-- **One or more dynamic preconditions** — relationships, facts,
-  saturation limits, subtype filters, or other current-world conditions
-  that gate applicability. Static attribute dependence is intentionally
-  avoided in the active catalog.
+- **One or more dynamic preconditions** — relationships, relationship
+  strength, facts, saturation limits, subtype filters, locality, health, traits,
+  or other current-world conditions that gate applicability. Static non-health
+  attribute dependence is intentionally not part of the active model.
 - **A produce list** — entities that get spawned, each with a role and
   optional create-chance.
 - **A relationship list** — how produced entities wire to each other and
@@ -82,7 +82,8 @@ Authoring violations fail the build, not the runtime.
 
 1. **Every generator has at least one target gate.** No "fires randomly
    out of nothing" — the world must have a reason. The active catalog uses
-   relationship and saturation gates rather than attribute thresholds.
+   relationship and saturation gates rather than non-health attribute
+   thresholds.
 2. **Target gates match target kind.** You can't target Regions and gate
    off an unrelated Settlement-only condition.
 3. **The generated graph stays connected to the existing world.** The
@@ -102,8 +103,7 @@ Authoring violations fail the build, not the runtime.
    which legitimately have no culture.)
 8. **Saturation limits honored.** A target declaring `MaxCount = 3` on a
    `contains` relationship stops being applicable once the target has 3
-   out-relationships of that kind. Pressure valve against unbounded
-   spawn.
+   out-relationships of that kind. This bounds repeated spawning.
 9. **Generators create a connected bundle of new named entities.**
    Relationship mutation on existing entities is allowed but secondary.
    If the main thing the content does is mutate existing graph state, it
@@ -117,9 +117,16 @@ Authoring violations fail the build, not the runtime.
 - Target entity must be `Active` (not Historical).
 - Target subtype must match if filter present.
 - Required target relationships must exist.
+- Required relationship strength thresholds must pass when authored.
 - Saturation cap not hit.
 - `MaxRunsPerSim` not exceeded.
 - For `AllowWilderness`: region must have a free physical hex nearby.
+
+Relationship strength should be the default numeric gate. For example, a
+generator or gambit around cleansing should require a strong relevant
+relationship such as `anchored`, `holds`, or `cleansed_by`, not an invented
+`power` or `pristiness` scalar. Health thresholds and locality queries remain
+valid when they describe the real condition.
 
 ## Soft warnings (heuristics, not blockers)
 
@@ -170,6 +177,10 @@ is broad enough to support future generators.
 | `Settlement` | `Rookery`, `Colony`, `Holdfast`, `Sanctuary`, `Harbor`, `Reefhold` | Direct size levels (`Rookery`/`Colony`) plus durable role-based forms: hardened survival, sacred refuge, trade-facing edge, intentionally built offshore. |
 | `Artifact` | `Relic`, `Instrument`, `Weapon`, `Tome`, `Seal` | Sacred inheritances, operational instruments, weapon-objects, dangerous written artifacts, containment/closure objects. |
 | `Region` | `Face`, `Shelf`, `Depths`, `Reach`, `Sea`, `Scar` | Structural position in/around the Berg: exposed outer face, held ice, deep interior strata, opened margin, open water, wounded ground. |
+| `Orca` | `Matriarch`, `Bull`, `Scout`, `Elder` | Wake-Singer leadership, force, reconnaissance, and old-memory roles. |
+| `PointOfInterest` | `Vent`, `Peak`, `Bloom`, `Shoal` | Named natural features smaller than regions and not built like settlements. |
+| `Ability` | `Technique`, `Rite`, `Craft` | Combat techniques, magical rites, and technological practices. |
+| `Monster` | `Leviathan`, `Wraith`, `Beast`, `Revenant` | Different forms of bound or emerging peril; sealed/unbound/risen remains status, not subtype. |
 
 ### Coverage read
 
@@ -190,15 +201,20 @@ against matters more than full generator coverage right now.
 
 ## Catalog: current generators
 
-There are currently **no active Ice Remembers generators**. The previous
-catalog was deleted because its event shapes were not grounded enough in
-the rebuilt simulation layer.
+The active Ice Remembers catalog currently contains six relationship-driven
+generators:
 
-The next catalog pass should start from the gambit-created relationships
-that the simulation already produces, such as `Holds`, `AtWarWith`,
-`TradeRoute`, and `CleansedBy`, then define four reviewed generators with
-cross-kind production. Target subkind filters should stay broad until the
-catalog is large enough for subtype coverage to be meaningful.
+- `war_makes_wardens`
+- `ice_settles_accounts`
+- `what_the_spring_remembers`
+- `war_breaks_the_land`
+- `routes_draw_readers`
+- `what_the_artifact_knows`
+
+These start from graph state the simulation already produces, such as
+`holds`, `at_war_with`, `trade_route`, and `cleansed_by`, then create
+cross-kind bundles. Target subtype filters should stay broad until the catalog
+is large enough for subtype coverage to be meaningful.
 
 ## Open design questions (system-level)
 
@@ -220,10 +236,9 @@ Recommendations for future passes, separated from blocking design work
 so the backlog stays explicit.
 
 **Catalog content.**
-- The active catalog is empty while the first four simulation-facing
-  generators are redesigned.
 - Generator gates should come from actual simulation dynamics, especially
-  gambit-created relationships, not from static attribute thresholds.
+  gambit-created relationships, relationship strength, and locality, not from
+  static non-health attribute thresholds.
 - A healthy catalog has generators that **collapse** state as well as
   create state —
   famine, exile, dissolution of factions into penguins. Spawn-only

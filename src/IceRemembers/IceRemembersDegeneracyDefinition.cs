@@ -29,7 +29,7 @@ public static class IceRemembersDegeneracyDefinition
                 ThresholdDirection = DegeneracyThresholdDirection.HighIsBad,
                 NoSubjectsSeverity = DegeneracySeverity.Critical,
                 PrimaryKind = K.Settlement,
-                Attribute = Attr.TempHp.ToDomainName(),
+                Health = Attr.TempHp.ToDomainName(),
                 WarningThreshold = 0.5f,
                 CriticalThreshold = 0.8f,
             },

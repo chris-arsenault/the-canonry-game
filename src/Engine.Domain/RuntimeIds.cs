@@ -10,6 +10,11 @@ public readonly record struct AttributeRuntimeId(int Value)
     public static AttributeRuntimeId None => default;
 }
 
+public readonly record struct TraitRuntimeId(int Value)
+{
+    public static TraitRuntimeId None => default;
+}
+
 public readonly record struct RelationshipKindRuntimeId(int Value)
 {
     public static RelationshipKindRuntimeId None => default;
@@ -23,11 +28,6 @@ public readonly record struct RelationshipFactRuntimeId(int Value)
 public readonly record struct StructuralFactRuntimeId(int Value)
 {
     public static StructuralFactRuntimeId None => default;
-}
-
-public readonly record struct PressureRuntimeId(int Value)
-{
-    public static PressureRuntimeId None => default;
 }
 
 public readonly record struct ResourceRuntimeId(int Value)

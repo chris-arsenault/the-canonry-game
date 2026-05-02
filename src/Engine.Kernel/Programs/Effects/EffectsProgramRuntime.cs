@@ -12,6 +12,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private float[] _attributeDeltaThresholds => Data.AttributeDeltaThresholds;
     private float[] _attributeDeltaMinimumRelationshipStrengths => Data.AttributeDeltaMinimumRelationshipStrengths;
     private float[] _attributeDeltaDeltas => Data.AttributeDeltaDeltas;
+    private int[] _attributeDeltaRequiredTargetTraitIds => Data.AttributeDeltaRequiredTargetTraitIds;
+    private int[] _attributeDeltaRequiredRelatedTraitIds => Data.AttributeDeltaRequiredRelatedTraitIds;
     private ref int _attributeDeltaRuleCount => ref Data.AttributeDeltaRuleCount;
 
     public EffectsProgramRuntime(EffectsProgramData data, EffectsProgramState state)
@@ -38,7 +40,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int maxDistance,
         float threshold,
         float minimumRelationshipStrength,
-        float deltaPerTick)
+        float deltaPerTick,
+        int requiredTargetTraitId = 0,
+        int requiredRelatedTraitId = 0)
     {
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
@@ -49,6 +53,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxDistance);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(threshold);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumRelationshipStrength);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredTargetTraitId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredRelatedTraitId);
         if (_attributeDeltaRuleCount + 1 >= _attributeDeltaKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -66,6 +72,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _attributeDeltaThresholds[slot] = threshold;
         _attributeDeltaMinimumRelationshipStrengths[slot] = minimumRelationshipStrength;
         _attributeDeltaDeltas[slot] = deltaPerTick;
+        _attributeDeltaRequiredTargetTraitIds[slot] = requiredTargetTraitId;
+        _attributeDeltaRequiredRelatedTraitIds[slot] = requiredRelatedTraitId;
         return slot;
     }
 
@@ -73,15 +81,13 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
-        {
-            if (!world.EntityIsActive(entityId))
+        KernelQuery.ForEachActiveEntity(
+            world,
+            entityId =>
             {
-                continue;
-            }
-
-            ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, world.EntityKindId(entityId));
-        }
+                ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, world.EntityKindId(entityId));
+                return true;
+            });
     }
 
     private void ApplyAttributeDeltaEffectsForKind(Simulation simulation, int entityId, int tick, int kindId)
@@ -93,17 +99,22 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 continue;
             }
 
+            if (!KernelQuery.TraitFilterPasses(simulation.World, entityId, _attributeDeltaRequiredTargetTraitIds[rule]))
+            {
+                continue;
+            }
+
             var evidence = EffectEvidence(simulation, entityId, rule);
             if (evidence <= 0f)
             {
                 continue;
             }
 
-            simulation.ModifyAttribute(
+            KernelEffectExecutor.ModifyAttribute(
+                simulation,
                 entityId,
                 _attributeDeltaAttributeIds[rule],
-                _attributeDeltaDeltas[rule] * evidence,
-                tick);
+                _attributeDeltaDeltas[rule] * evidence);
         }
     }
 
@@ -122,27 +133,27 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
 
         if (conditionCode == EffectConditionCodes.LocalPositiveSignal)
         {
-            return ThresholdEvidence(
+            return KernelQuery.ThresholdEvidence(
                 simulation.MapSignals.EntitySupport(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule]);
         }
 
         if (conditionCode == EffectConditionCodes.LocalNegativeSignal)
         {
-            return ThresholdEvidence(
+            return KernelQuery.ThresholdEvidence(
                 simulation.MapSignals.EntityThreat(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule]);
         }
 
-        if (conditionCode == EffectConditionCodes.LocalPressureSignal)
+        if (conditionCode == EffectConditionCodes.LocalCrowdingLoadSignal)
         {
-            return ThresholdEvidence(
-                simulation.MapSignals.EntityCrowdingPressure(entityId, _attributeDeltaPlaneCodes[rule]),
+            return KernelQuery.ThresholdEvidence(
+                simulation.MapSignals.EntityCrowdingLoad(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule]);
         }
 
         return conditionCode == EffectConditionCodes.LocalComfortSignal
-            ? ThresholdEvidence(
+            ? KernelQuery.ThresholdEvidence(
                 simulation.MapSignals.EntityCrowdingComfort(entityId, _attributeDeltaPlaneCodes[rule]),
                 _attributeDeltaThresholds[rule])
             : 0f;
@@ -167,7 +178,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             total += RelatedInfluenceEvidenceForDirection(world, entityId, rule, outgoing: false);
         }
 
-        return Clamp01(total);
+        return KernelQuery.Clamp01(total);
     }
 
     private float RelatedInfluenceEvidenceForDirection(
@@ -176,42 +187,39 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int rule,
         bool outgoing)
     {
-        var cursor = outgoing
-            ? world.OutgoingRelationshipsOfKindAbove(
-                entityId,
-                _attributeDeltaRelationshipKindIds[rule],
-                _attributeDeltaMinimumRelationshipStrengths[rule])
-            : world.IncomingRelationshipsOfKindAbove(
-                entityId,
-                _attributeDeltaRelationshipKindIds[rule],
-                _attributeDeltaMinimumRelationshipStrengths[rule]);
         var planeCode = _attributeDeltaPlaneCodes[rule];
-        var q = CurrentQ(world, entityId, planeCode);
-        var r = CurrentR(world, entityId, planeCode);
+        var q = KernelQuery.CurrentQ(world, entityId, planeCode);
+        var r = KernelQuery.CurrentR(world, entityId, planeCode);
         var total = 0f;
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            var otherEntityId = outgoing
-                ? world.RelationshipTargetId(relationshipId)
-                : world.RelationshipSourceId(relationshipId);
+        KernelQuery.ForEachRelatedEndpoint(
+            world,
+            entityId,
+            _attributeDeltaRelationshipKindIds[rule],
+            _attributeDeltaMinimumRelationshipStrengths[rule],
+            requiredFactId: 0,
+            outgoing,
+            (relationshipId, otherEntityId) =>
+            {
             if (!world.EntityIsActive(otherEntityId))
             {
-                continue;
+                return true;
+            }
+
+            if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
+            {
+                return true;
             }
 
             var influence = world.GetCellInfluence(otherEntityId, planeCode, q, r);
             if (influence <= 0f)
             {
-                continue;
+                return true;
             }
 
-            total += ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
-                world.RelationshipStrength(relationshipId);
-            if (total >= 1f)
-            {
-                return 1f;
-            }
-        }
+            total += KernelQuery.ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
+                KernelQuery.RelationshipStrength(world, relationshipId);
+                return total < 1f;
+            });
 
         return total;
     }
@@ -235,7 +243,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             total += RelatedDistanceEvidenceForDirection(world, entityId, rule, outgoing: false);
         }
 
-        return Clamp01(total);
+        return KernelQuery.Clamp01(total);
     }
 
     private float RelatedDistanceEvidenceForDirection(
@@ -244,112 +252,34 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int rule,
         bool outgoing)
     {
-        var cursor = outgoing
-            ? world.OutgoingRelationshipsOfKindAbove(
-                entityId,
-                _attributeDeltaRelationshipKindIds[rule],
-                _attributeDeltaMinimumRelationshipStrengths[rule])
-            : world.IncomingRelationshipsOfKindAbove(
-                entityId,
-                _attributeDeltaRelationshipKindIds[rule],
-                _attributeDeltaMinimumRelationshipStrengths[rule]);
         var total = 0f;
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            var otherEntityId = outgoing
-                ? world.RelationshipTargetId(relationshipId)
-                : world.RelationshipSourceId(relationshipId);
+        KernelQuery.ForEachRelatedEndpoint(
+            world,
+            entityId,
+            _attributeDeltaRelationshipKindIds[rule],
+            _attributeDeltaMinimumRelationshipStrengths[rule],
+            requiredFactId: 0,
+            outgoing,
+            (relationshipId, otherEntityId) =>
+            {
             if (!world.EntityIsActive(otherEntityId))
             {
-                continue;
+                return true;
             }
 
-            var distance = Distance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
-            var evidence = DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
-                world.RelationshipStrength(relationshipId);
-            total += evidence;
-            if (total >= 1f)
+            if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
             {
-                return 1f;
+                return true;
             }
-        }
+
+            var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
+            var evidence = KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
+                KernelQuery.RelationshipStrength(world, relationshipId);
+            total += evidence;
+                return total < 1f;
+            });
 
         return total;
-    }
-
-    private static float ThresholdEvidence(float value, float threshold)
-    {
-        if (threshold <= 0f)
-        {
-            return value > 0f ? 1f : 0f;
-        }
-
-        return Clamp01(value / threshold);
-    }
-
-    private static float DistanceEvidence(int distance, int maxDistance)
-    {
-        if (maxDistance <= 0)
-        {
-            return distance == 0 ? 1f : 0f;
-        }
-
-        if (distance > maxDistance)
-        {
-            return 0f;
-        }
-
-        return 1f - (distance / (float)(maxDistance + 1));
-    }
-
-    private static int Distance(WorldState world, int sourceId, int targetId, int planeCode) =>
-        planeCode == PlaneCodes.Semantic
-            ? SemanticDistance(world, sourceId, targetId)
-            : PhysicalDistance(world, sourceId, targetId);
-
-    private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
-        planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
-
-    private static int CurrentR(WorldState world, int entityId, int planeCode) =>
-        planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
-
-    private static int PhysicalDistance(WorldState world, int sourceId, int targetId) =>
-        HexDistance(
-            world.EntityPhysicalQ(sourceId),
-            world.EntityPhysicalR(sourceId),
-            world.EntityPhysicalQ(targetId),
-            world.EntityPhysicalR(targetId));
-
-    private static int SemanticDistance(WorldState world, int sourceId, int targetId)
-    {
-        var q = Abs(world.EntitySemanticQ(sourceId) - world.EntitySemanticQ(targetId));
-        var r = Abs(world.EntitySemanticR(sourceId) - world.EntitySemanticR(targetId));
-        var s = Abs(world.EntitySemanticS(sourceId) - world.EntitySemanticS(targetId));
-        return Max(q, Max(r, s));
-    }
-
-    private static int HexDistance(int aq, int ar, int bq, int br)
-    {
-        var aS = -aq - ar;
-        var bS = -bq - br;
-        return (Abs(aq - bq) + Abs(ar - br) + Abs(aS - bS)) / 2;
-    }
-
-    private static int Abs(int value)
-    {
-        return value < 0 ? -value : value;
-    }
-
-    private static int Max(int left, int right) => left >= right ? left : right;
-
-    private static float Clamp01(float value)
-    {
-        if (value < 0f)
-        {
-            return 0f;
-        }
-
-        return value > 1f ? 1f : value;
     }
 
     private static void ValidatePositive(int value)

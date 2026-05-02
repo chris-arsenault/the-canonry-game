@@ -18,7 +18,6 @@ internal static class KernelStartupConfigLoader
         new("KERNELTUNING.PROGRAMS.UPKEEP", KernelProgramCodes.Upkeep),
         new("KERNELTUNING.PROGRAMS.GAMBITS", KernelProgramCodes.Gambits),
         new("KERNELTUNING.PROGRAMS.RELATIONSHIPS", KernelProgramCodes.Relationships),
-        new("KERNELTUNING.PROGRAMS.PRESSURES", KernelProgramCodes.Pressures),
         new("KERNELTUNING.PROGRAMS.GENERATORS", KernelProgramCodes.Generators),
         new("KERNELTUNING.PROGRAMS.DEGENERACY", KernelProgramCodes.Degeneracy),
     ];
@@ -74,7 +73,6 @@ internal static class KernelStartupConfigLoader
         }
 
         tuning = ApplyJsonPlanningTuning(programs, tuning);
-        tuning = ApplyJsonPressureTuning(programs, tuning);
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
@@ -89,7 +87,6 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Gambits, "gambits");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Relationships, "relationships");
-        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Pressures, "pressures");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
         return ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Degeneracy, "degeneracy");
     }
@@ -197,17 +194,6 @@ internal static class KernelStartupConfigLoader
         return WithRetryFireTargets(tuning, retry);
     }
 
-    private static KernelTuningOptions ApplyJsonPressureTuning(JsonElement programs, KernelTuningOptions tuning)
-    {
-        if (!TryGetObject(programs, out var pressures, "pressures") ||
-            !TryGetBool(pressures, out var enabled, "enabled"))
-        {
-            return tuning;
-        }
-
-        return WithPressureEnabled(tuning, enabled);
-    }
-
     private static KernelTuningOptions ApplyJsonUpkeepTuning(JsonElement programs, KernelTuningOptions tuning)
     {
         if (!TryGetObject(programs, out var upkeep, "upkeep") ||
@@ -268,11 +254,6 @@ internal static class KernelStartupConfigLoader
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.GENERATORS", StringComparison.Ordinal))
         {
             return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlGeneratorValue(key, value, tuning));
-        }
-
-        if (string.Equals(section, "KERNELTUNING.PROGRAMS.PRESSURES", StringComparison.Ordinal))
-        {
-            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlPressureValue(key, value, tuning));
         }
 
         var scalar = ReadBareTomlValue(value);
@@ -370,7 +351,6 @@ internal static class KernelStartupConfigLoader
         return programId switch
         {
             KernelProgramCodes.Relationships => options with { Relationships = code },
-            KernelProgramCodes.Pressures => options with { Pressures = code },
             KernelProgramCodes.Generators => options with { Generators = code },
             KernelProgramCodes.Degeneracy => options with { Degeneracy = code },
             _ => options,
@@ -451,17 +431,6 @@ internal static class KernelStartupConfigLoader
         return string.Equals(key, "RETRYFIRETARGETS", StringComparison.Ordinal) &&
                bool.TryParse(value, out var retry)
             ? WithRetryFireTargets(tuning, retry)
-            : tuning;
-    }
-
-    private static KernelTuningOptions ApplyTomlPressureValue(
-        string key,
-        string value,
-        KernelTuningOptions tuning)
-    {
-        return string.Equals(key, "ENABLED", StringComparison.Ordinal) &&
-               bool.TryParse(value, out var pressureEnabled)
-            ? WithPressureEnabled(tuning, pressureEnabled)
             : tuning;
     }
 
@@ -565,20 +534,6 @@ internal static class KernelStartupConfigLoader
                 Planning = tuning.Programs.Planning with
                 {
                     EntityPlannerOverrides = overrides,
-                },
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithPressureEnabled(KernelTuningOptions tuning, bool enabled)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Pressures = tuning.Programs.Pressures with
-                {
-                    Enabled = enabled,
                 },
             },
         };

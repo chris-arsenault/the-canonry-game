@@ -1,7 +1,12 @@
 namespace Engine.Projection;
 
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
+[SuppressMessage(
+    "Design",
+    "CA1027:Mark enums with FlagsAttribute",
+    Justification = "Projection symbol kinds are stable identifiers, not bit flags.")]
 public enum ProjectionSymbolKind
 {
     None = 0,
@@ -15,7 +20,6 @@ public enum ProjectionSymbolKind
     RelationshipFact = 8,
     Resource = 9,
     Terrain = 10,
-    Pressure = 11,
     Generator = 12,
     Gambit = 13,
     EventCode = 14,
@@ -26,6 +30,7 @@ public enum ProjectionSymbolKind
     Verb = 19,
     Continent = 20,
     Superregion = 21,
+    Trait = 22,
 }
 
 public readonly record struct ProjectionSymbolKey(ProjectionSymbolKind Kind, int Id);

@@ -7,14 +7,14 @@ using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
-/// All domain-specific content that the engine needs. Attribute names, subtypes,
-/// relationship kinds, pressure definitions, lifecycle config, and tuning values.
+/// All domain-specific content that the engine needs. Health, traits,
+/// subtypes, relationship kinds, lifecycle config, and tuning values.
 /// The engine never hard-codes domain strings -- everything comes from here.
 /// Swap this object to swap the entire game world.
 /// </summary>
 public sealed class DomainConfig
 {
-    /// <summary>Kind definitions: valid subtypes, attribute schemas, health attributes.</summary>
+    /// <summary>Kind definitions: valid subtypes, health, and trait catalogs.</summary>
     public required IReadOnlyDictionary<EntityKind, KindConfig> Kinds { get; init; }
 
     /// <summary>Data-defined high-stakes entity gambits.</summary>
@@ -25,9 +25,6 @@ public sealed class DomainConfig
 
     /// <summary>Domain-declared facts that can annotate relationship instances.</summary>
     public IReadOnlyList<RelationshipFactConfig> RelationshipFacts { get; init; } = [];
-
-    /// <summary>Pressure definitions.</summary>
-    public required IReadOnlyList<PressureConfig> Pressures { get; init; }
 
     /// <summary>Degeneracy detector definitions.</summary>
     public DegeneracyConfig Degeneracy { get; init; } = new();
@@ -58,17 +55,17 @@ public sealed class DomainConfig
     public SemanticDomainConfig? Semantics { get; init; }
 }
 
-/// <summary>Per-kind configuration: subtypes, attributes, health metric.</summary>
+/// <summary>Per-kind configuration: subtypes, health scalar, and trait catalog.</summary>
 public sealed class KindConfig
 {
     public EntityCategory Category { get; init; } = EntityCategory.Agency;
     public required IReadOnlySet<string> Subtypes { get; init; }
-    public required IReadOnlyList<AttributeConfig> Attributes { get; init; }
-    public string? HealthAttribute { get; init; }
+    public required HealthConfig Health { get; init; }
+    public IReadOnlyList<TraitConfig> Traits { get; init; } = [];
 
     /// <summary>
     /// Design-time prose: what this kind represents in the world — distinct from
-    /// its attributes and mechanics. Used by tooling, UI flavor, and downstream
+    /// its health, traits, and mechanics. Used by tooling, UI flavor, and downstream
     /// readers to understand the kind's semantic identity.
     /// </summary>
     public string? Description { get; init; }
@@ -89,49 +86,43 @@ public enum PrimaryPlane
     Semantic,
 }
 
-/// <summary>
-/// Category of an attribute within the uniform H + (C|P) + (N|D) invariant.
-/// Every kind must have exactly 3 attributes: one Health, one from {Capacity, Projection}
-/// (outward emission), and one from {Need, Drive} (internal state).
-/// </summary>
-public enum AttributeCategory
-{
-    /// <summary>Lifecycle anchor. Dies/destroyed at 0. Exactly one per kind.</summary>
-    Health,
-
-    /// <summary>Outward emission — tangible/mechanical working stock.</summary>
-    Capacity,
-
-    /// <summary>Outward emission — symbolic/reputational stock.</summary>
-    Projection,
-
-    /// <summary>Internal state — deficit-driven urge to refill.</summary>
-    Need,
-
-    /// <summary>Internal state — self-generating fuel for outward action.</summary>
-    Drive,
-}
-
-/// <summary>Single attribute definition.</summary>
-public sealed class AttributeConfig
+/// <summary>Single mutable health scalar definition for an entity kind.</summary>
+public sealed class HealthConfig
 {
     public required string Name { get; init; }
     public string? DisplayName { get; init; }
     public IReadOnlyDictionary<string, string>? CultureDisplayNames { get; init; }
-
-    /// <summary>
-    /// Category slot. Every kind must declare exactly 3 attributes: one Health,
-    /// one outward (Capacity or Projection), one internal (Need or Drive). Defaults
-    /// to Capacity for test scaffolds; canonical domain configs set this explicitly.
-    /// </summary>
-    public AttributeCategory Category { get; init; } = AttributeCategory.Capacity;
-
     public required float Min { get; init; }
     public required float Max { get; init; }
     public float Default { get; init; }
 
     /// <summary>Variance on default value at initialization. 0 = exact, 0.5 = ±50%.</summary>
     public float DefaultVariance { get; init; }
+}
+
+public enum TraitPolarity
+{
+    Neutral,
+    Positive,
+    Negative,
+}
+
+/// <summary>
+/// Mostly static entity differentiator. Traits are authored per kind and assigned
+/// to individual entities at creation; their eventual effects should be explicit
+/// behavior/effect rules rather than hidden scalar stock changes.
+/// </summary>
+public sealed class TraitConfig
+{
+    public required string Name { get; init; }
+    public string? DisplayName { get; init; }
+    public string? Description { get; init; }
+    public string? EffectSummary { get; init; }
+    public TraitPolarity Polarity { get; init; } = TraitPolarity.Neutral;
+    public IReadOnlyList<ITraitOperationConfig> Operations { get; init; } = [];
+
+    /// <summary>Independent 0..1 chance that a newly created entity of this kind receives the trait.</summary>
+    public float AssignmentChance { get; init; }
 }
 
 /// <summary>Relationship kind configuration.</summary>
@@ -159,17 +150,6 @@ public sealed class RelationshipFactConfig
     public string? Description { get; init; }
 }
 
-/// <summary>Pressure definition configuration.</summary>
-public sealed class PressureConfig
-{
-    public required string Name { get; init; }
-    public required Engine.Pressure.PressureScope Scope { get; init; }
-    public float Baseline { get; init; }
-    public float HomeostasisRate { get; init; } = 0.1f;
-    public float SmoothingFactor { get; init; } = 0.3f;
-    // Contributing factors will be defined via the wiring contract system (#35)
-}
-
 public sealed class DegeneracyConfig
 {
     public IReadOnlyList<DegeneracyDetectorConfig> Detectors { get; init; } = [];
@@ -186,7 +166,7 @@ public sealed class DegeneracyDetectorConfig
     public DegeneracySeverity NoSubjectsSeverity { get; init; } = DegeneracySeverity.Normal;
     public required EntityKind PrimaryKind { get; init; }
     public EntityKind? SecondaryKind { get; init; }
-    public string? Attribute { get; init; }
+    public string? Health { get; init; }
     public string? RelationshipKind { get; init; }
     public DegeneracyRelationshipEndpoint DominantRelationshipEndpoint { get; init; } = DegeneracyRelationshipEndpoint.Target;
     public required float WarningThreshold { get; init; }
@@ -222,7 +202,7 @@ public enum DegeneracySeverity
 /// <summary>Lifecycle drain configuration for a kind.</summary>
 public sealed class LifecycleConfig
 {
-    public required string HealthAttribute { get; init; }
+    public required string Health { get; init; }
     public required float BaseRate { get; init; }
     public required float AgeCoefficient { get; init; }
 }

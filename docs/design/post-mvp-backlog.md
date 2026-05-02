@@ -17,22 +17,31 @@ Deferred ideas. These are not commitments.
 - Macro system cards that change broad conditions without becoming hidden
   low-altitude planners.
 - Weather, seasons, and terrain-changing events.
-- Larger pressure outlets once pressure has a clear gameplay purpose.
 - Religious or ideological systems if they can be represented without creating
   hidden director logic.
 
 ## Entity Kind Extensions
 
-Likely future kinds:
+Shipped as registered kinds (no gambits or generators yet): `orca`,
+`point_of_interest`, `ability`, `monster`, `transport`, `occurrence`. See
+`docs/systems/entity-kind-registry.md` for the active registry.
 
-- orca
-- monster
-- transport
-- point of interest
-- occurrence
+Still deferred — these are smaller follow-ons to the above:
 
-Each should enter through domain kind registration and compiled gameplay config,
-not concrete engine enums.
+### Monster status mechanic
+
+The `monster` kind is registered but the sealed/unbound/risen status mechanic
+is deferred. Status is not a subtype (subtypes are types: leviathan, wraith,
+beast, revenant). A future status field on the entity, or a relationship
+expressing containment topology, will track which state a given monster is in.
+
+### Ability transmission relationships
+
+The `ability` kind reuses the existing `holds` relationship for multi-holder
+ownership. `holds` has `TargetFollowsSourcePhysical = true`, which is
+incoherent for a semantic-primary, multi-holder asset. A future
+`taught_by`/`practiced_by` vocabulary should replace `holds` for abilities and
+unlock proper transmission semantics.
 
 ## Simulation Depth
 

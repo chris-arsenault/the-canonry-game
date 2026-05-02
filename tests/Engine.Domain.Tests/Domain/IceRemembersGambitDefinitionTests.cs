@@ -12,9 +12,10 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(4, gambitIds.Count);
+        Assert.Equal(5, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.FactionDeclaresTerritorialWar.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.FactionSuesForPeace.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.PenguinWieldsArtifact.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.SettlementOpensTradeRoute.ToGambitId(), gambitIds);
     }
@@ -66,6 +67,20 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(cleanse.Steps, step =>
             step.Operation == BehaviorProgramOperation.SetTargetCoverageTerrain &&
             step.A == hotSpringsId);
+    }
+
+    [Fact]
+    public void IceRemembers_CleansingScarRequiresStrongAnchorRelationship()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var cleanse = Gambit(compiled, IceRemembersGambitId.ArtifactCleansesScar);
+        var anchoredId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.Anchored.ToDomainName()).Value;
+
+        Assert.Contains(cleanse.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.SelfHasRelationshipToTarget &&
+            precondition.A == anchoredId &&
+            precondition.B == 1 &&
+            precondition.X == 0.45f);
     }
 
     [Fact]

@@ -47,6 +47,13 @@ Generators should avoid self-propagating infinitely through the same target.
 Saturation should be expressed through relationships or graph facts the rest of
 the simulation can understand, not hidden one-off bookkeeping.
 
+If a precondition needs a numeric threshold, use relationship strength as the
+default. For example, require an artifact to have a strong `anchored` or
+`holds` relationship before it can cleanse a scar, rather than inventing an
+artifact `power` attribute. Health thresholds remain valid for survival,
+damage, decay, and repair. Locality-based queries are acceptable when nearby
+map state, semantic position, or regional containment is the real gate.
+
 ## Boundary
 
 Low altitude creates conditions. Gambits create high-stakes entity actions and

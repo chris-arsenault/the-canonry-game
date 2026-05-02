@@ -78,5 +78,5 @@ low-altitude verbs and should create graph state that generators can later use.
 
 Entity behavior should not reintroduce the removed process deck under a new
 name. Do not model low altitude as scalar deficit planning or recovery-host
-chasing. Attributes may shape behavior, but they should not become a treadmill
-that consumes the simulation.
+chasing. Traits, relationship strength, and locality may shape behavior, but
+they should not become a treadmill that consumes the simulation.

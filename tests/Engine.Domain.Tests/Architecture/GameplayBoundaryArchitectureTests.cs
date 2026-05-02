@@ -403,7 +403,7 @@ public sealed class GameplayBoundaryArchitectureTests
             "RelatedInfluenceAtPhysicalLocation",
             "MapSupportAtLocation",
             "MapThreatAtLocation",
-            "MapCrowdingPressure",
+            "MapCrowdingLoad",
             "MapCrowdingComfort",
         };
         var violations = ContainedFragments(kernelConstants, forbiddenFragments);
@@ -880,6 +880,119 @@ public sealed class GameplayBoundaryArchitectureTests
         var missing = MissingFragments(plan, requiredFragments);
 
         Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void Source_DoesNotExposeRemovedPressureSystemVocabulary()
+    {
+        var root = FindRepoRoot();
+        var source = ReadAllSourcesUnder(root, "src");
+        var forbiddenFragments = new[]
+        {
+            "Pressure",
+            "pressure",
+            "Pressures",
+            "PressureRange",
+            "AddPressure",
+            "PressureChangedKernelEvent",
+            "KernelProgramCodes.Pressures",
+            "PressureSourceCodeId",
+        };
+        var violations = ContainedFragments(source, forbiddenFragments);
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Source_DoesNotExposeRemovedAttributeConfigOrGeneratorAttributeGates()
+    {
+        var root = FindRepoRoot();
+        var source = ReadAllSourcesUnder(root, "src");
+        var forbiddenFragments = new[]
+        {
+            "AttributeConfig",
+            "StandardNeed",
+            "StandardNeedScale",
+            "TriggerDirection",
+            "GeneratorTriggerDirectionCodes",
+            "GeneratorProgramTriggerDirection",
+            "GeneratorAttributeConditionRule",
+            "SemanticQueryAttributeCondition",
+            "DefinitionQueryAttributeCondition",
+        };
+        var violations = ContainedFragments(source, forbiddenFragments);
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void HigherLevelEffectCallers_UseSharedKernelEffectExecutorForWorldMutations()
+    {
+        var root = FindRepoRoot();
+        var callers = new[]
+        {
+            "src/Engine.Kernel/Programs/Effects/EffectsProgramRuntime.cs",
+            "src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Execution.cs",
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.Fire.cs",
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.Helpers.cs",
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.Placement.cs",
+        };
+        var forbiddenCalls = new[]
+        {
+            "simulation.ModifyAttribute(",
+            "simulation.SetAttribute(",
+            "simulation.ModifyResource(",
+            "simulation.SetEntityStatus(",
+            "simulation.CreateEntity(",
+            "simulation.CreateRelationship(",
+            "simulation.SetRelationshipStrength(",
+            "simulation.CullRelationship(",
+            "simulation.CullOutgoingRelationshipsOfKind(",
+            "simulation.MoveEntityPhysical(",
+            "simulation.MoveEntitySemantic(",
+            "simulation.SetCellTerrain(",
+            "simulation.SetCellState(",
+            "simulation.SetCoverageOwner(",
+        };
+        var violations = new List<string>();
+        foreach (var caller in callers)
+        {
+            var source = ReadSource(root, caller);
+            violations.AddRange(ContainedFragments(source, forbiddenCalls).Select(fragment => $"{caller}: {fragment}"));
+        }
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void HigherLevelEffectCallers_UseSharedKernelQueryForWorldTraversal()
+    {
+        var root = FindRepoRoot();
+        var callers = string.Concat(
+            ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Effects"),
+            ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Gambits"),
+            ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Generators"));
+        var forbiddenCalls = new[]
+        {
+            "world.FirstEntityOfKind(",
+            "world.NextEntityOfKind(",
+            "world.EntityHighWatermark",
+            "world.FirstPhysicalEntityAt(",
+            "world.NextPhysicalEntityAt(",
+            "world.FirstSemanticEntityAt(",
+            "world.NextSemanticEntityAt(",
+            "world.OutgoingRelationships(",
+            "world.IncomingRelationships(",
+            "world.MoveNextRelationship(",
+            "world.CoverageCells(",
+            "world.MoveNextCoverageCell(",
+            "world.FindRelationship(",
+            "world.RelationshipHasFact(",
+            "world.RelationshipStrength(",
+        };
+        var violations = ContainedFragments(callers, forbiddenCalls);
+
+        Assert.Empty(violations);
     }
 
     private static string ReadGameplaySourceIfPresent(DirectoryInfo root)

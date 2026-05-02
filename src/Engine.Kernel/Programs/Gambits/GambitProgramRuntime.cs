@@ -14,9 +14,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private const float DepthPenalty = 0.85f;
     private const float TargetSwitchHysteresisRatio = 0.2f;
     private const int MaxPlanningDepth = 2;
-    private const float StandardNeedComfortable = 70f;
-    private const float StandardNeedConcern = 40f;
-    private const float StandardNeedCritical = 15f;
     private const int PreconditionFailed = 0;
     private const int PreconditionPassed = 1;
 
@@ -122,6 +119,11 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private int[] _supportExpressionCodes => Data.SupportExpressionCodes;
     private int[] _supportExpressionA => Data.SupportExpressionA;
     private float[] _supportExpressionX => Data.SupportExpressionX;
+    private int[] _traitModifierGambitIds => Data.TraitModifierGambitIds;
+    private int[] _traitModifierTraitIds => Data.TraitModifierTraitIds;
+    private int[] _traitModifierBearerCodes => Data.TraitModifierBearerCodes;
+    private float[] _traitModifierScoreDeltas => Data.TraitModifierScoreDeltas;
+    private float[] _traitModifierSuccessChanceDeltas => Data.TraitModifierSuccessChanceDeltas;
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanGambitSlots => State.CommittedPlanGambitSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
@@ -139,6 +141,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private ref int _supportRuleCount => ref Data.SupportRuleCount;
     private ref int _supportExpressionCount => ref Data.SupportExpressionCount;
     private ref int _goalEffectCount => ref Data.GoalEffectCount;
+    private ref int _traitModifierCount => ref Data.TraitModifierCount;
     private ref int _openGambitSlot => ref Data.OpenGambitSlot;
 
     private const int GambitLocalityCommitmentKey = 1;
@@ -227,6 +230,34 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         _gambitEnabled[slot] = true;
         _openGambitSlot = slot;
         return slot;
+    }
+
+    public int RegisterTraitModifier(
+        int gambitId,
+        int traitId,
+        int bearerCode,
+        float scoreDelta,
+        float successChanceDelta)
+    {
+        ValidatePositive(gambitId);
+        ValidatePositive(traitId);
+        if (bearerCode is not TraitEffectBearerCodes.Actor and not TraitEffectBearerCodes.GambitTarget)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(bearerCode));
+        }
+
+        if (_traitModifierCount + 1 >= _traitModifierGambitIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _traitModifierCount++;
+        _traitModifierGambitIds[_traitModifierCount] = gambitId;
+        _traitModifierTraitIds[_traitModifierCount] = traitId;
+        _traitModifierBearerCodes[_traitModifierCount] = bearerCode;
+        _traitModifierScoreDeltas[_traitModifierCount] = scoreDelta;
+        _traitModifierSuccessChanceDeltas[_traitModifierCount] = successChanceDelta;
+        return _traitModifierCount;
     }
 
     public void AddPrecondition(
@@ -509,16 +540,13 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        var entityHighWatermark = world.EntityHighWatermark;
-        for (var entityId = 1; entityId <= entityHighWatermark; entityId++)
-        {
-            if (!world.EntityIsActive(entityId))
+        KernelQuery.ForEachActiveEntity(
+            world,
+            entityId =>
             {
-                continue;
-            }
-
-            TickEntity(simulation, entityId, tick);
-        }
+                TickEntity(simulation, entityId, tick);
+                return true;
+            });
     }
 
     private void TickEntity(Simulation simulation, int entityId, int tick)
@@ -631,7 +659,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int candidateCount)
     {
         var gambitId = _gambitIds[selectedGambitSlot];
-        var state = RollGambitState(simulation, selectedGambitSlot);
+        var state = RollGambitState(simulation, selectedGambitSlot, entityId, selectedTargetId);
         if (state == KernelEventState.Succeeded)
         {
             ExecuteGambit(simulation, entityId, selectedTargetId, selectedGambitSlot, tick);
@@ -670,12 +698,54 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
                tick >= _cooldowns.GetOrDefault(entityId, _gambitIds[gambitSlot]);
     }
 
-    private KernelEventState RollGambitState(Simulation simulation, int gambitSlot)
+    private KernelEventState RollGambitState(Simulation simulation, int gambitSlot, int entityId, int targetId)
     {
-        var successChance = _gambitSuccessChances[gambitSlot];
+        var successChance = Clamp01(
+            _gambitSuccessChances[gambitSlot] +
+            TraitGambitSuccessChanceDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId));
         return successChance >= 1f || simulation.NextFloat() <= successChance
             ? KernelEventState.Succeeded
             : KernelEventState.Failed;
+    }
+
+    private float TraitGambitScoreDelta(WorldState world, int gambitId, int entityId, int targetId) =>
+        TraitGambitDelta(world, gambitId, entityId, targetId, useSuccessDelta: false);
+
+    private float TraitGambitSuccessChanceDelta(WorldState world, int gambitId, int entityId, int targetId) =>
+        TraitGambitDelta(world, gambitId, entityId, targetId, useSuccessDelta: true);
+
+    private float TraitGambitDelta(
+        WorldState world,
+        int gambitId,
+        int entityId,
+        int targetId,
+        bool useSuccessDelta)
+    {
+        var total = 0f;
+        for (var modifier = 1; modifier <= _traitModifierCount; modifier++)
+        {
+            if (_traitModifierGambitIds[modifier] != gambitId ||
+                !TraitGambitModifierMatches(world, modifier, entityId, targetId))
+            {
+                continue;
+            }
+
+            total += useSuccessDelta
+                ? _traitModifierSuccessChanceDeltas[modifier]
+                : _traitModifierScoreDeltas[modifier];
+        }
+
+        return total;
+    }
+
+    private bool TraitGambitModifierMatches(WorldState world, int modifier, int entityId, int targetId)
+    {
+        var bearerId = _traitModifierBearerCodes[modifier] == TraitEffectBearerCodes.GambitTarget
+            ? targetId
+            : entityId;
+        return bearerId > 0 &&
+            world.EntityIsActive(bearerId) &&
+            world.HasTrait(bearerId, _traitModifierTraitIds[modifier]);
     }
 
     private bool HasGambitObjectives(int kindId)

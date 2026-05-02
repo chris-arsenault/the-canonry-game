@@ -97,6 +97,21 @@ internal static partial class KernelProgramInstaller
                 rule.BindingKindId,
                 rule.AffordanceScore);
         }
+
+        foreach (var modifier in program.TraitWeightModifiers)
+        {
+            context.RegisterLowAltitudeTraitWeightModifier(
+                modifier.KindId,
+                modifier.TraitId,
+                modifier.VerbId,
+                modifier.WeightDelta,
+                modifier.ExploreWeightDelta,
+                modifier.StalenessWeightDelta,
+                modifier.HotspotWeightDelta,
+                modifier.CrowdingWeightDelta,
+                modifier.GeneratorAffordanceWeightDelta,
+                modifier.RelationshipAffinityWeightDelta);
+        }
     }
 
     private static void RegisterLowAltitudeVerb(KernelConfigurationContext context, LowAltitudeVerbRule verb)
@@ -171,7 +186,9 @@ internal static partial class KernelProgramInstaller
                 effect.MaxDistance,
                 effect.Threshold,
                 effect.MinimumRelationshipStrength,
-                effect.DeltaPerTick);
+                effect.DeltaPerTick,
+                effect.RequiredTargetTraitId,
+                effect.RequiredRelatedTraitId);
         }
     }
 }

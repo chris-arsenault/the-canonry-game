@@ -7,11 +7,11 @@ public enum DomainIdCategory
 {
     Kind,
     Attribute,
+    Trait,
     Gambit,
     StructuralFact,
     RelationshipKind,
     RelationshipFact,
-    Pressure,
     Resource,
     Terrain,
     Subtype,
@@ -35,6 +35,8 @@ public sealed class DomainIdRegistry
         new(static value => new KindRuntimeId(value), static id => id.Value, "kind");
     private readonly StableNameRegistry<AttributeRuntimeId> _attributes =
         new(static value => new AttributeRuntimeId(value), static id => id.Value, "attribute");
+    private readonly StableNameRegistry<TraitRuntimeId> _traits =
+        new(static value => new TraitRuntimeId(value), static id => id.Value, "trait");
     private readonly StableNameRegistry<GambitRuntimeId> _gambits =
         new(static value => new GambitRuntimeId(value), static id => id.Value, "gambit");
     private readonly StableNameRegistry<StructuralFactRuntimeId> _structuralFacts =
@@ -43,8 +45,6 @@ public sealed class DomainIdRegistry
         new(static value => new RelationshipKindRuntimeId(value), static id => id.Value, "relationship kind");
     private readonly StableNameRegistry<RelationshipFactRuntimeId> _relationshipFacts =
         new(static value => new RelationshipFactRuntimeId(value), static id => id.Value, "relationship fact");
-    private readonly StableNameRegistry<PressureRuntimeId> _pressures =
-        new(static value => new PressureRuntimeId(value), static id => id.Value, "pressure");
     private readonly StableNameRegistry<ResourceRuntimeId> _resources =
         new(static value => new ResourceRuntimeId(value), static id => id.Value, "resource");
     private readonly StableNameRegistry<TerrainRuntimeId> _terrains =
@@ -76,6 +76,10 @@ public sealed class DomainIdRegistry
     public AttributeRuntimeId AttributeIdOf(string stableName) => _attributes.Resolve(stableName);
     public string AttributeNameOf(AttributeRuntimeId id) => _attributes.NameOf(id);
 
+    public TraitRuntimeId RegisterTrait(string stableName) => _traits.Register(stableName);
+    public TraitRuntimeId TraitIdOf(string stableName) => _traits.Resolve(stableName);
+    public string TraitNameOf(TraitRuntimeId id) => _traits.NameOf(id);
+
     public GambitRuntimeId RegisterGambit(string stableName) => _gambits.Register(stableName);
     public GambitRuntimeId GambitIdOf(string stableName) => _gambits.Resolve(stableName);
     public string GambitNameOf(GambitRuntimeId id) => _gambits.NameOf(id);
@@ -97,10 +101,6 @@ public sealed class DomainIdRegistry
         _relationshipFacts.Resolve(stableName);
     public string RelationshipFactNameOf(RelationshipFactRuntimeId id) =>
         _relationshipFacts.NameOf(id);
-
-    public PressureRuntimeId RegisterPressure(string stableName) => _pressures.Register(stableName);
-    public PressureRuntimeId PressureIdOf(string stableName) => _pressures.Resolve(stableName);
-    public string PressureNameOf(PressureRuntimeId id) => _pressures.NameOf(id);
 
     public ResourceRuntimeId RegisterResource(string stableName) => _resources.Register(stableName);
     public ResourceRuntimeId ResourceIdOf(string stableName) => _resources.Resolve(stableName);
@@ -152,11 +152,11 @@ public sealed class DomainIdRegistry
     {
         foreach (var entry in _kinds.Entries(DomainIdCategory.Kind)) yield return entry;
         foreach (var entry in _attributes.Entries(DomainIdCategory.Attribute)) yield return entry;
+        foreach (var entry in _traits.Entries(DomainIdCategory.Trait)) yield return entry;
         foreach (var entry in _gambits.Entries(DomainIdCategory.Gambit)) yield return entry;
         foreach (var entry in _structuralFacts.Entries(DomainIdCategory.StructuralFact)) yield return entry;
         foreach (var entry in _relationshipKinds.Entries(DomainIdCategory.RelationshipKind)) yield return entry;
         foreach (var entry in _relationshipFacts.Entries(DomainIdCategory.RelationshipFact)) yield return entry;
-        foreach (var entry in _pressures.Entries(DomainIdCategory.Pressure)) yield return entry;
         foreach (var entry in _resources.Entries(DomainIdCategory.Resource)) yield return entry;
     }
 
@@ -209,6 +209,9 @@ public sealed class DomainIdRegistry
             case DomainIdCategory.Attribute:
                 clone.RegisterAttribute(entry.StableName);
                 return true;
+            case DomainIdCategory.Trait:
+                clone.RegisterTrait(entry.StableName);
+                return true;
             case DomainIdCategory.Gambit:
                 clone.RegisterGambit(entry.StableName);
                 return true;
@@ -220,9 +223,6 @@ public sealed class DomainIdRegistry
                 return true;
             case DomainIdCategory.RelationshipFact:
                 clone.RegisterRelationshipFact(entry.StableName);
-                return true;
-            case DomainIdCategory.Pressure:
-                clone.RegisterPressure(entry.StableName);
                 return true;
             case DomainIdCategory.Resource:
                 clone.RegisterResource(entry.StableName);

@@ -49,13 +49,20 @@ public static partial class DomainCompiler
         foreach (var (kind, kindConfig) in config.Kinds)
         {
             symbols.Add(DomainSymbolKind.Kind, ids.KindIdOf(kind).Value, kind.Value, description: kindConfig.Description);
-            foreach (var attribute in kindConfig.Attributes)
+            symbols.Add(
+                DomainSymbolKind.Attribute,
+                ids.AttributeIdOf(kindConfig.Health.Name).Value,
+                kindConfig.Health.Name,
+                kindConfig.Health.DisplayName);
+
+            foreach (var trait in kindConfig.Traits)
             {
                 symbols.Add(
-                    DomainSymbolKind.Attribute,
-                    ids.AttributeIdOf(attribute.Name).Value,
-                    attribute.Name,
-                    attribute.DisplayName);
+                    DomainSymbolKind.Trait,
+                    ids.TraitIdOf(trait.Name).Value,
+                    trait.Name,
+                    trait.DisplayName,
+                    trait.Description);
             }
         }
     }
@@ -81,11 +88,6 @@ public static partial class DomainCompiler
                 fact.Name,
                 fact.DisplayName,
                 fact.Description);
-        }
-
-        foreach (var pressure in config.Pressures)
-        {
-            symbols.Add(DomainSymbolKind.Pressure, ids.PressureIdOf(pressure.Name).Value, pressure.Name);
         }
 
         foreach (var resource in config.Resources)
@@ -220,10 +222,10 @@ public static partial class DomainCompiler
     {
         DomainIdCategory.Kind => DomainSymbolKind.Kind,
         DomainIdCategory.Attribute => DomainSymbolKind.Attribute,
+        DomainIdCategory.Trait => DomainSymbolKind.Trait,
         DomainIdCategory.Verb => DomainSymbolKind.Verb,
         DomainIdCategory.Gambit => DomainSymbolKind.Gambit,
         DomainIdCategory.StructuralFact => DomainSymbolKind.StructuralFact,
-        DomainIdCategory.Pressure => DomainSymbolKind.Pressure,
         DomainIdCategory.Resource => DomainSymbolKind.Resource,
         _ => null,
     };

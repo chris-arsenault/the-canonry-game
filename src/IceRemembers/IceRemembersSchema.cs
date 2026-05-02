@@ -5,20 +5,16 @@ using Engine.Resources;
 public enum IceRemembersAttributeId
 {
     TempHp,
-    Dominion,
-    Shelter,
     Cohesion,
-    Reach,
-    Provisions,
     Vitality,
-    Echo,
-    Warmth,
     Stability,
-    Holding,
-    Pristiness,
     Condition,
-    Power,
-    Resonance,
+    Endurance,
+    Presence,
+    Clarity,
+    Containment,
+    Integrity,
+    Momentum,
 }
 
 public static class IceRemembersAttributeIdExtensions
@@ -26,20 +22,16 @@ public static class IceRemembersAttributeIdExtensions
     private static readonly string[] DomainNames =
     [
         "temp_hp",
-        "dominion",
-        "shelter",
         "cohesion",
-        "reach",
-        "provisions",
         "vitality",
-        "echo",
-        "warmth",
         "stability",
-        "holding",
-        "pristiness",
         "condition",
-        "power",
-        "resonance",
+        "endurance",
+        "presence",
+        "clarity",
+        "containment",
+        "integrity",
+        "momentum",
     ];
 
     public static string ToDomainName(this IceRemembersAttributeId attribute)
@@ -48,6 +40,69 @@ public static class IceRemembersAttributeIdExtensions
         return (uint)index < (uint)DomainNames.Length
             ? DomainNames[index]
             : throw new ArgumentOutOfRangeException(nameof(attribute), attribute, "Unknown test-domain attribute");
+    }
+}
+
+public enum IceRemembersTraitId
+{
+    RegionShelteringGround,
+    RegionBrittleSeams,
+    SettlementProvidentHearth,
+    SettlementOverextendedHalls,
+    FactionSteadyCadre,
+    FactionFractiousCouncil,
+    PenguinRangingHeart,
+    PenguinHearthbound,
+    ArtifactRestorativeAura,
+    ArtifactVolatileResonance,
+    OrcaSureWake,
+    OrcaBloodFrenzy,
+    PointOfInterestGenerousBounty,
+    PointOfInterestTreacherousApproach,
+    AbilityPracticedForm,
+    AbilityBrittleLineage,
+    MonsterWellBound,
+    MonsterHungryStirring,
+    TransportProvenMake,
+    TransportHiddenFault,
+    OccurrenceGatheringForce,
+    OccurrenceGrindingAttrition,
+}
+
+public static class IceRemembersTraitIdExtensions
+{
+    private static readonly string[] DomainNames =
+    [
+        "region_sheltering_ground",
+        "region_brittle_seams",
+        "settlement_provident_hearth",
+        "settlement_overextended_halls",
+        "faction_steady_cadre",
+        "faction_fractious_council",
+        "penguin_ranging_heart",
+        "penguin_hearthbound",
+        "artifact_restorative_aura",
+        "artifact_volatile_resonance",
+        "orca_sure_wake",
+        "orca_blood_frenzy",
+        "point_of_interest_generous_bounty",
+        "point_of_interest_treacherous_approach",
+        "ability_practiced_form",
+        "ability_brittle_lineage",
+        "monster_well_bound",
+        "monster_hungry_stirring",
+        "transport_proven_make",
+        "transport_hidden_fault",
+        "occurrence_gathering_force",
+        "occurrence_grinding_attrition",
+    ];
+
+    public static string ToDomainName(this IceRemembersTraitId trait)
+    {
+        var index = (int)trait;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(trait), trait, "Unknown Ice Remembers trait");
     }
 }
 
@@ -100,6 +155,7 @@ public enum IceRemembersRelationship
     CleansedBy,
     AtWarWith,
     BetrayedBy,
+    PracticedBy,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -127,6 +183,7 @@ public static class IceRemembersRelationshipExtensions
         "cleansed_by",
         "at_war_with",
         "betrayed_by",
+        "practiced_by",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -138,24 +195,25 @@ public static class IceRemembersRelationshipExtensions
     }
 }
 
-public enum IceRemembersPressure
+public enum IceRemembersRelationshipFact
 {
-    MilitaryTension,
-    EconomicStress,
-    CulturalFriction,
-    DemographicPressure,
+    TaughtBy,
 }
 
-public static class IceRemembersPressureExtensions
+public static class IceRemembersRelationshipFactExtensions
 {
-    public static string ToDomainName(this IceRemembersPressure pressure) => pressure switch
+    private static readonly string[] DomainNames =
+    [
+        "taught_by",
+    ];
+
+    public static string ToDomainName(this IceRemembersRelationshipFact fact)
     {
-        IceRemembersPressure.MilitaryTension => "military_tension",
-        IceRemembersPressure.EconomicStress => "economic_stress",
-        IceRemembersPressure.CulturalFriction => "cultural_friction",
-        IceRemembersPressure.DemographicPressure => "demographic_pressure",
-        _ => throw new ArgumentOutOfRangeException(nameof(pressure), pressure, "Unknown test-domain pressure"),
-    };
+        var index = (int)fact;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(fact), fact, "Unknown Ice Remembers relationship fact");
+    }
 }
 
 public enum IceRemembersCulture
@@ -256,6 +314,51 @@ public enum IceRemembersVerbId
     FactionMoveSeat,
     PenguinBreakChorus,
     PenguinScatterClaimMarks,
+    OrcaHuntTheMark,
+    OrcaPatrolTheCurrents,
+    OrcaSoundThePod,
+    OrcaCarryTheDeedName,
+    OrcaMarkTheHuntingGround,
+    OrcaCullTheEncroachment,
+    OrcaSingTheLiturgy,
+    OrcaLayTheDeepCurrent,
+    PointOfInterestResonateThroughTheStratum,
+    PointOfInterestCallToAWanderer,
+    PointOfInterestEchoToAReader,
+    PointOfInterestYieldBounty,
+    PointOfInterestLayTheSign,
+    PointOfInterestHoldTheLayer,
+    PointOfInterestPulseTheBounty,
+    PointOfInterestDrainTheApproach,
+    AbilityDriftToABearer,
+    AbilityMigrateTheForm,
+    AbilityPassThroughTheLineage,
+    AbilitySurfaceInTheReach,
+    AbilitySpreadTheForm,
+    AbilityAnnealTheLineage,
+    AbilitySuppressARivalForm,
+    AbilityRetreatToSanctuary,
+    MonsterStirWithinBonds,
+    MonsterPressTowardHeat,
+    MonsterSurfaceAtTheFissure,
+    MonsterReachThroughTheLayer,
+    MonsterBleedDread,
+    MonsterStainTheIce,
+    MonsterHumBelow,
+    MonsterWhisperToABearer,
+    TransportSailTheShelf,
+    TransportMakePort,
+    TransportPatrolTheReach,
+    TransportAnswerTheCaptain,
+    TransportCarryTheCharter,
+    TransportShowTheFlag,
+    TransportRunTheTrade,
+    TransportBreakARivalHold,
+    TransportCastTheLookout,
+    OccurrenceSpreadTheWord,
+    OccurrenceDrawTheFaction,
+    OccurrenceGatherTheCrowds,
+    OccurrenceBurnTheWitnesses,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -340,6 +443,51 @@ public static class IceRemembersVerbIdExtensions
         "faction_move_seat",
         "penguin_break_chorus",
         "penguin_scatter_claim_marks",
+        "orca_hunt_the_mark",
+        "orca_patrol_the_currents",
+        "orca_sound_the_pod",
+        "orca_carry_the_deed_name",
+        "orca_mark_the_hunting_ground",
+        "orca_cull_the_encroachment",
+        "orca_sing_the_liturgy",
+        "orca_lay_the_deep_current",
+        "point_of_interest_resonate_through_the_stratum",
+        "point_of_interest_call_to_a_wanderer",
+        "point_of_interest_echo_to_a_reader",
+        "point_of_interest_yield_bounty",
+        "point_of_interest_lay_the_sign",
+        "point_of_interest_hold_the_layer",
+        "point_of_interest_pulse_the_bounty",
+        "point_of_interest_drain_the_approach",
+        "ability_drift_to_a_bearer",
+        "ability_migrate_the_form",
+        "ability_pass_through_the_lineage",
+        "ability_surface_in_the_reach",
+        "ability_spread_the_form",
+        "ability_anneal_the_lineage",
+        "ability_suppress_a_rival_form",
+        "ability_retreat_to_sanctuary",
+        "monster_stir_within_bonds",
+        "monster_press_toward_heat",
+        "monster_surface_at_the_fissure",
+        "monster_reach_through_the_layer",
+        "monster_bleed_dread",
+        "monster_stain_the_ice",
+        "monster_hum_below",
+        "monster_whisper_to_a_bearer",
+        "transport_sail_the_shelf",
+        "transport_make_port",
+        "transport_patrol_the_reach",
+        "transport_answer_the_captain",
+        "transport_carry_the_charter",
+        "transport_show_the_flag",
+        "transport_run_the_trade",
+        "transport_break_a_rival_hold",
+        "transport_cast_the_lookout",
+        "occurrence_spread_the_word",
+        "occurrence_draw_the_faction",
+        "occurrence_gather_the_crowds",
+        "occurrence_burn_the_witnesses",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

@@ -13,17 +13,27 @@ the design narrative around that schema, not a duplicate registry.
 
 ## Current Kinds
 
-| Kind | Category | Health | Other Attributes | Primary Plane |
+| Kind | Category | Health | Placeholder Traits | Primary Plane |
 | --- | --- | --- | --- | --- |
-| `region` | Spatial | `stability` | `holding`, `pristiness` | Semantic |
-| `settlement` | Spatial | `temp_hp` | `dominion`, `shelter` | Semantic |
-| `faction` | Agency | `cohesion` | `reach`, `provisions` | Semantic |
-| `penguin` | Agency | `vitality` | `echo`, `warmth` | Physical |
-| `artifact` | Asset | `condition` | `power`, `resonance` | Physical |
+| `region` | Spatial | `stability` | `region_sheltering_ground`, `region_brittle_seams` | Semantic |
+| `settlement` | Spatial | `temp_hp` | `settlement_provident_hearth`, `settlement_overextended_halls` | Semantic |
+| `point_of_interest` | Spatial | `presence` | `point_of_interest_generous_bounty`, `point_of_interest_treacherous_approach` | Semantic |
+| `faction` | Agency | `cohesion` | `faction_steady_cadre`, `faction_fractious_council` | Semantic |
+| `penguin` | Agency | `vitality` | `penguin_ranging_heart`, `penguin_hearthbound` | Physical |
+| `orca` | Agency | `endurance` | `orca_sure_wake`, `orca_blood_frenzy` | Physical |
+| `monster` | Agency | `containment` | `monster_well_bound`, `monster_hungry_stirring` | Physical |
+| `artifact` | Asset | `condition` | `artifact_restorative_aura`, `artifact_volatile_resonance` | Physical |
+| `ability` | Asset | `clarity` | `ability_practiced_form`, `ability_brittle_lineage` | Semantic |
+| `transport` | Asset | `integrity` | `transport_proven_make`, `transport_hidden_fault` | Physical |
 
 Culture is orthogonal to morphology. Wake-Singers are not "the orca kind";
 they are a culture largely associated with orcas, with possible penguin
 defectors or adherents.
+
+Health is the only mutable per-kind scalar. Traits are mostly static
+per-entity differentiators assigned at creation. Trait behavior is authored as
+operation clauses on the trait itself; runtime systems interpret generic
+operation primitives rather than checking individual trait names.
 
 ## Relationship Role
 
@@ -56,5 +66,8 @@ life:
 ## High-Altitude Role
 
 Generators add named entities. Gambits change significant relationships,
-status, or attributes. The relationship catalog should support both without
-creating graph edges that no other system understands.
+status, health, or other authored state. The relationship catalog should
+support both without creating graph edges that no other system understands.
+When a numeric gate is needed, relationship strength should be the first
+choice; relationship facts add event-specific meaning to real edges, not
+static entity personality.

@@ -34,9 +34,6 @@ public sealed class TelemetryBatch
     public Collection<ResourceEventRow> ResourceEvents { get; } = [];
     public Collection<ResourceSnapshotRow> ResourceSnapshots { get; } = [];
     public Collection<ResourceTerrainSnapshotRow> ResourceTerrainSnapshots { get; } = [];
-    public Collection<PressureEventRow> PressureEvents { get; } = [];
-    public Collection<PressureSnapshotRow> PressureSnapshots { get; } = [];
-    public Collection<PressureSourceSnapshotRow> PressureSourceSnapshots { get; } = [];
     public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
     public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
     public Collection<GambitEventRow> GambitEvents { get; } = [];
@@ -88,7 +85,6 @@ public sealed record ExperimentVariantRow(
     bool TraceEnabled,
     int EntitySnapshotCadence,
     int ResourceSnapshotCadence,
-    int PressureSnapshotCadence,
     int MapSnapshotCadence,
     int GeneratorSnapshotCadence);
 
@@ -397,34 +393,6 @@ public sealed record ResourceTerrainSnapshotRow(
     double Average,
     double Minimum,
     double Maximum);
-
-public sealed record PressureEventRow(
-    int RunId,
-    int Tick,
-    int PressureId,
-    int ScopeCode,
-    int ScopeEntityId,
-    int SourceCodeId,
-    float OldValue,
-    float NewValue,
-    float Delta);
-
-public sealed record PressureSnapshotRow(
-    int RunId,
-    int Tick,
-    int PressureId,
-    int ScopeCode,
-    int ScopeEntityId,
-    float Value);
-
-public sealed record PressureSourceSnapshotRow(
-    int RunId,
-    int Tick,
-    int PressureId,
-    int ScopeCode,
-    int ScopeEntityId,
-    int SourceCodeId,
-    float Contribution);
 
 public sealed record RelationshipEventRow(
     int RunId,

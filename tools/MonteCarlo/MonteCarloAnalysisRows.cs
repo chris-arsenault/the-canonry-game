@@ -10,14 +10,14 @@ internal sealed class MonteCarloAnalysisReport
     public required IReadOnlyList<LowAltitudeVerbSummaryRow> LowAltitudeVerbUtilization { get; init; }
     public required IReadOnlyList<RoamingSummaryRow> RoamingSummary { get; init; }
     public required IReadOnlyList<InfluenceSummaryRow> InfluenceSummary { get; init; }
-    public required IReadOnlyList<PlannerPressureRow> PlannerPressure { get; init; }
-    public required IReadOnlyList<ActionPressureRow> ActionPressure { get; init; }
+    public required IReadOnlyList<PlannerUtilizationRow> PlannerUtilization { get; init; }
+    public required IReadOnlyList<ActionUtilizationRow> ActionUtilization { get; init; }
     public required IReadOnlyList<AttributeBandSummaryRow> AttributeBands { get; init; }
     public required IReadOnlyList<MapSpreadSummaryRow> MapSpread { get; init; }
     public required IReadOnlyList<MapGenerationSummaryRow> MapGeneration { get; init; }
     public required IReadOnlyList<TerrainOccupancyRow> TerrainOccupancy { get; init; }
     public required IReadOnlyList<LifecycleSummaryRow> Lifecycle { get; init; }
-    public required IReadOnlyList<ResourcePressureRow> ResourcePressure { get; init; }
+    public required IReadOnlyList<ResourceDynamicsRow> ResourceDynamics { get; init; }
 }
 
 internal sealed record BatchOverviewRow(
@@ -105,7 +105,7 @@ internal sealed record InfluenceSummaryRow(
     double AverageMeanAnchorDistance,
     double AverageMaxAnchorDistance);
 
-internal sealed record PlannerPressureRow(
+internal sealed record PlannerUtilizationRow(
     string Kind,
     int Evaluations,
     double StaleRate,
@@ -114,7 +114,7 @@ internal sealed record PlannerPressureRow(
     string TopExecutedAction,
     double TopActionShareOfExecutions);
 
-internal sealed record ActionPressureRow(
+internal sealed record ActionUtilizationRow(
     string Kind,
     string ActionName,
     int CandidateEvaluations,
@@ -177,7 +177,7 @@ internal sealed record LifecycleSummaryRow(
     double AverageFinalHistorical,
     double AverageFinalHealth);
 
-internal sealed record ResourcePressureRow(
+internal sealed record ResourceDynamicsRow(
     string ResourceType,
     double AverageTotalOverTime,
     double AverageInitialTotal,

@@ -45,6 +45,7 @@ internal sealed partial class WorldState
         }
 
         count += _attributes.Count;
+        count += _traits.Count;
         count += _resources.Count;
         count += _mapLayers.Influence.Count;
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
@@ -65,6 +66,7 @@ internal sealed partial class WorldState
         EmitSnapshotCells(context, tick, version);
         EmitSnapshotEntities(context, tick, version);
         EmitSnapshotAttributes(context, tick, version);
+        EmitSnapshotTraits(context, tick, version);
         EmitSnapshotResources(context, tick, version);
         EmitSnapshotInfluence(context, tick, version);
         EmitSnapshotRelationships(context, tick, version);
@@ -152,6 +154,23 @@ internal sealed partial class WorldState
                     context.SourceCodeId,
                     0f,
                     value)),
+                    context);
+            }
+        });
+    }
+
+    private void EmitSnapshotTraits(KernelExecutionContext context, int tick, long version)
+    {
+        _traits.ForEach((entityId, traitId, assigned) =>
+        {
+            if (_entityAllocated[entityId] && assigned != 0)
+            {
+                Write(KernelEvent.From(new TraitAssignedKernelEvent(
+                    tick,
+                    version,
+                    entityId,
+                    traitId,
+                    context.SourceCodeId)),
                     context);
             }
         });

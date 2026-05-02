@@ -24,7 +24,7 @@ uses the entity's age, configured lifespan target, and tuning options.
 
 Other low-altitude systems can counteract or worsen this drain through effects.
 Support, allied influence, home relationships, and favorable map signals can
-extend life. Threat, hostile influence, crowding pressure, and hostile
+extend life. Threat, hostile influence, crowding load, and hostile
 relationships can shorten it.
 
 ## Design Bias

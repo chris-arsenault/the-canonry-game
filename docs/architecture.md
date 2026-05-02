@@ -81,7 +81,6 @@ Relationships
 Effects
 Upkeep
 Gambits
-Pressures
 Generators
 Degeneracy
 ```
@@ -94,7 +93,7 @@ consumes same-tick activity. `Effects` consumes same-tick map signals.
 
 The kernel world contains:
 
-- entities, attributes, status, physical and semantic coordinates;
+- entities, health, traits, status, physical and semantic coordinates;
 - relationships and relationship strength;
 - physical map cells, terrain, named coverage, and map influence layers;
 - program data/state/scratch for each registered kernel program.
@@ -111,7 +110,7 @@ Low-altitude programs produce map life and slow state drift:
 - map activity;
 - map signals;
 - relationship maintenance;
-- attribute effects;
+- health effects;
 - upkeep/lifecycle.
 
 High-altitude programs produce significant graph changes:
@@ -120,8 +119,9 @@ High-altitude programs produce significant graph changes:
 - generators;
 - degeneracy detectors.
 
-Pressures remain available as an aggregation layer, but they are not the
-primary driver of the current low-altitude rewrite.
+The former macro aggregate layer has been removed. Generator, gambit, trait,
+and card work should use shared query and effect primitives, with relationship
+strength and locality queries as the default numeric gates.
 
 ## Event Boundary
 

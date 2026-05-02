@@ -51,11 +51,22 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _affordanceCandidateKindIds = [];
     private int[] _affordanceBindingKindIds = [];
     private float[] _affordanceScores = [];
+    private int[] _traitModifierKindIds = [];
+    private int[] _traitModifierTraitIds = [];
+    private int[] _traitModifierVerbIds = [];
+    private float[] _traitModifierWeightDeltas = [];
+    private float[] _traitModifierExploreWeightDeltas = [];
+    private float[] _traitModifierStalenessWeightDeltas = [];
+    private float[] _traitModifierHotspotWeightDeltas = [];
+    private float[] _traitModifierCrowdingWeightDeltas = [];
+    private float[] _traitModifierGeneratorAffordanceWeightDeltas = [];
+    private float[] _traitModifierRelationshipAffinityWeightDeltas = [];
     private int _ruleCount;
     private int _terrainCount;
     private int _stepCount;
     private int _initialInfluenceRuleCount;
     private int _affordanceKindPairCount;
+    private int _traitWeightModifierCount;
     private int _semanticMinQ = -24;
     private int _semanticMaxQ = 24;
     private int _semanticMinR = -24;
@@ -75,6 +86,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         InitializeInfluenceArrays(ruleLength);
         InitializeInitialInfluenceArrays(ruleLength);
         InitializeAffordanceArrays(itemLength);
+        InitializeTraitWeightModifierArrays(itemLength);
     }
 
     private void InitializeRuleIdentityArrays(int ruleLength)
@@ -156,6 +168,20 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _affordanceScores = new float[itemLength];
     }
 
+    private void InitializeTraitWeightModifierArrays(int itemLength)
+    {
+        _traitModifierKindIds = new int[itemLength];
+        _traitModifierTraitIds = new int[itemLength];
+        _traitModifierVerbIds = new int[itemLength];
+        _traitModifierWeightDeltas = new float[itemLength];
+        _traitModifierExploreWeightDeltas = new float[itemLength];
+        _traitModifierStalenessWeightDeltas = new float[itemLength];
+        _traitModifierHotspotWeightDeltas = new float[itemLength];
+        _traitModifierCrowdingWeightDeltas = new float[itemLength];
+        _traitModifierGeneratorAffordanceWeightDeltas = new float[itemLength];
+        _traitModifierRelationshipAffinityWeightDeltas = new float[itemLength];
+    }
+
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
     public int SchemaVersion => 5;
@@ -165,6 +191,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     public int InitialInfluenceRuleCount => _initialInfluenceRuleCount;
 
     public int AffordanceKindPairCount => _affordanceKindPairCount;
+
+    public int TraitWeightModifierCount => _traitWeightModifierCount;
 
     public int SemanticMinQ => _semanticMinQ;
 
@@ -311,6 +339,40 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         return _affordanceKindPairCount;
     }
 
+    public int RegisterTraitWeightModifier(
+        int kindId,
+        int traitId,
+        int verbId,
+        float weightDelta,
+        float exploreWeightDelta,
+        float stalenessWeightDelta,
+        float hotspotWeightDelta,
+        float crowdingWeightDelta,
+        float generatorDelta,
+        float relationshipAffinityWeightDelta)
+    {
+        ValidatePositive(kindId);
+        ValidatePositive(traitId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(verbId);
+        if (_traitWeightModifierCount + 1 >= _traitModifierKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _traitWeightModifierCount++;
+        _traitModifierKindIds[_traitWeightModifierCount] = kindId;
+        _traitModifierTraitIds[_traitWeightModifierCount] = traitId;
+        _traitModifierVerbIds[_traitWeightModifierCount] = verbId;
+        _traitModifierWeightDeltas[_traitWeightModifierCount] = weightDelta;
+        _traitModifierExploreWeightDeltas[_traitWeightModifierCount] = exploreWeightDelta;
+        _traitModifierStalenessWeightDeltas[_traitWeightModifierCount] = stalenessWeightDelta;
+        _traitModifierHotspotWeightDeltas[_traitWeightModifierCount] = hotspotWeightDelta;
+        _traitModifierCrowdingWeightDeltas[_traitWeightModifierCount] = crowdingWeightDelta;
+        _traitModifierGeneratorAffordanceWeightDeltas[_traitWeightModifierCount] = generatorDelta;
+        _traitModifierRelationshipAffinityWeightDeltas[_traitWeightModifierCount] = relationshipAffinityWeightDelta;
+        return _traitWeightModifierCount;
+    }
+
     public int KindId(int rule) => _kindIds[rule];
 
     public int VerbId(int rule) => _verbIds[rule];
@@ -398,6 +460,28 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     public int AffordanceBindingKindId(int rule) => _affordanceBindingKindIds[rule];
 
     public float AffordanceScore(int rule) => _affordanceScores[rule];
+
+    public int TraitModifierKindId(int rule) => _traitModifierKindIds[rule];
+
+    public int TraitModifierTraitId(int rule) => _traitModifierTraitIds[rule];
+
+    public int TraitModifierVerbId(int rule) => _traitModifierVerbIds[rule];
+
+    public float TraitModifierWeightDelta(int rule) => _traitModifierWeightDeltas[rule];
+
+    public float TraitModifierExploreWeightDelta(int rule) => _traitModifierExploreWeightDeltas[rule];
+
+    public float TraitModifierStalenessWeightDelta(int rule) => _traitModifierStalenessWeightDeltas[rule];
+
+    public float TraitModifierHotspotWeightDelta(int rule) => _traitModifierHotspotWeightDeltas[rule];
+
+    public float TraitModifierCrowdingWeightDelta(int rule) => _traitModifierCrowdingWeightDeltas[rule];
+
+    public float TraitModifierGeneratorAffordanceWeightDelta(int rule) =>
+        _traitModifierGeneratorAffordanceWeightDeltas[rule];
+
+    public float TraitModifierRelationshipAffinityWeightDelta(int rule) =>
+        _traitModifierRelationshipAffinityWeightDeltas[rule];
 
     public bool TerrainAllowed(int rule, int terrainId)
     {

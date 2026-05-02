@@ -63,13 +63,13 @@ internal sealed partial class GambitProgramRuntime
         switch (operationCode)
         {
             case BehaviorOperationCodes.AddAttribute:
-                simulation.ModifyAttribute(entityId, _stepA[step], _stepX[step], tick);
+                KernelEffectExecutor.ModifyAttribute(simulation, entityId, _stepA[step], _stepX[step]);
                 return true;
             case BehaviorOperationCodes.SetAttribute:
-                simulation.SetAttribute(entityId, _stepA[step], _stepX[step], tick);
+                KernelEffectExecutor.SetAttribute(simulation, entityId, _stepA[step], _stepX[step]);
                 return true;
             case BehaviorOperationCodes.AddTargetAttribute:
-                simulation.ModifyAttribute(targetId, _stepA[step], _stepX[step], tick);
+                KernelEffectExecutor.ModifyAttribute(simulation, targetId, _stepA[step], _stepX[step]);
                 return true;
             case BehaviorOperationCodes.TransferAttribute:
                 TransferAttribute(simulation, entityId, targetId, tick, step);
@@ -98,10 +98,10 @@ internal sealed partial class GambitProgramRuntime
         switch (operationCode)
         {
             case BehaviorOperationCodes.MovePhysical:
-                simulation.MoveEntityPhysical(entityId, world.EntityPhysicalQ(entityId) + _stepA[step], world.EntityPhysicalR(entityId) + _stepB[step], tick);
+                KernelEffectExecutor.MovePhysical(simulation, entityId, world.EntityPhysicalQ(entityId) + _stepA[step], world.EntityPhysicalR(entityId) + _stepB[step]);
                 return true;
             case BehaviorOperationCodes.MoveSemantic:
-                simulation.MoveEntitySemantic(entityId, world.EntitySemanticQ(entityId) + _stepA[step], world.EntitySemanticR(entityId) + _stepB[step], world.EntitySemanticS(entityId) + _stepC[step], tick);
+                KernelEffectExecutor.MoveSemantic(simulation, entityId, world.EntitySemanticQ(entityId) + _stepA[step], world.EntitySemanticR(entityId) + _stepB[step], world.EntitySemanticS(entityId) + _stepC[step]);
                 return true;
             case BehaviorOperationCodes.MoveTowardTargetPhysical:
                 MoveTowardTargetPhysical(simulation, world, entityId, targetId, tick);
@@ -116,7 +116,7 @@ internal sealed partial class GambitProgramRuntime
                 WanderSemantic(simulation, world, entityId, tick);
                 return true;
             case BehaviorOperationCodes.MoveTargetToSelfPhysical:
-                simulation.MoveEntityPhysical(targetId, world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId), tick);
+                KernelEffectExecutor.MovePhysical(simulation, targetId, world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId));
                 return true;
             default:
                 return false;
@@ -131,11 +131,7 @@ internal sealed partial class GambitProgramRuntime
                 AddLocationResource(simulation, entityId, targetId, tick, step);
                 return true;
             case BehaviorOperationCodes.AddResource:
-                simulation.ModifyResource(_stepA[step], world.EntityPhysicalQ(entityId) + _stepB[step], world.EntityPhysicalR(entityId) + _stepC[step], _stepX[step], tick);
-                return true;
-            case BehaviorOperationCodes.AddPressure:
-                simulation.Pressures.ApplyDelta(_stepA[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepX[step]);
-                world.AdvanceWorldVersion();
+                KernelEffectExecutor.ModifyResource(simulation, _stepA[step], world.EntityPhysicalQ(entityId) + _stepB[step], world.EntityPhysicalR(entityId) + _stepC[step], _stepX[step]);
                 return true;
             default:
                 return false;
@@ -159,10 +155,10 @@ internal sealed partial class GambitProgramRuntime
         switch (operationCode)
         {
             case BehaviorOperationCodes.SetStatus:
-                simulation.SetEntityStatus(entityId, _stepA[step], tick);
+                KernelEffectExecutor.SetEntityStatus(simulation, entityId, _stepA[step]);
                 return true;
             case BehaviorOperationCodes.CreateRelationship:
-                simulation.CreateRelationship(_stepA[step], _stepC[step], entityId, _stepB[step] > 0 ? _stepB[step] : targetId, _stepX[step], tick, _stepD[step], factCount: _stepD[step] > 0 ? 1 : 0);
+                KernelEffectExecutor.CreateRelationship(simulation, _stepA[step], _stepC[step], entityId, _stepB[step] > 0 ? _stepB[step] : targetId, _stepX[step], _stepD[step], factCount: _stepD[step] > 0 ? 1 : 0);
                 return true;
             case BehaviorOperationCodes.SetRelationshipStrength:
                 SetRelationshipStrength(simulation, world, entityId, targetId, tick, step);
@@ -180,13 +176,13 @@ internal sealed partial class GambitProgramRuntime
         switch (operationCode)
         {
             case BehaviorOperationCodes.SetHistorical:
-                simulation.SetEntityStatus(HistoricalEntityId(entityId, targetId, step), EntityStatusCodes.Historical, tick);
+                KernelEffectExecutor.SetEntityStatus(simulation, HistoricalEntityId(entityId, targetId, step), EntityStatusCodes.Historical);
                 return true;
             case BehaviorOperationCodes.AddRelatedEntitiesAttribute:
                 AddRelatedEntitiesAttribute(simulation, world, entityId, targetId, tick, step);
                 return true;
             case BehaviorOperationCodes.CreateFixedRelationship:
-                simulation.CreateRelationship(_stepA[step], _stepD[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepC[step] > 0 ? _stepC[step] : targetId, _stepX[step], tick);
+                KernelEffectExecutor.CreateRelationship(simulation, _stepA[step], _stepD[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepC[step] > 0 ? _stepC[step] : targetId, _stepX[step]);
                 return true;
             case BehaviorOperationCodes.CreateEndpointRelationship:
                 CreateEndpointRelationship(simulation, entityId, targetId, tick, step);
@@ -204,11 +200,14 @@ internal sealed partial class GambitProgramRuntime
 
     private static void SetTargetCoverageTerrain(Simulation simulation, WorldState world, int targetId, int tick, int terrainId)
     {
-        var cursor = world.CoverageCells(targetId);
-        while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
-        {
-            simulation.SetCellTerrain(q, r, terrainId, tick);
-        }
+        KernelQuery.ForEachCoverageCell(
+            world,
+            targetId,
+            (q, r) =>
+            {
+                KernelEffectExecutor.SetCellTerrain(simulation, q, r, terrainId);
+                return true;
+            });
     }
 
     private void AddAttributeFromVariable(
@@ -220,11 +219,11 @@ internal sealed partial class GambitProgramRuntime
         global::System.Span<float> variableValues,
         int variableCount)
     {
-        simulation.ModifyAttribute(
+        KernelEffectExecutor.ModifyAttribute(
+            simulation,
             entityId,
             _stepA[step],
-            VariableValue(variableIds, variableValues, variableCount, _stepB[step]) * (_stepX[step] == 0f ? 1f : _stepX[step]),
-            tick);
+            VariableValue(variableIds, variableValues, variableCount, _stepB[step]) * (_stepX[step] == 0f ? 1f : _stepX[step]));
     }
 
     private void TransferAttribute(
@@ -234,17 +233,15 @@ internal sealed partial class GambitProgramRuntime
         int tick,
         int step)
     {
-        var world = simulation.World;
         var sourceId = EndpointEntityId(entityId, targetId, _stepA[step]);
         var destinationId = EndpointEntityId(entityId, targetId, _stepC[step]);
-        var amount = _stepX[step];
-        if (world.GetAttribute(sourceId, _stepB[step]) < amount)
-        {
-            return;
-        }
-
-        simulation.ModifyAttribute(sourceId, _stepB[step], -amount, tick);
-        simulation.ModifyAttribute(destinationId, _stepD[step], amount, tick);
+        KernelEffectExecutor.TransferAttribute(
+            simulation,
+            sourceId,
+            _stepB[step],
+            destinationId,
+            _stepD[step],
+            _stepX[step]);
     }
 
     private void CreateEntity(Simulation simulation, int entityId, int tick, int step)
@@ -252,7 +249,8 @@ internal sealed partial class GambitProgramRuntime
         var world = simulation.World;
         var q = _stepD[step] == 0 ? world.EntityPhysicalQ(entityId) : (int)_stepX[step];
         var r = _stepD[step] == 0 ? world.EntityPhysicalR(entityId) : (int)_stepY[step];
-        _ = simulation.CreateEntity(
+        _ = KernelEffectExecutor.CreateEntity(
+            simulation,
             _stepA[step],
             _stepB[step],
             _stepC[step],
@@ -260,8 +258,7 @@ internal sealed partial class GambitProgramRuntime
             r,
             world.EntitySemanticQ(entityId),
             world.EntitySemanticR(entityId),
-            world.EntitySemanticS(entityId),
-            tick);
+            world.EntitySemanticS(entityId));
     }
 
     private void AddRelatedEntitiesAttribute(
@@ -273,19 +270,22 @@ internal sealed partial class GambitProgramRuntime
         int step)
     {
         var anchorId = _stepD[step] == 0 ? entityId : targetId;
-        var cursor = _stepC[step] == RelationshipTraversalDirectionCodes.Incoming
-            ? world.IncomingRelationshipsOfKind(anchorId, _stepA[step])
-            : world.OutgoingRelationshipsOfKind(anchorId, _stepA[step]);
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            var relatedEntityId = _stepC[step] == RelationshipTraversalDirectionCodes.Incoming
-                ? world.RelationshipSourceId(relationshipId)
-                : world.RelationshipTargetId(relationshipId);
-            if (world.EntityIsActive(relatedEntityId) && world.HasAttribute(relatedEntityId, _stepB[step]))
+        KernelQuery.ForEachRelatedEndpoint(
+            world,
+            anchorId,
+            _stepA[step],
+            minimumStrength: 0f,
+            requiredFactId: 0,
+            outgoing: _stepC[step] != RelationshipTraversalDirectionCodes.Incoming,
+            (_, relatedEntityId) =>
             {
-                simulation.ModifyAttribute(relatedEntityId, _stepB[step], _stepX[step], tick);
-            }
-        }
+                if (world.EntityIsActive(relatedEntityId) && world.HasAttribute(relatedEntityId, _stepB[step]))
+                {
+                    KernelEffectExecutor.ModifyAttribute(simulation, relatedEntityId, _stepB[step], _stepX[step]);
+                }
+
+                return true;
+            });
     }
 
     private void AddLocationResource(
@@ -297,12 +297,12 @@ internal sealed partial class GambitProgramRuntime
     {
         var world = simulation.World;
         var locationEntityId = _stepB[step] == 0 ? entityId : targetId;
-        simulation.ModifyResource(
+        KernelEffectExecutor.ModifyResource(
+            simulation,
             _stepA[step],
             world.EntityPhysicalQ(locationEntityId),
             world.EntityPhysicalR(locationEntityId),
-            _stepX[step],
-            tick);
+            _stepX[step]);
     }
 
     private float EvaluateMutationExpression(
@@ -332,50 +332,50 @@ internal sealed partial class GambitProgramRuntime
     private void SetRelationshipStrength(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)
     {
         var relationshipTargetId = _stepB[step] > 0 ? _stepB[step] : targetId;
-        var relationshipId = world.FindRelationship(entityId, relationshipTargetId, _stepA[step]);
+        var relationshipId = KernelQuery.FindRelationship(world, entityId, relationshipTargetId, _stepA[step]);
         if (relationshipId == 0)
         {
             return;
         }
 
-        simulation.SetRelationshipStrength(relationshipId, _stepX[step], tick);
+        KernelEffectExecutor.SetRelationshipStrength(simulation, relationshipId, _stepX[step]);
     }
 
     private void SetEndpointRelationshipStrength(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)
     {
         var sourceId = EndpointEntityId(entityId, targetId, _stepB[step]);
         var relationshipTargetId = EndpointEntityId(entityId, targetId, _stepC[step]);
-        var relationshipId = world.FindRelationship(sourceId, relationshipTargetId, _stepA[step]);
+        var relationshipId = KernelQuery.FindRelationship(world, sourceId, relationshipTargetId, _stepA[step]);
         if (relationshipId == 0)
         {
             return;
         }
 
-        simulation.SetRelationshipStrength(relationshipId, _stepX[step], tick);
+        KernelEffectExecutor.SetRelationshipStrength(simulation, relationshipId, _stepX[step]);
     }
 
     private void RemoveEndpointRelationship(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)
     {
         var sourceId = EndpointEntityId(entityId, targetId, _stepB[step]);
         var relationshipTargetId = EndpointEntityId(entityId, targetId, _stepC[step]);
-        var relationshipId = world.FindRelationship(sourceId, relationshipTargetId, _stepA[step]);
+        var relationshipId = KernelQuery.FindRelationship(world, sourceId, relationshipTargetId, _stepA[step]);
         if (relationshipId == 0)
         {
             return;
         }
 
-        simulation.CullRelationship(relationshipId, tick);
+        KernelEffectExecutor.CullRelationship(simulation, relationshipId);
     }
 
     private void CreateEndpointRelationship(Simulation simulation, int entityId, int targetId, int tick, int step)
     {
-        simulation.CreateRelationship(
+        KernelEffectExecutor.CreateRelationship(
+            simulation,
             _stepA[step],
             _stepD[step],
             EndpointEntityId(entityId, targetId, _stepB[step]),
             EndpointEntityId(entityId, targetId, _stepC[step]),
-            _stepX[step],
-            tick);
+            _stepX[step]);
     }
 
     private int HistoricalEntityId(int entityId, int targetId, int step)
@@ -396,7 +396,7 @@ internal sealed partial class GambitProgramRuntime
 
         if (TryFindNextPhysicalPathStep(world, currentQ, currentR, targetQ, targetR, out var nextQ, out var nextR))
         {
-            simulation.MoveEntityPhysical(entityId, nextQ, nextR, tick);
+            KernelEffectExecutor.MovePhysical(simulation, entityId, nextQ, nextR);
         }
     }
 
@@ -488,7 +488,7 @@ internal sealed partial class GambitProgramRuntime
         _pathOpenSet[0] = startIndex;
         _pathOpen.Add(startIndex);
         _pathGScore.Set(startIndex, 0f);
-        _pathFScore.Set(startIndex, HexDistance(startQ, startR, targetQ, targetR));
+        _pathFScore.Set(startIndex, KernelQuery.HexDistance(startQ, startR, targetQ, targetR));
         return 1;
     }
 
@@ -558,7 +558,7 @@ internal sealed partial class GambitProgramRuntime
 
         _pathCameFrom.Set(neighborIndex, currentIndex);
         _pathGScore.Set(neighborIndex, tentativeGScore);
-        _pathFScore.Set(neighborIndex, tentativeGScore + HexDistance(neighborQ, neighborR, targetQ, targetR));
+        _pathFScore.Set(neighborIndex, tentativeGScore + KernelQuery.HexDistance(neighborQ, neighborR, targetQ, targetR));
         return _pathOpen.Contains(neighborIndex) || AddPhysicalPathOpenNode(neighborIndex, ref openCount);
     }
 
@@ -684,11 +684,11 @@ internal sealed partial class GambitProgramRuntime
             seen++;
         }
 
-        simulation.MoveEntityPhysical(
+        KernelEffectExecutor.MovePhysical(
+            simulation,
             entityId,
             currentQ + DirectionQ(selectedDirection),
-            currentR + DirectionR(selectedDirection),
-            tick);
+            currentR + DirectionR(selectedDirection));
     }
 
     private static void MoveTowardTargetSemantic(Simulation simulation, WorldState world, int entityId, int targetId, int tick)
@@ -704,12 +704,12 @@ internal sealed partial class GambitProgramRuntime
 
         var bestQ = currentQ;
         var bestR = currentR;
-        var bestDistance = HexDistance(currentQ, currentR, targetQ, targetR);
+        var bestDistance = KernelQuery.HexDistance(currentQ, currentR, targetQ, targetR);
         for (var direction = 0; direction < 6; direction++)
         {
             var q = currentQ + DirectionQ(direction);
             var r = currentR + DirectionR(direction);
-            var distance = HexDistance(q, r, targetQ, targetR);
+            var distance = KernelQuery.HexDistance(q, r, targetQ, targetR);
             if (distance < bestDistance)
             {
                 bestQ = q;
@@ -718,7 +718,7 @@ internal sealed partial class GambitProgramRuntime
             }
         }
 
-        simulation.MoveEntitySemantic(entityId, bestQ, bestR, -bestQ - bestR, tick);
+        KernelEffectExecutor.MoveSemantic(simulation, entityId, bestQ, bestR, -bestQ - bestR);
     }
 
     private static void WanderSemantic(Simulation simulation, WorldState world, int entityId, int tick)
@@ -726,7 +726,7 @@ internal sealed partial class GambitProgramRuntime
         var direction = simulation.NextInt(6);
         var q = world.EntitySemanticQ(entityId) + DirectionQ(direction);
         var r = world.EntitySemanticR(entityId) + DirectionR(direction);
-        simulation.MoveEntitySemantic(entityId, q, r, -q - r, tick);
+        KernelEffectExecutor.MoveSemantic(simulation, entityId, q, r, -q - r);
     }
 
     private static int EndpointEntityId(int entityId, int targetId, int endpointCode)
@@ -833,30 +833,6 @@ internal sealed partial class GambitProgramRuntime
         return ticks < 1 ? 1 : ticks;
     }
 
-    private static float StandardNeedUrgency(float value)
-    {
-        var clamped = Clamp(value, 0f, 100f);
-        if (clamped >= StandardNeedComfortable)
-        {
-            return 0f;
-        }
-
-        if (clamped >= StandardNeedConcern)
-        {
-            var t = (StandardNeedComfortable - clamped) / (StandardNeedComfortable - StandardNeedConcern);
-            return 0.25f * t;
-        }
-
-        if (clamped >= StandardNeedCritical)
-        {
-            var t = (StandardNeedConcern - clamped) / (StandardNeedConcern - StandardNeedCritical);
-            return 0.25f + (0.45f * t);
-        }
-
-        var criticalT = (StandardNeedCritical - clamped) / StandardNeedCritical;
-        return 0.70f + (0.30f * criticalT);
-    }
-
     private static float BaselineUrgency(float value, float baseline)
     {
         return baseline > 0f ? baseline / (baseline + value) : 0f;
@@ -883,16 +859,6 @@ internal sealed partial class GambitProgramRuntime
         return value > 1f ? 1f : value;
     }
 
-    private static float Clamp(float value, float minimum, float maximum)
-    {
-        if (value < minimum)
-        {
-            return minimum;
-        }
-
-        return value > maximum ? maximum : value;
-    }
-
     private static float ClampSelectionRoll(float value)
     {
         if (value < 0f)
@@ -901,38 +867,6 @@ internal sealed partial class GambitProgramRuntime
         }
 
         return value > 1f ? 1f : value;
-    }
-
-    private static bool ValueInRange(float value, int hasMin, int hasMax, float min, float max)
-    {
-        if (hasMin != 0 && value < min)
-        {
-            return false;
-        }
-
-        return hasMax == 0 || value <= max;
-    }
-
-    private static int PlaneDistance(WorldState world, int entityId, int targetId, int planeCode)
-    {
-        return planeCode == PlaneCodes.Semantic
-            ? HexDistance(
-                world.EntitySemanticQ(entityId),
-                world.EntitySemanticR(entityId),
-                world.EntitySemanticQ(targetId),
-                world.EntitySemanticR(targetId))
-            : HexDistance(
-                world.EntityPhysicalQ(entityId),
-                world.EntityPhysicalR(entityId),
-                world.EntityPhysicalQ(targetId),
-                world.EntityPhysicalR(targetId));
-    }
-
-    private static int HexDistance(int aq, int ar, int bq, int br)
-    {
-        var aS = -aq - ar;
-        var bS = -bq - br;
-        return (Abs(aq - bq) + Abs(ar - br) + Abs(aS - bS)) / 2;
     }
 
     private static int DirectionQ(int direction)

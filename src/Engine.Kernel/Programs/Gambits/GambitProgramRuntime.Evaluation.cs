@@ -4,6 +4,12 @@ using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime
 {
+    private sealed class TargetSelectionState(int candidateCount)
+    {
+        public int CandidateCount = candidateCount;
+        public int SelectedTargetId;
+    }
+
     private bool GambitServesEffect(int gambitSlot, int effectScopeCode, int effectValueId, int effectKindId)
     {
         var first = _gambitGoalEffectStarts[gambitSlot];
@@ -150,10 +156,14 @@ internal sealed partial class GambitProgramRuntime
             return false;
         }
 
-        var relationshipId = world.FindRelationship(sourceId, targetId, relationshipKindId);
-        return relationshipId > 0 &&
-               world.RelationshipStrength(relationshipId) >= _providerSelectorMinimumStrengths[selector] &&
-               world.RelationshipHasFact(relationshipId, _providerSelectorFactIds[selector]);
+        return KernelQuery.RelationshipPasses(
+            world,
+            sourceId,
+            targetId,
+            relationshipKindId,
+            hasMinimumStrength: 1,
+            _providerSelectorMinimumStrengths[selector],
+            _providerSelectorFactIds[selector]);
     }
 
     private float EvaluateSupportValue(WorldState world, int supportRuleSlot, int entityId, int targetId)
@@ -207,7 +217,6 @@ internal sealed partial class GambitProgramRuntime
     {
         return _objectiveCodes[objective] switch
         {
-            BehaviorObjectiveUrgencyCodes.StandardNeed => StandardNeedUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective])),
             BehaviorObjectiveUrgencyCodes.Baseline => BaselineUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective]), _objectiveBaselines[objective]),
             BehaviorObjectiveUrgencyCodes.RangeDefault => RangeUrgency(
                 world.GetAttribute(entityId, _objectiveAttributeIds[objective]),
@@ -296,26 +305,26 @@ internal sealed partial class GambitProgramRuntime
         selectedTargetId = 0;
         var total = 0f;
         var world = simulation.World;
-        for (var targetId = world.FirstEntityOfKind(_gambitTargetKindIds[gambitSlot]);
-             targetId > 0;
-             targetId = world.NextEntityOfKind(targetId))
-        {
-            total += EvaluateTargetCandidate(
-                simulation,
-                gambitSlot,
-                entityId,
-                targetId,
-                tick,
-                ref candidateCount,
-                selectRoll,
-                total,
-                out selectedTargetId);
-            if (selectedTargetId > 0)
+        var state = new TargetSelectionState(candidateCount);
+        KernelQuery.ForEachEntityOfKind(
+            world,
+            _gambitTargetKindIds[gambitSlot],
+            targetId =>
             {
-                return total;
-            }
-        }
+                total += EvaluateTargetCandidate(
+                    simulation,
+                    gambitSlot,
+                    entityId,
+                    targetId,
+                    tick,
+                    state,
+                    selectRoll,
+                    total);
+                return state.SelectedTargetId == 0;
+            });
 
+        candidateCount = state.CandidateCount;
+        selectedTargetId = state.SelectedTargetId;
         return total;
     }
 
@@ -331,24 +340,25 @@ internal sealed partial class GambitProgramRuntime
         selectedTargetId = 0;
         var total = 0f;
         var world = simulation.World;
-        for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
-        {
-            total += EvaluateTargetCandidate(
-                simulation,
-                gambitSlot,
-                entityId,
-                targetId,
-                tick,
-                ref candidateCount,
-                selectRoll,
-                total,
-                out selectedTargetId);
-            if (selectedTargetId > 0)
+        var state = new TargetSelectionState(candidateCount);
+        KernelQuery.ForEachEntity(
+            world,
+            targetId =>
             {
-                return total;
-            }
-        }
+                total += EvaluateTargetCandidate(
+                    simulation,
+                    gambitSlot,
+                    entityId,
+                    targetId,
+                    tick,
+                    state,
+                    selectRoll,
+                    total);
+                return state.SelectedTargetId == 0;
+            });
 
+        candidateCount = state.CandidateCount;
+        selectedTargetId = state.SelectedTargetId;
         return total;
     }
 
@@ -358,27 +368,31 @@ internal sealed partial class GambitProgramRuntime
         int entityId,
         int targetId,
         int tick,
-        ref int candidateCount,
+        TargetSelectionState state,
         float selectRoll,
-        float total,
-        out int selectedTargetId)
+        float total)
     {
-        selectedTargetId = 0;
         var world = simulation.World;
         if (!world.EntityIsActive(targetId) || targetId == entityId)
         {
             return 0f;
         }
 
-        candidateCount++;
-        return EvaluateCandidate(
+        state.CandidateCount++;
+        var score = EvaluateCandidate(
             simulation,
             gambitSlot,
             entityId,
             targetId,
             tick,
             selectRoll < 0f ? -1f : selectRoll - total,
-            out selectedTargetId);
+            out var selectedTargetId);
+        if (selectedTargetId > 0)
+        {
+            state.SelectedTargetId = selectedTargetId;
+        }
+
+        return score;
     }
 
     private float EvaluateCandidate(
@@ -397,7 +411,8 @@ internal sealed partial class GambitProgramRuntime
             return 0f;
         }
 
-        var score = EvaluateScore(simulation.World, gambitSlot, entityId, targetId);
+        var score = EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
+            TraitGambitScoreDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId);
         var recentActionCount = CountRecentActions(entityId, _gambitIds[gambitSlot], tick - RecencyWindow);
         for (var i = 0; i < recentActionCount; i++)
         {
@@ -622,7 +637,6 @@ internal sealed partial class GambitProgramRuntime
             BehaviorPreconditionCodes.TargetAttributeRange or
             BehaviorPreconditionCodes.PlaneDistance or
             BehaviorPreconditionCodes.LocationResourceRange or
-            BehaviorPreconditionCodes.PressureRange or
             BehaviorPreconditionCodes.CooldownElapsed or
             BehaviorPreconditionCodes.EntityCountAtLeast or
             BehaviorPreconditionCodes.ContestedInfluence or
@@ -656,7 +670,7 @@ internal sealed partial class GambitProgramRuntime
         }
 
         return code == BehaviorPreconditionCodes.HasColocatedEntity &&
-            HasColocatedEntity(world, entityId);
+            KernelQuery.HasColocatedEntity(world, entityId);
     }
 
     private bool RangePreconditionPasses(
@@ -671,12 +685,12 @@ internal sealed partial class GambitProgramRuntime
         var world = simulation.World;
         if (code == BehaviorPreconditionCodes.SelfAttributeRange)
         {
-            return ValueInRange(world.GetAttribute(entityId, _preA[pre]), _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
+            return KernelQuery.AttributeInRange(world, entityId, _preA[pre], _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
         }
 
         if (code == BehaviorPreconditionCodes.TargetAttributeRange)
         {
-            return ValueInRange(world.GetAttribute(targetId, _preA[pre]), _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
+            return KernelQuery.AttributeInRange(world, targetId, _preA[pre], _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
         }
 
         return OtherRangePreconditionPasses(simulation, gambitSlot, code, pre, entityId, targetId, tick);
@@ -694,17 +708,12 @@ internal sealed partial class GambitProgramRuntime
         var world = simulation.World;
         if (code == BehaviorPreconditionCodes.PlaneDistance)
         {
-            return PlaneDistance(world, entityId, targetId, _preB[pre]) <= _preA[pre];
+            return KernelQuery.PlaneDistance(world, entityId, targetId, _preB[pre]) <= _preA[pre];
         }
 
         if (code == BehaviorPreconditionCodes.LocationResourceRange)
         {
             return LocationResourceRangePasses(world, pre, entityId, targetId);
-        }
-
-        if (code == BehaviorPreconditionCodes.PressureRange)
-        {
-            return PressureRangePasses(simulation, pre, entityId);
         }
 
         if (code == BehaviorPreconditionCodes.CooldownElapsed)
@@ -714,16 +723,16 @@ internal sealed partial class GambitProgramRuntime
 
         if (code == BehaviorPreconditionCodes.ContestedInfluence)
         {
-            return InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
+            return KernelQuery.InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
         }
 
         if (code == BehaviorPreconditionCodes.SharedInfluence)
         {
-            return InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
+            return KernelQuery.InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
         }
 
         return code == BehaviorPreconditionCodes.EntityCountAtLeast &&
-            ActiveEntityCountOfKind(world, _preA[pre]) >= _preB[pre];
+            KernelQuery.ActiveEntityCountOfKind(world, _preA[pre]) >= _preB[pre];
     }
 
     private bool RelationshipPreconditionPasses(
@@ -736,17 +745,17 @@ internal sealed partial class GambitProgramRuntime
         if (code == BehaviorPreconditionCodes.SelfHasRelationshipToTarget ||
             code == BehaviorPreconditionCodes.RelatedEntityMatchesTarget)
         {
-            return RelationshipPasses(world, entityId, targetId, pre);
+            return KernelQuery.RelationshipPasses(world, entityId, targetId, _preA[pre], _preB[pre], _preX[pre]);
         }
 
         if (code == BehaviorPreconditionCodes.TargetHasRelationshipToSelf)
         {
-            return RelationshipPasses(world, targetId, entityId, pre);
+            return KernelQuery.RelationshipPasses(world, targetId, entityId, _preA[pre], _preB[pre], _preX[pre]);
         }
 
         if (code == BehaviorPreconditionCodes.SelfHasOutgoingRelationship)
         {
-            return SelfOutgoingRelationshipPasses(world, entityId, pre);
+            return KernelQuery.SelfOutgoingRelationshipPasses(world, entityId, _preA[pre], _preB[pre], _preX[pre]);
         }
 
         if (code == BehaviorPreconditionCodes.EndpointRelationshipCountBelow)
@@ -755,7 +764,7 @@ internal sealed partial class GambitProgramRuntime
         }
 
         return code == BehaviorPreconditionCodes.RelationshipExists &&
-            RelationshipPasses(world, _preC[pre], _preD[pre], pre);
+            KernelQuery.RelationshipPasses(world, _preC[pre], _preD[pre], _preA[pre], _preB[pre], _preX[pre]);
     }
 
     private static bool PreconditionIsCompositionOp(int code)
@@ -763,39 +772,6 @@ internal sealed partial class GambitProgramRuntime
         return code is BehaviorPreconditionCodes.And or
             BehaviorPreconditionCodes.Or or
             BehaviorPreconditionCodes.Not;
-    }
-
-    private static int ActiveEntityCountOfKind(WorldState world, int kindId)
-    {
-        var count = 0;
-        for (var entityId = world.FirstEntityOfKind(kindId);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
-        {
-            if (world.EntityIsActive(entityId))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private static bool HasColocatedEntity(WorldState world, int entityId)
-    {
-        var q = world.EntityPhysicalQ(entityId);
-        var r = world.EntityPhysicalR(entityId);
-        for (var colocatedId = world.FirstPhysicalEntityAt(q, r);
-             colocatedId > 0;
-             colocatedId = world.NextPhysicalEntityAt(colocatedId))
-        {
-            if (colocatedId != entityId && world.EntityIsActive(colocatedId))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void ResolvePreconditionBlocker(
@@ -932,155 +908,14 @@ internal sealed partial class GambitProgramRuntime
             _preA[pre],
             world.EntityPhysicalQ(locationEntityId),
             world.EntityPhysicalR(locationEntityId));
-        return ValueInRange(value, _preC[pre], _preD[pre], _preX[pre], _preY[pre]);
-    }
-
-    private bool RelationshipPasses(WorldState world, int sourceId, int targetId, int pre)
-    {
-        var relationshipId = world.FindRelationship(sourceId, targetId, _preA[pre]);
-        return relationshipId > 0 &&
-               (_preB[pre] == 0 || world.RelationshipStrength(relationshipId) >= _preX[pre]);
-    }
-
-    private bool SelfOutgoingRelationshipPasses(WorldState world, int entityId, int pre)
-    {
-        var cursor = world.OutgoingRelationshipsOfKind(entityId, _preA[pre]);
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            if (_preB[pre] == 0 || world.RelationshipStrength(relationshipId) >= _preX[pre])
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return KernelQuery.ValueInRange(value, _preC[pre], _preD[pre], _preX[pre], _preY[pre]);
     }
 
     private bool EndpointRelationshipCountBelowPasses(WorldState world, int entityId, int targetId, int pre)
     {
         var endpointId = _preB[pre] == BehaviorEndpointCodes.Target ? targetId : entityId;
-        var count = DistinctRelationshipEndpointCount(world, endpointId, _preA[pre], _preD[pre], _preX[pre]);
+        var count = KernelQuery.DistinctRelationshipEndpointCount(world, endpointId, _preA[pre], _preD[pre], _preX[pre]);
         return count < _preC[pre];
-    }
-
-    private static int DistinctRelationshipEndpointCount(
-        WorldState world,
-        int endpointId,
-        int relationshipKindId,
-        int hasMinimumStrength,
-        float minimumStrength)
-    {
-        var count = 0;
-        var outgoing = world.OutgoingRelationshipsOfKind(endpointId, relationshipKindId);
-        while (world.MoveNextRelationship(ref outgoing, out var outgoingRelationshipId))
-        {
-            if (RelationshipMeetsMinimum(world, outgoingRelationshipId, hasMinimumStrength, minimumStrength))
-            {
-                count++;
-            }
-        }
-
-        var incoming = world.IncomingRelationshipsOfKind(endpointId, relationshipKindId);
-        while (world.MoveNextRelationship(ref incoming, out var incomingRelationshipId))
-        {
-            if (!RelationshipMeetsMinimum(world, incomingRelationshipId, hasMinimumStrength, minimumStrength))
-            {
-                continue;
-            }
-
-            var counterpartId = world.RelationshipSourceId(incomingRelationshipId);
-            if (!OutgoingRelationshipToCounterpartExists(
-                    world,
-                    endpointId,
-                    counterpartId,
-                    relationshipKindId,
-                    hasMinimumStrength,
-                    minimumStrength))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private static bool OutgoingRelationshipToCounterpartExists(
-        WorldState world,
-        int endpointId,
-        int counterpartId,
-        int relationshipKindId,
-        int hasMinimumStrength,
-        float minimumStrength)
-    {
-        var outgoing = world.OutgoingRelationshipsOfKind(endpointId, relationshipKindId);
-        while (world.MoveNextRelationship(ref outgoing, out var relationshipId))
-        {
-            if (world.RelationshipTargetId(relationshipId) == counterpartId &&
-                RelationshipMeetsMinimum(world, relationshipId, hasMinimumStrength, minimumStrength))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool RelationshipMeetsMinimum(
-        WorldState world,
-        int relationshipId,
-        int hasMinimumStrength,
-        float minimumStrength)
-    {
-        return hasMinimumStrength == 0 || world.RelationshipStrength(relationshipId) >= minimumStrength;
-    }
-
-    private bool PressureRangePasses(Simulation simulation, int pre, int entityId)
-    {
-        var scopeEntityId = _preB[pre] > 0 ? _preB[pre] : entityId;
-        var value = simulation.Pressures.GetValue(_preA[pre], scopeEntityId);
-        return ValueInRange(value, _preC[pre], _preD[pre], _preX[pre], _preY[pre]);
-    }
-
-    private static bool InfluenceOverlapPasses(
-        WorldState world,
-        int entityId,
-        int targetId,
-        int planeCode,
-        float selfMinimum,
-        float targetMinimum)
-    {
-        var selfCellCount = world.InfluenceCellCount(entityId, planeCode);
-        var targetCellCount = world.InfluenceCellCount(targetId, planeCode);
-        if (selfCellCount == 0 || targetCellCount == 0)
-        {
-            return false;
-        }
-
-        return selfCellCount <= targetCellCount
-            ? InfluenceOverlapPassesFromCursor(world, entityId, targetId, planeCode, selfMinimum, targetMinimum)
-            : InfluenceOverlapPassesFromCursor(world, targetId, entityId, planeCode, targetMinimum, selfMinimum);
-    }
-
-    private static bool InfluenceOverlapPassesFromCursor(
-        WorldState world,
-        int cursorEntityId,
-        int otherEntityId,
-        int planeCode,
-        float cursorMinimum,
-        float otherMinimum)
-    {
-        var cursor = world.InfluenceCells(cursorEntityId, planeCode);
-        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var influence))
-        {
-            if (influence >= cursorMinimum &&
-                (planeCode != PlaneCodes.Physical || world.CellIsKnown(q, r)) &&
-                world.GetCellInfluence(otherEntityId, planeCode, q, r) >= otherMinimum)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
 }

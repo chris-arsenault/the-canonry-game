@@ -435,7 +435,6 @@ internal sealed class KernelHostBuilder
             codes.StartupSourceCodeId.Value,
             codes.RelationshipSourceCodeId.Value,
             codes.GeneratorSourceCodeId.Value,
-            codes.PressureSourceCodeId.Value,
             codes.DegeneracySourceCodeId.Value,
             codes.PlanningSourceCodeId.Value,
             codes.MapActivitySourceCodeId.Value,
@@ -488,6 +487,9 @@ internal sealed class KernelHostBuilder
             case DomainSymbolKind.Attribute:
                 symbolKind = ProjectionSymbolKind.Attribute;
                 return true;
+            case DomainSymbolKind.Trait:
+                symbolKind = ProjectionSymbolKind.Trait;
+                return true;
             case DomainSymbolKind.StructuralFact:
                 symbolKind = ProjectionSymbolKind.StructuralFact;
                 return true;
@@ -515,9 +517,6 @@ internal sealed class KernelHostBuilder
                 return true;
             case DomainSymbolKind.Gambit:
                 symbolKind = ProjectionSymbolKind.Gambit;
-                return true;
-            case DomainSymbolKind.Pressure:
-                symbolKind = ProjectionSymbolKind.Pressure;
                 return true;
             case DomainSymbolKind.Detector:
                 symbolKind = ProjectionSymbolKind.Detector;

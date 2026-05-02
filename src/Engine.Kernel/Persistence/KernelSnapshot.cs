@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 17;
+    private const int FormatVersion = 19;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -65,6 +65,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.EntityCapacity);
         writer.Write(options.RelationshipCapacity);
         writer.Write(options.AttributeCapacity);
+        writer.Write(options.TraitCapacity);
         writer.Write(options.ResourceCapacity);
         writer.Write(options.MapCellCapacity);
         writer.Write(options.MapInfluenceCapacity);
@@ -88,8 +89,6 @@ internal static class KernelSnapshotOptions
         writer.Write(options.GambitCommitmentCapacity);
         writer.Write(options.GeneratorCapacity);
         writer.Write(options.GeneratorItemCapacity);
-        writer.Write(options.PressureCapacity);
-        writer.Write(options.PressureValueCapacity);
     }
 
     private static void WriteWorldCapacities(
@@ -105,7 +104,9 @@ internal static class KernelSnapshotOptions
         writer.Write(options.MapSignalCellCapacity);
         writer.Write(options.EffectRuleCapacity);
         writer.Write(options.EntityAttributeCapacity);
+        writer.Write(options.EntityTraitCapacity);
         writer.Write(options.AttributeIdCapacity);
+        writer.Write(options.TraitIdCapacity);
         writer.Write(options.KindIdCapacity);
         writer.Write(options.TerrainIdCapacity);
         writer.Write(options.RelationshipRuleCapacity);
@@ -125,7 +126,6 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.StartupSourceCodeId);
         writer.Write(runtimeCodes.RelationshipSourceCodeId);
         writer.Write(runtimeCodes.GeneratorSourceCodeId);
-        writer.Write(runtimeCodes.PressureSourceCodeId);
         writer.Write(runtimeCodes.DegeneracySourceCodeId);
         writer.Write(runtimeCodes.PlanningSourceCodeId);
         writer.Write(runtimeCodes.MapActivitySourceCodeId);
@@ -144,7 +144,6 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.Planning.OpportunityTargetCapacity);
         WritePlanningKindOverrides(writer, kernelTuning.Programs.Planning.KindPlannerOverrides);
         WritePlanningEntityOverrides(writer, kernelTuning.Programs.Planning.EntityPlannerOverrides);
-        writer.Write(kernelTuning.Programs.Pressures.Enabled);
         writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
     }
@@ -160,7 +159,6 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.Upkeep);
         writer.Write(enabled.Gambits);
         writer.Write(enabled.Relationships);
-        writer.Write(enabled.Pressures);
         writer.Write(enabled.Generators);
         writer.Write(enabled.Degeneracy);
     }
@@ -207,6 +205,7 @@ internal static class KernelSnapshotOptions
             EntityCapacity = reader.ReadInt32(),
             RelationshipCapacity = reader.ReadInt32(),
             AttributeCapacity = reader.ReadInt32(),
+            TraitCapacity = reader.ReadInt32(),
             ResourceCapacity = reader.ReadInt32(),
             MapCellCapacity = reader.ReadInt32(),
             MapInfluenceCapacity = reader.ReadInt32(),
@@ -238,8 +237,6 @@ internal static class KernelSnapshotOptions
         values.GambitCommitmentCapacity = reader.ReadInt32();
         values.GeneratorCapacity = reader.ReadInt32();
         values.GeneratorItemCapacity = reader.ReadInt32();
-        values.PressureCapacity = reader.ReadInt32();
-        values.PressureValueCapacity = reader.ReadInt32();
     }
 
     private static void ReadWorldValues(
@@ -255,7 +252,9 @@ internal static class KernelSnapshotOptions
         values.MapSignalCellCapacity = reader.ReadInt32();
         values.EffectRuleCapacity = reader.ReadInt32();
         values.EntityAttributeCapacity = reader.ReadInt32();
+        values.EntityTraitCapacity = reader.ReadInt32();
         values.AttributeIdCapacity = reader.ReadInt32();
+        values.TraitIdCapacity = reader.ReadInt32();
         values.KindIdCapacity = reader.ReadInt32();
         values.TerrainIdCapacity = reader.ReadInt32();
         values.RelationshipRuleCapacity = reader.ReadInt32();
@@ -275,7 +274,6 @@ internal static class KernelSnapshotOptions
         values.StartupSourceCodeId = reader.ReadInt32();
         values.RelationshipSourceCodeId = reader.ReadInt32();
         values.GeneratorSourceCodeId = reader.ReadInt32();
-        values.PressureSourceCodeId = reader.ReadInt32();
         values.DegeneracySourceCodeId = reader.ReadInt32();
         values.PlanningSourceCodeId = reader.ReadInt32();
         values.MapActivitySourceCodeId = reader.ReadInt32();
@@ -295,7 +293,6 @@ internal static class KernelSnapshotOptions
         values.UpkeepProgramEnabled = reader.ReadInt32();
         values.GambitsProgramEnabled = reader.ReadInt32();
         values.RelationshipsProgramEnabled = reader.ReadInt32();
-        values.PressuresProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.DegeneracyProgramEnabled = reader.ReadInt32();
         values.PlanningDefaultPlannerKindCode = reader.ReadInt32();
@@ -303,7 +300,6 @@ internal static class KernelSnapshotOptions
         values.PlanningOpportunityTargetCapacity = reader.ReadInt32();
         values.PlanningKindPlannerOverrides = ReadPlanningKindOverrides(reader);
         values.PlanningEntityPlannerOverrides = ReadPlanningEntityOverrides(reader);
-        values.PressuresEnabled = reader.ReadBoolean();
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
     }
@@ -372,6 +368,7 @@ internal static class KernelSnapshotOptions
             EntityCapacity = values.EntityCapacity,
             RelationshipCapacity = values.RelationshipCapacity,
             AttributeCapacity = values.AttributeCapacity,
+            TraitCapacity = values.TraitCapacity,
             ResourceCapacity = values.ResourceCapacity,
             MapCellCapacity = values.MapCellCapacity,
             MapInfluenceCapacity = values.MapInfluenceCapacity,
@@ -390,8 +387,6 @@ internal static class KernelSnapshotOptions
             GambitCommitmentCapacity = values.GambitCommitmentCapacity,
             GeneratorCapacity = values.GeneratorCapacity,
             GeneratorItemCapacity = values.GeneratorItemCapacity,
-            PressureCapacity = values.PressureCapacity,
-            PressureValueCapacity = values.PressureValueCapacity,
             DegeneracyDetectorCapacity = values.DegeneracyDetectorCapacity,
             DegeneracyStateCapacity = values.DegeneracyStateCapacity,
             LifecycleRuleCapacity = values.LifecycleRuleCapacity,
@@ -401,7 +396,9 @@ internal static class KernelSnapshotOptions
             MapSignalCellCapacity = values.MapSignalCellCapacity,
             EffectRuleCapacity = values.EffectRuleCapacity,
             EntityAttributeCapacity = values.EntityAttributeCapacity,
+            EntityTraitCapacity = values.EntityTraitCapacity,
             AttributeIdCapacity = values.AttributeIdCapacity,
+            TraitIdCapacity = values.TraitIdCapacity,
             KindIdCapacity = values.KindIdCapacity,
             TerrainIdCapacity = values.TerrainIdCapacity,
             RelationshipRuleCapacity = values.RelationshipRuleCapacity,
@@ -423,7 +420,6 @@ internal static class KernelSnapshotOptions
             values.StartupSourceCodeId,
             values.RelationshipSourceCodeId,
             values.GeneratorSourceCodeId,
-            values.PressureSourceCodeId,
             values.DegeneracySourceCodeId,
             values.PlanningSourceCodeId,
             values.MapActivitySourceCodeId,
@@ -445,7 +441,6 @@ internal static class KernelSnapshotOptions
                     Upkeep = values.UpkeepProgramEnabled,
                     Gambits = values.GambitsProgramEnabled,
                     Relationships = values.RelationshipsProgramEnabled,
-                    Pressures = values.PressuresProgramEnabled,
                     Generators = values.GeneratorsProgramEnabled,
                     Degeneracy = values.DegeneracyProgramEnabled,
                 },
@@ -456,10 +451,6 @@ internal static class KernelSnapshotOptions
                     OpportunityTargetCapacity = values.PlanningOpportunityTargetCapacity,
                     KindPlannerOverrides = values.PlanningKindPlannerOverrides,
                     EntityPlannerOverrides = values.PlanningEntityPlannerOverrides,
-                },
-                Pressures = new PressureProgramTuningOptions
-                {
-                    Enabled = values.PressuresEnabled,
                 },
                 Upkeep = new UpkeepProgramTuningOptions
                 {
@@ -477,6 +468,7 @@ internal static class KernelSnapshotOptions
         public int EntityCapacity;
         public int RelationshipCapacity;
         public int AttributeCapacity;
+        public int TraitCapacity;
         public int ResourceCapacity;
         public int MapCellCapacity;
         public int MapInfluenceCapacity;
@@ -494,8 +486,6 @@ internal static class KernelSnapshotOptions
         public int GambitCommitmentCapacity;
         public int GeneratorCapacity;
         public int GeneratorItemCapacity;
-        public int PressureCapacity;
-        public int PressureValueCapacity;
         public int DegeneracyDetectorCapacity;
         public int DegeneracyStateCapacity;
         public int LifecycleRuleCapacity;
@@ -505,7 +495,9 @@ internal static class KernelSnapshotOptions
         public int MapSignalCellCapacity;
         public int EffectRuleCapacity;
         public int EntityAttributeCapacity;
+        public int EntityTraitCapacity;
         public int AttributeIdCapacity;
+        public int TraitIdCapacity;
         public int KindIdCapacity;
         public int TerrainIdCapacity;
         public int RelationshipRuleCapacity;
@@ -519,7 +511,6 @@ internal static class KernelSnapshotOptions
         public int StartupSourceCodeId;
         public int RelationshipSourceCodeId;
         public int GeneratorSourceCodeId;
-        public int PressureSourceCodeId;
         public int DegeneracySourceCodeId;
         public int PlanningSourceCodeId;
         public int MapActivitySourceCodeId;
@@ -533,7 +524,6 @@ internal static class KernelSnapshotOptions
         public int UpkeepProgramEnabled;
         public int GambitsProgramEnabled;
         public int RelationshipsProgramEnabled;
-        public int PressuresProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int DegeneracyProgramEnabled;
         public int PlanningDefaultPlannerKindCode;
@@ -541,7 +531,6 @@ internal static class KernelSnapshotOptions
         public int PlanningOpportunityTargetCapacity;
         public PlanningKindPlannerOverride[] PlanningKindPlannerOverrides;
         public PlanningEntityPlannerOverride[] PlanningEntityPlannerOverrides;
-        public bool PressuresEnabled;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int Seed;

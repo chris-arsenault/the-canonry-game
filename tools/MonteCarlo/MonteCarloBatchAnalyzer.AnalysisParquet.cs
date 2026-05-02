@@ -29,8 +29,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
 
     private static void WritePlannerAnalysis(DuckDBConnection connection, string analysisDirectory)
     {
-        ExportAnalysisTable(connection, analysisDirectory, "action_pressure", ActionPressureSql);
-        ExportAnalysisTable(connection, analysisDirectory, "planner_pressure", PlannerPressureSql);
+        ExportAnalysisTable(connection, analysisDirectory, "action_utilization", ActionUtilizationSql);
+        ExportAnalysisTable(connection, analysisDirectory, "planner_utilization", PlannerUtilizationSql);
         ExportAnalysisTable(connection, analysisDirectory, "stock_dynamics", StockDynamicsSql);
     }
 
@@ -47,8 +47,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         ExportAnalysisTable(connection, analysisDirectory, "map_spread", MapSpreadSql);
         ExportAnalysisTable(connection, analysisDirectory, "coverage_development", CoverageDevelopmentSql);
         ExportAnalysisTable(connection, analysisDirectory, "terrain_occupancy", TerrainOccupancySql);
-        ExportAnalysisTable(connection, analysisDirectory, "resource_pressure", ResourcePressureSql);
-        ExportAnalysisTable(connection, analysisDirectory, "pressure_dynamics", PressureDynamicsSql);
+        ExportAnalysisTable(connection, analysisDirectory, "resource_dynamics", ResourceDynamicsSql);
     }
 
     private static void ExportAnalysisTable(
@@ -113,18 +112,15 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 20, COUNT(*) FROM raw_coverage_snapshots UNION ALL
             SELECT 21, COUNT(*) FROM raw_coverage_terrain_snapshots UNION ALL
             SELECT 22, COUNT(*) FROM raw_placement_events UNION ALL
-            SELECT 23, COUNT(*) FROM raw_pressure_events UNION ALL
-            SELECT 24, COUNT(*) FROM raw_pressure_snapshots UNION ALL
-            SELECT 25, COUNT(*) FROM raw_pressure_source_snapshots UNION ALL
-            SELECT 26, COUNT(*) FROM raw_generator_events UNION ALL
-            SELECT 27, COUNT(*) FROM raw_generator_outputs UNION ALL
-            SELECT 28, COUNT(*) FROM raw_generator_state_snapshots UNION ALL
-            SELECT 29, COUNT(*) FROM raw_relationship_events UNION ALL
-            SELECT 30, COUNT(*) FROM raw_relationship_snapshots UNION ALL
-            SELECT 31, COUNT(*) FROM raw_lifecycle_events UNION ALL
-            SELECT 32, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
-            SELECT 33, COUNT(*) FROM raw_cell_influence_events UNION ALL
-            SELECT 34, COUNT(*) FROM raw_gambit_events
+            SELECT 23, COUNT(*) FROM raw_generator_events UNION ALL
+            SELECT 24, COUNT(*) FROM raw_generator_outputs UNION ALL
+            SELECT 25, COUNT(*) FROM raw_generator_state_snapshots UNION ALL
+            SELECT 26, COUNT(*) FROM raw_relationship_events UNION ALL
+            SELECT 27, COUNT(*) FROM raw_relationship_snapshots UNION ALL
+            SELECT 28, COUNT(*) FROM raw_lifecycle_events UNION ALL
+            SELECT 29, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
+            SELECT 30, COUNT(*) FROM raw_cell_influence_events UNION ALL
+            SELECT 31, COUNT(*) FROM raw_gambit_events
         ),
         features(feature_code, source_table_code) AS (
             VALUES
@@ -134,7 +130,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 (16, 16), (17, 17), (18, 18), (19, 19), (20, 20),
                 (21, 21), (22, 22), (23, 23), (24, 24), (25, 25),
                 (26, 26), (27, 27), (28, 28), (29, 29), (30, 30),
-                (31, 31), (32, 32), (33, 33), (34, 34)
+                (31, 31)
         )
         SELECT
             feature_code,
@@ -529,7 +525,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         GROUP BY events.run_id, events.entity_id, events.plane_code, entity.kind_id, entity.subtype_id
         """;
 
-    private const string ActionPressureSql = """
+    private const string ActionUtilizationSql = """
         SELECT
             kind_id,
             action_id,
@@ -545,7 +541,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         GROUP BY kind_id, action_id
         """;
 
-    private const string PlannerPressureSql = """
+    private const string PlannerUtilizationSql = """
         WITH execution_counts AS (
             SELECT kind_id, action_id, COUNT(*) AS selected_count
             FROM raw_action_executions
@@ -861,7 +857,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         GROUP BY terrain_id
         """;
 
-    private const string ResourcePressureSql = """
+    private const string ResourceDynamicsSql = """
         WITH first_ticks AS (
             SELECT run_id, resource_id, MIN(tick) AS first_tick
             FROM raw_resource_snapshots
@@ -895,27 +891,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         LEFT JOIN endpoints
           ON endpoints.resource_id = resource.resource_id
         GROUP BY resource.resource_id
-        """;
-
-    private const string PressureDynamicsSql = """
-        WITH sources AS (
-            SELECT pressure_id, scope_code, scope_entity_id, COUNT(DISTINCT source_code_id) AS source_count
-            FROM raw_pressure_source_snapshots
-            GROUP BY pressure_id, scope_code, scope_entity_id
-        )
-        SELECT
-            pressure.pressure_id,
-            pressure.scope_code,
-            pressure.scope_entity_id,
-            COALESCE(AVG(CAST(pressure.value AS DOUBLE)), 0.0) AS average_value,
-            COALESCE(MAX(CAST(pressure.value AS DOUBLE)), 0.0) AS maximum_value,
-            COALESCE(MAX(sources.source_count), 0) AS source_count
-        FROM raw_pressure_snapshots pressure
-        LEFT JOIN sources
-          ON sources.pressure_id = pressure.pressure_id
-         AND sources.scope_code = pressure.scope_code
-         AND sources.scope_entity_id = pressure.scope_entity_id
-        GROUP BY pressure.pressure_id, pressure.scope_code, pressure.scope_entity_id
         """;
 
     private const string LifecycleSql = """

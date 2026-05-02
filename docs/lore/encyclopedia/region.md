@@ -1,31 +1,41 @@
 # Region
 
-A named physical partition of the map. Regions are literal named coverage over
-terrain, not an abstract layer separate from geography.
+*Archivist's register: place entry, general.*
 
-## Subtypes
+A region is a place large enough that many stories can happen inside it while
+still owing something to the same ice, current, shelf, wound, or horizon. The
+Berg does not divide itself cleanly. It cracks, overhangs, folds, hollows,
+calves, remembers, and refuses some maps with more patience than open hostility.
 
-- `face`
-- `shelf`
-- `depths`
-- `reach`
-- `sea`
-- `scar`
+To name a region is to claim that its pressures are legible. This is sometimes
+true.
 
-## Attributes
+## Common Sorts
 
-- `stability`: health; low values mark places near collapse or breach.
-- `holding`: the land's capacity to hold boundaries and protections.
-- `pristiness`: unspoiled quality; the inverse of corruption.
+- **Faces** are exposed slopes, shelves, cliffs, terraces, and spires where the
+  sky can see what happens.
+- **Shelves** are broad working edges of ice: trade routes, rookeries, fishing
+  margins, and places where the sea negotiates with the land.
+- **Depths** are beneath, inside, or older than ordinary passage.
+- **Reaches** are perimeter spaces where patrols thin and maps acquire weather
+  in their margins.
+- **Seas** are currents, shallows, hunting grounds, and frozen approaches.
+- **Scars** are places where a calamity became geography.
 
-## Low-Altitude Behavior
+## Regional Memory
 
-Regions participate mostly through semantic movement, semantic influence, map
-signals, lifecycle, and relationship maintenance. They are special cases and
-should not be forced into every actor-like system.
+Regions remember differently. The Foundation Depths hold compressed testimony
+older than the Stack's laws. The Glow-Fissure pulses like a wound that learned
+rhythm. Midway Shelf remembers seventeen skeletons more clearly than several
+treaties remember their signatories. The Corpse Current remembers warmth where
+no vent explains it.
 
-## High-Altitude Role
+A place can shelter, expose, distort, starve, mislead, or summon. A stable region
+is not a safe region. It is merely one whose hazards have kept their old shape
+long enough for locals to build routines around them.
 
-Generators can create true new regions, split map coverage, scar terrain, or
-name a previously background place. Region placement must respect terrain and
-coverage rules.
+## Chronicle Use
+
+Use regions as more than backdrops. A good regional entry says what work happens
+there, what stories locals tell about it, what outsiders get wrong, and what the
+ice may be preserving beneath the ordinary explanation.

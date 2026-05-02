@@ -139,11 +139,6 @@ internal sealed partial class GambitProgramRuntime
         return value < 0f ? -value : value;
     }
 
-    private static int Abs(int value)
-    {
-        return value < 0 ? -value : value;
-    }
-
     private void EnsureOpenGambit(int gambitSlot)
     {
         EnsureGambit(gambitSlot);

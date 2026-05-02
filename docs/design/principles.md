@@ -28,8 +28,8 @@ a world of rising and falling polities.
 tensions and dynamics operate. When relationships deteriorate, what happens?
 When resources are scarce, how does scarcity propagate? When entities of
 different cultures share a border, does friction escalate or trade flourish?
-Systems are the pressure-release valves. Without system cards, pressure
-builds with no outlet. The player's choice of systems defines the world's
+Systems are the tension-release valves. Without system cards, unresolved
+tension builds with no outlet. The player's choice of systems defines the world's
 temperament: volatile or stable, interconnected or isolated, competitive or
 cooperative.
 
@@ -52,17 +52,18 @@ world doesn't need the player to exist. It needs the player to have a nature.
 ### 2. The deck defines nature, not state
 
 The player's deck does not control what happens. It defines what CAN happen.
-The simulation determines outcomes based on world state, entity attributes,
-and the rules the deck provides. A world with "Declare Military War" in the
+The simulation determines outcomes based on world state, entity health,
+traits, relationships, locality, and the rules the deck provides. A world with
+"Declare Military War" in the
 tableau doesn't mean war happens; it means war is possible when conditions
 are met.
 
-### 3. Unresolved pressure is the default
+### 3. Unresolved tension is the default
 
 The world is full of tensions with no outlet. What the player DOESN'T put in
 their deck matters as much as what they do. A world without war cards is a
 world where military conflict doesn't exist as a concept. Omission is a
-choice. At extremes, unresolved pressure triggers cascading failures or
+choice. At extremes, unresolved tension triggers cascading failures or
 degenerate states. The player cannot ignore all tensions forever, but they
 choose which ones to give outlets and which ones to let build.
 
@@ -171,8 +172,8 @@ system from being active simultaneously. Without scarcity, there are no
 interesting decisions. Validated by canonry experience: 30 active systems
 is too many to cognate.
 
-**No default pressure outlets.** When pressure builds, there is no default
-resolution. Pressure sits until the player provides an outlet via cards, or
+**No default tension outlets.** When tension builds, there is no default
+resolution. Tension sits until the player provides an outlet via cards, or
 until it reaches extremes that trigger cascading failure or warnings.
 Default outlets would make cards optional rather than structural.
 
@@ -202,10 +203,10 @@ contain narrative-domain nouns or concrete domain kinds.
 map signals, map control, and effects live in `Engine.Gameplay`. They
 compile authored gameplay config into primitive kernel data.
 
-**Domain-level:** kinds, subtypes, attributes, cultures, relationship kinds,
-pressure definitions, generators, gambits, terrain, names, and lore belong
-to the narrative domain module. The domain can be programmatic; it does not
-have to be JSON.
+**Domain-level:** kinds, subtypes, health attributes, traits, cultures,
+relationship kinds, generators, gambits, terrain, names,
+and lore belong to the narrative domain module. The domain can be programmatic;
+it does not have to be JSON.
 
 **Declarative content:** generators, gambits, and future cards are
 data-driven. New content should usually be a domain/gameplay data change,

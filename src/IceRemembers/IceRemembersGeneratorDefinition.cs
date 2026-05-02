@@ -214,7 +214,7 @@ public static class IceRemembersGeneratorDefinition
 
     private static IReadOnlyList<SemanticGeneratorTrigger> TriggerOn(EntityKind kind) =>
     [
-        new() { OnKind = kind, Direction = TriggerDirection.Any },
+        new() { OnKind = kind },
     ];
 
     private static SemanticProducedEntity Required(

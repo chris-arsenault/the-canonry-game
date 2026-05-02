@@ -5,7 +5,7 @@ using Engine.Kernel;
 public sealed class MapSignalsProgramTests
 {
     [Fact]
-    public void MapSignalsProgram_ComputesCrowdingPressureAndComfortFromDynamicCapacity()
+    public void MapSignalsProgram_ComputesCrowdingLoadAndComfortFromDynamicCapacity()
     {
         var simulation = new Simulation();
         const int terrainId = 1;
@@ -21,7 +21,7 @@ public sealed class MapSignalsProgramTests
         simulation.AdvanceTicks(1);
 
         Assert.Equal(3f, simulation.MapSignals.EntityCapacity(third, PlaneCodes.Physical));
-        Assert.Equal(0f, simulation.MapSignals.EntityCrowdingPressure(third, PlaneCodes.Physical));
+        Assert.Equal(0f, simulation.MapSignals.EntityCrowdingLoad(third, PlaneCodes.Physical));
         Assert.Equal(1f, simulation.MapSignals.EntityCrowdingComfort(third, PlaneCodes.Physical));
     }
 
@@ -123,7 +123,7 @@ public sealed class MapSignalsProgramTests
         simulation.Effects.RegisterAttributeDeltaEffect(
             targetKindId,
             healthAttributeId,
-            EffectConditionCodes.LocalPressureSignal,
+            EffectConditionCodes.LocalCrowdingLoadSignal,
             relationshipKindId: 0,
             RelationshipMatchDirectionCodes.Either,
             PlaneCodes.Physical,

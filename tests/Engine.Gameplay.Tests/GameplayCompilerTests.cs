@@ -283,6 +283,47 @@ public sealed class GameplayCompilerTests
         Assert.Equal(0.25f, scalarInput.AttractorScale);
     }
 
+    [Fact]
+    public void CompileGameplay_CompilesTraitOwnedOperations()
+    {
+        var result = GameplayCompiler.CompileGameplay(
+            new GameplayDefinition(),
+            new TestGameplayContext(
+            [
+                new TraitOperationDefinition(
+                    "actor",
+                    "ranging",
+                    new TraitLowAltitudeWeightOperationConfig
+                    {
+                        Verb = "explore",
+                        ExploreWeightDelta = 1.25f,
+                    }),
+                new TraitOperationDefinition(
+                    "artifact",
+                    "restorative",
+                    new TraitAttributeDeltaOperationConfig
+                    {
+                        TargetKind = "actor",
+                        Attribute = "health",
+                        Condition = EffectCondition.RelatedEntityDistance,
+                        TraitBearer = TraitEffectBearer.RelatedEntity,
+                        RelationshipKind = "holds",
+                        RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                        DeltaPerTick = 0.04f,
+                    }),
+            ]));
+
+        var modifier = Assert.Single(result.Programs.LowAltitudeVerbs.TraitWeightModifiers);
+        Assert.Equal(50, modifier.TraitId);
+        Assert.Equal(10, modifier.VerbId);
+        Assert.Equal(1.25f, modifier.ExploreWeightDelta);
+
+        var effect = Assert.Single(result.Programs.Effects.AttributeDeltaEffects);
+        Assert.Equal(0, effect.RequiredTargetTraitId);
+        Assert.Equal(50, effect.RequiredRelatedTraitId);
+        Assert.Equal(EffectConditionCodes.RelatedEntityDistance, effect.ConditionCode);
+    }
+
     private sealed class EmptyGameplayContext : IGameplayCompilationContext
     {
         public int ResolveKindId(string kind, string context) => throw new NotSupportedException();
@@ -291,23 +332,34 @@ public sealed class GameplayCompilerTests
         public int ResolveTerrainId(string terrain) => throw new NotSupportedException();
         public int ResolveRelationshipKindId(string relationship) => throw new NotSupportedException();
         public int ResolveAttributeId(string attribute) => throw new NotSupportedException();
+        public int ResolveTraitId(string trait) => throw new NotSupportedException();
         public bool TerrainExists(string terrain) => throw new NotSupportedException();
         public bool RelationshipExists(string relationship) => throw new NotSupportedException();
         public bool KindHasAttribute(string kind, string attribute) => throw new NotSupportedException();
         public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => [];
+        public IReadOnlyList<TraitOperationDefinition> TraitOperations() => [];
     }
 
     private sealed class TestGameplayContext : IGameplayCompilationContext
     {
+        private readonly IReadOnlyList<TraitOperationDefinition> _traitOperations;
+
+        public TestGameplayContext(IReadOnlyList<TraitOperationDefinition>? traitOperations = null)
+        {
+            _traitOperations = traitOperations ?? [];
+        }
+
         public int ResolveKindId(string kind, string context) => 1;
         public int PrimaryPlaneCodeForKind(string kind, string context) => PlaneCodes.Physical;
         public int ResolveVerbId(string verb) => 10;
         public int ResolveTerrainId(string terrain) => 20;
         public int ResolveRelationshipKindId(string relationship) => 30;
         public int ResolveAttributeId(string attribute) => 40;
+        public int ResolveTraitId(string trait) => 50;
         public bool TerrainExists(string terrain) => true;
         public bool RelationshipExists(string relationship) => true;
         public bool KindHasAttribute(string kind, string attribute) => true;
         public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => [];
+        public IReadOnlyList<TraitOperationDefinition> TraitOperations() => _traitOperations;
     }
 }

@@ -32,7 +32,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains(report.GeneratorBalance, row =>
             row.GeneratorId == "analysis_test_generator_alpha" &&
             row.FiredCount == 1);
-        Assert.Contains(report.ActionPressure, row =>
+        Assert.Contains(report.ActionUtilization, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.SelectedCount == 1);
         Assert.Contains(report.LowAltitudeVerbUtilization, row =>
@@ -70,7 +70,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.Contains("Influence Dynamics", summary, StringComparison.Ordinal);
         Assert.Contains("Gambit Success Rate", summary, StringComparison.Ordinal);
         Assert.Contains("Generator Balance", summary, StringComparison.Ordinal);
-        Assert.Contains("Action Pressure", summary, StringComparison.Ordinal);
+        Assert.Contains("Action Utilization", summary, StringComparison.Ordinal);
         Assert.Contains("Map Generation", summary, StringComparison.Ordinal);
     }
 
@@ -96,7 +96,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
-    public void Analyze_UsesPlannerCandidatesForLowAltitudeVerbPressure()
+    public void Analyze_UsesPlannerCandidatesForLowAltitudeVerbUtilization()
     {
         var domain = IceRemembersRuntime.CreateDomainConfig();
         var batchDirectory = CreateTempDirectory();
@@ -108,13 +108,13 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         var report = analyzer.Analyze(batchDirectory);
         var verbId = domain.Gameplay!.LowAltitudeVerbs.First(verb => verb.Kind == IceRemembersKinds.Penguin.Value).Id;
 
-        Assert.Contains(report.ActionPressure, row =>
+        Assert.Contains(report.ActionUtilization, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.ActionName == verbId &&
             row.SelectedCount == 1 &&
             row.CandidateEvaluations == 2 &&
             row.EvidenceSource == "planner_candidates");
-        Assert.Contains(report.PlannerPressure, row =>
+        Assert.Contains(report.PlannerUtilization, row =>
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.Evaluations == 1 &&
             row.TopExecutedAction == verbId);
@@ -264,7 +264,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             Gambits = config.Gambits,
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
-            Pressures = config.Pressures,
             Degeneracy = config.Degeneracy,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,
@@ -273,7 +272,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {
-                RingOrder = semantics.RingOrder,
                 Stocks = semantics.Stocks,
                 Verbs = semantics.Verbs,
                 Flows = semantics.Flows,
@@ -752,10 +750,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     private static Dictionary<string, int> AttributeIds(KindConfig config, int firstId)
     {
         var ids = new Dictionary<string, int>(StringComparer.Ordinal);
-        for (var i = 0; i < config.Attributes.Count; i++)
-        {
-            ids[config.Attributes[i].Name] = firstId + i;
-        }
+        ids[config.Health.Name] = firstId;
 
         return ids;
     }

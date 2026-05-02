@@ -51,7 +51,13 @@ Low-altitude verbs use relationships for targeting and affinity.
 Map signals use relationships to emit support or threat around related
 entities.
 
-Effects use relationships, influence, and distance to modify attributes such as
-health.
+Effects use relationships, influence, and distance to modify health.
 
 Gambits and generators use relationships as preconditions and outputs.
+
+When a generator or gambit needs a numeric gate, relationship strength should
+be the default source. Example: artifact cleansing should require a strong
+`holds`, `anchored`, or other relevant relationship above the authored
+threshold instead of a generic artifact `power` attribute. Locality-based
+queries are also acceptable when physical or semantic context is the meaningful
+condition.

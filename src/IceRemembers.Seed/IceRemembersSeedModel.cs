@@ -139,18 +139,7 @@ internal sealed class SeedAssembly
             })
             .ToArray();
 
-    private DomainSeedResource[] CreateStartupResources() =>
-        Grid.AllCells
-            .OrderBy(cell => cell.Coord.Q)
-            .ThenBy(cell => cell.Coord.R)
-            .SelectMany(cell => cell.AmbientResources
-                .OrderBy(resource => resource.Key, StringComparer.Ordinal)
-                .Select(resource => new DomainSeedResource(
-                    resource.Key,
-                    cell.Coord.Q,
-                    cell.Coord.R,
-                    resource.Value)))
-            .ToArray();
+    private static DomainSeedResource[] CreateStartupResources() => [];
 
     private DomainSeedRelationship[] CreateStartupRelationships() =>
         _relationships

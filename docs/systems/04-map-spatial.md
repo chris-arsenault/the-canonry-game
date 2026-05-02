@@ -32,7 +32,7 @@ the same cell. Only one coverage owner can own a cell.
 
 Current physical influence uses:
 
-- `GrowInfluence`: extend local pressure outward.
+- `GrowInfluence`: extend local influence outward.
 - `ConsolidateInfluence`: strengthen existing influence.
 - `ReduceInfluence`: weaken foreign influence that is hostile or unaffiliated.
 - `ExpandCoverage`: rarely turn strong settlement influence into owned coverage.

@@ -38,19 +38,6 @@ public sealed class OrPrecondition(IReadOnlyList<IPrecondition> children) : IPre
 
 // --- Leaf Preconditions ---
 
-/// <summary>Checks a pressure value against a threshold.</summary>
-public sealed class PressureThreshold(string pressureName, EntityId scopeId, float? min, float? max, bool behaviorRelevant = false) : IPrecondition
-{
-    public string PressureName { get; } = pressureName;
-    public EntityId ScopeId { get; } = scopeId;
-    public float? Min { get; } = min;
-    public float? Max { get; } = max;
-    public bool BehaviorRelevant { get; } = behaviorRelevant;
-
-    public string Describe() =>
-        $"pressure({PressureName}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
-}
-
 /// <summary>Checks an entity's attribute value against a threshold.</summary>
 public sealed class AttributeThreshold(EntityId entityId, string attributeName, float? min, float? max, bool behaviorRelevant = true) : IPrecondition
 {

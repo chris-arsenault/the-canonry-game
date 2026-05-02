@@ -61,6 +61,10 @@ public enum KernelEventPrimitiveKind
     Float32 = 2,
 }
 
+[SuppressMessage(
+    "Design",
+    "CA1027:Mark enums with FlagsAttribute",
+    Justification = "Semantic kinds are stable identifiers, not bit flags.")]
 public enum KernelEventSemanticKind
 {
     None = 0,
@@ -104,10 +108,9 @@ public enum KernelEventSemanticKind
     EffectScopeCode = 38,
     EffectValueId = 39,
     EffectKindId = 40,
-    PressureId = 41,
-    PressureScopeCode = 42,
     SuperregionId = 43,
     ContinentId = 44,
+    TraitId = 45,
 }
 
 public sealed record KernelEventLayoutSlotDescriptor(

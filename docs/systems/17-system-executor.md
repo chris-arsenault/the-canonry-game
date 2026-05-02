@@ -6,7 +6,7 @@ low-altitude physics runtime.
 ## Purpose
 
 System cards should define broad world forces: diffusion, isolation, scarcity,
-weather, rituals, trade patterns, or other slow pressure-release mechanisms.
+weather, rituals, trade patterns, or other slow balancing mechanisms.
 They are intended to operate over scopes rather than single actors.
 
 ## Boundary

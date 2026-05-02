@@ -208,7 +208,6 @@ internal static class MonteCarloCli
             traceEnabled: options.TraceEnabled,
             entitySnapshotCadence: options.EntitySnapshotCadence,
             resourceSnapshotCadence: options.EntitySnapshotCadence,
-            pressureSnapshotCadence: options.EntitySnapshotCadence,
             mapSnapshotCadence: options.EntitySnapshotCadence,
             generatorSnapshotCadence: options.EntitySnapshotCadence);
         RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
@@ -382,9 +381,6 @@ internal static class MonteCarloCli
         batch.ResourceEvents.Count +
         batch.ResourceSnapshots.Count +
         batch.ResourceTerrainSnapshots.Count +
-        batch.PressureEvents.Count +
-        batch.PressureSnapshots.Count +
-        batch.PressureSourceSnapshots.Count +
         batch.RelationshipEvents.Count +
         batch.RelationshipSnapshots.Count +
         batch.GeneratorEvents.Count +

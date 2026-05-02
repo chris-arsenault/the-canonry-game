@@ -13,13 +13,12 @@ public class DomainConfigTests
     {
         var config = IceRemembersDefinition.Create();
 
-        Assert.Equal(5, config.Kinds.Count);
+        Assert.Equal(IceRemembersKinds.All.Count, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
-        Assert.Equal(4, config.Pressures.Count);
-        Assert.Equal(5, config.Lifecycles.Count);
+        Assert.Equal(IceRemembersKinds.All.Count, config.Lifecycles.Count);
         Assert.Equal(3, config.Resources.Count);
         Assert.Equal(3, config.Cultures.Count);
-        Assert.Empty(config.Semantics!.Generators);
+        Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, config.Semantics!.Generators.Count);
     }
 
     [Fact]
@@ -46,13 +45,25 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void IceRemembers_KindsHaveAttributes()
+    public void IceRemembers_KindsHaveHealthOnlyAttributes()
     {
         var config = IceRemembersDefinition.Create();
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
-            Assert.NotEmpty(kindConfig.Attributes);
+            Assert.False(string.IsNullOrWhiteSpace(kindConfig.Health.Name));
+        }
+    }
+
+    [Fact]
+    public void IceRemembers_KindsHavePlaceholderTraits()
+    {
+        var config = IceRemembersDefinition.Create();
+
+        foreach (var (_, kindConfig) in config.Kinds)
+        {
+            Assert.Contains(kindConfig.Traits, trait => trait.Polarity == TraitPolarity.Positive);
+            Assert.Contains(kindConfig.Traits, trait => trait.Polarity == TraitPolarity.Negative);
         }
     }
 
@@ -63,7 +74,7 @@ public class DomainConfigTests
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
-            Assert.NotNull(kindConfig.HealthAttribute);
+            Assert.NotNull(kindConfig.Health);
         }
     }
 
@@ -73,29 +84,17 @@ public class DomainConfigTests
         var config = IceRemembersDefinition.Create();
         var settlement = config.Kinds[TestKinds.Settlement];
 
-        Assert.Equal(IceRemembersAttributeId.TempHp.ToDomainName(), settlement.HealthAttribute);
-        var settlementHealth = Assert.Single(
-            settlement.Attributes,
-            attribute => attribute.Name == IceRemembersAttributeId.TempHp.ToDomainName());
+        Assert.Equal(IceRemembersAttributeId.TempHp.ToDomainName(), settlement.Health.Name);
+        var settlementHealth = settlement.Health;
         Assert.Equal("Temp HP", settlementHealth.DisplayName);
         Assert.Equal(100f, settlementHealth.Max);
 
         foreach (var (_, kindConfig) in config.Kinds)
         {
-            foreach (var attribute in kindConfig.Attributes)
-            {
-                if (attribute.Category == AttributeCategory.Health)
-                {
-                    Assert.Equal(90f, attribute.Default);
-                    Assert.Equal(1f / 9f, attribute.DefaultVariance, precision: 6);
-                    Assert.Equal(100f, attribute.Max);
-                    continue;
-                }
-
-                Assert.Equal(50f, attribute.Default);
-                Assert.Equal(0.4f, attribute.DefaultVariance);
-                Assert.Equal(100f, attribute.Max);
-            }
+            var attribute = kindConfig.Health;
+            Assert.Equal(90f, attribute.Default);
+            Assert.Equal(1f / 9f, attribute.DefaultVariance, precision: 6);
+            Assert.Equal(100f, attribute.Max);
         }
     }
 
@@ -109,6 +108,10 @@ public class DomainConfigTests
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Region], targetTicks: 800f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Settlement], targetTicks: 1200f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Artifact], targetTicks: 1200f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 500f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 1200f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 800f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 1200f);
     }
 
     [Fact]
@@ -117,7 +120,7 @@ public class DomainConfigTests
         var config = IceRemembersDefinition.Create();
         var effects = config.Gameplay?.Effects.AttributeDeltaEffects ?? [];
 
-        foreach (var kind in new[] { TestKinds.Region, TestKinds.Penguin, TestKinds.Faction, TestKinds.Settlement, TestKinds.Artifact })
+        foreach (var kind in IceRemembersKinds.All)
         {
             var kindEffects = effects.Where(effect => effect.Kind == kind.Value).ToList();
             Assert.Contains(kindEffects, effect =>
@@ -155,15 +158,6 @@ public class DomainConfigTests
         Assert.True(lifecycleConfig.HasConfig(TestKinds.Penguin));
         Assert.True(lifecycleConfig.HasConfig(TestKinds.Settlement));
         Assert.True(lifecycleConfig.HasConfig(TestKinds.Region));
-    }
-
-    [Fact]
-    public void DomainLoader_CreatesPressureDefinitions()
-    {
-        var config = IceRemembersDefinition.Create();
-        var pressures = DomainLoader.LoadPressureDefinitions(config).ToList();
-
-        Assert.Equal(4, pressures.Count);
     }
 
     private static void AssertNearNominalDrain(LifecycleConfig config, float targetTicks)

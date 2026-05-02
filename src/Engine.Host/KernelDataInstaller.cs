@@ -26,6 +26,14 @@ internal static class KernelDataInstaller
                 attribute.DefaultValue,
                 attribute.DefaultVariance);
         }
+
+        foreach (var trait in data.Traits)
+        {
+            context.RegisterTrait(
+                trait.KindId,
+                new TraitRuntimeId(trait.TraitId),
+                trait.AssignmentChance);
+        }
     }
 
     private static void InstallTerrain(KernelConfigurationContext context, CompiledTerrainData data)

@@ -43,8 +43,6 @@ public static partial class IceRemembersDefinition
             cooldown: 90,
             entityCooldown: 18);
         AddRelationshipWrite(gambit, Rel.Holds, K.Artifact);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Echo), K.Penguin));
-        gambit.Reads.Add(AttributeRef.Target(A(Attr.Power), K.Artifact));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 0.82f));
         gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
         gambit.Description = "A penguin within reach of an unclaimed artifact picks it up. The bond binds them physically — the artifact follows.";
@@ -120,9 +118,9 @@ public static partial class IceRemembersDefinition
                 new TargetIsNotSelf(),
                 new WithinPlaneDistancePrecondition(2, PrimaryPlane.Physical),
                 Not(new SelfHasRelationshipToTarget(L(Rel.CleansedBy))),
+                new SelfHasRelationshipToTarget(L(Rel.Anchored), minStrength: 0.45f, behaviorRelevant: false),
                 new SelfAttributeThreshold(A(Attr.Condition), min: 40f, max: null, behaviorRelevant: false),
-                new SelfAttributeThreshold(A(Attr.Power), min: 45f, max: null, behaviorRelevant: false),
-                new TargetAttributeThreshold(A(Attr.Pristiness), min: null, max: 45f, behaviorRelevant: false)),
+                Not(new TargetHasRelationshipToSelf(L(Rel.CleansedBy)))),
             score: 0.42f,
             reward: 10f,
             success: InitialGambitSuccessChance,
@@ -130,11 +128,10 @@ public static partial class IceRemembersDefinition
             entityCooldown: 30);
         AddRelationshipWrite(gambit, Rel.CleansedBy, K.Region);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Condition), K.Artifact));
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Power), K.Artifact));
-        gambit.Reads.Add(AttributeRef.Target(A(Attr.Pristiness), K.Region));
+        gambit.Reads.Add(AttributeRef.TargetRelation(L(Rel.Anchored), K.Region));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.CleansedBy, RelationshipPolarity.Positive, 0.78f));
         gambit.Mutations.Add(new SetTargetCoverageTerrainMutation(Terrain.HotSprings.ToDomainName()));
-        gambit.Description = "An intact, powerful artifact within reach of a wounded region cleanses the scar. The ice forgets the cold; hot springs surface.";
+        gambit.Description = "An intact artifact with a strong anchor to a nearby region cleanses the scar. The ice forgets the cold; hot springs surface.";
         return gambit;
     }
 

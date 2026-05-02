@@ -19,8 +19,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
         AppendMapGenerationSection(builder, report.MapGeneration);
         AppendGambitSection(builder, report.GambitSuccess);
         AppendGeneratorSection(builder, report.GeneratorBalance);
-        AppendPlannerSection(builder, report.PlannerPressure);
-        AppendActionSection(builder, report.ActionPressure);
+        AppendPlannerSection(builder, report.PlannerUtilization);
+        AppendActionSection(builder, report.ActionUtilization);
         AppendAttributeSection(builder, report.AttributeBands);
         AppendLifecycleSection(builder, report.Lifecycle);
         return builder.ToString();
@@ -99,10 +99,10 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("ticks", row => string.Create(CultureInfo.InvariantCulture, $"{row.FirstAttemptTick}-{row.LastAttemptTick}")));
     }
 
-    private static void AppendPlannerSection(StringBuilder builder, IReadOnlyList<PlannerPressureRow> rows)
+    private static void AppendPlannerSection(StringBuilder builder, IReadOnlyList<PlannerUtilizationRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Background Planner Pressure");
+        builder.AppendLine("## Background Planner Utilization");
         AppendTable(
             builder,
             rows,
@@ -114,10 +114,10 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("top_share", row => FormatPercent(row.TopActionShareOfExecutions)));
     }
 
-    private static void AppendActionSection(StringBuilder builder, IReadOnlyList<ActionPressureRow> rows)
+    private static void AppendActionSection(StringBuilder builder, IReadOnlyList<ActionUtilizationRow> rows)
     {
         builder.AppendLine();
-        builder.AppendLine("## Background Action Pressure");
+        builder.AppendLine("## Background Action Utilization");
         AppendTable(
             builder,
             rows.Take(12),

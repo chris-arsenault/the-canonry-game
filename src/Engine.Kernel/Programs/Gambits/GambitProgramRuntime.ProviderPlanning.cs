@@ -4,6 +4,15 @@ using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime
 {
+    private sealed class ProviderSelectionState(int candidateCount)
+    {
+        public int CandidateCount = candidateCount;
+        public int SelectedRootGambitSlot;
+        public int SelectedRootTargetId;
+        public int SelectedGambitSlot;
+        public int SelectedTargetId;
+    }
+
     private float EvaluateProviderSelectorTargets(
         Simulation simulation,
         int entityId,
@@ -28,6 +37,7 @@ internal sealed partial class GambitProgramRuntime
         selectedTargetId = 0;
         var bestWeight = 0f;
         _gambitVisited.BeginEpoch();
+        var state = new ProviderSelectionState(candidateCount);
         var selectorEnd = selectorStart + selectorCount;
         for (var selector = selectorStart; selector < selectorEnd; selector++)
         {
@@ -43,17 +53,18 @@ internal sealed partial class GambitProgramRuntime
                 depth,
                 selector,
                 bestWeight,
-                ref candidateCount,
-                ref selectedRootGambitSlot,
-                ref selectedRootTargetId,
-                ref selectedGambitSlot,
-                ref selectedTargetId);
+                state);
         }
 
+        candidateCount = state.CandidateCount;
+        selectedRootGambitSlot = state.SelectedRootGambitSlot;
+        selectedRootTargetId = state.SelectedRootTargetId;
+        selectedGambitSlot = state.SelectedGambitSlot;
+        selectedTargetId = state.SelectedTargetId;
         return bestWeight;
     }
 
-    private float EvaluateProviderSelectorTargets(Simulation simulation, int entityId, int gambitSlot, int tick, int effectScopeCode, int effectValueId, int effectKindId, float urgency, int depth, int selector, float bestWeight, ref int candidateCount, ref int selectedRootGambitSlot, ref int selectedRootTargetId, ref int selectedGambitSlot, ref int selectedTargetId)
+    private float EvaluateProviderSelectorTargets(Simulation simulation, int entityId, int gambitSlot, int tick, int effectScopeCode, int effectValueId, int effectKindId, float urgency, int depth, int selector, float bestWeight, ProviderSelectionState state)
     {
         var code = _providerSelectorCodes[selector];
         if (code == BehaviorProviderSelectorCodes.TargetAttribute ||
@@ -63,7 +74,7 @@ internal sealed partial class GambitProgramRuntime
             return EvaluateKindProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
                 urgency, depth, selector, bestWeight,
-                ref candidateCount, ref selectedRootGambitSlot, ref selectedRootTargetId, ref selectedGambitSlot, ref selectedTargetId);
+                state);
         }
 
         if (code == BehaviorProviderSelectorCodes.LocationAttribute)
@@ -71,7 +82,7 @@ internal sealed partial class GambitProgramRuntime
             return EvaluateLocationProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
                 urgency, depth, selector, bestWeight,
-                ref candidateCount, ref selectedRootGambitSlot, ref selectedRootTargetId, ref selectedGambitSlot, ref selectedTargetId);
+                state);
         }
 
         if (code == BehaviorProviderSelectorCodes.OutgoingRelationship ||
@@ -80,7 +91,7 @@ internal sealed partial class GambitProgramRuntime
             return EvaluateRelationshipProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
                 urgency, depth, selector, code == BehaviorProviderSelectorCodes.OutgoingRelationship, bestWeight,
-                ref candidateCount, ref selectedRootGambitSlot, ref selectedRootTargetId, ref selectedGambitSlot, ref selectedTargetId);
+                state);
         }
 
         throw new global::System.InvalidOperationException();
@@ -98,36 +109,31 @@ internal sealed partial class GambitProgramRuntime
         int depth,
         int selector,
         float bestWeight,
-        ref int candidateCount,
-        ref int selectedRootGambitSlot,
-        ref int selectedRootTargetId,
-        ref int selectedGambitSlot,
-        ref int selectedTargetId)
+        ProviderSelectionState state)
     {
         var world = simulation.World;
-        for (var targetId = world.FirstPhysicalEntityAt(world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId));
-             targetId > 0;
-             targetId = world.NextPhysicalEntityAt(targetId))
-        {
-            bestWeight = EvaluateProviderTargetIfMatched(
-                simulation,
-                entityId,
-                targetId,
-                gambitSlot,
-                tick,
-                effectScopeCode,
-                effectValueId,
-                effectKindId,
-                urgency,
-                depth,
-                selector,
-                bestWeight,
-                ref candidateCount,
-                ref selectedRootGambitSlot,
-                ref selectedRootTargetId,
-                ref selectedGambitSlot,
-                ref selectedTargetId);
-        }
+        KernelQuery.ForEachPhysicalEntityAt(
+            world,
+            world.EntityPhysicalQ(entityId),
+            world.EntityPhysicalR(entityId),
+            targetId =>
+            {
+                bestWeight = EvaluateProviderTargetIfMatched(
+                    simulation,
+                    entityId,
+                    targetId,
+                    gambitSlot,
+                    tick,
+                    effectScopeCode,
+                    effectValueId,
+                    effectKindId,
+                    urgency,
+                    depth,
+                    selector,
+                    bestWeight,
+                    state);
+                return true;
+            });
 
         return bestWeight;
     }
@@ -144,19 +150,40 @@ internal sealed partial class GambitProgramRuntime
         int depth,
         int selector,
         float bestWeight,
-        ref int candidateCount,
-        ref int selectedRootGambitSlot,
-        ref int selectedRootTargetId,
-        ref int selectedGambitSlot,
-        ref int selectedTargetId)
+        ProviderSelectionState state)
     {
         var world = simulation.World;
         var kindId = _providerSelectorKindIds[selector];
         if (kindId > 0)
         {
-            for (var targetId = world.FirstEntityOfKind(kindId);
-                 targetId > 0;
-                 targetId = world.NextEntityOfKind(targetId))
+            KernelQuery.ForEachEntityOfKind(
+                world,
+                kindId,
+                targetId =>
+                {
+                    bestWeight = EvaluateProviderTargetIfMatched(
+                        simulation,
+                        entityId,
+                        targetId,
+                        gambitSlot,
+                        tick,
+                        effectScopeCode,
+                        effectValueId,
+                        effectKindId,
+                        urgency,
+                        depth,
+                        selector,
+                        bestWeight,
+                        state);
+                    return true;
+                });
+
+            return bestWeight;
+        }
+
+        KernelQuery.ForEachEntity(
+            world,
+            targetId =>
             {
                 bestWeight = EvaluateProviderTargetIfMatched(
                     simulation,
@@ -171,37 +198,9 @@ internal sealed partial class GambitProgramRuntime
                     depth,
                     selector,
                     bestWeight,
-                    ref candidateCount,
-                    ref selectedRootGambitSlot,
-                    ref selectedRootTargetId,
-                    ref selectedGambitSlot,
-                    ref selectedTargetId);
-            }
-
-            return bestWeight;
-        }
-
-        for (var targetId = 1; targetId <= world.EntityHighWatermark; targetId++)
-        {
-            bestWeight = EvaluateProviderTargetIfMatched(
-                simulation,
-                entityId,
-                targetId,
-                gambitSlot,
-                tick,
-                effectScopeCode,
-                effectValueId,
-                effectKindId,
-                urgency,
-                depth,
-                selector,
-                bestWeight,
-                ref candidateCount,
-                ref selectedRootGambitSlot,
-                ref selectedRootTargetId,
-                ref selectedGambitSlot,
-                ref selectedTargetId);
-        }
+                    state);
+                return true;
+            });
 
         return bestWeight;
     }
@@ -219,51 +218,34 @@ internal sealed partial class GambitProgramRuntime
         int selector,
         bool outgoing,
         float bestWeight,
-        ref int candidateCount,
-        ref int selectedRootGambitSlot,
-        ref int selectedRootTargetId,
-        ref int selectedGambitSlot,
-        ref int selectedTargetId)
+        ProviderSelectionState state)
     {
         var world = simulation.World;
-        var cursor = outgoing
-            ? world.OutgoingRelationshipsOfKindAbove(
-                entityId,
-                _providerSelectorRelationshipKindIds[selector],
-                _providerSelectorMinimumStrengths[selector])
-            : world.IncomingRelationshipsOfKindAbove(
-                entityId,
-                _providerSelectorRelationshipKindIds[selector],
-                _providerSelectorMinimumStrengths[selector]);
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            if (!world.RelationshipHasFact(relationshipId, _providerSelectorFactIds[selector]))
+        KernelQuery.ForEachRelatedEndpoint(
+            world,
+            entityId,
+            _providerSelectorRelationshipKindIds[selector],
+            _providerSelectorMinimumStrengths[selector],
+            _providerSelectorFactIds[selector],
+            outgoing,
+            (_, targetId) =>
             {
-                continue;
-            }
-
-            var targetId = outgoing
-                ? world.RelationshipTargetId(relationshipId)
-                : world.RelationshipSourceId(relationshipId);
-            bestWeight = EvaluateProviderTargetIfMatched(
-                simulation,
-                entityId,
-                targetId,
-                gambitSlot,
-                tick,
-                effectScopeCode,
-                effectValueId,
-                effectKindId,
-                urgency,
-                depth,
-                selector,
-                bestWeight,
-                ref candidateCount,
-                ref selectedRootGambitSlot,
-                ref selectedRootTargetId,
-                ref selectedGambitSlot,
-                ref selectedTargetId);
-        }
+                bestWeight = EvaluateProviderTargetIfMatched(
+                    simulation,
+                    entityId,
+                    targetId,
+                    gambitSlot,
+                    tick,
+                    effectScopeCode,
+                    effectValueId,
+                    effectKindId,
+                    urgency,
+                    depth,
+                    selector,
+                    bestWeight,
+                    state);
+                return true;
+            });
 
         return bestWeight;
     }
@@ -281,11 +263,7 @@ internal sealed partial class GambitProgramRuntime
         int depth,
         int selector,
         float bestWeight,
-        ref int candidateCount,
-        ref int selectedRootGambitSlot,
-        ref int selectedRootTargetId,
-        ref int selectedGambitSlot,
-        ref int selectedTargetId)
+        ProviderSelectionState state)
     {
         var world = simulation.World;
         if (!world.EntityIsActive(targetId) || _gambitVisited.Contains(targetId))
@@ -315,7 +293,7 @@ internal sealed partial class GambitProgramRuntime
         }
 
         _gambitVisited.Add(targetId);
-        candidateCount++;
+        state.CandidateCount++;
         var weight = EvaluatePlanCandidate(
             simulation,
             entityId,
@@ -327,15 +305,15 @@ internal sealed partial class GambitProgramRuntime
             effectKindId,
             urgency,
             depth,
-            ref candidateCount,
+            ref state.CandidateCount,
             out var planGambitSlot,
             out var planTargetId);
         if (weight > bestWeight)
         {
-            selectedRootGambitSlot = gambitSlot;
-            selectedRootTargetId = targetId;
-            selectedGambitSlot = planGambitSlot;
-            selectedTargetId = planTargetId;
+            state.SelectedRootGambitSlot = gambitSlot;
+            state.SelectedRootTargetId = targetId;
+            state.SelectedGambitSlot = planGambitSlot;
+            state.SelectedTargetId = planTargetId;
             return weight;
         }
 

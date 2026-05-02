@@ -18,7 +18,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         bool traceEnabled = false,
         int entitySnapshotCadence = 0,
         int resourceSnapshotCadence = 0,
-        int pressureSnapshotCadence = 0,
         int mapSnapshotCadence = 0,
         int generatorSnapshotCadence = 0,
         KernelEventCursorStart cursorStart = KernelEventCursorStart.EarliestAvailable,
@@ -48,7 +47,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
             traceEnabled,
             entitySnapshotCadence,
             resourceSnapshotCadence,
-            pressureSnapshotCadence,
             mapSnapshotCadence,
             generatorSnapshotCadence));
 

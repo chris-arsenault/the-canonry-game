@@ -34,6 +34,8 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
 
     public int ResolveAttributeId(string attribute) => _ids.AttributeIdOf(attribute).Value;
 
+    public int ResolveTraitId(string trait) => _ids.TraitIdOf(trait).Value;
+
     public bool TerrainExists(string terrain) =>
         _config.Terrains.Any(candidate => string.Equals(candidate.Name, terrain, StringComparison.Ordinal));
 
@@ -43,8 +45,7 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
     public bool KindHasAttribute(string kind, string attribute)
     {
         var kindId = ResolveKind(kind, "Gameplay kind");
-        return _config.Kinds[kindId].Attributes.Any(candidate =>
-            string.Equals(candidate.Name, attribute, StringComparison.Ordinal));
+        return string.Equals(_config.Kinds[kindId].Health.Name, attribute, StringComparison.Ordinal);
     }
 
     public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances()
@@ -78,6 +79,23 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         }
 
         return affordances;
+    }
+
+    public IReadOnlyList<TraitOperationDefinition> TraitOperations()
+    {
+        var operations = new List<TraitOperationDefinition>();
+        foreach (var (kind, kindConfig) in _config.Kinds)
+        {
+            foreach (var trait in kindConfig.Traits)
+            {
+                foreach (var operation in trait.Operations)
+                {
+                    operations.Add(new TraitOperationDefinition(kind.Value, trait.Name, operation));
+                }
+            }
+        }
+
+        return operations;
     }
 
     private static void AddAffordance(

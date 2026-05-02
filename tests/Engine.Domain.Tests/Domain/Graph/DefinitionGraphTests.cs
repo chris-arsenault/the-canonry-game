@@ -16,18 +16,15 @@ public class DefinitionGraphTests
     {
         var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var tempHp = new DefinitionAttributeId(IceRemembersAttributeId.TempHp.ToDomainName());
-        var dominion = new DefinitionAttributeId(IceRemembersAttributeId.Dominion.ToDomainName());
         var food = new DefinitionResourceId(IceRemembersResource.Food.ToDomainName());
         var controlledBy = new DefinitionRelationshipId(IceRemembersRelationship.ControlledBy.ToDomainName());
-        var culturalFriction = new DefinitionPressureId(IceRemembersPressure.CulturalFriction.ToDomainName());
 
         var settlement = Assert.Contains(TestKinds.Settlement, graph.Kinds);
         Assert.Contains(tempHp, settlement.Attributes.Keys);
-        Assert.Contains(dominion, settlement.Attributes.Keys);
         Assert.Equal(tempHp, settlement.HealthAttribute);
+        Assert.Contains(settlement.Traits.Values, trait => trait.SourceConfig.Polarity == TraitPolarity.Positive);
         Assert.Contains(food, graph.Resources.Keys);
         Assert.Contains(controlledBy, graph.Relationships.Keys);
-        Assert.Contains(culturalFriction, graph.Pressures.Keys);
         Assert.Contains(TestKinds.Penguin, graph.Lifecycles.Keys);
     }
 
@@ -50,10 +47,10 @@ public class DefinitionGraphTests
             Gambits = [.. config.Gambits, gambit],
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
-            Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,
             Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
         };
 
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(badConfig));
@@ -81,12 +78,13 @@ public class DefinitionGraphTests
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
+            Gambits = config.Gambits,
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
-            Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = [.. config.Resources, new ResourceConfig { Name = "manna", DisplayName = "Manna" }],
             Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
             Semantics = config.Semantics,
         };
 
@@ -158,71 +156,79 @@ public class DefinitionGraphTests
     public void Build_SemanticStockMissingRequiredOutflow_Throws()
     {
         var config = IceRemembersDefinition.Create();
-        var semantics = config.Semantics!;
-        var brokenStocks = semantics.Stocks
-            .Select(stock =>
-                stock is SemanticAttributeStockConfig attr &&
-                attr.Kind == TestKinds.Penguin &&
-                attr.AttributeName == IceRemembersAttributeId.Echo.ToDomainName()
-                    ? (SemanticStockConfig)new SemanticAttributeStockConfig
-                    {
-                        Kind = attr.Kind,
-                        AttributeName = attr.AttributeName,
-                        StockClass = attr.StockClass,
-                        FeedbackClass = attr.FeedbackClass,
-                        RequiredFlowCoverage = SemanticFlowCoverageRequirement.Both,
-                        BoundsLabel = attr.BoundsLabel,
-                        ConservationLabel = attr.ConservationLabel,
-                        CoverageNotes = attr.CoverageNotes,
-                        Notes = attr.Notes,
-                    }
-                    : stock)
-            .ToList();
-        var brokenFlows = semantics.Flows
-            .Where(flow =>
-                !(flow.TargetKind == TestKinds.Penguin &&
-                  flow.TargetAttribute == IceRemembersAttributeId.Echo.ToDomainName() &&
-                  flow.Role == SemanticFlowRole.Outflow))
-            .ToList();
-        brokenFlows.Add(new SemanticFlowConfig
-        {
-            VerbId = "test_echo_probe",
-            Role = SemanticFlowRole.Inflow,
-            TargetKind = TestKinds.Penguin,
-            TargetAttribute = IceRemembersAttributeId.Vitality.ToDomainName(),
-            SourceRefs = [AttributeRef.Self(IceRemembersAttributeId.Echo.ToDomainName(), TestKinds.Penguin)],
-        });
-        var brokenVerbs = semantics.Verbs
-            .Append(new SemanticVerbConfig
-            {
-                Id = "test_echo_probe",
-                OwnerType = SemanticOwnerType.Entity,
-                OwnerKind = TestKinds.Penguin,
-            })
-            .ToList();
+        var brokenConfig = WithRequiredPenguinVitalityOutflow(config);
 
-        var brokenConfig = new DomainConfig
+        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
+        Assert.Contains("penguin.vitality", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("outflow", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DomainConfig WithRequiredPenguinVitalityOutflow(DomainConfig config)
+    {
+        var semantics = config.Semantics!;
+        return new DomainConfig
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
+            Gambits = config.Gambits,
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
-            Pressures = config.Pressures,
             Lifecycles = config.Lifecycles,
             Resources = config.Resources,
             Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {
-                Stocks = brokenStocks,
-                Verbs = brokenVerbs,
-                Flows = brokenFlows,
+                Stocks = RequirePenguinVitalityOutflow(semantics.Stocks),
+                Verbs = [.. semantics.Verbs, VitalityProbeVerb()],
+                Flows = [.. semantics.Flows, VitalityProbeInflow()],
                 Modifiers = semantics.Modifiers,
             },
         };
-
-        var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(brokenConfig));
-        Assert.Contains("penguin.echo", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("outflow", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static List<SemanticStockConfig> RequirePenguinVitalityOutflow(IReadOnlyList<SemanticStockConfig> stocks) =>
+        stocks.Select(stock =>
+            IsPenguinVitalityStock(stock)
+                ? CopyWithRequiredCoverage((SemanticAttributeStockConfig)stock)
+                : stock)
+            .ToList();
+
+    private static bool IsPenguinVitalityStock(SemanticStockConfig stock) =>
+        stock is SemanticAttributeStockConfig attr &&
+        attr.Kind == TestKinds.Penguin &&
+        attr.AttributeName == IceRemembersAttributeId.Vitality.ToDomainName();
+
+    private static SemanticAttributeStockConfig CopyWithRequiredCoverage(SemanticAttributeStockConfig attr) =>
+        new()
+        {
+            Kind = attr.Kind,
+            AttributeName = attr.AttributeName,
+            StockClass = attr.StockClass,
+            FeedbackClass = attr.FeedbackClass,
+            RequiredFlowCoverage = SemanticFlowCoverageRequirement.Both,
+            BoundsLabel = attr.BoundsLabel,
+            ConservationLabel = attr.ConservationLabel,
+            CoverageNotes = attr.CoverageNotes,
+            Notes = attr.Notes,
+        };
+
+    private static SemanticVerbConfig VitalityProbeVerb() =>
+        new()
+        {
+            Id = "test_vitality_probe",
+            OwnerType = SemanticOwnerType.Entity,
+            OwnerKind = TestKinds.Penguin,
+        };
+
+    private static SemanticFlowConfig VitalityProbeInflow() =>
+        new()
+        {
+            VerbId = "test_vitality_probe",
+            Role = SemanticFlowRole.Inflow,
+            TargetKind = TestKinds.Penguin,
+            TargetAttribute = IceRemembersAttributeId.Vitality.ToDomainName(),
+            SourceRefs = [AttributeRef.Self(IceRemembersAttributeId.Vitality.ToDomainName(), TestKinds.Penguin)],
+        };
 
 }

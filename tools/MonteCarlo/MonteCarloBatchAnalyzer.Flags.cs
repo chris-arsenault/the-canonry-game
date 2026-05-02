@@ -51,7 +51,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             flags.Add(new AnalysisFlagRow(
                 Category: "telemetry",
                 Severity: "warning",
-                Message: "Planner evaluations were recorded, but action execution rows are unavailable; action pressure cannot report selected action utilization."));
+                Message: "Planner evaluations were recorded, but action execution rows are unavailable; action utilization cannot report selected action utilization."));
         }
         else if (telemetryCoverage.ActionExecutionRows > 0)
         {

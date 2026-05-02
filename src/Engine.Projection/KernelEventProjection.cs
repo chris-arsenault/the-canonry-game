@@ -22,7 +22,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
-        if (eventType <= KernelEventType.RelationshipChanged)
+        if (eventType <= KernelEventType.TraitAssigned)
         {
             ProjectEntityEvent(kernelEvent);
             return;
@@ -30,7 +30,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
         if (eventType is KernelEventType.TickCompleted or
             KernelEventType.GeneratorEnabledChanged or
-            KernelEventType.PressureChanged or
             KernelEventType.CellCreated or
             KernelEventType.CellChanged or
             KernelEventType.CellInfluenceChanged)
@@ -58,6 +57,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.AttributeChanged:
                 OnAttributeChanged(kernelEvent.Sequence, evt.AsAttributeChanged());
+                break;
+            case KernelEventType.TraitAssigned:
+                OnTraitAssigned(kernelEvent.Sequence, evt.AsTraitAssigned());
                 break;
             case KernelEventType.ResourceChanged:
                 OnResourceChanged(kernelEvent.Sequence, evt.AsResourceChanged());
@@ -104,9 +106,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.GeneratorEnabledChanged:
                 OnGeneratorEnabledChanged(kernelEvent.Sequence, evt.AsGeneratorEnabledChanged());
-                break;
-            case KernelEventType.PressureChanged:
-                OnPressureChanged(kernelEvent.Sequence, evt.AsPressureChanged());
                 break;
             case KernelEventType.CellCreated:
                 OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
@@ -172,6 +171,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
     }
 
+    protected virtual void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
+    {
+    }
+
     protected virtual void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
     {
     }
@@ -209,10 +212,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnGeneratorEnabledChanged(long sequence, in GeneratorEnabledChangedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnPressureChanged(long sequence, in PressureChangedKernelEvent evt)
     {
     }
 

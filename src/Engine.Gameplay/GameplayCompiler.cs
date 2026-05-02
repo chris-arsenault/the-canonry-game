@@ -84,6 +84,7 @@ public static class GameplayCompiler
             Verbs = rules,
             InitialInfluence = CompileInitialInfluenceRules(definition, context),
             GeneratorAffordances = CompileGeneratorAffordances(context),
+            TraitWeightModifiers = CompileTraitLowAltitudeWeightModifiers(context),
         };
     }
 
@@ -132,6 +133,33 @@ public static class GameplayCompiler
                 context.ResolveKindId(affordance.CandidateKind, "Generator affordance candidate kind"),
                 context.ResolveKindId(affordance.BindingKind, "Generator affordance binding kind"),
                 1f));
+        }
+
+        return rules;
+    }
+
+    private static List<CompiledTraitLowAltitudeWeightModifierRule> CompileTraitLowAltitudeWeightModifiers(
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<CompiledTraitLowAltitudeWeightModifierRule>();
+        foreach (var definition in context.TraitOperations())
+        {
+            if (definition.Operation is not TraitLowAltitudeWeightOperationConfig operation)
+            {
+                continue;
+            }
+
+            rules.Add(new CompiledTraitLowAltitudeWeightModifierRule(
+                context.ResolveKindId(definition.OwnerKind, $"Trait '{definition.Trait}' owner kind"),
+                context.ResolveTraitId(definition.Trait),
+                operation.Verb is null ? 0 : context.ResolveVerbId(operation.Verb),
+                operation.WeightDelta,
+                operation.ExploreWeightDelta,
+                operation.StalenessWeightDelta,
+                operation.HotspotWeightDelta,
+                operation.CrowdingWeightDelta,
+                operation.GeneratorAffordanceWeightDelta,
+                operation.RelationshipAffinityWeightDelta));
         }
 
         return rules;
@@ -272,10 +300,76 @@ public static class GameplayCompiler
                 effect.MaxDistance,
                 effect.Threshold,
                 effect.MinimumRelationshipStrength,
-                effect.DeltaPerTick));
+                effect.DeltaPerTick,
+                RequiredTargetTraitId: 0,
+                RequiredRelatedTraitId: 0));
         }
 
+        rules.AddRange(CompileTraitAttributeDeltaEffects(context));
         return new EffectsProgram { AttributeDeltaEffects = rules };
+    }
+
+    private static List<AttributeDeltaEffectRule> CompileTraitAttributeDeltaEffects(
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<AttributeDeltaEffectRule>();
+        foreach (var definition in context.TraitOperations())
+        {
+            if (definition.Operation is not TraitAttributeDeltaOperationConfig operation)
+            {
+                continue;
+            }
+
+            ValidateTraitAttributeDelta(definition, operation, context);
+            var traitId = context.ResolveTraitId(definition.Trait);
+            rules.Add(new AttributeDeltaEffectRule(
+                context.ResolveKindId(operation.TargetKind, $"Trait '{definition.Trait}' attribute effect target kind"),
+                context.ResolveAttributeId(operation.Attribute),
+                ConditionCode(operation.Condition),
+                operation.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(operation.RelationshipKind),
+                RelationshipDirectionCode(operation.RelationshipDirection),
+                PlaneCode(operation.Plane),
+                operation.MaxDistance,
+                operation.Threshold,
+                operation.MinimumRelationshipStrength,
+                operation.DeltaPerTick,
+                RequiredTargetTraitId: operation.TraitBearer == TraitEffectBearer.Target ? traitId : 0,
+                RequiredRelatedTraitId: operation.TraitBearer == TraitEffectBearer.RelatedEntity ? traitId : 0));
+        }
+
+        return rules;
+    }
+
+    private static void ValidateTraitAttributeDelta(
+        TraitOperationDefinition definition,
+        TraitAttributeDeltaOperationConfig operation,
+        IGameplayCompilationContext context)
+    {
+        if (!context.KindHasAttribute(operation.TargetKind, operation.Attribute))
+        {
+            throw new InvalidOperationException(
+                $"Trait '{definition.Trait}' attribute delta effect for kind '{operation.TargetKind}' references unknown attribute '{operation.Attribute}'.");
+        }
+
+        if (EffectRequiresRelationship(operation.Condition) &&
+            (operation.RelationshipKind is null || !context.RelationshipExists(operation.RelationshipKind)))
+        {
+            throw new InvalidOperationException(
+                $"Trait '{definition.Trait}' attribute delta effect for kind '{operation.TargetKind}' references unknown relationship '{operation.RelationshipKind}'.");
+        }
+
+        if (!EffectRequiresRelationship(operation.Condition) &&
+            operation.TraitBearer == TraitEffectBearer.RelatedEntity)
+        {
+            throw new InvalidOperationException(
+                $"Trait '{definition.Trait}' uses related-entity bearer without a relationship effect condition.");
+        }
+
+        if (operation.TraitBearer is TraitEffectBearer.Actor or TraitEffectBearer.GambitTarget)
+        {
+            throw new InvalidOperationException(
+                $"Trait '{definition.Trait}' uses a gambit-only bearer for an attribute delta effect.");
+        }
     }
 
     private static List<int> CompileTerrainIds(IReadOnlySet<string>? terrains, IGameplayCompilationContext context)
@@ -327,7 +421,7 @@ public static class GameplayCompiler
         EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
         EffectCondition.MapSupportAtLocation => EffectConditionCodes.LocalPositiveSignal,
         EffectCondition.MapThreatAtLocation => EffectConditionCodes.LocalNegativeSignal,
-        EffectCondition.MapCrowdingPressure => EffectConditionCodes.LocalPressureSignal,
+        EffectCondition.MapCrowdingLoad => EffectConditionCodes.LocalCrowdingLoadSignal,
         EffectCondition.MapCrowdingComfort => EffectConditionCodes.LocalComfortSignal,
         _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
     };
@@ -359,8 +453,10 @@ public interface IGameplayCompilationContext
     int ResolveAttributeId(string attribute);
     bool TerrainExists(string terrain);
     bool RelationshipExists(string relationship);
+    int ResolveTraitId(string trait);
     bool KindHasAttribute(string kind, string attribute);
     IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances();
+    IReadOnlyList<TraitOperationDefinition> TraitOperations();
 }
 
 /// <summary>

@@ -25,7 +25,6 @@ Relationships
 Effects
 Upkeep
 Gambits
-Pressures
 Generators
 Degeneracy
 ```

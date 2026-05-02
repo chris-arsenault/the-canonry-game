@@ -9,6 +9,7 @@ public enum KernelEventType
     AttributeChanged = 4,
     ResourceChanged = 5,
     RelationshipChanged = 6,
+    TraitAssigned = 7,
     GoalGenerated = 9,
     DegeneracyDetected = 10,
     GeneratorEvaluated = 11,
@@ -19,7 +20,6 @@ public enum KernelEventType
     TickCompleted = 16,
     GeneratorEnabledChanged = 17,
     GambitEvaluated = 18,
-    PressureChanged = 19,
     CellCreated = 20,
     CellChanged = 21,
     CellInfluenceChanged = 22,
@@ -124,6 +124,17 @@ public readonly record struct AttributeChangedKernelEvent(
     [KernelEventFloatSlot(1, "new_value", KernelEventSemanticKind.RawScalar)]
     float NewValue);
 
+[KernelEventLayout(KernelEventType.TraitAssigned, schemaMinor: 0)]
+public readonly record struct TraitAssignedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "entity_id", KernelEventSemanticKind.EntityId)]
+    int EntityId,
+    [KernelEventIntSlot(1, "trait_id", KernelEventSemanticKind.TraitId)]
+    int TraitId,
+    [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId);
+
 [KernelEventLayout(KernelEventType.ResourceChanged, schemaMinor: 0)]
 public readonly record struct ResourceChangedKernelEvent(
     int Tick,
@@ -134,23 +145,6 @@ public readonly record struct ResourceChangedKernelEvent(
     int Q,
     [KernelEventIntSlot(2, "r", KernelEventSemanticKind.Coordinate)]
     int R,
-    [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
-    int SourceCodeId,
-    [KernelEventFloatSlot(0, "old_value", KernelEventSemanticKind.RawScalar)]
-    float OldValue,
-    [KernelEventFloatSlot(1, "new_value", KernelEventSemanticKind.RawScalar)]
-    float NewValue);
-
-[KernelEventLayout(KernelEventType.PressureChanged, schemaMinor: 0)]
-public readonly record struct PressureChangedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "pressure_id", KernelEventSemanticKind.PressureId)]
-    int PressureId,
-    [KernelEventIntSlot(1, "scope_code", KernelEventSemanticKind.PressureScopeCode)]
-    int ScopeCode,
-    [KernelEventIntSlot(2, "scope_entity_id", KernelEventSemanticKind.EntityId)]
-    int ScopeEntityId,
     [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId,
     [KernelEventFloatSlot(0, "old_value", KernelEventSemanticKind.RawScalar)]

@@ -31,7 +31,6 @@ public static class BehaviorOperationCodes
     public const int MoveTowardTargetSemantic = 15;
     public const int WanderSemantic = 16;
     public const int CreateEntity = 17;
-    public const int AddPressure = 18;
     public const int SetHistorical = 20;
     public const int AddRelatedEntitiesAttribute = 21;
     public const int CalculateVariable = 22;
@@ -71,7 +70,6 @@ public static class BehaviorPreconditionCodes
     public const int TargetHasRelationshipToSelf = 9;
     public const int RelatedEntityMatchesTarget = 10;
     public const int RelationshipExists = 11;
-    public const int PressureRange = 12;
     public const int CooldownElapsed = 13;
     public const int And = 14;
     public const int Or = 15;
@@ -141,7 +139,6 @@ public static class BehaviorEffectScopeCodes
 
 public static class BehaviorObjectiveUrgencyCodes
 {
-    public const int StandardNeed = 1;
     public const int Baseline = 2;
     public const int RangeDefault = 3;
     public const int Fixed = 4;
@@ -169,7 +166,7 @@ public static class EffectConditionCodes
     public const int RelatedEntityDistance = 2;
     public const int LocalPositiveSignal = 3;
     public const int LocalNegativeSignal = 4;
-    public const int LocalPressureSignal = 5;
+    public const int LocalCrowdingLoadSignal = 5;
     public const int LocalComfortSignal = 6;
 }
 
@@ -178,6 +175,14 @@ public static class RelationshipMatchDirectionCodes
     public const int Outgoing = 1;
     public const int Incoming = 2;
     public const int Either = 3;
+}
+
+public static class TraitEffectBearerCodes
+{
+    public const int Target = 1;
+    public const int RelatedEntity = 2;
+    public const int Actor = 3;
+    public const int GambitTarget = 4;
 }
 
 public static class GeneratorStatusCodes
@@ -215,25 +220,11 @@ public static class GeneratorCultureMatchCodes
     public const int DifferentFromTarget = 3;
 }
 
-public static class GeneratorTriggerDirectionCodes
-{
-    public const int High = 1;
-    public const int Low = 2;
-    public const int Critical = 3;
-    public const int Any = 4;
-}
-
 public static class GeneratorCoverageModeCodes
 {
     public const int None = 0;
     public const int CreateNew = 1;
     public const int SplitFromExisting = 2;
-}
-
-public static class PressureScopeCodes
-{
-    public const int Coverage = 1;
-    public const int Entity = 2;
 }
 
 public static class DegeneracyMetricCodes
@@ -266,7 +257,6 @@ public static class KernelProgramCodes
 {
     public const int Upkeep = 1;
     public const int Relationships = 3;
-    public const int Pressures = 4;
     public const int Generators = 5;
     public const int Degeneracy = 6;
     public const int Gambits = 7;

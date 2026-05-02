@@ -80,6 +80,11 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] SupportExpressionCodes = [];
     internal int[] SupportExpressionA = [];
     internal float[] SupportExpressionX = [];
+    internal int[] TraitModifierGambitIds = [];
+    internal int[] TraitModifierTraitIds = [];
+    internal int[] TraitModifierBearerCodes = [];
+    internal float[] TraitModifierScoreDeltas = [];
+    internal float[] TraitModifierSuccessChanceDeltas = [];
     internal int GambitCount;
     internal int PreconditionCount;
     internal int ExpressionCount;
@@ -91,6 +96,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int SupportRuleCount;
     internal int SupportExpressionCount;
     internal int GoalEffectCount;
+    internal int TraitModifierCount;
     internal int OpenGambitSlot;
 
     public GambitProgramData(
@@ -167,6 +173,11 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         MutationExpressionCodes = new int[stepCapacity + 1];
         MutationExpressionA = new int[stepCapacity + 1];
         MutationExpressionX = new float[stepCapacity + 1];
+        TraitModifierGambitIds = new int[stepCapacity + 1];
+        TraitModifierTraitIds = new int[stepCapacity + 1];
+        TraitModifierBearerCodes = new int[stepCapacity + 1];
+        TraitModifierScoreDeltas = new float[stepCapacity + 1];
+        TraitModifierSuccessChanceDeltas = new float[stepCapacity + 1];
     }
 
     private void InitializeObjectiveArrays(int gambitObjectiveCapacity)

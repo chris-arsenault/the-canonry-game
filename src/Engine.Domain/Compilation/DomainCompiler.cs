@@ -1,6 +1,7 @@
 namespace Engine.Domain.Compilation;
 
 using Engine.Behaviors;
+using Engine.Constants;
 using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
@@ -35,7 +36,6 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.RelationshipSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.PressureSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.DegeneracySourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.PlanningSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapActivitySourceCode),
@@ -53,22 +53,33 @@ public static partial class DomainCompiler
         DomainIdRegistry ids)
     {
         var attributes = new List<CompiledEntityAttributeData>();
+        var traits = new List<CompiledEntityTraitData>();
         foreach (var (kind, kindConfig) in config.Kinds)
         {
             var kindId = ids.KindIdOf(kind).Value;
-            foreach (var attribute in kindConfig.Attributes)
+            var health = kindConfig.Health;
+            attributes.Add(new CompiledEntityAttributeData(
+                kindId,
+                ids.AttributeIdOf(health.Name).Value,
+                health.Min,
+                health.Max,
+                health.Default,
+                health.DefaultVariance));
+
+            foreach (var trait in kindConfig.Traits)
             {
-                attributes.Add(new CompiledEntityAttributeData(
+                traits.Add(new CompiledEntityTraitData(
                     kindId,
-                    ids.AttributeIdOf(attribute.Name).Value,
-                    attribute.Min,
-                    attribute.Max,
-                    attribute.Default,
-                    attribute.DefaultVariance));
+                    ids.TraitIdOf(trait.Name).Value,
+                    trait.AssignmentChance));
             }
         }
 
-        return new CompiledEntityData { Attributes = attributes };
+        return new CompiledEntityData
+        {
+            Attributes = attributes,
+            Traits = traits,
+        };
     }
 
     private static UpkeepProgram BuildUpkeepProgram(
@@ -80,7 +91,7 @@ public static partial class DomainCompiler
         foreach (var (kind, lifecycle) in config.Lifecycles)
         {
             var kindId = ids.KindIdOf(kind).Value;
-            var healthAttributeId = ids.AttributeIdOf(lifecycle.HealthAttribute).Value;
+            var healthAttributeId = ids.AttributeIdOf(lifecycle.Health).Value;
             lifecycleRules.Add(new LifecycleUpkeepRule(
                 kindId,
                 healthAttributeId,
@@ -123,8 +134,45 @@ public static partial class DomainCompiler
         {
             EnabledByDefault = gambits.Count > 0,
             Gambits = gambits,
+            TraitModifiers = CompileTraitGambitModifiers(config, ids),
         };
     }
+
+    private static List<CompiledTraitGambitModifierRule> CompileTraitGambitModifiers(
+        DomainConfig config,
+        DomainIdRegistry ids)
+    {
+        var modifiers = new List<CompiledTraitGambitModifierRule>();
+        foreach (var (_, kindConfig) in config.Kinds)
+        {
+            foreach (var trait in kindConfig.Traits)
+            {
+                foreach (var operation in trait.Operations)
+                {
+                    if (operation is not TraitGambitModifierOperationConfig modifier)
+                    {
+                        continue;
+                    }
+
+                    modifiers.Add(new CompiledTraitGambitModifierRule(
+                        ids.GambitIdOf(modifier.Gambit).Value,
+                        ids.TraitIdOf(trait.Name).Value,
+                        TraitEffectBearerCode(modifier.TraitBearer),
+                        modifier.ScoreDelta,
+                        modifier.SuccessChanceDelta));
+                }
+            }
+        }
+
+        return modifiers;
+    }
+
+    private static int TraitEffectBearerCode(TraitEffectBearer bearer) => bearer switch
+    {
+        TraitEffectBearer.Actor => TraitEffectBearerCodes.Actor,
+        TraitEffectBearer.GambitTarget => TraitEffectBearerCodes.GambitTarget,
+        _ => throw new ArgumentOutOfRangeException(nameof(bearer), bearer, "Unsupported gambit trait bearer."),
+    };
 
     private static int ResolveTargetKindId(BehaviorDefinition behavior, DomainIdRegistry ids)
     {
@@ -356,9 +404,6 @@ public static partial class DomainCompiler
             case LocationResourceThreshold resource:
                 AddLocationResourcePrecondition(ops, resource, ids);
                 return true;
-            case PressureThreshold pressure:
-                AddPressurePrecondition(ops, pressure, ids);
-                return true;
             case CooldownCheck cooldown:
                 ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.CooldownElapsed, cooldown.MinimumTicksSinceFire));
                 return true;
@@ -450,21 +495,6 @@ public static partial class DomainCompiler
             resource.Max.HasValue ? 1 : 0,
             resource.Min ?? 0f,
             resource.Max ?? 0f));
-    }
-
-    private static void AddPressurePrecondition(
-        List<BehaviorProgramPreconditionOp> ops,
-        PressureThreshold pressure,
-        DomainIdRegistry ids)
-    {
-        ops.Add(new BehaviorProgramPreconditionOp(
-            BehaviorProgramPrecondition.PressureRange,
-            ids.PressureIdOf(pressure.PressureName).Value,
-            pressure.ScopeId.Value,
-            pressure.Min.HasValue ? 1 : 0,
-            pressure.Max.HasValue ? 1 : 0,
-            pressure.Min ?? 0f,
-            pressure.Max ?? 0f));
     }
 
     private static void AddRelationshipStrengthPrecondition(
@@ -777,13 +807,6 @@ public static partial class DomainCompiler
     {
         switch (mutation)
         {
-            case ModifyPressureMutation modify:
-                steps.Add(new BehaviorProgramStepRule(
-                    BehaviorProgramOperation.AddPressure,
-                    ids.PressureIdOf(modify.PressureName).Value,
-                    modify.ScopeId.Value,
-                    X: modify.Delta));
-                return true;
             case ModifyLocationResourceMutation resource:
                 steps.Add(new BehaviorProgramStepRule(
                     BehaviorProgramOperation.AddLocationResource,

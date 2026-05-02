@@ -69,9 +69,6 @@ public sealed class KernelRuntimeFactoryTests
                       { "entityId": 2, "planner": "opportunity" }
                     ]
                   },
-                  "pressures": {
-                    "enabled": false
-                  },
                   "upkeep": {
                     "agingModel": "late_life"
                   }
@@ -85,50 +82,6 @@ public sealed class KernelRuntimeFactoryTests
             var options = StartAndReadSavedOptions(path);
 
             AssertConfiguredTuningOptions(options);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
-    }
-
-    [Fact]
-    public void Start_UsesPressureDisabledKernelTuningByDefault()
-    {
-        var domain = new CountingDomainModule();
-        var factory = KernelRuntimeFactory.ForDomains(domain);
-        using var runtime = factory.Start(Request(domain.Name, seed: 100));
-        using var stream = new MemoryStream();
-
-        runtime.Host.SaveKernelState(stream);
-        stream.Position = 0;
-        var loaded = KernelSnapshot.LoadKernelState(stream);
-
-        Assert.False(loaded.Options.KernelTuning.Programs.Pressures.Enabled);
-    }
-
-    [Fact]
-    public void Start_CanEnablePressureTuningFromJsonConfigFile()
-    {
-        var path = WriteTempConfig(
-            ".json",
-            """
-            {
-              "kernelTuning": {
-                "programs": {
-                  "pressures": {
-                    "enabled": true
-                  }
-                }
-              }
-            }
-            """);
-
-        try
-        {
-            var options = StartAndReadSavedOptions(path);
-
-            Assert.True(options.KernelTuning.Programs.Pressures.Enabled);
         }
         finally
         {
@@ -164,9 +117,6 @@ public sealed class KernelRuntimeFactoryTests
 
             [kernel_tuning.programs.planning.entity.2]
             planner = "opportunity"
-
-            [kernel_tuning.programs.pressures]
-            enabled = false
 
             [kernel_tuning.programs.upkeep]
             aging_model = "late_life"
@@ -263,7 +213,6 @@ public sealed class KernelRuntimeFactoryTests
             item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
         Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
             item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
-        Assert.False(options.KernelTuning.Programs.Pressures.Enabled);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
     }
 

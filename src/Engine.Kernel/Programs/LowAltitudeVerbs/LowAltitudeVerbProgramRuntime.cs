@@ -176,6 +176,29 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         float affordanceScore) =>
         Data.RegisterGeneratorAffordance(actorKindId, candidateKindId, bindingKindId, affordanceScore);
 
+    public int RegisterTraitWeightModifier(
+        int kindId,
+        int traitId,
+        int verbId,
+        float weightDelta,
+        float exploreWeightDelta,
+        float stalenessWeightDelta,
+        float hotspotWeightDelta,
+        float crowdingWeightDelta,
+        float generatorAffordanceWeightDelta,
+        float relationshipAffinityWeightDelta) =>
+        Data.RegisterTraitWeightModifier(
+            kindId,
+            traitId,
+            verbId,
+            weightDelta,
+            exploreWeightDelta,
+            stalenessWeightDelta,
+            hotspotWeightDelta,
+            crowdingWeightDelta,
+            generatorAffordanceWeightDelta,
+            relationshipAffinityWeightDelta);
+
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
@@ -376,7 +399,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 continue;
             }
 
-            var weight = LocationWeight(simulation, rule, Data.PlaneCode(rule), q, r, tick, 0);
+            var weight = LocationWeight(simulation, entityId, rule, Data.PlaneCode(rule), q, r, tick, 0);
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
             {
@@ -475,7 +498,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 continue;
             }
 
-            var weight = LocationWeight(simulation, rule, PlaneCodes.Physical, q, r, tick, 0);
+            var weight = LocationWeight(simulation, entityId, rule, PlaneCodes.Physical, q, r, tick, 0);
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
             {
@@ -521,7 +544,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 continue;
             }
 
-            var weight = LocationWeight(simulation, rule, planeCode, q, r, tick, generatorAffordance) +
+            var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, generatorAffordance) +
                 ((100f - influence) / 100f) * 2f;
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
@@ -574,7 +597,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
             var influencerKindId = simulation.World.EntityKindId(influencerId);
             var generatorAffordance = GeneratorAffordanceScore(actorKindId, influencerKindId, influencerKindId);
-            var weight = LocationWeight(simulation, rule, planeCode, q, r, tick, generatorAffordance) +
+            var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, generatorAffordance) +
                 (influence / 100f) * 3f;
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
@@ -654,125 +677,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
             AddEntityCandidate(simulation, entityId, rule, tick, targetEntityId, ref totalWeight, ref selected);
         }
-    }
-
-    private void AddEntityCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        int targetEntityId,
-        ref float totalWeight,
-        ref VerbTargetCandidate selected)
-    {
-        var world = simulation.World;
-        var planeCode = Data.PlaneCode(rule);
-        var q = CurrentQ(world, targetEntityId, planeCode);
-        var r = CurrentR(world, targetEntityId, planeCode);
-        var s = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
-        var targetKindId = world.EntityKindId(targetEntityId);
-        var affordance = GeneratorAffordanceScore(world.EntityKindId(entityId), targetKindId, targetKindId);
-        var weight = LocationWeight(simulation, rule, planeCode, q, r, tick, affordance, targetEntityId);
-        weight += RelationshipAffinityWeight(world, entityId, targetEntityId, rule);
-        totalWeight += weight;
-        if (simulation.NextFloat() * totalWeight <= weight)
-        {
-            selected = Candidate(rule, planeCode, targetEntityId, targetKindId, q, r, s, weight);
-        }
-    }
-
-    private float RelationshipAffinityWeight(WorldState world, int entityId, int targetEntityId, int rule)
-    {
-        var relationshipKindId = Data.AffinityRelationshipKindId(rule);
-        var weight = Data.RelationshipAffinityWeight(rule);
-        if (relationshipKindId == 0 || weight == 0f)
-        {
-            return 0f;
-        }
-
-        var strength = BestRelationshipStrengthBetween(
-            world,
-            entityId,
-            targetEntityId,
-            relationshipKindId,
-            Data.AffinityRelationshipDirectionCode(rule));
-        return strength * weight;
-    }
-
-    private static float BestRelationshipStrengthBetween(
-        WorldState world,
-        int entityId,
-        int targetEntityId,
-        int relationshipKindId,
-        int directionCode)
-    {
-        var best = 0f;
-        if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
-            or LowAltitudeVerbRelationshipDirectionCodes.Either)
-        {
-            best = Max(best, RelationshipStrengthBetween(world, entityId, targetEntityId, relationshipKindId));
-        }
-
-        if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Incoming
-            or LowAltitudeVerbRelationshipDirectionCodes.Either)
-        {
-            best = Max(best, RelationshipStrengthBetween(world, targetEntityId, entityId, relationshipKindId));
-        }
-
-        return best;
-    }
-
-    private static float RelationshipStrengthBetween(WorldState world, int sourceId, int targetId, int relationshipKindId)
-    {
-        var relationshipId = world.FindRelationship(sourceId, targetId, relationshipKindId);
-        return relationshipId == 0 ? 0f : world.RelationshipStrength(relationshipId);
-    }
-
-    private float LocationWeight(
-        Simulation simulation,
-        int rule,
-        int planeCode,
-        int q,
-        int r,
-        int tick,
-        float generatorAffordance,
-        int targetEntityId = 0)
-    {
-        // PreviousTick reads are intentional: this program runs before MapActivity and MapSignals
-        // signal programs refresh, so the SignalSnapshot is a previous tick view.
-        var snapshot = simulation.ReadLowAltitudeSignalSnapshot(planeCode, q, r, tick, targetEntityId);
-
-        var staleness = snapshot.LastVisitedTick <= 0 ? 1f : Clamp01((tick - snapshot.LastVisitedTick) / 120f);
-        var heatScore = Clamp01(snapshot.Heat / 100f);
-        var attractorScore = Clamp01(snapshot.AttractorMass / 100f);
-        var weight = Data.Weight(rule);
-        weight += Data.ExploreWeight(rule) / (1f + snapshot.VisitCount);
-        weight += Data.StalenessWeight(rule) * staleness;
-        weight += Data.HotspotWeight(rule) * (heatScore + attractorScore);
-        weight += Data.GeneratorAffordanceWeight(rule) * generatorAffordance;
-        weight -= Data.CrowdingWeight(rule) * (snapshot.CurrentOccupancy + snapshot.CrowdingPressure);
-        return weight <= 0.01f ? 0.01f : weight;
-    }
-
-    private float GeneratorAffordanceScore(int actorKindId, int candidateKindId, int bindingKindId)
-    {
-        if (candidateKindId == 0)
-        {
-            return 0f;
-        }
-
-        var score = 0f;
-        for (var pair = 1; pair <= Data.AffordanceKindPairCount; pair++)
-        {
-            if (Data.AffordanceActorKindId(pair) == actorKindId &&
-                Data.AffordanceCandidateKindId(pair) == candidateKindId &&
-                Data.AffordanceBindingKindId(pair) == bindingKindId)
-            {
-                score += Data.AffordanceScore(pair);
-            }
-        }
-
-        return score > 3f ? 3f : score;
     }
 
     private void ApplyIntent(Simulation simulation, int entityId, int rule, int tick)

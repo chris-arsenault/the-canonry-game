@@ -7,6 +7,7 @@ public sealed class LowAltitudeVerbProgram
     public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
     public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
     public IReadOnlyList<CompiledGeneratorAffordanceRule> GeneratorAffordances { get; init; } = [];
+    public IReadOnlyList<CompiledTraitLowAltitudeWeightModifierRule> TraitWeightModifiers { get; init; } = [];
 }
 
 public sealed record CompiledSemanticPlaneBounds(
@@ -67,6 +68,18 @@ public sealed record CompiledGeneratorAffordanceRule(
     int BindingKindId,
     float AffordanceScore);
 
+public sealed record CompiledTraitLowAltitudeWeightModifierRule(
+    int KindId,
+    int TraitId,
+    int VerbId,
+    float WeightDelta,
+    float ExploreWeightDelta,
+    float StalenessWeightDelta,
+    float HotspotWeightDelta,
+    float CrowdingWeightDelta,
+    float GeneratorAffordanceWeightDelta,
+    float RelationshipAffinityWeightDelta);
+
 public sealed class MapActivityProgram
 {
     public bool EnabledByDefault { get; init; } = true;
@@ -126,4 +139,6 @@ public sealed record AttributeDeltaEffectRule(
     int MaxDistance,
     float Threshold,
     float MinimumRelationshipStrength,
-    float DeltaPerTick);
+    float DeltaPerTick,
+    int RequiredTargetTraitId,
+    int RequiredRelatedTraitId);

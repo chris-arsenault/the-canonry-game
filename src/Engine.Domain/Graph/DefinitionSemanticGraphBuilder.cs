@@ -216,8 +216,6 @@ public static class DefinitionSemanticGraphBuilder
         {
             Engine.Wiring.RefScope.Resource =>
                 ConvertResourceRef(attrRef, graph),
-            Engine.Wiring.RefScope.Pressure =>
-                ConvertPressureRef(attrRef, graph),
             Engine.Wiring.RefScope.Structural =>
                 new TypedDefinitionRef(attrRef.Scope, new StructuralValueId(attrRef.Name), attrRef.Kind),
             Engine.Wiring.RefScope.MapCell =>
@@ -264,18 +262,6 @@ public static class DefinitionSemanticGraphBuilder
         }
 
         return new TypedDefinitionRef(attrRef.Scope, new ResourceValueId(resourceId), attrRef.Kind);
-    }
-
-    private static TypedDefinitionRef ConvertPressureRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph)
-    {
-        var pressureId = new DefinitionPressureId(attrRef.Name);
-        if (!graph.Pressures.ContainsKey(pressureId))
-        {
-            throw new DefinitionGraphException(
-                $"Semantic ref uses undeclared pressure '{attrRef.Name}'.");
-        }
-
-        return new TypedDefinitionRef(attrRef.Scope, new PressureValueId(pressureId), attrRef.Kind);
     }
 
     private static TypedDefinitionRef ConvertRelationalRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph) =>

@@ -63,8 +63,6 @@ internal readonly record struct ObservedMapCellKey(int Q, int R);
 
 internal readonly record struct ResourceCellKey(int ResourceId, int Q, int R);
 
-internal readonly record struct PressureKey(int PressureId, int ScopeCode, int ScopeEntityId);
-
 internal readonly record struct PlannerStepKey(
     int RunId,
     int EntityId,

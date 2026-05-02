@@ -19,7 +19,6 @@ internal sealed partial class Simulation
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
         GambitProgramSnapshot.Write(writer, Gambits);
-        PressureProgramSnapshot.Write(writer, Pressures);
         GeneratorProgramSnapshot.Write(writer, Generators);
         DegeneracyProgramSnapshot.Write(writer, Degeneracy);
     }
@@ -39,7 +38,6 @@ internal sealed partial class Simulation
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);
         GambitProgramSnapshot.Read(reader, Gambits);
-        PressureProgramSnapshot.Read(reader, Pressures);
         GeneratorProgramSnapshot.Read(reader, Generators);
         DegeneracyProgramSnapshot.Read(reader, Degeneracy);
     }

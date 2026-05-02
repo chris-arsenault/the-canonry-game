@@ -4,6 +4,8 @@
 
 [node name="Card" type="PanelContainer"]
 custom_minimum_size = Vector2(220, 340)
+size_flags_horizontal = 0
+size_flags_vertical = 0
 script = ExtResource("1_card")
 
 [node name="Body" type="VBoxContainer" parent="."]
@@ -21,21 +23,34 @@ size_flags_horizontal = 3
 [node name="NameLabel" type="Label" parent="Body"]
 text = "Card Name"
 autowrap_mode = 3
+clip_text = true
+text_overrun_behavior = 3
+custom_minimum_size = Vector2(0, 22)
 
 [node name="ArtFrame" type="PanelContainer" parent="Body"]
-custom_minimum_size = Vector2(0, 140)
+custom_minimum_size = Vector2(0, 132)
 size_flags_horizontal = 3
+clip_contents = true
 
 [node name="Art" type="TextureRect" parent="Body/ArtFrame"]
 expand_mode = 1
 stretch_mode = 6
 
-[node name="SubtitleLabel" type="Label" parent="Body"]
+[node name="CreatesLabel" type="Label" parent="Body"]
 text = ""
+autowrap_mode = 2
+clip_text = true
+custom_minimum_size = Vector2(0, 16)
 
 [node name="DescriptionLabel" type="Label" parent="Body"]
 text = ""
 autowrap_mode = 3
+text_overrun_behavior = 3
+clip_text = true
+custom_minimum_size = Vector2(0, 48)
+
+[node name="Filler" type="Control" parent="Body"]
+size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="HRule" type="ColorRect" parent="Body"]

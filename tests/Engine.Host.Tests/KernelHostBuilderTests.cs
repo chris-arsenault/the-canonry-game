@@ -116,10 +116,10 @@ public sealed class KernelHostBuilderTests
     {
         using var host = new KernelHostBuilder()
             .WithDomainConfig(IceRemembersDefinition.Create())
-            .ConfigurePrograms(programs => programs.Disable(KernelProgramCodes.Pressures))
+            .ConfigurePrograms(programs => programs.Disable(KernelProgramCodes.Effects))
             .Build();
 
-        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Pressures));
+        Assert.False(host.ProgramIsEnabled(KernelProgramCodes.Effects));
     }
 
     [Fact]
@@ -287,37 +287,33 @@ public sealed class KernelHostBuilderTests
         Assert.True(host.Symbols.TryResolve(ProjectionSymbolKind.Superregion, 21, out var superregionSymbol));
         Assert.Equal("Farwake Reach", superregionSymbol.DisplayName);
 
-        var frosthavenSeed = startupSeed.Entities.Single(entity => entity.DisplayName == "Frosthaven");
-        var frosthavenEntityId = StartupEntityId(startupSeed, frosthavenSeed.SeedEntityId);
-        Assert.True(ui.Entities.TryGetValue(frosthavenEntityId, out var frosthaven));
-        Assert.Equal(host.DomainIds.KindIdOf(IceRemembersKinds.Settlement).Value, frosthaven.KindId);
+        var auroraStackSeed = startupSeed.Entities.Single(entity => entity.DisplayName == "Aurora Stack");
+        var auroraStackEntityId = StartupEntityId(startupSeed, auroraStackSeed.SeedEntityId);
+        Assert.True(ui.Entities.TryGetValue(auroraStackEntityId, out var auroraStack));
+        Assert.Equal(host.DomainIds.KindIdOf(IceRemembersKinds.Settlement).Value, auroraStack.KindId);
 
         var displayName = host.Symbols.ResolveEntityName(new ProjectionEntityNameKey(
-            frosthaven.EntityId,
-            frosthaven.KindId,
-            frosthaven.SubtypeId,
-            frosthaven.CultureId,
-            frosthaven.NameSeed));
-        Assert.Equal("Frosthaven", displayName);
+            auroraStack.EntityId,
+            auroraStack.KindId,
+            auroraStack.SubtypeId,
+            auroraStack.CultureId,
+            auroraStack.NameSeed));
+        Assert.Equal("Aurora Stack", displayName);
 
         var startupSourceCodeId = host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode).Value;
-        Assert.NotEmpty(frosthaven.Attributes);
-        Assert.All(frosthaven.Attributes.Values, attribute =>
+        Assert.NotEmpty(auroraStack.Attributes);
+        Assert.All(auroraStack.Attributes.Values, attribute =>
             Assert.Equal(startupSourceCodeId, attribute.SourceCodeId));
         Assert.InRange(
-            frosthaven.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.TempHp.ToDomainName()).Value].NewValue,
+            auroraStack.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.TempHp.ToDomainName()).Value].NewValue,
             80f,
             100f);
-        Assert.InRange(
-            frosthaven.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.Dominion.ToDomainName()).Value].NewValue,
-            30f,
-            70f);
-        Assert.InRange(
-            frosthaven.Attributes[host.DomainIds.AttributeIdOf(IceRemembersAttributeId.Shelter.ToDomainName()).Value].NewValue,
-            30f,
-            70f);
-        Assert.Contains(ui.Resources.Values, resource =>
-            resource.SourceCodeId == startupSourceCodeId && resource.NewValue > 0f);
+        Assert.Single(auroraStack.Attributes);
+        if (startupSeed.Resources.Any(resource => resource.Value > 0f))
+        {
+            Assert.Contains(ui.Resources.Values, resource =>
+                resource.SourceCodeId == startupSourceCodeId && resource.NewValue > 0f);
+        }
         Assert.Contains(ui.Relationships.Keys, relationship =>
             relationship.RelationshipKindId == host.DomainIds
                 .RelationshipKindIdOf(IceRemembersRelationship.ControlledBy.ToDomainName())

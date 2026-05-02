@@ -6,7 +6,6 @@ using Engine.Wiring;
 
 public sealed class SemanticDomainConfig
 {
-    public IReadOnlyList<EntityKind> RingOrder { get; init; } = [];
     public IReadOnlyList<SemanticStockConfig> Stocks { get; init; } = [];
     public IReadOnlyList<SemanticVerbConfig> Verbs { get; init; } = [];
     public IReadOnlyList<SemanticFlowConfig> Flows { get; init; } = [];

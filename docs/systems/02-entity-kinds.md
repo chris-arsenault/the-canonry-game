@@ -10,18 +10,23 @@ set.
 | --- | --- | --- | --- |
 | `region` | Spatial | Semantic | Named geographic or mythic area; owns map coverage. |
 | `settlement` | Spatial | Semantic | Built locality; grows influence and sometimes coverage. |
+| `point_of_interest` | Spatial | Semantic | Named natural feature — vent, peak, krill bloom, shoal. Smaller than a region, never built. |
 | `faction` | Agency | Semantic | Organized doctrine, office, compact, cell, or choir. |
 | `penguin` | Agency | Physical | Named individual penguin; mobile actor. |
+| `orca` | Agency | Physical | Named orca, member of a matriarchal pod; primarily Wake-Singer-aligned. |
+| `monster` | Agency | Physical | Bound or partially bound peril. Containment health plus static binding/hunger traits. |
 | `artifact` | Asset | Physical | Named relic, instrument, weapon, tome, or seal. |
+| `ability` | Asset | Semantic | Combat technique, magical rite, or piece of technology. Multi-holder; carrier (book, marking, tool) is real but the entity lives on the semantic plane. |
+| `transport` | Asset | Physical | Named, mobile, large named asset — trade fleet, battleship, scout, or citadel. Significant in its own right; owned and commanded by Agency entities. |
+| `occurrence` | Agency | Semantic | Named, active, major event — war, trade conference, plague, festival. Born by generators when relationship and locality gates cross thresholds; resolves when momentum reaches zero. Primary movement is through cultural/conflict space; anchored to the world via relationships. |
 
-Future kinds such as orca, transport, monster, point of interest, and occurrence
-should be added through the same domain registration path, not as engine enums.
+All initially deferred entity kinds are now registered.
 
 ## Kind Rules
 
 - Kind is permanent identity. Subtype can change; kind should not.
-- The domain declares valid subtypes, health attribute, culture labels, category,
-  primary plane, and relationship participation.
+- The domain declares valid subtypes, health attribute, trait catalog, culture
+  labels, category, primary plane, and relationship participation.
 - The engine may use categories such as spatial, agency, and asset for generic
   validation and runtime behavior.
 - Domain strings are compiled to IDs before reaching kernel runtime.
@@ -32,12 +37,19 @@ Current subtypes are domain vocabulary, not engine concepts:
 
 - `region`: `face`, `shelf`, `depths`, `reach`, `sea`, `scar`
 - `settlement`: `rookery`, `colony`, `holdfast`, `sanctuary`, `harbor`, `reefhold`
+- `point_of_interest`: `vent`, `peak`, `bloom`, `shoal`
 - `faction`: `order`, `compact`, `cell`, `choir`
 - `penguin`: `warden`, `broker`, `witness`, `exile`
+- `orca`: `matriarch`, `bull`, `scout`, `elder`
+- `monster`: `leviathan`, `wraith`, `beast`, `revenant`
 - `artifact`: `relic`, `instrument`, `weapon`, `tome`, `seal`
+- `ability`: `technique` (combat), `rite` (magic), `craft` (technology)
+- `transport`: `trade`, `battleship`, `scout`, `citadel`
+- `occurrence`: `war`, `trade_conference`, `plague`, `festival`
 
 Subtype coverage matters for generators and gambits, but every subtype does not
-need generator coverage immediately.
+need generator coverage immediately. Monster status (sealed, unbound, risen) is
+tracked separately from subtype and is not yet implemented.
 
 ## Architecture Rules
 

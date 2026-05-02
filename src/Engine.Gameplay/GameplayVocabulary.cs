@@ -26,7 +26,7 @@ public static class AttributeEffectConditions
     public static EffectCondition RelatedEntityDistance => EffectCondition.RelatedEntityDistance;
     public static EffectCondition MapSupportAtLocation => EffectCondition.MapSupportAtLocation;
     public static EffectCondition MapThreatAtLocation => EffectCondition.MapThreatAtLocation;
-    public static EffectCondition MapCrowdingPressure => EffectCondition.MapCrowdingPressure;
+    public static EffectCondition MapCrowdingLoad => EffectCondition.MapCrowdingLoad;
     public static EffectCondition MapCrowdingComfort => EffectCondition.MapCrowdingComfort;
 }
 

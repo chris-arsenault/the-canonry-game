@@ -135,6 +135,7 @@ public sealed class UiProjectionStateTests
         Assert.Equal(7, entity.PhysicalQ);
         Assert.Equal(8, entity.PhysicalR);
         Assert.Equal(14.5f, entity.Attributes[30].NewValue);
+        Assert.Contains(70, entity.Traits);
         Assert.Equal(50, entity.LastGambitExecution?.GambitId);
         Assert.True(entity.WasCreatedFromEvent);
         Assert.True(projection.IsComplete);
@@ -208,6 +209,12 @@ public sealed class UiProjectionStateTests
             AffectedEntityId1: 0,
             AffectedEntityCount: 1,
             State: KernelEventState.Succeeded))));
+        Assert.True(log.TryWrite(KernelEvent.From(new TraitAssignedKernelEvent(
+            Tick: 5,
+            WorldVersion: 5,
+            EntityId: 10,
+            TraitId: 70,
+            SourceCodeId: 40))));
     }
 
     private static void WriteRelationshipResourceGeneratorAndDecisionEvents(KernelEventLog log)

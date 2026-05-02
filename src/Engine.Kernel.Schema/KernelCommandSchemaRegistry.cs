@@ -27,7 +27,6 @@ internal enum KernelCommandSemanticKind
     EntityId = 7,
     ActionId = 8,
     GeneratorId = 9,
-    PressureId = 10,
     DetectorId = 11,
     AttributeId = 12,
     ResourceId = 13,

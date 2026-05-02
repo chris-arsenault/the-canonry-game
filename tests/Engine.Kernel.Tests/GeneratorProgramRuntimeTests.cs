@@ -11,7 +11,6 @@ public sealed class GeneratorProgramRuntimeTests
     private const int TargetSubtypeId = 10;
     private const int CreatedSubtypeId = 11;
     private const int CultureId = 20;
-    private const int TriggerAttributeId = 30;
     private const int CreatedAttributeId = 31;
     private const int RelationshipKindId = 40;
     private const int GeneratorId = 100;
@@ -59,35 +58,6 @@ public sealed class GeneratorProgramRuntimeTests
         RegisterGenerator(simulation, maxRuns: 1);
 
         simulation.AdvanceTicks(3);
-
-        Assert.Equal(2, simulation.World.EntityHighWatermark);
-    }
-
-    [Fact]
-    public void TriggerBlocksGeneratorUntilThresholdPasses()
-    {
-        var simulation = CreateSimulation();
-        SeedMap(simulation);
-        simulation.RegisterAttribute(TargetKindId, TriggerAttributeId, 0f, 100f, 0f);
-        var target = CreateTarget(simulation);
-        var slot = simulation.Generators.RegisterGenerator(
-            GeneratorId,
-            cadence: 1,
-            TargetKindId,
-            pulseWeight: 1,
-            maxRuns: 0,
-            targetAllowWilderness: false);
-        simulation.Generators.AddTrigger(slot, TargetKindId, TriggerAttributeId, GeneratorTriggerDirectionCodes.High, threshold: 50f);
-        AddProducedEntity(simulation, slot, createChance: 1f);
-
-        simulation.AdvanceTicks(1);
-        Assert.Equal(1, simulation.World.EntityHighWatermark);
-
-        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
-        {
-            simulation.SetAttribute(target, TriggerAttributeId, 75f, tick: 1);
-        }
-        simulation.AdvanceTicks(1);
 
         Assert.Equal(2, simulation.World.EntityHighWatermark);
     }
@@ -436,7 +406,7 @@ public sealed class GeneratorProgramRuntimeTests
             pulseWeight: 1,
             maxRuns,
             targetAllowWilderness: false);
-        simulation.Generators.AddTrigger(slot, TargetKindId, attributeId: 0, GeneratorTriggerDirectionCodes.Any, threshold: 0f);
+        simulation.Generators.AddTrigger(slot, TargetKindId);
         if (includeProduced)
         {
             AddProducedEntity(simulation, slot, createChance: 1f);
