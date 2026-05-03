@@ -13,25 +13,26 @@ public sealed class CapabilityKnowledgeContractTests
     public void CompiledDomain_ExposesGeneratorCapabilityStructureOutsideSymbols()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-        var generatorId = compiled.Ids.GeneratorIdOf("war_makes_wardens").Value;
+        var generatorId = compiled.Ids.GeneratorIdOf("routes_draw_readers").Value;
 
-        var graphNode = compiled.DefinitionGraph.Generators["war_makes_wardens"];
+        var graphNode = compiled.DefinitionGraph.Generators["routes_draw_readers"];
         var compiledRule = Assert.Single(
             compiled.Programs.Generators.Generators,
             generator => generator.GeneratorId == generatorId);
 
-        Assert.Equal(3, graphNode.Produces.Count);
-        Assert.Equal(4, graphNode.Relationships.Count);
-        Assert.NotNull(graphNode.TargetSaturation);
-        Assert.Contains(IceRemembersRelationship.AtWarWith.ToDomainName(), graphNode.Target.RequiredOutgoingRelationships!);
+        Assert.Equal(4, graphNode.Produces.Count);
+        Assert.Equal(6, graphNode.Relationships.Count);
+        Assert.Contains(
+            graphNode.Target.RequiredOutgoingRelationshipRequirements,
+            requirement => requirement.RelationshipId.Value == IceRemembersRelationship.TradeRoute.ToDomainName());
 
         Assert.Equal(graphNode.Produces.Count, compiledRule.ProducedEntities.Count);
         Assert.Equal(graphNode.Relationships.Count, compiledRule.Relationships.Count);
         Assert.Contains(graphNode.Produces, produced =>
-            produced.Ref == "$weapon" &&
-            produced.CreateChance == 0.55f);
+            produced.Ref == "$instrument" &&
+            produced.CreateChance == 0.45f);
         Assert.Contains(compiledRule.ProducedEntities, produced =>
-            produced.CreateChance == 0.55f &&
+            produced.CreateChance == 0.45f &&
             produced.PhysicalPlacement == GeneratorProgramPlacement.On);
     }
 

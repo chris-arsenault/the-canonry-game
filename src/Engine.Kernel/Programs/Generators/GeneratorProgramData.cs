@@ -34,10 +34,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] RelationshipCounts = [];
     internal int[] EffectStarts = [];
     internal int[] EffectCounts = [];
-    internal int[] SaturationRelationshipKindIds = [];
-    internal int[] SaturationFactIds = [];
-    internal int[] SaturationDirectionCodes = [];
-    internal int[] SaturationMaxExisting = [];
     internal int[] SubtypeIds = [];
     internal int[] RelationshipKindFilterIds = [];
     internal float[] RelationshipKindFilterMinimumStrengths = [];
@@ -91,11 +87,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] RelationshipDestinationRefCodes = [];
     internal int[] RelationshipKindIds = [];
     internal int[] RelationshipReplaceExistingOutgoing = [];
-    internal int[] RelationshipFactId0 = [];
-    internal int[] RelationshipFactId1 = [];
-    internal int[] RelationshipFactId2 = [];
-    internal int[] RelationshipFactId3 = [];
-    internal int[] RelationshipFactCounts = [];
     internal float[] RelationshipStrengths = [];
     internal int[] EffectTypeCodes = [];
     internal int[] EffectRefOrKindIds = [];
@@ -165,10 +156,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         RelationshipCounts = new int[generatorCapacity + 1];
         EffectStarts = new int[generatorCapacity + 1];
         EffectCounts = new int[generatorCapacity + 1];
-        SaturationRelationshipKindIds = new int[generatorCapacity + 1];
-        SaturationFactIds = new int[generatorCapacity + 1];
-        SaturationDirectionCodes = new int[generatorCapacity + 1];
-        SaturationMaxExisting = new int[generatorCapacity + 1];
     }
 
     private void InitializeEffectArrays(int itemCapacity)
@@ -251,11 +238,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         RelationshipDestinationRefCodes = new int[itemCapacity + 1];
         RelationshipKindIds = new int[itemCapacity + 1];
         RelationshipReplaceExistingOutgoing = new int[itemCapacity + 1];
-        RelationshipFactId0 = new int[itemCapacity + 1];
-        RelationshipFactId1 = new int[itemCapacity + 1];
-        RelationshipFactId2 = new int[itemCapacity + 1];
-        RelationshipFactId3 = new int[itemCapacity + 1];
-        RelationshipFactCounts = new int[itemCapacity + 1];
         RelationshipStrengths = new float[itemCapacity + 1];
     }
 

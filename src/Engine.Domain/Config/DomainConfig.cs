@@ -22,9 +22,6 @@ public sealed class DomainConfig
     /// <summary>Relationship kind definitions.</summary>
     public required IReadOnlyList<RelationshipConfig> Relationships { get; init; }
 
-    /// <summary>Domain-declared facts that can annotate relationship instances.</summary>
-    public IReadOnlyList<RelationshipFactConfig> RelationshipFacts { get; init; } = [];
-
     /// <summary>Degeneracy detector definitions.</summary>
     public DegeneracyConfig Degeneracy { get; init; } = new();
 
@@ -133,17 +130,6 @@ public sealed class RelationshipConfig
     public bool TargetFollowsSourcePhysical { get; init; }
     public float CullThreshold { get; init; } = 0.05f;
     public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
-}
-
-/// <summary>
-/// A typed assertion attached to a relationship instance. Relationship kind keeps
-/// broad graph meaning; facts preserve the more specific event meaning.
-/// </summary>
-public sealed class RelationshipFactConfig
-{
-    public required string Name { get; init; }
-    public string? DisplayName { get; init; }
-    public string? Description { get; init; }
 }
 
 public sealed class DegeneracyConfig

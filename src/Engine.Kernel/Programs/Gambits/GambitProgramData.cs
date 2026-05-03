@@ -68,7 +68,6 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] ProviderSelectorKindIds = [];
     internal int[] ProviderSelectorValueIds = [];
     internal int[] ProviderSelectorRelationshipKindIds = [];
-    internal int[] ProviderSelectorFactIds = [];
     internal float[] ProviderSelectorMinimumStrengths = [];
     internal int[] SupportEffectScopeCodes = [];
     internal int[] SupportEffectValueIds = [];
@@ -201,7 +200,6 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         ProviderSelectorKindIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorValueIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorRelationshipKindIds = new int[gambitProviderSelectorCapacity + 1];
-        ProviderSelectorFactIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorMinimumStrengths = new float[gambitProviderSelectorCapacity + 1];
     }
 

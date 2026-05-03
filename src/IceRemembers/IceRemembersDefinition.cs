@@ -45,7 +45,6 @@ public static partial class IceRemembersDefinition
             Kinds = kinds,
             Gambits = CreateGambits(),
             Relationships = CreateRelationships(),
-            RelationshipFacts = [],
             Degeneracy = IceRemembersDegeneracyDefinition.Create(),
             Lifecycles = CreateLifecycles(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,

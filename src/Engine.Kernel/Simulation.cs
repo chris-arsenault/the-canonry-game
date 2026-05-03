@@ -497,11 +497,6 @@ internal sealed partial class Simulation : IKernel
         int polarityCode,
         int sourceEntityId,
         int targetEntityId,
-        int factId0,
-        int factId1,
-        int factId2,
-        int factId3,
-        int factCount,
         float strength)
     {
         AssertStartupSeedTick();
@@ -511,12 +506,7 @@ internal sealed partial class Simulation : IKernel
             sourceEntityId,
             targetEntityId,
             strength,
-            CurrentTick,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount);
+            CurrentTick);
     }
 
     internal void SetAttribute(
@@ -583,12 +573,7 @@ internal sealed partial class Simulation : IKernel
         int sourceEntityId,
         int targetEntityId,
         float strength,
-        int tick,
-        int factId0 = 0,
-        int factId1 = 0,
-        int factId2 = 0,
-        int factId3 = 0,
-        int factCount = 0)
+        int tick)
     {
         return World.CreateRelationship(
             relationshipKindId,
@@ -597,11 +582,6 @@ internal sealed partial class Simulation : IKernel
             targetEntityId,
             strength,
             tick,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount,
             _executionContext);
     }
 

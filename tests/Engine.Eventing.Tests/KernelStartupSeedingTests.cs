@@ -101,19 +101,12 @@ public sealed class KernelStartupSeedingTests
             sourceEntityId: 1,
             targetEntityId: 2,
             strength: 0.5f,
-            tick: 0,
-            factId0: 9,
-            factCount: 1);
+            tick: 0);
         seeded.SeedRelationship(
             relationshipKindId: 7,
             polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: 1,
             targetEntityId: 2,
-            factId0: 9,
-            factId1: 0,
-            factId2: 0,
-            factId3: 0,
-            factCount: 1,
             strength: 0.5f);
 
         Assert.Equal(createdRelationship, seeded.World.FindRelationship(1, 2, 7));

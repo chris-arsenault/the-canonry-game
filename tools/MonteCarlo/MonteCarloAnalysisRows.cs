@@ -59,7 +59,6 @@ internal sealed record GeneratorAnalysisRow(
     double AverageCandidateCount,
     int InactiveRejected,
     int SubtypeRejected,
-    int SaturationRejected,
     int SecondaryTargetRejected,
     int WildernessRejected,
     int TriggerRejected,

@@ -412,11 +412,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.TargetEntityId,
             evt.PreviousStrength,
             evt.NewStrength,
-            evt.FactId0,
-            evt.FactId1,
-            evt.FactId2,
-            evt.FactId3,
-            evt.FactCount,
             CauseId: 0));
         MarkProjected(sequence);
     }
@@ -599,7 +594,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             TargetPoolCount: 0,
             InactiveRejectedCount: 0,
             SubtypeRejectedCount: 0,
-            SaturationRejectedCount: 0,
             SecondaryTargetRejectedCount: 0,
             WildernessRejectedCount: 0,
             TriggerRejectedCount: 0,
@@ -627,7 +621,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             TargetPoolCount: 0,
             InactiveRejectedCount: 0,
             SubtypeRejectedCount: 0,
-            SaturationRejectedCount: 0,
             SecondaryTargetRejectedCount: 0,
             WildernessRejectedCount: 0,
             TriggerRejectedCount: 0,

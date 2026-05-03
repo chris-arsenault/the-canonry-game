@@ -40,11 +40,6 @@ internal sealed partial class WorldState
     private int[] _relationshipPolarityCode = [];
     private int[] _relationshipSourceId = [];
     private int[] _relationshipTargetId = [];
-    private int[] _relationshipFactId0 = [];
-    private int[] _relationshipFactId1 = [];
-    private int[] _relationshipFactId2 = [];
-    private int[] _relationshipFactId3 = [];
-    private int[] _relationshipFactCount = [];
     private int[] _relationshipStartTick = [];
     private int[] _relationshipEndTick = [];
     private float[] _relationshipStrength = [];
@@ -148,11 +143,6 @@ internal sealed partial class WorldState
         _relationshipPolarityCode = new int[options.RelationshipCapacity + 1];
         _relationshipSourceId = new int[options.RelationshipCapacity + 1];
         _relationshipTargetId = new int[options.RelationshipCapacity + 1];
-        _relationshipFactId0 = new int[options.RelationshipCapacity + 1];
-        _relationshipFactId1 = new int[options.RelationshipCapacity + 1];
-        _relationshipFactId2 = new int[options.RelationshipCapacity + 1];
-        _relationshipFactId3 = new int[options.RelationshipCapacity + 1];
-        _relationshipFactCount = new int[options.RelationshipCapacity + 1];
         _relationshipStartTick = new int[options.RelationshipCapacity + 1];
         _relationshipEndTick = new int[options.RelationshipCapacity + 1];
         _relationshipStrength = new float[options.RelationshipCapacity + 1];
@@ -480,12 +470,7 @@ internal sealed partial class WorldState
         int sourceEntityId,
         int targetEntityId,
         float strength,
-        int tick,
-        int factId0 = 0,
-        int factId1 = 0,
-        int factId2 = 0,
-        int factId3 = 0,
-        int factCount = 0)
+        int tick)
     {
         return CreateRelationship(
             kindId,
@@ -494,11 +479,6 @@ internal sealed partial class WorldState
             targetEntityId,
             strength,
             tick,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount,
             new KernelExecutionContext(0, _defaultSourceCodeId));
     }
 
@@ -509,18 +489,12 @@ internal sealed partial class WorldState
         int targetEntityId,
         float strength,
         int tick,
-        int factId0,
-        int factId1,
-        int factId2,
-        int factId3,
-        int factCount,
         in KernelExecutionContext context)
     {
         ValidatePositive(context.SourceCodeId);
         ValidatePositive(kindId);
         EnsureEntity(sourceEntityId);
         EnsureEntity(targetEntityId);
-        ValidateFactCount(factCount);
         var relationshipId = FindRelationshipSlot();
         EnsureProvenanceOutputCapacity(context);
         _relationshipAllocated[relationshipId] = true;
@@ -532,11 +506,6 @@ internal sealed partial class WorldState
         _relationshipStrength[relationshipId] = Clamp01(strength);
         _relationshipStartTick[relationshipId] = tick;
         _relationshipEndTick[relationshipId] = 0;
-        _relationshipFactId0[relationshipId] = factId0;
-        _relationshipFactId1[relationshipId] = factId1;
-        _relationshipFactId2[relationshipId] = factId2;
-        _relationshipFactId3[relationshipId] = factId3;
-        _relationshipFactCount[relationshipId] = factCount;
         if (relationshipId > _relationshipHighWatermark)
         {
             _relationshipHighWatermark = relationshipId;
@@ -1000,20 +969,6 @@ internal sealed partial class WorldState
     {
         EnsureRelationship(relationshipId);
         return _relationshipStrength[relationshipId];
-    }
-
-    public bool RelationshipHasFact(int relationshipId, int factId)
-    {
-        EnsureRelationship(relationshipId);
-        if (factId == 0)
-        {
-            return true;
-        }
-
-        return (_relationshipFactCount[relationshipId] > 0 && _relationshipFactId0[relationshipId] == factId) ||
-               (_relationshipFactCount[relationshipId] > 1 && _relationshipFactId1[relationshipId] == factId) ||
-               (_relationshipFactCount[relationshipId] > 2 && _relationshipFactId2[relationshipId] == factId) ||
-               (_relationshipFactCount[relationshipId] > 3 && _relationshipFactId3[relationshipId] == factId);
     }
 
 }

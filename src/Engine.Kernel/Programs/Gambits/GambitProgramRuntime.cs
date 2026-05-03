@@ -107,7 +107,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private int[] _providerSelectorKindIds => Data.ProviderSelectorKindIds;
     private int[] _providerSelectorValueIds => Data.ProviderSelectorValueIds;
     private int[] _providerSelectorRelationshipKindIds => Data.ProviderSelectorRelationshipKindIds;
-    private int[] _providerSelectorFactIds => Data.ProviderSelectorFactIds;
     private float[] _providerSelectorMinimumStrengths => Data.ProviderSelectorMinimumStrengths;
     private int[] _supportEffectScopeCodes => Data.SupportEffectScopeCodes;
     private int[] _supportEffectValueIds => Data.SupportEffectValueIds;
@@ -341,7 +340,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int kindId = 0,
         int valueId = 0,
         int relationshipKindId = 0,
-        int factId = 0,
         float minimumStrength = 0f)
     {
         EnsureOpenGambit(gambitSlot);
@@ -349,7 +347,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(kindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(valueId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(factId);
         if (_providerSelectorCount + 1 >= _providerSelectorCodes.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -360,7 +357,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         _providerSelectorKindIds[_providerSelectorCount] = kindId;
         _providerSelectorValueIds[_providerSelectorCount] = valueId;
         _providerSelectorRelationshipKindIds[_providerSelectorCount] = relationshipKindId;
-        _providerSelectorFactIds[_providerSelectorCount] = factId;
         _providerSelectorMinimumStrengths[_providerSelectorCount] = minimumStrength;
         _gambitProviderSelectorCounts[gambitSlot]++;
     }

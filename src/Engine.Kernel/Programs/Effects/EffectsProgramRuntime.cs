@@ -196,7 +196,6 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             entityId,
             _attributeDeltaRelationshipKindIds[rule],
             _attributeDeltaMinimumRelationshipStrengths[rule],
-            requiredFactId: 0,
             outgoing,
             (relationshipId, otherEntityId) =>
             {
@@ -258,7 +257,6 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             entityId,
             _attributeDeltaRelationshipKindIds[rule],
             _attributeDeltaMinimumRelationshipStrengths[rule],
-            requiredFactId: 0,
             outgoing,
             (relationshipId, otherEntityId) =>
             {

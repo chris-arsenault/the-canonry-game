@@ -18,8 +18,6 @@ Useful precondition families:
 
 - entity kind/subtype/culture
 - relationship existence or absence
-- rare boolean relationship qualifier existence, if the fact system remains
-- relationship saturation limit
 - relationship strength threshold
 - health threshold
 - trait presence or absence

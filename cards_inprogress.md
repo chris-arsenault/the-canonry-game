@@ -16,7 +16,7 @@ sequence to get there.
   authored data:
   - `DefinitionGraph.Generators[stableId]` carries `Produces`,
     `Relationships`, `SecondaryTargets`, `Triggers`,
-    `TargetSaturation`, `Effects`, etc.
+    `Effects`, etc.
   - `Config.Gambits[i]` (with `Mutations`, `Description`,
     `SuccessChance`, cooldowns) carries gambit structure.
 - `KernelHost.CompiledDomain` exposes the above to the host layer.

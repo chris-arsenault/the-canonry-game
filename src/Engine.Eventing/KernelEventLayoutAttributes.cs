@@ -75,7 +75,6 @@ public enum KernelEventSemanticKind
     CultureId = 5,
     AttributeId = 6,
     RelationshipKindId = 8,
-    RelationshipFactId = 9,
     EventCodeId = 10,
     ReasonCodeId = 11,
     SourceCodeId = 12,

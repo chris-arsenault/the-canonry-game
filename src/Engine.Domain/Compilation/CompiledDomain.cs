@@ -42,7 +42,6 @@ public enum DomainSymbolKind
     Gambit,
     StructuralFact,
     RelationshipKind,
-    RelationshipFact,
     Terrain,
     Generator,
     Verb,

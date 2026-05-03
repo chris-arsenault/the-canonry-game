@@ -65,10 +65,6 @@ public static partial class DomainCompiler
             RegisterOnceStrict(state.RelationshipKinds, relationship.Name, state.Registry.RegisterRelationshipKind, "relationship kind");
         }
 
-        foreach (var fact in config.RelationshipFacts)
-        {
-            RegisterOnceStrict(state.RelationshipFacts, fact.Name, state.Registry.RegisterRelationshipFact, "relationship fact");
-        }
     }
 
     private static void RegisterTerrainCatalog(DomainConfig config, CatalogRegistrationState state)
@@ -165,7 +161,6 @@ public static partial class DomainCompiler
         public HashSet<string> Traits { get; } = new(StringComparer.Ordinal);
         public HashSet<string> StructuralFacts { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipKinds { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> RelationshipFacts { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Terrains { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Subtypes { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Cultures { get; } = new(StringComparer.Ordinal);

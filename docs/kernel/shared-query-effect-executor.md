@@ -18,7 +18,7 @@ the shared kernel path:
 - `SharedQuery`, `QueryPredicate`, `QueryBinding`, and `QueryEvaluation`
   describe current shared query instructions;
 - `KernelQuery` owns reusable relationship, trait, health, distance, count,
-  overlap, evidence, binding, and saturation predicates;
+  overlap, evidence, and binding predicates;
 - `KernelEffectExecutor` applies high-level mutations through `Simulation`;
 - `Simulation` and `WorldState` remain the event-emitting mutation boundary;
 - `DecisionModifier` owns trait-authored decision modifiers for gambit score,
@@ -32,8 +32,8 @@ modifiers, or world mutations.
 
 Shared primitives own:
 
-- generator target gates, relationship gates, saturation checks, and produced
-  entity binding queries;
+- generator target gates, relationship gates, and produced entity binding
+  queries;
 - gambit precondition predicates;
 - trait-backed health effect gates;
 - trait-authored gambit score/success and low-altitude weight modifiers;

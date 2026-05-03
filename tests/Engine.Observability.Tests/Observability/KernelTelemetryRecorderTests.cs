@@ -29,7 +29,6 @@ public sealed class KernelTelemetryRecorderTests
             .RegisterSymbol(ProjectionSymbolKind.SourceCode, 5, "low_altitude", "Low Altitude")
             .RegisterSymbol(ProjectionSymbolKind.EventCode, 7, "relationship_added", "Relationship Added")
             .RegisterSymbol(ProjectionSymbolKind.RelationshipKind, 8, "allied_with", "Allied With")
-            .RegisterSymbol(ProjectionSymbolKind.RelationshipFact, 9, "nearby", "Nearby")
             .RegisterSymbol(ProjectionSymbolKind.Generator, 10, "found_settlement", "Found Settlement")
             .RegisterSymbol(ProjectionSymbolKind.Verb, 11, "forage", "Forage")
             .RegisterEntityName(100, "Hearthhome")
@@ -114,11 +113,6 @@ public sealed class KernelTelemetryRecorderTests
             PolarityCode: RelationshipPolarityCodes.Neutral,
             SourceEntityId: 100,
             TargetEntityId: 200,
-            FactId0: 9,
-            FactId1: 0,
-            FactId2: 0,
-            FactId3: 0,
-            FactCount: 1,
             PreviousStrength: 0f,
             NewStrength: 0.75f))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
@@ -222,8 +216,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(5, relationship.SourceCodeId);
         Assert.Equal(8, relationship.RelationshipKindId);
         Assert.Equal(RelationshipPolarityCodes.Neutral, relationship.PolarityCode);
-        Assert.Equal(9, relationship.FactId0);
-        Assert.Equal(1, relationship.FactCount);
 
         var trace = Assert.Single(batch.TraceEvents);
         Assert.Equal(TraceSubjectCodes.TargetDetail, trace.TraceSubjectCode);

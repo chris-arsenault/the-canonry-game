@@ -15,11 +15,6 @@ public readonly record struct DefinitionRelationshipId(string Value)
     public override string ToString() => Value;
 }
 
-public readonly record struct DefinitionRelationshipFactId(string Value)
-{
-    public override string ToString() => Value;
-}
-
 public enum DefinitionAttributeShape
 {
     Scalar,

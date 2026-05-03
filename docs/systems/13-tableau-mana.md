@@ -18,7 +18,6 @@ Each active generator or gambit should expose:
 - last run tick
 - execution count
 - recent failure or waiting reason
-- saturation relationship/fact limits when configured
 
 ## Design Rules
 

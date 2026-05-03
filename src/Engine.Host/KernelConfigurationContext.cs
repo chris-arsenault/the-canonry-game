@@ -336,7 +336,6 @@ internal sealed class KernelConfigurationContext
         int kindId = 0,
         int valueId = 0,
         int relationshipKindId = 0,
-        int factId = 0,
         float minimumStrength = 0f) =>
         _kernel.Gambits.AddProviderSelector(
             gambitSlot,
@@ -344,7 +343,6 @@ internal sealed class KernelConfigurationContext
             kindId,
             valueId,
             relationshipKindId,
-            factId,
             minimumStrength);
 
     public int AddGambitSupportRule(
@@ -435,19 +433,6 @@ internal sealed class KernelConfigurationContext
         int radius,
         int maximumExclusive) =>
         _kernel.Generators.AddTargetTerrainCountBelow(generatorSlot, terrainId, radius, maximumExclusive);
-
-    public void SetGeneratorTargetSaturation(
-        int generatorSlot,
-        int relationshipKindId,
-        int requiredFactId,
-        int directionCode,
-        int maxExisting) =>
-        _kernel.Generators.SetTargetSaturation(
-            generatorSlot,
-            relationshipKindId,
-            requiredFactId,
-            directionCode,
-            maxExisting);
 
     public void AddGeneratorTrigger(int generatorSlot, int kindId) =>
         _kernel.Generators.AddTrigger(generatorSlot, kindId);
@@ -541,24 +526,14 @@ internal sealed class KernelConfigurationContext
         int destinationRefCode,
         int relationshipKindId,
         float strength,
-        bool replaceExistingOutgoing,
-        int factId0 = 0,
-        int factId1 = 0,
-        int factId2 = 0,
-        int factId3 = 0,
-        int factCount = 0) =>
+        bool replaceExistingOutgoing) =>
         _kernel.Generators.AddRelationship(
             generatorSlot,
             sourceRefCode,
             destinationRefCode,
             relationshipKindId,
             strength,
-            replaceExistingOutgoing ? 1 : 0,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount);
+            replaceExistingOutgoing ? 1 : 0);
 
     public void AddGeneratorEffect(
         int generatorSlot,

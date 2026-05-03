@@ -15,46 +15,56 @@ public sealed class GameDomainKnowledgeTests
     public void FromCompiledDomain_ExposesGeneratorCardOutputsAndRelationships()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-        var generatorId = compiled.Ids.GeneratorIdOf("war_makes_wardens").Value;
+        var generatorId = compiled.Ids.GeneratorIdOf("routes_draw_readers").Value;
 
         var knowledge = GameDomainKnowledge.FromCompiledDomain(compiled, new ProjectionSymbolCatalog());
 
         var generator = knowledge.GeneratorsById[generatorId];
         Assert.Equal(GameCapabilityKind.Generator, generator.Kind);
-        Assert.Equal("war_makes_wardens", generator.StableName);
-        Assert.Equal("War Makes Wardens", generator.DisplayName);
+        Assert.Equal("routes_draw_readers", generator.StableName);
+        Assert.Equal("Routes Draw Readers", generator.DisplayName);
         Assert.Equal("penguin", generator.PrimaryKindStableName);
         Assert.Collection(
             generator.Produces,
             produced =>
             {
-                Assert.Equal("$warden", produced.Ref);
+                Assert.Equal("$broker", produced.Ref);
                 Assert.Equal("penguin", produced.KindStableName);
-                Assert.Equal("warden", produced.SubtypeStableName);
-                Assert.Equal("Warden", produced.DisplayLabel);
+                Assert.Equal("broker", produced.SubtypeStableName);
+                Assert.Equal("Broker", produced.DisplayLabel);
                 Assert.False(produced.IsOptional);
             },
             produced =>
             {
-                Assert.Equal("$holdfast", produced.Ref);
+                Assert.Equal("$harbor", produced.Ref);
                 Assert.Equal("settlement", produced.KindStableName);
-                Assert.Equal("holdfast", produced.SubtypeStableName);
-                Assert.Equal("Holdfast", produced.DisplayLabel);
+                Assert.Equal("harbor", produced.SubtypeStableName);
+                Assert.Equal("Harbor", produced.DisplayLabel);
                 Assert.False(produced.IsOptional);
             },
             produced =>
             {
-                Assert.Equal("$weapon", produced.Ref);
+                Assert.Equal("$order", produced.Ref);
+                Assert.Equal("faction", produced.KindStableName);
+                Assert.Equal("order", produced.SubtypeStableName);
+                Assert.Equal("Order", produced.DisplayLabel);
+                Assert.True(produced.IsOptional);
+            },
+            produced =>
+            {
+                Assert.Equal("$instrument", produced.Ref);
                 Assert.Equal("artifact", produced.KindStableName);
-                Assert.Equal("weapon", produced.SubtypeStableName);
-                Assert.Equal("Weapon", produced.DisplayLabel);
+                Assert.Equal("instrument", produced.SubtypeStableName);
+                Assert.Equal("Instrument", produced.DisplayLabel);
                 Assert.True(produced.IsOptional);
             });
         Assert.Collection(
             generator.RelationshipChanges,
-            relationship => Assert.Equal("member_of", relationship.RelationshipStableName),
             relationship => Assert.Equal("home_base", relationship.RelationshipStableName),
+            relationship => Assert.Equal("founded_from", relationship.RelationshipStableName),
+            relationship => Assert.Equal("trade_route", relationship.RelationshipStableName),
             relationship => Assert.Equal("controlled_by", relationship.RelationshipStableName),
+            relationship => Assert.Equal("member_of", relationship.RelationshipStableName),
             relationship => Assert.Equal("native_to", relationship.RelationshipStableName));
     }
 
@@ -96,10 +106,10 @@ public sealed class GameDomainKnowledgeTests
     public void TableauCardsReceiveCompiledDomainKnowledge()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-        var generatorId = compiled.Ids.GeneratorIdOf("war_makes_wardens").Value;
+        var generatorId = compiled.Ids.GeneratorIdOf("routes_draw_readers").Value;
         var gambitId = compiled.Ids.GambitIdOf("artifact_cleanses_scar").Value;
         var symbols = new ProjectionSymbolCatalog()
-            .RegisterSymbol(ProjectionSymbolKind.Generator, generatorId, "war_makes_wardens", "War Makes Wardens")
+            .RegisterSymbol(ProjectionSymbolKind.Generator, generatorId, "routes_draw_readers", "Routes Draw Readers")
             .RegisterSymbol(ProjectionSymbolKind.Gambit, gambitId, "artifact_cleanses_scar", "Cleanse a Scar");
         var knowledge = GameDomainKnowledge.FromCompiledDomain(compiled, symbols);
         var projection = new UiProjectionState();
@@ -112,10 +122,10 @@ public sealed class GameDomainKnowledgeTests
 
         var generatorCard = tableau.Cards.Single(card => card.Definition.GeneratorId == generatorId);
         Assert.Equal("penguin", generatorCard.Definition.Tags.Single(tag => tag == "penguin"));
-        Assert.Equal(3, generatorCard.Definition.Produces.Count);
-        Assert.Equal(4, generatorCard.Definition.RelationshipChanges.Count);
+        Assert.Equal(4, generatorCard.Definition.Produces.Count);
+        Assert.Equal(6, generatorCard.Definition.RelationshipChanges.Count);
         Assert.Contains(generatorCard.Definition.Produces, produced =>
-            produced.SubtypeStableName == "weapon" &&
+            produced.SubtypeStableName == "instrument" &&
             produced.IsOptional);
 
         var gambitCard = tableau.Cards.Single(card => card.Definition.GambitId == gambitId);

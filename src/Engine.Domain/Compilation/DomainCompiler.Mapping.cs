@@ -332,7 +332,6 @@ public static partial class DomainCompiler
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.PulseWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
-                CompileGeneratorTargetSaturation(generator.TargetSaturation),
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
@@ -362,18 +361,6 @@ public static partial class DomainCompiler
         }
 
         return refCodes;
-    }
-
-    private static GeneratorTargetSaturationRule? CompileGeneratorTargetSaturation(
-        DefinitionTargetSaturation? saturation)
-    {
-        return saturation is null
-            ? null
-            : new GeneratorTargetSaturationRule(
-                saturation.RelationshipRuntimeId,
-                saturation.RequiredFactRuntimeId,
-                ToGeneratorSaturationDirection(saturation.Direction),
-                saturation.MaxExisting);
     }
 
     private static GeneratorTargetRelationshipRequirements CompileGeneratorTargetRelationshipRequirements(
@@ -557,8 +544,7 @@ public static partial class DomainCompiler
                 relationship.RelationshipRuntimeId,
                 relationship.Strength,
                 relationship.ReplaceExistingOutgoingOfSameKind ||
-                graph.Relationships[relationship.RelationshipId].SourceConfig.IsExclusive,
-                relationship.FactRuntimeIds.Order().ToList()));
+                graph.Relationships[relationship.RelationshipId].SourceConfig.IsExclusive));
         }
 
         return compiled;
@@ -682,15 +668,6 @@ public static partial class DomainCompiler
 
         return produced.Subtypes;
     }
-
-    private static GeneratorProgramSaturationDirection ToGeneratorSaturationDirection(
-        TargetSaturationDirection direction) => direction switch
-        {
-            TargetSaturationDirection.OutgoingFromTarget => GeneratorProgramSaturationDirection.OutgoingFromTarget,
-            TargetSaturationDirection.IncomingToTarget => GeneratorProgramSaturationDirection.IncomingToTarget,
-            TargetSaturationDirection.Symmetric => GeneratorProgramSaturationDirection.Symmetric,
-            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
-        };
 
     private static int ToGeneratorRelationshipInstanceSelection(
         GeneratorRelationshipInstanceSelection selection) => selection switch

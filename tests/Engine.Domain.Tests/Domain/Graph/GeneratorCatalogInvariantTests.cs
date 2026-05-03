@@ -27,23 +27,9 @@ public class GeneratorCatalogInvariantTests
 
         foreach (var generator in graph.Generators.Values)
         {
-            if (generator.TargetSaturation is not { } saturation)
+            if (!HasCausalSpend(generator))
             {
-                if (!HasCausalSpend(generator))
-                {
-                    issues.Add($"{generator.Id} has neither legacy target saturation nor causal spend.");
-                }
-
-                continue;
-            }
-
-            var hasMatchingRelationship = generator.Relationships.Any(relationship =>
-                relationship.RelationshipId == saturation.RelationshipId &&
-                (saturation.RequiredFactId is null || relationship.FactIds.Contains(saturation.RequiredFactId.Value)) &&
-                TargetSaturationDirectionMatchesRelationship(saturation.Direction, relationship));
-            if (!hasMatchingRelationship)
-            {
-                issues.Add($"{generator.Id} target saturation does not match a generated relationship.");
+                issues.Add($"{generator.Id} has no causal spend.");
             }
         }
 
@@ -587,7 +573,6 @@ public class GeneratorCatalogInvariantTests
             Terrains = config.Terrains,
             Gambits = config.Gambits,
             Relationships = config.Relationships,
-            RelationshipFacts = config.RelationshipFacts,
             Lifecycles = config.Lifecycles,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
@@ -601,17 +586,6 @@ public class GeneratorCatalogInvariantTests
             },
         };
     }
-
-    private static bool TargetSaturationDirectionMatchesRelationship(
-        TargetSaturationDirection direction,
-        DefinitionGeneratorRelationship relationship) =>
-        direction switch
-        {
-            TargetSaturationDirection.OutgoingFromTarget => relationship.SourceRef == "$target",
-            TargetSaturationDirection.IncomingToTarget => relationship.DestinationRef == "$target",
-            TargetSaturationDirection.Symmetric => relationship.SourceRef == "$target" || relationship.DestinationRef == "$target",
-            _ => false,
-        };
 
     private static List<string> FindSeedReachabilityIssues(IReadOnlyList<SemanticGeneratorConfig> generators)
     {

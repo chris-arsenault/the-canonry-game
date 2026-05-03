@@ -70,24 +70,14 @@ internal static class KernelEffectExecutor
         int polarityCode,
         int sourceEntityId,
         int targetEntityId,
-        float strength,
-        int factId0 = 0,
-        int factId1 = 0,
-        int factId2 = 0,
-        int factId3 = 0,
-        int factCount = 0) =>
+        float strength) =>
         simulation.CreateRelationship(
             relationshipKindId,
             polarityCode,
             sourceEntityId,
             targetEntityId,
             strength,
-            simulation.CurrentTick,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount);
+            simulation.CurrentTick);
 
     public static void SetRelationshipStrength(Simulation simulation, int relationshipId, float strength) =>
         simulation.SetRelationshipStrength(relationshipId, strength, simulation.CurrentTick);

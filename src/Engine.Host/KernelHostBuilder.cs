@@ -534,9 +534,6 @@ internal sealed class KernelHostBuilder
             case DomainSymbolKind.RelationshipKind:
                 symbolKind = ProjectionSymbolKind.RelationshipKind;
                 return true;
-            case DomainSymbolKind.RelationshipFact:
-                symbolKind = ProjectionSymbolKind.RelationshipFact;
-                return true;
             case DomainSymbolKind.EventCode:
                 symbolKind = ProjectionSymbolKind.EventCode;
                 return true;

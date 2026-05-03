@@ -34,11 +34,10 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void IceRemembers_TeachingLineageUsesRelationshipNotRelationshipFact()
+    public void IceRemembers_TeachingLineageUsesTaughtByRelationship()
     {
         var config = IceRemembersDefinition.Create();
 
-        Assert.Empty(config.RelationshipFacts);
         var taughtBy = Assert.Single(
             config.Relationships,
             relationship => relationship.Name == IceRemembersRelationship.TaughtBy.ToDomainName());
@@ -47,22 +46,17 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void IceRemembers_StartupAbilityLineageCreatesTaughtByEdgesWithoutFacts()
+    public void IceRemembers_StartupAbilityLineageCreatesTaughtByEdges()
     {
         var seed = IceRemembersSeedBuilder.BuildDefault(seed: 42);
 
-        Assert.DoesNotContain(seed.Relationships, relationship => relationship.Facts is { Count: > 0 });
         Assert.Contains(
             seed.Relationships,
             relationship => relationship.RelationshipKind == IceRemembersRelationship.TaughtBy.ToDomainName());
-        Assert.All(
-            seed.Relationships.Where(relationship =>
-                relationship.RelationshipKind == IceRemembersRelationship.PracticedBy.ToDomainName()),
-            relationship => Assert.True(relationship.Facts is null or { Count: 0 }));
     }
 
     [Fact]
-    public void IceRemembers_SelectedGeneratorsUseCausalSpendInsteadOfSaturation()
+    public void IceRemembers_SelectedGeneratorsUseCausalSpend()
     {
         var generators = IceRemembersDefinition.Create().Semantics!.Generators;
         var accounts = Assert.Single(generators, generator => generator.Id == "ice_settles_accounts");
@@ -71,22 +65,18 @@ public class DomainConfigTests
         var routes = Assert.Single(generators, generator => generator.Id == "routes_draw_readers");
         var artifact = Assert.Single(generators, generator => generator.Id == "what_the_artifact_knows");
 
-        Assert.Null(accounts.TargetSaturation);
         var accountEffect = Assert.IsType<RemoveTargetRelationshipsEffect>(
             Assert.Single(accounts.Effects, effect => effect is RemoveTargetRelationshipsEffect));
         Assert.Equal(GeneratorRelationshipInstanceSelection.TriggerRelationship, accountEffect.InstanceSelection);
         Assert.True(accountEffect.IncludeReciprocal);
 
-        Assert.Null(spring.TargetSaturation);
         Assert.Contains(IceRemembersRelationship.Anchored.ToDomainName(), spring.Target.WithoutIncomingRelationships!);
 
-        Assert.Null(war.TargetSaturation);
         var warTerrainRequirement = Assert.Single(war.Target.TerrainCountRequirements);
         Assert.Equal(IceRemembersTerrain.Wastes.ToDomainName(), warTerrainRequirement.TerrainName);
         Assert.Equal(5, warTerrainRequirement.Radius);
         Assert.Equal(8, warTerrainRequirement.MaximumExclusive);
 
-        Assert.Null(routes.TargetSaturation);
         var routeRequirement = Assert.Single(routes.Target.RequiredOutgoingRelationshipRequirements);
         Assert.Equal(IceRemembersRelationship.TradeRoute.ToDomainName(), routeRequirement.RelationshipKind);
         Assert.True(routeRequirement.MinimumStrength > 0f);
@@ -96,7 +86,6 @@ public class DomainConfigTests
         Assert.True(routeEffect.IncludeReciprocal);
         Assert.True(routeEffect.Delta < 0f);
 
-        Assert.Null(artifact.TargetSaturation);
         Assert.Contains(IceRemembersRelationship.HomeBase.ToDomainName(), artifact.Target.WithoutOutgoingRelationships!);
     }
 

@@ -70,21 +70,11 @@ internal sealed class KernelStartupContext
         int polarityCode,
         int sourceEntityId,
         int targetEntityId,
-        int factId0,
-        int factId1,
-        int factId2,
-        int factId3,
-        int factCount,
         float strength) =>
         _kernel.SeedRelationship(
             relationshipKindId,
             polarityCode,
             sourceEntityId,
             targetEntityId,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount,
             strength);
 }

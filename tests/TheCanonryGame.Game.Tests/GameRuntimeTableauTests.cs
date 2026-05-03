@@ -13,7 +13,7 @@ public sealed class GameRuntimeTableauTests
     public void Constructor_BuildsSortedCardsFromProjectionSymbolsAndCopiesMetadata()
     {
         var symbols = new ProjectionSymbolCatalog()
-            .RegisterSymbol(ProjectionSymbolKind.Generator, 20, "war_makes_wardens", "War Makes Wardens", "Creates wardens.")
+            .RegisterSymbol(ProjectionSymbolKind.Generator, 20, "routes_draw_readers", "Routes Draw Readers", "Draws readers.")
             .RegisterSymbol(ProjectionSymbolKind.Generator, 10, "ice_settles_accounts", "Ice Settles Accounts", "Settles artifacts.")
             .RegisterSymbol(ProjectionSymbolKind.Gambit, 30, "penguin_wields_artifact", "Penguin Wields Artifact", "A penguin uses an artifact.")
             .RegisterSymbol(ProjectionSymbolKind.Kind, 40, "settlement", "Settlement");
@@ -34,11 +34,11 @@ public sealed class GameRuntimeTableauTests
             },
             card =>
             {
-                Assert.Equal("generator:war_makes_wardens", card.Definition.Id);
+                Assert.Equal("generator:routes_draw_readers", card.Definition.Id);
                 Assert.Equal(CardType.Generator, card.Definition.Type);
                 Assert.Equal(20, card.Definition.GeneratorId);
-                Assert.Contains("penguin", card.Definition.Tags);
-                Assert.Contains("kind:penguin", card.Definition.Tags);
+                Assert.Contains("settlement", card.Definition.Tags);
+                Assert.Contains("kind:settlement", card.Definition.Tags);
             },
             card =>
             {
@@ -54,7 +54,6 @@ public sealed class GameRuntimeTableauTests
     }
 
     [Theory]
-    [InlineData("war_makes_wardens", "penguin")]
     [InlineData("ice_settles_accounts", "artifact")]
     [InlineData("what_the_spring_remembers", "region")]
     [InlineData("war_breaks_the_land", "region")]

@@ -75,8 +75,7 @@ internal sealed class SeedAssembly
         RelationshipPolarity polarity,
         int sourceEntityId,
         int targetEntityId,
-        float strength,
-        IReadOnlyList<string>? facts = null)
+        float strength)
     {
         _ = Entity(sourceEntityId);
         _ = Entity(targetEntityId);
@@ -85,8 +84,7 @@ internal sealed class SeedAssembly
             polarity,
             sourceEntityId,
             targetEntityId,
-            Math.Clamp(strength, 0f, 1f),
-            facts));
+            Math.Clamp(strength, 0f, 1f)));
     }
 
     public DomainStartupSeed ToStartupSeed()

@@ -15,7 +15,6 @@ public sealed class DefinitionGraph
     public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
-    public required IReadOnlyDictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> RelationshipFacts { get; init; }
     public required IReadOnlyDictionary<EntityKind, DefinitionLifecycleNode> Lifecycles { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeKey, DefinitionAttributeNode> Attributes { get; init; }
     public SemanticFlowGraph SemanticFlows { get; } = new();
@@ -103,13 +102,6 @@ public sealed class DefinitionRelationshipNode
     public required RelationshipConfig SourceConfig { get; init; }
 }
 
-public sealed class DefinitionRelationshipFactNode
-{
-    public required DefinitionRelationshipFactId Id { get; init; }
-    public required int RuntimeId { get; init; }
-    public required RelationshipFactConfig SourceConfig { get; init; }
-}
-
 public sealed class DefinitionLifecycleNode
 {
     public required EntityKind Kind { get; init; }
@@ -132,7 +124,6 @@ public sealed class DefinitionGeneratorNode
     public required string Name { get; init; }
     public string? Description { get; init; }
     public required DefinitionGeneratorTarget Target { get; init; }
-    public DefinitionTargetSaturation? TargetSaturation { get; init; }
     public required IReadOnlyList<DefinitionGeneratorBindingTarget> SecondaryTargets { get; init; }
     public required IReadOnlyList<DefinitionProducedEntity> Produces { get; init; }
     public required IReadOnlyList<DefinitionGeneratorRelationship> Relationships { get; init; }
@@ -218,16 +209,6 @@ public sealed class DefinitionTargetTerrainCountRequirement
     public int MaximumExclusive { get; init; }
 }
 
-public sealed class DefinitionTargetSaturation
-{
-    public required DefinitionRelationshipId RelationshipId { get; init; }
-    public required int RelationshipRuntimeId { get; init; }
-    public DefinitionRelationshipFactId? RequiredFactId { get; init; }
-    public int RequiredFactRuntimeId { get; init; }
-    public TargetSaturationDirection Direction { get; init; } = TargetSaturationDirection.Symmetric;
-    public int MaxExisting { get; init; }
-}
-
 public sealed class DefinitionProducedEntity
 {
     public required string Ref { get; init; }
@@ -280,8 +261,6 @@ public sealed class DefinitionGeneratorRelationship
     public required string DestinationRef { get; init; }
     public required DefinitionRelationshipId RelationshipId { get; init; }
     public required int RelationshipRuntimeId { get; init; }
-    public required IReadOnlySet<DefinitionRelationshipFactId> FactIds { get; init; }
-    public required IReadOnlySet<int> FactRuntimeIds { get; init; }
     public float Strength { get; init; } = 1f;
     public bool ReplaceExistingOutgoingOfSameKind { get; init; }
 }

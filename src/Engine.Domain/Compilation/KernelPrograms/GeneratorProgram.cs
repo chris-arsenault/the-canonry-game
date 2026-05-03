@@ -15,7 +15,6 @@ public sealed record CompiledGeneratorRule(
     GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
     int PulseWeight,
     int MaxRuns,
-    GeneratorTargetSaturationRule? TargetSaturation,
     IReadOnlyList<GeneratorTriggerRule> Triggers,
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,
@@ -28,12 +27,6 @@ public sealed record GeneratorEffectRule(
     int InstanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
     int OptionCode = 0,
     float Value = 0f);
-
-public sealed record GeneratorTargetSaturationRule(
-    int RelationshipKindId,
-    int RequiredFactId,
-    GeneratorProgramSaturationDirection Direction,
-    int MaxExisting);
 
 public sealed record GeneratorTargetRelationshipRequirements(
     IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredOutgoingRelationships,
@@ -92,15 +85,7 @@ public sealed record GeneratorRelationshipRule(
     int DestinationRefCode,
     int RelationshipKindId,
     float Strength,
-    bool ReplaceExistingOutgoing,
-    IReadOnlyList<int> FactIds);
-
-public enum GeneratorProgramSaturationDirection
-{
-    OutgoingFromTarget,
-    IncomingToTarget,
-    Symmetric,
-}
+    bool ReplaceExistingOutgoing);
 
 public enum GeneratorProgramPlacement
 {

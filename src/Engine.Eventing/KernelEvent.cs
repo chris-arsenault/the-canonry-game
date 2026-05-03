@@ -152,16 +152,6 @@ public readonly record struct RelationshipChangedKernelEvent(
     int SourceEntityId,
     [KernelEventIntSlot(5, "target_entity_id", KernelEventSemanticKind.EntityId)]
     int TargetEntityId,
-    [KernelEventIntSlot(6, "fact_id_0", KernelEventSemanticKind.RelationshipFactId)]
-    int FactId0,
-    [KernelEventIntSlot(7, "fact_id_1", KernelEventSemanticKind.RelationshipFactId)]
-    int FactId1,
-    [KernelEventIntSlot(8, "fact_id_2", KernelEventSemanticKind.RelationshipFactId)]
-    int FactId2,
-    [KernelEventIntSlot(9, "fact_id_3", KernelEventSemanticKind.RelationshipFactId)]
-    int FactId3,
-    [KernelEventIntSlot(10, "fact_count", KernelEventSemanticKind.Count)]
-    int FactCount,
     [KernelEventFloatSlot(0, "previous_strength", KernelEventSemanticKind.Strength)]
     float PreviousStrength,
     [KernelEventFloatSlot(1, "new_strength", KernelEventSemanticKind.Strength)]

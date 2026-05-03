@@ -22,8 +22,8 @@ public sealed class GameplayCompilationBoundaryTests
             rule.BindingKindId == regionId);
         Assert.Contains(affordances, rule =>
             rule.ActorKindId == factionId &&
-            rule.CandidateKindId == settlementId &&
-            rule.BindingKindId == settlementId);
+            rule.CandidateKindId == artifactId &&
+            rule.BindingKindId == artifactId);
         Assert.Contains(affordances, rule =>
             rule.ActorKindId == regionId &&
             rule.CandidateKindId == artifactId &&

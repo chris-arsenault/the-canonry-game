@@ -235,7 +235,6 @@ internal sealed class GameRuntimeTableau
 
     private static string? GeneratorKindHint(string stableName) => stableName switch
     {
-        "war_makes_wardens" => "penguin",
         "ice_settles_accounts" => "artifact",
         "what_the_spring_remembers" => "region",
         "war_breaks_the_land" => "region",

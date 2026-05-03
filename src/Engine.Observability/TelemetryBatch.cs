@@ -371,11 +371,6 @@ public sealed record RelationshipEventRow(
     int TargetId,
     float PreviousStrength,
     float NewStrength,
-    int FactId0,
-    int FactId1,
-    int FactId2,
-    int FactId3,
-    int FactCount,
     int CauseId = 0);
 
 public sealed record RelationshipSnapshotRow(
@@ -408,7 +403,6 @@ public sealed record GeneratorEventRow(
     int TargetPoolCount,
     int InactiveRejectedCount,
     int SubtypeRejectedCount,
-    int SaturationRejectedCount,
     int SecondaryTargetRejectedCount,
     int WildernessRejectedCount,
     int TriggerRejectedCount,

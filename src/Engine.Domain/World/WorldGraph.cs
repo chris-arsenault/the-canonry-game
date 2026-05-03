@@ -111,13 +111,7 @@ public sealed class WorldGraph
         EntityId targetId,
         float strength,
         int tick,
-        IEnumerable<string>? facts = null,
-        RelationshipKindRuntimeId kindId = default,
-        RelationshipFactRuntimeId factId0 = default,
-        RelationshipFactRuntimeId factId1 = default,
-        RelationshipFactRuntimeId factId2 = default,
-        RelationshipFactRuntimeId factId3 = default,
-        int factCount = 0)
+        RelationshipKindRuntimeId kindId = default)
     {
         ValidateEntityExists(sourceId);
         ValidateEntityExists(targetId);
@@ -129,13 +123,7 @@ public sealed class WorldGraph
             targetId,
             strength,
             tick,
-            facts,
-            kindId,
-            factId0,
-            factId1,
-            factId2,
-            factId3,
-            factCount);
+            kindId);
         var edge = new RelationshipEdge(sourceId, targetId, relationship);
         _graph.AddEdge(edge);
 

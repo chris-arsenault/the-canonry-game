@@ -119,7 +119,6 @@ public sealed record BehaviorProgramProviderSelectorRule(
     int KindId,
     int ValueId,
     int RelationshipKindId,
-    int FactId,
     float MinimumStrength);
 
 public sealed record BehaviorProgramSupportRule(

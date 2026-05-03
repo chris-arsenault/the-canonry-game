@@ -225,7 +225,6 @@ internal sealed partial class GambitProgramRuntime
             entityId,
             _providerSelectorRelationshipKindIds[selector],
             _providerSelectorMinimumStrengths[selector],
-            _providerSelectorFactIds[selector],
             outgoing,
             (_, targetId) =>
             {

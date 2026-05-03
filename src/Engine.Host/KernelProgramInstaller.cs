@@ -158,7 +158,7 @@ internal static partial class KernelProgramInstaller
     {
         foreach (var selector in gambit.ProviderSelectors)
         {
-            context.AddGambitProviderSelector(gambitSlot, ProviderSelectorCode(selector.Selector), selector.KindId, selector.ValueId, selector.RelationshipKindId, selector.FactId, selector.MinimumStrength);
+            context.AddGambitProviderSelector(gambitSlot, ProviderSelectorCode(selector.Selector), selector.KindId, selector.ValueId, selector.RelationshipKindId, selector.MinimumStrength);
         }
     }
 
@@ -263,7 +263,6 @@ internal static partial class KernelProgramInstaller
 
         InstallGeneratorTargetRelationships(context, generatorSlot, generator.TargetRelationshipRequirements);
         InstallGeneratorTargetTerrain(context, generatorSlot, generator.TargetRelationshipRequirements);
-        InstallGeneratorTargetSaturation(context, generatorSlot, generator);
         InstallGeneratorTriggers(context, generatorSlot, generator);
     }
 
@@ -319,22 +318,6 @@ internal static partial class KernelProgramInstaller
                 requirement.TerrainId,
                 requirement.Radius,
                 requirement.MaximumExclusive);
-        }
-    }
-
-    private static void InstallGeneratorTargetSaturation(
-        KernelConfigurationContext context,
-        int generatorSlot,
-        CompiledGeneratorRule generator)
-    {
-        if (generator.TargetSaturation is { } saturation)
-        {
-            context.SetGeneratorTargetSaturation(
-                generatorSlot,
-                saturation.RelationshipKindId,
-                saturation.RequiredFactId,
-                GeneratorSaturationDirectionCode(saturation.Direction),
-                saturation.MaxExisting);
         }
     }
 
@@ -461,19 +444,13 @@ internal static partial class KernelProgramInstaller
     {
         foreach (var relationship in generator.Relationships)
         {
-            var (factId0, factId1, factId2, factId3, factCount) = GeneratorRelationshipFacts(relationship.FactIds);
             context.AddGeneratorRelationship(
                 generatorSlot,
                 relationship.SourceRefCode,
                 relationship.DestinationRefCode,
                 relationship.RelationshipKindId,
                 relationship.Strength,
-                relationship.ReplaceExistingOutgoing,
-                factId0,
-                factId1,
-                factId2,
-                factId3,
-                factCount);
+                relationship.ReplaceExistingOutgoing);
         }
     }
 
@@ -758,14 +735,6 @@ internal static partial class KernelProgramInstaller
         _ => throw new ArgumentOutOfRangeException(nameof(selector), selector, null),
     };
 
-    private static int GeneratorSaturationDirectionCode(GeneratorProgramSaturationDirection direction) => direction switch
-    {
-        GeneratorProgramSaturationDirection.OutgoingFromTarget => GeneratorSaturationDirectionCodes.OutgoingFromTarget,
-        GeneratorProgramSaturationDirection.IncomingToTarget => GeneratorSaturationDirectionCodes.IncomingToTarget,
-        GeneratorProgramSaturationDirection.Symmetric => GeneratorSaturationDirectionCodes.Symmetric,
-        _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
-    };
-
     private static int GeneratorPlacementCode(GeneratorProgramPlacement placement) => placement switch
     {
         GeneratorProgramPlacement.On => GeneratorPlacementCodes.On,
@@ -824,22 +793,4 @@ internal static partial class KernelProgramInstaller
         _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
     };
 
-    private static (
-        int FactId0,
-        int FactId1,
-        int FactId2,
-        int FactId3,
-        int FactCount) GeneratorRelationshipFacts(IReadOnlyList<int> factIds)
-    {
-        if (factIds.Count > 4)
-        {
-            throw new InvalidOperationException("Generator relationships support at most four primitive facts.");
-        }
-
-        var factId0 = factIds.Count > 0 ? factIds[0] : 0;
-        var factId1 = factIds.Count > 1 ? factIds[1] : 0;
-        var factId2 = factIds.Count > 2 ? factIds[2] : 0;
-        var factId3 = factIds.Count > 3 ? factIds[3] : 0;
-        return (factId0, factId1, factId2, factId3, factIds.Count);
-    }
 }

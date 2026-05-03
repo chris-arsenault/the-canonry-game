@@ -70,5 +70,4 @@ status, health, or other authored state. The relationship catalog should
 support both without creating graph edges that no other system understands.
 When a numeric gate is needed, relationship strength should be the first
 choice. Event meaning and lineage should usually be ordinary relationship
-kinds or provenance; any remaining relationship facts are rare boolean edge
-qualifiers, not static entity personality.
+kinds or provenance, not static entity personality.

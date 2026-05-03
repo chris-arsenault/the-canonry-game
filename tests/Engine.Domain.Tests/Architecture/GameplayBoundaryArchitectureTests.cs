@@ -986,7 +986,6 @@ public sealed class GameplayBoundaryArchitectureTests
             "world.CoverageCells(",
             "world.MoveNextCoverageCell(",
             "world.FindRelationship(",
-            "world.RelationshipHasFact(",
             "world.RelationshipStrength(",
         };
         var violations = ContainedFragments(callers, forbiddenCalls);

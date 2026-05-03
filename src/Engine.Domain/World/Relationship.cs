@@ -37,34 +37,8 @@ public sealed class Relationship
 
     public bool IsActive => EndDate is null;
 
-    private readonly HashSet<string> _facts;
-    public IReadOnlySet<string> Facts => _facts;
-    public RelationshipFactRuntimeId FactId0 { get; }
-    public RelationshipFactRuntimeId FactId1 { get; }
-    public RelationshipFactRuntimeId FactId2 { get; }
-    public RelationshipFactRuntimeId FactId3 { get; }
-    public int FactCount { get; }
-
     private Dictionary<string, string>? _metadata;
     public IReadOnlyDictionary<string, string>? Metadata => _metadata;
-
-    public bool HasFact(string fact) => _facts.Contains(fact);
-    public bool HasFact(RelationshipFactRuntimeId factId) =>
-        factId.Value > 0 &&
-        ((FactCount > 0 && FactId0 == factId) ||
-         (FactCount > 1 && FactId1 == factId) ||
-         (FactCount > 2 && FactId2 == factId) ||
-         (FactCount > 3 && FactId3 == factId));
-
-    public RelationshipFactRuntimeId GetFactId(int index) =>
-        index switch
-        {
-            0 when FactCount > 0 => FactId0,
-            1 when FactCount > 1 => FactId1,
-            2 when FactCount > 2 => FactId2,
-            3 when FactCount > 3 => FactId3,
-            _ => throw new ArgumentOutOfRangeException(nameof(index)),
-        };
 
     public void SetMetadata(string key, string value)
     {
@@ -79,19 +53,8 @@ public sealed class Relationship
         EntityId targetId,
         float strength,
         int startDate,
-        IEnumerable<string>? facts = null,
-        RelationshipKindRuntimeId kindId = default,
-        RelationshipFactRuntimeId factId0 = default,
-        RelationshipFactRuntimeId factId1 = default,
-        RelationshipFactRuntimeId factId2 = default,
-        RelationshipFactRuntimeId factId3 = default,
-        int factCount = 0)
+        RelationshipKindRuntimeId kindId = default)
     {
-        if (factCount is < 0 or > 4)
-        {
-            throw new ArgumentOutOfRangeException(nameof(factCount), "Relationships support up to four primitive facts.");
-        }
-
         Kind = kind;
         KindId = kindId;
         Polarity = polarity;
@@ -99,21 +62,5 @@ public sealed class Relationship
         TargetId = targetId;
         Strength = Math.Clamp(strength, 0f, 1f);
         StartDate = startDate;
-        _facts = facts is null
-            ? []
-            : new HashSet<string>(facts, StringComparer.Ordinal);
-        FactCount = factCount;
-
-        Span<int> sortedFactIds = stackalloc int[4];
-        sortedFactIds[0] = factId0.Value;
-        sortedFactIds[1] = factId1.Value;
-        sortedFactIds[2] = factId2.Value;
-        sortedFactIds[3] = factId3.Value;
-        sortedFactIds[..factCount].Sort();
-
-        FactId0 = new RelationshipFactRuntimeId(sortedFactIds[0]);
-        FactId1 = new RelationshipFactRuntimeId(sortedFactIds[1]);
-        FactId2 = new RelationshipFactRuntimeId(sortedFactIds[2]);
-        FactId3 = new RelationshipFactRuntimeId(sortedFactIds[3]);
     }
 }

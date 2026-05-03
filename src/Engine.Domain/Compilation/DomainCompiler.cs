@@ -239,7 +239,6 @@ public static partial class DomainCompiler
                 selector.Kind is { } kind ? ids.KindIdOf(kind).Value : 0,
                 ProviderSelectorValueId(selector, ids),
                 ProviderSelectorRelationshipKindId(selector, ids),
-                ProviderSelectorFactId(selector, ids),
                 0f));
         }
 
@@ -285,18 +284,6 @@ public static partial class DomainCompiler
         selector.Scope is RefScope.Related or RefScope.Relational
             ? ids.RelationshipKindIdOf(selector.RelationshipKind ?? selector.Name).Value
             : 0;
-
-    private static int ProviderSelectorFactId(AttributeRef selector, DomainIdRegistry ids)
-    {
-        if (selector.Scope != RefScope.Relational ||
-            string.IsNullOrWhiteSpace(selector.Name) ||
-            string.Equals(selector.Name, "matched", StringComparison.Ordinal))
-        {
-            return 0;
-        }
-
-        return ids.RelationshipFactIdOf(selector.Name).Value;
-    }
 
     private static List<BehaviorProgramPreconditionOp> CompilePreconditions(
         IPrecondition precondition,

@@ -191,13 +191,6 @@ public static class GeneratorStatusCodes
     public const int NotEvaluated = 9;
 }
 
-public static class GeneratorSaturationDirectionCodes
-{
-    public const int OutgoingFromTarget = 1;
-    public const int IncomingToTarget = 2;
-    public const int Symmetric = 3;
-}
-
 public static class GeneratorPlacementCodes
 {
     public const int On = 1;

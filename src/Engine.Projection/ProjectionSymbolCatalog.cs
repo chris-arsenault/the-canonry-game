@@ -17,7 +17,6 @@ public enum ProjectionSymbolKind
     Behavior = 5,
     StructuralFact = 6,
     RelationshipKind = 7,
-    RelationshipFact = 8,
     Terrain = 10,
     Generator = 12,
     Gambit = 13,

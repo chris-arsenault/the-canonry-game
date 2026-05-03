@@ -18,7 +18,6 @@ public static class DefinitionGraphBuilder
         var kindNodes = BuildKindNodes(config, runtimeIds);
         var attributeIndex = BuildAttributeIndex(kindNodes);
         var relationshipNodes = BuildRelationshipNodes(config.Relationships, runtimeIds);
-        var relationshipFactNodes = BuildRelationshipFactNodes(config.RelationshipFacts, runtimeIds);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
         var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, relationshipNodes);
@@ -31,7 +30,6 @@ public static class DefinitionGraphBuilder
             GameplayNodes = gameplayNodes,
             Generators = generatorNodes,
             Relationships = relationshipNodes,
-            RelationshipFacts = relationshipFactNodes,
             Lifecycles = lifecycleNodes,
             Attributes = attributeIndex,
         };
@@ -254,31 +252,6 @@ public static class DefinitionGraphBuilder
                 Id = relationshipId,
                 RuntimeId = runtimeIds.RelationshipKindIdOf(relationship.Name).Value,
                 SourceConfig = relationship,
-            };
-        }
-
-        return nodes;
-    }
-
-    private static Dictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> BuildRelationshipFactNodes(
-        IReadOnlyList<RelationshipFactConfig> relationshipFacts,
-        global::Engine.Domain.DomainIdRegistry runtimeIds)
-    {
-        var nodes = new Dictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode>();
-        foreach (var fact in relationshipFacts)
-        {
-            var factId = new DefinitionRelationshipFactId(fact.Name);
-            if (nodes.ContainsKey(factId))
-            {
-                throw new DefinitionGraphException(
-                    $"Domain declares duplicate relationship fact '{fact.Name}'.");
-            }
-
-            nodes[factId] = new DefinitionRelationshipFactNode
-            {
-                Id = factId,
-                RuntimeId = runtimeIds.RelationshipFactIdOf(fact.Name).Value,
-                SourceConfig = fact,
             };
         }
 

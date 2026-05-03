@@ -15,7 +15,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 COALESCE(AVG(CAST(candidate_count AS DOUBLE)), 0.0) AS average_candidate_count,
                 COALESCE(SUM(inactive_rejected_count), 0) AS inactive_rejected,
                 COALESCE(SUM(subtype_rejected_count), 0) AS subtype_rejected,
-                COALESCE(SUM(saturation_rejected_count), 0) AS saturation_rejected,
                 COALESCE(SUM(secondary_target_rejected_count), 0) AS secondary_target_rejected,
                 COALESCE(SUM(wilderness_rejected_count), 0) AS wilderness_rejected,
                 COALESCE(SUM(trigger_rejected_count), 0) AS trigger_rejected
@@ -45,7 +44,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(p.average_candidate_count, 0.0) AS average_candidate_count,
             COALESCE(p.inactive_rejected, 0) AS inactive_rejected,
             COALESCE(p.subtype_rejected, 0) AS subtype_rejected,
-            COALESCE(p.saturation_rejected, 0) AS saturation_rejected,
             COALESCE(p.secondary_target_rejected, 0) AS secondary_target_rejected,
             COALESCE(p.wilderness_rejected, 0) AS wilderness_rejected,
             COALESCE(p.trigger_rejected, 0) AS trigger_rejected,

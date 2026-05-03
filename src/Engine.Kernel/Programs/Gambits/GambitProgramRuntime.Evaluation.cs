@@ -274,7 +274,6 @@ internal sealed partial class GambitProgramRuntime
                 sourceId,
                 destinationId,
                 _providerSelectorRelationshipKindIds[selector],
-                _providerSelectorFactIds[selector],
                 hasMinimumStrength: 1,
                 _providerSelectorMinimumStrengths[selector],
                 out var relationshipId))
@@ -328,8 +327,7 @@ internal sealed partial class GambitProgramRuntime
             targetId,
             relationshipKindId,
             hasMinimumStrength: 1,
-            _providerSelectorMinimumStrengths[selector],
-            _providerSelectorFactIds[selector]);
+            _providerSelectorMinimumStrengths[selector]);
     }
 
     private float EvaluateSupportValue(WorldState world, int supportRuleSlot, int entityId, int targetId)

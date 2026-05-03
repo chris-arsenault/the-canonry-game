@@ -129,31 +129,11 @@ public class WorldGraphTests
     }
 
     [Fact]
-    public void CreateRelationship_CapturesRelationshipFacts()
-    {
-        var nation = _graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", tick: 0);
-        var settlement = _graph.CreateEntity(TestKinds.Settlement, "generic", "S", "c", tick: 0);
-
-        var rel = _graph.CreateRelationship(
-            "controls",
-            RelationshipPolarity.Neutral,
-            nation.Id,
-            settlement.Id,
-            0.8f,
-            tick: 0,
-            facts: ["test_fact"]);
-
-        Assert.Contains("test_fact", rel.Facts);
-        Assert.True(rel.HasFact("test_fact"));
-    }
-
-    [Fact]
     public void CreateRelationship_CapturesPrimitiveRuntimeIds()
     {
         var nation = _graph.CreateEntity(TestKinds.Faction, "generic", "N", "c", tick: 0);
         var settlement = _graph.CreateEntity(TestKinds.Settlement, "generic", "S", "c", tick: 0);
         var relationshipKindId = new RelationshipKindRuntimeId(5);
-        var relationshipFactId = new RelationshipFactRuntimeId(9);
 
         var rel = _graph.CreateRelationship(
             "controls",
@@ -162,13 +142,9 @@ public class WorldGraphTests
             settlement.Id,
             0.8f,
             tick: 0,
-            facts: ["test_fact"],
-            kindId: relationshipKindId,
-            factId0: relationshipFactId,
-            factCount: 1);
+            kindId: relationshipKindId);
 
         Assert.Equal(relationshipKindId, rel.KindId);
-        Assert.True(rel.HasFact(relationshipFactId));
         Assert.Same(rel, Assert.Single(_graph.OutgoingRelationships(nation.Id, relationshipKindId)));
     }
 

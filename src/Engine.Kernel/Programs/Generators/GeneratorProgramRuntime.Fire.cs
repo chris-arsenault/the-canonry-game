@@ -454,12 +454,7 @@ internal sealed partial class GeneratorProgramRuntime
                 0,
                 sourceId,
                 destinationId,
-                _relationshipStrengths[relationship],
-                _relationshipFactId0[relationship],
-                _relationshipFactId1[relationship],
-                _relationshipFactId2[relationship],
-                _relationshipFactId3[relationship],
-                _relationshipFactCounts[relationship]);
+                _relationshipStrengths[relationship]);
             created++;
         }
 
@@ -619,7 +614,6 @@ internal sealed partial class GeneratorProgramRuntime
             entityId,
             relationshipKindId,
             minimumStrength: 0f,
-            requiredFactId: 0,
             outgoing: true,
             (relationshipId, _) =>
             {
@@ -631,7 +625,6 @@ internal sealed partial class GeneratorProgramRuntime
             entityId,
             relationshipKindId,
             minimumStrength: 0f,
-            requiredFactId: 0,
             outgoing: false,
             (relationshipId, endpointId) =>
             {
@@ -684,44 +677,6 @@ internal sealed partial class GeneratorProgramRuntime
             simulation,
             relationshipId,
             KernelQuery.RelationshipStrength(world, relationshipId) + delta);
-    }
-
-    private bool ExceedsTargetSaturation(WorldState world, int generatorSlot, int targetId)
-    {
-        if (_saturationRelationshipKindIds[generatorSlot] == 0)
-        {
-            return false;
-        }
-
-        var direction = _saturationDirectionCodes[generatorSlot];
-        if (direction == GeneratorSaturationDirectionCodes.IncomingToTarget)
-        {
-            return KernelQuery.RelationshipEndpointCount(
-                    world,
-                    targetId,
-                    _saturationRelationshipKindIds[generatorSlot],
-                    _saturationFactIds[generatorSlot],
-                    outgoing: false) >
-                _saturationMaxExisting[generatorSlot];
-        }
-
-        var count = KernelQuery.RelationshipEndpointCount(
-            world,
-            targetId,
-            _saturationRelationshipKindIds[generatorSlot],
-            _saturationFactIds[generatorSlot],
-            outgoing: true);
-        if (direction == GeneratorSaturationDirectionCodes.Symmetric)
-        {
-            count += KernelQuery.RelationshipEndpointCount(
-                world,
-                targetId,
-                _saturationRelationshipKindIds[generatorSlot],
-                _saturationFactIds[generatorSlot],
-                outgoing: false);
-        }
-
-        return count > _saturationMaxExisting[generatorSlot];
     }
 
     private bool TriggersPass(WorldState world, int generatorSlot, int targetId)

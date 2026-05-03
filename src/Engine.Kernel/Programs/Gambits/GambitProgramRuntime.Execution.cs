@@ -142,7 +142,7 @@ internal sealed partial class GambitProgramRuntime
                 KernelEffectExecutor.SetEntityStatus(simulation, entityId, _stepA[step]);
                 return true;
             case BehaviorOperationCodes.CreateRelationship:
-                KernelEffectExecutor.CreateRelationship(simulation, _stepA[step], _stepC[step], entityId, _stepB[step] > 0 ? _stepB[step] : targetId, _stepX[step], _stepD[step], factCount: _stepD[step] > 0 ? 1 : 0);
+                KernelEffectExecutor.CreateRelationship(simulation, _stepA[step], _stepC[step], entityId, _stepB[step] > 0 ? _stepB[step] : targetId, _stepX[step]);
                 return true;
             case BehaviorOperationCodes.SetRelationshipStrength:
                 SetRelationshipStrength(simulation, world, entityId, targetId, tick, step);
@@ -259,7 +259,6 @@ internal sealed partial class GambitProgramRuntime
             anchorId,
             _stepA[step],
             minimumStrength: 0f,
-            requiredFactId: 0,
             outgoing: _stepC[step] != RelationshipTraversalDirectionCodes.Incoming,
             (_, relatedEntityId) =>
             {

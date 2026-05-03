@@ -20,11 +20,6 @@ public readonly record struct RelationshipKindRuntimeId(int Value)
     public static RelationshipKindRuntimeId None => default;
 }
 
-public readonly record struct RelationshipFactRuntimeId(int Value)
-{
-    public static RelationshipFactRuntimeId None => default;
-}
-
 public readonly record struct StructuralFactRuntimeId(int Value)
 {
     public static StructuralFactRuntimeId None => default;

@@ -10,7 +10,7 @@ The domain owns:
 - kinds and subtypes;
 - health attributes and traits;
 - cultures and naming;
-- relationship kinds and any rare boolean relationship facts;
+- relationship kinds;
 - terrain and map-generation terms;
 - low-altitude gameplay config;
 - gambits;

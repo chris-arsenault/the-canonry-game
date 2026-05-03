@@ -76,7 +76,6 @@ internal static class KernelQuery
         int entityId,
         int relationshipKindId,
         float minimumStrength,
-        int requiredFactId,
         bool outgoing,
         global::System.Func<int, int, bool> visit)
     {
@@ -85,11 +84,6 @@ internal static class KernelQuery
             : world.IncomingRelationshipsOfKindAbove(entityId, relationshipKindId, minimumStrength);
         while (world.MoveNextRelationship(ref cursor, out var relationshipId))
         {
-            if (!world.RelationshipHasFact(relationshipId, requiredFactId))
-            {
-                continue;
-            }
-
             var endpointId = outgoing
                 ? world.RelationshipTargetId(relationshipId)
                 : world.RelationshipSourceId(relationshipId);
@@ -499,13 +493,11 @@ internal static class KernelQuery
         int targetId,
         int relationshipKindId,
         int hasMinimumStrength,
-        float minimumStrength,
-        int requiredFactId = 0)
+        float minimumStrength)
     {
         var relationshipId = world.FindRelationship(sourceId, targetId, relationshipKindId);
         return relationshipId > 0 &&
-               RelationshipMeetsMinimum(world, relationshipId, hasMinimumStrength, minimumStrength) &&
-               world.RelationshipHasFact(relationshipId, requiredFactId);
+               RelationshipMeetsMinimum(world, relationshipId, hasMinimumStrength, minimumStrength);
     }
 
     public static bool SelfOutgoingRelationshipPasses(
@@ -540,7 +532,6 @@ internal static class KernelQuery
             entityId,
             relationshipKindId,
             minimumStrength,
-            requiredFactId: 0,
             outgoing,
             (_, _) =>
             {
@@ -623,7 +614,6 @@ internal static class KernelQuery
         WorldState world,
         int entityId,
         int relationshipKindId,
-        int requiredFactId,
         bool outgoing)
     {
         var count = 0;
@@ -632,7 +622,6 @@ internal static class KernelQuery
             entityId,
             relationshipKindId,
             minimumStrength: 0f,
-            requiredFactId,
             outgoing,
             (_, _) =>
             {
@@ -673,7 +662,6 @@ internal static class KernelQuery
         int sourceId,
         int targetId,
         int relationshipKindId,
-        int requiredFactId,
         int hasMinimumStrength,
         float minimumStrength,
         out int relationshipId)
@@ -686,8 +674,7 @@ internal static class KernelQuery
 
         var candidateId = world.FindRelationship(sourceId, targetId, relationshipKindId);
         if (candidateId == 0 ||
-            !RelationshipMeetsMinimum(world, candidateId, hasMinimumStrength, minimumStrength) ||
-            !world.RelationshipHasFact(candidateId, requiredFactId))
+            !RelationshipMeetsMinimum(world, candidateId, hasMinimumStrength, minimumStrength))
         {
             return false;
         }
@@ -695,9 +682,6 @@ internal static class KernelQuery
         relationshipId = candidateId;
         return true;
     }
-
-    public static bool RelationshipHasFact(WorldState world, int relationshipId, int requiredFactId) =>
-        world.RelationshipHasFact(relationshipId, requiredFactId);
 
     public static float RelationshipStrength(WorldState world, int relationshipId) =>
         world.RelationshipStrength(relationshipId);

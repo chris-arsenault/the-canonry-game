@@ -134,32 +134,13 @@ internal static class DomainStartupSeedInstaller
         DomainStartupSeed seed,
         Dictionary<int, int> entityIds)
     {
-        Span<int> factIds = stackalloc int[4];
         foreach (var relationship in seed.Relationships)
         {
-            var facts = relationship.Facts ?? [];
-            if (facts.Count > 4)
-            {
-                throw new InvalidOperationException(
-                    $"Relationship '{relationship.RelationshipKind}' has {facts.Count} facts; kernel startup supports at most 4.");
-            }
-
-            factIds.Clear();
-            for (var i = 0; i < facts.Count; i++)
-            {
-                factIds[i] = context.DomainIds.RelationshipFactIdOf(facts[i]).Value;
-            }
-
             context.SeedRelationship(
                 context.DomainIds.RelationshipKindIdOf(relationship.RelationshipKind).Value,
                 PolarityCode(relationship.Polarity),
                 entityIds[relationship.SourceSeedEntityId],
                 entityIds[relationship.TargetSeedEntityId],
-                factIds[0],
-                factIds[1],
-                factIds[2],
-                factIds[3],
-                facts.Count,
                 relationship.Strength);
         }
     }

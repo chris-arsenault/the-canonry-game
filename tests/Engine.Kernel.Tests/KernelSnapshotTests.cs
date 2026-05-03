@@ -30,9 +30,7 @@ public sealed class KernelSnapshotTests
             sourceEntityId: actor,
             targetEntityId: target,
             strength: 0.75f,
-            tick: 0,
-            factId0: 70,
-            factCount: 1);
+            tick: 0);
         simulation.Generators.RegisterGenerator(
             generatorId: 50,
             cadence: 1,

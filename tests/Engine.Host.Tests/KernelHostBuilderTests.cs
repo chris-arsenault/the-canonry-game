@@ -209,11 +209,6 @@ public sealed class KernelHostBuilderTests
             RelationshipPolarityCodes.Positive,
             sourceEntityId: 1,
             targetEntityId: 1,
-            factId0: 0,
-            factId1: 0,
-            factId2: 0,
-            factId3: 0,
-            factCount: 0,
             strength: 0.5f);
     }
 

@@ -11,7 +11,6 @@ public enum DomainIdCategory
     Gambit,
     StructuralFact,
     RelationshipKind,
-    RelationshipFact,
     Terrain,
     Subtype,
     Culture,
@@ -42,8 +41,6 @@ public sealed class DomainIdRegistry
         new(static value => new StructuralFactRuntimeId(value), static id => id.Value, "structural fact");
     private readonly StableNameRegistry<RelationshipKindRuntimeId> _relationshipKinds =
         new(static value => new RelationshipKindRuntimeId(value), static id => id.Value, "relationship kind");
-    private readonly StableNameRegistry<RelationshipFactRuntimeId> _relationshipFacts =
-        new(static value => new RelationshipFactRuntimeId(value), static id => id.Value, "relationship fact");
     private readonly StableNameRegistry<TerrainRuntimeId> _terrains =
         new(static value => new TerrainRuntimeId(value), static id => id.Value, "terrain");
     private readonly StableNameRegistry<SubtypeRuntimeId> _subtypes =
@@ -91,13 +88,6 @@ public sealed class DomainIdRegistry
         _relationshipKinds.Resolve(stableName);
     public string RelationshipKindNameOf(RelationshipKindRuntimeId id) =>
         _relationshipKinds.NameOf(id);
-
-    public RelationshipFactRuntimeId RegisterRelationshipFact(string stableName) =>
-        _relationshipFacts.Register(stableName);
-    public RelationshipFactRuntimeId RelationshipFactIdOf(string stableName) =>
-        _relationshipFacts.Resolve(stableName);
-    public string RelationshipFactNameOf(RelationshipFactRuntimeId id) =>
-        _relationshipFacts.NameOf(id);
 
     public TerrainRuntimeId RegisterTerrain(string stableName) => _terrains.Register(stableName);
     public TerrainRuntimeId TerrainIdOf(string stableName) => _terrains.Resolve(stableName);
@@ -149,7 +139,6 @@ public sealed class DomainIdRegistry
         foreach (var entry in _gambits.Entries(DomainIdCategory.Gambit)) yield return entry;
         foreach (var entry in _structuralFacts.Entries(DomainIdCategory.StructuralFact)) yield return entry;
         foreach (var entry in _relationshipKinds.Entries(DomainIdCategory.RelationshipKind)) yield return entry;
-        foreach (var entry in _relationshipFacts.Entries(DomainIdCategory.RelationshipFact)) yield return entry;
     }
 
     private IEnumerable<DomainIdEntry> SecondaryEntries()
@@ -212,9 +201,6 @@ public sealed class DomainIdRegistry
                 return true;
             case DomainIdCategory.RelationshipKind:
                 clone.RegisterRelationshipKind(entry.StableName);
-                return true;
-            case DomainIdCategory.RelationshipFact:
-                clone.RegisterRelationshipFact(entry.StableName);
                 return true;
             default:
                 return false;

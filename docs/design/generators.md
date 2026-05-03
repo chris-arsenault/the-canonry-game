@@ -45,9 +45,9 @@ Each generator names:
 - **A target kind** — what kind of existing entity it looks at to decide
   "am I applicable here right now?" (e.g. Region, Settlement, Faction).
 - **One or more dynamic preconditions** — relationships, relationship
-  strength, facts, saturation limits, subtype filters, locality, health, traits,
-  or other current-world conditions that gate applicability. Static non-health
-  attribute dependence is intentionally not part of the active model.
+  strength, subtype filters, locality, health, traits, or other current-world
+  conditions that gate applicability. Static non-health attribute dependence is
+  intentionally not part of the active model.
 - **A produce list** — entities that get spawned, each with a role and
   optional create-chance.
 - **A relationship list** — how produced entities wire to each other and
@@ -82,8 +82,8 @@ Authoring violations fail the build, not the runtime.
 
 1. **Every generator has at least one target gate.** No "fires randomly
    out of nothing" — the world must have a reason. The active catalog uses
-   relationship and saturation gates rather than non-health attribute
-   thresholds.
+   relationship, terrain, and ordinary world-state gates rather than non-health
+   attribute thresholds.
 2. **Target gates match target kind.** You can't target Regions and gate
    off an unrelated Settlement-only condition.
 3. **The generated graph stays connected to the existing world.** The
@@ -101,9 +101,10 @@ Authoring violations fail the build, not the runtime.
    produce declares `InheritCultureFrom = "$target"` and the target has
    no culture, the fire hard-fails. ("none" counts as real for Regions,
    which legitimately have no culture.)
-8. **Saturation limits honored.** A target declaring `MaxCount = 3` on a
-   `contains` relationship stops being applicable once the target has 3
-   out-relationships of that kind. This bounds repeated spawning.
+8. **Repeated firing is limited causally.** A generator must spend, relieve,
+   transform, or lock the world condition that made it eligible. Adding a
+   second target is not enough unless firing changes that target or the original
+   cause. See [generator causal limits](../systems/20-generator-causal-limits.md).
 9. **Generators create a connected bundle of new named entities.**
    Relationship mutation on existing entities is allowed but secondary.
    If the main thing the content does is mutate existing graph state, it
@@ -118,7 +119,6 @@ Authoring violations fail the build, not the runtime.
 - Target subtype must match if filter present.
 - Required target relationships must exist.
 - Required relationship strength thresholds must pass when authored.
-- Saturation cap not hit.
 - `MaxRunsPerSim` not exceeded.
 - For `AllowWilderness`: region must have a free physical hex nearby.
 
@@ -201,10 +201,9 @@ against matters more than full generator coverage right now.
 
 ## Catalog: current generators
 
-The active Ice Remembers catalog currently contains six relationship-driven
+The active Ice Remembers catalog currently contains five relationship-driven
 generators:
 
-- `war_makes_wardens`
 - `ice_settles_accounts`
 - `what_the_spring_remembers`
 - `war_breaks_the_land`

@@ -270,9 +270,4 @@ internal sealed partial class GeneratorProgramRuntime
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
     }
 
-    private static void ValidateFactCount(int factCount)
-    {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(factCount);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(factCount, 4);
-    }
 }

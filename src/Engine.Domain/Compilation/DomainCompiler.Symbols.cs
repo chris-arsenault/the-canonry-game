@@ -79,16 +79,6 @@ public static partial class DomainCompiler
                 relationship.Name);
         }
 
-        foreach (var fact in config.RelationshipFacts)
-        {
-            symbols.Add(
-                DomainSymbolKind.RelationshipFact,
-                ids.RelationshipFactIdOf(fact.Name).Value,
-                fact.Name,
-                fact.DisplayName,
-                fact.Description);
-        }
-
         foreach (var terrain in config.Terrains)
         {
             symbols.Add(DomainSymbolKind.Terrain, ids.TerrainIdOf(terrain.Name).Value, terrain.Name, terrain.DisplayName);
@@ -226,7 +216,6 @@ public static partial class DomainCompiler
     private static DomainSymbolKind? ToRelationshipSymbolKind(DomainIdCategory category) => category switch
     {
         DomainIdCategory.RelationshipKind => DomainSymbolKind.RelationshipKind,
-        DomainIdCategory.RelationshipFact => DomainSymbolKind.RelationshipFact,
         _ => null,
     };
 

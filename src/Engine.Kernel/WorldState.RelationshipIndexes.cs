@@ -465,11 +465,6 @@ internal sealed partial class WorldState
             _relationshipPolarityCode[relationshipId],
             _relationshipSourceId[relationshipId],
             _relationshipTargetId[relationshipId],
-            _relationshipFactId0[relationshipId],
-            _relationshipFactId1[relationshipId],
-            _relationshipFactId2[relationshipId],
-            _relationshipFactId3[relationshipId],
-            _relationshipFactCount[relationshipId],
             previousStrength,
             newStrength)),
             context);
@@ -519,12 +514,6 @@ internal sealed partial class WorldState
         }
 
         return value > 100f ? 100f : value;
-    }
-
-    private static void ValidateFactCount(int factCount)
-    {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(factCount);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(factCount, 4);
     }
 
     private static void ValidateRelationshipThreshold(float minimumStrength)

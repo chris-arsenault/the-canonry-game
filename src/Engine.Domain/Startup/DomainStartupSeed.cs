@@ -61,5 +61,4 @@ public sealed record DomainSeedRelationship(
     RelationshipPolarity Polarity,
     int SourceSeedEntityId,
     int TargetSeedEntityId,
-    float Strength,
-    IReadOnlyList<string>? Facts = null);
+    float Strength);

@@ -21,13 +21,12 @@ public sealed class SharedQueryEffectRefactorGuardTests
     }
 
     [Fact]
-    public void Generators_DoNotOwnTargetRelationshipOrSaturationQueryLoops()
+    public void Generators_DoNotOwnTargetRelationshipQueryLoops()
     {
         var root = FindRepoRoot();
         var generatorRuntime = ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Generators");
         var forbiddenFragments = new[]
         {
-            "private int CountTargetSaturationRelationships(",
             "private bool RequiredDirectedRelationshipsPass(",
             "private bool RequiredAnyDirectionRelationshipsPass(",
         };

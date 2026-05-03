@@ -77,7 +77,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         {
             ("inactive", row.InactiveRejected),
             ("subtype", row.SubtypeRejected),
-            ("saturation", row.SaturationRejected),
             ("secondary_target", row.SecondaryTargetRejected),
             ("wilderness", row.WildernessRejected),
             ("trigger", row.TriggerRejected),
@@ -188,7 +187,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         double AverageCandidateCount,
         int InactiveRejected,
         int SubtypeRejected,
-        int SaturationRejected,
         int SecondaryTargetRejected,
         int WildernessRejected,
         int TriggerRejected,
@@ -205,7 +203,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             0,
             0d,
             0d,
-            0,
             0,
             0,
             0,

@@ -16,7 +16,6 @@ internal sealed partial class GeneratorProgramRuntime
             !TargetRelationshipRequirementsPass(world, generatorSlot, targetId) ||
             !TargetRelationshipAbsenceRequirementsPass(world, generatorSlot, targetId) ||
             !TargetTerrainRequirementsPass(world, generatorSlot, targetId) ||
-            ExceedsTargetSaturation(world, generatorSlot, targetId) ||
             !TriggersPass(world, generatorSlot, targetId))
         {
             return false;

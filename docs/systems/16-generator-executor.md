@@ -44,8 +44,9 @@ generators. If a precondition requires a relationship or kind that no seed or
 generator can create, the generator is dead content.
 
 Generators should avoid self-propagating infinitely through the same target.
-Saturation should be expressed through relationships or graph facts the rest of
-the simulation can understand, not hidden one-off bookkeeping.
+Repeat control should be expressed as a causal limit: the generator must spend,
+relieve, transform, or lock ordinary world state that made the fire eligible.
+See [System 20: Generator Causal Limits](./20-generator-causal-limits.md).
 
 If a precondition needs a numeric threshold, use relationship strength as the
 default. For example, require an artifact to have a strong `anchored` or
@@ -54,10 +55,10 @@ artifact `power` attribute. Health thresholds remain valid for survival,
 damage, decay, and repair. Locality-based queries are acceptable when nearby
 map state, semantic position, or regional containment is the real gate.
 
-Generator target gates, relationship gates, saturation checks, and produced
-entity binding queries use the shared kernel query path. Generator-specific
-code still owns cadence, target choice, production orchestration, placement,
-and reference binding order.
+Generator target gates, relationship gates, terrain gates, causal-limit checks,
+and produced entity binding queries use the shared kernel query path.
+Generator-specific code still owns cadence, target choice, production
+orchestration, placement, and reference binding order.
 
 ## Effects
 

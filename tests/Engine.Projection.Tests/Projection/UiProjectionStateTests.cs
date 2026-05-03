@@ -157,7 +157,6 @@ public sealed class UiProjectionStateTests
 
         var relationship = projection.Relationships[new UiRelationshipKey(20, 21, 10)];
         Assert.True(relationship.IsActive);
-        Assert.Equal(2, relationship.FactCount);
         Assert.Equal(1, projection.Generators[40].TotalFired);
         Assert.Equal(40, projection.GeneratorFires[0].GeneratorId);
         Assert.Equal(60, projection.Entities[20].LastGambitExecution?.GambitId);
@@ -227,11 +226,6 @@ public sealed class UiProjectionStateTests
             PolarityCode: RelationshipPolarityCodes.Negative,
             SourceEntityId: 20,
             TargetEntityId: 21,
-            FactId0: 30,
-            FactId1: 31,
-            FactId2: 0,
-            FactId3: 0,
-            FactCount: 2,
             PreviousStrength: 0f,
             NewStrength: 0.75f))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorEvaluatedKernelEvent(

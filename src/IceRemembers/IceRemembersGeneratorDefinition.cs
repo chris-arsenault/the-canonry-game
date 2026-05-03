@@ -17,7 +17,6 @@ public static class IceRemembersGeneratorDefinition
 
     public static IReadOnlyList<SemanticGeneratorConfig> Create() =>
     [
-        WarMakesWardens(),
         IceSettlesAccounts(),
         WhatTheSpringRemembers(),
         WarBreaksTheLand(),
@@ -26,29 +25,6 @@ public static class IceRemembersGeneratorDefinition
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
-
-    private static SemanticGeneratorConfig WarMakesWardens() => new()
-    {
-        Id = "war_makes_wardens",
-        Name = "War Makes Wardens",
-        Description = "When a faction is at war, wardens take up posts at a hardened holdfast. Sometimes a weapon is left in the keep.",
-        Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
-        TargetSaturation = SaturationIncoming(Rel.ControlledBy, 1),
-        Produces =
-        [
-            Required("$warden", K.Penguin, "warden", "$target", "$target"),
-            Required("$holdfast", K.Settlement, "holdfast", "$target", "$target"),
-            Optional("$weapon", K.Artifact, "weapon", "$holdfast", "$target", chance: 0.55f, on: true),
-        ],
-        Relationships =
-        [
-            R("$warden", "$target", Rel.MemberOf, 0.88f),
-            R("$warden", "$holdfast", Rel.HomeBase, 0.90f),
-            R("$holdfast", "$target", Rel.ControlledBy, 0.85f),
-            R("$weapon", "$holdfast", Rel.NativeTo, 0.82f),
-        ],
-        Triggers = TriggerOn(K.Faction),
-    };
 
     private static SemanticGeneratorConfig IceSettlesAccounts() => new()
     {
@@ -263,14 +239,6 @@ public static class IceRemembersGeneratorDefinition
             Kind = kind,
             RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
             WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
-        };
-
-    private static SemanticTargetSaturation SaturationIncoming(Rel kind, int max) =>
-        new()
-        {
-            RelationshipKind = L(kind),
-            Direction = TargetSaturationDirection.IncomingToTarget,
-            MaxExisting = max,
         };
 
     private static IReadOnlyList<SemanticGeneratorTrigger> TriggerOn(EntityKind kind) =>

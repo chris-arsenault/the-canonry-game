@@ -39,10 +39,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _relationshipCounts => Data.RelationshipCounts;
     private int[] _effectStarts => Data.EffectStarts;
     private int[] _effectCounts => Data.EffectCounts;
-    private int[] _saturationRelationshipKindIds => Data.SaturationRelationshipKindIds;
-    private int[] _saturationFactIds => Data.SaturationFactIds;
-    private int[] _saturationDirectionCodes => Data.SaturationDirectionCodes;
-    private int[] _saturationMaxExisting => Data.SaturationMaxExisting;
     private int[] _pulseStatusCodes => _scratch.PulseStatusCodes;
     private int[] _pulseCandidateCounts => _scratch.PulseCandidateCounts;
     private int[] _pulseSelectedTargetIds => _scratch.PulseSelectedTargetIds;
@@ -100,11 +96,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _relationshipDestinationRefCodes => Data.RelationshipDestinationRefCodes;
     private int[] _relationshipKindIds => Data.RelationshipKindIds;
     private int[] _relationshipReplaceExistingOutgoing => Data.RelationshipReplaceExistingOutgoing;
-    private int[] _relationshipFactId0 => Data.RelationshipFactId0;
-    private int[] _relationshipFactId1 => Data.RelationshipFactId1;
-    private int[] _relationshipFactId2 => Data.RelationshipFactId2;
-    private int[] _relationshipFactId3 => Data.RelationshipFactId3;
-    private int[] _relationshipFactCounts => Data.RelationshipFactCounts;
     private float[] _relationshipStrengths => Data.RelationshipStrengths;
     private int[] _effectTypeCodes => Data.EffectTypeCodes;
     private int[] _effectRefOrKindIds => Data.EffectRefOrKindIds;
@@ -319,24 +310,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetTerrainRequirementRadii[_targetTerrainRequirementCount] = radius;
         _targetTerrainRequirementMaximumExclusive[_targetTerrainRequirementCount] = maximumExclusive;
         _targetTerrainRequirementCounts[generatorSlot]++;
-    }
-
-    public void SetTargetSaturation(
-        int generatorSlot,
-        int relationshipKindId,
-        int requiredFactId,
-        int directionCode,
-        int maxExisting)
-    {
-        EnsureOpenGenerator(generatorSlot);
-        ValidatePositive(relationshipKindId);
-        ValidatePositive(directionCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredFactId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxExisting);
-        _saturationRelationshipKindIds[generatorSlot] = relationshipKindId;
-        _saturationFactIds[generatorSlot] = requiredFactId;
-        _saturationDirectionCodes[generatorSlot] = directionCode;
-        _saturationMaxExisting[generatorSlot] = maxExisting;
     }
 
     public void AddTrigger(int generatorSlot, int kindId)
@@ -568,18 +541,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int destinationRefCode,
         int relationshipKindId,
         float strength,
-        int replaceExistingOutgoing,
-        int factId0 = 0,
-        int factId1 = 0,
-        int factId2 = 0,
-        int factId3 = 0,
-        int factCount = 0)
+        int replaceExistingOutgoing)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(sourceRefCode);
         ValidatePositive(destinationRefCode);
         ValidatePositive(relationshipKindId);
-        ValidateFactCount(factCount);
         if (_relationshipCount + 1 >= _relationshipKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -591,11 +558,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _relationshipKindIds[_relationshipCount] = relationshipKindId;
         _relationshipStrengths[_relationshipCount] = strength;
         _relationshipReplaceExistingOutgoing[_relationshipCount] = replaceExistingOutgoing;
-        _relationshipFactId0[_relationshipCount] = factId0;
-        _relationshipFactId1[_relationshipCount] = factId1;
-        _relationshipFactId2[_relationshipCount] = factId2;
-        _relationshipFactId3[_relationshipCount] = factId3;
-        _relationshipFactCounts[_relationshipCount] = factCount;
         _relationshipCounts[generatorSlot]++;
     }
 

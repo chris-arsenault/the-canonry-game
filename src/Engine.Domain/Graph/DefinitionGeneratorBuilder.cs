@@ -46,7 +46,6 @@ public static class DefinitionGeneratorBuilder
         ValidateProducedReferences(config.Id, produces, declaredRefs);
 
         var relationships = BuildRelationships(config, graph, runtimeIds, declaredRefs);
-        var targetSaturation = BuildTargetSaturation(config, graph, runtimeIds, relationships);
         var triggers = BuildTriggers(config, graph);
         var effects = BuildEffects(config, graph, runtimeIds, declaredRefs);
 
@@ -57,7 +56,6 @@ public static class DefinitionGeneratorBuilder
             Name = config.Name,
             Description = config.Description,
             Target = target,
-            TargetSaturation = targetSaturation,
             SecondaryTargets = secondaryTargets,
             Produces = produces,
             Relationships = relationships,
@@ -244,7 +242,6 @@ public static class DefinitionGeneratorBuilder
 
         var context = $"Generator '{generatorId}' relationship";
         var relationshipId = ResolveRelationshipId(graph, relationship.Kind, context);
-        var relationshipFactIds = ResolveRelationshipFactIds(graph, relationship.Facts, $"{context} '{relationship.Kind}'");
 
         return new DefinitionGeneratorRelationship
         {
@@ -252,54 +249,8 @@ public static class DefinitionGeneratorBuilder
             DestinationRef = relationship.DestinationRef,
             RelationshipId = relationshipId,
             RelationshipRuntimeId = runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
-            FactIds = relationshipFactIds,
-            FactRuntimeIds = relationshipFactIds
-                .Select(factId => runtimeIds.RelationshipFactIdOf(factId.Value).Value)
-                .ToHashSet(),
             Strength = relationship.Strength,
             ReplaceExistingOutgoingOfSameKind = relationship.ReplaceExistingOutgoingOfSameKind,
-        };
-    }
-
-    private static DefinitionTargetSaturation? BuildTargetSaturation(
-        SemanticGeneratorConfig config,
-        DefinitionGraph graph,
-        global::Engine.Domain.DomainIdRegistry runtimeIds,
-        IReadOnlyList<DefinitionGeneratorRelationship> relationships)
-    {
-        if (config.TargetSaturation is null)
-        {
-            return null;
-        }
-
-        var targetSaturation = CreateTargetSaturation(config, graph, runtimeIds);
-        ValidateTargetSaturationHasMatchingGeneratedRelationship(config.Id, targetSaturation, relationships);
-        return targetSaturation;
-    }
-
-    private static DefinitionTargetSaturation CreateTargetSaturation(
-        SemanticGeneratorConfig config,
-        DefinitionGraph graph,
-        global::Engine.Domain.DomainIdRegistry runtimeIds)
-    {
-        var saturation = config.TargetSaturation!;
-        var context = $"Generator '{config.Id}' target saturation";
-        var requiredFactId = string.IsNullOrWhiteSpace(saturation.RequiredFact)
-            ? (DefinitionRelationshipFactId?)null
-            : ResolveRelationshipFactId(graph, saturation.RequiredFact, context);
-
-        var relationshipId = ResolveRelationshipId(graph, saturation.RelationshipKind, context);
-
-        return new DefinitionTargetSaturation
-        {
-            RelationshipId = relationshipId,
-            RelationshipRuntimeId = runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
-            RequiredFactId = requiredFactId,
-            RequiredFactRuntimeId = requiredFactId is null
-                ? 0
-                : runtimeIds.RelationshipFactIdOf(requiredFactId.Value.Value).Value,
-            Direction = saturation.Direction,
-            MaxExisting = saturation.MaxExisting,
         };
     }
 
@@ -701,63 +652,6 @@ public static class DefinitionGeneratorBuilder
 
         return relationshipId;
     }
-
-    private static HashSet<DefinitionRelationshipFactId> ResolveRelationshipFactIds(
-        DefinitionGraph graph,
-        IReadOnlySet<string> factNames,
-        string context)
-    {
-        var factIds = new HashSet<DefinitionRelationshipFactId>();
-        foreach (var factName in factNames)
-        {
-            factIds.Add(ResolveRelationshipFactId(graph, factName, context));
-        }
-
-        return factIds;
-    }
-
-    private static DefinitionRelationshipFactId ResolveRelationshipFactId(
-        DefinitionGraph graph,
-        string factName,
-        string context)
-    {
-        var factId = new DefinitionRelationshipFactId(factName);
-        if (!graph.RelationshipFacts.ContainsKey(factId))
-        {
-            throw new DefinitionGraphException(
-                $"{context} references undeclared relationship fact '{factName}'.");
-        }
-
-        return factId;
-    }
-
-    private static void ValidateTargetSaturationHasMatchingGeneratedRelationship(
-        string generatorId,
-        DefinitionTargetSaturation targetSaturation,
-        IReadOnlyList<DefinitionGeneratorRelationship> relationships)
-    {
-        var matches = relationships.Any(relationship =>
-            relationship.RelationshipId == targetSaturation.RelationshipId &&
-            TargetSaturationDirectionMatchesRelationship(targetSaturation.Direction, relationship) &&
-            (targetSaturation.RequiredFactId is null || relationship.FactIds.Contains(targetSaturation.RequiredFactId.Value)));
-
-        if (!matches)
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' target saturation must match a generated relationship involving '$target'.");
-        }
-    }
-
-    private static bool TargetSaturationDirectionMatchesRelationship(
-        TargetSaturationDirection direction,
-        DefinitionGeneratorRelationship relationship) =>
-        direction switch
-        {
-            TargetSaturationDirection.OutgoingFromTarget => relationship.SourceRef == "$target",
-            TargetSaturationDirection.IncomingToTarget => relationship.DestinationRef == "$target",
-            TargetSaturationDirection.Symmetric => relationship.SourceRef == "$target" || relationship.DestinationRef == "$target",
-            _ => false,
-        };
 
     private static void EnsureDeclaredRef(
         string generatorId,
