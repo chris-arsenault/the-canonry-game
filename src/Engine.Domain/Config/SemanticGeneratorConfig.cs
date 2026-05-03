@@ -30,6 +30,7 @@ public sealed class SemanticGeneratorTarget
     public IReadOnlyList<SemanticGeneratorRelationshipRequirement> RequiredOutgoingRelationshipRequirements { get; init; } = [];
     public IReadOnlyList<SemanticGeneratorRelationshipRequirement> RequiredIncomingRelationshipRequirements { get; init; } = [];
     public IReadOnlyList<SemanticGeneratorRelationshipRequirement> RequiredRelationshipRequirements { get; init; } = [];
+    public IReadOnlyList<SemanticGeneratorTerrainCountRequirement> TerrainCountRequirements { get; init; } = [];
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
 }
@@ -38,6 +39,13 @@ public sealed class SemanticGeneratorRelationshipRequirement
 {
     public required string RelationshipKind { get; init; }
     public float MinimumStrength { get; init; }
+}
+
+public sealed class SemanticGeneratorTerrainCountRequirement
+{
+    public required string TerrainName { get; init; }
+    public int Radius { get; init; }
+    public int MaximumExclusive { get; init; }
 }
 
 public sealed class SemanticTargetSaturation

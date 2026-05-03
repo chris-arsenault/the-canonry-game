@@ -9,7 +9,6 @@ using Engine.Domain.Graph;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 using Engine.WorldGen;
 
@@ -270,7 +269,6 @@ public static partial class DomainCompiler
     {
         RefScope.Target => BehaviorProgramProviderSelector.TargetAttribute,
         RefScope.Structural => BehaviorProgramProviderSelector.Structural,
-        RefScope.Resource => BehaviorProgramProviderSelector.Resource,
         RefScope.Location => BehaviorProgramProviderSelector.LocationAttribute,
         RefScope.Related or RefScope.Relational => BehaviorProgramProviderSelector.OutgoingRelationship,
         _ => throw new InvalidOperationException($"Unsupported kernel provider selector scope '{selector.Scope}'."),
@@ -280,7 +278,6 @@ public static partial class DomainCompiler
     {
         RefScope.Target or RefScope.Location or RefScope.Related => ids.AttributeIdOf(selector.Name).Value,
         RefScope.Structural => ids.StructuralFactIdOf(selector.Name).Value,
-        RefScope.Resource => ids.ResourceIdOf(selector.Name).Value,
         _ => 0,
     };
 
@@ -401,9 +398,6 @@ public static partial class DomainCompiler
                     X: shared.SelfMinimum,
                     Y: shared.TargetMinimum));
                 return true;
-            case LocationResourceThreshold resource:
-                AddLocationResourcePrecondition(ops, resource, ids);
-                return true;
             case CooldownCheck cooldown:
                 ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.CooldownElapsed, cooldown.MinimumTicksSinceFire));
                 return true;
@@ -480,21 +474,6 @@ public static partial class DomainCompiler
             distance.MaxDistance,
             PlaneCode(distance.Plane),
             ids.StructuralFactIdOf(distance.InRangeFactName).Value));
-    }
-
-    private static void AddLocationResourcePrecondition(
-        List<BehaviorProgramPreconditionOp> ops,
-        LocationResourceThreshold resource,
-        DomainIdRegistry ids)
-    {
-        ops.Add(new BehaviorProgramPreconditionOp(
-            BehaviorProgramPrecondition.LocationResourceRange,
-            ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value,
-            resource.TargetLocation ? 1 : 0,
-            resource.Min.HasValue ? 1 : 0,
-            resource.Max.HasValue ? 1 : 0,
-            resource.Min ?? 0f,
-            resource.Max ?? 0f));
     }
 
     private static void AddRelationshipStrengthPrecondition(
@@ -590,9 +569,6 @@ public static partial class DomainCompiler
             case VariableRef variable:
                 ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Variable, StableRuntimeCode(variable.VariableName)));
                 return true;
-            case LocationResourcePath resource:
-                AddLocationResourceExpression(ops, resource, ids);
-                return true;
             case Distance:
                 ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Distance));
                 return true;
@@ -665,18 +641,6 @@ public static partial class DomainCompiler
             ids.AttributeIdOf(attr.AttributeName).Value));
     }
 
-    private static void AddLocationResourceExpression(
-        List<BehaviorProgramExpressionOp> ops,
-        LocationResourcePath resource,
-        DomainIdRegistry ids)
-    {
-        ops.Add(new BehaviorProgramExpressionOp(
-            resource.EntityRef == "target"
-                ? BehaviorProgramExpression.TargetLocationResource
-                : BehaviorProgramExpression.SelfLocationResource,
-            ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value));
-    }
-
     private static void AddBinaryExpression(
         List<BehaviorProgramExpressionOp> ops,
         IExpression left,
@@ -709,7 +673,6 @@ public static partial class DomainCompiler
     {
         if (TryCompileCreateStep(steps, mutation, ids) ||
             TryCompileAttributeStep(steps, mutation, ids) ||
-            TryCompileResourceStep(steps, mutation, ids) ||
             TryCompileVariableStep(steps, mutation, ids) ||
             TryCompileMapStep(steps, mutation, ids) ||
             TryCompileMovementStep(steps, mutation))
@@ -794,25 +757,6 @@ public static partial class DomainCompiler
                 return true;
             case ModifyRelatedEntitiesAttributeMutation related:
                 AddRelatedEntitiesAttributeStep(steps, related, ids);
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static bool TryCompileResourceStep(
-        List<BehaviorProgramStepRule> steps,
-        IMutation mutation,
-        DomainIdRegistry ids)
-    {
-        switch (mutation)
-        {
-            case ModifyLocationResourceMutation resource:
-                steps.Add(new BehaviorProgramStepRule(
-                    BehaviorProgramOperation.AddLocationResource,
-                    ids.ResourceIdOf(resource.ResourceType.ToDomainName()).Value,
-                    resource.TargetLocation ? 1 : 0,
-                    X: resource.Delta));
                 return true;
             default:
                 return false;

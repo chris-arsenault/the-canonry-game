@@ -271,8 +271,6 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
 
     protected override void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
-    protected override void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
     protected override void OnDegeneracyDetected(long sequence, in DegeneracyDetectedKernelEvent evt) => Count(evt.Tick).TotalMessages++;

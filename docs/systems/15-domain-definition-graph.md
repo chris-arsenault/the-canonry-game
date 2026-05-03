@@ -7,9 +7,9 @@ runtime world state.
 
 The definition graph keeps the domain honest. It answers questions such as:
 
-- do all referenced kinds, health attributes, traits, resources, relationships,
-  and generators exist?
-- do semantic stocks point at real domain health attributes or resources?
+- do all referenced kinds, health attributes, traits, relationships, and
+  generators exist?
+- do semantic stocks point at real domain health attributes?
 - do generators create connected bundles?
 - do authored gameplay nodes declare reads and writes?
 - do semantic loops and coverage rules match the intended stock model?
@@ -23,7 +23,6 @@ The graph contains:
 - kind nodes;
 - health attribute nodes;
 - trait nodes;
-- resource nodes;
 - relationship and relationship-fact nodes;
 - lifecycle nodes;
 - generator nodes;

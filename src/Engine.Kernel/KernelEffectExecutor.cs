@@ -25,9 +25,6 @@ internal static class KernelEffectExecutor
         ModifyAttribute(simulation, destinationId, destinationAttributeId, amount);
     }
 
-    public static void ModifyResource(Simulation simulation, int resourceId, int q, int r, float delta) =>
-        simulation.ModifyResource(resourceId, q, r, delta, simulation.CurrentTick);
-
     public static void SetEntityStatus(Simulation simulation, int entityId, int statusCode) =>
         simulation.SetEntityStatus(entityId, statusCode, simulation.CurrentTick);
 

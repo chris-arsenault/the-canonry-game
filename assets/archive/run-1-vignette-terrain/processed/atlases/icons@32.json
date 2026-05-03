@@ -30,15 +30,6 @@
       "height": 32
     },
     {
-      "spec_id": "attr-food",
-      "spec_type": "icon",
-      "source_file": "icons/attr-food@32.png",
-      "x": 70,
-      "y": 2,
-      "width": 32,
-      "height": 32
-    },
-    {
       "spec_id": "attr-holding",
       "spec_type": "icon",
       "source_file": "icons/attr-holding@32.png",
@@ -79,15 +70,6 @@
       "spec_type": "icon",
       "source_file": "icons/attr-warmth@32.png",
       "x": 240,
-      "y": 2,
-      "width": 32,
-      "height": 32
-    },
-    {
-      "spec_id": "attr-wealth",
-      "spec_type": "icon",
-      "source_file": "icons/attr-wealth@32.png",
-      "x": 274,
       "y": 2,
       "width": 32,
       "height": 32

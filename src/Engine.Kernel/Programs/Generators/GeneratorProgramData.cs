@@ -22,6 +22,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] TargetWithoutOutgoingCounts = [];
     internal int[] TargetWithoutIncomingStarts = [];
     internal int[] TargetWithoutIncomingCounts = [];
+    internal int[] TargetTerrainRequirementStarts = [];
+    internal int[] TargetTerrainRequirementCounts = [];
     internal int[] TriggerStarts = [];
     internal int[] TriggerCounts = [];
     internal int[] BindingStarts = [];
@@ -40,6 +42,9 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] RelationshipKindFilterIds = [];
     internal float[] RelationshipKindFilterMinimumStrengths = [];
     internal int[] TerrainFilterIds = [];
+    internal int[] TargetTerrainRequirementTerrainIds = [];
+    internal int[] TargetTerrainRequirementRadii = [];
+    internal int[] TargetTerrainRequirementMaximumExclusive = [];
     internal int[] TriggerKindIds = [];
     internal int[] BindingRefCodes = [];
     internal int[] BindingKindIds = [];
@@ -105,6 +110,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int SubtypeCount;
     internal int RelationshipKindFilterCount;
     internal int TerrainFilterCount;
+    internal int TargetTerrainRequirementCount;
     internal int TriggerCount;
     internal int BindingCount;
     internal int ProducedCount;
@@ -147,6 +153,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         TargetWithoutOutgoingCounts = new int[generatorCapacity + 1];
         TargetWithoutIncomingStarts = new int[generatorCapacity + 1];
         TargetWithoutIncomingCounts = new int[generatorCapacity + 1];
+        TargetTerrainRequirementStarts = new int[generatorCapacity + 1];
+        TargetTerrainRequirementCounts = new int[generatorCapacity + 1];
         TriggerStarts = new int[generatorCapacity + 1];
         TriggerCounts = new int[generatorCapacity + 1];
         BindingStarts = new int[generatorCapacity + 1];
@@ -178,6 +186,9 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         RelationshipKindFilterIds = new int[itemCapacity + 1];
         RelationshipKindFilterMinimumStrengths = new float[itemCapacity + 1];
         TerrainFilterIds = new int[itemCapacity + 1];
+        TargetTerrainRequirementTerrainIds = new int[itemCapacity + 1];
+        TargetTerrainRequirementRadii = new int[itemCapacity + 1];
+        TargetTerrainRequirementMaximumExclusive = new int[itemCapacity + 1];
     }
 
     private void InitializeTriggerArrays(int itemCapacity)
@@ -250,7 +261,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 6;
+    public int SchemaVersion => 7;
 
     public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
     {

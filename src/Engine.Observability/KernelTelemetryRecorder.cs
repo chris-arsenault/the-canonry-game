@@ -17,7 +17,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         string domain = "IceRemembers",
         bool traceEnabled = false,
         int entitySnapshotCadence = 0,
-        int resourceSnapshotCadence = 0,
         int mapSnapshotCadence = 0,
         int generatorSnapshotCadence = 0,
         KernelEventCursorStart cursorStart = KernelEventCursorStart.EarliestAvailable,
@@ -46,7 +45,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
             GitShaId: 0,
             traceEnabled,
             entitySnapshotCadence,
-            resourceSnapshotCadence,
             mapSnapshotCadence,
             generatorSnapshotCadence));
 

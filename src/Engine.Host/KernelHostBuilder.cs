@@ -493,9 +493,6 @@ internal sealed class KernelHostBuilder
             case DomainSymbolKind.StructuralFact:
                 symbolKind = ProjectionSymbolKind.StructuralFact;
                 return true;
-            case DomainSymbolKind.Resource:
-                symbolKind = ProjectionSymbolKind.Resource;
-                return true;
             case DomainSymbolKind.Terrain:
                 symbolKind = ProjectionSymbolKind.Terrain;
                 return true;

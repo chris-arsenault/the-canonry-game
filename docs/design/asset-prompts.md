@@ -440,32 +440,16 @@ Not pixel art, not 8-bit, not flat vector.
 
 ---
 
-## 6 · Resource and health icons (Ice Remembers domain)
+## 6 · Attribute and health icons (Ice Remembers domain)
 
-Used wherever a resource or health value is displayed (EntityCard, hex tooltip, legend). Traits may get separate icons later, but the active runtime no longer has non-health attributes. Generate at 256×256, centered, simple enough to read at 14×14 rendered.
+Used wherever a health value or retained entity-state icon is displayed
+(EntityCard, legend). The active runtime no longer has resource or non-health
+attribute stocks. Generate at 256×256, centered, simple enough to read at
+14×14 rendered.
 
 Common prompt suffix: `centered sigil-style ink drawing on warm-cream #E7E3D5 background, simple enough to read at small size, not pixel art, not 8-bit, not flat vector, not cartoon`
 
-### 6.1 Food (`attr-food.png`)
-
-```
-A small ink sigil of a simple fish silhouette arched slightly,
-single line, no scales, no detail — pure iconography. Dark ink
-on warm-cream #E7E3D5 background. 1:1 square, centered.
-Not pixel art, not 8-bit, not flat vector.
-```
-
-### 6.2 Wealth (`attr-wealth.png`)
-
-```
-A small ink sigil of three stacked coins viewed from the edge,
-suggested by three narrow horizontal ellipses. Faint Gilt #C9A96B
-wash on the topmost coin only. Dark ink on warm-cream #E7E3D5.
-1:1 square, centered.
-Not pixel art, not 8-bit, not flat vector.
-```
-
-### 6.3 Population (`attr-population.png`)
+### 6.1 Population (`attr-population.png`)
 
 ```
 A small ink sigil of three overlapping penguin silhouettes — a
@@ -474,7 +458,7 @@ on warm-cream #E7E3D5 background. 1:1 square, centered.
 Not pixel art, not 8-bit, not flat vector, not chibi.
 ```
 
-### 6.4 Temp HP (`health-temp-hp.png`)
+### 6.2 Temp HP (`health-temp-hp.png`)
 
 ```
 A small ink sigil of a sheltered flame inside a low dome doorway.
@@ -483,7 +467,7 @@ Ember #D97742 wash inside the flame, dark ink outline. Warm-cream
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.5 Cohesion (`health-cohesion.png`)
+### 6.3 Cohesion (`health-cohesion.png`)
 
 ```
 A small ink sigil of three interlocked cords tied into a compact knot.
@@ -492,7 +476,7 @@ symmetric.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.6 Vitality (`health-vitality.png`)
+### 6.4 Vitality (`health-vitality.png`)
 
 ```
 A small ink sigil of a penguin footprint with a tiny pulse line through
@@ -501,7 +485,7 @@ background. 1:1 square, centered.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.7 Stability (`health-stability.png`)
+### 6.5 Stability (`health-stability.png`)
 
 ```
 A small ink sigil of a cracked ice slab braced by two simple support
@@ -510,7 +494,7 @@ centered.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.8 Condition (`health-condition.png`)
+### 6.6 Condition (`health-condition.png`)
 
 ```
 A small ink sigil of a relic shard with one repaired fracture line.
@@ -518,7 +502,7 @@ Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.9 Endurance (`health-endurance.png`)
+### 6.7 Endurance (`health-endurance.png`)
 
 ```
 A small ink sigil of a long wake line behind a simple orca dorsal fin.
@@ -526,7 +510,7 @@ Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.10 Presence (`health-presence.png`)
+### 6.8 Presence (`health-presence.png`)
 
 ```
 A small ink sigil of a map pin over a natural landmark dot-ring.
@@ -534,7 +518,7 @@ Dark ink on warm-cream #E7E3D5 background. 1:1 square, centered.
 Not pixel art, not 8-bit, not flat vector.
 ```
 
-### 6.11 Clarity (`health-clarity.png`)
+### 6.9 Clarity (`health-clarity.png`)
 
 ```
 A small ink sigil of a clear angular lens with one clean highlight
@@ -660,7 +644,7 @@ Not pixel art, not 8-bit, not flat vector.
 
 After generation, each category needs a slightly different treatment. High-level plan for the Python pass:
 
-### Sprites (entities, event icons, resource/health icons, control icons)
+### Sprites (entities, event icons, health icons, control icons)
 - Background removal via `rembg` (good enough for our aesthetic)
 - Auto-crop to content bounding box with a small padding
 - Resize to target sizes: 64/128/256 as PNG with alpha

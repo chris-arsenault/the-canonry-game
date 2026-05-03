@@ -53,8 +53,8 @@ public sealed class DomainIdRegistryTests
     {
         var registry = new DomainIdRegistry();
 
-        var error = Assert.Throws<KeyNotFoundException>(() => registry.ResourceIdOf("food"));
-        Assert.Contains("Unknown resource", error.Message, StringComparison.Ordinal);
+        var error = Assert.Throws<KeyNotFoundException>(() => registry.TerrainIdOf("ice"));
+        Assert.Contains("Unknown terrain", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,7 +85,6 @@ public sealed class DomainIdRegistryTests
         Assert.True(registry.KindIdOf(IceRemembersKinds.Settlement).Value > 0);
         Assert.True(registry.AttributeIdOf("temp_hp").Value > 0);
         Assert.True(registry.RelationshipKindIdOf("member_of").Value > 0);
-        Assert.True(registry.ResourceIdOf("food").Value > 0);
         Assert.True(registry.CultureIdOf(DomainRuntimeNames.NoneCultureId).Value > 0);
         Assert.True(registry.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value > 0);
         Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode).Value > 0);

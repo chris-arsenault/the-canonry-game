@@ -152,7 +152,7 @@ public sealed class KernelHostBuilderTests
                 EventSchemaValidator = KernelEventSchemaRegistry.Validator,
             })
             .WithSeedHeadroom(0)
-            .WithStartupSeeder(estimatedEventCount: 6, seed: SeedGenericStartup)
+            .WithStartupSeeder(estimatedEventCount: 5, seed: SeedGenericStartup)
             .RegisterConsumers(context =>
             {
                 context.RegisterProjection("map", map);
@@ -167,7 +167,6 @@ public sealed class KernelHostBuilderTests
         _ = domain.RegisterSubtype("test_subtype");
         _ = domain.RegisterCulture("test_culture");
         _ = domain.RegisterAttribute("test_attribute");
-        _ = domain.RegisterResource("test_resource");
         _ = domain.RegisterRelationshipKind("test_relationship");
         _ = domain.RegisterSourceCode("behavior");
     }
@@ -197,13 +196,12 @@ public sealed class KernelHostBuilderTests
     private static void SeedGenericStartup(KernelStartupContext startup)
     {
         var terrainId = startup.DomainIds.TerrainIdOf("test_terrain").Value;
-        var resourceId = startup.DomainIds.ResourceIdOf("test_resource").Value;
         var kindId = startup.DomainIds.KindIdOf("test_kind").Value;
         var subtypeId = startup.DomainIds.SubtypeIdOf("test_subtype").Value;
         var cultureId = startup.DomainIds.CultureIdOf("test_culture").Value;
         var relationshipKindId = startup.DomainIds.RelationshipKindIdOf("test_relationship").Value;
 
-        startup.SeedCell(0, 0, terrainId, ownerEntityId: 1, [new CellResourceSeed(resourceId, 3f)]);
+        startup.SeedCell(0, 0, terrainId, ownerEntityId: 1);
         startup.SeedEntity(1, kindId, subtypeId, cultureId, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0);
         startup.SeedAttribute(1, startup.DomainIds.AttributeIdOf("test_attribute").Value, value: 25f);
         startup.SeedRelationship(
@@ -231,7 +229,6 @@ public sealed class KernelHostBuilderTests
         Assert.True(ui.Entities.TryGetValue(1, out var entity));
         Assert.Equal(1, entity.KindId);
         Assert.Equal(25f, entity.Attributes[host.DomainIds.AttributeIdOf("test_attribute").Value].NewValue);
-        Assert.True(ui.Resources.ContainsKey(new UiResourceKey(host.DomainIds.ResourceIdOf("test_resource").Value, 0, 0)));
         Assert.True(ui.Relationships.ContainsKey(new UiRelationshipKey(
             1,
             1,
@@ -309,11 +306,6 @@ public sealed class KernelHostBuilderTests
             80f,
             100f);
         Assert.Single(auroraStack.Attributes);
-        if (startupSeed.Resources.Any(resource => resource.Value > 0f))
-        {
-            Assert.Contains(ui.Resources.Values, resource =>
-                resource.SourceCodeId == startupSourceCodeId && resource.NewValue > 0f);
-        }
         Assert.Contains(ui.Relationships.Keys, relationship =>
             relationship.RelationshipKindId == host.DomainIds
                 .RelationshipKindIdOf(IceRemembersRelationship.ControlledBy.ToDomainName())

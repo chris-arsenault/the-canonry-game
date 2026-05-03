@@ -10,7 +10,6 @@ internal sealed partial class WorldState
     private readonly KernelEventLog _events;
     private readonly PrimitiveFloatTable _attributes;
     private readonly PrimitiveIntTable _traits;
-    private readonly PrimitiveFloatTable _resources;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
     private readonly PrimitiveIntTable _mapCellSuperregionIds;
     private readonly PrimitiveIntTable _mapCellContinentIds;
@@ -108,7 +107,6 @@ internal sealed partial class WorldState
         _growableStoragePolicy = KernelGrowableStoragePolicy.FromOptions(options);
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _traits = new PrimitiveIntTable(options.TraitCapacity);
-        _resources = new PrimitiveFloatTable(options.ResourceCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellSuperregionIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellContinentIds = new PrimitiveIntTable(options.MapCellCapacity);
@@ -474,53 +472,6 @@ internal sealed partial class WorldState
             traitId,
             context.SourceCodeId)),
             context);
-    }
-
-    public float GetResource(int resourceId, int q, int r)
-    {
-        ValidatePositive(resourceId);
-        return _resources.GetOrDefault(resourceId, CoordinateKey(q, r));
-    }
-
-    public void SetResource(int resourceId, int q, int r, float value, int tick, in KernelExecutionContext context)
-    {
-        ValidatePositive(resourceId);
-        ValidatePositive(context.SourceCodeId);
-        var key = CoordinateKey(q, r);
-        var clamped = value < 0f ? 0f : value;
-        var previous = _resources.GetOrDefault(resourceId, key);
-        if (global::System.MathF.Abs(clamped - previous) <= float.Epsilon)
-        {
-            return;
-        }
-
-        EnsureProvenanceOutputCapacity(context);
-        _resources.Set(resourceId, key, clamped);
-        AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.ResourceChanged,
-            resourceId,
-            0,
-            0,
-            key,
-            ProvenanceOutputKindCodes.ResourceChanged);
-        Write(KernelEvent.From(new ResourceChangedKernelEvent(
-            tick,
-            WorldVersion,
-            resourceId,
-            q,
-            r,
-            context.SourceCodeId,
-            previous,
-            clamped)),
-            context);
-    }
-
-    public void ModifyResource(int resourceId, int q, int r, float delta, int tick, in KernelExecutionContext context)
-    {
-        var previous = GetResource(resourceId, q, r);
-        SetResource(resourceId, q, r, previous + delta, tick, context);
     }
 
     public int CreateRelationship(

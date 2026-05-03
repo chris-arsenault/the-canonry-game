@@ -46,7 +46,6 @@ internal sealed partial class WorldState
 
         count += _attributes.Count;
         count += _traits.Count;
-        count += _resources.Count;
         count += _mapLayers.Influence.Count;
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
@@ -67,7 +66,6 @@ internal sealed partial class WorldState
         EmitSnapshotEntities(context, tick, version);
         EmitSnapshotAttributes(context, tick, version);
         EmitSnapshotTraits(context, tick, version);
-        EmitSnapshotResources(context, tick, version);
         EmitSnapshotInfluence(context, tick, version);
         EmitSnapshotRelationships(context, tick, version);
     }
@@ -176,26 +174,6 @@ internal sealed partial class WorldState
         });
     }
 
-    private void EmitSnapshotResources(KernelExecutionContext context, int tick, long version)
-    {
-        _resources.ForEach((resourceId, coordinateKey, value) =>
-        {
-            if (TryResolveCoordinateKey(coordinateKey, out var q, out var r))
-            {
-                Write(KernelEvent.From(new ResourceChangedKernelEvent(
-                    tick,
-                    version,
-                    resourceId,
-                    q,
-                    r,
-                    context.SourceCodeId,
-                    0f,
-                    value)),
-                    context);
-            }
-        });
-    }
-
     private void EmitSnapshotInfluence(KernelExecutionContext context, int tick, long version)
     {
         _mapLayers.Influence.ForEach((entityId, planeCode, coordinateKey, value) =>
@@ -247,9 +225,6 @@ internal sealed partial class WorldState
                 context);
         }
     }
-
-    private bool TryResolveCoordinateKey(int coordinateKey, out int q, out int r) =>
-        TryResolveCoordinateKey(coordinateKey, extraRadius: 0, out q, out r);
 
     private bool TryResolveCoordinateKey(int coordinateKey, int extraRadius, out int q, out int r)
     {

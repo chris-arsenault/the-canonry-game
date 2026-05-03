@@ -11,7 +11,6 @@ public sealed class UiProjectionState : KernelEventProjector
 {
     private readonly Dictionary<int, UiEntityProjection> _entities = [];
     private readonly Dictionary<UiRelationshipKey, UiRelationshipProjection> _relationships = [];
-    private readonly Dictionary<UiResourceKey, UiResourceProjection> _resources = [];
     private readonly Dictionary<int, UiGeneratorProjection> _generators = [];
     private readonly List<UiGeneratorFireProjection> _generatorFires = [];
     private readonly Dictionary<int, UiGambitProjection> _gambits = [];
@@ -40,8 +39,6 @@ public sealed class UiProjectionState : KernelEventProjector
     public IReadOnlyDictionary<int, UiEntityProjection> Entities => _entities;
 
     public IReadOnlyDictionary<UiRelationshipKey, UiRelationshipProjection> Relationships => _relationships;
-
-    public IReadOnlyDictionary<UiResourceKey, UiResourceProjection> Resources => _resources;
 
     public IReadOnlyDictionary<int, UiGeneratorProjection> Generators => _generators;
 
@@ -151,21 +148,6 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.Traits.Add(evt.TraitId);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-    }
-
-    protected override void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
-    {
-        var key = new UiResourceKey(evt.ResourceId, evt.Q, evt.R);
-        _resources[key] = new UiResourceProjection(
-            evt.ResourceId,
-            evt.Q,
-            evt.R,
-            evt.SourceCodeId,
-            evt.OldValue,
-            evt.NewValue,
-            evt.Tick,
-            evt.WorldVersion);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -407,11 +389,6 @@ public readonly record struct UiRelationshipKey(
     int TargetEntityId,
     int RelationshipKindId);
 
-public readonly record struct UiResourceKey(
-    int ResourceId,
-    int Q,
-    int R);
-
 public sealed record UiAttributeProjection(
     int AttributeId,
     int SourceCodeId,
@@ -443,16 +420,6 @@ public sealed record UiRelationshipProjection(
     float PreviousStrength,
     float NewStrength,
     bool IsActive,
-    int Tick,
-    long WorldVersion);
-
-public sealed record UiResourceProjection(
-    int ResourceId,
-    int Q,
-    int R,
-    int SourceCodeId,
-    float OldValue,
-    float NewValue,
     int Tick,
     long WorldVersion);
 

@@ -93,14 +93,12 @@ internal sealed class SeedAssembly
     {
         var entities = CreateStartupEntities();
         var cells = CreateStartupCells();
-        var resources = CreateStartupResources();
         var relationships = CreateStartupRelationships();
 
         return new DomainStartupSeed(
             Grid.Radius,
             entities,
             cells,
-            resources,
             relationships,
             MapSubdivisions,
             Attributes: []);
@@ -138,8 +136,6 @@ internal sealed class SeedAssembly
                     subdivision.ContinentId);
             })
             .ToArray();
-
-    private static DomainSeedResource[] CreateStartupResources() => [];
 
     private DomainSeedRelationship[] CreateStartupRelationships() =>
         _relationships

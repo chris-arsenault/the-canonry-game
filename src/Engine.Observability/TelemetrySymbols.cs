@@ -160,7 +160,6 @@ internal static class TelemetrySymbolIds
         AddKernelEventType(symbols, KernelEventType.EntityStatusChanged, "entity_status_changed", "Entity Status Changed");
         AddKernelEventType(symbols, KernelEventType.EntityMoved, "entity_moved", "Entity Moved");
         AddKernelEventType(symbols, KernelEventType.AttributeChanged, "attribute_changed", "Attribute Changed");
-        AddKernelEventType(symbols, KernelEventType.ResourceChanged, "resource_changed", "Resource Changed");
         AddKernelEventType(symbols, KernelEventType.RelationshipChanged, "relationship_changed", "Relationship Changed");
         AddKernelEventType(symbols, KernelEventType.GeneratorEvaluated, "generator_evaluated", "Generator Evaluated");
         AddKernelEventType(symbols, KernelEventType.GeneratorFired, "generator_fired", "Generator Fired");

@@ -14,7 +14,6 @@ public static partial class DefinitionGraphValidator
         var errors = new List<string>();
 
         ValidateKindNodes(graph, errors);
-        ValidateResourceKeys(graph, errors);
         ValidateRelationshipKeys(graph, errors);
         ValidateLifecycleNodes(graph, errors);
         ValidateGambitSet(graph, errors);
@@ -30,17 +29,6 @@ public static partial class DefinitionGraphValidator
         foreach (var (kind, kindNode) in graph.Kinds)
         {
             ValidateKindNode(kind, kindNode, graph, errors);
-        }
-    }
-
-    private static void ValidateResourceKeys(DefinitionGraph graph, List<string> errors)
-    {
-        foreach (var (resourceId, resourceNode) in graph.Resources)
-        {
-            if (resourceNode.Id != resourceId)
-            {
-                errors.Add($"Resource node key '{resourceId}' does not match node id '{resourceNode.Id}'.");
-            }
         }
     }
 
@@ -181,7 +169,6 @@ public static partial class DefinitionGraphValidator
 
         ValidateSemanticFlows(graph, errors);
         ValidateSemanticVerbParticipation(graph, errors);
-        ValidateResourceStockInflows(graph, errors);
         ValidateProjectedSemanticEdges(graph, errors);
     }
 
@@ -405,31 +392,6 @@ public static partial class DefinitionGraphValidator
         }
     }
 
-    private static void ValidateResourceStockInflows(DefinitionGraph graph, List<string> errors)
-    {
-        var resourceStocks = graph.SemanticFlows.Stocks
-            .Where(stock => stock.Id is ResourceStockId)
-            .ToList();
-        if (resourceStocks.Count == 0)
-        {
-            return;
-        }
-
-        var projected = SemanticStockGraphProjection.ProjectAttributeEdges(graph.SemanticFlows);
-        var inflowTargets = projected
-            .Select(edge => edge.TargetId)
-            .ToHashSet();
-
-        foreach (var stock in resourceStocks)
-        {
-            if (!inflowTargets.Contains(stock.Id))
-            {
-                errors.Add(
-                    $"Resource stock '{stock.Id.Label}' has no inflow producer. Author an outflow on some entity stock whose source ref is this resource.");
-            }
-        }
-    }
-
     private static void ValidateGeneratorCultureInheritance(
         DefinitionGeneratorNode generator,
         List<string> errors)
@@ -603,10 +565,6 @@ public static partial class DefinitionGraphValidator
             {
                 case AttributeValueId attributeValue:
                     ValidateAttributeRef(ownerId, reference, attributeValue, graph, errors);
-                    break;
-
-                case ResourceValueId resourceValue when !graph.Resources.ContainsKey(resourceValue.ResourceId):
-                    errors.Add($"Definition ref on '{ownerId}' uses undeclared resource '{resourceValue.ResourceId}'.");
                     break;
 
             }

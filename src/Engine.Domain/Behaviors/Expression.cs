@@ -1,7 +1,5 @@
 namespace Engine.Behaviors;
 
-using Engine.Resources;
-
 /// <summary>
 /// A composable expression that evaluates to a float given entity state.
 /// Expressions are config-DSL records; the kernel compiles them into primitive
@@ -31,13 +29,6 @@ public sealed class AttributePath(string entityRef, string attributeName) : IExp
 public sealed class VariableRef(string variableName) : IExpression
 {
     public string VariableName { get; } = variableName;
-}
-
-/// <summary>Read an ambient resource value at self or target location.</summary>
-public sealed class LocationResourcePath(string entityRef, ResourceType resourceType) : IExpression
-{
-    public string EntityRef { get; } = entityRef;
-    public ResourceType ResourceType { get; } = resourceType;
 }
 
 // --- Arithmetic ---
@@ -113,8 +104,6 @@ public static class Expr
     public static Literal Lit(float v) => new(v);
     public static AttributePath Self(string attr) => new("self", attr);
     public static AttributePath Target(string attr) => new("target", attr);
-    public static LocationResourcePath SelfLocationResource(ResourceType resourceType) => new("self", resourceType);
-    public static LocationResourcePath TargetLocationResource(ResourceType resourceType) => new("target", resourceType);
     public static VariableRef Var(string name) => new(name);
     public static Distance Distance() => new();
     public static Add Add(IExpression l, IExpression r) => new(l, r);

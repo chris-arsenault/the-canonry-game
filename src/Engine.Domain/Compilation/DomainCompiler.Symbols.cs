@@ -7,7 +7,6 @@ using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Gambits;
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 using Engine.WorldGen;
 
@@ -88,11 +87,6 @@ public static partial class DomainCompiler
                 fact.Name,
                 fact.DisplayName,
                 fact.Description);
-        }
-
-        foreach (var resource in config.Resources)
-        {
-            symbols.Add(DomainSymbolKind.Resource, ids.ResourceIdOf(resource.Name).Value, resource.Name, resource.DisplayName);
         }
 
         foreach (var terrain in config.Terrains)
@@ -226,7 +220,6 @@ public static partial class DomainCompiler
         DomainIdCategory.Verb => DomainSymbolKind.Verb,
         DomainIdCategory.Gambit => DomainSymbolKind.Gambit,
         DomainIdCategory.StructuralFact => DomainSymbolKind.StructuralFact,
-        DomainIdCategory.Resource => DomainSymbolKind.Resource,
         _ => null,
     };
 

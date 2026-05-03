@@ -161,6 +161,45 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void TargetTerrainCountBelow_BlocksUntilLocalTerrainCountFallsBelowMaximum()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        simulation.RegisterTerrain(2, boundaryGroupId: 1);
+        CreateTarget(simulation);
+        simulation.World.SetCellTerrain(1, 0, 2);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetTerrainCountBelow(slot, terrainId: 2, radius: 1, maximumExclusive: 1);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(1, simulation.World.EntityHighWatermark);
+
+        simulation.World.SetCellTerrain(1, 0, 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void TargetTerrainCountBelow_ThrowsCapacityErrorWhenRequirementSpaceIsExhausted()
+    {
+        var simulation = new Simulation(new SimulationOptions
+        {
+            GeneratorCapacity = 1,
+            GeneratorItemCapacity = 1,
+        });
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        simulation.Generators.AddTargetTerrainCountBelow(slot, terrainId: 1, radius: 1, maximumExclusive: 1);
+
+        var exception = Assert.Throws<KernelCapacityExceededException>(() =>
+            simulation.Generators.AddTargetTerrainCountBelow(slot, terrainId: 1, radius: 1, maximumExclusive: 1));
+
+        Assert.Equal(KernelCapacityCodes.GeneratorTargetTerrainRequirement, exception.CapacityCode);
+        Assert.Equal(2, exception.RequestedIndex);
+        Assert.Equal(1, exception.Capacity);
+    }
+
+    [Fact]
     public void Fire_CreatesEntityAndRelationshipAndEmitsEvents()
     {
         var simulation = CreateSimulation();
@@ -745,7 +784,6 @@ public sealed class GeneratorProgramRuntimeTests
         EntityCapacity = 16,
         RelationshipCapacity = 16,
         AttributeCapacity = 32,
-        ResourceCapacity = 16,
         MapCellCapacity = 128,
         EventCapacity = 512,
         GeneratorCapacity = 4,

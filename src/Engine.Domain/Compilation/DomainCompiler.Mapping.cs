@@ -8,7 +8,6 @@ using Engine.Domain.Graph;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 using Engine.WorldGen;
 
@@ -330,7 +329,7 @@ public static partial class DomainCompiler
                 ids.KindIdOf(generator.Target.Kind).Value,
                 CompileGeneratorSubtypeIds(generator.Target.Subtypes, ids),
                 generator.Target.AllowWilderness,
-                CompileGeneratorTargetRelationshipRequirements(generator.Target, ids),
+                CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.PulseWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
                 CompileGeneratorTargetSaturation(generator.TargetSaturation),
@@ -379,13 +378,33 @@ public static partial class DomainCompiler
 
     private static GeneratorTargetRelationshipRequirements CompileGeneratorTargetRelationshipRequirements(
         DefinitionGeneratorTarget target,
+        Dictionary<string, TerrainConfig> terrainByName,
         DomainIdRegistry ids) =>
         new(
             CompileRelationshipRequirements(target.RequiredOutgoingRelationships, target.RequiredOutgoingRelationshipRequirements, ids),
             CompileRelationshipRequirements(target.RequiredIncomingRelationships, target.RequiredIncomingRelationshipRequirements, ids),
             CompileRelationshipRequirements(target.RequiredRelationships, target.RequiredRelationshipRequirements, ids),
+            CompileGeneratorTerrainCountRequirements(target.TerrainCountRequirements, terrainByName, ids),
             CompileRelationshipKindIds(target.WithoutOutgoingRelationships, ids),
             CompileRelationshipKindIds(target.WithoutIncomingRelationships, ids));
+
+    private static List<GeneratorTerrainCountRequirementRule> CompileGeneratorTerrainCountRequirements(
+        IReadOnlyList<DefinitionTargetTerrainCountRequirement> requirements,
+        Dictionary<string, TerrainConfig> terrainByName,
+        DomainIdRegistry ids)
+    {
+        var compiled = new List<GeneratorTerrainCountRequirementRule>(requirements.Count);
+        foreach (var requirement in requirements)
+        {
+            var terrain = ResolveTerrain(terrainByName, requirement.TerrainName);
+            compiled.Add(new GeneratorTerrainCountRequirementRule(
+                ids.TerrainIdOf(terrain.Name).Value,
+                requirement.Radius,
+                requirement.MaximumExclusive));
+        }
+
+        return compiled;
+    }
 
     private static List<GeneratorRelationshipRequirementRule> CompileRelationshipRequirements(
         IReadOnlySet<string>? relationshipKinds,
@@ -742,7 +761,6 @@ public static partial class DomainCompiler
     {
         RefScope.Self => BehaviorProgramEffectScope.SelfAttribute,
         RefScope.Target => BehaviorProgramEffectScope.TargetAttribute,
-        RefScope.Resource => BehaviorProgramEffectScope.Resource,
         RefScope.Structural => BehaviorProgramEffectScope.Structural,
         RefScope.Relational => BehaviorProgramEffectScope.Relational,
         _ => throw new InvalidOperationException($"Unsupported behavior effect scope '{reference.Scope}'."),
@@ -751,7 +769,6 @@ public static partial class DomainCompiler
     private static int EffectValueId(AttributeRef reference, DomainIdRegistry ids) => reference.Scope switch
     {
         RefScope.Self or RefScope.Target => ids.AttributeIdOf(reference.Name).Value,
-        RefScope.Resource => ids.ResourceIdOf(reference.Name).Value,
         RefScope.Structural => ids.StructuralFactIdOf(reference.Name).Value,
         RefScope.Relational => ids.RelationshipKindIdOf(reference.RelationshipKind ?? reference.Name).Value,
         _ => throw new InvalidOperationException($"Unsupported behavior effect scope '{reference.Scope}'."),

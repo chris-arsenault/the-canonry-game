@@ -39,10 +39,13 @@ public sealed record GeneratorTargetRelationshipRequirements(
     IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredOutgoingRelationships,
     IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredIncomingRelationships,
     IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredRelationships,
+    IReadOnlyList<GeneratorTerrainCountRequirementRule> TerrainCountRequirements,
     IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
     IReadOnlyList<int> WithoutIncomingRelationshipKindIds);
 
 public sealed record GeneratorRelationshipRequirementRule(int RelationshipKindId, float MinimumStrength);
+
+public sealed record GeneratorTerrainCountRequirementRule(int TerrainId, int Radius, int MaximumExclusive);
 
 public sealed record GeneratorTriggerRule(int KindId);
 

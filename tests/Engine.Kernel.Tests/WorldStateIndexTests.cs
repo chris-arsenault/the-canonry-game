@@ -257,7 +257,6 @@ public sealed class WorldStateIndexTests
             EntityCapacity = 8,
             RelationshipCapacity = 8,
             AttributeCapacity = 32,
-            ResourceCapacity = 32,
             MapCellCapacity = 64,
             EventCapacity = 128,
             GambitCapacity = 8,

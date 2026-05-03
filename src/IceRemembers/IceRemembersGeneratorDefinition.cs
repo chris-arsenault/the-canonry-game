@@ -12,6 +12,8 @@ public static class IceRemembersGeneratorDefinition
 {
     private const float RoutesDrawReadersMinimumTradeRouteStrength = 0.70f;
     private const float RoutesDrawReadersTradeRouteStrengthSpend = -0.30f;
+    private const int WarBreaksTheLandWasteRadius = 5;
+    private const int WarBreaksTheLandMaximumLocalWastes = 8;
 
     public static IReadOnlyList<SemanticGeneratorConfig> Create() =>
     [
@@ -119,8 +121,12 @@ public static class IceRemembersGeneratorDefinition
         Id = "war_breaks_the_land",
         Name = "War Breaks the Land",
         Description = "Sustained war scars the outer face into wastes. Survivors sometimes form a compact in the ruin; weapons are left where the fighting cracked.",
-        Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
-        TargetSaturation = SaturationIncoming(Rel.CorruptedBy, 2),
+        Target = TargetWithOutgoingAndLocalTerrainBelow(
+            K.Faction,
+            Rel.AtWarWith,
+            Terrain.Wastes,
+            WarBreaksTheLandWasteRadius,
+            WarBreaksTheLandMaximumLocalWastes),
         Produces =
         [
             ScarRegion("$scar", "$target"),
@@ -212,6 +218,27 @@ public static class IceRemembersGeneratorDefinition
                 {
                     RelationshipKind = L(required),
                     MinimumStrength = minimumStrength,
+                },
+            ],
+        };
+
+    private static SemanticGeneratorTarget TargetWithOutgoingAndLocalTerrainBelow(
+        EntityKind kind,
+        Rel required,
+        Terrain terrain,
+        int radius,
+        int maximumExclusive) =>
+        new()
+        {
+            Kind = kind,
+            RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
+            TerrainCountRequirements =
+            [
+                new SemanticGeneratorTerrainCountRequirement
+                {
+                    TerrainName = terrain.ToDomainName(),
+                    Radius = radius,
+                    MaximumExclusive = maximumExclusive,
                 },
             ],
         };

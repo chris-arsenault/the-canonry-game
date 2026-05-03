@@ -11,13 +11,12 @@ public sealed record DomainStartupSeed(
     int MapRadius,
     IReadOnlyList<DomainSeedEntity> Entities,
     IReadOnlyList<DomainSeedCell> Cells,
-    IReadOnlyList<DomainSeedResource> Resources,
     IReadOnlyList<DomainSeedRelationship> Relationships,
     IReadOnlyList<DomainMapSubdivision> MapSubdivisions,
     IReadOnlyList<DomainSeedAttributeValue> Attributes)
 {
     public static DomainStartupSeed Empty(int mapRadius) =>
-        new(mapRadius, [], [], [], [], [], []);
+        new(mapRadius, [], [], [], [], []);
 }
 
 public sealed record DomainSeedEntity(
@@ -51,12 +50,6 @@ public sealed record DomainMapSubdivision(
     DomainMapSubdivisionLevel Level,
     string StableName,
     string DisplayName);
-
-public sealed record DomainSeedResource(
-    string Resource,
-    int Q,
-    int R,
-    float Value);
 
 public sealed record DomainSeedAttributeValue(
     int SeedEntityId,

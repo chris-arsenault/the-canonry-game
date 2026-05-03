@@ -40,16 +40,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         return Math.Clamp((value - min) / (max - min), 0d, 1d);
     }
 
-    private static double ComputeRatio(double numerator, double denominator)
-    {
-        if (denominator <= 0d)
-        {
-            return numerator <= 0d ? 1d : 0d;
-        }
-
-        return numerator / denominator;
-    }
-
     private static string PlaneName(int planeCode) =>
         planeCode switch
         {

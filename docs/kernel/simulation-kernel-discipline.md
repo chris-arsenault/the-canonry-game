@@ -89,7 +89,6 @@ At startup, domain content should compile string names into stable IDs:
 - `AttributeId`
 - `ProcessId`
 - `RelationshipKindId`
-- `ResourceId`
 - `CardId`
 - reason/event codes
 
@@ -190,7 +189,7 @@ Allowed off-thread work:
 
 Disallowed off-thread work:
 
-- mutating `WorldGraph`, entities, attributes, goals, resources, relationships, or
+- mutating `WorldGraph`, entities, attributes, goals, relationships, or
   cooldown state
 - retaining live engine object references from the sim thread
 - applying planner results without sim-thread validation

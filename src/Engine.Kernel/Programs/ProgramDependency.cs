@@ -8,18 +8,18 @@ internal readonly record struct ProgramMetadata(
     ProgramWriteDependency[] Writes);
 
 internal readonly record struct ProgramReadDependency(
-    int ResourceCode,
+    int ChannelCode,
     int DependencyLag);
 
 internal readonly record struct ProgramWriteDependency(
-    int ResourceCode,
+    int ChannelCode,
     int DependencyLag);
 
 internal readonly record struct ProgramDependencyViolation(
     int ReaderProgramId,
     int WriterProgramId,
     int DependencyLag,
-    int ResourceCode);
+    int ChannelCode);
 
 internal static class ProgramDependencyLag
 {

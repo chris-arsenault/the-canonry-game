@@ -366,7 +366,6 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
                      "config_hash_id",
                      "trace_enabled",
                      "entity_snapshot_cadence",
-                     "resource_snapshot_cadence",
                      "map_snapshot_cadence",
                      "generator_snapshot_cadence",
                  })
@@ -512,7 +511,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         ArgumentNullException.ThrowIfNull(data);
 
         data.Add("runs", "run_id,seed,domain_id,started_unix_milliseconds", "Run metadata is the root key for every output join.");
-        data.Add("experiment_variants", "run_id,experiment_id,variant_id,config_hash_id,git_sha_id,trace_enabled,entity_snapshot_cadence,resource_snapshot_cadence,map_snapshot_cadence,generator_snapshot_cadence", "Variant metadata and snapshot cadences are required for cross-run comparisons.");
+        data.Add("experiment_variants", "run_id,experiment_id,variant_id,config_hash_id,git_sha_id,trace_enabled,entity_snapshot_cadence,map_snapshot_cadence,generator_snapshot_cadence", "Variant metadata and snapshot cadences are required for cross-run comparisons.");
         data.Add("tick_snapshots", "run_id,tick,active_entities,historical_entities,total_generator_fires,active_relationships,coverage_count,covered_cells,uncovered_cells,physical_spread,semantic_spread", "Tick snapshots provide coarse run state and coverage denominators.");
         data.Add("kind_snapshots", "run_id,tick,kind_id,subtype_id,active_count,historical_count,average_health,minimum_health,maximum_health", "Kind health summaries must be computed, not zero-filled.");
         data.Add("entity_events", "run_id,tick,event_type_code,source_code_id,entity_id,kind_id,subtype_id,culture_id,previous_status_code,current_status_code,physical_q,physical_r,semantic_q,semantic_r,semantic_s", "Entity events own identity and status changes.");

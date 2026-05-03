@@ -8,7 +8,6 @@ internal sealed record SimulationOptions
     public int RelationshipCapacity { get; init; } = 8192;
     public int AttributeCapacity { get; init; } = 65536;
     public int TraitCapacity { get; init; } = 65536;
-    public int ResourceCapacity { get; init; } = 65536;
     public int ProvenanceInvocationCapacity { get; init; } = 8192;
     public int ProvenanceOutputCapacity { get; init; } = 65536;
     public int GrowableStorageModeCode { get; init; } = KernelGrowableStorageModeCodes.Enabled;

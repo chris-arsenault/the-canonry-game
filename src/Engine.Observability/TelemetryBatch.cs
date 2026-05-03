@@ -31,9 +31,6 @@ public sealed class TelemetryBatch
     public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
     public Collection<AttributeEventRow> AttributeEvents { get; } = [];
     public Collection<MovementEventRow> MovementEvents { get; } = [];
-    public Collection<ResourceEventRow> ResourceEvents { get; } = [];
-    public Collection<ResourceSnapshotRow> ResourceSnapshots { get; } = [];
-    public Collection<ResourceTerrainSnapshotRow> ResourceTerrainSnapshots { get; } = [];
     public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
     public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
     public Collection<GambitEventRow> GambitEvents { get; } = [];
@@ -84,7 +81,6 @@ public sealed record ExperimentVariantRow(
     int GitShaId,
     bool TraceEnabled,
     int EntitySnapshotCadence,
-    int ResourceSnapshotCadence,
     int MapSnapshotCadence,
     int GeneratorSnapshotCadence);
 
@@ -363,36 +359,6 @@ public sealed record MovementEventRow(
     int ToR,
     int ToS,
     int Distance);
-
-public sealed record ResourceEventRow(
-    int RunId,
-    int Tick,
-    int ResourceId,
-    int Q,
-    int R,
-    float OldValue,
-    float NewValue,
-    float Delta,
-    int SourceCodeId);
-
-public sealed record ResourceSnapshotRow(
-    int RunId,
-    int Tick,
-    int ResourceId,
-    double Total,
-    double Average,
-    double Minimum,
-    double Maximum);
-
-public sealed record ResourceTerrainSnapshotRow(
-    int RunId,
-    int Tick,
-    int ResourceId,
-    int TerrainId,
-    double Total,
-    double Average,
-    double Minimum,
-    double Maximum);
 
 public sealed record RelationshipEventRow(
     int RunId,

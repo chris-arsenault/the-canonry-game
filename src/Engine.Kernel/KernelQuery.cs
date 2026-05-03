@@ -315,13 +315,11 @@ internal static class KernelQuery
         result = predicate.Code switch
         {
             BehaviorPreconditionCodes.PlaneDistance => PlaneDistance(world, binding.ActorId, binding.TargetId, predicate.B) <= predicate.A,
-            BehaviorPreconditionCodes.LocationResourceRange => LocationResourceInRange(world, predicate, binding),
             BehaviorPreconditionCodes.ContestedInfluence => InfluenceOverlapPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.X, predicate.Y),
             BehaviorPreconditionCodes.SharedInfluence => InfluenceOverlapPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.X, predicate.Y),
             _ => false,
         };
         return predicate.Code is BehaviorPreconditionCodes.PlaneDistance or
-            BehaviorPreconditionCodes.LocationResourceRange or
             BehaviorPreconditionCodes.ContestedInfluence or
             BehaviorPreconditionCodes.SharedInfluence;
     }
@@ -449,6 +447,44 @@ internal static class KernelQuery
         var aS = -aq - ar;
         var bS = -bq - br;
         return (Abs(aq - bq) + Abs(ar - br) + Abs(aS - bS)) / 2;
+    }
+
+    public static bool TerrainCellCountInRadiusBelow(
+        WorldState world,
+        int originQ,
+        int originR,
+        int terrainId,
+        int radius,
+        int maximumExclusive)
+    {
+        if (radius < 0 || maximumExclusive <= 0)
+        {
+            return false;
+        }
+
+        var count = 0;
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var minR = Max(-radius, -dq - radius);
+            var maxR = Min(radius, -dq + radius);
+            for (var dr = minR; dr <= maxR; dr++)
+            {
+                var q = originQ + dq;
+                var r = originR + dr;
+                if (!world.CellIsKnown(q, r) || world.CellTerrainId(q, r) != terrainId)
+                {
+                    continue;
+                }
+
+                count++;
+                if (count >= maximumExclusive)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public static int CurrentQ(WorldState world, int entityId, int planeCode) =>
@@ -921,19 +957,6 @@ internal static class KernelQuery
                 binding.TargetOriginR) == 1;
     }
 
-    private static bool LocationResourceInRange(
-        WorldState world,
-        in QueryPredicate predicate,
-        in QueryBinding binding)
-    {
-        var locationEntityId = predicate.B == 0 ? binding.ActorId : binding.TargetId;
-        var value = world.GetResource(
-            predicate.A,
-            world.EntityPhysicalQ(locationEntityId),
-            world.EntityPhysicalR(locationEntityId));
-        return ValueInRange(value, predicate.C, predicate.D, predicate.X, predicate.Y);
-    }
-
     private static bool EndpointRelationshipCountIsBelow(
         WorldState world,
         in QueryPredicate predicate,
@@ -969,6 +992,8 @@ internal static class KernelQuery
     private static int Abs(int value) => value < 0 ? -value : value;
 
     private static int Max(int left, int right) => left >= right ? left : right;
+
+    private static int Min(int left, int right) => left <= right ? left : right;
 
     private static float Max(float left, float right) => left >= right ? left : right;
 }

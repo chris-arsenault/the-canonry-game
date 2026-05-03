@@ -3,8 +3,6 @@ namespace Engine.Kernel;
 using Engine.Eventing;
 using Engine.Kernel.Programs;
 
-internal readonly record struct CellResourceSeed(int ResourceId, float Value);
-
 internal sealed partial class Simulation : IKernel
 {
     private readonly int[] _systemCadences;
@@ -178,10 +176,10 @@ internal sealed partial class Simulation : IKernel
             KernelProgramCodes.LowAltitudeVerbs,
             [
                 new ProgramReadDependency(
-                    ProgramDependencyResourceCodes.MapActivitySignals,
+                    ProgramDependencyChannelCodes.MapActivitySignals,
                     ProgramDependencyLag.PreviousTick),
                 new ProgramReadDependency(
-                    ProgramDependencyResourceCodes.MapSignals,
+                    ProgramDependencyChannelCodes.MapSignals,
                     ProgramDependencyLag.PreviousTick),
             ],
             []),
@@ -190,26 +188,26 @@ internal sealed partial class Simulation : IKernel
             [],
             [
                 new ProgramWriteDependency(
-                    ProgramDependencyResourceCodes.MapActivitySignals,
+                    ProgramDependencyChannelCodes.MapActivitySignals,
                     ProgramDependencyLag.SameTick),
             ]),
         new(
             KernelProgramCodes.MapSignals,
             [
                 new ProgramReadDependency(
-                    ProgramDependencyResourceCodes.MapActivitySignals,
+                    ProgramDependencyChannelCodes.MapActivitySignals,
                     ProgramDependencyLag.SameTick),
             ],
             [
                 new ProgramWriteDependency(
-                    ProgramDependencyResourceCodes.MapSignals,
+                    ProgramDependencyChannelCodes.MapSignals,
                     ProgramDependencyLag.SameTick),
             ]),
         new(
             KernelProgramCodes.Effects,
             [
                 new ProgramReadDependency(
-                    ProgramDependencyResourceCodes.MapSignals,
+                    ProgramDependencyChannelCodes.MapSignals,
                     ProgramDependencyLag.SameTick),
             ],
             []),
@@ -241,7 +239,7 @@ internal sealed partial class Simulation : IKernel
             for (var writeIndex = 0; writeIndex < writerMetadata.Writes.Length; writeIndex++)
             {
                 var write = writerMetadata.Writes[writeIndex];
-                if (write.ResourceCode != read.ResourceCode)
+                if (write.ChannelCode != read.ChannelCode)
                 {
                     continue;
                 }
@@ -271,7 +269,7 @@ internal sealed partial class Simulation : IKernel
                 readerProgramId,
                 writerProgramId,
                 read.DependencyLag,
-                read.ResourceCode);
+                read.ChannelCode);
             _ = violation;
             throw new global::System.InvalidOperationException();
         }
@@ -396,24 +394,6 @@ internal sealed partial class Simulation : IKernel
         CreateCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
     }
 
-    internal void SeedCell(
-        int q,
-        int r,
-        int terrainId,
-        int ownerEntityId,
-        global::System.ReadOnlySpan<CellResourceSeed> resources,
-        int superregionId = 0,
-        int continentId = 0)
-    {
-        AssertStartupSeedTick();
-        CreateCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
-        for (var i = 0; i < resources.Length; i++)
-        {
-            var resource = resources[i];
-            SetResource(resource.ResourceId, q, r, resource.Value, CurrentTick);
-        }
-    }
-
     internal void CreateCell(
         int q,
         int r,
@@ -512,16 +492,6 @@ internal sealed partial class Simulation : IKernel
         SetAttribute(entityId, attributeId, value, CurrentTick);
     }
 
-    internal void SeedResource(
-        int resourceId,
-        int q,
-        int r,
-        float value)
-    {
-        AssertStartupSeedTick();
-        SetResource(resourceId, q, r, value, CurrentTick);
-    }
-
     internal void SeedRelationship(
         int relationshipKindId,
         int polarityCode,
@@ -565,26 +535,6 @@ internal sealed partial class Simulation : IKernel
         int tick)
     {
         World.ModifyAttribute(entityId, attributeId, delta, tick, _executionContext);
-    }
-
-    internal void SetResource(
-        int resourceId,
-        int q,
-        int r,
-        float value,
-        int tick)
-    {
-        World.SetResource(resourceId, q, r, value, tick, _executionContext);
-    }
-
-    internal void ModifyResource(
-        int resourceId,
-        int q,
-        int r,
-        float delta,
-        int tick)
-    {
-        World.ModifyResource(resourceId, q, r, delta, tick, _executionContext);
     }
 
     internal void SetEntityStatus(int entityId, int statusCode, int tick)

@@ -105,17 +105,6 @@ public static partial class DefinitionGraphValidator
             .Where(flow => flow.Mechanism == SemanticMechanism.Decay)
             .ToList();
 
-        if (stock.Id is ResourceStockId)
-        {
-            if (decayFlows.Count > 0)
-            {
-                errors.Add(
-                    $"Semantic stock '{stockLabel}' is a resource; resource stocks must not declare engine_decay flows.");
-            }
-
-            return;
-        }
-
         if (stock.StockClass == SemanticStockClass.Plane)
         {
             if (decayFlows.Count > 0)

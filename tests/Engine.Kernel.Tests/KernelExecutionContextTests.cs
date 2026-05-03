@@ -299,11 +299,8 @@ public sealed class KernelExecutionContextTests
                 method.Name is (
                     "SeedEntity" or
                     "SeedAttribute" or
-                    "SeedResource" or
                     "SetAttribute" or
-                    "ModifyAttribute" or
-                    "SetResource" or
-                    "ModifyResource") &&
+                    "ModifyAttribute") &&
                 method.GetParameters().Any(parameter =>
                     string.Equals(parameter.Name, "sourceCodeId", StringComparison.Ordinal) ||
                     string.Equals(parameter.Name, "attributeSourceCodeId", StringComparison.Ordinal)))

@@ -176,12 +176,6 @@ internal sealed partial class GambitProgramRuntime
             return true;
         }
 
-        if (code == BehaviorExpressionCodes.SelfLocationResource)
-        {
-            Push(stack, ref stackCount, ResourceAtEntity(world, entityId, a));
-            return true;
-        }
-
         return TryExecuteReferenceExpressionOp(world, code, a, entityId, targetId, stack, ref stackCount, variableIds, variableValues, variableCount);
     }
 
@@ -197,12 +191,6 @@ internal sealed partial class GambitProgramRuntime
         global::System.ReadOnlySpan<float> variableValues,
         int variableCount)
     {
-        if (code == BehaviorExpressionCodes.TargetLocationResource)
-        {
-            Push(stack, ref stackCount, ResourceAtEntity(world, targetId, a));
-            return true;
-        }
-
         if (code == BehaviorExpressionCodes.Variable)
         {
             Push(stack, ref stackCount, VariableValue(variableIds, variableValues, variableCount, a));

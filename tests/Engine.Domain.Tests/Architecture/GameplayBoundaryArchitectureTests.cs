@@ -941,7 +941,6 @@ public sealed class GameplayBoundaryArchitectureTests
         {
             "simulation.ModifyAttribute(",
             "simulation.SetAttribute(",
-            "simulation.ModifyResource(",
             "simulation.SetEntityStatus(",
             "simulation.CreateEntity(",
             "simulation.CreateRelationship(",

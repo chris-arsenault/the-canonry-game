@@ -429,6 +429,13 @@ internal sealed class KernelConfigurationContext
     public void AddGeneratorTargetWithoutIncomingRelationship(int generatorSlot, int relationshipKindId) =>
         _kernel.Generators.AddTargetWithoutIncomingRelationship(generatorSlot, relationshipKindId);
 
+    public void AddGeneratorTargetTerrainCountBelow(
+        int generatorSlot,
+        int terrainId,
+        int radius,
+        int maximumExclusive) =>
+        _kernel.Generators.AddTargetTerrainCountBelow(generatorSlot, terrainId, radius, maximumExclusive);
+
     public void SetGeneratorTargetSaturation(
         int generatorSlot,
         int relationshipKindId,

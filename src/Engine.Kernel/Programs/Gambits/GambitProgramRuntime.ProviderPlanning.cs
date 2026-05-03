@@ -68,8 +68,7 @@ internal sealed partial class GambitProgramRuntime
     {
         var code = _providerSelectorCodes[selector];
         if (code == BehaviorProviderSelectorCodes.TargetAttribute ||
-            code == BehaviorProviderSelectorCodes.Structural ||
-            code == BehaviorProviderSelectorCodes.Resource)
+            code == BehaviorProviderSelectorCodes.Structural)
         {
             return EvaluateKindProviderSelector(
                 simulation, entityId, gambitSlot, tick, effectScopeCode, effectValueId, effectKindId,
@@ -279,15 +278,6 @@ internal sealed partial class GambitProgramRuntime
 
         if (ProviderSelectorRequiresAttribute(selector) &&
             !world.HasAttribute(targetId, _providerSelectorValueIds[selector]))
-        {
-            return bestWeight;
-        }
-
-        if (_providerSelectorCodes[selector] == BehaviorProviderSelectorCodes.Resource &&
-            world.GetResource(
-                _providerSelectorValueIds[selector],
-                world.EntityPhysicalQ(targetId),
-                world.EntityPhysicalR(targetId)) <= 0f)
         {
             return bestWeight;
         }

@@ -287,7 +287,6 @@ public sealed class EffectsProgramTests
             EntityCapacity = 8,
             RelationshipCapacity = 16,
             AttributeCapacity = 16,
-            ResourceCapacity = 16,
             EventCapacity = 128,
             LifecycleRuleCapacity = 4,
             EffectRuleCapacity = 4,

@@ -1,16 +1,16 @@
 # System 8: Resources / Economy
 
-Resources are currently a retained domain and map concept, not an active
-low-altitude design focus.
+Status: removed from the active engine.
 
 ## Current Position
 
-The simulation keeps resource definitions and resource telemetry paths because
-future systems may need them. They should not be used as the primary explanation
-for current low-altitude behavior.
-
 The active low-altitude model is movement, influence, map activity, map signals,
 effects, upkeep, relationships, gambits, and generators.
+
+There are no runtime resource definitions, location-resource mutations,
+resource telemetry rows, resource projection state, or resource snapshot paths.
+Do not author generators, gambits, cards, or low-altitude behavior against
+resource ids unless a new economy system is intentionally designed and added.
 
 ## Future Principle
 

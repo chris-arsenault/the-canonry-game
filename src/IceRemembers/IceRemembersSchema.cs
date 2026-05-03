@@ -1,7 +1,5 @@
 namespace IceRemembers;
 
-using Engine.Resources;
-
 public enum IceRemembersAttributeId
 {
     TempHp,
@@ -104,32 +102,6 @@ public static class IceRemembersTraitIdExtensions
             ? DomainNames[index]
             : throw new ArgumentOutOfRangeException(nameof(trait), trait, "Unknown Ice Remembers trait");
     }
-}
-
-public enum IceRemembersResource
-{
-    Food,
-    Wealth,
-    Population,
-}
-
-public static class IceRemembersResourceExtensions
-{
-    public static string ToDomainName(this IceRemembersResource resource) => resource switch
-    {
-        IceRemembersResource.Food => "food",
-        IceRemembersResource.Wealth => "wealth",
-        IceRemembersResource.Population => "population",
-        _ => throw new ArgumentOutOfRangeException(nameof(resource), resource, "Unknown test-domain resource"),
-    };
-
-    public static ResourceType ToResourceType(this IceRemembersResource resource) => resource switch
-    {
-        IceRemembersResource.Food => ResourceType.Food,
-        IceRemembersResource.Wealth => ResourceType.Wealth,
-        IceRemembersResource.Population => ResourceType.Population,
-        _ => throw new ArgumentOutOfRangeException(nameof(resource), resource, "Unknown test-domain resource"),
-    };
 }
 
 public enum IceRemembersRelationship

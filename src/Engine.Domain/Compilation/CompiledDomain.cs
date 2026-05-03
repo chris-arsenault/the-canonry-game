@@ -43,7 +43,6 @@ public enum DomainSymbolKind
     StructuralFact,
     RelationshipKind,
     RelationshipFact,
-    Resource,
     Terrain,
     Generator,
     Verb,

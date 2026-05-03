@@ -174,7 +174,6 @@ public static class SemanticLoopAnalyzer
     private static string DistinctKindOf(SemanticStockId id) => id switch
     {
         AttributeStockId attribute => attribute.Key.Kind.ToString(),
-        ResourceStockId => "hex",
         _ => id.Label,
     };
 }

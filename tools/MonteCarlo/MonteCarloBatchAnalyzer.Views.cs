@@ -117,19 +117,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
              AND attrs.entity_id = es.entity_id
             """),
         new(
-            "resource_snapshots",
-            $"""
-            SELECT runs.run_id, rs.tick,
-                   COALESCE(resource_symbol.stable_name, CAST(rs.resource_id AS VARCHAR)) AS resource_type,
-                   rs.total, rs.average, rs.minimum, rs.maximum
-            FROM raw_resource_snapshots rs
-            JOIN raw_runs rr ON rr.run_id = rs.run_id
-            JOIN runs ON runs.seed = rr.seed
-            LEFT JOIN symbol_lookup resource_symbol
-              ON resource_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Resource}
-             AND resource_symbol.id = rs.resource_id
-            """),
-        new(
             "generator_events",
             $"""
             SELECT runs.run_id, ge.tick,

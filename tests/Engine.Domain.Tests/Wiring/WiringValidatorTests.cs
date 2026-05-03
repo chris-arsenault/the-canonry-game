@@ -176,15 +176,15 @@ public class WiringValidatorTests
 
         validator.RegisterContract(new WiringContract(
             "grow",
-            reads: new HashSet<AttributeRef> { AttributeRef.Resource("food") },
+            reads: new HashSet<AttributeRef> { AttributeRef.StructuralFact("harbor_access") },
             writes: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
             goalEffects: new HashSet<AttributeRef> { AttributeRef.Self("population", TestKinds.Settlement) },
-            behaviorSupportEffects: new HashSet<AttributeRef> { AttributeRef.Resource("food") }));
+            behaviorSupportEffects: new HashSet<AttributeRef> { AttributeRef.StructuralFact("harbor_access") }));
 
         var errors = validator.Validate();
 
         Assert.Contains(errors, e => e.Type == WiringErrorType.UnreachableSupportEffect &&
-            e.Message.Contains("food", StringComparison.Ordinal));
+            e.Message.Contains("harbor_access", StringComparison.Ordinal));
     }
 
     // --- Dead-end detection ---

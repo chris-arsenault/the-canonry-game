@@ -82,6 +82,7 @@ public static class DefinitionGeneratorBuilder
         ValidateRelationshipRequirements(graph, config.Target.RequiredOutgoingRelationshipRequirements, $"Generator '{config.Id}' target");
         ValidateRelationshipRequirements(graph, config.Target.RequiredIncomingRelationshipRequirements, $"Generator '{config.Id}' target");
         ValidateRelationshipRequirements(graph, config.Target.RequiredRelationshipRequirements, $"Generator '{config.Id}' target");
+        ValidateTerrainCountRequirements(config.Target.TerrainCountRequirements, $"Generator '{config.Id}' target");
         ValidateRelationshipNames(graph, config.Target.WithoutOutgoingRelationships, $"Generator '{config.Id}' target");
         ValidateRelationshipNames(graph, config.Target.WithoutIncomingRelationships, $"Generator '{config.Id}' target");
 
@@ -110,6 +111,7 @@ public static class DefinitionGeneratorBuilder
                 runtimeIds,
                 config.Target.RequiredRelationshipRequirements,
                 $"Generator '{config.Id}' target"),
+            TerrainCountRequirements = BuildTerrainCountRequirements(config.Target.TerrainCountRequirements),
             WithoutOutgoingRelationships = CopyRelationshipSet(config.Target.WithoutOutgoingRelationships),
             WithoutIncomingRelationships = CopyRelationshipSet(config.Target.WithoutIncomingRelationships),
         };
@@ -584,6 +586,48 @@ public static class DefinitionGeneratorBuilder
                 RelationshipId = relationshipId,
                 RelationshipRuntimeId = runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
                 MinimumStrength = requirement.MinimumStrength,
+            });
+        }
+
+        return compiled;
+    }
+
+    private static void ValidateTerrainCountRequirements(
+        IReadOnlyList<SemanticGeneratorTerrainCountRequirement> requirements,
+        string context)
+    {
+        foreach (var requirement in requirements)
+        {
+            if (string.IsNullOrWhiteSpace(requirement.TerrainName))
+            {
+                throw new DefinitionGraphException($"{context} terrain count requirement must name a terrain.");
+            }
+
+            if (requirement.Radius < 0)
+            {
+                throw new DefinitionGraphException(
+                    $"{context} terrain count requirement '{requirement.TerrainName}' radius must be non-negative.");
+            }
+
+            if (requirement.MaximumExclusive <= 0)
+            {
+                throw new DefinitionGraphException(
+                    $"{context} terrain count requirement '{requirement.TerrainName}' maximum must be positive.");
+            }
+        }
+    }
+
+    private static List<DefinitionTargetTerrainCountRequirement> BuildTerrainCountRequirements(
+        IReadOnlyList<SemanticGeneratorTerrainCountRequirement> requirements)
+    {
+        var compiled = new List<DefinitionTargetTerrainCountRequirement>(requirements.Count);
+        foreach (var requirement in requirements)
+        {
+            compiled.Add(new DefinitionTargetTerrainCountRequirement
+            {
+                TerrainName = requirement.TerrainName,
+                Radius = requirement.Radius,
+                MaximumExclusive = requirement.MaximumExclusive,
             });
         }
 

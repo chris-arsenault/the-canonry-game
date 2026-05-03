@@ -14,7 +14,6 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
     public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
-    public required IReadOnlyDictionary<DefinitionResourceId, DefinitionResourceNode> Resources { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
     public required IReadOnlyDictionary<DefinitionRelationshipFactId, DefinitionRelationshipFactNode> RelationshipFacts { get; init; }
     public required IReadOnlyDictionary<EntityKind, DefinitionLifecycleNode> Lifecycles { get; init; }
@@ -70,11 +69,6 @@ public sealed record AttributeStockId(DefinitionAttributeKey Key) : SemanticStoc
     public override string Label => $"{Key.Kind}.{Key.AttributeId.Value}";
 }
 
-public sealed record ResourceStockId(DefinitionResourceId ResourceId) : SemanticStockId
-{
-    public override string Label => $"hex.{ResourceId.Value}";
-}
-
 public sealed class DefinitionKindNode
 {
     public required EntityKind Kind { get; init; }
@@ -100,12 +94,6 @@ public sealed class DefinitionTraitNode
     public required DefinitionTraitKey Key { get; init; }
     public required int RuntimeId { get; init; }
     public required TraitConfig SourceConfig { get; init; }
-}
-
-public sealed class DefinitionResourceNode
-{
-    public required DefinitionResourceId Id { get; init; }
-    public required ResourceConfig SourceConfig { get; init; }
 }
 
 public sealed class DefinitionRelationshipNode
@@ -211,6 +199,7 @@ public sealed class DefinitionGeneratorTarget
     public IReadOnlyList<DefinitionTargetRelationshipRequirement> RequiredOutgoingRelationshipRequirements { get; init; } = [];
     public IReadOnlyList<DefinitionTargetRelationshipRequirement> RequiredIncomingRelationshipRequirements { get; init; } = [];
     public IReadOnlyList<DefinitionTargetRelationshipRequirement> RequiredRelationshipRequirements { get; init; } = [];
+    public IReadOnlyList<DefinitionTargetTerrainCountRequirement> TerrainCountRequirements { get; init; } = [];
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
 }
@@ -220,6 +209,13 @@ public sealed class DefinitionTargetRelationshipRequirement
     public required DefinitionRelationshipId RelationshipId { get; init; }
     public required int RelationshipRuntimeId { get; init; }
     public float MinimumStrength { get; init; }
+}
+
+public sealed class DefinitionTargetTerrainCountRequirement
+{
+    public required string TerrainName { get; init; }
+    public int Radius { get; init; }
+    public int MaximumExclusive { get; init; }
 }
 
 public sealed class DefinitionTargetSaturation
@@ -318,11 +314,6 @@ public abstract record DefinitionValueId
 public sealed record AttributeValueId(DefinitionAttributeId AttributeId) : DefinitionValueId
 {
     public override string Label => AttributeId.Value;
-}
-
-public sealed record ResourceValueId(DefinitionResourceId ResourceId) : DefinitionValueId
-{
-    public override string Label => ResourceId.Value;
 }
 
 public sealed record StructuralValueId(string Name) : DefinitionValueId
@@ -476,7 +467,6 @@ public sealed class SemanticStockNode
     public int SourceRow { get; init; }
 
     public DefinitionAttributeKey? AttributeKey => (Id as AttributeStockId)?.Key;
-    public DefinitionResourceId? ResourceId => (Id as ResourceStockId)?.ResourceId;
 }
 
 public sealed class SemanticVerbNode

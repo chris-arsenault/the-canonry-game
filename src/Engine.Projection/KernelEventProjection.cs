@@ -63,9 +63,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.TraitAssigned:
                 OnTraitAssigned(kernelEvent.Sequence, evt.AsTraitAssigned());
                 break;
-            case KernelEventType.ResourceChanged:
-                OnResourceChanged(kernelEvent.Sequence, evt.AsResourceChanged());
-                break;
             case KernelEventType.RelationshipChanged:
                 OnRelationshipChanged(kernelEvent.Sequence, evt.AsRelationshipChanged());
                 break;
@@ -180,10 +177,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
     {
     }
 

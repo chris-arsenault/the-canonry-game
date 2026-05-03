@@ -16,14 +16,12 @@ public class DefinitionGraphTests
     {
         var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var tempHp = new DefinitionAttributeId(IceRemembersAttributeId.TempHp.ToDomainName());
-        var food = new DefinitionResourceId(IceRemembersResource.Food.ToDomainName());
         var controlledBy = new DefinitionRelationshipId(IceRemembersRelationship.ControlledBy.ToDomainName());
 
         var settlement = Assert.Contains(TestKinds.Settlement, graph.Kinds);
         Assert.Contains(tempHp, settlement.Attributes.Keys);
         Assert.Equal(tempHp, settlement.HealthAttribute);
         Assert.Contains(settlement.Traits.Values, trait => trait.SourceConfig.Polarity == TraitPolarity.Positive);
-        Assert.Contains(food, graph.Resources.Keys);
         Assert.Contains(controlledBy, graph.Relationships.Keys);
         Assert.Contains(TestKinds.Penguin, graph.Lifecycles.Keys);
     }
@@ -48,7 +46,6 @@ public class DefinitionGraphTests
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
             Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
         };
@@ -68,29 +65,6 @@ public class DefinitionGraphTests
 
         Assert.Empty(graph.SemanticFlows.Modifiers);
         Assert.Empty(graph.SemanticFlows.Diagnostics);
-    }
-
-    [Fact]
-    public void Build_DomainWithNewDeclaredResource_AcceptsItAsDomainData()
-    {
-        var config = IceRemembersDefinition.Create();
-        var badConfig = new DomainConfig
-        {
-            Kinds = config.Kinds,
-            Terrains = config.Terrains,
-            Gambits = config.Gambits,
-            Relationships = config.Relationships,
-            RelationshipFacts = config.RelationshipFacts,
-            Lifecycles = config.Lifecycles,
-            Resources = [.. config.Resources, new ResourceConfig { Name = "manna", DisplayName = "Manna" }],
-            Cultures = config.Cultures,
-            Gameplay = config.Gameplay,
-            Semantics = config.Semantics,
-        };
-
-        var graph = DomainLoader.BuildDefinitionGraph(badConfig);
-
-        Assert.Contains(new DefinitionResourceId("manna"), graph.Resources.Keys);
     }
 
     [Fact]
@@ -174,7 +148,6 @@ public class DefinitionGraphTests
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
             Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

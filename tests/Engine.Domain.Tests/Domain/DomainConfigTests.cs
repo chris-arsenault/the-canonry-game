@@ -17,7 +17,6 @@ public class DomainConfigTests
         Assert.Equal(IceRemembersKinds.All.Count, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
         Assert.Equal(IceRemembersKinds.All.Count, config.Lifecycles.Count);
-        Assert.Equal(3, config.Resources.Count);
         Assert.Equal(3, config.Cultures.Count);
         Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, config.Semantics!.Generators.Count);
     }
@@ -68,6 +67,7 @@ public class DomainConfigTests
         var generators = IceRemembersDefinition.Create().Semantics!.Generators;
         var accounts = Assert.Single(generators, generator => generator.Id == "ice_settles_accounts");
         var spring = Assert.Single(generators, generator => generator.Id == "what_the_spring_remembers");
+        var war = Assert.Single(generators, generator => generator.Id == "war_breaks_the_land");
         var routes = Assert.Single(generators, generator => generator.Id == "routes_draw_readers");
         var artifact = Assert.Single(generators, generator => generator.Id == "what_the_artifact_knows");
 
@@ -79,6 +79,12 @@ public class DomainConfigTests
 
         Assert.Null(spring.TargetSaturation);
         Assert.Contains(IceRemembersRelationship.Anchored.ToDomainName(), spring.Target.WithoutIncomingRelationships!);
+
+        Assert.Null(war.TargetSaturation);
+        var warTerrainRequirement = Assert.Single(war.Target.TerrainCountRequirements);
+        Assert.Equal(IceRemembersTerrain.Wastes.ToDomainName(), warTerrainRequirement.TerrainName);
+        Assert.Equal(5, warTerrainRequirement.Radius);
+        Assert.Equal(8, warTerrainRequirement.MaximumExclusive);
 
         Assert.Null(routes.TargetSaturation);
         var routeRequirement = Assert.Single(routes.Target.RequiredOutgoingRelationshipRequirements);

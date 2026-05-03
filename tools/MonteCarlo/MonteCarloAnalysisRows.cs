@@ -17,7 +17,6 @@ internal sealed class MonteCarloAnalysisReport
     public required IReadOnlyList<MapGenerationSummaryRow> MapGeneration { get; init; }
     public required IReadOnlyList<TerrainOccupancyRow> TerrainOccupancy { get; init; }
     public required IReadOnlyList<LifecycleSummaryRow> Lifecycle { get; init; }
-    public required IReadOnlyList<ResourceDynamicsRow> ResourceDynamics { get; init; }
 }
 
 internal sealed record BatchOverviewRow(
@@ -176,11 +175,3 @@ internal sealed record LifecycleSummaryRow(
     double AverageFinalActive,
     double AverageFinalHistorical,
     double AverageFinalHealth);
-
-internal sealed record ResourceDynamicsRow(
-    string ResourceType,
-    double AverageTotalOverTime,
-    double AverageInitialTotal,
-    double AverageFinalTotal,
-    double FinalToInitialRatio,
-    double LowestCellStock);

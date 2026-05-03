@@ -130,7 +130,7 @@ public static class DefinitionSemanticGraphBuilder
         return stocks;
     }
 
-    private static SemanticStockId ResolveStockId(DefinitionGraph graph, SemanticStockConfig config)
+    private static AttributeStockId ResolveStockId(DefinitionGraph graph, SemanticStockConfig config)
     {
         switch (config)
         {
@@ -146,18 +146,6 @@ public static class DefinitionSemanticGraphBuilder
                     }
 
                     return new AttributeStockId(key);
-                }
-
-            case SemanticResourceStockConfig resourceConfig:
-                {
-                    var resourceId = new DefinitionResourceId(resourceConfig.ResourceName);
-                    if (!graph.Resources.ContainsKey(resourceId))
-                    {
-                        throw new DefinitionGraphException(
-                            $"Semantic stock references undeclared resource '{resourceConfig.ResourceName}'.");
-                    }
-
-                    return new ResourceStockId(resourceId);
                 }
 
             default:
@@ -214,8 +202,6 @@ public static class DefinitionSemanticGraphBuilder
 
         return attrRef.Scope switch
         {
-            Engine.Wiring.RefScope.Resource =>
-                ConvertResourceRef(attrRef, graph),
             Engine.Wiring.RefScope.Structural =>
                 new TypedDefinitionRef(attrRef.Scope, new StructuralValueId(attrRef.Name), attrRef.Kind),
             Engine.Wiring.RefScope.MapCell =>
@@ -250,18 +236,6 @@ public static class DefinitionSemanticGraphBuilder
             new AttributeValueId(attributeId),
             attrRef.Kind,
             TryParseRelationship(attrRef.RelationshipKind, graph));
-    }
-
-    private static TypedDefinitionRef ConvertResourceRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph)
-    {
-        var resourceId = new DefinitionResourceId(attrRef.Name);
-        if (!graph.Resources.ContainsKey(resourceId))
-        {
-            throw new DefinitionGraphException(
-                $"Semantic ref uses undeclared resource '{attrRef.Name}'.");
-        }
-
-        return new TypedDefinitionRef(attrRef.Scope, new ResourceValueId(resourceId), attrRef.Kind);
     }
 
     private static TypedDefinitionRef ConvertRelationalRef(Engine.Wiring.AttributeRef attrRef, DefinitionGraph graph) =>

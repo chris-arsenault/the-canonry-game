@@ -779,8 +779,8 @@ See Section 10. 8H-H1Y0B, 9V-X3DV1L8, T5-W5WJ3P, H8-5KB7Z4, P3-8NL2B5H, 8R-W6GQ3
 
 These are setting-level tensions for authorship and interpretation, not
 runtime pressure meters. The simulation should express them through
-relationships, health, traits, resources, map signals, locality, generated
-events, and entity history.
+relationships, health, traits, map signals, locality, generated events, and
+entity history.
 
 - **Resource Availability** — whether food, fire, transport, and safe routes
   feel abundant or scarce.

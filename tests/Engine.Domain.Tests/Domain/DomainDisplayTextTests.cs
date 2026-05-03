@@ -76,7 +76,6 @@ public sealed class DomainDisplayTextTests
             },
             Relationships = [],
             Lifecycles = new Dictionary<EntityKind, LifecycleConfig>(),
-            Resources = [],
             Terrains = [],
             Cultures = [new CultureConfig { Id = "moon", DisplayName = "Moon Choir" }],
         };

@@ -3,7 +3,6 @@ namespace Engine.Behaviors;
 using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -143,26 +142,6 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool beh
     public bool BehaviorRelevant { get; } = behaviorRelevant;
 
     public string Describe() => $"related_matches_target({RelationshipKind})";
-}
-
-/// <summary>
-/// Checks an ambient resource value at self or target location against a threshold.
-/// </summary>
-public sealed class LocationResourceThreshold(
-    ResourceType resourceType,
-    float? min,
-    float? max,
-    bool targetLocation = false,
-    bool behaviorRelevant = true) : IPrecondition
-{
-    public ResourceType ResourceType { get; } = resourceType;
-    public float? Min { get; } = min;
-    public float? Max { get; } = max;
-    public bool TargetLocation { get; } = targetLocation;
-    public bool BehaviorRelevant { get; } = behaviorRelevant;
-
-    public string Describe() =>
-        $"{(TargetLocation ? "target" : "self")}_location_resource({ResourceType.ToDomainName()}, {(Min.HasValue ? $"min={Min}" : "")}{(Max.HasValue ? $"max={Max}" : "")})";
 }
 
 /// <summary>Checks that enough ticks have passed since the current behavior last fired.</summary>

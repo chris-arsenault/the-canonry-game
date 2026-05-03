@@ -27,7 +27,6 @@ public sealed class KernelTelemetryRecorderTests
             .RegisterSymbol(ProjectionSymbolKind.Culture, 3, "north", "North")
             .RegisterSymbol(ProjectionSymbolKind.Attribute, 4, "health", "Health")
             .RegisterSymbol(ProjectionSymbolKind.SourceCode, 5, "low_altitude", "Low Altitude")
-            .RegisterSymbol(ProjectionSymbolKind.Resource, 6, "food", "Food")
             .RegisterSymbol(ProjectionSymbolKind.EventCode, 7, "relationship_added", "Relationship Added")
             .RegisterSymbol(ProjectionSymbolKind.RelationshipKind, 8, "allied_with", "Allied With")
             .RegisterSymbol(ProjectionSymbolKind.RelationshipFact, 9, "nearby", "Nearby")

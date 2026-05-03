@@ -154,11 +154,9 @@ public partial class HexTooltipPanel : PanelContainer
         var owner = FormatOwner(cell);
         var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
         var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
-        var resourceLines = FormatResourceLines(coord);
         return
             $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}\n" +
-            $"{continent}   {superregion}\n" +
-            resourceLines;
+            $"{continent}   {superregion}";
     }
 
     private string FormatTerrain(HexProjection cell) =>
@@ -181,31 +179,6 @@ public partial class HexTooltipPanel : PanelContainer
 
         return ProjectionDisplay.EntityName(_symbols, ownerEntity);
     }
-
-    private string FormatResourceLines(HexCoord coord)
-    {
-        var resources = _projection!.Resources.Values
-            .Where(resource => resource.Q == coord.Q && resource.R == coord.R)
-            .OrderBy(resource => ResourceDisplayName(resource), StringComparer.Ordinal)
-            .Select(FormatResourceLine)
-            .ToArray();
-        return resources.Length == 0
-            ? "resources  none"
-            : string.Join('\n', resources);
-    }
-
-    private string FormatResourceLine(UiResourceProjection resource)
-    {
-        var name = ResourceDisplayName(resource);
-        return $"{name,-10} {resource.NewValue,7:0.0}";
-    }
-
-    private string ResourceDisplayName(UiResourceProjection resource) =>
-        ProjectionDisplay.DisplayName(
-            _symbols,
-            ProjectionSymbolKind.Resource,
-            resource.ResourceId,
-            $"Resource {resource.ResourceId}");
 
     private string FormatProjectedEntityLine(UiEntityProjection entity)
     {

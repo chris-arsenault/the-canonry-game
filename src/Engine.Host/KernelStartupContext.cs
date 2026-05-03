@@ -38,16 +38,6 @@ internal sealed class KernelStartupContext
         int continentId = 0) =>
         _kernel.SeedCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
 
-    public void SeedCell(
-        int q,
-        int r,
-        int terrainId,
-        int ownerEntityId,
-        ReadOnlySpan<CellResourceSeed> resources,
-        int superregionId = 0,
-        int continentId = 0) =>
-        _kernel.SeedCell(q, r, terrainId, ownerEntityId, resources, superregionId, continentId);
-
     public void SeedEntity(
         int entityId,
         int kindId,
@@ -74,13 +64,6 @@ internal sealed class KernelStartupContext
         int attributeId,
         float value) =>
         _kernel.SeedAttribute(entityId, attributeId, value);
-
-    public void SeedResource(
-        int resourceId,
-        int q,
-        int r,
-        float value) =>
-        _kernel.SeedResource(resourceId, q, r, value);
 
     public void SeedRelationship(
         int relationshipKindId,

@@ -697,7 +697,6 @@ public sealed class GambitProgramRuntimeTests
             EntityCapacity = 8,
             RelationshipCapacity = 8,
             AttributeCapacity = 64,
-            ResourceCapacity = 32,
             MapCellCapacity = 128,
             EventCapacity = 256,
             GambitCapacity = 4,

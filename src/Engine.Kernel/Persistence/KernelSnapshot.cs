@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 21;
+    private const int FormatVersion = 22;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -75,7 +75,6 @@ internal static class KernelSnapshotOptions
         writer.Write(options.RelationshipCapacity);
         writer.Write(options.AttributeCapacity);
         writer.Write(options.TraitCapacity);
-        writer.Write(options.ResourceCapacity);
         writer.Write(provenanceInvocationCapacity);
         writer.Write(provenanceOutputCapacity);
         writer.Write(options.GrowableStorageModeCode);
@@ -221,7 +220,6 @@ internal static class KernelSnapshotOptions
             RelationshipCapacity = reader.ReadInt32(),
             AttributeCapacity = reader.ReadInt32(),
             TraitCapacity = reader.ReadInt32(),
-            ResourceCapacity = reader.ReadInt32(),
             ProvenanceInvocationCapacity = reader.ReadInt32(),
             ProvenanceOutputCapacity = reader.ReadInt32(),
             GrowableStorageModeCode = reader.ReadInt32(),
@@ -390,7 +388,6 @@ internal static class KernelSnapshotOptions
             RelationshipCapacity = values.RelationshipCapacity,
             AttributeCapacity = values.AttributeCapacity,
             TraitCapacity = values.TraitCapacity,
-            ResourceCapacity = values.ResourceCapacity,
             ProvenanceInvocationCapacity = values.ProvenanceInvocationCapacity,
             ProvenanceOutputCapacity = values.ProvenanceOutputCapacity,
             GrowableStorageModeCode = values.GrowableStorageModeCode,
@@ -496,7 +493,6 @@ internal static class KernelSnapshotOptions
         public int RelationshipCapacity;
         public int AttributeCapacity;
         public int TraitCapacity;
-        public int ResourceCapacity;
         public int ProvenanceInvocationCapacity;
         public int ProvenanceOutputCapacity;
         public int GrowableStorageModeCode;

@@ -79,7 +79,7 @@ public sealed class WiringValidator
     {
         foreach (var (attrRef, readers) in canonicalReads)
         {
-            if (attrRef.Scope is RefScope.MapCell or RefScope.Resource)
+            if (attrRef.Scope == RefScope.MapCell)
             {
                 continue;
             }

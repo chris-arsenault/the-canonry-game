@@ -4,7 +4,6 @@ using Engine.Domain.Config;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 
 public static class DefinitionGraphBuilder
@@ -18,12 +17,11 @@ public static class DefinitionGraphBuilder
 
         var kindNodes = BuildKindNodes(config, runtimeIds);
         var attributeIndex = BuildAttributeIndex(kindNodes);
-        var resourceNodes = BuildResourceNodes(config.Resources);
         var relationshipNodes = BuildRelationshipNodes(config.Relationships, runtimeIds);
         var relationshipFactNodes = BuildRelationshipFactNodes(config.RelationshipFacts, runtimeIds);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
-        var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, resourceNodes, relationshipNodes);
+        var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, relationshipNodes);
         var gameplayNodes = BuildGameplayNodes(config.Gameplay);
 
         var graph = new DefinitionGraph
@@ -32,7 +30,6 @@ public static class DefinitionGraphBuilder
             Gambits = gambitNodes,
             GameplayNodes = gameplayNodes,
             Generators = generatorNodes,
-            Resources = resourceNodes,
             Relationships = relationshipNodes,
             RelationshipFacts = relationshipFactNodes,
             Lifecycles = lifecycleNodes,
@@ -124,14 +121,13 @@ public static class DefinitionGraphBuilder
     private static Dictionary<string, DefinitionGambitNode> BuildGambitNodes(
         IReadOnlyList<GambitDefinition> gambits,
         Dictionary<EntityKind, DefinitionKindNode> kindNodes,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
         Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes)
     {
         var gambitNodes = new Dictionary<string, DefinitionGambitNode>(StringComparer.Ordinal);
         foreach (var gambit in gambits)
         {
             EnsureTargetKindExists("Gambit", gambit.Id, gambit.TargetKind, kindNodes);
-            gambitNodes[gambit.Id] = BuildGambitNode(gambit, kindNodes, resourceNodes, relationshipNodes);
+            gambitNodes[gambit.Id] = BuildGambitNode(gambit, kindNodes, relationshipNodes);
         }
 
         return gambitNodes;
@@ -239,29 +235,6 @@ public static class DefinitionGraphBuilder
             IsHealthAttribute = true,
         };
 
-    private static Dictionary<DefinitionResourceId, DefinitionResourceNode> BuildResourceNodes(
-        IReadOnlyList<ResourceConfig> resources)
-    {
-        var nodes = new Dictionary<DefinitionResourceId, DefinitionResourceNode>();
-        foreach (var resource in resources)
-        {
-            var resourceId = new DefinitionResourceId(resource.Name);
-            if (nodes.ContainsKey(resourceId))
-            {
-                throw new DefinitionGraphException(
-                    $"Domain declares duplicate resource '{resource.Name}'.");
-            }
-
-            nodes[resourceId] = new DefinitionResourceNode
-            {
-                Id = resourceId,
-                SourceConfig = resource,
-            };
-        }
-
-        return nodes;
-    }
-
     private static Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> BuildRelationshipNodes(
         IReadOnlyList<RelationshipConfig> relationships,
         global::Engine.Domain.DomainIdRegistry runtimeIds)
@@ -339,7 +312,6 @@ public static class DefinitionGraphBuilder
     private static DefinitionGambitNode BuildGambitNode(
         GambitDefinition gambit,
         Dictionary<EntityKind, DefinitionKindNode> kindNodes,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode> resourceNodes,
         Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes)
     {
         return new DefinitionGambitNode
@@ -348,13 +320,13 @@ public static class DefinitionGraphBuilder
             Name = gambit.Name,
             TargetKind = gambit.TargetKind,
             SourceDefinition = gambit,
-            Reads = ConvertRefs(gambit.Reads, kindNodes, resourceNodes, relationshipNodes),
-            Writes = ConvertRefs(gambit.Writes, kindNodes, resourceNodes, relationshipNodes),
-            GoalEffects = ConvertRefs(gambit.GoalEffects, kindNodes, resourceNodes, relationshipNodes),
-            ProviderSelectors = ConvertRefs(gambit.ProviderSelectors, kindNodes, resourceNodes, relationshipNodes),
+            Reads = ConvertRefs(gambit.Reads, kindNodes, relationshipNodes),
+            Writes = ConvertRefs(gambit.Writes, kindNodes, relationshipNodes),
+            GoalEffects = ConvertRefs(gambit.GoalEffects, kindNodes, relationshipNodes),
+            ProviderSelectors = ConvertRefs(gambit.ProviderSelectors, kindNodes, relationshipNodes),
             SupportRules = gambit.SupportRules.Select(rule => new DefinitionSupportRuleNode
             {
-                DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, resourceNodes, relationshipNodes),
+                DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, relationshipNodes),
                 DesiredMinimum = rule.DesiredMinimum,
                 UrgencyScale = rule.UrgencyScale,
                 SourceRule = rule,
@@ -365,14 +337,12 @@ public static class DefinitionGraphBuilder
     private static HashSet<TypedDefinitionRef> ConvertRefs(
         IEnumerable<AttributeRef> refs,
         Dictionary<EntityKind, DefinitionKindNode>? kindNodes,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes,
         Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes) =>
-        refs.Select(attrRef => ConvertRef(attrRef, kindNodes, resourceNodes, relationshipNodes)).ToHashSet();
+        refs.Select(attrRef => ConvertRef(attrRef, kindNodes, relationshipNodes)).ToHashSet();
 
     private static TypedDefinitionRef ConvertRef(
         AttributeRef attrRef,
         Dictionary<EntityKind, DefinitionKindNode>? kindNodes,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes,
         Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes)
     {
         ArgumentNullException.ThrowIfNull(attrRef);
@@ -382,17 +352,14 @@ public static class DefinitionGraphBuilder
             return ConvertAttributeScopedRef(attrRef, kindNodes, relationshipNodes);
         }
 
-        return ConvertNonAttributeScopedRef(attrRef, resourceNodes, relationshipNodes);
+        return ConvertNonAttributeScopedRef(attrRef, relationshipNodes);
     }
 
     private static TypedDefinitionRef ConvertNonAttributeScopedRef(
         AttributeRef attrRef,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes,
         Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>? relationshipNodes) =>
         attrRef.Scope switch
         {
-            RefScope.Resource
-                => ConvertResourceRef(attrRef, resourceNodes),
             RefScope.Structural
                 => new TypedDefinitionRef(attrRef.Scope, new StructuralValueId(attrRef.Name), attrRef.Kind),
             RefScope.MapCell
@@ -418,20 +385,6 @@ public static class DefinitionGraphBuilder
             new AttributeValueId(attributeId),
             attrRef.Kind,
             TryParseRelationship(attrRef.RelationshipKind, relationshipNodes));
-    }
-
-    private static TypedDefinitionRef ConvertResourceRef(
-        AttributeRef attrRef,
-        Dictionary<DefinitionResourceId, DefinitionResourceNode>? resourceNodes)
-    {
-        var resourceId = new DefinitionResourceId(attrRef.Name);
-        if (resourceNodes is not null && !resourceNodes.ContainsKey(resourceId))
-        {
-            throw new DefinitionGraphException(
-                $"Unknown resource ref '{attrRef.Name}'. Declare it in the domain resources first.");
-        }
-
-        return new TypedDefinitionRef(attrRef.Scope, new ResourceValueId(resourceId), attrRef.Kind);
     }
 
     private static TypedDefinitionRef ConvertRelationalRef(

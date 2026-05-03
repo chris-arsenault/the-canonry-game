@@ -343,7 +343,6 @@ public class RuntimeGeneratorBuilderTests
             Relationships = config.Relationships,
             RelationshipFacts = relationshipFacts,
             Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

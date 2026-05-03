@@ -722,18 +722,6 @@ style = "app-icon"
 palette = "signal"
 
 [[section.asset]]
-id = "attr-food"
-file = "icons/attr-food.png"
-type = "icon"
-prompt = "prompts/6-attribute-icons/attr-food.md"
-
-[[section.asset]]
-id = "attr-wealth"
-file = "icons/attr-wealth.png"
-type = "icon"
-prompt = "prompts/6-attribute-icons/attr-wealth.md"
-
-[[section.asset]]
 id = "attr-population"
 file = "icons/attr-population.png"
 type = "icon"

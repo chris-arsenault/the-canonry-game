@@ -30,11 +30,6 @@ public readonly record struct StructuralFactRuntimeId(int Value)
     public static StructuralFactRuntimeId None => default;
 }
 
-public readonly record struct ResourceRuntimeId(int Value)
-{
-    public static ResourceRuntimeId None => default;
-}
-
 public readonly record struct TerrainRuntimeId(int Value)
 {
     public static TerrainRuntimeId None => default;

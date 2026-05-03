@@ -61,7 +61,8 @@ public class GeneratorCatalogInvariantTests
                 InstanceSelection: GeneratorRelationshipInstanceSelection.TriggerRelationship,
             }) ||
         HasMatchingOutputStateLock(generator.Target.WithoutOutgoingRelationships, generator.Relationships, outgoingFromTarget: true) ||
-        HasMatchingOutputStateLock(generator.Target.WithoutIncomingRelationships, generator.Relationships, outgoingFromTarget: false);
+        HasMatchingOutputStateLock(generator.Target.WithoutIncomingRelationships, generator.Relationships, outgoingFromTarget: false) ||
+        HasMatchingTerrainTransformGate(generator);
 
     private static bool HasMatchingOutputStateLock(
         IReadOnlySet<string>? relationshipKinds,
@@ -79,6 +80,18 @@ public class GeneratorCatalogInvariantTests
                 (outgoingFromTarget
                     ? relationship.SourceRef == "$target"
                     : relationship.DestinationRef == "$target")));
+    }
+
+    private static bool HasMatchingTerrainTransformGate(DefinitionGeneratorNode generator)
+    {
+        if (generator.Target.TerrainCountRequirements.Count == 0)
+        {
+            return false;
+        }
+
+        return generator.Target.TerrainCountRequirements.Any(requirement =>
+            generator.Produces.Any(produced =>
+                produced.Coverage?.TransformTerrain == requirement.TerrainName));
     }
 
     [Fact]
@@ -576,7 +589,6 @@ public class GeneratorCatalogInvariantTests
             Relationships = config.Relationships,
             RelationshipFacts = config.RelationshipFacts,
             Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

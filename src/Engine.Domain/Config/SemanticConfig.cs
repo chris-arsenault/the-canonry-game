@@ -35,11 +35,6 @@ public sealed class SemanticAttributeStockConfig : SemanticStockConfig
     public required string AttributeName { get; init; }
 }
 
-public sealed class SemanticResourceStockConfig : SemanticStockConfig
-{
-    public required string ResourceName { get; init; }
-}
-
 public sealed class SemanticVerbConfig
 {
     public required string Id { get; init; }

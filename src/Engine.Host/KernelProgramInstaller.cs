@@ -261,7 +261,18 @@ internal static partial class KernelProgramInstaller
             context.AddGeneratorTargetSubtype(generatorSlot, subtypeId);
         }
 
-        foreach (var relationship in generator.TargetRelationshipRequirements.RequiredOutgoingRelationships)
+        InstallGeneratorTargetRelationships(context, generatorSlot, generator.TargetRelationshipRequirements);
+        InstallGeneratorTargetTerrain(context, generatorSlot, generator.TargetRelationshipRequirements);
+        InstallGeneratorTargetSaturation(context, generatorSlot, generator);
+        InstallGeneratorTriggers(context, generatorSlot, generator);
+    }
+
+    private static void InstallGeneratorTargetRelationships(
+        KernelConfigurationContext context,
+        int generatorSlot,
+        GeneratorTargetRelationshipRequirements requirements)
+    {
+        foreach (var relationship in requirements.RequiredOutgoingRelationships)
         {
             context.AddGeneratorTargetRequiredOutgoingRelationship(
                 generatorSlot,
@@ -269,7 +280,7 @@ internal static partial class KernelProgramInstaller
                 relationship.MinimumStrength);
         }
 
-        foreach (var relationship in generator.TargetRelationshipRequirements.RequiredIncomingRelationships)
+        foreach (var relationship in requirements.RequiredIncomingRelationships)
         {
             context.AddGeneratorTargetRequiredIncomingRelationship(
                 generatorSlot,
@@ -277,7 +288,7 @@ internal static partial class KernelProgramInstaller
                 relationship.MinimumStrength);
         }
 
-        foreach (var relationship in generator.TargetRelationshipRequirements.RequiredRelationships)
+        foreach (var relationship in requirements.RequiredRelationships)
         {
             context.AddGeneratorTargetRequiredRelationship(
                 generatorSlot,
@@ -285,16 +296,37 @@ internal static partial class KernelProgramInstaller
                 relationship.MinimumStrength);
         }
 
-        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.WithoutOutgoingRelationshipKindIds)
+        foreach (var relationshipKindId in requirements.WithoutOutgoingRelationshipKindIds)
         {
             context.AddGeneratorTargetWithoutOutgoingRelationship(generatorSlot, relationshipKindId);
         }
 
-        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.WithoutIncomingRelationshipKindIds)
+        foreach (var relationshipKindId in requirements.WithoutIncomingRelationshipKindIds)
         {
             context.AddGeneratorTargetWithoutIncomingRelationship(generatorSlot, relationshipKindId);
         }
+    }
 
+    private static void InstallGeneratorTargetTerrain(
+        KernelConfigurationContext context,
+        int generatorSlot,
+        GeneratorTargetRelationshipRequirements requirements)
+    {
+        foreach (var requirement in requirements.TerrainCountRequirements)
+        {
+            context.AddGeneratorTargetTerrainCountBelow(
+                generatorSlot,
+                requirement.TerrainId,
+                requirement.Radius,
+                requirement.MaximumExclusive);
+        }
+    }
+
+    private static void InstallGeneratorTargetSaturation(
+        KernelConfigurationContext context,
+        int generatorSlot,
+        CompiledGeneratorRule generator)
+    {
         if (generator.TargetSaturation is { } saturation)
         {
             context.SetGeneratorTargetSaturation(
@@ -304,7 +336,13 @@ internal static partial class KernelProgramInstaller
                 GeneratorSaturationDirectionCode(saturation.Direction),
                 saturation.MaxExisting);
         }
+    }
 
+    private static void InstallGeneratorTriggers(
+        KernelConfigurationContext context,
+        int generatorSlot,
+        CompiledGeneratorRule generator)
+    {
         foreach (var trigger in generator.Triggers)
         {
             context.AddGeneratorTrigger(
@@ -496,8 +534,7 @@ internal static partial class KernelProgramInstaller
         if (TryAttributeOperationCode(operation, out var code) ||
             TryMovementOperationCode(operation, out code) ||
             TryEntityOperationCode(operation, out code) ||
-            TryMapOperationCode(operation, out code) ||
-            TryContextOperationCode(operation, out code))
+            TryMapOperationCode(operation, out code))
         {
             return code;
         }
@@ -581,17 +618,6 @@ internal static partial class KernelProgramInstaller
         return code >= 0;
     }
 
-    private static bool TryContextOperationCode(BehaviorProgramOperation operation, out int code)
-    {
-        code = operation switch
-        {
-            BehaviorProgramOperation.AddResource => BehaviorOperationCodes.AddResource,
-            BehaviorProgramOperation.AddLocationResource => BehaviorOperationCodes.AddLocationResource,
-            _ => -1,
-        };
-        return code >= 0;
-    }
-
     private static int PreconditionCode(BehaviorProgramPrecondition precondition)
     {
         if (TryAttributePreconditionCode(precondition, out var code) ||
@@ -651,7 +677,6 @@ internal static partial class KernelProgramInstaller
         code = precondition switch
         {
             BehaviorProgramPrecondition.PlaneDistance => BehaviorPreconditionCodes.PlaneDistance,
-            BehaviorProgramPrecondition.LocationResourceRange => BehaviorPreconditionCodes.LocationResourceRange,
             BehaviorProgramPrecondition.CooldownElapsed => BehaviorPreconditionCodes.CooldownElapsed,
             BehaviorProgramPrecondition.EntityCountAtLeast => BehaviorPreconditionCodes.EntityCountAtLeast,
             BehaviorProgramPrecondition.HasColocatedEntity => BehaviorPreconditionCodes.HasColocatedEntity,
@@ -681,8 +706,6 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramExpression.Literal => BehaviorExpressionCodes.Literal,
             BehaviorProgramExpression.SelfAttribute => BehaviorExpressionCodes.SelfAttribute,
             BehaviorProgramExpression.TargetAttribute => BehaviorExpressionCodes.TargetAttribute,
-            BehaviorProgramExpression.SelfLocationResource => BehaviorExpressionCodes.SelfLocationResource,
-            BehaviorProgramExpression.TargetLocationResource => BehaviorExpressionCodes.TargetLocationResource,
             _ => -1,
         };
         return code >= 0;
@@ -720,7 +743,6 @@ internal static partial class KernelProgramInstaller
     {
         BehaviorProgramEffectScope.SelfAttribute => BehaviorEffectScopeCodes.SelfAttribute,
         BehaviorProgramEffectScope.TargetAttribute => BehaviorEffectScopeCodes.TargetAttribute,
-        BehaviorProgramEffectScope.Resource => BehaviorEffectScopeCodes.Resource,
         BehaviorProgramEffectScope.Structural => BehaviorEffectScopeCodes.Structural,
         BehaviorProgramEffectScope.Relational => BehaviorEffectScopeCodes.Relational,
         _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null),
@@ -730,7 +752,6 @@ internal static partial class KernelProgramInstaller
     {
         BehaviorProgramProviderSelector.TargetAttribute => BehaviorProviderSelectorCodes.TargetAttribute,
         BehaviorProgramProviderSelector.Structural => BehaviorProviderSelectorCodes.Structural,
-        BehaviorProgramProviderSelector.Resource => BehaviorProviderSelectorCodes.Resource,
         BehaviorProgramProviderSelector.LocationAttribute => BehaviorProviderSelectorCodes.LocationAttribute,
         BehaviorProgramProviderSelector.OutgoingRelationship => BehaviorProviderSelectorCodes.OutgoingRelationship,
         BehaviorProgramProviderSelector.IncomingRelationship => BehaviorProviderSelectorCodes.IncomingRelationship,

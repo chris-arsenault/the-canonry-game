@@ -52,46 +52,6 @@ public sealed class KernelStartupSeedingTests
     }
 
     [Fact]
-    public void SeedCellCanHydrateGenericResourceTables()
-    {
-        var simulation = new Simulation(new SimulationOptions
-        {
-            EventSchemaValidator = KernelEventSchemaRegistry.Validator,
-        });
-        const int terrainId = 1;
-        const int boundaryGroupId = 1;
-        const int foodResourceId = 10;
-        const int wealthResourceId = 11;
-        const int populationResourceId = 12;
-
-        simulation.RegisterTerrain(terrainId, boundaryGroupId: boundaryGroupId);
-
-        var resources = new[]
-        {
-            new CellResourceSeed(foodResourceId, 2f),
-            new CellResourceSeed(wealthResourceId, 3f),
-            new CellResourceSeed(populationResourceId, 4f),
-        };
-
-        simulation.SeedCell(
-            q: 1,
-            r: -1,
-            terrainId: terrainId,
-            ownerEntityId: 0,
-            resources: resources);
-
-        Assert.Equal(2f, simulation.World.GetResource(foodResourceId, 1, -1));
-        Assert.Equal(3f, simulation.World.GetResource(wealthResourceId, 1, -1));
-        Assert.Equal(4f, simulation.World.GetResource(populationResourceId, 1, -1));
-        AssertEventTypes(
-            simulation,
-            KernelEventType.CellCreated,
-            KernelEventType.ResourceChanged,
-            KernelEventType.ResourceChanged,
-            KernelEventType.ResourceChanged);
-    }
-
-    [Fact]
     public void CreateCellAndSeedCellUseSameMaterializationSequence()
     {
         var created = CreateSimulationWithTerrain();
@@ -124,29 +84,6 @@ public sealed class KernelStartupSeedingTests
         Assert.Equal(changed.World.GetAttribute(1, 4), seeded.World.GetAttribute(1, 4));
         AssertEventTypes(changed, changedCursor, KernelEventType.AttributeChanged);
         AssertEventTypes(seeded, seededCursor, KernelEventType.AttributeChanged);
-    }
-
-    [Fact]
-    public void SetResourceAndSeedResourceUseSameMutationSequence()
-    {
-        var changed = new Simulation(new SimulationOptions
-        {
-            EventSchemaValidator = KernelEventSchemaRegistry.Validator,
-        });
-        var seeded = new Simulation(new SimulationOptions
-        {
-            EventSchemaValidator = KernelEventSchemaRegistry.Validator,
-        });
-
-        using var changedCursor = changed.Events.CreateCursor(KernelEventCursorStart.Latest);
-        using var seededCursor = seeded.Events.CreateCursor(KernelEventCursorStart.Latest);
-
-        changed.SetResource(resourceId: 8, q: 1, r: -1, value: 13f, tick: 0);
-        seeded.SeedResource(resourceId: 8, q: 1, r: -1, value: 13f);
-
-        Assert.Equal(changed.World.GetResource(8, 1, -1), seeded.World.GetResource(8, 1, -1));
-        AssertEventTypes(changed, changedCursor, KernelEventType.ResourceChanged);
-        AssertEventTypes(seeded, seededCursor, KernelEventType.ResourceChanged);
     }
 
     [Fact]

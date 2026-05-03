@@ -219,14 +219,6 @@ internal sealed partial class GambitProgramRuntime
                     out triggerKindCode,
                     out triggerId,
                     out parentInvocationId),
-            BehaviorProviderSelectorCodes.Resource =>
-                ResolveProviderValueTrigger(
-                    selector,
-                    targetId,
-                    ProvenanceTriggerKindCodes.Resource,
-                    out triggerKindCode,
-                    out triggerId,
-                    out parentInvocationId),
             _ => ResolveProviderEntityTrigger(
                 targetId,
                 out triggerKindCode,
@@ -303,14 +295,6 @@ internal sealed partial class GambitProgramRuntime
             code == BehaviorProviderSelectorCodes.Structural)
         {
             return true;
-        }
-
-        if (code == BehaviorProviderSelectorCodes.Resource)
-        {
-            return world.GetResource(
-                _providerSelectorValueIds[selector],
-                world.EntityPhysicalQ(targetId),
-                world.EntityPhysicalR(targetId)) > 0f;
         }
 
         return code == BehaviorProviderSelectorCodes.LocationAttribute &&
@@ -830,14 +814,6 @@ internal sealed partial class GambitProgramRuntime
         ref int blockerKindId,
         ref int blockerTargetId)
     {
-        if (code == BehaviorPreconditionCodes.LocationResourceRange)
-        {
-            blockerScopeCode = BehaviorEffectScopeCodes.Resource;
-            blockerValueId = _preA[pre];
-            blockerTargetId = _preB[pre] == 0 ? entityId : targetId;
-            return true;
-        }
-
         if (code == BehaviorPreconditionCodes.PlaneDistance)
         {
             blockerScopeCode = BehaviorEffectScopeCodes.Structural;

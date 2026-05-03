@@ -18,7 +18,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
-    private readonly Dictionary<ResourceCellKey, float> _resourceValues = [];
     private readonly Dictionary<(int EntityId, int PlanId), int> _selectedLocalityByEntityPlan = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
@@ -47,10 +46,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             "planner goal detail rows",
             "goal-created/goal-updated events with desired effect, target, urgency, parent, and actionable state",
             "GoalGeneratedKernelEvent only reports counts, so PlannerGoalRow cannot be rebuilt without reading live entity goals."),
-        new(
-            "resource snapshots",
-            "startup resource snapshots plus resource aggregate events",
-            "The event stream has resource deltas but no untouched initial stockpile state."),
         new(
             "generated entity attribution",
             "generator-fired event payload listing created entity IDs or creation-cause IDs on EntityCreated",
@@ -201,7 +196,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
-        RecordResourceSnapshots(tick);
         RecordGeneratorStateSnapshots(tick);
     }
 
@@ -234,41 +228,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                     group.Key,
                     terrain.Key,
                     terrain.Count()));
-            }
-        }
-    }
-
-    private void RecordResourceSnapshots(int tick)
-    {
-        foreach (var group in _resourceValues.GroupBy(pair => pair.Key.ResourceId))
-        {
-            var values = SnapshotStats.From(group.Select(pair => pair.Value));
-            var terrainRows = new List<ResourceTerrainSnapshotRow>();
-            foreach (var terrainGroup in group.GroupBy(pair => TerrainFor(pair.Key.Q, pair.Key.R)))
-            {
-                var terrainValues = SnapshotStats.From(terrainGroup.Select(pair => pair.Value));
-                terrainRows.Add(new ResourceTerrainSnapshotRow(
-                    _runId,
-                    tick,
-                    group.Key,
-                    terrainGroup.Key,
-                    terrainValues.Total,
-                    terrainValues.Average,
-                    terrainValues.Minimum,
-                    terrainValues.Maximum));
-            }
-
-            _batch.ResourceSnapshots.Add(new ResourceSnapshotRow(
-                _runId,
-                tick,
-                group.Key,
-                terrainRows.Sum(row => row.Total),
-                values.Average,
-                values.Minimum,
-                values.Maximum));
-            foreach (var row in terrainRows)
-            {
-                _batch.ResourceTerrainSnapshots.Add(row);
             }
         }
     }
@@ -423,22 +382,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.Tick,
             evt.EntityId,
             evt.AttributeId,
-            evt.OldValue,
-            evt.NewValue,
-            evt.NewValue - evt.OldValue,
-            evt.SourceCodeId));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnResourceChanged(long sequence, in ResourceChangedKernelEvent evt)
-    {
-        _resourceValues[new ResourceCellKey(evt.ResourceId, evt.Q, evt.R)] = evt.NewValue;
-        _batch.ResourceEvents.Add(new ResourceEventRow(
-            _runId,
-            evt.Tick,
-            evt.ResourceId,
-            evt.Q,
-            evt.R,
             evt.OldValue,
             evt.NewValue,
             evt.NewValue - evt.OldValue,

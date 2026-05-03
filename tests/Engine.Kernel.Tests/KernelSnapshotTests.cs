@@ -21,7 +21,6 @@ public sealed class KernelSnapshotTests
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.SetAttribute(actor, 10, 42f, tick: 0);
-            simulation.SetResource(20, 0, 0, 5f, tick: 0);
             simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 55f, tick: 0);
         }
         simulation.World.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
@@ -137,7 +136,6 @@ public sealed class KernelSnapshotTests
             EntityCapacity = 16,
             RelationshipCapacity = 16,
             AttributeCapacity = 64,
-            ResourceCapacity = 32,
             MapCellCapacity = 32,
             EventCapacity = 8,
             EventCursorCapacity = 8,
@@ -208,7 +206,6 @@ public sealed class KernelSnapshotTests
         Assert.Equal(actor, loaded.World.EntityHighWatermark - 1);
         Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
         Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
-        Assert.Equal(5f, loaded.World.GetResource(20, 0, 0));
         Assert.Equal(55f, loaded.World.GetCellInfluence(actor, PlaneCodes.Physical, 0, 0));
         Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
         Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
@@ -245,7 +242,6 @@ public sealed class KernelSnapshotTests
         Assert.Contains(KernelEventType.EntityCreated, eventTypes);
         Assert.Contains(KernelEventType.EntityStatusChanged, eventTypes);
         Assert.Contains(KernelEventType.AttributeChanged, eventTypes);
-        Assert.Contains(KernelEventType.ResourceChanged, eventTypes);
         Assert.Contains(KernelEventType.CellInfluenceChanged, eventTypes);
         Assert.Contains(KernelEventType.RelationshipChanged, eventTypes);
     }

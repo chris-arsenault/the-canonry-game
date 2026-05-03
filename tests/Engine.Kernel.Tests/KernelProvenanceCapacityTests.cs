@@ -172,7 +172,6 @@ public sealed class KernelProvenanceCapacityTests
             EntityCapacity = 4,
             RelationshipCapacity = 4,
             AttributeCapacity = 8,
-            ResourceCapacity = 8,
             ProvenanceInvocationCapacity = provenanceInvocationCapacity,
             ProvenanceOutputCapacity = provenanceOutputCapacity,
             GrowableStorageModeCode = growableStorageModeCode,

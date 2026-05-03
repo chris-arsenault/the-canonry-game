@@ -10,11 +10,6 @@ public readonly record struct DefinitionTraitId(string Value)
     public override string ToString() => Value;
 }
 
-public readonly record struct DefinitionResourceId(string Value)
-{
-    public override string ToString() => Value;
-}
-
 public readonly record struct DefinitionRelationshipId(string Value)
 {
     public override string ToString() => Value;

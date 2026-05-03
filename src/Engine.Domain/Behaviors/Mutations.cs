@@ -5,7 +5,6 @@ using System.Globalization;
 using Engine.Domain;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.Resources;
 
 /// <summary>
 /// A mutation: a single effect applied to the world when a data-driven behavior executes.
@@ -185,24 +184,6 @@ public sealed class TransferAttributeMutation(
     public float Amount { get; } = amount;
 
     public string Describe() => string.Create(CultureInfo.InvariantCulture, $"transfer({Source}.{SourceAttribute} → {Destination}.{DestinationAttribute}, ={Amount})");
-}
-
-/// <summary>
-/// Modifies an ambient resource value at self or target location by a delta.
-/// </summary>
-public sealed class ModifyLocationResourceMutation(
-    ResourceType resourceType,
-    float delta,
-    bool targetLocation = false,
-    float variance = 0f) : IMutation
-{
-    public ResourceType ResourceType { get; } = resourceType;
-    public float Delta { get; } = delta;
-    public bool TargetLocation { get; } = targetLocation;
-    public float VarianceValue { get; } = variance;
-
-    public string Describe() =>
-        $"modify_{(TargetLocation ? "target" : "self")}_location_resource({ResourceType.ToDomainName()}, delta={Delta}, var={VarianceValue})";
 }
 
 /// <summary>Traversal direction for relationship-based bulk mutations.</summary>

@@ -3,7 +3,6 @@ namespace Engine.Domain.Config;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -31,9 +30,6 @@ public sealed class DomainConfig
 
     /// <summary>Lifecycle drain configuration per kind.</summary>
     public required IReadOnlyDictionary<EntityKind, LifecycleConfig> Lifecycles { get; init; }
-
-    /// <summary>Resource type definitions.</summary>
-    public required IReadOnlyList<ResourceConfig> Resources { get; init; }
 
     /// <summary>Terrain definitions used by world generation and startup seeding.</summary>
     public required IReadOnlyList<TerrainConfig> Terrains { get; init; }
@@ -205,13 +201,6 @@ public sealed class LifecycleConfig
     public required string Health { get; init; }
     public required float BaseRate { get; init; }
     public required float AgeCoefficient { get; init; }
-}
-
-/// <summary>Resource type configuration.</summary>
-public sealed class ResourceConfig
-{
-    public required string Name { get; init; }
-    public required string DisplayName { get; init; }
 }
 
 /// <summary>Domain-authored terrain identity. Runtime map generation receives richer terrain profiles separately.</summary>

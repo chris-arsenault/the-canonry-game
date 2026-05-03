@@ -47,7 +47,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         ExportAnalysisTable(connection, analysisDirectory, "map_spread", MapSpreadSql);
         ExportAnalysisTable(connection, analysisDirectory, "coverage_development", CoverageDevelopmentSql);
         ExportAnalysisTable(connection, analysisDirectory, "terrain_occupancy", TerrainOccupancySql);
-        ExportAnalysisTable(connection, analysisDirectory, "resource_dynamics", ResourceDynamicsSql);
     }
 
     private static void ExportAnalysisTable(
@@ -855,42 +854,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(AVG(CASE WHEN cell_count = 0 THEN 0.0 ELSE covered_cell_count::DOUBLE / cell_count END), 0.0) AS average_named_coverage_share
         FROM final_map
         GROUP BY terrain_id
-        """;
-
-    private const string ResourceDynamicsSql = """
-        WITH first_ticks AS (
-            SELECT run_id, resource_id, MIN(tick) AS first_tick
-            FROM raw_resource_snapshots
-            GROUP BY run_id, resource_id
-        ),
-        last_ticks AS (
-            SELECT run_id, resource_id, MAX(tick) AS last_tick
-            FROM raw_resource_snapshots
-            GROUP BY run_id, resource_id
-        ),
-        endpoints AS (
-            SELECT
-                resource.resource_id,
-                AVG(CASE WHEN resource.tick = first_ticks.first_tick THEN resource.total END) AS average_initial_total,
-                AVG(CASE WHEN resource.tick = last_ticks.last_tick THEN resource.total END) AS average_final_total
-            FROM raw_resource_snapshots resource
-            JOIN first_ticks USING (run_id, resource_id)
-            JOIN last_ticks USING (run_id, resource_id)
-            GROUP BY resource.resource_id
-        )
-        SELECT
-            resource.resource_id,
-            COALESCE(AVG(CAST(resource.total AS DOUBLE)), 0.0) AS average_total_over_time,
-            COALESCE(MAX(endpoints.average_initial_total), 0.0) AS average_initial_total,
-            COALESCE(MAX(endpoints.average_final_total), 0.0) AS average_final_total,
-            CASE WHEN COALESCE(MAX(endpoints.average_initial_total), 0.0) = 0.0 THEN 0.0
-                 ELSE COALESCE(MAX(endpoints.average_final_total), 0.0) / MAX(endpoints.average_initial_total)
-            END AS final_to_initial_ratio,
-            COALESCE(MIN(CAST(resource.minimum AS DOUBLE)), 0.0) AS lowest_cell_stock
-        FROM raw_resource_snapshots resource
-        LEFT JOIN endpoints
-          ON endpoints.resource_id = resource.resource_id
-        GROUP BY resource.resource_id
         """;
 
     private const string LifecycleSql = """

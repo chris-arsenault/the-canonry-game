@@ -17,9 +17,6 @@ internal sealed partial class TelemetryEventProjection
     private float ObservedHealth(ObservedEntityProjection entity) =>
         entity.Attributes.Count == 0 ? 0f : entity.Attributes.Values.Average();
 
-    private int TerrainFor(int q, int r) =>
-        _mapCells.GetValueOrDefault(new ObservedMapCellKey(q, r))?.TerrainId ?? 0;
-
     private sealed class PendingGeneratorFire(int tick, int generatorId, int causeId, int remaining)
     {
         public int Tick { get; } = tick;
@@ -31,27 +28,6 @@ internal sealed partial class TelemetryEventProjection
         public int Remaining { get; set; } = remaining;
     }
 
-    private readonly record struct SnapshotStats(double Total, double Average, double Minimum, double Maximum)
-    {
-        public static SnapshotStats From(IEnumerable<float> values)
-        {
-            var count = 0;
-            var total = 0d;
-            var minimum = double.MaxValue;
-            var maximum = double.MinValue;
-            foreach (var value in values)
-            {
-                count++;
-                total += value;
-                minimum = Math.Min(minimum, value);
-                maximum = Math.Max(maximum, value);
-            }
-
-            return count == 0
-                ? new SnapshotStats(0d, 0d, 0d, 0d)
-                : new SnapshotStats(total, total / count, minimum, maximum);
-        }
-    }
 }
 
 internal readonly record struct ObservedRelationshipKey(
@@ -60,8 +36,6 @@ internal readonly record struct ObservedRelationshipKey(
     int RelationshipKindId);
 
 internal readonly record struct ObservedMapCellKey(int Q, int R);
-
-internal readonly record struct ResourceCellKey(int ResourceId, int Q, int R);
 
 internal readonly record struct PlannerStepKey(
     int RunId,

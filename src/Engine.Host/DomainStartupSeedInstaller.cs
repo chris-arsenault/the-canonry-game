@@ -19,7 +19,6 @@ internal static class DomainStartupSeedInstaller
 
         var count = checked(
             seed.Cells.Count +
-            seed.Resources.Count(resource => MathF.Abs(resource.Value) > float.Epsilon) +
             seed.Relationships.Count +
             seed.Attributes.Count);
 
@@ -49,7 +48,6 @@ internal static class DomainStartupSeedInstaller
         RegisterEntityNames(context, seed, entityIds);
         SeedEntities(context, seed, entityIds);
         SeedCells(context, seed, entityIds);
-        SeedResources(context, seed);
         SeedAttributes(context, seed, entityIds);
         SeedRelationships(context, seed, entityIds);
     }
@@ -114,23 +112,6 @@ internal static class DomainStartupSeedInstaller
                 ResolveOptionalEntityId(entityIds, cell.OwnerSeedEntityId),
                 cell.SuperregionId,
                 cell.ContinentId);
-        }
-    }
-
-    private static void SeedResources(KernelStartupContext context, DomainStartupSeed seed)
-    {
-        foreach (var resource in seed.Resources)
-        {
-            if (MathF.Abs(resource.Value) <= float.Epsilon)
-            {
-                continue;
-            }
-
-            context.SeedResource(
-                context.DomainIds.ResourceIdOf(resource.Resource).Value,
-                resource.Q,
-                resource.R,
-                resource.Value);
         }
     }
 

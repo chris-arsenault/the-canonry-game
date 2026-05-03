@@ -39,7 +39,6 @@ internal sealed partial class GambitProgramRuntime
         var operationCode = _stepOperationCodes[step];
         if (ExecuteAttributeStep(simulation, entityId, targetId, tick, step, operationCode, variableIds, variableValues, ref variableCount) ||
             ExecuteMovementStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
-            ExecuteResourceStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
             ExecuteMapStep(simulation, world, targetId, tick, step, operationCode) ||
             ExecuteEntityStep(simulation, world, entityId, targetId, tick, step, operationCode))
         {
@@ -117,21 +116,6 @@ internal sealed partial class GambitProgramRuntime
                 return true;
             case BehaviorOperationCodes.MoveTargetToSelfPhysical:
                 KernelEffectExecutor.MovePhysical(simulation, targetId, world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId));
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private bool ExecuteResourceStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step, int operationCode)
-    {
-        switch (operationCode)
-        {
-            case BehaviorOperationCodes.AddLocationResource:
-                AddLocationResource(simulation, entityId, targetId, tick, step);
-                return true;
-            case BehaviorOperationCodes.AddResource:
-                KernelEffectExecutor.ModifyResource(simulation, _stepA[step], world.EntityPhysicalQ(entityId) + _stepB[step], world.EntityPhysicalR(entityId) + _stepC[step], _stepX[step]);
                 return true;
             default:
                 return false;
@@ -286,23 +270,6 @@ internal sealed partial class GambitProgramRuntime
 
                 return true;
             });
-    }
-
-    private void AddLocationResource(
-        Simulation simulation,
-        int entityId,
-        int targetId,
-        int tick,
-        int step)
-    {
-        var world = simulation.World;
-        var locationEntityId = _stepB[step] == 0 ? entityId : targetId;
-        KernelEffectExecutor.ModifyResource(
-            simulation,
-            _stepA[step],
-            world.EntityPhysicalQ(locationEntityId),
-            world.EntityPhysicalR(locationEntityId),
-            _stepX[step]);
     }
 
     private float EvaluateMutationExpression(
@@ -732,11 +699,6 @@ internal sealed partial class GambitProgramRuntime
     private static int EndpointEntityId(int entityId, int targetId, int endpointCode)
     {
         return endpointCode == BehaviorEndpointCodes.Target ? targetId : entityId;
-    }
-
-    private static float ResourceAtEntity(WorldState world, int entityId, int resourceId)
-    {
-        return world.GetResource(resourceId, world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId));
     }
 
     private static float VariableValue(

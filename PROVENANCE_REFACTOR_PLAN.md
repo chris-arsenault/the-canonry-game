@@ -69,8 +69,7 @@ who acted and what changed.
 Status: implemented for first-pass gambit provider evidence without adding a
 separate evidence table. Gambit invocations use primary entity for actor,
 secondary entity for selected target, and trigger fields for concrete provider
-relationship, selected provider attribute, selected resource, or selected
-entity evidence.
+relationship, selected provider attribute, or selected entity evidence.
 
 Tasks:
 
@@ -80,7 +79,7 @@ Tasks:
   - selected actor
   - selected target
   - selected provider relationship, when one made the gambit actionable
-  - selected ability/resource/relationship kind, when used by the action
+  - selected ability or relationship kind, when used by the action
 - Prefer concrete relationship ids over semantic role slots.
 - Keep role meaning in producer/gambit definitions, not in arbitrary provenance
   key names.
@@ -135,9 +134,9 @@ what does this event spend or change so the same situation is no longer
 immediately eligible?"
 
 Specific consume/transform mappings are content design work and should be
-locked down from the actual available gates, effects, resources, relationships,
-map signals, terrain, coverage, and statuses in the codebase. This phase only
-locks the direction: no replacement saturation ledger.
+locked down from the actual available gates, effects, relationships, map
+signals, terrain, coverage, and statuses in the codebase. This phase only locks
+the direction: no replacement saturation ledger.
 
 Chosen first-pass causal spend model:
 
@@ -191,7 +190,6 @@ Tasks:
   state, such as:
   - removing or weakening the trigger relationship;
   - transforming the target, terrain, coverage, or produced locality;
-  - consuming a concrete location resource;
   - changing health/status where the event meaning justifies it;
   - moving an artifact/entity out of the state that made the generator
     eligible.

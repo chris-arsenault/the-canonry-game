@@ -1,7 +1,6 @@
 namespace Engine.Domain.Compilation;
 
 using Engine.Domain.Config;
-using Engine.Resources;
 
 public static partial class DomainCompiler
 {
@@ -56,7 +55,6 @@ public static partial class DomainCompiler
     private static void RegisterWorldCatalog(DomainConfig config, CatalogRegistrationState state)
     {
         RegisterRelationshipCatalog(config, state);
-        RegisterResourceCatalog(config, state);
         RegisterTerrainCatalog(config, state);
     }
 
@@ -71,18 +69,6 @@ public static partial class DomainCompiler
         {
             RegisterOnceStrict(state.RelationshipFacts, fact.Name, state.Registry.RegisterRelationshipFact, "relationship fact");
         }
-    }
-
-    private static void RegisterResourceCatalog(DomainConfig config, CatalogRegistrationState state)
-    {
-        foreach (var resource in config.Resources)
-        {
-            RegisterOnceStrict(state.Resources, resource.Name, state.Registry.RegisterResource, "resource");
-        }
-
-        RegisterOnce(state.Resources, ResourceType.Food.ToDomainName(), state.Registry.RegisterResource);
-        RegisterOnce(state.Resources, ResourceType.Wealth.ToDomainName(), state.Registry.RegisterResource);
-        RegisterOnce(state.Resources, ResourceType.Population.ToDomainName(), state.Registry.RegisterResource);
     }
 
     private static void RegisterTerrainCatalog(DomainConfig config, CatalogRegistrationState state)
@@ -180,7 +166,6 @@ public static partial class DomainCompiler
         public HashSet<string> StructuralFacts { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipKinds { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipFacts { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> Resources { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Terrains { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Subtypes { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Cultures { get; } = new(StringComparer.Ordinal);

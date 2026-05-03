@@ -89,7 +89,6 @@ public sealed class IceRemembersSeedBuilderTests
             Assert.True(cell.SuperregionId > 0, $"Cell {cell.Q},{cell.R} has no superregion.");
             Assert.True(cell.ContinentId > 0, $"Cell {cell.Q},{cell.R} has no continent.");
         });
-        Assert.Empty(startupSeed.Resources);
         Assert.Contains(startupSeed.Relationships, relationship =>
             relationship.RelationshipKind == IceRemembersRelationship.ControlledBy.ToDomainName());
     }

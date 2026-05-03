@@ -33,9 +33,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "action_executions",
         "attribute_events",
         "movement_events",
-        "resource_events",
-        "resource_snapshots",
-        "resource_terrain_snapshots",
         "relationship_events",
         "relationship_snapshots",
         "gambit_events",
@@ -108,7 +105,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var influenceRows = LoadInfluenceSummaryRows(connection);
         var actionRows = LoadActionUtilizationRows(connection);
         var plannerRows = LoadPlannerUtilizationRows(connection, actionRows);
-        var resourceRows = LoadResourceDynamicsRows(connection);
         var mapGenerationRows = LoadMapGenerationRows(connection);
         var terrainRows = LoadTerrainOccupancyRows(connection);
         var lifecycleRows = LoadLifecycleRows(connection, overview.RunCount);
@@ -138,7 +134,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             MapGeneration = mapGenerationRows,
             TerrainOccupancy = terrainRows,
             Lifecycle = lifecycleRows,
-            ResourceDynamics = resourceRows,
         };
     }
 
@@ -585,89 +580,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         return rows
             .OrderBy(row => row.Kind, StringComparer.Ordinal)
             .ToList();
-    }
-
-    private List<ResourceDynamicsRow> LoadResourceDynamicsRows(DuckDBConnection connection)
-    {
-        const string overviewSql = """
-            SELECT
-                resource_type,
-                COALESCE(AVG(CAST(total AS DOUBLE)), 0.0) AS average_total_over_time,
-                COALESCE(MIN(CAST(minimum AS DOUBLE)), 0.0) AS lowest_cell_stock
-            FROM resource_snapshots
-            GROUP BY resource_type;
-            """;
-
-        var endpoints = LoadResourceEndpointTotals(connection);
-        return Query(connection, overviewSql, reader => BuildResourceDynamicsRow(reader, endpoints))
-            .OrderBy(row => row.ResourceType, StringComparer.Ordinal)
-            .ToList();
-    }
-
-    private static Dictionary<string, (double Initial, double Final)> LoadResourceEndpointTotals(
-        DuckDBConnection connection)
-    {
-        const string endpointSql = """
-            WITH first_ticks AS (
-                SELECT run_id, MIN(tick) AS first_tick
-                FROM resource_snapshots
-                GROUP BY run_id
-            ),
-            last_ticks AS (
-                SELECT run_id, MAX(tick) AS last_tick
-                FROM resource_snapshots
-                GROUP BY run_id
-            ),
-            initial_totals AS (
-                SELECT
-                    rs.resource_type,
-                    COALESCE(AVG(CAST(rs.total AS DOUBLE)), 0.0) AS average_initial_total
-                FROM resource_snapshots rs
-                JOIN first_ticks ft
-                  ON rs.run_id = ft.run_id
-                 AND rs.tick = ft.first_tick
-                GROUP BY rs.resource_type
-            ),
-            final_totals AS (
-                SELECT
-                    rs.resource_type,
-                    COALESCE(AVG(CAST(rs.total AS DOUBLE)), 0.0) AS average_final_total
-                FROM resource_snapshots rs
-                JOIN last_ticks lt
-                  ON rs.run_id = lt.run_id
-                 AND rs.tick = lt.last_tick
-                GROUP BY rs.resource_type
-            )
-            SELECT
-                COALESCE(i.resource_type, f.resource_type) AS resource_type,
-                COALESCE(i.average_initial_total, 0.0) AS average_initial_total,
-                COALESCE(f.average_final_total, 0.0) AS average_final_total
-            FROM initial_totals i
-            FULL OUTER JOIN final_totals f
-              ON i.resource_type = f.resource_type;
-            """;
-
-        return Query(connection, endpointSql, reader => new KeyValuePair<string, (double Initial, double Final)>(
-                ReadString(reader, "resource_type"),
-                (
-                    ReadDouble(reader, "average_initial_total"),
-                    ReadDouble(reader, "average_final_total"))))
-            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
-    }
-
-    private static ResourceDynamicsRow BuildResourceDynamicsRow(
-        DbDataReader reader,
-        Dictionary<string, (double Initial, double Final)> endpoints)
-    {
-        var resourceType = ReadString(reader, "resource_type");
-        var endpoint = endpoints.GetValueOrDefault(resourceType);
-        return new ResourceDynamicsRow(
-            ResourceType: resourceType,
-            AverageTotalOverTime: ReadDouble(reader, "average_total_over_time"),
-            AverageInitialTotal: endpoint.Initial,
-            AverageFinalTotal: endpoint.Final,
-            FinalToInitialRatio: ComputeRatio(endpoint.Final, endpoint.Initial),
-            LowestCellStock: ReadDouble(reader, "lowest_cell_stock"));
     }
 
     private List<MapGenerationSummaryRow> LoadMapGenerationRows(DuckDBConnection connection)

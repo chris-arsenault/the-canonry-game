@@ -231,12 +231,11 @@ public sealed class KernelEventStreamTests
     [Fact]
     public void TypedAccessorForWrongEventFails()
     {
-        var kernelEvent = KernelEvent.From(new ResourceChangedKernelEvent(
+        var kernelEvent = KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 1,
             WorldVersion: 2,
-            ResourceId: 3,
-            Q: 4,
-            R: 5,
+            EntityId: 3,
+            AttributeId: 4,
             SourceCodeId: 6,
             OldValue: 7f,
             NewValue: 8f));

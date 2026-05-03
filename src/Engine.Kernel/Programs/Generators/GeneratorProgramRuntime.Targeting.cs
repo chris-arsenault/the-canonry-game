@@ -15,6 +15,7 @@ internal sealed partial class GeneratorProgramRuntime
             !KernelQuery.SubtypeAllowed(_subtypeIds, _targetSubtypeStarts[generatorSlot], _targetSubtypeCounts[generatorSlot], world.EntitySubtypeId(targetId)) ||
             !TargetRelationshipRequirementsPass(world, generatorSlot, targetId) ||
             !TargetRelationshipAbsenceRequirementsPass(world, generatorSlot, targetId) ||
+            !TargetTerrainRequirementsPass(world, generatorSlot, targetId) ||
             ExceedsTargetSaturation(world, generatorSlot, targetId) ||
             !TriggersPass(world, generatorSlot, targetId))
         {
@@ -86,6 +87,29 @@ internal sealed partial class GeneratorProgramRuntime
                 _targetWithoutIncomingStarts[generatorSlot],
                 _targetWithoutIncomingCounts[generatorSlot],
                 outgoing: false);
+    }
+
+    private bool TargetTerrainRequirementsPass(WorldState world, int generatorSlot, int targetId)
+    {
+        var originQ = world.EntityPhysicalQ(targetId);
+        var originR = world.EntityPhysicalR(targetId);
+        var start = _targetTerrainRequirementStarts[generatorSlot];
+        var end = start + _targetTerrainRequirementCounts[generatorSlot];
+        for (var requirement = start; requirement < end; requirement++)
+        {
+            if (!KernelQuery.TerrainCellCountInRadiusBelow(
+                    world,
+                    originQ,
+                    originR,
+                    _targetTerrainRequirementTerrainIds[requirement],
+                    _targetTerrainRequirementRadii[requirement],
+                    _targetTerrainRequirementMaximumExclusive[requirement]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private bool ResolveSecondaryBindings(

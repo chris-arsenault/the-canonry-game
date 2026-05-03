@@ -19,13 +19,11 @@ public static class BehaviorOperationCodes
     public const int SetAttribute = 2;
     public const int MovePhysical = 3;
     public const int MoveSemantic = 4;
-    public const int AddResource = 5;
     public const int SetStatus = 6;
     public const int CreateRelationship = 7;
     public const int SetRelationshipStrength = 8;
     public const int AddTargetAttribute = 9;
     public const int TransferAttribute = 10;
-    public const int AddLocationResource = 11;
     public const int MoveTowardTargetPhysical = 13;
     public const int WanderPhysical = 14;
     public const int MoveTowardTargetSemantic = 15;
@@ -64,7 +62,6 @@ public static class BehaviorPreconditionCodes
     public const int SelfAttributeRange = 3;
     public const int TargetAttributeRange = 4;
     public const int PlaneDistance = 5;
-    public const int LocationResourceRange = 6;
     public const int Always = 7;
     public const int SelfHasRelationshipToTarget = 8;
     public const int TargetHasRelationshipToSelf = 9;
@@ -87,8 +84,6 @@ public static class BehaviorExpressionCodes
     public const int Literal = 1;
     public const int SelfAttribute = 2;
     public const int TargetAttribute = 3;
-    public const int SelfLocationResource = 4;
-    public const int TargetLocationResource = 5;
     public const int Add = 6;
     public const int Subtract = 7;
     public const int Multiply = 8;
@@ -132,7 +127,6 @@ public static class BehaviorEffectScopeCodes
 {
     public const int SelfAttribute = 1;
     public const int TargetAttribute = 2;
-    public const int Resource = 3;
     public const int Structural = 4;
     public const int Relational = 5;
 }
@@ -148,7 +142,6 @@ public static class BehaviorProviderSelectorCodes
 {
     public const int TargetAttribute = 1;
     public const int Structural = 2;
-    public const int Resource = 3;
     public const int LocationAttribute = 4;
     public const int OutgoingRelationship = 5;
     public const int IncomingRelationship = 6;
@@ -273,7 +266,7 @@ public static class ProgramDependencyLagCodes
     public const int PreviousTick = 2;
 }
 
-public static class ProgramDependencyResourceCodes
+public static class ProgramDependencyChannelCodes
 {
     public const int MapActivitySignals = 1;
     public const int MapSignals = 2;
@@ -421,7 +414,6 @@ public static class ProvenanceTriggerKindCodes
     public const int Relationship = 2;
     public const int Invocation = 3;
     public const int Attribute = 4;
-    public const int Resource = 5;
 }
 
 public static class ProvenanceOutputKindCodes
@@ -431,7 +423,6 @@ public static class ProvenanceOutputKindCodes
     public const int EntityMoved = 3;
     public const int AttributeChanged = 4;
     public const int TraitAssigned = 5;
-    public const int ResourceChanged = 6;
     public const int RelationshipChanged = 7;
     public const int CellChanged = 8;
     public const int CellInfluenceChanged = 9;
@@ -441,6 +432,7 @@ public static class KernelCapacityCodes
 {
     public const int ProvenanceInvocation = 1;
     public const int ProvenanceOutput = 2;
+    public const int GeneratorTargetTerrainRequirement = 3;
 }
 
 public static class KernelGrowableStorageModeCodes

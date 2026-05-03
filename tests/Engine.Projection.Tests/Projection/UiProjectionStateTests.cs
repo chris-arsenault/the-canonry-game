@@ -142,7 +142,7 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
-    public void Projection_ReplaysRelationshipResourceGeneratorAndDecisionEvents()
+    public void Projection_ReplaysRelationshipGeneratorAndDecisionEvents()
     {
         var log = new KernelEventLog(capacity: 16);
         var projection = new UiProjectionState();
@@ -151,11 +151,10 @@ public sealed class UiProjectionStateTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        WriteRelationshipResourceGeneratorAndDecisionEvents(log);
+        WriteRelationshipGeneratorAndDecisionEvents(log);
 
         pump.DrainAvailable();
 
-        Assert.Equal(5f, projection.Resources[new UiResourceKey(7, 2, 3)].NewValue);
         var relationship = projection.Relationships[new UiRelationshipKey(20, 21, 10)];
         Assert.True(relationship.IsActive);
         Assert.Equal(2, relationship.FactCount);
@@ -217,17 +216,8 @@ public sealed class UiProjectionStateTests
             SourceCodeId: 40))));
     }
 
-    private static void WriteRelationshipResourceGeneratorAndDecisionEvents(KernelEventLog log)
+    private static void WriteRelationshipGeneratorAndDecisionEvents(KernelEventLog log)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new ResourceChangedKernelEvent(
-            Tick: 1,
-            WorldVersion: 1,
-            ResourceId: 7,
-            Q: 2,
-            R: 3,
-            SourceCodeId: 8,
-            OldValue: 1f,
-            NewValue: 5f))));
         Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,

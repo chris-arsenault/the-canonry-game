@@ -15,7 +15,7 @@ All other per-entity differentiation should be authored as one of:
 - relationship facts only for rare boolean edge qualifiers, not provenance or
   lineage;
 - locality queries for physical or semantic context;
-- resources or map signals for aggregate world context.
+- map signals for aggregate world context.
 
 ## Retired Buckets
 
@@ -28,7 +28,7 @@ Do not revive old attributes such as `echo`, `warmth`, `dominion`, `shelter`,
 `reach`, `provisions`, `holding`, `pristiness`, `power`, or `resonance` as a
 generic second stock. If one of those concepts matters, re-author it as a
 specific trait, relationship, rare boolean relationship fact, locality rule,
-resource, or map signal.
+map signal, or explicit gameplay system.
 
 ## Numeric Gates
 

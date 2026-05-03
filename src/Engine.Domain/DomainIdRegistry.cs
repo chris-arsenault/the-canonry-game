@@ -12,7 +12,6 @@ public enum DomainIdCategory
     StructuralFact,
     RelationshipKind,
     RelationshipFact,
-    Resource,
     Terrain,
     Subtype,
     Culture,
@@ -45,8 +44,6 @@ public sealed class DomainIdRegistry
         new(static value => new RelationshipKindRuntimeId(value), static id => id.Value, "relationship kind");
     private readonly StableNameRegistry<RelationshipFactRuntimeId> _relationshipFacts =
         new(static value => new RelationshipFactRuntimeId(value), static id => id.Value, "relationship fact");
-    private readonly StableNameRegistry<ResourceRuntimeId> _resources =
-        new(static value => new ResourceRuntimeId(value), static id => id.Value, "resource");
     private readonly StableNameRegistry<TerrainRuntimeId> _terrains =
         new(static value => new TerrainRuntimeId(value), static id => id.Value, "terrain");
     private readonly StableNameRegistry<SubtypeRuntimeId> _subtypes =
@@ -102,10 +99,6 @@ public sealed class DomainIdRegistry
     public string RelationshipFactNameOf(RelationshipFactRuntimeId id) =>
         _relationshipFacts.NameOf(id);
 
-    public ResourceRuntimeId RegisterResource(string stableName) => _resources.Register(stableName);
-    public ResourceRuntimeId ResourceIdOf(string stableName) => _resources.Resolve(stableName);
-    public string ResourceNameOf(ResourceRuntimeId id) => _resources.NameOf(id);
-
     public TerrainRuntimeId RegisterTerrain(string stableName) => _terrains.Register(stableName);
     public TerrainRuntimeId TerrainIdOf(string stableName) => _terrains.Resolve(stableName);
     public string TerrainNameOf(TerrainRuntimeId id) => _terrains.NameOf(id);
@@ -157,7 +150,6 @@ public sealed class DomainIdRegistry
         foreach (var entry in _structuralFacts.Entries(DomainIdCategory.StructuralFact)) yield return entry;
         foreach (var entry in _relationshipKinds.Entries(DomainIdCategory.RelationshipKind)) yield return entry;
         foreach (var entry in _relationshipFacts.Entries(DomainIdCategory.RelationshipFact)) yield return entry;
-        foreach (var entry in _resources.Entries(DomainIdCategory.Resource)) yield return entry;
     }
 
     private IEnumerable<DomainIdEntry> SecondaryEntries()
@@ -223,9 +215,6 @@ public sealed class DomainIdRegistry
                 return true;
             case DomainIdCategory.RelationshipFact:
                 clone.RegisterRelationshipFact(entry.StableName);
-                return true;
-            case DomainIdCategory.Resource:
-                clone.RegisterResource(entry.StableName);
                 return true;
             default:
                 return false;

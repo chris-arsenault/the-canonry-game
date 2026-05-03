@@ -60,14 +60,14 @@ and "what do I do with the score?"
 - A new authored effect should compile to the shared effect path.
 - A new authored scoring or weighting modifier should use `DecisionModifier`.
 - Relationship strength is the default numeric gate for generator and gambit
-  conditions unless the subject is health, a resource, a map signal, influence,
-  coverage, or locality.
+  conditions unless the subject is health, a map signal, influence, coverage,
+  or locality.
 - Health is reserved for survival, damage, decay, repair, recovery, and
   lifecycle.
 - Locality-based queries are valid when proximity, containment, influence, or
   regional map state is the actual condition.
 - Do not introduce pressure or another macro aggregate as a shortcut around
-  graph, health, map-signal, resource, or locality state.
+  graph, health, map-signal, or locality state.
 
 ## Why Not
 
@@ -77,7 +77,7 @@ A broad aggregate such as pressure makes generator and gambit gates easy to
 write but hard to inspect. It hides the actual source of tension behind a
 single number, and future systems can begin depending on that number instead of
 the entity graph. The current architecture uses relationship strength, health,
-traits, resources, map signals, influence, coverage, and locality directly so
+traits, map signals, influence, coverage, and locality directly so
 events can be explained from visible world state.
 
 ### Why Not Caller-Local Query Interpreters

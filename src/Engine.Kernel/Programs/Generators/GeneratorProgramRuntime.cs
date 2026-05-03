@@ -27,6 +27,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _targetWithoutOutgoingCounts => Data.TargetWithoutOutgoingCounts;
     private int[] _targetWithoutIncomingStarts => Data.TargetWithoutIncomingStarts;
     private int[] _targetWithoutIncomingCounts => Data.TargetWithoutIncomingCounts;
+    private int[] _targetTerrainRequirementStarts => Data.TargetTerrainRequirementStarts;
+    private int[] _targetTerrainRequirementCounts => Data.TargetTerrainRequirementCounts;
     private int[] _triggerStarts => Data.TriggerStarts;
     private int[] _triggerCounts => Data.TriggerCounts;
     private int[] _bindingStarts => Data.BindingStarts;
@@ -49,6 +51,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
     private float[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
     private int[] _terrainFilterIds => Data.TerrainFilterIds;
+    private int[] _targetTerrainRequirementTerrainIds => Data.TargetTerrainRequirementTerrainIds;
+    private int[] _targetTerrainRequirementRadii => Data.TargetTerrainRequirementRadii;
+    private int[] _targetTerrainRequirementMaximumExclusive => Data.TargetTerrainRequirementMaximumExclusive;
     private int[] _triggerKindIds => Data.TriggerKindIds;
     private int[] _bindingRefCodes => Data.BindingRefCodes;
     private int[] _bindingKindIds => Data.BindingKindIds;
@@ -125,6 +130,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private ref int _subtypeCount => ref Data.SubtypeCount;
     private ref int _relationshipKindFilterCount => ref Data.RelationshipKindFilterCount;
     private ref int _terrainFilterCount => ref Data.TerrainFilterCount;
+    private ref int _targetTerrainRequirementCount => ref Data.TargetTerrainRequirementCount;
     private ref int _triggerCount => ref Data.TriggerCount;
     private ref int _bindingCount => ref Data.BindingCount;
     private ref int _producedCount => ref Data.ProducedCount;
@@ -216,6 +222,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetRequiredAnyStarts[slot] = _relationshipKindFilterCount + 1;
         _targetWithoutOutgoingStarts[slot] = _relationshipKindFilterCount + 1;
         _targetWithoutIncomingStarts[slot] = _relationshipKindFilterCount + 1;
+        _targetTerrainRequirementStarts[slot] = _targetTerrainRequirementCount + 1;
         _triggerStarts[slot] = _triggerCount + 1;
         _bindingStarts[slot] = _bindingCount + 1;
         _producedStarts[slot] = _producedCount + 1;
@@ -291,6 +298,27 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
         AddRelationshipKindFilterId(relationshipKindId);
         _targetWithoutIncomingCounts[generatorSlot]++;
+    }
+
+    public void AddTargetTerrainCountBelow(int generatorSlot, int terrainId, int radius, int maximumExclusive)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        ValidatePositive(terrainId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExclusive);
+        if (_targetTerrainRequirementCount + 1 >= _targetTerrainRequirementTerrainIds.Length)
+        {
+            throw new KernelCapacityExceededException(
+                KernelCapacityCodes.GeneratorTargetTerrainRequirement,
+                _targetTerrainRequirementCount + 1,
+                _targetTerrainRequirementTerrainIds.Length - 1);
+        }
+
+        _targetTerrainRequirementCount++;
+        _targetTerrainRequirementTerrainIds[_targetTerrainRequirementCount] = terrainId;
+        _targetTerrainRequirementRadii[_targetTerrainRequirementCount] = radius;
+        _targetTerrainRequirementMaximumExclusive[_targetTerrainRequirementCount] = maximumExclusive;
+        _targetTerrainRequirementCounts[generatorSlot]++;
     }
 
     public void SetTargetSaturation(

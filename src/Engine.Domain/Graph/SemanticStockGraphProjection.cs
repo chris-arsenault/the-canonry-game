@@ -12,9 +12,6 @@ public static class SemanticStockGraphProjection
         var stockByAttribute = graph.Stocks
             .Where(stock => stock.Id is AttributeStockId)
             .ToDictionary(stock => ((AttributeStockId)stock.Id).Key, stock => stock.Id);
-        var stockByResource = graph.Stocks
-            .Where(stock => stock.Id is ResourceStockId)
-            .ToDictionary(stock => ((ResourceStockId)stock.Id).ResourceId, stock => stock.Id);
 
         var grouped = new Dictionary<(SemanticStockId Source, SemanticStockId Target), List<SemanticFlowEdge>>();
 
@@ -22,7 +19,7 @@ public static class SemanticStockGraphProjection
         {
             foreach (var sourceRef in flow.SourceRefs)
             {
-                var referenceStockId = TryResolveStockId(sourceRef, stockByAttribute, stockByResource);
+                var referenceStockId = TryResolveStockId(sourceRef, stockByAttribute);
                 if (referenceStockId is null)
                 {
                     continue;
@@ -65,8 +62,7 @@ public static class SemanticStockGraphProjection
 
     private static SemanticStockId? TryResolveStockId(
         TypedDefinitionRef sourceRef,
-        Dictionary<DefinitionAttributeKey, SemanticStockId> stockByAttribute,
-        Dictionary<DefinitionResourceId, SemanticStockId> stockByResource)
+        Dictionary<DefinitionAttributeKey, SemanticStockId> stockByAttribute)
     {
         switch (sourceRef.ValueId)
         {
@@ -75,9 +71,6 @@ public static class SemanticStockGraphProjection
                     var key = new DefinitionAttributeKey(kind, attributeValue.AttributeId);
                     return stockByAttribute.TryGetValue(key, out var attributeStockId) ? attributeStockId : null;
                 }
-
-            case ResourceValueId resourceValue:
-                return stockByResource.TryGetValue(resourceValue.ResourceId, out var resourceStockId) ? resourceStockId : null;
 
             default:
                 return null;

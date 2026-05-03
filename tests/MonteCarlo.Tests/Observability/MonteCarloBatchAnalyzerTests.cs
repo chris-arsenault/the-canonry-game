@@ -303,7 +303,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddProcessTelemetry(batch, seed);
         AddLowAltitudeTelemetry(batch, seed);
         AddGambitTelemetry(batch, seed);
-        AddResourceTelemetry(batch, seed);
         AddMapTelemetry(batch, seed);
         AddLifecycleTelemetry(batch, seed);
         AddGeneratorTelemetry(batch, seed, includeGeneratorFire);
@@ -322,7 +321,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             RelationshipFacts = config.RelationshipFacts,
             Degeneracy = config.Degeneracy,
             Lifecycles = config.Lifecycles,
-            Resources = config.Resources,
             Terrains = config.Terrains,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
@@ -371,8 +369,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             VerbSymbolId: 40,
             GeneratorId: 50,
             GambitId: 55,
-            FoodResourceId: 60,
-            WealthResourceId: 61,
             ShelfTerrainId: 70,
             OceanTerrainId: 71,
             PenguinVerbId: penguinVerb.Id,
@@ -401,8 +397,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddSymbol(batch, ProjectionSymbolKind.Generator, seed.GeneratorId, "analysis_test_generator_alpha");
         AddSymbol(batch, ProjectionSymbolKind.Generator, 51, "analysis_test_generator_beta");
         AddSymbol(batch, ProjectionSymbolKind.Gambit, seed.GambitId, "penguin_wields_artifact");
-        AddSymbol(batch, ProjectionSymbolKind.Resource, seed.FoodResourceId, "Food");
-        AddSymbol(batch, ProjectionSymbolKind.Resource, seed.WealthResourceId, "Wealth");
         AddSymbol(batch, ProjectionSymbolKind.Terrain, seed.ShelfTerrainId, "Shelf");
         AddSymbol(batch, ProjectionSymbolKind.Terrain, seed.OceanTerrainId, "Ocean");
         AddAttributeSymbols(batch, seed.PenguinAttributeIds);
@@ -626,14 +620,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             LocalityId: 1));
     }
 
-    private static void AddResourceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
-    {
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 0, seed.FoodResourceId, 28f, 1.4f, 0.5f, 3.0f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 25, seed.FoodResourceId, 12f, 0.6f, 0.2f, 1.5f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 0, seed.WealthResourceId, 6f, 0.3f, 0f, 1f));
-        batch.ResourceSnapshots.Add(new ResourceSnapshotRow(seed.RunId, 25, seed.WealthResourceId, 5f, 0.25f, 0f, 1f));
-    }
-
     private static void AddGambitTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
         batch.GambitEvents.Add(new GambitEventRow(
@@ -795,8 +781,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         int VerbSymbolId,
         int GeneratorId,
         int GambitId,
-        int FoodResourceId,
-        int WealthResourceId,
         int ShelfTerrainId,
         int OceanTerrainId,
         string PenguinVerbId,

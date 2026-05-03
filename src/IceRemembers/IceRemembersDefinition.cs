@@ -12,14 +12,13 @@ using Effect = Engine.Gameplay.AttributeEffectConditions;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
-using Res = IceRemembers.IceRemembersResource;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 using Verb = IceRemembers.IceRemembersVerbId;
 
 /// <summary>
 /// The Ice Remembers domain definition. This provides the engine with the
-/// world's canonical kinds, relationships, resources, cultures, and semantics.
+/// world's canonical kinds, relationships, cultures, and semantics.
 /// </summary>
 public static partial class IceRemembersDefinition
 {
@@ -49,7 +48,6 @@ public static partial class IceRemembersDefinition
             RelationshipFacts = [],
             Degeneracy = IceRemembersDegeneracyDefinition.Create(),
             Lifecycles = CreateLifecycles(),
-            Resources = CreateResources(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
             Cultures = CreateCultures(),
             Gameplay = CreateGameplayDefinition(),
@@ -61,7 +59,6 @@ public static partial class IceRemembersDefinition
     private static string T(Trait trait) => trait.ToDomainName();
     private static string C(Culture culture) => culture.ToDomainName();
     private static string L(Rel relationship) => relationship.ToDomainName();
-    private static string R(Res resource) => resource.ToDomainName();
     private static string V(Verb verb) => verb.ToVerbId();
     private static string G(GambitId gambit) => gambit.ToGambitId();
     private static string TerrainName(Terrain terrain) => terrain.ToDomainName();
@@ -947,16 +944,6 @@ public static partial class IceRemembersDefinition
 
     private static string GameplayPlaneName(PrimaryPlane plane) =>
         plane == PrimaryPlane.Semantic ? "semantic" : "physical";
-
-    private static List<ResourceConfig> CreateResources()
-    {
-        return
-        [
-            new() { Name = R(Res.Food), DisplayName = "Food" },
-            new() { Name = R(Res.Wealth), DisplayName = "Wealth" },
-            new() { Name = R(Res.Population), DisplayName = "Population" },
-        ];
-    }
 
     private static List<CultureConfig> CreateCultures()
     {

@@ -1,7 +1,6 @@
 namespace Engine.Behaviors;
 
 using Engine.Kinds;
-using Engine.Resources;
 using Engine.Wiring;
 
 /// <summary>
@@ -57,13 +56,6 @@ public static class PreconditionInspector
                 return false;
             case RelatedEntityMatchesTarget relatedEntityMatchesTarget:
                 AddTargetRelationBlockers(relatedEntityMatchesTarget, targetKinds, blockers);
-                return false;
-            case LocationResourceThreshold locationResourceThreshold:
-                if (locationResourceThreshold.BehaviorRelevant)
-                {
-                    blockers.Add(AttributeRef.Resource(locationResourceThreshold.ResourceType.ToDomainName()));
-                }
-
                 return false;
             default:
                 return false;
