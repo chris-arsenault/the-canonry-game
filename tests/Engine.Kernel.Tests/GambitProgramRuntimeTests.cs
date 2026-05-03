@@ -36,6 +36,49 @@ public sealed class GambitProgramRuntimeTests
     }
 
     [Fact]
+    public void SuccessfulGambitRecordsProvenanceInvocationAndMutationOutput()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int kindId = 1;
+        const int attributeId = 10;
+        const int gambitId = 100;
+        simulation.RegisterAttribute(kindId, attributeId, 0f, 100f, 10f);
+        var entityId = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var gambit = simulation.Gambits.RegisterGambit(
+            kindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var events = ReadAvailableEvents(simulation, cursor);
+        var attributeChanged = Assert.Single(events, evt => evt.EventType == KernelEventType.AttributeChanged);
+        var recorded = Assert.Single(
+            events,
+            evt => evt.EventType == KernelEventType.ProvenanceInvocationRecorded).AsProvenanceInvocationRecorded();
+
+        Assert.True(attributeChanged.ProvenanceInvocationId > 0);
+        Assert.Equal(attributeChanged.ProvenanceInvocationId, recorded.InvocationId);
+        Assert.Equal(ProvenanceProducerKindCodes.Gambit, recorded.ProducerKindCode);
+        Assert.Equal(gambitId, recorded.ProducerId);
+        Assert.Equal(entityId, recorded.PrimaryEntityId);
+        Assert.Equal(1, recorded.OutputCount);
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.GambitExecuted &&
+            evt.ProvenanceInvocationId == recorded.InvocationId);
+        var outputCursor = simulation.World.OutputsOfProvenanceInvocation(recorded.InvocationId);
+        Assert.True(simulation.World.MoveNextProvenanceOutput(ref outputCursor, out var outputId));
+        Assert.Equal(ProvenanceOutputKindCodes.AttributeChanged, simulation.World.ProvenanceOutputKindCode(outputId));
+        Assert.Equal(attributeId, simulation.World.ProvenanceOutputValueId(outputId));
+    }
+
+    [Fact]
     public void FailedGambitConsumesAttemptButDoesNotApplyMutation()
     {
         var simulation = CreateSimulation(seed: 1);
@@ -436,6 +479,75 @@ public sealed class GambitProgramRuntimeTests
         Assert.Equal(30f, simulation.World.GetAttribute(actor, attributeId));
     }
 
+    [Fact]
+    public void ActorTraitDecisionModifierCanMakeZeroScoreGambitActionable()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int kindId = 1;
+        const int attributeId = 10;
+        const int traitId = 70;
+        const int gambitId = 120;
+        simulation.RegisterAttribute(kindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        simulation.World.AddTrait(actor, traitId, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            kindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 0f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 5f);
+        simulation.Gambits.RegisterTraitModifier(
+            gambitId,
+            traitId,
+            TraitEffectBearerCodes.Actor,
+            scoreDelta: 1f,
+            successChanceDelta: 0f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(15f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void TargetTraitDecisionModifierCanRaiseGambitSuccessChance()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        const int traitId = 71;
+        const int gambitId = 121;
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        simulation.World.AddTrait(target, traitId, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 0f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 5f);
+        simulation.Gambits.RegisterTraitModifier(
+            gambitId,
+            traitId,
+            TraitEffectBearerCodes.GambitTarget,
+            scoreDelta: 0f,
+            successChanceDelta: 1f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(15f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
     private static T LastEvent<T>(
         Simulation simulation,
         KernelEventType eventType,
@@ -457,6 +569,17 @@ public sealed class GambitProgramRuntimeTests
 
         Assert.True(matched);
         return found!;
+    }
+
+    private static KernelEvent[] ReadAvailableEvents(Simulation simulation, KernelEventCursor cursor)
+    {
+        var result = new List<KernelEvent>();
+        while (simulation.Events.TryRead(cursor, out var read))
+        {
+            result.Add(read.Event);
+        }
+
+        return result.ToArray();
     }
 
     private static Simulation CreateSimulation(int seed)

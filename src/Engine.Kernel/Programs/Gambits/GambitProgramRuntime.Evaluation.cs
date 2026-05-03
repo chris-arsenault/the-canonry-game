@@ -412,7 +412,7 @@ internal sealed partial class GambitProgramRuntime
         }
 
         var score = EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
-            TraitGambitScoreDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId);
+            GambitScoreDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId);
         var recentActionCount = CountRecentActions(entityId, _gambitIds[gambitSlot], tick - RecencyWindow);
         for (var i = 0; i < recentActionCount; i++)
         {
@@ -466,7 +466,7 @@ internal sealed partial class GambitProgramRuntime
         var end = first + _gambitPreconditionCounts[gambitSlot];
         for (var pre = first; pre < end; pre++)
         {
-            if (PreconditionIsCompositionOp(_preconditionCodes[pre]))
+            if (KernelQuery.QueryPredicateIsComposition(_preconditionCodes[pre]))
             {
                 return ComposedPreconditionsResult(
                     simulation,
@@ -485,7 +485,7 @@ internal sealed partial class GambitProgramRuntime
 
         for (var pre = first; pre < end; pre++)
         {
-            if (!PreconditionPasses(simulation, gambitSlot, pre, entityId, targetId, tick))
+            if (!EvaluateGambitPredicate(simulation, gambitSlot, pre, entityId, targetId, tick))
             {
                 ResolvePreconditionBlocker(
                     world,
@@ -525,12 +525,12 @@ internal sealed partial class GambitProgramRuntime
         var failedBlockerPre = 0;
         for (var pre = first; pre < end; pre++)
         {
-            if (ApplyCompositionPreconditionOp(pre, stack, ref stackCount))
+            if (KernelQuery.TryApplyCompositionPredicate(_preconditionCodes[pre], stack, ref stackCount))
             {
                 continue;
             }
 
-            var passes = PreconditionPasses(simulation, gambitSlot, pre, entityId, targetId, tick);
+            var passes = EvaluateGambitPredicate(simulation, gambitSlot, pre, entityId, targetId, tick);
             if (!passes && failedBlockerPre == 0)
             {
                 failedBlockerPre = pre;
@@ -567,211 +567,23 @@ internal sealed partial class GambitProgramRuntime
         return PreconditionFailed;
     }
 
-    private bool ApplyCompositionPreconditionOp(
-        int pre,
-        global::System.Span<bool> stack,
-        ref int stackCount)
+    private bool EvaluateGambitPredicate(Simulation simulation, int gambitSlot, int pre, int entityId, int targetId, int tick)
     {
-        var code = _preconditionCodes[pre];
-        if (code == BehaviorPreconditionCodes.And)
-        {
-            var right = PopBool(stack, ref stackCount);
-            var left = PopBool(stack, ref stackCount);
-            PushBool(stack, ref stackCount, left && right);
-            return true;
-        }
-
-        if (code == BehaviorPreconditionCodes.Or)
-        {
-            var right = PopBool(stack, ref stackCount);
-            var left = PopBool(stack, ref stackCount);
-            PushBool(stack, ref stackCount, left || right);
-            return true;
-        }
-
-        if (code != BehaviorPreconditionCodes.Not)
-        {
-            return false;
-        }
-
-        PushBool(stack, ref stackCount, !PopBool(stack, ref stackCount));
-        return true;
-    }
-
-    private bool PreconditionPasses(Simulation simulation, int gambitSlot, int pre, int entityId, int targetId, int tick)
-    {
-        var code = _preconditionCodes[pre];
-        if (code == BehaviorPreconditionCodes.Always)
-        {
-            return true;
-        }
-
-        if (IsSimplePrecondition(code))
-        {
-            return SimplePreconditionPasses(simulation.World, code, entityId, targetId);
-        }
-
-        if (IsRangePrecondition(code))
-        {
-            return RangePreconditionPasses(simulation, gambitSlot, code, pre, entityId, targetId, tick);
-        }
-
-        if (IsRelationshipPrecondition(code))
-        {
-            return RelationshipPreconditionPasses(simulation.World, code, pre, entityId, targetId);
-        }
-
-        throw new global::System.InvalidOperationException();
-    }
-
-    private static bool IsSimplePrecondition(int code)
-    {
-        return code is BehaviorPreconditionCodes.TargetIsSelf or
-            BehaviorPreconditionCodes.TargetIsNotSelf or
-            BehaviorPreconditionCodes.HasColocatedEntity;
-    }
-
-    private static bool IsRangePrecondition(int code)
-    {
-        return code is BehaviorPreconditionCodes.SelfAttributeRange or
-            BehaviorPreconditionCodes.TargetAttributeRange or
-            BehaviorPreconditionCodes.PlaneDistance or
-            BehaviorPreconditionCodes.LocationResourceRange or
-            BehaviorPreconditionCodes.CooldownElapsed or
-            BehaviorPreconditionCodes.EntityCountAtLeast or
-            BehaviorPreconditionCodes.ContestedInfluence or
-            BehaviorPreconditionCodes.SharedInfluence;
-    }
-
-    private static bool IsRelationshipPrecondition(int code)
-    {
-        return code is BehaviorPreconditionCodes.SelfHasRelationshipToTarget or
-            BehaviorPreconditionCodes.TargetHasRelationshipToSelf or
-            BehaviorPreconditionCodes.SelfHasOutgoingRelationship or
-            BehaviorPreconditionCodes.EndpointRelationshipCountBelow or
-            BehaviorPreconditionCodes.RelatedEntityMatchesTarget or
-            BehaviorPreconditionCodes.RelationshipExists;
-    }
-
-    private static bool SimplePreconditionPasses(
-        WorldState world,
-        int code,
-        int entityId,
-        int targetId)
-    {
-        if (code == BehaviorPreconditionCodes.TargetIsSelf)
-        {
-            return targetId == entityId;
-        }
-
-        if (code == BehaviorPreconditionCodes.TargetIsNotSelf)
-        {
-            return targetId != entityId;
-        }
-
-        return code == BehaviorPreconditionCodes.HasColocatedEntity &&
-            KernelQuery.HasColocatedEntity(world, entityId);
-    }
-
-    private bool RangePreconditionPasses(
-        Simulation simulation,
-        int gambitSlot,
-        int code,
-        int pre,
-        int entityId,
-        int targetId,
-        int tick)
-    {
-        var world = simulation.World;
-        if (code == BehaviorPreconditionCodes.SelfAttributeRange)
-        {
-            return KernelQuery.AttributeInRange(world, entityId, _preA[pre], _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
-        }
-
-        if (code == BehaviorPreconditionCodes.TargetAttributeRange)
-        {
-            return KernelQuery.AttributeInRange(world, targetId, _preA[pre], _preB[pre], _preC[pre], _preX[pre], _preY[pre]);
-        }
-
-        return OtherRangePreconditionPasses(simulation, gambitSlot, code, pre, entityId, targetId, tick);
-    }
-
-    private bool OtherRangePreconditionPasses(
-        Simulation simulation,
-        int gambitSlot,
-        int code,
-        int pre,
-        int entityId,
-        int targetId,
-        int tick)
-    {
-        var world = simulation.World;
-        if (code == BehaviorPreconditionCodes.PlaneDistance)
-        {
-            return KernelQuery.PlaneDistance(world, entityId, targetId, _preB[pre]) <= _preA[pre];
-        }
-
-        if (code == BehaviorPreconditionCodes.LocationResourceRange)
-        {
-            return LocationResourceRangePasses(world, pre, entityId, targetId);
-        }
-
-        if (code == BehaviorPreconditionCodes.CooldownElapsed)
-        {
-            return CountRecentActions(entityId, _gambitIds[gambitSlot], tick - _preA[pre] + 1) == 0;
-        }
-
-        if (code == BehaviorPreconditionCodes.ContestedInfluence)
-        {
-            return KernelQuery.InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
-        }
-
-        if (code == BehaviorPreconditionCodes.SharedInfluence)
-        {
-            return KernelQuery.InfluenceOverlapPasses(world, entityId, targetId, _preA[pre], _preX[pre], _preY[pre]);
-        }
-
-        return code == BehaviorPreconditionCodes.EntityCountAtLeast &&
-            KernelQuery.ActiveEntityCountOfKind(world, _preA[pre]) >= _preB[pre];
-    }
-
-    private bool RelationshipPreconditionPasses(
-        WorldState world,
-        int code,
-        int pre,
-        int entityId,
-        int targetId)
-    {
-        if (code == BehaviorPreconditionCodes.SelfHasRelationshipToTarget ||
-            code == BehaviorPreconditionCodes.RelatedEntityMatchesTarget)
-        {
-            return KernelQuery.RelationshipPasses(world, entityId, targetId, _preA[pre], _preB[pre], _preX[pre]);
-        }
-
-        if (code == BehaviorPreconditionCodes.TargetHasRelationshipToSelf)
-        {
-            return KernelQuery.RelationshipPasses(world, targetId, entityId, _preA[pre], _preB[pre], _preX[pre]);
-        }
-
-        if (code == BehaviorPreconditionCodes.SelfHasOutgoingRelationship)
-        {
-            return KernelQuery.SelfOutgoingRelationshipPasses(world, entityId, _preA[pre], _preB[pre], _preX[pre]);
-        }
-
-        if (code == BehaviorPreconditionCodes.EndpointRelationshipCountBelow)
-        {
-            return EndpointRelationshipCountBelowPasses(world, entityId, targetId, pre);
-        }
-
-        return code == BehaviorPreconditionCodes.RelationshipExists &&
-            KernelQuery.RelationshipPasses(world, _preC[pre], _preD[pre], _preA[pre], _preB[pre], _preX[pre]);
-    }
-
-    private static bool PreconditionIsCompositionOp(int code)
-    {
-        return code is BehaviorPreconditionCodes.And or
-            BehaviorPreconditionCodes.Or or
-            BehaviorPreconditionCodes.Not;
+        var predicate = new QueryPredicate(
+            _preconditionCodes[pre],
+            _preA[pre],
+            _preB[pre],
+            _preC[pre],
+            _preD[pre],
+            _preX[pre],
+            _preY[pre]);
+        var binding = new QueryBinding(
+            entityId,
+            targetId,
+            tick,
+            _gambitIds[gambitSlot],
+            recentActionCounter: CountRecentActions);
+        return KernelQuery.EvaluatePredicate(simulation.World, predicate, binding);
     }
 
     private void ResolvePreconditionBlocker(
@@ -899,23 +711,6 @@ internal sealed partial class GambitProgramRuntime
         blockerKindId = world.EntityKindId(targetId);
         blockerTargetId = targetId;
         return true;
-    }
-
-    private bool LocationResourceRangePasses(WorldState world, int pre, int entityId, int targetId)
-    {
-        var locationEntityId = _preB[pre] == 0 ? entityId : targetId;
-        var value = world.GetResource(
-            _preA[pre],
-            world.EntityPhysicalQ(locationEntityId),
-            world.EntityPhysicalR(locationEntityId));
-        return KernelQuery.ValueInRange(value, _preC[pre], _preD[pre], _preX[pre], _preY[pre]);
-    }
-
-    private bool EndpointRelationshipCountBelowPasses(WorldState world, int entityId, int targetId, int pre)
-    {
-        var endpointId = _preB[pre] == BehaviorEndpointCodes.Target ? targetId : entityId;
-        var count = KernelQuery.DistinctRelationshipEndpointCount(world, endpointId, _preA[pre], _preD[pre], _preX[pre]);
-        return count < _preC[pre];
     }
 
 }

@@ -30,13 +30,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private float RelationshipAffinityWeight(WorldState world, int entityId, int targetEntityId, int rule)
     {
         var relationshipKindId = Data.AffinityRelationshipKindId(rule);
-        var weight = Data.RelationshipAffinityWeight(rule) + TraitRelationshipAffinityWeightDelta(world, entityId, rule);
+        var weight = Data.RelationshipAffinityWeight(rule) + RelationshipAffinityDecisionDelta(world, entityId, rule);
         if (relationshipKindId == 0 || weight == 0f)
         {
             return 0f;
         }
 
-        var strength = BestRelationshipStrengthBetween(
+        var strength = KernelQuery.BestRelationshipStrengthBetween(
             world,
             entityId,
             targetEntityId,
@@ -45,51 +45,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return strength * weight;
     }
 
-    private float TraitRelationshipAffinityWeightDelta(WorldState world, int entityId, int rule)
+    private float RelationshipAffinityDecisionDelta(WorldState world, int entityId, int rule)
     {
-        var kindId = world.EntityKindId(entityId);
-        var verbId = Data.VerbId(rule);
-        var delta = 0f;
-        for (var modifier = 1; modifier <= Data.TraitWeightModifierCount; modifier++)
-        {
-            if (Data.TraitModifierKindId(modifier) == kindId &&
-                TraitModifierMatchesVerb(modifier, verbId) &&
-                world.HasTrait(entityId, Data.TraitModifierTraitId(modifier)))
-            {
-                delta += Data.TraitModifierRelationshipAffinityWeightDelta(modifier);
-            }
-        }
-
-        return delta;
-    }
-
-    private static float BestRelationshipStrengthBetween(
-        WorldState world,
-        int entityId,
-        int targetEntityId,
-        int relationshipKindId,
-        int directionCode)
-    {
-        var best = 0f;
-        if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
-            or LowAltitudeVerbRelationshipDirectionCodes.Either)
-        {
-            best = Max(best, RelationshipStrengthBetween(world, entityId, targetEntityId, relationshipKindId));
-        }
-
-        if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Incoming
-            or LowAltitudeVerbRelationshipDirectionCodes.Either)
-        {
-            best = Max(best, RelationshipStrengthBetween(world, targetEntityId, entityId, relationshipKindId));
-        }
-
-        return best;
-    }
-
-    private static float RelationshipStrengthBetween(WorldState world, int sourceId, int targetId, int relationshipKindId)
-    {
-        var relationshipId = world.FindRelationship(sourceId, targetId, relationshipKindId);
-        return relationshipId == 0 ? 0f : world.RelationshipStrength(relationshipId);
+        return DecisionModifierEvaluation.SumLowAltitudeValues(
+            world,
+            Data.TraitWeightModifierCount,
+            Data.ReadDecisionModifier,
+            world.EntityKindId(entityId),
+            Data.VerbId(rule),
+            entityId).RelationshipAffinityWeight;
     }
 
     private float LocationWeight(
@@ -145,30 +109,19 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref float crowdingWeight,
         ref float generatorAffordanceWeight)
     {
-        var kindId = world.EntityKindId(entityId);
-        var verbId = Data.VerbId(rule);
-        for (var modifier = 1; modifier <= Data.TraitWeightModifierCount; modifier++)
-        {
-            if (Data.TraitModifierKindId(modifier) != kindId ||
-                !TraitModifierMatchesVerb(modifier, verbId) ||
-                !world.HasTrait(entityId, Data.TraitModifierTraitId(modifier)))
-            {
-                continue;
-            }
-
-            weight += Data.TraitModifierWeightDelta(modifier);
-            exploreWeight += Data.TraitModifierExploreWeightDelta(modifier);
-            stalenessWeight += Data.TraitModifierStalenessWeightDelta(modifier);
-            hotspotWeight += Data.TraitModifierHotspotWeightDelta(modifier);
-            crowdingWeight += Data.TraitModifierCrowdingWeightDelta(modifier);
-            generatorAffordanceWeight += Data.TraitModifierGeneratorAffordanceWeightDelta(modifier);
-        }
-    }
-
-    private bool TraitModifierMatchesVerb(int modifier, int verbId)
-    {
-        var modifierVerbId = Data.TraitModifierVerbId(modifier);
-        return modifierVerbId == 0 || modifierVerbId == verbId;
+        var totals = DecisionModifierEvaluation.SumLowAltitudeValues(
+            world,
+            Data.TraitWeightModifierCount,
+            Data.ReadDecisionModifier,
+            world.EntityKindId(entityId),
+            Data.VerbId(rule),
+            entityId);
+        weight += totals.Weight;
+        exploreWeight += totals.ExploreWeight;
+        stalenessWeight += totals.StalenessWeight;
+        hotspotWeight += totals.HotspotWeight;
+        crowdingWeight += totals.CrowdingWeight;
+        generatorAffordanceWeight += totals.GeneratorAffordanceWeight;
     }
 
     private float GeneratorAffordanceScore(int actorKindId, int candidateKindId, int bindingKindId)

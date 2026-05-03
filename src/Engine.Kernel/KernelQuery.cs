@@ -137,8 +137,250 @@ internal static class KernelQuery
     public static bool EntityIsActiveKind(WorldState world, int entityId, int kindId) =>
         world.EntityIsActive(entityId) && world.EntityKindId(entityId) == kindId;
 
+    public static bool EntityKindMatches(WorldState world, int entityId, int kindId) =>
+        world.EntityKindId(entityId) == kindId;
+
     public static bool TraitFilterPasses(WorldState world, int entityId, int traitId) =>
         traitId == 0 || world.HasTrait(entityId, traitId);
+
+    public static bool SubtypeAllowed(int[]? subtypeIds, int start, int count, int subtypeId)
+    {
+        if (count == 0)
+        {
+            return true;
+        }
+
+        if (subtypeIds is null)
+        {
+            return false;
+        }
+
+        var end = start + count;
+        for (var i = start; i < end; i++)
+        {
+            if (subtypeIds[i] == subtypeId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static QueryEvaluation EvaluateSharedQuery(
+        WorldState world,
+        in SharedQuery query,
+        in QueryBinding binding,
+        int selectedOrdinal)
+    {
+        var queryValue = query;
+        var bindingValue = binding;
+        var count = 0;
+        var selectedEntityId = 0;
+        ForEachEntity(
+            world,
+            entityId =>
+            {
+                if (!SharedQueryMatchesCandidate(world, queryValue, bindingValue, entityId))
+                {
+                    return true;
+                }
+
+                if (count == selectedOrdinal)
+                {
+                    selectedEntityId = entityId;
+                }
+
+                count++;
+                return selectedEntityId == 0;
+            });
+        return new QueryEvaluation(count, selectedEntityId);
+    }
+
+    public static bool EvaluatePredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding)
+    {
+        return TryEvaluateSimplePredicate(world, predicate, binding, out var result) ||
+            TryEvaluateRangePredicate(world, predicate, binding, out result) ||
+            TryEvaluateRelationshipPredicate(world, predicate, binding, out result)
+            ? result
+            : throw new global::System.InvalidOperationException();
+    }
+
+    public static bool QueryPredicateIsComposition(int code) =>
+        code is BehaviorPreconditionCodes.And or
+            BehaviorPreconditionCodes.Or or
+            BehaviorPreconditionCodes.Not;
+
+    public static bool TryApplyCompositionPredicate(
+        int code,
+        global::System.Span<bool> stack,
+        ref int stackCount)
+    {
+        if (code == BehaviorPreconditionCodes.And)
+        {
+            var right = PopBool(stack, ref stackCount);
+            var left = PopBool(stack, ref stackCount);
+            PushBool(stack, ref stackCount, left && right);
+            return true;
+        }
+
+        if (code == BehaviorPreconditionCodes.Or)
+        {
+            var right = PopBool(stack, ref stackCount);
+            var left = PopBool(stack, ref stackCount);
+            PushBool(stack, ref stackCount, left || right);
+            return true;
+        }
+
+        if (code != BehaviorPreconditionCodes.Not)
+        {
+            return false;
+        }
+
+        PushBool(stack, ref stackCount, !PopBool(stack, ref stackCount));
+        return true;
+    }
+
+    private static bool TryEvaluateSimplePredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.Always => true,
+            BehaviorPreconditionCodes.TargetIsSelf => binding.TargetId == binding.ActorId,
+            BehaviorPreconditionCodes.TargetIsNotSelf => binding.TargetId != binding.ActorId,
+            BehaviorPreconditionCodes.HasColocatedEntity => HasColocatedEntity(world, binding.ActorId),
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.Always or
+            BehaviorPreconditionCodes.TargetIsSelf or
+            BehaviorPreconditionCodes.TargetIsNotSelf or
+            BehaviorPreconditionCodes.HasColocatedEntity;
+    }
+
+    private static bool TryEvaluateRangePredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        if (TryEvaluateAttributePredicate(world, predicate, binding, out result))
+        {
+            return true;
+        }
+
+        if (TryEvaluateSpatialPredicate(world, predicate, binding, out result))
+        {
+            return true;
+        }
+
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.CooldownElapsed => binding.RecentActionCount(binding.Tick - predicate.A + 1) == 0,
+            BehaviorPreconditionCodes.EntityCountAtLeast => ActiveEntityCountOfKind(world, predicate.A) >= predicate.B,
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.CooldownElapsed or
+            BehaviorPreconditionCodes.EntityCountAtLeast;
+    }
+
+    private static bool TryEvaluateAttributePredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.SelfAttributeRange => AttributeInRange(world, binding.ActorId, predicate.A, predicate.B, predicate.C, predicate.X, predicate.Y),
+            BehaviorPreconditionCodes.TargetAttributeRange => AttributeInRange(world, binding.TargetId, predicate.A, predicate.B, predicate.C, predicate.X, predicate.Y),
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.SelfAttributeRange or
+            BehaviorPreconditionCodes.TargetAttributeRange;
+    }
+
+    private static bool TryEvaluateSpatialPredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.PlaneDistance => PlaneDistance(world, binding.ActorId, binding.TargetId, predicate.B) <= predicate.A,
+            BehaviorPreconditionCodes.LocationResourceRange => LocationResourceInRange(world, predicate, binding),
+            BehaviorPreconditionCodes.ContestedInfluence => InfluenceOverlapPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.X, predicate.Y),
+            BehaviorPreconditionCodes.SharedInfluence => InfluenceOverlapPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.X, predicate.Y),
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.PlaneDistance or
+            BehaviorPreconditionCodes.LocationResourceRange or
+            BehaviorPreconditionCodes.ContestedInfluence or
+            BehaviorPreconditionCodes.SharedInfluence;
+    }
+
+    private static bool TryEvaluateRelationshipPredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        if (TryEvaluateDirectedRelationshipPredicate(world, predicate, binding, out result))
+        {
+            return true;
+        }
+
+        if (TryEvaluateEndpointRelationshipPredicate(world, predicate, binding, out result))
+        {
+            return true;
+        }
+
+        result = false;
+        return false;
+    }
+
+    private static bool TryEvaluateDirectedRelationshipPredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.SelfHasRelationshipToTarget => RelationshipPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.B, predicate.X),
+            BehaviorPreconditionCodes.RelatedEntityMatchesTarget => RelationshipPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.B, predicate.X),
+            BehaviorPreconditionCodes.TargetHasRelationshipToSelf => RelationshipPasses(world, binding.TargetId, binding.ActorId, predicate.A, predicate.B, predicate.X),
+            BehaviorPreconditionCodes.RelationshipExists => RelationshipPasses(world, predicate.C, predicate.D, predicate.A, predicate.B, predicate.X),
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.SelfHasRelationshipToTarget or
+            BehaviorPreconditionCodes.RelatedEntityMatchesTarget or
+            BehaviorPreconditionCodes.TargetHasRelationshipToSelf or
+            BehaviorPreconditionCodes.RelationshipExists;
+    }
+
+    private static bool TryEvaluateEndpointRelationshipPredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.SelfHasOutgoingRelationship => SelfOutgoingRelationshipPasses(world, binding.ActorId, predicate.A, predicate.B, predicate.X),
+            BehaviorPreconditionCodes.EndpointRelationshipCountBelow => EndpointRelationshipCountIsBelow(world, predicate, binding),
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.SelfHasOutgoingRelationship or
+            BehaviorPreconditionCodes.EndpointRelationshipCountBelow;
+    }
 
     public static bool ValueInRange(float value, int hasMin, int hasMax, float min, float max)
     {
@@ -265,6 +507,93 @@ internal static class KernelQuery
                 return false;
             });
         return found;
+    }
+
+    public static bool AllRelationshipKindRequirementsPass(
+        WorldState world,
+        int entityId,
+        int[] relationshipKindIds,
+        int start,
+        int count,
+        bool outgoing)
+    {
+        var end = start + count;
+        for (var filter = start; filter < end; filter++)
+        {
+            if (!HasRelationshipOfKind(world, entityId, relationshipKindIds[filter], outgoing))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static bool AnyDirectionRelationshipKindRequirementsPass(
+        WorldState world,
+        int entityId,
+        int[] relationshipKindIds,
+        int start,
+        int count)
+    {
+        var end = start + count;
+        for (var filter = start; filter < end; filter++)
+        {
+            var relationshipKindId = relationshipKindIds[filter];
+            if (!HasRelationshipOfKind(world, entityId, relationshipKindId, outgoing: true) &&
+                !HasRelationshipOfKind(world, entityId, relationshipKindId, outgoing: false))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int RelationshipEndpointCount(
+        WorldState world,
+        int entityId,
+        int relationshipKindId,
+        int requiredFactId,
+        bool outgoing)
+    {
+        var count = 0;
+        ForEachRelatedEndpoint(
+            world,
+            entityId,
+            relationshipKindId,
+            minimumStrength: 0f,
+            requiredFactId,
+            outgoing,
+            (_, _) =>
+            {
+                count++;
+                return true;
+            });
+        return count;
+    }
+
+    public static float BestRelationshipStrengthBetween(
+        WorldState world,
+        int entityId,
+        int targetEntityId,
+        int relationshipKindId,
+        int directionCode)
+    {
+        var best = 0f;
+        if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
+            or LowAltitudeVerbRelationshipDirectionCodes.Either)
+        {
+            best = Max(best, RelationshipStrengthBetween(world, entityId, targetEntityId, relationshipKindId));
+        }
+
+        if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Incoming
+            or LowAltitudeVerbRelationshipDirectionCodes.Either)
+        {
+            best = Max(best, RelationshipStrengthBetween(world, targetEntityId, entityId, relationshipKindId));
+        }
+
+        return best;
     }
 
     public static int FindRelationship(WorldState world, int sourceId, int targetId, int relationshipKindId) =>
@@ -408,6 +737,12 @@ internal static class KernelQuery
         return false;
     }
 
+    private static float RelationshipStrengthBetween(WorldState world, int sourceId, int targetId, int relationshipKindId)
+    {
+        var relationshipId = FindRelationship(world, sourceId, targetId, relationshipKindId);
+        return relationshipId == 0 ? 0f : RelationshipStrength(world, relationshipId);
+    }
+
     private static bool InfluenceOverlapPassesFromCursor(
         WorldState world,
         int cursorEntityId,
@@ -430,7 +765,120 @@ internal static class KernelQuery
         return false;
     }
 
+    private static bool SharedQueryMatchesCandidate(
+        WorldState world,
+        in SharedQuery query,
+        in QueryBinding binding,
+        int entityId)
+    {
+        return EntityIsActiveKind(world, entityId, query.KindId) &&
+            entityId != binding.TargetId &&
+            !binding.ReferenceAlreadyBound(entityId) &&
+            SubtypeAllowed(query.SubtypeIds, query.SubtypeStart, query.SubtypeCount, world.EntitySubtypeId(entityId)) &&
+            QueryCultureMatches(world, query.CultureMatchCode, entityId, binding.TargetId) &&
+            QueryRelationshipFiltersPass(world, query, entityId, query.WithoutOutgoingStart, query.WithoutOutgoingCount, outgoing: true) &&
+            QueryRelationshipFiltersPass(world, query, entityId, query.WithoutIncomingStart, query.WithoutIncomingCount, outgoing: false) &&
+            QueryAdjacencyMatches(world, query, binding, entityId);
+    }
+
+    private static bool QueryCultureMatches(WorldState world, int cultureMatchCode, int entityId, int targetId)
+    {
+        return cultureMatchCode switch
+        {
+            GeneratorCultureMatchCodes.SameAsTarget => world.EntityCultureId(entityId) == world.EntityCultureId(targetId),
+            GeneratorCultureMatchCodes.DifferentFromTarget => world.EntityCultureId(entityId) != world.EntityCultureId(targetId),
+            _ => true,
+        };
+    }
+
+    private static bool QueryRelationshipFiltersPass(
+        WorldState world,
+        in SharedQuery query,
+        int entityId,
+        int start,
+        int count,
+        bool outgoing)
+    {
+        var filterIds = query.RelationshipKindFilterIds;
+        if (filterIds is null)
+        {
+            return count == 0;
+        }
+
+        var end = start + count;
+        for (var filter = start; filter < end; filter++)
+        {
+            if (HasRelationshipOfKind(world, entityId, filterIds[filter], outgoing))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool QueryAdjacencyMatches(
+        WorldState world,
+        in SharedQuery query,
+        in QueryBinding binding,
+        int entityId)
+    {
+        return query.AdjacentToTarget == 0 ||
+            HexDistance(
+                world.EntityPhysicalQ(entityId),
+                world.EntityPhysicalR(entityId),
+                binding.TargetOriginQ,
+                binding.TargetOriginR) == 1;
+    }
+
+    private static bool LocationResourceInRange(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding)
+    {
+        var locationEntityId = predicate.B == 0 ? binding.ActorId : binding.TargetId;
+        var value = world.GetResource(
+            predicate.A,
+            world.EntityPhysicalQ(locationEntityId),
+            world.EntityPhysicalR(locationEntityId));
+        return ValueInRange(value, predicate.C, predicate.D, predicate.X, predicate.Y);
+    }
+
+    private static bool EndpointRelationshipCountIsBelow(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding)
+    {
+        var endpointId = predicate.B == BehaviorEndpointCodes.Target ? binding.TargetId : binding.ActorId;
+        var count = DistinctRelationshipEndpointCount(world, endpointId, predicate.A, predicate.D, predicate.X);
+        return count < predicate.C;
+    }
+
+    private static void PushBool(global::System.Span<bool> stack, ref int stackCount, bool value)
+    {
+        if (stackCount >= stack.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        stack[stackCount] = value;
+        stackCount++;
+    }
+
+    private static bool PopBool(global::System.Span<bool> stack, ref int stackCount)
+    {
+        if (stackCount <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        stackCount--;
+        return stack[stackCount];
+    }
+
     private static int Abs(int value) => value < 0 ? -value : value;
 
     private static int Max(int left, int right) => left >= right ? left : right;
+
+    private static float Max(float left, float right) => left >= right ? left : right;
 }

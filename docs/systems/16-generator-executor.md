@@ -54,6 +54,18 @@ artifact `power` attribute. Health thresholds remain valid for survival,
 damage, decay, and repair. Locality-based queries are acceptable when nearby
 map state, semantic position, or regional containment is the real gate.
 
+Generator target gates, relationship gates, saturation checks, and produced
+entity binding queries use the shared kernel query path. Generator-specific
+code still owns cadence, target choice, production orchestration, placement,
+and reference binding order.
+
+## Effects
+
+Generator-created entities, relationships, status changes, coverage changes,
+and cleanup effects must execute through the shared kernel effect path. If a
+generator needs a new world mutation, add the `Simulation` mutation and shared
+effect wrapper before exposing it to authored generator data.
+
 ## Boundary
 
 Low altitude creates conditions. Gambits create high-stakes entity actions and

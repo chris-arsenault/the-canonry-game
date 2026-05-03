@@ -32,8 +32,9 @@ story outcomes.
 
 Gambits are high-stakes entity actions. A gambit has an actor, target, intrinsic
 success criteria, and effects such as creating or changing relationships. A
-gambit may use the shared behavior bytecode and planner infrastructure, but it
-is not the removed low-altitude process system.
+gambit may use shared behavior bytecode, planner infrastructure, shared query
+predicates, and shared effect execution, but it is not the removed
+low-altitude process system.
 
 Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
@@ -95,7 +96,9 @@ being. "Created" means named by the simulation, not necessarily born from
 nothing. Generators can also create relationships and apply secondary effects.
 
 Both systems are data-defined through the domain and compiled into primitive
-kernel program data.
+kernel program data. Their gates and mutations use shared kernel query and
+effect primitives; cadence, target selection, planning, and production order
+remain caller policy.
 
 ## Observability
 
@@ -126,4 +129,3 @@ DuckDB, or Python. The stable simulation-quality metrics are described in
 - [16 Generator Executor](./systems/16-generator-executor.md)
 - [18 Action Executor](./systems/18-action-executor.md)
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
-- [20 Shared Query And Effect Executor Plan](./systems/20-shared-query-effect-executor-plan.md)

@@ -243,6 +243,44 @@ public sealed class EffectsProgramTests
         Assert.Equal(52f, simulation.World.GetAttribute(entity, healthAttributeId));
     }
 
+    [Fact]
+    public void AttributeDeltaEffect_CanRequireTraitOnTargetEntity()
+    {
+        const int kindId = 1;
+        const int healthAttributeId = 1;
+        const int relationshipKindId = 9;
+        const int traitId = 12;
+        var simulation = CreateSimulation();
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
+        simulation.Effects.RegisterAttributeDeltaEffect(
+            kindId,
+            healthAttributeId,
+            EffectConditionCodes.RelatedEntityDistance,
+            relationshipKindId,
+            RelationshipMatchDirectionCodes.Outgoing,
+            PlaneCodes.Physical,
+            maxDistance: 0,
+            threshold: 0f,
+            minimumRelationshipStrength: 0.1f,
+            deltaPerTick: 2f,
+            requiredTargetTraitId: traitId);
+        var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var related = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.World.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            entity,
+            related,
+            strength: 1f,
+            tick: 0);
+
+        simulation.AdvanceTicks(1);
+        simulation.World.AddTrait(entity, traitId, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(52f, simulation.World.GetAttribute(entity, healthAttributeId));
+    }
+
     private static Simulation CreateSimulation() =>
         new(new SimulationOptions
         {

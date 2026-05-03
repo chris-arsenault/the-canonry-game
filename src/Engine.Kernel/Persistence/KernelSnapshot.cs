@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 19;
+    private const int FormatVersion = 20;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -67,6 +67,8 @@ internal static class KernelSnapshotOptions
         writer.Write(options.AttributeCapacity);
         writer.Write(options.TraitCapacity);
         writer.Write(options.ResourceCapacity);
+        writer.Write(options.ProvenanceInvocationCapacity);
+        writer.Write(options.ProvenanceOutputCapacity);
         writer.Write(options.MapCellCapacity);
         writer.Write(options.MapInfluenceCapacity);
         writer.Write(options.SystemCapacity);
@@ -207,6 +209,8 @@ internal static class KernelSnapshotOptions
             AttributeCapacity = reader.ReadInt32(),
             TraitCapacity = reader.ReadInt32(),
             ResourceCapacity = reader.ReadInt32(),
+            ProvenanceInvocationCapacity = reader.ReadInt32(),
+            ProvenanceOutputCapacity = reader.ReadInt32(),
             MapCellCapacity = reader.ReadInt32(),
             MapInfluenceCapacity = reader.ReadInt32(),
             SystemCapacity = reader.ReadInt32(),
@@ -370,6 +374,8 @@ internal static class KernelSnapshotOptions
             AttributeCapacity = values.AttributeCapacity,
             TraitCapacity = values.TraitCapacity,
             ResourceCapacity = values.ResourceCapacity,
+            ProvenanceInvocationCapacity = values.ProvenanceInvocationCapacity,
+            ProvenanceOutputCapacity = values.ProvenanceOutputCapacity,
             MapCellCapacity = values.MapCellCapacity,
             MapInfluenceCapacity = values.MapInfluenceCapacity,
             SystemCapacity = values.SystemCapacity,
@@ -470,6 +476,8 @@ internal static class KernelSnapshotOptions
         public int AttributeCapacity;
         public int TraitCapacity;
         public int ResourceCapacity;
+        public int ProvenanceInvocationCapacity;
+        public int ProvenanceOutputCapacity;
         public int MapCellCapacity;
         public int MapInfluenceCapacity;
         public int SystemCapacity;

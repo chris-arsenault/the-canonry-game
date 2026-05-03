@@ -69,19 +69,6 @@ internal sealed partial class GeneratorProgramRuntime
         return 0;
     }
 
-    private static bool RefAlreadyBound(int[] refEntityIds, int refCount, int entityId)
-    {
-        for (var i = 0; i < refCount; i++)
-        {
-            if (refEntityIds[i] == entityId)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static bool ScratchContains(int[] qs, int[] rs, int count, int q, int r)
     {
         for (var i = 0; i < count; i++)
@@ -109,6 +96,53 @@ internal sealed partial class GeneratorProgramRuntime
                 KernelEffectExecutor.SetEntityStatus(simulation, createdEntityIds[i], EntityStatusCodes.Historical);
             }
         }
+    }
+
+    private int SelectSharedEntity(
+        WorldState world,
+        Simulation? simulation,
+        int kindId,
+        int targetId,
+        int targetOriginQ,
+        int targetOriginR,
+        int[] refEntityIds,
+        int refCount,
+        int subtypeStart,
+        int subtypeCount,
+        int adjacentToTarget,
+        int cultureMatchCode,
+        int withoutOutgoingStart,
+        int withoutOutgoingCount,
+        int withoutIncomingStart,
+        int withoutIncomingCount)
+    {
+        var query = new SharedQuery(
+            kindId,
+            _subtypeIds,
+            subtypeStart,
+            subtypeCount,
+            adjacentToTarget,
+            cultureMatchCode,
+            _relationshipKindFilterIds,
+            withoutOutgoingStart,
+            withoutOutgoingCount,
+            withoutIncomingStart,
+            withoutIncomingCount);
+        var binding = new QueryBinding(
+            actorId: 0,
+            targetId,
+            targetOriginQ: targetOriginQ,
+            targetOriginR: targetOriginR,
+            refEntityIds: refEntityIds,
+            refCount: refCount);
+        var count = KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal: -1).Count;
+        if (count == 0)
+        {
+            return 0;
+        }
+
+        var selectedOrdinal = simulation is null ? 0 : simulation.NextInt(count);
+        return KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal).SelectedEntityId;
     }
 
     private void PublishDueGeneratorStats(Simulation simulation, int tick)

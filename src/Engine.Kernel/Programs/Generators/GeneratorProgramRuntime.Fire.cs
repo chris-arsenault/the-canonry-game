@@ -34,6 +34,8 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
+        using var provenanceScope = EnterFireProvenance(simulation, generatorSlot, targetId);
+
         if (!CreateProducedEntities(
                 simulation,
                 world,
@@ -64,6 +66,12 @@ internal sealed partial class GeneratorProgramRuntime
         WriteGeneratorFired(simulation, tick, generatorSlot, targetId, createdEntityCount, createdRelationshipCount);
         return true;
     }
+
+    private KernelProvenanceScope EnterFireProvenance(Simulation simulation, int generatorSlot, int targetId) =>
+        simulation.EnterProvenanceInvocation(
+            ProvenanceProducerKindCodes.Generator,
+            _generatorIds[generatorSlot],
+            targetId);
 
     private bool TryResolveTargetOrigin(
         WorldState world,
@@ -189,14 +197,13 @@ internal sealed partial class GeneratorProgramRuntime
             return 0;
         }
 
-        return SelectEntityForQuery(
+        return SelectSharedEntity(
             world,
             simulation,
             _producedKindIds[produced],
             targetId,
             targetOriginQ,
             targetOriginR,
-            refCodes,
             refEntityIds,
             refCount,
             _producedQuerySubtypeStarts[produced],
@@ -399,40 +406,32 @@ internal sealed partial class GeneratorProgramRuntime
         var direction = _saturationDirectionCodes[generatorSlot];
         if (direction == GeneratorSaturationDirectionCodes.IncomingToTarget)
         {
-            return CountTargetSaturationRelationships(world, generatorSlot, targetId, outgoing: false) >
+            return KernelQuery.RelationshipEndpointCount(
+                    world,
+                    targetId,
+                    _saturationRelationshipKindIds[generatorSlot],
+                    _saturationFactIds[generatorSlot],
+                    outgoing: false) >
                 _saturationMaxExisting[generatorSlot];
         }
 
-        var count = CountTargetSaturationRelationships(world, generatorSlot, targetId, outgoing: true);
-        if (direction == GeneratorSaturationDirectionCodes.Symmetric)
-        {
-            count += CountTargetSaturationRelationships(world, generatorSlot, targetId, outgoing: false);
-        }
-
-        return count > _saturationMaxExisting[generatorSlot];
-    }
-
-    private int CountTargetSaturationRelationships(
-        WorldState world,
-        int generatorSlot,
-        int targetId,
-        bool outgoing)
-    {
-        var count = 0;
-        KernelQuery.ForEachRelatedEndpoint(
+        var count = KernelQuery.RelationshipEndpointCount(
             world,
             targetId,
             _saturationRelationshipKindIds[generatorSlot],
-            minimumStrength: 0f,
-            requiredFactId: _saturationFactIds[generatorSlot],
-            outgoing,
-            (_, _) =>
-            {
-                count++;
-                return true;
-            });
+            _saturationFactIds[generatorSlot],
+            outgoing: true);
+        if (direction == GeneratorSaturationDirectionCodes.Symmetric)
+        {
+            count += KernelQuery.RelationshipEndpointCount(
+                world,
+                targetId,
+                _saturationRelationshipKindIds[generatorSlot],
+                _saturationFactIds[generatorSlot],
+                outgoing: false);
+        }
 
-        return count;
+        return count > _saturationMaxExisting[generatorSlot];
     }
 
     private bool TriggersPass(WorldState world, int generatorSlot, int targetId)
@@ -452,295 +451,7 @@ internal sealed partial class GeneratorProgramRuntime
 
     private bool TriggerPasses(WorldState world, int trigger, int targetId)
     {
-        return world.EntityKindId(targetId) == _triggerKindIds[trigger];
-    }
-
-    private int SelectEntityForQuery(
-        WorldState world,
-        Simulation? simulation,
-        int kindId,
-        int targetId,
-        int targetOriginQ,
-        int targetOriginR,
-        int[] refCodes,
-        int[] refEntityIds,
-        int refCount,
-        int subtypeStart,
-        int subtypeCount,
-        int adjacentToTarget,
-        int cultureMatchCode,
-        int withoutOutgoingStart,
-        int withoutOutgoingCount,
-        int withoutIncomingStart,
-        int withoutIncomingCount)
-    {
-        var candidateCount = CountMatchingEntitiesForQuery(
-            world,
-            kindId,
-            targetId,
-            targetOriginQ,
-            targetOriginR,
-            refCodes,
-            refEntityIds,
-            refCount,
-            subtypeStart,
-            subtypeCount,
-            adjacentToTarget,
-            cultureMatchCode,
-            withoutOutgoingStart,
-            withoutOutgoingCount,
-            withoutIncomingStart,
-            withoutIncomingCount);
-        if (candidateCount == 0)
-        {
-            return 0;
-        }
-
-        return SelectMatchingEntityForQuery(
-            world,
-            simulation is null ? 0 : simulation.NextInt(candidateCount),
-            kindId,
-            targetId,
-            targetOriginQ,
-            targetOriginR,
-            refCodes,
-            refEntityIds,
-            refCount,
-            subtypeStart,
-            subtypeCount,
-            adjacentToTarget,
-            cultureMatchCode,
-            withoutOutgoingStart,
-            withoutOutgoingCount,
-            withoutIncomingStart,
-            withoutIncomingCount);
-    }
-
-    private int SelectMatchingEntityForQuery(
-        WorldState world,
-        int selectedOrdinal,
-        int kindId,
-        int targetId,
-        int targetOriginQ,
-        int targetOriginR,
-        int[] refCodes,
-        int[] refEntityIds,
-        int refCount,
-        int subtypeStart,
-        int subtypeCount,
-        int adjacentToTarget,
-        int cultureMatchCode,
-        int withoutOutgoingStart,
-        int withoutOutgoingCount,
-        int withoutIncomingStart,
-        int withoutIncomingCount)
-    {
-        var seen = 0;
-        var selectedEntityId = 0;
-        KernelQuery.ForEachEntity(
-            world,
-            entityId =>
-            {
-                if (!EntityMatchesQuery(
-                        world,
-                        entityId,
-                        kindId,
-                        targetId,
-                        targetOriginQ,
-                        targetOriginR,
-                        refCodes,
-                        refEntityIds,
-                        refCount,
-                        subtypeStart,
-                        subtypeCount,
-                        adjacentToTarget,
-                        cultureMatchCode,
-                        withoutOutgoingStart,
-                        withoutOutgoingCount,
-                        withoutIncomingStart,
-                        withoutIncomingCount))
-                {
-                    return true;
-                }
-
-                if (seen == selectedOrdinal)
-                {
-                    selectedEntityId = entityId;
-                    return false;
-                }
-
-                seen++;
-                return true;
-            });
-
-        return selectedEntityId;
-    }
-
-    private int CountMatchingEntitiesForQuery(
-        WorldState world,
-        int kindId,
-        int targetId,
-        int targetOriginQ,
-        int targetOriginR,
-        int[] refCodes,
-        int[] refEntityIds,
-        int refCount,
-        int subtypeStart,
-        int subtypeCount,
-        int adjacentToTarget,
-        int cultureMatchCode,
-        int withoutOutgoingStart,
-        int withoutOutgoingCount,
-        int withoutIncomingStart,
-        int withoutIncomingCount)
-    {
-        var count = 0;
-        KernelQuery.ForEachEntityOfKind(
-            world,
-            kindId,
-            entityId =>
-            {
-                if (EntityMatchesQuery(
-                        world,
-                        entityId,
-                        kindId,
-                        targetId,
-                        targetOriginQ,
-                        targetOriginR,
-                        refCodes,
-                        refEntityIds,
-                        refCount,
-                        subtypeStart,
-                        subtypeCount,
-                        adjacentToTarget,
-                        cultureMatchCode,
-                        withoutOutgoingStart,
-                        withoutOutgoingCount,
-                        withoutIncomingStart,
-                        withoutIncomingCount))
-                {
-                    count++;
-                }
-
-                return true;
-            });
-
-        return count;
-    }
-
-    private bool EntityMatchesQuery(
-        WorldState world,
-        int entityId,
-        int kindId,
-        int targetId,
-        int targetOriginQ,
-        int targetOriginR,
-        int[] refCodes,
-        int[] refEntityIds,
-        int refCount,
-        int subtypeStart,
-        int subtypeCount,
-        int adjacentToTarget,
-        int cultureMatchCode,
-        int withoutOutgoingStart,
-        int withoutOutgoingCount,
-        int withoutIncomingStart,
-        int withoutIncomingCount)
-    {
-        return EntityBasicsMatchQuery(world, entityId, kindId, targetId, refEntityIds, refCount, subtypeStart, subtypeCount) &&
-               EntityFiltersMatchQuery(world, entityId, targetId, cultureMatchCode, withoutOutgoingStart, withoutOutgoingCount, withoutIncomingStart, withoutIncomingCount) &&
-               EntityAdjacencyMatchesQuery(world, entityId, targetOriginQ, targetOriginR, adjacentToTarget);
-    }
-
-    private bool EntityBasicsMatchQuery(
-        WorldState world,
-        int entityId,
-        int kindId,
-        int targetId,
-        int[] refEntityIds,
-        int refCount,
-        int subtypeStart,
-        int subtypeCount)
-    {
-        return KernelQuery.EntityIsActiveKind(world, entityId, kindId) &&
-               entityId != targetId &&
-               !RefAlreadyBound(refEntityIds, refCount, entityId) &&
-               SubtypeMatches(world.EntitySubtypeId(entityId), subtypeStart, subtypeCount);
-    }
-
-    private bool EntityFiltersMatchQuery(
-        WorldState world,
-        int entityId,
-        int targetId,
-        int cultureMatchCode,
-        int withoutOutgoingStart,
-        int withoutOutgoingCount,
-        int withoutIncomingStart,
-        int withoutIncomingCount)
-    {
-        return
-               CultureMatches(world, entityId, targetId, cultureMatchCode) &&
-               RelationshipFiltersPass(world, entityId, withoutOutgoingStart, withoutOutgoingCount, outgoing: true) &&
-               RelationshipFiltersPass(world, entityId, withoutIncomingStart, withoutIncomingCount, outgoing: false);
-    }
-
-    private static bool EntityAdjacencyMatchesQuery(
-        WorldState world,
-        int entityId,
-        int targetOriginQ,
-        int targetOriginR,
-        int adjacentToTarget)
-    {
-        return adjacentToTarget == 0 ||
-            KernelQuery.HexDistance(world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId), targetOriginQ, targetOriginR) == 1;
-    }
-
-    private bool SubtypeMatches(int subtypeId, int start, int count)
-    {
-        if (count == 0)
-        {
-            return true;
-        }
-
-        var end = start + count;
-        for (var i = start; i < end; i++)
-        {
-            if (_subtypeIds[i] == subtypeId)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool CultureMatches(WorldState world, int entityId, int targetId, int cultureMatchCode)
-    {
-        return cultureMatchCode switch
-        {
-            GeneratorCultureMatchCodes.SameAsTarget => world.EntityCultureId(entityId) == world.EntityCultureId(targetId),
-            GeneratorCultureMatchCodes.DifferentFromTarget => world.EntityCultureId(entityId) != world.EntityCultureId(targetId),
-            _ => true,
-        };
-    }
-
-    private bool RelationshipFiltersPass(
-        WorldState world,
-        int entityId,
-        int start,
-        int count,
-        bool outgoing)
-    {
-        var end = start + count;
-        for (var filter = start; filter < end; filter++)
-        {
-            if (KernelQuery.HasRelationshipOfKind(world, entityId, _relationshipKindFilterIds[filter], outgoing))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return KernelQuery.EntityKindMatches(world, targetId, _triggerKindIds[trigger]);
     }
 
 }

@@ -26,6 +26,10 @@ A gambit declares:
 - success chance;
 - ordered effects.
 
+Preconditions use shared kernel query predicates. Trait-authored score and
+success modifiers use the shared decision-modifier path. Score expressions,
+reward expressions, target scheduling, and planning remain gambit policy.
+
 Effects are usually graph and health mutations:
 
 - create a relationship;
@@ -35,6 +39,10 @@ Effects are usually graph and health mutations:
 - mark historical outcomes.
 
 Entity creation belongs to generators and should be rare in gambits.
+
+Gambit mutations must execute through the shared kernel effect path. If a
+gambit needs a new world mutation, add the `Simulation` mutation and shared
+effect wrapper before exposing it to authored gambit data.
 
 ## Planning Boundary
 

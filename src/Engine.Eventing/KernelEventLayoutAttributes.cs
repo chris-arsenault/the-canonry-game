@@ -111,6 +111,10 @@ public enum KernelEventSemanticKind
     SuperregionId = 43,
     ContinentId = 44,
     TraitId = 45,
+    ProvenanceInvocationId = 46,
+    ProvenanceProducerKindCode = 47,
+    ProvenanceTriggerKindCode = 48,
+    ProvenanceProducerId = 49,
 }
 
 public sealed record KernelEventLayoutSlotDescriptor(

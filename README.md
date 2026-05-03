@@ -45,13 +45,14 @@ Relationships
 Effects
 Upkeep
 Gambits
-Pressures
 Generators
 Degeneracy
 ```
 
-The removed low-altitude process deck is not part of the current runtime.
-Behavior bytecode and planning infrastructure remain for gambits.
+The removed low-altitude process deck and macro aggregate layer are not part of
+the current runtime. Behavior bytecode and planning infrastructure remain for
+gambits, and shared query/effect/decision primitives are used by generators,
+gambits, traits, and low-altitude trait modifiers.
 
 ## Commands
 
@@ -89,6 +90,8 @@ To play in Godot:
   generator model.
 - [docs/systems/18-action-executor.md](docs/systems/18-action-executor.md):
   gambit/action model.
+- [docs/kernel/shared-query-effect-executor.md](docs/kernel/shared-query-effect-executor.md):
+  shared query, effect, and decision-modifier execution boundary.
 - [docs/lore/lore-bible.md](docs/lore/lore-bible.md): Ice Remembers world
   reference.
 

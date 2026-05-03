@@ -9,6 +9,8 @@ internal sealed record SimulationOptions
     public int AttributeCapacity { get; init; } = 65536;
     public int TraitCapacity { get; init; } = 65536;
     public int ResourceCapacity { get; init; } = 65536;
+    public int ProvenanceInvocationCapacity { get; init; } = 8192;
+    public int ProvenanceOutputCapacity { get; init; } = 65536;
     public int MapCellCapacity { get; init; } = 16384;
     public int MapInfluenceCapacity { get; init; } = 32768;
     public int SystemCapacity { get; init; } = 32;

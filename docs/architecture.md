@@ -120,8 +120,13 @@ High-altitude programs produce significant graph changes:
 - degeneracy detectors.
 
 The former macro aggregate layer has been removed. Generator, gambit, trait,
-and card work should use shared query and effect primitives, with relationship
-strength and locality queries as the default numeric gates.
+and future card work use shared query, effect, and decision-modifier
+primitives. Relationship strength and locality queries are the default numeric
+gates when health, resources, influence, coverage, or map signals are not the
+actual subject.
+
+The detailed execution boundary is recorded in
+[shared-query-effect-executor.md](./kernel/shared-query-effect-executor.md).
 
 ## Event Boundary
 

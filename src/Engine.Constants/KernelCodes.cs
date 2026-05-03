@@ -398,3 +398,38 @@ public static class GeneratorEffectTypeCodes
     public const int SetBindingHistorical = 1;
     public const int RemoveTargetRelationships = 2;
 }
+
+public static class ProvenanceProducerKindCodes
+{
+    public const int Generator = 1;
+    public const int Gambit = 2;
+    public const int Action = 3;
+    public const int System = 4;
+}
+
+public static class ProvenanceTriggerKindCodes
+{
+    public const int None = 0;
+    public const int Entity = 1;
+    public const int Relationship = 2;
+    public const int Invocation = 3;
+}
+
+public static class ProvenanceOutputKindCodes
+{
+    public const int EntityCreated = 1;
+    public const int EntityStatusChanged = 2;
+    public const int EntityMoved = 3;
+    public const int AttributeChanged = 4;
+    public const int TraitAssigned = 5;
+    public const int ResourceChanged = 6;
+    public const int RelationshipChanged = 7;
+    public const int CellChanged = 8;
+    public const int CellInfluenceChanged = 9;
+}
+
+public static class KernelCapacityCodes
+{
+    public const int ProvenanceInvocation = 1;
+    public const int ProvenanceOutput = 2;
+}

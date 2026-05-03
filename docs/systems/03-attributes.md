@@ -43,18 +43,21 @@ Traits carry:
 
 Trait effects are explicit and data-authored. A trait does not create hidden
 generic math by itself, and runtime systems should not special-case trait names.
-Instead, a trait owns operation clauses that compile into generic interpreters.
+Instead, a trait owns operation clauses that compile into shared query, effect,
+or decision-modifier primitives.
 
 Current operation primitives:
 
 - `TraitAttributeDeltaOperationConfig`: per-tick health delta gated by map
   signal, relationship distance, relationship influence, and optional
-  target/related trait bearer.
+  target/related trait bearer. These rules execute through the shared effect
+  path.
 - `TraitLowAltitudeWeightOperationConfig`: modifies low-altitude verb weights,
   such as exploration, staleness, hotspot, crowding, generator affordance, or
-  relationship affinity.
+  relationship affinity. These rules execute through `DecisionModifier`.
 - `TraitGambitModifierOperationConfig`: modifies gambit score and success
-  chance when the actor or target bears the trait.
+  chance when the actor or target bears the trait. These rules execute through
+  `DecisionModifier`.
 
 Adding a normal new trait should mean editing the trait config: id, display
 text, assignment chance, and operation clauses. Engine code changes are reserved
@@ -96,7 +99,8 @@ The initial operations are intentionally conservative:
   effect identity, or other "this entity is different" facts.
 - Trait operation authoring should use existing operation primitives whenever
   possible. If the desired behavior cannot be expressed, add one reusable
-  primitive and then keep individual traits data-only.
+  primitive in the shared query/effect/decision layer and then keep individual
+  traits data-only.
 - Use relationship strength as the default numeric gate for generators and
   gambits. Example: an artifact cleanses a scar because it has a strong
   `anchored` or `holds` relationship, not because it has `power >= 45`.

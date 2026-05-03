@@ -461,27 +461,19 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float AffordanceScore(int rule) => _affordanceScores[rule];
 
-    public int TraitModifierKindId(int rule) => _traitModifierKindIds[rule];
-
-    public int TraitModifierTraitId(int rule) => _traitModifierTraitIds[rule];
-
-    public int TraitModifierVerbId(int rule) => _traitModifierVerbIds[rule];
-
-    public float TraitModifierWeightDelta(int rule) => _traitModifierWeightDeltas[rule];
-
-    public float TraitModifierExploreWeightDelta(int rule) => _traitModifierExploreWeightDeltas[rule];
-
-    public float TraitModifierStalenessWeightDelta(int rule) => _traitModifierStalenessWeightDeltas[rule];
-
-    public float TraitModifierHotspotWeightDelta(int rule) => _traitModifierHotspotWeightDeltas[rule];
-
-    public float TraitModifierCrowdingWeightDelta(int rule) => _traitModifierCrowdingWeightDeltas[rule];
-
-    public float TraitModifierGeneratorAffordanceWeightDelta(int rule) =>
-        _traitModifierGeneratorAffordanceWeightDeltas[rule];
-
-    public float TraitModifierRelationshipAffinityWeightDelta(int rule) =>
-        _traitModifierRelationshipAffinityWeightDeltas[rule];
+    public DecisionModifier ReadDecisionModifier(int rule) =>
+        new(
+            _traitModifierVerbIds[rule],
+            _traitModifierKindIds[rule],
+            _traitModifierTraitIds[rule],
+            TraitEffectBearerCodes.Actor,
+            _traitModifierWeightDeltas[rule],
+            _traitModifierExploreWeightDeltas[rule],
+            _traitModifierStalenessWeightDeltas[rule],
+            _traitModifierHotspotWeightDeltas[rule],
+            _traitModifierCrowdingWeightDeltas[rule],
+            _traitModifierGeneratorAffordanceWeightDeltas[rule],
+            _traitModifierRelationshipAffinityWeightDeltas[rule]);
 
     public bool TerrainAllowed(int rule, int terrainId)
     {

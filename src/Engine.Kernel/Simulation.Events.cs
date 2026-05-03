@@ -8,7 +8,8 @@ internal sealed partial class Simulation
     {
         var contextualEvent = kernelEvent.WithExecutionContext(
             _executionContext.ProgramId,
-            _executionContext.SourceCodeId);
+            _executionContext.SourceCodeId,
+            _executionContext.ProvenanceInvocationId);
         if (!Events.TryWrite(contextualEvent))
         {
             throw new global::System.InvalidOperationException();
@@ -94,6 +95,32 @@ internal sealed partial class Simulation
             selectedTargetEntityId,
             createdEntityCount,
             createdRelationshipCount)));
+    }
+
+    internal void EmitProvenanceInvocationRecorded(
+        int tick,
+        int invocationId,
+        int producerKindCode,
+        int producerId,
+        int primaryEntityId,
+        int secondaryEntityId,
+        int parentInvocationId,
+        int triggerKindCode,
+        int triggerId,
+        int outputCount)
+    {
+        WriteKernelEvent(KernelEvent.From(new ProvenanceInvocationRecordedKernelEvent(
+            tick,
+            WorldVersion,
+            invocationId,
+            producerKindCode,
+            producerId,
+            primaryEntityId,
+            secondaryEntityId,
+            parentInvocationId,
+            triggerKindCode,
+            triggerId,
+            outputCount)));
     }
 
     internal void EmitDegeneracyDetected(

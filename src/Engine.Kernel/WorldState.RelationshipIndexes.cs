@@ -479,7 +479,8 @@ internal sealed partial class WorldState
     {
         var contextualEvent = kernelEvent.WithExecutionContext(
             context.ProgramId,
-            context.SourceCodeId);
+            context.SourceCodeId,
+            context.ProvenanceInvocationId);
         if (!_events.TryWrite(contextualEvent))
         {
             throw new global::System.InvalidOperationException();

@@ -9,6 +9,8 @@ Each active entity kind declares exactly one mutable scalar health attribute.
 All other per-entity differentiation should be authored as one of:
 
 - a trait for mostly static behavior identity;
+- a trait operation that compiles to shared query, effect, or decision-modifier
+  primitives;
 - relationship strength for graph-state gates and magnitude;
 - relationship facts for edge-specific provenance or event meaning;
 - locality queries for physical or semantic context;
@@ -37,3 +39,11 @@ requirements the event needs.
 Locality gates are also valid: "near a scar", "inside the target region",
 "within a threatened map signal", or "on the semantic margin" are often better
 than inventing a scalar attribute.
+
+## Execution Boundary
+
+Traits should not be hard-coded by ID in runtime systems. Trait-authored health
+effects execute through the shared effect path, and trait-authored score or
+weight changes execute through the shared decision-modifier path. If a desired
+trait behavior cannot be expressed, add a reusable primitive first and keep the
+trait itself data-authored.

@@ -12,7 +12,7 @@ internal sealed partial class GeneratorProgramRuntime
     {
         refCount = 0;
         if (!KernelQuery.EntityIsActiveKind(world, targetId, _targetKindIds[generatorSlot]) ||
-            !SubtypeMatches(world.EntitySubtypeId(targetId), _targetSubtypeStarts[generatorSlot], _targetSubtypeCounts[generatorSlot]) ||
+            !KernelQuery.SubtypeAllowed(_subtypeIds, _targetSubtypeStarts[generatorSlot], _targetSubtypeCounts[generatorSlot], world.EntitySubtypeId(targetId)) ||
             !TargetRelationshipRequirementsPass(world, generatorSlot, targetId) ||
             ExceedsTargetSaturation(world, generatorSlot, targetId) ||
             !TriggersPass(world, generatorSlot, targetId))
@@ -44,58 +44,26 @@ internal sealed partial class GeneratorProgramRuntime
 
     private bool TargetRelationshipRequirementsPass(WorldState world, int generatorSlot, int targetId)
     {
-        return RequiredDirectedRelationshipsPass(
+        return KernelQuery.AllRelationshipKindRequirementsPass(
                 world,
                 targetId,
+                _relationshipKindFilterIds,
                 _targetRequiredOutgoingStarts[generatorSlot],
                 _targetRequiredOutgoingCounts[generatorSlot],
                 outgoing: true) &&
-            RequiredDirectedRelationshipsPass(
+            KernelQuery.AllRelationshipKindRequirementsPass(
                 world,
                 targetId,
+                _relationshipKindFilterIds,
                 _targetRequiredIncomingStarts[generatorSlot],
                 _targetRequiredIncomingCounts[generatorSlot],
                 outgoing: false) &&
-            RequiredAnyDirectionRelationshipsPass(
+            KernelQuery.AnyDirectionRelationshipKindRequirementsPass(
                 world,
                 targetId,
+                _relationshipKindFilterIds,
                 _targetRequiredAnyStarts[generatorSlot],
                 _targetRequiredAnyCounts[generatorSlot]);
-    }
-
-    private bool RequiredDirectedRelationshipsPass(
-        WorldState world,
-        int targetId,
-        int start,
-        int count,
-        bool outgoing)
-    {
-        var end = start + count;
-        for (var filter = start; filter < end; filter++)
-        {
-            if (!KernelQuery.HasRelationshipOfKind(world, targetId, _relationshipKindFilterIds[filter], outgoing))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool RequiredAnyDirectionRelationshipsPass(WorldState world, int targetId, int start, int count)
-    {
-        var end = start + count;
-        for (var filter = start; filter < end; filter++)
-        {
-            var relationshipKindId = _relationshipKindFilterIds[filter];
-            if (!KernelQuery.HasRelationshipOfKind(world, targetId, relationshipKindId, outgoing: true) &&
-                !KernelQuery.HasRelationshipOfKind(world, targetId, relationshipKindId, outgoing: false))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private bool ResolveSecondaryBindings(
@@ -114,14 +82,13 @@ internal sealed partial class GeneratorProgramRuntime
         var end = first + _bindingCounts[generatorSlot];
         for (var binding = first; binding < end; binding++)
         {
-            var entityId = SelectEntityForQuery(
+            var entityId = SelectSharedEntity(
                 world,
                 selectRandom ? simulation : null,
                 _bindingKindIds[binding],
                 targetId,
                 targetOriginQ,
                 targetOriginR,
-                refCodes,
                 refEntityIds,
                 refCount,
                 _bindingSubtypeStarts[binding],

@@ -40,6 +40,10 @@ Low-altitude targeting is weighted semi-random. Candidate scores can consider:
 - terrain or entity-kind filters;
 - foreign influence filters.
 
+Trait-authored low-altitude score changes use the shared decision-modifier
+path. New weighting inputs should be reusable primitives, not trait-name or
+kind-name special cases inside the low-altitude runtime.
+
 The goal is not perfect local optimality. The goal is map life: entities should
 commit to plausible medium-term behavior, wander and dwell around targets, and
 produce activity that later systems can read.
@@ -73,6 +77,11 @@ A gambit has:
 Gambits should represent meaningful world actions: wielding a relic, declaring
 war, betraying an ally, or warding a dangerous place. They should be rarer than
 low-altitude verbs and should create graph state that generators can later use.
+
+Gambit preconditions use shared query predicates, and gambit mutations use the
+shared effect executor. Trait-authored score and success modifiers use the
+shared decision-modifier path. Gambit-specific code owns scheduling, planning,
+target choice, score expressions, and ordered operation sequencing.
 
 ## Non-Goals
 

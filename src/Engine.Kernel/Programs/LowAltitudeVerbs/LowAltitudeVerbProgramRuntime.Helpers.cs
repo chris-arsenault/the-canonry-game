@@ -67,8 +67,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private static int Abs(int value) => value < 0 ? -value : value;
 
-    private static float Max(float left, float right) => left >= right ? left : right;
-
     private static float Clamp01(float value)
     {
         if (value < 0f)

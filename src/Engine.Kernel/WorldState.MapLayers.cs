@@ -122,8 +122,17 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         WriteCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.CellChanged,
+            CoordinateKey(q, r),
+            ownerEntityId,
+            0,
+            terrainId,
+            ProvenanceOutputKindCodes.CellChanged);
         Write(KernelEvent.From(new CellChangedKernelEvent(
             tick,
             WorldVersion,
@@ -208,8 +217,17 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _mapLayers.Influence.SetValue(entityId, planeCode, key, q, r, clamped);
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.CellInfluenceChanged,
+            key,
+            entityId,
+            0,
+            planeCode,
+            ProvenanceOutputKindCodes.CellInfluenceChanged);
         Write(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             tick,
             WorldVersion,

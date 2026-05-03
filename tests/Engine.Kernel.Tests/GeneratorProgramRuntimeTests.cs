@@ -124,6 +124,46 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void Fire_RecordsProvenanceInvocationAndOutputs()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        RegisterGenerator(simulation);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var created = simulation.World.EntityHighWatermark;
+        var relationship = simulation.World.FindRelationship(created, target, RelationshipKindId);
+        var invocationId = simulation.World.EntityCreatedByInvocationId(created);
+        var events = ReadAvailableEvents(simulation, cursor);
+        var recorded = Assert.Single(
+            events,
+            evt => evt.EventType == KernelEventType.ProvenanceInvocationRecorded).AsProvenanceInvocationRecorded();
+
+        Assert.True(invocationId > 0);
+        Assert.Equal(invocationId, simulation.World.RelationshipCreatedByInvocationId(relationship));
+        Assert.Equal(invocationId, recorded.InvocationId);
+        Assert.Equal(ProvenanceProducerKindCodes.Generator, recorded.ProducerKindCode);
+        Assert.Equal(GeneratorId, recorded.ProducerId);
+        Assert.Equal(target, recorded.PrimaryEntityId);
+        Assert.Equal(2, recorded.OutputCount);
+        var outputKinds = ReadProvenanceOutputKinds(simulation, invocationId);
+        Assert.Contains(ProvenanceOutputKindCodes.EntityCreated, outputKinds);
+        Assert.Contains(ProvenanceOutputKindCodes.RelationshipChanged, outputKinds);
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.EntityCreated &&
+            evt.ProvenanceInvocationId == invocationId);
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.RelationshipChanged &&
+            evt.ProvenanceInvocationId == invocationId);
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.GeneratorFired &&
+            evt.ProvenanceInvocationId == invocationId);
+    }
+
+    [Fact]
     public void Fire_WithProducedCoverage_EmitsCellChangedForClaimedCells()
     {
         var simulation = CreateSimulation();
@@ -531,6 +571,18 @@ public sealed class GeneratorProgramRuntimeTests
         while (simulation.Events.TryRead(cursor, out var read))
         {
             result.Add(read.Event);
+        }
+
+        return result.ToArray();
+    }
+
+    private static int[] ReadProvenanceOutputKinds(Simulation simulation, int invocationId)
+    {
+        var result = new List<int>();
+        var outputCursor = simulation.World.OutputsOfProvenanceInvocation(invocationId);
+        while (simulation.World.MoveNextProvenanceOutput(ref outputCursor, out var outputId))
+        {
+            result.Add(simulation.World.ProvenanceOutputKindCode(outputId));
         }
 
         return result.ToArray();

@@ -222,4 +222,13 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     public int ProgramId => KernelProgramCodes.Gambits;
 
     public int SchemaVersion => 1;
+
+    internal DecisionModifier ReadDecisionModifier(int modifier) =>
+        new(
+            TraitModifierGambitIds[modifier],
+            0,
+            TraitModifierTraitIds[modifier],
+            TraitModifierBearerCodes[modifier],
+            TraitModifierScoreDeltas[modifier],
+            TraitModifierSuccessChanceDeltas[modifier]);
 }

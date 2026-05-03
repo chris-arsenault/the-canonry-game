@@ -23,6 +23,7 @@ public enum KernelEventType
     CellCreated = 20,
     CellChanged = 21,
     CellInfluenceChanged = 22,
+    ProvenanceInvocationRecorded = 23,
     PlanStarted = 100,
     GoalConsidered = 101,
     GoalScored = 102,
@@ -372,6 +373,29 @@ public readonly record struct CellInfluenceChangedKernelEvent(
     [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]
     float CurrentInfluence);
 
+[KernelEventLayout(KernelEventType.ProvenanceInvocationRecorded, schemaMinor: 0)]
+public readonly record struct ProvenanceInvocationRecordedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "invocation_id", KernelEventSemanticKind.ProvenanceInvocationId)]
+    int InvocationId,
+    [KernelEventIntSlot(1, "producer_kind_code", KernelEventSemanticKind.ProvenanceProducerKindCode)]
+    int ProducerKindCode,
+    [KernelEventIntSlot(2, "producer_id", KernelEventSemanticKind.ProvenanceProducerId)]
+    int ProducerId,
+    [KernelEventIntSlot(3, "primary_entity_id", KernelEventSemanticKind.EntityId)]
+    int PrimaryEntityId,
+    [KernelEventIntSlot(4, "secondary_entity_id", KernelEventSemanticKind.EntityId)]
+    int SecondaryEntityId,
+    [KernelEventIntSlot(5, "parent_invocation_id", KernelEventSemanticKind.ProvenanceInvocationId)]
+    int ParentInvocationId,
+    [KernelEventIntSlot(6, "trigger_kind_code", KernelEventSemanticKind.ProvenanceTriggerKindCode)]
+    int TriggerKindCode,
+    [KernelEventIntSlot(7, "trigger_id", KernelEventSemanticKind.RawScalar)]
+    int TriggerId,
+    [KernelEventIntSlot(8, "output_count", KernelEventSemanticKind.Count)]
+    int OutputCount);
+
 [KernelEventLayout(KernelEventType.PlanStarted, schemaMinor: 0)]
 public readonly record struct PlanStartedKernelEvent(
     int Tick,
@@ -539,6 +563,7 @@ public readonly partial record struct KernelEvent
         long worldVersion,
         int programId = 0,
         int sourceCodeId = 0,
+        int provenanceInvocationId = 0,
         int int0 = 0,
         int int1 = 0,
         int int2 = 0,
@@ -561,6 +586,7 @@ public readonly partial record struct KernelEvent
         WorldVersion = worldVersion;
         ProgramId = programId;
         SourceCodeId = sourceCodeId;
+        ProvenanceInvocationId = provenanceInvocationId;
         _int0 = int0;
         _int1 = int1;
         _int2 = int2;
@@ -584,20 +610,23 @@ public readonly partial record struct KernelEvent
     public long WorldVersion { get; }
     public int ProgramId { get; }
     public int SourceCodeId { get; }
+    public int ProvenanceInvocationId { get; }
 
     public const int IntSlotCount = 12;
     public const int FloatSlotCount = 4;
 
-    public KernelEvent WithExecutionContext(int programId, int sourceCodeId)
+    public KernelEvent WithExecutionContext(int programId, int sourceCodeId, int provenanceInvocationId = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(programId);
         ArgumentOutOfRangeException.ThrowIfNegative(sourceCodeId);
+        ArgumentOutOfRangeException.ThrowIfNegative(provenanceInvocationId);
         return new KernelEvent(
             EventType,
             Tick,
             WorldVersion,
             programId,
             sourceCodeId,
+            provenanceInvocationId,
             int0: _int0,
             int1: _int1,
             int2: _int2,

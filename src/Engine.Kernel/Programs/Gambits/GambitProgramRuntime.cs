@@ -119,11 +119,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private int[] _supportExpressionCodes => Data.SupportExpressionCodes;
     private int[] _supportExpressionA => Data.SupportExpressionA;
     private float[] _supportExpressionX => Data.SupportExpressionX;
-    private int[] _traitModifierGambitIds => Data.TraitModifierGambitIds;
-    private int[] _traitModifierTraitIds => Data.TraitModifierTraitIds;
-    private int[] _traitModifierBearerCodes => Data.TraitModifierBearerCodes;
-    private float[] _traitModifierScoreDeltas => Data.TraitModifierScoreDeltas;
-    private float[] _traitModifierSuccessChanceDeltas => Data.TraitModifierSuccessChanceDeltas;
     private PrimitiveIntTable _committedPlanTargets => State.CommittedPlanTargets;
     private PrimitiveIntTable _committedPlanGambitSlots => State.CommittedPlanGambitSlots;
     private PrimitiveIntTable _committedPlanLocalities => State.CommittedPlanLocalities;
@@ -246,17 +241,17 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
             throw new global::System.ArgumentOutOfRangeException(nameof(bearerCode));
         }
 
-        if (_traitModifierCount + 1 >= _traitModifierGambitIds.Length)
+        if (_traitModifierCount + 1 >= Data.TraitModifierGambitIds.Length)
         {
             throw new global::System.InvalidOperationException();
         }
 
         _traitModifierCount++;
-        _traitModifierGambitIds[_traitModifierCount] = gambitId;
-        _traitModifierTraitIds[_traitModifierCount] = traitId;
-        _traitModifierBearerCodes[_traitModifierCount] = bearerCode;
-        _traitModifierScoreDeltas[_traitModifierCount] = scoreDelta;
-        _traitModifierSuccessChanceDeltas[_traitModifierCount] = successChanceDelta;
+        Data.TraitModifierGambitIds[_traitModifierCount] = gambitId;
+        Data.TraitModifierTraitIds[_traitModifierCount] = traitId;
+        Data.TraitModifierBearerCodes[_traitModifierCount] = bearerCode;
+        Data.TraitModifierScoreDeltas[_traitModifierCount] = scoreDelta;
+        Data.TraitModifierSuccessChanceDeltas[_traitModifierCount] = successChanceDelta;
         return _traitModifierCount;
     }
 
@@ -660,6 +655,11 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         var gambitId = _gambitIds[selectedGambitSlot];
         var state = RollGambitState(simulation, selectedGambitSlot, entityId, selectedTargetId);
+        using var provenanceScope = simulation.EnterProvenanceInvocation(
+            ProvenanceProducerKindCodes.Gambit,
+            gambitId,
+            entityId,
+            selectedTargetId);
         if (state == KernelEventState.Succeeded)
         {
             ExecuteGambit(simulation, entityId, selectedTargetId, selectedGambitSlot, tick);
@@ -702,51 +702,31 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         var successChance = Clamp01(
             _gambitSuccessChances[gambitSlot] +
-            TraitGambitSuccessChanceDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId));
+            GambitSuccessDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId));
         return successChance >= 1f || simulation.NextFloat() <= successChance
             ? KernelEventState.Succeeded
             : KernelEventState.Failed;
     }
 
-    private float TraitGambitScoreDelta(WorldState world, int gambitId, int entityId, int targetId) =>
-        TraitGambitDelta(world, gambitId, entityId, targetId, useSuccessDelta: false);
+    private float GambitScoreDecisionDelta(WorldState world, int gambitId, int entityId, int targetId) =>
+        DecisionModifierEvaluation.SumGambitValue(
+            world,
+            _traitModifierCount,
+            Data.ReadDecisionModifier,
+            gambitId,
+            entityId,
+            targetId,
+            useValue1: false);
 
-    private float TraitGambitSuccessChanceDelta(WorldState world, int gambitId, int entityId, int targetId) =>
-        TraitGambitDelta(world, gambitId, entityId, targetId, useSuccessDelta: true);
-
-    private float TraitGambitDelta(
-        WorldState world,
-        int gambitId,
-        int entityId,
-        int targetId,
-        bool useSuccessDelta)
-    {
-        var total = 0f;
-        for (var modifier = 1; modifier <= _traitModifierCount; modifier++)
-        {
-            if (_traitModifierGambitIds[modifier] != gambitId ||
-                !TraitGambitModifierMatches(world, modifier, entityId, targetId))
-            {
-                continue;
-            }
-
-            total += useSuccessDelta
-                ? _traitModifierSuccessChanceDeltas[modifier]
-                : _traitModifierScoreDeltas[modifier];
-        }
-
-        return total;
-    }
-
-    private bool TraitGambitModifierMatches(WorldState world, int modifier, int entityId, int targetId)
-    {
-        var bearerId = _traitModifierBearerCodes[modifier] == TraitEffectBearerCodes.GambitTarget
-            ? targetId
-            : entityId;
-        return bearerId > 0 &&
-            world.EntityIsActive(bearerId) &&
-            world.HasTrait(bearerId, _traitModifierTraitIds[modifier]);
-    }
+    private float GambitSuccessDecisionDelta(WorldState world, int gambitId, int entityId, int targetId) =>
+        DecisionModifierEvaluation.SumGambitValue(
+            world,
+            _traitModifierCount,
+            Data.ReadDecisionModifier,
+            gambitId,
+            entityId,
+            targetId,
+            useValue1: true);
 
     private bool HasGambitObjectives(int kindId)
     {

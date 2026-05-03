@@ -775,16 +775,28 @@ See Section 10. 8H-H1Y0B, 9V-X3DV1L8, T5-W5WJ3P, H8-5KB7Z4, P3-8NL2B5H, 8R-W6GQ3
 
 ---
 
-## 18. Pressures (World-Tension Axes, for Simulation Context)
+## 18. Narrative Tensions
 
-The world has four measured pressures that rise and fall with events:
+These are setting-level tensions for authorship and interpretation, not
+runtime pressure meters. The simulation should express them through
+relationships, health, traits, resources, map signals, locality, generated
+events, and entity history.
 
-- **Resource Availability** — unused-resource buffer. Positive = plenty; negative = crisis. Grows with resource nodes; shrinks with colonies.
-- **Magical Stability** — how stable the Berg's native magic is. Positive = less wild magic; negative = frequent anomalies. Cults stabilize wild magic for their purposes; criminal syndicates destabilize through artifact smuggling and black-market magic trade.
-- **Iceberg Security** — defense against external threat (primarily orca). Positive = secure; negative = looming threat.
-- **Cultural Harmony** — inter-culture peace. Positive = little strife; negative = war could break out at any point.
+- **Resource Availability** — whether food, fire, transport, and safe routes
+  feel abundant or scarce.
+- **Magical Stability** — whether the Berg's native magic feels contained,
+  wild, exploitative, or corrupted.
+- **Iceberg Security** — whether external threat, primarily orca preparation,
+  feels distant, present, or overwhelming.
+- **Cultural Harmony** — whether inter-culture dependency is functioning,
+  fraying, or turning openly hostile.
 
-Era transitions trigger pressure swings. The Great Thaw begins with magical stability rising and ends with resource availability and cultural harmony dropping. The Faction Wars crush cultural harmony. The Orca Incursion slams iceberg security to −40.
+Era transitions should change the world-state evidence that expresses these
+tensions. The Great Thaw can make magic feel more legible while food and
+cultural trust degrade. The Faction Wars should be visible as relationship
+fracture, faction gambits, and contested control. The Orca Incursion should be
+visible as threat-bearing entities, damaged settlements, altered routes, and
+relationships that show fear, allegiance, or abandonment.
 
 ---
 

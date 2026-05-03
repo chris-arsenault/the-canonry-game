@@ -48,6 +48,31 @@ internal sealed partial class WorldState
     private int[] _relationshipStartTick = [];
     private int[] _relationshipEndTick = [];
     private float[] _relationshipStrength = [];
+    private int[] _entityCreatedByInvocationId = [];
+    private int[] _relationshipCreatedByInvocationId = [];
+    private int[] _relationshipLastChangedByInvocationId = [];
+    private int[] _provenanceInvocationTick = [];
+    private int[] _provenanceInvocationProducerKindCode = [];
+    private int[] _provenanceInvocationProducerId = [];
+    private int[] _provenanceInvocationProgramId = [];
+    private int[] _provenanceInvocationSourceCodeId = [];
+    private int[] _provenanceInvocationActionId = [];
+    private int[] _provenanceInvocationPrimaryEntityId = [];
+    private int[] _provenanceInvocationSecondaryEntityId = [];
+    private int[] _provenanceInvocationParentInvocationId = [];
+    private int[] _provenanceInvocationTriggerKindCode = [];
+    private int[] _provenanceInvocationTriggerId = [];
+    private int[] _provenanceInvocationFirstOutputId = [];
+    private int[] _provenanceInvocationLastOutputId = [];
+    private int[] _provenanceInvocationOutputCount = [];
+    private int[] _provenanceOutputInvocationId = [];
+    private int[] _provenanceOutputKindCode = [];
+    private int[] _provenanceOutputId = [];
+    private int[] _provenanceOutputSubjectEntityId = [];
+    private int[] _provenanceOutputSecondaryEntityId = [];
+    private int[] _provenanceOutputValueId = [];
+    private int[] _provenanceOutputChangeCodeId = [];
+    private int[] _provenanceOutputNextId = [];
     private bool[] _relationshipInDeltaGraph = [];
     private int[] _outgoingFrozenOffsets = [];
     private int[] _incomingFrozenOffsets = [];
@@ -70,6 +95,8 @@ internal sealed partial class WorldState
     private int _relationshipGraphDeltaMergeThreshold;
     private int _entityHighWatermark;
     private int _relationshipHighWatermark;
+    private int _provenanceInvocationHighWatermark;
+    private int _provenanceOutputHighWatermark;
     private int _mapRadius;
     private int _relationshipGraphDeltaCount;
 
@@ -87,6 +114,7 @@ internal sealed partial class WorldState
         InitializeEntityStorage(options);
         InitializeRelationshipStorage(options);
         InitializeRelationshipGraphStorage(options);
+        InitializeProvenanceStorage(options);
         InitializeRelationshipRuntimeCodes(options);
     }
 
@@ -179,7 +207,8 @@ internal sealed partial class WorldState
         int semanticQ,
         int semanticR,
         int semanticS,
-        int tick)
+        int tick,
+        in KernelExecutionContext context)
     {
         ValidateRelationshipKindIndex(kindId);
         ValidatePositive(subtypeId);
@@ -193,6 +222,7 @@ internal sealed partial class WorldState
             throw new global::System.InvalidOperationException();
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _entityAllocated[entityId] = true;
         _entityStatus[entityId] = EntityStatusCodes.Active;
         _entityKindId[entityId] = kindId;
@@ -214,6 +244,7 @@ internal sealed partial class WorldState
         }
 
         AdvanceWorldVersion();
+        RecordProvenanceEntityCreated(entityId, kindId, context);
         return entityId;
     }
 
@@ -231,9 +262,18 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _entityStatus[entityId] = statusCode;
         _entityUpdatedAt[entityId] = tick;
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.EntityStatusChanged,
+            entityId,
+            entityId,
+            0,
+            statusCode,
+            ProvenanceOutputKindCodes.EntityStatusChanged);
         Write(KernelEvent.From(new EntityStatusChangedKernelEvent(
             tick,
             WorldVersion,
@@ -260,12 +300,21 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _entityPhysicalQ[entityId] = q;
         _entityPhysicalR[entityId] = r;
         RemovePhysicalOccupant(entityId, fromQ, fromR);
         InsertPhysicalOccupant(entityId, q, r);
         _entityUpdatedAt[entityId] = tick;
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.EntityMoved,
+            entityId,
+            entityId,
+            0,
+            PlaneCodes.Physical,
+            ProvenanceOutputKindCodes.EntityMoved);
         Write(KernelEvent.From(new EntityMovedKernelEvent(
             tick,
             WorldVersion,
@@ -296,6 +345,7 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _entitySemanticQ[entityId] = q;
         _entitySemanticR[entityId] = r;
         _entitySemanticS[entityId] = s;
@@ -303,6 +353,14 @@ internal sealed partial class WorldState
         InsertSemanticOccupant(entityId, q, r);
         _entityUpdatedAt[entityId] = tick;
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.EntityMoved,
+            entityId,
+            entityId,
+            0,
+            PlaneCodes.Semantic,
+            ProvenanceOutputKindCodes.EntityMoved);
         Write(KernelEvent.From(new EntityMovedKernelEvent(
             tick,
             WorldVersion,
@@ -344,9 +402,18 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _attributes.Set(entityId, attributeId, clamped);
         _entityUpdatedAt[entityId] = tick;
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.AttributeChanged,
+            entityId,
+            entityId,
+            0,
+            attributeId,
+            ProvenanceOutputKindCodes.AttributeChanged);
         Write(KernelEvent.From(new AttributeChangedKernelEvent(
             tick,
             WorldVersion,
@@ -386,9 +453,18 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _traits.Set(entityId, traitId, 1);
         _entityUpdatedAt[entityId] = tick;
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.TraitAssigned,
+            entityId,
+            entityId,
+            0,
+            traitId,
+            ProvenanceOutputKindCodes.TraitAssigned);
         Write(KernelEvent.From(new TraitAssignedKernelEvent(
             tick,
             WorldVersion,
@@ -416,8 +492,17 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _resources.Set(resourceId, key, clamped);
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.ResourceChanged,
+            resourceId,
+            0,
+            0,
+            key,
+            ProvenanceOutputKindCodes.ResourceChanged);
         Write(KernelEvent.From(new ResourceChangedKernelEvent(
             tick,
             WorldVersion,
@@ -484,6 +569,7 @@ internal sealed partial class WorldState
         EnsureEntity(targetEntityId);
         ValidateFactCount(factCount);
         var relationshipId = FindRelationshipSlot();
+        EnsureProvenanceOutputCapacity(context);
         _relationshipAllocated[relationshipId] = true;
         _relationshipActive[relationshipId] = true;
         _relationshipKindId[relationshipId] = kindId;
@@ -505,6 +591,19 @@ internal sealed partial class WorldState
 
         AddRelationshipToGraphDelta(relationshipId);
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.RelationshipChanged,
+            relationshipId,
+            sourceEntityId,
+            targetEntityId,
+            kindId,
+            _relationshipCreatedCodeId);
+        if (context.ProvenanceInvocationId > 0)
+        {
+            _relationshipCreatedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
+            _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
+        }
         WriteRelationshipChanged(
             relationshipId,
             tick,
@@ -527,11 +626,24 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         var previous = _relationshipStrength[relationshipId];
         _relationshipActive[relationshipId] = false;
         _relationshipEndTick[relationshipId] = tick;
         RemoveRelationshipFromGraphDelta(relationshipId);
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.RelationshipChanged,
+            relationshipId,
+            _relationshipSourceId[relationshipId],
+            _relationshipTargetId[relationshipId],
+            _relationshipKindId[relationshipId],
+            _relationshipCulledCodeId);
+        if (context.ProvenanceInvocationId > 0)
+        {
+            _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
+        }
         WriteRelationshipChanged(relationshipId, tick, _relationshipCulledCodeId, context, previous, 0f);
     }
 
@@ -554,8 +666,21 @@ internal sealed partial class WorldState
             return;
         }
 
+        EnsureProvenanceOutputCapacity(context);
         _relationshipStrength[relationshipId] = next;
         AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.RelationshipChanged,
+            relationshipId,
+            _relationshipSourceId[relationshipId],
+            _relationshipTargetId[relationshipId],
+            _relationshipKindId[relationshipId],
+            _relationshipStrengthChangedCodeId);
+        if (context.ProvenanceInvocationId > 0)
+        {
+            _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
+        }
         WriteRelationshipChanged(
             relationshipId,
             tick,

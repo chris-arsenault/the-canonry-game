@@ -484,7 +484,8 @@ internal sealed partial class Simulation : IKernel
             semanticQ,
             semanticR,
             semanticS,
-            tick);
+            tick,
+            _executionContext);
         WriteKernelEvent(KernelEvent.From(new EntityCreatedKernelEvent(
             tick,
             WorldVersion,
@@ -727,6 +728,47 @@ internal sealed partial class Simulation : IKernel
         _executionContext = previous with { ActionId = actionId };
         _executionContextDepth = previousDepth + 1;
         return new KernelExecutionScope(this, previous, previousDepth);
+    }
+
+    internal KernelProvenanceScope EnterProvenanceInvocation(
+        int producerKindCode,
+        int producerId,
+        int primaryEntityId,
+        int secondaryEntityId = 0,
+        int triggerKindCode = ProvenanceTriggerKindCodes.None,
+        int triggerId = 0)
+    {
+        var previous = _executionContext;
+        var previousDepth = _executionContextDepth;
+        var invocationId = World.BeginProvenanceInvocation(
+            CurrentTick,
+            producerKindCode,
+            producerId,
+            primaryEntityId,
+            secondaryEntityId,
+            triggerKindCode,
+            triggerId,
+            previous.ProvenanceInvocationId,
+            previous);
+        _executionContext = previous with { ProvenanceInvocationId = invocationId };
+        _executionContextDepth = previousDepth + 1;
+        return new KernelProvenanceScope(this, previous, previousDepth, invocationId);
+    }
+
+    internal void CompleteProvenanceInvocation(int invocationId)
+    {
+        World.CompleteProvenanceInvocation(invocationId);
+        EmitProvenanceInvocationRecorded(
+            CurrentTick,
+            invocationId,
+            World.ProvenanceInvocationProducerKindCode(invocationId),
+            World.ProvenanceInvocationProducerId(invocationId),
+            World.ProvenanceInvocationPrimaryEntityId(invocationId),
+            World.ProvenanceInvocationSecondaryEntityId(invocationId),
+            World.ProvenanceInvocationParentInvocationId(invocationId),
+            World.ProvenanceInvocationTriggerKindCode(invocationId),
+            World.ProvenanceInvocationTriggerId(invocationId),
+            World.ProvenanceInvocationOutputCount(invocationId));
     }
 
     internal void RestoreExecutionContext(in KernelExecutionContext context, int depth)
