@@ -736,10 +736,16 @@ internal sealed partial class Simulation : IKernel
         int primaryEntityId,
         int secondaryEntityId = 0,
         int triggerKindCode = ProvenanceTriggerKindCodes.None,
-        int triggerId = 0)
+        int triggerId = 0,
+        int parentInvocationId = -1)
     {
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(parentInvocationId, -1);
+
         var previous = _executionContext;
         var previousDepth = _executionContextDepth;
+        var resolvedParentInvocationId = parentInvocationId >= 0
+            ? parentInvocationId
+            : previous.ProvenanceInvocationId;
         var invocationId = World.BeginProvenanceInvocation(
             CurrentTick,
             producerKindCode,
@@ -748,7 +754,7 @@ internal sealed partial class Simulation : IKernel
             secondaryEntityId,
             triggerKindCode,
             triggerId,
-            previous.ProvenanceInvocationId,
+            resolvedParentInvocationId,
             previous);
         _executionContext = previous with { ProvenanceInvocationId = invocationId };
         _executionContextDepth = previousDepth + 1;
@@ -838,6 +844,7 @@ internal sealed partial class Simulation : IKernel
     {
         CurrentTick++;
         World.BeginTick(CurrentTick);
+        World.GrowStorageIfNeeded(CurrentTick, _executionContext);
         DrainCommands();
         TickSystems();
 

@@ -269,6 +269,8 @@ public sealed class KernelUiRuntime : IDisposable
 
     public ProjectionSymbolCatalog Symbols => _runtime.Symbols;
 
+    public CompiledDomain? CompiledDomain => _runtime.Host.CompiledDomain;
+
     public DomainIdRegistry DomainIds => _runtime.Host.DomainIds;
 
     public StartupSeedIdentity SeedIdentity => _runtime.SeedIdentity;

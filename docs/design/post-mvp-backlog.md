@@ -37,15 +37,14 @@ expressing containment topology, will track which state a given monster is in.
 
 ### Ability transmission relationships
 
-The `ability` kind reuses the existing `holds` relationship for multi-holder
-ownership. `holds` has `TargetFollowsSourcePhysical = true`, which is
-incoherent for a semantic-primary, multi-holder asset. A future
-`taught_by`/`practiced_by` vocabulary should replace `holds` for abilities and
-unlock proper transmission semantics.
+The `ability` kind uses `practiced_by` for multi-holder ownership and
+`taught_by` for teaching lineage. Future work can add richer ability-level
+attribution if gambits need to distinguish which specific ability passed
+through a given teacher/student relationship.
 
 ## Simulation Depth
 
-- richer relationship facts and history-aware relationship maintenance
+- richer history-aware relationship maintenance
 - occurrence entities tying long-running wars, plagues, crusades, or booms
   together
 - multi-resource economy if resources can produce useful decisions rather than

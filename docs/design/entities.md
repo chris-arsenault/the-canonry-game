@@ -69,5 +69,6 @@ Generators add named entities. Gambits change significant relationships,
 status, health, or other authored state. The relationship catalog should
 support both without creating graph edges that no other system understands.
 When a numeric gate is needed, relationship strength should be the first
-choice; relationship facts add event-specific meaning to real edges, not
-static entity personality.
+choice. Event meaning and lineage should usually be ordinary relationship
+kinds or provenance; any remaining relationship facts are rare boolean edge
+qualifiers, not static entity personality.

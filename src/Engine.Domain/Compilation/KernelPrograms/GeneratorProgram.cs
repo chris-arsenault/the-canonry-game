@@ -24,7 +24,10 @@ public sealed record CompiledGeneratorRule(
 
 public sealed record GeneratorEffectRule(
     int EffectTypeCode,
-    int RefOrKindId);
+    int RefOrKindId,
+    int InstanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
+    int OptionCode = 0,
+    float Value = 0f);
 
 public sealed record GeneratorTargetSaturationRule(
     int RelationshipKindId,
@@ -33,9 +36,13 @@ public sealed record GeneratorTargetSaturationRule(
     int MaxExisting);
 
 public sealed record GeneratorTargetRelationshipRequirements(
-    IReadOnlyList<int> RequiredOutgoingRelationshipKindIds,
-    IReadOnlyList<int> RequiredIncomingRelationshipKindIds,
-    IReadOnlyList<int> RequiredRelationshipKindIds);
+    IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredOutgoingRelationships,
+    IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredIncomingRelationships,
+    IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredRelationships,
+    IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
+    IReadOnlyList<int> WithoutIncomingRelationshipKindIds);
+
+public sealed record GeneratorRelationshipRequirementRule(int RelationshipKindId, float MinimumStrength);
 
 public sealed record GeneratorTriggerRule(int KindId);
 

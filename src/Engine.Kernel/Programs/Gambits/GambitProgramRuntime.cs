@@ -655,8 +655,9 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         var gambitId = _gambitIds[selectedGambitSlot];
         var state = RollGambitState(simulation, selectedGambitSlot, entityId, selectedTargetId);
-        using var provenanceScope = simulation.EnterProvenanceInvocation(
-            ProvenanceProducerKindCodes.Gambit,
+        using var provenanceScope = EnterGambitProvenance(
+            simulation,
+            selectedGambitSlot,
             gambitId,
             entityId,
             selectedTargetId);
@@ -669,6 +670,31 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         ApplyGambitCooldowns(simulation, entityId, selectedGambitSlot, gambitId, tick);
         WriteGambitEvaluated(simulation, tick, entityId, kindId, gambitId, candidateCount, KernelEventState.Succeeded);
         WriteGambitExecuted(simulation, tick, entityId, selectedTargetId, kindId, gambitId, state);
+    }
+
+    private KernelProvenanceScope EnterGambitProvenance(
+        Simulation simulation,
+        int gambitSlot,
+        int gambitId,
+        int entityId,
+        int selectedTargetId)
+    {
+        ResolveGambitTriggerEvidence(
+            simulation.World,
+            gambitSlot,
+            entityId,
+            selectedTargetId,
+            out var triggerKindCode,
+            out var triggerId,
+            out var parentInvocationId);
+        return simulation.EnterProvenanceInvocation(
+            ProvenanceProducerKindCodes.Gambit,
+            gambitId,
+            entityId,
+            selectedTargetId,
+            triggerKindCode,
+            triggerId,
+            parentInvocationId);
     }
 
     private void ApplyGambitCooldowns(

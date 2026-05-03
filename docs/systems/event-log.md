@@ -17,7 +17,7 @@ analysis remains in parquet telemetry.
 - Effects/upkeep/lifecycle: health changes, aging, death, collapse, historical
   transitions.
 - Gambits: declarations, betrayals, wielding, killing, relationship inversions.
-- Generators: created entity bundles and relationship facts.
+- Generators: created entity and relationship bundles, plus provenance links.
 - Degeneracy: map generation or runtime degenerate-state messages.
 
 ## Entry Structure

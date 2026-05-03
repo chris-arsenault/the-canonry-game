@@ -40,7 +40,7 @@ public static class DefinitionGeneratorBuilder
             "$target",
         };
 
-        var target = BuildTarget(config, graph);
+        var target = BuildTarget(config, graph, runtimeIds);
         var secondaryTargets = BuildSecondaryTargets(config, graph, declaredRefs);
         var produces = BuildProducedEntities(config, graph, declaredRefs);
         ValidateProducedReferences(config.Id, produces, declaredRefs);
@@ -71,13 +71,19 @@ public static class DefinitionGeneratorBuilder
 
     private static DefinitionGeneratorTarget BuildTarget(
         SemanticGeneratorConfig config,
-        DefinitionGraph graph)
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
     {
         EnsureKindDeclared(graph, config.Target.Kind, $"Generator '{config.Id}' target");
         ValidateSubtypes(graph, config.Target.Kind, config.Target.Subtypes, $"Generator '{config.Id}' target");
         ValidateRelationshipNames(graph, config.Target.RequiredOutgoingRelationships, $"Generator '{config.Id}' target");
         ValidateRelationshipNames(graph, config.Target.RequiredIncomingRelationships, $"Generator '{config.Id}' target");
         ValidateRelationshipNames(graph, config.Target.RequiredRelationships, $"Generator '{config.Id}' target");
+        ValidateRelationshipRequirements(graph, config.Target.RequiredOutgoingRelationshipRequirements, $"Generator '{config.Id}' target");
+        ValidateRelationshipRequirements(graph, config.Target.RequiredIncomingRelationshipRequirements, $"Generator '{config.Id}' target");
+        ValidateRelationshipRequirements(graph, config.Target.RequiredRelationshipRequirements, $"Generator '{config.Id}' target");
+        ValidateRelationshipNames(graph, config.Target.WithoutOutgoingRelationships, $"Generator '{config.Id}' target");
+        ValidateRelationshipNames(graph, config.Target.WithoutIncomingRelationships, $"Generator '{config.Id}' target");
 
         return new DefinitionGeneratorTarget
         {
@@ -89,6 +95,23 @@ public static class DefinitionGeneratorBuilder
             RequiredOutgoingRelationships = CopyRelationshipSet(config.Target.RequiredOutgoingRelationships),
             RequiredIncomingRelationships = CopyRelationshipSet(config.Target.RequiredIncomingRelationships),
             RequiredRelationships = CopyRelationshipSet(config.Target.RequiredRelationships),
+            RequiredOutgoingRelationshipRequirements = BuildRelationshipRequirements(
+                graph,
+                runtimeIds,
+                config.Target.RequiredOutgoingRelationshipRequirements,
+                $"Generator '{config.Id}' target"),
+            RequiredIncomingRelationshipRequirements = BuildRelationshipRequirements(
+                graph,
+                runtimeIds,
+                config.Target.RequiredIncomingRelationshipRequirements,
+                $"Generator '{config.Id}' target"),
+            RequiredRelationshipRequirements = BuildRelationshipRequirements(
+                graph,
+                runtimeIds,
+                config.Target.RequiredRelationshipRequirements,
+                $"Generator '{config.Id}' target"),
+            WithoutOutgoingRelationships = CopyRelationshipSet(config.Target.WithoutOutgoingRelationships),
+            WithoutIncomingRelationships = CopyRelationshipSet(config.Target.WithoutIncomingRelationships),
         };
     }
 
@@ -328,11 +351,12 @@ public static class DefinitionGeneratorBuilder
         global::Engine.Domain.DomainIdRegistry runtimeIds,
         HashSet<string> declaredRefs) =>
         config.Effects
-            .Select(effect => BuildEffect(config.Id, effect, graph, runtimeIds, declaredRefs))
+            .Select(effect => BuildEffect(config.Id, config.Target, effect, graph, runtimeIds, declaredRefs))
             .ToList();
 
     private static IDefinitionGeneratorEffect BuildEffect(
         string generatorId,
+        SemanticGeneratorTarget target,
         ISemanticGeneratorEffect effect,
         DefinitionGraph graph,
         global::Engine.Domain.DomainIdRegistry runtimeIds,
@@ -349,13 +373,77 @@ public static class DefinitionGeneratorBuilder
                 {
                     var context = $"Generator '{generatorId}' RemoveTargetRelationships effect";
                     var relationshipId = ResolveRelationshipId(graph!, removeRelationships.RelationshipKind, context);
+                    if (removeRelationships.InstanceSelection == GeneratorRelationshipInstanceSelection.TriggerRelationship &&
+                        !TargetHasOnlyRelationshipGate(target, removeRelationships.RelationshipKind))
+                    {
+                        throw new DefinitionGraphException(
+                            $"Generator '{generatorId}' RemoveTargetRelationships trigger instance effect must match the sole target relationship gate.");
+                    }
+
                     return new DefinitionRemoveTargetRelationshipsEffect(
-                        runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value);
+                        runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
+                        removeRelationships.InstanceSelection,
+                        removeRelationships.IncludeReciprocal);
+                }
+            case AdjustTargetRelationshipStrengthEffect adjustRelationship:
+                {
+                    var context = $"Generator '{generatorId}' AdjustTargetRelationshipStrength effect";
+                    var relationshipId = ResolveRelationshipId(graph!, adjustRelationship.RelationshipKind, context);
+                    if (adjustRelationship.InstanceSelection == GeneratorRelationshipInstanceSelection.TriggerRelationship &&
+                        !TargetHasOnlyRelationshipGate(target, adjustRelationship.RelationshipKind))
+                    {
+                        throw new DefinitionGraphException(
+                            $"Generator '{generatorId}' AdjustTargetRelationshipStrength trigger instance effect must match the sole target relationship gate.");
+                    }
+
+                    return new DefinitionAdjustTargetRelationshipStrengthEffect(
+                        runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
+                        adjustRelationship.Delta,
+                        adjustRelationship.InstanceSelection,
+                        adjustRelationship.IncludeReciprocal);
                 }
             default:
                 throw new DefinitionGraphException(
                     $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'.");
         }
+    }
+
+    private static bool TargetHasOnlyRelationshipGate(SemanticGeneratorTarget target, string relationshipKind)
+    {
+        var count = 0;
+        var found = false;
+        CountRelationshipGate(target.RequiredOutgoingRelationships, relationshipKind, ref count, ref found);
+        CountRelationshipGate(target.RequiredIncomingRelationships, relationshipKind, ref count, ref found);
+        CountRelationshipGate(target.RequiredRelationships, relationshipKind, ref count, ref found);
+        CountRelationshipGate(target.RequiredOutgoingRelationshipRequirements, relationshipKind, ref count, ref found);
+        CountRelationshipGate(target.RequiredIncomingRelationshipRequirements, relationshipKind, ref count, ref found);
+        CountRelationshipGate(target.RequiredRelationshipRequirements, relationshipKind, ref count, ref found);
+        return found && count == 1;
+    }
+
+    private static void CountRelationshipGate(
+        IReadOnlySet<string>? values,
+        string relationshipKind,
+        ref int count,
+        ref bool found)
+    {
+        if (values is null)
+        {
+            return;
+        }
+
+        count += values.Count;
+        found |= values.Contains(relationshipKind);
+    }
+
+    private static void CountRelationshipGate(
+        IReadOnlyList<SemanticGeneratorRelationshipRequirement> values,
+        string relationshipKind,
+        ref int count,
+        ref bool found)
+    {
+        count += values.Count;
+        found |= values.Any(value => string.Equals(value.RelationshipKind, relationshipKind, StringComparison.Ordinal));
     }
 
     private static void EnsureKindDeclared(DefinitionGraph graph, EntityKind kind, string context)
@@ -464,6 +552,43 @@ public static class DefinitionGeneratorBuilder
         relationshipKinds is null
             ? null
             : new HashSet<string>(relationshipKinds, StringComparer.Ordinal);
+
+    private static void ValidateRelationshipRequirements(
+        DefinitionGraph graph,
+        IReadOnlyList<SemanticGeneratorRelationshipRequirement> requirements,
+        string context)
+    {
+        foreach (var requirement in requirements)
+        {
+            ResolveRelationshipId(graph, requirement.RelationshipKind, context);
+            if (requirement.MinimumStrength is < 0f or > 1f)
+            {
+                throw new DefinitionGraphException(
+                    $"{context} relationship requirement '{requirement.RelationshipKind}' minimum strength must be between 0 and 1.");
+            }
+        }
+    }
+
+    private static List<DefinitionTargetRelationshipRequirement> BuildRelationshipRequirements(
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        IReadOnlyList<SemanticGeneratorRelationshipRequirement> requirements,
+        string context)
+    {
+        var compiled = new List<DefinitionTargetRelationshipRequirement>(requirements.Count);
+        foreach (var requirement in requirements)
+        {
+            var relationshipId = ResolveRelationshipId(graph, requirement.RelationshipKind, context);
+            compiled.Add(new DefinitionTargetRelationshipRequirement
+            {
+                RelationshipId = relationshipId,
+                RelationshipRuntimeId = runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
+                MinimumStrength = requirement.MinimumStrength,
+            });
+        }
+
+        return compiled;
+    }
 
     private static DefinitionEntityQuery? BuildQuery(
         DefinitionGraph graph,

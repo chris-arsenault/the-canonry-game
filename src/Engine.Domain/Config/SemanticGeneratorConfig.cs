@@ -27,6 +27,17 @@ public sealed class SemanticGeneratorTarget
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
+    public IReadOnlyList<SemanticGeneratorRelationshipRequirement> RequiredOutgoingRelationshipRequirements { get; init; } = [];
+    public IReadOnlyList<SemanticGeneratorRelationshipRequirement> RequiredIncomingRelationshipRequirements { get; init; } = [];
+    public IReadOnlyList<SemanticGeneratorRelationshipRequirement> RequiredRelationshipRequirements { get; init; } = [];
+    public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
+    public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
+}
+
+public sealed class SemanticGeneratorRelationshipRequirement
+{
+    public required string RelationshipKind { get; init; }
+    public float MinimumStrength { get; init; }
 }
 
 public sealed class SemanticTargetSaturation
@@ -110,12 +121,45 @@ public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGen
     public string Describe() => $"set_binding_historical({BindingRef})";
 }
 
-/// <summary>Removes all relationships of a kind on the target entity after the generator fires.</summary>
-public sealed class RemoveTargetRelationshipsEffect(string relationshipKind) : ISemanticGeneratorEffect
+/// <summary>Removes relationships of a kind from the target, or a selected relationship instance.</summary>
+public sealed class RemoveTargetRelationshipsEffect(
+    string relationshipKind,
+    GeneratorRelationshipInstanceSelection instanceSelection = GeneratorRelationshipInstanceSelection.AllTargetRelationships,
+    bool includeReciprocal = false) : ISemanticGeneratorEffect
 {
     public string RelationshipKind { get; } = relationshipKind;
 
-    public string Describe() => $"remove_target_relationships({RelationshipKind})";
+    public GeneratorRelationshipInstanceSelection InstanceSelection { get; } = instanceSelection;
+
+    public bool IncludeReciprocal { get; } = includeReciprocal;
+
+    public string Describe() =>
+        $"remove_target_relationships({RelationshipKind}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
+}
+
+public enum GeneratorRelationshipInstanceSelection
+{
+    AllTargetRelationships,
+    TriggerRelationship,
+}
+
+/// <summary>Adjusts relationship strength on the target, or on a selected relationship instance.</summary>
+public sealed class AdjustTargetRelationshipStrengthEffect(
+    string relationshipKind,
+    float delta,
+    GeneratorRelationshipInstanceSelection instanceSelection = GeneratorRelationshipInstanceSelection.TriggerRelationship,
+    bool includeReciprocal = false) : ISemanticGeneratorEffect
+{
+    public string RelationshipKind { get; } = relationshipKind;
+
+    public float Delta { get; } = delta;
+
+    public GeneratorRelationshipInstanceSelection InstanceSelection { get; } = instanceSelection;
+
+    public bool IncludeReciprocal { get; } = includeReciprocal;
+
+    public string Describe() =>
+        $"adjust_target_relationship_strength({RelationshipKind}, delta={Delta}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
 }
 
 public sealed class SemanticGeneratorRelationship

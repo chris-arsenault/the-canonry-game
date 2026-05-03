@@ -6,6 +6,7 @@ using Engine.Projection;
 
 using IceRemembers.Seed;
 
+using TheCanonryGame.Game.Cards;
 using TheCanonryGame.Game.Tableau;
 
 internal enum GameSeedPolicyKind
@@ -58,6 +59,7 @@ internal sealed class GameRuntimeReadModels
         Entities = runtime.Ui;
         Chronicle = runtime.Chronicle;
         Symbols = runtime.Symbols;
+        Knowledge = GameDomainKnowledge.FromCompiledDomain(runtime.CompiledDomain, runtime.Symbols);
     }
 
     public HexMapProjection Map { get; }
@@ -67,6 +69,8 @@ internal sealed class GameRuntimeReadModels
     public UiChronicleProjection Chronicle { get; }
 
     public IProjectionSymbolCatalog Symbols { get; }
+
+    public GameDomainKnowledge Knowledge { get; }
 }
 
 internal sealed class GameRuntimeControls
@@ -138,7 +142,7 @@ internal sealed class CanonryGameRuntime : IDisposable
         ReadModels = new GameRuntimeReadModels(runtime);
         Controls = new GameRuntimeControls(runtime.Time);
         Intents = new GameIntentPort(runtime.Commands, () => runtime.Ui.WorldVersion);
-        Tableau = new GameRuntimeTableau(ReadModels.Entities, ReadModels.Symbols, Intents);
+        Tableau = new GameRuntimeTableau(ReadModels.Entities, ReadModels.Symbols, Intents, ReadModels.Knowledge);
         Seed = new GameSeedIdentity(runtime.SeedIdentity.BaseSeed, runtime.SeedIdentity.Attempt);
     }
 

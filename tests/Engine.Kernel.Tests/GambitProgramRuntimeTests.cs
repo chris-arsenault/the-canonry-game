@@ -68,6 +68,10 @@ public sealed class GambitProgramRuntimeTests
         Assert.Equal(ProvenanceProducerKindCodes.Gambit, recorded.ProducerKindCode);
         Assert.Equal(gambitId, recorded.ProducerId);
         Assert.Equal(entityId, recorded.PrimaryEntityId);
+        Assert.Equal(entityId, recorded.SecondaryEntityId);
+        Assert.Equal(0, recorded.ParentInvocationId);
+        Assert.Equal(ProvenanceTriggerKindCodes.Entity, recorded.TriggerKindCode);
+        Assert.Equal(entityId, recorded.TriggerId);
         Assert.Equal(1, recorded.OutputCount);
         Assert.Contains(events, evt =>
             evt.EventType == KernelEventType.GambitExecuted &&
@@ -76,6 +80,110 @@ public sealed class GambitProgramRuntimeTests
         Assert.True(simulation.World.MoveNextProvenanceOutput(ref outputCursor, out var outputId));
         Assert.Equal(ProvenanceOutputKindCodes.AttributeChanged, simulation.World.ProvenanceOutputKindCode(outputId));
         Assert.Equal(attributeId, simulation.World.ProvenanceOutputValueId(outputId));
+    }
+
+    [Fact]
+    public void SuccessfulGambitRecordsProviderRelationshipTriggerAndParentInvocation()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int attributeId = 10;
+        const int relationshipKindId = 40;
+        const int gambitId = 130;
+        simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        int providerRelationship;
+        using (simulation.EnterProvenanceInvocation(
+                   ProvenanceProducerKindCodes.System,
+                   producerId: 901,
+                   primaryEntityId: actor))
+        {
+            providerRelationship = simulation.CreateRelationship(
+                relationshipKindId,
+                RelationshipPolarityCodes.Positive,
+                actor,
+                target,
+                0.9f,
+                tick: 0);
+        }
+
+        var parentInvocationId = simulation.World.RelationshipCreatedByInvocationId(providerRelationship);
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddProviderSelector(
+            gambit,
+            BehaviorProviderSelectorCodes.OutgoingRelationship,
+            kindId: targetKindId,
+            relationshipKindId: relationshipKindId,
+            minimumStrength: 0.5f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var recorded = Assert.Single(
+            ReadAvailableEvents(simulation, cursor),
+            evt => evt.EventType == KernelEventType.ProvenanceInvocationRecorded).AsProvenanceInvocationRecorded();
+        Assert.Equal(ProvenanceProducerKindCodes.Gambit, recorded.ProducerKindCode);
+        Assert.Equal(gambitId, recorded.ProducerId);
+        Assert.Equal(actor, recorded.PrimaryEntityId);
+        Assert.Equal(target, recorded.SecondaryEntityId);
+        Assert.Equal(parentInvocationId, recorded.ParentInvocationId);
+        Assert.Equal(ProvenanceTriggerKindCodes.Relationship, recorded.TriggerKindCode);
+        Assert.Equal(providerRelationship, recorded.TriggerId);
+    }
+
+    [Fact]
+    public void SuccessfulGambitRecordsProviderAttributeTrigger()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int actorAttributeId = 10;
+        const int providerAttributeId = 11;
+        const int gambitId = 131;
+        simulation.RegisterAttribute(actorKindId, actorAttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(targetKindId, providerAttributeId, 0f, 100f, 1f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddProviderSelector(
+            gambit,
+            BehaviorProviderSelectorCodes.TargetAttribute,
+            kindId: targetKindId,
+            valueId: providerAttributeId);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddRewardExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, actorAttributeId, x: 20f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var recorded = Assert.Single(
+            ReadAvailableEvents(simulation, cursor),
+            evt => evt.EventType == KernelEventType.ProvenanceInvocationRecorded).AsProvenanceInvocationRecorded();
+        Assert.Equal(ProvenanceProducerKindCodes.Gambit, recorded.ProducerKindCode);
+        Assert.Equal(gambitId, recorded.ProducerId);
+        Assert.Equal(actor, recorded.PrimaryEntityId);
+        Assert.Equal(target, recorded.SecondaryEntityId);
+        Assert.Equal(0, recorded.ParentInvocationId);
+        Assert.Equal(ProvenanceTriggerKindCodes.Attribute, recorded.TriggerKindCode);
+        Assert.Equal(providerAttributeId, recorded.TriggerId);
     }
 
     [Fact]

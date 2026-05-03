@@ -10,6 +10,9 @@ using Terrain = IceRemembers.IceRemembersTerrain;
 
 public static class IceRemembersGeneratorDefinition
 {
+    private const float RoutesDrawReadersMinimumTradeRouteStrength = 0.70f;
+    private const float RoutesDrawReadersTradeRouteStrengthSpend = -0.30f;
+
     public static IReadOnlyList<SemanticGeneratorConfig> Create() =>
     [
         WarMakesWardens(),
@@ -60,7 +63,6 @@ public static class IceRemembersGeneratorDefinition
                 Query = new SemanticEntityQuery { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget },
             },
         ],
-        TargetSaturation = SaturationIncoming(Rel.Memorializes, 1),
         Produces =
         [
             Required("$seal", K.Artifact, "seal", "$target", "$target", on: true),
@@ -70,7 +72,10 @@ public static class IceRemembersGeneratorDefinition
         Effects =
         [
             new SetBindingHistoricalEffect("$offered"),
-            new RemoveTargetRelationshipsEffect(L(Rel.AtWarWith)),
+            new RemoveTargetRelationshipsEffect(
+                L(Rel.AtWarWith),
+                GeneratorRelationshipInstanceSelection.TriggerRelationship,
+                includeReciprocal: true),
         ],
         Relationships =
         [
@@ -86,12 +91,11 @@ public static class IceRemembersGeneratorDefinition
         Id = "what_the_spring_remembers",
         Name = "What the Spring Remembers",
         Description = "A cleansed hot spring draws a witness and an anchored relic. Where the warmth holds long enough, a sanctuary may form, and a choir may settle to sing what the ice forgot.",
-        Target = TargetWithIncoming(K.Region, Rel.CleansedBy),
+        Target = TargetWithIncomingAndWithoutIncoming(K.Region, Rel.CleansedBy, Rel.Anchored),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction },
         ],
-        TargetSaturation = SaturationIncoming(Rel.Anchored, 1),
         Produces =
         [
             Required("$relic", K.Artifact, "relic", "$target", "$patron", on: true),
@@ -138,8 +142,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "routes_draw_readers",
         Name = "Routes Draw Readers",
         Description = "An active trade route attracts a broker and a waystation harbor. Where the wealth concentrates, a formal order may take charge of what passes through.",
-        Target = TargetWithOutgoing(K.Settlement, Rel.TradeRoute),
-        TargetSaturation = SaturationIncoming(Rel.FoundedFrom, 1),
+        Target = TargetWithStrongOutgoing(K.Settlement, Rel.TradeRoute, RoutesDrawReadersMinimumTradeRouteStrength),
         Produces =
         [
             Required("$broker", K.Penguin, "broker", "$target", "$target"),
@@ -156,6 +159,14 @@ public static class IceRemembersGeneratorDefinition
             R("$broker", "$order", Rel.MemberOf, 0.80f),
             R("$instrument", "$harbor", Rel.NativeTo, 0.82f),
         ],
+        Effects =
+        [
+            new AdjustTargetRelationshipStrengthEffect(
+                L(Rel.TradeRoute),
+                RoutesDrawReadersTradeRouteStrengthSpend,
+                GeneratorRelationshipInstanceSelection.TriggerRelationship,
+                includeReciprocal: true),
+        ],
         Triggers = TriggerOn(K.Settlement),
     };
 
@@ -164,8 +175,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "what_the_artifact_knows",
         Name = "What the Artifact Knows",
         Description = "A penguin who has carried an artifact long enough recognises a place to stop. They put down a rookery, seal the artifact into the ground, and a small cell may form around them.",
-        Target = TargetWithOutgoing(K.Penguin, Rel.Holds),
-        TargetSaturation = SaturationOutgoing(Rel.HomeBase, 1),
+        Target = TargetWithOutgoingAndWithoutOutgoing(K.Penguin, Rel.Holds, Rel.HomeBase),
         Produces =
         [
             Required("$rookery", K.Settlement, "rookery", "$target", "$target"),
@@ -189,11 +199,43 @@ public static class IceRemembersGeneratorDefinition
             RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
         };
 
-    private static SemanticGeneratorTarget TargetWithIncoming(EntityKind kind, Rel required) =>
+    private static SemanticGeneratorTarget TargetWithStrongOutgoing(
+        EntityKind kind,
+        Rel required,
+        float minimumStrength) =>
+        new()
+        {
+            Kind = kind,
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement
+                {
+                    RelationshipKind = L(required),
+                    MinimumStrength = minimumStrength,
+                },
+            ],
+        };
+
+    private static SemanticGeneratorTarget TargetWithOutgoingAndWithoutOutgoing(
+        EntityKind kind,
+        Rel required,
+        Rel without) =>
+        new()
+        {
+            Kind = kind,
+            RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
+            WithoutOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
+        };
+
+    private static SemanticGeneratorTarget TargetWithIncomingAndWithoutIncoming(
+        EntityKind kind,
+        Rel required,
+        Rel without) =>
         new()
         {
             Kind = kind,
             RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
+            WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
         };
 
     private static SemanticTargetSaturation SaturationIncoming(Rel kind, int max) =>
@@ -201,14 +243,6 @@ public static class IceRemembersGeneratorDefinition
         {
             RelationshipKind = L(kind),
             Direction = TargetSaturationDirection.IncomingToTarget,
-            MaxExisting = max,
-        };
-
-    private static SemanticTargetSaturation SaturationOutgoing(Rel kind, int max) =>
-        new()
-        {
-            RelationshipKind = L(kind),
-            Direction = TargetSaturationDirection.OutgoingFromTarget,
             MaxExisting = max,
         };
 

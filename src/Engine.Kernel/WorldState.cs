@@ -16,6 +16,7 @@ internal sealed partial class WorldState
     private readonly PrimitiveIntTable _mapCellContinentIds;
     private readonly MapLayerSet _mapLayers;
     private readonly KernelDataSet _kernelData;
+    private readonly KernelGrowableStoragePolicy _growableStoragePolicy;
     private bool[] _entityAllocated = [];
     private int[] _entityStatus = [];
     private int[] _entityKindId = [];
@@ -104,6 +105,7 @@ internal sealed partial class WorldState
     {
         global::System.ArgumentNullException.ThrowIfNull(events); global::System.ArgumentNullException.ThrowIfNull(options);
         global::System.ArgumentNullException.ThrowIfNull(kernelData); _events = events; _kernelData = kernelData;
+        _growableStoragePolicy = KernelGrowableStoragePolicy.FromOptions(options);
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _traits = new PrimitiveIntTable(options.TraitCapacity);
         _resources = new PrimitiveFloatTable(options.ResourceCapacity);

@@ -156,6 +156,7 @@ public enum IceRemembersRelationship
     AtWarWith,
     BetrayedBy,
     PracticedBy,
+    TaughtBy,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -184,6 +185,7 @@ public static class IceRemembersRelationshipExtensions
         "at_war_with",
         "betrayed_by",
         "practiced_by",
+        "taught_by",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -192,27 +194,6 @@ public static class IceRemembersRelationshipExtensions
         return (uint)index < (uint)DomainNames.Length
             ? DomainNames[index]
             : throw new ArgumentOutOfRangeException(nameof(relationship), relationship, "Unknown test-domain relationship");
-    }
-}
-
-public enum IceRemembersRelationshipFact
-{
-    TaughtBy,
-}
-
-public static class IceRemembersRelationshipFactExtensions
-{
-    private static readonly string[] DomainNames =
-    [
-        "taught_by",
-    ];
-
-    public static string ToDomainName(this IceRemembersRelationshipFact fact)
-    {
-        var index = (int)fact;
-        return (uint)index < (uint)DomainNames.Length
-            ? DomainNames[index]
-            : throw new ArgumentOutOfRangeException(nameof(fact), fact, "Unknown Ice Remembers relationship fact");
     }
 }
 

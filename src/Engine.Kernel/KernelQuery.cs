@@ -491,14 +491,19 @@ internal static class KernelQuery
         return false;
     }
 
-    public static bool HasRelationshipOfKind(WorldState world, int entityId, int relationshipKindId, bool outgoing)
+    public static bool HasRelationshipOfKind(
+        WorldState world,
+        int entityId,
+        int relationshipKindId,
+        bool outgoing,
+        float minimumStrength = 0f)
     {
         var found = false;
         ForEachRelatedEndpoint(
             world,
             entityId,
             relationshipKindId,
-            minimumStrength: 0f,
+            minimumStrength,
             requiredFactId: 0,
             outgoing,
             (_, _) =>
@@ -513,6 +518,7 @@ internal static class KernelQuery
         WorldState world,
         int entityId,
         int[] relationshipKindIds,
+        float[] relationshipMinimumStrengths,
         int start,
         int count,
         bool outgoing)
@@ -520,7 +526,32 @@ internal static class KernelQuery
         var end = start + count;
         for (var filter = start; filter < end; filter++)
         {
-            if (!HasRelationshipOfKind(world, entityId, relationshipKindIds[filter], outgoing))
+            if (!HasRelationshipOfKind(
+                    world,
+                    entityId,
+                    relationshipKindIds[filter],
+                    outgoing,
+                    relationshipMinimumStrengths[filter]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static bool NoRelationshipKindRequirementsPresent(
+        WorldState world,
+        int entityId,
+        int[] relationshipKindIds,
+        int start,
+        int count,
+        bool outgoing)
+    {
+        var end = start + count;
+        for (var filter = start; filter < end; filter++)
+        {
+            if (HasRelationshipOfKind(world, entityId, relationshipKindIds[filter], outgoing))
             {
                 return false;
             }
@@ -533,6 +564,7 @@ internal static class KernelQuery
         WorldState world,
         int entityId,
         int[] relationshipKindIds,
+        float[] relationshipMinimumStrengths,
         int start,
         int count)
     {
@@ -540,8 +572,9 @@ internal static class KernelQuery
         for (var filter = start; filter < end; filter++)
         {
             var relationshipKindId = relationshipKindIds[filter];
-            if (!HasRelationshipOfKind(world, entityId, relationshipKindId, outgoing: true) &&
-                !HasRelationshipOfKind(world, entityId, relationshipKindId, outgoing: false))
+            var minimumStrength = relationshipMinimumStrengths[filter];
+            if (!HasRelationshipOfKind(world, entityId, relationshipKindId, outgoing: true, minimumStrength: minimumStrength) &&
+                !HasRelationshipOfKind(world, entityId, relationshipKindId, outgoing: false, minimumStrength: minimumStrength))
             {
                 return false;
             }
@@ -599,11 +632,68 @@ internal static class KernelQuery
     public static int FindRelationship(WorldState world, int sourceId, int targetId, int relationshipKindId) =>
         world.FindRelationship(sourceId, targetId, relationshipKindId);
 
+    public static bool TryFindRelationship(
+        WorldState world,
+        int sourceId,
+        int targetId,
+        int relationshipKindId,
+        int requiredFactId,
+        int hasMinimumStrength,
+        float minimumStrength,
+        out int relationshipId)
+    {
+        relationshipId = 0;
+        if (relationshipKindId <= 0)
+        {
+            return false;
+        }
+
+        var candidateId = world.FindRelationship(sourceId, targetId, relationshipKindId);
+        if (candidateId == 0 ||
+            !RelationshipMeetsMinimum(world, candidateId, hasMinimumStrength, minimumStrength) ||
+            !world.RelationshipHasFact(candidateId, requiredFactId))
+        {
+            return false;
+        }
+
+        relationshipId = candidateId;
+        return true;
+    }
+
     public static bool RelationshipHasFact(WorldState world, int relationshipId, int requiredFactId) =>
         world.RelationshipHasFact(relationshipId, requiredFactId);
 
     public static float RelationshipStrength(WorldState world, int relationshipId) =>
         world.RelationshipStrength(relationshipId);
+
+    public static bool TryFirstRelationshipOfKind(
+        WorldState world,
+        int entityId,
+        int relationshipKindId,
+        bool outgoing,
+        float minimumStrength,
+        out int relationshipId)
+    {
+        relationshipId = 0;
+        if (relationshipKindId <= 0)
+        {
+            return false;
+        }
+
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
+            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+        while (world.MoveNextRelationship(ref cursor, out relationshipId))
+        {
+            if (world.RelationshipStrength(relationshipId) >= minimumStrength)
+            {
+                return true;
+            }
+        }
+
+        relationshipId = 0;
+        return false;
+    }
 
     public static int DistinctRelationshipEndpointCount(
         WorldState world,

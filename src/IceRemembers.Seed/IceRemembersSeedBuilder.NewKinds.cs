@@ -150,8 +150,9 @@ internal static partial class IceRemembersSeedBuilder
                 anchorRegion.OwnerEntityId,
                 0.8f);
 
-            CreateAbilityPractitioner(seed, ability, plan.PrimaryHolderName, 0.85f, taughtBy: false);
-            CreateAbilityPractitioner(seed, ability, plan.SecondaryHolderName, 0.7f, taughtBy: true);
+            CreateAbilityPractitioner(seed, ability, plan.PrimaryHolderName, 0.85f);
+            CreateAbilityPractitioner(seed, ability, plan.SecondaryHolderName, 0.7f);
+            CreateTeachingLineage(seed, plan.SecondaryHolderName, plan.PrimaryHolderName, 0.75f);
         }
     }
 
@@ -159,8 +160,7 @@ internal static partial class IceRemembersSeedBuilder
         SeedAssembly seed,
         SeedEntity ability,
         string holderName,
-        float strength,
-        bool taughtBy)
+        float strength)
     {
         var holder = seed.Entities.FirstOrDefault(entity =>
             string.Equals(entity.Name, holderName, StringComparison.Ordinal));
@@ -170,17 +170,42 @@ internal static partial class IceRemembersSeedBuilder
                 $"Ability '{ability.Name}' references unknown holder '{holderName}'.");
         }
 
-        var facts = taughtBy
-            ? new[] { IceRemembersRelationshipFact.TaughtBy.ToDomainName() }
-            : null;
-
         seed.CreateRelationship(
             IceRemembersRelationship.PracticedBy.ToDomainName(),
             RelationshipPolarity.Positive,
             ability.SeedEntityId,
             holder.SeedEntityId,
-            strength,
-            facts);
+            strength);
+    }
+
+    private static void CreateTeachingLineage(
+        SeedAssembly seed,
+        string studentName,
+        string teacherName,
+        float strength)
+    {
+        var student = seed.Entities.FirstOrDefault(entity =>
+            string.Equals(entity.Name, studentName, StringComparison.Ordinal));
+        if (student is null)
+        {
+            throw new InvalidOperationException(
+                $"Teaching lineage references unknown student '{studentName}'.");
+        }
+
+        var teacher = seed.Entities.FirstOrDefault(entity =>
+            string.Equals(entity.Name, teacherName, StringComparison.Ordinal));
+        if (teacher is null)
+        {
+            throw new InvalidOperationException(
+                $"Teaching lineage references unknown teacher '{teacherName}'.");
+        }
+
+        seed.CreateRelationship(
+            IceRemembersRelationship.TaughtBy.ToDomainName(),
+            RelationshipPolarity.Positive,
+            student.SeedEntityId,
+            teacher.SeedEntityId,
+            strength);
     }
 
     private static void CreateTransports(

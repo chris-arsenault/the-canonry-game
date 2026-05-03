@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Eventing;
+
 internal sealed partial class WorldState
 {
     private void InitializeProvenanceStorage(SimulationOptions options)
@@ -51,7 +53,7 @@ internal sealed partial class WorldState
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(parentInvocationId);
         ValidatePositive(context.SourceCodeId);
 
-        var invocationId = AllocateProvenanceInvocationSlot();
+        var invocationId = AllocateProvenanceInvocationSlot(context);
         _provenanceInvocationTick[invocationId] = tick;
         _provenanceInvocationProducerKindCode[invocationId] = producerKindCode;
         _provenanceInvocationProducerId[invocationId] = producerId;
@@ -74,6 +76,10 @@ internal sealed partial class WorldState
     internal int ProvenanceInvocationHighWatermark => _provenanceInvocationHighWatermark;
 
     internal int ProvenanceOutputHighWatermark => _provenanceOutputHighWatermark;
+
+    internal int ProvenanceInvocationCapacity => _provenanceInvocationTick.Length - 1;
+
+    internal int ProvenanceOutputCapacity => _provenanceOutputInvocationId.Length - 1;
 
     internal int EntityCreatedByInvocationId(int entityId)
     {
@@ -234,6 +240,7 @@ internal sealed partial class WorldState
         }
 
         AddProvenanceOutput(
+            context,
             context.ProvenanceInvocationId,
             ProvenanceOutputKindCodes.EntityCreated,
             entityId,
@@ -259,6 +266,7 @@ internal sealed partial class WorldState
         }
 
         AddProvenanceOutput(
+            context,
             context.ProvenanceInvocationId,
             outputKindCode,
             outputId,
@@ -269,6 +277,7 @@ internal sealed partial class WorldState
     }
 
     private void AddProvenanceOutput(
+        in KernelExecutionContext context,
         int invocationId,
         int outputKindCode,
         int outputId,
@@ -285,7 +294,7 @@ internal sealed partial class WorldState
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(valueId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(changeCodeId);
 
-        var outputRowId = AllocateProvenanceOutputSlot();
+        var outputRowId = AllocateProvenanceOutputSlot(context);
         _provenanceOutputInvocationId[outputRowId] = invocationId;
         _provenanceOutputKindCode[outputRowId] = outputKindCode;
         _provenanceOutputId[outputRowId] = outputId;
@@ -318,41 +327,191 @@ internal sealed partial class WorldState
 
         if (_provenanceOutputHighWatermark + 1 >= _provenanceOutputInvocationId.Length)
         {
-            ThrowCapacityExceeded(
-                KernelCapacityCodes.ProvenanceOutput,
-                _provenanceOutputHighWatermark + 1,
-                _provenanceOutputInvocationId.Length - 1);
+            EnsureProvenanceOutputCapacity(_provenanceOutputHighWatermark + 1, context);
         }
     }
 
-    private int AllocateProvenanceInvocationSlot()
+    internal void GrowStorageIfNeeded(int tick, in KernelExecutionContext context)
+    {
+        if (!_growableStoragePolicy.ShouldCheck(tick))
+        {
+            return;
+        }
+
+        GrowProvenanceInvocationStorageAtThreshold(context);
+        GrowProvenanceOutputStorageAtThreshold(context);
+    }
+
+    private int AllocateProvenanceInvocationSlot(in KernelExecutionContext context)
     {
         var invocationId = _provenanceInvocationHighWatermark + 1;
         if ((uint)invocationId >= (uint)_provenanceInvocationTick.Length)
         {
-            ThrowCapacityExceeded(
-                KernelCapacityCodes.ProvenanceInvocation,
-                invocationId,
-                _provenanceInvocationTick.Length - 1);
+            EnsureProvenanceInvocationCapacity(invocationId, context);
         }
 
         _provenanceInvocationHighWatermark = invocationId;
         return invocationId;
     }
 
-    private int AllocateProvenanceOutputSlot()
+    private int AllocateProvenanceOutputSlot(in KernelExecutionContext context)
     {
         var outputId = _provenanceOutputHighWatermark + 1;
         if ((uint)outputId >= (uint)_provenanceOutputInvocationId.Length)
         {
-            ThrowCapacityExceeded(
-                KernelCapacityCodes.ProvenanceOutput,
-                outputId,
-                _provenanceOutputInvocationId.Length - 1);
+            EnsureProvenanceOutputCapacity(outputId, context);
         }
 
         _provenanceOutputHighWatermark = outputId;
         return outputId;
+    }
+
+    private void EnsureProvenanceInvocationCapacity(int requestedIndex, in KernelExecutionContext context)
+    {
+        if ((uint)requestedIndex < (uint)_provenanceInvocationTick.Length)
+        {
+            return;
+        }
+
+        if (!_growableStoragePolicy.Enabled)
+        {
+            ThrowCapacityExceeded(
+                KernelCapacityCodes.ProvenanceInvocation,
+                requestedIndex,
+                ProvenanceInvocationCapacity);
+        }
+
+        GrowProvenanceInvocationStorage(requestedIndex, KernelStorageGrowthReasonCodes.Reserve, context);
+    }
+
+    private void EnsureProvenanceOutputCapacity(int requestedIndex, in KernelExecutionContext context)
+    {
+        if ((uint)requestedIndex < (uint)_provenanceOutputInvocationId.Length)
+        {
+            return;
+        }
+
+        if (!_growableStoragePolicy.Enabled)
+        {
+            ThrowCapacityExceeded(
+                KernelCapacityCodes.ProvenanceOutput,
+                requestedIndex,
+                ProvenanceOutputCapacity);
+        }
+
+        GrowProvenanceOutputStorage(requestedIndex, KernelStorageGrowthReasonCodes.Reserve, context);
+    }
+
+    private void GrowProvenanceInvocationStorageAtThreshold(in KernelExecutionContext context)
+    {
+        if (!KernelGrowableStorage.ShouldGrowAtThreshold(
+                _provenanceInvocationHighWatermark,
+                ProvenanceInvocationCapacity,
+                _growableStoragePolicy.ThresholdPermille))
+        {
+            return;
+        }
+
+        GrowProvenanceInvocationStorage(
+            ProvenanceInvocationCapacity + 1,
+            KernelStorageGrowthReasonCodes.Threshold,
+            context);
+    }
+
+    private void GrowProvenanceOutputStorageAtThreshold(in KernelExecutionContext context)
+    {
+        if (!KernelGrowableStorage.ShouldGrowAtThreshold(
+                _provenanceOutputHighWatermark,
+                ProvenanceOutputCapacity,
+                _growableStoragePolicy.ThresholdPermille))
+        {
+            return;
+        }
+
+        GrowProvenanceOutputStorage(
+            ProvenanceOutputCapacity + 1,
+            KernelStorageGrowthReasonCodes.Threshold,
+            context);
+    }
+
+    private void GrowProvenanceInvocationStorage(
+        int minimumCapacity,
+        int reasonCode,
+        in KernelExecutionContext context)
+    {
+        var previousCapacity = ProvenanceInvocationCapacity;
+        var nextCapacity = KernelGrowableStorage.GrowthCapacity(
+            previousCapacity,
+            minimumCapacity,
+            _growableStoragePolicy.GrowthFactor);
+        _provenanceInvocationTick = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationTick, nextCapacity);
+        _provenanceInvocationProducerKindCode = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationProducerKindCode, nextCapacity);
+        _provenanceInvocationProducerId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationProducerId, nextCapacity);
+        _provenanceInvocationProgramId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationProgramId, nextCapacity);
+        _provenanceInvocationSourceCodeId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationSourceCodeId, nextCapacity);
+        _provenanceInvocationActionId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationActionId, nextCapacity);
+        _provenanceInvocationPrimaryEntityId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationPrimaryEntityId, nextCapacity);
+        _provenanceInvocationSecondaryEntityId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationSecondaryEntityId, nextCapacity);
+        _provenanceInvocationParentInvocationId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationParentInvocationId, nextCapacity);
+        _provenanceInvocationTriggerKindCode = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationTriggerKindCode, nextCapacity);
+        _provenanceInvocationTriggerId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationTriggerId, nextCapacity);
+        _provenanceInvocationFirstOutputId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationFirstOutputId, nextCapacity);
+        _provenanceInvocationLastOutputId = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationLastOutputId, nextCapacity);
+        _provenanceInvocationOutputCount = KernelGrowableStorage.GrowInt32Array(_provenanceInvocationOutputCount, nextCapacity);
+        WriteStorageGrown(
+            KernelStorageCodes.ProvenanceInvocation,
+            reasonCode,
+            _provenanceInvocationHighWatermark,
+            previousCapacity,
+            nextCapacity,
+            context);
+    }
+
+    private void GrowProvenanceOutputStorage(
+        int minimumCapacity,
+        int reasonCode,
+        in KernelExecutionContext context)
+    {
+        var previousCapacity = ProvenanceOutputCapacity;
+        var nextCapacity = KernelGrowableStorage.GrowthCapacity(
+            previousCapacity,
+            minimumCapacity,
+            _growableStoragePolicy.GrowthFactor);
+        _provenanceOutputInvocationId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputInvocationId, nextCapacity);
+        _provenanceOutputKindCode = KernelGrowableStorage.GrowInt32Array(_provenanceOutputKindCode, nextCapacity);
+        _provenanceOutputId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputId, nextCapacity);
+        _provenanceOutputSubjectEntityId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputSubjectEntityId, nextCapacity);
+        _provenanceOutputSecondaryEntityId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputSecondaryEntityId, nextCapacity);
+        _provenanceOutputValueId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputValueId, nextCapacity);
+        _provenanceOutputChangeCodeId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputChangeCodeId, nextCapacity);
+        _provenanceOutputNextId = KernelGrowableStorage.GrowInt32Array(_provenanceOutputNextId, nextCapacity);
+        WriteStorageGrown(
+            KernelStorageCodes.ProvenanceOutput,
+            reasonCode,
+            _provenanceOutputHighWatermark,
+            previousCapacity,
+            nextCapacity,
+            context);
+    }
+
+    private void WriteStorageGrown(
+        int storageCode,
+        int reasonCode,
+        int highWatermark,
+        int previousCapacity,
+        int currentCapacity,
+        in KernelExecutionContext context)
+    {
+        Write(KernelEvent.From(new KernelStorageGrownKernelEvent(
+            CurrentTick,
+            WorldVersion,
+            storageCode,
+            reasonCode,
+            highWatermark,
+            previousCapacity,
+            currentCapacity,
+            _growableStoragePolicy.ThresholdPermille)),
+            context);
     }
 
     private static void ThrowCapacityExceeded(int capacityCode, int requestedIndex, int capacity) =>

@@ -195,9 +195,13 @@ internal sealed partial class GeneratorProgramRuntime
         _subtypeIds[_subtypeCount] = subtypeId;
     }
 
-    private void AddRelationshipKindFilterId(int relationshipKindId)
+    private void AddRelationshipKindFilterId(int relationshipKindId) =>
+        AddRelationshipKindFilter(relationshipKindId, minimumStrength: 0f);
+
+    private void AddRelationshipKindFilter(int relationshipKindId, float minimumStrength)
     {
         ValidatePositive(relationshipKindId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumStrength);
         if (_relationshipKindFilterCount + 1 >= _relationshipKindFilterIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -205,6 +209,7 @@ internal sealed partial class GeneratorProgramRuntime
 
         _relationshipKindFilterCount++;
         _relationshipKindFilterIds[_relationshipKindFilterCount] = relationshipKindId;
+        _relationshipKindFilterMinimumStrengths[_relationshipKindFilterCount] = minimumStrength;
     }
 
     private void AddTerrainFilterId(int terrainId)

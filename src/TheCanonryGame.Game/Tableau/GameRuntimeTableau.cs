@@ -20,11 +20,13 @@ internal sealed class GameRuntimeTableau
     private readonly UiProjectionState _projection;
     private readonly IProjectionSymbolCatalog _symbols;
     private readonly GameIntentPort _intents;
+    private readonly GameDomainKnowledge _knowledge;
 
     internal GameRuntimeTableau(
         UiProjectionState projection,
         IProjectionSymbolCatalog symbols,
-        GameIntentPort intents)
+        GameIntentPort intents,
+        GameDomainKnowledge? knowledge = null)
     {
         ArgumentNullException.ThrowIfNull(projection);
         ArgumentNullException.ThrowIfNull(symbols);
@@ -32,6 +34,7 @@ internal sealed class GameRuntimeTableau
         _projection = projection;
         _symbols = symbols;
         _intents = intents;
+        _knowledge = knowledge ?? GameDomainKnowledge.Empty;
         BuildGeneratorCards();
         BuildGambitCards();
     }
@@ -125,17 +128,8 @@ internal sealed class GameRuntimeTableau
             .Where(symbol => symbol.Kind == ProjectionSymbolKind.Generator)
             .OrderBy(symbol => symbol.DisplayName, StringComparer.Ordinal))
         {
-            var card = new CardDefinition(
-                $"generator:{symbol.StableName}",
-                symbol.DisplayName,
-                CardType.Generator,
-                generatorId: symbol.Id)
-            {
-                Description = symbol.Description ?? string.Empty,
-            };
-            card.Tags.Add("generator");
-            AddKindHintTag(card, GeneratorKindHint(symbol.StableName));
-            _tableau.PlaceCard(card, currentTick: 0);
+            _knowledge.GeneratorsById.TryGetValue(symbol.Id, out var capability);
+            _tableau.PlaceCard(CreateGeneratorCard(symbol, capability), currentTick: 0);
         }
     }
 
@@ -145,19 +139,72 @@ internal sealed class GameRuntimeTableau
             .Where(symbol => symbol.Kind == ProjectionSymbolKind.Gambit)
             .OrderBy(symbol => symbol.DisplayName, StringComparer.Ordinal))
         {
-            var card = new CardDefinition(
-                $"gambit:{symbol.StableName}",
-                symbol.DisplayName,
-                CardType.Action,
-                gambitId: symbol.Id)
-            {
-                Description = symbol.Description ?? string.Empty,
-            };
-            card.Tags.Add("gambit");
-            AddKindHintTag(card, GambitKindHint(symbol.StableName));
-            _tableau.PlaceCard(card, currentTick: 0);
+            _knowledge.GambitsById.TryGetValue(symbol.Id, out var capability);
+            _tableau.PlaceCard(CreateGambitCard(symbol, capability), currentTick: 0);
         }
     }
+
+    private static CardDefinition CreateGeneratorCard(ProjectionSymbol symbol, GameCapabilityKnowledge? capability)
+    {
+        var card = new CardDefinition(
+            $"generator:{symbol.StableName}",
+            symbol.DisplayName,
+            CardType.Generator,
+            generatorId: symbol.Id)
+        {
+            Description = DescriptionFor(symbol, capability),
+            Produces = ProducesFor(capability),
+            RelationshipChanges = RelationshipChangesFor(capability),
+            TerrainTransforms = TerrainTransformsFor(capability),
+            DecisionModifiers = DecisionModifiersFor(capability),
+        };
+        card.Tags.Add("generator");
+        AddKindHintTag(card, GeneratorKindHintFor(symbol, capability));
+        return card;
+    }
+
+    private static CardDefinition CreateGambitCard(ProjectionSymbol symbol, GameCapabilityKnowledge? capability)
+    {
+        var card = new CardDefinition(
+            $"gambit:{symbol.StableName}",
+            symbol.DisplayName,
+            CardType.Action,
+            gambitId: symbol.Id)
+        {
+            Description = DescriptionFor(symbol, capability),
+            Produces = ProducesFor(capability),
+            RelationshipChanges = RelationshipChangesFor(capability),
+            TerrainTransforms = TerrainTransformsFor(capability),
+            DecisionModifiers = DecisionModifiersFor(capability),
+        };
+        card.Tags.Add("gambit");
+        AddKindHintTag(card, GambitKindHintFor(symbol, capability));
+        return card;
+    }
+
+    private static string DescriptionFor(ProjectionSymbol symbol, GameCapabilityKnowledge? capability) =>
+        capability?.Description ?? symbol.Description ?? string.Empty;
+
+    private static IReadOnlyList<CardProducedEntityDescriptor> ProducesFor(GameCapabilityKnowledge? capability) =>
+        capability?.Produces ?? [];
+
+    private static IReadOnlyList<CardRelationshipChangeDescriptor> RelationshipChangesFor(
+        GameCapabilityKnowledge? capability) =>
+        capability?.RelationshipChanges ?? [];
+
+    private static IReadOnlyList<CardTerrainTransformDescriptor> TerrainTransformsFor(
+        GameCapabilityKnowledge? capability) =>
+        capability?.TerrainTransforms ?? [];
+
+    private static IReadOnlyList<CardDecisionModifierDescriptor> DecisionModifiersFor(
+        GameCapabilityKnowledge? capability) =>
+        capability?.DecisionModifiers ?? [];
+
+    private static string? GeneratorKindHintFor(ProjectionSymbol symbol, GameCapabilityKnowledge? capability) =>
+        capability?.PrimaryKindStableName ?? GeneratorKindHint(symbol.StableName);
+
+    private static string? GambitKindHintFor(ProjectionSymbol symbol, GameCapabilityKnowledge? capability) =>
+        capability?.PrimaryKindStableName ?? GambitKindHint(symbol.StableName);
 
     private static void AddKindHintTag(CardDefinition card, string? kindHint)
     {

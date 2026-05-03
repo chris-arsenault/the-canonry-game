@@ -116,6 +116,9 @@ public sealed class KernelEventPayloadTests
 
         var provenanceInvocationRecorded = new ProvenanceInvocationRecordedKernelEvent(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
         Assert.Equal(provenanceInvocationRecorded, KernelEvent.From(provenanceInvocationRecorded).AsProvenanceInvocationRecorded());
+
+        var kernelStorageGrown = new KernelStorageGrownKernelEvent(22, 23, 24, 25, 26, 27, 28, 29);
+        Assert.Equal(kernelStorageGrown, KernelEvent.From(kernelStorageGrown).AsKernelStorageGrown());
     }
 
     private static void AssertPlanningEventsRoundTrip()

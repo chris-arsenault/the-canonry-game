@@ -63,7 +63,8 @@ entities decide whether and when to act.
 ## Design Bias
 
 Good gambits produce graph consequences that other systems understand. Prefer
-relationship strength, relationship facts, health effects, traits, and locality
-queries over one-off tags or isolated bookkeeping. If a gambit needs a numeric
-gate, relationship strength should be the first option unless health is the
-actual subject of the action.
+relationship strength, health effects, traits, locality queries, and ordinary
+relationship kinds over one-off tags or isolated bookkeeping. Use relationship
+facts only for rare boolean edge qualifiers. If a gambit needs a numeric gate,
+relationship strength should be the first option unless health is the actual
+subject of the action.

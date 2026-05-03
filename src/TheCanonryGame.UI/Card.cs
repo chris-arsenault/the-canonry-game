@@ -12,22 +12,6 @@ namespace TheCanonryGame.UI;
 
 public partial class Card : PanelContainer
 {
-    private static readonly Dictionary<string, string[]> ProducedLabelsByCardId =
-        new Dictionary<string, string[]>(StringComparer.Ordinal)
-        {
-            ["generator:war_makes_wardens"] = ["warden", "holdfast", "?weapon"],
-            ["generator:ice_settles_accounts"] = ["seal", "witness", "?exile"],
-            ["generator:what_the_spring_remembers"] = ["relic", "witness", "?sanctuary", "?choir"],
-            ["generator:war_breaks_the_land"] = ["scar", "?weapon", "?compact"],
-            ["generator:routes_draw_readers"] = ["broker", "harbor", "?order", "?instrument"],
-            ["generator:what_the_artifact_knows"] = ["rookery", "seal", "?cell"],
-            ["gambit:penguin_wields_artifact"] = ["holds"],
-            ["gambit:faction_declares_territorial_war"] = ["at_war_with"],
-            ["gambit:settlement_opens_trade_route"] = ["trade_route"],
-            ["gambit:artifact_cleanses_scar"] = ["cleansed_by", "-> hot_springs"],
-            ["gambit:faction_sues_for_peace"] = ["betrayed_by", "-at_war_with"],
-        };
-
     private Label? _typeBadgeLabel;
     private Label? _nameLabel;
     private TextureRect? _art;
@@ -113,6 +97,7 @@ public partial class Card : PanelContainer
         BindHeader(card, accent);
         BindBody(card, state, accent);
         BindFooter(card, state);
+        TooltipText = DetailText(card);
     }
 
     public void Flash()
@@ -188,14 +173,14 @@ public partial class Card : PanelContainer
 
     private static string CreatesText(CardInstance card)
     {
-        var produces = ResolveProduces(card.Definition.Id);
-        if (produces.Length == 0)
+        var outputs = OutputLabels(card).ToArray();
+        if (outputs.Length == 0)
         {
             return string.Empty;
         }
 
-        var prefix = card.Definition.Type == CardType.Generator ? "creates" : "binds";
-        return $"{prefix}  {string.Join(" · ", produces)}";
+        var prefix = card.Definition.Type == CardType.Generator ? "creates" : "changes";
+        return $"{prefix}  {string.Join(" · ", outputs)}";
     }
 
     private static string DescriptionText(CardInstance card)
@@ -263,10 +248,93 @@ public partial class Card : PanelContainer
         return null;
     }
 
-    // What each generator/gambit produces, derived from the IceRemembers
-    // catalog. Cards don't carry produced-entity metadata directly, so this
-    // mapping mirrors what the kernel actually creates. Optional produces
-    // and removed relationships are marked with prefixes.
-    private static string[] ResolveProduces(string cardId) =>
-        ProducedLabelsByCardId.TryGetValue(cardId, out var produces) ? produces : [];
+    private static IEnumerable<string> OutputLabels(CardInstance card)
+    {
+        if (card.Definition.Type == CardType.Generator)
+        {
+            foreach (var produced in card.Definition.Produces)
+            {
+                yield return produced.IsOptional ? $"?{produced.DisplayLabel}" : produced.DisplayLabel;
+            }
+
+            yield break;
+        }
+
+        foreach (var relationship in card.Definition.RelationshipChanges)
+        {
+            yield return relationship.ChangeKind switch
+            {
+                CardRelationshipChangeKind.Create => relationship.RelationshipDisplayName,
+                CardRelationshipChangeKind.Remove => $"-{relationship.RelationshipDisplayName}",
+                CardRelationshipChangeKind.SetStrength => $"{relationship.RelationshipDisplayName}={relationship.Strength:0.##}",
+                _ => relationship.RelationshipDisplayName,
+            };
+        }
+
+        foreach (var transform in card.Definition.TerrainTransforms)
+        {
+            yield return $"-> {transform.TerrainDisplayName}";
+        }
+    }
+
+    private static string DetailText(CardInstance card)
+    {
+        var lines = new List<string>
+        {
+            card.Definition.Name,
+        };
+
+        var produces = card.Definition.Produces.Select(ProducedDetail).ToArray();
+        if (produces.Length > 0)
+        {
+            lines.Add($"Creates: {string.Join(", ", produces)}");
+        }
+
+        var relationships = card.Definition.RelationshipChanges.Select(RelationshipDetail).ToArray();
+        if (relationships.Length > 0)
+        {
+            lines.Add($"Relationships: {string.Join(", ", relationships)}");
+        }
+
+        var transforms = card.Definition.TerrainTransforms
+            .Select(transform => transform.TerrainDisplayName)
+            .ToArray();
+        if (transforms.Length > 0)
+        {
+            lines.Add($"Terrain: {string.Join(", ", transforms)}");
+        }
+
+        var modifiers = card.Definition.DecisionModifiers.Select(DecisionModifierDetail).ToArray();
+        if (modifiers.Length > 0)
+        {
+            lines.Add($"Trait modifiers: {string.Join(", ", modifiers)}");
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    private static string ProducedDetail(CardProducedEntityDescriptor produced)
+    {
+        var optional = produced.IsOptional ? "optional " : string.Empty;
+        return $"{optional}{produced.DisplayLabel}";
+    }
+
+    private static string RelationshipDetail(CardRelationshipChangeDescriptor relationship) =>
+        relationship.ChangeKind switch
+        {
+            CardRelationshipChangeKind.Create => $"+{relationship.RelationshipDisplayName}",
+            CardRelationshipChangeKind.Remove => $"-{relationship.RelationshipDisplayName}",
+            CardRelationshipChangeKind.SetStrength => $"{relationship.RelationshipDisplayName}={relationship.Strength:0.##}",
+            _ => relationship.RelationshipDisplayName,
+        };
+
+    private static string DecisionModifierDetail(CardDecisionModifierDescriptor modifier)
+    {
+        var score = SignedDelta(modifier.ScoreDelta);
+        var success = SignedDelta(modifier.SuccessChanceDelta);
+        return $"{modifier.TraitDisplayName} score {score}, success {success}";
+    }
+
+    private static string SignedDelta(float value) =>
+        value >= 0f ? $"+{value:0.##}" : $"{value:0.##}";
 }

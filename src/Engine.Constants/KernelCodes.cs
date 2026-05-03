@@ -397,6 +397,13 @@ public static class GeneratorEffectTypeCodes
 {
     public const int SetBindingHistorical = 1;
     public const int RemoveTargetRelationships = 2;
+    public const int AdjustTargetRelationshipStrength = 3;
+}
+
+public static class GeneratorRelationshipInstanceSelectionCodes
+{
+    public const int AllTargetRelationships = 1;
+    public const int TriggerRelationship = 2;
 }
 
 public static class ProvenanceProducerKindCodes
@@ -413,6 +420,8 @@ public static class ProvenanceTriggerKindCodes
     public const int Entity = 1;
     public const int Relationship = 2;
     public const int Invocation = 3;
+    public const int Attribute = 4;
+    public const int Resource = 5;
 }
 
 public static class ProvenanceOutputKindCodes
@@ -432,4 +441,22 @@ public static class KernelCapacityCodes
 {
     public const int ProvenanceInvocation = 1;
     public const int ProvenanceOutput = 2;
+}
+
+public static class KernelGrowableStorageModeCodes
+{
+    public const int Fixed = 0;
+    public const int Enabled = 1;
+}
+
+public static class KernelStorageCodes
+{
+    public const int ProvenanceInvocation = KernelCapacityCodes.ProvenanceInvocation;
+    public const int ProvenanceOutput = KernelCapacityCodes.ProvenanceOutput;
+}
+
+public static class KernelStorageGrowthReasonCodes
+{
+    public const int Threshold = 1;
+    public const int Reserve = 2;
 }

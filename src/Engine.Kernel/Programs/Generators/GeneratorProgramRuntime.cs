@@ -23,6 +23,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _targetRequiredIncomingCounts => Data.TargetRequiredIncomingCounts;
     private int[] _targetRequiredAnyStarts => Data.TargetRequiredAnyStarts;
     private int[] _targetRequiredAnyCounts => Data.TargetRequiredAnyCounts;
+    private int[] _targetWithoutOutgoingStarts => Data.TargetWithoutOutgoingStarts;
+    private int[] _targetWithoutOutgoingCounts => Data.TargetWithoutOutgoingCounts;
+    private int[] _targetWithoutIncomingStarts => Data.TargetWithoutIncomingStarts;
+    private int[] _targetWithoutIncomingCounts => Data.TargetWithoutIncomingCounts;
     private int[] _triggerStarts => Data.TriggerStarts;
     private int[] _triggerCounts => Data.TriggerCounts;
     private int[] _bindingStarts => Data.BindingStarts;
@@ -43,6 +47,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _pulseFailedFireCounts => _scratch.PulseFailedFireCounts;
     private int[] _subtypeIds => Data.SubtypeIds;
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
+    private float[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
     private int[] _terrainFilterIds => Data.TerrainFilterIds;
     private int[] _triggerKindIds => Data.TriggerKindIds;
     private int[] _bindingRefCodes => Data.BindingRefCodes;
@@ -98,6 +103,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private float[] _relationshipStrengths => Data.RelationshipStrengths;
     private int[] _effectTypeCodes => Data.EffectTypeCodes;
     private int[] _effectRefOrKindIds => Data.EffectRefOrKindIds;
+    private int[] _effectInstanceSelectionCodes => Data.EffectInstanceSelectionCodes;
+    private int[] _effectOptionCodes => Data.EffectOptionCodes;
+    private float[] _effectValues => Data.EffectValues;
     private int[] _scratchQ => _scratch.Q;
     private int[] _scratchR => _scratch.R;
     private int[] _scratchScore => _scratch.Score;
@@ -206,6 +214,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetRequiredOutgoingStarts[slot] = _relationshipKindFilterCount + 1;
         _targetRequiredIncomingStarts[slot] = _relationshipKindFilterCount + 1;
         _targetRequiredAnyStarts[slot] = _relationshipKindFilterCount + 1;
+        _targetWithoutOutgoingStarts[slot] = _relationshipKindFilterCount + 1;
+        _targetWithoutIncomingStarts[slot] = _relationshipKindFilterCount + 1;
         _triggerStarts[slot] = _triggerCount + 1;
         _bindingStarts[slot] = _bindingCount + 1;
         _producedStarts[slot] = _producedCount + 1;
@@ -223,7 +233,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetSubtypeCounts[generatorSlot]++;
     }
 
-    public void AddTargetRequiredOutgoingRelationship(int generatorSlot, int relationshipKindId)
+    public void AddTargetRequiredOutgoingRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
     {
         EnsureOpenGenerator(generatorSlot);
         if (_targetRequiredOutgoingCounts[generatorSlot] == 0)
@@ -231,11 +241,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetRequiredOutgoingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
         }
 
-        AddRelationshipKindFilterId(relationshipKindId);
+        AddRelationshipKindFilter(relationshipKindId, minimumStrength);
         _targetRequiredOutgoingCounts[generatorSlot]++;
     }
 
-    public void AddTargetRequiredIncomingRelationship(int generatorSlot, int relationshipKindId)
+    public void AddTargetRequiredIncomingRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
     {
         EnsureOpenGenerator(generatorSlot);
         if (_targetRequiredIncomingCounts[generatorSlot] == 0)
@@ -243,11 +253,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetRequiredIncomingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
         }
 
-        AddRelationshipKindFilterId(relationshipKindId);
+        AddRelationshipKindFilter(relationshipKindId, minimumStrength);
         _targetRequiredIncomingCounts[generatorSlot]++;
     }
 
-    public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId)
+    public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
     {
         EnsureOpenGenerator(generatorSlot);
         if (_targetRequiredAnyCounts[generatorSlot] == 0)
@@ -255,8 +265,32 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetRequiredAnyStarts[generatorSlot] = _relationshipKindFilterCount + 1;
         }
 
-        AddRelationshipKindFilterId(relationshipKindId);
+        AddRelationshipKindFilter(relationshipKindId, minimumStrength);
         _targetRequiredAnyCounts[generatorSlot]++;
+    }
+
+    public void AddTargetWithoutOutgoingRelationship(int generatorSlot, int relationshipKindId)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        if (_targetWithoutOutgoingCounts[generatorSlot] == 0)
+        {
+            _targetWithoutOutgoingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
+        }
+
+        AddRelationshipKindFilterId(relationshipKindId);
+        _targetWithoutOutgoingCounts[generatorSlot]++;
+    }
+
+    public void AddTargetWithoutIncomingRelationship(int generatorSlot, int relationshipKindId)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        if (_targetWithoutIncomingCounts[generatorSlot] == 0)
+        {
+            _targetWithoutIncomingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
+        }
+
+        AddRelationshipKindFilterId(relationshipKindId);
+        _targetWithoutIncomingCounts[generatorSlot]++;
     }
 
     public void SetTargetSaturation(
@@ -537,11 +571,19 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _relationshipCounts[generatorSlot]++;
     }
 
-    public void AddEffect(int generatorSlot, int effectTypeCode, int refOrKindId)
+    public void AddEffect(
+        int generatorSlot,
+        int effectTypeCode,
+        int refOrKindId,
+        int instanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
+        int optionCode = 0,
+        float value = 0f)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(effectTypeCode);
         ValidatePositive(refOrKindId);
+        ValidateRelationshipInstanceSelection(instanceSelectionCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(optionCode);
         if (_effectCount + 1 >= _effectTypeCodes.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -550,7 +592,19 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _effectCount++;
         _effectTypeCodes[_effectCount] = effectTypeCode;
         _effectRefOrKindIds[_effectCount] = refOrKindId;
+        _effectInstanceSelectionCodes[_effectCount] = instanceSelectionCode;
+        _effectOptionCodes[_effectCount] = optionCode;
+        _effectValues[_effectCount] = value;
         _effectCounts[generatorSlot]++;
+    }
+
+    private static void ValidateRelationshipInstanceSelection(int instanceSelectionCode)
+    {
+        if (instanceSelectionCode is not (GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships or
+            GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(instanceSelectionCode));
+        }
     }
 
     public void DisableGenerator(int generatorSlot)

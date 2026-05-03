@@ -101,6 +101,66 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void TargetRequiredOutgoingRelationshipMinimumStrength_BlocksUntilRelationshipIsStrongEnough()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.5f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: 0.7f);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.World.SetRelationshipStrength(relationship, 0.8f, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void TargetWithoutOutgoingRelationship_BlocksUntilRelationshipIsGone()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.8f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetWithoutOutgoingRelationship(slot, RelationshipKindId);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.World.CullRelationship(relationship, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void TargetWithoutIncomingRelationship_BlocksUntilRelationshipIsGone()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var source = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetWithoutIncomingRelationship(slot, RelationshipKindId);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.World.CullRelationship(relationship, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
     public void Fire_CreatesEntityAndRelationshipAndEmitsEvents()
     {
         var simulation = CreateSimulation();
@@ -148,6 +208,9 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Equal(ProvenanceProducerKindCodes.Generator, recorded.ProducerKindCode);
         Assert.Equal(GeneratorId, recorded.ProducerId);
         Assert.Equal(target, recorded.PrimaryEntityId);
+        Assert.Equal(0, recorded.ParentInvocationId);
+        Assert.Equal(ProvenanceTriggerKindCodes.Entity, recorded.TriggerKindCode);
+        Assert.Equal(target, recorded.TriggerId);
         Assert.Equal(2, recorded.OutputCount);
         var outputKinds = ReadProvenanceOutputKinds(simulation, invocationId);
         Assert.Contains(ProvenanceOutputKindCodes.EntityCreated, outputKinds);
@@ -161,6 +224,95 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Contains(events, evt =>
             evt.EventType == KernelEventType.GeneratorFired &&
             evt.ProvenanceInvocationId == invocationId);
+    }
+
+    [Fact]
+    public void Fire_WithRequiredRelationshipRecordsTriggerAndParentInvocation()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var source = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredIncomingRelationship(slot, RelationshipKindId);
+        int triggerRelationship;
+        using (simulation.EnterProvenanceInvocation(
+                   ProvenanceProducerKindCodes.System,
+                   producerId: 900,
+                   primaryEntityId: source))
+        {
+            triggerRelationship = simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 0);
+        }
+
+        var parentInvocationId = simulation.World.RelationshipCreatedByInvocationId(triggerRelationship);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var recorded = Assert.Single(
+            ReadAvailableEvents(simulation, cursor),
+            evt => evt.EventType == KernelEventType.ProvenanceInvocationRecorded).AsProvenanceInvocationRecorded();
+        Assert.Equal(ProvenanceProducerKindCodes.Generator, recorded.ProducerKindCode);
+        Assert.Equal(GeneratorId, recorded.ProducerId);
+        Assert.Equal(target, recorded.PrimaryEntityId);
+        Assert.Equal(parentInvocationId, recorded.ParentInvocationId);
+        Assert.Equal(ProvenanceTriggerKindCodes.Relationship, recorded.TriggerKindCode);
+        Assert.Equal(triggerRelationship, recorded.TriggerId);
+    }
+
+    [Fact]
+    public void RemoveTargetRelationshipsEffect_CanCullSelectedTriggerAndReciprocalOnly()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var opponent = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var other = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 2, 0, 0, 0, 0, tick: 0);
+        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, opponent, 0.8f, tick: 0);
+        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, opponent, target, 0.8f, tick: 0);
+        var unrelated = simulation.CreateRelationship(RelationshipKindId, 0, other, target, 0.8f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId);
+        simulation.Generators.AddEffect(
+            slot,
+            GeneratorEffectTypeCodes.RemoveTargetRelationships,
+            RelationshipKindId,
+            GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship,
+            optionCode: 1);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.False(simulation.World.RelationshipIsActive(trigger));
+        Assert.False(simulation.World.RelationshipIsActive(reciprocal));
+        Assert.True(simulation.World.RelationshipIsActive(unrelated));
+    }
+
+    [Fact]
+    public void AdjustTargetRelationshipStrengthEffect_CanSpendSelectedTriggerAndReciprocalOnly()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var routeTarget = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var other = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 2, 0, 0, 0, 0, tick: 0);
+        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, routeTarget, 0.72f, tick: 0);
+        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, routeTarget, target, 0.72f, tick: 0);
+        var unrelated = simulation.CreateRelationship(RelationshipKindId, 0, target, other, 0.85f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: 0.7f);
+        simulation.Generators.AddEffect(
+            slot,
+            GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength,
+            RelationshipKindId,
+            GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship,
+            optionCode: 1,
+            value: -0.3f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0.42f, simulation.World.RelationshipStrength(trigger), precision: 4);
+        Assert.Equal(0.42f, simulation.World.RelationshipStrength(reciprocal), precision: 4);
+        Assert.Equal(0.85f, simulation.World.RelationshipStrength(unrelated), precision: 4);
     }
 
     [Fact]

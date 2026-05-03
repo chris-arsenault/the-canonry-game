@@ -167,11 +167,37 @@ public sealed class DefinitionSetBindingHistoricalEffect(string bindingRef) : ID
     public string Describe() => $"set_binding_historical({BindingRef})";
 }
 
-public sealed class DefinitionRemoveTargetRelationshipsEffect(int relationshipKindId) : IDefinitionGeneratorEffect
+public sealed class DefinitionRemoveTargetRelationshipsEffect(
+    int relationshipKindId,
+    GeneratorRelationshipInstanceSelection instanceSelection,
+    bool includeReciprocal) : IDefinitionGeneratorEffect
 {
     public int RelationshipKindId { get; } = relationshipKindId;
 
-    public string Describe() => $"remove_target_relationships(kind={RelationshipKindId})";
+    public GeneratorRelationshipInstanceSelection InstanceSelection { get; } = instanceSelection;
+
+    public bool IncludeReciprocal { get; } = includeReciprocal;
+
+    public string Describe() =>
+        $"remove_target_relationships(kind={RelationshipKindId}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
+}
+
+public sealed class DefinitionAdjustTargetRelationshipStrengthEffect(
+    int relationshipKindId,
+    float delta,
+    GeneratorRelationshipInstanceSelection instanceSelection,
+    bool includeReciprocal) : IDefinitionGeneratorEffect
+{
+    public int RelationshipKindId { get; } = relationshipKindId;
+
+    public float Delta { get; } = delta;
+
+    public GeneratorRelationshipInstanceSelection InstanceSelection { get; } = instanceSelection;
+
+    public bool IncludeReciprocal { get; } = includeReciprocal;
+
+    public string Describe() =>
+        $"adjust_target_relationship_strength(kind={RelationshipKindId}, delta={Delta}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
 }
 
 public sealed class DefinitionGeneratorTarget
@@ -182,6 +208,18 @@ public sealed class DefinitionGeneratorTarget
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
+    public IReadOnlyList<DefinitionTargetRelationshipRequirement> RequiredOutgoingRelationshipRequirements { get; init; } = [];
+    public IReadOnlyList<DefinitionTargetRelationshipRequirement> RequiredIncomingRelationshipRequirements { get; init; } = [];
+    public IReadOnlyList<DefinitionTargetRelationshipRequirement> RequiredRelationshipRequirements { get; init; } = [];
+    public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
+    public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
+}
+
+public sealed class DefinitionTargetRelationshipRequirement
+{
+    public required DefinitionRelationshipId RelationshipId { get; init; }
+    public required int RelationshipRuntimeId { get; init; }
+    public float MinimumStrength { get; init; }
 }
 
 public sealed class DefinitionTargetSaturation

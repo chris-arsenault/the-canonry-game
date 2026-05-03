@@ -22,11 +22,15 @@
     <Project Path="src/TheCanonryGame.UI/TheCanonryGame.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Engine.Domain.Tests/Engine.Domain.Tests.csproj" />
     <Project Path="tests/Engine.Eventing.Tests/Engine.Eventing.Tests.csproj" />
     <Project Path="tests/Engine.Gameplay.Tests/Engine.Gameplay.Tests.csproj" />
     <Project Path="tests/Engine.Host.Tests/Engine.Host.Tests.csproj" />
     <Project Path="tests/Engine.Kernel.Driver.Tests/Engine.Kernel.Driver.Tests.csproj" />
+    <Project Path="tests/Engine.Kernel.Tests/Engine.Kernel.Tests.csproj" />
     <Project Path="tests/Engine.Observability.Tests/Engine.Observability.Tests.csproj" />
+    <Project Path="tests/Engine.Projection.Tests/Engine.Projection.Tests.csproj" />
+    <Project Path="tests/Engine.WorldGen.Tests/Engine.WorldGen.Tests.csproj" />
     <Project Path="tests/IceRemembers.Seed.Tests/IceRemembers.Seed.Tests.csproj" />
     <Project Path="tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj" />
     <Project Path="tests/TheCanonryGame.Game.Tests/TheCanonryGame.Game.Tests.csproj" />

@@ -381,9 +381,37 @@ public static partial class DomainCompiler
         DefinitionGeneratorTarget target,
         DomainIdRegistry ids) =>
         new(
-            CompileRelationshipKindIds(target.RequiredOutgoingRelationships, ids),
-            CompileRelationshipKindIds(target.RequiredIncomingRelationships, ids),
-            CompileRelationshipKindIds(target.RequiredRelationships, ids));
+            CompileRelationshipRequirements(target.RequiredOutgoingRelationships, target.RequiredOutgoingRelationshipRequirements, ids),
+            CompileRelationshipRequirements(target.RequiredIncomingRelationships, target.RequiredIncomingRelationshipRequirements, ids),
+            CompileRelationshipRequirements(target.RequiredRelationships, target.RequiredRelationshipRequirements, ids),
+            CompileRelationshipKindIds(target.WithoutOutgoingRelationships, ids),
+            CompileRelationshipKindIds(target.WithoutIncomingRelationships, ids));
+
+    private static List<GeneratorRelationshipRequirementRule> CompileRelationshipRequirements(
+        IReadOnlySet<string>? relationshipKinds,
+        IReadOnlyList<DefinitionTargetRelationshipRequirement> relationshipRequirements,
+        DomainIdRegistry ids)
+    {
+        var compiled = new List<GeneratorRelationshipRequirementRule>();
+        if (relationshipKinds is not null)
+        {
+            foreach (var relationshipKind in relationshipKinds)
+            {
+                compiled.Add(new GeneratorRelationshipRequirementRule(
+                    ids.RelationshipKindIdOf(relationshipKind).Value,
+                    0f));
+            }
+        }
+
+        foreach (var requirement in relationshipRequirements)
+        {
+            compiled.Add(new GeneratorRelationshipRequirementRule(
+                requirement.RelationshipRuntimeId,
+                requirement.MinimumStrength));
+        }
+
+        return compiled;
+    }
 
     private static List<GeneratorTriggerRule> CompileGeneratorTriggers(
         IReadOnlyList<DefinitionGeneratorTrigger> triggers,
@@ -534,7 +562,17 @@ public static partial class DomainCompiler
                 case DefinitionRemoveTargetRelationshipsEffect removeRelationships:
                     compiled.Add(new GeneratorEffectRule(
                         GeneratorEffectTypeCodes.RemoveTargetRelationships,
-                        removeRelationships.RelationshipKindId));
+                        removeRelationships.RelationshipKindId,
+                        ToGeneratorRelationshipInstanceSelection(removeRelationships.InstanceSelection),
+                        removeRelationships.IncludeReciprocal ? 1 : 0));
+                    break;
+                case DefinitionAdjustTargetRelationshipStrengthEffect adjustRelationship:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength,
+                        adjustRelationship.RelationshipKindId,
+                        ToGeneratorRelationshipInstanceSelection(adjustRelationship.InstanceSelection),
+                        adjustRelationship.IncludeReciprocal ? 1 : 0,
+                        adjustRelationship.Delta));
                     break;
                 default:
                     throw new InvalidOperationException($"Unsupported generator effect type '{effect.GetType().Name}'.");
@@ -633,6 +671,14 @@ public static partial class DomainCompiler
             TargetSaturationDirection.IncomingToTarget => GeneratorProgramSaturationDirection.IncomingToTarget,
             TargetSaturationDirection.Symmetric => GeneratorProgramSaturationDirection.Symmetric,
             _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+        };
+
+    private static int ToGeneratorRelationshipInstanceSelection(
+        GeneratorRelationshipInstanceSelection selection) => selection switch
+        {
+            GeneratorRelationshipInstanceSelection.AllTargetRelationships => GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
+            GeneratorRelationshipInstanceSelection.TriggerRelationship => GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship,
+            _ => throw new ArgumentOutOfRangeException(nameof(selection), selection, null),
         };
 
     private static GeneratorProgramPlacement ToGeneratorPlacement(SemanticPlacement placement) => placement switch

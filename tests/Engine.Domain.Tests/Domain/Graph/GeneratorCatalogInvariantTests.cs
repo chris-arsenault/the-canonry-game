@@ -20,7 +20,7 @@ public class GeneratorCatalogInvariantTests
     }
 
     [Fact]
-    public void Validate_IceRemembersGeneratorCatalog_TargetSaturationMatchesGeneratedRelationships()
+    public void Validate_IceRemembersGeneratorCatalog_TargetRepeatControlIsPlayable()
     {
         var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var issues = new List<string>();
@@ -29,7 +29,11 @@ public class GeneratorCatalogInvariantTests
         {
             if (generator.TargetSaturation is not { } saturation)
             {
-                issues.Add($"{generator.Id} has no target saturation.");
+                if (!HasCausalSpend(generator))
+                {
+                    issues.Add($"{generator.Id} has neither legacy target saturation nor causal spend.");
+                }
+
                 continue;
             }
 
@@ -44,6 +48,37 @@ public class GeneratorCatalogInvariantTests
         }
 
         Assert.Empty(issues);
+    }
+
+    private static bool HasCausalSpend(DefinitionGeneratorNode generator) =>
+        generator.Effects.Any(effect =>
+            effect is DefinitionRemoveTargetRelationshipsEffect
+            {
+                InstanceSelection: GeneratorRelationshipInstanceSelection.TriggerRelationship,
+            } ||
+            effect is DefinitionAdjustTargetRelationshipStrengthEffect
+            {
+                InstanceSelection: GeneratorRelationshipInstanceSelection.TriggerRelationship,
+            }) ||
+        HasMatchingOutputStateLock(generator.Target.WithoutOutgoingRelationships, generator.Relationships, outgoingFromTarget: true) ||
+        HasMatchingOutputStateLock(generator.Target.WithoutIncomingRelationships, generator.Relationships, outgoingFromTarget: false);
+
+    private static bool HasMatchingOutputStateLock(
+        IReadOnlySet<string>? relationshipKinds,
+        IReadOnlyList<DefinitionGeneratorRelationship> relationships,
+        bool outgoingFromTarget)
+    {
+        if (relationshipKinds is not { Count: > 0 })
+        {
+            return false;
+        }
+
+        return relationshipKinds.Any(kind =>
+            relationships.Any(relationship =>
+                relationship.RelationshipId.Value == kind &&
+                (outgoingFromTarget
+                    ? relationship.SourceRef == "$target"
+                    : relationship.DestinationRef == "$target")));
     }
 
     [Fact]

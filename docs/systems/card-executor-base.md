@@ -18,7 +18,7 @@ Useful precondition families:
 
 - entity kind/subtype/culture
 - relationship existence or absence
-- relationship fact existence
+- rare boolean relationship qualifier existence, if the fact system remains
 - relationship saturation limit
 - relationship strength threshold
 - health threshold
@@ -32,13 +32,14 @@ Useful precondition families:
 ## Effects
 
 Generators may create named entity bundles. Gambits should usually avoid entity
-creation and instead change relationships, facts, status, health, or traits.
+creation and instead change relationships, status, health, traits, or rare
+boolean edge qualifiers.
 
 Effect families:
 
 - create entity
 - create relationship
-- add relationship fact
+- add boolean relationship qualifier, if the fact system remains
 - modify relationship strength or polarity
 - modify status
 - modify subtype

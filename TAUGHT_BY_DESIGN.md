@@ -1,5 +1,10 @@
 # Ability Transmission: `taught_by` Should Be a Relationship, Not a Fact
 
+Status: superseded by the Phase 3 implementation. `taught_by` is now an
+ordinary Ice Remembers relationship, ability seed lineage emits `taught_by`
+edges, and Ice Remembers no longer registers relationship facts. This document
+is historical context for why the fact-based shape was rejected.
+
 ## Context
 
 Just shipped the `ability` entity kind to `IceRemembers` (Asset / Semantic /

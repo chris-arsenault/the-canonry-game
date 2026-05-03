@@ -55,3 +55,18 @@ If a test encodes obsolete architecture, update the test and the docs together.
 
 Use `make ci` as the final verification pass. Do not run tests in parallel in
 this repo.
+
+Prefer one meaningful verification run over many overlapping runs. If the full
+suite is cheap enough for the current task, run the full suite once instead of
+stacking focused suites and then rerunning the same coverage.
+
+Run focused tests only while diagnosing a concrete failure or checking a narrow
+compile/runtime break before the final verification pass.
+
+Do not rerun passing tests unless code, configuration, generated sources, or
+test inputs changed after the previous run. Formatting checks, `git diff`, and
+read-only inspection are not reasons to rerun tests.
+
+Before running tests, decide and state the intended verification scope. Run
+additional tests only when a new failure or new change creates a specific reason
+for them.

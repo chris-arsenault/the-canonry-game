@@ -14,6 +14,7 @@ internal sealed partial class GeneratorProgramRuntime
         if (!KernelQuery.EntityIsActiveKind(world, targetId, _targetKindIds[generatorSlot]) ||
             !KernelQuery.SubtypeAllowed(_subtypeIds, _targetSubtypeStarts[generatorSlot], _targetSubtypeCounts[generatorSlot], world.EntitySubtypeId(targetId)) ||
             !TargetRelationshipRequirementsPass(world, generatorSlot, targetId) ||
+            !TargetRelationshipAbsenceRequirementsPass(world, generatorSlot, targetId) ||
             ExceedsTargetSaturation(world, generatorSlot, targetId) ||
             !TriggersPass(world, generatorSlot, targetId))
         {
@@ -48,6 +49,7 @@ internal sealed partial class GeneratorProgramRuntime
                 world,
                 targetId,
                 _relationshipKindFilterIds,
+                _relationshipKindFilterMinimumStrengths,
                 _targetRequiredOutgoingStarts[generatorSlot],
                 _targetRequiredOutgoingCounts[generatorSlot],
                 outgoing: true) &&
@@ -55,6 +57,7 @@ internal sealed partial class GeneratorProgramRuntime
                 world,
                 targetId,
                 _relationshipKindFilterIds,
+                _relationshipKindFilterMinimumStrengths,
                 _targetRequiredIncomingStarts[generatorSlot],
                 _targetRequiredIncomingCounts[generatorSlot],
                 outgoing: false) &&
@@ -62,8 +65,27 @@ internal sealed partial class GeneratorProgramRuntime
                 world,
                 targetId,
                 _relationshipKindFilterIds,
+                _relationshipKindFilterMinimumStrengths,
                 _targetRequiredAnyStarts[generatorSlot],
                 _targetRequiredAnyCounts[generatorSlot]);
+    }
+
+    private bool TargetRelationshipAbsenceRequirementsPass(WorldState world, int generatorSlot, int targetId)
+    {
+        return KernelQuery.NoRelationshipKindRequirementsPresent(
+                world,
+                targetId,
+                _relationshipKindFilterIds,
+                _targetWithoutOutgoingStarts[generatorSlot],
+                _targetWithoutOutgoingCounts[generatorSlot],
+                outgoing: true) &&
+            KernelQuery.NoRelationshipKindRequirementsPresent(
+                world,
+                targetId,
+                _relationshipKindFilterIds,
+                _targetWithoutIncomingStarts[generatorSlot],
+                _targetWithoutIncomingCounts[generatorSlot],
+                outgoing: false);
     }
 
     private bool ResolveSecondaryBindings(

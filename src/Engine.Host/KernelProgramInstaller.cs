@@ -244,7 +244,13 @@ internal static partial class KernelProgramInstaller
     {
         foreach (var effect in generator.Effects)
         {
-            context.AddGeneratorEffect(generatorSlot, effect.EffectTypeCode, effect.RefOrKindId);
+            context.AddGeneratorEffect(
+                generatorSlot,
+                effect.EffectTypeCode,
+                effect.RefOrKindId,
+                effect.InstanceSelectionCode,
+                effect.OptionCode,
+                effect.Value);
         }
     }
 
@@ -255,19 +261,38 @@ internal static partial class KernelProgramInstaller
             context.AddGeneratorTargetSubtype(generatorSlot, subtypeId);
         }
 
-        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.RequiredOutgoingRelationshipKindIds)
+        foreach (var relationship in generator.TargetRelationshipRequirements.RequiredOutgoingRelationships)
         {
-            context.AddGeneratorTargetRequiredOutgoingRelationship(generatorSlot, relationshipKindId);
+            context.AddGeneratorTargetRequiredOutgoingRelationship(
+                generatorSlot,
+                relationship.RelationshipKindId,
+                relationship.MinimumStrength);
         }
 
-        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.RequiredIncomingRelationshipKindIds)
+        foreach (var relationship in generator.TargetRelationshipRequirements.RequiredIncomingRelationships)
         {
-            context.AddGeneratorTargetRequiredIncomingRelationship(generatorSlot, relationshipKindId);
+            context.AddGeneratorTargetRequiredIncomingRelationship(
+                generatorSlot,
+                relationship.RelationshipKindId,
+                relationship.MinimumStrength);
         }
 
-        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.RequiredRelationshipKindIds)
+        foreach (var relationship in generator.TargetRelationshipRequirements.RequiredRelationships)
         {
-            context.AddGeneratorTargetRequiredRelationship(generatorSlot, relationshipKindId);
+            context.AddGeneratorTargetRequiredRelationship(
+                generatorSlot,
+                relationship.RelationshipKindId,
+                relationship.MinimumStrength);
+        }
+
+        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.WithoutOutgoingRelationshipKindIds)
+        {
+            context.AddGeneratorTargetWithoutOutgoingRelationship(generatorSlot, relationshipKindId);
+        }
+
+        foreach (var relationshipKindId in generator.TargetRelationshipRequirements.WithoutIncomingRelationshipKindIds)
+        {
+            context.AddGeneratorTargetWithoutIncomingRelationship(generatorSlot, relationshipKindId);
         }
 
         if (generator.TargetSaturation is { } saturation)

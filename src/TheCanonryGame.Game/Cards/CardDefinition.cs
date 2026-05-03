@@ -54,4 +54,66 @@ internal sealed class CardDefinition
     public ISet<string> Tags { get; } = new HashSet<string>(StringComparer.Ordinal);
 
     public string Description { get; set; } = string.Empty;
+
+    public IReadOnlyList<CardProducedEntityDescriptor> Produces { get; init; } = [];
+
+    public IReadOnlyList<CardRelationshipChangeDescriptor> RelationshipChanges { get; init; } = [];
+
+    public IReadOnlyList<CardTerrainTransformDescriptor> TerrainTransforms { get; init; } = [];
+
+    public IReadOnlyList<CardDecisionModifierDescriptor> DecisionModifiers { get; init; } = [];
 }
+
+internal sealed record CardProducedEntityDescriptor(
+    string Ref,
+    int KindId,
+    string KindStableName,
+    string KindDisplayName,
+    int SubtypeId,
+    string? SubtypeStableName,
+    string? SubtypeDisplayName,
+    IReadOnlyList<CardSubtypeOptionDescriptor> SubtypeOptions,
+    string Role,
+    float CreateChance,
+    bool CreateIfMissing)
+{
+    public bool IsOptional => CreateChance < 1f;
+
+    public string DisplayLabel =>
+        SubtypeDisplayName ??
+        (SubtypeOptions.Count > 0 ? SubtypeOptions[0].DisplayName : null) ??
+        KindDisplayName;
+}
+
+internal sealed record CardSubtypeOptionDescriptor(
+    int SubtypeId,
+    string StableName,
+    string DisplayName);
+
+internal enum CardRelationshipChangeKind
+{
+    Create,
+    Remove,
+    SetStrength,
+}
+
+internal sealed record CardRelationshipChangeDescriptor(
+    CardRelationshipChangeKind ChangeKind,
+    string SourceRef,
+    string TargetRef,
+    int RelationshipKindId,
+    string RelationshipStableName,
+    string RelationshipDisplayName,
+    float Strength);
+
+internal sealed record CardTerrainTransformDescriptor(
+    int TerrainId,
+    string TerrainStableName,
+    string TerrainDisplayName);
+
+internal sealed record CardDecisionModifierDescriptor(
+    int TraitId,
+    string TraitStableName,
+    string TraitDisplayName,
+    float ScoreDelta,
+    float SuccessChanceDelta);

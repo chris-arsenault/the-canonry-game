@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 20;
+    private const int FormatVersion = 21;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -15,7 +15,12 @@ internal static class KernelSnapshot
             leaveOpen: true);
         writer.Write(FormatCode);
         writer.Write(FormatVersion);
-        KernelSnapshotOptions.Write(writer, simulation.Options, simulation.World.SnapshotEventCount());
+        KernelSnapshotOptions.Write(
+            writer,
+            simulation.Options,
+            simulation.World.SnapshotEventCount(),
+            simulation.World.ProvenanceInvocationCapacity,
+            simulation.World.ProvenanceOutputCapacity);
         simulation.WriteSnapshot(writer);
         writer.Flush();
     }
@@ -47,9 +52,11 @@ internal static class KernelSnapshotOptions
     public static void Write(
         global::System.IO.BinaryWriter writer,
         SimulationOptions options,
-        int eventCount)
+        int eventCount,
+        int provenanceInvocationCapacity,
+        int provenanceOutputCapacity)
     {
-        WriteStorageCapacities(writer, options);
+        WriteStorageCapacities(writer, options, provenanceInvocationCapacity, provenanceOutputCapacity);
         WriteProgramCapacities(writer, options);
         WriteWorldCapacities(writer, options);
         WriteRuntimeCodes(writer, options.RuntimeCodes);
@@ -60,15 +67,21 @@ internal static class KernelSnapshotOptions
 
     private static void WriteStorageCapacities(
         global::System.IO.BinaryWriter writer,
-        SimulationOptions options)
+        SimulationOptions options,
+        int provenanceInvocationCapacity,
+        int provenanceOutputCapacity)
     {
         writer.Write(options.EntityCapacity);
         writer.Write(options.RelationshipCapacity);
         writer.Write(options.AttributeCapacity);
         writer.Write(options.TraitCapacity);
         writer.Write(options.ResourceCapacity);
-        writer.Write(options.ProvenanceInvocationCapacity);
-        writer.Write(options.ProvenanceOutputCapacity);
+        writer.Write(provenanceInvocationCapacity);
+        writer.Write(provenanceOutputCapacity);
+        writer.Write(options.GrowableStorageModeCode);
+        writer.Write(options.GrowableStorageCheckCadenceTicks);
+        writer.Write(options.GrowableStorageThresholdPermille);
+        writer.Write(options.GrowableStorageGrowthFactor);
         writer.Write(options.MapCellCapacity);
         writer.Write(options.MapInfluenceCapacity);
         writer.Write(options.SystemCapacity);
@@ -211,6 +224,10 @@ internal static class KernelSnapshotOptions
             ResourceCapacity = reader.ReadInt32(),
             ProvenanceInvocationCapacity = reader.ReadInt32(),
             ProvenanceOutputCapacity = reader.ReadInt32(),
+            GrowableStorageModeCode = reader.ReadInt32(),
+            GrowableStorageCheckCadenceTicks = reader.ReadInt32(),
+            GrowableStorageThresholdPermille = reader.ReadInt32(),
+            GrowableStorageGrowthFactor = reader.ReadInt32(),
             MapCellCapacity = reader.ReadInt32(),
             MapInfluenceCapacity = reader.ReadInt32(),
             SystemCapacity = reader.ReadInt32(),
@@ -376,6 +393,10 @@ internal static class KernelSnapshotOptions
             ResourceCapacity = values.ResourceCapacity,
             ProvenanceInvocationCapacity = values.ProvenanceInvocationCapacity,
             ProvenanceOutputCapacity = values.ProvenanceOutputCapacity,
+            GrowableStorageModeCode = values.GrowableStorageModeCode,
+            GrowableStorageCheckCadenceTicks = values.GrowableStorageCheckCadenceTicks,
+            GrowableStorageThresholdPermille = values.GrowableStorageThresholdPermille,
+            GrowableStorageGrowthFactor = values.GrowableStorageGrowthFactor,
             MapCellCapacity = values.MapCellCapacity,
             MapInfluenceCapacity = values.MapInfluenceCapacity,
             SystemCapacity = values.SystemCapacity,
@@ -478,6 +499,10 @@ internal static class KernelSnapshotOptions
         public int ResourceCapacity;
         public int ProvenanceInvocationCapacity;
         public int ProvenanceOutputCapacity;
+        public int GrowableStorageModeCode;
+        public int GrowableStorageCheckCadenceTicks;
+        public int GrowableStorageThresholdPermille;
+        public int GrowableStorageGrowthFactor;
         public int MapCellCapacity;
         public int MapInfluenceCapacity;
         public int SystemCapacity;

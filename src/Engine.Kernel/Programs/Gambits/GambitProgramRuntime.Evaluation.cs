@@ -114,6 +114,188 @@ internal sealed partial class GambitProgramRuntime
             RelationshipProviderSelectorMatches(world, entityId, targetId, selector);
     }
 
+    private void ResolveGambitTriggerEvidence(
+        WorldState world,
+        int gambitSlot,
+        int entityId,
+        int targetId,
+        out int triggerKindCode,
+        out int triggerId,
+        out int parentInvocationId)
+    {
+        if (TryResolveProviderTriggerEvidence(
+                world,
+                gambitSlot,
+                entityId,
+                targetId,
+                out triggerKindCode,
+                out triggerId,
+                out parentInvocationId))
+        {
+            return;
+        }
+
+        triggerKindCode = ProvenanceTriggerKindCodes.Entity;
+        triggerId = targetId;
+        parentInvocationId = 0;
+    }
+
+    private bool TryResolveProviderTriggerEvidence(
+        WorldState world,
+        int gambitSlot,
+        int entityId,
+        int targetId,
+        out int triggerKindCode,
+        out int triggerId,
+        out int parentInvocationId)
+    {
+        triggerKindCode = ProvenanceTriggerKindCodes.None;
+        triggerId = 0;
+        parentInvocationId = 0;
+        var selectorStart = _gambitProviderSelectorStarts[gambitSlot];
+        var selectorEnd = selectorStart + _gambitProviderSelectorCounts[gambitSlot];
+        for (var selector = selectorStart; selector < selectorEnd; selector++)
+        {
+            if (TryResolveProviderSelectorTriggerEvidence(
+                    world,
+                    entityId,
+                    targetId,
+                    selector,
+                    out triggerKindCode,
+                    out triggerId,
+                    out parentInvocationId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryResolveProviderSelectorTriggerEvidence(
+        WorldState world,
+        int entityId,
+        int targetId,
+        int selector,
+        out int triggerKindCode,
+        out int triggerId,
+        out int parentInvocationId)
+    {
+        triggerKindCode = ProvenanceTriggerKindCodes.None;
+        triggerId = 0;
+        parentInvocationId = 0;
+        if (!ProviderSelectorMatchesTarget(world, entityId, targetId, selector))
+        {
+            return false;
+        }
+
+        return _providerSelectorCodes[selector] switch
+        {
+            BehaviorProviderSelectorCodes.OutgoingRelationship =>
+                TryResolveProviderRelationshipTriggerEvidence(
+                    world,
+                    entityId,
+                    targetId,
+                    selector,
+                    outgoing: true,
+                    out triggerKindCode,
+                    out triggerId,
+                    out parentInvocationId),
+            BehaviorProviderSelectorCodes.IncomingRelationship =>
+                TryResolveProviderRelationshipTriggerEvidence(
+                    world,
+                    entityId,
+                    targetId,
+                    selector,
+                    outgoing: false,
+                    out triggerKindCode,
+                    out triggerId,
+                    out parentInvocationId),
+            BehaviorProviderSelectorCodes.TargetAttribute or BehaviorProviderSelectorCodes.LocationAttribute =>
+                ResolveProviderValueTrigger(
+                    selector,
+                    targetId,
+                    ProvenanceTriggerKindCodes.Attribute,
+                    out triggerKindCode,
+                    out triggerId,
+                    out parentInvocationId),
+            BehaviorProviderSelectorCodes.Resource =>
+                ResolveProviderValueTrigger(
+                    selector,
+                    targetId,
+                    ProvenanceTriggerKindCodes.Resource,
+                    out triggerKindCode,
+                    out triggerId,
+                    out parentInvocationId),
+            _ => ResolveProviderEntityTrigger(
+                targetId,
+                out triggerKindCode,
+                out triggerId,
+                out parentInvocationId),
+        };
+    }
+
+    private bool ResolveProviderValueTrigger(
+        int selector,
+        int targetId,
+        int valueTriggerKindCode,
+        out int triggerKindCode,
+        out int triggerId,
+        out int parentInvocationId)
+    {
+        var valueId = _providerSelectorValueIds[selector];
+        triggerKindCode = valueId > 0 ? valueTriggerKindCode : ProvenanceTriggerKindCodes.Entity;
+        triggerId = valueId > 0 ? valueId : targetId;
+        parentInvocationId = 0;
+        return true;
+    }
+
+    private static bool ResolveProviderEntityTrigger(
+        int targetId,
+        out int triggerKindCode,
+        out int triggerId,
+        out int parentInvocationId)
+    {
+        triggerKindCode = ProvenanceTriggerKindCodes.Entity;
+        triggerId = targetId;
+        parentInvocationId = 0;
+        return true;
+    }
+
+    private bool TryResolveProviderRelationshipTriggerEvidence(
+        WorldState world,
+        int entityId,
+        int targetId,
+        int selector,
+        bool outgoing,
+        out int triggerKindCode,
+        out int triggerId,
+        out int parentInvocationId)
+    {
+        triggerKindCode = ProvenanceTriggerKindCodes.None;
+        triggerId = 0;
+        parentInvocationId = 0;
+        var sourceId = outgoing ? entityId : targetId;
+        var destinationId = outgoing ? targetId : entityId;
+        if (!KernelQuery.TryFindRelationship(
+                world,
+                sourceId,
+                destinationId,
+                _providerSelectorRelationshipKindIds[selector],
+                _providerSelectorFactIds[selector],
+                hasMinimumStrength: 1,
+                _providerSelectorMinimumStrengths[selector],
+                out var relationshipId))
+        {
+            return false;
+        }
+
+        triggerKindCode = ProvenanceTriggerKindCodes.Relationship;
+        triggerId = relationshipId;
+        parentInvocationId = world.RelationshipCreatedByInvocationId(relationshipId);
+        return true;
+    }
+
     private bool BasicProviderSelectorMatches(WorldState world, int entityId, int targetId, int selector)
     {
         var code = _providerSelectorCodes[selector];

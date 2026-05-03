@@ -24,6 +24,7 @@ public enum KernelEventType
     CellChanged = 21,
     CellInfluenceChanged = 22,
     ProvenanceInvocationRecorded = 23,
+    KernelStorageGrown = 24,
     PlanStarted = 100,
     GoalConsidered = 101,
     GoalScored = 102,
@@ -395,6 +396,23 @@ public readonly record struct ProvenanceInvocationRecordedKernelEvent(
     int TriggerId,
     [KernelEventIntSlot(8, "output_count", KernelEventSemanticKind.Count)]
     int OutputCount);
+
+[KernelEventLayout(KernelEventType.KernelStorageGrown, schemaMinor: 0)]
+public readonly record struct KernelStorageGrownKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "storage_code", KernelEventSemanticKind.StorageCode)]
+    int StorageCode,
+    [KernelEventIntSlot(1, "reason_code", KernelEventSemanticKind.ReasonCodeId)]
+    int ReasonCode,
+    [KernelEventIntSlot(2, "high_watermark", KernelEventSemanticKind.Count)]
+    int HighWatermark,
+    [KernelEventIntSlot(3, "previous_capacity", KernelEventSemanticKind.Capacity)]
+    int PreviousCapacity,
+    [KernelEventIntSlot(4, "current_capacity", KernelEventSemanticKind.Capacity)]
+    int CurrentCapacity,
+    [KernelEventIntSlot(5, "threshold_permille", KernelEventSemanticKind.Threshold)]
+    int ThresholdPermille);
 
 [KernelEventLayout(KernelEventType.PlanStarted, schemaMinor: 0)]
 public readonly record struct PlanStartedKernelEvent(

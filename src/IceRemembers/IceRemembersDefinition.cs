@@ -46,7 +46,7 @@ public static partial class IceRemembersDefinition
             Kinds = kinds,
             Gambits = CreateGambits(),
             Relationships = CreateRelationships(),
-            RelationshipFacts = CreateRelationshipFacts(),
+            RelationshipFacts = [],
             Degeneracy = IceRemembersDegeneracyDefinition.Create(),
             Lifecycles = CreateLifecycles(),
             Resources = CreateResources(),
@@ -545,6 +545,7 @@ public static partial class IceRemembersDefinition
             new() { Name = L(Rel.AtWarWith), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agency, IsSymmetric = true, CullThreshold = 0.02f, Maintenance = AgencyConflictMaintenance() },
             new() { Name = L(Rel.BetrayedBy), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agency, Maintenance = AgencyConflictMaintenance() },
             new() { Name = L(Rel.PracticedBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AbilityPracticeMaintenance() },
+            new() { Name = L(Rel.TaughtBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AgencyBondMaintenance() },
         ];
     }
 
@@ -650,16 +651,6 @@ public static partial class IceRemembersDefinition
             Threshold = threshold,
             Delta = delta,
         };
-
-    private static List<RelationshipFactConfig> CreateRelationshipFacts() =>
-    [
-        new()
-        {
-            Name = IceRemembersRelationshipFact.TaughtBy.ToDomainName(),
-            DisplayName = "Taught By",
-            Description = "Marks a practiced_by edge as inherited from a teacher rather than originated independently. Teacher identity is not yet preserved on the fact.",
-        },
-    ];
 
     private static Dictionary<EntityKind, LifecycleConfig> CreateLifecycles()
     {
