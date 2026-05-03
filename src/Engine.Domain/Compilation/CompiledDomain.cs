@@ -14,7 +14,18 @@ public sealed class CompiledDomain
     public required CompiledKernelDataSet KernelData { get; init; }
     public required KernelProgramSet Programs { get; init; }
     public required IReadOnlyList<DomainSymbolSeed> Symbols { get; init; }
+    public required IReadOnlyList<CompiledChronicleQuery> ChronicleQueries { get; init; }
 }
+
+public sealed record CompiledChronicleQuery(
+    string Id,
+    CompiledChronicleProducer Parent,
+    int TriggerRelationshipKindId,
+    CompiledChronicleProducer Child);
+
+public sealed record CompiledChronicleProducer(
+    int ProducerKindCode,
+    int ProducerId);
 
 public sealed record DomainRuntimeCodes(
     EventCodeId RelationshipCreatedCodeId,

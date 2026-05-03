@@ -1,10 +1,12 @@
-namespace TheCanonryGame.Game.Cards;
+namespace TheCanonryGame.Game.Domain;
 
 using Engine.Domain;
 using Engine.Domain.Compilation;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Graph;
 using Engine.Projection;
+
+using TheCanonryGame.Game.Cards;
 
 internal enum GameCapabilityKind
 {
@@ -24,22 +26,34 @@ internal sealed record GameCapabilityKnowledge(
     IReadOnlyList<CardTerrainTransformDescriptor> TerrainTransforms,
     IReadOnlyList<CardDecisionModifierDescriptor> DecisionModifiers);
 
+internal sealed record GameChronicleQuery(
+    string Id,
+    int ParentProducerKindCode,
+    int ParentProducerId,
+    int TriggerRelationshipKindId,
+    int ChildProducerKindCode,
+    int ChildProducerId);
+
 internal sealed class GameDomainKnowledge
 {
     private GameDomainKnowledge(
         IReadOnlyDictionary<int, GameCapabilityKnowledge> generatorsById,
-        IReadOnlyDictionary<int, GameCapabilityKnowledge> gambitsById)
+        IReadOnlyDictionary<int, GameCapabilityKnowledge> gambitsById,
+        IReadOnlyList<GameChronicleQuery> chronicleQueries)
     {
         GeneratorsById = generatorsById;
         GambitsById = gambitsById;
+        ChronicleQueries = chronicleQueries;
     }
 
     public static GameDomainKnowledge Empty { get; } =
-        new(new Dictionary<int, GameCapabilityKnowledge>(), new Dictionary<int, GameCapabilityKnowledge>());
+        new(new Dictionary<int, GameCapabilityKnowledge>(), new Dictionary<int, GameCapabilityKnowledge>(), []);
 
     public IReadOnlyDictionary<int, GameCapabilityKnowledge> GeneratorsById { get; }
 
     public IReadOnlyDictionary<int, GameCapabilityKnowledge> GambitsById { get; }
+
+    public IReadOnlyList<GameChronicleQuery> ChronicleQueries { get; }
 
     public static GameDomainKnowledge FromCompiledDomain(
         CompiledDomain? compiledDomain,
@@ -55,8 +69,20 @@ internal sealed class GameDomainKnowledge
             .ToDictionary(entry => (entry.Category, entry.Id), entry => entry.StableName);
         return new GameDomainKnowledge(
             BuildGenerators(compiledDomain, symbols),
-            BuildGambits(compiledDomain, symbols, stableNames));
+            BuildGambits(compiledDomain, symbols, stableNames),
+            BuildChronicleQueries(compiledDomain));
     }
+
+    private static GameChronicleQuery[] BuildChronicleQueries(CompiledDomain compiledDomain) =>
+        compiledDomain.ChronicleQueries
+            .Select(static query => new GameChronicleQuery(
+                query.Id,
+                query.Parent.ProducerKindCode,
+                query.Parent.ProducerId,
+                query.TriggerRelationshipKindId,
+                query.Child.ProducerKindCode,
+                query.Child.ProducerId))
+            .ToArray();
 
     private static Dictionary<int, GameCapabilityKnowledge> BuildGenerators(
         CompiledDomain compiledDomain,

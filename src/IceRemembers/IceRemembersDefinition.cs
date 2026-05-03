@@ -51,6 +51,7 @@ public static partial class IceRemembersDefinition
             Cultures = CreateCultures(),
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
+            Chronicle = CreateChronicleDefinition(),
         };
     }
 
@@ -61,6 +62,29 @@ public static partial class IceRemembersDefinition
     private static string V(Verb verb) => verb.ToVerbId();
     private static string G(GambitId gambit) => gambit.ToGambitId();
     private static string TerrainName(Terrain terrain) => terrain.ToDomainName();
+
+    private static ChronicleConfig CreateChronicleDefinition() =>
+        new()
+        {
+            Queries =
+            [
+                new ChronicleQueryConfig
+                {
+                    Id = "artifact_cleansing_awakes_spring",
+                    Parent = new ChronicleProducerRef
+                    {
+                        Kind = ChronicleProducerKind.Gambit,
+                        StableName = G(GambitId.ArtifactCleansesScar),
+                    },
+                    TriggerRelationshipKind = L(Rel.CleansedBy),
+                    Child = new ChronicleProducerRef
+                    {
+                        Kind = ChronicleProducerKind.Generator,
+                        StableName = "what_the_spring_remembers",
+                    },
+                },
+            ],
+        };
 
     private static Dictionary<EntityKind, KindConfig> CreateKinds() =>
         new()

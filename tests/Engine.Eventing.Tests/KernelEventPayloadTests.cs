@@ -18,6 +18,7 @@ public sealed class KernelEventPayloadTests
             PolarityCode: InvalidPolarityCode,
             SourceEntityId: 13,
             TargetEntityId: 17,
+            RelationshipId: 19,
             PreviousStrength: 0.25f,
             NewStrength: 0.75f));
 
@@ -27,6 +28,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(InvalidPolarityCode, kernelEvent.GetIntSlot(3));
         Assert.Equal(13, kernelEvent.GetIntSlot(4));
         Assert.Equal(17, kernelEvent.GetIntSlot(5));
+        Assert.Equal(19, kernelEvent.GetIntSlot(6));
         Assert.Equal(0.25f, kernelEvent.GetFloatSlot(0));
         Assert.Equal(0.75f, kernelEvent.GetFloatSlot(1));
         Assert.Throws<ArgumentOutOfRangeException>(() => kernelEvent.GetIntSlot(KernelEvent.IntSlotCount));
@@ -56,7 +58,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(attributeChanged, KernelEvent.From(attributeChanged).AsAttributeChanged());
 
         var relationshipChanged = new RelationshipChangedKernelEvent(
-            6, 7, 8, 9, 10, InvalidPolarityCode, 11, 12, 0.125f, 0.875f);
+            6, 7, 8, 9, 10, InvalidPolarityCode, 11, 12, 13, 0.125f, 0.875f);
         Assert.Equal(relationshipChanged, KernelEvent.From(relationshipChanged).AsRelationshipChanged());
     }
 

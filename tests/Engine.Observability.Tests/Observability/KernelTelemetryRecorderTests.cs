@@ -113,6 +113,7 @@ public sealed class KernelTelemetryRecorderTests
             PolarityCode: RelationshipPolarityCodes.Neutral,
             SourceEntityId: 100,
             TargetEntityId: 200,
+            RelationshipId: 300,
             PreviousStrength: 0f,
             NewStrength: 0.75f))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(

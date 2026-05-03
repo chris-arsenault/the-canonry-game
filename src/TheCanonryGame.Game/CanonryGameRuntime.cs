@@ -2,11 +2,10 @@ namespace TheCanonryGame.Game;
 
 using Engine.Host;
 using Engine.Kernel.Driver;
-using Engine.Projection;
 
 using IceRemembers.Seed;
 
-using TheCanonryGame.Game.Cards;
+using TheCanonryGame.Game.Runtime;
 using TheCanonryGame.Game.Tableau;
 
 internal enum GameSeedPolicyKind
@@ -48,86 +47,6 @@ internal sealed record GameSeedIdentity(int BaseSeed, int Attempt);
 internal readonly record struct GameRuntimePulse(int PreviousTick, int CurrentTick)
 {
     public int TicksProcessed => Math.Max(0, CurrentTick - PreviousTick);
-}
-
-internal sealed class GameRuntimeReadModels
-{
-    internal GameRuntimeReadModels(KernelUiRuntime runtime)
-    {
-        ArgumentNullException.ThrowIfNull(runtime);
-        Map = runtime.Map;
-        Entities = runtime.Ui;
-        Chronicle = runtime.Chronicle;
-        Symbols = runtime.Symbols;
-        Knowledge = GameDomainKnowledge.FromCompiledDomain(runtime.CompiledDomain, runtime.Symbols);
-    }
-
-    public HexMapProjection Map { get; }
-
-    public UiProjectionState Entities { get; }
-
-    public UiChronicleProjection Chronicle { get; }
-
-    public IProjectionSymbolCatalog Symbols { get; }
-
-    public GameDomainKnowledge Knowledge { get; }
-}
-
-internal sealed class GameRuntimeControls
-{
-    private readonly IKernelDriverTimeControl _time;
-
-    internal GameRuntimeControls(IKernelDriverTimeControl time)
-    {
-        ArgumentNullException.ThrowIfNull(time);
-        _time = time;
-    }
-
-    public bool IsPaused => _time.IsPaused;
-
-    public double TicksPerSecond => _time.TicksPerSecond;
-
-    public int CurrentTick => _time.CurrentTick;
-
-    public void Pause() => _time.RequestPause();
-
-    public void Resume() => _time.RequestResume();
-
-    public void Step(int ticks) => _time.RequestSingleStep(ticks);
-
-    public void SetTickRate(double ticksPerSecond) => _time.SetTickRate(ticksPerSecond);
-}
-
-internal sealed class GameIntentPort
-{
-    private readonly ICommandSubmitter _commands;
-    private readonly Func<long> _worldVersion;
-    private int _submitterSequence;
-
-    internal GameIntentPort(
-        ICommandSubmitter commands,
-        Func<long> worldVersion)
-    {
-        ArgumentNullException.ThrowIfNull(commands);
-        ArgumentNullException.ThrowIfNull(worldVersion);
-        _commands = commands;
-        _worldVersion = worldVersion;
-    }
-
-    public bool RequestGeneratorEnabled(int generatorId, bool enabled)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorId);
-
-        var version = _worldVersion();
-        var issueVersion = version > int.MaxValue ? int.MaxValue : (int)version;
-        var command = new SetGeneratorEnabledCommand(
-            issueVersion,
-            generatorId,
-            enabled,
-            SubmitterId: 1,
-            SubmitterSequence: ++_submitterSequence);
-        return _commands.TrySetGeneratorEnabled(command, out _);
-    }
 }
 
 internal sealed class CanonryGameRuntime : IDisposable

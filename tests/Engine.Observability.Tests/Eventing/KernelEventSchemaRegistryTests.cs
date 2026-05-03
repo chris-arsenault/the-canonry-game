@@ -35,6 +35,10 @@ public sealed class KernelEventSchemaRegistryTests
                     slot.SemanticKind == KernelEventSemanticKind.RelationshipKindId);
         Assert.Contains(
             schema.Slots,
+            slot => slot.Name == "relationship_id" &&
+                    slot.SemanticKind == KernelEventSemanticKind.RelationshipId);
+        Assert.Contains(
+            schema.Slots,
             slot => slot.Name == "source_code_id" &&
                     slot.SemanticKind == KernelEventSemanticKind.SourceCodeId);
         Assert.Contains(

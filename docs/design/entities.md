@@ -38,8 +38,9 @@ operation primitives rather than checking individual trait names.
 ## Relationship Role
 
 Relationships are graph topology. They define who is connected, what kind of
-connection exists, and how strong it is. Relationship facts add event-specific
-meaning to real edges without inventing disposable relationship kinds.
+connection exists, and how strong it is. Event-specific meaning belongs in
+runtime provenance and event history, not disposable relationship kinds or edge
+annotations.
 
 Current relationship families:
 

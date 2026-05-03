@@ -226,6 +226,7 @@ public sealed class UiProjectionStateTests
             PolarityCode: RelationshipPolarityCodes.Negative,
             SourceEntityId: 20,
             TargetEntityId: 21,
+            RelationshipId: 22,
             PreviousStrength: 0f,
             NewStrength: 0.75f))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorEvaluatedKernelEvent(

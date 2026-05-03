@@ -5,6 +5,7 @@ using Engine.Kernel.Driver;
 using Engine.Projection;
 
 using TheCanonryGame.Game.Cards;
+using TheCanonryGame.Game.Runtime;
 using TheCanonryGame.Game.Tableau;
 
 public sealed class GameRuntimeTableauTests

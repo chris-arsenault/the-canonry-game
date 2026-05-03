@@ -1,12 +1,17 @@
 namespace TheCanonryGame.Game.Tests;
 
+using Engine.Constants;
 using Engine.Domain.Compilation;
+using Engine.Eventing;
 using Engine.Kernel.Driver;
 using Engine.Projection;
 
 using IceRemembers;
 
 using TheCanonryGame.Game.Cards;
+using TheCanonryGame.Game.Chronicle;
+using TheCanonryGame.Game.Domain;
+using TheCanonryGame.Game.Runtime;
 using TheCanonryGame.Game.Tableau;
 
 public sealed class GameDomainKnowledgeTests
@@ -103,6 +108,47 @@ public sealed class GameDomainKnowledgeTests
     }
 
     [Fact]
+    public void FromCompiledDomain_ExposesChronicleQueries()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var knowledge = GameDomainKnowledge.FromCompiledDomain(compiled, new ProjectionSymbolCatalog());
+
+        var query = Assert.Single(knowledge.ChronicleQueries);
+        Assert.Equal("artifact_cleansing_awakes_spring", query.Id);
+        Assert.Equal(ProvenanceProducerKindCodes.Gambit, query.ParentProducerKindCode);
+        Assert.Equal(compiled.Ids.GambitIdOf("artifact_cleanses_scar").Value, query.ParentProducerId);
+        Assert.Equal(
+            compiled.Ids.RelationshipKindIdOf("cleansed_by").Value,
+            query.TriggerRelationshipKindId);
+        Assert.Equal(ProvenanceProducerKindCodes.Generator, query.ChildProducerKindCode);
+        Assert.Equal(compiled.Ids.GeneratorIdOf("what_the_spring_remembers").Value, query.ChildProducerId);
+    }
+
+    [Fact]
+    public void RuntimeChronicle_ExecutesCompiledSpringChainAgainstGenericProvenance()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var symbols = CreateSpringChainSymbols(compiled);
+        var knowledge = GameDomainKnowledge.FromCompiledDomain(compiled, symbols);
+        var provenance = new ProvenanceProjection();
+        var baseChronicle = new UiChronicleProjection(symbols);
+        var log = new KernelEventLog(capacity: 32);
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            new IKernelEventProjection[] { provenance, baseChronicle });
+
+        WriteSpringChainEvents(log, SpringChainIds.From(compiled));
+        pump.DrainAvailable();
+
+        var chronicle = new GameRuntimeChronicle(baseChronicle, provenance, symbols, knowledge);
+        var chain = Assert.Single(chronicle.Lines, line => line.Contains("history chain", StringComparison.Ordinal));
+        Assert.Contains("Cleanse a Scar", chain, StringComparison.Ordinal);
+        Assert.Contains("What the Spring Remembers", chain, StringComparison.Ordinal);
+        Assert.Contains("Cleansed By", chain, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TableauCardsReceiveCompiledDomainKnowledge()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
@@ -147,5 +193,177 @@ public sealed class GameDomainKnowledgeTests
             handle = default;
             return true;
         }
+    }
+
+    private static ProjectionSymbolCatalog CreateSpringChainSymbols(CompiledDomain compiled) =>
+        new ProjectionSymbolCatalog()
+            .RegisterSymbol(
+                ProjectionSymbolKind.RelationshipKind,
+                compiled.Ids.RelationshipKindIdOf("cleansed_by").Value,
+                "cleansed_by",
+                "Cleansed By")
+            .RegisterSymbol(
+                ProjectionSymbolKind.Gambit,
+                compiled.Ids.GambitIdOf("artifact_cleanses_scar").Value,
+                "artifact_cleanses_scar",
+                "Cleanse a Scar")
+            .RegisterSymbol(
+                ProjectionSymbolKind.Generator,
+                compiled.Ids.GeneratorIdOf("what_the_spring_remembers").Value,
+                "what_the_spring_remembers",
+                "What the Spring Remembers");
+
+    private static void WriteSpringChainEvents(KernelEventLog log, SpringChainIds ids)
+    {
+        WriteEntity(log, entityId: 100, kindId: ids.ArtifactKindId, tick: 0, version: 1);
+        WriteEntity(log, entityId: 200, kindId: ids.RegionKindId, tick: 0, version: 2);
+        WriteCreatedRelationship(log, ids);
+        WriteGambitExecuted(log, ids);
+        WriteInvocation(
+            log,
+            invocationId: 1,
+            producerKind: ProvenanceProducerKindCodes.Gambit,
+            producerId: ids.GambitId,
+            primary: 100,
+            secondary: 200,
+            parent: 0,
+            triggerKind: ProvenanceTriggerKindCodes.Entity,
+            triggerId: 200,
+            outputCount: 1);
+        WriteEntity(log, entityId: 400, kindId: ids.PenguinKindId, tick: 2, version: 6, invocationId: 2);
+        WriteGeneratorFired(log, ids);
+        WriteInvocation(
+            log,
+            invocationId: 2,
+            producerKind: ProvenanceProducerKindCodes.Generator,
+            producerId: ids.GeneratorId,
+            primary: 200,
+            secondary: 0,
+            parent: 1,
+            triggerKind: ProvenanceTriggerKindCodes.Relationship,
+            triggerId: ids.RelationshipId,
+            outputCount: 1);
+    }
+
+    private static void WriteEntity(
+        KernelEventLog log,
+        int entityId,
+        int kindId,
+        int tick,
+        long version,
+        int invocationId = 0)
+    {
+        var evt = KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: tick,
+            WorldVersion: version,
+            EntityId: entityId,
+            SourceCodeId: 1,
+            KindId: kindId,
+            SubtypeId: 0,
+            CultureId: 0,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0));
+        Assert.True(log.TryWrite(invocationId == 0 ? evt : WithProvenance(evt, invocationId)));
+    }
+
+    private static void WriteCreatedRelationship(KernelEventLog log, SpringChainIds ids)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new RelationshipChangedKernelEvent(
+                Tick: 1,
+                WorldVersion: 3,
+                ChangeCodeId: 9,
+                SourceCodeId: 1,
+                RelationshipKindId: ids.CleansedById,
+                PolarityCode: RelationshipPolarityCodes.Positive,
+                SourceEntityId: 100,
+                TargetEntityId: 200,
+                RelationshipId: ids.RelationshipId,
+                PreviousStrength: 0f,
+                NewStrength: 0.78f)),
+            invocationId: 1)));
+    }
+
+    private static void WriteGambitExecuted(KernelEventLog log, SpringChainIds ids)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new GambitExecutedKernelEvent(
+                Tick: 1,
+                WorldVersion: 4,
+                ActorId: 100,
+                ActorKindId: ids.ArtifactKindId,
+                GambitId: ids.GambitId,
+                AffectedEntityId0: 100,
+                AffectedEntityId1: 200,
+                AffectedEntityCount: 2,
+                State: KernelEventState.Succeeded)),
+            invocationId: 1)));
+    }
+
+    private static void WriteGeneratorFired(KernelEventLog log, SpringChainIds ids)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new GeneratorFiredKernelEvent(
+                Tick: 2,
+                WorldVersion: 7,
+                GeneratorId: ids.GeneratorId,
+                TargetEntityId: 200,
+                CreatedEntityCount: 1,
+                CreatedRelationshipCount: 0)),
+            invocationId: 2)));
+    }
+
+    private static void WriteInvocation(
+        KernelEventLog log,
+        int invocationId,
+        int producerKind,
+        int producerId,
+        int primary,
+        int secondary,
+        int parent,
+        int triggerKind,
+        int triggerId,
+        int outputCount)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new ProvenanceInvocationRecordedKernelEvent(
+                Tick: invocationId,
+                WorldVersion: invocationId + 10,
+                InvocationId: invocationId,
+                ProducerKindCode: producerKind,
+                ProducerId: producerId,
+                PrimaryEntityId: primary,
+                SecondaryEntityId: secondary,
+                ParentInvocationId: parent,
+                TriggerKindCode: triggerKind,
+                TriggerId: triggerId,
+                OutputCount: outputCount)),
+            invocationId)));
+    }
+
+    private static KernelEvent WithProvenance(KernelEvent kernelEvent, int invocationId) =>
+        kernelEvent.WithExecutionContext(programId: 0, sourceCodeId: 1, provenanceInvocationId: invocationId);
+
+    private readonly record struct SpringChainIds(
+        int ArtifactKindId,
+        int RegionKindId,
+        int PenguinKindId,
+        int GambitId,
+        int GeneratorId,
+        int CleansedById,
+        int RelationshipId)
+    {
+        public static SpringChainIds From(CompiledDomain compiled) =>
+            new(
+                compiled.Ids.KindIdOf("artifact").Value,
+                compiled.Ids.KindIdOf("region").Value,
+                compiled.Ids.KindIdOf("penguin").Value,
+                compiled.Ids.GambitIdOf("artifact_cleanses_scar").Value,
+                compiled.Ids.GeneratorIdOf("what_the_spring_remembers").Value,
+                compiled.Ids.RelationshipKindIdOf("cleansed_by").Value,
+                300);
     }
 }

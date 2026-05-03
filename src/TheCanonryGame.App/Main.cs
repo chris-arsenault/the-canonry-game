@@ -7,6 +7,7 @@ using Engine.Projection;
 using Godot;
 
 using TheCanonryGame.Game;
+using TheCanonryGame.Game.Runtime;
 using TheCanonryGame.UI;
 using TheCanonryGame.UI.Theme;
 
@@ -35,7 +36,7 @@ public partial class Main : Node2D
     private UiProjectionState? _uiProjection;
     private HexMapProjection? _hexMapProjection;
     private IProjectionSymbolCatalog? _projectionSymbols;
-    private UiChronicleProjection? _chronicleProjection;
+    private IGameChronicleFeed? _chronicleProjection;
     private HexTooltipPanel? _hexTooltipPanel;
     private Godot.Theme? _theme;
     private int _currentSeed;

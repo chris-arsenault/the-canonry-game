@@ -46,6 +46,38 @@ public sealed class DomainConfig
     /// This is domain-authored structured data, not derived from runtime behavior wiring.
     /// </summary>
     public SemanticDomainConfig? Semantics { get; init; }
+
+    /// <summary>
+    /// Domain-authored chronicle chain queries compiled against this domain's
+    /// runtime IDs. The engine stores generic provenance; the domain chooses
+    /// which chains are narratively meaningful.
+    /// </summary>
+    public ChronicleConfig Chronicle { get; init; } = new();
+}
+
+public sealed class ChronicleConfig
+{
+    public IReadOnlyList<ChronicleQueryConfig> Queries { get; init; } = [];
+}
+
+public sealed class ChronicleQueryConfig
+{
+    public required string Id { get; init; }
+    public required ChronicleProducerRef Parent { get; init; }
+    public required string TriggerRelationshipKind { get; init; }
+    public required ChronicleProducerRef Child { get; init; }
+}
+
+public sealed class ChronicleProducerRef
+{
+    public required ChronicleProducerKind Kind { get; init; }
+    public required string StableName { get; init; }
+}
+
+public enum ChronicleProducerKind
+{
+    Gambit,
+    Generator,
 }
 
 /// <summary>Per-kind configuration: subtypes, health scalar, and trait catalog.</summary>

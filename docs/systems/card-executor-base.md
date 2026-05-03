@@ -30,14 +30,13 @@ Useful precondition families:
 ## Effects
 
 Generators may create named entity bundles. Gambits should usually avoid entity
-creation and instead change relationships, status, health, traits, or rare
-boolean edge qualifiers.
+creation and instead change relationships, status, health, traits, terrain, or
+other ordinary world state.
 
 Effect families:
 
 - create entity
 - create relationship
-- add boolean relationship qualifier, if the fact system remains
 - modify relationship strength or polarity
 - modify status
 - modify subtype

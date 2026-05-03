@@ -21,6 +21,17 @@ The active model is:
 - Entity-only generator triggers bind the target entity as trigger evidence.
 - Gambit invocations bind primary actor, secondary target, and concrete
   provider evidence where available.
+- Projection-level provenance read helpers index invocations, outputs,
+  created-by entity/relationship lookups, parent traversal, and relationship
+  trigger traversal.
+- `Engine.Projection` now stays domain-free: it exposes generic provenance
+  query helpers but no chronicle pattern recognition.
+- The Ice Remembers domain compiles an initial curated two-hop chronicle query
+  for `artifact_cleanses_scar` -> `what_the_spring_remembers` through the
+  concrete `cleansed_by` trigger relationship.
+- The game layer executes compiled chronicle queries against the generic
+  provenance projection, matching the same boundary pattern used for card
+  definition knowledge.
 - `taught_by` is an ordinary relationship.
 - The old relationship edge-annotation layer has been removed from domain
   config, ID registries, definition graph nodes, compiler mappings, host
@@ -58,15 +69,10 @@ occurrence generator.
   - the same cause cannot immediately fire again after being spent;
   - newly created causes and unrelated targets remain eligible;
   - ordinary gameplay can rebuild eligible causes where intended.
-- Build chronicle query helpers over provenance:
-  - invocation by id;
-  - outputs by invocation;
-  - created-by relationship/entity lookup;
-  - parent invocation traversal;
-  - relationship-trigger traversal.
-- Add a small chronicle pattern layer outside kernel mutation logic for curated
-  k-hop chains such as teacher -> student -> ability use, hostility -> war,
-  and war -> scar/memorial.
+- Extend domain-compiled chronicle queries with more curated k-hop chains such
+  as teacher -> student -> ability use, hostility -> war, and war ->
+  scar/memorial. Keep the projection layer generic; query semantics belong in
+  domain config/compiler output and game presentation.
 
 ## Documentation To Keep Aligned
 
@@ -84,5 +90,5 @@ occurrence generator.
 - Snapshot tests prove provenance history survives save/load.
 - Generator tests cover trigger relationship binding and causal spend.
 - Gambit tests cover provider evidence binding.
-- Chronicle tests cover at least one k-hop chain recognizer once the query
-  layer exists.
+- Chronicle tests cover the current `artifact_cleanses_scar` ->
+  `what_the_spring_remembers` query at the game/domain boundary.

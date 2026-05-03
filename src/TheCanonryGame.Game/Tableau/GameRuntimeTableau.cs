@@ -3,6 +3,8 @@ namespace TheCanonryGame.Game.Tableau;
 using Engine.Projection;
 
 using TheCanonryGame.Game.Cards;
+using TheCanonryGame.Game.Domain;
+using TheCanonryGame.Game.Runtime;
 
 internal sealed record GameTableauCardState(
     CardInstance Card,

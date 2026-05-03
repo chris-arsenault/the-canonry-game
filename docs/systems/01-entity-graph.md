@@ -14,8 +14,9 @@ historical rather than being erased.
 
 - Entities have a domain-declared kind, subtype, culture, status, coordinates,
   health, and traits.
-- Relationships are typed edges with polarity, strength, optional facts, and
-  domain validation.
+- Relationships are typed edges with polarity, strength, and domain validation.
+  Runtime event history and provenance describe how those edges came to exist
+  or change.
 - The graph topology is sparse and meaningful. Generators and gambits create or
   change relationships. Low-altitude physics mainly moves entities, changes map
   influence, changes health, and adjusts relationship strengths.
@@ -50,7 +51,8 @@ historical rather than being erased.
 - Prefer relationship strength changes over creating disposable relationship
   kinds.
 - Do not create graph-only markers that no other system understands.
-- If a relationship exists only to gate a generator, consider a relationship
-  fact on a real edge instead.
+- If a relationship exists only to gate a generator, reject it and use ordinary
+  world state: relationship strength, causal spend, durable output state, map
+  terrain, or provenance for narrative history.
 - Keep topology connected enough for targeting, but not so connected that target
   selection becomes random.

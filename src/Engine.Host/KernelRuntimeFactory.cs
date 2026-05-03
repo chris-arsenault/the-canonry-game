@@ -49,6 +49,7 @@ public sealed class KernelRuntimeFactory
     {
         HexMapProjection? map = null;
         UiProjectionState? ui = null;
+        ProvenanceProjection? provenance = null;
         UiChronicleProjection? chronicle = null;
 
         var runtime = StartCore(
@@ -57,14 +58,20 @@ public sealed class KernelRuntimeFactory
             {
                 map = new HexMapProjection();
                 ui = new UiProjectionState();
+                provenance = new ProvenanceProjection();
                 builder
                     .RegisterProjection("map", _ => map)
                     .RegisterProjection("ui", _ => ui)
-                    .RegisterProjection("chronicle", context =>
-                    {
-                        chronicle = new UiChronicleProjection(context.Symbols);
-                        return chronicle;
-                    });
+                    .RegisterProjection(
+                        "provenance",
+                        _ => provenance ?? throw new InvalidOperationException("UI provenance projection was not initialized."))
+                    .RegisterProjection(
+                        "chronicle",
+                        context =>
+                        {
+                            chronicle = new UiChronicleProjection(context.Symbols);
+                            return chronicle;
+                        });
             });
 
         var logger = new RunLogger(runLogPath ?? RunLogger.DefaultLogPath(), runtime.Host.Events, runtime.Host.Symbols);
@@ -72,6 +79,7 @@ public sealed class KernelRuntimeFactory
             runtime,
             map ?? throw new InvalidOperationException("UI map projection was not registered."),
             ui ?? throw new InvalidOperationException("UI projection was not registered."),
+            provenance ?? throw new InvalidOperationException("UI provenance projection was not registered."),
             chronicle ?? throw new InvalidOperationException("UI chronicle projection was not registered."),
             logger);
     }
@@ -138,6 +146,7 @@ public sealed class KernelRuntimeFactory
             KernelData = cachedDomain.KernelData,
             Programs = cachedDomain.Programs,
             Symbols = cachedDomain.Symbols,
+            ChronicleQueries = cachedDomain.ChronicleQueries,
         };
 
     private static RealtimeDriverConfig DriverConfigFor(KernelFunctionProfile profile) => profile switch
@@ -245,18 +254,21 @@ public sealed class KernelUiRuntime : IDisposable
         KernelRuntime runtime,
         HexMapProjection map,
         UiProjectionState ui,
+        ProvenanceProjection provenance,
         UiChronicleProjection chronicle,
         RunLogger runLogger)
     {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(ui);
+        ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(chronicle);
         ArgumentNullException.ThrowIfNull(runLogger);
 
         _runtime = runtime;
         Map = map;
         Ui = ui;
+        Provenance = provenance;
         Chronicle = chronicle;
         _runLogger = runLogger;
     }
@@ -264,6 +276,8 @@ public sealed class KernelUiRuntime : IDisposable
     public HexMapProjection Map { get; }
 
     public UiProjectionState Ui { get; }
+
+    public ProvenanceProjection Provenance { get; }
 
     public UiChronicleProjection Chronicle { get; }
 

@@ -215,6 +215,7 @@ internal sealed partial class WorldState
                 _relationshipPolarityCode[relationshipId],
                 _relationshipSourceId[relationshipId],
                 _relationshipTargetId[relationshipId],
+                relationshipId,
                 0f,
                 _relationshipStrength[relationshipId])),
                 context);

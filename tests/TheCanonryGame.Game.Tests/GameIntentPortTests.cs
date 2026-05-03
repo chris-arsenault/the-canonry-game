@@ -2,6 +2,8 @@ namespace TheCanonryGame.Game.Tests;
 
 using Engine.Kernel.Driver;
 
+using TheCanonryGame.Game.Runtime;
+
 public sealed class GameIntentPortTests
 {
     [Fact]

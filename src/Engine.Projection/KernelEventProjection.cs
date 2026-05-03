@@ -15,6 +15,8 @@ public abstract class KernelEventProjector : IKernelEventProjection
 {
     public void Project(in SequencedKernelEvent kernelEvent)
     {
+        OnProjectingEvent(kernelEvent);
+
         var eventType = kernelEvent.Event.EventType;
         if (eventType >= KernelEventType.PlanStarted)
         {
@@ -157,6 +159,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     public virtual void OnEventsDropped(long droppedEventCount, long nextSequence)
+    {
+    }
+
+    protected virtual void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
     {
     }
 

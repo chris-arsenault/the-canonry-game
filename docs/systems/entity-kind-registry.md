@@ -45,12 +45,9 @@ Current Ice Remembers relationships include:
 - `memorializes`, `trade_route`, `founded_from`
 - `conduit_of`, `ward_against`, `corrupted_by`, `cleansed_by`
 
-Relationship facts carry generator/gambit-specific meaning without creating
-throwaway relationship kinds.
-
-Relationship facts are edge annotations, not entity traits. Use traits for
-static personality or artifact-effect identity; use facts when the meaning
-belongs to a specific relationship event or relationship history.
+Relationship kinds should be reusable world vocabulary, not one-off generator
+memory. Relationship strength carries magnitude; provenance and event history
+carry how an edge was produced or changed.
 
 ## Future Registry Additions
 

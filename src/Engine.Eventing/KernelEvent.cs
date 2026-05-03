@@ -136,7 +136,7 @@ public readonly record struct TraitAssignedKernelEvent(
     [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
 
-[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 2)]
 public readonly record struct RelationshipChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -152,6 +152,8 @@ public readonly record struct RelationshipChangedKernelEvent(
     int SourceEntityId,
     [KernelEventIntSlot(5, "target_entity_id", KernelEventSemanticKind.EntityId)]
     int TargetEntityId,
+    [KernelEventIntSlot(6, "relationship_id", KernelEventSemanticKind.RelationshipId)]
+    int RelationshipId,
     [KernelEventFloatSlot(0, "previous_strength", KernelEventSemanticKind.Strength)]
     float PreviousStrength,
     [KernelEventFloatSlot(1, "new_strength", KernelEventSemanticKind.Strength)]
