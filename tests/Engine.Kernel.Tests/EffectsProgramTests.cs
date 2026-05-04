@@ -23,7 +23,6 @@ public sealed class EffectsProgramTests
                 StartupSourceCodeId: 13,
                 RelationshipSourceCodeId: 14,
                 GeneratorSourceCodeId: 15,
-                DegeneracySourceCodeId: 17,
                 MapActivitySourceCodeId: 20,
                 MapSignalsSourceCodeId: 21,
                 LowAltitudeVerbSourceCodeId: 22,

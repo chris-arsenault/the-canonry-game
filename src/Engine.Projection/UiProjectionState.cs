@@ -14,7 +14,6 @@ public sealed class UiProjectionState : KernelEventProjector
     private readonly Dictionary<int, UiGeneratorProjection> _generators = [];
     private readonly List<UiGeneratorFireProjection> _generatorFires = [];
     private readonly Dictionary<int, UiGambitProjection> _gambits = [];
-    private readonly List<UiDegeneracyProjection> _degeneracyEvents = [];
 
     public static IReadOnlyList<UiProjectionMigrationItem> FutureMigrationItems { get; } =
     [
@@ -41,8 +40,6 @@ public sealed class UiProjectionState : KernelEventProjector
     public IReadOnlyList<UiGeneratorFireProjection> GeneratorFires => _generatorFires;
 
     public IReadOnlyDictionary<int, UiGambitProjection> Gambits => _gambits;
-
-    public IReadOnlyList<UiDegeneracyProjection> DegeneracyEvents => _degeneracyEvents;
 
     public long LastProjectedSequence { get; private set; } = -1;
 
@@ -178,17 +175,6 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-    }
-
-    protected override void OnDegeneracyDetected(long sequence, in DegeneracyDetectedKernelEvent evt)
-    {
-        _degeneracyEvents.Add(new UiDegeneracyProjection(
-            evt.Tick,
-            evt.DetectorId,
-            evt.SeverityCode,
-            evt.ReasonCodeId,
-            evt.WorldVersion));
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -444,11 +430,4 @@ public sealed record UiGeneratorFireProjection(
     int TargetEntityId,
     int CreatedEntityCount,
     int CreatedRelationshipCount,
-    long WorldVersion);
-
-public sealed record UiDegeneracyProjection(
-    int Tick,
-    int DetectorId,
-    int SeverityCode,
-    int ReasonCodeId,
     long WorldVersion);

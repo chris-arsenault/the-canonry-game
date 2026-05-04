@@ -123,20 +123,6 @@ internal sealed partial class Simulation
             outputCount)));
     }
 
-    internal void EmitDegeneracyDetected(
-        int tick,
-        int detectorId,
-        int severityCode,
-        int reasonCodeId)
-    {
-        WriteKernelEvent(KernelEvent.From(new DegeneracyDetectedKernelEvent(
-            tick,
-            WorldVersion,
-            detectorId,
-            severityCode,
-            reasonCodeId)));
-    }
-
     internal void EmitCellRoadChanged(
         int tick,
         int planeCode,

@@ -27,7 +27,6 @@ internal enum KernelCommandSemanticKind
     EntityId = 7,
     ActionId = 8,
     GeneratorId = 9,
-    DetectorId = 11,
     AttributeId = 12,
     RelationshipId = 14,
     RelationshipKindId = 15,

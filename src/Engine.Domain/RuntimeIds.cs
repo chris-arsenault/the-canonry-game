@@ -50,11 +50,6 @@ public readonly record struct VerbRuntimeId(int Value)
     public static VerbRuntimeId None => default;
 }
 
-public readonly record struct DetectorRuntimeId(int Value)
-{
-    public static DetectorRuntimeId None => default;
-}
-
 public readonly record struct EventCodeId(int Value)
 {
     public static EventCodeId None => default;

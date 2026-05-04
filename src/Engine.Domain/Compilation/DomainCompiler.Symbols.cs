@@ -32,7 +32,6 @@ public static partial class DomainCompiler
         AddKindSymbols(config, ids, symbols);
         AddWorldSymbols(config, ids, symbols);
         AddCultureSymbols(config, ids, symbols);
-        AddDegeneracySymbols(config, ids, symbols);
         AddGeneratorSymbols(config, ids, symbols);
         AddBehaviorSymbols(config, ids, symbols);
         AddRegistrySymbols(ids, symbols);
@@ -93,23 +92,6 @@ public static partial class DomainCompiler
         foreach (var culture in config.Cultures)
         {
             symbols.Add(DomainSymbolKind.Culture, ids.CultureIdOf(culture.Id).Value, culture.Id, culture.DisplayName);
-        }
-    }
-
-    private static void AddDegeneracySymbols(
-        DomainConfig config,
-        DomainIdRegistry ids,
-        DomainSymbolAccumulator symbols)
-    {
-        foreach (var detector in config.Degeneracy.Detectors)
-        {
-            symbols.Add(
-                DomainSymbolKind.Detector,
-                ids.DetectorIdOf(detector.Id).Value,
-                detector.Id,
-                detector.DisplayName,
-                detector.Description);
-            symbols.Add(DomainSymbolKind.ReasonCode, ids.ReasonCodeIdOf(detector.ReasonCode).Value, detector.ReasonCode);
         }
     }
 
@@ -225,7 +207,6 @@ public static partial class DomainCompiler
         DomainIdCategory.Subtype => DomainSymbolKind.Subtype,
         DomainIdCategory.Culture => DomainSymbolKind.Culture,
         DomainIdCategory.Generator => DomainSymbolKind.Generator,
-        DomainIdCategory.Detector => DomainSymbolKind.Detector,
         DomainIdCategory.EventCode => DomainSymbolKind.EventCode,
         DomainIdCategory.ReasonCode => DomainSymbolKind.ReasonCode,
         DomainIdCategory.SourceCode => DomainSymbolKind.SourceCode,

@@ -35,7 +35,6 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.RelationshipSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.DegeneracySourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapActivitySourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapSignalsSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),

@@ -264,8 +264,6 @@ public sealed class WorldStateIndexTests
             GambitCooldownCapacity = 32,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 32,
-            DegeneracyDetectorCapacity = 4,
-            DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 8,
             EntityAttributeCapacity = 8,
             EffectRuleCapacity = 8,

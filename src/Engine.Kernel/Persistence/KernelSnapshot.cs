@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 28;
+    private const int FormatVersion = 29;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -105,8 +105,6 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryWriter writer,
         SimulationOptions options)
     {
-        writer.Write(options.DegeneracyDetectorCapacity);
-        writer.Write(options.DegeneracyStateCapacity);
         writer.Write(options.LifecycleRuleCapacity);
         writer.Write(options.LowAltitudeVerbRuleCapacity);
         writer.Write(options.LowAltitudeVerbItemCapacity);
@@ -137,7 +135,6 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.StartupSourceCodeId);
         writer.Write(runtimeCodes.RelationshipSourceCodeId);
         writer.Write(runtimeCodes.GeneratorSourceCodeId);
-        writer.Write(runtimeCodes.DegeneracySourceCodeId);
         writer.Write(runtimeCodes.MapActivitySourceCodeId);
         writer.Write(runtimeCodes.MapSignalsSourceCodeId);
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
@@ -166,7 +163,6 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.Gambits);
         writer.Write(enabled.Relationships);
         writer.Write(enabled.Generators);
-        writer.Write(enabled.Degeneracy);
     }
 
     public static SimulationOptions Read(
@@ -226,8 +222,6 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryReader reader,
         ref SnapshotOptionValues values)
     {
-        values.DegeneracyDetectorCapacity = reader.ReadInt32();
-        values.DegeneracyStateCapacity = reader.ReadInt32();
         values.LifecycleRuleCapacity = reader.ReadInt32();
         values.LowAltitudeVerbRuleCapacity = reader.ReadInt32();
         values.LowAltitudeVerbItemCapacity = reader.ReadInt32();
@@ -258,7 +252,6 @@ internal static class KernelSnapshotOptions
         values.StartupSourceCodeId = reader.ReadInt32();
         values.RelationshipSourceCodeId = reader.ReadInt32();
         values.GeneratorSourceCodeId = reader.ReadInt32();
-        values.DegeneracySourceCodeId = reader.ReadInt32();
         values.MapActivitySourceCodeId = reader.ReadInt32();
         values.MapSignalsSourceCodeId = reader.ReadInt32();
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
@@ -278,7 +271,6 @@ internal static class KernelSnapshotOptions
         values.GambitsProgramEnabled = reader.ReadInt32();
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
-        values.DegeneracyProgramEnabled = reader.ReadInt32();
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
     }
@@ -343,8 +335,6 @@ internal static class KernelSnapshotOptions
             GambitProviderSelectorCapacity = values.GambitProviderSelectorCapacity,
             GeneratorCapacity = values.GeneratorCapacity,
             GeneratorItemCapacity = values.GeneratorItemCapacity,
-            DegeneracyDetectorCapacity = values.DegeneracyDetectorCapacity,
-            DegeneracyStateCapacity = values.DegeneracyStateCapacity,
             LifecycleRuleCapacity = values.LifecycleRuleCapacity,
             LowAltitudeVerbRuleCapacity = values.LowAltitudeVerbRuleCapacity,
             LowAltitudeVerbItemCapacity = values.LowAltitudeVerbItemCapacity,
@@ -377,7 +367,6 @@ internal static class KernelSnapshotOptions
             values.StartupSourceCodeId,
             values.RelationshipSourceCodeId,
             values.GeneratorSourceCodeId,
-            values.DegeneracySourceCodeId,
             values.MapActivitySourceCodeId,
             values.MapSignalsSourceCodeId,
             values.LowAltitudeVerbSourceCodeId,
@@ -399,7 +388,6 @@ internal static class KernelSnapshotOptions
                     Gambits = values.GambitsProgramEnabled,
                     Relationships = values.RelationshipsProgramEnabled,
                     Generators = values.GeneratorsProgramEnabled,
-                    Degeneracy = values.DegeneracyProgramEnabled,
                 },
                 Upkeep = new UpkeepProgramTuningOptions
                 {
@@ -436,8 +424,6 @@ internal static class KernelSnapshotOptions
         public int GambitProviderSelectorCapacity;
         public int GeneratorCapacity;
         public int GeneratorItemCapacity;
-        public int DegeneracyDetectorCapacity;
-        public int DegeneracyStateCapacity;
         public int LifecycleRuleCapacity;
         public int LowAltitudeVerbRuleCapacity;
         public int LowAltitudeVerbItemCapacity;
@@ -462,7 +448,6 @@ internal static class KernelSnapshotOptions
         public int StartupSourceCodeId;
         public int RelationshipSourceCodeId;
         public int GeneratorSourceCodeId;
-        public int DegeneracySourceCodeId;
         public int MapActivitySourceCodeId;
         public int MapSignalsSourceCodeId;
         public int LowAltitudeVerbSourceCodeId;
@@ -476,7 +461,6 @@ internal static class KernelSnapshotOptions
         public int GambitsProgramEnabled;
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
-        public int DegeneracyProgramEnabled;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int Seed;

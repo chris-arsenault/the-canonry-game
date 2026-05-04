@@ -75,7 +75,6 @@ Effects
 Upkeep
 Gambits
 Generators
-Degeneracy
 ```
 
 `LowAltitudeVerbs` intentionally reads previous-tick map activity and map

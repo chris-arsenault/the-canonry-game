@@ -23,7 +23,6 @@ public enum ProjectionSymbolKind
     EventCode = 14,
     ReasonCode = 15,
     SourceCode = 16,
-    Detector = 17,
     Goal = 18,
     Verb = 19,
     Continent = 20,

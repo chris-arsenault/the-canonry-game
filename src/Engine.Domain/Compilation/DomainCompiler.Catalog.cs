@@ -15,7 +15,6 @@ public static partial class DomainCompiler
         RegisterGeneratorCatalog(config, state);
         RegisterBehaviorCatalog(config, state);
         RegisterRuntimeCatalog(state);
-        RegisterDegeneracyCatalog(config, state);
 
         return state.Registry;
     }
@@ -137,19 +136,9 @@ public static partial class DomainCompiler
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.StartupSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.RelationshipSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GeneratorSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.DegeneracySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MapControlSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplaySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplayEffectsSourceCode, state.Registry.RegisterSourceCode, "source code");
-    }
-
-    private static void RegisterDegeneracyCatalog(DomainConfig config, CatalogRegistrationState state)
-    {
-        foreach (var detector in config.Degeneracy.Detectors)
-        {
-            RegisterOnceStrict(state.Detectors, detector.Id, state.Registry.RegisterDetector, "detector");
-            RegisterOnceStrict(state.ReasonCodes, detector.ReasonCode, state.Registry.RegisterReasonCode, "reason code");
-        }
     }
 
     private sealed class CatalogRegistrationState
@@ -166,7 +155,6 @@ public static partial class DomainCompiler
         public HashSet<string> Generators { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Verbs { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Gambits { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> Detectors { get; } = new(StringComparer.Ordinal);
         public HashSet<string> EventCodes { get; } = new(StringComparer.Ordinal);
         public HashSet<string> SourceCodes { get; } = new(StringComparer.Ordinal);
         public HashSet<string> ReasonCodes { get; } = new(StringComparer.Ordinal);

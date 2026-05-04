@@ -68,9 +68,6 @@ public sealed class KernelEventPayloadTests
         var goalGenerated = new GoalGeneratedKernelEvent(9, 10, 11, 12, 13, 14, KernelEventState.Truncated);
         Assert.Equal(goalGenerated, KernelEvent.From(goalGenerated).AsGoalGenerated());
 
-        var degeneracyDetected = new DegeneracyDetectedKernelEvent(10, 11, 12, 13, 14);
-        Assert.Equal(degeneracyDetected, KernelEvent.From(degeneracyDetected).AsDegeneracyDetected());
-
         var generatorEvaluated = new GeneratorEvaluatedKernelEvent(11, 12, 13, 14, 15, 16, 17);
         Assert.Equal(generatorEvaluated, KernelEvent.From(generatorEvaluated).AsGeneratorEvaluated());
 

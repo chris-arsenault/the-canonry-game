@@ -613,31 +613,4 @@ internal sealed class KernelConfigurationContext
 
     public bool ProgramIsEnabled(int programId) =>
         _kernel.ProgramIsEnabled(programId);
-
-    public int RegisterDegeneracyDetector(
-        DetectorRuntimeId detectorId,
-        int metricCode,
-        int thresholdDirectionCode,
-        int noSubjectsSeverityCode,
-        ReasonCodeId reasonCodeId,
-        int primaryKindId,
-        int secondaryKindId,
-        AttributeRuntimeId attributeId,
-        RelationshipKindRuntimeId relationshipKindId,
-        int dominantRelationshipEndpointCode,
-        float warningThreshold,
-        float criticalThreshold) =>
-        _kernel.Degeneracy.RegisterDetector(
-            detectorId.Value,
-            metricCode,
-            thresholdDirectionCode,
-            noSubjectsSeverityCode,
-            reasonCodeId.Value,
-            primaryKindId,
-            secondaryKindId,
-            attributeId.Value,
-            relationshipKindId.Value,
-            dominantRelationshipEndpointCode,
-            warningThreshold,
-            criticalThreshold);
 }

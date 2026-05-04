@@ -26,7 +26,6 @@ public static partial class DomainCompiler
             Gambits = BuildGambitProgram(config, ids),
             Relationships = BuildRelationshipProgram(config, ids),
             Generators = BuildGeneratorProgram(config, ids, graph),
-            Degeneracy = BuildDegeneracyProgram(config, ids),
         };
     }
 

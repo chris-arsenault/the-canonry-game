@@ -11,7 +11,6 @@ public static class DomainRuntimeNames
     public const string StartupSourceCode = "startup";
     public const string RelationshipSourceCode = "relationship";
     public const string GeneratorSourceCode = "generator";
-    public const string DegeneracySourceCode = "degeneracy";
     public const string GameplaySourceCode = "gameplay";
     public const string MapControlSourceCode = "map_control";
     public const string GameplayEffectsSourceCode = "gameplay_effects";

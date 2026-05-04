@@ -553,13 +553,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnDegeneracyDetected(long sequence, in DegeneracyDetectedKernelEvent evt)
-    {
-        // MIGRATION: TelemetryBatch has no degeneracy table yet. The schema event is
-        // preserved by the event log and can be projected once the table contract exists.
-        MarkProjected(sequence);
-    }
-
     protected override void OnGeneratorEvaluated(long sequence, in GeneratorEvaluatedKernelEvent evt)
     {
         _ = GetGeneratorState(evt.GeneratorId);

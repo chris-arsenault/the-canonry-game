@@ -26,7 +26,6 @@ Effects
 Upkeep
 Gambits
 Generators
-Degeneracy
 ```
 
 Important dependency notes:

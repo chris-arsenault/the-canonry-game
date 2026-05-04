@@ -42,7 +42,7 @@ Done means:
   hand-authored seed.
 - UI supports observing map utilization, entity details, tableau diagnostics,
   and event history without developer guidance.
-- Anti-degeneracy warnings expose bad trends without ending the run.
+- Simulation-quality reports expose bad trends without ending the run.
 - Save/load is reliable enough for multi-session testing.
 
 ## Early Access

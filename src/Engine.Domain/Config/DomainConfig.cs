@@ -22,9 +22,6 @@ public sealed class DomainConfig
     /// <summary>Relationship kind definitions.</summary>
     public required IReadOnlyList<RelationshipConfig> Relationships { get; init; }
 
-    /// <summary>Degeneracy detector definitions.</summary>
-    public DegeneracyConfig Degeneracy { get; init; } = new();
-
     /// <summary>Lifecycle drain configuration per kind.</summary>
     public required IReadOnlyDictionary<EntityKind, LifecycleConfig> Lifecycles { get; init; }
 
@@ -162,55 +159,6 @@ public sealed class RelationshipConfig
     public bool TargetFollowsSourcePhysical { get; init; }
     public float CullThreshold { get; init; } = 0.05f;
     public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
-}
-
-public sealed class DegeneracyConfig
-{
-    public IReadOnlyList<DegeneracyDetectorConfig> Detectors { get; init; } = [];
-}
-
-public sealed class DegeneracyDetectorConfig
-{
-    public required string Id { get; init; }
-    public string? DisplayName { get; init; }
-    public string? Description { get; init; }
-    public required string ReasonCode { get; init; }
-    public required DegeneracyMetric Metric { get; init; }
-    public DegeneracyThresholdDirection ThresholdDirection { get; init; } = DegeneracyThresholdDirection.HighIsBad;
-    public DegeneracySeverity NoSubjectsSeverity { get; init; } = DegeneracySeverity.Normal;
-    public required EntityKind PrimaryKind { get; init; }
-    public EntityKind? SecondaryKind { get; init; }
-    public string? Health { get; init; }
-    public string? RelationshipKind { get; init; }
-    public DegeneracyRelationshipEndpoint DominantRelationshipEndpoint { get; init; } = DegeneracyRelationshipEndpoint.Target;
-    public required float WarningThreshold { get; init; }
-    public required float CriticalThreshold { get; init; }
-}
-
-public enum DegeneracyMetric
-{
-    AttributeDeclineRatio,
-    RelationshipEndpointDominanceRatio,
-    ActiveKindCount,
-}
-
-public enum DegeneracyThresholdDirection
-{
-    HighIsBad,
-    LowIsBad,
-}
-
-public enum DegeneracyRelationshipEndpoint
-{
-    Source,
-    Target,
-}
-
-public enum DegeneracySeverity
-{
-    Normal,
-    Warning,
-    Critical,
 }
 
 /// <summary>Lifecycle drain configuration for a kind.</summary>

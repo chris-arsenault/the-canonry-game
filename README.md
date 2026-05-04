@@ -46,7 +46,6 @@ Effects
 Upkeep
 Gambits
 Generators
-Degeneracy
 ```
 
 The removed low-altitude process deck and macro aggregate layer are not part of

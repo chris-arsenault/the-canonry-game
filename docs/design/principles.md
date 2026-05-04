@@ -96,10 +96,9 @@ The simulation can reach degenerate states that are no longer interesting:
 extinction, stagnation, monoculture. These are design concerns, not formal
 lose conditions. The game resists them through three layers — automatic
 shock absorbers in low-altitude physics, card-level responses chosen by the
-player, and explicit UI warnings when patterns are detected. There are no
-win conditions in neutral mode; success is measured by the player's own
-goals. Patron mode is outside the active runtime. See
-[anti-degeneracy.md](anti-degeneracy.md) for the full mechanism.
+player, and simulation-quality telemetry. There are no win conditions in
+neutral mode; success is measured by the player's own goals. Patron mode is
+outside the active runtime.
 
 ### 8. The deck is a theory
 

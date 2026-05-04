@@ -21,7 +21,6 @@ internal static partial class KernelProgramInstaller
         InstallGambits(context, programs.Gambits);
         InstallRelationships(context, programs.Relationships);
         InstallGenerators(context, programs.Generators);
-        InstallDegeneracy(context, programs.Degeneracy);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -50,9 +49,6 @@ internal static partial class KernelProgramInstaller
         context.SetProgramEnabled(
             KernelProgramCodes.Generators,
             programConfig.IsEnabled(KernelProgramCodes.Generators, programs.Generators.EnabledByDefault));
-        context.SetProgramEnabled(
-            KernelProgramCodes.Degeneracy,
-            programConfig.IsEnabled(KernelProgramCodes.Degeneracy, programs.Degeneracy.EnabledByDefault));
     }
 
     private static void InstallUpkeep(KernelConfigurationContext context, UpkeepProgram program)
@@ -169,26 +165,6 @@ internal static partial class KernelProgramInstaller
         foreach (var expression in step.Expression)
         {
             context.AddGambitStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
-        }
-    }
-
-    private static void InstallDegeneracy(KernelConfigurationContext context, DegeneracyProgram program)
-    {
-        foreach (var detector in program.Detectors)
-        {
-            context.RegisterDegeneracyDetector(
-                new DetectorRuntimeId(detector.DetectorId),
-                DegeneracyMetricCode(detector.Metric),
-                DegeneracyThresholdDirectionCode(detector.ThresholdDirection),
-                DegeneracySeverityCode(detector.NoSubjectsSeverity),
-                new ReasonCodeId(detector.ReasonCodeId),
-                detector.PrimaryKindId,
-                detector.SecondaryKindId,
-                new AttributeRuntimeId(detector.AttributeId),
-                new RelationshipKindRuntimeId(detector.RelationshipKindId),
-                DegeneracyRelationshipEndpointCode(detector.DominantRelationshipEndpoint),
-                detector.WarningThreshold,
-                detector.CriticalThreshold);
         }
     }
 
@@ -737,39 +713,6 @@ internal static partial class KernelProgramInstaller
         GeneratorProgramCoverageMode.CreateNew => GeneratorCoverageModeCodes.CreateNew,
         GeneratorProgramCoverageMode.SplitFromExisting => GeneratorCoverageModeCodes.SplitFromExisting,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
-    };
-
-    private static int DegeneracyMetricCode(DegeneracyProgramMetric metric) => metric switch
-    {
-        DegeneracyProgramMetric.AttributeDeclineRatio => DegeneracyMetricCodes.AttributeDeclineRatio,
-        DegeneracyProgramMetric.RelationshipEndpointDominanceRatio =>
-            DegeneracyMetricCodes.RelationshipEndpointDominanceRatio,
-        DegeneracyProgramMetric.ActiveKindCount => DegeneracyMetricCodes.ActiveKindCount,
-        _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, null),
-    };
-
-    private static int DegeneracyThresholdDirectionCode(DegeneracyProgramThresholdDirection direction) =>
-        direction switch
-        {
-            DegeneracyProgramThresholdDirection.HighIsBad => DegeneracyThresholdDirectionCodes.HighIsBad,
-            DegeneracyProgramThresholdDirection.LowIsBad => DegeneracyThresholdDirectionCodes.LowIsBad,
-            _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
-        };
-
-    private static int DegeneracyRelationshipEndpointCode(DegeneracyProgramRelationshipEndpoint endpoint) =>
-        endpoint switch
-        {
-            DegeneracyProgramRelationshipEndpoint.Source => DegeneracyRelationshipEndpointCodes.Source,
-            DegeneracyProgramRelationshipEndpoint.Target => DegeneracyRelationshipEndpointCodes.Target,
-            _ => throw new ArgumentOutOfRangeException(nameof(endpoint), endpoint, null),
-        };
-
-    private static int DegeneracySeverityCode(DegeneracyProgramSeverity severity) => severity switch
-    {
-        DegeneracyProgramSeverity.Normal => DegeneracySeverityCodes.Normal,
-        DegeneracyProgramSeverity.Warning => DegeneracySeverityCodes.Warning,
-        DegeneracyProgramSeverity.Critical => DegeneracySeverityCodes.Critical,
-        _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
     };
 
 }

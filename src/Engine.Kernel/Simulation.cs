@@ -39,7 +39,6 @@ internal sealed partial class Simulation : IKernel
         Effects = CreateEffectsRuntime(options);
         Gambits = CreateGambitRuntime(options);
         Generators = CreateGeneratorRuntime(options);
-        Degeneracy = CreateDegeneracyRuntime(options);
         Upkeep = CreateUpkeepRuntime(options);
         Relationships = CreateRelationshipRuntime(options);
         AssignRuntimeCodes(options.RuntimeCodes);
@@ -61,7 +60,6 @@ internal sealed partial class Simulation : IKernel
         StartupSourceCodeId = codes.StartupSourceCodeId;
         RelationshipSourceCodeId = codes.RelationshipSourceCodeId;
         GeneratorSourceCodeId = codes.GeneratorSourceCodeId;
-        DegeneracySourceCodeId = codes.DegeneracySourceCodeId;
         MapActivitySourceCodeId = codes.MapActivitySourceCodeId;
         MapSignalsSourceCodeId = codes.MapSignalsSourceCodeId;
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
@@ -126,12 +124,6 @@ internal sealed partial class Simulation : IKernel
             options.KernelTuning.Programs);
     }
 
-    private static DegeneracyProgramRuntime CreateDegeneracyRuntime(SimulationOptions options) =>
-        new(
-            new DegeneracyProgramData(options.DegeneracyDetectorCapacity),
-            new DegeneracyProgramState(options.DegeneracyDetectorCapacity, options.DegeneracyStateCapacity),
-            options.KernelTuning.Programs);
-
     private static UpkeepProgramRuntime CreateUpkeepRuntime(SimulationOptions options) =>
         new(
             new UpkeepProgramData(options.LifecycleRuleCapacity),
@@ -155,7 +147,6 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
         RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
         RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
-        RegisterProgram(KernelProgramCodes.Degeneracy, 10, Degeneracy);
         ValidateProgramDependencies();
     }
 
@@ -296,7 +287,6 @@ internal sealed partial class Simulation : IKernel
     internal EffectsProgramRuntime Effects { get; }
     internal GambitProgramRuntime Gambits { get; }
     internal GeneratorProgramRuntime Generators { get; }
-    internal DegeneracyProgramRuntime Degeneracy { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
     internal int GambitSourceCodeId { get; private set; }
@@ -304,7 +294,6 @@ internal sealed partial class Simulation : IKernel
     internal int StartupSourceCodeId { get; private set; }
     internal int RelationshipSourceCodeId { get; private set; }
     internal int GeneratorSourceCodeId { get; private set; }
-    internal int DegeneracySourceCodeId { get; private set; }
     internal int MapActivitySourceCodeId { get; private set; }
     internal int MapSignalsSourceCodeId { get; private set; }
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
@@ -948,7 +937,6 @@ internal sealed partial class Simulation : IKernel
     {
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
-        KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,

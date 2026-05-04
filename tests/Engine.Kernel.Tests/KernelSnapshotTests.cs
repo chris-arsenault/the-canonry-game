@@ -144,8 +144,6 @@ public sealed class KernelSnapshotTests
             GambitProviderSelectorCapacity = 4,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 16,
-            DegeneracyDetectorCapacity = 4,
-            DegeneracyStateCapacity = 16,
             LifecycleRuleCapacity = 4,
             EntityAttributeCapacity = 8,
             EffectRuleCapacity = 4,

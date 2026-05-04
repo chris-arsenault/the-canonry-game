@@ -20,7 +20,7 @@ Map coverage is a first-class map abstraction:
 - Regions own connected terrain-aware coverage.
 - Settlements can own local built coverage.
 - New regions may be created or split by generators.
-- Coverage creation should fail gracefully through degeneracy reporting rather
+- Coverage creation should fail gracefully with explicit rejection data rather
   than crashing the host.
 - New coverage can optionally change terrain when the narrative requires it,
   such as a scar.

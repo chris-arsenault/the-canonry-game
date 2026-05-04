@@ -79,7 +79,6 @@ public enum KernelEventSemanticKind
     EventCodeId = 10,
     ReasonCodeId = 11,
     SourceCodeId = 12,
-    DetectorId = 13,
     GeneratorId = 14,
     BehaviorId = 15,
     GambitId = 18,

@@ -76,9 +76,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.GoalGenerated:
                 OnGoalGenerated(kernelEvent.Sequence, evt.AsGoalGenerated());
                 break;
-            case KernelEventType.DegeneracyDetected:
-                OnDegeneracyDetected(kernelEvent.Sequence, evt.AsDegeneracyDetected());
-                break;
             case KernelEventType.GeneratorEvaluated:
                 OnGeneratorEvaluated(kernelEvent.Sequence, evt.AsGeneratorEvaluated());
                 break;
@@ -162,10 +159,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnDegeneracyDetected(long sequence, in DegeneracyDetectedKernelEvent evt)
     {
     }
 

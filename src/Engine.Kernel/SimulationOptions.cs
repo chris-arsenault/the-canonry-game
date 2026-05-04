@@ -27,8 +27,6 @@ internal sealed record SimulationOptions
     public int GambitProviderSelectorCapacity { get; init; } = 512;
     public int GeneratorCapacity { get; init; } = 256;
     public int GeneratorItemCapacity { get; init; } = 4096;
-    public int DegeneracyDetectorCapacity { get; init; } = 32;
-    public int DegeneracyStateCapacity { get; init; } = 8192;
     public int LifecycleRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbItemCapacity { get; init; } = 1024;
@@ -74,7 +72,6 @@ internal sealed record ProgramEnabledTuningOptions
     public int Gambits { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Relationships { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Generators { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
-    public int Degeneracy { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
 }
 
 internal sealed record UpkeepProgramTuningOptions

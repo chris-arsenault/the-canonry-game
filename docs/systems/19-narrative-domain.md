@@ -15,7 +15,6 @@ The domain owns:
 - low-altitude gameplay config;
 - gambits;
 - generators;
-- degeneracy detectors;
 - narrative presentation data.
 
 The engine owns the generic runtime. It does not know Ice Remembers lore.

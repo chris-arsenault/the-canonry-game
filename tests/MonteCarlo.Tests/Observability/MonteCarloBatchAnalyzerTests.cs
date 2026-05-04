@@ -317,7 +317,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             Kinds = config.Kinds,
             Gambits = config.Gambits,
             Relationships = config.Relationships,
-            Degeneracy = config.Degeneracy,
             Lifecycles = config.Lifecycles,
             Terrains = config.Terrains,
             Cultures = config.Cultures,

@@ -20,7 +20,6 @@ internal static class KernelStartupConfigLoader
         new("KERNELTUNING.PROGRAMS.GAMBITS", KernelProgramCodes.Gambits),
         new("KERNELTUNING.PROGRAMS.RELATIONSHIPS", KernelProgramCodes.Relationships),
         new("KERNELTUNING.PROGRAMS.GENERATORS", KernelProgramCodes.Generators),
-        new("KERNELTUNING.PROGRAMS.DEGENERACY", KernelProgramCodes.Degeneracy),
     ];
 
     public static KernelTuningOptions LoadKernelTuning(string? configFilePath)
@@ -88,8 +87,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Gambits, "gambits");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Relationships, "relationships");
-        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
-        return ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Degeneracy, "degeneracy");
+        return ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
     }
 
     private static KernelTuningOptions ApplyJsonProgramEnabledValue(
@@ -266,7 +264,6 @@ internal static class KernelStartupConfigLoader
         {
             KernelProgramCodes.Relationships => options with { Relationships = code },
             KernelProgramCodes.Generators => options with { Generators = code },
-            KernelProgramCodes.Degeneracy => options with { Degeneracy = code },
             _ => options,
         };
     }

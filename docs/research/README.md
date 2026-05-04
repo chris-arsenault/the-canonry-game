@@ -46,8 +46,7 @@ choice referenced in [`docs/architecture.md`](../architecture.md).
 ## Pacing
 
 Tempo, attention, and lose-condition research. Crystallized into design
-principles 6 (contemplative tempo) and 7 (degenerate states), and the
-[anti-degeneracy design](../design/anti-degeneracy.md).
+principles 6 (contemplative tempo) and 7 (degenerate states).
 
 - [`pacing/tempo-and-attention.md`](pacing/tempo-and-attention.md)
 - [`pacing/lose-conditions-and-metrics.md`](pacing/lose-conditions-and-metrics.md)

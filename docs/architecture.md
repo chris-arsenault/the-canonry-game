@@ -82,7 +82,6 @@ Effects
 Upkeep
 Gambits
 Generators
-Degeneracy
 ```
 
 The program dependency metadata makes the load-bearing ordering explicit.
@@ -119,8 +118,7 @@ state mutation:
 High-altitude programs produce significant graph changes:
 
 - gambits;
-- generators;
-- degeneracy detectors.
+- generators.
 
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.

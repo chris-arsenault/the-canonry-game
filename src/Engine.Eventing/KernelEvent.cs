@@ -10,7 +10,6 @@ public enum KernelEventType
     RelationshipChanged = 6,
     TraitAssigned = 7,
     GoalGenerated = 9,
-    DegeneracyDetected = 10,
     GeneratorEvaluated = 11,
     GeneratorFired = 12,
     GambitExecuted = 13,
@@ -170,17 +169,6 @@ public readonly record struct GoalGeneratedKernelEvent(
     int ActionableGoalCount,
     [KernelEventIntSlot(4, "state", KernelEventSemanticKind.StatusCode)]
     KernelEventState State);
-
-[KernelEventLayout(KernelEventType.DegeneracyDetected, schemaMinor: 0)]
-public readonly record struct DegeneracyDetectedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "detector_id", KernelEventSemanticKind.DetectorId)]
-    int DetectorId,
-    [KernelEventIntSlot(1, "severity_code", KernelEventSemanticKind.StatusCode)]
-    int SeverityCode,
-    [KernelEventIntSlot(2, "reason_code_id", KernelEventSemanticKind.ReasonCodeId)]
-    int ReasonCodeId);
 
 [KernelEventLayout(KernelEventType.GeneratorEvaluated, schemaMinor: 0)]
 public readonly record struct GeneratorEvaluatedKernelEvent(

@@ -231,38 +231,11 @@ public static class GeneratorCoverageModeCodes
     public const int SplitFromExisting = 2;
 }
 
-public static class DegeneracyMetricCodes
-{
-    public const int AttributeDeclineRatio = 1;
-    public const int RelationshipEndpointDominanceRatio = 2;
-    public const int ActiveKindCount = 3;
-}
-
-public static class DegeneracyThresholdDirectionCodes
-{
-    public const int HighIsBad = 1;
-    public const int LowIsBad = 2;
-}
-
-public static class DegeneracyRelationshipEndpointCodes
-{
-    public const int Source = 1;
-    public const int Target = 2;
-}
-
-public static class DegeneracySeverityCodes
-{
-    public const int Normal = 0;
-    public const int Warning = 1;
-    public const int Critical = 2;
-}
-
 public static class KernelProgramCodes
 {
     public const int Upkeep = 1;
     public const int Relationships = 3;
     public const int Generators = 5;
-    public const int Degeneracy = 6;
     public const int Gambits = 7;
     public const int Movement = 9;
     public const int MapActivity = 10;

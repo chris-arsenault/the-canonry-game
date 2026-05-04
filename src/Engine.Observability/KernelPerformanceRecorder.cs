@@ -273,8 +273,6 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
 
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
-    protected override void OnDegeneracyDetected(long sequence, in DegeneracyDetectedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
     protected override void OnGambitEvaluated(long sequence, in GambitEvaluatedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
     protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt) => Count(evt.Tick).TotalMessages++;

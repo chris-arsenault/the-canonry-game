@@ -36,7 +36,6 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId StartupSourceCodeId,
     SourceCodeId RelationshipSourceCodeId,
     SourceCodeId GeneratorSourceCodeId,
-    SourceCodeId DegeneracySourceCodeId,
     SourceCodeId MapActivitySourceCodeId,
     SourceCodeId MapSignalsSourceCodeId,
     SourceCodeId LowAltitudeVerbSourceCodeId,
@@ -58,7 +57,6 @@ public enum DomainSymbolKind
     EventCode,
     ReasonCode,
     SourceCode,
-    Detector,
     Goal,
 }
 

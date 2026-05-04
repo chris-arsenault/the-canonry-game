@@ -435,7 +435,6 @@ internal sealed class KernelHostBuilder
             codes.StartupSourceCodeId.Value,
             codes.RelationshipSourceCodeId.Value,
             codes.GeneratorSourceCodeId.Value,
-            codes.DegeneracySourceCodeId.Value,
             codes.MapActivitySourceCodeId.Value,
             codes.MapSignalsSourceCodeId.Value,
             codes.LowAltitudeVerbSourceCodeId.Value,
@@ -513,9 +512,6 @@ internal sealed class KernelHostBuilder
                 return true;
             case DomainSymbolKind.Gambit:
                 symbolKind = ProjectionSymbolKind.Gambit;
-                return true;
-            case DomainSymbolKind.Detector:
-                symbolKind = ProjectionSymbolKind.Detector;
                 return true;
             case DomainSymbolKind.Goal:
                 symbolKind = ProjectionSymbolKind.Goal;

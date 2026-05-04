@@ -16,7 +16,6 @@ low-altitude runtime is **not** the old process deck. It is:
 - `Gambits`
 - `Pressures`
 - `Generators`
-- `Degeneracy`
 
 Behavior bytecode and planner support remain for gambits. Do not reintroduce
 standing drives, generated low-altitude processes, or compatibility shims for

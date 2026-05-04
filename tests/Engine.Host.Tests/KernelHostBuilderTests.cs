@@ -88,12 +88,6 @@ public sealed class KernelHostBuilderTests
             verbSymbolSeed.Id,
             out var verbSymbol));
         Assert.Equal(verbSymbolSeed.StableName, verbSymbol.StableName);
-        var detectorSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Detector);
-        Assert.True(host.Symbols.TryResolve(
-            ProjectionSymbolKind.Detector,
-            detectorSymbolSeed.Id,
-            out var detectorSymbol));
-        Assert.Equal(detectorSymbolSeed.StableName, detectorSymbol.StableName);
         var structuralFactSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.StructuralFact);
         Assert.True(host.Symbols.TryResolve(
             ProjectionSymbolKind.StructuralFact,
@@ -107,7 +101,6 @@ public sealed class KernelHostBuilderTests
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Effects));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Gambits));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Generators));
-        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Degeneracy));
         Assert.NotEmpty(host.CompiledDomain.Programs.Effects.AttributeDeltaEffects);
     }
 

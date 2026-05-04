@@ -179,7 +179,6 @@ public sealed class KernelRuntimeFactory
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Gambits, enabled.Gambits);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Relationships, enabled.Relationships);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Generators, enabled.Generators);
-        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Degeneracy, enabled.Degeneracy);
     }
 
     private static void ApplyProgramEnabledOverride(

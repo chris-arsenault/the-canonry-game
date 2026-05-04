@@ -20,7 +20,6 @@ internal sealed partial class Simulation
         RelationshipProgramSnapshot.Write(writer, Relationships);
         GambitProgramSnapshot.Write(writer, Gambits);
         GeneratorProgramSnapshot.Write(writer, Generators);
-        DegeneracyProgramSnapshot.Write(writer, Degeneracy);
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
@@ -39,7 +38,6 @@ internal sealed partial class Simulation
         RelationshipProgramSnapshot.Read(reader, Relationships);
         GambitProgramSnapshot.Read(reader, Gambits);
         GeneratorProgramSnapshot.Read(reader, Generators);
-        DegeneracyProgramSnapshot.Read(reader, Degeneracy);
     }
 
     internal void EmitSnapshotEvents()
