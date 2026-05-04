@@ -30,13 +30,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
-        if (eventType is KernelEventType.TickCompleted or
-            KernelEventType.GeneratorEnabledChanged or
-            KernelEventType.CellCreated or
-            KernelEventType.CellChanged or
-            KernelEventType.CellInfluenceChanged or
-            KernelEventType.ProvenanceInvocationRecorded or
-            KernelEventType.KernelStorageGrown)
+        if (IsWorldEvent(eventType))
         {
             ProjectWorldEvent(kernelEvent);
             return;
@@ -44,6 +38,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
         ProjectBehaviorEvent(kernelEvent);
     }
+
+    private static bool IsWorldEvent(KernelEventType eventType) =>
+        eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CellRoadChanged and not KernelEventType.GambitEvaluated;
 
     private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
     {
@@ -116,6 +113,12 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.CellInfluenceChanged:
                 OnCellInfluenceChanged(kernelEvent.Sequence, evt.AsCellInfluenceChanged());
+                break;
+            case KernelEventType.MapCellStateChanged:
+                OnMapCellStateChanged(kernelEvent.Sequence, evt.AsMapCellStateChanged());
+                break;
+            case KernelEventType.CellRoadChanged:
+                OnCellRoadChanged(kernelEvent.Sequence, evt.AsCellRoadChanged());
                 break;
             case KernelEventType.ProvenanceInvocationRecorded:
                 OnProvenanceInvocationRecorded(kernelEvent.Sequence, evt.AsProvenanceInvocationRecorded());
@@ -231,6 +234,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMapCellStateChanged(long sequence, in MapCellStateChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
     {
     }
 

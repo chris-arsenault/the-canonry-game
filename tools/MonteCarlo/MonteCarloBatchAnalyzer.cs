@@ -68,6 +68,22 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 CAST(NULL AS DOUBLE) AS delta
             WHERE FALSE
             """),
+        new(
+            "cell_road_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS source_code_id,
+                CAST(NULL AS BIGINT) AS plane_code,
+                CAST(NULL AS BIGINT) AS q,
+                CAST(NULL AS BIGINT) AS r,
+                CAST(NULL AS BIGINT) AS travel_count,
+                CAST(NULL AS DOUBLE) AS previous_quality,
+                CAST(NULL AS DOUBLE) AS current_quality,
+                CAST(NULL AS DOUBLE) AS delta
+            WHERE FALSE
+            """),
     ];
 
     private readonly DomainConfig _domainConfig = domainConfig;

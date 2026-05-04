@@ -123,5 +123,20 @@ is generator behavior. Generator counts are a downstream symptom. For
 low-altitude tuning, lead with map utilization, roaming variance, influence
 shape, lifecycle churn, and relationship strength dynamics.
 
+Road behavior should be judged from the Monte Carlo parquet contract:
+
+- `cell_road_events` is the raw plane-aware source for road quality and travel
+  count changes.
+- `road_creation` answers whether roads are being created and where quality
+  lands by plane.
+- `road_usage` answers whether moves arrive on cells that were already roads
+  before the move tick.
+- `road_reinforcement` answers whether roaded cells receive later movement and
+  repeated quality growth.
+
+Do not infer road prioritization from those tables. Prioritization needs
+candidate path/cost choice telemetry that compares selected and rejected
+movement options.
+
 Do not loosen tests to make a suite green. If a test encodes a design gap or
 architecture invariant, fix the implementation or revise the design explicitly.

@@ -140,12 +140,26 @@ public partial class HexTooltipPanel : PanelContainer
             .Select(FormatProjectedEntityLine)
             .ToList();
         var occupantsLine = occupants.Count == 0 ? "uninhabited" : string.Join('\n', occupants);
-        return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
+        if (!_map!.TryGetHex(PlaneCodes.Semantic, coord, out var cell))
+        {
+            return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
+        }
+
+        var terrain = FormatTerrain(cell);
+        var owner = FormatOwner(cell);
+        var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
+        var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
+        return
+            $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n" +
+            $"{terrain,-10}   {owner}   {FormatRoad(cell)}\n" +
+            $"{continent}   {superregion}\n" +
+            $"{FormatInfluence(cell)}\n" +
+            occupantsLine;
     }
 
     private string FormatPhysicalHexTooltip(HexCoord coord)
     {
-        if (!_map!.TryGetHex(coord, out var cell))
+        if (!_map!.TryGetHex(PlaneCodes.Physical, coord, out var cell))
         {
             return $"{coord.Q,3} , {coord.R,3}   unknown";
         }
@@ -155,8 +169,9 @@ public partial class HexTooltipPanel : PanelContainer
         var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
         var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
         return
-            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}\n" +
-            $"{continent}   {superregion}";
+            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatRoad(cell)}\n" +
+            $"{continent}   {superregion}\n" +
+            FormatInfluence(cell);
     }
 
     private string FormatTerrain(HexProjection cell) =>
@@ -178,6 +193,36 @@ public partial class HexTooltipPanel : PanelContainer
         }
 
         return ProjectionDisplay.EntityName(_symbols, ownerEntity);
+    }
+
+    private string FormatRoad(HexProjection cell)
+    {
+        var roadQuality = Mathf.Clamp(cell.RoadQuality / 100f, 0f, 1f);
+        return roadQuality switch
+        {
+            > 0.75f => $"heavy road {roadQuality:0.00}",
+            > 0.25f => $"light road {roadQuality:0.00}",
+            _ => "no road",
+        };
+    }
+
+    private string FormatInfluence(HexProjection cell)
+    {
+        var influences = cell.Influences
+            .Where(influence => influence.Value > 0f)
+            .Take(3)
+            .Select(influence => $"{FormatEntityName(influence.EntityId)} {influence.Value:0}")
+            .ToArray();
+        return influences.Length == 0
+            ? "influence none"
+            : $"influence {string.Join(" | ", influences)}";
+    }
+
+    private string FormatEntityName(int entityId)
+    {
+        return _projection!.Entities.TryGetValue(entityId, out var entity)
+            ? ProjectionDisplay.EntityName(_symbols, entity)
+            : $"Entity {entityId}";
     }
 
     private string FormatProjectedEntityLine(UiEntityProjection entity)

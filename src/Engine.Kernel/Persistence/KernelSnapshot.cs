@@ -18,7 +18,7 @@ internal static class KernelSnapshot
         KernelSnapshotOptions.Write(
             writer,
             simulation.Options,
-            simulation.World.SnapshotEventCount(),
+            simulation.SnapshotEventCount(),
             simulation.World.ProvenanceInvocationCapacity,
             simulation.World.ProvenanceOutputCapacity);
         simulation.WriteSnapshot(writer);

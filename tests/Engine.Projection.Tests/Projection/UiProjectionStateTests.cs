@@ -309,6 +309,6 @@ public sealed class UiProjectionStateTests
             item => item.Area == "initial attributes");
         Assert.Contains(
             UiProjectionState.FutureMigrationItems,
-            item => item.Area == "map terrain and coverage");
+            item => item.Area == "relationship removal semantics");
     }
 }

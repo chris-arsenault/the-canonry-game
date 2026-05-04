@@ -207,6 +207,20 @@ internal sealed partial class WorldState
             0,
             terrainId,
             ProvenanceOutputKindCodes.CellChanged);
+        Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
+            tick,
+            WorldVersion,
+            planeCode,
+            q,
+            r,
+            context.SourceCodeId,
+            previousTerrainId,
+            terrainId,
+            previousOwnerEntityId,
+            ownerEntityId,
+            superregionId,
+            continentId)),
+            context);
         if (planeCode == PlaneCodes.Physical)
         {
             Write(KernelEvent.From(new CellChangedKernelEvent(

@@ -53,6 +53,35 @@ internal sealed class MovementProgramRuntime :
 
     public int RoadTravelCount(int planeCode, int q, int r) => State.RoadTravelCount(planeCode, q, r);
 
+    public int SnapshotEventCount() => State.RoadCellCount;
+
+    public void EmitSnapshotEvents(Simulation simulation, int tick)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        State.ForEachRoadCell((planeCode, coordinateKey, quality, lastTick, travelCount) =>
+        {
+            _ = quality;
+            _ = lastTick;
+            if (!simulation.World.TryResolveCoordinateKey(
+                    coordinateKey,
+                    planeCode == PlaneCodes.Semantic ? 4 : 0,
+                    out var q,
+                    out var r))
+            {
+                return;
+            }
+
+            simulation.EmitCellRoadChanged(
+                tick,
+                planeCode,
+                q,
+                r,
+                0f,
+                RoadQuality(planeCode, q, r, tick),
+                travelCount);
+        });
+    }
+
     public MovementMoveResult TryMovePhysical(
         Simulation simulation,
         int entityId,
@@ -173,6 +202,7 @@ internal sealed class MovementProgramRuntime :
         }
 
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
+        var previousQuality = RoadQuality(planeCode, q, r, tick);
         State.RecordTravel(
             planeCode,
             q,
@@ -180,6 +210,15 @@ internal sealed class MovementProgramRuntime :
             tick,
             Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
             Data.RoadDecayPerTick);
+        var currentQuality = RoadQuality(planeCode, q, r, tick);
+        simulation.EmitCellRoadChanged(
+            tick,
+            planeCode,
+            q,
+            r,
+            previousQuality,
+            currentQuality,
+            RoadTravelCount(planeCode, q, r));
     }
 
     private static void ValidateCauseCode(int causeCode)

@@ -17,6 +17,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int SchemaVersion => 1;
 
+    internal int RoadCellCount => _roadQuality.Count;
+
     public float RoadQuality(int planeCode, int q, int r, int tick, float roadDecayPerTick) =>
         DecayedRoadQuality(planeCode, CoordinateKey(q, r), tick, roadDecayPerTick);
 
@@ -37,6 +39,20 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _roadQuality.Set(planeCode, key, nextQuality);
         _roadTravelCounts.Add(planeCode, key, 1);
         _lastRoadTicks.Set(planeCode, key, tick);
+    }
+
+    internal void ForEachRoadCell(global::System.Action<int, int, float, int, int> visitor)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(visitor);
+        _roadQuality.ForEach((planeCode, coordinateKey, quality) =>
+        {
+            visitor(
+                planeCode,
+                coordinateKey,
+                quality,
+                _lastRoadTicks.GetOrDefault(planeCode, coordinateKey),
+                _roadTravelCounts.GetOrDefault(planeCode, coordinateKey));
+        });
     }
 
     private float DecayedRoadQuality(int planeCode, int key, int tick, float roadDecayPerTick)

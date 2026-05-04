@@ -65,6 +65,10 @@ public static class AssetLibrary
     public static Texture2D? PaneLineage { get; private set; }
     public static Texture2D? PaneSeverance { get; private set; }
 
+    public static Texture2D? RoadLightOverlay { get; private set; }
+    public static Texture2D? RoadHeavyOverlay { get; private set; }
+    public static Texture2D? SemanticCellOverlay { get; private set; }
+
     private static readonly Dictionary<string, Texture2D?> _terrain = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, Texture2D?> _kindSprites = [];
     private static readonly Dictionary<string, Texture2D?> _cardFaces = [];
@@ -88,6 +92,7 @@ public static class AssetLibrary
         LoadCardFaces();
         LoadBackgroundsAndChrome();
         LoadTerrainTextures();
+        LoadMapOverlays();
 
         Loaded = true;
         GD.Print($"[AssetLibrary] Loaded {_byPath.Count} illustration textures");
@@ -197,6 +202,13 @@ public static class AssetLibrary
         _terrain["Shelf"] = LoadTexture("terrain/shelf.png");
         _terrain["Reef"] = LoadTexture("terrain/reef.png");
         _terrain["Ocean"] = LoadTexture("terrain/ocean.png");
+    }
+
+    private static void LoadMapOverlays()
+    {
+        RoadLightOverlay = LoadTexture("map-overlays/road-light.png");
+        RoadHeavyOverlay = LoadTexture("map-overlays/road-heavy.png");
+        SemanticCellOverlay = LoadTexture("map-overlays/semantic-cell-overlay.png");
     }
 
     /// <summary>Get a per-kind sprite texture, or null if not available.</summary>

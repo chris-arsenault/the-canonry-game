@@ -55,12 +55,15 @@ public readonly record struct HexCoord(int Q, int R)
 
 public sealed record HexProjection(
     int HexId,
+    int PlaneCode,
     HexCoord Coord,
     int TerrainId,
     int OwnerEntityId,
     int SuperregionId,
     int ContinentId,
     IReadOnlyList<HexInfluenceProjection> Influences,
+    float RoadQuality,
+    int RoadTravelCount,
     int Tick,
     long WorldVersion,
     long Sequence);
@@ -73,27 +76,30 @@ public sealed record HexInfluenceProjection(
 
 public interface IHexSurfaceIndex
 {
-    IReadOnlyDictionary<int, HexProjection> HexesById { get; }
+    IReadOnlyDictionary<int, HexProjection> HexesById(int planeCode);
 
-    IReadOnlyDictionary<HexCoord, int> HexIdsByCoord { get; }
+    IReadOnlyDictionary<HexCoord, int> HexIdsByCoord(int planeCode);
 
-    bool TryGetHex(int hexId, out HexProjection hex);
+    IReadOnlyCollection<HexProjection> Hexes(int planeCode);
 
-    bool TryGetHex(HexCoord coord, out HexProjection hex);
+    bool TryGetHex(int planeCode, int hexId, out HexProjection hex);
 
-    IReadOnlyList<HexCoord> GetNeighborCoords(HexCoord coord);
+    bool TryGetHex(int planeCode, HexCoord coord, out HexProjection hex);
 
-    IReadOnlyList<HexProjection> GetNeighbors(HexCoord coord);
+    IReadOnlyList<HexCoord> GetNeighborCoords(int planeCode, HexCoord coord);
+
+    IReadOnlyList<HexProjection> GetNeighbors(int planeCode, HexCoord coord);
 }
 
 public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 {
-    private readonly Dictionary<int, HexProjection> _hexesById = [];
-    private readonly Dictionary<HexCoord, int> _hexIdsByCoord = [];
+    private readonly Dictionary<int, HexSurfaceProjection> _surfacesByPlane = [];
 
-    public IReadOnlyDictionary<int, HexProjection> HexesById => _hexesById;
+    public IReadOnlyDictionary<int, HexProjection> HexesById(int planeCode) => GetSurface(planeCode).HexesById;
 
-    public IReadOnlyDictionary<HexCoord, int> HexIdsByCoord => _hexIdsByCoord;
+    public IReadOnlyDictionary<HexCoord, int> HexIdsByCoord(int planeCode) => GetSurface(planeCode).HexIdsByCoord;
+
+    public IReadOnlyCollection<HexProjection> Hexes(int planeCode) => GetSurface(planeCode).HexesById.Values;
 
     public int MapRadius { get; private set; }
 
@@ -107,9 +113,10 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     public bool IsComplete => DroppedEvents == 0;
 
-    public bool TryGetHex(int hexId, out HexProjection hex)
+    public bool TryGetHex(int planeCode, int hexId, out HexProjection hex)
     {
-        if (_hexesById.TryGetValue(hexId, out var resolved))
+        if (TryGetSurface(planeCode, out var surface) &&
+            surface.HexesById.TryGetValue(hexId, out var resolved))
         {
             hex = resolved;
             return true;
@@ -119,21 +126,27 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         return false;
     }
 
-    public bool TryGetHex(HexCoord coord, out HexProjection hex)
+    public bool TryGetHex(int planeCode, HexCoord coord, out HexProjection hex)
     {
-        if (_hexIdsByCoord.TryGetValue(coord, out var hexId))
+        if (TryGetSurface(planeCode, out var surface) &&
+            surface.HexIdsByCoord.TryGetValue(coord, out var hexId))
         {
-            return TryGetHex(hexId, out hex);
+            return TryGetHex(planeCode, hexId, out hex);
         }
 
         hex = null!;
         return false;
     }
 
-    public IReadOnlyList<HexCoord> GetNeighborCoords(HexCoord coord)
+    public IReadOnlyList<HexCoord> GetNeighborCoords(int planeCode, HexCoord coord)
     {
         var neighbors = new List<HexCoord>(6);
-        foreach (var candidate in coord.Neighbors().Where(_hexIdsByCoord.ContainsKey))
+        if (!TryGetSurface(planeCode, out var surface))
+        {
+            return neighbors;
+        }
+
+        foreach (var candidate in coord.Neighbors().Where(surface.HexIdsByCoord.ContainsKey))
         {
             neighbors.Add(candidate);
         }
@@ -141,12 +154,12 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         return neighbors;
     }
 
-    public IReadOnlyList<HexProjection> GetNeighbors(HexCoord coord)
+    public IReadOnlyList<HexProjection> GetNeighbors(int planeCode, HexCoord coord)
     {
         var neighbors = new List<HexProjection>(6);
         foreach (var candidate in coord.Neighbors())
         {
-            if (TryGetHex(candidate, out var hex))
+            if (TryGetHex(planeCode, candidate, out var hex))
             {
                 neighbors.Add(hex);
             }
@@ -167,6 +180,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             sequence,
             evt.Tick,
             evt.WorldVersion,
+            PlaneCodes.Physical,
             evt.Q,
             evt.R,
             evt.TerrainId,
@@ -181,6 +195,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             sequence,
             evt.Tick,
             evt.WorldVersion,
+            PlaneCodes.Physical,
             evt.Q,
             evt.R,
             evt.CurrentTerrainId,
@@ -191,21 +206,41 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
-        if (evt.PlaneCode != PlaneCodes.Physical)
-        {
-            return;
-        }
-
-        var coord = new HexCoord(evt.Q, evt.R);
-        if (!TryGetHex(coord, out var existing))
-        {
-            return;
-        }
+        var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
 
         var influences = UpsertInfluence(existing.Influences, evt.EntityId, evt.CurrentInfluence, evt.Tick, sequence);
-        _hexesById[existing.HexId] = existing with
+        GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
         {
             Influences = influences,
+            Tick = evt.Tick,
+            WorldVersion = evt.WorldVersion,
+            Sequence = sequence,
+        };
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnMapCellStateChanged(long sequence, in MapCellStateChangedKernelEvent evt)
+    {
+        UpsertCell(
+            sequence,
+            evt.Tick,
+            evt.WorldVersion,
+            evt.PlaneCode,
+            evt.Q,
+            evt.R,
+            evt.CurrentTerrainId,
+            evt.CurrentOwnerEntityId,
+            evt.SuperregionId,
+            evt.ContinentId);
+    }
+
+    protected override void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
+    {
+        var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
+        GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
+        {
+            RoadQuality = evt.CurrentQuality,
+            RoadTravelCount = evt.TravelCount,
             Tick = evt.Tick,
             WorldVersion = evt.WorldVersion,
             Sequence = sequence,
@@ -217,6 +252,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         long sequence,
         int tick,
         long worldVersion,
+        int planeCode,
         int q,
         int r,
         int terrainId,
@@ -224,28 +260,75 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         int superregionId,
         int continentId)
     {
+        var surface = GetSurface(planeCode);
         var coord = new HexCoord(q, r);
         var hexId = CellId(q, r);
-        if (_hexesById.TryGetValue(hexId, out var existing))
+        if (surface.HexesById.TryGetValue(hexId, out var existing))
         {
-            _hexIdsByCoord.Remove(existing.Coord);
+            surface.HexIdsByCoord.Remove(existing.Coord);
         }
 
-        _hexesById[hexId] = new HexProjection(
+        surface.HexesById[hexId] = new HexProjection(
             hexId,
+            planeCode,
             coord,
             terrainId,
             ownerEntityId,
             superregionId,
             continentId,
             existing?.Influences ?? [],
+            existing?.RoadQuality ?? 0f,
+            existing?.RoadTravelCount ?? 0,
             tick,
             worldVersion,
             sequence);
-        _hexIdsByCoord[coord] = hexId;
+        surface.HexIdsByCoord[coord] = hexId;
         MapRadius = Math.Max(MapRadius, coord.DistanceFromOrigin);
         MarkProjected(sequence, tick, worldVersion);
     }
+
+    private HexProjection EnsureCell(
+        long sequence,
+        int tick,
+        long worldVersion,
+        int planeCode,
+        int q,
+        int r)
+    {
+        var coord = new HexCoord(q, r);
+        if (TryGetHex(planeCode, coord, out var existing))
+        {
+            return existing;
+        }
+
+        UpsertCell(
+            sequence,
+            tick,
+            worldVersion,
+            planeCode,
+            q,
+            r,
+            terrainId: 1,
+            ownerEntityId: 0,
+            superregionId: 0,
+            continentId: 0);
+        _ = TryGetHex(planeCode, coord, out existing);
+        return existing;
+    }
+
+    private HexSurfaceProjection GetSurface(int planeCode)
+    {
+        if (!_surfacesByPlane.TryGetValue(planeCode, out var surface))
+        {
+            surface = new HexSurfaceProjection();
+            _surfacesByPlane[planeCode] = surface;
+        }
+
+        return surface;
+    }
+
+    private bool TryGetSurface(int planeCode, out HexSurfaceProjection surface) =>
+        _surfacesByPlane.TryGetValue(planeCode, out surface!);
 
     private static int CellId(int q, int r)
     {
@@ -307,5 +390,12 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         LastProjectedSequence = sequence;
         CurrentTick = Math.Max(CurrentTick, tick);
         WorldVersion = Math.Max(WorldVersion, worldVersion);
+    }
+
+    private sealed class HexSurfaceProjection
+    {
+        public Dictionary<int, HexProjection> HexesById { get; } = [];
+
+        public Dictionary<HexCoord, int> HexIdsByCoord { get; } = [];
     }
 }

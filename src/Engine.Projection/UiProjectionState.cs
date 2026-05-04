@@ -27,10 +27,6 @@ public sealed class UiProjectionState : KernelEventProjector
             "startup attribute snapshot or attribute-created/initialized events",
             "AttributeChangedKernelEvent can replay deltas after the cursor starts, but not untouched initial values."),
         new(
-            "map terrain and coverage",
-            "cell projection wired into the UI renderer",
-            "CellCreatedKernelEvent carries startup map state, but the UI renderer still needs to consume the dedicated map projection."),
-        new(
             "relationship removal semantics",
             "explicit relationship inactive/cull code contract",
             "Projection currently treats zero-or-lower new strength as inactive because no generic active flag exists.")

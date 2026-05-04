@@ -68,7 +68,7 @@ public sealed class PrimitiveEventProjectionTests
 
         pump.DrainAvailable();
 
-        Assert.True(projection.TryGetHex(new HexCoord(1, -1), out var cell));
+        Assert.True(projection.TryGetHex(PlaneCodes.Physical, new HexCoord(1, -1), out var cell));
         Assert.Equal(11, cell.TerrainId);
         Assert.Equal(200, cell.OwnerEntityId);
         Assert.Equal(2, cell.SuperregionId);
@@ -122,10 +122,66 @@ public sealed class PrimitiveEventProjectionTests
 
         pump.DrainAvailable();
 
-        Assert.True(projection.TryGetHex(new HexCoord(0, 0), out var cell));
+        Assert.True(projection.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var cell));
         Assert.Equal(100, cell.OwnerEntityId);
         Assert.Equal([200, 300], cell.Influences.Select(influence => influence.EntityId).ToArray());
         Assert.Equal([35f, 20f], cell.Influences.Select(influence => influence.Value).ToArray());
+    }
+
+    [Fact]
+    public void HexMapProjection_ProjectsSemanticCellsInfluenceAndRoads()
+    {
+        var log = new KernelEventLog(capacity: 4);
+        var projection = new HexMapProjection();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
+            Tick: 0,
+            WorldVersion: 1,
+            PlaneCode: PlaneCodes.Semantic,
+            Q: -1,
+            R: 1,
+            SourceCodeId: 5,
+            PreviousTerrainId: 0,
+            CurrentTerrainId: 10,
+            PreviousOwnerEntityId: 0,
+            CurrentOwnerEntityId: 100,
+            SuperregionId: 3,
+            ContinentId: 1))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: 2,
+            Q: -1,
+            R: 1,
+            SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Semantic,
+            EntityId: 200,
+            ActionId: 0,
+            PreviousInfluence: 0f,
+            CurrentInfluence: 35f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 3,
+            PlaneCode: PlaneCodes.Semantic,
+            Q: -1,
+            R: 1,
+            SourceCodeId: 7,
+            TravelCount: 4,
+            PreviousQuality: 20f,
+            CurrentQuality: 80f))));
+
+        pump.DrainAvailable();
+
+        Assert.True(projection.TryGetHex(PlaneCodes.Semantic, new HexCoord(-1, 1), out var cell));
+        Assert.Equal(PlaneCodes.Semantic, cell.PlaneCode);
+        Assert.Equal(10, cell.TerrainId);
+        Assert.Equal(100, cell.OwnerEntityId);
+        Assert.Equal([200], cell.Influences.Select(influence => influence.EntityId).ToArray());
+        Assert.Equal(80f, cell.RoadQuality);
+        Assert.Equal(4, cell.RoadTravelCount);
     }
 
     [Fact]

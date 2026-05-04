@@ -115,6 +115,19 @@ internal sealed partial class Simulation
     {
         AssertExecutionSource();
         World.MaterializeCell(planeCode, q, r, terrainId, ownerEntityId, superregionId, continentId);
+        WriteKernelEvent(KernelEvent.From(new MapCellStateChangedKernelEvent(
+            CurrentTick,
+            WorldVersion,
+            planeCode,
+            q,
+            r,
+            _executionContext.SourceCodeId,
+            0,
+            terrainId,
+            0,
+            ownerEntityId,
+            superregionId,
+            continentId)));
         if (planeCode == PlaneCodes.Physical)
         {
             WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(

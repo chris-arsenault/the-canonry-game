@@ -412,6 +412,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.TargetEntityId,
             evt.PreviousStrength,
             evt.NewStrength,
+            evt.ActionId,
             CauseId: 0));
         MarkProjected(sequence);
     }
@@ -501,6 +502,22 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousInfluence,
             evt.CurrentInfluence,
             evt.CurrentInfluence - evt.PreviousInfluence));
+        MarkProjected(sequence);
+    }
+
+    protected override void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
+    {
+        _batch.CellRoadEvents.Add(new CellRoadEventRow(
+            _runId,
+            evt.Tick,
+            evt.SourceCodeId,
+            evt.PlaneCode,
+            evt.Q,
+            evt.R,
+            evt.TravelCount,
+            evt.PreviousQuality,
+            evt.CurrentQuality,
+            evt.CurrentQuality - evt.PreviousQuality));
         MarkProjected(sequence);
     }
 

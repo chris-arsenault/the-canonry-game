@@ -467,7 +467,8 @@ internal sealed partial class WorldState
             _relationshipTargetId[relationshipId],
             relationshipId,
             previousStrength,
-            newStrength)),
+            newStrength,
+            context.ActionId)),
             context);
     }
 

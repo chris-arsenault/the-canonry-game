@@ -57,6 +57,9 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "entity_roaming.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "roaming_summary.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "influence_dynamics.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "road_creation.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "road_usage.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "road_reinforcement.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "gambit_success_rate.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "stock_dynamics.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_spread.parquet")));
@@ -653,6 +656,9 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.OceanTerrainId, 40, 18, 1));
         batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
         batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
+        batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 20, 0, PlaneCodes.Physical, 1, 0, 1, 0f, 30f, 30f));
+        batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 22, 0, PlaneCodes.Physical, 1, 0, 2, 30f, 48f, 18f));
+        batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 23, 0, PlaneCodes.Semantic, 1, 0, 1, 0f, 28f, 28f));
         var phase = TelemetrySymbolIds.Create(TelemetrySymbolKinds.MapGenerationPhase, "quality_validation", "quality_validation");
         var description = TelemetrySymbolIds.Create(
             TelemetrySymbolKinds.MapGenerationDescription,

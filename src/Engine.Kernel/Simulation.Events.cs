@@ -137,6 +137,27 @@ internal sealed partial class Simulation
             reasonCodeId)));
     }
 
+    internal void EmitCellRoadChanged(
+        int tick,
+        int planeCode,
+        int q,
+        int r,
+        float previousQuality,
+        float currentQuality,
+        int travelCount)
+    {
+        WriteKernelEvent(KernelEvent.From(new CellRoadChangedKernelEvent(
+            tick,
+            WorldVersion,
+            planeCode,
+            q,
+            r,
+            _executionContext.SourceCodeId,
+            travelCount,
+            previousQuality,
+            currentQuality)));
+    }
+
     internal void EmitPlanStarted(
         int tick,
         int planId,

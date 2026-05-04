@@ -1,7 +1,7 @@
 [gd_scene load_steps=12 format=3 uid="uid://b2qy5k1m3xvxr"]
 
 [ext_resource type="Script" path="res://src/TheCanonryGame.App/Main.cs" id="1_main"]
-[ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexMapRenderer.cs" id="2_maprenderer"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HexMapRenderer.tscn" id="2_maprenderer"]
 [ext_resource type="PackedScene" path="res://scenes/ui/EntityLayer.tscn" id="3_entitylayer"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TopBar.tscn" id="4_topbar"]
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/EntityBrowser.cs" id="5_browser"]
@@ -15,8 +15,7 @@
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
-[node name="MapRenderer" type="Node2D" parent="."]
-script = ExtResource("2_maprenderer")
+[node name="MapRenderer" parent="." instance=ExtResource("2_maprenderer")]
 
 [node name="EntityLayer" parent="." instance=ExtResource("3_entitylayer")]
 

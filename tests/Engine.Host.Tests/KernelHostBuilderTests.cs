@@ -49,7 +49,7 @@ public sealed class KernelHostBuilderTests
             .RegisterProjection("ui", _ => ui)
             .Build();
 
-        Assert.True(map.TryGetHex(new HexCoord(0, 0), out var origin));
+        Assert.True(map.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var origin));
         Assert.Equal(1, origin.TerrainId);
         Assert.True(ui.Entities.ContainsKey(1));
         Assert.True(host.SeedEventCount > 0);
@@ -217,7 +217,7 @@ public sealed class KernelHostBuilderTests
         HexMapProjection map,
         UiProjectionState ui)
     {
-        Assert.True(map.TryGetHex(new HexCoord(0, 0), out var origin));
+        Assert.True(map.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var origin));
         Assert.Equal(host.DomainIds.TerrainIdOf("test_terrain").Value, origin.TerrainId);
         Assert.Equal(1, origin.OwnerEntityId);
 
@@ -272,7 +272,7 @@ public sealed class KernelHostBuilderTests
             .RegisterProjection("ui", _ => ui)
             .Build();
 
-        Assert.Equal(startupSeed.Cells.Count, map.HexesById.Count);
+        Assert.Equal(startupSeed.Cells.Count, map.HexesById(PlaneCodes.Physical).Count);
         Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
         Assert.True(host.Symbols.TryResolve(ProjectionSymbolKind.Continent, 1, out var continentSymbol));
         Assert.Equal("The Near Shelf", continentSymbol.DisplayName);

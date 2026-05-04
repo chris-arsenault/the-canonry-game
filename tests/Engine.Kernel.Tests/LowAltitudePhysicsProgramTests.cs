@@ -657,7 +657,7 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.AdvanceTicks(1);
 
         Assert.Equal(0.5f, simulation.World.RelationshipStrength(relationshipId), precision: 4);
-        AssertRelationshipChangedByProgram(simulation, cursor, relationshipId);
+        AssertRelationshipChangedByProgram(simulation, cursor, relationshipId, verbId);
     }
 
     [Fact]
@@ -969,7 +969,8 @@ public sealed class LowAltitudePhysicsProgramTests
     private static void AssertRelationshipChangedByProgram(
         Simulation simulation,
         KernelEventCursor cursor,
-        int relationshipId)
+        int relationshipId,
+        int actionId)
     {
         while (simulation.Events.TryRead(cursor, out var read))
         {
@@ -986,6 +987,7 @@ public sealed class LowAltitudePhysicsProgramTests
 
             Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
             Assert.Equal(simulation.LowAltitudeVerbSourceCodeId, read.Event.SourceCodeId);
+            Assert.Equal(actionId, changed.ActionId);
             Assert.True(changed.NewStrength > changed.PreviousStrength);
             return;
         }

@@ -104,9 +104,19 @@ public sealed class KernelTelemetryRecorderTests
             ToQ: 2,
             ToR: -1,
             ToS: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
             Tick: 2,
             WorldVersion: 5,
+            PlaneCode: PlaneCodes.Physical,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            TravelCount: 2,
+            PreviousQuality: 30f,
+            CurrentQuality: 45f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 6,
             ChangeCodeId: 7,
             SourceCodeId: 5,
             RelationshipKindId: 8,
@@ -115,7 +125,8 @@ public sealed class KernelTelemetryRecorderTests
             TargetEntityId: 200,
             RelationshipId: 300,
             PreviousStrength: 0f,
-            NewStrength: 0.75f))));
+            NewStrength: 0.75f,
+            ActionId: 12))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
             Tick: 3,
             WorldVersion: 8,
@@ -194,6 +205,14 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(PlaneCodes.Physical, movement.PlaneCode);
         Assert.Equal(2, movement.Distance);
 
+        var road = Assert.Single(batch.CellRoadEvents);
+        Assert.Equal(5, road.SourceCodeId);
+        Assert.Equal(PlaneCodes.Physical, road.PlaneCode);
+        Assert.Equal(2, road.TravelCount);
+        Assert.Equal(30f, road.PreviousQuality);
+        Assert.Equal(45f, road.CurrentQuality);
+        Assert.Equal(15f, road.Delta);
+
         var createdCell = Assert.Single(
             batch.MapCellEvents,
             row => row.EventTypeCode == (int)KernelEventType.CellCreated);
@@ -217,6 +236,7 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(5, relationship.SourceCodeId);
         Assert.Equal(8, relationship.RelationshipKindId);
         Assert.Equal(RelationshipPolarityCodes.Neutral, relationship.PolarityCode);
+        Assert.Equal(12, relationship.ActionId);
 
         var trace = Assert.Single(batch.TraceEvents);
         Assert.Equal(TraceSubjectCodes.TargetDetail, trace.TraceSubjectCode);

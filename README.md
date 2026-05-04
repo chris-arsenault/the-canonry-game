@@ -64,12 +64,30 @@ make lint       # analyzer lint + format verification
 make clean      # remove .artifacts/
 ```
 
+`make test` runs the already-built Release test outputs. Use `make build`
+first after a clean checkout or after package cache cleanup.
+
+For targeted observability and Monte Carlo changes:
+
+```bash
+dotnet test tests/Engine.Observability.Tests/Engine.Observability.Tests.csproj -c Release
+dotnet test tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj -c Release
+```
+
 The default test suite excludes the long Monte Carlo output-gap acceptance
-ledger. Run it explicitly when changing Monte Carlo parquet output contracts:
+ledger. Run it explicitly when changing Monte Carlo parquet output contracts,
+including raw event tables or derived analysis parquet:
 
 ```bash
 CANONRY_RUN_MONTE_CARLO_ACCEPTANCE=1 dotnet test tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj -c Release
 ```
+
+The output-gap ledger in
+`tests/MonteCarlo.Tests/Observability/MonteCarloOutputGapTests.cs` is the
+contract source for canonical raw and analysis parquet outputs. Road behavior
+is covered there as `cell_road_events`, `road_creation`, `road_usage`, and
+`road_reinforcement`; prioritization analysis is intentionally excluded until
+candidate path/cost choice telemetry exists.
 
 To play in Godot:
 

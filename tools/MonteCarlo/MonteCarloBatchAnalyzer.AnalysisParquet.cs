@@ -40,6 +40,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
         ExportAnalysisTable(connection, analysisDirectory, "entity_roaming", EntityRoamingSql);
         ExportAnalysisTable(connection, analysisDirectory, "roaming_summary", RoamingSummarySql);
         ExportAnalysisTable(connection, analysisDirectory, "influence_dynamics", InfluenceDynamicsSql);
+        ExportAnalysisTable(connection, analysisDirectory, "road_creation", RoadCreationSql);
+        ExportAnalysisTable(connection, analysisDirectory, "road_usage", RoadUsageSql);
+        ExportAnalysisTable(connection, analysisDirectory, "road_reinforcement", RoadReinforcementSql);
     }
 
     private static void WriteWorldAnalysis(DuckDBConnection connection, string analysisDirectory)
@@ -119,7 +122,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 28, COUNT(*) FROM raw_lifecycle_events UNION ALL
             SELECT 29, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
             SELECT 30, COUNT(*) FROM raw_cell_influence_events UNION ALL
-            SELECT 31, COUNT(*) FROM raw_gambit_events
+            SELECT 31, COUNT(*) FROM raw_gambit_events UNION ALL
+            SELECT 32, COUNT(*) FROM raw_cell_road_events
         ),
         features(feature_code, source_table_code) AS (
             VALUES
@@ -129,7 +133,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 (16, 16), (17, 17), (18, 18), (19, 19), (20, 20),
                 (21, 21), (22, 22), (23, 23), (24, 24), (25, 25),
                 (26, 26), (27, 27), (28, 28), (29, 29), (30, 30),
-                (31, 31)
+                (31, 31), (32, 32)
         )
         SELECT
             feature_code,
@@ -522,6 +526,181 @@ internal sealed partial class MonteCarloBatchAnalyzer
          AND neighbors.q = events.q
          AND neighbors.r = events.r
         GROUP BY events.run_id, events.entity_id, events.plane_code, entity.kind_id, entity.subtype_id
+        """;
+
+    private const string RoadCreationSql = """
+        WITH road_cells AS (
+            SELECT
+                run_id,
+                plane_code,
+                q,
+                r,
+                MIN(CASE WHEN current_quality > 0.0 THEN tick ELSE NULL END) AS first_road_tick,
+                MAX(tick) AS last_road_tick,
+                ARG_MAX(current_quality, tick) AS final_quality,
+                MAX(current_quality) AS max_quality,
+                MAX(travel_count) AS travel_count,
+                SUM(delta) AS total_quality_delta
+            FROM raw_cell_road_events
+            GROUP BY run_id, plane_code, q, r
+        ),
+        qualified AS (
+            SELECT *
+            FROM road_cells
+            WHERE COALESCE(final_quality, 0.0) > 0.0
+               OR COALESCE(max_quality, 0.0) > 0.0
+               OR COALESCE(travel_count, 0) > 0
+        )
+        SELECT
+            run_id,
+            plane_code,
+            COUNT(*) AS road_cell_count,
+            SUM(CASE WHEN final_quality > 25.0 THEN 1 ELSE 0 END) AS light_road_cell_count,
+            SUM(CASE WHEN final_quality > 75.0 THEN 1 ELSE 0 END) AS heavy_road_cell_count,
+            COALESCE(SUM(travel_count), 0) AS total_travel_count,
+            COALESCE(SUM(total_quality_delta), 0.0) AS total_quality_delta,
+            COALESCE(AVG(CAST(final_quality AS DOUBLE)), 0.0) AS average_final_quality,
+            COALESCE(MAX(max_quality), 0.0) AS max_quality,
+            COALESCE(MIN(first_road_tick), 0) AS first_road_tick,
+            COALESCE(MAX(last_road_tick), 0) AS last_road_tick
+        FROM qualified
+        GROUP BY run_id, plane_code
+        """;
+
+    private const string RoadUsageSql = """
+        WITH movement AS (
+            SELECT
+                run_id,
+                tick,
+                entity_id,
+                plane_code,
+                to_q,
+                to_r,
+                distance
+            FROM raw_movement_events
+        ),
+        move_road AS (
+            SELECT
+                movement.run_id,
+                movement.tick,
+                movement.entity_id,
+                movement.plane_code,
+                movement.to_q,
+                movement.to_r,
+                movement.distance,
+                COALESCE(road.current_quality, 0.0) AS destination_road_quality
+            FROM movement
+            LEFT JOIN LATERAL (
+                SELECT current_quality
+                FROM raw_cell_road_events road
+                WHERE road.run_id = movement.run_id
+                  AND road.plane_code = movement.plane_code
+                  AND road.q = movement.to_q
+                  AND road.r = movement.to_r
+                  AND road.tick < movement.tick
+                ORDER BY road.tick DESC
+                LIMIT 1
+            ) road ON TRUE
+        )
+        SELECT
+            run_id,
+            plane_code,
+            COUNT(*) AS move_count,
+            SUM(CASE WHEN destination_road_quality > 25.0 THEN 1 ELSE 0 END) AS road_move_count,
+            SUM(CASE WHEN destination_road_quality > 75.0 THEN 1 ELSE 0 END) AS heavy_road_move_count,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0.0
+                ELSE SUM(CASE WHEN destination_road_quality > 25.0 THEN 1 ELSE 0 END)::DOUBLE / COUNT(*)
+            END AS road_move_share,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0.0
+                ELSE SUM(CASE WHEN destination_road_quality > 75.0 THEN 1 ELSE 0 END)::DOUBLE / COUNT(*)
+            END AS heavy_road_move_share,
+            COALESCE(AVG(CAST(destination_road_quality AS DOUBLE)), 0.0) AS average_destination_road_quality,
+            COALESCE(SUM(distance), 0) AS total_distance
+        FROM move_road
+        GROUP BY run_id, plane_code
+        """;
+
+    private const string RoadReinforcementSql = """
+        WITH road_cells AS (
+            SELECT
+                run_id,
+                plane_code,
+                q,
+                r,
+                MIN(CASE WHEN current_quality > 0.0 THEN tick ELSE NULL END) AS first_road_tick,
+                MIN(CASE WHEN current_quality > 25.0 THEN tick ELSE NULL END) AS first_light_road_tick,
+                MIN(CASE WHEN current_quality > 75.0 THEN tick ELSE NULL END) AS first_heavy_road_tick,
+                ARG_MAX(current_quality, tick) AS final_quality,
+                MAX(current_quality) AS max_quality,
+                MAX(travel_count) AS travel_count,
+                SUM(CASE WHEN delta > 0.0 THEN 1 ELSE 0 END) AS positive_reinforcement_events
+            FROM raw_cell_road_events
+            GROUP BY run_id, plane_code, q, r
+        ),
+        qualified AS (
+            SELECT *
+            FROM road_cells
+            WHERE first_road_tick IS NOT NULL
+        ),
+        cell_reinforcement AS (
+            SELECT
+                road.run_id,
+                road.plane_code,
+                road.q,
+                road.r,
+                road.final_quality,
+                road.max_quality,
+                road.travel_count,
+                road.positive_reinforcement_events,
+                SUM(CASE WHEN movement.tick < road.first_road_tick THEN 1 ELSE 0 END) AS moves_before_road,
+                SUM(CASE WHEN movement.tick > road.first_road_tick THEN 1 ELSE 0 END) AS moves_after_road,
+                SUM(CASE
+                    WHEN road.first_light_road_tick IS NOT NULL
+                     AND movement.tick >= road.first_light_road_tick THEN 1
+                    ELSE 0
+                END) AS moves_after_light_road,
+                SUM(CASE
+                    WHEN road.first_heavy_road_tick IS NOT NULL
+                     AND movement.tick >= road.first_heavy_road_tick THEN 1
+                    ELSE 0
+                END) AS moves_after_heavy_road
+            FROM qualified road
+            LEFT JOIN raw_movement_events movement
+              ON movement.run_id = road.run_id
+             AND movement.plane_code = road.plane_code
+             AND movement.to_q = road.q
+             AND movement.to_r = road.r
+            GROUP BY
+                road.run_id,
+                road.plane_code,
+                road.q,
+                road.r,
+                road.final_quality,
+                road.max_quality,
+                road.travel_count,
+                road.positive_reinforcement_events
+        )
+        SELECT
+            run_id,
+            plane_code,
+            COUNT(*) AS road_cell_count,
+            SUM(CASE WHEN moves_after_road > 0 AND positive_reinforcement_events > 1 THEN 1 ELSE 0 END) AS reused_road_cell_count,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0.0
+                ELSE SUM(CASE WHEN moves_after_road > 0 AND positive_reinforcement_events > 1 THEN 1 ELSE 0 END)::DOUBLE / COUNT(*)
+            END AS reused_road_cell_share,
+            SUM(positive_reinforcement_events) AS positive_reinforcement_event_count,
+            COALESCE(AVG(CAST(moves_before_road AS DOUBLE)), 0.0) AS average_moves_before_road,
+            COALESCE(AVG(CAST(moves_after_road AS DOUBLE)), 0.0) AS average_moves_after_road,
+            COALESCE(AVG(CAST(moves_after_light_road AS DOUBLE)), 0.0) AS average_moves_after_light_road,
+            COALESCE(AVG(CAST(moves_after_heavy_road AS DOUBLE)), 0.0) AS average_moves_after_heavy_road,
+            COALESCE(AVG(CAST(travel_count AS DOUBLE)), 0.0) AS average_travel_count,
+            COALESCE(AVG(CAST(final_quality AS DOUBLE)), 0.0) AS average_final_quality,
+            COALESCE(MAX(max_quality), 0.0) AS max_quality
+        FROM cell_reinforcement
+        GROUP BY run_id, plane_code
         """;
 
     private const string ActionUtilizationSql = """

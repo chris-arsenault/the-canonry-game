@@ -17,18 +17,8 @@ internal sealed partial class WorldState
     internal int SnapshotEventCount()
     {
         var count = 0;
-        for (var q = -_mapRadius; q <= _mapRadius; q++)
-        {
-            var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
-            var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
-            for (var r = minR; r <= maxR; r++)
-            {
-                if (CellIsKnown(q, r))
-                {
-                    count++;
-                }
-            }
-        }
+        count += SnapshotCellEventCount(PlaneCodes.Physical, emitLegacyPhysicalEvents: true);
+        count += SnapshotCellEventCount(PlaneCodes.Semantic, emitLegacyPhysicalEvents: false);
 
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
@@ -72,28 +62,81 @@ internal sealed partial class WorldState
 
     private void EmitSnapshotCells(KernelExecutionContext context, int tick, long version)
     {
+        EmitSnapshotCells(context, tick, version, PlaneCodes.Physical, emitLegacyPhysicalEvents: true);
+        EmitSnapshotCells(context, tick, version, PlaneCodes.Semantic, emitLegacyPhysicalEvents: false);
+    }
+
+    private int SnapshotCellEventCount(int planeCode, bool emitLegacyPhysicalEvents)
+    {
+        var count = 0;
         for (var q = -_mapRadius; q <= _mapRadius; q++)
         {
             var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
             var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
             for (var r = minR; r <= maxR; r++)
             {
-                if (!CellIsKnown(q, r))
+                if (!CellIsKnown(planeCode, q, r))
                 {
                     continue;
                 }
 
-                Write(KernelEvent.From(new CellCreatedKernelEvent(
+                count++;
+                if (emitLegacyPhysicalEvents)
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    private void EmitSnapshotCells(
+        KernelExecutionContext context,
+        int tick,
+        long version,
+        int planeCode,
+        bool emitLegacyPhysicalEvents)
+    {
+        for (var q = -_mapRadius; q <= _mapRadius; q++)
+        {
+            var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
+            var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
+            for (var r = minR; r <= maxR; r++)
+            {
+                if (!CellIsKnown(planeCode, q, r))
+                {
+                    continue;
+                }
+
+                Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
                     tick,
                     version,
+                    planeCode,
                     q,
                     r,
                     context.SourceCodeId,
-                    CellTerrainId(q, r),
-                    CoverageOwnerAt(q, r),
-                    CellSuperregionId(q, r),
-                    CellContinentId(q, r))),
+                    0,
+                    CellTerrainId(planeCode, q, r),
+                    0,
+                    CoverageOwnerAt(planeCode, q, r),
+                    CellSuperregionId(planeCode, q, r),
+                    CellContinentId(planeCode, q, r))),
                     context);
+                if (emitLegacyPhysicalEvents)
+                {
+                    Write(KernelEvent.From(new CellCreatedKernelEvent(
+                        tick,
+                        version,
+                        q,
+                        r,
+                        context.SourceCodeId,
+                        CellTerrainId(q, r),
+                        CoverageOwnerAt(q, r),
+                        CellSuperregionId(q, r),
+                        CellContinentId(q, r))),
+                        context);
+                }
             }
         }
     }
@@ -217,12 +260,13 @@ internal sealed partial class WorldState
                 _relationshipTargetId[relationshipId],
                 relationshipId,
                 0f,
-                _relationshipStrength[relationshipId])),
+                _relationshipStrength[relationshipId],
+                context.ActionId)),
                 context);
         }
     }
 
-    private bool TryResolveCoordinateKey(int coordinateKey, int extraRadius, out int q, out int r)
+    internal bool TryResolveCoordinateKey(int coordinateKey, int extraRadius, out int q, out int r)
     {
         var radius = _mapRadius + extraRadius;
         for (q = -radius; q <= radius; q++)

@@ -47,5 +47,8 @@ internal sealed partial class Simulation
     internal void EmitSnapshotEvents()
     {
         World.EmitSnapshotEvents(_executionContext);
+        Movement.EmitSnapshotEvents(this, CurrentTick);
     }
+
+    internal int SnapshotEventCount() => World.SnapshotEventCount() + Movement.SnapshotEventCount();
 }

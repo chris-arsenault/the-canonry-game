@@ -20,7 +20,8 @@ public sealed class KernelEventPayloadTests
             TargetEntityId: 17,
             RelationshipId: 19,
             PreviousStrength: 0.25f,
-            NewStrength: 0.75f));
+            NewStrength: 0.75f,
+            ActionId: 23));
 
         Assert.Equal(7, kernelEvent.GetIntSlot(0));
         Assert.Equal(41, kernelEvent.GetIntSlot(1));
@@ -29,6 +30,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(13, kernelEvent.GetIntSlot(4));
         Assert.Equal(17, kernelEvent.GetIntSlot(5));
         Assert.Equal(19, kernelEvent.GetIntSlot(6));
+        Assert.Equal(23, kernelEvent.GetIntSlot(7));
         Assert.Equal(0.25f, kernelEvent.GetFloatSlot(0));
         Assert.Equal(0.75f, kernelEvent.GetFloatSlot(1));
         Assert.Throws<ArgumentOutOfRangeException>(() => kernelEvent.GetIntSlot(KernelEvent.IntSlotCount));
@@ -102,6 +104,12 @@ public sealed class KernelEventPayloadTests
 
         var cellInfluenceChanged = new CellInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 6, 10f, 25f);
         Assert.Equal(cellInfluenceChanged, KernelEvent.From(cellInfluenceChanged).AsCellInfluenceChanged());
+
+        var mapCellStateChanged = new MapCellStateChangedKernelEvent(20, 21, PlaneCodes.Semantic, -3, 3, 4, 5, 6, 7, 8, 9, 10);
+        Assert.Equal(mapCellStateChanged, KernelEvent.From(mapCellStateChanged).AsMapCellStateChanged());
+
+        var cellRoadChanged = new CellRoadChangedKernelEvent(20, 21, PlaneCodes.Physical, -3, 3, 4, 5, 0.25f, 0.75f);
+        Assert.Equal(cellRoadChanged, KernelEvent.From(cellRoadChanged).AsCellRoadChanged());
 
         var provenanceInvocationRecorded = new ProvenanceInvocationRecordedKernelEvent(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
         Assert.Equal(provenanceInvocationRecorded, KernelEvent.From(provenanceInvocationRecorded).AsProvenanceInvocationRecorded());

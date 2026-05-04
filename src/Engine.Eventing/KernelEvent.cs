@@ -24,6 +24,8 @@ public enum KernelEventType
     CellInfluenceChanged = 22,
     ProvenanceInvocationRecorded = 23,
     KernelStorageGrown = 24,
+    MapCellStateChanged = 25,
+    CellRoadChanged = 26,
     PlanStarted = 100,
     GoalConsidered = 101,
     GoalScored = 102,
@@ -136,7 +138,7 @@ public readonly record struct TraitAssignedKernelEvent(
     [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
 
-[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 2)]
+[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 3)]
 public readonly record struct RelationshipChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -157,7 +159,9 @@ public readonly record struct RelationshipChangedKernelEvent(
     [KernelEventFloatSlot(0, "previous_strength", KernelEventSemanticKind.Strength)]
     float PreviousStrength,
     [KernelEventFloatSlot(1, "new_strength", KernelEventSemanticKind.Strength)]
-    float NewStrength);
+    float NewStrength,
+    [KernelEventIntSlot(7, "action_id", KernelEventSemanticKind.ActionId)]
+    int ActionId = 0);
 
 [KernelEventLayout(KernelEventType.GoalGenerated, schemaMinor: 0)]
 public readonly record struct GoalGeneratedKernelEvent(
@@ -347,6 +351,50 @@ public readonly record struct CellInfluenceChangedKernelEvent(
     float PreviousInfluence,
     [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]
     float CurrentInfluence);
+
+[KernelEventLayout(KernelEventType.MapCellStateChanged, schemaMinor: 0)]
+public readonly record struct MapCellStateChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "plane_code", KernelEventSemanticKind.PlaneCode)]
+    int PlaneCode,
+    [KernelEventIntSlot(1, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(2, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(4, "previous_terrain_id", KernelEventSemanticKind.TerrainId)]
+    int PreviousTerrainId,
+    [KernelEventIntSlot(5, "current_terrain_id", KernelEventSemanticKind.TerrainId)]
+    int CurrentTerrainId,
+    [KernelEventIntSlot(6, "previous_owner_entity_id", KernelEventSemanticKind.EntityId)]
+    int PreviousOwnerEntityId,
+    [KernelEventIntSlot(7, "current_owner_entity_id", KernelEventSemanticKind.EntityId)]
+    int CurrentOwnerEntityId,
+    [KernelEventIntSlot(8, "superregion_id", KernelEventSemanticKind.SuperregionId)]
+    int SuperregionId,
+    [KernelEventIntSlot(9, "continent_id", KernelEventSemanticKind.ContinentId)]
+    int ContinentId);
+
+[KernelEventLayout(KernelEventType.CellRoadChanged, schemaMinor: 0)]
+public readonly record struct CellRoadChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "plane_code", KernelEventSemanticKind.PlaneCode)]
+    int PlaneCode,
+    [KernelEventIntSlot(1, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(2, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(4, "travel_count", KernelEventSemanticKind.Count)]
+    int TravelCount,
+    [KernelEventFloatSlot(0, "previous_quality", KernelEventSemanticKind.RawScalar)]
+    float PreviousQuality,
+    [KernelEventFloatSlot(1, "current_quality", KernelEventSemanticKind.RawScalar)]
+    float CurrentQuality);
 
 [KernelEventLayout(KernelEventType.ProvenanceInvocationRecorded, schemaMinor: 0)]
 public readonly record struct ProvenanceInvocationRecordedKernelEvent(

@@ -388,6 +388,7 @@ internal static class MonteCarloCli
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
         batch.CellInfluenceEvents.Count +
+        batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +
         batch.CoverageTerrainSnapshots.Count +
