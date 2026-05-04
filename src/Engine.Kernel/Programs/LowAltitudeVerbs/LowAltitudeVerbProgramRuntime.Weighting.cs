@@ -2,6 +2,8 @@ namespace Engine.Kernel;
 
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
+    private const float AffordanceScoreCap = 3f;
+
     private void AddEntityCandidate(
         Simulation simulation,
         int entityId,
@@ -17,13 +19,56 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var r = CurrentR(world, targetEntityId, planeCode);
         var s = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
         var targetKindId = world.EntityKindId(targetEntityId);
-        var affordance = GeneratorAffordanceScore(world.EntityKindId(entityId), targetKindId, targetKindId);
-        var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, affordance, targetEntityId);
-        weight += RelationshipAffinityWeight(world, entityId, targetEntityId, rule);
+        var actorKindId = world.EntityKindId(entityId);
+        var baseWeight = LocationBaseWeight(simulation, entityId, rule, planeCode, q, r, tick, targetEntityId);
+        baseWeight += RelationshipAffinityWeight(world, entityId, targetEntityId, rule);
+        var affordance = EntityPresenceAffordance(actorKindId, targetKindId, planeCode);
+        var affordanceWeight = RuleAffordanceWeight(world, entityId, rule);
+        var weight = CandidateWeight(baseWeight, affordance, affordanceWeight);
         totalWeight += weight;
         if (simulation.NextFloat() * totalWeight <= weight)
         {
-            selected = Candidate(rule, planeCode, targetEntityId, targetKindId, q, r, s, weight);
+            selected = Candidate(rule, planeCode, targetEntityId, targetKindId, q, r, s, baseWeight, affordance, affordanceWeight);
+        }
+    }
+
+    private void AddRelationshipCandidate(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick,
+        int targetEntityId,
+        int relationshipId,
+        bool outgoing,
+        ref float totalWeight,
+        ref VerbTargetCandidate selected)
+    {
+        var world = simulation.World;
+        var planeCode = Data.PlaneCode(rule);
+        var q = CurrentQ(world, targetEntityId, planeCode);
+        var r = CurrentR(world, targetEntityId, planeCode);
+        var s = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
+        var actorKindId = world.EntityKindId(entityId);
+        var targetKindId = world.EntityKindId(targetEntityId);
+        var baseWeight = LocationBaseWeight(simulation, entityId, rule, planeCode, q, r, tick, targetEntityId);
+        baseWeight += RelationshipAffinityWeight(world, entityId, targetEntityId, rule);
+        var relationshipDirectionCode = outgoing
+            ? LowAltitudeVerbRelationshipDirectionCodes.Outgoing
+            : LowAltitudeVerbRelationshipDirectionCodes.Incoming;
+        var affordance = RelationshipTargetAffordance(
+            actorKindId,
+            targetKindId,
+            planeCode,
+            Data.RelationshipKindId(rule),
+            relationshipDirectionCode,
+            world.RelationshipStrength(relationshipId),
+            Data.RelationshipStrengthDelta(rule));
+        var affordanceWeight = RuleAffordanceWeight(world, entityId, rule);
+        var weight = CandidateWeight(baseWeight, affordance, affordanceWeight);
+        totalWeight += weight;
+        if (simulation.NextFloat() * totalWeight <= weight)
+        {
+            selected = Candidate(rule, planeCode, targetEntityId, targetKindId, q, r, s, baseWeight, affordance, affordanceWeight);
         }
     }
 
@@ -56,7 +101,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             entityId).RelationshipAffinityWeight;
     }
 
-    private float LocationWeight(
+    private float LocationBaseWeight(
         Simulation simulation,
         int entityId,
         int rule,
@@ -64,7 +109,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         int tick,
-        float generatorAffordance,
         int targetEntityId = 0)
     {
         // PreviousTick reads are intentional: this program runs before MapActivity and MapSignals
@@ -79,7 +123,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var stalenessWeight = Data.StalenessWeight(rule);
         var hotspotWeight = Data.HotspotWeight(rule);
         var crowdingWeight = Data.CrowdingWeight(rule);
-        var generatorAffordanceWeight = Data.GeneratorAffordanceWeight(rule);
+        var affordanceWeight = Data.VerbAffordanceWeight(rule);
         ApplyTraitWeightModifiers(
             simulation.World,
             entityId,
@@ -89,13 +133,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ref stalenessWeight,
             ref hotspotWeight,
             ref crowdingWeight,
-            ref generatorAffordanceWeight);
+            ref affordanceWeight);
         weight += exploreWeight / (1f + snapshot.VisitCount);
         weight += stalenessWeight * staleness;
         weight += hotspotWeight * (heatScore + attractorScore);
-        weight += generatorAffordanceWeight * generatorAffordance;
         weight -= crowdingWeight * (snapshot.CurrentOccupancy + snapshot.CrowdingLoad);
-        return weight <= 0.01f ? 0.01f : weight;
+        return ClampCandidateWeight(weight);
     }
 
     private void ApplyTraitWeightModifiers(
@@ -107,7 +150,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref float stalenessWeight,
         ref float hotspotWeight,
         ref float crowdingWeight,
-        ref float generatorAffordanceWeight)
+        ref float affordanceWeight)
     {
         var totals = DecisionModifierEvaluation.SumLowAltitudeValues(
             world,
@@ -121,27 +164,250 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         stalenessWeight += totals.StalenessWeight;
         hotspotWeight += totals.HotspotWeight;
         crowdingWeight += totals.CrowdingWeight;
-        generatorAffordanceWeight += totals.GeneratorAffordanceWeight;
+        affordanceWeight += totals.AffordanceWeight;
     }
 
-    private float GeneratorAffordanceScore(int actorKindId, int candidateKindId, int bindingKindId)
+    private float RuleAffordanceWeight(WorldState world, int entityId, int rule)
+    {
+        var affordanceWeight = Data.VerbAffordanceWeight(rule);
+        var totals = DecisionModifierEvaluation.SumLowAltitudeValues(
+            world,
+            Data.TraitWeightModifierCount,
+            Data.ReadDecisionModifier,
+            world.EntityKindId(entityId),
+            Data.VerbId(rule),
+            entityId);
+        return affordanceWeight + totals.AffordanceWeight;
+    }
+
+    private AffordanceContribution EntityPresenceAffordance(int actorKindId, int candidateKindId, int planeCode)
     {
         if (candidateKindId == 0)
+        {
+            return default;
+        }
+
+        var contribution = default(AffordanceContribution);
+        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        {
+            if (Data.AffordanceShapeCode(affordance) == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
+                AffordanceMatchesActorPlane(affordance, actorKindId, planeCode) &&
+                AffordanceCandidateKindMatches(affordance, candidateKindId))
+            {
+                contribution = AddAffordanceScore(contribution, affordance, Data.AffordanceWeight(affordance));
+            }
+        }
+
+        return contribution;
+    }
+
+    private AffordanceContribution RelationshipTargetAffordance(
+        int actorKindId,
+        int targetKindId,
+        int planeCode,
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        float currentStrength,
+        float strengthDelta)
+    {
+        var contribution = EntityPresenceAffordance(actorKindId, targetKindId, planeCode);
+        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        {
+            if (!AffordanceMatchesActorPlane(affordance, actorKindId, planeCode) ||
+                !AffordanceRelationshipMatches(affordance, relationshipKindId, relationshipDirectionCode))
+            {
+                continue;
+            }
+
+            if (Data.AffordanceShapeCode(affordance) == LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget)
+            {
+                contribution = AddAffordanceScore(contribution, affordance, Data.AffordanceWeight(affordance));
+                continue;
+            }
+
+            if (Data.AffordanceShapeCode(affordance) != LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange ||
+                strengthDelta == 0f ||
+                !AffordanceOperationMatches(affordance, ProgramOpcodeCodes.AdjustRelationshipStrength) ||
+                !AffordancePolarityMatchesStrengthDelta(affordance, strengthDelta))
+            {
+                continue;
+            }
+
+            var opportunity = RelationshipStrengthOpportunity(
+                currentStrength,
+                Data.AffordanceThreshold(affordance),
+                Data.AffordancePolarityCode(affordance));
+            contribution = AddAffordanceScore(contribution, affordance, Data.AffordanceWeight(affordance) * opportunity);
+        }
+
+        return contribution;
+    }
+
+    private AffordanceContribution TerrainAffordance(int actorKindId, int planeCode, int terrainId)
+    {
+        if (terrainId == 0)
+        {
+            return default;
+        }
+
+        var contribution = default(AffordanceContribution);
+        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        {
+            if (Data.AffordanceShapeCode(affordance) == LowAltitudeAffordanceShapeCodes.TerrainPresence &&
+                AffordanceMatchesActorPlane(affordance, actorKindId, planeCode) &&
+                (Data.AffordanceTerrainId(affordance) == 0 || Data.AffordanceTerrainId(affordance) == terrainId))
+            {
+                contribution = AddAffordanceScore(contribution, affordance, Data.AffordanceWeight(affordance));
+            }
+        }
+
+        return contribution;
+    }
+
+    private AffordanceContribution InfluenceAffordance(
+        int actorKindId,
+        int planeCode,
+        int operationCode,
+        int candidateKindId,
+        int polarityCode,
+        float currentInfluence)
+    {
+        var contribution = default(AffordanceContribution);
+        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        {
+            if (Data.AffordanceShapeCode(affordance) != LowAltitudeAffordanceShapeCodes.InfluenceChange ||
+                !AffordanceMatchesActorPlane(affordance, actorKindId, planeCode) ||
+                !AffordanceCandidateKindMatches(affordance, candidateKindId) ||
+                !AffordanceOperationMatches(affordance, operationCode) ||
+                !AffordancePolarityMatches(affordance, polarityCode))
+            {
+                continue;
+            }
+
+            var opportunity = InfluenceOpportunity(
+                currentInfluence,
+                Data.AffordanceThreshold(affordance),
+                Data.AffordancePolarityCode(affordance));
+            contribution = AddAffordanceScore(contribution, affordance, Data.AffordanceWeight(affordance) * opportunity);
+        }
+
+        return contribution;
+    }
+
+    private bool AffordanceMatchesActorPlane(int affordance, int actorKindId, int planeCode) =>
+        Data.AffordanceActorKindId(affordance) == actorKindId &&
+        (Data.AffordancePlaneCode(affordance) == PlaneCodes.None || Data.AffordancePlaneCode(affordance) == planeCode);
+
+    private bool AffordanceCandidateKindMatches(int affordance, int candidateKindId) =>
+        Data.AffordanceCandidateKindId(affordance) == 0 ||
+        Data.AffordanceCandidateKindId(affordance) == candidateKindId;
+
+    private bool AffordanceRelationshipMatches(int affordance, int relationshipKindId, int relationshipDirectionCode) =>
+        Data.AffordanceRelationshipKindId(affordance) == relationshipKindId &&
+        RelationshipDirectionMatches(Data.AffordanceRelationshipDirectionCode(affordance), relationshipDirectionCode);
+
+    private bool AffordanceOperationMatches(int affordance, int operationCode)
+    {
+        var required = Data.AffordanceOperationCode(affordance);
+        return required == 0 ||
+            required == operationCode ||
+            (required == ProgramOpcodeCodes.AddOwnedCellScalar && OperationBuildsOwnedInfluence(operationCode));
+    }
+
+    private static bool OperationBuildsOwnedInfluence(int operationCode) =>
+        operationCode is ProgramOpcodeCodes.AddOwnedCellScalar
+            or ProgramOpcodeCodes.TryClaimCell
+            or ProgramOpcodeCodes.TryRelocateEntity;
+
+    private bool AffordancePolarityMatches(int affordance, int polarityCode)
+    {
+        var required = Data.AffordancePolarityCode(affordance);
+        return required == AffordancePolarityCodes.None || required == polarityCode;
+    }
+
+    private bool AffordancePolarityMatchesStrengthDelta(int affordance, float strengthDelta)
+    {
+        var polarityCode = strengthDelta > 0f
+            ? AffordancePolarityCodes.Strengthen
+            : AffordancePolarityCodes.Weaken;
+        return AffordancePolarityMatches(affordance, polarityCode);
+    }
+
+    private static bool RelationshipDirectionMatches(int affordanceDirectionCode, int candidateDirectionCode) =>
+        affordanceDirectionCode == LowAltitudeVerbRelationshipDirectionCodes.Either ||
+        candidateDirectionCode == LowAltitudeVerbRelationshipDirectionCodes.Either ||
+        affordanceDirectionCode == candidateDirectionCode;
+
+    private static float RelationshipStrengthOpportunity(float currentStrength, float threshold, int polarityCode) =>
+        polarityCode == AffordancePolarityCodes.Weaken
+            ? DecreaseOpportunity(currentStrength, threshold, maximum: 1f)
+            : IncreaseOpportunity(currentStrength, threshold);
+
+    private static float InfluenceOpportunity(float currentInfluence, float threshold, int polarityCode) =>
+        polarityCode == AffordancePolarityCodes.Reduce
+            ? DecreaseOpportunity(currentInfluence, threshold, maximum: 100f)
+            : IncreaseOpportunity(currentInfluence, threshold);
+
+    private static float IncreaseOpportunity(float currentValue, float threshold)
+    {
+        if (threshold <= 0f)
+        {
+            return 1f;
+        }
+
+        return currentValue >= threshold ? 0f : Clamp01((threshold - currentValue) / threshold);
+    }
+
+    private static float DecreaseOpportunity(float currentValue, float threshold, float maximum)
+    {
+        if (currentValue <= threshold)
         {
             return 0f;
         }
 
-        var score = 0f;
-        for (var pair = 1; pair <= Data.AffordanceKindPairCount; pair++)
+        var denominator = global::System.MathF.Max(0.01f, maximum - threshold);
+        return Clamp01((currentValue - threshold) / denominator);
+    }
+
+    private AffordanceContribution AddAffordanceScore(
+        AffordanceContribution contribution,
+        int affordance,
+        float rowScore)
+    {
+        if (rowScore <= 0f)
         {
-            if (Data.AffordanceActorKindId(pair) == actorKindId &&
-                Data.AffordanceCandidateKindId(pair) == candidateKindId &&
-                Data.AffordanceBindingKindId(pair) == bindingKindId)
-            {
-                score += Data.AffordanceScore(pair);
-            }
+            return contribution;
         }
 
-        return score > 3f ? 3f : score;
+        var sourceKindCode = contribution.SourceKindCode;
+        var sourceId = contribution.SourceId;
+        var shapeCode = contribution.ShapeCode;
+        var topScore = contribution.TopScore;
+        if (rowScore > topScore)
+        {
+            sourceKindCode = Data.AffordanceSourceKindCode(affordance);
+            sourceId = Data.AffordanceSourceId(affordance);
+            shapeCode = Data.AffordanceShapeCode(affordance);
+            topScore = rowScore;
+        }
+
+        return new AffordanceContribution(
+            global::System.MathF.Min(AffordanceScoreCap, contribution.Score + rowScore),
+            sourceKindCode,
+            sourceId,
+            shapeCode,
+            topScore);
     }
+
+    private static float CandidateWeight(float baseWeight, AffordanceContribution affordance, float affordanceWeight) =>
+        ClampCandidateWeight(baseWeight + (affordance.Score * affordanceWeight));
+
+    private static float ClampCandidateWeight(float weight) => weight <= 0.01f ? 0.01f : weight;
+
+    private readonly record struct AffordanceContribution(
+        float Score,
+        int SourceKindCode,
+        int SourceId,
+        int ShapeCode,
+        float TopScore);
 }

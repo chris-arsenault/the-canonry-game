@@ -5,7 +5,7 @@ using Engine.Kinds;
 
 /// <summary>
 /// A high-stakes entity undertaking. Gambits run in their own program layer so
-/// their planner and risk model can diverge from routine behaviors over time.
+/// their scoring and risk model can diverge from routine behaviors over time.
 /// </summary>
 public sealed class GambitDefinition : BehaviorDefinition
 {

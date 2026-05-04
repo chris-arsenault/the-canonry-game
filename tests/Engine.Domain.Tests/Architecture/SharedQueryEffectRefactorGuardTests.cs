@@ -70,7 +70,7 @@ public sealed class SharedQueryEffectRefactorGuardTests
             "TraitModifierStalenessWeightDelta(",
             "TraitModifierHotspotWeightDelta(",
             "TraitModifierCrowdingWeightDelta(",
-            "TraitModifierGeneratorAffordanceWeightDelta(",
+            "TraitModifierAffordanceWeightDelta(",
             "TraitModifierRelationshipAffinityWeightDelta(",
         };
 

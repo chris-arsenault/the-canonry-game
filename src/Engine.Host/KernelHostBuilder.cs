@@ -436,7 +436,6 @@ internal sealed class KernelHostBuilder
             codes.RelationshipSourceCodeId.Value,
             codes.GeneratorSourceCodeId.Value,
             codes.DegeneracySourceCodeId.Value,
-            codes.PlanningSourceCodeId.Value,
             codes.MapActivitySourceCodeId.Value,
             codes.MapSignalsSourceCodeId.Value,
             codes.LowAltitudeVerbSourceCodeId.Value,

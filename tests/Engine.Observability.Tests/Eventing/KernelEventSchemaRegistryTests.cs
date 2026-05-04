@@ -6,24 +6,6 @@ using Engine.Eventing.Schema;
 public sealed class KernelEventSchemaRegistryTests
 {
     [Fact]
-    public void Registry_ContainsPlannerTraceEvents()
-    {
-        var schema = KernelEventSchemaRegistry.Get(KernelEventType.GoalScored);
-
-        Assert.Equal("GoalScored", schema.Name);
-        Assert.Contains(
-            schema.Slots,
-            slot => slot.Name == "plan_id" &&
-                    slot.PrimitiveKind == KernelEventPrimitiveKind.Int32 &&
-                    slot.SemanticKind == KernelEventSemanticKind.PlanId);
-        Assert.Contains(
-            schema.Slots,
-            slot => slot.Name == "running_total" &&
-                    slot.PrimitiveKind == KernelEventPrimitiveKind.Float32 &&
-                    slot.SemanticKind == KernelEventSemanticKind.Score);
-    }
-
-    [Fact]
     public void Registry_ContainsExistingKernelEvents()
     {
         var schema = KernelEventSchemaRegistry.Get(KernelEventType.RelationshipChanged);

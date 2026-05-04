@@ -26,13 +26,6 @@ public enum KernelEventType
     KernelStorageGrown = 24,
     MapCellStateChanged = 25,
     CellRoadChanged = 26,
-    PlanStarted = 100,
-    GoalConsidered = 101,
-    GoalScored = 102,
-    GoalSelected = 103,
-    PlanStepEmitted = 104,
-    PlanCommitted = 105,
-    PlanAbandoned = 106,
     Trace = 120,
 }
 
@@ -436,117 +429,12 @@ public readonly record struct KernelStorageGrownKernelEvent(
     [KernelEventIntSlot(5, "threshold_permille", KernelEventSemanticKind.Threshold)]
     int ThresholdPermille);
 
-[KernelEventLayout(KernelEventType.PlanStarted, schemaMinor: 0)]
-public readonly record struct PlanStartedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "reason_code_id", KernelEventSemanticKind.ReasonCodeId)]
-    int ReasonCodeId,
-    [KernelEventIntSlot(3, "candidate_count", KernelEventSemanticKind.Count)]
-    int CandidateCount);
-
-[KernelEventLayout(KernelEventType.GoalConsidered, schemaMinor: 0)]
-public readonly record struct GoalConsideredKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "goal_id", KernelEventSemanticKind.GoalId)]
-    int GoalId,
-    [KernelEventIntSlot(3, "candidate_index", KernelEventSemanticKind.Index)]
-    int CandidateIndex,
-    [KernelEventFloatSlot(0, "preliminary_score", KernelEventSemanticKind.Score)]
-    float PreliminaryScore);
-
-[KernelEventLayout(KernelEventType.GoalScored, schemaMinor: 0)]
-public readonly record struct GoalScoredKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "goal_id", KernelEventSemanticKind.GoalId)]
-    int GoalId,
-    [KernelEventIntSlot(3, "reason_code_id", KernelEventSemanticKind.ReasonCodeId)]
-    int ReasonCodeId,
-    [KernelEventIntSlot(4, "scoring_pass_index", KernelEventSemanticKind.Index)]
-    int ScoringPassIndex,
-    [KernelEventFloatSlot(0, "score_delta", KernelEventSemanticKind.Delta)]
-    float ScoreDelta,
-    [KernelEventFloatSlot(1, "running_total", KernelEventSemanticKind.Score)]
-    float RunningTotal);
-
-[KernelEventLayout(KernelEventType.GoalSelected, schemaMinor: 0)]
-public readonly record struct GoalSelectedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "goal_id", KernelEventSemanticKind.GoalId)]
-    int GoalId,
-    [KernelEventFloatSlot(0, "final_score", KernelEventSemanticKind.Score)]
-    float FinalScore);
-
-[KernelEventLayout(KernelEventType.PlanStepEmitted, schemaMinor: 0)]
-public readonly record struct PlanStepEmittedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "goal_id", KernelEventSemanticKind.GoalId)]
-    int GoalId,
-    [KernelEventIntSlot(3, "step_index", KernelEventSemanticKind.Index)]
-    int StepIndex,
-    [KernelEventIntSlot(4, "action_id", KernelEventSemanticKind.ActionId)]
-    int ActionId,
-    [KernelEventIntSlot(5, "target_entity_id", KernelEventSemanticKind.EntityId)]
-    int TargetEntityId,
-    [KernelEventIntSlot(6, "relationship_kind_id", KernelEventSemanticKind.RelationshipKindId)]
-    int RelationshipKindId);
-
-[KernelEventLayout(KernelEventType.PlanCommitted, schemaMinor: 0)]
-public readonly record struct PlanCommittedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "step_count", KernelEventSemanticKind.Count)]
-    int StepCount,
-    [KernelEventIntSlot(3, "reason_code_id", KernelEventSemanticKind.ReasonCodeId)]
-    int ReasonCodeId,
-    [KernelEventFloatSlot(0, "total_score", KernelEventSemanticKind.Score)]
-    float TotalScore);
-
-[KernelEventLayout(KernelEventType.PlanAbandoned, schemaMinor: 0)]
-public readonly record struct PlanAbandonedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
-    [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
-    int EntityId,
-    [KernelEventIntSlot(2, "reason_code_id", KernelEventSemanticKind.ReasonCodeId)]
-    int ReasonCodeId);
-
-[KernelEventLayout(KernelEventType.Trace, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.Trace, schemaMinor: 1)]
 public readonly record struct TraceKernelEvent(
     int Tick,
     long WorldVersion,
-    [KernelEventIntSlot(0, "plan_id", KernelEventSemanticKind.PlanId)]
-    int PlanId,
+    [KernelEventIntSlot(0, "intent_id", KernelEventSemanticKind.IntentId)]
+    int IntentId,
     [KernelEventIntSlot(1, "entity_id", KernelEventSemanticKind.EntityId)]
     int EntityId,
     [KernelEventIntSlot(2, "trace_subject_code", KernelEventSemanticKind.TraceSubjectCode)]
@@ -569,6 +457,12 @@ public readonly record struct TraceKernelEvent(
     int TargetEntityId,
     [KernelEventIntSlot(11, "status_code", KernelEventSemanticKind.StatusCode)]
     int StatusCode,
+    [KernelEventIntSlot(12, "affordance_source_kind_code", KernelEventSemanticKind.RawScalar)]
+    int AffordanceSourceKindCode,
+    [KernelEventIntSlot(13, "affordance_source_id", KernelEventSemanticKind.RawScalar)]
+    int AffordanceSourceId,
+    [KernelEventIntSlot(14, "affordance_shape_code", KernelEventSemanticKind.RawScalar)]
+    int AffordanceShapeCode,
     [KernelEventFloatSlot(0, "urgency", KernelEventSemanticKind.Score)]
     float Urgency,
     [KernelEventFloatSlot(1, "reward_or_base_score", KernelEventSemanticKind.Score)]
@@ -576,7 +470,11 @@ public readonly record struct TraceKernelEvent(
     [KernelEventFloatSlot(2, "raw_weight", KernelEventSemanticKind.Score)]
     float RawWeight,
     [KernelEventFloatSlot(3, "adjusted_weight", KernelEventSemanticKind.Score)]
-    float AdjustedWeight);
+    float AdjustedWeight,
+    [KernelEventFloatSlot(4, "affordance_score", KernelEventSemanticKind.Score)]
+    float AffordanceScore,
+    [KernelEventFloatSlot(5, "affordance_bonus", KernelEventSemanticKind.Score)]
+    float AffordanceBonus);
 
 public readonly partial record struct KernelEvent
 {
@@ -592,10 +490,15 @@ public readonly partial record struct KernelEvent
     private readonly int _int9;
     private readonly int _int10;
     private readonly int _int11;
+    private readonly int _int12;
+    private readonly int _int13;
+    private readonly int _int14;
     private readonly float _float0;
     private readonly float _float1;
     private readonly float _float2;
     private readonly float _float3;
+    private readonly float _float4;
+    private readonly float _float5;
 
     private KernelEvent(
         KernelEventType eventType,
@@ -616,10 +519,15 @@ public readonly partial record struct KernelEvent
         int int9 = 0,
         int int10 = 0,
         int int11 = 0,
+        int int12 = 0,
+        int int13 = 0,
+        int int14 = 0,
         float float0 = 0f,
         float float1 = 0f,
         float float2 = 0f,
-        float float3 = 0f)
+        float float3 = 0f,
+        float float4 = 0f,
+        float float5 = 0f)
     {
         EventType = eventType;
         Tick = tick;
@@ -639,10 +547,15 @@ public readonly partial record struct KernelEvent
         _int9 = int9;
         _int10 = int10;
         _int11 = int11;
+        _int12 = int12;
+        _int13 = int13;
+        _int14 = int14;
         _float0 = float0;
         _float1 = float1;
         _float2 = float2;
         _float3 = float3;
+        _float4 = float4;
+        _float5 = float5;
     }
 
     public KernelEventType EventType { get; }
@@ -652,8 +565,8 @@ public readonly partial record struct KernelEvent
     public int SourceCodeId { get; }
     public int ProvenanceInvocationId { get; }
 
-    public const int IntSlotCount = 12;
-    public const int FloatSlotCount = 4;
+    public const int IntSlotCount = 15;
+    public const int FloatSlotCount = 6;
 
     public KernelEvent WithExecutionContext(int programId, int sourceCodeId, int provenanceInvocationId = 0)
     {
@@ -679,10 +592,15 @@ public readonly partial record struct KernelEvent
             int9: _int9,
             int10: _int10,
             int11: _int11,
+            int12: _int12,
+            int13: _int13,
+            int14: _int14,
             float0: _float0,
             float1: _float1,
             float2: _float2,
-            float3: _float3);
+            float3: _float3,
+            float4: _float4,
+            float5: _float5);
     }
 
 #pragma warning disable S1541 // Direct slot dispatch is intentionally allocation-free.
@@ -700,7 +618,10 @@ public readonly partial record struct KernelEvent
         9 => _int9,
         10 => _int10,
         11 => _int11,
-        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 11."),
+        12 => _int12,
+        13 => _int13,
+        14 => _int14,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 14."),
     };
 #pragma warning restore S1541
 
@@ -710,7 +631,9 @@ public readonly partial record struct KernelEvent
         1 => _float1,
         2 => _float2,
         3 => _float3,
-        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event float slots are numbered 0 through 3."),
+        4 => _float4,
+        5 => _float5,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event float slots are numbered 0 through 5."),
     };
 }
 

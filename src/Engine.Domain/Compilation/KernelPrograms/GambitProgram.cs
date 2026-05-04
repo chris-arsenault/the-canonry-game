@@ -22,10 +22,7 @@ public sealed record CompiledGambitRule(
     BehaviorProgramTargetMode TargetMode,
     int TargetKindId,
     float SuccessChance,
-    IReadOnlyList<BehaviorProgramEffectRule> GoalEffects,
     IReadOnlyList<BehaviorProgramProviderSelectorRule> ProviderSelectors,
-    IReadOnlyList<BehaviorProgramSupportRule> SupportRules,
     IReadOnlyList<BehaviorProgramPreconditionOp> Preconditions,
     IReadOnlyList<BehaviorProgramExpressionOp> ScoreExpression,
-    IReadOnlyList<BehaviorProgramExpressionOp> RewardExpression,
     IReadOnlyList<BehaviorProgramStepRule> Steps);

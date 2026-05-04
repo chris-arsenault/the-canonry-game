@@ -42,7 +42,6 @@ public sealed class KernelEventPayloadTests
     {
         AssertEntityAndChangeEventsRoundTrip();
         AssertRuntimeEventsRoundTrip();
-        AssertPlanningEventsRoundTrip();
     }
 
     private static void AssertEntityAndChangeEventsRoundTrip()
@@ -116,29 +115,8 @@ public sealed class KernelEventPayloadTests
 
         var kernelStorageGrown = new KernelStorageGrownKernelEvent(22, 23, 24, 25, 26, 27, 28, 29);
         Assert.Equal(kernelStorageGrown, KernelEvent.From(kernelStorageGrown).AsKernelStorageGrown());
-    }
 
-    private static void AssertPlanningEventsRoundTrip()
-    {
-        var planStarted = new PlanStartedKernelEvent(18, 19, 20, 21, 22, 23);
-        Assert.Equal(planStarted, KernelEvent.From(planStarted).AsPlanStarted());
-
-        var goalConsidered = new GoalConsideredKernelEvent(19, 20, 21, 22, 23, 24, 1.5f);
-        Assert.Equal(goalConsidered, KernelEvent.From(goalConsidered).AsGoalConsidered());
-
-        var goalScored = new GoalScoredKernelEvent(20, 21, 22, 23, 24, 25, 26, -0.5f, 4.75f);
-        Assert.Equal(goalScored, KernelEvent.From(goalScored).AsGoalScored());
-
-        var goalSelected = new GoalSelectedKernelEvent(21, 22, 23, 24, 25, 8.25f);
-        Assert.Equal(goalSelected, KernelEvent.From(goalSelected).AsGoalSelected());
-
-        var planStepEmitted = new PlanStepEmittedKernelEvent(22, 23, 24, 25, 26, 27, 28, 29, 30);
-        Assert.Equal(planStepEmitted, KernelEvent.From(planStepEmitted).AsPlanStepEmitted());
-
-        var planCommitted = new PlanCommittedKernelEvent(23, 24, 25, 26, 27, 28, 9.5f);
-        Assert.Equal(planCommitted, KernelEvent.From(planCommitted).AsPlanCommitted());
-
-        var planAbandoned = new PlanAbandonedKernelEvent(24, 25, 26, 27, 28);
-        Assert.Equal(planAbandoned, KernelEvent.From(planAbandoned).AsPlanAbandoned());
+        var trace = new TraceKernelEvent(23, 24, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 0, 0, 1.25f, 2.5f, 3.75f, 5f, 0f, 0f);
+        Assert.Equal(trace, KernelEvent.From(trace).AsTrace());
     }
 }

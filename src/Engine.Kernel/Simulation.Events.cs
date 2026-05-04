@@ -158,137 +158,11 @@ internal sealed partial class Simulation
             currentQuality)));
     }
 
-    internal void EmitPlanStarted(
-        int tick,
-        int planId,
-        int entityId,
-        int reasonCodeId,
-        int candidateCount)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanStartedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            reasonCodeId,
-            candidateCount)));
-    }
-
-    internal void EmitGoalConsidered(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        int candidateIndex,
-        float preliminaryScore)
-    {
-        WriteKernelEvent(KernelEvent.From(new GoalConsideredKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            candidateIndex,
-            preliminaryScore)));
-    }
-
-    internal void EmitGoalScored(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        int reasonCodeId,
-        int scoringPassIndex,
-        float scoreDelta,
-        float runningTotal)
-    {
-        WriteKernelEvent(KernelEvent.From(new GoalScoredKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            reasonCodeId,
-            scoringPassIndex,
-            scoreDelta,
-            runningTotal)));
-    }
-
-    internal void EmitGoalSelected(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        float finalScore)
-    {
-        WriteKernelEvent(KernelEvent.From(new GoalSelectedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            finalScore)));
-    }
-
-    internal void EmitPlanStepEmitted(
-        int tick,
-        int planId,
-        int entityId,
-        int goalId,
-        int stepIndex,
-        int actionId,
-        int targetEntityId,
-        int relationshipKindId)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanStepEmittedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            goalId,
-            stepIndex,
-            actionId,
-            targetEntityId,
-            relationshipKindId)));
-    }
-
-    internal void EmitPlanCommitted(
-        int tick,
-        int planId,
-        int entityId,
-        int stepCount,
-        int reasonCodeId,
-        float totalScore)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanCommittedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            stepCount,
-            reasonCodeId,
-            totalScore)));
-    }
-
-    internal void EmitPlanAbandoned(
-        int tick,
-        int planId,
-        int entityId,
-        int reasonCodeId)
-    {
-        WriteKernelEvent(KernelEvent.From(new PlanAbandonedKernelEvent(
-            tick,
-            WorldVersion,
-            planId,
-            entityId,
-            reasonCodeId)));
-    }
-
     internal bool TraceEnabled() => Options.TraceEnabled;
 
     internal void EmitTrace(
         int tick,
-        int planId,
+        int intentId,
         int entityId,
         int traceSubjectCode,
         int candidateIndex,
@@ -303,7 +177,12 @@ internal sealed partial class Simulation
         float urgency,
         float rewardOrBaseScore,
         float rawWeight,
-        float adjustedWeight)
+        float adjustedWeight,
+        int affordanceSourceKindCode = 0,
+        int affordanceSourceId = 0,
+        int affordanceShapeCode = 0,
+        float affordanceScore = 0f,
+        float affordanceBonus = 0f)
     {
         if (!TraceEnabled())
         {
@@ -313,7 +192,7 @@ internal sealed partial class Simulation
         WriteKernelEvent(KernelEvent.From(new TraceKernelEvent(
             tick,
             WorldVersion,
-            planId,
+            intentId,
             entityId,
             traceSubjectCode,
             candidateIndex,
@@ -325,10 +204,15 @@ internal sealed partial class Simulation
             effectKindId,
             targetEntityId,
             statusCode,
+            affordanceSourceKindCode,
+            affordanceSourceId,
+            affordanceShapeCode,
             urgency,
             rewardOrBaseScore,
             rawWeight,
-            adjustedWeight)));
+            adjustedWeight,
+            affordanceScore,
+            affordanceBonus)));
     }
 
     private void WriteTickCompleted()

@@ -43,8 +43,8 @@ Caller-local policy still owns:
 
 - generator cadence, target choice, production orchestration, and reference
   binding order;
-- gambit actor/target scheduling, score expressions, reward expressions,
-  planning, and ordered operation sequencing;
+- gambit actor/target scheduling, score expressions, direct target selection,
+  and ordered operation sequencing;
 - low-altitude movement, influence policy, and target selection.
 
 That split is intentional. The shared layer answers "what does this predicate

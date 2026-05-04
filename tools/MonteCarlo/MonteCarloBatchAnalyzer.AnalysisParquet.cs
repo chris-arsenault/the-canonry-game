@@ -12,7 +12,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         using var connection = OpenBatch(batchDirectory);
         WriteOutcomeAnalysis(connection, analysisDirectory);
         WriteLowAltitudeAnalysis(connection, analysisDirectory);
-        WritePlannerAnalysis(connection, analysisDirectory);
+        WriteProcessAnalysis(connection, analysisDirectory);
         WriteWorldAnalysis(connection, analysisDirectory);
     }
 
@@ -27,16 +27,16 @@ internal sealed partial class MonteCarloBatchAnalyzer
         ExportAnalysisTable(connection, analysisDirectory, "experiment_comparison", ExperimentComparisonSql);
     }
 
-    private static void WritePlannerAnalysis(DuckDBConnection connection, string analysisDirectory)
+    private static void WriteProcessAnalysis(DuckDBConnection connection, string analysisDirectory)
     {
         ExportAnalysisTable(connection, analysisDirectory, "action_utilization", ActionUtilizationSql);
-        ExportAnalysisTable(connection, analysisDirectory, "planner_utilization", PlannerUtilizationSql);
         ExportAnalysisTable(connection, analysisDirectory, "stock_dynamics", StockDynamicsSql);
     }
 
     private static void WriteLowAltitudeAnalysis(DuckDBConnection connection, string analysisDirectory)
     {
         ExportAnalysisTable(connection, analysisDirectory, "low_altitude_verb_utilization", LowAltitudeVerbUtilizationSql);
+        ExportAnalysisTable(connection, analysisDirectory, "low_altitude_affordance_utilization", LowAltitudeAffordanceUtilizationSql);
         ExportAnalysisTable(connection, analysisDirectory, "entity_roaming", EntityRoamingSql);
         ExportAnalysisTable(connection, analysisDirectory, "roaming_summary", RoamingSummarySql);
         ExportAnalysisTable(connection, analysisDirectory, "influence_dynamics", InfluenceDynamicsSql);
@@ -102,28 +102,21 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 8, COUNT(*) FROM raw_attribute_events UNION ALL
             SELECT 9, COUNT(*) FROM raw_movement_events UNION ALL
             SELECT 10, COUNT(*) FROM raw_trace_events UNION ALL
-            SELECT 11, COUNT(*) FROM raw_planner_traces UNION ALL
-            SELECT 12, COUNT(*) FROM raw_planner_goals UNION ALL
-            SELECT 13, COUNT(*) FROM raw_planner_candidates UNION ALL
-            SELECT 14, COUNT(*) FROM raw_planner_scores UNION ALL
-            SELECT 15, COUNT(*) FROM raw_planner_steps UNION ALL
-            SELECT 16, COUNT(*) FROM raw_planner_localities UNION ALL
-            SELECT 17, COUNT(*) FROM raw_action_executions UNION ALL
-            SELECT 18, COUNT(*) FROM raw_map_cell_events UNION ALL
-            SELECT 19, COUNT(*) FROM raw_map_snapshots UNION ALL
-            SELECT 20, COUNT(*) FROM raw_coverage_snapshots UNION ALL
-            SELECT 21, COUNT(*) FROM raw_coverage_terrain_snapshots UNION ALL
-            SELECT 22, COUNT(*) FROM raw_placement_events UNION ALL
-            SELECT 23, COUNT(*) FROM raw_generator_events UNION ALL
-            SELECT 24, COUNT(*) FROM raw_generator_outputs UNION ALL
-            SELECT 25, COUNT(*) FROM raw_generator_state_snapshots UNION ALL
-            SELECT 26, COUNT(*) FROM raw_relationship_events UNION ALL
-            SELECT 27, COUNT(*) FROM raw_relationship_snapshots UNION ALL
-            SELECT 28, COUNT(*) FROM raw_lifecycle_events UNION ALL
-            SELECT 29, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
-            SELECT 30, COUNT(*) FROM raw_cell_influence_events UNION ALL
-            SELECT 31, COUNT(*) FROM raw_gambit_events UNION ALL
-            SELECT 32, COUNT(*) FROM raw_cell_road_events
+            SELECT 11, COUNT(*) FROM raw_map_cell_events UNION ALL
+            SELECT 12, COUNT(*) FROM raw_map_snapshots UNION ALL
+            SELECT 13, COUNT(*) FROM raw_coverage_snapshots UNION ALL
+            SELECT 14, COUNT(*) FROM raw_coverage_terrain_snapshots UNION ALL
+            SELECT 15, COUNT(*) FROM raw_placement_events UNION ALL
+            SELECT 16, COUNT(*) FROM raw_generator_events UNION ALL
+            SELECT 17, COUNT(*) FROM raw_generator_outputs UNION ALL
+            SELECT 18, COUNT(*) FROM raw_generator_state_snapshots UNION ALL
+            SELECT 19, COUNT(*) FROM raw_relationship_events UNION ALL
+            SELECT 20, COUNT(*) FROM raw_relationship_snapshots UNION ALL
+            SELECT 21, COUNT(*) FROM raw_lifecycle_events UNION ALL
+            SELECT 22, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
+            SELECT 23, COUNT(*) FROM raw_cell_influence_events UNION ALL
+            SELECT 24, COUNT(*) FROM raw_gambit_events UNION ALL
+            SELECT 25, COUNT(*) FROM raw_cell_road_events
         ),
         features(feature_code, source_table_code) AS (
             VALUES
@@ -131,9 +124,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 (6, 6), (7, 7), (8, 8), (9, 9), (10, 10),
                 (11, 11), (12, 12), (13, 13), (14, 14), (15, 15),
                 (16, 16), (17, 17), (18, 18), (19, 19), (20, 20),
-                (21, 21), (22, 22), (23, 23), (24, 24), (25, 25),
-                (26, 26), (27, 27), (28, 28), (29, 29), (30, 30),
-                (31, 31), (32, 32)
+                (21, 21), (22, 22), (23, 23), (24, 24), (25, 25)
         )
         SELECT
             feature_code,
@@ -219,7 +210,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 trace.effect_value_id AS target_mode_code,
                 trace.effect_kind_id AS target_kind_id,
                 trace.status_code,
-                trace.adjusted_weight
+                trace.adjusted_weight,
+                trace.affordance_score,
+                trace.affordance_bonus
             FROM raw_trace_events trace
             LEFT JOIN (
                 SELECT run_id, entity_id, any_value(kind_id) AS kind_id
@@ -244,6 +237,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 SUM(CASE WHEN status_code = {{TraceStatusCodes.Selected}} THEN 1 ELSE 0 END) AS selected_count,
                 SUM(CASE WHEN status_code = {{TraceStatusCodes.NoTarget}} THEN 1 ELSE 0 END) AS no_target_count,
                 COALESCE(AVG(CASE WHEN status_code = {{TraceStatusCodes.Selected}} THEN adjusted_weight ELSE NULL END), 0.0) AS average_selected_weight,
+                COALESCE(AVG(CASE WHEN status_code = {{TraceStatusCodes.Selected}} THEN affordance_score ELSE NULL END), 0.0) AS average_selected_affordance_score,
+                COALESCE(AVG(CASE WHEN status_code = {{TraceStatusCodes.Selected}} THEN affordance_bonus ELSE NULL END), 0.0) AS average_selected_affordance_bonus,
+                SUM(CASE WHEN status_code = {{TraceStatusCodes.Selected}} AND affordance_score > 0 THEN 1 ELSE 0 END) AS selected_with_affordance_count,
                 COUNT(DISTINCT entity_id) AS distinct_entities
             FROM low_altitude
             GROUP BY kind_id, verb_id, operation_code, plane_code, target_mode_code, target_kind_id
@@ -261,6 +257,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
             no_target_count,
             CASE WHEN offered_count = 0 THEN 0.0 ELSE selected_count::DOUBLE / offered_count END AS selection_rate_when_offered,
             average_selected_weight,
+            average_selected_affordance_score,
+            average_selected_affordance_bonus,
+            selected_with_affordance_count,
             distinct_entities
         FROM grouped
         """;
@@ -701,99 +700,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(MAX(max_quality), 0.0) AS max_quality
         FROM cell_reinforcement
         GROUP BY run_id, plane_code
-        """;
-
-    private const string ActionUtilizationSql = """
-        SELECT
-            kind_id,
-            action_id,
-            COUNT(*) AS candidate_evaluations,
-            SUM(CASE WHEN selected THEN 1 ELSE 0 END) AS selected_count,
-            CASE WHEN COUNT(*) = 0 THEN 0.0 ELSE SUM(CASE WHEN selected THEN 1 ELSE 0 END)::DOUBLE / COUNT(*) END AS selection_rate_when_offered,
-            COALESCE(AVG(CAST(adjusted_score AS DOUBLE)), 0.0) AS average_score,
-            COALESCE(AVG(CASE WHEN precondition_status_code = 0 THEN 1.0 ELSE 0.0 END), 0.0) AS precondition_pass_rate,
-            COALESCE(AVG(CASE WHEN cooldown_state_code <> 0 THEN 1.0 ELSE 0.0 END), 0.0) AS cooldown_rate,
-            COALESCE(MAX(diagnostic_code), 0) AS top_failure_diagnostic_code,
-            1 AS evidence_source_code
-        FROM raw_planner_candidates
-        GROUP BY kind_id, action_id
-        """;
-
-    private const string PlannerUtilizationSql = """
-        WITH execution_counts AS (
-            SELECT kind_id, action_id, COUNT(*) AS selected_count
-            FROM raw_action_executions
-            GROUP BY kind_id, action_id
-        ),
-        ranked_execution AS (
-            SELECT *, ROW_NUMBER() OVER (PARTITION BY kind_id ORDER BY selected_count DESC, action_id) AS rank
-            FROM execution_counts
-        )
-        SELECT
-            candidates.kind_id,
-            COUNT(DISTINCT candidates.plan_id) AS evaluations,
-            COUNT(DISTINCT candidates.goal_id) AS goal_count,
-            COUNT(*) AS candidate_count,
-            0.0 AS stale_rate,
-            COALESCE(AVG(CASE WHEN executions.entity_id IS NULL THEN 1.0 ELSE 0.0 END), 0.0) AS no_execution_rate,
-            COALESCE(AVG(CAST(candidates.candidate_index AS DOUBLE)), 0.0) AS average_candidate_count,
-            COALESCE(MAX(CASE WHEN ranked.rank = 1 THEN ranked.action_id ELSE 0 END), 0) AS top_executed_action_id,
-            CASE
-                WHEN COALESCE(SUM(ranked.selected_count), 0) = 0 THEN 0.0
-                ELSE COALESCE(MAX(CASE WHEN ranked.rank = 1 THEN ranked.selected_count ELSE 0 END), 0)::DOUBLE /
-                     COALESCE(SUM(ranked.selected_count), 1)
-            END AS top_action_share_of_executions
-        FROM raw_planner_candidates candidates
-        LEFT JOIN raw_action_executions executions
-          ON executions.run_id = candidates.run_id
-         AND executions.entity_id = candidates.entity_id
-         AND executions.plan_id = candidates.plan_id
-         AND executions.goal_id = candidates.goal_id
-        LEFT JOIN ranked_execution ranked
-          ON ranked.kind_id = candidates.kind_id
-        GROUP BY candidates.kind_id
-        """;
-
-    private const string StockDynamicsSql = """
-        WITH ordered AS (
-            SELECT *,
-                   LAG(value) OVER (PARTITION BY run_id, entity_id, attribute_id ORDER BY tick) AS previous_value
-            FROM raw_entity_attribute_snapshots
-        ),
-        deltas AS (
-            SELECT *,
-                   value - COALESCE(previous_value, value) AS delta,
-                   LAG(value - COALESCE(previous_value, value)) OVER (
-                       PARTITION BY run_id, entity_id, attribute_id ORDER BY tick) AS previous_delta
-            FROM ordered
-        ),
-        entity_kind AS (
-            SELECT run_id, entity_id, any_value(kind_id) AS kind_id
-            FROM raw_entity_snapshots
-            GROUP BY run_id, entity_id
-        )
-        SELECT
-            samples.run_id,
-            samples.entity_id,
-            COALESCE(MAX(entity_kind.kind_id), 0) AS kind_id,
-            samples.attribute_id,
-            COUNT(*) AS sample_count,
-            MIN(value) AS minimum_observed,
-            MAX(value) AS maximum_observed,
-            COALESCE(VAR_POP(value), 0.0) AS variance,
-            SUM(CASE WHEN previous_delta * delta < 0 THEN 1 ELSE 0 END) AS reversal_count,
-            SUM(CASE WHEN value < 33.333 THEN 1 ELSE 0 END) AS dwell_low_ticks,
-            SUM(CASE WHEN value >= 33.333 AND value < 66.666 THEN 1 ELSE 0 END) AS dwell_mid_ticks,
-            SUM(CASE WHEN value >= 66.666 THEN 1 ELSE 0 END) AS dwell_high_ticks,
-            SUM(CASE WHEN value <= 1.0 THEN 1 ELSE 0 END) AS pinned_low_ticks,
-            SUM(CASE WHEN value >= 99.0 THEN 1 ELSE 0 END) AS pinned_high_ticks,
-            LEAST(1.0, GREATEST(0.0, (MAX(value) - MIN(value)) / 100.0)) AS normalized_range
-        FROM deltas samples
-        LEFT JOIN entity_kind
-          ON entity_kind.run_id = samples.run_id
-         AND entity_kind.entity_id = samples.entity_id
-        GROUP BY samples.run_id, samples.entity_id, samples.attribute_id
-        HAVING COUNT(*) >= 2
         """;
 
     private const string MapSpreadSql = """

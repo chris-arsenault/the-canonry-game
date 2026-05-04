@@ -37,7 +37,6 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId RelationshipSourceCodeId,
     SourceCodeId GeneratorSourceCodeId,
     SourceCodeId DegeneracySourceCodeId,
-    SourceCodeId PlanningSourceCodeId,
     SourceCodeId MapActivitySourceCodeId,
     SourceCodeId MapSignalsSourceCodeId,
     SourceCodeId LowAltitudeVerbSourceCodeId,

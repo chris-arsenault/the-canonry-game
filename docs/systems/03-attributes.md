@@ -53,7 +53,7 @@ Current operation primitives:
   target/related trait bearer. These rules execute through the shared effect
   path.
 - `TraitLowAltitudeWeightOperationConfig`: modifies low-altitude verb weights,
-  such as exploration, staleness, hotspot, crowding, generator affordance, or
+  such as exploration, staleness, hotspot, crowding, affordance response, or
   relationship affinity. These rules execute through `DecisionModifier`.
 - `TraitGambitModifierOperationConfig`: modifies gambit score and success
   chance when the actor or target bears the trait. These rules execute through

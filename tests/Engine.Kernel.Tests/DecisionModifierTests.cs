@@ -73,7 +73,7 @@ public sealed class DecisionModifierTests
         Assert.Equal(3f, totals.StalenessWeight);
         Assert.Equal(4f, totals.HotspotWeight);
         Assert.Equal(5f, totals.CrowdingWeight);
-        Assert.Equal(6f, totals.GeneratorAffordanceWeight);
+        Assert.Equal(6f, totals.AffordanceWeight);
         Assert.Equal(7f, totals.RelationshipAffinityWeight);
     }
 }

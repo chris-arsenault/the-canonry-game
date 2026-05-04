@@ -285,20 +285,6 @@ internal sealed class KernelPerformanceProjection : KernelEventProjector
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
-    protected override void OnPlanStarted(long sequence, in PlanStartedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
-    protected override void OnGoalConsidered(long sequence, in GoalConsideredKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
-    protected override void OnGoalScored(long sequence, in GoalScoredKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
-    protected override void OnGoalSelected(long sequence, in GoalSelectedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
-    protected override void OnPlanStepEmitted(long sequence, in PlanStepEmittedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
-    protected override void OnPlanCommitted(long sequence, in PlanCommittedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
-    protected override void OnPlanAbandoned(long sequence, in PlanAbandonedKernelEvent evt) => Count(evt.Tick).TotalMessages++;
-
     protected override void OnTrace(long sequence, in TraceKernelEvent evt) => Count(evt.Tick).TotalMessages++;
 
     private KernelTickMessageCounters Count(int tick)

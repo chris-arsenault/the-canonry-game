@@ -58,17 +58,6 @@ public sealed class KernelRuntimeFactoryTests
                   "gambits": {
                     "enabled": true
                   },
-                  "planning": {
-                    "defaultPlanner": "opportunity",
-                    "goapTargetReservations": true,
-                    "opportunityTargetCapacity": 3,
-                    "kindPlannerOverrides": [
-                      { "kindId": 1, "planner": "goap" }
-                    ],
-                    "entityPlannerOverrides": [
-                      { "entityId": 2, "planner": "opportunity" }
-                    ]
-                  },
                   "upkeep": {
                     "agingModel": "late_life"
                   }
@@ -106,17 +95,6 @@ public sealed class KernelRuntimeFactoryTests
 
             [kernel_tuning.programs.gambits]
             enabled = true
-
-            [kernel_tuning.programs.planning]
-            default_planner = "opportunity"
-            goap_target_reservations = true
-            opportunity_target_capacity = 3
-
-            [kernel_tuning.programs.planning.kind.1]
-            planner = "goap"
-
-            [kernel_tuning.programs.planning.entity.2]
-            planner = "opportunity"
 
             [kernel_tuning.programs.upkeep]
             aging_model = "late_life"
@@ -206,13 +184,6 @@ public sealed class KernelRuntimeFactoryTests
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);
-        Assert.Equal(PlannerKindCodes.Opportunity, options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
-        Assert.True(options.KernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
-        Assert.Equal(3, options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
-        Assert.Contains(options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
-            item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
-        Assert.Contains(options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
-            item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
     }
 

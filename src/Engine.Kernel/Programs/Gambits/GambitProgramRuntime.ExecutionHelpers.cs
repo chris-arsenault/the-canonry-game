@@ -156,14 +156,6 @@ internal sealed partial class GambitProgramRuntime
         }
     }
 
-    private void EnsureSupportRule(int supportRuleSlot)
-    {
-        if ((uint)supportRuleSlot == 0u || supportRuleSlot > _supportRuleCount)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
     private static void ValidatePositive(int value)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);

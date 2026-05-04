@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 26;
+    private const int FormatVersion = 28;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -93,14 +93,10 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryWriter writer,
         SimulationOptions options)
     {
-        writer.Write(options.PlanningOverrideCapacity);
         writer.Write(options.GambitCapacity);
         writer.Write(options.GambitStepCapacity);
         writer.Write(options.GambitCooldownCapacity);
-        writer.Write(options.GambitObjectiveCapacity);
         writer.Write(options.GambitProviderSelectorCapacity);
-        writer.Write(options.GambitSupportRuleCapacity);
-        writer.Write(options.GambitCommitmentCapacity);
         writer.Write(options.GeneratorCapacity);
         writer.Write(options.GeneratorItemCapacity);
     }
@@ -142,7 +138,6 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.RelationshipSourceCodeId);
         writer.Write(runtimeCodes.GeneratorSourceCodeId);
         writer.Write(runtimeCodes.DegeneracySourceCodeId);
-        writer.Write(runtimeCodes.PlanningSourceCodeId);
         writer.Write(runtimeCodes.MapActivitySourceCodeId);
         writer.Write(runtimeCodes.MapSignalsSourceCodeId);
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
@@ -154,11 +149,6 @@ internal static class KernelSnapshotOptions
         KernelTuningOptions kernelTuning)
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
-        writer.Write(kernelTuning.Programs.Planning.DefaultPlannerKindCode);
-        writer.Write(kernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
-        writer.Write(kernelTuning.Programs.Planning.OpportunityTargetCapacity);
-        WritePlanningKindOverrides(writer, kernelTuning.Programs.Planning.KindPlannerOverrides);
-        WritePlanningEntityOverrides(writer, kernelTuning.Programs.Planning.EntityPlannerOverrides);
         writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
     }
@@ -177,30 +167,6 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.Relationships);
         writer.Write(enabled.Generators);
         writer.Write(enabled.Degeneracy);
-    }
-
-    private static void WritePlanningKindOverrides(
-        global::System.IO.BinaryWriter writer,
-        PlanningKindPlannerOverride[] overrides)
-    {
-        writer.Write(overrides.Length);
-        for (var i = 0; i < overrides.Length; i++)
-        {
-            writer.Write(overrides[i].KindId);
-            writer.Write(overrides[i].PlannerKindCode);
-        }
-    }
-
-    private static void WritePlanningEntityOverrides(
-        global::System.IO.BinaryWriter writer,
-        PlanningEntityPlannerOverride[] overrides)
-    {
-        writer.Write(overrides.Length);
-        for (var i = 0; i < overrides.Length; i++)
-        {
-            writer.Write(overrides[i].EntityId);
-            writer.Write(overrides[i].PlannerKindCode);
-        }
     }
 
     public static SimulationOptions Read(
@@ -248,14 +214,10 @@ internal static class KernelSnapshotOptions
         global::System.IO.BinaryReader reader,
         ref SnapshotOptionValues values)
     {
-        values.PlanningOverrideCapacity = reader.ReadInt32();
         values.GambitCapacity = reader.ReadInt32();
         values.GambitStepCapacity = reader.ReadInt32();
         values.GambitCooldownCapacity = reader.ReadInt32();
-        values.GambitObjectiveCapacity = reader.ReadInt32();
         values.GambitProviderSelectorCapacity = reader.ReadInt32();
-        values.GambitSupportRuleCapacity = reader.ReadInt32();
-        values.GambitCommitmentCapacity = reader.ReadInt32();
         values.GeneratorCapacity = reader.ReadInt32();
         values.GeneratorItemCapacity = reader.ReadInt32();
     }
@@ -297,7 +259,6 @@ internal static class KernelSnapshotOptions
         values.RelationshipSourceCodeId = reader.ReadInt32();
         values.GeneratorSourceCodeId = reader.ReadInt32();
         values.DegeneracySourceCodeId = reader.ReadInt32();
-        values.PlanningSourceCodeId = reader.ReadInt32();
         values.MapActivitySourceCodeId = reader.ReadInt32();
         values.MapSignalsSourceCodeId = reader.ReadInt32();
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
@@ -318,37 +279,8 @@ internal static class KernelSnapshotOptions
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.DegeneracyProgramEnabled = reader.ReadInt32();
-        values.PlanningDefaultPlannerKindCode = reader.ReadInt32();
-        values.PlanningGoapTargetReservationsEnabled = reader.ReadBoolean();
-        values.PlanningOpportunityTargetCapacity = reader.ReadInt32();
-        values.PlanningKindPlannerOverrides = ReadPlanningKindOverrides(reader);
-        values.PlanningEntityPlannerOverrides = ReadPlanningEntityOverrides(reader);
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
-    }
-
-    private static PlanningKindPlannerOverride[] ReadPlanningKindOverrides(global::System.IO.BinaryReader reader)
-    {
-        var count = reader.ReadInt32();
-        var overrides = new PlanningKindPlannerOverride[count];
-        for (var i = 0; i < count; i++)
-        {
-            overrides[i] = new PlanningKindPlannerOverride(reader.ReadInt32(), reader.ReadInt32());
-        }
-
-        return overrides;
-    }
-
-    private static PlanningEntityPlannerOverride[] ReadPlanningEntityOverrides(global::System.IO.BinaryReader reader)
-    {
-        var count = reader.ReadInt32();
-        var overrides = new PlanningEntityPlannerOverride[count];
-        for (var i = 0; i < count; i++)
-        {
-            overrides[i] = new PlanningEntityPlannerOverride(reader.ReadInt32(), reader.ReadInt32());
-        }
-
-        return overrides;
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -405,14 +337,10 @@ internal static class KernelSnapshotOptions
             EventCursorCapacity = values.EventCursorCapacity,
             EventSchemaValidator = options?.EventSchemaValidator,
             CommandCapacity = values.CommandCapacity,
-            PlanningOverrideCapacity = values.PlanningOverrideCapacity,
             GambitCapacity = values.GambitCapacity,
             GambitStepCapacity = values.GambitStepCapacity,
             GambitCooldownCapacity = values.GambitCooldownCapacity,
-            GambitObjectiveCapacity = values.GambitObjectiveCapacity,
             GambitProviderSelectorCapacity = values.GambitProviderSelectorCapacity,
-            GambitSupportRuleCapacity = values.GambitSupportRuleCapacity,
-            GambitCommitmentCapacity = values.GambitCommitmentCapacity,
             GeneratorCapacity = values.GeneratorCapacity,
             GeneratorItemCapacity = values.GeneratorItemCapacity,
             DegeneracyDetectorCapacity = values.DegeneracyDetectorCapacity,
@@ -450,7 +378,6 @@ internal static class KernelSnapshotOptions
             values.RelationshipSourceCodeId,
             values.GeneratorSourceCodeId,
             values.DegeneracySourceCodeId,
-            values.PlanningSourceCodeId,
             values.MapActivitySourceCodeId,
             values.MapSignalsSourceCodeId,
             values.LowAltitudeVerbSourceCodeId,
@@ -473,14 +400,6 @@ internal static class KernelSnapshotOptions
                     Relationships = values.RelationshipsProgramEnabled,
                     Generators = values.GeneratorsProgramEnabled,
                     Degeneracy = values.DegeneracyProgramEnabled,
-                },
-                Planning = new PlanningProgramTuningOptions
-                {
-                    DefaultPlannerKindCode = values.PlanningDefaultPlannerKindCode,
-                    GoapTargetReservationsEnabled = values.PlanningGoapTargetReservationsEnabled,
-                    OpportunityTargetCapacity = values.PlanningOpportunityTargetCapacity,
-                    KindPlannerOverrides = values.PlanningKindPlannerOverrides,
-                    EntityPlannerOverrides = values.PlanningEntityPlannerOverrides,
                 },
                 Upkeep = new UpkeepProgramTuningOptions
                 {
@@ -511,14 +430,10 @@ internal static class KernelSnapshotOptions
         public int EventCapacity;
         public int EventCursorCapacity;
         public int CommandCapacity;
-        public int PlanningOverrideCapacity;
         public int GambitCapacity;
         public int GambitStepCapacity;
         public int GambitCooldownCapacity;
-        public int GambitObjectiveCapacity;
         public int GambitProviderSelectorCapacity;
-        public int GambitSupportRuleCapacity;
-        public int GambitCommitmentCapacity;
         public int GeneratorCapacity;
         public int GeneratorItemCapacity;
         public int DegeneracyDetectorCapacity;
@@ -548,7 +463,6 @@ internal static class KernelSnapshotOptions
         public int RelationshipSourceCodeId;
         public int GeneratorSourceCodeId;
         public int DegeneracySourceCodeId;
-        public int PlanningSourceCodeId;
         public int MapActivitySourceCodeId;
         public int MapSignalsSourceCodeId;
         public int LowAltitudeVerbSourceCodeId;
@@ -563,11 +477,6 @@ internal static class KernelSnapshotOptions
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int DegeneracyProgramEnabled;
-        public int PlanningDefaultPlannerKindCode;
-        public bool PlanningGoapTargetReservationsEnabled;
-        public int PlanningOpportunityTargetCapacity;
-        public PlanningKindPlannerOverride[] PlanningKindPlannerOverrides;
-        public PlanningEntityPlannerOverride[] PlanningEntityPlannerOverrides;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int Seed;

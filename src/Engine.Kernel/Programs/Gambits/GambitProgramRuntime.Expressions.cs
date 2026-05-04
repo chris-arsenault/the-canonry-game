@@ -16,20 +16,6 @@ internal sealed partial class GambitProgramRuntime
             defaultValue: 1f);
     }
 
-    private float EvaluateReward(WorldState world, int gambitSlot, int entityId, int targetId)
-    {
-        return EvaluateExpression(
-            world,
-            entityId,
-            targetId,
-            _gambitRewardExpressionStarts[gambitSlot],
-            _gambitRewardExpressionCounts[gambitSlot],
-            _rewardExpressionCodes,
-            _rewardExpressionA,
-            _rewardExpressionX,
-            defaultValue: 1f);
-    }
-
     private float EvaluateExpression(
         WorldState world,
         int entityId,

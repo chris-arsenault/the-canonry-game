@@ -7,31 +7,35 @@ using IceRemembers;
 public sealed class GameplayCompilationBoundaryTests
 {
     [Fact]
-    public void IceRemembersGeneratorAffordancesCoverTargetSecondaryAndProducedKinds()
+    public void IceRemembersAffordancesCoverGeneratorTargetSecondaryAndProducedKinds()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-        var affordances = compiled.Programs.LowAltitudeVerbs.GeneratorAffordances;
+        var affordances = compiled.Programs.LowAltitudeVerbs.Affordances;
         var factionId = compiled.Ids.KindIdOf(IceRemembersKinds.Faction).Value;
         var regionId = compiled.Ids.KindIdOf(IceRemembersKinds.Region).Value;
         var settlementId = compiled.Ids.KindIdOf(IceRemembersKinds.Settlement).Value;
         var artifactId = compiled.Ids.KindIdOf(IceRemembersKinds.Artifact).Value;
 
         Assert.Contains(affordances, rule =>
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
             rule.ActorKindId == factionId &&
-            rule.CandidateKindId == regionId &&
-            rule.BindingKindId == regionId);
+            rule.CandidateKindId == regionId);
         Assert.Contains(affordances, rule =>
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
             rule.ActorKindId == factionId &&
-            rule.CandidateKindId == artifactId &&
-            rule.BindingKindId == artifactId);
+            rule.CandidateKindId == artifactId);
         Assert.Contains(affordances, rule =>
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
             rule.ActorKindId == regionId &&
-            rule.CandidateKindId == artifactId &&
-            rule.BindingKindId == artifactId);
+            rule.CandidateKindId == artifactId);
         Assert.Contains(affordances, rule =>
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
             rule.ActorKindId == settlementId &&
-            rule.CandidateKindId == settlementId &&
-            rule.BindingKindId == settlementId);
+            rule.CandidateKindId == settlementId);
     }
 
     [Fact]

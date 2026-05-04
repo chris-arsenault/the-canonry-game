@@ -37,24 +37,6 @@ internal readonly record struct ObservedRelationshipKey(
 
 internal readonly record struct ObservedMapCellKey(int Q, int R);
 
-internal readonly record struct PlannerStepKey(
-    int RunId,
-    int EntityId,
-    int PlanId,
-    int GoalId,
-    int StepIndex,
-    int ActionId)
-{
-    public static PlannerStepKey From(PlannerStepRow step) =>
-        new(
-            step.RunId,
-            step.EntityId,
-            step.PlanId,
-            step.GoalId,
-            step.StepIndex,
-            step.ActionId);
-}
-
 internal sealed class GeneratorStateProjection(int generatorId)
 {
     public int GeneratorId { get; } = generatorId;

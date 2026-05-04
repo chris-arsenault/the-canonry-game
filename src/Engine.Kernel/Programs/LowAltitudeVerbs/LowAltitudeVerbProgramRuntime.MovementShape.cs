@@ -29,7 +29,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 continue;
             }
 
-            var weight = LocationWeight(simulation, entityId, candidate.RuleSlot, candidate.PlaneCode, q, r, tick, 0f);
+            var weight = LocationBaseWeight(simulation, entityId, candidate.RuleSlot, candidate.PlaneCode, q, r, tick);
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
             {
@@ -209,7 +209,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         var pull = 1f / (1f + distance);
-        var activityWeight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0f);
+        var activityWeight = LocationBaseWeight(simulation, entityId, rule, planeCode, q, r, tick);
         var terrainWeight = MovementCostWeight(simulation, entityId, planeCode, q, r, tick);
         var weight = ((pull * 4f) + activityWeight) * terrainWeight;
         totalWeight += weight;
@@ -344,7 +344,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var progressWeight = candidateDistance < currentDistance
             ? 1f / (1f + candidateDistance)
             : pathLooseness / 1000f;
-        var activityWeight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0f);
+        var activityWeight = LocationBaseWeight(simulation, entityId, rule, planeCode, q, r, tick);
         var terrainWeight = MovementCostWeight(simulation, entityId, planeCode, q, r, tick);
         return ((progressWeight * 8f) + activityWeight) * terrainWeight;
     }

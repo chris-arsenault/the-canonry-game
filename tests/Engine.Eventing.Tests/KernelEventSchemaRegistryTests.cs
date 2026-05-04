@@ -40,21 +40,4 @@ public sealed class KernelEventSchemaRegistryTests
             Assert.Empty(duplicateSlots);
         }
     }
-
-    [Fact]
-    public void PlannerEventsReserveIntSlotZeroForPlanId()
-    {
-        var plannerTypes = Enum.GetValues<KernelEventType>()
-            .Where(type => type is >= KernelEventType.PlanStarted and <= KernelEventType.PlanAbandoned);
-
-        foreach (var eventType in plannerTypes)
-        {
-            var schema = KernelEventSchemaRegistry.Get(eventType);
-            var slot = Assert.Single(schema.Slots, candidate =>
-                candidate.PrimitiveKind == KernelEventPrimitiveKind.Int32 &&
-                candidate.Slot == 0);
-
-            Assert.Equal(KernelEventSemanticKind.PlanId, slot.SemanticKind);
-        }
-    }
 }

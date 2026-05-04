@@ -363,18 +363,7 @@ internal static class MonteCarloCli
         batch.EntityAttributeSnapshots.Count +
         batch.EntityEvents.Count +
         batch.ExperimentVariants.Count +
-        batch.PlannerGoals.Count +
-        batch.PlannerTraces.Count +
-        batch.PlannerTraceGoals.Count +
-        batch.PlannerTraceScores.Count +
-        batch.PlannerTraceSteps.Count +
-        batch.PlannerCandidates.Count +
-        batch.PlannerScores.Count +
-        batch.PlannerSteps.Count +
-        batch.PlannerLocalities.Count +
         batch.TraceEvents.Count +
-        batch.ActionExecutions.Count +
-        batch.LocalityOpportunities.Count +
         batch.AttributeEvents.Count +
         batch.MovementEvents.Count +
         batch.RelationshipEvents.Count +

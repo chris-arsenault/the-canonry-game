@@ -74,16 +74,7 @@ public sealed class KernelTelemetryRecorderTests
 
     private static void WriteStateChangeEvents(KernelEventLog log)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
-            Tick: 1,
-            WorldVersion: 2,
-            Q: 2,
-            R: -1,
-            SourceCodeId: 5,
-            TerrainId: 12,
-            OwnerEntityId: 100,
-            SuperregionId: 4,
-            ContinentId: 2))));
+        WriteMapStateEvents(log);
         Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 1,
             WorldVersion: 3,
@@ -104,16 +95,6 @@ public sealed class KernelTelemetryRecorderTests
             ToQ: 2,
             ToR: -1,
             ToS: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
-            Tick: 2,
-            WorldVersion: 5,
-            PlaneCode: PlaneCodes.Physical,
-            Q: 2,
-            R: -1,
-            SourceCodeId: 5,
-            TravelCount: 2,
-            PreviousQuality: 30f,
-            CurrentQuality: 45f))));
         Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
             Tick: 2,
             WorldVersion: 6,
@@ -127,6 +108,30 @@ public sealed class KernelTelemetryRecorderTests
             PreviousStrength: 0f,
             NewStrength: 0.75f,
             ActionId: 12))));
+    }
+
+    private static void WriteMapStateEvents(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: 2,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            TerrainId: 12,
+            OwnerEntityId: 100,
+            SuperregionId: 4,
+            ContinentId: 2))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 5,
+            PlaneCode: PlaneCodes.Physical,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            TravelCount: 2,
+            PreviousQuality: 30f,
+            CurrentQuality: 45f))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
             Tick: 3,
             WorldVersion: 8,
@@ -146,7 +151,7 @@ public sealed class KernelTelemetryRecorderTests
         Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
             Tick: 2,
             WorldVersion: 5,
-            PlanId: ActionFamilyCodes.LowAltitudeVerb,
+            IntentId: ActionFamilyCodes.LowAltitudeVerb,
             EntityId: 100,
             TraceSubjectCode: TraceSubjectCodes.TargetDetail,
             CandidateIndex: 1,
@@ -158,10 +163,15 @@ public sealed class KernelTelemetryRecorderTests
             EffectKindId: 1,
             TargetEntityId: 100,
             StatusCode: TraceStatusCodes.Actionable,
+            AffordanceSourceKindCode: 0,
+            AffordanceSourceId: 0,
+            AffordanceShapeCode: 0,
             Urgency: 0.5f,
             RewardOrBaseScore: 0.75f,
             RawWeight: 1.25f,
-            AdjustedWeight: 1.5f))));
+            AdjustedWeight: 1.5f,
+            AffordanceScore: 0f,
+            AffordanceBonus: 0f))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 3,
             WorldVersion: 6,
@@ -292,7 +302,7 @@ public sealed class KernelTelemetryRecorderTests
         Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
             Tick: 1,
             WorldVersion: 2,
-            PlanId: ActionFamilyCodes.LowAltitudeVerb,
+            IntentId: ActionFamilyCodes.LowAltitudeVerb,
             EntityId: 100,
             TraceSubjectCode: TraceSubjectCodes.TargetDetail,
             CandidateIndex: 1,
@@ -304,10 +314,15 @@ public sealed class KernelTelemetryRecorderTests
             EffectKindId: 1,
             TargetEntityId: 100,
             StatusCode: TraceStatusCodes.Actionable,
+            AffordanceSourceKindCode: 0,
+            AffordanceSourceId: 0,
+            AffordanceShapeCode: 0,
             Urgency: 0.5f,
             RewardOrBaseScore: 0.75f,
             RawWeight: 1.25f,
-            AdjustedWeight: 1.5f))));
+            AdjustedWeight: 1.5f,
+            AffordanceScore: 0f,
+            AffordanceBonus: 0f))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 1,
             WorldVersion: 3,

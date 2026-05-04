@@ -10,25 +10,6 @@ internal sealed partial class GambitProgramRuntime
         public int SelectedTargetId;
     }
 
-    private bool GambitServesEffect(int gambitSlot, int effectScopeCode, int effectValueId, int effectKindId)
-    {
-        var first = _gambitGoalEffectStarts[gambitSlot];
-        var end = first + _gambitGoalEffectCounts[gambitSlot];
-        for (var effect = first; effect < end; effect++)
-        {
-            if (_goalEffectScopeCodes[effect] == effectScopeCode &&
-                _goalEffectValueIds[effect] == effectValueId &&
-                (effectKindId == 0 ||
-                 _goalEffectKindIds[effect] == 0 ||
-                 _goalEffectKindIds[effect] == effectKindId))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private bool ProviderSelectorRequiresAttribute(int selector)
     {
         if (_providerSelectorValueIds[selector] == 0)
@@ -330,68 +311,6 @@ internal sealed partial class GambitProgramRuntime
             _providerSelectorMinimumStrengths[selector]);
     }
 
-    private float EvaluateSupportValue(WorldState world, int supportRuleSlot, int entityId, int targetId)
-    {
-        return EvaluateExpression(
-            world,
-            entityId,
-            targetId,
-            _supportExpressionStarts[supportRuleSlot],
-            _supportExpressionCounts[supportRuleSlot],
-            _supportExpressionCodes,
-            _supportExpressionA,
-            _supportExpressionX,
-            defaultValue: 0f);
-    }
-
-    private static int SupportTargetId(int entityId, int targetId, int effectScopeCode)
-    {
-        return effectScopeCode switch
-        {
-            BehaviorEffectScopeCodes.TargetAttribute or BehaviorEffectScopeCodes.Relational => targetId,
-            BehaviorEffectScopeCodes.Structural when targetId != entityId => targetId,
-            _ => entityId,
-        };
-    }
-
-    private static int EffectKey(int effectScopeCode, int effectValueId, int effectKindId)
-    {
-        unchecked
-        {
-            var hash = (uint)effectScopeCode * 73856093u;
-            hash ^= (uint)effectValueId * 19349663u;
-            hash ^= (uint)effectKindId * 83492791u;
-            var key = (int)(hash & 2147483647u);
-            return key == 0 ? 1 : key;
-        }
-    }
-
-    private static int LocalityKey(WorldState world, int targetId)
-    {
-        unchecked
-        {
-            var q = world.EntityPhysicalQ(targetId) + 32768;
-            var r = world.EntityPhysicalR(targetId) + 32768;
-            var key = (q << 16) ^ (r & 65535);
-            return key == 0 ? 1 : key;
-        }
-    }
-
-    private float ObjectiveUrgency(WorldState world, int entityId, int objective)
-    {
-        return _objectiveCodes[objective] switch
-        {
-            BehaviorObjectiveUrgencyCodes.Baseline => BaselineUrgency(world.GetAttribute(entityId, _objectiveAttributeIds[objective]), _objectiveBaselines[objective]),
-            BehaviorObjectiveUrgencyCodes.RangeDefault => RangeUrgency(
-                world.GetAttribute(entityId, _objectiveAttributeIds[objective]),
-                _objectiveMinimums[objective],
-                _objectiveMaximums[objective],
-                _objectiveDefaults[objective]),
-            BehaviorObjectiveUrgencyCodes.Fixed => _objectiveBaseUrgencies[objective],
-            _ => 0f,
-        };
-    }
-
     private float EvaluateTargets(
         Simulation simulation,
         int gambitSlot,
@@ -537,7 +456,9 @@ internal sealed partial class GambitProgramRuntime
         float total)
     {
         var world = simulation.World;
-        if (!world.EntityIsActive(targetId) || targetId == entityId)
+        if (!world.EntityIsActive(targetId) ||
+            targetId == entityId ||
+            !TargetEligibleForGambit(world, entityId, gambitSlot, forcedTargetId: 0, targetId))
         {
             return 0f;
         }

@@ -89,13 +89,22 @@ internal static partial class KernelProgramInstaller
                 rule.InfluenceValue);
         }
 
-        foreach (var rule in program.GeneratorAffordances)
+        foreach (var rule in program.Affordances)
         {
-            context.RegisterLowAltitudeGeneratorAffordance(
+            context.RegisterLowAltitudeAffordance(
+                rule.SourceKindCode,
+                rule.SourceId,
+                rule.ShapeCode,
                 rule.ActorKindId,
+                rule.PlaneCode,
                 rule.CandidateKindId,
-                rule.BindingKindId,
-                rule.AffordanceScore);
+                rule.RelationshipKindId,
+                rule.RelationshipDirectionCode,
+                rule.OperationCode,
+                rule.TerrainId,
+                rule.PolarityCode,
+                rule.Threshold,
+                rule.Weight);
         }
 
         foreach (var modifier in program.TraitWeightModifiers)
@@ -109,7 +118,7 @@ internal static partial class KernelProgramInstaller
                 modifier.StalenessWeightDelta,
                 modifier.HotspotWeightDelta,
                 modifier.CrowdingWeightDelta,
-                modifier.GeneratorAffordanceWeightDelta,
+                modifier.AffordanceWeightDelta,
                 modifier.RelationshipAffinityWeightDelta);
         }
     }
@@ -135,7 +144,7 @@ internal static partial class KernelProgramInstaller
             verb.StalenessWeight,
             verb.HotspotWeight,
             verb.CrowdingWeight,
-            verb.GeneratorAffordanceWeight,
+            verb.AffordanceWeight,
             verb.AffinityRelationshipKindId,
             verb.AffinityRelationshipDirectionCode,
             verb.RelationshipAffinityWeight,

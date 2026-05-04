@@ -20,7 +20,7 @@ internal readonly struct LowAltitudeVerbRegistration
     public float StalenessWeight { get; init; }
     public float HotspotWeight { get; init; }
     public float CrowdingWeight { get; init; }
-    public float GeneratorAffordanceWeight { get; init; }
+    public float AffordanceWeight { get; init; }
     public int ForeignInfluenceFilterEnabled { get; init; }
     public int ForeignInfluenceBlockPositiveRelationships { get; init; }
     public int ForeignInfluenceAllowNegativeRelationships { get; init; }

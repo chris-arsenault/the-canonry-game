@@ -6,7 +6,7 @@ using Engine.Gameplay;
 public sealed class GameplayCompilerProgramTests
 {
     [Fact]
-    public void CompileGameplay_CompilesInitialInfluenceAndGeneratorAffordances()
+    public void CompileGameplay_CompilesInitialInfluenceAndAffordances()
     {
         var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
         {
@@ -16,9 +16,14 @@ public sealed class GameplayCompilerProgramTests
                 new InitialInfluenceRule("actor", "semantic", 0.75f),
             ],
         }, new ConfigurableGameplayContext(
-            generatorAffordances:
+            affordances:
             [
-                new GeneratorAffordanceDefinition("actor", "candidate", "binding"),
+                new AffordanceDefinition(
+                    AffordanceSourceKindCodes.Generator,
+                    "generator",
+                    LowAltitudeAffordanceShapeCodes.PresenceNearEntity,
+                    "actor",
+                    CandidateKind: "candidate"),
             ]));
 
         Assert.Equal(1, result.ModuleCount);
@@ -27,11 +32,13 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(PlaneCodes.Semantic, initialInfluence.PlaneCode);
         Assert.Equal(0.75f, initialInfluence.InfluenceValue);
 
-        var affordance = Assert.Single(result.Programs.LowAltitudeVerbs.GeneratorAffordances);
+        var affordance = Assert.Single(result.Programs.LowAltitudeVerbs.Affordances);
+        Assert.Equal(AffordanceSourceKindCodes.Generator, affordance.SourceKindCode);
+        Assert.Equal(60, affordance.SourceId);
+        Assert.Equal(LowAltitudeAffordanceShapeCodes.PresenceNearEntity, affordance.ShapeCode);
         Assert.Equal(1, affordance.ActorKindId);
         Assert.Equal(5, affordance.CandidateKindId);
-        Assert.Equal(4, affordance.BindingKindId);
-        Assert.Equal(1f, affordance.AffordanceScore);
+        Assert.Equal(1f, affordance.Weight);
     }
 
     [Fact]
@@ -511,7 +518,7 @@ public sealed class GameplayCompilerProgramTests
                             StalenessWeightDelta = 0.4f,
                             HotspotWeightDelta = 0.5f,
                             CrowdingWeightDelta = 0.6f,
-                            GeneratorAffordanceWeightDelta = 0.7f,
+                            AffordanceWeightDelta = 0.7f,
                             RelationshipAffinityWeightDelta = 0.8f,
                         }),
                 ]));
@@ -526,7 +533,7 @@ public sealed class GameplayCompilerProgramTests
 
     private sealed class ConfigurableGameplayContext : IGameplayCompilationContext
     {
-        private readonly IReadOnlyList<GeneratorAffordanceDefinition> _generatorAffordances;
+        private readonly IReadOnlyList<AffordanceDefinition> _affordances;
         private readonly IReadOnlyList<TraitOperationDefinition> _traitOperations;
         private readonly int _primaryPlaneCode;
         private readonly bool _terrainExists;
@@ -534,14 +541,14 @@ public sealed class GameplayCompilerProgramTests
         private readonly bool _kindHasAttribute;
 
         public ConfigurableGameplayContext(
-            IReadOnlyList<GeneratorAffordanceDefinition>? generatorAffordances = null,
+            IReadOnlyList<AffordanceDefinition>? affordances = null,
             IReadOnlyList<TraitOperationDefinition>? traitOperations = null,
             int primaryPlaneCode = PlaneCodes.Physical,
             bool terrainExists = true,
             bool relationshipExists = true,
             bool kindHasAttribute = true)
         {
-            _generatorAffordances = generatorAffordances ?? [];
+            _affordances = affordances ?? [];
             _traitOperations = traitOperations ?? [];
             _primaryPlaneCode = primaryPlaneCode;
             _terrainExists = terrainExists;
@@ -568,6 +575,18 @@ public sealed class GameplayCompilerProgramTests
             "relocate" => 12,
             "claim" => 13,
             _ => 19,
+        };
+
+        public int ResolveGeneratorId(string generator) => generator switch
+        {
+            "generator" => 60,
+            _ => 69,
+        };
+
+        public int ResolveGambitId(string gambit, string context) => gambit switch
+        {
+            "gambit" => 70,
+            _ => 79,
         };
 
         public int ResolveTerrainId(string terrain) => terrain switch
@@ -603,7 +622,7 @@ public sealed class GameplayCompilerProgramTests
         public bool TerrainExists(string terrain) => _terrainExists;
         public bool RelationshipExists(string relationship) => _relationshipExists;
         public bool KindHasAttribute(string kind, string attribute) => _kindHasAttribute;
-        public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => _generatorAffordances;
+        public IReadOnlyList<AffordanceDefinition> Affordances() => _affordances;
         public IReadOnlyList<TraitOperationDefinition> TraitOperations() => _traitOperations;
     }
 }

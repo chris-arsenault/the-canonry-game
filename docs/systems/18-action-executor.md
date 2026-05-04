@@ -22,13 +22,14 @@ A gambit declares:
 - target mode and target kind where applicable;
 - cooldowns;
 - preconditions;
-- scoring/objective data when planning is used;
+- provider selectors;
+- score expression;
 - success chance;
 - ordered effects.
 
 Preconditions use shared kernel query predicates. Trait-authored score and
 success modifiers use the shared decision-modifier path. Score expressions,
-reward expressions, target scheduling, and planning remain gambit policy.
+target selection, and cooldown policy remain gambit policy.
 
 Effects are usually graph and health mutations:
 
@@ -44,14 +45,16 @@ Gambit mutations must execute through the shared kernel effect path. If a
 gambit needs a new world mutation, add the `Simulation` mutation and shared
 effect wrapper before exposing it to authored gambit data.
 
-## Planning Boundary
+## Opportunistic Execution
 
-The engine still contains behavior bytecode and planner support for gambits.
-That infrastructure is retained because gambits need target selection,
-precondition evaluation, scoring, and ordered effects.
+Gambits are opportunistic. On its tick, the gambit runtime evaluates eligible
+gambits for each active entity, filters real targets through provider
+selectors and preconditions, weights candidates by score, selects
+one by weighted random choice, rolls success, and applies ordered effects.
 
 This is distinct from the removed process deck. Low-altitude behavior no longer
-uses standing drives or generated process definitions.
+uses standing drives or generated process definitions, and gambits no longer
+ask a separate planner to satisfy blocked preconditions.
 
 ## Card Boundary
 

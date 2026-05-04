@@ -94,19 +94,13 @@ public static class DomainLoader
         {
             if (gambit.Reads.Count > 0 ||
                 gambit.Writes.Count > 0 ||
-                gambit.GoalEffects.Count > 0 ||
                 gambit.ProviderSelectors.Count > 0)
             {
-                var behaviorAnalysis = PreconditionInspector.Analyze(gambit);
                 validator.RegisterContract(new WiringContract(
                     gambit.Id,
                     gambit.Reads,
                     gambit.Writes,
-                    goalEffects: gambit.GoalEffects,
-                    providerSelectors: gambit.ProviderSelectors,
-                    behaviorBlockers: behaviorAnalysis.BehaviorBlockers,
-                    behaviorSupportEffects: gambit.SupportRules.Select(r => r.DesiredEffect).ToHashSet(),
-                    hasOpaqueBehaviorBranches: behaviorAnalysis.HasOpaqueBehaviorBranches));
+                    providerSelectors: gambit.ProviderSelectors));
             }
         }
 

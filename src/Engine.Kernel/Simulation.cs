@@ -32,7 +32,6 @@ internal sealed partial class Simulation : IKernel
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
             new KernelTerrainData(options.TerrainIdCapacity));
         World = new WorldState(Events, options, KernelData);
-        Planners = CreatePlanningRuntime(options);
         LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
         Movement = CreateMovementRuntime(options);
         MapActivity = CreateMapActivityRuntime(options);
@@ -55,16 +54,6 @@ internal sealed partial class Simulation : IKernel
         RegisterDefaultPrograms();
     }
 
-    private static PlanningProgramRuntime CreatePlanningRuntime(SimulationOptions options)
-    {
-        var objectiveCapacity = options.GambitObjectiveCapacity;
-        return new PlanningProgramRuntime(
-            new PlanningProgramData(options.KernelTuning.Programs.Planning.DefaultPlannerKindCode),
-            new PlanningProgramState(options.PlanningOverrideCapacity),
-            new PlanningProgramScratch(objectiveCapacity, objectiveCapacity + 2),
-            options.KernelTuning.Programs);
-    }
-
     private void AssignRuntimeCodes(KernelRuntimeCodes codes)
     {
         GambitSourceCodeId = codes.GambitSourceCodeId;
@@ -73,7 +62,6 @@ internal sealed partial class Simulation : IKernel
         RelationshipSourceCodeId = codes.RelationshipSourceCodeId;
         GeneratorSourceCodeId = codes.GeneratorSourceCodeId;
         DegeneracySourceCodeId = codes.DegeneracySourceCodeId;
-        PlanningSourceCodeId = codes.PlanningSourceCodeId;
         MapActivitySourceCodeId = codes.MapActivitySourceCodeId;
         MapSignalsSourceCodeId = codes.MapSignalsSourceCodeId;
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
@@ -114,18 +102,14 @@ internal sealed partial class Simulation : IKernel
             new GambitProgramData(
                 options.GambitCapacity,
                 options.GambitStepCapacity,
-                options.GambitObjectiveCapacity,
-                options.GambitProviderSelectorCapacity,
-                options.GambitSupportRuleCapacity),
+                options.GambitProviderSelectorCapacity),
             new GambitProgramState(
                 options.GambitCapacity,
                 options.GambitCooldownCapacity,
-                options.EntityCapacity,
-                options.GambitCommitmentCapacity),
+                options.EntityCapacity),
             new GambitProgramScratch(
                 options.MapCellCapacity,
-                options.EntityCapacity,
-                options.GambitObjectiveCapacity),
+                options.EntityCapacity),
             options.KernelTuning.Programs);
 
     private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options)
@@ -305,7 +289,6 @@ internal sealed partial class Simulation : IKernel
     internal KernelDataSet KernelData { get; }
     internal KernelEventLog Events { get; }
     internal KernelCommandRing Commands { get; }
-    internal PlanningProgramRuntime Planners { get; }
     internal LowAltitudeVerbProgramRuntime LowAltitudeVerbs { get; }
     internal MovementProgramRuntime Movement { get; }
     internal MapActivityProgramRuntime MapActivity { get; }
@@ -322,7 +305,6 @@ internal sealed partial class Simulation : IKernel
     internal int RelationshipSourceCodeId { get; private set; }
     internal int GeneratorSourceCodeId { get; private set; }
     internal int DegeneracySourceCodeId { get; private set; }
-    internal int PlanningSourceCodeId { get; private set; }
     internal int MapActivitySourceCodeId { get; private set; }
     internal int MapSignalsSourceCodeId { get; private set; }
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
@@ -967,7 +949,6 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
-        KernelProgramCodes.Planning => PlanningSourceCodeId,
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,

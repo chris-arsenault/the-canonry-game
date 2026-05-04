@@ -48,7 +48,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         float stalenessWeight,
         float hotspotWeight,
         float crowdingWeight,
-        float generatorAffordanceWeight,
+        float affordanceWeight,
         float influenceDelta,
         int influenceRadius,
         float coverageGrowthChance,
@@ -74,7 +74,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             stalenessWeight,
             hotspotWeight,
             crowdingWeight,
-            generatorAffordanceWeight,
+            affordanceWeight,
             affinityRelationshipKindId: 0,
             affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
             relationshipAffinityWeight: 0f,
@@ -109,7 +109,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         float stalenessWeight,
         float hotspotWeight,
         float crowdingWeight,
-        float generatorAffordanceWeight,
+        float affordanceWeight,
         int affinityRelationshipKindId,
         int affinityRelationshipDirectionCode,
         float relationshipAffinityWeight,
@@ -144,7 +144,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             StalenessWeight = stalenessWeight,
             HotspotWeight = hotspotWeight,
             CrowdingWeight = crowdingWeight,
-            GeneratorAffordanceWeight = generatorAffordanceWeight,
+            AffordanceWeight = affordanceWeight,
             ForeignInfluenceFilterEnabled = foreignInfluenceFilterEnabled,
             ForeignInfluenceBlockPositiveRelationships = foreignInfluenceBlockPositiveRelationships,
             ForeignInfluenceAllowNegativeRelationships = foreignInfluenceAllowNegativeRelationships,
@@ -173,12 +173,34 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument) =>
         Data.AddPrimitiveStep(rule, opcode, intArgument, floatArgument);
 
-    public int RegisterGeneratorAffordance(
+    public int RegisterAffordance(
+        int sourceKindCode,
+        int sourceId,
+        int shapeCode,
         int actorKindId,
+        int planeCode,
         int candidateKindId,
-        int bindingKindId,
-        float affordanceScore) =>
-        Data.RegisterGeneratorAffordance(actorKindId, candidateKindId, bindingKindId, affordanceScore);
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        int operationCode,
+        int terrainId,
+        int polarityCode,
+        float threshold,
+        float weight) =>
+        Data.RegisterAffordance(
+            sourceKindCode,
+            sourceId,
+            shapeCode,
+            actorKindId,
+            planeCode,
+            candidateKindId,
+            relationshipKindId,
+            relationshipDirectionCode,
+            operationCode,
+            terrainId,
+            polarityCode,
+            threshold,
+            weight);
 
     public int RegisterTraitWeightModifier(
         int kindId,
@@ -189,7 +211,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         float stalenessWeightDelta,
         float hotspotWeightDelta,
         float crowdingWeightDelta,
-        float generatorAffordanceWeightDelta,
+        float affordanceWeightDelta,
         float relationshipAffinityWeightDelta) =>
         Data.RegisterTraitWeightModifier(
             kindId,
@@ -200,7 +222,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             stalenessWeightDelta,
             hotspotWeightDelta,
             crowdingWeightDelta,
-            generatorAffordanceWeightDelta,
+            affordanceWeightDelta,
             relationshipAffinityWeightDelta);
 
     public void Tick(Simulation simulation, int tick)
@@ -324,7 +346,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var kindId = world.EntityKindId(entityId);
         var totalWeight = 0f;
         var selected = default(VerbTargetCandidate);
-        var planId = State.NextIntentId();
+        var traceIntentId = State.NextIntentId();
 
         for (var rule = 1; rule <= Data.RuleCount; rule++)
         {
@@ -335,11 +357,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
             if (!TryBuildCandidate(simulation, entityId, rule, tick, out var candidate))
             {
-                EmitIntentTrace(simulation, tick, entityId, rule, planId, TraceStatusCodes.NoTarget, default);
+                EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.NoTarget, default);
                 continue;
             }
 
-            EmitIntentTrace(simulation, tick, entityId, rule, planId, TraceStatusCodes.Offered, candidate);
+            EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.Offered, candidate);
             totalWeight += candidate.Weight;
             if (simulation.NextFloat() * totalWeight <= candidate.Weight)
             {
@@ -371,328 +393,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             IntentStepIntervalTicks(entityId, intentIdSeed, selected.RuleSlot),
             IntentPathLoosenessPermille(entityId, intentIdSeed, selected.RuleSlot));
         EmitIntentTrace(simulation, tick, entityId, selected.RuleSlot, intentId, TraceStatusCodes.Selected, selected);
-    }
-
-    private bool TryBuildCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        return Data.TargetModeCode(rule) switch
-        {
-            TargetSelectorCodes.Explore => TryBuildExploreCandidate(simulation, entityId, rule, tick, out candidate),
-            TargetSelectorCodes.EntityKind => TryBuildEntityKindCandidate(simulation, entityId, rule, tick, out candidate),
-            TargetSelectorCodes.RelationshipTarget => TryBuildRelationshipCandidate(simulation, entityId, rule, tick, out candidate),
-            TargetSelectorCodes.Terrain => TryBuildTerrainCandidate(simulation, entityId, rule, tick, out candidate),
-            TargetSelectorCodes.SelfMapValue => TryBuildOwnInfluenceCandidate(simulation, entityId, rule, tick, out candidate),
-            TargetSelectorCodes.OtherMapValue => TryBuildForeignInfluenceCandidate(simulation, entityId, rule, tick, out candidate),
-            _ => NoCandidate(out candidate),
-        };
-    }
-
-    private bool TryBuildExploreCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        var totalWeight = 0f;
-        var selectedQ = CurrentQ(simulation.World, entityId, Data.PlaneCode(rule));
-        var selectedR = CurrentR(simulation.World, entityId, Data.PlaneCode(rule));
-        var selectedS = -selectedQ - selectedR;
-        var sampleCount = Data.CandidateSampleCount(rule);
-        for (var i = 0; i < sampleCount; i++)
-        {
-            if (!TryRandomCoordinate(simulation, Data.PlaneCode(rule), out var q, out var r, out var s))
-            {
-                continue;
-            }
-
-            var weight = LocationWeight(simulation, entityId, rule, Data.PlaneCode(rule), q, r, tick, 0);
-            totalWeight += weight;
-            if (simulation.NextFloat() * totalWeight <= weight)
-            {
-                selectedQ = q;
-                selectedR = r;
-                selectedS = s;
-            }
-        }
-
-        if (totalWeight <= 0f)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        candidate = Candidate(rule, Data.PlaneCode(rule), 0, 0, selectedQ, selectedR, selectedS, totalWeight / sampleCount);
-        return true;
-    }
-
-    private bool TryBuildEntityKindCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        var targetKindId = Data.TargetKindId(rule);
-        if (targetKindId == 0)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        return TryChooseTargetEntity(simulation, entityId, rule, tick, targetKindId, out candidate);
-    }
-
-    private bool TryBuildRelationshipCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        var relationshipKindId = Data.RelationshipKindId(rule);
-        if (relationshipKindId == 0)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        var totalWeight = 0f;
-        var selected = default(VerbTargetCandidate);
-        if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
-            or LowAltitudeVerbRelationshipDirectionCodes.Either)
-        {
-            AddRelationshipCandidates(simulation, entityId, rule, tick, outgoing: true, ref totalWeight, ref selected);
-        }
-
-        if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Incoming
-            or LowAltitudeVerbRelationshipDirectionCodes.Either)
-        {
-            AddRelationshipCandidates(simulation, entityId, rule, tick, outgoing: false, ref totalWeight, ref selected);
-        }
-
-        if (selected.RuleSlot == 0)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        candidate = selected;
-        return true;
-    }
-
-    private bool TryBuildTerrainCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        var planeCode = Data.PlaneCode(rule);
-        var totalWeight = 0f;
-        var selectedQ = CurrentQ(simulation.World, entityId, planeCode);
-        var selectedR = CurrentR(simulation.World, entityId, planeCode);
-        var selectedS = planeCode == PlaneCodes.Semantic ? -selectedQ - selectedR : 0;
-        var sampleCount = Data.CandidateSampleCount(rule);
-        var actorKindId = simulation.World.EntityKindId(entityId);
-        for (var i = 0; i < sampleCount * 3; i++)
-        {
-            if (!TryRandomCoordinate(simulation, planeCode, out var q, out var r, out var s))
-            {
-                continue;
-            }
-
-            if (!Data.TerrainAllowed(rule, simulation.World.CellTerrainId(planeCode, q, r)))
-            {
-                continue;
-            }
-
-            if (!simulation.Movement.CanEnter(simulation, planeCode, actorKindId, q, r))
-            {
-                continue;
-            }
-
-            var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0);
-            totalWeight += weight;
-            if (simulation.NextFloat() * totalWeight <= weight)
-            {
-                selectedQ = q;
-                selectedR = r;
-                selectedS = s;
-            }
-        }
-
-        if (totalWeight <= 0f)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        candidate = Candidate(rule, planeCode, 0, 0, selectedQ, selectedR, selectedS, totalWeight / sampleCount);
-        return true;
-    }
-
-    private bool TryBuildOwnInfluenceCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        var totalWeight = 0f;
-        var planeCode = Data.PlaneCode(rule);
-        var actorKindId = simulation.World.EntityKindId(entityId);
-        var generatorAffordance = GeneratorAffordanceScore(actorKindId, actorKindId, actorKindId);
-        var selectedQ = CurrentQ(simulation.World, entityId, planeCode);
-        var selectedR = CurrentR(simulation.World, entityId, planeCode);
-        var selectedS = planeCode == PlaneCodes.Semantic ? -selectedQ - selectedR : 0;
-        var sampleCount = Data.CandidateSampleCount(rule);
-        for (var i = 0; i < sampleCount * 4; i++)
-        {
-            if (!TryRandomCoordinate(simulation, planeCode, out var q, out var r, out var s))
-            {
-                continue;
-            }
-
-            var influence = simulation.World.GetCellInfluence(entityId, planeCode, q, r);
-            if (influence <= 0f)
-            {
-                continue;
-            }
-
-            var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, generatorAffordance) +
-                ((100f - influence) / 100f) * 2f;
-            totalWeight += weight;
-            if (simulation.NextFloat() * totalWeight <= weight)
-            {
-                selectedQ = q;
-                selectedR = r;
-                selectedS = s;
-            }
-        }
-
-        if (totalWeight <= 0f &&
-            simulation.World.GetCellInfluence(entityId, planeCode, selectedQ, selectedR) <= 0f)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        var candidateWeight = totalWeight <= 0f ? Data.Weight(rule) : totalWeight / sampleCount;
-        candidate = Candidate(rule, planeCode, 0, 0, selectedQ, selectedR, selectedS, candidateWeight);
-        return true;
-    }
-
-    private bool TryBuildForeignInfluenceCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        out VerbTargetCandidate candidate)
-    {
-        var totalWeight = 0f;
-        var planeCode = Data.PlaneCode(rule);
-        var actorKindId = simulation.World.EntityKindId(entityId);
-        var selectedQ = 0;
-        var selectedR = 0;
-        var selectedS = 0;
-        var selectedEntityId = 0;
-        var selectedKindId = 0;
-        var sampleCount = Data.CandidateSampleCount(rule);
-        for (var i = 0; i < sampleCount * 4; i++)
-        {
-            if (!TryRandomCoordinate(simulation, planeCode, out var q, out var r, out var s))
-            {
-                continue;
-            }
-
-            var influencerId = StrongestAllowedOtherInfluencerAt(simulation, entityId, rule, planeCode, q, r, out var influence);
-            if (influencerId == 0)
-            {
-                continue;
-            }
-
-            var influencerKindId = simulation.World.EntityKindId(influencerId);
-            var generatorAffordance = GeneratorAffordanceScore(actorKindId, influencerKindId, influencerKindId);
-            var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, generatorAffordance) +
-                (influence / 100f) * 3f;
-            totalWeight += weight;
-            if (simulation.NextFloat() * totalWeight <= weight)
-            {
-                selectedQ = q;
-                selectedR = r;
-                selectedS = s;
-                selectedEntityId = influencerId;
-                selectedKindId = influencerKindId;
-            }
-        }
-
-        if (selectedEntityId == 0)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        candidate = Candidate(rule, planeCode, selectedEntityId, selectedKindId, selectedQ, selectedR, selectedS, totalWeight / sampleCount);
-        return true;
-    }
-
-    private bool TryChooseTargetEntity(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        int targetKindId,
-        out VerbTargetCandidate candidate)
-    {
-        var world = simulation.World;
-        var totalWeight = 0f;
-        var selected = default(VerbTargetCandidate);
-        for (var targetEntityId = 1; targetEntityId <= world.EntityHighWatermark; targetEntityId++)
-        {
-            if (targetEntityId == entityId ||
-                !world.EntityIsActive(targetEntityId) ||
-                world.EntityKindId(targetEntityId) != targetKindId)
-            {
-                continue;
-            }
-
-            AddEntityCandidate(simulation, entityId, rule, tick, targetEntityId, ref totalWeight, ref selected);
-        }
-
-        if (selected.RuleSlot == 0)
-        {
-            return NoCandidate(out candidate);
-        }
-
-        candidate = selected;
-        return true;
-    }
-
-    private void AddRelationshipCandidates(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        bool outgoing,
-        ref float totalWeight,
-        ref VerbTargetCandidate selected)
-    {
-        var world = simulation.World;
-        var relationshipKindId = Data.RelationshipKindId(rule);
-        var cursor = outgoing
-            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
-            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
-        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
-        {
-            var targetEntityId = outgoing
-                ? world.RelationshipTargetId(relationshipId)
-                : world.RelationshipSourceId(relationshipId);
-            if (!world.EntityIsActive(targetEntityId))
-            {
-                continue;
-            }
-
-            AddEntityCandidate(simulation, entityId, rule, tick, targetEntityId, ref totalWeight, ref selected);
-        }
     }
 
     private void ApplyIntent(Simulation simulation, int entityId, int rule, int tick)

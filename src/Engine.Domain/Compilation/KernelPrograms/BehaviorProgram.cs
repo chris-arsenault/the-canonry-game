@@ -92,14 +92,6 @@ public enum BehaviorProgramExpression
     Distance,
 }
 
-public enum BehaviorProgramEffectScope
-{
-    SelfAttribute,
-    TargetAttribute,
-    Structural,
-    Relational,
-}
-
 public enum BehaviorProgramProviderSelector
 {
     TargetAttribute,
@@ -109,25 +101,12 @@ public enum BehaviorProgramProviderSelector
     IncomingRelationship,
 }
 
-public sealed record BehaviorProgramEffectRule(
-    BehaviorProgramEffectScope Scope,
-    int ValueId,
-    int KindId);
-
 public sealed record BehaviorProgramProviderSelectorRule(
     BehaviorProgramProviderSelector Selector,
     int KindId,
     int ValueId,
     int RelationshipKindId,
     float MinimumStrength);
-
-public sealed record BehaviorProgramSupportRule(
-    BehaviorProgramEffectScope EffectScope,
-    int EffectValueId,
-    int EffectKindId,
-    float DesiredMinimum,
-    float UrgencyScale,
-    IReadOnlyList<BehaviorProgramExpressionOp> CurrentValueExpression);
 
 public sealed record BehaviorProgramPreconditionOp(
     BehaviorProgramPrecondition Code,

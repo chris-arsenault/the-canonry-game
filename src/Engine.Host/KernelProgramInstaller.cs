@@ -120,20 +120,10 @@ internal static partial class KernelProgramInstaller
             TargetModeCode(gambit.TargetMode),
             gambit.TargetKindId,
             gambit.SuccessChance);
-        InstallGambitGoalEffects(context, gambitSlot, gambit);
         InstallGambitPreconditions(context, gambitSlot, gambit);
         InstallGambitExpressions(context, gambitSlot, gambit);
         InstallGambitProviderSelectors(context, gambitSlot, gambit);
-        InstallGambitSupportRules(context, gambitSlot, gambit);
         InstallGambitSteps(context, gambitSlot, gambit);
-    }
-
-    private static void InstallGambitGoalEffects(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
-    {
-        foreach (var goalEffect in gambit.GoalEffects)
-        {
-            context.AddGambitGoalEffect(gambitSlot, EffectScopeCode(goalEffect.Scope), goalEffect.ValueId, goalEffect.KindId);
-        }
     }
 
     private static void InstallGambitPreconditions(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
@@ -150,11 +140,6 @@ internal static partial class KernelProgramInstaller
         {
             context.AddGambitScoreExpressionOp(gambitSlot, ExpressionCode(expression.Code), expression.A, expression.X);
         }
-
-        foreach (var expression in gambit.RewardExpression)
-        {
-            context.AddGambitRewardExpressionOp(gambitSlot, ExpressionCode(expression.Code), expression.A, expression.X);
-        }
     }
 
     private static void InstallGambitProviderSelectors(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
@@ -162,18 +147,6 @@ internal static partial class KernelProgramInstaller
         foreach (var selector in gambit.ProviderSelectors)
         {
             context.AddGambitProviderSelector(gambitSlot, ProviderSelectorCode(selector.Selector), selector.KindId, selector.ValueId, selector.RelationshipKindId, selector.MinimumStrength);
-        }
-    }
-
-    private static void InstallGambitSupportRules(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
-    {
-        foreach (var support in gambit.SupportRules)
-        {
-            var supportSlot = context.AddGambitSupportRule(gambitSlot, EffectScopeCode(support.EffectScope), support.EffectValueId, support.EffectKindId, support.DesiredMinimum, support.UrgencyScale);
-            foreach (var expression in support.CurrentValueExpression)
-            {
-                context.AddGambitSupportExpressionOp(supportSlot, ExpressionCode(expression.Code), expression.A, expression.X);
-            }
         }
     }
 
@@ -730,15 +703,6 @@ internal static partial class KernelProgramInstaller
         };
         return code >= 0;
     }
-
-    private static int EffectScopeCode(BehaviorProgramEffectScope scope) => scope switch
-    {
-        BehaviorProgramEffectScope.SelfAttribute => BehaviorEffectScopeCodes.SelfAttribute,
-        BehaviorProgramEffectScope.TargetAttribute => BehaviorEffectScopeCodes.TargetAttribute,
-        BehaviorProgramEffectScope.Structural => BehaviorEffectScopeCodes.Structural,
-        BehaviorProgramEffectScope.Relational => BehaviorEffectScopeCodes.Relational,
-        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, null),
-    };
 
     private static int ProviderSelectorCode(BehaviorProgramProviderSelector selector) => selector switch
     {

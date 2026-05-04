@@ -283,14 +283,14 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void GameplayCompiler_DenormalizesGeneratorAffordanceInsteadOfRuntimePeeking()
+    public void GameplayCompiler_DenormalizesAffordancesInsteadOfRuntimePeeking()
     {
         var root = FindRepoRoot();
         var gameplaySource = ReadGameplaySourceIfPresent(root);
         var requiredFragments = new[]
         {
-            "GeneratorAffordance",
-            "BindingKind",
+            "AffordanceDefinition",
+            "ShapeCode",
             "ActorKind",
             "CandidateKind",
         };
@@ -472,7 +472,7 @@ public sealed class GameplayBoundaryArchitectureTests
         var forbiddenFragments = new[]
         {
             "int minCommitmentTicks",
-            "float generatorAffordanceWeight",
+            "float affordanceWeight",
             "float coverageGrowthChance",
             "float headquartersMoveChance",
             "float requiredInfluence",
@@ -559,14 +559,14 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void GeneratorAffordance_IsProvidedByCompiledGameplaySignalNotGeneratorRuntimeData()
+    public void Affordance_IsProvidedByCompiledGameplaySignalNotGeneratorRuntimeData()
     {
         var root = FindRepoRoot();
         var lowAltitudeRuntime = ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/LowAltitudeVerbs");
         var requiredFragments = new[]
         {
-            "AffordanceKindPair",
-            "AffordanceScore",
+            "AffordanceCount",
+            "AffordanceShapeCode",
         };
         var forbiddenFragments = new[]
         {

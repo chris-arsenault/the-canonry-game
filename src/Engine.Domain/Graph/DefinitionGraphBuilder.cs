@@ -295,15 +295,7 @@ public static class DefinitionGraphBuilder
             SourceDefinition = gambit,
             Reads = ConvertRefs(gambit.Reads, kindNodes, relationshipNodes),
             Writes = ConvertRefs(gambit.Writes, kindNodes, relationshipNodes),
-            GoalEffects = ConvertRefs(gambit.GoalEffects, kindNodes, relationshipNodes),
             ProviderSelectors = ConvertRefs(gambit.ProviderSelectors, kindNodes, relationshipNodes),
-            SupportRules = gambit.SupportRules.Select(rule => new DefinitionSupportRuleNode
-            {
-                DesiredEffect = ConvertRef(rule.DesiredEffect, kindNodes, relationshipNodes),
-                DesiredMinimum = rule.DesiredMinimum,
-                UrgencyScale = rule.UrgencyScale,
-                SourceRule = rule,
-            }).ToList(),
         };
     }
 

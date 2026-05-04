@@ -36,7 +36,6 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.RelationshipSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.DegeneracySourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.PlanningSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapActivitySourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapSignalsSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),
@@ -169,12 +168,9 @@ public static partial class DomainCompiler
                 ResolveTargetMode(gambit, targetKindId),
                 targetKindId,
                 gambit.SuccessChance,
-                CompileGoalEffects(gambit, ids),
                 CompileProviderSelectors(gambit, ids),
-                CompileSupportRules(gambit, ids),
                 CompilePreconditions(gambit.Precondition, ids),
                 CompileExpression(gambit.ScoreExpression, ids),
-                CompileExpression(gambit.RewardExpression, ids),
                 CompileSteps(gambit, ids)));
         }
 
@@ -232,14 +228,6 @@ public static partial class DomainCompiler
             }
         }
 
-        foreach (var effect in behavior.GoalEffects)
-        {
-            if (effect.Scope == RefScope.Target && effect.Kind is { } kind)
-            {
-                return ids.KindIdOf(kind).Value;
-            }
-        }
-
         return 0;
     }
 
@@ -260,22 +248,6 @@ public static partial class DomainCompiler
         return BehaviorProgramTargetMode.Self;
     }
 
-    private static List<BehaviorProgramEffectRule> CompileGoalEffects(
-        BehaviorDefinition behavior,
-        DomainIdRegistry ids)
-    {
-        var effects = new List<BehaviorProgramEffectRule>();
-        foreach (var effect in behavior.GoalEffects)
-        {
-            effects.Add(new BehaviorProgramEffectRule(
-                EffectScope(effect),
-                EffectValueId(effect, ids),
-                effect.Kind is { } kind ? ids.KindIdOf(kind).Value : 0));
-        }
-
-        return effects;
-    }
-
     private static List<BehaviorProgramProviderSelectorRule> CompileProviderSelectors(
         BehaviorDefinition behavior,
         DomainIdRegistry ids)
@@ -292,25 +264,6 @@ public static partial class DomainCompiler
         }
 
         return selectors;
-    }
-
-    private static List<BehaviorProgramSupportRule> CompileSupportRules(
-        BehaviorDefinition behavior,
-        DomainIdRegistry ids)
-    {
-        var supportRules = new List<BehaviorProgramSupportRule>();
-        foreach (var rule in behavior.SupportRules)
-        {
-            supportRules.Add(new BehaviorProgramSupportRule(
-                EffectScope(rule.DesiredEffect),
-                EffectValueId(rule.DesiredEffect, ids),
-                rule.DesiredEffect.Kind is { } kind ? ids.KindIdOf(kind).Value : 0,
-                rule.DesiredMinimum,
-                rule.UrgencyScale,
-                CompileExpression(rule.CurrentValueExpression, ids)));
-        }
-
-        return supportRules;
     }
 
     private static BehaviorProgramProviderSelector ProviderSelectorCode(AttributeRef selector) => selector.Scope switch

@@ -813,23 +813,6 @@ public static partial class DomainCompiler
         _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
     };
 
-    private static BehaviorProgramEffectScope EffectScope(AttributeRef reference) => reference.Scope switch
-    {
-        RefScope.Self => BehaviorProgramEffectScope.SelfAttribute,
-        RefScope.Target => BehaviorProgramEffectScope.TargetAttribute,
-        RefScope.Structural => BehaviorProgramEffectScope.Structural,
-        RefScope.Relational => BehaviorProgramEffectScope.Relational,
-        _ => throw new InvalidOperationException($"Unsupported behavior effect scope '{reference.Scope}'."),
-    };
-
-    private static int EffectValueId(AttributeRef reference, DomainIdRegistry ids) => reference.Scope switch
-    {
-        RefScope.Self or RefScope.Target => ids.AttributeIdOf(reference.Name).Value,
-        RefScope.Structural => ids.StructuralFactIdOf(reference.Name).Value,
-        RefScope.Relational => ids.RelationshipKindIdOf(reference.RelationshipKind ?? reference.Name).Value,
-        _ => throw new InvalidOperationException($"Unsupported behavior effect scope '{reference.Scope}'."),
-    };
-
     private static int BoundaryGroupId(Dictionary<string, int> boundaryGroups, string stableName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stableName);

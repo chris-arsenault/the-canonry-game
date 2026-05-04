@@ -1,8 +1,7 @@
 # Entity Activity Unification Tracking
 
 This document tracks the current design findings around unifying entity verbs,
-gambits, movement, relationships, and generator affordances. It is not an
-implementation plan yet. Use it to keep the model honest before changing code.
+gambits, movement, relationships, and affordances.
 
 ## Target Direction
 
@@ -24,8 +23,8 @@ the same activity vocabulary:
 - decisive activities: betray, declare war, cleanse, found, transform, create
   or remove important topology.
 
-Generators should remain world systems, but they should publish pressure or
-affordances that activities can satisfy.
+Generators and gambits should publish affordances that ordinary entity
+activity selection can satisfy without becoming a planner.
 
 ## Current Findings
 
@@ -52,7 +51,7 @@ Current selection is weighted semi-random:
 - scan verbs for the entity kind;
 - build one candidate per eligible verb;
 - weight the candidate from authored weights, exploration, staleness, heat,
-  attractors, crowding, generator affordance, relationship affinity, and trait
+  attractors, crowding, compiled affordances, relationship affinity, and trait
   modifiers;
 - choose one candidate by weighted random selection;
 - keep the intent until it expires, reaches/dwells, or becomes invalid.
@@ -78,10 +77,21 @@ strength, or live generator/gambit pressure.
 
 ### Gambits
 
-Gambits are decisive entity actions with scoring, reward, preconditions,
-cooldowns, success chance, effects, and shallow planning support.
+Gambits are decisive entity actions with a single score expression,
+preconditions, cooldowns, success chance, and ordered effects.
 
-They currently execute separately from low-altitude verbs. A gambit can move or
+The old generic planning program has been removed. Gambits are now
+opportunistic: each tick they evaluate real eligible targets directly through
+provider selectors, preconditions, the score expression, cooldowns, and success
+rolls. Blocked gambits are not converted into support plans.
+
+Score is the only authored gambit ranking expression. The separate reward
+expression lane was removed because it duplicated score semantics without a
+clear gameplay distinction. IceRemembers gambit scores are now situation
+dependent instead of constants: they read relevant actor/target attributes and
+do not restate physical range gates that already determine eligibility.
+
+They still execute separately from low-altitude verbs. A gambit can move or
 mutate the same entity that already moved or mutated through low-altitude in
 the same tick.
 
@@ -89,17 +99,34 @@ If low-altitude says "move east" and a gambit later says "move west", the
 movement program validates both movement requests independently. The final
 position is whichever successful movement mutation runs last.
 
-### Generators
+### Generator And Gambit Affordances
 
 Generators are cadence-based world systems. They select eligible generators by
 pulse weight and eligible targets by candidate selection. They are not entity
 activities.
 
-Generator affordances currently flow into low-altitude as static compiled
-kind-pair hints derived from generator definitions. That is useful, but it is
-not live pressure. It does not say which generator is currently blocked, which
-relationship is under a threshold, or which local opportunity is close to
-unlocking.
+Affordances now flow into low-altitude as source-aware, shape-aware compiled
+rows derived from generator and gambit definitions. The runtime applies them to
+ordinary verb/target candidates instead of creating support plans.
+
+Current affordance shapes:
+
+- presence near entity;
+- presence near relationship target;
+- relationship strength change;
+- influence change;
+- terrain presence.
+
+Relationship-strength affordances score strength deficits or surplus against a
+threshold, so low-strength positive relationships can become more attractive
+targets for maintenance verbs. Influence affordances score low owned influence
+or reducible foreign influence. Terrain and presence affordances bias movement
+and exploration target selection.
+
+This is still definition-derived pressure, not full live generator/gambit
+runtime state. It identifies what would make downstream systems more likely to
+become possible, but it does not yet say that a specific generator pulse is
+currently blocked.
 
 ### Relationships
 
@@ -129,6 +156,13 @@ context. This makes it possible to evaluate whether relationship modifiers are
 chosen, executed, and materially changing strength without relying on analyzer
 inference.
 
+Low-altitude trace events now also carry affordance source kind, source id,
+shape, score, and bonus. Monte Carlo parquet includes
+`low_altitude_affordance_utilization` and adds selected affordance score/bonus
+columns to `low_altitude_verb_utilization`, so runs can show whether
+affordance-weighted candidates are being offered, selected, and linked to later
+relationship/influence changes.
+
 ## Open Design Requirements
 
 - Define an entity activity lane or activity budget so ambient and decisive
@@ -140,8 +174,8 @@ inference.
 - Give relationship-strength activity selection a reusable fitness primitive:
   desired strength, deficit, surplus, or pressure from blocked downstream
   opportunities.
-- Convert generator affordance from static kind-pair hints into live opportunity
-  pressure where possible.
+- Decide whether definition-derived affordance pressure is enough, or whether
+  generator/gambit runtime state should emit additional live affordance rows.
 - Keep low-altitude from becoming the removed process deck or a scalar recovery
   treadmill.
 - Keep gambits from absorbing ordinary wandering, tending, and map-life work.

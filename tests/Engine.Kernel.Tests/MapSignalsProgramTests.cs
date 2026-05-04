@@ -221,7 +221,7 @@ public sealed class MapSignalsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 100000f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,

@@ -506,7 +506,7 @@ public static partial class IceRemembersDefinition
         float stalenessDelta = 0f,
         float hotspotDelta = 0f,
         float crowdingDelta = 0f,
-        float generatorDelta = 0f,
+        float affordanceDelta = 0f,
         float relationshipAffinityDelta = 0f) =>
         new()
         {
@@ -516,7 +516,7 @@ public static partial class IceRemembersDefinition
             StalenessWeightDelta = stalenessDelta,
             HotspotWeightDelta = hotspotDelta,
             CrowdingWeightDelta = crowdingDelta,
-            GeneratorAffordanceWeightDelta = generatorDelta,
+            AffordanceWeightDelta = affordanceDelta,
             RelationshipAffinityWeightDelta = relationshipAffinityDelta,
         };
 

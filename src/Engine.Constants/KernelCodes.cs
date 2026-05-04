@@ -131,13 +131,6 @@ public static class BehaviorEffectScopeCodes
     public const int Relational = 5;
 }
 
-public static class BehaviorObjectiveUrgencyCodes
-{
-    public const int Baseline = 2;
-    public const int RangeDefault = 3;
-    public const int Fixed = 4;
-}
-
 public static class BehaviorProviderSelectorCodes
 {
     public const int TargetAttribute = 1;
@@ -145,6 +138,31 @@ public static class BehaviorProviderSelectorCodes
     public const int LocationAttribute = 4;
     public const int OutgoingRelationship = 5;
     public const int IncomingRelationship = 6;
+}
+
+public static class AffordanceSourceKindCodes
+{
+    public const int None = 0;
+    public const int Generator = 1;
+    public const int Gambit = 2;
+}
+
+public static class LowAltitudeAffordanceShapeCodes
+{
+    public const int PresenceNearEntity = 1;
+    public const int PresenceNearRelationshipTarget = 2;
+    public const int RelationshipStrengthChange = 3;
+    public const int InfluenceChange = 4;
+    public const int TerrainPresence = 5;
+}
+
+public static class AffordancePolarityCodes
+{
+    public const int None = 0;
+    public const int Strengthen = 1;
+    public const int Weaken = 2;
+    public const int Increase = 3;
+    public const int Reduce = 4;
 }
 
 public static class UpkeepAgingModelCodes
@@ -246,7 +264,6 @@ public static class KernelProgramCodes
     public const int Generators = 5;
     public const int Degeneracy = 6;
     public const int Gambits = 7;
-    public const int Planning = 8;
     public const int Movement = 9;
     public const int MapActivity = 10;
     public const int LowAltitudeVerbs = 11;
@@ -310,36 +327,10 @@ public static class ProgramEnabledOverrideCodes
     public const int Enabled = 1;
 }
 
-public static class PlannerKindCodes
-{
-    public const int Goap = 1;
-    public const int Htn = 2;
-    public const int Opportunity = 3;
-}
-
 public static class ActionFamilyCodes
 {
     public const int Gambit = 1;
     public const int LowAltitudeVerb = 2;
-}
-
-public static class PlanningStatusCodes
-{
-    public const int None = 0;
-    public const int Succeeded = 1;
-    public const int NoCandidates = 2;
-    public const int NoWeight = 3;
-    public const int UnsupportedPlanner = 4;
-    public const int UnsupportedActionFamily = 5;
-}
-
-public static class PlanningStepRoleCodes
-{
-    public const int Immediate = 1;
-    public const int Root = 2;
-    public const int Blocker = 3;
-    public const int Support = 4;
-    public const int Decomposition = 5;
 }
 
 public static class TraceSubjectCodes

@@ -110,14 +110,6 @@ public sealed class DefinitionLifecycleNode
     public required LifecycleConfig SourceConfig { get; init; }
 }
 
-public sealed class DefinitionSupportRuleNode
-{
-    public required TypedDefinitionRef DesiredEffect { get; init; }
-    public required float DesiredMinimum { get; init; }
-    public required float UrgencyScale { get; init; }
-    public required BehaviorSupportRule SourceRule { get; init; }
-}
-
 public sealed class DefinitionGeneratorNode
 {
     public required string Id { get; init; }
@@ -310,9 +302,7 @@ public sealed class DefinitionGambitNode
     public required GambitDefinition SourceDefinition { get; init; }
     public required IReadOnlySet<TypedDefinitionRef> Reads { get; init; }
     public required IReadOnlySet<TypedDefinitionRef> Writes { get; init; }
-    public required IReadOnlySet<TypedDefinitionRef> GoalEffects { get; init; }
     public required IReadOnlySet<TypedDefinitionRef> ProviderSelectors { get; init; }
-    public required IReadOnlyList<DefinitionSupportRuleNode> SupportRules { get; init; }
 }
 
 public abstract record DefinitionValueId

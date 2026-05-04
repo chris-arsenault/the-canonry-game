@@ -12,8 +12,6 @@ using Engine.Kinds;
 /// 3. Every entity kind participates in at least one cycle
 /// 4. Every entity kind has a sustaining path (something increases health)
 /// 5. Every entity kind has a threatening path (something decreases health)
-/// 6. BehaviorProgram goal effects must correspond to execution writes
-/// 7. BehaviorProgram blockers must be satisfiable by some reachable goal-effect chain
 /// </summary>
 public sealed class WiringValidator
 {
@@ -40,7 +38,6 @@ public sealed class WiringValidator
         var errors = new List<WiringError>();
         var allWrites = CollectAllRefs(c => c.Writes);
         var allReads = CollectAllRefs(c => c.Reads);
-        var allGoalEffects = CollectAllRefs(c => c.GoalEffects);
         var canonicalWrites = CanonicalizeRefs(allWrites);
         var canonicalReads = CanonicalizeRefs(allReads);
 
@@ -48,10 +45,6 @@ public sealed class WiringValidator
         AddOrphanErrors(canonicalReads, canonicalWrites, errors);
         AddHealthPathErrors(canonicalWrites, errors);
         AddCycleErrors(canonicalWrites, canonicalReads, errors);
-        AddGoalEffectWriteErrors(errors);
-        AddUnreachableBlockerErrors(allGoalEffects, errors);
-        AddUnreachableSupportEffectErrors(allGoalEffects, errors);
-        AddUnreachableGoalEffectErrors(allGoalEffects, errors);
 
         return errors;
     }
@@ -139,79 +132,6 @@ public sealed class WiringValidator
         }
     }
 
-    private void AddGoalEffectWriteErrors(List<WiringError> errors)
-    {
-        foreach (var contract in _contracts)
-        {
-            foreach (var goalEffect in contract.GoalEffects)
-            {
-                if (GoalEffectRequiresDirectWrite(goalEffect) &&
-                    !contract.Writes.Contains(goalEffect))
-                {
-                    errors.Add(new WiringError(
-                        WiringErrorType.GoalEffectNotWritten,
-                        $"BehaviorProgram goal effect '{goalEffect}' declared by '{contract.OwnerName}' is not present in its execution writes."));
-                }
-            }
-        }
-    }
-
-    private void AddUnreachableBlockerErrors(
-        Dictionary<AttributeRef, List<string>> allGoalEffects,
-        List<WiringError> errors)
-    {
-        foreach (var contract in _contracts)
-        {
-            foreach (var blocker in contract.BehaviorBlockers)
-            {
-                if (!allGoalEffects.ContainsKey(blocker))
-                {
-                    errors.Add(new WiringError(
-                        WiringErrorType.UnreachableBlocker,
-                        $"BehaviorProgram blocker '{blocker}' emitted by '{contract.OwnerName}' has no serving goal effect."));
-                }
-            }
-        }
-    }
-
-    private void AddUnreachableSupportEffectErrors(
-        Dictionary<AttributeRef, List<string>> allGoalEffects,
-        List<WiringError> errors)
-    {
-        foreach (var contract in _contracts)
-        {
-            foreach (var supportEffect in contract.BehaviorSupportEffects)
-            {
-                if (!allGoalEffects.ContainsKey(supportEffect))
-                {
-                    errors.Add(new WiringError(
-                        WiringErrorType.UnreachableSupportEffect,
-                        $"BehaviorProgram support effect '{supportEffect}' declared by '{contract.OwnerName}' has no serving goal effect."));
-                }
-            }
-        }
-    }
-
-    private void AddUnreachableGoalEffectErrors(
-        Dictionary<AttributeRef, List<string>> allGoalEffects,
-        List<WiringError> errors)
-    {
-        foreach (var goalEffect in allGoalEffects.Keys)
-        {
-            if (!HasReachableBehaviorPath(goalEffect, []))
-            {
-                errors.Add(new WiringError(
-                    WiringErrorType.UnreachableGoalEffect,
-                    $"BehaviorProgram goal effect '{goalEffect}' has no reachable blocker chain to an actionable behavior."));
-            }
-        }
-    }
-
-    private static bool GoalEffectRequiresDirectWrite(AttributeRef goalEffect)
-    {
-        return goalEffect.Scope is not RefScope.Structural and not RefScope.Relational;
-    }
-
     /// <summary>
     /// Validate and throw if any errors are found.
     /// Called at simulation startup.
@@ -283,53 +203,6 @@ public sealed class WiringValidator
 
         return attrRef;
     }
-
-    private bool HasReachableBehaviorPath(
-        AttributeRef effect,
-        HashSet<AttributeRef> visiting)
-    {
-        if (!visiting.Add(effect))
-        {
-            return false;
-        }
-
-        try
-        {
-            foreach (var contract in _contracts.Where(c => c.GoalEffects.Contains(effect)))
-            {
-                if (contract.HasOpaqueBehaviorBranches)
-                {
-                    return true;
-                }
-
-                if (contract.BehaviorBlockers.Count == 0)
-                {
-                    return true;
-                }
-
-                var allBlockersReachable = true;
-                foreach (var blocker in contract.BehaviorBlockers)
-                {
-                    if (!HasReachableBehaviorPath(blocker, visiting))
-                    {
-                        allBlockersReachable = false;
-                        break;
-                    }
-                }
-
-                if (allBlockersReachable)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        finally
-        {
-            visiting.Remove(effect);
-        }
-    }
 }
 
 public enum WiringErrorType
@@ -339,10 +212,6 @@ public enum WiringErrorType
     NoSustainingPath,
     NoThreateningPath,
     NoCycle,
-    GoalEffectNotWritten,
-    UnreachableBlocker,
-    UnreachableSupportEffect,
-    UnreachableGoalEffect,
 }
 
 public sealed class WiringError

@@ -840,33 +840,7 @@ internal sealed partial class GambitProgramRuntime
         return ticks < 1 ? 1 : ticks;
     }
 
-    private static float BaselineUrgency(float value, float baseline)
-    {
-        return baseline > 0f ? baseline / (baseline + value) : 0f;
-    }
-
-    private static float RangeUrgency(float value, float minimum, float maximum, float defaultValue)
-    {
-        var range = maximum - minimum;
-        return range > 0f ? Abs(value - defaultValue) / range : 0f;
-    }
-
-    private static float Max(float left, float right)
-    {
-        return left > right ? left : right;
-    }
-
     private static float Clamp01(float value)
-    {
-        if (value < 0f)
-        {
-            return 0f;
-        }
-
-        return value > 1f ? 1f : value;
-    }
-
-    private static float ClampSelectionRoll(float value)
     {
         if (value < 0f)
         {

@@ -26,9 +26,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             candidate.TargetEntityId,
             statusCode,
             Data.Weight(rule),
+            candidate.BaseWeight,
             candidate.Weight,
             candidate.Weight,
-            candidate.Weight);
+            candidate.AffordanceSourceKindCode,
+            candidate.AffordanceSourceId,
+            candidate.AffordanceShapeCode,
+            candidate.AffordanceScore,
+            candidate.AffordanceBonus);
     }
 
     private int TraceSubjectCode(int rule) => Data.OperationCode(rule) switch
@@ -46,8 +51,39 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         int s,
-        float weight) =>
-        new(rule, planeCode, targetEntityId, targetKindId, q, r, s, weight);
+        float baseWeight) =>
+        new(rule, planeCode, targetEntityId, targetKindId, q, r, s, baseWeight, 0f, 0f, 0, 0, 0, baseWeight);
+
+    private static VerbTargetCandidate Candidate(
+        int rule,
+        int planeCode,
+        int targetEntityId,
+        int targetKindId,
+        int q,
+        int r,
+        int s,
+        float baseWeight,
+        AffordanceContribution affordance,
+        float affordanceWeight)
+    {
+        var affordanceBonus = affordance.Score * affordanceWeight;
+        var weight = ClampCandidateWeight(baseWeight + affordanceBonus);
+        return new(
+            rule,
+            planeCode,
+            targetEntityId,
+            targetKindId,
+            q,
+            r,
+            s,
+            baseWeight,
+            affordance.Score,
+            affordanceBonus,
+            affordance.SourceKindCode,
+            affordance.SourceId,
+            affordance.ShapeCode,
+            weight);
+    }
 
     private static bool NoCandidate(out VerbTargetCandidate candidate)
     {
@@ -110,5 +146,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int Q,
         int R,
         int S,
+        float BaseWeight,
+        float AffordanceScore,
+        float AffordanceBonus,
+        int AffordanceSourceKindCode,
+        int AffordanceSourceId,
+        int AffordanceShapeCode,
         float Weight);
 }

@@ -37,12 +37,15 @@ public static partial class IceRemembersDefinition
                 new WithinPlaneDistancePrecondition(1, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.Holds), maximumExclusive: 1),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.Holds), maximumExclusive: 1)),
-            score: 0.8f,
-            reward: 8f,
+            scoreExpression: GambitScore(
+                baseline: 4f,
+                dynamicRange: 4f,
+                Normalized(Expr.Target(A(Attr.Condition)))),
             success: InitialGambitSuccessChance,
             cooldown: 90,
             entityCooldown: 18);
         AddRelationshipWrite(gambit, Rel.Holds, K.Artifact);
+        gambit.Reads.Add(AttributeRef.Target(A(Attr.Condition), K.Artifact));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 1f));
         gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
         gambit.Description = "A penguin within reach of an unclaimed artifact picks it up. The bond binds them physically — the artifact follows.";
@@ -62,8 +65,10 @@ public static partial class IceRemembersDefinition
                 Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
                 Not(new TargetHasRelationshipToSelf(L(Rel.AtWarWith))),
                 new SelfAttributeThreshold(A(Attr.Cohesion), min: 45f, max: null, behaviorRelevant: false)),
-            score: 0.5f,
-            reward: 12f,
+            scoreExpression: GambitScore(
+                baseline: 4f,
+                dynamicRange: 4f,
+                Normalized(Expr.Self(A(Attr.Cohesion)))),
             success: InitialGambitSuccessChance,
             cooldown: 140,
             entityCooldown: 30);
@@ -93,8 +98,12 @@ public static partial class IceRemembersDefinition
                 Not(new TargetHasRelationshipToSelf(L(Rel.TradeRoute))),
                 new SelfAttributeThreshold(A(Attr.TempHp), min: 45f, max: null, behaviorRelevant: false),
                 new TargetAttributeThreshold(A(Attr.TempHp), min: 35f, max: null, behaviorRelevant: false)),
-            score: 0.45f,
-            reward: 9f,
+            scoreExpression: GambitScore(
+                baseline: 3f,
+                dynamicRange: 4f,
+                Mean2(
+                    Normalized(Expr.Self(A(Attr.TempHp))),
+                    Normalized(Expr.Target(A(Attr.TempHp))))),
             success: InitialGambitSuccessChance,
             cooldown: 110,
             entityCooldown: 24);
@@ -121,8 +130,10 @@ public static partial class IceRemembersDefinition
                 new SelfHasRelationshipToTarget(L(Rel.Anchored), minStrength: 0.45f, behaviorRelevant: false),
                 new SelfAttributeThreshold(A(Attr.Condition), min: 40f, max: null, behaviorRelevant: false),
                 Not(new TargetHasRelationshipToSelf(L(Rel.CleansedBy)))),
-            score: 0.42f,
-            reward: 10f,
+            scoreExpression: GambitScore(
+                baseline: 4f,
+                dynamicRange: 4f,
+                Normalized(Expr.Self(A(Attr.Condition)))),
             success: InitialGambitSuccessChance,
             cooldown: 120,
             entityCooldown: 30);
@@ -146,8 +157,10 @@ public static partial class IceRemembersDefinition
                 new TargetIsNotSelf(),
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
                 new SelfAttributeThreshold(A(Attr.Cohesion), min: null, max: 35f, behaviorRelevant: false)),
-            score: 0.55f,
-            reward: 10f,
+            scoreExpression: GambitScore(
+                baseline: 4f,
+                dynamicRange: 5f,
+                InverseNormalized(Expr.Self(A(Attr.Cohesion)))),
             success: InitialGambitSuccessChance,
             cooldown: 160,
             entityCooldown: 40);
@@ -166,15 +179,13 @@ public static partial class IceRemembersDefinition
         EntityKind actorKind,
         EntityKind targetKind,
         IPrecondition precondition,
-        float score,
-        float reward,
+        IExpression scoreExpression,
         float success,
         int cooldown,
         int entityCooldown)
     {
-        var gambit = new GambitDefinition(G(id), name, actorKind, precondition, Expr.Lit(score))
+        var gambit = new GambitDefinition(G(id), name, actorKind, precondition, scoreExpression)
         {
-            RewardExpression = Expr.Lit(reward),
             SuccessChance = success,
             Cooldown = cooldown,
             EntityCooldown = entityCooldown,
@@ -199,6 +210,18 @@ public static partial class IceRemembersDefinition
 
     private static NotPrecondition Not(IPrecondition precondition) =>
         new NotPrecondition(precondition);
+
+    private static Add GambitScore(float baseline, float dynamicRange, IExpression factor) =>
+        Expr.Add(Expr.Lit(baseline), Expr.Mul(Expr.Lit(dynamicRange), Expr.Score(factor)));
+
+    private static Clamp Normalized(IExpression expression) =>
+        Expr.Score(Expr.Div(expression, Expr.Lit(100f)));
+
+    private static Subtract InverseNormalized(IExpression expression) =>
+        Expr.Sub(Expr.Lit(1f), Normalized(expression));
+
+    private static Divide Mean2(IExpression a, IExpression b) =>
+        Expr.Div(Expr.Add(a, b), Expr.Lit(2f));
 
     private static CreateContextRelationshipMutation Relationship(
         TransferEndpoint source,

@@ -73,7 +73,6 @@ internal static class KernelStartupConfigLoader
             return tuning;
         }
 
-        tuning = ApplyJsonPlanningTuning(programs, tuning);
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
@@ -106,79 +105,6 @@ internal static class KernelStartupConfigLoader
         }
 
         return WithProgramEnabled(tuning, programId, enabled);
-    }
-
-    private static KernelTuningOptions ApplyJsonPlanningTuning(JsonElement programs, KernelTuningOptions tuning)
-    {
-        if (!TryGetObject(programs, out var planning, "planning"))
-        {
-            return tuning;
-        }
-
-        if (TryGetString(planning, out var defaultPlanner, "defaultPlanner", "default_planner") &&
-            TryParsePlannerKind(defaultPlanner, out var defaultPlannerCode))
-        {
-            tuning = WithDefaultPlanner(tuning, defaultPlannerCode);
-        }
-
-        if (TryGetInt(planning, out var opportunityTargetCapacity, "opportunityTargetCapacity", "opportunity_target_capacity"))
-        {
-            tuning = WithOpportunityTargetCapacity(tuning, opportunityTargetCapacity);
-        }
-
-        if (TryGetBool(planning, out var goapReservations, "goapTargetReservations", "goap_target_reservations"))
-        {
-            tuning = WithGoapTargetReservations(tuning, goapReservations);
-        }
-
-        tuning = ApplyJsonPlanningKindOverrides(planning, tuning);
-        return ApplyJsonPlanningEntityOverrides(planning, tuning);
-    }
-
-    private static KernelTuningOptions ApplyJsonPlanningKindOverrides(JsonElement planning, KernelTuningOptions tuning)
-    {
-        if (!TryGetArray(planning, out var overrides, "kindPlannerOverrides", "kind_planner_overrides"))
-        {
-            return tuning;
-        }
-
-        var parsed = new List<PlanningKindPlannerOverride>();
-        foreach (var item in overrides.EnumerateArray())
-        {
-            if (!TryGetInt(item, out var kindId, "kindId", "kind_id") ||
-                !TryGetString(item, out var planner, "planner") ||
-                !TryParsePlannerKind(planner, out var plannerKindCode))
-            {
-                continue;
-            }
-
-            parsed.Add(new PlanningKindPlannerOverride(kindId, plannerKindCode));
-        }
-
-        return parsed.Count == 0 ? tuning : WithKindPlannerOverrides(tuning, parsed.ToArray());
-    }
-
-    private static KernelTuningOptions ApplyJsonPlanningEntityOverrides(JsonElement planning, KernelTuningOptions tuning)
-    {
-        if (!TryGetArray(planning, out var overrides, "entityPlannerOverrides", "entity_planner_overrides"))
-        {
-            return tuning;
-        }
-
-        var parsed = new List<PlanningEntityPlannerOverride>();
-        foreach (var item in overrides.EnumerateArray())
-        {
-            if (!TryGetInt(item, out var entityId, "entityId", "entity_id") ||
-                !TryGetString(item, out var planner, "planner") ||
-                !TryParsePlannerKind(planner, out var plannerKindCode))
-            {
-                continue;
-            }
-
-            parsed.Add(new PlanningEntityPlannerOverride(entityId, plannerKindCode));
-        }
-
-        return parsed.Count == 0 ? tuning : WithEntityPlannerOverrides(tuning, parsed.ToArray());
     }
 
     private static KernelTuningOptions ApplyJsonGeneratorTuning(JsonElement programs, KernelTuningOptions tuning)
@@ -259,21 +185,6 @@ internal static class KernelStartupConfigLoader
         }
 
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(section, "KERNELTUNING.PROGRAMS.PLANNING", StringComparison.Ordinal))
-        {
-            return ApplyTomlPlanningValue(key, scalar, tuning);
-        }
-
-        if (section.StartsWith("KERNELTUNING.PROGRAMS.PLANNING.KIND.", StringComparison.Ordinal))
-        {
-            return ApplyTomlPlanningKindOverride(section, key, scalar, tuning);
-        }
-
-        if (section.StartsWith("KERNELTUNING.PROGRAMS.PLANNING.ENTITY.", StringComparison.Ordinal))
-        {
-            return ApplyTomlPlanningEntityOverride(section, key, scalar, tuning);
-        }
-
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.UPKEEP", StringComparison.Ordinal) &&
             string.Equals(key, "AGINGMODEL", StringComparison.Ordinal))
         {
@@ -360,72 +271,6 @@ internal static class KernelStartupConfigLoader
         };
     }
 
-    private static KernelTuningOptions ApplyTomlPlanningValue(
-        string key,
-        string value,
-        KernelTuningOptions tuning)
-    {
-        if (string.Equals(key, "DEFAULTPLANNER", StringComparison.Ordinal) &&
-            TryParsePlannerKind(value, out var plannerKindCode))
-        {
-            return WithDefaultPlanner(tuning, plannerKindCode);
-        }
-
-        if (string.Equals(key, "OPPORTUNITYTARGETCAPACITY", StringComparison.Ordinal) &&
-            int.TryParse(value, global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out var opportunityTargetCapacity))
-        {
-            return WithOpportunityTargetCapacity(tuning, opportunityTargetCapacity);
-        }
-
-        if (string.Equals(key, "GOAPTARGETRESERVATIONS", StringComparison.Ordinal) &&
-            bool.TryParse(value, out var goapReservations))
-        {
-            return WithGoapTargetReservations(tuning, goapReservations);
-        }
-
-        return tuning;
-    }
-
-    private static KernelTuningOptions ApplyTomlPlanningKindOverride(
-        string section,
-        string key,
-        string value,
-        KernelTuningOptions tuning)
-    {
-        if (!string.Equals(key, "PLANNER", StringComparison.Ordinal) ||
-            !TryParseTomlOverrideId(section, "KERNELTUNING.PROGRAMS.PLANNING.KIND.", out var kindId) ||
-            !TryParsePlannerKind(value, out var plannerKindCode))
-        {
-            return tuning;
-        }
-
-        var existing = tuning.Programs.Planning.KindPlannerOverrides;
-        var updated = new PlanningKindPlannerOverride[existing.Length + 1];
-        Array.Copy(existing, updated, existing.Length);
-        updated[^1] = new PlanningKindPlannerOverride(kindId, plannerKindCode);
-        return WithKindPlannerOverrides(tuning, updated);
-    }
-
-    private static KernelTuningOptions ApplyTomlPlanningEntityOverride(
-        string section,
-        string key,
-        string value,
-        KernelTuningOptions tuning)
-    {
-        if (!string.Equals(key, "PLANNER", StringComparison.Ordinal) ||
-            !TryParseTomlOverrideId(section, "KERNELTUNING.PROGRAMS.PLANNING.ENTITY.", out var entityId) ||
-            !TryParsePlannerKind(value, out var plannerKindCode))
-        {
-            return tuning;
-        }
-
-        var existing = tuning.Programs.Planning.EntityPlannerOverrides;
-        var updated = new PlanningEntityPlannerOverride[existing.Length + 1];
-        Array.Copy(existing, updated, existing.Length);
-        updated[^1] = new PlanningEntityPlannerOverride(entityId, plannerKindCode);
-        return WithEntityPlannerOverrides(tuning, updated);
-    }
-
     private static KernelTuningOptions ApplyTomlGeneratorValue(
         string key,
         string value,
@@ -468,76 +313,6 @@ internal static class KernelStartupConfigLoader
             Programs = tuning.Programs with
             {
                 Enabled = ProgramEnabledOverrideFor(tuning.Programs.Enabled, programId, code),
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithDefaultPlanner(KernelTuningOptions tuning, int code)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Planning = tuning.Programs.Planning with
-                {
-                    DefaultPlannerKindCode = code,
-                },
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithOpportunityTargetCapacity(KernelTuningOptions tuning, int capacity)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Planning = tuning.Programs.Planning with
-                {
-                    OpportunityTargetCapacity = capacity,
-                },
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithGoapTargetReservations(KernelTuningOptions tuning, bool enabled)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Planning = tuning.Programs.Planning with
-                {
-                    GoapTargetReservationsEnabled = enabled,
-                },
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithKindPlannerOverrides(KernelTuningOptions tuning, PlanningKindPlannerOverride[] overrides)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Planning = tuning.Programs.Planning with
-                {
-                    KindPlannerOverrides = overrides,
-                },
-            },
-        };
-    }
-
-    private static KernelTuningOptions WithEntityPlannerOverrides(KernelTuningOptions tuning, PlanningEntityPlannerOverride[] overrides)
-    {
-        return tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                Planning = tuning.Programs.Planning with
-                {
-                    EntityPlannerOverrides = overrides,
-                },
             },
         };
     }
@@ -603,42 +378,6 @@ internal static class KernelStartupConfigLoader
         return false;
     }
 
-    private static bool TryGetInt(JsonElement element, out int value, params string[] propertyNames)
-    {
-        value = 0;
-        for (var i = 0; i < propertyNames.Length; i++)
-        {
-            if (!element.TryGetProperty(propertyNames[i], out var property) ||
-                property.ValueKind != JsonValueKind.Number ||
-                !property.TryGetInt32(out value))
-            {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool TryGetArray(JsonElement element, out JsonElement value, params string[] propertyNames)
-    {
-        value = default;
-        for (var i = 0; i < propertyNames.Length; i++)
-        {
-            if (!element.TryGetProperty(propertyNames[i], out value) ||
-                value.ValueKind != JsonValueKind.Array)
-            {
-                continue;
-            }
-
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
     private static bool TryGetString(JsonElement element, out string value, params string[] propertyNames)
     {
         value = string.Empty;
@@ -674,39 +413,6 @@ internal static class KernelStartupConfigLoader
 
         code = 0;
         return false;
-    }
-
-    private static bool TryParsePlannerKind(string value, out int code)
-    {
-        var normalized = Normalize(value);
-        if (string.Equals(normalized, "GOAP", StringComparison.Ordinal))
-        {
-            code = PlannerKindCodes.Goap;
-            return true;
-        }
-
-        if (string.Equals(normalized, "HTN", StringComparison.Ordinal))
-        {
-            code = PlannerKindCodes.Htn;
-            return true;
-        }
-
-        if (string.Equals(normalized, "OPPORTUNITY", StringComparison.Ordinal))
-        {
-            code = PlannerKindCodes.Opportunity;
-            return true;
-        }
-
-        code = 0;
-        return false;
-    }
-
-    private static bool TryParseTomlOverrideId(string section, string prefix, out int id)
-    {
-        id = 0;
-        return section.Length > prefix.Length &&
-               int.TryParse(section[prefix.Length..], global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out id) &&
-               id > 0;
     }
 
     private static string ReadBareTomlValue(string value)

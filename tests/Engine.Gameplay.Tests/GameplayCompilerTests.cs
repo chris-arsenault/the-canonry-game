@@ -329,6 +329,8 @@ public sealed class GameplayCompilerTests
         public int ResolveKindId(string kind, string context) => throw new NotSupportedException();
         public int PrimaryPlaneCodeForKind(string kind, string context) => throw new NotSupportedException();
         public int ResolveVerbId(string verb) => throw new NotSupportedException();
+        public int ResolveGeneratorId(string generator) => throw new NotSupportedException();
+        public int ResolveGambitId(string gambit, string context) => throw new NotSupportedException();
         public int ResolveTerrainId(string terrain) => throw new NotSupportedException();
         public int ResolveRelationshipKindId(string relationship) => throw new NotSupportedException();
         public int ResolveAttributeId(string attribute) => throw new NotSupportedException();
@@ -336,7 +338,7 @@ public sealed class GameplayCompilerTests
         public bool TerrainExists(string terrain) => throw new NotSupportedException();
         public bool RelationshipExists(string relationship) => throw new NotSupportedException();
         public bool KindHasAttribute(string kind, string attribute) => throw new NotSupportedException();
-        public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => [];
+        public IReadOnlyList<AffordanceDefinition> Affordances() => [];
         public IReadOnlyList<TraitOperationDefinition> TraitOperations() => [];
     }
 
@@ -352,6 +354,8 @@ public sealed class GameplayCompilerTests
         public int ResolveKindId(string kind, string context) => 1;
         public int PrimaryPlaneCodeForKind(string kind, string context) => PlaneCodes.Physical;
         public int ResolveVerbId(string verb) => 10;
+        public int ResolveGeneratorId(string generator) => 60;
+        public int ResolveGambitId(string gambit, string context) => 70;
         public int ResolveTerrainId(string terrain) => 20;
         public int ResolveRelationshipKindId(string relationship) => 30;
         public int ResolveAttributeId(string attribute) => 40;
@@ -359,7 +363,7 @@ public sealed class GameplayCompilerTests
         public bool TerrainExists(string terrain) => true;
         public bool RelationshipExists(string relationship) => true;
         public bool KindHasAttribute(string kind, string attribute) => true;
-        public IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances() => [];
+        public IReadOnlyList<AffordanceDefinition> Affordances() => [];
         public IReadOnlyList<TraitOperationDefinition> TraitOperations() => _traitOperations;
     }
 }

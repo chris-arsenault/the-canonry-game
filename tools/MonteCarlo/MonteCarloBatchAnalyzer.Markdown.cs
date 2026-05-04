@@ -19,7 +19,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         AppendMapGenerationSection(builder, report.MapGeneration);
         AppendGambitSection(builder, report.GambitSuccess);
         AppendGeneratorSection(builder, report.GeneratorBalance);
-        AppendPlannerSection(builder, report.PlannerUtilization);
         AppendActionSection(builder, report.ActionUtilization);
         AppendAttributeSection(builder, report.AttributeBands);
         AppendLifecycleSection(builder, report.Lifecycle);
@@ -97,21 +96,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("successes", row => row.SuccessCount.ToString(CultureInfo.InvariantCulture)),
             ("success_rate", row => FormatPercent(row.SuccessRate)),
             ("ticks", row => string.Create(CultureInfo.InvariantCulture, $"{row.FirstAttemptTick}-{row.LastAttemptTick}")));
-    }
-
-    private static void AppendPlannerSection(StringBuilder builder, IReadOnlyList<PlannerUtilizationRow> rows)
-    {
-        builder.AppendLine();
-        builder.AppendLine("## Background Planner Utilization");
-        AppendTable(
-            builder,
-            rows,
-            ("kind", row => row.Kind),
-            ("stale", row => FormatPercent(row.StaleRate)),
-            ("no_exec", row => FormatPercent(row.NoExecutionRate)),
-            ("avg_candidates", row => row.AverageCandidateCount.ToString("F2", CultureInfo.InvariantCulture)),
-            ("top_action", row => row.TopExecutedAction),
-            ("top_share", row => FormatPercent(row.TopActionShareOfExecutions)));
     }
 
     private static void AppendActionSection(StringBuilder builder, IReadOnlyList<ActionUtilizationRow> rows)

@@ -233,26 +233,11 @@ internal sealed partial class MonteCarloBatchAnalyzer
     }
 
     private sealed record TelemetryCoverage(
-        int PlannerCandidateRows,
-        int ActionExecutionRows,
         int MapSnapshotRows,
-        int LocalityOpportunityRows,
-        int PlannerTraceRows,
         int LowAltitudeTraceRows,
         int CellInfluenceRows);
 
     private sealed record OptionalRawTableDefinition(string TableName, string EmptySelectSql);
-
-    private sealed record ObservedPlannerRow(
-        string Kind,
-        int Evaluations,
-        int StaleEvaluations,
-        int NoExecutionEvaluations,
-        int ExecutedEvaluations,
-        double AverageCandidateCount)
-    {
-        public static ObservedPlannerRow Empty(string kind) => new(kind, 0, 0, 0, 0, 0d);
-    }
 
     private sealed record ObservedLifecycleRow(
         string Kind,

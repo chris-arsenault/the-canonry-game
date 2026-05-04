@@ -29,19 +29,19 @@ public sealed class KernelExecutionContextTests
 
         using (simulation.EnterExecutionContext(
                    activeSourceCodeId,
-                   KernelProgramCodes.Planning))
+                   KernelProgramCodes.Effects))
         {
             simulation.SetAttribute(entityId, attributeId, 10f, tick: 0);
 
             Assert.Equal(
                 new KernelExecutionContext(
-                    KernelProgramCodes.Planning,
+                    KernelProgramCodes.Effects,
                     activeSourceCodeId),
                 simulation.ExecutionContext);
         }
 
         Assert.True(simulation.Events.TryRead(cursor, out var read));
-        Assert.Equal(KernelProgramCodes.Planning, read.Event.ProgramId);
+        Assert.Equal(KernelProgramCodes.Effects, read.Event.ProgramId);
         Assert.Equal(activeSourceCodeId, read.Event.SourceCodeId);
         var changed = read.Event.AsAttributeChanged();
         Assert.Equal(activeSourceCodeId, changed.SourceCodeId);
@@ -76,13 +76,21 @@ public sealed class KernelExecutionContextTests
         Assert.True(simulation.Events.TryRead(cursor, out var read));
         Assert.Equal(KernelProgramCodes.Generators, read.Event.ProgramId);
         Assert.Equal(activeSourceCodeId, read.Event.SourceCodeId);
-        var changed = read.Event.AsCellChanged();
+        Assert.Equal(KernelEventType.MapCellStateChanged, read.Event.EventType);
+        var changed = read.Event.AsMapCellStateChanged();
         Assert.Equal(7, changed.Tick);
         Assert.Equal(activeSourceCodeId, changed.SourceCodeId);
+        Assert.Equal(PlaneCodes.Physical, changed.PlaneCode);
         Assert.Equal(1, changed.PreviousTerrainId);
         Assert.Equal(2, changed.CurrentTerrainId);
         Assert.Equal(0, changed.PreviousOwnerEntityId);
         Assert.Equal(ownerEntityId, changed.CurrentOwnerEntityId);
+        Assert.True(simulation.Events.TryRead(cursor, out var legacyRead));
+        Assert.Equal(KernelProgramCodes.Generators, legacyRead.Event.ProgramId);
+        Assert.Equal(activeSourceCodeId, legacyRead.Event.SourceCodeId);
+        Assert.Equal(KernelEventType.CellChanged, legacyRead.Event.EventType);
+        var legacyChanged = legacyRead.Event.AsCellChanged();
+        Assert.Equal(activeSourceCodeId, legacyChanged.SourceCodeId);
         Assert.False(simulation.Events.TryRead(cursor, out _));
     }
 
@@ -95,7 +103,7 @@ public sealed class KernelExecutionContextTests
             KernelProgramCodes.Gambits,
             SourceCodeId: 101);
         var inner = new KernelExecutionContext(
-            KernelProgramCodes.Planning,
+            KernelProgramCodes.Effects,
             SourceCodeId: 202);
 
         using (simulation.EnterExecutionContext(
@@ -136,7 +144,7 @@ public sealed class KernelExecutionContextTests
         var systems = RegisterRecordingSystems(simulation, programIds, entityId, firstAttributeId);
         var initial = simulation.ExecutionContext;
         var caller = new KernelExecutionContext(
-            KernelProgramCodes.Planning,
+            KernelProgramCodes.Effects,
             SourceCodeId: 9000);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
@@ -212,13 +220,13 @@ public sealed class KernelExecutionContextTests
 
         using (simulation.EnterExecutionContext(
                    sourceCodeId,
-                   KernelProgramCodes.Planning))
+                   KernelProgramCodes.LowAltitudeVerbs))
         {
             simulation.AdvanceTicks(1);
         }
 
         Assert.True(simulation.Events.TryRead(cursor, out var read));
-        Assert.Equal(KernelProgramCodes.Planning, read.Event.ProgramId);
+        Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
         Assert.Equal(sourceCodeId, read.Event.SourceCodeId);
         var changed = read.Event.AsAttributeChanged();
         Assert.Equal(sourceCodeId, changed.SourceCodeId);
@@ -233,7 +241,7 @@ public sealed class KernelExecutionContextTests
             KernelProgramCodes.Relationships,
             SourceCodeId: 7000);
         simulation.RegisterProgram(
-            KernelProgramCodes.Planning,
+            KernelProgramCodes.Effects,
             cadence: 1,
             new ThrowingSystem());
 
@@ -318,7 +326,11 @@ public sealed class KernelExecutionContextTests
         KernelProgramCodes.Generators,
         KernelProgramCodes.Degeneracy,
         KernelProgramCodes.Gambits,
-        KernelProgramCodes.Planning,
+        KernelProgramCodes.Movement,
+        KernelProgramCodes.MapActivity,
+        KernelProgramCodes.LowAltitudeVerbs,
+        KernelProgramCodes.Effects,
+        KernelProgramCodes.MapSignals,
     ];
 
     private static void RegisterAttributesForPrograms(

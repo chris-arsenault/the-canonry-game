@@ -49,11 +49,10 @@ internal sealed class KernelTelemetryRecorder : IDisposable
             generatorSnapshotCadence));
 
         EventProjection = new TelemetryEventProjection(RunId, Batch, symbols);
-        PlannerTraceProjection = new PlannerTraceProjection(RunId, Batch);
         _pump = new KernelEventProjectionPump(
             eventLog,
             cursorStart,
-            [EventProjection, PlannerTraceProjection],
+            EventProjection,
             batchSize);
     }
 
@@ -62,8 +61,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
     public TelemetryBatch Batch { get; } = new();
 
     internal TelemetryEventProjection EventProjection { get; }
-
-    internal PlannerTraceProjection PlannerTraceProjection { get; }
 
     public long NextSequence => _pump.NextSequence;
 

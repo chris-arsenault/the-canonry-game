@@ -68,9 +68,7 @@ public static partial class DefinitionGraphValidator
                 gambit.TargetKind,
                 gambit.Reads,
                 gambit.Writes,
-                gambit.GoalEffects,
                 gambit.ProviderSelectors,
-                gambit.SupportRules,
                 graph,
                 errors);
         }
@@ -82,9 +80,7 @@ public static partial class DefinitionGraphValidator
         EntityKind targetKind,
         IEnumerable<TypedDefinitionRef> reads,
         IEnumerable<TypedDefinitionRef> writes,
-        IEnumerable<TypedDefinitionRef> goalEffects,
         IEnumerable<TypedDefinitionRef> providerSelectors,
-        IEnumerable<DefinitionSupportRuleNode> supportRules,
         DefinitionGraph graph,
         List<string> errors)
     {
@@ -95,21 +91,7 @@ public static partial class DefinitionGraphValidator
 
         ValidateRefs(behaviorId, reads, graph, errors);
         ValidateRefs(behaviorId, writes, graph, errors);
-        ValidateRefs(behaviorId, goalEffects, graph, errors);
         ValidateRefs(behaviorId, providerSelectors, graph, errors);
-        ValidateSupportRules(behaviorId, supportRules, graph, errors);
-    }
-
-    private static void ValidateSupportRules(
-        string behaviorId,
-        IEnumerable<DefinitionSupportRuleNode> supportRules,
-        DefinitionGraph graph,
-        List<string> errors)
-    {
-        foreach (var supportRule in supportRules)
-        {
-            ValidateRefs($"{behaviorId}.support", [supportRule.DesiredEffect], graph, errors);
-        }
     }
 
     private static void ValidateGameplay(DefinitionGraph graph, List<string> errors)

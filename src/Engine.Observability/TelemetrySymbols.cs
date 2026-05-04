@@ -122,10 +122,6 @@ internal static class TelemetrySymbolIds
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.ZeroWeight, "zero_weight", "Zero Weight"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.NotEvaluated, "not_evaluated", "Not Evaluated"));
 
-        symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Committed, "committed", "Committed"));
-        symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Abandoned, "abandoned", "Abandoned"));
-        symbols.Add(CreateWithId(TelemetrySymbolKinds.PlannerTraceStatus, PlannerTraceStatusCodes.Truncated, "truncated", "Truncated"));
-
         AddTraceSymbols(symbols);
         AddKernelEventTypeSymbols(symbols);
     }

@@ -16,23 +16,7 @@ public static class TelemetrySymbolKinds
     public const int Plane = 1012;
     public const int RelationshipPolarity = 1013;
     public const int GeneratorStatus = 1014;
-    public const int PlannerTraceStatus = 1015;
     public const int KernelEventType = 1016;
     public const int TraceSubject = 1017;
     public const int TraceStatus = 1018;
-}
-
-public static class PlannerTraceStatusCodes
-{
-    public const int Committed = 1;
-    public const int Abandoned = 2;
-    public const int Truncated = 3;
-
-    public static int FromStatus(string status) => status switch
-    {
-        "committed" => Committed,
-        "abandoned" => Abandoned,
-        "truncated" => Truncated,
-        _ => 0,
-    };
 }

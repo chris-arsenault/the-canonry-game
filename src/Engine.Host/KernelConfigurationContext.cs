@@ -183,7 +183,7 @@ internal sealed class KernelConfigurationContext
         float stalenessWeight,
         float hotspotWeight,
         float crowdingWeight,
-        float generatorAffordanceWeight,
+        float affordanceWeight,
         int affinityRelationshipKindId,
         int affinityRelationshipDirectionCode,
         float relationshipAffinityWeight,
@@ -217,7 +217,7 @@ internal sealed class KernelConfigurationContext
             stalenessWeight,
             hotspotWeight,
             crowdingWeight,
-            generatorAffordanceWeight,
+            affordanceWeight,
             affinityRelationshipKindId,
             affinityRelationshipDirectionCode,
             relationshipAffinityWeight,
@@ -258,16 +258,34 @@ internal sealed class KernelConfigurationContext
     public void ConfigureLowAltitudeSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
         ConfigureGameplaySemanticBounds(minQ, maxQ, minR, maxR);
 
-    public int RegisterLowAltitudeGeneratorAffordance(
+    public int RegisterLowAltitudeAffordance(
+        int sourceKindCode,
+        int sourceId,
+        int shapeCode,
         int actorKindId,
+        int planeCode,
         int candidateKindId,
-        int bindingKindId,
-        float affordanceScore) =>
-        _kernel.LowAltitudeVerbs.RegisterGeneratorAffordance(
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        int operationCode,
+        int terrainId,
+        int polarityCode,
+        float threshold,
+        float weight) =>
+        _kernel.LowAltitudeVerbs.RegisterAffordance(
+            sourceKindCode,
+            sourceId,
+            shapeCode,
             actorKindId,
+            planeCode,
             candidateKindId,
-            bindingKindId,
-            affordanceScore);
+            relationshipKindId,
+            relationshipDirectionCode,
+            operationCode,
+            terrainId,
+            polarityCode,
+            threshold,
+            weight);
 
     public int RegisterLowAltitudeTraitWeightModifier(
         int kindId,
@@ -278,7 +296,7 @@ internal sealed class KernelConfigurationContext
         float stalenessWeightDelta,
         float hotspotWeightDelta,
         float crowdingWeightDelta,
-        float generatorAffordanceWeightDelta,
+        float affordanceWeightDelta,
         float relationshipAffinityWeightDelta) =>
         _kernel.LowAltitudeVerbs.RegisterTraitWeightModifier(
             kindId,
@@ -289,7 +307,7 @@ internal sealed class KernelConfigurationContext
             stalenessWeightDelta,
             hotspotWeightDelta,
             crowdingWeightDelta,
-            generatorAffordanceWeightDelta,
+            affordanceWeightDelta,
             relationshipAffinityWeightDelta);
 
     public void ConfigureMapActivity(float presenceHeat, float heatDecayPerTick, float heatEmaAlpha)
@@ -376,12 +394,6 @@ internal sealed class KernelConfigurationContext
     public void AddGambitScoreExpressionOp(int gambitSlot, int expressionCode, int a = 0, float x = 0f) =>
         _kernel.Gambits.AddExpressionOp(gambitSlot, expressionCode, a, x);
 
-    public void AddGambitRewardExpressionOp(int gambitSlot, int expressionCode, int a = 0, float x = 0f) =>
-        _kernel.Gambits.AddRewardExpressionOp(gambitSlot, expressionCode, a, x);
-
-    public void AddGambitGoalEffect(int gambitSlot, int scopeCode, int valueId, int kindId) =>
-        _kernel.Gambits.AddGoalEffect(gambitSlot, scopeCode, valueId, kindId);
-
     public void AddGambitProviderSelector(
         int gambitSlot,
         int selectorCode,
@@ -396,24 +408,6 @@ internal sealed class KernelConfigurationContext
             valueId,
             relationshipKindId,
             minimumStrength);
-
-    public int AddGambitSupportRule(
-        int gambitSlot,
-        int effectScopeCode,
-        int effectValueId,
-        int effectKindId,
-        float desiredMinimum,
-        float urgencyScale = 1f) =>
-        _kernel.Gambits.AddSupportRule(
-            gambitSlot,
-            effectScopeCode,
-            effectValueId,
-            effectKindId,
-            desiredMinimum,
-            urgencyScale);
-
-    public void AddGambitSupportExpressionOp(int supportRuleSlot, int expressionCode, int a = 0, float x = 0f) =>
-        _kernel.Gambits.AddSupportExpressionOp(supportRuleSlot, expressionCode, a, x);
 
     public int AddGambitStep(
         int gambitSlot,

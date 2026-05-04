@@ -147,7 +147,7 @@ public sealed class KernelSchedulingTests
     public void ProgramCanBeDisabledAndReEnabled()
     {
         var simulation = new Simulation();
-        const int testProgram = KernelProgramCodes.Planning;
+        const int testProgram = KernelProgramCodes.Effects;
         var runCount = 0;
         _ = simulation.RegisterProgram(
             testProgram,

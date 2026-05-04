@@ -65,7 +65,7 @@ Low-altitude targeting is weighted semi-random. Candidate scores can consider:
 - recent activity and hotspots;
 - crowding;
 - relationship affinity;
-- generator affordance pairs compiled into the verb data;
+- generator and gambit affordance rows compiled into the verb data;
 - terrain or entity-kind filters;
 - foreign influence filters.
 
@@ -89,16 +89,17 @@ movement is physical.
 
 ## Gambits
 
-Gambits are higher-stakes entity actions. They use the behavior bytecode and
-planner support that remains in the engine, but they are not low-altitude
-processes.
+Gambits are higher-stakes entity actions. They use shared query/effect
+primitives for preconditions, scoring, and ordered effects, but they do not
+build durable plans.
 
 A gambit has:
 
 - an actor kind;
 - a target mode;
 - preconditions;
-- optional objective/scoring data;
+- score expression;
+- provider selectors where the target is external;
 - success chance;
 - effects such as creating, strengthening, weakening, or reversing
   relationships.
@@ -109,8 +110,9 @@ low-altitude verbs and should create graph state that generators can later use.
 
 Gambit preconditions use shared query predicates, and gambit mutations use the
 shared effect executor. Trait-authored score and success modifiers use the
-shared decision-modifier path. Gambit-specific code owns scheduling, planning,
-target choice, score expressions, and ordered operation sequencing.
+shared decision-modifier path. Gambit-specific code owns direct target choice,
+score/reward evaluation, cooldowns, success rolls, and ordered operation
+sequencing.
 
 ## Non-Goals
 

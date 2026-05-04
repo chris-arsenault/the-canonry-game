@@ -23,14 +23,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "entity_snapshots",
         "entity_attribute_snapshots",
         "entity_events",
-        "planner_goals",
-        "planner_traces",
-        "planner_candidates",
-        "planner_scores",
-        "planner_steps",
-        "planner_localities",
         "trace_events",
-        "action_executions",
         "attribute_events",
         "movement_events",
         "relationship_events",
@@ -120,7 +113,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var roamingRows = LoadRoamingSummaryRows(connection);
         var influenceRows = LoadInfluenceSummaryRows(connection);
         var actionRows = LoadActionUtilizationRows(connection);
-        var plannerRows = LoadPlannerUtilizationRows(connection, actionRows);
         var mapGenerationRows = LoadMapGenerationRows(connection);
         var terrainRows = LoadTerrainOccupancyRows(connection);
         var lifecycleRows = LoadLifecycleRows(connection, overview.RunCount);
@@ -143,7 +135,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             LowAltitudeVerbUtilization = lowAltitudeRows,
             RoamingSummary = roamingRows,
             InfluenceSummary = influenceRows,
-            PlannerUtilization = plannerRows,
             ActionUtilization = actionRows,
             AttributeBands = attributeRows,
             MapSpread = mapRows,
@@ -424,21 +415,13 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         var sql = $"""
             SELECT
-                (SELECT COUNT(*) FROM raw_planner_candidates) AS planner_candidate_rows,
-                (SELECT COUNT(*) FROM raw_action_executions) AS action_execution_rows,
                 (SELECT COUNT(*) FROM raw_map_snapshots) AS map_snapshot_rows,
-                (SELECT COUNT(*) FROM raw_planner_localities) AS locality_opportunity_rows,
-                (SELECT COUNT(*) FROM raw_planner_traces) AS planner_trace_rows,
                 (SELECT COUNT(*) FROM raw_trace_events WHERE action_family_code = {ActionFamilyCodes.LowAltitudeVerb}) AS low_altitude_trace_rows,
                 (SELECT COUNT(*) FROM raw_cell_influence_events) AS cell_influence_rows;
             """;
 
         return QuerySingle(connection, sql, reader => new TelemetryCoverage(
-            PlannerCandidateRows: ReadInt(reader, "planner_candidate_rows"),
-            ActionExecutionRows: ReadInt(reader, "action_execution_rows"),
             MapSnapshotRows: ReadInt(reader, "map_snapshot_rows"),
-            LocalityOpportunityRows: ReadInt(reader, "locality_opportunity_rows"),
-            PlannerTraceRows: ReadInt(reader, "planner_trace_rows"),
             LowAltitudeTraceRows: ReadInt(reader, "low_altitude_trace_rows"),
             CellInfluenceRows: ReadInt(reader, "cell_influence_rows")));
     }
@@ -446,7 +429,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     private List<ActionUtilizationRow> LoadActionUtilizationRows(DuckDBConnection connection)
     {
         var observed = LoadObservedActionRows(connection);
-        return BuildActionUtilizationRows(observed, "planner_candidates");
+        return BuildActionUtilizationRows(observed, "trace_events");
     }
 
     private static Dictionary<(string Kind, string ActionName), ObservedActionRow> LoadObservedActionRows(
@@ -454,20 +437,29 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         var summarySql = $"""
             SELECT
-                COALESCE(kind_symbol.stable_name, CAST(candidate.kind_id AS VARCHAR)) AS kind,
-                COALESCE(action_symbol.stable_name, CAST(candidate.action_id AS VARCHAR)) AS action_name,
-                COUNT(*) AS candidate_evaluations,
-                SUM(CASE WHEN candidate.selected THEN 1 ELSE 0 END) AS selected_count,
-                COALESCE(AVG(CAST(candidate.adjusted_score AS DOUBLE)), 0.0) AS average_score,
-                COALESCE(AVG(CASE WHEN candidate.precondition_status_code = 0 THEN 1.0 ELSE 0.0 END), 0.0) AS precondition_pass_rate,
-                COALESCE(AVG(CASE WHEN candidate.cooldown_state_code <> 0 THEN 1.0 ELSE 0.0 END), 0.0) AS cooldown_rate
-            FROM raw_planner_candidates candidate
+                COALESCE(kind_symbol.stable_name, CAST(entity.kind_id AS VARCHAR)) AS kind,
+                COALESCE(action_symbol.stable_name, CAST(trace.action_id AS VARCHAR)) AS action_name,
+                SUM(CASE WHEN trace.status_code = {TraceStatusCodes.Offered} THEN 1 ELSE 0 END) AS candidate_evaluations,
+                SUM(CASE WHEN trace.status_code = {TraceStatusCodes.Selected} THEN 1 ELSE 0 END) AS selected_count,
+                COALESCE(AVG(CASE WHEN trace.status_code = {TraceStatusCodes.Selected} THEN CAST(trace.adjusted_weight AS DOUBLE) ELSE NULL END), 0.0) AS average_score,
+                0.0 AS precondition_pass_rate,
+                0.0 AS cooldown_rate
+            FROM raw_trace_events trace
+            LEFT JOIN (
+                SELECT run_id, entity_id, any_value(kind_id) AS kind_id
+                FROM raw_entity_snapshots
+                GROUP BY run_id, entity_id
+            ) entity
+              ON entity.run_id = trace.run_id
+             AND entity.entity_id = trace.entity_id
             LEFT JOIN symbol_lookup kind_symbol
               ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
-             AND kind_symbol.id = candidate.kind_id
+             AND kind_symbol.id = entity.kind_id
             LEFT JOIN symbol_lookup action_symbol
               ON action_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Verb}
-             AND action_symbol.id = candidate.action_id
+             AND action_symbol.id = trace.action_id
+            WHERE trace.action_family_code = {ActionFamilyCodes.LowAltitudeVerb}
+              AND trace.trace_subject_code IN ({TraceSubjectCodes.MovementIntent}, {TraceSubjectCodes.InfluenceIntent}, {TraceSubjectCodes.RelationshipIntent})
             GROUP BY kind, action_name;
             """;
 
@@ -519,80 +511,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ThenByDescending(row => row.SelectedCount)
             .ThenByDescending(row => row.CandidateEvaluations)
             .ThenBy(row => row.ActionName, StringComparer.Ordinal)
-            .ToList();
-    }
-
-    private static readonly string PlannerUtilizationRowsSql = $"""
-        SELECT
-            COALESCE(kind_symbol.stable_name, CAST(candidate.kind_id AS VARCHAR)) AS kind,
-            COUNT(DISTINCT candidate.plan_id) AS evaluations,
-            0 AS stale_evaluations,
-            COUNT(DISTINCT CASE WHEN execution.entity_id IS NULL THEN candidate.plan_id ELSE NULL END) AS no_execution_evaluations,
-            COUNT(DISTINCT CASE WHEN execution.entity_id IS NOT NULL THEN candidate.plan_id ELSE NULL END) AS executed_evaluations,
-            COALESCE(AVG(CAST(candidate_count.candidate_count AS DOUBLE)), 0.0) AS average_candidate_count
-        FROM raw_planner_candidates candidate
-        LEFT JOIN raw_action_executions execution
-          ON execution.run_id = candidate.run_id
-         AND execution.entity_id = candidate.entity_id
-         AND execution.plan_id = candidate.plan_id
-         AND execution.goal_id = candidate.goal_id
-        LEFT JOIN symbol_lookup kind_symbol
-          ON kind_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Kind}
-         AND kind_symbol.id = candidate.kind_id
-        LEFT JOIN (
-            SELECT run_id, entity_id, plan_id, COUNT(*) AS candidate_count
-            FROM raw_planner_candidates
-            GROUP BY run_id, entity_id, plan_id
-        ) candidate_count
-          ON candidate_count.run_id = candidate.run_id
-         AND candidate_count.entity_id = candidate.entity_id
-         AND candidate_count.plan_id = candidate.plan_id
-        GROUP BY kind;
-        """;
-
-    private List<PlannerUtilizationRow> LoadPlannerUtilizationRows(
-        DuckDBConnection connection,
-        List<ActionUtilizationRow> actionRows)
-    {
-        var observed = Query(connection, PlannerUtilizationRowsSql, reader => new ObservedPlannerRow(
-            Kind: ReadString(reader, "kind"),
-            Evaluations: ReadInt(reader, "evaluations"),
-            StaleEvaluations: ReadInt(reader, "stale_evaluations"),
-            NoExecutionEvaluations: ReadInt(reader, "no_execution_evaluations"),
-            ExecutedEvaluations: ReadInt(reader, "executed_evaluations"),
-            AverageCandidateCount: ReadDouble(reader, "average_candidate_count")))
-            .ToDictionary(row => row.Kind, row => row, StringComparer.Ordinal);
-
-        var actionByKind = actionRows
-            .GroupBy(row => row.Kind, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .OrderByDescending(row => row.SelectedCount)
-                    .ThenByDescending(row => row.CandidateEvaluations)
-                    .ThenBy(row => row.ActionName, StringComparer.Ordinal)
-                    .ToList(),
-                StringComparer.Ordinal);
-
-        var rows = _domainConfig.Kinds.Keys.Select(kind =>
-        {
-            var observedRow = observed.GetValueOrDefault(kind.Value) ?? ObservedPlannerRow.Empty(kind.Value);
-            var ranked = actionByKind.GetValueOrDefault(kind.Value) ?? [];
-            var top = ranked.FirstOrDefault();
-            var totalSelected = ranked.Sum(row => row.SelectedCount);
-
-            return new PlannerUtilizationRow(
-                Kind: kind.Value,
-                Evaluations: observedRow.Evaluations,
-                StaleRate: observedRow.Evaluations == 0 ? 0d : observedRow.StaleEvaluations / (double)observedRow.Evaluations,
-                NoExecutionRate: observedRow.Evaluations == 0 ? 0d : observedRow.NoExecutionEvaluations / (double)observedRow.Evaluations,
-                AverageCandidateCount: observedRow.AverageCandidateCount,
-                TopExecutedAction: top?.ActionName ?? string.Empty,
-                TopActionShareOfExecutions: totalSelected == 0 || top is null ? 0d : top.SelectedCount / (double)totalSelected);
-        });
-
-        return rows
-            .OrderBy(row => row.Kind, StringComparer.Ordinal)
             .ToList();
     }
 

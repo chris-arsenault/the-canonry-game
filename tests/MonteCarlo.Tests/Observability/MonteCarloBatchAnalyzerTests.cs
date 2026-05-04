@@ -54,6 +54,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "summary.md")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_balance.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "low_altitude_verb_utilization.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "low_altitude_affordance_utilization.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "entity_roaming.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "roaming_summary.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "influence_dynamics.parquet")));
@@ -99,7 +100,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
-    public void Analyze_UsesPlannerCandidatesForLowAltitudeVerbUtilization()
+    public void Analyze_UsesTraceEventsForLowAltitudeVerbUtilization()
     {
         var domain = IceRemembersRuntime.CreateDomainConfig();
         var batchDirectory = CreateTempDirectory();
@@ -115,12 +116,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             row.Kind == IceRemembersKinds.Penguin.Value &&
             row.ActionName == verbId &&
             row.SelectedCount == 1 &&
-            row.CandidateEvaluations == 2 &&
-            row.EvidenceSource == "planner_candidates");
-        Assert.Contains(report.PlannerUtilization, row =>
-            row.Kind == IceRemembersKinds.Penguin.Value &&
-            row.Evaluations == 1 &&
-            row.TopExecutedAction == verbId);
+            row.CandidateEvaluations == 1 &&
+            row.EvidenceSource == "trace_events");
     }
 
     [Fact]
@@ -303,7 +300,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddSymbols(batch, seed);
         AddRunAndSnapshotRows(batch, seed, includeGeneratorFire);
         AddEntityTelemetry(batch, seed);
-        AddProcessTelemetry(batch, seed);
         AddLowAltitudeTelemetry(batch, seed);
         AddGambitTelemetry(batch, seed);
         AddMapTelemetry(batch, seed);
@@ -426,14 +422,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         AddEntityAttributes(batch, seed.RunId, 25, 2, seed.SettlementAttributeIds, 45f, 55f, 61f);
     }
 
-    private static void AddProcessTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
-    {
-        AddPlannerGoal(batch, seed);
-        AddPlannerCandidates(batch, seed);
-        batch.PlannerScores.Add(new PlannerScoreRow(seed.RunId, 25, 1, 1, 1, 1, TraceStatusCodes.Selected, 1.25f, 1.25f));
-        AddPlannerCommitRows(batch, seed);
-    }
-
     private static void AddLowAltitudeTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
         AddLowAltitudeTraceTelemetry(batch, seed);
@@ -445,7 +433,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.TraceEvents.Add(new TraceRow(
             seed.RunId,
             20,
-            PlanId: 2,
+            IntentId: 2,
             EntityId: 1,
             TraceSubjectCodes.MovementIntent,
             CandidateIndex: 1,
@@ -457,14 +445,19 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             EffectKindId: seed.SettlementKindId,
             TargetEntityId: 0,
             TraceStatusCodes.Offered,
+            AffordanceSourceKindCode: AffordanceSourceKindCodes.Generator,
+            AffordanceSourceId: 5,
+            AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.TerrainPresence,
             Urgency: 1f,
             RewardOrBaseScore: 1f,
             RawWeight: 1f,
-            AdjustedWeight: 1f));
+            AdjustedWeight: 1f,
+            AffordanceScore: 0.5f,
+            AffordanceBonus: 0.25f));
         batch.TraceEvents.Add(new TraceRow(
             seed.RunId,
             20,
-            PlanId: 2,
+            IntentId: 2,
             EntityId: 1,
             TraceSubjectCodes.MovementIntent,
             CandidateIndex: 1,
@@ -476,10 +469,15 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             EffectKindId: seed.SettlementKindId,
             TargetEntityId: 0,
             TraceStatusCodes.Selected,
+            AffordanceSourceKindCode: AffordanceSourceKindCodes.Generator,
+            AffordanceSourceId: 5,
+            AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.TerrainPresence,
             Urgency: 1f,
             RewardOrBaseScore: 1f,
             RawWeight: 1f,
-            AdjustedWeight: 1.2f));
+            AdjustedWeight: 1.2f,
+            AffordanceScore: 0.5f,
+            AffordanceBonus: 0.25f));
     }
 
     private static void AddLowAltitudeMovementTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
@@ -510,116 +508,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             ToR: 0,
             ToS: -2,
             Distance: 1));
-    }
-
-    private static void AddPlannerGoal(TelemetryBatch batch, SyntheticBatchSeed seed) =>
-        batch.PlannerGoals.Add(new PlannerGoalRow(
-            seed.RunId,
-            25,
-            1,
-            seed.PenguinKindId,
-            PlanId: 1,
-            GoalId: 1,
-            EffectScopeCode: PlaneCodes.Physical,
-            EffectValueId: 1,
-            EffectKindId: seed.SettlementKindId,
-            TargetEntityId: 2,
-            Urgency: 1f,
-            ParentGoalId: 0,
-            Depth: 0,
-            IsActionable: true,
-            BlockerRef: 0,
-            SupportRuleSourceId: 0));
-
-    private static void AddPlannerCandidates(TelemetryBatch batch, SyntheticBatchSeed seed)
-    {
-        AddPlannerCandidate(batch, seed, candidateIndex: 1, targetEntityId: 2, selected: true, diagnosticCode: 0);
-        AddPlannerCandidate(
-            batch,
-            seed,
-            candidateIndex: 2,
-            targetEntityId: 0,
-            selected: false,
-            diagnosticCode: TraceStatusCodes.NoTarget);
-    }
-
-    private static void AddPlannerCandidate(
-        TelemetryBatch batch,
-        SyntheticBatchSeed seed,
-        int candidateIndex,
-        int targetEntityId,
-        bool selected,
-        int diagnosticCode) =>
-        batch.PlannerCandidates.Add(new PlannerCandidateRow(
-            seed.RunId,
-            25,
-            1,
-            seed.PenguinKindId,
-            PlanId: 1,
-            GoalId: 1,
-            CandidateIndex: candidateIndex,
-            ParentCandidateIndex: 0,
-            ActionId: seed.VerbSymbolId,
-            ProviderEntityId: 1,
-            TargetEntityId: targetEntityId,
-            EffectScopeCode: PlaneCodes.Physical,
-            EffectValueId: 1,
-            EffectKindId: selected ? seed.SettlementKindId : 0,
-            RawScore: selected ? 1.25f : 0f,
-            AdjustedScore: selected ? 1.25f : 0f,
-            RewardScore: selected ? 1.25f : 0f,
-            PreconditionStatusCode: diagnosticCode,
-            DiagnosticCode: diagnosticCode,
-            CooldownStateCode: 0,
-            LocalityId: 1,
-            Selected: selected));
-
-    private static void AddPlannerCommitRows(TelemetryBatch batch, SyntheticBatchSeed seed)
-    {
-        batch.PlannerSteps.Add(new PlannerStepRow(
-            seed.RunId,
-            25,
-            1,
-            PlanId: 1,
-            GoalId: 1,
-            StepIndex: 1,
-            ActionId: seed.VerbSymbolId,
-            TargetEntityId: 2,
-            RelationshipKindId: 0,
-            StepRoleCode: PlanningStepRoleCodes.Immediate));
-        batch.PlannerLocalities.Add(new PlannerLocalityRow(
-            seed.RunId,
-            25,
-            1,
-            seed.PenguinKindId,
-            PlanId: 1,
-            LocalityId: 1,
-            PlaneCode: PlaneCodes.Physical,
-            Q: 2,
-            R: 0,
-            S: 0,
-            AnchorEntityId: 2,
-            BundleScore: 1.25f,
-            GoalCount: 1,
-            DistinctTargetCount: 1,
-            DistinctEffectCount: 1,
-            Distance: 2,
-            IsCurrent: false,
-            IsCommitted: true,
-            Selected: true));
-        batch.ActionExecutions.Add(new ActionExecutionRow(
-            seed.RunId,
-            25,
-            1,
-            seed.PenguinKindId,
-            PlanId: 1,
-            GoalId: 1,
-            StepIndex: 1,
-            ActionId: seed.VerbSymbolId,
-            TargetEntityId: 2,
-            StateCode: (int)KernelEventState.Succeeded,
-            AffectedEntityId: 1,
-            LocalityId: 1));
     }
 
     private static void AddGambitTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)

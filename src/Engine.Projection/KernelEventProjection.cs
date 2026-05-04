@@ -18,9 +18,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
         OnProjectingEvent(kernelEvent);
 
         var eventType = kernelEvent.Event.EventType;
-        if (eventType >= KernelEventType.PlanStarted)
+        if (eventType == KernelEventType.Trace)
         {
-            ProjectPlanningEvent(kernelEvent);
+            OnTrace(kernelEvent.Sequence, kernelEvent.Event.AsTrace());
             return;
         }
 
@@ -129,38 +129,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
         }
     }
 
-    private void ProjectPlanningEvent(in SequencedKernelEvent kernelEvent)
-    {
-        var evt = kernelEvent.Event;
-        switch (evt.EventType)
-        {
-            case KernelEventType.PlanStarted:
-                OnPlanStarted(kernelEvent.Sequence, evt.AsPlanStarted());
-                break;
-            case KernelEventType.GoalConsidered:
-                OnGoalConsidered(kernelEvent.Sequence, evt.AsGoalConsidered());
-                break;
-            case KernelEventType.GoalScored:
-                OnGoalScored(kernelEvent.Sequence, evt.AsGoalScored());
-                break;
-            case KernelEventType.GoalSelected:
-                OnGoalSelected(kernelEvent.Sequence, evt.AsGoalSelected());
-                break;
-            case KernelEventType.PlanStepEmitted:
-                OnPlanStepEmitted(kernelEvent.Sequence, evt.AsPlanStepEmitted());
-                break;
-            case KernelEventType.PlanCommitted:
-                OnPlanCommitted(kernelEvent.Sequence, evt.AsPlanCommitted());
-                break;
-            case KernelEventType.PlanAbandoned:
-                OnPlanAbandoned(kernelEvent.Sequence, evt.AsPlanAbandoned());
-                break;
-            case KernelEventType.Trace:
-                OnTrace(kernelEvent.Sequence, evt.AsTrace());
-                break;
-        }
-    }
-
     public virtual void OnEventsDropped(long droppedEventCount, long nextSequence)
     {
     }
@@ -250,34 +218,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnKernelStorageGrown(long sequence, in KernelStorageGrownKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnPlanStarted(long sequence, in PlanStartedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnGoalConsidered(long sequence, in GoalConsideredKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnGoalScored(long sequence, in GoalScoredKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnGoalSelected(long sequence, in GoalSelectedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnPlanStepEmitted(long sequence, in PlanStepEmittedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnPlanCommitted(long sequence, in PlanCommittedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnPlanAbandoned(long sequence, in PlanAbandonedKernelEvent evt)
     {
     }
 

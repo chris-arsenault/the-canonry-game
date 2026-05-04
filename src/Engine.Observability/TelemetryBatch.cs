@@ -17,18 +17,7 @@ public sealed class TelemetryBatch
     public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = [];
     public Collection<EntityEventRow> EntityEvents { get; } = [];
     public Collection<ExperimentVariantRow> ExperimentVariants { get; } = [];
-    public Collection<PlannerGoalRow> PlannerGoals { get; } = [];
-    public Collection<PlannerTraceRow> PlannerTraces { get; } = [];
-    public Collection<PlannerTraceGoalRow> PlannerTraceGoals { get; } = [];
-    public Collection<PlannerTraceScoreRow> PlannerTraceScores { get; } = [];
-    public Collection<PlannerTraceStepRow> PlannerTraceSteps { get; } = [];
-    public Collection<PlannerCandidateRow> PlannerCandidates { get; } = [];
-    public Collection<PlannerScoreRow> PlannerScores { get; } = [];
-    public Collection<PlannerStepRow> PlannerSteps { get; } = [];
-    public Collection<PlannerLocalityRow> PlannerLocalities { get; } = [];
     public Collection<TraceRow> TraceEvents { get; } = [];
-    public Collection<ActionExecutionRow> ActionExecutions { get; } = [];
-    public Collection<LocalityOpportunityRow> LocalityOpportunities { get; } = [];
     public Collection<AttributeEventRow> AttributeEvents { get; } = [];
     public Collection<MovementEventRow> MovementEvents { get; } = [];
     public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
@@ -147,144 +136,10 @@ public sealed record EntityEventRow(
     int SemanticR,
     int SemanticS);
 
-public sealed record PlannerGoalRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int PlanId,
-    int GoalId,
-    int EffectScopeCode,
-    int EffectValueId,
-    int EffectKindId,
-    int TargetEntityId,
-    float Urgency,
-    int ParentGoalId,
-    int Depth,
-    bool IsActionable,
-    int BlockerRef,
-    int SupportRuleSourceId);
-
-public sealed record PlannerTraceRow(
-    int RunId,
-    int StartTick,
-    int EndTick,
-    int EntityId,
-    int PlanId,
-    int StatusCode,
-    int CandidateCount,
-    int StepCount,
-    int ReasonCodeId,
-    float? TotalScore,
-    long StartSequence,
-    long EndSequence,
-    long DroppedEventCount);
-
-public sealed record PlannerTraceGoalRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int PlanId,
-    int GoalId,
-    int CandidateIndex,
-    float PreliminaryScore,
-    bool WasSelected,
-    float? FinalScore);
-
-public sealed record PlannerTraceScoreRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int PlanId,
-    int GoalId,
-    int ReasonCodeId,
-    int ScoringPassIndex,
-    float ScoreDelta,
-    float RunningTotal);
-
-public sealed record PlannerTraceStepRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int PlanId,
-    int GoalId,
-    int StepIndex,
-    int ActionId,
-    int TargetEntityId,
-    int RelationshipKindId);
-
-public sealed record PlannerCandidateRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int PlanId,
-    int GoalId,
-    int CandidateIndex,
-    int ParentCandidateIndex,
-    int ActionId,
-    int ProviderEntityId,
-    int TargetEntityId,
-    int EffectScopeCode,
-    int EffectValueId,
-    int EffectKindId,
-    float RawScore,
-    float AdjustedScore,
-    float RewardScore,
-    int PreconditionStatusCode,
-    int DiagnosticCode,
-    int CooldownStateCode,
-    int LocalityId,
-    bool Selected);
-
-public sealed record PlannerScoreRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int PlanId,
-    int GoalId,
-    int CandidateIndex,
-    int ReasonCodeId,
-    float ScoreDelta,
-    float RunningTotal);
-
-public sealed record PlannerStepRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int PlanId,
-    int GoalId,
-    int StepIndex,
-    int ActionId,
-    int TargetEntityId,
-    int RelationshipKindId,
-    int StepRoleCode);
-
-public sealed record PlannerLocalityRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int PlanId,
-    int LocalityId,
-    int PlaneCode,
-    int Q,
-    int R,
-    int S,
-    int AnchorEntityId,
-    float BundleScore,
-    int GoalCount,
-    int DistinctTargetCount,
-    int DistinctEffectCount,
-    int Distance,
-    bool IsCurrent,
-    bool IsCommitted,
-    bool Selected);
-
 public sealed record TraceRow(
     int RunId,
     int Tick,
-    int PlanId,
+    int IntentId,
     int EntityId,
     int TraceSubjectCode,
     int CandidateIndex,
@@ -296,46 +151,15 @@ public sealed record TraceRow(
     int EffectKindId,
     int TargetEntityId,
     int StatusCode,
+    int AffordanceSourceKindCode,
+    int AffordanceSourceId,
+    int AffordanceShapeCode,
     float Urgency,
     float RewardOrBaseScore,
     float RawWeight,
-    float AdjustedWeight);
-
-public sealed record ActionExecutionRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int PlanId,
-    int GoalId,
-    int StepIndex,
-    int ActionId,
-    int TargetEntityId,
-    int StateCode,
-    int AffectedEntityId,
-    int LocalityId);
-
-public sealed record LocalityOpportunityRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int KindId,
-    int? VisitId,
-    int LocalityId,
-    int PlaneCode,
-    int Q,
-    int R,
-    int? S,
-    int AnchorEntityId,
-    float BundleScore,
-    int GoalCount,
-    int DistinctTargetCount,
-    int DistinctEffectCount,
-    int Distance,
-    bool IsCurrentLocality,
-    bool IsCommitted,
-    bool WasSelected,
-    int SelectionReasonCode);
+    float AdjustedWeight,
+    float AffordanceScore,
+    float AffordanceBonus);
 
 public sealed record AttributeEventRow(
     int RunId,

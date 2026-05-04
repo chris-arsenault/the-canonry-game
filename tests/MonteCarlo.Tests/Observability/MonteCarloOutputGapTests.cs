@@ -2,6 +2,8 @@ namespace MonteCarlo.Tests.Observability;
 
 using DuckDB.NET.Data;
 
+using Engine.Constants;
+
 using MonteCarloTool;
 
 #pragma warning disable CA1515, CA2100 // xUnit requires public test types; SQL strings use constants and fixture-owned paths.
@@ -80,94 +82,6 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         // CSVs were explicitly excluded from the target analysis contract. Leaving them around makes
         // it too easy to keep patching stale reports instead of the parquet analysis layer.
         Assert.False(fixture.AnalysisFileExists(fileName), $"{fileName}: structured analysis output must be parquet-only.");
-    }
-
-    [MonteCarloAcceptanceFact]
-    public void PlannerActionOutput_SelectedCandidatesMustJoinGoalsStepsAndExecutions()
-    {
-        // This closes the planner/action causality gap: candidates, goals, committed steps, and
-        // action executions must describe the same decisions rather than four unrelated reports.
-        fixture.AssertRawTablesExist("planner_candidates", "planner_goals", "planner_steps", "action_executions");
-
-        Assert.Equal(0, fixture.RawQueryLong(
-            ["planner_candidates", "planner_goals"],
-            """
-            SELECT COUNT(*)
-            FROM planner_candidates c
-            LEFT JOIN planner_goals g
-              ON g.run_id = c.run_id
-             AND g.entity_id = c.entity_id
-             AND g.plan_id = c.plan_id
-             AND g.goal_id = c.goal_id
-            WHERE c.selected AND g.goal_id IS NULL;
-            """));
-        Assert.Equal(0, fixture.RawQueryLong(
-            ["planner_candidates", "planner_steps"],
-            """
-            SELECT COUNT(*)
-            FROM planner_candidates c
-            LEFT JOIN planner_steps s
-              ON s.run_id = c.run_id
-             AND s.entity_id = c.entity_id
-             AND s.plan_id = c.plan_id
-             AND s.goal_id = c.goal_id
-             AND s.action_id = c.action_id
-            WHERE c.selected AND c.action_id <> 0 AND s.step_index IS NULL;
-            """));
-        Assert.Equal(0, fixture.RawQueryLong(
-            ["planner_steps", "action_executions"],
-            """
-            SELECT COUNT(*)
-            FROM planner_steps s
-            LEFT JOIN action_executions e
-              ON e.run_id = s.run_id
-             AND e.entity_id = s.entity_id
-             AND e.plan_id = s.plan_id
-             AND e.goal_id = s.goal_id
-             AND e.step_index = s.step_index
-            WHERE s.action_id <> 0 AND e.action_id IS NULL;
-            """));
-    }
-
-    [MonteCarloAcceptanceFact]
-    public void PlannerActionOutput_CandidatesMustIncludeLosersAndDiagnosticsNotOnlyWinningRows()
-    {
-        // A selected-only candidate export would make action utilization look complete while hiding
-        // why non-movement verbs lose. The output must include rejected/non-selected candidates.
-        fixture.AssertRawTablesExist("planner_candidates");
-
-        Assert.True(fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates WHERE selected;") > 0);
-        Assert.True(fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates WHERE NOT selected;") > 0);
-        Assert.True(fixture.RawQueryLong(
-            ["planner_candidates"],
-            """
-            SELECT COUNT(*)
-            FROM planner_candidates
-            WHERE precondition_status_code <> 0
-               OR diagnostic_code <> 0
-               OR cooldown_state_code <> 0;
-            """) > 0);
-    }
-
-    [MonteCarloAcceptanceFact]
-    public void PlannerActionOutput_SelectedLocalityMustJoinCommittedActionExecution()
-    {
-        // Locality opportunities are only useful if the selected bundle can be tied to the action
-        // that eventually executed there.
-        fixture.AssertRawTablesExist("planner_localities", "action_executions");
-
-        Assert.Equal(0, fixture.RawQueryLong(
-            ["planner_localities", "action_executions"],
-            """
-            SELECT COUNT(*)
-            FROM planner_localities l
-            LEFT JOIN action_executions e
-              ON e.run_id = l.run_id
-             AND e.entity_id = l.entity_id
-             AND e.plan_id = l.plan_id
-             AND e.locality_id = l.locality_id
-            WHERE l.selected AND e.action_id IS NULL;
-            """));
     }
 
     [MonteCarloAcceptanceFact]
@@ -396,15 +310,26 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
     }
 
     [MonteCarloAcceptanceFact]
-    public void AnalysisOutput_ActionUtilizationMustBeDerivedFromPlannerCandidates()
+    public void AnalysisOutput_ActionUtilizationMustBeDerivedFromTraceEvents()
     {
-        // This prevents the old fallback where action utilization used execution counts only and
-        // silently lost candidate/precondition/cooldown diagnostics.
-        fixture.AssertRawTablesExist("planner_candidates");
+        // Action utilization should follow the current primitive low-altitude trace stream, not the
+        // deleted planner candidate tables or execution-count-only fallbacks.
+        fixture.AssertRawTablesExist("trace_events");
         fixture.AssertAnalysisTablesExist("action_utilization");
 
         Assert.Equal(
-            fixture.RawQueryLong(["planner_candidates"], "SELECT COUNT(*) FROM planner_candidates;"),
+            fixture.RawQueryLong(
+                ["trace_events"],
+                $"""
+                SELECT COUNT(*)
+                FROM trace_events
+                WHERE action_family_code = {ActionFamilyCodes.LowAltitudeVerb}
+                  AND trace_subject_code IN (
+                      {TraceSubjectCodes.MovementIntent},
+                      {TraceSubjectCodes.InfluenceIntent},
+                      {TraceSubjectCodes.RelationshipIntent})
+                  AND status_code = {TraceStatusCodes.Offered};
+                """),
             fixture.AnalysisQueryLong(["action_utilization"], "SELECT COALESCE(SUM(candidate_evaluations), 0) FROM action_utilization;"));
         Assert.True(fixture.AnalysisQueryLong(["action_utilization"], "SELECT COUNT(*) FROM action_utilization WHERE evidence_source_code <> 0;") > 0);
     }
@@ -481,11 +406,17 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
     public static TheoryData<string, string> LegacyParallelOutputs()
     {
         var data = new TheoryData<string, string>();
-        data.Add("planner_trace_goals", "planner_goals");
-        data.Add("planner_trace_scores", "planner_scores");
-        data.Add("planner_trace_steps", "planner_steps");
-        data.Add("process_candidates", "planner_candidates");
-        data.Add("locality_opportunities", "planner_localities");
+        data.Add("planner_traces", "trace_events");
+        data.Add("planner_goals", "trace_events");
+        data.Add("planner_candidates", "trace_events");
+        data.Add("planner_scores", "trace_events");
+        data.Add("planner_steps", "trace_events");
+        data.Add("planner_localities", "trace_events");
+        data.Add("planner_trace_goals", "trace_events");
+        data.Add("planner_trace_scores", "trace_events");
+        data.Add("planner_trace_steps", "trace_events");
+        data.Add("process_candidates", "trace_events");
+        data.Add("action_executions", "trace_events");
         data.Add("generated_entities", "generator_outputs");
         return data;
     }
@@ -495,7 +426,6 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         var data = new TheoryData<string>();
         data.Add("generator_balance.csv");
         data.Add("generated_subtype_coverage.csv");
-        data.Add("planner_utilization.csv");
         data.Add("action_utilization.csv");
         data.Add("attribute_bands.csv");
         data.Add("map_spread.csv");
@@ -519,14 +449,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("entity_attribute_snapshots", "run_id,tick,entity_id,attribute_id,value", "Per-entity attribute samples drive stock dynamics.");
         data.Add("attribute_events", "run_id,tick,entity_id,attribute_id,old_value,new_value,delta,source_code_id", "Attribute events explain stock changes.");
         data.Add("movement_events", "run_id,tick,entity_id,plane_code,source_code_id,from_q,from_r,from_s,to_q,to_r,to_s,distance", "Movement events explain physical and semantic motion.");
-        data.Add("trace_events", "run_id,tick,plan_id,entity_id,trace_subject_code,candidate_index,parent_candidate_index,action_family_code,action_id,effect_scope_code,effect_value_id,effect_kind_id,target_entity_id,status_code,urgency,reward_or_base_score,raw_weight,adjusted_weight", "Raw trace events remain primitive payload, not the semantic analysis contract.");
-        data.Add("planner_traces", "run_id,start_tick,end_tick,entity_id,plan_id,status_code,candidate_count,step_count,reason_code_id,total_score,start_sequence,end_sequence,dropped_event_count", "Planner traces own plan-level status.");
-        data.Add("planner_goals", "run_id,tick,entity_id,kind_id,plan_id,goal_id,effect_scope_code,effect_value_id,effect_kind_id,target_entity_id,urgency,parent_goal_id,depth,is_actionable,blocker_ref,support_rule_source_id", "Planner goals need desired effect, target, parent, blocker, and support source.");
-        data.Add("planner_candidates", "run_id,tick,entity_id,kind_id,plan_id,goal_id,candidate_index,parent_candidate_index,action_id,provider_entity_id,target_entity_id,effect_scope_code,effect_value_id,effect_kind_id,raw_score,adjusted_score,reward_score,precondition_status_code,diagnostic_code,cooldown_state_code,locality_id,selected", "Planner candidates explain why actions won or lost.");
-        data.Add("planner_scores", "run_id,tick,entity_id,plan_id,goal_id,candidate_index,reason_code_id,score_delta,running_total", "Score contribution rows explain utility decisions.");
-        data.Add("planner_steps", "run_id,tick,entity_id,plan_id,goal_id,step_index,action_id,target_entity_id,relationship_kind_id,step_role_code", "Committed steps connect selected candidates to execution.");
-        data.Add("planner_localities", "run_id,tick,entity_id,kind_id,plan_id,locality_id,plane_code,q,r,s,anchor_entity_id,bundle_score,goal_count,distinct_target_count,distinct_effect_count,distance,is_current,is_committed,selected", "Locality bundles belong to the planner/action trace family.");
-        data.Add("action_executions", "run_id,tick,entity_id,kind_id,plan_id,goal_id,step_index,action_id,target_entity_id,state_code,affected_entity_id,locality_id", "Executed actions must be queryable without mixing planner rows.");
+        data.Add("trace_events", "run_id,tick,intent_id,entity_id,trace_subject_code,candidate_index,parent_candidate_index,action_family_code,action_id,effect_scope_code,effect_value_id,effect_kind_id,target_entity_id,status_code,affordance_source_kind_code,affordance_source_id,affordance_shape_code,urgency,reward_or_base_score,raw_weight,adjusted_weight,affordance_score,affordance_bonus", "Raw trace events remain primitive payload, not the semantic analysis contract.");
         data.Add("map_cell_events", "run_id,tick,event_type_code,source_code_id,cause_id,q,r,previous_terrain_id,current_terrain_id,previous_owner_entity_id,current_owner_entity_id", "Cell mutation history owns terrain and coverage changes.");
         data.Add("cell_influence_events", "run_id,tick,source_code_id,action_id,entity_id,plane_code,q,r,previous_influence,current_influence,delta", "Cell influence events own plane-aware influence deltas for the low-altitude map layer.");
         data.Add("cell_road_events", "run_id,tick,source_code_id,plane_code,q,r,travel_count,previous_quality,current_quality,delta", "Cell road events own plane-aware road creation and reinforcement facts.");
@@ -553,15 +476,15 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("gambit_success_rate", "gambit_id,attempt_count,success_count,failure_count,success_rate,first_attempt_tick,last_attempt_tick,distinct_actors,distinct_targets", "Gambit success rate must be directly queryable from attempted gambits, not inferred from permanent relationship creation.");
         data.Add("generator_balance", "generator_id,pulses,eligible_pulses,blocked_pulses,eligible_not_selected_pulses,fired_count,fire_failed_pulses,selection_rate_when_eligible,average_target_pool,average_candidate_count,created_entity_count,created_relationship_count,created_map_cell_count,primary_blocker_code", "Generator balance explains pulse, rejection, and output counts.");
         data.Add("generated_subtype_coverage", "generator_id,kind_id,subtype_id,produced_count", "Generated subtype coverage tracks generator output coverage.");
-        data.Add("low_altitude_verb_utilization", "kind_id,verb_id,operation_code,plane_code,target_mode_code,target_kind_id,trace_event_count,offered_count,selected_count,no_target_count,selection_rate_when_offered,average_selected_weight,distinct_entities", "Low-altitude verb utilization is the active verb-deck report for movement and influence physics.");
+        data.Add("low_altitude_verb_utilization", "kind_id,verb_id,operation_code,plane_code,target_mode_code,target_kind_id,trace_event_count,offered_count,selected_count,no_target_count,selection_rate_when_offered,average_selected_weight,average_selected_affordance_score,average_selected_affordance_bonus,selected_with_affordance_count,distinct_entities", "Low-altitude verb utilization is the active verb-deck report for movement and influence physics.");
+        data.Add("low_altitude_affordance_utilization", "source_kind_code,source_id,shape_code,verb_id,operation_code,plane_code,target_mode_code,target_kind_id,offered_count,selected_count,selection_rate_when_offered,average_offered_score,average_selected_score,average_offered_bonus,average_selected_bonus,distinct_entities", "Low-altitude affordance utilization shows which generator and gambit affordances are affecting verb candidates.");
         data.Add("entity_roaming", "run_id,entity_id,kind_id,subtype_id,culture_id,status_code,plane_code,move_count,total_distance,unique_positions,roam_radius_max,roam_radius_p95,path_efficiency", "Entity roaming measures physical and semantic variance without treating movement volume as failure.");
         data.Add("roaming_summary", "kind_id,plane_code,entity_count,mover_count,zero_move_share,average_move_count,average_unique_positions,average_roam_radius,p50_roam_radius,p75_roam_radius,p95_roam_radius,overclustered_roam_share", "Roaming summary tracks whether entities actually traverse meaningful space by kind and plane.");
         data.Add("influence_dynamics", "run_id,entity_id,plane_code,kind_id,subtype_id,event_count,positive_delta_events,negative_delta_events,net_influence_delta,influenced_cell_count,average_final_influence,max_final_influence,isolated_cell_count,neighbor_connection_count,mean_anchor_distance,p95_anchor_distance,max_anchor_distance", "Influence dynamics tracks low-altitude settlement/faction influence shape and discontinuity by plane.");
         data.Add("road_creation", "run_id,plane_code,road_cell_count,light_road_cell_count,heavy_road_cell_count,total_travel_count,total_quality_delta,average_final_quality,max_quality,first_road_tick,last_road_tick", "Road creation tracks whether travel is creating persistent road surface by plane.");
         data.Add("road_usage", "run_id,plane_code,move_count,road_move_count,heavy_road_move_count,road_move_share,heavy_road_move_share,average_destination_road_quality,total_distance", "Road usage tracks observed movement onto already-roaded cells without claiming candidate prioritization.");
         data.Add("road_reinforcement", "run_id,plane_code,road_cell_count,reused_road_cell_count,reused_road_cell_share,positive_reinforcement_event_count,average_moves_before_road,average_moves_after_road,average_moves_after_light_road,average_moves_after_heavy_road,average_travel_count,average_final_quality,max_quality", "Road reinforcement tracks whether created roads receive later movement and quality growth.");
-        data.Add("action_utilization", "kind_id,action_id,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic_code,evidence_source_code", "Action utilization must include candidate and blocker diagnostics.");
-        data.Add("planner_utilization", "kind_id,evaluations,goal_count,candidate_count,stale_rate,no_execution_rate,average_candidate_count,top_executed_action_id,top_action_share_of_executions", "Planner utilization summarizes planner status and selected actions.");
+        data.Add("action_utilization", "kind_id,action_id,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic_code,evidence_source_code", "Action utilization must be derived from current trace telemetry.");
         data.Add("stock_dynamics", "run_id,entity_id,kind_id,attribute_id,sample_count,minimum_observed,maximum_observed,variance,reversal_count,dwell_low_ticks,dwell_mid_ticks,dwell_high_ticks,pinned_low_ticks,pinned_high_ticks,normalized_range", "Stock dynamics answers whether entity stocks fluctuate or pin.");
         data.Add("map_spread", "run_id,snapshot_tick,total_cell_count,active_entities,activity_event_count,activity_cells,activity_cell_share,activity_entropy,activity_top_cell_share,activity_bounding_box_area,activity_coverage_within_bounding_box,activity_axis_anisotropy,largest_unoccupied_strict_hex_radius", "Map spread measures activity footprint, concentration, corridor bias, and strict empty radius.");
         data.Add("coverage_development", "run_id,owner_entity_id,coverage_kind_code,initial_cell_count,final_cell_count,cell_growth,terrain_mix_count,active_entities_inside", "Coverage development measures named coverage growth.");

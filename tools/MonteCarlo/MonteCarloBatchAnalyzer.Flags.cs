@@ -46,35 +46,12 @@ internal sealed partial class MonteCarloBatchAnalyzer
         List<AnalysisFlagRow> flags,
         TelemetryCoverage telemetryCoverage)
     {
-        if (telemetryCoverage.ActionExecutionRows == 0 && telemetryCoverage.PlannerCandidateRows > 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "telemetry",
-                Severity: "warning",
-                Message: "Planner evaluations were recorded, but action execution rows are unavailable; action utilization cannot report selected action utilization."));
-        }
-        else if (telemetryCoverage.ActionExecutionRows > 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "telemetry",
-                Severity: "info",
-                Message: "Action execution telemetry is available as background context; current low-altitude tuning should use low-altitude verb utilization."));
-        }
-
         if (telemetryCoverage.MapSnapshotRows == 0)
         {
             flags.Add(new AnalysisFlagRow(
                 Category: "telemetry",
                 Severity: "warning",
                 Message: "Map snapshots are unavailable; terrain occupancy and physical occupied-share denominators are incomplete."));
-        }
-
-        if (telemetryCoverage.LocalityOpportunityRows == 0 && telemetryCoverage.PlannerTraceRows > 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "telemetry",
-                Severity: "info",
-                Message: "Locality opportunity rows are unavailable; locality analysis is limited to selected planner traces and action locality rollups."));
         }
 
         if (telemetryCoverage.LowAltitudeTraceRows == 0)

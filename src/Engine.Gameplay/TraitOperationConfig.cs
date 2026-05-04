@@ -69,7 +69,7 @@ public sealed class TraitLowAltitudeWeightOperationConfig : ITraitOperationConfi
 
     public float CrowdingWeightDelta { get; init; }
 
-    public float GeneratorAffordanceWeightDelta { get; init; }
+    public float AffordanceWeightDelta { get; init; }
 
     public float RelationshipAffinityWeightDelta { get; init; }
 }

@@ -30,7 +30,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private float[] _stalenessWeights = [];
     private float[] _hotspotWeights = [];
     private float[] _crowdingWeights = [];
-    private float[] _generatorAffordanceWeights = [];
+    private float[] _verbAffordanceWeights = [];
     private int[] _foreignInfluenceFilterEnabled = [];
     private int[] _foreignInfluenceBlockPositiveRelationships = [];
     private int[] _foreignInfluenceAllowNegativeRelationships = [];
@@ -48,10 +48,19 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _initialInfluenceKindIds = [];
     private int[] _initialInfluencePlaneCodes = [];
     private float[] _initialInfluenceValues = [];
+    private int[] _affordanceSourceKindCodes = [];
+    private int[] _affordanceSourceIds = [];
+    private int[] _affordanceShapeCodes = [];
     private int[] _affordanceActorKindIds = [];
+    private int[] _affordancePlaneCodes = [];
     private int[] _affordanceCandidateKindIds = [];
-    private int[] _affordanceBindingKindIds = [];
-    private float[] _affordanceScores = [];
+    private int[] _affordanceRelationshipKindIds = [];
+    private int[] _affordanceRelationshipDirectionCodes = [];
+    private int[] _affordanceOperationCodes = [];
+    private int[] _affordanceTerrainIds = [];
+    private int[] _affordancePolarityCodes = [];
+    private float[] _affordanceThresholds = [];
+    private float[] _affordanceWeights = [];
     private int[] _traitModifierKindIds = [];
     private int[] _traitModifierTraitIds = [];
     private int[] _traitModifierVerbIds = [];
@@ -60,13 +69,13 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private float[] _traitModifierStalenessWeightDeltas = [];
     private float[] _traitModifierHotspotWeightDeltas = [];
     private float[] _traitModifierCrowdingWeightDeltas = [];
-    private float[] _traitModifierGeneratorAffordanceWeightDeltas = [];
+    private float[] _traitModifierAffordanceWeightDeltas = [];
     private float[] _traitModifierRelationshipAffinityWeightDeltas = [];
     private int _ruleCount;
     private int _terrainCount;
     private int _stepCount;
     private int _initialInfluenceRuleCount;
-    private int _affordanceKindPairCount;
+    private int _affordanceCount;
     private int _traitWeightModifierCount;
     private int _semanticMinQ = -24;
     private int _semanticMaxQ = 24;
@@ -134,7 +143,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _stalenessWeights = new float[ruleLength];
         _hotspotWeights = new float[ruleLength];
         _crowdingWeights = new float[ruleLength];
-        _generatorAffordanceWeights = new float[ruleLength];
+        _verbAffordanceWeights = new float[ruleLength];
         _foreignInfluenceFilterEnabled = new int[ruleLength];
         _foreignInfluenceBlockPositiveRelationships = new int[ruleLength];
         _foreignInfluenceAllowNegativeRelationships = new int[ruleLength];
@@ -164,10 +173,19 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     private void InitializeAffordanceArrays(int itemLength)
     {
+        _affordanceSourceKindCodes = new int[itemLength];
+        _affordanceSourceIds = new int[itemLength];
+        _affordanceShapeCodes = new int[itemLength];
         _affordanceActorKindIds = new int[itemLength];
+        _affordancePlaneCodes = new int[itemLength];
         _affordanceCandidateKindIds = new int[itemLength];
-        _affordanceBindingKindIds = new int[itemLength];
-        _affordanceScores = new float[itemLength];
+        _affordanceRelationshipKindIds = new int[itemLength];
+        _affordanceRelationshipDirectionCodes = new int[itemLength];
+        _affordanceOperationCodes = new int[itemLength];
+        _affordanceTerrainIds = new int[itemLength];
+        _affordancePolarityCodes = new int[itemLength];
+        _affordanceThresholds = new float[itemLength];
+        _affordanceWeights = new float[itemLength];
     }
 
     private void InitializeTraitWeightModifierArrays(int itemLength)
@@ -180,19 +198,19 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _traitModifierStalenessWeightDeltas = new float[itemLength];
         _traitModifierHotspotWeightDeltas = new float[itemLength];
         _traitModifierCrowdingWeightDeltas = new float[itemLength];
-        _traitModifierGeneratorAffordanceWeightDeltas = new float[itemLength];
+        _traitModifierAffordanceWeightDeltas = new float[itemLength];
         _traitModifierRelationshipAffinityWeightDeltas = new float[itemLength];
     }
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 6;
+    public int SchemaVersion => 7;
 
     public int RuleCount => _ruleCount;
 
     public int InitialInfluenceRuleCount => _initialInfluenceRuleCount;
 
-    public int AffordanceKindPairCount => _affordanceKindPairCount;
+    public int AffordanceCount => _affordanceCount;
 
     public int TraitWeightModifierCount => _traitWeightModifierCount;
 
@@ -252,7 +270,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _stalenessWeights[slot] = registration.StalenessWeight;
         _hotspotWeights[slot] = registration.HotspotWeight;
         _crowdingWeights[slot] = registration.CrowdingWeight;
-        _generatorAffordanceWeights[slot] = registration.GeneratorAffordanceWeight;
+        _verbAffordanceWeights[slot] = registration.AffordanceWeight;
         _foreignInfluenceFilterEnabled[slot] = ClampFlag(registration.ForeignInfluenceFilterEnabled);
         _foreignInfluenceBlockPositiveRelationships[slot] = ClampFlag(registration.ForeignInfluenceBlockPositiveRelationships);
         _foreignInfluenceAllowNegativeRelationships[slot] = ClampFlag(registration.ForeignInfluenceAllowNegativeRelationships);
@@ -320,26 +338,54 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         return _initialInfluenceRuleCount;
     }
 
-    public int RegisterGeneratorAffordance(
+    public int RegisterAffordance(
+        int sourceKindCode,
+        int sourceId,
+        int shapeCode,
         int actorKindId,
+        int planeCode,
         int candidateKindId,
-        int bindingKindId,
-        float affordanceScore)
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        int operationCode,
+        int terrainId,
+        int polarityCode,
+        float threshold,
+        float weight)
     {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceKindCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceId);
+        ValidatePositive(shapeCode);
         ValidatePositive(actorKindId);
-        ValidatePositive(candidateKindId);
-        ValidatePositive(bindingKindId);
-        if (_affordanceKindPairCount + 1 >= _affordanceActorKindIds.Length)
+        ValidateOptionalPlaneCode(planeCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(candidateKindId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipDirectionCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(operationCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(terrainId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(polarityCode);
+        if (_affordanceCount + 1 >= _affordanceActorKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        _affordanceKindPairCount++;
-        _affordanceActorKindIds[_affordanceKindPairCount] = actorKindId;
-        _affordanceCandidateKindIds[_affordanceKindPairCount] = candidateKindId;
-        _affordanceBindingKindIds[_affordanceKindPairCount] = bindingKindId;
-        _affordanceScores[_affordanceKindPairCount] = global::System.Math.Max(0f, affordanceScore);
-        return _affordanceKindPairCount;
+        _affordanceCount++;
+        _affordanceSourceKindCodes[_affordanceCount] = sourceKindCode;
+        _affordanceSourceIds[_affordanceCount] = sourceId;
+        _affordanceShapeCodes[_affordanceCount] = shapeCode;
+        _affordanceActorKindIds[_affordanceCount] = actorKindId;
+        _affordancePlaneCodes[_affordanceCount] = planeCode;
+        _affordanceCandidateKindIds[_affordanceCount] = candidateKindId;
+        _affordanceRelationshipKindIds[_affordanceCount] = relationshipKindId;
+        _affordanceRelationshipDirectionCodes[_affordanceCount] = relationshipDirectionCode == 0
+            ? LowAltitudeVerbRelationshipDirectionCodes.Either
+            : relationshipDirectionCode;
+        _affordanceOperationCodes[_affordanceCount] = operationCode;
+        _affordanceTerrainIds[_affordanceCount] = terrainId;
+        _affordancePolarityCodes[_affordanceCount] = polarityCode;
+        _affordanceThresholds[_affordanceCount] = global::System.Math.Max(0f, threshold);
+        _affordanceWeights[_affordanceCount] = global::System.Math.Max(0f, weight);
+        return _affordanceCount;
     }
 
     public int RegisterTraitWeightModifier(
@@ -351,7 +397,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         float stalenessWeightDelta,
         float hotspotWeightDelta,
         float crowdingWeightDelta,
-        float generatorDelta,
+        float affordanceDelta,
         float relationshipAffinityWeightDelta)
     {
         ValidatePositive(kindId);
@@ -371,7 +417,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _traitModifierStalenessWeightDeltas[_traitWeightModifierCount] = stalenessWeightDelta;
         _traitModifierHotspotWeightDeltas[_traitWeightModifierCount] = hotspotWeightDelta;
         _traitModifierCrowdingWeightDeltas[_traitWeightModifierCount] = crowdingWeightDelta;
-        _traitModifierGeneratorAffordanceWeightDeltas[_traitWeightModifierCount] = generatorDelta;
+        _traitModifierAffordanceWeightDeltas[_traitWeightModifierCount] = affordanceDelta;
         _traitModifierRelationshipAffinityWeightDeltas[_traitWeightModifierCount] = relationshipAffinityWeightDelta;
         return _traitWeightModifierCount;
     }
@@ -412,7 +458,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float CrowdingWeight(int rule) => _crowdingWeights[rule];
 
-    public float GeneratorAffordanceWeight(int rule) => _generatorAffordanceWeights[rule];
+    public float VerbAffordanceWeight(int rule) => _verbAffordanceWeights[rule];
 
     public bool ForeignInfluenceFilterEnabled(int rule) => _foreignInfluenceFilterEnabled[rule] != 0;
 
@@ -458,13 +504,31 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float StepFloatArgument(int step) => StepFloatArguments[step];
 
+    public int AffordanceSourceKindCode(int rule) => _affordanceSourceKindCodes[rule];
+
+    public int AffordanceSourceId(int rule) => _affordanceSourceIds[rule];
+
+    public int AffordanceShapeCode(int rule) => _affordanceShapeCodes[rule];
+
     public int AffordanceActorKindId(int rule) => _affordanceActorKindIds[rule];
+
+    public int AffordancePlaneCode(int rule) => _affordancePlaneCodes[rule];
 
     public int AffordanceCandidateKindId(int rule) => _affordanceCandidateKindIds[rule];
 
-    public int AffordanceBindingKindId(int rule) => _affordanceBindingKindIds[rule];
+    public int AffordanceRelationshipKindId(int rule) => _affordanceRelationshipKindIds[rule];
 
-    public float AffordanceScore(int rule) => _affordanceScores[rule];
+    public int AffordanceRelationshipDirectionCode(int rule) => _affordanceRelationshipDirectionCodes[rule];
+
+    public int AffordanceOperationCode(int rule) => _affordanceOperationCodes[rule];
+
+    public int AffordanceTerrainId(int rule) => _affordanceTerrainIds[rule];
+
+    public int AffordancePolarityCode(int rule) => _affordancePolarityCodes[rule];
+
+    public float AffordanceThreshold(int rule) => _affordanceThresholds[rule];
+
+    public float AffordanceWeight(int rule) => _affordanceWeights[rule];
 
     public DecisionModifier ReadDecisionModifier(int rule) =>
         new(
@@ -477,7 +541,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             _traitModifierStalenessWeightDeltas[rule],
             _traitModifierHotspotWeightDeltas[rule],
             _traitModifierCrowdingWeightDeltas[rule],
-            _traitModifierGeneratorAffordanceWeightDeltas[rule],
+            _traitModifierAffordanceWeightDeltas[rule],
             _traitModifierRelationshipAffinityWeightDeltas[rule]);
 
     public bool TerrainAllowed(int rule, int terrainId)
@@ -543,6 +607,14 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private static void ValidatePlaneCode(int planeCode)
     {
         if (planeCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
+        }
+    }
+
+    private static void ValidateOptionalPlaneCode(int planeCode)
+    {
+        if (planeCode is not PlaneCodes.None and not PlaneCodes.Physical and not PlaneCodes.Semantic)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
         }

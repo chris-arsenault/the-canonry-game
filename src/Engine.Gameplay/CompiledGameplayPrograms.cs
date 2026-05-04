@@ -6,7 +6,7 @@ public sealed class LowAltitudeVerbProgram
     public CompiledSemanticPlaneBounds SemanticBounds { get; init; } = new(-24, 24, -24, 24);
     public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
     public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
-    public IReadOnlyList<CompiledGeneratorAffordanceRule> GeneratorAffordances { get; init; } = [];
+    public IReadOnlyList<CompiledAffordanceRule> Affordances { get; init; } = [];
     public IReadOnlyList<CompiledTraitLowAltitudeWeightModifierRule> TraitWeightModifiers { get; init; } = [];
 }
 
@@ -36,7 +36,7 @@ public sealed record LowAltitudeVerbRule(
     float StalenessWeight,
     float HotspotWeight,
     float CrowdingWeight,
-    float GeneratorAffordanceWeight,
+    float AffordanceWeight,
     bool ForeignInfluenceFilterEnabled,
     bool ForeignInfluenceBlockPositiveRelationships,
     bool ForeignInfluenceAllowNegativeRelationships,
@@ -63,11 +63,20 @@ public sealed record CompiledInitialInfluenceRule(
     int PlaneCode,
     float InfluenceValue);
 
-public sealed record CompiledGeneratorAffordanceRule(
+public sealed record CompiledAffordanceRule(
+    int SourceKindCode,
+    int SourceId,
+    int ShapeCode,
     int ActorKindId,
+    int PlaneCode,
     int CandidateKindId,
-    int BindingKindId,
-    float AffordanceScore);
+    int RelationshipKindId,
+    int RelationshipDirectionCode,
+    int OperationCode,
+    int TerrainId,
+    int PolarityCode,
+    float Threshold,
+    float Weight);
 
 public sealed record CompiledTraitLowAltitudeWeightModifierRule(
     int KindId,
@@ -78,7 +87,7 @@ public sealed record CompiledTraitLowAltitudeWeightModifierRule(
     float StalenessWeightDelta,
     float HotspotWeightDelta,
     float CrowdingWeightDelta,
-    float GeneratorAffordanceWeightDelta,
+    float AffordanceWeightDelta,
     float RelationshipAffinityWeightDelta);
 
 public sealed class MapActivityProgram

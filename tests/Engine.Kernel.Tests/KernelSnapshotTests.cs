@@ -141,10 +141,7 @@ public sealed class KernelSnapshotTests
             GambitCapacity = 4,
             GambitStepCapacity = 16,
             GambitCooldownCapacity = 16,
-            GambitObjectiveCapacity = 4,
             GambitProviderSelectorCapacity = 4,
-            GambitSupportRuleCapacity = 4,
-            GambitCommitmentCapacity = 16,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 16,
             DegeneracyDetectorCapacity = 4,
@@ -166,20 +163,6 @@ public sealed class KernelSnapshotTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                Planning = new PlanningProgramTuningOptions
-                {
-                    DefaultPlannerKindCode = PlannerKindCodes.Opportunity,
-                    GoapTargetReservationsEnabled = true,
-                    OpportunityTargetCapacity = 3,
-                    KindPlannerOverrides =
-                    [
-                        new PlanningKindPlannerOverride(1, PlannerKindCodes.Goap),
-                    ],
-                    EntityPlannerOverrides =
-                    [
-                        new PlanningEntityPlannerOverride(2, PlannerKindCodes.Opportunity),
-                    ],
-                },
                 Upkeep = new UpkeepProgramTuningOptions
                 {
                     AgingModelCode = UpkeepAgingModelCodes.LateLife,
@@ -213,15 +196,6 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
-        Assert.Equal(PlannerKindCodes.Opportunity, loaded.Options.KernelTuning.Programs.Planning.DefaultPlannerKindCode);
-        Assert.True(loaded.Options.KernelTuning.Programs.Planning.GoapTargetReservationsEnabled);
-        Assert.Equal(3, loaded.Options.KernelTuning.Programs.Planning.OpportunityTargetCapacity);
-        Assert.Contains(loaded.Options.KernelTuning.Programs.Planning.KindPlannerOverrides, item =>
-            item.KindId == 1 && item.PlannerKindCode == PlannerKindCodes.Goap);
-        Assert.Contains(loaded.Options.KernelTuning.Programs.Planning.EntityPlannerOverrides, item =>
-            item.EntityId == 2 && item.PlannerKindCode == PlannerKindCodes.Opportunity);
-        Assert.Equal(PlannerKindCodes.Goap, loaded.Planners.PlannerKindFor(1, actor));
-        Assert.Equal(PlannerKindCodes.Opportunity, loaded.Planners.PlannerKindFor(1, target));
         Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(expectedRandom, loaded.NextInt(10000));

@@ -126,7 +126,7 @@ internal struct LowAltitudeDecisionModifierTotals
     public float StalenessWeight;
     public float HotspotWeight;
     public float CrowdingWeight;
-    public float GeneratorAffordanceWeight;
+    public float AffordanceWeight;
     public float RelationshipAffinityWeight;
 
     public void Add(in DecisionModifier modifier)
@@ -136,7 +136,7 @@ internal struct LowAltitudeDecisionModifierTotals
         StalenessWeight += modifier.Value2;
         HotspotWeight += modifier.Value3;
         CrowdingWeight += modifier.Value4;
-        GeneratorAffordanceWeight += modifier.Value5;
+        AffordanceWeight += modifier.Value5;
         RelationshipAffinityWeight += modifier.Value6;
     }
 }

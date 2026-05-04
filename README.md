@@ -50,9 +50,10 @@ Degeneracy
 ```
 
 The removed low-altitude process deck and macro aggregate layer are not part of
-the current runtime. Behavior bytecode and planning infrastructure remain for
-gambits, and shared query/effect/decision primitives are used by generators,
-gambits, traits, and low-altitude trait modifiers.
+the current runtime. Gambits now execute opportunistically from shared
+query/effect/decision primitives instead of routing through planner
+infrastructure, and those primitives are also used by generators, traits, and
+low-altitude trait modifiers.
 
 ## Commands
 

@@ -61,7 +61,7 @@ public static class GameplayCompiler
                 verb.StalenessWeight,
                 verb.HotspotWeight,
                 verb.CrowdingWeight,
-                verb.GeneratorAffordanceWeight,
+                verb.AffordanceWeight,
                 foreignTargeting.Enabled,
                 foreignTargeting.BlockPositiveRelationships,
                 foreignTargeting.AllowNegativeRelationships,
@@ -84,7 +84,7 @@ public static class GameplayCompiler
             SemanticBounds = CompileSemanticBounds(definition.SemanticPlane),
             Verbs = rules,
             InitialInfluence = CompileInitialInfluenceRules(definition, context),
-            GeneratorAffordances = CompileGeneratorAffordances(context),
+            Affordances = CompileAffordances(context),
             TraitWeightModifiers = CompileTraitLowAltitudeWeightModifiers(context),
         };
     }
@@ -123,21 +123,42 @@ public static class GameplayCompiler
         return rules;
     }
 
-    private static List<CompiledGeneratorAffordanceRule> CompileGeneratorAffordances(
+    private static List<CompiledAffordanceRule> CompileAffordances(
         IGameplayCompilationContext context)
     {
-        var rules = new List<CompiledGeneratorAffordanceRule>();
-        foreach (var affordance in context.GeneratorAffordances())
+        var rules = new List<CompiledAffordanceRule>();
+        foreach (var affordance in context.Affordances())
         {
-            rules.Add(new CompiledGeneratorAffordanceRule(
-                context.ResolveKindId(affordance.ActorKind, "Generator affordance actor kind"),
-                context.ResolveKindId(affordance.CandidateKind, "Generator affordance candidate kind"),
-                context.ResolveKindId(affordance.BindingKind, "Generator affordance binding kind"),
-                1f));
+            rules.Add(new CompiledAffordanceRule(
+                affordance.SourceKindCode,
+                AffordanceSourceId(affordance, context),
+                affordance.ShapeCode,
+                context.ResolveKindId(affordance.ActorKind, "Affordance actor kind"),
+                affordance.Plane is null ? PlaneCodes.None : PlaneCode(affordance.Plane),
+                affordance.CandidateKind is null
+                    ? 0
+                    : context.ResolveKindId(affordance.CandidateKind, "Affordance candidate kind"),
+                affordance.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(affordance.RelationshipKind),
+                affordance.RelationshipDirectionCode,
+                affordance.OperationCode,
+                affordance.Terrain is null ? 0 : context.ResolveTerrainId(affordance.Terrain),
+                affordance.PolarityCode,
+                affordance.Threshold,
+                affordance.Weight));
         }
 
         return rules;
     }
+
+    private static int AffordanceSourceId(
+        AffordanceDefinition affordance,
+        IGameplayCompilationContext context) =>
+        affordance.SourceKindCode switch
+        {
+            AffordanceSourceKindCodes.Generator => context.ResolveGeneratorId(affordance.Source),
+            AffordanceSourceKindCodes.Gambit => context.ResolveGambitId(affordance.Source, "Affordance gambit source"),
+            _ => 0,
+        };
 
     private static List<CompiledTraitLowAltitudeWeightModifierRule> CompileTraitLowAltitudeWeightModifiers(
         IGameplayCompilationContext context)
@@ -159,7 +180,7 @@ public static class GameplayCompiler
                 operation.StalenessWeightDelta,
                 operation.HotspotWeightDelta,
                 operation.CrowdingWeightDelta,
-                operation.GeneratorAffordanceWeightDelta,
+                operation.AffordanceWeightDelta,
                 operation.RelationshipAffinityWeightDelta));
         }
 
@@ -449,6 +470,8 @@ public interface IGameplayCompilationContext
     int ResolveKindId(string kind, string context);
     int PrimaryPlaneCodeForKind(string kind, string context);
     int ResolveVerbId(string verb);
+    int ResolveGeneratorId(string generator);
+    int ResolveGambitId(string gambit, string context);
     int ResolveTerrainId(string terrain);
     int ResolveRelationshipKindId(string relationship);
     int ResolveAttributeId(string attribute);
@@ -456,17 +479,27 @@ public interface IGameplayCompilationContext
     bool RelationshipExists(string relationship);
     int ResolveTraitId(string trait);
     bool KindHasAttribute(string kind, string attribute);
-    IReadOnlyList<GeneratorAffordanceDefinition> GeneratorAffordances();
+    IReadOnlyList<AffordanceDefinition> Affordances();
     IReadOnlyList<TraitOperationDefinition> TraitOperations();
 }
 
 /// <summary>
 /// Adapter boundary normally backed by the domain's DomainIdRegistry.
 /// </summary>
-public sealed record GeneratorAffordanceDefinition(
+public sealed record AffordanceDefinition(
+    int SourceKindCode,
+    string Source,
+    int ShapeCode,
     string ActorKind,
-    string CandidateKind,
-    string BindingKind);
+    string? Plane = null,
+    string? CandidateKind = null,
+    string? RelationshipKind = null,
+    int RelationshipDirectionCode = RelationshipMatchDirectionCodes.Either,
+    int OperationCode = 0,
+    string? Terrain = null,
+    int PolarityCode = AffordancePolarityCodes.None,
+    float Threshold = 0f,
+    float Weight = 1f);
 
 /// <summary>
 /// Gameplay-owned KernelPrograms payload compiled down for host installation.

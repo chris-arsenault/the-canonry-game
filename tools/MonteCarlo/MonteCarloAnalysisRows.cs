@@ -10,7 +10,6 @@ internal sealed class MonteCarloAnalysisReport
     public required IReadOnlyList<LowAltitudeVerbSummaryRow> LowAltitudeVerbUtilization { get; init; }
     public required IReadOnlyList<RoamingSummaryRow> RoamingSummary { get; init; }
     public required IReadOnlyList<InfluenceSummaryRow> InfluenceSummary { get; init; }
-    public required IReadOnlyList<PlannerUtilizationRow> PlannerUtilization { get; init; }
     public required IReadOnlyList<ActionUtilizationRow> ActionUtilization { get; init; }
     public required IReadOnlyList<AttributeBandSummaryRow> AttributeBands { get; init; }
     public required IReadOnlyList<MapSpreadSummaryRow> MapSpread { get; init; }
@@ -102,15 +101,6 @@ internal sealed record InfluenceSummaryRow(
     double AverageNetInfluenceDelta,
     double AverageMeanAnchorDistance,
     double AverageMaxAnchorDistance);
-
-internal sealed record PlannerUtilizationRow(
-    string Kind,
-    int Evaluations,
-    double StaleRate,
-    double NoExecutionRate,
-    double AverageCandidateCount,
-    string TopExecutedAction,
-    double TopActionShareOfExecutions);
 
 internal sealed record ActionUtilizationRow(
     string Kind,

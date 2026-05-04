@@ -45,6 +45,33 @@ public sealed class IceRemembersGambitDefinitionTests
     }
 
     [Fact]
+    public void IceRemembers_GambitScoresAreSituationDependent()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var situationCodes = new[]
+        {
+            BehaviorProgramExpression.SelfAttribute,
+            BehaviorProgramExpression.TargetAttribute,
+        };
+
+        Assert.All(compiled.Programs.Gambits.Gambits, gambit =>
+        {
+            Assert.Contains(gambit.ScoreExpression, expression => situationCodes.Contains(expression.Code));
+            Assert.Contains(gambit.ScoreExpression, expression => expression.Code != BehaviorProgramExpression.Literal);
+        });
+    }
+
+    [Fact]
+    public void IceRemembers_GambitScoresDoNotRestatePhysicalRangeGates()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+
+        Assert.All(compiled.Programs.Gambits.Gambits, gambit =>
+            Assert.DoesNotContain(gambit.ScoreExpression, expression =>
+                expression.Code == BehaviorProgramExpression.Distance));
+    }
+
+    [Fact]
     public void IceRemembers_GambitsUseRelationshipAndMovementEffects()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());

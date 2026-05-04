@@ -39,7 +39,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -90,7 +90,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -145,7 +145,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -193,7 +193,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -286,7 +286,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             affinityRelationshipKindId: affinityRelationshipKindId,
             affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
             relationshipAffinityWeight: 1000f,
@@ -303,7 +303,7 @@ public sealed class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
-    public void LowAltitudeVerbProgram_WeightsForeignInfluenceTargetsByGeneratorAffordance()
+    public void LowAltitudeVerbProgram_WeightsForeignInfluenceTargetsByAffordance()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 24 });
         const int terrainId = 1;
@@ -319,7 +319,7 @@ public sealed class LowAltitudePhysicsProgramTests
         var otherInfluencerId = simulation.CreateEntity(otherKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(favoredInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(otherInfluencerId, PlaneCodes.Physical, -1, 0, 100f, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterGeneratorAffordance(actorKindId, favoredKindId, favoredKindId, 3f);
+        RegisterForeignInfluenceAffordance(simulation, actorKindId, favoredKindId);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
@@ -339,7 +339,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 1_000_000f,
+            affordanceWeight: 1_000_000f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -581,7 +581,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 2f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -644,7 +644,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -802,7 +802,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: influenceDelta,
             influenceRadius: influenceRadius,
             coverageGrowthChance: coverageGrowthChance,
@@ -835,7 +835,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             affinityRelationshipKindId: 0,
             affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
             relationshipAffinityWeight: 0f,
@@ -883,7 +883,7 @@ public sealed class LowAltitudePhysicsProgramTests
             stalenessWeight: 0f,
             hotspotWeight: 0f,
             crowdingWeight: 0f,
-            generatorAffordanceWeight: 0f,
+            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -965,6 +965,22 @@ public sealed class LowAltitudePhysicsProgramTests
 
         Assert.Fail("Expected cell influence event attributed to the low-altitude verb action.");
     }
+
+    private static void RegisterForeignInfluenceAffordance(Simulation simulation, int actorKindId, int favoredKindId) =>
+        simulation.LowAltitudeVerbs.RegisterAffordance(
+            sourceKindCode: AffordanceSourceKindCodes.Generator,
+            sourceId: 1,
+            shapeCode: LowAltitudeAffordanceShapeCodes.InfluenceChange,
+            actorKindId: actorKindId,
+            planeCode: PlaneCodes.Physical,
+            candidateKindId: favoredKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: 0,
+            operationCode: ProgramOpcodeCodes.SubtractOtherCellScalar,
+            terrainId: 0,
+            polarityCode: AffordancePolarityCodes.Reduce,
+            threshold: 0f,
+            weight: 3f);
 
     private static void AssertRelationshipChangedByProgram(
         Simulation simulation,

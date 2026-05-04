@@ -18,10 +18,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
-    private readonly Dictionary<(int EntityId, int PlanId), int> _selectedLocalityByEntityPlan = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
-    private readonly HashSet<PlannerStepKey> _recordedPlannerSteps = [];
     private readonly Dictionary<int, Queue<ObservedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
@@ -42,10 +40,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     public static IReadOnlyList<ObservabilityProjectionMigrationItem> FutureMigrationItems { get; } =
     [
-        new(
-            "planner goal detail rows",
-            "goal-created/goal-updated events with desired effect, target, urgency, parent, and actionable state",
-            "GoalGeneratedKernelEvent only reports counts, so PlannerGoalRow cannot be rebuilt without reading live entity goals."),
         new(
             "generated entity attribution",
             "generator-fired event payload listing created entity IDs or creation-cause IDs on EntityCreated",
@@ -530,49 +524,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnGoalScored(long sequence, in GoalScoredKernelEvent evt)
-    {
-        _batch.PlannerScores.Add(new PlannerScoreRow(
-            _runId,
-            evt.Tick,
-            evt.EntityId,
-            evt.PlanId,
-            evt.GoalId,
-            CandidateIndex: 0,
-            evt.ReasonCodeId,
-            evt.ScoreDelta,
-            evt.RunningTotal));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnPlanStepEmitted(long sequence, in PlanStepEmittedKernelEvent evt)
-    {
-        var step = new PlannerStepRow(
-            _runId,
-            evt.Tick,
-            evt.EntityId,
-            evt.PlanId,
-            evt.GoalId,
-            evt.StepIndex,
-            evt.ActionId,
-            evt.TargetEntityId,
-            evt.RelationshipKindId,
-            PlanningStepRoleCodes.Immediate);
-        if (evt.ActionId > 0 && _recordedPlannerSteps.Add(PlannerStepKey.From(step)))
-        {
-            _batch.PlannerSteps.Add(step);
-            AddSelectedPlannerStepCandidate(step);
-        }
-
-        MarkProjected(sequence);
-    }
-
     protected override void OnTrace(long sequence, in TraceKernelEvent evt)
     {
         _batch.TraceEvents.Add(new TraceRow(
             _runId,
             evt.Tick,
-            evt.PlanId,
+            evt.IntentId,
             evt.EntityId,
             evt.TraceSubjectCode,
             evt.CandidateIndex,
@@ -584,11 +541,15 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.EffectKindId,
             evt.TargetEntityId,
             evt.StatusCode,
+            evt.AffordanceSourceKindCode,
+            evt.AffordanceSourceId,
+            evt.AffordanceShapeCode,
             evt.Urgency,
             evt.RewardOrBaseScore,
             evt.RawWeight,
-            evt.AdjustedWeight));
-        ProjectSemanticPlannerTrace(evt);
+            evt.AdjustedWeight,
+            evt.AffordanceScore,
+            evt.AffordanceBonus));
         MarkProjected(sequence);
     }
 

@@ -73,7 +73,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ThrowIfDisposed();
         Flush();
         ExportIdentityTables();
-        ExportPlannerProcessTables();
+        ExportProcessTables();
         ExportWorldTables();
     }
 
@@ -90,16 +90,9 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("experiment_variants");
     }
 
-    private void ExportPlannerProcessTables()
+    private void ExportProcessTables()
     {
-        ExportTable("planner_goals");
-        ExportTable("planner_traces");
-        ExportTable("planner_candidates");
-        ExportTable("planner_scores");
-        ExportTable("planner_steps");
-        ExportTable("planner_localities");
         ExportTable("trace_events");
-        ExportTable("action_executions");
         ExportTable("attribute_events");
         ExportTable("movement_events");
     }
@@ -135,7 +128,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     private void EnsureSchema()
     {
         EnsureIdentitySchema();
-        EnsurePlannerProcessSchema();
+        EnsureProcessSchema();
         EnsureWorldSchema();
     }
 
@@ -152,20 +145,9 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("experiment_variants", typeof(ExperimentVariantRow));
     }
 
-    private void EnsurePlannerProcessSchema()
+    private void EnsureProcessSchema()
     {
-        EnsureTable("planner_goals", typeof(PlannerGoalRow));
-        EnsureTable("planner_traces", typeof(PlannerTraceRow));
-        EnsureTable("planner_trace_goals", typeof(PlannerTraceGoalRow));
-        EnsureTable("planner_trace_scores", typeof(PlannerTraceScoreRow));
-        EnsureTable("planner_trace_steps", typeof(PlannerTraceStepRow));
-        EnsureTable("planner_candidates", typeof(PlannerCandidateRow));
-        EnsureTable("planner_scores", typeof(PlannerScoreRow));
-        EnsureTable("planner_steps", typeof(PlannerStepRow));
-        EnsureTable("planner_localities", typeof(PlannerLocalityRow));
         EnsureTable("trace_events", typeof(TraceRow));
-        EnsureTable("action_executions", typeof(ActionExecutionRow));
-        EnsureTable("locality_opportunities", typeof(LocalityOpportunityRow));
         EnsureTable("attribute_events", typeof(AttributeEventRow));
         EnsureTable("movement_events", typeof(MovementEventRow));
     }
@@ -200,7 +182,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     private void AppendPending()
     {
         AppendIdentityTables();
-        AppendPlannerProcessTables();
+        AppendProcessTables();
         AppendWorldTables();
     }
 
@@ -217,20 +199,9 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("experiment_variants", _pending.ExperimentVariants);
     }
 
-    private void AppendPlannerProcessTables()
+    private void AppendProcessTables()
     {
-        AppendTable("planner_goals", _pending.PlannerGoals);
-        AppendTable("planner_traces", _pending.PlannerTraces);
-        AppendTable("planner_trace_goals", _pending.PlannerTraceGoals);
-        AppendTable("planner_trace_scores", _pending.PlannerTraceScores);
-        AppendTable("planner_trace_steps", _pending.PlannerTraceSteps);
-        AppendTable("planner_candidates", _pending.PlannerCandidates);
-        AppendTable("planner_scores", _pending.PlannerScores);
-        AppendTable("planner_steps", _pending.PlannerSteps);
-        AppendTable("planner_localities", _pending.PlannerLocalities);
         AppendTable("trace_events", _pending.TraceEvents);
-        AppendTable("action_executions", _pending.ActionExecutions);
-        AppendTable("locality_opportunities", _pending.LocalityOpportunities);
         AppendTable("attribute_events", _pending.AttributeEvents);
         AppendTable("movement_events", _pending.MovementEvents);
     }
@@ -299,7 +270,7 @@ internal static class TelemetryBatchExtensions
     {
         ArgumentNullException.ThrowIfNull(batch);
         return CountIdentityRows(batch) +
-               CountPlannerProcessRows(batch) +
+               CountProcessRows(batch) +
                CountWorldRows(batch);
     }
 
@@ -314,19 +285,8 @@ internal static class TelemetryBatchExtensions
         batch.EntityEvents.Count +
         batch.ExperimentVariants.Count;
 
-    private static long CountPlannerProcessRows(TelemetryBatch batch) =>
-        batch.PlannerGoals.Count +
-        batch.PlannerTraces.Count +
-        batch.PlannerTraceGoals.Count +
-        batch.PlannerTraceScores.Count +
-        batch.PlannerTraceSteps.Count +
-        batch.PlannerCandidates.Count +
-        batch.PlannerScores.Count +
-        batch.PlannerSteps.Count +
-        batch.PlannerLocalities.Count +
+    private static long CountProcessRows(TelemetryBatch batch) =>
         batch.TraceEvents.Count +
-        batch.ActionExecutions.Count +
-        batch.LocalityOpportunities.Count +
         batch.AttributeEvents.Count +
         batch.MovementEvents.Count;
 
@@ -354,7 +314,7 @@ internal static class TelemetryBatchExtensions
         ArgumentNullException.ThrowIfNull(destination);
         ArgumentNullException.ThrowIfNull(source);
         AppendIdentityRows(destination, source);
-        AppendPlannerProcessRows(destination, source);
+        AppendProcessRows(destination, source);
         AppendWorldRows(destination, source);
     }
 
@@ -371,20 +331,9 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.ExperimentVariants, source.ExperimentVariants);
     }
 
-    private static void AppendPlannerProcessRows(TelemetryBatch destination, TelemetryBatch source)
+    private static void AppendProcessRows(TelemetryBatch destination, TelemetryBatch source)
     {
-        AppendRows(destination.PlannerGoals, source.PlannerGoals);
-        AppendRows(destination.PlannerTraces, source.PlannerTraces);
-        AppendRows(destination.PlannerTraceGoals, source.PlannerTraceGoals);
-        AppendRows(destination.PlannerTraceScores, source.PlannerTraceScores);
-        AppendRows(destination.PlannerTraceSteps, source.PlannerTraceSteps);
-        AppendRows(destination.PlannerCandidates, source.PlannerCandidates);
-        AppendRows(destination.PlannerScores, source.PlannerScores);
-        AppendRows(destination.PlannerSteps, source.PlannerSteps);
-        AppendRows(destination.PlannerLocalities, source.PlannerLocalities);
         AppendRows(destination.TraceEvents, source.TraceEvents);
-        AppendRows(destination.ActionExecutions, source.ActionExecutions);
-        AppendRows(destination.LocalityOpportunities, source.LocalityOpportunities);
         AppendRows(destination.AttributeEvents, source.AttributeEvents);
         AppendRows(destination.MovementEvents, source.MovementEvents);
     }

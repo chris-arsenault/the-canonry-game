@@ -256,13 +256,8 @@ public static partial class DomainCompiler
     {
         RegisterStructuralFacts(behavior.Reads, structuralFacts, registry);
         RegisterStructuralFacts(behavior.Writes, structuralFacts, registry);
-        RegisterStructuralFacts(behavior.GoalEffects, structuralFacts, registry);
         RegisterStructuralFacts(behavior.ProviderSelectors, structuralFacts, registry);
         RegisterPreconditionStructuralFacts(behavior.Precondition, structuralFacts, registry);
-        foreach (var supportRule in behavior.SupportRules)
-        {
-            RegisterStructuralFactRef(supportRule.DesiredEffect, structuralFacts, registry);
-        }
     }
 
     private static void RegisterStructuralFacts(

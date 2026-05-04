@@ -82,8 +82,6 @@ public enum KernelEventSemanticKind
     DetectorId = 13,
     GeneratorId = 14,
     BehaviorId = 15,
-    GoalId = 16,
-    PlanId = 17,
     GambitId = 18,
     Tick = 19,
     Coordinate = 20,
@@ -116,6 +114,7 @@ public enum KernelEventSemanticKind
     StorageCode = 50,
     Capacity = 51,
     Threshold = 52,
+    IntentId = 53,
 }
 
 public sealed record KernelEventLayoutSlotDescriptor(

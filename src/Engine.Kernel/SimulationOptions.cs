@@ -21,14 +21,10 @@ internal sealed record SimulationOptions
     public int EventCursorCapacity { get; init; } = 32;
     public IKernelEventSchemaValidator? EventSchemaValidator { get; init; }
     public int CommandCapacity { get; init; } = 1024;
-    public int PlanningOverrideCapacity { get; init; } = 512;
     public int GambitCapacity { get; init; } = 256;
     public int GambitStepCapacity { get; init; } = 2048;
     public int GambitCooldownCapacity { get; init; } = 4096;
-    public int GambitObjectiveCapacity { get; init; } = 512;
     public int GambitProviderSelectorCapacity { get; init; } = 512;
-    public int GambitSupportRuleCapacity { get; init; } = 512;
-    public int GambitCommitmentCapacity { get; init; } = 4096;
     public int GeneratorCapacity { get; init; } = 256;
     public int GeneratorItemCapacity { get; init; } = 4096;
     public int DegeneracyDetectorCapacity { get; init; } = 32;
@@ -63,7 +59,6 @@ internal sealed record KernelTuningOptions
 internal sealed record KernelProgramTuningOptions
 {
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
-    public PlanningProgramTuningOptions Planning { get; init; } = new();
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
 }
@@ -81,19 +76,6 @@ internal sealed record ProgramEnabledTuningOptions
     public int Generators { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Degeneracy { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
 }
-
-internal sealed record PlanningProgramTuningOptions
-{
-    public int DefaultPlannerKindCode { get; init; } = PlannerKindCodes.Goap;
-    public bool GoapTargetReservationsEnabled { get; init; }
-    public int OpportunityTargetCapacity { get; init; } = 2;
-    public PlanningKindPlannerOverride[] KindPlannerOverrides { get; init; } = [];
-    public PlanningEntityPlannerOverride[] EntityPlannerOverrides { get; init; } = [];
-}
-
-internal readonly record struct PlanningKindPlannerOverride(int KindId, int PlannerKindCode);
-
-internal readonly record struct PlanningEntityPlannerOverride(int EntityId, int PlannerKindCode);
 
 internal sealed record UpkeepProgramTuningOptions
 {

@@ -27,7 +27,7 @@ public abstract class LowAltitudeVerbConfig
     public float StalenessWeight { get; init; } = 1f;
     public float HotspotWeight { get; init; } = 0.25f;
     public float CrowdingWeight { get; init; } = 0.5f;
-    public float GeneratorAffordanceWeight { get; init; } = 0.5f;
+    public float AffordanceWeight { get; init; } = 0.5f;
     public ForeignInfluenceTargetingConfig? ForeignInfluenceTargeting { get; init; }
     public string? AffinityRelationshipKind { get; init; }
     public LowAltitudeVerbRelationshipDirection AffinityRelationshipDirection { get; init; } =

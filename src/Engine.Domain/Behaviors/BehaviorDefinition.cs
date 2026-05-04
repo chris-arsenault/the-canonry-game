@@ -35,12 +35,6 @@ public abstract class BehaviorDefinition
     /// <summary>Scoring expression for utility AI. Higher = more likely selected.</summary>
     public IExpression ScoreExpression { get; set; }
 
-    /// <summary>
-    /// Estimates the reward of acting on a provider. Evaluated with self + candidate
-    /// as target. Absolute value, not normalized.
-    /// </summary>
-    public IExpression RewardExpression { get; set; } = new Literal(1f);
-
     /// <summary>Mutations applied when this behavior executes.</summary>
     public System.Collections.ObjectModel.Collection<IMutation> Mutations { get; } = [];
 
@@ -56,14 +50,8 @@ public abstract class BehaviorDefinition
     /// <summary>Wiring contract: what this behavior writes to the simulation.</summary>
     public HashSet<AttributeRef> Writes { get; } = [];
 
-    /// <summary>Program contract: the goal effects this behavior can satisfy.</summary>
-    public HashSet<AttributeRef> GoalEffects { get; } = [];
-
     /// <summary>Program contract: refs used to enumerate external provider/target candidates.</summary>
     public HashSet<AttributeRef> ProviderSelectors { get; } = [];
-
-    /// <summary>Support opportunities that can improve downstream utility.</summary>
-    public System.Collections.ObjectModel.Collection<BehaviorSupportRule> SupportRules { get; } = [];
 
     public int WorkCommitmentTicks { get; set; }
 }

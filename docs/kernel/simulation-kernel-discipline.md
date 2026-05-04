@@ -63,7 +63,7 @@ Forbidden in the simulation kernel:
 - string interpolation for traces, logs, diagnostics, descriptions, or messages
 - `ToString()` for diagnostics or event payloads
 - `string.Join`, string concatenation, or formatted exception messages in hot paths
-- debug trace construction inside planner/evaluator/process execution
+- debug trace construction inside evaluator/process execution
 - message-bus payloads that carry formatted text instead of primitive facts
 
 Allowed outside the simulation kernel:
@@ -122,7 +122,7 @@ Preferred patterns:
 - versioned primitive snapshots
 - fixed-capacity collections with clear overflow behavior
 
-Overflow must be explicit. Dropping an event, truncating a planner candidate list,
+Overflow must be explicit. Dropping an event, truncating a candidate list,
 or expanding a buffer are design choices and should be visible in tests/telemetry.
 
 ## Primitive Event Boundary
@@ -184,7 +184,7 @@ Allowed off-thread work:
 - Monte Carlo parquet/CSV export
 - batch analysis
 - profiler/perf aggregation
-- planner computation from immutable snapshots
+- activity computation from immutable snapshots
 - pathfinding/scoring batches that return primitive deltas or intents
 
 Disallowed off-thread work:
@@ -192,7 +192,7 @@ Disallowed off-thread work:
 - mutating `WorldGraph`, entities, attributes, goals, relationships, or
   cooldown state
 - retaining live engine object references from the sim thread
-- applying planner results without sim-thread validation
+- applying worker results without sim-thread validation
 
 Cross-thread data must be primitive, immutable, and versioned. A worker may
 return `PlanIntent` records, but the sim thread decides whether the source world
@@ -204,18 +204,19 @@ and plugin services should run as independent consumers. The kernel remains
 synchronous and deterministic; consumers are asynchronous and independently
 paced.
 
-## Planner Thread Direction
+## Async Activity Direction
 
-A planner worker is desirable, but only after the boundary is clean.
+Async activity workers are only desirable after the primitive event boundary is
+clean.
 
-Planner threading should use this shape:
+Any future worker should use this shape:
 
-1. Sim thread publishes an immutable primitive world/planner snapshot.
-2. Planner worker reads only that snapshot and immutable domain registries.
-3. Planner worker emits primitive plan intents.
+1. Sim thread publishes an immutable primitive world/activity snapshot.
+2. Worker reads only that snapshot and immutable domain registries.
+3. Worker emits primitive activity intents.
 4. Sim thread validates source tick/version and applies or discards intents.
 
-The planner worker must not read live entities or write `Entity.Goals` directly.
+The worker must not read live entities or write activity state directly.
 
 ## Monte Carlo Direction
 
@@ -244,9 +245,6 @@ represent the current intended game behavior, not a temporary test convenience.
 
 Current tuning keys:
 
-- `programs.planning.default_planner`: `goap`, `htn`, or `opportunity`.
-- `programs.planning.goap_target_reservations_enabled`: `true` or `false`.
-- `programs.planning.opportunity_target_capacity`: integer target capacity.
 - `programs.upkeep.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.
 
