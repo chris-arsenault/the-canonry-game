@@ -165,20 +165,20 @@ public sealed class WorldStateIndexTests
         var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 1;
 
-        layers.Coverage.SetValue(cellKey, 0, 0, value: 1);
+        layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 1);
         layers.Influence.SetValue(entityId: 1, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 40f);
         layers.Influence.SetValue(entityId: 2, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 60f);
 
-        Assert.Equal(1, layers.Coverage.ValueAt(cellKey));
+        Assert.Equal(1, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
         Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
         Assert.Equal(60f, layers.Influence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
         Assert.Equal(0f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Semantic, cellKey));
 
-        layers.Coverage.SetValue(cellKey, 0, 0, value: 2);
+        layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 2);
 
-        Assert.Equal(2, layers.Coverage.ValueAt(cellKey));
-        Assert.Equal(0, layers.Coverage.ValueCellCount(1));
-        Assert.Equal(1, layers.Coverage.ValueCellCount(2));
+        Assert.Equal(2, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
+        Assert.Equal(0, layers.Coverage.ValueCellCount(1, PlaneCodes.Physical));
+        Assert.Equal(1, layers.Coverage.ValueCellCount(2, PlaneCodes.Physical));
         Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
         Assert.Equal(60f, layers.Influence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
     }
@@ -189,7 +189,7 @@ public sealed class WorldStateIndexTests
         var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         var loaded = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 2;
-        layers.Coverage.SetValue(cellKey, 1, -1, value: 3);
+        layers.Coverage.SetValue(PlaneCodes.Semantic, cellKey, 1, -1, value: 3);
         layers.Influence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, q: 1, r: -1, value: 75f);
 
         using var stream = new MemoryStream();
@@ -204,7 +204,7 @@ public sealed class WorldStateIndexTests
             loaded.ReadSnapshot(reader);
         }
 
-        Assert.Equal(3, loaded.Coverage.ValueAt(cellKey));
+        Assert.Equal(3, loaded.Coverage.ValueAt(PlaneCodes.Semantic, cellKey));
         Assert.Equal(75f, loaded.Influence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
         Assert.Equal([(1, -1, 75f)], InfluenceCellsOf(loaded.Influence, entityId: 3, PlaneCodes.Semantic));
     }

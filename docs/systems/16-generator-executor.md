@@ -55,8 +55,8 @@ artifact `power` attribute. Health thresholds remain valid for survival,
 damage, decay, and repair. Locality-based queries are acceptable when nearby
 map state, semantic position, or regional containment is the real gate.
 
-Generator target gates, relationship gates, terrain gates, causal-limit checks,
-and produced entity binding queries use the shared kernel query path.
+Generator target gates, relationship gates, terrain gates, and produced entity
+binding queries use the shared kernel query path.
 Generator-specific code still owns cadence, target choice, production
 orchestration, placement, and reference binding order.
 

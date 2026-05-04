@@ -52,7 +52,9 @@ internal sealed partial class TelemetryEventProjection
     private void ProjectSemanticPlannerTrace(in TraceKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
-        if (evt.TraceSubjectCode is TraceSubjectCodes.MovementIntent or TraceSubjectCodes.InfluenceIntent)
+        if (evt.TraceSubjectCode is TraceSubjectCodes.MovementIntent
+            or TraceSubjectCodes.InfluenceIntent
+            or TraceSubjectCodes.RelationshipIntent)
         {
             AddMovementIntentRows(evt, entity);
             return;

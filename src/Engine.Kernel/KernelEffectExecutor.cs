@@ -28,20 +28,46 @@ internal static class KernelEffectExecutor
     public static void SetEntityStatus(Simulation simulation, int entityId, int statusCode) =>
         simulation.SetEntityStatus(entityId, statusCode, simulation.CurrentTick);
 
-    public static void MovePhysical(Simulation simulation, int entityId, int q, int r) =>
-        simulation.MoveEntityPhysical(entityId, q, r, simulation.CurrentTick);
+    public static void MovePhysical(
+        Simulation simulation,
+        int entityId,
+        int q,
+        int r,
+        int causeCode = MovementCauseCodes.Placement) =>
+        simulation.Movement.TryMovePhysical(simulation, entityId, q, r, simulation.CurrentTick, causeCode);
 
-    public static void MoveSemantic(Simulation simulation, int entityId, int q, int r, int s) =>
-        simulation.MoveEntitySemantic(entityId, q, r, s, simulation.CurrentTick);
+    public static void MoveSemantic(
+        Simulation simulation,
+        int entityId,
+        int q,
+        int r,
+        int s,
+        int causeCode = MovementCauseCodes.Placement) =>
+        simulation.Movement.TryMoveSemantic(simulation, entityId, q, r, s, simulation.CurrentTick, causeCode);
 
     public static void SetCellState(Simulation simulation, int q, int r, int terrainId, int ownerEntityId) =>
         simulation.SetCellState(q, r, terrainId, ownerEntityId, simulation.CurrentTick);
 
+    public static void SetCellState(
+        Simulation simulation,
+        int planeCode,
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId) =>
+        simulation.SetCellState(planeCode, q, r, terrainId, ownerEntityId, simulation.CurrentTick);
+
     public static void SetCellTerrain(Simulation simulation, int q, int r, int terrainId) =>
         simulation.SetCellTerrain(q, r, terrainId, simulation.CurrentTick);
 
+    public static void SetCellTerrain(Simulation simulation, int planeCode, int q, int r, int terrainId) =>
+        simulation.SetCellTerrain(planeCode, q, r, terrainId, simulation.CurrentTick);
+
     public static void SetCoverageOwner(Simulation simulation, int q, int r, int ownerEntityId) =>
         simulation.SetCoverageOwner(q, r, ownerEntityId, simulation.CurrentTick);
+
+    public static void SetCoverageOwner(Simulation simulation, int planeCode, int q, int r, int ownerEntityId) =>
+        simulation.SetCoverageOwner(planeCode, q, r, ownerEntityId, simulation.CurrentTick);
 
     public static int CreateEntity(
         Simulation simulation,

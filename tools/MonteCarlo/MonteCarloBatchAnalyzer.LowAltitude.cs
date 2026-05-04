@@ -62,7 +62,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
               ON entity.run_id = trace.run_id
              AND entity.entity_id = trace.entity_id
             WHERE trace.action_family_code = {ActionFamilyCodes.LowAltitudeVerb}
-              AND trace.trace_subject_code IN ({TraceSubjectCodes.MovementIntent}, {TraceSubjectCodes.InfluenceIntent})
+              AND trace.trace_subject_code IN ({TraceSubjectCodes.MovementIntent}, {TraceSubjectCodes.InfluenceIntent}, {TraceSubjectCodes.RelationshipIntent})
         ),
         grouped AS (
             SELECT

@@ -75,6 +75,7 @@ public static class GameplayCompiler
                 verb.CoverageGrowthChance,
                 verb.HeadquartersMoveChance,
                 verb.RequiredInfluence,
+                verb.RelationshipStrengthDelta,
                 shape.PrimitiveSteps));
         }
 

@@ -4,7 +4,10 @@ using Engine.Kernel.Programs;
 
 internal sealed partial class MapActivityProgramData : IKernelProgramData
 {
-    public MapActivityProgramData(float presenceHeat = 1f, float heatDecayPerTick = 0.99f, float heatEmaAlpha = 0.01f)
+    public MapActivityProgramData(
+        float presenceHeat = 1f,
+        float heatDecayPerTick = 0.99f,
+        float heatEmaAlpha = 0.01f)
     {
         PresenceHeat = presenceHeat;
         HeatDecayPerTick = heatDecayPerTick;

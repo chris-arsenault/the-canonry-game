@@ -37,8 +37,8 @@ maintenance treadmill.
 Regions are special. They have lifecycle state, but they should not become a
 primary actor in every low-altitude interaction.
 
-## Open Questions
+## Tuning
 
-The exact aging curve remains tunable. The runtime supports aging-model tuning,
-and the right default should be chosen from Monte Carlo evidence rather than
-from a status document.
+The aging curve is a tuning parameter. The runtime supports aging-model tuning,
+and defaults are judged from Monte Carlo evidence rather than from a status
+document.

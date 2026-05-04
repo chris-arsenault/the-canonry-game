@@ -106,7 +106,7 @@ Not pixel art, not 8-bit, not low-poly, not flat vector.
 
 ### Optional variants
 
-Run these with small tweaks if you want per-subtype visual distinction later:
+Use these small tweaks for per-subtype visual distinction:
 
 ```
 [Above penguin prompt], but rendered as an ELDER penguin — longer
@@ -640,52 +640,8 @@ Not pixel art, not 8-bit, not flat vector.
 
 ---
 
-## 9 · Python post-processing notes
+## 9 · Asset processing contract
 
-After generation, each category needs a slightly different treatment. High-level plan for the Python pass:
-
-### Sprites (entities, event icons, health icons, control icons)
-- Background removal via `rembg` (good enough for our aesthetic)
-- Auto-crop to content bounding box with a small padding
-- Resize to target sizes: 64/128/256 as PNG with alpha
-- Optional: a faint drop shadow baked into the alpha so they anchor on hex terrain
-
-### Terrain hex tiles
-- Apply a hex-shaped clip mask with soft feathering at the edges so tiles overlap cleanly
-- Resize to the in-engine hex size (current `HexSize = 30` → render target ~70×80 for pointy-top hexes at 2× retina)
-- Save as flat PNG (no alpha needed; the hex mask handles it)
-- **Code change required**: `HexMapRenderer.DrawPhysicalHexCell` currently does `DrawColoredPolygon(points, color)`. To use textures, switch to `DrawTexturePolygon(points, texture)` or draw the hex via `DrawTextureRectRegion` with a clipping polygon. I'll wire this up once tiles are generated.
-
-### Card faces
-- Light crop to 3:4 aspect
-- Resize to the card size used in the Tableau (look up `CustomMinimumSize = new Vector2(308, 260)` — aspect is actually closer to 6:5, may need to regenerate or crop)
-- Save as PNG, no alpha
-- Apply via `UiTheme.CardStyle(...)` — would require extending the style helper to accept a background texture
-
-### Chrome / decorations
-- Background removal where needed
-- Crop to symmetric bounding box
-- Save at native resolution; UI will scale as needed
-
-### Textures (parchment, slate)
-- Verify seamlessness with a tiling test (offset 50% and check for seams)
-- Reduce to 8-bit per channel, save PNG
-- Feed to `StyleBoxTexture` for tiling panel backgrounds
-
-### Atmosphere / backgrounds
-- Minimal processing — mostly just resize and compress
-- Vignette gets saved as PNG with alpha
-
----
-
-## Suggested generation order
-
-If you only want to do a first pass, prioritize:
-
-1. **Entity sprites** (1.1–1.5) — biggest perceptual win, isolated work
-2. **Terrain hexes** (2.1–2.8) — second-biggest win, but requires code wiring
-3. **Title art** (7.1) — useful even if nothing else lands
-4. **Card faces** (3.1–3.6) — nice to have but works without
-5. Everything else is polish
-
-Once a batch is generated, drop the PNGs in `assets/raw/` and I'll build the Python processing pipeline + integrate them into the Godot renderer.
+Generated raster assets are processed outside the simulation runtime and checked
+in as ordinary UI assets. Runtime code consumes the finished PNGs; it does not
+call image generation or post-processing tools.

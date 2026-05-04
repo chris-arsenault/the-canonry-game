@@ -42,7 +42,25 @@ internal static class KernelDataInstaller
         {
             context.RegisterTerrain(
                 new TerrainRuntimeId(terrain.TerrainId),
-                terrain.BoundaryGroupId);
+                terrain.BoundaryGroupId,
+                terrain.MovementCost,
+                terrain.InfluenceMultiplier,
+                terrain.ClaimCostMultiplier,
+                terrain.ClaimChanceMultiplier,
+                terrain.RoadBuildMultiplier,
+                terrain.RoadSpeedMultiplier);
+
+            foreach (var profile in terrain.KindProfiles)
+            {
+                context.RegisterTerrainKindProfile(
+                    profile.TerrainId,
+                    profile.KindId,
+                    profile.FieldFlags,
+                    profile.MovementCost,
+                    profile.InfluenceMultiplier,
+                    profile.ClaimCostMultiplier,
+                    profile.ClaimChanceMultiplier);
+            }
         }
     }
 }

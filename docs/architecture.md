@@ -35,7 +35,7 @@ Engine.Eventing
   primitive event records, schema metadata, ring buffer, cursors
 
 Engine.Projection
-  consumer-side UI/read-model projections
+  consumer-side UI/read-model projections, including generic provenance indexes
 
 Engine.Observability
   run log, telemetry projection, parquet export, Monte Carlo analysis inputs
@@ -96,6 +96,7 @@ The kernel world contains:
 - entities, health, traits, status, physical and semantic coordinates;
 - relationships and relationship strength;
 - physical map cells, terrain, named coverage, and map influence layers;
+- provenance invocation/output history for high-altitude and authored effects;
 - program data/state/scratch for each registered kernel program.
 
 Semantic domain reasoning and authored graph validation happen outside the
@@ -104,9 +105,11 @@ state; the definition graph is the authored-domain contract.
 
 ## Program Families
 
-Low-altitude programs produce map life and slow state drift:
+Low-altitude programs produce map life, relationship-strength drift, and slow
+state mutation:
 
-- low-altitude verbs;
+- low-altitude verbs for movement, influence, coverage, anchor relocation, and
+  explicit relationship-strength mutation;
 - map activity;
 - map signals;
 - relationship maintenance;
@@ -120,10 +123,9 @@ High-altitude programs produce significant graph changes:
 - degeneracy detectors.
 
 The former macro aggregate layer has been removed. Generator, gambit, trait,
-and future card work use shared query, effect, and decision-modifier
-primitives. Relationship strength and locality queries are the default numeric
-gates when health, influence, coverage, or map signals are not the actual
-subject.
+and card work use shared query, effect, and decision-modifier primitives.
+Relationship strength and locality queries are the default numeric gates when
+health, influence, coverage, or map signals are not the actual subject.
 
 The detailed execution boundary is recorded in
 [shared-query-effect-executor.md](./kernel/shared-query-effect-executor.md).
@@ -134,6 +136,12 @@ Kernel events are fixed primitive records. Strings, display names, and
 human-readable diagnostics are resolved by consumers through symbol catalogs.
 The kernel can emit typed event ids and numeric payload slots; it cannot write
 logs, allocate trace objects, or query projection state.
+
+Provenance is kernel state and primitive event data. The kernel records
+producer kind/id, parent invocation, trigger evidence, and outputs. It does not
+interpret narrative chains. `Engine.Projection` exposes a generic provenance
+read model over those records; domain content compiles chronicle query patterns
+to runtime ids; `TheCanonryGame.Game` executes those patterns for presentation.
 
 Parquet exports and analysis reports are observability products, not kernel
 state. They must be reconstructable from the event stream and symbol tables.

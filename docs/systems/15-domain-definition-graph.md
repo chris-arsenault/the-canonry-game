@@ -23,7 +23,7 @@ The graph contains:
 - kind nodes;
 - health attribute nodes;
 - trait nodes;
-- relationship and relationship-fact nodes;
+- relationship nodes;
 - lifecycle nodes;
 - generator nodes;
 - gambit nodes;

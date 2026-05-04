@@ -1,8 +1,8 @@
 # Simulation Principles
 
-This document records durable simulation-quality goals. It is not a session
-tracker and it is not a backlog. Use it to decide whether a proposed system
-improves the simulation rather than merely making a metric move.
+This document records durable simulation-quality goals. Use it to decide
+whether a proposed system improves the simulation rather than merely making a
+metric move.
 
 ## Quality Goals
 
@@ -105,6 +105,7 @@ Track:
 - dead verb count;
 - same-action same-target pileups;
 - target concentration.
+- relationship-strength deltas by relationship kind and polarity.
 
 Gambits should be judged separately from low-altitude verbs. They are rarer and
 should be evaluated by relationship impact, target diversity, and whether they

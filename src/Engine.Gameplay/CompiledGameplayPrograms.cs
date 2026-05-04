@@ -50,6 +50,7 @@ public sealed record LowAltitudeVerbRule(
     float CoverageGrowthChance,
     float HeadquartersMoveChance,
     float RequiredInfluence,
+    float RelationshipStrengthDelta,
     IReadOnlyList<CompiledProgramStep> PrimitiveSteps);
 
 public sealed record CompiledProgramStep(

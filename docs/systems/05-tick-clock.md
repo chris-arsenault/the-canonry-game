@@ -50,8 +50,8 @@ eligible ticks.
 
 Cadence is a performance and pacing tool, not a separate simulation phase.
 
-## Open Questions
+## Calendar Mapping
 
-The in-world meaning of one tick is still a design parameter. The architecture
-supports calendar mapping later, but current simulation quality should be
-judged by behavior over ticks rather than by a fixed day/week/year mapping.
+The in-world meaning of one tick is not fixed to a day/week/year mapping.
+Simulation quality is judged by behavior over ticks: visible motion, graph
+change, pacing, and long-run stability.

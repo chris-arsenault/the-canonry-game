@@ -840,23 +840,20 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void StaleMovementProgramSurface_IsRemovedFromLiveRuntimeAndConfig()
+    public void StaleDomainMovementProgramSurface_IsNotReintroduced()
     {
         var root = FindRepoRoot();
         var liveSource = string.Concat(
-            ReadSource(root, "src/Engine.Constants/KernelCodes.cs"),
-            ReadSource(root, "src/Engine.Kernel/SimulationOptions.cs"),
+            ReadSource(root, "src/Engine.Domain/Compilation/KernelPrograms/KernelProgramSet.cs"),
+            ReadAllSourcesUnder(root, "src/Engine.Domain/Compilation"),
             ReadSource(root, "src/Engine.Kernel/KernelRuntimeCodes.cs"),
-            ReadSource(root, "src/Engine.Host/KernelStartupConfigLoader.cs"),
-            ReadSource(root, "src/Engine.Kernel/Persistence/KernelSnapshot.cs"));
+            ReadSource(root, "src/Engine.Kernel/SimulationOptions.cs"));
         var forbiddenFragments = new[]
         {
-            "KernelProgramCodes.Movement",
-            "public const int Movement =",
             "MovementSourceCodeId",
             "MovementRuleCapacity",
-            "MovementProgramEnabled",
-            "KERNELTUNING.PROGRAMS.MOVEMENT",
+            "MovementProgram Movement",
+            "BuildMovementProgram",
         };
         var violations = ContainedFragments(liveSource, forbiddenFragments);
 
@@ -959,6 +956,47 @@ public sealed class GameplayBoundaryArchitectureTests
             var source = ReadSource(root, caller);
             violations.AddRange(ContainedFragments(source, forbiddenCalls).Select(fragment => $"{caller}: {fragment}"));
         }
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void KernelPrograms_ModifyEntityCoordinatesOnlyThroughMovementProgram()
+    {
+        var root = FindRepoRoot();
+        var programDirectory = Path.Combine(root.FullName, "src", "Engine.Kernel", "Programs");
+        var traversalDirectory = Path.Combine(programDirectory, "Traversal") + Path.DirectorySeparatorChar;
+        var forbiddenCalls = new[]
+        {
+            "simulation.MoveEntityPhysical(",
+            "simulation.MoveEntitySemantic(",
+            "MoveEntityPhysicalUnchecked(",
+            "MoveEntitySemanticUnchecked(",
+            "World.MoveEntityPhysical(",
+            "World.MoveEntitySemantic(",
+            "world.MoveEntityPhysical(",
+            "world.MoveEntitySemantic(",
+        };
+        var violations = new List<string>();
+        foreach (var file in Directory.GetFiles(programDirectory, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            if (file.StartsWith(traversalDirectory, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var source = File.ReadAllText(file);
+            violations.AddRange(ContainedFragments(source, forbiddenCalls).Select(fragment => $"{file}: {fragment}"));
+        }
+
+        var effectExecutor = ReadSource(root, "src/Engine.Kernel/KernelEffectExecutor.cs");
+        var requiredExecutorFragments = new[]
+        {
+            "simulation.Movement.TryMovePhysical(",
+            "simulation.Movement.TryMoveSemantic(",
+        };
+        violations.AddRange(MissingFragments(effectExecutor, requiredExecutorFragments)
+            .Select(fragment => $"KernelEffectExecutor missing movement delegation: {fragment}"));
 
         Assert.Empty(violations);
     }

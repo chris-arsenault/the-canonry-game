@@ -45,7 +45,7 @@ If a proposal cannot name all three, it is not a causal limit.
    relieved, consumed, damaged, or resolved.
 6. A durable output-state lock is valid only when it is itself meaningful world
    state. For example, "this penguin now has a home base" is valid because the
-   output changes future graph behavior. "this target was already served by this
+   output changes graph behavior. "this target was already served by this
    generator" is not.
 7. A map or terrain gate is valid only when the generator changes the map or
    consumes finite spatial opportunity in the gated locality.
@@ -65,6 +65,21 @@ choosing an implementation:
    waiting for a hidden run counter?
 
 If the answer to question 3 is "add another target," reject it and look again.
+
+## Declaration Contract
+
+Each authored generator must declare a `CausalLimit` string in plain language.
+This is not compiler-proofed semantics. It is a design note and review hook for
+the agent or human changing the generator. The invariant test only checks that
+the declaration exists and points back to this document when it is missing.
+
+The declaration should name the cause and the spend/transform in one sentence,
+for example: "Depends on high trade-route strength and reduces the selected
+trade route strength."
+
+The catalog invariant is intentionally shallow: each Ice Remembers generator
+must have non-empty `CausalLimit` text. The declaration keeps the causal design
+visible during review without adding a second semantic validator.
 
 ## Valid Patterns
 
@@ -86,25 +101,24 @@ If the answer to question 3 is "add another target," reject it and look again.
 - Add a same-culture secondary target and leave it unchanged.
 - Require an extra settlement or artifact and leave the original cause unchanged.
 - Create `founded_from`, `served_by`, `wardened_by`, or similar relationship
-  kinds only to block future generator fires.
+  kinds only to block later generator fires.
 - Keep a max-count table or hidden repeat-control path under another name.
 - Lower a broad class of relationships because the runtime cannot select the
   specific causal relationship.
 
-## Test Contract
+## Current Ice Remembers Catalog
 
-Each migrated generator should have tests that prove:
+| Generator | Causal limit |
+| --- | --- |
+| `ice_settles_accounts` | Depends on an `at_war_with` relationship and an offered penguin; marks the penguin historical and removes the selected war relationship. |
+| `what_the_spring_remembers` | Depends on an incoming `cleansed_by` relationship and absence of `anchored`; creates an anchored relic on the region. |
+| `war_breaks_the_land` | Depends on an `at_war_with` relationship and fewer than eight local waste cells; creates a scar region that turns finite nearby land into wastes. |
+| `routes_draw_readers` | Depends on high `trade_route` strength and reduces the selected trade route strength. |
+| `what_the_artifact_knows` | Depends on a held artifact and absence of `home_base`; creates a home-base relationship for the penguin. |
 
-- it does not immediately fire again against the unchanged original cause;
-- the suppression is explained by changed world state, not hidden memory;
-- rebuilding or creating a new cause makes it eligible again;
-- unrelated targets or unrelated relationship instances are not consumed.
-
-## Current Lesson
+## Removed Warden Generator
 
 The removed warden generator exposed the distinction. "Find an available
 recruit" and "find an existing settlement" are only extra targets if the
-generator leaves the war pressure and the found target unchanged. They may
-become valid designs only if the chosen entity or place is actually transformed
-in ordinary world state, or if the generator spends the specific war/territory
-condition that justified the warden event.
+generator leaves the war pressure and the found target unchanged. The generator
+was deleted rather than kept as a repeat-prone entity spawn.

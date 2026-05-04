@@ -1,7 +1,7 @@
 # System 18: Action Executor
 
-The current action layer is the gambit system. Future player cards may enable,
-disable, weight, or modify gambits, but the runtime mechanism is already
+The current action layer is the gambit system. Player-facing cards can expose,
+enable, disable, weight, or modify gambits, but the runtime mechanism is
 entity-authored high-stakes actions.
 
 ## Purpose

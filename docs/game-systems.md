@@ -40,9 +40,9 @@ Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
 should be shaped by the state created by low altitude and gambits.
 
-The long-term player card/tableau layer controls which generators, gambits, and
-systems are active. Cards determine what kinds of worlds can emerge; they should
-not be mistaken for the low-altitude physics itself.
+The player-facing card/tableau layer controls which generators and gambits are
+active. Cards determine what kinds of worlds can emerge; they should not be
+mistaken for the low-altitude physics itself.
 
 See [simulation-principles.md](./systems/simulation-principles.md) for the
 quality goals used to judge whether these layers are working together.
@@ -52,8 +52,9 @@ quality goals used to judge whether these layers are working together.
 The low-altitude rewrite replaced the old process deck with first-class kernel
 programs:
 
-- `LowAltitudeVerbs`: multi-tick movement, semantic movement, influence growth,
-  influence reduction, coverage expansion, and anchor relocation.
+- `LowAltitudeVerbs`: multi-tick movement, semantic movement, relationship
+  strength mutation, influence growth/reduction, coverage expansion, and
+  anchor relocation.
 - `MapActivity`: physical and semantic presence heat, visit counts, and
   occupancy.
 - `MapSignals`: terrain, entity, relationship, activity, crowding, support,
@@ -120,12 +121,15 @@ DuckDB, or Python. The stable simulation-quality metrics are described in
 - [05 Tick Clock](./systems/05-tick-clock.md)
 - [06 Entity Behaviors](./systems/06-entity-behaviors.md)
 - [07 Relationships](./systems/07-relationships.md)
+- [08 Removed Resources / Economy](./systems/08-removed-resources-economy.md)
 - [09 Lifecycle](./systems/09-lifecycle.md)
 - [10 Map Visualization](./systems/10-map-visualization.md)
 - [11 Removed Macro Aggregate](./systems/11-removed-macro-aggregate.md)
-- [12 Deck](./systems/12-deck.md)
+- [12 Cards And Tableau](./systems/12-deck.md)
 - [13 Tableau Mana](./systems/13-tableau-mana.md)
 - [15 Domain Definition Graph](./systems/15-domain-definition-graph.md)
 - [16 Generator Executor](./systems/16-generator-executor.md)
+- [17 System Executor](./systems/17-system-executor.md)
 - [18 Action Executor](./systems/18-action-executor.md)
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
+- [20 Generator Causal Limits](./systems/20-generator-causal-limits.md)

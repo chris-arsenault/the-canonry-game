@@ -249,6 +249,14 @@ internal sealed partial class GeneratorProgramRuntime
         }
     }
 
+    private void EnsureOpenEffect(int effectSlot)
+    {
+        if ((uint)effectSlot == 0u || effectSlot > _effectCount || effectSlot != _openEffectSlot)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+    }
+
     private void EnsureGenerator(int generatorSlot)
     {
         if ((uint)generatorSlot == 0u || generatorSlot > _generatorCount)
@@ -264,6 +272,12 @@ internal sealed partial class GeneratorProgramRuntime
 
     private static int MaxAbs(int a, int b, int c) =>
         global::System.Math.Max(Abs(a), global::System.Math.Max(Abs(b), Abs(c)));
+
+    private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
+
+    private static int CurrentR(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
 
     private static void ValidatePositive(int value)
     {

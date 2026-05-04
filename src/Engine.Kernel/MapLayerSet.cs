@@ -34,29 +34,29 @@ internal sealed class MapUniqueEntityLayer
 {
     private readonly SpatialLayerIndex _values;
 
-    internal MapUniqueEntityLayer(int valueCapacity, int cellCapacity)
+    internal MapUniqueEntityLayer(int entityCapacity, int cellCapacity)
     {
-        _values = new SpatialLayerIndex(valueCapacity, cellCapacity);
+        _values = new SpatialLayerIndex((entityCapacity << 2) + PlaneCodes.Semantic, cellCapacity);
     }
 
-    internal int ValueAt(int cellKey)
+    internal int ValueAt(int planeCode, int cellKey)
     {
-        return _values.ValueAt(cellKey);
+        return EntityIdFromPlaneValue(_values.ValueAt(PlaneCellKey(planeCode, cellKey)));
     }
 
-    internal void SetValue(int cellKey, int q, int r, int value)
+    internal void SetValue(int planeCode, int cellKey, int q, int r, int value)
     {
-        _values.SetValue(cellKey, q, r, value);
+        _values.SetValue(PlaneCellKey(planeCode, cellKey), q, r, EntityPlaneValue(value, planeCode));
     }
 
-    internal int ValueCellCount(int value)
+    internal int ValueCellCount(int value, int planeCode)
     {
-        return _values.ValueCellCount(value);
+        return _values.ValueCellCount(EntityPlaneValue(value, planeCode));
     }
 
-    internal SpatialLayerCellCursor CellsOfValue(int value)
+    internal SpatialLayerCellCursor CellsOfValue(int value, int planeCode)
     {
-        return _values.CellsOfValue(value);
+        return _values.CellsOfValue(EntityPlaneValue(value, planeCode));
     }
 
     internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r)
@@ -72,6 +72,33 @@ internal sealed class MapUniqueEntityLayer
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
         _values.ReadSnapshot(reader);
+    }
+
+    private static int EntityPlaneValue(int entityId, int planeCode)
+    {
+        if (entityId == 0)
+        {
+            return 0;
+        }
+
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(entityId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(planeCode);
+        return (entityId << 2) | planeCode;
+    }
+
+    private static int EntityIdFromPlaneValue(int value) => value >> 2;
+
+    private static int PlaneCellKey(int planeCode, int cellKey)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(planeCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellKey);
+        unchecked
+        {
+            var hash = (uint)cellKey * 2654435761u;
+            hash ^= (uint)planeCode * 2246822519u;
+            var value = (int)(hash & 2147483647u);
+            return value == 0 ? 1 : value;
+        }
     }
 }
 

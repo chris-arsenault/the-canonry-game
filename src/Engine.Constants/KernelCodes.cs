@@ -247,10 +247,20 @@ public static class KernelProgramCodes
     public const int Degeneracy = 6;
     public const int Gambits = 7;
     public const int Planning = 8;
+    public const int Movement = 9;
     public const int MapActivity = 10;
     public const int LowAltitudeVerbs = 11;
     public const int Effects = 12;
     public const int MapSignals = 13;
+}
+
+public static class MovementCauseCodes
+{
+    public const int Travel = 1;
+    public const int Placement = 2;
+    public const int Forced = 3;
+    public const int Relocation = 4;
+    public const int Follow = 5;
 }
 
 public static class ProgramDependencyLagCodes
@@ -263,6 +273,7 @@ public static class ProgramDependencyChannelCodes
 {
     public const int MapActivitySignals = 1;
     public const int MapSignals = 2;
+    public const int MovementSurface = 3;
 }
 
 public static class TargetSelectorCodes
@@ -282,6 +293,7 @@ public static class ProgramOpcodeCodes
     public const int SubtractOtherCellScalar = 3;
     public const int TryClaimCell = 4;
     public const int TryRelocateEntity = 5;
+    public const int AdjustRelationshipStrength = 6;
 }
 
 public static class LowAltitudeVerbRelationshipDirectionCodes
@@ -339,6 +351,7 @@ public static class TraceSubjectCodes
     public const int Locality = 5;
     public const int MovementIntent = 6;
     public const int InfluenceIntent = 7;
+    public const int RelationshipIntent = 8;
 }
 
 public static class TraceStatusCodes
@@ -384,12 +397,21 @@ public static class GeneratorEffectTypeCodes
     public const int SetBindingHistorical = 1;
     public const int RemoveTargetRelationships = 2;
     public const int AdjustTargetRelationshipStrength = 3;
+    public const int SetTerrainPatch = 4;
 }
 
 public static class GeneratorRelationshipInstanceSelectionCodes
 {
     public const int AllTargetRelationships = 1;
     public const int TriggerRelationship = 2;
+}
+
+public static class TerrainKindProfileFieldCodes
+{
+    public const int MovementCost = 1 << 0;
+    public const int InfluenceMultiplier = 1 << 1;
+    public const int ClaimCostMultiplier = 1 << 2;
+    public const int ClaimChanceMultiplier = 1 << 3;
 }
 
 public static class ProvenanceProducerKindCodes

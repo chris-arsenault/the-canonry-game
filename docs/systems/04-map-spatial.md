@@ -7,7 +7,7 @@ the semantic plane.
 
 The physical map is a hex grid with Ice Remembers terrain vocabulary: shelf,
 wastes, tundra, ice, hot springs, ocean, reef, scar, and related variants.
-Procedural generation should create terrain-aware seeds rather than full-cover
+Procedural generation creates terrain-aware seeds rather than full-cover
 placeholder partitions.
 
 Named regions are physical coverage. There is no separate concept of anonymous

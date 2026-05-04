@@ -13,6 +13,7 @@ internal sealed class LowAltitudeVerbShape
     public bool AllowsCoverageGrowth { get; init; }
     public bool AllowsRelocation { get; init; }
     public bool RequiresMapValue { get; init; }
+    public bool RequiresRelationshipStrengthDelta { get; init; }
     public required IReadOnlyList<CompiledProgramStep> PrimitiveSteps { get; init; }
 
     public bool AllowsPlane(string plane) =>
@@ -29,6 +30,7 @@ internal sealed class LowAltitudeVerbShape
             LowAltitudeVerbOperation.ReduceInfluence => ReduceInfluence,
             LowAltitudeVerbOperation.ExpandCoverage => ExpandCoverage,
             LowAltitudeVerbOperation.MoveHeadquarters => MoveHeadquarters,
+            LowAltitudeVerbOperation.AdjustRelationshipStrength => AdjustRelationshipStrength,
             _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
         };
 
@@ -127,6 +129,20 @@ internal sealed class LowAltitudeVerbShape
             Step(ProgramOpcodeCodes.AddOwnedCellScalar),
             Step(ProgramOpcodeCodes.TryRelocateEntity),
         ],
+    };
+
+    private static readonly LowAltitudeVerbShape AdjustRelationshipStrength = new()
+    {
+        Operation = LowAltitudeVerbOperation.AdjustRelationshipStrength,
+        OperationCode = ProgramOpcodeCodes.AdjustRelationshipStrength,
+        TargetModes = new HashSet<LowAltitudeVerbTargetMode>
+        {
+            LowAltitudeVerbTargetMode.RelationshipTarget,
+        },
+        PhysicalAllowed = true,
+        SemanticAllowed = true,
+        RequiresRelationshipStrengthDelta = true,
+        PrimitiveSteps = [Step(ProgramOpcodeCodes.AdjustRelationshipStrength)],
     };
 
     private static CompiledProgramStep Step(int opcode) => new(opcode, 0, 0f);

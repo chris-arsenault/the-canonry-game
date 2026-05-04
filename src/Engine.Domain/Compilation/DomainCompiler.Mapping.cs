@@ -124,12 +124,73 @@ public static partial class DomainCompiler
         var boundaryGroups = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var terrain in config.Terrains)
         {
+            var terrainId = ids.TerrainIdOf(terrain.Name).Value;
             terrains.Add(new CompiledTerrainDefinition(
-                ids.TerrainIdOf(terrain.Name).Value,
-                BoundaryGroupId(boundaryGroups, terrain.BoundaryGroup)));
+                terrainId,
+                BoundaryGroupId(boundaryGroups, terrain.BoundaryGroup),
+                ClampNonNegative(terrain.MovementCost),
+                ClampNonNegative(terrain.InfluenceMultiplier),
+                ClampNonNegative(terrain.ClaimCostMultiplier),
+                ClampNonNegative(terrain.ClaimChanceMultiplier),
+                ClampNonNegative(terrain.RoadBuildMultiplier),
+                ClampAtLeast(terrain.RoadSpeedMultiplier, 1f),
+                CompileTerrainKindProfiles(terrainId, terrain.KindProfiles, ids)));
         }
 
         return new CompiledTerrainData { Terrains = terrains };
+    }
+
+    private static List<CompiledTerrainKindProfileDefinition> CompileTerrainKindProfiles(
+        int terrainId,
+        IReadOnlyList<TerrainKindProfileConfig> profiles,
+        DomainIdRegistry ids)
+    {
+        var compiled = new List<CompiledTerrainKindProfileDefinition>(profiles.Count);
+        foreach (var profile in profiles)
+        {
+            var fieldFlags = TerrainKindProfileFieldFlags(profile);
+            if (fieldFlags == 0)
+            {
+                continue;
+            }
+
+            compiled.Add(new CompiledTerrainKindProfileDefinition(
+                terrainId,
+                ids.KindIdOf(profile.Kind).Value,
+                fieldFlags,
+                ClampNonNegative(profile.MovementCost ?? 0f),
+                ClampNonNegative(profile.InfluenceMultiplier ?? 0f),
+                ClampNonNegative(profile.ClaimCostMultiplier ?? 0f),
+                ClampNonNegative(profile.ClaimChanceMultiplier ?? 0f)));
+        }
+
+        return compiled;
+    }
+
+    private static int TerrainKindProfileFieldFlags(TerrainKindProfileConfig profile)
+    {
+        var flags = 0;
+        if (profile.MovementCost.HasValue)
+        {
+            flags |= TerrainKindProfileFieldCodes.MovementCost;
+        }
+
+        if (profile.InfluenceMultiplier.HasValue)
+        {
+            flags |= TerrainKindProfileFieldCodes.InfluenceMultiplier;
+        }
+
+        if (profile.ClaimCostMultiplier.HasValue)
+        {
+            flags |= TerrainKindProfileFieldCodes.ClaimCostMultiplier;
+        }
+
+        if (profile.ClaimChanceMultiplier.HasValue)
+        {
+            flags |= TerrainKindProfileFieldCodes.ClaimChanceMultiplier;
+        }
+
+        return flags;
     }
 
     private static DegeneracyProgram BuildDegeneracyProgram(
@@ -336,7 +397,7 @@ public static partial class DomainCompiler
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
                 CompileGeneratorRelationships(generator.Relationships, graph, refCodes),
-                CompileGeneratorEffects(generator.Effects, refCodes)));
+                CompileGeneratorEffects(generator.Effects, terrainByName, ids, refCodes)));
         }
 
         return new GeneratorProgram { Generators = generators };
@@ -552,6 +613,8 @@ public static partial class DomainCompiler
 
     private static List<GeneratorEffectRule> CompileGeneratorEffects(
         IReadOnlyList<IDefinitionGeneratorEffect> effects,
+        Dictionary<string, TerrainConfig> terrainByName,
+        DomainIdRegistry ids,
         Dictionary<string, int> refCodes)
     {
         var compiled = new List<GeneratorEffectRule>();
@@ -579,6 +642,22 @@ public static partial class DomainCompiler
                         adjustRelationship.IncludeReciprocal ? 1 : 0,
                         adjustRelationship.Delta));
                     break;
+                case DefinitionSetTerrainPatchEffect setTerrainPatch:
+                    {
+                        var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
+                        compiled.Add(new GeneratorEffectRule(
+                            GeneratorEffectTypeCodes.SetTerrainPatch,
+                            refCodes[setTerrainPatch.CenterRef],
+                            setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
+                            ids.TerrainIdOf(terrain.Name).Value,
+                            setTerrainPatch.Chance,
+                            setTerrainPatch.Radius,
+                            setTerrainPatch.MaxCellCount,
+                            CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
+                            CompileTerrainIds(setTerrainPatch.AllowedTerrains, terrainByName, ids),
+                            setTerrainPatch.PlaneCode));
+                        break;
+                    }
                 default:
                     throw new InvalidOperationException($"Unsupported generator effect type '{effect.GetType().Name}'.");
             }
@@ -763,5 +842,9 @@ public static partial class DomainCompiler
         boundaryGroups.Add(stableName, id);
         return id;
     }
+
+    private static float ClampNonNegative(float value) => value < 0f ? 0f : value;
+
+    private static float ClampAtLeast(float value, float minimum) => value < minimum ? minimum : value;
 
 }

@@ -221,12 +221,28 @@ public sealed class LifecycleConfig
     public required float AgeCoefficient { get; init; }
 }
 
-/// <summary>Domain-authored terrain identity. Runtime map generation receives richer terrain profiles separately.</summary>
+/// <summary>Domain-authored terrain identity and runtime gameplay profile.</summary>
 public sealed class TerrainConfig
 {
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
     public string BoundaryGroup { get; init; } = "default";
+    public float MovementCost { get; init; } = 1f;
+    public float InfluenceMultiplier { get; init; } = 1f;
+    public float ClaimCostMultiplier { get; init; } = 1f;
+    public float ClaimChanceMultiplier { get; init; } = 1f;
+    public float RoadBuildMultiplier { get; init; } = 1f;
+    public float RoadSpeedMultiplier { get; init; } = 1f;
+    public IReadOnlyList<TerrainKindProfileConfig> KindProfiles { get; init; } = [];
+}
+
+public sealed class TerrainKindProfileConfig
+{
+    public required EntityKind Kind { get; init; }
+    public float? MovementCost { get; init; }
+    public float? InfluenceMultiplier { get; init; }
+    public float? ClaimCostMultiplier { get; init; }
+    public float? ClaimChanceMultiplier { get; init; }
 }
 
 /// <summary>Culture configuration.</summary>

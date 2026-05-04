@@ -21,13 +21,13 @@ surfaces.
    aging, and death without needing player cards.
 2. Generators should periodically introduce new named entities and keep the
    graph from only shrinking.
-3. Gambits and future cards should provide outlets for war, betrayal, wielding,
+3. Gambits and cards should provide outlets for war, betrayal, wielding,
    sealing, cleansing, and other major relationship changes.
 4. UI and telemetry should expose bad patterns before they become mysterious.
 
 ## Detector Direction
 
-Current and future detectors should use generalized metrics:
+Detectors use generalized metrics:
 
 - active entity counts by kind/subtype/culture
 - largest connected relationship components and isolated components

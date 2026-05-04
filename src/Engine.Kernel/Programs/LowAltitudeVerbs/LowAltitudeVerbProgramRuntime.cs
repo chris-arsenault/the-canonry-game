@@ -53,7 +53,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int influenceRadius,
         float coverageGrowthChance,
         float headquartersMoveChance,
-        float requiredInfluence) =>
+        float requiredInfluence,
+        float relationshipStrengthDelta = 0f) =>
         RegisterVerb(
             kindId,
             verbId,
@@ -82,6 +83,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             coverageGrowthChance: coverageGrowthChance,
             headquartersMoveChance: headquartersMoveChance,
             requiredInfluence: requiredInfluence,
+            relationshipStrengthDelta: relationshipStrengthDelta,
             foreignInfluenceFilterEnabled: 0,
             foreignInfluenceBlockPositiveRelationships: 0,
             foreignInfluenceAllowNegativeRelationships: 0,
@@ -120,7 +122,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int foreignInfluenceBlockPositiveRelationships = 0,
         int foreignInfluenceAllowNegativeRelationships = 0,
         float foreignInfluenceMinimumRelationshipStrength = 0f,
-        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f) =>
+        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f,
+        float relationshipStrengthDelta = 0f) =>
         Data.RegisterVerb(new LowAltitudeVerbRegistration
         {
             KindId = kindId,
@@ -155,6 +158,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             CoverageChance = coverageGrowthChance,
             RelocationChance = headquartersMoveChance,
             RequiredMapValue = requiredInfluence,
+            RelationshipStrengthDelta = relationshipStrengthDelta,
         });
 
     public void AddTerrainFilter(int verbSlot, int terrainId) =>
@@ -255,7 +259,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var planeCode = Data.InitialInfluencePlaneCode(rule);
         var q = CurrentQ(simulation.World, entityId, planeCode);
         var r = CurrentR(simulation.World, entityId, planeCode);
-        if (planeCode == PlaneCodes.Physical && !simulation.World.CellIsKnown(q, r))
+        if (!simulation.World.CellIsKnown(planeCode, q, r))
         {
             return false;
         }
@@ -280,6 +284,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         var targetEntityId = State.TargetEntityId(entityId);
         if (targetEntityId != 0 && !simulation.World.EntityIsActive(targetEntityId))
+        {
+            State.ClearIntent(entityId);
+            return true;
+        }
+
+        if (targetEntityId != 0 &&
+            Data.TargetModeCode(slot) == TargetSelectorCodes.RelationshipTarget &&
+            !HasTargetRelationship(simulation.World, entityId, targetEntityId, slot))
         {
             State.ClearIntent(entityId);
             return true;
@@ -477,33 +489,37 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int tick,
         out VerbTargetCandidate candidate)
     {
-        if (Data.PlaneCode(rule) != PlaneCodes.Physical)
-        {
-            return NoCandidate(out candidate);
-        }
-
+        var planeCode = Data.PlaneCode(rule);
         var totalWeight = 0f;
-        var selectedQ = simulation.World.EntityPhysicalQ(entityId);
-        var selectedR = simulation.World.EntityPhysicalR(entityId);
+        var selectedQ = CurrentQ(simulation.World, entityId, planeCode);
+        var selectedR = CurrentR(simulation.World, entityId, planeCode);
+        var selectedS = planeCode == PlaneCodes.Semantic ? -selectedQ - selectedR : 0;
         var sampleCount = Data.CandidateSampleCount(rule);
+        var actorKindId = simulation.World.EntityKindId(entityId);
         for (var i = 0; i < sampleCount * 3; i++)
         {
-            if (!TryRandomCoordinate(simulation, PlaneCodes.Physical, out var q, out var r, out _))
+            if (!TryRandomCoordinate(simulation, planeCode, out var q, out var r, out var s))
             {
                 continue;
             }
 
-            if (!Data.TerrainAllowed(rule, simulation.World.CellTerrainId(q, r)))
+            if (!Data.TerrainAllowed(rule, simulation.World.CellTerrainId(planeCode, q, r)))
             {
                 continue;
             }
 
-            var weight = LocationWeight(simulation, entityId, rule, PlaneCodes.Physical, q, r, tick, 0);
+            if (!simulation.Movement.CanEnter(simulation, planeCode, actorKindId, q, r))
+            {
+                continue;
+            }
+
+            var weight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0);
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
             {
                 selectedQ = q;
                 selectedR = r;
+                selectedS = s;
             }
         }
 
@@ -512,7 +528,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return NoCandidate(out candidate);
         }
 
-        candidate = Candidate(rule, PlaneCodes.Physical, 0, 0, selectedQ, selectedR, 0, totalWeight / sampleCount);
+        candidate = Candidate(rule, planeCode, 0, 0, selectedQ, selectedR, selectedS, totalWeight / sampleCount);
         return true;
     }
 
@@ -685,7 +701,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var targetQ = State.TargetQ(entityId);
         var targetR = State.TargetR(entityId);
         var planeCode = Data.PlaneCode(rule);
-        if (planeCode == PlaneCodes.Physical && !simulation.World.CellIsKnown(targetQ, targetR))
+        if (!simulation.World.CellIsKnown(planeCode, targetQ, targetR))
         {
             State.MarkReached(entityId, tick, tick + State.IntentDwellTicks(entityId));
             return;
@@ -739,6 +755,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             case ProgramOpcodeCodes.TryRelocateEntity:
                 TryRelocateEntityFromProgramStep(simulation, entityId, rule, targetQ, targetR, tick);
                 break;
+            case ProgramOpcodeCodes.AdjustRelationshipStrength:
+                AdjustTargetRelationshipStrength(simulation, entityId, rule, tick);
+                break;
         }
     }
 
@@ -760,9 +779,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             {
                 var q = centerQ + dq;
                 var r = centerR + dr;
-                if (planeCode == PlaneCodes.Semantic || simulation.World.CellIsKnown(q, r))
+                if (simulation.World.CellIsKnown(planeCode, q, r))
                 {
-                    simulation.ModifyCellInfluence(entityId, planeCode, q, r, delta, tick);
+                    simulation.ModifyCellInfluence(
+                        entityId,
+                        planeCode,
+                        q,
+                        r,
+                        TerrainAdjustedInfluenceDelta(simulation, entityId, planeCode, q, r, delta),
+                        tick);
                 }
             }
         }
@@ -787,7 +812,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             {
                 var q = centerQ + dq;
                 var r = centerR + dr;
-                if (planeCode == PlaneCodes.Physical && !simulation.World.CellIsKnown(q, r))
+                if (!simulation.World.CellIsKnown(planeCode, q, r))
                 {
                     continue;
                 }
@@ -795,7 +820,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 var targetEntityId = StrongestAllowedOtherInfluencerAt(simulation, entityId, rule, planeCode, q, r, out _);
                 if (targetEntityId != 0)
                 {
-                    simulation.ModifyCellInfluence(targetEntityId, planeCode, q, r, -delta, tick);
+                    simulation.ModifyCellInfluence(
+                        targetEntityId,
+                        planeCode,
+                        q,
+                        r,
+                        -TerrainAdjustedInfluenceDelta(simulation, entityId, planeCode, q, r, delta),
+                        tick);
                 }
             }
         }
@@ -809,15 +840,36 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int r,
         int tick)
     {
-        if (simulation.NextFloat() > Data.CoverageGrowthChance(rule) ||
-            simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, q, r) < Data.RequiredInfluence(rule) ||
-            !CellCanBeClaimedFromEntity(simulation.World, entityId, q, r) ||
-            simulation.World.CoverageOwnerAt(q, r) == entityId)
+        var planeCode = Data.PlaneCode(rule);
+        var actorKindId = simulation.World.EntityKindId(entityId);
+        var claimChance = Data.CoverageGrowthChance(rule) * simulation.TerrainClaimChanceMultiplier(planeCode, actorKindId, q, r);
+        var requiredInfluence = Data.RequiredInfluence(rule) * simulation.TerrainClaimCostMultiplier(planeCode, actorKindId, q, r);
+        if (simulation.NextFloat() > claimChance ||
+            simulation.World.GetCellInfluence(entityId, planeCode, q, r) < requiredInfluence ||
+            !CellCanBeClaimedFromEntity(simulation.World, planeCode, entityId, q, r) ||
+            simulation.World.CoverageOwnerAt(planeCode, q, r) == entityId)
         {
             return;
         }
 
-        simulation.SetCellState(q, r, simulation.World.CellTerrainId(q, r), entityId, tick);
+        KernelEffectExecutor.SetCellState(
+            simulation,
+            planeCode,
+            q,
+            r,
+            simulation.World.CellTerrainId(planeCode, q, r),
+            entityId);
+    }
+
+    private static float TerrainAdjustedInfluenceDelta(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        float delta)
+    {
+        return delta * simulation.TerrainInfluenceMultiplier(planeCode, simulation.World.EntityKindId(entityId), q, r);
     }
 
     private void TryRelocateEntityFromProgramStep(
@@ -834,22 +886,22 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return;
         }
 
-        simulation.MoveEntityPhysical(entityId, q, r, tick);
+        simulation.Movement.TryMovePhysical(simulation, entityId, q, r, tick, MovementCauseCodes.Relocation);
     }
 
-    private bool CellCanBeClaimedFromEntity(WorldState world, int entityId, int q, int r)
+    private bool CellCanBeClaimedFromEntity(WorldState world, int planeCode, int entityId, int q, int r)
     {
-        if (HexDistance(world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId), q, r) <= 1)
+        if (HexDistance(CurrentQ(world, entityId, planeCode), CurrentR(world, entityId, planeCode), q, r) <= 1)
         {
             return true;
         }
 
-        if (!world.CoverageOwnerHasCells(entityId))
+        if (!world.CoverageOwnerHasCells(entityId, planeCode))
         {
             return false;
         }
 
-        var cursor = world.CoverageCells(entityId);
+        var cursor = world.CoverageCells(entityId, planeCode);
         while (world.MoveNextCoverageCell(ref cursor, out var ownedQ, out var ownedR))
         {
             if (HexDistance(ownedQ, ownedR, q, r) <= 1)

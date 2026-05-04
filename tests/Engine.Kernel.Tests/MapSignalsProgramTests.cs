@@ -63,7 +63,10 @@ public sealed class MapSignalsProgramTests
     public void MapSignalsProgram_SemanticInfluenceRaisesSemanticCapacityAndAttractorMass()
     {
         var simulation = new Simulation();
+        const int terrainId = 1;
         const int kindId = 1;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(3);
         simulation.MapSignals.RegisterKindSignal(
             kindId,
             signalRadius: 0,

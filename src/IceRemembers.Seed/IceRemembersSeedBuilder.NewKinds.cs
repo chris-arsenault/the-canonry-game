@@ -237,7 +237,7 @@ internal static partial class IceRemembersSeedBuilder
             RelationshipPolarity.Neutral,
             northernCompact.SeedEntityId,
             transport.SeedEntityId,
-            0.9f);
+            1f);
     }
 
     private static void CreateOccurrences(

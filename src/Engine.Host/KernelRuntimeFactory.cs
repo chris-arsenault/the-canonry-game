@@ -170,6 +170,7 @@ public sealed class KernelRuntimeFactory
         KernelProgramConfigurationContext programs,
         ProgramEnabledTuningOptions enabled)
     {
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Movement, enabled.Movement);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.LowAltitudeVerbs, enabled.LowAltitudeVerbs);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapActivity, enabled.MapActivity);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapSignals, enabled.MapSignals);

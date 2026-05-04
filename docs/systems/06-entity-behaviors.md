@@ -12,6 +12,7 @@ Current verb families:
 
 - movement on the physical plane;
 - movement on the semantic plane;
+- relationship strength mutation on existing relationships;
 - growing owned influence;
 - consolidating owned influence;
 - reducing targetable foreign influence;
@@ -23,10 +24,38 @@ moving. Static or semantic-primary entities make the map live by moving on the
 semantic plane and by projecting influence over cells or semantic coordinates.
 
 The domain config supplies kind, plane, operation, target mode, timing,
-weights, relationship affinity, influence parameters, and targeting filters.
+weights, relationship affinity, relationship-strength delta, influence
+parameters, and targeting filters.
 `Engine.Gameplay` validates the authored shape and compiles it into primitive
 kernel program data. `Engine.Kernel` executes only ids, opcodes, numeric
 weights, and fixed arrays.
+
+## Authored Taxonomy
+
+The Ice Remembers domain currently authors 98 low-altitude verbs:
+
+- Physical movement, 22 verbs: penguin exploration/visiting/fishing/relic
+  following; artifact circulation/bearer/shrine/scar/sea movement; orca hunt,
+  patrol, and pod calls; monster stirring/heat/fissure motion; ability and
+  point-of-interest surfacing/yielding; transport sailing, port, patrol, and
+  captain-following.
+- Semantic movement, 18 verbs: settlement deliberation/gossip; faction
+  preaching/quarreling; region communing/dreaming; orca deed-name motion;
+  point-of-interest resonance/calling/echoing; ability bearer/region/lineage
+  movement; monster semantic reach; transport charter motion; occurrence
+  word-spreading and faction-drawing.
+- Relationship strength mutation, 13 verbs: factions strengthen or fray
+  alliances, factions inflame or cool rivalries, settlements tend trade
+  routes, abilities reinforce practice, let practice fade, or charge conduits,
+  orcas reinforce pod ties, points of interest loosen claims, monsters deepen
+  corruption, transports overstrain conduits, and occurrences exhaust wars.
+  These mutate only existing relationship strength; they do not create
+  relationship topology.
+- Semantic influence, 28 verbs: entities grow, consolidate, or reduce semantic
+  influence around themselves, related targets, or foreign influence.
+- Physical influence, 15 ordinary verbs plus 2 rare structural verbs: entities
+  grow, consolidate, or reduce physical influence; settlements can expand
+  coverage; factions can relocate their physical seat.
 
 ## Targeting
 

@@ -5,8 +5,8 @@ intermittently bring **new named entities** into being. They are creation, not
 an aggregate release valve. The deck of generators the player runs is a
 statement about what kinds of worlds are allowed to come into being.
 
-This document is the canonical generator design — system rules, authoring
-invariants, current catalog, and open questions. Implementation is in
+This document is the canonical generator design: system rules, authoring
+invariants, and the current catalog. Implementation is in
 `src/Engine.Kernel/Programs/Generators/` and the IceRemembers domain
 content is in `src/IceRemembers/IceRemembersGeneratorDefinition.cs`.
 
@@ -57,6 +57,9 @@ Each generator names:
 - **(Optional) Non-creation consequences** — additional effects on existing
   entities or world state when those effects are part of the event's
   meaning.
+- **A `CausalLimit` declaration** — one plain-language sentence naming the
+  world condition that enables repeat firing and the spend, transform, or lock
+  that prevents immediate repetition.
 
 Placement is automatic: produced entities go *on* the target hex, *near*
 it, or — with `AllowWilderness` — on a free hex within the target region.
@@ -104,7 +107,8 @@ Authoring violations fail the build, not the runtime.
 8. **Repeated firing is limited causally.** A generator must spend, relieve,
    transform, or lock the world condition that made it eligible. Adding a
    second target is not enough unless firing changes that target or the original
-   cause. See [generator causal limits](../systems/20-generator-causal-limits.md).
+   cause. Each generator declares this as `CausalLimit`. See
+   [generator causal limits](../systems/20-generator-causal-limits.md).
 9. **Generators create a connected bundle of new named entities.**
    Relationship mutation on existing entities is allowed but secondary.
    If the main thing the content does is mutate existing graph state, it
@@ -168,9 +172,9 @@ Authoring guidance that we think is right but won't fail a build over.
 
 Current subtype families per kind. The rule: a subtype represents a real
 authored role in the world, not a narrow one-off flavor label, and the set
-is broad enough to support future generators.
+supports the active generator/gambit catalog.
 
-| Kind | Proposed subtypes | Rationale |
+| Kind | Current subtypes | Rationale |
 | --- | --- | --- |
 | `Penguin` | `Warden`, `Broker`, `Witness`, `Exile` | Guardians, negotiators, memory-keepers, and displaced figures. |
 | `Faction` | `Order`, `Compact`, `Cell`, `Choir` | Durable institutions, survival compacts, small operational groups, and devotional organizations. |
@@ -186,18 +190,11 @@ is broad enough to support future generators.
 
 - Strong: `Settlement`, `Artifact`, `Region` — the active set exercises
   `Holdfast`, `Reefhold`, `Scar`, `Sea`, `Relic`, `Instrument`, and `Seal`.
-- Weaker: `Penguin` and `Faction` coverage is intentionally partial while
-  generators are being rebuilt around the new simulation dynamics.
+- Weaker: `Penguin` and `Faction` coverage is intentionally partial in the
+  current catalog.
 
-That's acceptable for a first pass. Stable subtype families to design
-against matters more than full generator coverage right now.
-
-### Open subtype questions
-
-- `Choir` covers explicitly devotional faction work; `Order` remains the
-  broader disciplined form — keep both?
-- Do `Penguin.Broker` and `Penguin.Witness` need more generator support,
-  or should they emerge primarily through gambits and relationship drift?
+Stable subtype families to design against matter more than forcing full
+generator coverage from a small catalog.
 
 ## Catalog: current generators
 
@@ -212,55 +209,5 @@ generators:
 
 These start from graph state the simulation already produces, such as
 `holds`, `at_war_with`, `trade_route`, and `cleansed_by`, then create
-cross-kind bundles. Target subtype filters should stay broad until the catalog
-is large enough for subtype coverage to be meaningful.
-
-## Open design questions (system-level)
-
-- How should secondary targeting be represented in authoring data without
-  weakening the "single target anchors the event" rule?
-- Which of the hard invariants are true schema constraints versus
-  runtime validation versus lint?
-- What measure of graph connectedness is authorable enough to be useful
-  without becoming fake precision?
-- What catalog-level subtype coverage do we want: broad parity across
-  kinds, or explicit spotlighting of selected subtypes?
-- How should non-creation effects be represented so they remain legible
-  as generator outcomes rather than becoming a second hidden action
-  system?
-
-## Authoring backlog
-
-Recommendations for future passes, separated from blocking design work
-so the backlog stays explicit.
-
-**Catalog content.**
-- Generator gates should come from actual simulation dynamics, especially
-  gambit-created relationships, relationship strength, and locality, not from
-  static non-health attribute thresholds.
-- A healthy catalog has generators that **collapse** state as well as
-  create state —
-  famine, exile, dissolution of factions into penguins. Spawn-only
-  generators tend toward demographic explosion and are the main reason
-  sims get boring after hour 2.
-
-**Invariant follow-ups.**
-- An "orphan artifact" rule. Artifacts are currently exempt from the
-  orphan-produces check because we haven't decided what anchors them.
-  Options: artifacts must be `stored_at` something, or `owned_by` a
-  faction, or have any named-entity relationship.
-- A "no out-of-domain cultures" rule. A generator could currently
-  produce an entity with culture `none` (via region inheritance).
-  That's semantically odd for penguins/factions; require Penguin/Faction
-  produces to resolve to a culture in the `Cultures` list.
-- A cap on `Produces.Count`. A generator producing 10 entities is
-  almost certainly a bug or a quest, not a generator. 3–4 is probably
-  the right soft cap.
-- Require a `Description` field. Currently optional; in a catalog of 30
-  generators we'll want authored intent readable at a glance.
-
-**Workflow.**
-- Generators should be attached to cards in a visible way so the player
-  understands "this card is what produces heroes." The card is the
-  contract; the generator is the mechanism. Make sure the card face
-  communicates what the generator does in world terms.
+cross-kind bundles. Target subtype filters are broad in the active catalog
+because subtype coverage is still sparse.

@@ -21,7 +21,7 @@ historical rather than being erased.
   change relationships. Low-altitude physics mainly moves entities, changes map
   influence, changes health, and adjusts relationship strengths.
 - Relationship absence is meaningful. A generator or gambit can require that an
-  edge does not yet exist.
+  edge is absent.
 - Historical entities remain queryable so later generators, gambits, and UI
   views can refer to memory and lineage.
 

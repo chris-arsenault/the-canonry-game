@@ -142,6 +142,37 @@ public sealed class GameplayCompilerProgramTests
     }
 
     [Fact]
+    public void CompileGameplay_CompilesRelationshipStrengthPrimitiveStepAndInputs()
+    {
+        var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
+        {
+            LowAltitudeVerbs =
+            [
+                new RelationshipStrengthLowAltitudeVerbConfig
+                {
+                    Id = "tend_alliance",
+                    Kind = "actor",
+                    Plane = "semantic",
+                    TargetMode = LowAltitudeVerbTargetMode.RelationshipTarget,
+                    RelationshipKind = "allies",
+                    RelationshipDirection = LowAltitudeVerbRelationshipDirection.Incoming,
+                    Delta = 0.075f,
+                },
+            ],
+        }, new ConfigurableGameplayContext());
+
+        var verb = Assert.Single(result.Programs.LowAltitudeVerbs.Verbs);
+        Assert.Equal(ProgramOpcodeCodes.AdjustRelationshipStrength, verb.OperationCode);
+        Assert.Equal(TargetSelectorCodes.RelationshipTarget, verb.TargetModeCode);
+        Assert.Equal(31, verb.RelationshipKindId);
+        Assert.Equal(RelationshipMatchDirectionCodes.Incoming, verb.RelationshipDirectionCode);
+        Assert.Equal(0.075f, verb.RelationshipStrengthDelta);
+        Assert.Equal(
+            [ProgramOpcodeCodes.AdjustRelationshipStrength],
+            verb.PrimitiveSteps.Select(step => step.Opcode).ToArray());
+    }
+
+    [Fact]
     public void CompileGameplay_CompilesTerrainAndRelationshipMapSignals()
     {
         var result = GameplayCompiler.CompileGameplay(new GameplayDefinition

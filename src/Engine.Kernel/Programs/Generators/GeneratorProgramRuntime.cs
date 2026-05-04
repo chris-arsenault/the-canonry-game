@@ -101,6 +101,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _effectRefOrKindIds => Data.EffectRefOrKindIds;
     private int[] _effectInstanceSelectionCodes => Data.EffectInstanceSelectionCodes;
     private int[] _effectOptionCodes => Data.EffectOptionCodes;
+    private int[] _effectPlaneCodes => Data.EffectPlaneCodes;
+    private int[] _effectRadii => Data.EffectRadii;
+    private int[] _effectMaxCellCounts => Data.EffectMaxCellCounts;
+    private int[] _effectPreferredTerrainStarts => Data.EffectPreferredTerrainStarts;
+    private int[] _effectPreferredTerrainCounts => Data.EffectPreferredTerrainCounts;
+    private int[] _effectAllowedTerrainStarts => Data.EffectAllowedTerrainStarts;
+    private int[] _effectAllowedTerrainCounts => Data.EffectAllowedTerrainCounts;
     private float[] _effectValues => Data.EffectValues;
     private int[] _scratchQ => _scratch.Q;
     private int[] _scratchR => _scratch.R;
@@ -130,6 +137,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private ref int _openGeneratorSlot => ref Data.OpenGeneratorSlot;
     private ref int _openBindingSlot => ref Data.OpenBindingSlot;
     private ref int _openProducedSlot => ref Data.OpenProducedSlot;
+    private ref int _openEffectSlot => ref Data.OpenEffectSlot;
 
     public GeneratorProgramRuntime(GeneratorProgramData data, GeneratorProgramState state)
         : this(data, state, CreateScratch(data), new KernelProgramTuningOptions())
@@ -561,19 +569,25 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _relationshipCounts[generatorSlot]++;
     }
 
-    public void AddEffect(
+    public int AddEffect(
         int generatorSlot,
         int effectTypeCode,
         int refOrKindId,
         int instanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
         int optionCode = 0,
-        float value = 0f)
+        float value = 0f,
+        int radius = 0,
+        int maxCellCount = 0,
+        int planeCode = PlaneCodes.Physical)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(effectTypeCode);
         ValidatePositive(refOrKindId);
-        ValidateRelationshipInstanceSelection(instanceSelectionCode);
+        ValidateEffectInstanceSelection(effectTypeCode, instanceSelectionCode);
+        ValidatePlaneCode(planeCode);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(optionCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxCellCount);
         if (_effectCount + 1 >= _effectTypeCodes.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -584,8 +598,49 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _effectRefOrKindIds[_effectCount] = refOrKindId;
         _effectInstanceSelectionCodes[_effectCount] = instanceSelectionCode;
         _effectOptionCodes[_effectCount] = optionCode;
+        _effectPlaneCodes[_effectCount] = planeCode;
         _effectValues[_effectCount] = value;
+        _effectRadii[_effectCount] = radius;
+        _effectMaxCellCounts[_effectCount] = maxCellCount;
+        _effectPreferredTerrainStarts[_effectCount] = _terrainFilterCount + 1;
+        _effectAllowedTerrainStarts[_effectCount] = _terrainFilterCount + 1;
         _effectCounts[generatorSlot]++;
+        _openEffectSlot = _effectCount;
+        return _effectCount;
+    }
+
+    public void AddEffectPreferredTerrain(int effectSlot, int terrainId)
+    {
+        EnsureOpenEffect(effectSlot);
+        AddTerrainFilterId(terrainId);
+        _effectPreferredTerrainCounts[effectSlot]++;
+    }
+
+    public void AddEffectAllowedTerrain(int effectSlot, int terrainId)
+    {
+        EnsureOpenEffect(effectSlot);
+        AddTerrainFilterId(terrainId);
+        _effectAllowedTerrainCounts[effectSlot]++;
+    }
+
+    private static void ValidateEffectInstanceSelection(int effectTypeCode, int instanceSelectionCode)
+    {
+        if (effectTypeCode == GeneratorEffectTypeCodes.RemoveTargetRelationships ||
+            effectTypeCode == GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength)
+        {
+            ValidateRelationshipInstanceSelection(instanceSelectionCode);
+            return;
+        }
+
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(instanceSelectionCode);
+    }
+
+    private static void ValidatePlaneCode(int planeCode)
+    {
+        if (planeCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
+        }
     }
 
     private static void ValidateRelationshipInstanceSelection(int instanceSelectionCode)

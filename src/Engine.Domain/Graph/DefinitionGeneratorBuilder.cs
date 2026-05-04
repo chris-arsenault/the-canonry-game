@@ -1,5 +1,6 @@
 namespace Engine.Domain.Graph;
 
+using Engine.Constants;
 using Engine.Domain.Config;
 using Engine.Kinds;
 
@@ -313,51 +314,142 @@ public static class DefinitionGeneratorBuilder
         ISemanticGeneratorEffect effect,
         DefinitionGraph graph,
         global::Engine.Domain.DomainIdRegistry runtimeIds,
+        HashSet<string> declaredRefs) =>
+        effect switch
+        {
+            SetBindingHistoricalEffect setHistorical => BuildSetBindingHistoricalEffect(generatorId, setHistorical, declaredRefs),
+            RemoveTargetRelationshipsEffect removeRelationships => BuildRemoveTargetRelationshipsEffect(generatorId, target, removeRelationships, graph, runtimeIds),
+            AdjustTargetRelationshipStrengthEffect adjustRelationship => BuildAdjustTargetRelationshipStrengthEffect(generatorId, target, adjustRelationship, graph, runtimeIds),
+            SetTerrainPatchEffect setTerrainPatch => BuildSetTerrainPatchEffect(generatorId, setTerrainPatch, declaredRefs),
+            _ => throw new DefinitionGraphException(
+                $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'."),
+        };
+
+    private static DefinitionSetBindingHistoricalEffect BuildSetBindingHistoricalEffect(
+        string generatorId,
+        SetBindingHistoricalEffect setHistorical,
         HashSet<string> declaredRefs)
     {
-        switch (effect)
+        EnsureDeclaredRef(generatorId, setHistorical.BindingRef, declaredRefs, "BindingRef");
+        return new DefinitionSetBindingHistoricalEffect(setHistorical.BindingRef);
+    }
+
+    private static DefinitionRemoveTargetRelationshipsEffect BuildRemoveTargetRelationshipsEffect(
+        string generatorId,
+        SemanticGeneratorTarget target,
+        RemoveTargetRelationshipsEffect removeRelationships,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        var context = $"Generator '{generatorId}' RemoveTargetRelationships effect";
+        var relationshipId = ResolveRelationshipId(graph, removeRelationships.RelationshipKind, context);
+        EnsureTriggerInstanceMatchesSoleGate(
+            generatorId,
+            target,
+            removeRelationships.RelationshipKind,
+            removeRelationships.InstanceSelection,
+            "RemoveTargetRelationships");
+
+        return new DefinitionRemoveTargetRelationshipsEffect(
+            runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
+            removeRelationships.InstanceSelection,
+            removeRelationships.IncludeReciprocal);
+    }
+
+    private static DefinitionAdjustTargetRelationshipStrengthEffect BuildAdjustTargetRelationshipStrengthEffect(
+        string generatorId,
+        SemanticGeneratorTarget target,
+        AdjustTargetRelationshipStrengthEffect adjustRelationship,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds)
+    {
+        var context = $"Generator '{generatorId}' AdjustTargetRelationshipStrength effect";
+        var relationshipId = ResolveRelationshipId(graph, adjustRelationship.RelationshipKind, context);
+        EnsureTriggerInstanceMatchesSoleGate(
+            generatorId,
+            target,
+            adjustRelationship.RelationshipKind,
+            adjustRelationship.InstanceSelection,
+            "AdjustTargetRelationshipStrength");
+
+        return new DefinitionAdjustTargetRelationshipStrengthEffect(
+            runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
+            adjustRelationship.Delta,
+            adjustRelationship.InstanceSelection,
+            adjustRelationship.IncludeReciprocal);
+    }
+
+    private static DefinitionSetTerrainPatchEffect BuildSetTerrainPatchEffect(
+        string generatorId,
+        SetTerrainPatchEffect setTerrainPatch,
+        HashSet<string> declaredRefs)
+    {
+        EnsureDeclaredRef(generatorId, setTerrainPatch.CenterRef, declaredRefs, "CenterRef");
+        ValidateSetTerrainPatchEffect(generatorId, setTerrainPatch);
+
+        return new DefinitionSetTerrainPatchEffect(
+            setTerrainPatch.CenterRef,
+            setTerrainPatch.Terrain,
+            setTerrainPatch.Radius,
+            setTerrainPatch.MaxCellCount,
+            setTerrainPatch.RespectTerrainBoundaries,
+            setTerrainPatch.Chance,
+            setTerrainPatch.PlaneCode)
         {
-            case SetBindingHistoricalEffect setHistorical:
-                {
-                    EnsureDeclaredRef(generatorId, setHistorical.BindingRef, declaredRefs, "BindingRef");
-                    return new DefinitionSetBindingHistoricalEffect(setHistorical.BindingRef);
-                }
-            case RemoveTargetRelationshipsEffect removeRelationships:
-                {
-                    var context = $"Generator '{generatorId}' RemoveTargetRelationships effect";
-                    var relationshipId = ResolveRelationshipId(graph!, removeRelationships.RelationshipKind, context);
-                    if (removeRelationships.InstanceSelection == GeneratorRelationshipInstanceSelection.TriggerRelationship &&
-                        !TargetHasOnlyRelationshipGate(target, removeRelationships.RelationshipKind))
-                    {
-                        throw new DefinitionGraphException(
-                            $"Generator '{generatorId}' RemoveTargetRelationships trigger instance effect must match the sole target relationship gate.");
-                    }
+            PreferredTerrains = setTerrainPatch.PreferredTerrains is null
+                ? null
+                : new HashSet<string>(setTerrainPatch.PreferredTerrains, StringComparer.Ordinal),
+            AllowedTerrains = setTerrainPatch.AllowedTerrains is null
+                ? null
+                : new HashSet<string>(setTerrainPatch.AllowedTerrains, StringComparer.Ordinal),
+        };
+    }
 
-                    return new DefinitionRemoveTargetRelationshipsEffect(
-                        runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
-                        removeRelationships.InstanceSelection,
-                        removeRelationships.IncludeReciprocal);
-                }
-            case AdjustTargetRelationshipStrengthEffect adjustRelationship:
-                {
-                    var context = $"Generator '{generatorId}' AdjustTargetRelationshipStrength effect";
-                    var relationshipId = ResolveRelationshipId(graph!, adjustRelationship.RelationshipKind, context);
-                    if (adjustRelationship.InstanceSelection == GeneratorRelationshipInstanceSelection.TriggerRelationship &&
-                        !TargetHasOnlyRelationshipGate(target, adjustRelationship.RelationshipKind))
-                    {
-                        throw new DefinitionGraphException(
-                            $"Generator '{generatorId}' AdjustTargetRelationshipStrength trigger instance effect must match the sole target relationship gate.");
-                    }
+    private static void EnsureTriggerInstanceMatchesSoleGate(
+        string generatorId,
+        SemanticGeneratorTarget target,
+        string relationshipKind,
+        GeneratorRelationshipInstanceSelection instanceSelection,
+        string effectName)
+    {
+        if (instanceSelection == GeneratorRelationshipInstanceSelection.TriggerRelationship &&
+            !TargetHasOnlyRelationshipGate(target, relationshipKind))
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' {effectName} trigger instance effect must match the sole target relationship gate.");
+        }
+    }
 
-                    return new DefinitionAdjustTargetRelationshipStrengthEffect(
-                        runtimeIds.RelationshipKindIdOf(relationshipId.Value).Value,
-                        adjustRelationship.Delta,
-                        adjustRelationship.InstanceSelection,
-                        adjustRelationship.IncludeReciprocal);
-                }
-            default:
-                throw new DefinitionGraphException(
-                    $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'.");
+    private static void ValidateSetTerrainPatchEffect(string generatorId, SetTerrainPatchEffect setTerrainPatch)
+    {
+        if (string.IsNullOrWhiteSpace(setTerrainPatch.Terrain))
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' SetTerrainPatch effect must name a terrain.");
+        }
+
+        if (setTerrainPatch.Radius < 0)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' SetTerrainPatch effect radius must be non-negative.");
+        }
+
+        if (setTerrainPatch.MaxCellCount < 0)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' SetTerrainPatch effect max cell count must be non-negative.");
+        }
+
+        if (setTerrainPatch.Chance is < 0f or > 1f)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' SetTerrainPatch effect chance must be between 0 and 1.");
+        }
+
+        if (setTerrainPatch.PlaneCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' SetTerrainPatch effect plane code must be physical or semantic.");
         }
     }
 

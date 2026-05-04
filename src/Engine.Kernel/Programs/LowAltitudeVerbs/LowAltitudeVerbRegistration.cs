@@ -34,4 +34,5 @@ internal readonly struct LowAltitudeVerbRegistration
     public float CoverageChance { get; init; }
     public float RelocationChance { get; init; }
     public float RequiredMapValue { get; init; }
+    public float RelationshipStrengthDelta { get; init; }
 }

@@ -56,6 +56,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ProgramOpcodeCodes.SubtractOtherCellScalar => "subtract_other_cell_scalar",
             ProgramOpcodeCodes.TryClaimCell => "try_claim_cell",
             ProgramOpcodeCodes.TryRelocateEntity => "try_relocate_entity",
+            ProgramOpcodeCodes.AdjustRelationshipStrength => "adjust_relationship_strength",
             _ => operationCode.ToString(CultureInfo.InvariantCulture),
         };
 

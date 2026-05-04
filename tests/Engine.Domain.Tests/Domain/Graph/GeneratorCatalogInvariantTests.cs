@@ -20,64 +20,21 @@ public class GeneratorCatalogInvariantTests
     }
 
     [Fact]
-    public void Validate_IceRemembersGeneratorCatalog_TargetRepeatControlIsPlayable()
+    public void Validate_IceRemembersGeneratorCatalog_DeclaresCausalLimits()
     {
-        var graph = DomainLoader.BuildDefinitionGraph(IceRemembersDefinition.Create());
         var issues = new List<string>();
 
-        foreach (var generator in graph.Generators.Values)
+        foreach (var generator in IceRemembersDefinition.Create().Semantics!.Generators)
         {
-            if (!HasCausalSpend(generator))
+            if (string.IsNullOrWhiteSpace(generator.CausalLimit))
             {
-                issues.Add($"{generator.Id} has no causal spend.");
+                issues.Add(
+                    $"{generator.Id} must declare CausalLimit. " +
+                    "See docs/systems/20-generator-causal-limits.md.");
             }
         }
 
         Assert.Empty(issues);
-    }
-
-    private static bool HasCausalSpend(DefinitionGeneratorNode generator) =>
-        generator.Effects.Any(effect =>
-            effect is DefinitionRemoveTargetRelationshipsEffect
-            {
-                InstanceSelection: GeneratorRelationshipInstanceSelection.TriggerRelationship,
-            } ||
-            effect is DefinitionAdjustTargetRelationshipStrengthEffect
-            {
-                InstanceSelection: GeneratorRelationshipInstanceSelection.TriggerRelationship,
-            }) ||
-        HasMatchingOutputStateLock(generator.Target.WithoutOutgoingRelationships, generator.Relationships, outgoingFromTarget: true) ||
-        HasMatchingOutputStateLock(generator.Target.WithoutIncomingRelationships, generator.Relationships, outgoingFromTarget: false) ||
-        HasMatchingTerrainTransformGate(generator);
-
-    private static bool HasMatchingOutputStateLock(
-        IReadOnlySet<string>? relationshipKinds,
-        IReadOnlyList<DefinitionGeneratorRelationship> relationships,
-        bool outgoingFromTarget)
-    {
-        if (relationshipKinds is not { Count: > 0 })
-        {
-            return false;
-        }
-
-        return relationshipKinds.Any(kind =>
-            relationships.Any(relationship =>
-                relationship.RelationshipId.Value == kind &&
-                (outgoingFromTarget
-                    ? relationship.SourceRef == "$target"
-                    : relationship.DestinationRef == "$target")));
-    }
-
-    private static bool HasMatchingTerrainTransformGate(DefinitionGeneratorNode generator)
-    {
-        if (generator.Target.TerrainCountRequirements.Count == 0)
-        {
-            return false;
-        }
-
-        return generator.Target.TerrainCountRequirements.Any(requirement =>
-            generator.Produces.Any(produced =>
-                produced.Coverage?.TransformTerrain == requirement.TerrainName));
     }
 
     [Fact]

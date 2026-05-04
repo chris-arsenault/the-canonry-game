@@ -31,6 +31,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "ice_settles_accounts",
         Name = "Ice Settles Accounts",
         Description = "The reckoning. The ice calls a price for the war: a penguin of the faction's culture does not return, a memorial seal closes the account, and the war ends.",
+        CausalLimit = "Depends on an at-war relationship and an offered penguin; marks the penguin historical and removes the selected at-war relationship.",
         Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
         SecondaryTargets =
         [
@@ -69,6 +70,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "what_the_spring_remembers",
         Name = "What the Spring Remembers",
         Description = "A cleansed hot spring draws a witness and an anchored relic. Where the warmth holds long enough, a sanctuary may form, and a choir may settle to sing what the ice forgot.",
+        CausalLimit = "Depends on an incoming cleansed-by relationship and absence of anchoring; creates an anchored relic on the region.",
         Target = TargetWithIncomingAndWithoutIncoming(K.Region, Rel.CleansedBy, Rel.Anchored),
         SecondaryTargets =
         [
@@ -97,6 +99,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "war_breaks_the_land",
         Name = "War Breaks the Land",
         Description = "Sustained war scars the outer face into wastes. Survivors sometimes form a compact in the ruin; weapons are left where the fighting cracked.",
+        CausalLimit = "Depends on an at-war relationship and fewer than eight local waste cells; creates a scar region that turns finite nearby land into wastes.",
         Target = TargetWithOutgoingAndLocalTerrainBelow(
             K.Faction,
             Rel.AtWarWith,
@@ -124,6 +127,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "routes_draw_readers",
         Name = "Routes Draw Readers",
         Description = "An active trade route attracts a broker and a waystation harbor. Where the wealth concentrates, a formal order may take charge of what passes through.",
+        CausalLimit = "Depends on high trade-route strength and reduces the selected trade route strength.",
         Target = TargetWithStrongOutgoing(K.Settlement, Rel.TradeRoute, RoutesDrawReadersMinimumTradeRouteStrength),
         Produces =
         [
@@ -134,7 +138,7 @@ public static class IceRemembersGeneratorDefinition
         ],
         Relationships =
         [
-            R("$broker", "$harbor", Rel.HomeBase, 0.88f),
+            R("$broker", "$harbor", Rel.HomeBase, 1f),
             R("$harbor", "$target", Rel.FoundedFrom, 0.90f),
             R("$harbor", "$target", Rel.TradeRoute, 0.72f),
             R("$harbor", "$order", Rel.ControlledBy, 0.82f),
@@ -157,6 +161,7 @@ public static class IceRemembersGeneratorDefinition
         Id = "what_the_artifact_knows",
         Name = "What the Artifact Knows",
         Description = "A penguin who has carried an artifact long enough recognises a place to stop. They put down a rookery, seal the artifact into the ground, and a small cell may form around them.",
+        CausalLimit = "Depends on a held artifact and absence of a home base; creates a home-base relationship for the penguin.",
         Target = TargetWithOutgoingAndWithoutOutgoing(K.Penguin, Rel.Holds, Rel.HomeBase),
         Produces =
         [
@@ -166,7 +171,7 @@ public static class IceRemembersGeneratorDefinition
         ],
         Relationships =
         [
-            R("$target", "$rookery", Rel.HomeBase, 0.90f),
+            R("$target", "$rookery", Rel.HomeBase, 1f),
             R("$seal", "$rookery", Rel.Anchored, 0.88f),
             R("$rookery", "$cell", Rel.ControlledBy, 0.82f),
             R("$cell", "$target", Rel.LedBy, 0.85f),

@@ -1,8 +1,8 @@
 # Card Executor Base
 
 This file records the shared contract for high-altitude cards. The current
-runtime has concrete generator and gambit executors; system cards remain future
-work.
+runtime has concrete generator and gambit executors. System cards are not part
+of the active runtime.
 
 ## Shared Concepts
 
@@ -51,7 +51,8 @@ Effect families:
   are acceptable when map or semantic context is the point.
 - Do not duplicate targeting systems for primary and secondary targets. Use the
   same resolve-or-create query path with explicit `create_if_missing`.
-- Do not create card-only marker edges when a real relationship plus fact would
-  be understood by the rest of the graph.
+- Do not create card-only marker edges when a real relationship, relationship
+  strength, provenance, or ordinary world state would be understood by the rest
+  of the graph.
 - Diagnostic traces should flow through the eventing/observability pipeline, not
   direct file writes from kernel code.

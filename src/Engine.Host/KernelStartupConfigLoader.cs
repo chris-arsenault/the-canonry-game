@@ -8,6 +8,7 @@ internal static class KernelStartupConfigLoader
 {
     private static readonly ProgramSectionMapping[] ProgramSectionMappings =
     [
+        new("KERNELTUNING.PROGRAMS.MOVEMENT", KernelProgramCodes.Movement),
         new("KERNELTUNING.PROGRAMS.LOWALTITUDEVERBS", KernelProgramCodes.LowAltitudeVerbs),
         new("KERNELTUNING.PROGRAMS.LOW_ALTITUDE_VERBS", KernelProgramCodes.LowAltitudeVerbs),
         new("KERNELTUNING.PROGRAMS.MAPACTIVITY", KernelProgramCodes.MapActivity),
@@ -80,6 +81,7 @@ internal static class KernelStartupConfigLoader
 
     private static KernelTuningOptions ApplyJsonProgramEnabledTuning(JsonElement programs, KernelTuningOptions tuning)
     {
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Movement, "movement");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.LowAltitudeVerbs, "lowAltitudeVerbs", "low_altitude_verbs");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapActivity, "mapActivity", "map_activity");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapSignals, "mapSignals", "map_signals");
@@ -332,6 +334,7 @@ internal static class KernelStartupConfigLoader
     {
         updated = programId switch
         {
+            KernelProgramCodes.Movement => options with { Movement = code },
             KernelProgramCodes.LowAltitudeVerbs => options with { LowAltitudeVerbs = code },
             KernelProgramCodes.MapActivity => options with { MapActivity = code },
             KernelProgramCodes.MapSignals => options with { MapSignals = code },

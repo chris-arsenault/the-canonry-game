@@ -1,11 +1,15 @@
 namespace Engine.Domain.Tests.Domain;
 
+using Engine.Behaviors;
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
 using Engine.Gameplay;
+using Engine.Kinds;
+
 using IceRemembers;
 using IceRemembers.Seed;
-using Engine.Kinds;
+
+using Rel = IceRemembers.IceRemembersRelationship;
 
 public class DomainConfigTests
 {
@@ -87,6 +91,41 @@ public class DomainConfigTests
         Assert.True(routeEffect.Delta < 0f);
 
         Assert.Contains(IceRemembersRelationship.HomeBase.ToDomainName(), artifact.Target.WithoutOutgoingRelationships!);
+    }
+
+    [Fact]
+    public void IceRemembers_RelationshipStrengthMeaningHasBalancedSourcesAndSinks()
+    {
+        var config = IceRemembersDefinition.Create();
+        var meanings = RelationshipStrengthMeaningByName();
+        var relationshipNames = config.Relationships
+            .Select(relationship => relationship.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Empty(meanings.Keys.Except(relationshipNames, StringComparer.Ordinal));
+        Assert.Empty(relationshipNames.Except(meanings.Keys, StringComparer.Ordinal));
+
+        var flows = RelationshipStrengthFlowInventory.From(config);
+        var issues = new List<string>();
+
+        foreach (var relationship in config.Relationships.OrderBy(relationship => relationship.Name, StringComparer.Ordinal))
+        {
+            var meaningful = meanings[relationship.Name];
+            var hasSource = flows.Sources.Contains(relationship.Name);
+            var hasSink = flows.Sinks.Contains(relationship.Name);
+
+            if (meaningful && (!hasSource || !hasSink))
+            {
+                issues.Add($"{relationship.Name} strength is meaningful but has source={hasSource}, sink={hasSink}.");
+            }
+
+            if (!meaningful && (hasSource || hasSink))
+            {
+                issues.Add($"{relationship.Name} strength is topology-only but has source={hasSource}, sink={hasSink}.");
+            }
+        }
+
+        Assert.Empty(issues);
     }
 
     [Fact]
@@ -222,5 +261,131 @@ public class DomainConfigTests
             (config.AgeCoefficient * targetTicks * (targetTicks - 1f) * 0.5f);
 
         Assert.InRange(totalDrain, 89f, 91f);
+    }
+
+    private static Dictionary<string, bool> RelationshipStrengthMeaningByName() =>
+        new Dictionary<string, bool>(StringComparer.Ordinal)
+        {
+            [Rel.ControlledBy.ToDomainName()] = true,
+            [Rel.HomeBase.ToDomainName()] = false,
+            [Rel.AlliedWith.ToDomainName()] = true,
+            [Rel.RivalOf.ToDomainName()] = true,
+            [Rel.LedBy.ToDomainName()] = true,
+            [Rel.MemberOf.ToDomainName()] = true,
+            [Rel.Holds.ToDomainName()] = false,
+            [Rel.CreatedBy.ToDomainName()] = false,
+            [Rel.Memorializes.ToDomainName()] = true,
+            [Rel.ClaimedBy.ToDomainName()] = true,
+            [Rel.TradeRoute.ToDomainName()] = true,
+            [Rel.FoundedFrom.ToDomainName()] = false,
+            [Rel.NativeTo.ToDomainName()] = false,
+            [Rel.Anchored.ToDomainName()] = true,
+            [Rel.ConduitOf.ToDomainName()] = true,
+            [Rel.PartOf.ToDomainName()] = false,
+            [Rel.WardAgainst.ToDomainName()] = true,
+            [Rel.CorruptedBy.ToDomainName()] = true,
+            [Rel.CleansedBy.ToDomainName()] = true,
+            [Rel.AtWarWith.ToDomainName()] = true,
+            [Rel.BetrayedBy.ToDomainName()] = true,
+            [Rel.PracticedBy.ToDomainName()] = true,
+            [Rel.TaughtBy.ToDomainName()] = true,
+        };
+
+    private sealed record RelationshipStrengthFlowInventory(
+        HashSet<string> Sources,
+        HashSet<string> Sinks)
+    {
+        public static RelationshipStrengthFlowInventory From(DomainConfig config)
+        {
+            var sources = new HashSet<string>(StringComparer.Ordinal);
+            var sinks = new HashSet<string>(StringComparer.Ordinal);
+
+            AddMaintenanceFlows(config, sources, sinks);
+            AddLowAltitudeFlows(config, sources, sinks);
+            AddGeneratorFlows(config, sources, sinks);
+            AddGambitFlows(config, sources, sinks);
+
+            return new RelationshipStrengthFlowInventory(sources, sinks);
+        }
+
+        private static void AddMaintenanceFlows(
+            DomainConfig config,
+            HashSet<string> sources,
+            HashSet<string> sinks)
+        {
+            foreach (var relationship in config.Relationships)
+            {
+                foreach (var rule in relationship.Maintenance)
+                {
+                    AddFlow(relationship.Name, rule.Delta, sources, sinks);
+                }
+            }
+        }
+
+        private static void AddLowAltitudeFlows(
+            DomainConfig config,
+            HashSet<string> sources,
+            HashSet<string> sinks)
+        {
+            foreach (var verb in config.Gameplay?.LowAltitudeVerbs ?? [])
+            {
+                if (verb is RelationshipStrengthLowAltitudeVerbConfig &&
+                    !string.IsNullOrWhiteSpace(verb.RelationshipKind))
+                {
+                    AddFlow(verb.RelationshipKind, verb.RelationshipStrengthDelta, sources, sinks);
+                }
+            }
+        }
+
+        private static void AddGeneratorFlows(
+            DomainConfig config,
+            HashSet<string> sources,
+            HashSet<string> sinks)
+        {
+            foreach (var generator in config.Semantics?.Generators ?? [])
+            {
+                foreach (var effect in generator.Effects)
+                {
+                    if (effect is AdjustTargetRelationshipStrengthEffect adjust)
+                    {
+                        AddFlow(adjust.RelationshipKind, adjust.Delta, sources, sinks);
+                    }
+                }
+            }
+        }
+
+        private static void AddGambitFlows(
+            DomainConfig config,
+            HashSet<string> sources,
+            HashSet<string> sinks)
+        {
+            foreach (var gambit in config.Gambits)
+            {
+                foreach (var mutation in gambit.Mutations)
+                {
+                    if (mutation is SetContextRelationshipStrengthMutation set)
+                    {
+                        sources.Add(set.RelationshipKind);
+                        sinks.Add(set.RelationshipKind);
+                    }
+                }
+            }
+        }
+
+        private static void AddFlow(
+            string relationship,
+            float delta,
+            HashSet<string> sources,
+            HashSet<string> sinks)
+        {
+            if (delta > 0f)
+            {
+                sources.Add(relationship);
+            }
+            else if (delta < 0f)
+            {
+                sinks.Add(relationship);
+            }
+        }
     }
 }

@@ -1,0 +1,128 @@
+namespace Engine.Kernel;
+
+internal sealed partial class LowAltitudeVerbProgramRuntime
+{
+    private bool HasTargetRelationship(WorldState world, int entityId, int targetEntityId, int rule)
+    {
+        var relationshipKindId = Data.RelationshipKindId(rule);
+        if (relationshipKindId == 0)
+        {
+            return false;
+        }
+
+        if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
+            or LowAltitudeVerbRelationshipDirectionCodes.Either)
+        {
+            if (HasRelationshipInDirection(world, entityId, targetEntityId, relationshipKindId, outgoing: true))
+            {
+                return true;
+            }
+        }
+
+        if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Incoming
+            or LowAltitudeVerbRelationshipDirectionCodes.Either)
+        {
+            return HasRelationshipInDirection(world, entityId, targetEntityId, relationshipKindId, outgoing: false);
+        }
+
+        return false;
+    }
+
+    private static bool HasRelationshipInDirection(
+        WorldState world,
+        int entityId,
+        int targetEntityId,
+        int relationshipKindId,
+        bool outgoing)
+    {
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
+            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            var relatedEntityId = outgoing
+                ? world.RelationshipTargetId(relationshipId)
+                : world.RelationshipSourceId(relationshipId);
+            if (relatedEntityId == targetEntityId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AdjustTargetRelationshipStrength(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick)
+    {
+        var targetEntityId = State.TargetEntityId(entityId);
+        var relationshipKindId = Data.RelationshipKindId(rule);
+        var delta = Data.RelationshipStrengthDelta(rule);
+        if (targetEntityId == 0 || relationshipKindId == 0 || delta == 0f)
+        {
+            return;
+        }
+
+        var world = simulation.World;
+        if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
+            or LowAltitudeVerbRelationshipDirectionCodes.Either)
+        {
+            AdjustMatchingRelationships(
+                simulation,
+                world,
+                entityId,
+                targetEntityId,
+                relationshipKindId,
+                outgoing: true,
+                delta: delta,
+                tick: tick);
+        }
+
+        if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Incoming
+            or LowAltitudeVerbRelationshipDirectionCodes.Either)
+        {
+            AdjustMatchingRelationships(
+                simulation,
+                world,
+                entityId,
+                targetEntityId,
+                relationshipKindId,
+                outgoing: false,
+                delta: delta,
+                tick: tick);
+        }
+    }
+
+    private static void AdjustMatchingRelationships(
+        Simulation simulation,
+        WorldState world,
+        int entityId,
+        int targetEntityId,
+        int relationshipKindId,
+        bool outgoing,
+        float delta,
+        int tick)
+    {
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
+            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            var relatedEntityId = outgoing
+                ? world.RelationshipTargetId(relationshipId)
+                : world.RelationshipSourceId(relationshipId);
+            if (relatedEntityId != targetEntityId)
+            {
+                continue;
+            }
+
+            simulation.SetRelationshipStrength(
+                relationshipId,
+                world.RelationshipStrength(relationshipId) + delta,
+                tick);
+        }
+    }
+}

@@ -11,6 +11,7 @@ internal sealed partial class Simulation
         KernelData.WriteSnapshot(writer);
         World.WriteSnapshot(writer);
         _programs.WriteSnapshot(writer);
+        MovementProgramSnapshot.Write(writer, Movement);
         PlanningProgramSnapshot.Write(writer, Planners);
         LowAltitudeVerbProgramSnapshot.Write(writer, LowAltitudeVerbs);
         MapActivityProgramSnapshot.Write(writer, MapActivity);
@@ -30,6 +31,7 @@ internal sealed partial class Simulation
         KernelData.ReadSnapshot(reader);
         World.ReadSnapshot(reader);
         _programs.ReadSnapshot(this, reader);
+        MovementProgramSnapshot.Read(reader, Movement);
         PlanningProgramSnapshot.Read(reader, Planners);
         LowAltitudeVerbProgramSnapshot.Read(reader, LowAltitudeVerbs);
         MapActivityProgramSnapshot.Read(reader, MapActivity);

@@ -515,6 +515,15 @@ internal sealed partial class GeneratorProgramRuntime
                         triggerKindCode,
                         triggerId);
                     break;
+                case GeneratorEffectTypeCodes.SetTerrainPatch:
+                    ExecuteSetTerrainPatch(
+                        simulation,
+                        world,
+                        e,
+                        refCodes,
+                        refEntityIds,
+                        refCount);
+                    break;
             }
         }
     }

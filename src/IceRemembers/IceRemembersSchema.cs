@@ -312,6 +312,18 @@ public enum IceRemembersVerbId
     OccurrenceDrawTheFaction,
     OccurrenceGatherTheCrowds,
     OccurrenceBurnTheWitnesses,
+    FactionTendAlliance,
+    FactionInflameRivalry,
+    AbilityReinforcePractice,
+    FactionFrayAlliance,
+    FactionCoolRivalry,
+    AbilityLetPracticeFade,
+    OrcaReinforcePodTie,
+    PointOfInterestLoosenClaim,
+    AbilityChargeConduit,
+    MonsterDeepenCorruption,
+    TransportOverstrainConduit,
+    OccurrenceExhaustWar,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -441,6 +453,18 @@ public static class IceRemembersVerbIdExtensions
         "occurrence_draw_the_faction",
         "occurrence_gather_the_crowds",
         "occurrence_burn_the_witnesses",
+        "faction_tend_alliance",
+        "faction_inflame_rivalry",
+        "ability_reinforce_practice",
+        "faction_fray_alliance",
+        "faction_cool_rivalry",
+        "ability_let_practice_fade",
+        "orca_reinforce_pod_tie",
+        "point_of_interest_loosen_claim",
+        "ability_charge_conduit",
+        "monster_deepen_corruption",
+        "transport_overstrain_conduit",
+        "occurrence_exhaust_war",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

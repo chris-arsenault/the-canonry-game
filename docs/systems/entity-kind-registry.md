@@ -40,7 +40,7 @@ Current Ice Remembers relationships include:
 
 - `controlled_by`, `claimed_by`, `home_base`
 - `allied_with`, `rival_of`, `at_war_with`, `betrayed_by`
-- `led_by`, `member_of`
+- `led_by`, `member_of`, `taught_by`, `practiced_by`
 - `holds`, `anchored`, `created_by`, `native_to`, `part_of`
 - `memorializes`, `trade_route`, `founded_from`
 - `conduit_of`, `ward_against`, `corrupted_by`, `cleansed_by`
@@ -49,15 +49,9 @@ Relationship kinds should be reusable world vocabulary, not one-off generator
 memory. Relationship strength carries magnitude; provenance and event history
 carry how an edge was produced or changed.
 
-## Future Registry Additions
+## Registry Rule
 
-All initially deferred kinds (`orca`, `point_of_interest`, `ability`,
-`monster`, `transport`, `occurrence`) are now registered. New kinds added in
-the future should follow the same path: extend the domain schema and kind
-registry, then compile to IDs. Do not reintroduce engine enums for concrete
-kinds.
-
-Monster status (sealed/unbound/risen) remains deferred. The kind is registered
-with `containment` health and placeholder binding/hunger traits; the status
-field and the gambits/generators that move a monster between statuses are
-future work.
+All concrete Ice Remembers kinds are domain-registered and compile to IDs.
+Runtime code must not reintroduce engine enums for concrete kinds. The active
+monster model uses `containment` health and binding/hunger traits; it does not
+have a separate sealed/unbound/risen status field.

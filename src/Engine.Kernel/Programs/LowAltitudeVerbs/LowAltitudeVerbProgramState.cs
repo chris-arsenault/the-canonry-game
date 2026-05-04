@@ -151,11 +151,13 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         return tick >= _nextStepTicks[entityId];
     }
 
-    public void MarkStepped(int entityId, int tick)
+    public void MarkStepped(int entityId, int tick, float stepCost = 1f)
     {
         EnsureEntity(entityId);
         var interval = _stepIntervalTicks[entityId];
-        _nextStepTicks[entityId] = tick + (interval <= 0 ? 1 : interval);
+        var baseInterval = interval <= 0 ? 1 : interval;
+        var adjustedInterval = (int)global::System.MathF.Ceiling(baseInterval * global::System.MathF.Max(0.01f, stepCost));
+        _nextStepTicks[entityId] = tick + global::System.Math.Max(1, adjustedInterval);
     }
 
     public void MarkInitialInfluenceApplied(int entityId)

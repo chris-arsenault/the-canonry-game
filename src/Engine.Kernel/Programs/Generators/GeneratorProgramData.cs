@@ -92,6 +92,13 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] EffectRefOrKindIds = [];
     internal int[] EffectInstanceSelectionCodes = [];
     internal int[] EffectOptionCodes = [];
+    internal int[] EffectPlaneCodes = [];
+    internal int[] EffectRadii = [];
+    internal int[] EffectMaxCellCounts = [];
+    internal int[] EffectPreferredTerrainStarts = [];
+    internal int[] EffectPreferredTerrainCounts = [];
+    internal int[] EffectAllowedTerrainStarts = [];
+    internal int[] EffectAllowedTerrainCounts = [];
     internal float[] EffectValues = [];
     internal int SemanticMinQ = -24;
     internal int SemanticMaxQ = 24;
@@ -110,6 +117,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int OpenGeneratorSlot;
     internal int OpenBindingSlot;
     internal int OpenProducedSlot;
+    internal int OpenEffectSlot;
 
     public GeneratorProgramData(int generatorCapacity, int itemCapacity)
     {
@@ -164,6 +172,13 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         EffectRefOrKindIds = new int[itemCapacity + 1];
         EffectInstanceSelectionCodes = new int[itemCapacity + 1];
         EffectOptionCodes = new int[itemCapacity + 1];
+        EffectPlaneCodes = new int[itemCapacity + 1];
+        EffectRadii = new int[itemCapacity + 1];
+        EffectMaxCellCounts = new int[itemCapacity + 1];
+        EffectPreferredTerrainStarts = new int[itemCapacity + 1];
+        EffectPreferredTerrainCounts = new int[itemCapacity + 1];
+        EffectAllowedTerrainStarts = new int[itemCapacity + 1];
+        EffectAllowedTerrainCounts = new int[itemCapacity + 1];
         EffectValues = new float[itemCapacity + 1];
     }
 
@@ -243,7 +258,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 7;
+    public int SchemaVersion => 9;
 
     public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
     {

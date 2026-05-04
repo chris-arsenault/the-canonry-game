@@ -15,9 +15,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             tick,
             intentId,
             entityId,
-            Data.OperationCode(rule) == ProgramOpcodeCodes.MoveActor
-                ? TraceSubjectCodes.MovementIntent
-                : TraceSubjectCodes.InfluenceIntent,
+            TraceSubjectCode(rule),
             rule,
             Data.OperationCode(rule),
             ActionFamilyCodes.LowAltitudeVerb,
@@ -32,6 +30,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             candidate.Weight,
             candidate.Weight);
     }
+
+    private int TraceSubjectCode(int rule) => Data.OperationCode(rule) switch
+    {
+        ProgramOpcodeCodes.MoveActor => TraceSubjectCodes.MovementIntent,
+        ProgramOpcodeCodes.AdjustRelationshipStrength => TraceSubjectCodes.RelationshipIntent,
+        _ => TraceSubjectCodes.InfluenceIntent,
+    };
 
     private static VerbTargetCandidate Candidate(
         int rule,

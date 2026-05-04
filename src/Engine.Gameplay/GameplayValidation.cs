@@ -103,6 +103,7 @@ public static class GameplayValidator
                 break;
             case CoverageExpansionLowAltitudeVerbConfig:
             case AnchorRelocationLowAltitudeVerbConfig:
+            case RelationshipStrengthLowAltitudeVerbConfig:
                 break;
             default:
                 errors.Add(new GameplayValidationError(
@@ -180,6 +181,7 @@ public static class GameplayValidator
         ValidateCoverageGrowth(verb, shape, errors);
         ValidateRelocation(verb, shape, errors);
         ValidateRequiredMapValue(verb, shape, errors);
+        ValidateRelationshipStrengthDelta(verb, shape, errors);
     }
 
     private static void ValidateInfluenceDelta(
@@ -259,6 +261,26 @@ public static class GameplayValidator
             errors.Add(new GameplayValidationError(
                 "InvalidRequiredMapValue",
                 $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' cannot carry required map value."));
+        }
+    }
+
+    private static void ValidateRelationshipStrengthDelta(
+        LowAltitudeVerbConfig verb,
+        LowAltitudeVerbShape shape,
+        List<GameplayValidationError> errors)
+    {
+        if (shape.RequiresRelationshipStrengthDelta && verb.RelationshipStrengthDelta == 0f)
+        {
+            errors.Add(new GameplayValidationError(
+                "MissingRelationshipStrengthDelta",
+                $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' requires non-zero relationship strength delta."));
+        }
+
+        if (!shape.RequiresRelationshipStrengthDelta && verb.RelationshipStrengthDelta != 0f)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidRelationshipStrengthDelta",
+                $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' cannot carry relationship strength delta."));
         }
     }
 

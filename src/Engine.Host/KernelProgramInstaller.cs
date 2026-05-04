@@ -24,6 +24,9 @@ internal static partial class KernelProgramInstaller
         InstallDegeneracy(context, programs.Degeneracy);
 
         context.SetProgramEnabled(
+            KernelProgramCodes.Movement,
+            programConfig.IsEnabled(KernelProgramCodes.Movement, defaultValue: true));
+        context.SetProgramEnabled(
             KernelProgramCodes.LowAltitudeVerbs,
             programConfig.IsEnabled(KernelProgramCodes.LowAltitudeVerbs, programs.LowAltitudeVerbs.EnabledByDefault));
         context.SetProgramEnabled(
@@ -244,13 +247,25 @@ internal static partial class KernelProgramInstaller
     {
         foreach (var effect in generator.Effects)
         {
-            context.AddGeneratorEffect(
+            var effectSlot = context.AddGeneratorEffect(
                 generatorSlot,
                 effect.EffectTypeCode,
                 effect.RefOrKindId,
                 effect.InstanceSelectionCode,
                 effect.OptionCode,
-                effect.Value);
+                effect.Value,
+                effect.Radius,
+                effect.MaxCellCount,
+                effect.PlaneCode);
+            foreach (var terrainId in effect.PreferredTerrainIds ?? [])
+            {
+                context.AddGeneratorEffectPreferredTerrain(effectSlot, terrainId);
+            }
+
+            foreach (var terrainId in effect.AllowedTerrainIds ?? [])
+            {
+                context.AddGeneratorEffectAllowedTerrain(effectSlot, terrainId);
+            }
         }
     }
 

@@ -449,6 +449,23 @@ internal static class KernelQuery
         int originR,
         int terrainId,
         int radius,
+        int maximumExclusive) =>
+        TerrainCellCountInRadiusBelow(
+            world,
+            PlaneCodes.Physical,
+            originQ,
+            originR,
+            terrainId,
+            radius,
+            maximumExclusive);
+
+    public static bool TerrainCellCountInRadiusBelow(
+        WorldState world,
+        int planeCode,
+        int originQ,
+        int originR,
+        int terrainId,
+        int radius,
         int maximumExclusive)
     {
         if (radius < 0 || maximumExclusive <= 0)
@@ -465,7 +482,7 @@ internal static class KernelQuery
             {
                 var q = originQ + dq;
                 var r = originR + dr;
-                if (!world.CellIsKnown(q, r) || world.CellTerrainId(q, r) != terrainId)
+                if (!world.CellIsKnown(planeCode, q, r) || world.CellTerrainId(planeCode, q, r) != terrainId)
                 {
                     continue;
                 }
@@ -865,7 +882,7 @@ internal static class KernelQuery
         while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var influence))
         {
             if (influence >= cursorMinimum &&
-                (planeCode != PlaneCodes.Physical || world.CellIsKnown(q, r)) &&
+                world.CellIsKnown(planeCode, q, r) &&
                 world.GetCellInfluence(otherEntityId, planeCode, q, r) >= otherMinimum)
             {
                 return true;

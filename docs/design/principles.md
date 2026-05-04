@@ -98,7 +98,7 @@ lose conditions. The game resists them through three layers — automatic
 shock absorbers in low-altitude physics, card-level responses chosen by the
 player, and explicit UI warnings when patterns are detected. There are no
 win conditions in neutral mode; success is measured by the player's own
-goals. (Patron mode adds optional win conditions post-MVP.) See
+goals. Patron mode is outside the active runtime. See
 [anti-degeneracy.md](anti-degeneracy.md) for the full mechanism.
 
 ### 8. The deck is a theory
@@ -177,21 +177,20 @@ resolution. Tension sits until the player provides an outlet via cards, or
 until it reaches extremes that trigger cascading failure or warnings.
 Default outlets would make cards optional rather than structural.
 
-**No hidden timer / random catastrophes (for now).** All events emerge from
+**No hidden timer / random catastrophes.** All events emerge from
 game systems + active cards. Hidden event generation is a form of hidden
 storyteller. The "hidden cards" concept (cards visible on the tableau with
-hidden trigger timing) is a possible future feature, not initial design.
+hidden trigger timing) is not part of the active runtime.
 
 **No deep chronicle as primary feature.** Entities are stat blocks; events
 are brief, system-generated descriptions. No Dwarf Fortress Legends Mode-style
 historical record as a primary feature. Basic event logging exists for
 tracking, but the player's attention is on the living state of the world,
-not its archived history. A post-run summary may be added later.
+not its archived history.
 
-**Out of initial scope:** multiplayer, sound, mobile, modding. Map
-generation may use a fixed hand-authored map or minimal fixed-seed generator
-for the first playable; full procedural generation is MVP but not required
-for the first prototype.
+**Outside active runtime scope:** multiplayer, sound, mobile, and modding.
+Map and seed generation are procedural enough for the current playable slice;
+full content breadth is not required for the current prototype.
 
 ## Engine vs. domain boundary
 
@@ -208,28 +207,10 @@ relationship kinds, generators, gambits, terrain, names,
 and lore belong to the narrative domain module. The domain can be programmatic;
 it does not have to be JSON.
 
-**Declarative content:** generators, gambits, and future cards are
+**Declarative content:** generators, gambits, and cards are
 data-driven. New content should usually be a domain/gameplay data change,
 not a kernel change.
 
 A second domain can define different kinds and relationship catalogs by
 registering them through the domain layer. It cannot make the kernel branch
 on its own narrative concepts.
-
-## Open design areas
-
-Acknowledged unknowns that need hands-on iteration. None will be resolved
-on paper.
-
-- Deck construction timing and method (before-run / during-run / blind /
-  informed / mid-run modification).
-- Mana model specifics (pool size, expansion mechanism, per-card costs).
-- Card draw / availability mechanics (deck draw, world-state unlocks,
-  drafting, market).
-- Card swap rules (free / cooldown / cost / era-locked).
-- Exact card/runtime boundary: which gambits and generators are always-on
-  defaults vs enabled by the player's tableau.
-- Favored entity or faction mode integration with these principles.
-- Intervention card design (hand cards, draw, costs, frequency).
-- Hidden event cards (backlogged: cards visible on the tableau with hidden
-  trigger preconditions).

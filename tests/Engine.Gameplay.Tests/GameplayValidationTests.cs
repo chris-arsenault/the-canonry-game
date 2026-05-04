@@ -119,6 +119,14 @@ public sealed class GameplayValidationTests
                 Delta = 0f,
                 RelocationChance = 0f,
                 RequiredMapValue = 0f,
+            },
+            new RelationshipStrengthLowAltitudeVerbConfig
+            {
+                Id = "bad_relationship_strength",
+                Kind = "actor",
+                TargetMode = LowAltitudeVerbTargetMode.RelationshipTarget,
+                RelationshipKind = "allies",
+                Delta = 0f,
             });
 
         Assert.Contains(result.Errors, error =>
@@ -136,6 +144,9 @@ public sealed class GameplayValidationTests
         Assert.Contains(result.Errors, error =>
             error.Code == "MissingRequiredMapValue" &&
             error.Message.Contains("bad_relocate", StringComparison.Ordinal));
+        Assert.Contains(result.Errors, error =>
+            error.Code == "MissingRelationshipStrengthDelta" &&
+            error.Message.Contains("bad_relationship_strength", StringComparison.Ordinal));
     }
 
     [Fact]

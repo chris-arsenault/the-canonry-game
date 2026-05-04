@@ -43,7 +43,7 @@ public static partial class IceRemembersDefinition
             cooldown: 90,
             entityCooldown: 18);
         AddRelationshipWrite(gambit, Rel.Holds, K.Artifact);
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 0.82f));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 1f));
         gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
         gambit.Description = "A penguin within reach of an unclaimed artifact picks it up. The bond binds them physically — the artifact follows.";
         return gambit;

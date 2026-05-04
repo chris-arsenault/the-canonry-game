@@ -38,6 +38,7 @@ public abstract class LowAltitudeVerbConfig
     public virtual float CoverageGrowthChance => 0f;
     public virtual float HeadquartersMoveChance => 0f;
     public virtual float RequiredInfluence => 0f;
+    public virtual float RelationshipStrengthDelta => 0f;
 }
 
 public sealed class ForeignInfluenceTargetingConfig
@@ -92,6 +93,14 @@ public sealed class AnchorRelocationLowAltitudeVerbConfig : LowAltitudeVerbConfi
     public override float RequiredInfluence => RequiredMapValue;
 }
 
+public sealed class RelationshipStrengthLowAltitudeVerbConfig : LowAltitudeVerbConfig
+{
+    public required float Delta { get; init; }
+
+    public override LowAltitudeVerbOperation Operation => LowAltitudeVerbOperation.AdjustRelationshipStrength;
+    public override float RelationshipStrengthDelta => Delta;
+}
+
 public enum LowAltitudeVerbOperation
 {
     Move,
@@ -100,6 +109,7 @@ public enum LowAltitudeVerbOperation
     ReduceInfluence,
     ExpandCoverage,
     MoveHeadquarters,
+    AdjustRelationshipStrength,
 }
 
 public enum LowAltitudeVerbTargetMode

@@ -63,10 +63,10 @@ Adding a normal new trait should mean editing the trait config: id, display
 text, assignment chance, and operation clauses. Engine code changes are reserved
 for adding a new reusable operation primitive, not for adding a new trait ID.
 
-## Placeholder Catalog
+## Current Trait Catalog
 
-The first pass intentionally has one positive and one negative placeholder
-trait per kind. These are close-enough anchors for future content authoring.
+The current catalog has one positive and one negative trait per kind. These are
+domain-authored anchors for active trait mechanics.
 
 | Kind | Positive Trait | Negative Trait |
 | --- | --- | --- |

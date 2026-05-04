@@ -34,6 +34,7 @@ internal sealed partial class Simulation : IKernel
         World = new WorldState(Events, options, KernelData);
         Planners = CreatePlanningRuntime(options);
         LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
+        Movement = CreateMovementRuntime(options);
         MapActivity = CreateMapActivityRuntime(options);
         MapSignals = CreateMapSignalsRuntime(options);
         Effects = CreateEffectsRuntime(options);
@@ -84,6 +85,11 @@ internal sealed partial class Simulation : IKernel
             new LowAltitudeVerbProgramData(options.LowAltitudeVerbRuleCapacity, options.LowAltitudeVerbItemCapacity),
             new LowAltitudeVerbProgramState(options.EntityCapacity),
             options.KernelTuning.Programs);
+
+    private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
+        new(
+            new MovementProgramData(),
+            new MovementProgramState(options.MovementCellCapacity));
 
     private static MapActivityProgramRuntime CreateMapActivityRuntime(SimulationOptions options) =>
         new(
@@ -156,6 +162,7 @@ internal sealed partial class Simulation : IKernel
 
     private void RegisterDefaultPrograms()
     {
+        RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
         RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
         RegisterProgram(KernelProgramCodes.MapActivity, 1, MapActivity);
         RegisterProgram(KernelProgramCodes.MapSignals, 1, MapSignals);
@@ -176,6 +183,9 @@ internal sealed partial class Simulation : IKernel
             KernelProgramCodes.LowAltitudeVerbs,
             [
                 new ProgramReadDependency(
+                    ProgramDependencyChannelCodes.MovementSurface,
+                    ProgramDependencyLag.PreviousTick),
+                new ProgramReadDependency(
                     ProgramDependencyChannelCodes.MapActivitySignals,
                     ProgramDependencyLag.PreviousTick),
                 new ProgramReadDependency(
@@ -183,6 +193,14 @@ internal sealed partial class Simulation : IKernel
                     ProgramDependencyLag.PreviousTick),
             ],
             []),
+        new(
+            KernelProgramCodes.Movement,
+            [],
+            [
+                new ProgramWriteDependency(
+                    ProgramDependencyChannelCodes.MovementSurface,
+                    ProgramDependencyLag.SameTick),
+            ]),
         new(
             KernelProgramCodes.MapActivity,
             [],
@@ -209,6 +227,14 @@ internal sealed partial class Simulation : IKernel
                 new ProgramReadDependency(
                     ProgramDependencyChannelCodes.MapSignals,
                     ProgramDependencyLag.SameTick),
+            ],
+            []),
+        new(
+            KernelProgramCodes.Gambits,
+            [
+                new ProgramReadDependency(
+                    ProgramDependencyChannelCodes.MovementSurface,
+                    ProgramDependencyLag.PreviousTick),
             ],
             []),
     ];
@@ -281,6 +307,7 @@ internal sealed partial class Simulation : IKernel
     internal KernelCommandRing Commands { get; }
     internal PlanningProgramRuntime Planners { get; }
     internal LowAltitudeVerbProgramRuntime LowAltitudeVerbs { get; }
+    internal MovementProgramRuntime Movement { get; }
     internal MapActivityProgramRuntime MapActivity { get; }
     internal MapSignalsProgramRuntime MapSignals { get; }
     internal EffectsProgramRuntime Effects { get; }
@@ -358,6 +385,47 @@ internal sealed partial class Simulation : IKernel
         return terrainId;
     }
 
+    internal int RegisterTerrain(
+        int terrainId,
+        int boundaryGroupId,
+        float movementCost,
+        float influenceMultiplier,
+        float claimCostMultiplier,
+        float claimChanceMultiplier,
+        float roadBuildMultiplier,
+        float roadSpeedMultiplier)
+    {
+        KernelData.Terrain.RegisterTerrain(
+            terrainId,
+            boundaryGroupId,
+            movementCost,
+            influenceMultiplier,
+            claimCostMultiplier,
+            claimChanceMultiplier,
+            roadBuildMultiplier,
+            roadSpeedMultiplier);
+        return terrainId;
+    }
+
+    internal void RegisterTerrainKindProfile(
+        int terrainId,
+        int kindId,
+        int fieldFlags,
+        float movementCost,
+        float influenceMultiplier,
+        float claimCostMultiplier,
+        float claimChanceMultiplier)
+    {
+        KernelData.Terrain.RegisterTerrainKindProfile(
+            terrainId,
+            kindId,
+            fieldFlags,
+            movementCost,
+            influenceMultiplier,
+            claimCostMultiplier,
+            claimChanceMultiplier);
+    }
+
     internal int CreateEntity(
         int kindId,
         int subtypeId,
@@ -380,40 +448,6 @@ internal sealed partial class Simulation : IKernel
             semanticR,
             semanticS,
             tick);
-    }
-
-    internal void SeedCell(
-        int q,
-        int r,
-        int terrainId,
-        int ownerEntityId,
-        int superregionId = 0,
-        int continentId = 0)
-    {
-        AssertStartupSeedTick();
-        CreateCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
-    }
-
-    internal void CreateCell(
-        int q,
-        int r,
-        int terrainId,
-        int ownerEntityId,
-        int superregionId = 0,
-        int continentId = 0)
-    {
-        AssertExecutionSource();
-        World.MaterializeCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
-        WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
-            CurrentTick,
-            WorldVersion,
-            q,
-            r,
-            _executionContext.SourceCodeId,
-            terrainId,
-            ownerEntityId,
-            superregionId,
-            continentId)));
     }
 
     internal void SeedEntity(
@@ -534,17 +568,32 @@ internal sealed partial class Simulation : IKernel
 
     internal void MoveEntityPhysical(int entityId, int q, int r, int tick)
     {
+        _ = Movement.TryMovePhysical(this, entityId, q, r, tick, MovementCauseCodes.Forced);
+    }
+
+    internal MovementMoveResult MoveEntityPhysical(int entityId, int q, int r, int tick, int causeCode)
+    {
+        return Movement.TryMovePhysical(this, entityId, q, r, tick, causeCode);
+    }
+
+    internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int tick)
+    {
         World.MoveEntityPhysical(entityId, q, r, tick, _executionContext);
     }
 
     internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
     {
-        World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
+        _ = Movement.TryMoveSemantic(this, entityId, q, r, s, tick, MovementCauseCodes.Forced);
     }
 
-    internal void SetCellState(int q, int r, int terrainId, int ownerEntityId, int tick)
+    internal MovementSemanticMoveResult MoveEntitySemantic(int entityId, int q, int r, int s, int tick, int causeCode)
     {
-        World.SetCellState(q, r, terrainId, ownerEntityId, tick, _executionContext);
+        return Movement.TryMoveSemantic(this, entityId, q, r, s, tick, causeCode);
+    }
+
+    internal void MoveEntitySemanticUnchecked(int entityId, int q, int r, int s, int tick)
+    {
+        World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
     }
 
     internal void SetCellInfluence(int entityId, int planeCode, int q, int r, float value, int tick)
@@ -555,16 +604,6 @@ internal sealed partial class Simulation : IKernel
     internal void ModifyCellInfluence(int entityId, int planeCode, int q, int r, float delta, int tick)
     {
         World.ModifyCellInfluence(entityId, planeCode, q, r, delta, tick, _executionContext);
-    }
-
-    internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick)
-    {
-        World.SetCoverageOwner(q, r, ownerEntityId, tick, _executionContext);
-    }
-
-    internal void SetCellTerrain(int q, int r, int terrainId, int tick)
-    {
-        World.SetCellTerrain(q, r, terrainId, tick, _executionContext);
     }
 
     internal int CreateRelationship(
@@ -929,6 +968,7 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Degeneracy => DegeneracySourceCodeId,
         KernelProgramCodes.Planning => PlanningSourceCodeId,
+        KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
         _ => 0,

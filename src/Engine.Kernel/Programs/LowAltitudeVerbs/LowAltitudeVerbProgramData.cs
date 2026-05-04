@@ -44,6 +44,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private float[] _coverageGrowthChances = [];
     private float[] _headquartersMoveChances = [];
     private float[] _requiredInfluences = [];
+    private float[] _relationshipStrengthDeltas = [];
     private int[] _initialInfluenceKindIds = [];
     private int[] _initialInfluencePlaneCodes = [];
     private float[] _initialInfluenceValues = [];
@@ -151,6 +152,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _coverageGrowthChances = new float[ruleLength];
         _headquartersMoveChances = new float[ruleLength];
         _requiredInfluences = new float[ruleLength];
+        _relationshipStrengthDeltas = new float[ruleLength];
     }
 
     private void InitializeInitialInfluenceArrays(int ruleLength)
@@ -184,7 +186,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 5;
+    public int SchemaVersion => 6;
 
     public int RuleCount => _ruleCount;
 
@@ -266,6 +268,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _coverageGrowthChances[slot] = Clamp01(registration.CoverageChance);
         _headquartersMoveChances[slot] = Clamp01(registration.RelocationChance);
         _requiredInfluences[slot] = ClampInfluence(registration.RequiredMapValue);
+        _relationshipStrengthDeltas[slot] = registration.RelationshipStrengthDelta;
         return slot;
     }
 
@@ -437,6 +440,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float RequiredInfluence(int rule) => _requiredInfluences[rule];
 
+    public float RelationshipStrengthDelta(int rule) => _relationshipStrengthDeltas[rule];
+
     public int InitialInfluenceKindId(int rule) => _initialInfluenceKindIds[rule];
 
     public int InitialInfluencePlaneCode(int rule) => _initialInfluencePlaneCodes[rule];
@@ -562,7 +567,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             not ProgramOpcodeCodes.AddOwnedCellScalar and
             not ProgramOpcodeCodes.SubtractOtherCellScalar and
             not ProgramOpcodeCodes.TryClaimCell and
-            not ProgramOpcodeCodes.TryRelocateEntity)
+            not ProgramOpcodeCodes.TryRelocateEntity and
+            not ProgramOpcodeCodes.AdjustRelationshipStrength)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(operationCode));
         }

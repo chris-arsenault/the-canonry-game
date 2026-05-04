@@ -1,6 +1,7 @@
 namespace Engine.Domain.Graph;
 
 using Engine.Behaviors;
+using Engine.Constants;
 using Engine.Domain.Config;
 using Engine.Gambits;
 using Engine.Gameplay;
@@ -177,6 +178,37 @@ public sealed class DefinitionAdjustTargetRelationshipStrengthEffect(
 
     public string Describe() =>
         $"adjust_target_relationship_strength(kind={RelationshipKindId}, delta={Delta}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
+}
+
+public sealed class DefinitionSetTerrainPatchEffect(
+    string centerRef,
+    string terrain,
+    int radius,
+    int maxCellCount,
+    bool respectTerrainBoundaries,
+    float chance,
+    int planeCode = PlaneCodes.Physical) : IDefinitionGeneratorEffect
+{
+    public string CenterRef { get; } = centerRef;
+
+    public string Terrain { get; } = terrain;
+
+    public int Radius { get; } = radius;
+
+    public int MaxCellCount { get; } = maxCellCount;
+
+    public bool RespectTerrainBoundaries { get; } = respectTerrainBoundaries;
+
+    public float Chance { get; } = chance;
+
+    public int PlaneCode { get; } = planeCode;
+
+    public IReadOnlySet<string>? PreferredTerrains { get; init; }
+
+    public IReadOnlySet<string>? AllowedTerrains { get; init; }
+
+    public string Describe() =>
+        $"set_terrain_patch(center={CenterRef}, terrain={Terrain}, radius={Radius}, max={MaxCellCount}, chance={Chance})";
 }
 
 public sealed class DefinitionGeneratorTarget

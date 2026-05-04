@@ -1,5 +1,6 @@
 namespace Engine.Host;
 
+using Engine.Constants;
 using Engine.Domain;
 using Engine.Kernel;
 
@@ -28,17 +29,66 @@ internal sealed class KernelConfigurationContext
     public void SetMapRadius(int radius) =>
         _kernel.World.SetMapRadius(radius);
 
-    public int RegisterTerrain(TerrainRuntimeId terrainId, int boundaryGroupId)
+    public int RegisterTerrain(
+        TerrainRuntimeId terrainId,
+        int boundaryGroupId,
+        float movementCost = 1f,
+        float influenceMultiplier = 1f,
+        float claimCostMultiplier = 1f,
+        float claimChanceMultiplier = 1f,
+        float roadBuildMultiplier = 1f,
+        float roadSpeedMultiplier = 1f)
     {
-        _kernel.RegisterTerrain(terrainId.Value, boundaryGroupId);
+        _kernel.RegisterTerrain(
+            terrainId.Value,
+            boundaryGroupId,
+            movementCost,
+            influenceMultiplier,
+            claimCostMultiplier,
+            claimChanceMultiplier,
+            roadBuildMultiplier,
+            roadSpeedMultiplier);
         return terrainId.Value;
     }
 
-    public int RegisterTerrain(int terrainId, int boundaryGroupId)
+    public int RegisterTerrain(
+        int terrainId,
+        int boundaryGroupId,
+        float movementCost = 1f,
+        float influenceMultiplier = 1f,
+        float claimCostMultiplier = 1f,
+        float claimChanceMultiplier = 1f,
+        float roadBuildMultiplier = 1f,
+        float roadSpeedMultiplier = 1f)
     {
-        _kernel.RegisterTerrain(terrainId, boundaryGroupId);
+        _kernel.RegisterTerrain(
+            terrainId,
+            boundaryGroupId,
+            movementCost,
+            influenceMultiplier,
+            claimCostMultiplier,
+            claimChanceMultiplier,
+            roadBuildMultiplier,
+            roadSpeedMultiplier);
         return terrainId;
     }
+
+    public void RegisterTerrainKindProfile(
+        int terrainId,
+        int kindId,
+        int fieldFlags,
+        float movementCost,
+        float influenceMultiplier,
+        float claimCostMultiplier,
+        float claimChanceMultiplier) =>
+        _kernel.RegisterTerrainKindProfile(
+            terrainId,
+            kindId,
+            fieldFlags,
+            movementCost,
+            influenceMultiplier,
+            claimCostMultiplier,
+            claimChanceMultiplier);
 
     public int RegisterAttribute(
         int kindId,
@@ -146,7 +196,8 @@ internal sealed class KernelConfigurationContext
         int foreignInfluenceBlockPositiveRelationships = 0,
         int foreignInfluenceAllowNegativeRelationships = 0,
         float foreignInfluenceMinimumRelationshipStrength = 0f,
-        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f) =>
+        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f,
+        float relationshipStrengthDelta = 0f) =>
         _kernel.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
@@ -179,7 +230,8 @@ internal sealed class KernelConfigurationContext
             foreignInfluenceBlockPositiveRelationships,
             foreignInfluenceAllowNegativeRelationships,
             foreignInfluenceMinimumRelationshipStrength,
-            foreignInfluenceAllowUnrelatedInfluenceAtOrAbove);
+            foreignInfluenceAllowUnrelatedInfluenceAtOrAbove,
+            relationshipStrengthDelta);
 
     public void AddLowAltitudeVerbPrimitiveStep(
         int verbSlot,
@@ -535,14 +587,32 @@ internal sealed class KernelConfigurationContext
             strength,
             replaceExistingOutgoing ? 1 : 0);
 
-    public void AddGeneratorEffect(
+    public int AddGeneratorEffect(
         int generatorSlot,
         int effectTypeCode,
         int refOrKindId,
         int instanceSelectionCode,
         int optionCode,
-        float value = 0f) =>
-        _kernel.Generators.AddEffect(generatorSlot, effectTypeCode, refOrKindId, instanceSelectionCode, optionCode, value);
+        float value = 0f,
+        int radius = 0,
+        int maxCellCount = 0,
+        int planeCode = PlaneCodes.Physical) =>
+        _kernel.Generators.AddEffect(
+            generatorSlot,
+            effectTypeCode,
+            refOrKindId,
+            instanceSelectionCode,
+            optionCode,
+            value,
+            radius,
+            maxCellCount,
+            planeCode);
+
+    public void AddGeneratorEffectPreferredTerrain(int effectSlot, int terrainId) =>
+        _kernel.Generators.AddEffectPreferredTerrain(effectSlot, terrainId);
+
+    public void AddGeneratorEffectAllowedTerrain(int effectSlot, int terrainId) =>
+        _kernel.Generators.AddEffectAllowedTerrain(effectSlot, terrainId);
 
     public void SetProgramEnabled(int programId, bool enabled) =>
         _kernel.SetProgramEnabled(programId, enabled);

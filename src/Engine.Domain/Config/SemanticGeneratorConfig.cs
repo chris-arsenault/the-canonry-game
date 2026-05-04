@@ -1,5 +1,6 @@
 namespace Engine.Domain.Config;
 
+using Engine.Constants;
 using Engine.Kinds;
 using Engine.WorldGen;
 
@@ -8,6 +9,7 @@ public sealed class SemanticGeneratorConfig
     public required string Id { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
+    public string? CausalLimit { get; init; }
     public required SemanticGeneratorTarget Target { get; init; }
     public IReadOnlyList<SemanticGeneratorBindingTarget> SecondaryTargets { get; init; } = [];
     public required IReadOnlyList<SemanticProducedEntity> Produces { get; init; }
@@ -152,6 +154,38 @@ public sealed class AdjustTargetRelationshipStrengthEffect(
 
     public string Describe() =>
         $"adjust_target_relationship_strength({RelationshipKind}, delta={Delta}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
+}
+
+/// <summary>Transforms a bounded map patch around a resolved generator binding.</summary>
+public sealed class SetTerrainPatchEffect(
+    string centerRef,
+    string terrain,
+    int radius,
+    int maxCellCount = 0,
+    bool respectTerrainBoundaries = true,
+    float chance = 1f,
+    int planeCode = PlaneCodes.Physical) : ISemanticGeneratorEffect
+{
+    public string CenterRef { get; } = centerRef;
+
+    public string Terrain { get; } = terrain;
+
+    public int Radius { get; } = radius;
+
+    public int MaxCellCount { get; } = maxCellCount;
+
+    public bool RespectTerrainBoundaries { get; } = respectTerrainBoundaries;
+
+    public float Chance { get; } = chance;
+
+    public int PlaneCode { get; } = planeCode;
+
+    public IReadOnlySet<string>? PreferredTerrains { get; init; }
+
+    public IReadOnlySet<string>? AllowedTerrains { get; init; }
+
+    public string Describe() =>
+        $"set_terrain_patch(center={CenterRef}, terrain={Terrain}, radius={Radius}, max={MaxCellCount}, chance={Chance}, plane={PlaneCode})";
 }
 
 public sealed class SemanticGeneratorRelationship

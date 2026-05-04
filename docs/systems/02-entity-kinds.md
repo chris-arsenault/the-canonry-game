@@ -20,7 +20,7 @@ set.
 | `transport` | Asset | Physical | Named, mobile, large named asset — trade fleet, battleship, scout, or citadel. Significant in its own right; owned and commanded by Agency entities. |
 | `occurrence` | Agency | Semantic | Named, active, major event — war, trade conference, plague, festival. Born by generators when relationship and locality gates cross thresholds; resolves when momentum reaches zero. Primary movement is through cultural/conflict space; anchored to the world via relationships. |
 
-All initially deferred entity kinds are now registered.
+The current Ice Remembers kind catalog is fully domain-registered.
 
 ## Kind Rules
 
@@ -48,8 +48,8 @@ Current subtypes are domain vocabulary, not engine concepts:
 - `occurrence`: `war`, `trade_conference`, `plague`, `festival`
 
 Subtype coverage matters for generators and gambits, but every subtype does not
-need generator coverage immediately. Monster status (sealed, unbound, risen) is
-tracked separately from subtype and is not yet implemented.
+need direct generator coverage. The active monster model uses `containment`
+health plus binding/hunger traits; there is no separate monster status field.
 
 ## Architecture Rules
 

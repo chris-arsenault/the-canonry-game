@@ -24,7 +24,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var attempts = Data.CandidateSampleCount(candidate.RuleSlot);
         for (var i = 0; i < attempts; i++)
         {
-            if (!TryScatteredDestination(simulation, candidate, radius, out var q, out var r))
+            if (!TryScatteredDestination(simulation, entityId, candidate, radius, tick, out var q, out var r))
             {
                 continue;
             }
@@ -42,8 +42,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private bool TryScatteredDestination(
         Simulation simulation,
+        int entityId,
         VerbTargetCandidate candidate,
         int radius,
+        int tick,
         out int q,
         out int r)
     {
@@ -53,7 +55,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var dr = simulation.NextInclusive(minDr, maxDr);
         q = candidate.Q + dq;
         r = candidate.R + dr;
-        return CoordinateAllowed(simulation.World, candidate.PlaneCode, q, r);
+        return CoordinateAllowed(simulation, entityId, candidate.RuleSlot, candidate.PlaneCode, q, r, tick);
     }
 
     private int DestinationScatterRadius(int entityId, int intentId, int rule)
@@ -125,9 +127,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         if (State.StepIsReady(entityId, tick) &&
-            MoveOneStepToward(simulation, world, entityId, rule, tick, planeCode, currentQ, currentR, targetQ, targetR))
+            MoveOneStepToward(simulation, world, entityId, rule, tick, planeCode, currentQ, currentR, targetQ, targetR, out var stepCost))
         {
-            State.MarkStepped(entityId, tick);
+            State.MarkStepped(entityId, tick, stepCost);
         }
     }
 
@@ -170,9 +172,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 ref selectedR);
         }
 
-        if (MoveIfSelected(simulation, entityId, tick, planeCode, currentQ, currentR, selectedQ, selectedR))
+        if (MoveIfSelected(simulation, entityId, tick, planeCode, currentQ, currentR, selectedQ, selectedR, out var stepCost))
         {
-            State.MarkStepped(entityId, tick);
+            State.MarkStepped(entityId, tick, stepCost);
         }
     }
 
@@ -194,7 +196,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         var q = currentQ + DirectionQ(direction);
         var r = currentR + DirectionR(direction);
-        if (!CoordinateAllowed(world, planeCode, q, r))
+        if (!CoordinateAllowed(simulation, entityId, rule, planeCode, q, r, tick))
         {
             return;
         }
@@ -208,7 +210,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         var pull = 1f / (1f + distance);
         var activityWeight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0f);
-        var weight = (pull * 4f) + activityWeight;
+        var terrainWeight = MovementCostWeight(simulation, entityId, planeCode, q, r, tick);
+        var weight = ((pull * 4f) + activityWeight) * terrainWeight;
         totalWeight += weight;
         if (simulation.NextFloat() * totalWeight <= weight)
         {
@@ -233,7 +236,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int currentQ,
         int currentR,
         int targetQ,
-        int targetR)
+        int targetR,
+        out float stepCost)
     {
         var totalWeight = 0f;
         var selectedQ = currentQ;
@@ -259,7 +263,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 ref selectedR);
         }
 
-        return MoveIfSelected(simulation, entityId, tick, planeCode, currentQ, currentR, selectedQ, selectedR);
+        return MoveIfSelected(simulation, entityId, tick, planeCode, currentQ, currentR, selectedQ, selectedR, out stepCost);
     }
 
     private void TryAddStepCandidate(
@@ -281,7 +285,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         var q = currentQ + DirectionQ(direction);
         var r = currentR + DirectionR(direction);
-        if (!StepCandidateAllowed(world, rule, planeCode, q, r, currentQ, currentR, targetQ, targetR, pathLooseness))
+        if (!StepCandidateAllowed(simulation, entityId, rule, planeCode, q, r, tick, currentQ, currentR, targetQ, targetR, pathLooseness))
         {
             return;
         }
@@ -299,18 +303,20 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     }
 
     private bool StepCandidateAllowed(
-        WorldState world,
+        Simulation simulation,
+        int entityId,
         int rule,
         int planeCode,
         int q,
         int r,
+        int tick,
         int currentQ,
         int currentR,
         int targetQ,
         int targetR,
         int pathLooseness)
     {
-        if (!CoordinateAllowed(world, planeCode, q, r))
+        if (!CoordinateAllowed(simulation, entityId, rule, planeCode, q, r, tick))
         {
             return false;
         }
@@ -339,10 +345,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ? 1f / (1f + candidateDistance)
             : pathLooseness / 1000f;
         var activityWeight = LocationWeight(simulation, entityId, rule, planeCode, q, r, tick, 0f);
-        return progressWeight * 8f + activityWeight;
+        var terrainWeight = MovementCostWeight(simulation, entityId, planeCode, q, r, tick);
+        return ((progressWeight * 8f) + activityWeight) * terrainWeight;
     }
 
-    private static bool MoveIfSelected(
+    private bool MoveIfSelected(
         Simulation simulation,
         int entityId,
         int tick,
@@ -350,8 +357,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int currentQ,
         int currentR,
         int selectedQ,
-        int selectedR)
+        int selectedR,
+        out float stepCost)
     {
+        stepCost = 1f;
         if (selectedQ == currentQ && selectedR == currentR)
         {
             return false;
@@ -359,24 +368,70 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         if (planeCode == PlaneCodes.Physical)
         {
-            simulation.MoveEntityPhysical(entityId, selectedQ, selectedR, tick);
-        }
-        else
-        {
-            simulation.MoveEntitySemantic(entityId, selectedQ, selectedR, -selectedQ - selectedR, tick);
+            var result = simulation.Movement.TryMovePhysical(
+                simulation,
+                entityId,
+                selectedQ,
+                selectedR,
+                tick,
+                MovementCauseCodes.Travel);
+            stepCost = result.StepCost;
+            return result.Moved;
         }
 
-        return true;
+        var semanticResult = simulation.Movement.TryMoveSemantic(
+            simulation,
+            entityId,
+            selectedQ,
+            selectedR,
+            -selectedQ - selectedR,
+            tick,
+            MovementCauseCodes.Travel);
+        stepCost = semanticResult.StepCost;
+        return semanticResult.Moved;
     }
 
-    private bool CoordinateAllowed(WorldState world, int planeCode, int q, int r)
+    private bool CoordinateAllowed(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int planeCode,
+        int q,
+        int r,
+        int tick)
     {
+        _ = rule;
+        _ = tick;
         if (planeCode == PlaneCodes.Semantic)
         {
-            return SemanticCoordinateAllowed(world, q, r);
+            return SemanticCoordinateAllowed(simulation.World, q, r) &&
+                simulation.Movement.CanEnter(simulation, planeCode, simulation.World.EntityKindId(entityId), q, r);
         }
 
-        return world.CellIsKnown(q, r);
+        return simulation.Movement.CanEnter(simulation, simulation.World.EntityKindId(entityId), q, r);
+    }
+
+    private float MovementCostWeight(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int tick)
+    {
+        var travelCost = simulation.Movement.TravelCost(
+            simulation,
+            planeCode,
+            simulation.World.EntityKindId(entityId),
+            q,
+            r,
+            tick);
+        if (float.IsInfinity(travelCost) || travelCost <= 0f)
+        {
+            return 0f;
+        }
+
+        return 1f / global::System.MathF.Max(0.25f, travelCost);
     }
 
     private static int EntityJitter(int entityId, int intentId, int salt, int maxExclusive)

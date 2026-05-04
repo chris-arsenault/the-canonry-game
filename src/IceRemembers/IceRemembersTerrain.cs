@@ -2,6 +2,7 @@ namespace IceRemembers;
 
 using Engine.Domain.Config;
 using Engine.WorldGen;
+using K = IceRemembers.IceRemembersKinds;
 
 public enum IceRemembersTerrain
 {
@@ -35,14 +36,34 @@ public static class IceRemembersTerrainCatalog
 {
     public static IReadOnlyList<TerrainConfig> DomainTerrains { get; } =
     [
-        DomainTerrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land"),
-        DomainTerrain(IceRemembersTerrain.Crags, "Crags", "harsh_land"),
-        DomainTerrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land"),
-        DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land"),
-        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary"),
-        DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime"),
-        DomainTerrain(IceRemembersTerrain.Reef, "Reef", "maritime"),
-        DomainTerrain(IceRemembersTerrain.Ocean, "Ocean", "maritime"),
+        DomainTerrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land", 1.6f, 0.75f, 1.35f, 0.8f, 0.6f, 1.8f),
+        DomainTerrain(IceRemembersTerrain.Crags, "Crags", "harsh_land", 1.8f, 0.8f, 1.5f, 0.75f, 0.4f, 1.5f),
+        DomainTerrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land", 1f, 1f, 1f, 1f, 1f, 1.5f),
+        DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land", 1.25f, 0.9f, 1.1f, 0.95f, 0.8f, 1.4f),
+        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary", 0.9f, 1.35f, 0.75f, 1.25f, 0.7f, 1.2f),
+        DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime", 1.1f, 1f, 1f, 1f, 1.2f, 1.6f),
+        DomainTerrain(
+            IceRemembersTerrain.Reef,
+            "Reef",
+            "maritime",
+            1.35f,
+            0.95f,
+            1.1f,
+            0.9f,
+            0.5f,
+            1.3f,
+            OrcaWaterProfile(0.8f)),
+        DomainTerrain(
+            IceRemembersTerrain.Ocean,
+            "Ocean",
+            "maritime",
+            1.6f,
+            0.7f,
+            1.6f,
+            0.5f,
+            0.2f,
+            1.15f,
+            OrcaWaterProfile(0.75f)),
     ];
 
     public static TerrainCatalog CreateWorldGenCatalog() =>
@@ -61,13 +82,39 @@ public static class IceRemembersTerrainCatalog
     private static TerrainConfig DomainTerrain(
         IceRemembersTerrain terrain,
         string displayName,
-        string boundaryGroup) =>
+        string boundaryGroup,
+        float movementCost,
+        float influenceMultiplier,
+        float claimCostMultiplier,
+        float claimChanceMultiplier,
+        float roadBuildMultiplier,
+        float roadSpeedMultiplier,
+        IReadOnlyList<TerrainKindProfileConfig>? kindProfiles = null) =>
         new()
         {
             Name = terrain.ToDomainName(),
             DisplayName = displayName,
             BoundaryGroup = boundaryGroup,
+            MovementCost = movementCost,
+            InfluenceMultiplier = influenceMultiplier,
+            ClaimCostMultiplier = claimCostMultiplier,
+            ClaimChanceMultiplier = claimChanceMultiplier,
+            RoadBuildMultiplier = roadBuildMultiplier,
+            RoadSpeedMultiplier = roadSpeedMultiplier,
+            KindProfiles = kindProfiles ?? [],
         };
+
+    private static IReadOnlyList<TerrainKindProfileConfig> OrcaWaterProfile(float movementCost) =>
+    [
+        new()
+        {
+            Kind = K.Orca,
+            MovementCost = movementCost,
+            InfluenceMultiplier = 1.2f,
+            ClaimCostMultiplier = 0.8f,
+            ClaimChanceMultiplier = 1.2f,
+        },
+    ];
 
     private static TerrainDefinition Terrain(
         IceRemembersTerrain terrain,

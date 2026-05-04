@@ -97,10 +97,21 @@ internal sealed partial class GambitProgramRuntime
         switch (operationCode)
         {
             case BehaviorOperationCodes.MovePhysical:
-                KernelEffectExecutor.MovePhysical(simulation, entityId, world.EntityPhysicalQ(entityId) + _stepA[step], world.EntityPhysicalR(entityId) + _stepB[step]);
+                KernelEffectExecutor.MovePhysical(
+                    simulation,
+                    entityId,
+                    world.EntityPhysicalQ(entityId) + _stepA[step],
+                    world.EntityPhysicalR(entityId) + _stepB[step],
+                    MovementCauseCodes.Travel);
                 return true;
             case BehaviorOperationCodes.MoveSemantic:
-                KernelEffectExecutor.MoveSemantic(simulation, entityId, world.EntitySemanticQ(entityId) + _stepA[step], world.EntitySemanticR(entityId) + _stepB[step], world.EntitySemanticS(entityId) + _stepC[step]);
+                KernelEffectExecutor.MoveSemantic(
+                    simulation,
+                    entityId,
+                    world.EntitySemanticQ(entityId) + _stepA[step],
+                    world.EntitySemanticR(entityId) + _stepB[step],
+                    world.EntitySemanticS(entityId) + _stepC[step],
+                    MovementCauseCodes.Travel);
                 return true;
             case BehaviorOperationCodes.MoveTowardTargetPhysical:
                 MoveTowardTargetPhysical(simulation, world, entityId, targetId, tick);
@@ -115,7 +126,12 @@ internal sealed partial class GambitProgramRuntime
                 WanderSemantic(simulation, world, entityId, tick);
                 return true;
             case BehaviorOperationCodes.MoveTargetToSelfPhysical:
-                KernelEffectExecutor.MovePhysical(simulation, targetId, world.EntityPhysicalQ(entityId), world.EntityPhysicalR(entityId));
+                KernelEffectExecutor.MovePhysical(
+                    simulation,
+                    targetId,
+                    world.EntityPhysicalQ(entityId),
+                    world.EntityPhysicalR(entityId),
+                    MovementCauseCodes.Forced);
                 return true;
             default:
                 return false;
@@ -360,14 +376,16 @@ internal sealed partial class GambitProgramRuntime
             return;
         }
 
-        if (TryFindNextPhysicalPathStep(world, currentQ, currentR, targetQ, targetR, out var nextQ, out var nextR))
+        if (TryFindNextPhysicalPathStep(simulation, world, entityId, currentQ, currentR, targetQ, targetR, out var nextQ, out var nextR))
         {
-            KernelEffectExecutor.MovePhysical(simulation, entityId, nextQ, nextR);
+            KernelEffectExecutor.MovePhysical(simulation, entityId, nextQ, nextR, MovementCauseCodes.Travel);
         }
     }
 
     private bool TryFindNextPhysicalPathStep(
+        Simulation simulation,
         WorldState world,
+        int entityId,
         int startQ,
         int startR,
         int targetQ,
@@ -398,6 +416,7 @@ internal sealed partial class GambitProgramRuntime
         }
 
         return SearchPhysicalPath(
+            simulation,
             world,
             startIndex,
             targetIndex,
@@ -407,11 +426,14 @@ internal sealed partial class GambitProgramRuntime
             startR,
             targetQ,
             targetR,
+            world.EntityKindId(entityId),
+            simulation.CurrentTick,
             out nextQ,
             out nextR);
     }
 
     private bool SearchPhysicalPath(
+        Simulation simulation,
         WorldState world,
         int startIndex,
         int targetIndex,
@@ -421,6 +443,8 @@ internal sealed partial class GambitProgramRuntime
         int startR,
         int targetQ,
         int targetR,
+        int actorKindId,
+        int tick,
         out int nextQ,
         out int nextR)
     {
@@ -435,7 +459,7 @@ internal sealed partial class GambitProgramRuntime
                 return TryResolveNextPhysicalPathStep(startIndex, targetIndex, radius, width, out nextQ, out nextR);
             }
 
-            if (!VisitPhysicalPathNeighbors(world, currentIndex, radius, width, targetQ, targetR, ref openCount))
+            if (!VisitPhysicalPathNeighbors(simulation, world, currentIndex, radius, width, targetQ, targetR, actorKindId, tick, ref openCount))
             {
                 return false;
             }
@@ -470,19 +494,22 @@ internal sealed partial class GambitProgramRuntime
     }
 
     private bool VisitPhysicalPathNeighbors(
+        Simulation simulation,
         WorldState world,
         int currentIndex,
         int radius,
         int width,
         int targetQ,
         int targetR,
+        int actorKindId,
+        int tick,
         ref int openCount)
     {
         var currentQ = PhysicalPathQ(radius, width, currentIndex);
         var currentR = PhysicalPathR(radius, width, currentIndex);
         for (var direction = 0; direction < 6; direction++)
         {
-            if (!TryVisitPhysicalPathNeighbor(world, currentIndex, currentQ, currentR, direction, radius, width, targetQ, targetR, ref openCount))
+            if (!TryVisitPhysicalPathNeighbor(simulation, world, currentIndex, currentQ, currentR, direction, radius, width, targetQ, targetR, actorKindId, tick, ref openCount))
             {
                 return false;
             }
@@ -492,6 +519,7 @@ internal sealed partial class GambitProgramRuntime
     }
 
     private bool TryVisitPhysicalPathNeighbor(
+        Simulation simulation,
         WorldState world,
         int currentIndex,
         int currentQ,
@@ -501,11 +529,13 @@ internal sealed partial class GambitProgramRuntime
         int width,
         int targetQ,
         int targetR,
+        int actorKindId,
+        int tick,
         ref int openCount)
     {
         var neighborQ = currentQ + DirectionQ(direction);
         var neighborR = currentR + DirectionR(direction);
-        if (!world.CellIsKnown(neighborQ, neighborR))
+        if (!simulation.Movement.CanEnter(simulation, actorKindId, neighborQ, neighborR))
         {
             return true;
         }
@@ -516,7 +546,13 @@ internal sealed partial class GambitProgramRuntime
             return true;
         }
 
-        var tentativeGScore = _pathGScore.GetOrDefault(currentIndex, float.PositiveInfinity) + 1f;
+        var movementCost = simulation.Movement.PhysicalTravelCost(simulation, actorKindId, neighborQ, neighborR, tick);
+        if (float.IsInfinity(movementCost) || movementCost <= 0f)
+        {
+            return true;
+        }
+
+        var tentativeGScore = _pathGScore.GetOrDefault(currentIndex, float.PositiveInfinity) + movementCost;
         if (tentativeGScore >= _pathGScore.GetOrDefault(neighborIndex, float.PositiveInfinity))
         {
             return true;
@@ -616,45 +652,43 @@ internal sealed partial class GambitProgramRuntime
     {
         var currentQ = world.EntityPhysicalQ(entityId);
         var currentR = world.EntityPhysicalR(entityId);
-        // Future movement costs belong in an explicit movement program.
-        var candidateCount = 0;
+        var actorKindId = world.EntityKindId(entityId);
+        var totalWeight = 0f;
+        var selectedDirection = -1;
         for (var direction = 0; direction < 6; direction++)
         {
-            if (world.CellIsKnown(currentQ + DirectionQ(direction), currentR + DirectionR(direction)))
-            {
-                candidateCount++;
-            }
-        }
-
-        if (candidateCount == 0)
-        {
-            return;
-        }
-
-        var selected = simulation.NextInt(candidateCount);
-        var seen = 0;
-        var selectedDirection = 0;
-        for (var direction = 0; direction < 6; direction++)
-        {
-            if (!world.CellIsKnown(currentQ + DirectionQ(direction), currentR + DirectionR(direction)))
+            var q = currentQ + DirectionQ(direction);
+            var r = currentR + DirectionR(direction);
+            if (!simulation.Movement.CanEnter(simulation, actorKindId, q, r))
             {
                 continue;
             }
 
-            if (seen == selected)
+            var movementCost = simulation.Movement.PhysicalTravelCost(simulation, actorKindId, q, r, tick);
+            if (float.IsInfinity(movementCost) || movementCost <= 0f)
             {
-                selectedDirection = direction;
-                break;
+                continue;
             }
 
-            seen++;
+            var weight = 1f / global::System.MathF.Max(0.25f, movementCost);
+            totalWeight += weight;
+            if (simulation.NextFloat() * totalWeight <= weight)
+            {
+                selectedDirection = direction;
+            }
+        }
+
+        if (selectedDirection < 0)
+        {
+            return;
         }
 
         KernelEffectExecutor.MovePhysical(
             simulation,
             entityId,
             currentQ + DirectionQ(selectedDirection),
-            currentR + DirectionR(selectedDirection));
+            currentR + DirectionR(selectedDirection),
+            MovementCauseCodes.Travel);
     }
 
     private static void MoveTowardTargetSemantic(Simulation simulation, WorldState world, int entityId, int targetId, int tick)
@@ -684,7 +718,13 @@ internal sealed partial class GambitProgramRuntime
             }
         }
 
-        KernelEffectExecutor.MoveSemantic(simulation, entityId, bestQ, bestR, -bestQ - bestR);
+        KernelEffectExecutor.MoveSemantic(
+            simulation,
+            entityId,
+            bestQ,
+            bestR,
+            -bestQ - bestR,
+            MovementCauseCodes.Travel);
     }
 
     private static void WanderSemantic(Simulation simulation, WorldState world, int entityId, int tick)
@@ -692,7 +732,13 @@ internal sealed partial class GambitProgramRuntime
         var direction = simulation.NextInt(6);
         var q = world.EntitySemanticQ(entityId) + DirectionQ(direction);
         var r = world.EntitySemanticR(entityId) + DirectionR(direction);
-        KernelEffectExecutor.MoveSemantic(simulation, entityId, q, r, -q - r);
+        KernelEffectExecutor.MoveSemantic(
+            simulation,
+            entityId,
+            q,
+            r,
+            -q - r,
+            MovementCauseCodes.Travel);
     }
 
     private static int EndpointEntityId(int entityId, int targetId, int endpointCode)

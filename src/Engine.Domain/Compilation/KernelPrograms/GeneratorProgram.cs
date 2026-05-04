@@ -1,5 +1,7 @@
 namespace Engine.Domain.Compilation.KernelPrograms;
 
+using Engine.Constants;
+
 public sealed class GeneratorProgram
 {
     public bool EnabledByDefault { get; init; } = true;
@@ -26,7 +28,12 @@ public sealed record GeneratorEffectRule(
     int RefOrKindId,
     int InstanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
     int OptionCode = 0,
-    float Value = 0f);
+    float Value = 0f,
+    int Radius = 0,
+    int MaxCellCount = 0,
+    IReadOnlyList<int>? PreferredTerrainIds = null,
+    IReadOnlyList<int>? AllowedTerrainIds = null,
+    int PlaneCode = PlaneCodes.Physical);
 
 public sealed record GeneratorTargetRelationshipRequirements(
     IReadOnlyList<GeneratorRelationshipRequirementRule> RequiredOutgoingRelationships,

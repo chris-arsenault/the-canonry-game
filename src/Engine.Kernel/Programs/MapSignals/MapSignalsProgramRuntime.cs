@@ -261,10 +261,7 @@ internal sealed class MapSignalsProgramRuntime :
         var world = simulation.World;
         var kindId = world.EntityKindId(entityId);
         var mass = Data.KindBaseAttractorMass(kindId);
-        if (planeCode == PlaneCodes.Physical)
-        {
-            mass += world.CoverageOwnerCellCount(entityId) * Data.KindCoverageAttractorScale(kindId);
-        }
+        mass += world.CoverageOwnerCellCount(entityId, planeCode) * Data.KindCoverageAttractorScale(kindId);
 
         mass += world.GetCellInfluence(entityId, planeCode, q, r) * Data.KindInfluenceAttractorScale(kindId);
 
@@ -314,18 +311,15 @@ internal sealed class MapSignalsProgramRuntime :
     private float DynamicCapacityAt(WorldState world, int planeCode, int q, int r)
     {
         var capacity = BaseCapacityAt(world, planeCode, q, r) + State.CapacityAdditionAt(planeCode, q, r);
-        if (planeCode == PlaneCodes.Physical && !world.CellIsKnown(q, r))
+        if (!world.CellIsKnown(planeCode, q, r))
         {
             return capacity;
         }
 
-        if (planeCode == PlaneCodes.Physical)
+        var ownerId = world.CoverageOwnerAt(planeCode, q, r);
+        if (ownerId > 0 && world.EntityIsActive(ownerId))
         {
-            var ownerId = world.CoverageOwnerAt(q, r);
-            if (ownerId > 0 && world.EntityIsActive(ownerId))
-            {
-                capacity += Data.KindCapacityEmission(world.EntityKindId(ownerId));
-            }
+            capacity += Data.KindCapacityEmission(world.EntityKindId(ownerId));
         }
 
         for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
@@ -347,18 +341,18 @@ internal sealed class MapSignalsProgramRuntime :
 
     private float BaseCapacityAt(WorldState world, int planeCode, int q, int r)
     {
-        if (planeCode == PlaneCodes.Semantic)
+        if (!world.CellIsKnown(planeCode, q, r))
         {
-            return Data.SemanticBaseCapacity;
+            return planeCode == PlaneCodes.Semantic ? Data.SemanticBaseCapacity : 0f;
         }
 
-        if (!world.CellIsKnown(q, r))
+        var capacity = Data.TerrainBaseCapacity(world.CellTerrainId(planeCode, q, r));
+        if (capacity > 0f)
         {
-            return 0f;
+            return capacity;
         }
 
-        var capacity = Data.TerrainBaseCapacity(world.CellTerrainId(q, r));
-        return capacity > 0f ? capacity : 1f;
+        return planeCode == PlaneCodes.Semantic ? Data.SemanticBaseCapacity : 1f;
     }
 
     private int LocalOccupancy(Simulation simulation, int planeCode, int centerQ, int centerR, int radius)

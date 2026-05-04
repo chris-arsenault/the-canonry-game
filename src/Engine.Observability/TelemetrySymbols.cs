@@ -139,6 +139,7 @@ internal static class TelemetrySymbolIds
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.Locality, "locality", "Locality"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.MovementIntent, "movement_intent", "Movement Intent"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.InfluenceIntent, "influence_intent", "Influence Intent"));
+        symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceSubject, TraceSubjectCodes.RelationshipIntent, "relationship_intent", "Relationship Intent"));
 
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.Offered, "offered", "Offered"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.TraceStatus, TraceStatusCodes.BelowUrgency, "below_urgency", "Below Urgency"));

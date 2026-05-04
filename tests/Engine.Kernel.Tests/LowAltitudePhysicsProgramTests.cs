@@ -65,7 +65,9 @@ public sealed class LowAltitudePhysicsProgramTests
         var simulation = new Simulation(new SimulationOptions { Seed = 13 });
         const int actorKindId = 1;
         const int targetKindId = 2;
+        const int terrainId = 1;
         const int verbId = 88;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(3);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 2, 0, -2, tick: 0);
@@ -117,7 +119,9 @@ public sealed class LowAltitudePhysicsProgramTests
         var simulation = new Simulation(new SimulationOptions { Seed = 29 });
         const int actorKindId = 1;
         const int targetKindId = 2;
+        const int terrainId = 1;
         const int verbId = 89;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(1);
         simulation.LowAltitudeVerbs.ConfigureSemanticBounds(-4, 4, -4, 4);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
@@ -524,7 +528,10 @@ public sealed class LowAltitudePhysicsProgramTests
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 31 });
         const int kindId = 1;
+        const int terrainId = 1;
         const int verbId = 103;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(3);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
         simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Semantic, 35f);
         RegisterInfluenceVerb(
@@ -595,6 +602,62 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.AdvanceTicks(2);
 
         Assert.True(simulation.LowAltitudeVerbs.State.IntentId(entityId) > firstIntentId);
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_AdjustsRelationshipStrengthForRelationshipTarget()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 34 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int relationshipKindId = 9;
+        const int verbId = 105;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var targetId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
+        var relationshipId = simulation.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            actorId,
+            targetId,
+            0.4f,
+            tick: 0);
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            ProgramOpcodeCodes.AdjustRelationshipStrength,
+            TargetSelectorCodes.RelationshipTarget,
+            targetKindId: 0,
+            relationshipKindId,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
+            minCommitmentTicks: 2,
+            maxCommitmentTicks: 2,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            exploreWeight: 0f,
+            stalenessWeight: 0f,
+            hotspotWeight: 0f,
+            crowdingWeight: 0f,
+            generatorAffordanceWeight: 0f,
+            influenceDelta: 0f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f,
+            relationshipStrengthDelta: 0.1f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.AdjustRelationshipStrength, 0, 0f);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0.5f, simulation.World.RelationshipStrength(relationshipId), precision: 4);
+        AssertRelationshipChangedByProgram(simulation, cursor, relationshipId);
     }
 
     [Fact]
@@ -901,6 +964,33 @@ public sealed class LowAltitudePhysicsProgramTests
         }
 
         Assert.Fail("Expected cell influence event attributed to the low-altitude verb action.");
+    }
+
+    private static void AssertRelationshipChangedByProgram(
+        Simulation simulation,
+        KernelEventCursor cursor,
+        int relationshipId)
+    {
+        while (simulation.Events.TryRead(cursor, out var read))
+        {
+            if (read.Event.EventType != KernelEventType.RelationshipChanged)
+            {
+                continue;
+            }
+
+            var changed = read.Event.AsRelationshipChanged();
+            if (changed.RelationshipId != relationshipId)
+            {
+                continue;
+            }
+
+            Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
+            Assert.Equal(simulation.LowAltitudeVerbSourceCodeId, read.Event.SourceCodeId);
+            Assert.True(changed.NewStrength > changed.PreviousStrength);
+            return;
+        }
+
+        Assert.Fail("Expected relationship strength event attributed to the low-altitude verb program.");
     }
 
     private static TraceKernelEvent AssertTrace(
