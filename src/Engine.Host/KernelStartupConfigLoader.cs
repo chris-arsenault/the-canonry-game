@@ -75,6 +75,7 @@ internal static class KernelStartupConfigLoader
 
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
+        tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
     }
 
@@ -126,6 +127,88 @@ internal static class KernelStartupConfigLoader
         if (TryGetInt(generators, out var firesPerPulse, "firesPerPulse", "fires_per_pulse"))
         {
             tuning = WithGeneratorFiresPerPulse(tuning, firesPerPulse);
+        }
+
+        return tuning;
+    }
+
+    private static KernelTuningOptions ApplyJsonLowAltitudeVerbTuning(JsonElement programs, KernelTuningOptions tuning)
+    {
+        if (!TryGetObject(programs, out var lowAltitudeVerbs, "lowAltitudeVerbs", "low_altitude_verbs"))
+        {
+            return tuning;
+        }
+
+        tuning = ApplyJsonLowAltitudeOpportunityTuning(lowAltitudeVerbs, tuning);
+        tuning = ApplyJsonLowAltitudeRecencyTuning(lowAltitudeVerbs, tuning);
+        return ApplyJsonLowAltitudeDistanceTuning(lowAltitudeVerbs, tuning);
+    }
+
+    private static KernelTuningOptions ApplyJsonLowAltitudeOpportunityTuning(JsonElement lowAltitudeVerbs, KernelTuningOptions tuning)
+    {
+        if (TryGetFloat(lowAltitudeVerbs, out var opportunityRate, "opportunityRate", "opportunity_rate"))
+        {
+            tuning = WithLowAltitudeOpportunityRate(tuning, opportunityRate);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var opportunityBonus, "opportunityBonus", "opportunity_bonus"))
+        {
+            tuning = WithLowAltitudeOpportunityBonus(tuning, opportunityBonus);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var cellSaturationFactor, "cellSaturationFactor", "cell_saturation_factor"))
+        {
+            tuning = WithLowAltitudeCellSaturationFactor(tuning, cellSaturationFactor);
+        }
+
+        return tuning;
+    }
+
+    private static KernelTuningOptions ApplyJsonLowAltitudeRecencyTuning(JsonElement lowAltitudeVerbs, KernelTuningOptions tuning)
+    {
+        if (TryGetInt(lowAltitudeVerbs, out var recentTargetCooldownTicks, "recentTargetCooldownTicks", "recent_target_cooldown_ticks"))
+        {
+            tuning = WithLowAltitudeRecentTargetCooldownTicks(tuning, recentTargetCooldownTicks);
+        }
+
+        if (TryGetInt(lowAltitudeVerbs, out var recentTargetRingSize, "recentTargetRingSize", "recent_target_ring_size"))
+        {
+            tuning = WithLowAltitudeRecentTargetRingSize(tuning, recentTargetRingSize);
+        }
+
+        return tuning;
+    }
+
+    private static KernelTuningOptions ApplyJsonLowAltitudeDistanceTuning(JsonElement lowAltitudeVerbs, KernelTuningOptions tuning)
+    {
+        if (TryGetFloat(lowAltitudeVerbs, out var exploreDistanceScale, "exploreDistanceScale", "explore_distance_scale"))
+        {
+            tuning = WithLowAltitudeExploreDistanceScale(tuning, exploreDistanceScale);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var terrainDistanceScale, "terrainDistanceScale", "terrain_distance_scale"))
+        {
+            tuning = WithLowAltitudeTerrainDistanceScale(tuning, terrainDistanceScale);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var entityKindDistanceScale, "entityKindDistanceScale", "entity_kind_distance_scale"))
+        {
+            tuning = WithLowAltitudeEntityKindDistanceScale(tuning, entityKindDistanceScale);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var relationshipTargetDistanceScale, "relationshipTargetDistanceScale", "relationship_target_distance_scale"))
+        {
+            tuning = WithLowAltitudeRelationshipTargetDistanceScale(tuning, relationshipTargetDistanceScale);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var ownInfluenceDistanceScale, "ownInfluenceDistanceScale", "own_influence_distance_scale"))
+        {
+            tuning = WithLowAltitudeOwnInfluenceDistanceScale(tuning, ownInfluenceDistanceScale);
+        }
+
+        if (TryGetFloat(lowAltitudeVerbs, out var foreignInfluenceDistanceScale, "foreignInfluenceDistanceScale", "foreign_influence_distance_scale"))
+        {
+            tuning = WithLowAltitudeForeignInfluenceDistanceScale(tuning, foreignInfluenceDistanceScale);
         }
 
         return tuning;
@@ -191,6 +274,11 @@ internal static class KernelStartupConfigLoader
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.GENERATORS", StringComparison.Ordinal))
         {
             return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlGeneratorValue(key, value, tuning));
+        }
+
+        if (string.Equals(section, "KERNELTUNING.PROGRAMS.LOWALTITUDEVERBS", StringComparison.Ordinal))
+        {
+            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlLowAltitudeVerbValue(key, value, tuning));
         }
 
         var scalar = ReadBareTomlValue(value);
@@ -306,6 +394,93 @@ internal static class KernelStartupConfigLoader
         return tuning;
     }
 
+    private static KernelTuningOptions ApplyTomlLowAltitudeVerbValue(
+        string key,
+        string value,
+        KernelTuningOptions tuning)
+    {
+        var scalar = ReadBareTomlValue(value);
+        if (TryApplyTomlLowAltitudeFloatValue(key, scalar, tuning, out var updated) ||
+            TryApplyTomlLowAltitudeIntValue(key, scalar, tuning, out updated))
+        {
+            return updated;
+        }
+
+        return tuning;
+    }
+
+    private static bool TryApplyTomlLowAltitudeFloatValue(
+        string key,
+        string scalar,
+        KernelTuningOptions tuning,
+        out KernelTuningOptions updated)
+    {
+        updated = tuning;
+        if (!float.TryParse(scalar, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+        {
+            return false;
+        }
+
+        return TryApplyTomlLowAltitudeOpportunityFloatValue(key, value, tuning, out updated) ||
+               TryApplyTomlLowAltitudeDistanceFloatValue(key, value, tuning, out updated);
+    }
+
+    private static bool TryApplyTomlLowAltitudeOpportunityFloatValue(
+        string key,
+        float value,
+        KernelTuningOptions tuning,
+        out KernelTuningOptions updated)
+    {
+        updated = key switch
+        {
+            "OPPORTUNITYRATE" => WithLowAltitudeOpportunityRate(tuning, value),
+            "OPPORTUNITYBONUS" => WithLowAltitudeOpportunityBonus(tuning, value),
+            "CELLSATURATIONFACTOR" => WithLowAltitudeCellSaturationFactor(tuning, value),
+            _ => tuning,
+        };
+        return !ReferenceEquals(updated, tuning);
+    }
+
+    private static bool TryApplyTomlLowAltitudeDistanceFloatValue(
+        string key,
+        float value,
+        KernelTuningOptions tuning,
+        out KernelTuningOptions updated)
+    {
+        updated = key switch
+        {
+            "EXPLOREDISTANCESCALE" => WithLowAltitudeExploreDistanceScale(tuning, value),
+            "TERRAINDISTANCESCALE" => WithLowAltitudeTerrainDistanceScale(tuning, value),
+            "ENTITYKINDDISTANCESCALE" => WithLowAltitudeEntityKindDistanceScale(tuning, value),
+            "RELATIONSHIPTARGETDISTANCESCALE" => WithLowAltitudeRelationshipTargetDistanceScale(tuning, value),
+            "OWNINFLUENCEDISTANCESCALE" => WithLowAltitudeOwnInfluenceDistanceScale(tuning, value),
+            "FOREIGNINFLUENCEDISTANCESCALE" => WithLowAltitudeForeignInfluenceDistanceScale(tuning, value),
+            _ => tuning,
+        };
+        return !ReferenceEquals(updated, tuning);
+    }
+
+    private static bool TryApplyTomlLowAltitudeIntValue(
+        string key,
+        string scalar,
+        KernelTuningOptions tuning,
+        out KernelTuningOptions updated)
+    {
+        updated = tuning;
+        if (!int.TryParse(scalar, CultureInfo.InvariantCulture, out var value))
+        {
+            return false;
+        }
+
+        updated = key switch
+        {
+            "RECENTTARGETCOOLDOWNTICKS" => WithLowAltitudeRecentTargetCooldownTicks(tuning, value),
+            "RECENTTARGETRINGSIZE" => WithLowAltitudeRecentTargetRingSize(tuning, value),
+            _ => tuning,
+        };
+        return !ReferenceEquals(updated, tuning);
+    }
+
     private static KernelTuningOptions ApplyTomlUpkeepValue(
         string value,
         KernelTuningOptions tuning)
@@ -356,6 +531,105 @@ internal static class KernelStartupConfigLoader
             },
         };
     }
+
+    private static KernelTuningOptions WithLowAltitudeOpportunityRate(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { OpportunityRate = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeOpportunityBonus(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { OpportunityBonus = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeRecentTargetCooldownTicks(KernelTuningOptions tuning, int value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { RecentTargetCooldownTicks = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeRecentTargetRingSize(KernelTuningOptions tuning, int value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { RecentTargetRingSize = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeCellSaturationFactor(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { CellSaturationFactor = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeExploreDistanceScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { ExploreDistanceScale = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeTerrainDistanceScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { TerrainDistanceScale = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeEntityKindDistanceScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { EntityKindDistanceScale = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeRelationshipTargetDistanceScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { RelationshipTargetDistanceScale = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeOwnInfluenceDistanceScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { OwnInfluenceDistanceScale = value },
+            },
+        };
+
+    private static KernelTuningOptions WithLowAltitudeForeignInfluenceDistanceScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { ForeignInfluenceDistanceScale = value },
+            },
+        };
 
     private static KernelTuningOptions WithProgramEnabled(KernelTuningOptions tuning, int programId, bool enabled)
     {
@@ -438,6 +712,24 @@ internal static class KernelStartupConfigLoader
             if (!element.TryGetProperty(propertyNames[i], out var property) ||
                 property.ValueKind != JsonValueKind.Number ||
                 !property.TryGetInt32(out value))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetFloat(JsonElement element, out float value, params string[] propertyNames)
+    {
+        value = 0f;
+        for (var i = 0; i < propertyNames.Length; i++)
+        {
+            if (!element.TryGetProperty(propertyNames[i], out var property) ||
+                property.ValueKind != JsonValueKind.Number ||
+                !property.TryGetSingle(out value))
             {
                 continue;
             }

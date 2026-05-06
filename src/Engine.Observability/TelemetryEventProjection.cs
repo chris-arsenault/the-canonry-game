@@ -550,6 +550,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.GeneratorAffordanceCount,
             evt.GambitAffordanceCount,
             evt.HiddenAffordanceCount,
+            evt.SelectionBucketCode,
             evt.Urgency,
             evt.RewardOrBaseScore,
             evt.RawWeight,

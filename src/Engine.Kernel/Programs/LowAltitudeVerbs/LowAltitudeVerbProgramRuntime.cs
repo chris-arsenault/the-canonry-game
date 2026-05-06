@@ -4,6 +4,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
 {
     private const int DirectionCount = 6;
+    private const int VerbBucketCapacity = 64;
+
+    private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
+    private readonly float[] _verbAffordanceSumScratch = new float[VerbBucketCapacity];
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -44,80 +48,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int targetRadius,
         int candidateSampleCount,
         float weight,
-        float exploreWeight,
-        float stalenessWeight,
-        float hotspotWeight,
-        float crowdingWeight,
-        float affordanceWeight,
-        float influenceDelta,
-        int influenceRadius,
-        float coverageGrowthChance,
-        float headquartersMoveChance,
-        float requiredInfluence,
-        float relationshipStrengthDelta = 0f) =>
-        RegisterVerb(
-            kindId,
-            verbId,
-            planeCode,
-            operationCode,
-            targetModeCode,
-            targetKindId,
-            relationshipKindId,
-            relationshipDirectionCode,
-            minCommitmentTicks,
-            maxCommitmentTicks,
-            dwellTicks,
-            targetRadius,
-            candidateSampleCount,
-            weight,
-            exploreWeight,
-            stalenessWeight,
-            hotspotWeight,
-            crowdingWeight,
-            affordanceWeight,
-            affinityRelationshipKindId: 0,
-            affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
-            relationshipAffinityWeight: 0f,
-            influenceDelta: influenceDelta,
-            influenceRadius: influenceRadius,
-            coverageGrowthChance: coverageGrowthChance,
-            headquartersMoveChance: headquartersMoveChance,
-            requiredInfluence: requiredInfluence,
-            relationshipStrengthDelta: relationshipStrengthDelta,
-            foreignInfluenceFilterEnabled: 0,
-            foreignInfluenceBlockPositiveRelationships: 0,
-            foreignInfluenceAllowNegativeRelationships: 0,
-            foreignInfluenceMinimumRelationshipStrength: 0f,
-            foreignInfluenceAllowUnrelatedInfluenceAtOrAbove: -1f);
-
-    public int RegisterVerb(
-        int kindId,
-        int verbId,
-        int planeCode,
-        int operationCode,
-        int targetModeCode,
-        int targetKindId,
-        int relationshipKindId,
-        int relationshipDirectionCode,
-        int minCommitmentTicks,
-        int maxCommitmentTicks,
-        int dwellTicks,
-        int targetRadius,
-        int candidateSampleCount,
-        float weight,
-        float exploreWeight,
-        float stalenessWeight,
-        float hotspotWeight,
-        float crowdingWeight,
-        float affordanceWeight,
-        int affinityRelationshipKindId,
-        int affinityRelationshipDirectionCode,
-        float relationshipAffinityWeight,
-        float influenceDelta,
-        int influenceRadius,
-        float coverageGrowthChance,
-        float headquartersMoveChance,
-        float requiredInfluence,
+        float opportunityBonusOverride = 0f,
+        float fitnessWeight = 0f,
+        float distanceScaleOverride = 0f,
+        int fitnessRelationshipKindId = 0,
+        int fitnessRelationshipDirectionCode = LowAltitudeVerbRelationshipDirectionCodes.Either,
+        int fitnessPolarityCode = AffordancePolarityCodes.None,
+        float fitnessThreshold = 0f,
+        float influenceDelta = 0f,
+        int influenceRadius = 0,
+        float coverageGrowthChance = 0f,
+        float headquartersMoveChance = 0f,
+        float requiredInfluence = 0f,
         int foreignInfluenceFilterEnabled = 0,
         int foreignInfluenceBlockPositiveRelationships = 0,
         int foreignInfluenceAllowNegativeRelationships = 0,
@@ -140,19 +82,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             TargetRadius = targetRadius,
             CandidateSampleCount = candidateSampleCount,
             Weight = weight,
-            ExploreWeight = exploreWeight,
-            StalenessWeight = stalenessWeight,
-            HotspotWeight = hotspotWeight,
-            CrowdingWeight = crowdingWeight,
-            AffordanceWeight = affordanceWeight,
+            OpportunityBonusOverride = opportunityBonusOverride,
+            FitnessWeight = fitnessWeight,
+            DistanceScaleOverride = distanceScaleOverride,
             ForeignInfluenceFilterEnabled = foreignInfluenceFilterEnabled,
             ForeignInfluenceBlockPositiveRelationships = foreignInfluenceBlockPositiveRelationships,
             ForeignInfluenceAllowNegativeRelationships = foreignInfluenceAllowNegativeRelationships,
             ForeignInfluenceMinimumRelationshipStrength = foreignInfluenceMinimumRelationshipStrength,
             ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove = foreignInfluenceAllowUnrelatedInfluenceAtOrAbove,
-            AffinityRelationshipKindId = affinityRelationshipKindId,
-            AffinityRelationshipDirectionCode = affinityRelationshipDirectionCode,
-            RelationshipAffinityWeight = relationshipAffinityWeight,
+            FitnessRelationshipKindId = fitnessRelationshipKindId,
+            FitnessRelationshipDirectionCode = fitnessRelationshipDirectionCode,
+            FitnessPolarityCode = fitnessPolarityCode,
+            FitnessThreshold = fitnessThreshold,
             InfluenceDelta = influenceDelta,
             InfluenceRadius = influenceRadius,
             CoverageChance = coverageGrowthChance,
@@ -207,23 +148,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int traitId,
         int verbId,
         float weightDelta,
-        float exploreWeightDelta,
-        float stalenessWeightDelta,
-        float hotspotWeightDelta,
-        float crowdingWeightDelta,
-        float affordanceWeightDelta,
-        float relationshipAffinityWeightDelta) =>
+        float opportunityBonusDelta,
+        float fitnessWeightDelta) =>
         Data.RegisterTraitWeightModifier(
             kindId,
             traitId,
             verbId,
             weightDelta,
-            exploreWeightDelta,
-            stalenessWeightDelta,
-            hotspotWeightDelta,
-            crowdingWeightDelta,
-            affordanceWeightDelta,
-            relationshipAffinityWeightDelta);
+            opportunityBonusDelta,
+            fitnessWeightDelta);
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -307,7 +240,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var targetEntityId = State.TargetEntityId(entityId);
         if (targetEntityId != 0 && !simulation.World.EntityIsActive(targetEntityId))
         {
-            State.ClearIntent(entityId);
+            ClearIntentAndPushRecent(entityId, tick);
             return true;
         }
 
@@ -315,13 +248,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             Data.TargetModeCode(slot) == TargetSelectorCodes.RelationshipTarget &&
             !HasTargetRelationship(simulation.World, entityId, targetEntityId, slot))
         {
-            State.ClearIntent(entityId);
+            ClearIntentAndPushRecent(entityId, tick);
             return true;
         }
 
         if (tick >= State.ExpiresTick(entityId))
         {
-            State.ClearIntent(entityId);
+            ClearIntentAndPushRecent(entityId, tick);
             return true;
         }
 
@@ -333,47 +266,117 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         if (tick >= State.DwellUntilTick(entityId))
         {
-            State.ClearIntent(entityId);
+            ClearIntentAndPushRecent(entityId, tick);
             return true;
         }
 
         return false;
     }
 
+    private void ClearIntentAndPushRecent(int entityId, int tick)
+    {
+        var key = ResolveActiveTargetKey(entityId);
+        if (key != 0L)
+        {
+            State.PushRecentTarget(entityId, key, tick);
+        }
+
+        State.ClearIntent(entityId);
+    }
+
+    private long ResolveActiveTargetKey(int entityId)
+    {
+        var slot = State.ActiveVerbSlot(entityId);
+        if (slot == 0)
+        {
+            return 0L;
+        }
+
+        var targetEntityId = State.TargetEntityId(entityId);
+        if (targetEntityId != 0)
+        {
+            return LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
+        }
+
+        var planeCode = State.TargetPlaneCode(entityId);
+        return LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, State.TargetQ(entityId), State.TargetR(entityId));
+    }
+
     private void ChooseIntent(Simulation simulation, int entityId, int tick)
     {
-        var world = simulation.World;
-        var kindId = world.EntityKindId(entityId);
-        var totalWeight = 0f;
-        var selected = default(VerbTargetCandidate);
-        var traceIntentId = State.NextIntentId();
+        var bucket = BuildVerbBucket(simulation, entityId, tick);
+        if (bucket.VerbCount == 0)
+        {
+            return;
+        }
 
-        for (var rule = 1; rule <= Data.RuleCount; rule++)
+        var selectedIndex = PickVerbFromBucket(simulation, bucket, out var selectionBucketCode);
+        if (selectedIndex < 0)
+        {
+            return;
+        }
+
+        CommitSelectedIntent(simulation, entityId, tick, _verbCandidateScratch[selectedIndex], selectionBucketCode);
+    }
+
+    private VerbBucket BuildVerbBucket(Simulation simulation, int entityId, int tick)
+    {
+        var bucket = default(VerbBucket);
+        var candidates = _verbCandidateScratch;
+        var sumAffordanceScores = _verbAffordanceSumScratch;
+        var kindId = simulation.World.EntityKindId(entityId);
+        var traceIntentId = State.NextIntentId();
+        for (var rule = 1; rule <= Data.RuleCount && bucket.VerbCount < VerbBucketCapacity; rule++)
         {
             if (Data.KindId(rule) != kindId)
             {
                 continue;
             }
 
-            if (!TryBuildCandidate(simulation, entityId, rule, tick, out var candidate))
+            var result = TryBuildCandidate(simulation, entityId, rule, tick);
+            if (!result.HasChosenCandidate)
             {
                 EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.NoTarget, default);
                 continue;
             }
 
-            EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.Offered, candidate);
-            totalWeight += candidate.Weight;
-            if (simulation.NextFloat() * totalWeight <= candidate.Weight)
+            EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.Offered, result.ChosenCandidate);
+            candidates[bucket.VerbCount] = result.ChosenCandidate;
+            sumAffordanceScores[bucket.VerbCount] = result.SumAffordanceScore;
+            bucket.TotalRoutineWeight += result.ChosenCandidate.Weight;
+            if (result.SumAffordanceScore > 0f)
             {
-                selected = candidate;
+                bucket.HasOpportunity = true;
+                bucket.TotalOpportunityWeight += result.SumAffordanceScore;
             }
+
+            bucket.VerbCount++;
         }
 
-        if (selected.RuleSlot == 0)
-        {
-            return;
-        }
+        return bucket;
+    }
 
+    private int PickVerbFromBucket(Simulation simulation, VerbBucket bucket, out int selectionBucketCode)
+    {
+        var opportunityRate = Tuning.LowAltitudeVerbs.OpportunityRate;
+        var pickFromOpportunity = bucket.HasOpportunity &&
+            opportunityRate > 0f &&
+            simulation.NextFloat() < opportunityRate;
+        selectionBucketCode = pickFromOpportunity
+            ? LowAltitudeVerbSelectionBucketCodes.Opportunity
+            : LowAltitudeVerbSelectionBucketCodes.Routine;
+        return pickFromOpportunity
+            ? PickOpportunityIndex(simulation, _verbAffordanceSumScratch, bucket.TotalOpportunityWeight, bucket.VerbCount)
+            : PickRoutineIndex(simulation, _verbCandidateScratch, bucket.TotalRoutineWeight, bucket.VerbCount);
+    }
+
+    private void CommitSelectedIntent(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        VerbTargetCandidate selected,
+        int selectionBucketCode)
+    {
         var intentIdSeed = State.NextIntentId();
         selected = ScatterDestination(simulation, entityId, selected, tick);
         var duration = simulation.NextInclusive(
@@ -392,7 +395,78 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             IntentDwellTicks(entityId, intentIdSeed, selected.RuleSlot),
             IntentStepIntervalTicks(entityId, intentIdSeed, selected.RuleSlot),
             IntentPathLoosenessPermille(entityId, intentIdSeed, selected.RuleSlot));
-        EmitIntentTrace(simulation, tick, entityId, selected.RuleSlot, intentId, TraceStatusCodes.Selected, selected);
+        EmitIntentTrace(simulation, tick, entityId, selected.RuleSlot, intentId, TraceStatusCodes.Selected, selected, selectionBucketCode);
+    }
+
+    private struct VerbBucket
+    {
+        public int VerbCount;
+        public float TotalRoutineWeight;
+        public float TotalOpportunityWeight;
+        public bool HasOpportunity;
+    }
+
+    private static int PickRoutineIndex(
+        Simulation simulation,
+        VerbTargetCandidate[] candidates,
+        float totalWeight,
+        int count)
+    {
+        if (count == 0 || totalWeight <= 0f)
+        {
+            return -1;
+        }
+
+        var threshold = simulation.NextFloat() * totalWeight;
+        var running = 0f;
+        for (var i = 0; i < count; i++)
+        {
+            running += candidates[i].Weight;
+            if (threshold <= running)
+            {
+                return i;
+            }
+        }
+
+        return count - 1;
+    }
+
+    private static int PickOpportunityIndex(
+        Simulation simulation,
+        float[] opportunityWeights,
+        float totalWeight,
+        int count)
+    {
+        if (count == 0 || totalWeight <= 0f)
+        {
+            return -1;
+        }
+
+        var threshold = simulation.NextFloat() * totalWeight;
+        var running = 0f;
+        for (var i = 0; i < count; i++)
+        {
+            if (opportunityWeights[i] <= 0f)
+            {
+                continue;
+            }
+
+            running += opportunityWeights[i];
+            if (threshold <= running)
+            {
+                return i;
+            }
+        }
+
+        for (var i = count - 1; i >= 0; i--)
+        {
+            if (opportunityWeights[i] > 0f)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private void ApplyIntent(Simulation simulation, int entityId, int rule, int tick)
@@ -701,36 +775,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         }
 
         return false;
-    }
-
-    private bool TryRandomCoordinate(Simulation simulation, int planeCode, out int q, out int r, out int s)
-    {
-        if (planeCode == PlaneCodes.Semantic)
-        {
-            return TryRandomSemanticCoordinate(simulation, out q, out r, out s);
-        }
-
-        var radius = global::System.Math.Max(1, simulation.World.MapRadius);
-        for (var attempt = 0; attempt < 16; attempt++)
-        {
-            q = simulation.NextInclusive(-radius, radius);
-            r = simulation.NextInclusive(-radius, radius);
-            s = -q - r;
-            if (MaxAbs(q, r, s) > radius)
-            {
-                continue;
-            }
-
-            if (simulation.World.CellIsKnown(q, r))
-            {
-                return true;
-            }
-        }
-
-        q = 0;
-        r = 0;
-        s = 0;
-        return simulation.World.CellIsKnown(0, 0);
     }
 
 }

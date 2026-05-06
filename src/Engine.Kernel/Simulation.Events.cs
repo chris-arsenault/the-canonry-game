@@ -173,6 +173,7 @@ internal sealed partial class Simulation
         int generatorAffordanceCount = 0,
         int gambitAffordanceCount = 0,
         int hiddenAffordanceCount = 0,
+        int selectionBucketCode = 0,
         float affordanceScore = 0f,
         float affordanceBonus = 0f)
     {
@@ -205,6 +206,7 @@ internal sealed partial class Simulation
             generatorAffordanceCount,
             gambitAffordanceCount,
             hiddenAffordanceCount,
+            selectionBucketCode,
             urgency,
             rewardOrBaseScore,
             rawWeight,

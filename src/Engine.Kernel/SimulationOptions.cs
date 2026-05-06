@@ -59,6 +59,7 @@ internal sealed record KernelProgramTuningOptions
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
+    public LowAltitudeVerbTuningOptions LowAltitudeVerbs { get; init; } = new();
 }
 
 internal sealed record ProgramEnabledTuningOptions
@@ -84,4 +85,21 @@ internal sealed record GeneratorProgramTuningOptions
     public bool RetryFireTargets { get; init; } = true;
     public int PulseWidthTicks { get; init; } = GeneratorProgramConstants.DefaultPulseWidthTicks;
     public int FiresPerPulse { get; init; } = GeneratorProgramConstants.DefaultFiresPerPulse;
+}
+
+internal sealed record LowAltitudeVerbTuningOptions
+{
+    public float OpportunityRate { get; init; } = 0.4f;
+    public float OpportunityBonus { get; init; } = 1f;
+    public int RecentTargetCooldownTicks { get; init; } = 90;
+    public int RecentTargetRingSize { get; init; } = 3;
+    public float CellSaturationFactor { get; init; } = 0.25f;
+    public float ExploreDistanceScale { get; init; } = 6f;
+    public float TerrainDistanceScale { get; init; } = 6f;
+    public float EntityKindDistanceScale { get; init; } = 6f;
+    public float RelationshipTargetDistanceScale { get; init; } = 8f;
+    public float OwnInfluenceDistanceScale { get; init; } = 6f;
+    public float ForeignInfluenceDistanceScale { get; init; } = 6f;
+    public float InfluenceShortfallSamplingFactor { get; init; } = 1f;
+    public float ForeignInfluencePresenceSamplingFactor { get; init; } = 1f;
 }

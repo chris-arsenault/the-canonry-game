@@ -26,6 +26,23 @@ public class DomainConfigTests
     }
 
     [Fact]
+    public void IceRemembers_EntityCatalogCoversCanonicalKinds()
+    {
+        var declaredKinds = IceRemembersEntities.All.Select(entity => entity.Kind).ToArray();
+
+        Assert.Equal(IceRemembersKinds.All.Count, declaredKinds.Distinct().Count());
+        Assert.Empty(IceRemembersKinds.All.Except(declaredKinds));
+        Assert.Empty(declaredKinds.Except(IceRemembersKinds.All));
+
+        foreach (var entity in IceRemembersEntities.All)
+        {
+            Assert.NotEmpty(entity.Subtypes);
+            Assert.NotEmpty(entity.Placement.ResolvePhysical(subtype: null, culture: null).PreferredTerrains);
+            Assert.NotEmpty(entity.Placement.ResolveSemantic(subtype: null, culture: null).PreferredTerrains);
+        }
+    }
+
+    [Fact]
     public void IceRemembers_AllMvpKindsPresent()
     {
         var config = IceRemembersDefinition.Create();
@@ -119,6 +136,33 @@ public class DomainConfigTests
             if (!meaningful && (hasSource || hasSink))
             {
                 issues.Add($"{relationship.Name} strength is topology-only but has source={hasSource}, sink={hasSink}.");
+            }
+        }
+
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void IceRemembers_RelationshipStrengthVerbsDeclareDeficitOrSurplusFitness()
+    {
+        var config = IceRemembersDefinition.Create();
+        var issues = new List<string>();
+
+        foreach (var verb in config.Gameplay?.LowAltitudeVerbs.OfType<RelationshipStrengthLowAltitudeVerbConfig>() ?? [])
+        {
+            if (verb.Delta > 0f && verb.FitnessPolarity != LowAltitudeVerbFitnessPolarity.Strengthen)
+            {
+                issues.Add($"{verb.Id} strengthens {verb.RelationshipKind} but does not use strengthen fitness.");
+            }
+
+            if (verb.Delta < 0f && verb.FitnessPolarity != LowAltitudeVerbFitnessPolarity.Weaken)
+            {
+                issues.Add($"{verb.Id} weakens {verb.RelationshipKind} but does not use weaken fitness.");
+            }
+
+            if (verb.FitnessThreshold <= 0f)
+            {
+                issues.Add($"{verb.Id} has no relationship fitness threshold.");
             }
         }
 

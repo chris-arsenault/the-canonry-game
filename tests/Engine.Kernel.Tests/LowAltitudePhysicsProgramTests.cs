@@ -32,11 +32,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 1,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -87,11 +82,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 1,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -141,14 +131,14 @@ public sealed class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
-    public void LowAltitudeVerbProgram_WeightsEntityTargetsByConfiguredRelationshipAffinity()
+    public void LowAltitudeVerbProgram_WeightsEntityTargetsByConfiguredRelationshipFitness()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 23 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
         const int verbId = 96;
-        const int affinityRelationshipKindId = 9;
+        const int fitnessRelationshipKindId = 9;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(2);
         SeedPhysicalNeighborhood(simulation, terrainId);
@@ -156,7 +146,7 @@ public sealed class LowAltitudePhysicsProgramTests
         _ = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
         var relatedTargetId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, -1, 0, 0, 0, 0, tick: 0);
         _ = simulation.CreateRelationship(
-            affinityRelationshipKindId,
+            fitnessRelationshipKindId,
             RelationshipPolarityCodes.Positive,
             actorId,
             relatedTargetId,
@@ -177,14 +167,9 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 2,
             weight: 0.01f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
-            affinityRelationshipKindId: affinityRelationshipKindId,
-            affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
-            relationshipAffinityWeight: 1000f,
+            fitnessWeight: 1000f,
+            fitnessRelationshipKindId: fitnessRelationshipKindId,
+            fitnessRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -230,11 +215,7 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 128,
             weight: 0.01f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 1_000_000f,
+            opportunityBonusOverride: 1_000_000f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -472,11 +453,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 1,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: 2f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -535,11 +511,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 1,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -693,11 +664,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 16,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: influenceDelta,
             influenceRadius: influenceRadius,
             coverageGrowthChance: coverageGrowthChance,
@@ -726,14 +692,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: 0,
             candidateSampleCount: 512,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
-            affinityRelationshipKindId: 0,
-            affinityRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
-            relationshipAffinityWeight: 0f,
             influenceDelta: 5f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,
@@ -774,11 +732,6 @@ public sealed class LowAltitudePhysicsProgramTests
             targetRadius: targetRadius,
             candidateSampleCount: 4,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,

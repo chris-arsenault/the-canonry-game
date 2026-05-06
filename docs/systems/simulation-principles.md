@@ -104,8 +104,10 @@ Track:
 - active verb count;
 - dead verb count;
 - same-action same-target pileups;
-- target concentration.
+- target concentration;
 - relationship-strength deltas by relationship kind and polarity.
+- routine versus opportunity selection bucket share;
+- affordance score and bonus on selected low-altitude intents.
 
 Gambits should be judged separately from low-altitude verbs. They are rarer and
 should be evaluated by relationship impact, target diversity, and whether they

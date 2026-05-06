@@ -114,12 +114,8 @@ internal static partial class KernelProgramInstaller
                 modifier.TraitId,
                 modifier.VerbId,
                 modifier.WeightDelta,
-                modifier.ExploreWeightDelta,
-                modifier.StalenessWeightDelta,
-                modifier.HotspotWeightDelta,
-                modifier.CrowdingWeightDelta,
-                modifier.AffordanceWeightDelta,
-                modifier.RelationshipAffinityWeightDelta);
+                modifier.OpportunityBonusDelta,
+                modifier.FitnessWeightDelta);
         }
     }
 
@@ -140,14 +136,13 @@ internal static partial class KernelProgramInstaller
             verb.TargetRadius,
             verb.CandidateSampleCount,
             verb.Weight,
-            verb.ExploreWeight,
-            verb.StalenessWeight,
-            verb.HotspotWeight,
-            verb.CrowdingWeight,
-            verb.AffordanceWeight,
-            verb.AffinityRelationshipKindId,
-            verb.AffinityRelationshipDirectionCode,
-            verb.RelationshipAffinityWeight,
+            verb.OpportunityBonusOverride,
+            verb.FitnessWeight,
+            verb.DistanceScaleOverride,
+            verb.FitnessRelationshipKindId,
+            verb.FitnessRelationshipDirectionCode,
+            verb.FitnessPolarityCode,
+            verb.FitnessThreshold,
             verb.InfluenceDelta,
             verb.InfluenceRadius,
             verb.CoverageGrowthChance,

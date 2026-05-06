@@ -23,9 +23,9 @@ All active entity kinds can participate. Mobile entities make the map live by
 moving. Static or semantic-primary entities make the map live by moving on the
 semantic plane and by projecting influence over cells or semantic coordinates.
 
-The domain config supplies kind, plane, operation, target mode, timing,
-weights, relationship affinity, relationship-strength delta, influence
-parameters, and targeting filters.
+The domain config supplies kind, plane, operation, target mode, timing, base
+weight, opportunity bonus, relationship fitness, relationship-strength delta,
+influence parameters, and targeting filters.
 `Engine.Gameplay` validates the authored shape and compiles it into primitive
 kernel program data. `Engine.Kernel` executes only ids, opcodes, numeric
 weights, and fixed arrays.
@@ -59,19 +59,33 @@ The Ice Remembers domain currently authors 98 low-altitude verbs:
 
 ## Targeting
 
-Low-altitude targeting is weighted semi-random. Candidate scores can consider:
+Low-altitude targeting is weighted semi-random. Cell-target modes scan a
+bounded neighborhood around the actor instead of sampling a few uniform random
+map coordinates. Entity-kind and relationship-target modes enumerate eligible
+entities or existing relationship edges.
 
-- exploration and staleness;
-- recent activity and hotspots;
-- crowding;
-- relationship affinity;
+Candidate scores can consider:
+
+- authored base verb weight;
+- mode-specific distance preference;
+- previous-tick cell saturation;
+- recent-target cooldown;
+- relationship fitness against authored deficit or surplus thresholds;
+- influence shortfall or foreign influence presence;
 - generator and gambit affordance rows compiled into the verb data;
-- terrain or entity-kind filters;
-- foreign influence filters.
+- terrain, entity-kind, relationship, and foreign-influence filters.
+
+Affordances are target-level pressure, not a separate action type. Matching
+affordance rows are combined with diminishing returns, multiply the candidate
+score through an opportunity bonus, and also feed an opportunity bucket. Each
+selection rolls between routine and opportunity buckets using kernel tuning, so
+affordance-led behavior can be measured directly instead of inferred from
+action names.
 
 Trait-authored low-altitude score changes use the shared decision-modifier
-path. New weighting inputs should be reusable primitives, not trait-name or
-kind-name special cases inside the low-altitude runtime.
+path. Traits may adjust base verb weight, opportunity bonus, and relationship
+fitness weight. New weighting inputs should be reusable primitives, not
+trait-name or kind-name special cases inside the low-altitude runtime.
 
 The goal is not perfect local optimality. The goal is map life: entities should
 commit to plausible medium-term behavior, wander and dwell around targets, and

@@ -1,0 +1,55 @@
+namespace IceRemembers;
+
+using Engine.Domain.Config;
+using Engine.Gameplay;
+using Engine.Kinds;
+
+using static IceRemembers.IceRemembersEntityDsl;
+
+using Attr = IceRemembers.IceRemembersAttributeId;
+using Effect = Engine.Gameplay.AttributeEffectConditions;
+using K = IceRemembers.IceRemembersKinds;
+using Terrain = IceRemembers.IceRemembersTerrain;
+using Trait = IceRemembers.IceRemembersTraitId;
+
+internal static class RegionEntity
+{
+    public static IceRemembersEntityDefinition Definition { get; } = new()
+    {
+        Kind = K.Region,
+        Category = EntityCategory.Spatial,
+        Subtypes = Subtypes("face", "shelf", "depths", "reach", "sea", "scar"),
+        HealthAttribute = Attr.Stability,
+        HealthDisplayName = "Stability",
+        PrimaryPlane = PrimaryPlane.Semantic,
+        LifecycleBand = IceRemembersLifecycleBand.Standard,
+        Description = "A geographically connected area of the world. A region's semantic alignment is the spirit or animist ideals of the place itself - the land's own tendencies - distinct from the people, factions, or settlements that happen to occupy it.",
+        Traits =
+        [
+            PositiveTrait(
+                Trait.RegionShelteringGround,
+                "Sheltering Ground",
+                "Local support effects are stronger for this region.",
+                TraitMapDelta(K.Region, Attr.Stability, Effect.MapSupportAtLocation, 0.025f, 4f, PrimaryPlane.Semantic)),
+            NegativeTrait(
+                Trait.RegionBrittleSeams,
+                "Brittle Seams",
+                "Stress and corruption effects bite harder around this region.",
+                TraitMapDelta(K.Region, Attr.Stability, Effect.MapThreatAtLocation, -0.03f, 3f, PrimaryPlane.Semantic)),
+        ],
+        MapSignal = MapSignal(radius: 2, capacity: 1.5f, support: 0.3f, threat: 0.3f,
+            baseMass: 6f, coverageScale: 0.10f, influenceScale: 0.03f, activityScale: 0.02f,
+            healthScale: 0.03f, attractorRadius: 2),
+        Placement = Placement(
+            physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
+            semanticDefault: Semantic(Terrain.OpenField, Terrain.Lineage, Terrain.Witness),
+            physicalRules:
+            [
+                SubtypeRule("face", Land(Terrain.Ice, Terrain.Tundra, Terrain.Shelf)),
+                SubtypeRule("reach", Land(Terrain.Tundra, Terrain.HotSprings, Terrain.Wastes)),
+                SubtypeRule("shelf", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Tundra)),
+                SubtypeRule("sea", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
+                SubtypeRule("scar", Land(Terrain.Wastes, Terrain.Crags, Terrain.Tundra)),
+            ]),
+    };
+}

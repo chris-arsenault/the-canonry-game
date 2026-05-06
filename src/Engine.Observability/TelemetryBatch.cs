@@ -160,6 +160,7 @@ public sealed record TraceRow(
     int GeneratorAffordanceCount,
     int GambitAffordanceCount,
     int HiddenAffordanceCount,
+    int SelectionBucketCode,
     float Urgency,
     float RewardOrBaseScore,
     float RawWeight,

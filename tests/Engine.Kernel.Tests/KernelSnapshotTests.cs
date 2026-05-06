@@ -169,6 +169,20 @@ public sealed class KernelSnapshotTests
                     PulseWidthTicks = 17,
                     FiresPerPulse = 2,
                 },
+                LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
+                {
+                    OpportunityRate = 0.35f,
+                    OpportunityBonus = 1.75f,
+                    RecentTargetCooldownTicks = 77,
+                    RecentTargetRingSize = 2,
+                    CellSaturationFactor = 0.5f,
+                    ExploreDistanceScale = 4.5f,
+                    TerrainDistanceScale = 5.5f,
+                    EntityKindDistanceScale = 6.5f,
+                    RelationshipTargetDistanceScale = 7.5f,
+                    OwnInfluenceDistanceScale = 8.5f,
+                    ForeignInfluenceDistanceScale = 9.5f,
+                },
             },
         };
 
@@ -198,6 +212,17 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.PulseWidthTicks);
         Assert.Equal(2, loaded.Options.KernelTuning.Programs.Generators.FiresPerPulse);
+        Assert.Equal(0.35f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
+        Assert.Equal(1.75f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
+        Assert.Equal(77, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
+        Assert.Equal(2, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize);
+        Assert.Equal(0.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor);
+        Assert.Equal(4.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale);
+        Assert.Equal(5.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale);
+        Assert.Equal(6.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale);
+        Assert.Equal(7.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
+        Assert.Equal(8.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
+        Assert.Equal(9.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
         Assert.Equal(expectedRandom, loaded.NextInt(10000));
     }
 

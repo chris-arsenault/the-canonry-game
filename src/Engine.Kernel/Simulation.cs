@@ -69,7 +69,9 @@ internal sealed partial class Simulation : IKernel
     private static LowAltitudeVerbProgramRuntime CreateLowAltitudeVerbRuntime(SimulationOptions options) =>
         new(
             new LowAltitudeVerbProgramData(options.LowAltitudeVerbRuleCapacity, options.LowAltitudeVerbItemCapacity),
-            new LowAltitudeVerbProgramState(options.EntityCapacity),
+            new LowAltitudeVerbProgramState(
+                options.EntityCapacity,
+                options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize),
             options.KernelTuning.Programs);
 
     private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
@@ -307,26 +309,36 @@ internal sealed partial class Simulation : IKernel
     internal LowAltitudeSignalSnapshot ReadLowAltitudeSignalSnapshot(
         int planeCode,
         int q,
-        int r,
-        int tick,
-        int targetEntityId)
+        int r)
     {
-        var attractorMass = MapSignals.AttractorMassAt(planeCode, q, r);
-        if (targetEntityId > 0)
-        {
-            attractorMass += MapSignals.EntityAttractorMass(targetEntityId, planeCode);
-        }
-
         return new LowAltitudeSignalSnapshot
         {
-            VisitCount = MapActivity.VisitCount(planeCode, q, r),
-            LastVisitedTick = MapActivity.LastVisitedTick(planeCode, q, r),
-            Heat = MapActivity.Heat(planeCode, q, r, tick),
             CurrentOccupancy = MapActivity.CurrentOccupancy(planeCode, q, r),
             CrowdingLoad = MapSignals.CrowdingLoadAt(planeCode, q, r),
-            AttractorMass = attractorMass,
         };
     }
+
+    internal int ReadCellOccupancyOneRingSum(int planeCode, int q, int r)
+    {
+        var sum = MapActivity.CurrentOccupancy(planeCode, q, r);
+        for (var direction = 0; direction < 6; direction++)
+        {
+            var (dq, dr) = HexDirectionOffset(direction);
+            sum += MapActivity.CurrentOccupancy(planeCode, q + dq, r + dr);
+        }
+
+        return sum;
+    }
+
+    private static (int Dq, int Dr) HexDirectionOffset(int direction) => direction switch
+    {
+        0 => (1, 0),
+        1 => (1, -1),
+        2 => (0, -1),
+        3 => (-1, 0),
+        4 => (-1, 1),
+        _ => (0, 1),
+    };
 
     internal int RegisterAttribute(
         int kindId,

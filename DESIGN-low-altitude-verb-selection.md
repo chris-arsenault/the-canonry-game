@@ -86,12 +86,12 @@ per-verb six-tuple goes away.
 
 | Mode | Mode-owned scoring factors |
 |---|---|
-| Explore | sampling biased by staleness; score = `Weight` × recencyMultiplier × cellSaturation |
-| Terrain | sampling biased by terrain match + staleness; score = `Weight` × terrainAffordance × cellSaturation × recencyMultiplier |
+| Explore | bounded cell scan; score = `Weight` × distancePref × cellSaturation × recencyMultiplier |
+| Terrain | bounded terrain-filtered cell scan; score = `Weight` × distancePref × cellSaturation × recencyMultiplier |
 | EntityKind | iterate all eligible kind targets; score = `Weight` × distancePref × relationshipFitness × recencyMultiplier × cellSaturation(targetCell) |
 | RelationshipTarget | iterate matching relationships; score = `Weight` × relationshipFitness × recencyMultiplier |
-| OwnInfluence | sampling biased by current own-influence shortfall; score = `Weight` × influenceOpportunity(increase) × cellSaturation × recencyMultiplier |
-| ForeignInfluence | sampling biased by foreign-influence presence; score = `Weight` × influenceOpportunity(reduce) × cellSaturation × recencyMultiplier |
+| OwnInfluence | bounded influenced-cell scan; score = `Weight` × influenceOpportunity(increase) × distancePref × cellSaturation × recencyMultiplier |
+| ForeignInfluence | bounded foreign-influenced-cell scan; score = `Weight` × influenceOpportunity(reduce) × distancePref × cellSaturation × recencyMultiplier |
 
 `relationshipFitness` is signed-aware: deficit if the verb's polarity
 strengthens, surplus if it weakens. Replaces
@@ -115,26 +115,20 @@ This is what makes affordance show up in the *target* score (so the
 within-verb winner is the affordance-rich target). The bucket coin is what
 makes affordance show up at the *verb* level.
 
-### Cell-target candidate generation: bias the sampling
+### Cell-target candidate generation: bounded scored search
 
 For Explore / Terrain / OwnInfluence / ForeignInfluence modes, replace the
-"draw N random cells, rerank by signals" pattern with a weighted cell sampler.
-Cells get drawn proportional to the relevant biasing factors:
+"draw N random cells, rerank by signals" pattern with a bounded scan around
+the actor. The search radius is constrained by the plane bounds and derived
+from the mode distance scale and authored breadth. Every eligible cell in the
+bounded area is scored, then the runtime reservoir-picks by score.
 
-```
-Explore:        bias = staleness * f1 - cellOccupancy * f2
-Terrain:        bias = staleness * f1 - cellOccupancy * f2 + terrainMatch * f3
-OwnInfluence:   bias = ownInfluenceShortfall - cellOccupancy * f2
-ForeignInfluence: bias = foreignInfluencePresence - cellOccupancy * f2
-```
+The signals now decide the selected cell inside the relevant local search
+area, instead of barely nudging an arbitrary random draw.
 
-The signals now decide which cells get scored at all, instead of barely
-nudging an arbitrary random draw. Score function on the drawn cells stays
-simple: `Weight × recencyMultiplier × affordanceBoost`.
-
-`CandidateSampleCount` survives but is interpreted as "how many biased samples
-to draw." Per-mode multipliers (`*3` for Terrain, `*4` for Influence) retire;
-sample count is authored once per verb.
+`CandidateSampleCount` survives as authored local breadth. Per-mode multipliers
+(`*3` for Terrain, `*4` for Influence) retire; breadth is authored once per
+verb.
 
 ### Affordance overlap rules
 
@@ -267,19 +261,20 @@ base-weight modulation:
   - `fitnessWeightDelta(PenguinVisitRookery) = +0.4` (loyal-to-home flavor)
 
 Strictly less expressive than the current six-knob surface but expresses the
-canonical examples cleanly. The thin spots (e.g. trait says "I care more
-about staleness specifically") are deliberately dropped — staleness is a
-mode-owned property now, and verb-level weight changes carry the same effect
+canonical examples cleanly. The thin spots (e.g. trait says "I care more about
+one map-sampling signal specifically") are deliberately dropped. Recent-target
+recency, cell saturation, distance preference, and influence opportunity are
+mode-owned properties now, and verb-level weight changes carry the same effect
 with simpler tuning.
 
 ### Trait redesign happens in this same change
 
-A few existing traits use the soon-to-be-removed deltas (`stalenessDelta`,
-`hotspotDelta`, `crowdingDelta`). These get re-expressed as combinations of
-the three remaining deltas — usually by amplifying the verb's overall
+Existing traits that used the removed deltas are re-expressed as combinations
+of the three remaining deltas — usually by amplifying the verb's overall
 `Weight` and trusting mode-owned scoring to do the rest. The Ranging Heart /
-Hearthbound pair already cleanly converts. Other Ice Remembers traits in
-`IceRemembersDefinition.cs` get an authorial audit pass.
+Hearthbound pair cleanly converts. Other Ice Remembers traits in
+`IceRemembersDefinition.cs` get an authorial audit pass when they need more
+specific behavior.
 
 ### Optional extension (out of scope for v1)
 
@@ -292,8 +287,8 @@ verb level. Added later if MC shows verb-level modulation is too coarse.
 
 ## Locked decisions
 
-1. **Cell-target candidate generation: bias sampling** for Explore / Terrain /
-   Influence modes. No more random-sample-then-rerank.
+1. **Cell-target candidate generation: bounded scored search** for Explore /
+   Terrain / Influence modes. No more random-sample-then-rerank.
 2. **`OpportunityBonus`: single global** in `KernelProgramTuningOptions`.
    Traits shift effective bonus per (entity, verb) via
    `opportunityBonusDelta`.
@@ -367,7 +362,7 @@ verb level. Added later if MC shows verb-level modulation is too coarse.
 - `src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramRuntime.cs`
   — main runtime; `ChooseIntent` flow.
 - `src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramRuntime.Candidates.cs`
-  — per-mode candidate generation; biased samplers.
+  — per-mode candidate generation; bounded scored search.
 - `src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramRuntime.Weighting.cs`
   — formula collapse, new affordance combine, saturation divisors.
 - `src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramRuntime.Helpers.cs`
@@ -413,7 +408,7 @@ Any test that hard-codes the six-knob tuple, the seven-delta trait surface,
 or expects the cut signals (`Heat`, `AttractorMass`, `VisitCount`,
 `LastVisitedTick`) needs paired updates. Architecture-encoding tests must not
 be loosened; if a test encodes the obsolete shape, update it and the docs
-together (per `CLAUDE.md` hard rule).
+together (per repository workflow rules).
 
 Likely paired updates in:
 - `tests/Engine.Kernel.Tests` — verb selection / weighting / trait effect tests.
@@ -446,8 +441,8 @@ Likely paired updates in:
     sanity).
   - Trade-route bootstrap not regressed (item 9 sanity).
 - **Long MC run** (10x2500) once short run looks clean.
-- `make ci` as the final pass per `CLAUDE.md`. Tests do not run in parallel
-  in this repo.
+- `make ci` as the final pass per repository workflow rules. Tests do not run
+  in parallel in this repo.
 
 ## Implementation order
 
@@ -455,14 +450,14 @@ A suggested order to keep compilation green between phases:
 
 1. Add new fields to `KernelProgramTuningOptions` (with defaults).
 2. Update `LowAltitudeSignalSnapshot` to drop cut fields.
-3. Update `LowAltitudeVerbProgramData`: add new registration surface, leave
-   old surface in place as deprecated overload to avoid call-site churn
-   during the transition.
+3. Update `LowAltitudeVerbProgramData`: add the new registration surface and
+   delete the old surface once call sites move.
 4. Update `LowAltitudeVerbProgramState` to add the recent-target ring.
 5. Update `DecisionModifier` to the three-delta surface.
 6. Rewrite `LowAltitudeVerbProgramRuntime.Weighting.cs`: new affordance
    combine, saturation divisors, per-mode scoring.
-7. Rewrite `LowAltitudeVerbProgramRuntime.Candidates.cs`: biased samplers.
+7. Rewrite `LowAltitudeVerbProgramRuntime.Candidates.cs`: bounded scored
+   search.
 8. Update `LowAltitudeVerbProgramRuntime.cs` `ChooseIntent` for two-bucket
    selection.
 9. Update `LowAltitudeVerbProgramRuntime.Helpers.cs` `VerbTargetCandidate`

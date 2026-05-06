@@ -296,7 +296,7 @@ public sealed class GameplayCompilerTests
                     new TraitLowAltitudeWeightOperationConfig
                     {
                         Verb = "explore",
-                        ExploreWeightDelta = 1.25f,
+                        OpportunityBonusDelta = 1.25f,
                     }),
                 new TraitOperationDefinition(
                     "artifact",
@@ -316,7 +316,7 @@ public sealed class GameplayCompilerTests
         var modifier = Assert.Single(result.Programs.LowAltitudeVerbs.TraitWeightModifiers);
         Assert.Equal(50, modifier.TraitId);
         Assert.Equal(10, modifier.VerbId);
-        Assert.Equal(1.25f, modifier.ExploreWeightDelta);
+        Assert.Equal(1.25f, modifier.OpportunityBonusDelta);
 
         var effect = Assert.Single(result.Programs.Effects.AttributeDeltaEffects);
         Assert.Equal(0, effect.RequiredTargetTraitId);

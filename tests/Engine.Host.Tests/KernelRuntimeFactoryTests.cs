@@ -50,7 +50,18 @@ public sealed class KernelRuntimeFactoryTests
               "kernelTuning": {
                 "programs": {
                   "lowAltitudeVerbs": {
-                    "enabled": false
+                    "enabled": false,
+                    "opportunityRate": 0.35,
+                    "opportunityBonus": 1.75,
+                    "recentTargetCooldownTicks": 77,
+                    "recentTargetRingSize": 2,
+                    "cellSaturationFactor": 0.5,
+                    "exploreDistanceScale": 4.5,
+                    "terrainDistanceScale": 5.5,
+                    "entityKindDistanceScale": 6.5,
+                    "relationshipTargetDistanceScale": 7.5,
+                    "ownInfluenceDistanceScale": 8.5,
+                    "foreignInfluenceDistanceScale": 9.5
                   },
                   "generators": {
                     "retryFireTargets": false,
@@ -96,6 +107,17 @@ public sealed class KernelRuntimeFactoryTests
 
             [kernel_tuning.programs.low_altitude_verbs]
             enabled = false
+            opportunity_rate = 0.35
+            opportunity_bonus = 1.75
+            recent_target_cooldown_ticks = 77
+            recent_target_ring_size = 2
+            cell_saturation_factor = 0.5
+            explore_distance_scale = 4.5
+            terrain_distance_scale = 5.5
+            entity_kind_distance_scale = 6.5
+            relationship_target_distance_scale = 7.5
+            own_influence_distance_scale = 8.5
+            foreign_influence_distance_scale = 9.5
 
             [kernel_tuning.programs.gambits]
             enabled = true
@@ -191,6 +213,17 @@ public sealed class KernelRuntimeFactoryTests
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);
+        Assert.Equal(0.35f, options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
+        Assert.Equal(1.75f, options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
+        Assert.Equal(77, options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
+        Assert.Equal(2, options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize);
+        Assert.Equal(0.5f, options.KernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor);
+        Assert.Equal(4.5f, options.KernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale);
+        Assert.Equal(5.5f, options.KernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale);
+        Assert.Equal(6.5f, options.KernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale);
+        Assert.Equal(7.5f, options.KernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
+        Assert.Equal(8.5f, options.KernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
+        Assert.Equal(9.5f, options.KernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
     }
 
     private static SimulationOptions StartAndReadSavedOptions(string configFilePath)

@@ -417,7 +417,7 @@ public readonly record struct KernelStorageGrownKernelEvent(
     [KernelEventIntSlot(5, "threshold_permille", KernelEventSemanticKind.Threshold)]
     int ThresholdPermille);
 
-[KernelEventLayout(KernelEventType.Trace, schemaMinor: 2)]
+[KernelEventLayout(KernelEventType.Trace, schemaMinor: 3)]
 public readonly record struct TraceKernelEvent(
     int Tick,
     long WorldVersion,
@@ -463,6 +463,8 @@ public readonly record struct TraceKernelEvent(
     int GambitAffordanceCount,
     [KernelEventIntSlot(20, "hidden_affordance_count", KernelEventSemanticKind.Count)]
     int HiddenAffordanceCount,
+    [KernelEventIntSlot(21, "selection_bucket_code", KernelEventSemanticKind.RawScalar)]
+    int SelectionBucketCode,
     [KernelEventFloatSlot(0, "urgency", KernelEventSemanticKind.Score)]
     float Urgency,
     [KernelEventFloatSlot(1, "reward_or_base_score", KernelEventSemanticKind.Score)]
@@ -499,6 +501,7 @@ public readonly partial record struct KernelEvent
     private readonly int _int18;
     private readonly int _int19;
     private readonly int _int20;
+    private readonly int _int21;
     private readonly float _float0;
     private readonly float _float1;
     private readonly float _float2;
@@ -534,6 +537,7 @@ public readonly partial record struct KernelEvent
         int int18 = 0,
         int int19 = 0,
         int int20 = 0,
+        int int21 = 0,
         float float0 = 0f,
         float float1 = 0f,
         float float2 = 0f,
@@ -568,6 +572,7 @@ public readonly partial record struct KernelEvent
         _int18 = int18;
         _int19 = int19;
         _int20 = int20;
+        _int21 = int21;
         _float0 = float0;
         _float1 = float1;
         _float2 = float2;
@@ -583,7 +588,7 @@ public readonly partial record struct KernelEvent
     public int SourceCodeId { get; }
     public int ProvenanceInvocationId { get; }
 
-    public const int IntSlotCount = 21;
+    public const int IntSlotCount = 22;
     public const int FloatSlotCount = 6;
 
     public KernelEvent WithExecutionContext(int programId, int sourceCodeId, int provenanceInvocationId = 0)
@@ -619,6 +624,7 @@ public readonly partial record struct KernelEvent
             int18: _int18,
             int19: _int19,
             int20: _int20,
+            int21: _int21,
             float0: _float0,
             float1: _float1,
             float2: _float2,
@@ -651,7 +657,8 @@ public readonly partial record struct KernelEvent
         18 => _int18,
         19 => _int19,
         20 => _int20,
-        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 20."),
+        21 => _int21,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 21."),
     };
 #pragma warning restore S1541
 

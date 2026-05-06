@@ -76,13 +76,13 @@ public sealed class GameplayCompilerProgramTests
                     TargetMode = LowAltitudeVerbTargetMode.RelationshipTarget,
                     RelationshipKind = "allies",
                     RelationshipDirection = LowAltitudeVerbRelationshipDirection.Outgoing,
-                    AffinityRelationshipKind = "claims",
-                    AffinityRelationshipDirection = LowAltitudeVerbRelationshipDirection.Incoming,
-                    RelationshipAffinityWeight = 2.5f,
+                    FitnessRelationshipKind = "claims",
+                    FitnessRelationshipDirection = LowAltitudeVerbRelationshipDirection.Incoming,
+                    FitnessWeight = 2.5f,
                     TargetRadius = 4,
                     CandidateSampleCount = 7,
                     Weight = 1.2f,
-                    ExploreWeight = 0.8f,
+                    OpportunityBonusOverride = 0.8f,
                 },
                 new MovementLowAltitudeVerbConfig
                 {
@@ -103,13 +103,13 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(TargetSelectorCodes.RelationshipTarget, relationshipVerb.TargetModeCode);
         Assert.Equal(31, relationshipVerb.RelationshipKindId);
         Assert.Equal(RelationshipMatchDirectionCodes.Outgoing, relationshipVerb.RelationshipDirectionCode);
-        Assert.Equal(32, relationshipVerb.AffinityRelationshipKindId);
-        Assert.Equal(RelationshipMatchDirectionCodes.Incoming, relationshipVerb.AffinityRelationshipDirectionCode);
-        Assert.Equal(2.5f, relationshipVerb.RelationshipAffinityWeight);
+        Assert.Equal(32, relationshipVerb.FitnessRelationshipKindId);
+        Assert.Equal(RelationshipMatchDirectionCodes.Incoming, relationshipVerb.FitnessRelationshipDirectionCode);
+        Assert.Equal(2.5f, relationshipVerb.FitnessWeight);
         Assert.Equal(4, relationshipVerb.TargetRadius);
         Assert.Equal(7, relationshipVerb.CandidateSampleCount);
         Assert.Equal(1.2f, relationshipVerb.Weight);
-        Assert.Equal(0.8f, relationshipVerb.ExploreWeight);
+        Assert.Equal(0.8f, relationshipVerb.OpportunityBonusOverride);
 
         var terrainVerb = result.Programs.LowAltitudeVerbs.Verbs[1];
         Assert.Equal(TargetSelectorCodes.Terrain, terrainVerb.TargetModeCode);
@@ -514,12 +514,8 @@ public sealed class GameplayCompilerProgramTests
                         new TraitLowAltitudeWeightOperationConfig
                         {
                             WeightDelta = 0.2f,
-                            ExploreWeightDelta = 0.3f,
-                            StalenessWeightDelta = 0.4f,
-                            HotspotWeightDelta = 0.5f,
-                            CrowdingWeightDelta = 0.6f,
-                            AffordanceWeightDelta = 0.7f,
-                            RelationshipAffinityWeightDelta = 0.8f,
+                            OpportunityBonusDelta = 0.7f,
+                            FitnessWeightDelta = 0.8f,
                         }),
                 ]));
 
@@ -528,7 +524,8 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(50, modifier.TraitId);
         Assert.Equal(0, modifier.VerbId);
         Assert.Equal(0.2f, modifier.WeightDelta);
-        Assert.Equal(0.8f, modifier.RelationshipAffinityWeightDelta);
+        Assert.Equal(0.7f, modifier.OpportunityBonusDelta);
+        Assert.Equal(0.8f, modifier.FitnessWeightDelta);
     }
 
     private sealed class ConfigurableGameplayContext : IGameplayCompilationContext

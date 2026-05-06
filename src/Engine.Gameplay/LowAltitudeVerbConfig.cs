@@ -23,16 +23,16 @@ public abstract class LowAltitudeVerbConfig
     public int TargetRadius { get; init; }
     public int CandidateSampleCount { get; init; } = 16;
     public float Weight { get; init; } = 1f;
-    public float ExploreWeight { get; init; } = 1f;
-    public float StalenessWeight { get; init; } = 1f;
-    public float HotspotWeight { get; init; } = 0.25f;
-    public float CrowdingWeight { get; init; } = 0.5f;
-    public float AffordanceWeight { get; init; } = 0.5f;
+    public float OpportunityBonusOverride { get; init; }
+    public float FitnessWeight { get; init; }
+    public float DistanceScaleOverride { get; init; }
     public ForeignInfluenceTargetingConfig? ForeignInfluenceTargeting { get; init; }
-    public string? AffinityRelationshipKind { get; init; }
-    public LowAltitudeVerbRelationshipDirection AffinityRelationshipDirection { get; init; } =
+    public string? FitnessRelationshipKind { get; init; }
+    public LowAltitudeVerbRelationshipDirection FitnessRelationshipDirection { get; init; } =
         LowAltitudeVerbRelationshipDirection.Either;
-    public float RelationshipAffinityWeight { get; init; }
+    public LowAltitudeVerbFitnessPolarity FitnessPolarity { get; init; } =
+        LowAltitudeVerbFitnessPolarity.None;
+    public float FitnessThreshold { get; init; }
     public virtual float InfluenceDelta => 0f;
     public virtual int InfluenceRadius => 0;
     public virtual float CoverageGrowthChance => 0f;
@@ -127,4 +127,11 @@ public enum LowAltitudeVerbRelationshipDirection
     Outgoing,
     Incoming,
     Either,
+}
+
+public enum LowAltitudeVerbFitnessPolarity
+{
+    None,
+    Strengthen,
+    Weaken,
 }

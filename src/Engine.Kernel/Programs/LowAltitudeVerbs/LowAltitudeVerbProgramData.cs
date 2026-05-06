@@ -26,19 +26,18 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _targetRadii = [];
     private int[] _candidateSampleCounts = [];
     private float[] _weights = [];
-    private float[] _exploreWeights = [];
-    private float[] _stalenessWeights = [];
-    private float[] _hotspotWeights = [];
-    private float[] _crowdingWeights = [];
-    private float[] _verbAffordanceWeights = [];
+    private float[] _opportunityBonusOverrides = [];
+    private float[] _fitnessWeights = [];
+    private float[] _distanceScaleOverrides = [];
     private int[] _foreignInfluenceFilterEnabled = [];
     private int[] _foreignInfluenceBlockPositiveRelationships = [];
     private int[] _foreignInfluenceAllowNegativeRelationships = [];
     private float[] _foreignInfluenceMinimumRelationshipStrengths = [];
     private float[] _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = [];
-    private int[] _affinityRelationshipKindIds = [];
-    private int[] _affinityRelationshipDirectionCodes = [];
-    private float[] _relationshipAffinityWeights = [];
+    private int[] _fitnessRelationshipKindIds = [];
+    private int[] _fitnessRelationshipDirectionCodes = [];
+    private int[] _fitnessPolarityCodes = [];
+    private float[] _fitnessThresholds = [];
     private float[] _influenceDeltas = [];
     private int[] _influenceRadii = [];
     private float[] _coverageGrowthChances = [];
@@ -65,12 +64,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _traitModifierTraitIds = [];
     private int[] _traitModifierVerbIds = [];
     private float[] _traitModifierWeightDeltas = [];
-    private float[] _traitModifierExploreWeightDeltas = [];
-    private float[] _traitModifierStalenessWeightDeltas = [];
-    private float[] _traitModifierHotspotWeightDeltas = [];
-    private float[] _traitModifierCrowdingWeightDeltas = [];
-    private float[] _traitModifierAffordanceWeightDeltas = [];
-    private float[] _traitModifierRelationshipAffinityWeightDeltas = [];
+    private float[] _traitModifierOpportunityBonusDeltas = [];
+    private float[] _traitModifierFitnessWeightDeltas = [];
     private int _ruleCount;
     private int _terrainCount;
     private int _stepCount;
@@ -139,19 +134,18 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private void InitializeWeightArrays(int ruleLength)
     {
         _weights = new float[ruleLength];
-        _exploreWeights = new float[ruleLength];
-        _stalenessWeights = new float[ruleLength];
-        _hotspotWeights = new float[ruleLength];
-        _crowdingWeights = new float[ruleLength];
-        _verbAffordanceWeights = new float[ruleLength];
+        _opportunityBonusOverrides = new float[ruleLength];
+        _fitnessWeights = new float[ruleLength];
+        _distanceScaleOverrides = new float[ruleLength];
         _foreignInfluenceFilterEnabled = new int[ruleLength];
         _foreignInfluenceBlockPositiveRelationships = new int[ruleLength];
         _foreignInfluenceAllowNegativeRelationships = new int[ruleLength];
         _foreignInfluenceMinimumRelationshipStrengths = new float[ruleLength];
         _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = new float[ruleLength];
-        _affinityRelationshipKindIds = new int[ruleLength];
-        _affinityRelationshipDirectionCodes = new int[ruleLength];
-        _relationshipAffinityWeights = new float[ruleLength];
+        _fitnessRelationshipKindIds = new int[ruleLength];
+        _fitnessRelationshipDirectionCodes = new int[ruleLength];
+        _fitnessPolarityCodes = new int[ruleLength];
+        _fitnessThresholds = new float[ruleLength];
     }
 
     private void InitializeInfluenceArrays(int ruleLength)
@@ -194,17 +188,13 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _traitModifierTraitIds = new int[itemLength];
         _traitModifierVerbIds = new int[itemLength];
         _traitModifierWeightDeltas = new float[itemLength];
-        _traitModifierExploreWeightDeltas = new float[itemLength];
-        _traitModifierStalenessWeightDeltas = new float[itemLength];
-        _traitModifierHotspotWeightDeltas = new float[itemLength];
-        _traitModifierCrowdingWeightDeltas = new float[itemLength];
-        _traitModifierAffordanceWeightDeltas = new float[itemLength];
-        _traitModifierRelationshipAffinityWeightDeltas = new float[itemLength];
+        _traitModifierOpportunityBonusDeltas = new float[itemLength];
+        _traitModifierFitnessWeightDeltas = new float[itemLength];
     }
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 7;
+    public int SchemaVersion => 8;
 
     public int RuleCount => _ruleCount;
 
@@ -266,21 +256,20 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _targetRadii[slot] = global::System.Math.Max(0, registration.TargetRadius);
         _candidateSampleCounts[slot] = global::System.Math.Max(1, registration.CandidateSampleCount);
         _weights[slot] = global::System.Math.Max(0.01f, registration.Weight);
-        _exploreWeights[slot] = registration.ExploreWeight;
-        _stalenessWeights[slot] = registration.StalenessWeight;
-        _hotspotWeights[slot] = registration.HotspotWeight;
-        _crowdingWeights[slot] = registration.CrowdingWeight;
-        _verbAffordanceWeights[slot] = registration.AffordanceWeight;
+        _opportunityBonusOverrides[slot] = registration.OpportunityBonusOverride;
+        _fitnessWeights[slot] = registration.FitnessWeight;
+        _distanceScaleOverrides[slot] = registration.DistanceScaleOverride;
         _foreignInfluenceFilterEnabled[slot] = ClampFlag(registration.ForeignInfluenceFilterEnabled);
         _foreignInfluenceBlockPositiveRelationships[slot] = ClampFlag(registration.ForeignInfluenceBlockPositiveRelationships);
         _foreignInfluenceAllowNegativeRelationships[slot] = ClampFlag(registration.ForeignInfluenceAllowNegativeRelationships);
         _foreignInfluenceMinimumRelationshipStrengths[slot] = global::System.Math.Max(0f, registration.ForeignInfluenceMinimumRelationshipStrength);
         _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[slot] = ClampDisabledInfluence(registration.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
-        _affinityRelationshipKindIds[slot] = registration.AffinityRelationshipKindId;
-        _affinityRelationshipDirectionCodes[slot] = registration.AffinityRelationshipDirectionCode == 0
+        _fitnessRelationshipKindIds[slot] = registration.FitnessRelationshipKindId;
+        _fitnessRelationshipDirectionCodes[slot] = registration.FitnessRelationshipDirectionCode == 0
             ? LowAltitudeVerbRelationshipDirectionCodes.Either
-            : registration.AffinityRelationshipDirectionCode;
-        _relationshipAffinityWeights[slot] = registration.RelationshipAffinityWeight;
+            : registration.FitnessRelationshipDirectionCode;
+        _fitnessPolarityCodes[slot] = registration.FitnessPolarityCode;
+        _fitnessThresholds[slot] = registration.FitnessThreshold;
         _influenceDeltas[slot] = global::System.Math.Max(0f, registration.InfluenceDelta);
         _influenceRadii[slot] = global::System.Math.Max(0, registration.InfluenceRadius);
         _coverageGrowthChances[slot] = Clamp01(registration.CoverageChance);
@@ -393,12 +382,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         int traitId,
         int verbId,
         float weightDelta,
-        float exploreWeightDelta,
-        float stalenessWeightDelta,
-        float hotspotWeightDelta,
-        float crowdingWeightDelta,
-        float affordanceDelta,
-        float relationshipAffinityWeightDelta)
+        float opportunityBonusDelta,
+        float fitnessWeightDelta)
     {
         ValidatePositive(kindId);
         ValidatePositive(traitId);
@@ -413,12 +398,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _traitModifierTraitIds[_traitWeightModifierCount] = traitId;
         _traitModifierVerbIds[_traitWeightModifierCount] = verbId;
         _traitModifierWeightDeltas[_traitWeightModifierCount] = weightDelta;
-        _traitModifierExploreWeightDeltas[_traitWeightModifierCount] = exploreWeightDelta;
-        _traitModifierStalenessWeightDeltas[_traitWeightModifierCount] = stalenessWeightDelta;
-        _traitModifierHotspotWeightDeltas[_traitWeightModifierCount] = hotspotWeightDelta;
-        _traitModifierCrowdingWeightDeltas[_traitWeightModifierCount] = crowdingWeightDelta;
-        _traitModifierAffordanceWeightDeltas[_traitWeightModifierCount] = affordanceDelta;
-        _traitModifierRelationshipAffinityWeightDeltas[_traitWeightModifierCount] = relationshipAffinityWeightDelta;
+        _traitModifierOpportunityBonusDeltas[_traitWeightModifierCount] = opportunityBonusDelta;
+        _traitModifierFitnessWeightDeltas[_traitWeightModifierCount] = fitnessWeightDelta;
         return _traitWeightModifierCount;
     }
 
@@ -450,15 +431,11 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float Weight(int rule) => _weights[rule];
 
-    public float ExploreWeight(int rule) => _exploreWeights[rule];
+    public float OpportunityBonusOverride(int rule) => _opportunityBonusOverrides[rule];
 
-    public float StalenessWeight(int rule) => _stalenessWeights[rule];
+    public float FitnessWeight(int rule) => _fitnessWeights[rule];
 
-    public float HotspotWeight(int rule) => _hotspotWeights[rule];
-
-    public float CrowdingWeight(int rule) => _crowdingWeights[rule];
-
-    public float VerbAffordanceWeight(int rule) => _verbAffordanceWeights[rule];
+    public float DistanceScaleOverride(int rule) => _distanceScaleOverrides[rule];
 
     public bool ForeignInfluenceFilterEnabled(int rule) => _foreignInfluenceFilterEnabled[rule] != 0;
 
@@ -470,11 +447,13 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove(int rule) => _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[rule];
 
-    public int AffinityRelationshipKindId(int rule) => _affinityRelationshipKindIds[rule];
+    public int FitnessRelationshipKindId(int rule) => _fitnessRelationshipKindIds[rule];
 
-    public int AffinityRelationshipDirectionCode(int rule) => _affinityRelationshipDirectionCodes[rule];
+    public int FitnessRelationshipDirectionCode(int rule) => _fitnessRelationshipDirectionCodes[rule];
 
-    public float RelationshipAffinityWeight(int rule) => _relationshipAffinityWeights[rule];
+    public int FitnessPolarityCode(int rule) => _fitnessPolarityCodes[rule];
+
+    public float FitnessThreshold(int rule) => _fitnessThresholds[rule];
 
     public float InfluenceDelta(int rule) => _influenceDeltas[rule];
 
@@ -537,12 +516,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             _traitModifierTraitIds[rule],
             TraitEffectBearerCodes.Actor,
             _traitModifierWeightDeltas[rule],
-            _traitModifierExploreWeightDeltas[rule],
-            _traitModifierStalenessWeightDeltas[rule],
-            _traitModifierHotspotWeightDeltas[rule],
-            _traitModifierCrowdingWeightDeltas[rule],
-            _traitModifierAffordanceWeightDeltas[rule],
-            _traitModifierRelationshipAffinityWeightDeltas[rule]);
+            _traitModifierOpportunityBonusDeltas[rule],
+            _traitModifierFitnessWeightDeltas[rule]);
 
     public bool TerrainAllowed(int rule, int terrainId)
     {

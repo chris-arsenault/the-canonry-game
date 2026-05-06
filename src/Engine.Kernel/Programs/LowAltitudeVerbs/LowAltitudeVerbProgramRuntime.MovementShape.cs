@@ -29,7 +29,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 continue;
             }
 
-            var weight = LocationBaseWeight(simulation, entityId, candidate.RuleSlot, candidate.PlaneCode, q, r, tick);
+            var weight = MovementShapeCellWeight(simulation, candidate.RuleSlot, candidate.PlaneCode, q, r);
             totalWeight += weight;
             if (simulation.NextFloat() * totalWeight <= weight)
             {
@@ -209,7 +209,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         var pull = 1f / (1f + distance);
-        var activityWeight = LocationBaseWeight(simulation, entityId, rule, planeCode, q, r, tick);
+        var activityWeight = MovementShapeCellWeight(simulation, rule, planeCode, q, r);
         var terrainWeight = MovementCostWeight(simulation, entityId, planeCode, q, r, tick);
         var weight = ((pull * 4f) + activityWeight) * terrainWeight;
         totalWeight += weight;
@@ -344,7 +344,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var progressWeight = candidateDistance < currentDistance
             ? 1f / (1f + candidateDistance)
             : pathLooseness / 1000f;
-        var activityWeight = LocationBaseWeight(simulation, entityId, rule, planeCode, q, r, tick);
+        var activityWeight = MovementShapeCellWeight(simulation, rule, planeCode, q, r);
         var terrainWeight = MovementCostWeight(simulation, entityId, planeCode, q, r, tick);
         return ((progressWeight * 8f) + activityWeight) * terrainWeight;
     }
@@ -432,6 +432,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         return 1f / global::System.MathF.Max(0.25f, travelCost);
+    }
+
+    private float MovementShapeCellWeight(Simulation simulation, int rule, int planeCode, int q, int r)
+    {
+        var saturation = CellSaturationDivisor(simulation, planeCode, q, r);
+        return Data.Weight(rule) * saturation;
     }
 
     private static int EntityJitter(int entityId, int intentId, int salt, int maxExclusive)

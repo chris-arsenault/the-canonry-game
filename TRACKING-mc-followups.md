@@ -110,31 +110,38 @@ Follow-up questions moved elsewhere:
 
 ## 3. Affordance Coverage And Attribution
 
-Status: open. Runtime trace telemetry now records aggregate affordance
-source/shape contribution facts before top-source collapse, and MC confirms
-that hidden gambit pressure exists. The remaining gap is coverage and dominance:
-top attribution is still generator presence, while relationship-target,
-influence, and terrain contribution coverage is still effectively absent.
+Status: needs MC verification. The low-altitude selection-model refactor is
+implemented. Runtime trace telemetry records aggregate affordance source/shape
+contribution facts before top-source collapse, and trace rows now also record
+whether the selected intent came from the routine or opportunity bucket. The
+remaining gap is MC validation: verify that affordance-led selections are
+material, that contribution shape coverage broadens beyond generator
+near-entity presence, and that movement/influence/relationship behavior remains
+healthy.
 
-Latest selection-model finding:
+Implemented selection-model scope:
 
-The current low-altitude weighting model should not be tuned further by adding
-more constants. Explore and terrain verbs sample a small random subset of the
-map (`CandidateSampleCount`, or `CandidateSampleCount * 3` for terrain) and
-only rank targets within that sample. With thousands of cells, the map signal
-weights mostly choose the best of a tiny random draw, not a meaningfully good
-world target. This makes the map terms weak for actual destination selection
-and makes affordance tuning hard to reason about.
+- Replaced random coordinate candidate sampling in low-altitude cell-target
+  modes with bounded scored search around the actor.
+- Replaced the old six-value Ice Remembers verb helper tuple with explicit
+  `weight` and `opportunityBonusOverride` authoring.
+- Collapsed low-altitude trait modifiers to `WeightDelta`,
+  `OpportunityBonusDelta`, and `FitnessWeightDelta`.
+- Added routine/opportunity selection bucket telemetry through
+  `selection_bucket_code`.
+- Added configurable recent-target ring size to tuning, startup config, and
+  snapshots.
+- Authored relationship-strength verbs with signed fitness polarity and
+  thresholds.
 
-The nested selection shape is also suspect: each verb first chooses one target,
-then that selected target's weight becomes the verb's offer in the entity-level
-lottery. That means verb selection can be overly sensitive to sampled target
-luck. Any redesign should start from candidate generation and per-verb target
-normalization, not from another additive tweak to the current weight formula.
+Superseded selection-model finding:
 
-No implementation decision has been made. The next pass should simplify the
-selection model while preserving map dynamism, movement, influence, relationship
-maintenance, and affordance pressure.
+The old low-altitude weighting model could not be tuned by adding more
+constants. Explore and terrain verbs sampled a small random subset of the map
+and only ranked targets within that sample. With thousands of cells, map signal
+weights mostly chose the best of a tiny random draw, not a meaningfully good
+world target. This made map terms weak for actual destination selection and
+made affordance tuning hard to reason about.
 
 Definition compilation creates broader affordance coverage than telemetry is
 showing. Generator and gambit affordances are both compiled, and the compiler
@@ -382,7 +389,7 @@ Resolution:
 
 ## 8. Unify Entity Placement Terrain Scoring
 
-Status: needs MC.
+Status: needs MC verification.
 
 Current finding:
 

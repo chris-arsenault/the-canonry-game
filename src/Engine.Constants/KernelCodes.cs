@@ -334,6 +334,13 @@ public static class TraceStatusCodes
     public const int CapacityReached = 12;
 }
 
+public static class LowAltitudeVerbSelectionBucketCodes
+{
+    public const int None = 0;
+    public const int Routine = 1;
+    public const int Opportunity = 2;
+}
+
 public static class KernelCommandTypeCodes
 {
     public const int None = 0;

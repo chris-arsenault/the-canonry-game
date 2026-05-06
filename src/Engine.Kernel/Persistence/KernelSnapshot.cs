@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 30;
+    private const int FormatVersion = 31;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -150,6 +150,19 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
         writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
         writer.Write(kernelTuning.Programs.Generators.FiresPerPulse);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -277,6 +290,19 @@ internal static class KernelSnapshotOptions
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
         values.GeneratorPulseWidthTicks = reader.ReadInt32();
         values.GeneratorFiresPerPulse = reader.ReadInt32();
+        values.LowAltitudeOpportunityRate = reader.ReadSingle();
+        values.LowAltitudeOpportunityBonus = reader.ReadSingle();
+        values.LowAltitudeRecentTargetCooldownTicks = reader.ReadInt32();
+        values.LowAltitudeRecentTargetRingSize = reader.ReadInt32();
+        values.LowAltitudeCellSaturationFactor = reader.ReadSingle();
+        values.LowAltitudeExploreDistanceScale = reader.ReadSingle();
+        values.LowAltitudeTerrainDistanceScale = reader.ReadSingle();
+        values.LowAltitudeEntityKindDistanceScale = reader.ReadSingle();
+        values.LowAltitudeRelationshipTargetDistanceScale = reader.ReadSingle();
+        values.LowAltitudeOwnInfluenceDistanceScale = reader.ReadSingle();
+        values.LowAltitudeForeignInfluenceDistanceScale = reader.ReadSingle();
+        values.LowAltitudeInfluenceShortfallSamplingFactor = reader.ReadSingle();
+        values.LowAltitudeForeignInfluencePresenceSamplingFactor = reader.ReadSingle();
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -403,6 +429,22 @@ internal static class KernelSnapshotOptions
                     PulseWidthTicks = values.GeneratorPulseWidthTicks,
                     FiresPerPulse = values.GeneratorFiresPerPulse,
                 },
+                LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
+                {
+                    OpportunityRate = values.LowAltitudeOpportunityRate,
+                    OpportunityBonus = values.LowAltitudeOpportunityBonus,
+                    RecentTargetCooldownTicks = values.LowAltitudeRecentTargetCooldownTicks,
+                    RecentTargetRingSize = values.LowAltitudeRecentTargetRingSize,
+                    CellSaturationFactor = values.LowAltitudeCellSaturationFactor,
+                    ExploreDistanceScale = values.LowAltitudeExploreDistanceScale,
+                    TerrainDistanceScale = values.LowAltitudeTerrainDistanceScale,
+                    EntityKindDistanceScale = values.LowAltitudeEntityKindDistanceScale,
+                    RelationshipTargetDistanceScale = values.LowAltitudeRelationshipTargetDistanceScale,
+                    OwnInfluenceDistanceScale = values.LowAltitudeOwnInfluenceDistanceScale,
+                    ForeignInfluenceDistanceScale = values.LowAltitudeForeignInfluenceDistanceScale,
+                    InfluenceShortfallSamplingFactor = values.LowAltitudeInfluenceShortfallSamplingFactor,
+                    ForeignInfluencePresenceSamplingFactor = values.LowAltitudeForeignInfluencePresenceSamplingFactor,
+                },
             },
         };
 
@@ -471,6 +513,19 @@ internal static class KernelSnapshotOptions
         public bool GeneratorRetryFireTargets;
         public int GeneratorPulseWidthTicks;
         public int GeneratorFiresPerPulse;
+        public float LowAltitudeOpportunityRate;
+        public float LowAltitudeOpportunityBonus;
+        public int LowAltitudeRecentTargetCooldownTicks;
+        public int LowAltitudeRecentTargetRingSize;
+        public float LowAltitudeCellSaturationFactor;
+        public float LowAltitudeExploreDistanceScale;
+        public float LowAltitudeTerrainDistanceScale;
+        public float LowAltitudeEntityKindDistanceScale;
+        public float LowAltitudeRelationshipTargetDistanceScale;
+        public float LowAltitudeOwnInfluenceDistanceScale;
+        public float LowAltitudeForeignInfluenceDistanceScale;
+        public float LowAltitudeInfluenceShortfallSamplingFactor;
+        public float LowAltitudeForeignInfluencePresenceSamplingFactor;
         public int Seed;
     }
 }

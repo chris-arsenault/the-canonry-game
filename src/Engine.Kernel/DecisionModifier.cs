@@ -9,11 +9,7 @@ internal readonly struct DecisionModifier
         int bearerCode,
         float value0 = 0f,
         float value1 = 0f,
-        float value2 = 0f,
-        float value3 = 0f,
-        float value4 = 0f,
-        float value5 = 0f,
-        float value6 = 0f)
+        float value2 = 0f)
     {
         SubjectId = subjectId;
         KindId = kindId;
@@ -22,10 +18,6 @@ internal readonly struct DecisionModifier
         Value0 = value0;
         Value1 = value1;
         Value2 = value2;
-        Value3 = value3;
-        Value4 = value4;
-        Value5 = value5;
-        Value6 = value6;
     }
 
     public int SubjectId { get; }
@@ -41,14 +33,6 @@ internal readonly struct DecisionModifier
     public float Value1 { get; }
 
     public float Value2 { get; }
-
-    public float Value3 { get; }
-
-    public float Value4 { get; }
-
-    public float Value5 { get; }
-
-    public float Value6 { get; }
 
     public bool AppliesToGambit(WorldState world, int gambitId, int actorId, int targetId) =>
         SubjectId == gambitId && BearerHasTrait(world, actorId, targetId);
@@ -122,21 +106,13 @@ internal static class DecisionModifierEvaluation
 internal struct LowAltitudeDecisionModifierTotals
 {
     public float Weight;
-    public float ExploreWeight;
-    public float StalenessWeight;
-    public float HotspotWeight;
-    public float CrowdingWeight;
-    public float AffordanceWeight;
-    public float RelationshipAffinityWeight;
+    public float OpportunityBonus;
+    public float FitnessWeight;
 
     public void Add(in DecisionModifier modifier)
     {
         Weight += modifier.Value0;
-        ExploreWeight += modifier.Value1;
-        StalenessWeight += modifier.Value2;
-        HotspotWeight += modifier.Value3;
-        CrowdingWeight += modifier.Value4;
-        AffordanceWeight += modifier.Value5;
-        RelationshipAffinityWeight += modifier.Value6;
+        OpportunityBonus += modifier.Value1;
+        FitnessWeight += modifier.Value2;
     }
 }

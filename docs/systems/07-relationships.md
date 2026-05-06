@@ -84,8 +84,8 @@ preconditions.
 
 ## Interactions
 
-Low-altitude verbs use relationships for targeting, affinity, and explicit
-relationship-strength mutation.
+Low-altitude verbs use relationships for targeting, signed fitness scoring, and
+explicit relationship-strength mutation.
 
 Map signals use relationships to emit support or threat around related
 entities.

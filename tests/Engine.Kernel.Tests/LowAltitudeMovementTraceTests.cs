@@ -38,7 +38,21 @@ public sealed class LowAltitudeMovementTraceTests
     [Fact]
     public void LowAltitudeVerbProgram_EmitsMovementIntentTraceWithAffordanceAggregateAttribution()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 17, TraceEnabled = true });
+        var simulation = new Simulation(new SimulationOptions
+        {
+            Seed = 17,
+            TraceEnabled = true,
+            KernelTuning = new KernelTuningOptions
+            {
+                Programs = new KernelProgramTuningOptions
+                {
+                    LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
+                    {
+                        OpportunityRate = 1f,
+                    },
+                },
+            },
+        });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -71,6 +85,7 @@ public sealed class LowAltitudeMovementTraceTests
         Assert.Equal(1, trace.GeneratorAffordanceCount);
         Assert.Equal(1, trace.GambitAffordanceCount);
         Assert.Equal(1, trace.HiddenAffordanceCount);
+        Assert.Equal(LowAltitudeVerbSelectionBucketCodes.Opportunity, trace.SelectionBucketCode);
     }
 
     private static int RegisterMovementVerb(
@@ -93,11 +108,6 @@ public sealed class LowAltitudeMovementTraceTests
             targetRadius: 0,
             candidateSampleCount: 1,
             weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
             influenceDelta: 0f,
             influenceRadius: 0,
             coverageGrowthChance: 0f,

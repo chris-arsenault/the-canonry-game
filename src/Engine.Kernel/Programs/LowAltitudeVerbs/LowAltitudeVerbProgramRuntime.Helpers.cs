@@ -9,7 +9,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int rule,
         int intentId,
         int statusCode,
-        VerbTargetCandidate candidate)
+        VerbTargetCandidate candidate,
+        int selectionBucketCode = LowAltitudeVerbSelectionBucketCodes.None)
     {
         simulation.EmitTrace(
             tick,
@@ -38,6 +39,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             candidate.GeneratorAffordanceCount,
             candidate.GambitAffordanceCount,
             candidate.HiddenAffordanceCount,
+            selectionBucketCode,
             candidate.AffordanceScore,
             candidate.AffordanceBonus);
     }
@@ -57,23 +59,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         int s,
-        float baseWeight) =>
-        new(rule, planeCode, targetEntityId, targetKindId, q, r, s, baseWeight, 0f, 0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, baseWeight);
-
-    private static VerbTargetCandidate Candidate(
-        int rule,
-        int planeCode,
-        int targetEntityId,
-        int targetKindId,
-        int q,
-        int r,
-        int s,
         float baseWeight,
         AffordanceContribution affordance,
-        float affordanceWeight)
+        float opportunityBonus)
     {
-        var affordanceBonus = affordance.Score * affordanceWeight * AffordanceWeightMultiplier;
-        var weight = ClampCandidateWeight(baseWeight + affordanceBonus);
+        var affordanceBonus = affordance.Score * opportunityBonus;
+        var weight = ClampCandidateWeight(baseWeight * (1f + affordanceBonus));
         var hiddenAffordanceCount = affordance.ContributionCount > 0
             ? affordance.ContributionCount - 1
             : 0;
@@ -100,12 +91,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             weight);
     }
 
-    private static bool NoCandidate(out VerbTargetCandidate candidate)
-    {
-        candidate = default;
-        return false;
-    }
-
     private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
         planeCode == PlaneCodes.Physical ? world.EntityPhysicalQ(entityId) : world.EntitySemanticQ(entityId);
 
@@ -122,6 +107,28 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private static int MaxAbs(int a, int b, int c) => global::System.Math.Max(Abs(a), global::System.Math.Max(Abs(b), Abs(c)));
 
     private static int Abs(int value) => value < 0 ? -value : value;
+
+    private int CellTargetSearchRadius(WorldState world, int rule, int targetMode)
+    {
+        var planeRadius = Data.PlaneCode(rule) == PlaneCodes.Semantic
+            ? EffectiveSemanticRadius(world)
+            : world.MapRadius;
+        var distanceScale = EffectiveDistanceScale(rule, targetMode);
+        var scaledRadius = distanceScale > 0f
+            ? (int)global::System.MathF.Ceiling(distanceScale * 2f)
+            : 1;
+        var authoredBreadth = Data.CandidateSampleCount(rule);
+        var radius = global::System.Math.Max(1, global::System.Math.Max(scaledRadius, authoredBreadth));
+        return global::System.Math.Min(planeRadius, radius);
+    }
+
+    private bool CellTargetCoordinateAllowed(WorldState world, int planeCode, int q, int r) =>
+        planeCode == PlaneCodes.Semantic
+            ? SemanticCoordinateAllowed(world, q, r)
+            : world.CellIsKnown(q, r);
+
+    private static int TargetS(int planeCode, int q, int r) =>
+        planeCode == PlaneCodes.Semantic ? -q - r : 0;
 
     private static float Clamp01(float value)
     {

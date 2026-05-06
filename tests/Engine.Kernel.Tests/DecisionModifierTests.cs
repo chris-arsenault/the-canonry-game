@@ -55,7 +55,7 @@ public sealed class DecisionModifierTests
         var modifiers = new[]
         {
             default,
-            new DecisionModifier(verbId, kindId, traitId, TraitEffectBearerCodes.Actor, 1f, 2f, 3f, 4f, 5f, 6f, 7f),
+            new DecisionModifier(verbId, kindId, traitId, TraitEffectBearerCodes.Actor, 1f, 2f, 3f),
             new DecisionModifier(0, kindId + 1, traitId, TraitEffectBearerCodes.Actor, 10f),
             new DecisionModifier(verbId + 1, kindId, traitId, TraitEffectBearerCodes.Actor, 10f),
         };
@@ -69,11 +69,7 @@ public sealed class DecisionModifierTests
             actor);
 
         Assert.Equal(1f, totals.Weight);
-        Assert.Equal(2f, totals.ExploreWeight);
-        Assert.Equal(3f, totals.StalenessWeight);
-        Assert.Equal(4f, totals.HotspotWeight);
-        Assert.Equal(5f, totals.CrowdingWeight);
-        Assert.Equal(6f, totals.AffordanceWeight);
-        Assert.Equal(7f, totals.RelationshipAffinityWeight);
+        Assert.Equal(2f, totals.OpportunityBonus);
+        Assert.Equal(3f, totals.FitnessWeight);
     }
 }

@@ -61,17 +61,9 @@ public sealed class TraitLowAltitudeWeightOperationConfig : ITraitOperationConfi
 
     public float WeightDelta { get; init; }
 
-    public float ExploreWeightDelta { get; init; }
+    public float OpportunityBonusDelta { get; init; }
 
-    public float StalenessWeightDelta { get; init; }
-
-    public float HotspotWeightDelta { get; init; }
-
-    public float CrowdingWeightDelta { get; init; }
-
-    public float AffordanceWeightDelta { get; init; }
-
-    public float RelationshipAffinityWeightDelta { get; init; }
+    public float FitnessWeightDelta { get; init; }
 }
 
 public sealed class TraitGambitModifierOperationConfig : ITraitOperationConfig

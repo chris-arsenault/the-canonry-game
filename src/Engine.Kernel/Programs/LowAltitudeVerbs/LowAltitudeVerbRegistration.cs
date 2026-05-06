@@ -16,19 +16,18 @@ internal readonly struct LowAltitudeVerbRegistration
     public int TargetRadius { get; init; }
     public int CandidateSampleCount { get; init; }
     public float Weight { get; init; }
-    public float ExploreWeight { get; init; }
-    public float StalenessWeight { get; init; }
-    public float HotspotWeight { get; init; }
-    public float CrowdingWeight { get; init; }
-    public float AffordanceWeight { get; init; }
+    public float OpportunityBonusOverride { get; init; }
+    public float FitnessWeight { get; init; }
+    public float DistanceScaleOverride { get; init; }
     public int ForeignInfluenceFilterEnabled { get; init; }
     public int ForeignInfluenceBlockPositiveRelationships { get; init; }
     public int ForeignInfluenceAllowNegativeRelationships { get; init; }
     public float ForeignInfluenceMinimumRelationshipStrength { get; init; }
     public float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove { get; init; }
-    public int AffinityRelationshipKindId { get; init; }
-    public int AffinityRelationshipDirectionCode { get; init; }
-    public float RelationshipAffinityWeight { get; init; }
+    public int FitnessRelationshipKindId { get; init; }
+    public int FitnessRelationshipDirectionCode { get; init; }
+    public int FitnessPolarityCode { get; init; }
+    public float FitnessThreshold { get; init; }
     public float InfluenceDelta { get; init; }
     public int InfluenceRadius { get; init; }
     public float CoverageChance { get; init; }

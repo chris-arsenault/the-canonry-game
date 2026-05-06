@@ -57,19 +57,18 @@ public static class GameplayCompiler
                 verb.TargetRadius,
                 verb.CandidateSampleCount,
                 verb.Weight,
-                verb.ExploreWeight,
-                verb.StalenessWeight,
-                verb.HotspotWeight,
-                verb.CrowdingWeight,
-                verb.AffordanceWeight,
+                verb.OpportunityBonusOverride,
+                verb.FitnessWeight,
+                verb.DistanceScaleOverride,
                 foreignTargeting.Enabled,
                 foreignTargeting.BlockPositiveRelationships,
                 foreignTargeting.AllowNegativeRelationships,
                 foreignTargeting.MinimumRelationshipStrength,
                 foreignTargeting.AllowUnrelatedInfluenceAtOrAbove,
-                verb.AffinityRelationshipKind is null ? 0 : context.ResolveRelationshipKindId(verb.AffinityRelationshipKind),
-                RelationshipDirectionCode(verb.AffinityRelationshipDirection),
-                verb.RelationshipAffinityWeight,
+                verb.FitnessRelationshipKind is null ? 0 : context.ResolveRelationshipKindId(verb.FitnessRelationshipKind),
+                RelationshipDirectionCode(verb.FitnessRelationshipDirection),
+                FitnessPolarityCode(verb.FitnessPolarity),
+                verb.FitnessThreshold,
                 verb.InfluenceDelta,
                 verb.InfluenceRadius,
                 verb.CoverageGrowthChance,
@@ -176,12 +175,8 @@ public static class GameplayCompiler
                 context.ResolveTraitId(definition.Trait),
                 operation.Verb is null ? 0 : context.ResolveVerbId(operation.Verb),
                 operation.WeightDelta,
-                operation.ExploreWeightDelta,
-                operation.StalenessWeightDelta,
-                operation.HotspotWeightDelta,
-                operation.CrowdingWeightDelta,
-                operation.AffordanceWeightDelta,
-                operation.RelationshipAffinityWeightDelta));
+                operation.OpportunityBonusDelta,
+                operation.FitnessWeightDelta));
         }
 
         return rules;
@@ -427,6 +422,14 @@ public static class GameplayCompiler
         LowAltitudeVerbRelationshipDirection.Incoming => RelationshipMatchDirectionCodes.Incoming,
         LowAltitudeVerbRelationshipDirection.Either => RelationshipMatchDirectionCodes.Either,
         _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+    };
+
+    private static int FitnessPolarityCode(LowAltitudeVerbFitnessPolarity polarity) => polarity switch
+    {
+        LowAltitudeVerbFitnessPolarity.Strengthen => AffordancePolarityCodes.Strengthen,
+        LowAltitudeVerbFitnessPolarity.Weaken => AffordancePolarityCodes.Weaken,
+        LowAltitudeVerbFitnessPolarity.None => AffordancePolarityCodes.None,
+        _ => throw new ArgumentOutOfRangeException(nameof(polarity), polarity, null),
     };
 
     private static int RelationshipDirectionCode(EffectRelationshipDirection direction) => direction switch
