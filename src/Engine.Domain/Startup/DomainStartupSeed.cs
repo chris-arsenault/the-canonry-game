@@ -1,5 +1,6 @@
 namespace Engine.Domain.Startup;
 
+using Engine.Constants;
 using Engine.Graph;
 
 /// <summary>
@@ -37,7 +38,8 @@ public sealed record DomainSeedCell(
     string Terrain,
     int? OwnerSeedEntityId = null,
     int SuperregionId = 0,
-    int ContinentId = 0);
+    int ContinentId = 0,
+    int PlaneCode = PlaneCodes.Physical);
 
 public enum DomainMapSubdivisionLevel
 {

@@ -82,4 +82,6 @@ internal sealed record UpkeepProgramTuningOptions
 internal sealed record GeneratorProgramTuningOptions
 {
     public bool RetryFireTargets { get; init; } = true;
+    public int PulseWidthTicks { get; init; } = GeneratorProgramConstants.DefaultPulseWidthTicks;
+    public int FiresPerPulse { get; init; } = GeneratorProgramConstants.DefaultFiresPerPulse;
 }

@@ -5,9 +5,7 @@ using Engine.Kernel.Programs;
 internal sealed partial class GeneratorProgramData : IKernelProgramData
 {
     internal int[] GeneratorIds = [];
-    internal int[] Cadences = [];
     internal int[] TargetKindIds = [];
-    internal int[] TargetAllowWilderness = [];
     internal int[] PulseWeights = [];
     internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
@@ -59,6 +57,17 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedHasQuery = [];
     internal int[] ProducedPhysicalPlacementCodes = [];
     internal int[] ProducedSemanticPlacementCodes = [];
+    internal int[] ProducedPhysicalPlacementMinRadii = [];
+    internal int[] ProducedPhysicalPlacementMaxRadii = [];
+    internal int[] ProducedSemanticPlacementMinRadii = [];
+    internal int[] ProducedSemanticPlacementMaxRadii = [];
+    internal int[] ProducedPlacementPreferredTerrainStarts = [];
+    internal int[] ProducedPlacementPreferredTerrainCounts = [];
+    internal int[] ProducedPlacementAllowedTerrainStarts = [];
+    internal int[] ProducedPlacementAllowedTerrainCounts = [];
+    internal int[] ProducedPlacementAvoidedTerrainStarts = [];
+    internal int[] ProducedPlacementAvoidedTerrainCounts = [];
+    internal int[] ProducedPlacementFallbackTerrainIds = [];
     internal int[] ProducedPlacementRefCodes = [];
     internal int[] ProducedCultureRefCodes = [];
     internal float[] ProducedCreateChances = [];
@@ -135,9 +144,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     private void InitializeGeneratorArrays(int generatorCapacity)
     {
         GeneratorIds = new int[generatorCapacity + 1];
-        Cadences = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
-        TargetAllowWilderness = new int[generatorCapacity + 1];
         PulseWeights = new int[generatorCapacity + 1];
         MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
@@ -221,6 +228,11 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedHasQuery = new int[itemCapacity + 1];
         ProducedPhysicalPlacementCodes = new int[itemCapacity + 1];
         ProducedSemanticPlacementCodes = new int[itemCapacity + 1];
+        ProducedPhysicalPlacementMinRadii = new int[itemCapacity + 1];
+        ProducedPhysicalPlacementMaxRadii = new int[itemCapacity + 1];
+        ProducedSemanticPlacementMinRadii = new int[itemCapacity + 1];
+        ProducedSemanticPlacementMaxRadii = new int[itemCapacity + 1];
+        InitializeProducedPlacementTerrainArrays(itemCapacity);
         ProducedPlacementRefCodes = new int[itemCapacity + 1];
         ProducedCultureRefCodes = new int[itemCapacity + 1];
         ProducedCreateChances = new float[itemCapacity + 1];
@@ -247,6 +259,18 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedCoverageAllowedTerrainCounts = new int[itemCapacity + 1];
     }
 
+    private void InitializeProducedPlacementTerrainArrays(int itemCapacity)
+    {
+        var planeSlotCapacity = itemCapacity * 2;
+        ProducedPlacementPreferredTerrainStarts = new int[planeSlotCapacity + 1];
+        ProducedPlacementPreferredTerrainCounts = new int[planeSlotCapacity + 1];
+        ProducedPlacementAllowedTerrainStarts = new int[planeSlotCapacity + 1];
+        ProducedPlacementAllowedTerrainCounts = new int[planeSlotCapacity + 1];
+        ProducedPlacementAvoidedTerrainStarts = new int[planeSlotCapacity + 1];
+        ProducedPlacementAvoidedTerrainCounts = new int[planeSlotCapacity + 1];
+        ProducedPlacementFallbackTerrainIds = new int[planeSlotCapacity + 1];
+    }
+
     private void InitializeRelationshipArrays(int itemCapacity)
     {
         RelationshipSourceRefCodes = new int[itemCapacity + 1];
@@ -258,7 +282,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 9;
+    public int SchemaVersion => 14;
 
     public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
     {

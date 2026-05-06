@@ -1,7 +1,5 @@
-# Light Road Cell Overlay
+# Light Travel Mark Overlay
 
-Transparent PNG overlay for a single hex cell. Show a faint, naturally worn path crossing the cell interior, readable at small map scale. It must be cell-oriented, not an edge connector. Keep it pale, cold, and low contrast so terrain remains readable underneath.
+A stylized light-road overlay marker. Simplified app-icon geometry.
 
-Use for road quality > 0.25 and <= 0.75.
-
-Approved runtime asset path: `assets/game/map-overlays/road-light.png`.
+Two short thin parallel dash strokes cross diagonally through the icon center. Add three tiny round dots beside the dash pair. Flat saturated palette colors, sharp clean edges, generous padding. This represents road quality above 0.25 and up to 0.75.

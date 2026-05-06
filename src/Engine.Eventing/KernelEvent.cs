@@ -417,7 +417,7 @@ public readonly record struct KernelStorageGrownKernelEvent(
     [KernelEventIntSlot(5, "threshold_permille", KernelEventSemanticKind.Threshold)]
     int ThresholdPermille);
 
-[KernelEventLayout(KernelEventType.Trace, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.Trace, schemaMinor: 2)]
 public readonly record struct TraceKernelEvent(
     int Tick,
     long WorldVersion,
@@ -451,6 +451,18 @@ public readonly record struct TraceKernelEvent(
     int AffordanceSourceId,
     [KernelEventIntSlot(14, "affordance_shape_code", KernelEventSemanticKind.RawScalar)]
     int AffordanceShapeCode,
+    [KernelEventIntSlot(15, "affordance_source_kind_mask", KernelEventSemanticKind.RawScalar)]
+    int AffordanceSourceKindMask,
+    [KernelEventIntSlot(16, "affordance_shape_mask", KernelEventSemanticKind.RawScalar)]
+    int AffordanceShapeMask,
+    [KernelEventIntSlot(17, "affordance_contribution_count", KernelEventSemanticKind.Count)]
+    int AffordanceContributionCount,
+    [KernelEventIntSlot(18, "generator_affordance_count", KernelEventSemanticKind.Count)]
+    int GeneratorAffordanceCount,
+    [KernelEventIntSlot(19, "gambit_affordance_count", KernelEventSemanticKind.Count)]
+    int GambitAffordanceCount,
+    [KernelEventIntSlot(20, "hidden_affordance_count", KernelEventSemanticKind.Count)]
+    int HiddenAffordanceCount,
     [KernelEventFloatSlot(0, "urgency", KernelEventSemanticKind.Score)]
     float Urgency,
     [KernelEventFloatSlot(1, "reward_or_base_score", KernelEventSemanticKind.Score)]
@@ -481,6 +493,12 @@ public readonly partial record struct KernelEvent
     private readonly int _int12;
     private readonly int _int13;
     private readonly int _int14;
+    private readonly int _int15;
+    private readonly int _int16;
+    private readonly int _int17;
+    private readonly int _int18;
+    private readonly int _int19;
+    private readonly int _int20;
     private readonly float _float0;
     private readonly float _float1;
     private readonly float _float2;
@@ -510,6 +528,12 @@ public readonly partial record struct KernelEvent
         int int12 = 0,
         int int13 = 0,
         int int14 = 0,
+        int int15 = 0,
+        int int16 = 0,
+        int int17 = 0,
+        int int18 = 0,
+        int int19 = 0,
+        int int20 = 0,
         float float0 = 0f,
         float float1 = 0f,
         float float2 = 0f,
@@ -538,6 +562,12 @@ public readonly partial record struct KernelEvent
         _int12 = int12;
         _int13 = int13;
         _int14 = int14;
+        _int15 = int15;
+        _int16 = int16;
+        _int17 = int17;
+        _int18 = int18;
+        _int19 = int19;
+        _int20 = int20;
         _float0 = float0;
         _float1 = float1;
         _float2 = float2;
@@ -553,7 +583,7 @@ public readonly partial record struct KernelEvent
     public int SourceCodeId { get; }
     public int ProvenanceInvocationId { get; }
 
-    public const int IntSlotCount = 15;
+    public const int IntSlotCount = 21;
     public const int FloatSlotCount = 6;
 
     public KernelEvent WithExecutionContext(int programId, int sourceCodeId, int provenanceInvocationId = 0)
@@ -583,6 +613,12 @@ public readonly partial record struct KernelEvent
             int12: _int12,
             int13: _int13,
             int14: _int14,
+            int15: _int15,
+            int16: _int16,
+            int17: _int17,
+            int18: _int18,
+            int19: _int19,
+            int20: _int20,
             float0: _float0,
             float1: _float1,
             float2: _float2,
@@ -609,7 +645,13 @@ public readonly partial record struct KernelEvent
         12 => _int12,
         13 => _int13,
         14 => _int14,
-        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 14."),
+        15 => _int15,
+        16 => _int16,
+        17 => _int17,
+        18 => _int18,
+        19 => _int19,
+        20 => _int20,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event int slots are numbered 0 through 20."),
     };
 #pragma warning restore S1541
 

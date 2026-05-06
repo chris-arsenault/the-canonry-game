@@ -3,8 +3,9 @@ namespace Engine.Domain.Tests.Domain.Graph;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
-using IceRemembers;
 using Engine.Kinds;
+
+using IceRemembers;
 
 public class RuntimeGeneratorBuilderTests
 {

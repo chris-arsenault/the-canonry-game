@@ -69,9 +69,9 @@ public static class IceRemembersGeneratorDefinition
     {
         Id = "what_the_spring_remembers",
         Name = "What the Spring Remembers",
-        Description = "A cleansed hot spring draws a witness and an anchored relic. Where the warmth holds long enough, a sanctuary may form, and a choir may settle to sing what the ice forgot.",
-        CausalLimit = "Depends on an incoming cleansed-by relationship and absence of anchoring; creates an anchored relic on the region.",
-        Target = TargetWithIncomingAndWithoutIncoming(K.Region, Rel.CleansedBy, Rel.Anchored),
+        Description = "A cleansed hot spring draws a witness and a memorial relic. Where the warmth holds long enough, a sanctuary may form, and a choir may settle to sing what the ice forgot.",
+        CausalLimit = "Depends on an incoming cleansed-by relationship and absence of memorialization; creates an anchored memorial relic on the region.",
+        Target = TargetWithIncomingAndWithoutIncoming(K.Region, Rel.CleansedBy, Rel.Memorializes),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction },
@@ -86,6 +86,7 @@ public static class IceRemembersGeneratorDefinition
         Relationships =
         [
             R("$relic", "$target", Rel.Anchored, 0.90f),
+            R("$relic", "$target", Rel.Memorializes, 0.90f),
             R("$witness", "$patron", Rel.MemberOf, 0.85f),
             R("$sanctuary", "$patron", Rel.ControlledBy, 0.80f),
             R("$sanctuary", "$target", Rel.FoundedFrom, 0.85f),
@@ -257,18 +258,28 @@ public static class IceRemembersGeneratorDefinition
         string subtype,
         string placementRef,
         string cultureRef,
-        bool on = false) =>
-        new()
+        bool on = false)
+    {
+        var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
+        var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
+        return new()
         {
             Ref = @ref,
             Kind = kind,
             Subtype = subtype,
             Role = subtype,
             PhysicalPlacement = on ? SemanticPlacement.On : SemanticPlacement.Near,
+            PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
+            PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
+            PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
             SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
+            SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
+            SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = cultureRef,
         };
+    }
 
     private static SemanticProducedEntity Optional(
         string @ref,
@@ -277,8 +288,11 @@ public static class IceRemembersGeneratorDefinition
         string placementRef,
         string cultureRef,
         float chance,
-        bool on = false) =>
-        new()
+        bool on = false)
+    {
+        var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
+        var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
+        return new()
         {
             Ref = @ref,
             Kind = kind,
@@ -286,33 +300,59 @@ public static class IceRemembersGeneratorDefinition
             Role = subtype,
             CreateChance = chance,
             PhysicalPlacement = on ? SemanticPlacement.On : SemanticPlacement.Near,
+            PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
+            PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
+            PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
             SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
+            SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
+            SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = cultureRef,
         };
+    }
 
-    private static SemanticProducedEntity HarborAcross(string @ref, string placementRef) =>
-        new()
+    private static SemanticProducedEntity HarborAcross(string @ref, string placementRef)
+    {
+        var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(K.Settlement, "harbor");
+        var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(K.Settlement, "harbor");
+        return new()
         {
             Ref = @ref,
             Kind = K.Settlement,
             Subtype = "harbor",
             Role = "harbor",
             PhysicalPlacement = SemanticPlacement.Across,
+            PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
+            PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
+            PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
             SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
+            SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
+            SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = placementRef,
         };
+    }
 
-    private static SemanticProducedEntity ScarRegion(string @ref, string cultureRef) =>
-        new()
+    private static SemanticProducedEntity ScarRegion(string @ref, string cultureRef)
+    {
+        var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(K.Region, "scar");
+        var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(K.Region, "scar");
+        return new()
         {
             Ref = @ref,
             Kind = K.Region,
             Subtype = "scar",
             Role = "scar",
             PhysicalPlacement = SemanticPlacement.Near,
+            PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
+            PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
+            PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
             SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
+            SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
+            SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = "$target",
             InheritCultureFrom = cultureRef,
             Coverage = new SemanticRegionCoverage
@@ -323,6 +363,7 @@ public static class IceRemembersGeneratorDefinition
                 TransformTerrain = Terrain.Wastes.ToDomainName(),
             },
         };
+    }
 
     private static SemanticGeneratorRelationship R(
         string source,

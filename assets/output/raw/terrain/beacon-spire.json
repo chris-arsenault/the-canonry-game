@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-beacon-spire",
+  "file": "terrain/beacon-spire.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED GOLD flat color field — think #F2C94C, the color\nof high-salience memory, attention, and meaning that calls across the\nsemantic map. The hue must read as CLEAR GOLD, not tan, not cream, not\norange-red severance. Clearly distinct from wastes ochre by being\nbrighter, cleaner, and more yellow. Fill the ENTIRE 1024x1024 square\nedge-to-edge with this one gold color corner to corner — NO drawn hex,\nNO paper border, NO vignette, NO centered composition, NO symbols, NO\ntowers, NO figures, NO script. Only the faintest paint-texture\nvariation within the same gold hue. A semantic terrain region-fill\nswatch, not an illustration.",
+  "formatted_prompt": {
+    "scene": "Bold ink and watercolor game-map terrain tile rendered flat and edge-to-edge in vivid clean gold, a single saturated hue filling the entire square with only the faintest brushstroke texture variation within the same golden field.",
+    "subjects": [
+      {
+        "type": "terrain fill",
+        "description": "Uniform flat gold color wash covering the entire 1024x1024 square corner to corner, bright clean yellow-gold with subtle paint-texture variation within the same hue, no symbols or figures",
+        "position": "full frame edge-to-edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "texture layer",
+        "description": "Faint directional brushstroke grain embedded within the gold field, same hue family, slightly warmer in scattered areas, giving the tile tactile board-game material presence",
+        "position": "distributed across entire field",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "760db655-10e4-4b15-a7cd-62c5022b8e59",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008112000000000001,
+  "duration_ms": 10991,
+  "generated_at": "2026-05-05T19:07:26.209Z"
+}

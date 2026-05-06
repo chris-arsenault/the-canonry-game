@@ -132,6 +132,7 @@ wear_and_weathering = "Clean vibrant glass. Only the cracks and breakage the pan
 # read cleanly at 16–64px without painterly character.
 [style.app-icon]
 name = "App Icon"
+artistic = "Clean modern filled-vector iconography for map tokens and small UI marks. Crisp geometric silhouettes, solid color fills, sharp edges, flat secondary shapes, and high readability at 16-64px."
 composition = "a single clean app-icon design centered on a plain off-white canvas with generous padding around the subject. The subject is simplified to its essential silhouette plus one to three interior shapes for identity. Every edge is precise and deliberate vector geometry. Centered composition, no scene around it. NO stamp frame, NO parchment, NO paper-cut-out border, NO torn edges, NO grain, NO rough ink, NO woodblock wobble."
 medium_notes = "Modern UI icon register — Phosphor Fill, Material Symbols Fill, SF Symbols Filled. Flat bold color fills with sharp crisp edges. If the icon needs interior detail (windows on a building, a crown on a figure) render those as flat secondary-color shapes, not as ink strokes or brush marks. No gradients, no textures, no brushwork, no painterly rendering. Every element readable at 32px."
 wear_and_weathering = "NO wear, NO weathering, NO patina, NO aging, NO ink spatter, NO rough edges, NO grain, NO foxing, NO frost damage, NO soot, NO scars. Clean fresh modern vector iconography, 2026-era app design — not a historical illustration, not a woodblock print, not a heraldic stamp."
@@ -567,6 +568,92 @@ id = "terrain-ocean"
 file = "terrain/ocean.png"
 type = "hex-tile"
 prompt = "prompts/2-terrain-hex-tiles/terrain-ocean.md"
+
+[[section.asset]]
+id = "terrain-lineage"
+file = "terrain/lineage.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-lineage.md"
+
+[[section.asset]]
+id = "terrain-yoke"
+file = "terrain/yoke.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-yoke.md"
+
+[[section.asset]]
+id = "terrain-witness"
+file = "terrain/witness.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-witness.md"
+
+[[section.asset]]
+id = "terrain-silence"
+file = "terrain/silence.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-silence.md"
+
+[[section.asset]]
+id = "terrain-severance"
+file = "terrain/severance.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-severance.md"
+
+[[section.asset]]
+id = "terrain-breakaway"
+file = "terrain/breakaway.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-breakaway.md"
+
+[[section.asset]]
+id = "terrain-beacon-spire"
+file = "terrain/beacon-spire.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-beacon-spire.md"
+
+[[section.asset]]
+id = "terrain-taboo-ridge"
+file = "terrain/taboo-ridge.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-taboo-ridge.md"
+
+[[section.asset]]
+id = "terrain-cave-pocket"
+file = "terrain/cave-pocket.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-cave-pocket.md"
+
+[[section.asset]]
+id = "terrain-open-field"
+file = "terrain/open-field.png"
+type = "hex-tile"
+prompt = "prompts/2-terrain-hex-tiles/terrain-open-field.md"
+
+[[section]]
+id = "2b-map-overlays"
+title = "2b · Map overlays"
+# Map overlays are small map-token marks and use the same visual register as
+# entity/subtype map icons.
+style = "app-icon"
+palette = "comic-bold"
+
+[[section.asset]]
+id = "road-light-overlay"
+file = "map-overlays/road-light.png"
+type = "icon"
+prompt = "prompts/2b-map-overlays/road-light-overlay.md"
+
+[[section.asset]]
+id = "road-heavy-overlay"
+file = "map-overlays/road-heavy.png"
+type = "icon"
+prompt = "prompts/2b-map-overlays/road-heavy-overlay.md"
+
+[[section.asset]]
+id = "semantic-cell-terrain-overlays"
+file = "map-overlays/semantic-cell-overlay.png"
+type = "icon"
+prompt = "prompts/2b-map-overlays/semantic-cell-terrain-overlays.md"
 
 [[section]]
 id = "3-tableau-card-faces"

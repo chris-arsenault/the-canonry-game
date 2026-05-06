@@ -2,6 +2,7 @@ namespace Engine.Domain.Tests.Domain;
 
 using Engine.Domain;
 using Engine.Domain.Compilation;
+
 using IceRemembers;
 
 public sealed class DomainIdRegistryTests

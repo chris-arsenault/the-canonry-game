@@ -57,7 +57,7 @@ map state, semantic position, or regional containment is the real gate.
 
 Generator target gates, relationship gates, terrain gates, and produced entity
 binding queries use the shared kernel query path.
-Generator-specific code still owns cadence, target choice, production
+Generator-specific code still owns pulse budgeting, target choice, production
 orchestration, placement, and reference binding order.
 
 ## Effects

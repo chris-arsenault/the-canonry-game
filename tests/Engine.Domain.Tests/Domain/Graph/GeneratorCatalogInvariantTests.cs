@@ -4,10 +4,11 @@ using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
 using Engine.Domain.Startup;
-using IceRemembers;
-using IceRemembers.Seed;
 using Engine.Kinds;
 using Engine.WorldGen;
+
+using IceRemembers;
+using IceRemembers.Seed;
 
 public class GeneratorCatalogInvariantTests
 {
@@ -59,7 +60,7 @@ public class GeneratorCatalogInvariantTests
             Target = new SemanticGeneratorTarget
             {
                 Kind = TestKinds.Settlement,
-                    Subtypes = new HashSet<string>(StringComparer.Ordinal) { "never_seeded_sanctuary" },
+                Subtypes = new HashSet<string>(StringComparer.Ordinal) { "never_seeded_sanctuary" },
             },
             Produces =
             [
@@ -318,7 +319,6 @@ public class GeneratorCatalogInvariantTests
             Target = new SemanticGeneratorTarget
             {
                 Kind = TestKinds.Region,
-                AllowWilderness = true,
             },
             Produces =
             [

@@ -7,10 +7,8 @@ internal sealed partial class GeneratorProgramRuntime
     private bool Fire(Simulation simulation, int generatorSlot, int targetId, int tick)
     {
         var world = simulation.World;
-        if (!TryResolveTargetOrigin(world, generatorSlot, targetId, out var targetOriginQ, out var targetOriginR))
-        {
-            return false;
-        }
+        var targetOriginQ = world.EntityPhysicalQ(targetId);
+        var targetOriginR = world.EntityPhysicalR(targetId);
 
         int[] refCodes = _refCodes;
         int[] refEntityIds = _refEntityIds;
@@ -179,19 +177,6 @@ internal sealed partial class GeneratorProgramRuntime
         out int relationshipId) =>
         KernelQuery.TryFirstRelationshipOfKind(world, targetId, relationshipKindId, outgoing, minimumStrength, out relationshipId);
 
-    private bool TryResolveTargetOrigin(
-        WorldState world,
-        int generatorSlot,
-        int targetId,
-        out int targetOriginQ,
-        out int targetOriginR)
-    {
-        targetOriginQ = world.EntityPhysicalQ(targetId);
-        targetOriginR = world.EntityPhysicalR(targetId);
-        return _targetAllowWilderness[generatorSlot] == 0 ||
-            FindFreePhysicalHex(world, targetOriginQ, targetOriginR, maxRadius: 5, out targetOriginQ, out targetOriginR);
-    }
-
     private bool CreateProducedEntities(
         Simulation simulation,
         WorldState world,
@@ -348,18 +333,18 @@ internal sealed partial class GeneratorProgramRuntime
             placementAnchorId = targetId;
         }
 
-        ResolvePhysicalPlacement(
-            simulation,
-            placementAnchorId,
-            _producedPhysicalPlacementCodes[produced],
-            out var physicalQ,
-            out var physicalR);
-        ResolveSemanticPlacement(
-            simulation,
-            placementAnchorId,
-            _producedSemanticPlacementCodes[produced],
-            out var semanticQ,
-            out var semanticR);
+        if (!ResolveProducedPlacement(
+                simulation,
+                placementAnchorId,
+                produced,
+                out var physicalQ,
+                out var physicalR,
+                out var semanticQ,
+                out var semanticR))
+        {
+            MarkCreatedEntitiesHistorical(simulation, world, createdEntityIds, createdEntityCount, tick);
+            return false;
+        }
 
         var createdEntityId = KernelEffectExecutor.CreateEntity(
             simulation,

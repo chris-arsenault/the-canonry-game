@@ -93,23 +93,18 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         {
             var source = generator.Id;
             var targetKind = generator.Target.Kind.Value;
-            AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, targetKind);
             AddGeneratorRelationshipAffordances(affordances, seen, generator);
             AddGeneratorTerrainAffordances(affordances, seen, generator);
             foreach (var binding in generator.SecondaryTargets)
             {
-                var bindingKind = binding.Kind.Value;
-                AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, bindingKind);
-                AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, bindingKind, targetKind);
-                AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, bindingKind, bindingKind);
-            }
+                if (binding.Query?.AdjacentToTarget != true)
+                {
+                    continue;
+                }
 
-            foreach (var produced in generator.Produces)
-            {
-                var producedKind = produced.Kind.Value;
-                AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, producedKind);
-                AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, producedKind, targetKind);
-                AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, producedKind, producedKind);
+                var bindingKind = binding.Kind.Value;
+                AddActionablePresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, bindingKind, "physical");
+                AddActionablePresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, bindingKind, targetKind, "physical");
             }
 
             foreach (var effect in generator.Effects)
@@ -213,7 +208,7 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         }
     }
 
-    private static void AddGambitDistanceAffordances(
+    private void AddGambitDistanceAffordances(
         List<AffordanceDefinition> affordances,
         HashSet<AffordanceDefinition> seen,
         Engine.Gambits.GambitDefinition gambit,
@@ -228,10 +223,51 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
 
         foreach (var distance in PreconditionLeaves<WithinPlaneDistancePrecondition>(gambit.Precondition, includeNegated: false))
         {
-            AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, targetKind, PlaneName(distance.Plane));
-            AddPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, targetKind, actorKind, PlaneName(distance.Plane));
+            var plane = PlaneName(distance.Plane);
+            AddActionablePresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, targetKind, plane);
+            AddActionablePresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, targetKind, actorKind, plane);
         }
     }
+
+    private void AddActionablePresenceAffordance(
+        List<AffordanceDefinition> affordances,
+        HashSet<AffordanceDefinition> seen,
+        int sourceKindCode,
+        string source,
+        string actorKind,
+        string candidateKind,
+        string plane)
+    {
+        if (HasMovementVerbTargetingKind(actorKind, candidateKind, plane))
+        {
+            AddPresenceAffordance(affordances, seen, sourceKindCode, source, actorKind, candidateKind, plane);
+        }
+    }
+
+    private bool HasMovementVerbTargetingKind(string actorKind, string candidateKind, string plane)
+    {
+        if (_config.Gameplay is null)
+        {
+            return false;
+        }
+
+        foreach (var verb in _config.Gameplay.LowAltitudeVerbs)
+        {
+            if (verb is MovementLowAltitudeVerbConfig &&
+                verb.TargetMode == LowAltitudeVerbTargetMode.EntityKind &&
+                string.Equals(verb.Kind, actorKind, StringComparison.Ordinal) &&
+                string.Equals(verb.TargetKind, candidateKind, StringComparison.Ordinal) &&
+                string.Equals(VerbPlane(verb), plane, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string VerbPlane(LowAltitudeVerbConfig verb) =>
+        verb.Plane ?? PlaneName(_config.Kinds[ResolveKind(verb.Kind, $"Low-altitude verb '{verb.Id}' kind")].PrimaryPlane);
 
     private static void AddGambitRelationshipAffordances(
         List<AffordanceDefinition> affordances,

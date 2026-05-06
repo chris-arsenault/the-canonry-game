@@ -757,17 +757,7 @@ public static partial class IceRemembersDefinition
         {
             SemanticBaseCapacity = 2f,
             CrowdingRadius = 1,
-            Terrains =
-            [
-                TerrainSignal(Terrain.Wastes, 0.7f),
-                TerrainSignal(Terrain.Crags, 0.8f),
-                TerrainSignal(Terrain.Tundra, 2.0f),
-                TerrainSignal(Terrain.Ice, 1.0f),
-                TerrainSignal(Terrain.HotSprings, 4.0f),
-                TerrainSignal(Terrain.Shelf, 1.3f),
-                TerrainSignal(Terrain.Reef, 2.5f),
-                TerrainSignal(Terrain.Ocean, 0.6f),
-            ],
+            Terrains = CreateTerrainSignals(),
             Kinds =
             [
                 KindSignal(K.Settlement, Attr.TempHp, radius: 2, capacity: 3.0f, support: 2.5f, threat: 0f,
@@ -809,6 +799,28 @@ public static partial class IceRemembersDefinition
                 RelationshipSignal(Rel.WardAgainst, support: 0f, threat: 1.0f),
             ],
         };
+
+    private static IReadOnlyList<TerrainMapSignalConfig> CreateTerrainSignals() =>
+    [
+        TerrainSignal(Terrain.Wastes, 0.7f),
+        TerrainSignal(Terrain.Crags, 0.8f),
+        TerrainSignal(Terrain.Tundra, 2.0f),
+        TerrainSignal(Terrain.Ice, 1.0f),
+        TerrainSignal(Terrain.HotSprings, 4.0f),
+        TerrainSignal(Terrain.Shelf, 1.3f),
+        TerrainSignal(Terrain.Reef, 2.5f),
+        TerrainSignal(Terrain.Ocean, 0.6f),
+        TerrainSignal(Terrain.Lineage, 2.4f),
+        TerrainSignal(Terrain.Yoke, 1.6f),
+        TerrainSignal(Terrain.Witness, 3.2f),
+        TerrainSignal(Terrain.Silence, 0.8f),
+        TerrainSignal(Terrain.Severance, 0.6f),
+        TerrainSignal(Terrain.Breakaway, 1.4f),
+        TerrainSignal(Terrain.BeaconSpire, 3.6f),
+        TerrainSignal(Terrain.TabooRidge, 0.4f),
+        TerrainSignal(Terrain.CavePocket, 0.9f),
+        TerrainSignal(Terrain.OpenField, 1.8f),
+    ];
 
     private static TerrainMapSignalConfig TerrainSignal(Terrain terrain, float baseCapacity) =>
         new()

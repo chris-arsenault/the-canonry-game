@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 29;
+    private const int FormatVersion = 30;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -148,6 +148,8 @@ internal static class KernelSnapshotOptions
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
         writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
+        writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
+        writer.Write(kernelTuning.Programs.Generators.FiresPerPulse);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -273,6 +275,8 @@ internal static class KernelSnapshotOptions
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
+        values.GeneratorPulseWidthTicks = reader.ReadInt32();
+        values.GeneratorFiresPerPulse = reader.ReadInt32();
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -396,6 +400,8 @@ internal static class KernelSnapshotOptions
                 Generators = new GeneratorProgramTuningOptions
                 {
                     RetryFireTargets = values.GeneratorRetryFireTargets,
+                    PulseWidthTicks = values.GeneratorPulseWidthTicks,
+                    FiresPerPulse = values.GeneratorFiresPerPulse,
                 },
             },
         };
@@ -463,6 +469,8 @@ internal static class KernelSnapshotOptions
         public int GeneratorsProgramEnabled;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
+        public int GeneratorPulseWidthTicks;
+        public int GeneratorFiresPerPulse;
         public int Seed;
     }
 }

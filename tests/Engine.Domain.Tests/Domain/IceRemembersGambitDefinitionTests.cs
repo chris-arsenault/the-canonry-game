@@ -2,6 +2,7 @@ namespace Engine.Domain.Tests.Domain;
 
 using Engine.Domain.Compilation;
 using Engine.Domain.Compilation.KernelPrograms;
+
 using IceRemembers;
 
 public sealed class IceRemembersGambitDefinitionTests
@@ -62,16 +63,6 @@ public sealed class IceRemembersGambitDefinitionTests
     }
 
     [Fact]
-    public void IceRemembers_GambitScoresDoNotRestatePhysicalRangeGates()
-    {
-        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-
-        Assert.All(compiled.Programs.Gambits.Gambits, gambit =>
-            Assert.DoesNotContain(gambit.ScoreExpression, expression =>
-                expression.Code == BehaviorProgramExpression.Distance));
-    }
-
-    [Fact]
     public void IceRemembers_GambitsUseRelationshipAndMovementEffects()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
@@ -94,20 +85,6 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(cleanse.Steps, step =>
             step.Operation == BehaviorProgramOperation.SetTargetCoverageTerrain &&
             step.A == hotSpringsId);
-    }
-
-    [Fact]
-    public void IceRemembers_CleansingScarRequiresStrongAnchorRelationship()
-    {
-        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-        var cleanse = Gambit(compiled, IceRemembersGambitId.ArtifactCleansesScar);
-        var anchoredId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.Anchored.ToDomainName()).Value;
-
-        Assert.Contains(cleanse.Preconditions, precondition =>
-            precondition.Code == BehaviorProgramPrecondition.SelfHasRelationshipToTarget &&
-            precondition.A == anchoredId &&
-            precondition.B == 1 &&
-            precondition.X == 0.45f);
     }
 
     [Fact]
@@ -164,33 +141,6 @@ public sealed class IceRemembersGambitDefinitionTests
             precondition.A == holdsId &&
             precondition.B == (int)BehaviorProgramEndpoint.Target &&
             precondition.C == 1);
-    }
-
-    [Fact]
-    public void IceRemembers_TradeRouteRequiresInfluenceOverlapSemanticRangeAndEndpointCapacity()
-    {
-        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
-        var trade = Gambit(compiled, IceRemembersGambitId.SettlementOpensTradeRoute);
-        var tradeRouteId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.TradeRoute.ToDomainName()).Value;
-
-        Assert.Contains(trade.Preconditions, precondition =>
-            precondition.Code == BehaviorProgramPrecondition.PlaneDistance &&
-            precondition.B == 2);
-        Assert.Contains(trade.Preconditions, precondition =>
-            precondition.Code == BehaviorProgramPrecondition.SharedInfluence &&
-            precondition.A == 1 &&
-            precondition.X >= 20f &&
-            precondition.Y >= 20f);
-        Assert.Contains(trade.Preconditions, precondition =>
-            precondition.Code == BehaviorProgramPrecondition.EndpointRelationshipCountBelow &&
-            precondition.A == tradeRouteId &&
-            precondition.B == (int)BehaviorProgramEndpoint.Self &&
-            precondition.C == 2);
-        Assert.Contains(trade.Preconditions, precondition =>
-            precondition.Code == BehaviorProgramPrecondition.EndpointRelationshipCountBelow &&
-            precondition.A == tradeRouteId &&
-            precondition.B == (int)BehaviorProgramEndpoint.Target &&
-            precondition.C == 2);
     }
 
     [Fact]

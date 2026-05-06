@@ -17,11 +17,31 @@ internal static partial class IceRemembersSeedBuilder
     private const int WhiteEmptySuperregionId = 31;
     private const int DeepEmptySuperregionId = 32;
 
+    private const int SemanticMemoryContinentId = 101;
+    private const int SemanticAuthorityContinentId = 102;
+    private const int SemanticShadowContinentId = 103;
+    private const int SemanticRuptureContinentId = 104;
+
+    private const int SemanticLineageSuperregionId = 111;
+    private const int SemanticYokeSuperregionId = 121;
+    private const int SemanticWitnessSuperregionId = 112;
+    private const int SemanticSilenceSuperregionId = 131;
+    private const int SemanticSeveranceSuperregionId = 141;
+    private const int SemanticBreakawaySuperregionId = 142;
+    private const int SemanticBeaconSpireSuperregionId = 113;
+    private const int SemanticTabooRidgeSuperregionId = 132;
+    private const int SemanticCavePocketSuperregionId = 133;
+    private const int SemanticOpenFieldSuperregionId = 114;
+
     private static DomainMapSubdivision[] CreateSubdivisionDefinitions() =>
     [
         new(NearContinentId, DomainMapSubdivisionLevel.Continent, "near_shelf", "The Near Shelf"),
         new(FarContinentId, DomainMapSubdivisionLevel.Continent, "farwake_sea", "Farwake Sea"),
         new(EmptyContinentId, DomainMapSubdivisionLevel.Continent, "white_empty_continent", "The White Empty"),
+        new(SemanticMemoryContinentId, DomainMapSubdivisionLevel.Continent, "semantic_memory_world", "Memory World"),
+        new(SemanticAuthorityContinentId, DomainMapSubdivisionLevel.Continent, "semantic_authority_world", "Authority World"),
+        new(SemanticShadowContinentId, DomainMapSubdivisionLevel.Continent, "semantic_shadow_world", "Shadow World"),
+        new(SemanticRuptureContinentId, DomainMapSubdivisionLevel.Continent, "semantic_rupture_world", "Rupture World"),
         new(NorthlandsSuperregionId, DomainMapSubdivisionLevel.Superregion, "northlands_march", "Northlands March"),
         new(HeartlandsSuperregionId, DomainMapSubdivisionLevel.Superregion, "heartlands_basin", "Heartlands Basin"),
         new(CoastlandsSuperregionId, DomainMapSubdivisionLevel.Superregion, "coastlands_shelf", "Coastlands Shelf"),
@@ -29,6 +49,16 @@ internal static partial class IceRemembersSeedBuilder
         new(BlackwaterSuperregionId, DomainMapSubdivisionLevel.Superregion, "blackwater_reach", "Blackwater Reach"),
         new(WhiteEmptySuperregionId, DomainMapSubdivisionLevel.Superregion, "white_empty_fields", "White Empty"),
         new(DeepEmptySuperregionId, DomainMapSubdivisionLevel.Superregion, "deep_empty", "Deep Empty"),
+        new(SemanticLineageSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_lineage_basin", "Lineage Basin"),
+        new(SemanticYokeSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_yoke_court", "Yoke Court"),
+        new(SemanticWitnessSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_witness_basin", "Witness Basin"),
+        new(SemanticSilenceSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_silence_basin", "Silence Basin"),
+        new(SemanticSeveranceSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_severance_scar", "Severance Scar"),
+        new(SemanticBreakawaySuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_breakaway_field", "Breakaway Field"),
+        new(SemanticBeaconSpireSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_beacon_spires", "Beacon Spires"),
+        new(SemanticTabooRidgeSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_taboo_ridges", "Taboo Ridges"),
+        new(SemanticCavePocketSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_cave_pockets", "Cave Pockets"),
+        new(SemanticOpenFieldSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_open_fields", "Open Fields"),
     ];
 
     private static MapSubdivisionMap CreateSubdivisions(HexGrid grid, int salt)

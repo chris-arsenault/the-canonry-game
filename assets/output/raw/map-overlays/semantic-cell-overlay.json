@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "semantic-cell-terrain-overlays",
+  "file": "map-overlays/semantic-cell-overlay.png",
+  "spec_type": "icon",
+  "section_id": "2b-map-overlays",
+  "section": "2b · Map overlays",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "# Semantic Texture Mark Overlay\n\nA stylized semantic texture overlay marker. Simplified app-icon geometry.\n\nA compact cluster of five small abstract glyphs: a three-line wave, a zigzag fracture, a five-dot grain mark, a two-prong fork, and two short slash ticks. Each glyph is a flat saturated palette shape with sharp clean edges and clear spacing. Reads as semantic texture at map scale.",
+  "formatted_prompt": {
+    "scene": "Flat filled-vector app icon, compact cluster of five abstract texture glyphs arranged on a plain off-white canvas, each glyph a bold saturated primary shape with crisp sharp edges and clear spacing between marks.",
+    "subjects": [
+      {
+        "type": "wave and zigzag glyphs",
+        "description": "three-line horizontal wave glyph beside a sharp angular zigzag fracture glyph, tall crisp flat shapes with deliberate spacing",
+        "position": "left and upper-center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "dot grain and fork glyphs",
+        "description": "five-dot quincunx grain mark beside a two-prong fork glyph, bold flat fills, sharp geometric silhouettes, high readability at 16px",
+        "position": "center and right",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "slash tick marks",
+        "description": "two short diagonal slash ticks, compact flat strokes, strong angular edges, clear separation from surrounding glyphs, strictly in color #FF6600 vivid orange",
+        "position": "lower-right",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "9c51d5f3-0950-4a58-9f72-f777d16f4884",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008586,
+  "duration_ms": 8688,
+  "generated_at": "2026-05-06T15:23:39.033Z"
+}

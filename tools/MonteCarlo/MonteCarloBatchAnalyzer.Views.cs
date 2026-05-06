@@ -128,8 +128,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
                    COALESCE(generator_symbol.stable_name, CAST(ge.generator_id AS VARCHAR)) AS generator_id,
                    COALESCE(status_symbol.stable_name, CAST(ge.status_code AS VARCHAR)) AS status,
                    ge.target_pool_count, ge.inactive_rejected_count, ge.subtype_rejected_count,
-                   ge.secondary_target_rejected_count, ge.wilderness_rejected_count,
-                   ge.trigger_rejected_count, ge.candidate_count, ge.failed_fire_count,
+                   ge.secondary_target_rejected_count, ge.trigger_rejected_count,
+                   ge.candidate_count, ge.failed_fire_count,
                    ge.selected_target_entity_id, ge.created_entity_count, ge.created_relationship_count
             FROM raw_generator_events ge
             JOIN raw_runs rr ON rr.run_id = ge.run_id

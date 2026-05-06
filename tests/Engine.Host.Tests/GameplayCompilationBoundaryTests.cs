@@ -7,35 +7,39 @@ using IceRemembers;
 public sealed class GameplayCompilationBoundaryTests
 {
     [Fact]
-    public void IceRemembersAffordancesCoverGeneratorTargetSecondaryAndProducedKinds()
+    public void IceRemembersGeneratorAffordancesComeFromEligibilitySignals()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var affordances = compiled.Programs.LowAltitudeVerbs.Affordances;
         var factionId = compiled.Ids.KindIdOf(IceRemembersKinds.Faction).Value;
         var regionId = compiled.Ids.KindIdOf(IceRemembersKinds.Region).Value;
         var settlementId = compiled.Ids.KindIdOf(IceRemembersKinds.Settlement).Value;
-        var artifactId = compiled.Ids.KindIdOf(IceRemembersKinds.Artifact).Value;
+        var cleansedById = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.CleansedBy.ToDomainName()).Value;
+        var tradeRouteId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.TradeRoute.ToDomainName()).Value;
+        var wastesId = compiled.Ids.TerrainIdOf(IceRemembersTerrain.Wastes.ToDomainName()).Value;
 
-        Assert.Contains(affordances, rule =>
-            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
-            rule.ActorKindId == factionId &&
-            rule.CandidateKindId == regionId);
-        Assert.Contains(affordances, rule =>
-            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
-            rule.ActorKindId == factionId &&
-            rule.CandidateKindId == artifactId);
-        Assert.Contains(affordances, rule =>
-            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
+        var generatorAffordances = affordances
+            .Where(rule => rule.SourceKindCode == AffordanceSourceKindCodes.Generator)
+            .ToArray();
+
+        Assert.DoesNotContain(generatorAffordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity);
+        Assert.Contains(generatorAffordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget &&
             rule.ActorKindId == regionId &&
-            rule.CandidateKindId == artifactId);
-        Assert.Contains(affordances, rule =>
-            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
+            rule.RelationshipKindId == cleansedById &&
+            rule.RelationshipDirectionCode == RelationshipMatchDirectionCodes.Incoming);
+        Assert.Contains(generatorAffordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange &&
             rule.ActorKindId == settlementId &&
-            rule.CandidateKindId == settlementId);
+            rule.RelationshipKindId == tradeRouteId &&
+            rule.RelationshipDirectionCode == RelationshipMatchDirectionCodes.Outgoing &&
+            rule.PolarityCode == AffordancePolarityCodes.Strengthen);
+        Assert.Contains(generatorAffordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.TerrainPresence &&
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+            rule.ActorKindId == factionId &&
+            rule.TerrainId == wastesId);
     }
 
     [Fact]

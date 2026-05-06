@@ -64,7 +64,6 @@ public class DomainConfigTests
     {
         var generators = IceRemembersDefinition.Create().Semantics!.Generators;
         var accounts = Assert.Single(generators, generator => generator.Id == "ice_settles_accounts");
-        var spring = Assert.Single(generators, generator => generator.Id == "what_the_spring_remembers");
         var war = Assert.Single(generators, generator => generator.Id == "war_breaks_the_land");
         var routes = Assert.Single(generators, generator => generator.Id == "routes_draw_readers");
         var artifact = Assert.Single(generators, generator => generator.Id == "what_the_artifact_knows");
@@ -73,8 +72,6 @@ public class DomainConfigTests
             Assert.Single(accounts.Effects, effect => effect is RemoveTargetRelationshipsEffect));
         Assert.Equal(GeneratorRelationshipInstanceSelection.TriggerRelationship, accountEffect.InstanceSelection);
         Assert.True(accountEffect.IncludeReciprocal);
-
-        Assert.Contains(IceRemembersRelationship.Anchored.ToDomainName(), spring.Target.WithoutIncomingRelationships!);
 
         var warTerrainRequirement = Assert.Single(war.Target.TerrainCountRequirements);
         Assert.Equal(IceRemembersTerrain.Wastes.ToDomainName(), warTerrainRequirement.TerrainName);

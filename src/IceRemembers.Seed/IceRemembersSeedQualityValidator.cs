@@ -2,6 +2,7 @@ namespace IceRemembers.Seed;
 
 using System.Globalization;
 
+using Engine.Constants;
 using Engine.Domain.Startup;
 using Engine.WorldGen;
 
@@ -34,8 +35,12 @@ internal static class IceRemembersSeedQualityValidator
 
     private static void ValidateEntityPositions(DomainStartupSeed seed, List<string> issues)
     {
-        var cellsByCoord = seed.Cells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
-        var terrainCatalog = IceRemembersTerrainCatalog.CreateWorldGenCatalog();
+        var physicalCellsByCoord = seed.Cells
+            .Where(cell => cell.PlaneCode == PlaneCodes.Physical)
+            .ToDictionary(cell => new HexCoord(cell.Q, cell.R));
+        var terrainNames = IceRemembersTerrainCatalog.DomainTerrains
+            .Select(terrain => terrain.Name)
+            .ToHashSet(StringComparer.Ordinal);
 
         var duplicatePhysical = seed.Entities
             .GroupBy(entity => new HexCoord(entity.PhysicalQ, entity.PhysicalR))
@@ -49,14 +54,18 @@ internal static class IceRemembersSeedQualityValidator
 
         foreach (var entity in seed.Entities)
         {
-            ValidateEntityPosition(entity, cellsByCoord, terrainCatalog, issues);
+            ValidateEntityPosition(entity, physicalCellsByCoord, issues);
+        }
+
+        foreach (var cell in seed.Cells)
+        {
+            ValidateCellTerrain(cell, terrainNames, issues);
         }
     }
 
     private static void ValidateEntityPosition(
         DomainSeedEntity entity,
         Dictionary<HexCoord, DomainSeedCell> cellsByCoord,
-        TerrainCatalog terrainCatalog,
         List<string> issues)
     {
         var coord = new HexCoord(entity.PhysicalQ, entity.PhysicalR);
@@ -66,15 +75,15 @@ internal static class IceRemembersSeedQualityValidator
             return;
         }
 
-        ValidateEntityTerrain(coord, cell, terrainCatalog, issues);
+        ValidatePhysicalEntityTerrain(coord, cell, issues);
     }
 
-    private static void ValidateEntityTerrain(
+    private static void ValidatePhysicalEntityTerrain(
         HexCoord coord,
         DomainSeedCell cell,
-        TerrainCatalog terrainCatalog,
         List<string> issues)
     {
+        var terrainCatalog = IceRemembersTerrainCatalog.CreateWorldGenCatalog();
         try
         {
             _ = terrainCatalog.Resolve(cell.Terrain);
@@ -82,6 +91,17 @@ internal static class IceRemembersSeedQualityValidator
         catch (KeyNotFoundException)
         {
             issues.Add($"unknown terrain '{cell.Terrain}' at {coord}");
+        }
+    }
+
+    private static void ValidateCellTerrain(
+        DomainSeedCell cell,
+        HashSet<string> terrainNames,
+        List<string> issues)
+    {
+        if (!terrainNames.Contains(cell.Terrain))
+        {
+            issues.Add($"unknown terrain '{cell.Terrain}' on plane {cell.PlaneCode} at {cell.Q},{cell.R}");
         }
     }
 
@@ -113,7 +133,8 @@ internal static class IceRemembersSeedQualityValidator
             seed.Cells
                 .OrderBy(cell => cell.Q)
                 .ThenBy(cell => cell.R)
-                .Select(cell => $"{cell.Q},{cell.R}:{cell.Terrain}:{cell.OwnerSeedEntityId}"));
+                .ThenBy(cell => cell.PlaneCode)
+                .Select(cell => $"{cell.PlaneCode}:{cell.Q},{cell.R}:{cell.Terrain}:{cell.OwnerSeedEntityId}"));
     }
 
     public static string EntityPlacementFingerprint(DomainStartupSeed seed)

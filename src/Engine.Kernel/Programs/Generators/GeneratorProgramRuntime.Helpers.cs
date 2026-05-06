@@ -145,7 +145,7 @@ internal sealed partial class GeneratorProgramRuntime
         return KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal).SelectedEntityId;
     }
 
-    private void PublishDueGeneratorStats(Simulation simulation, int tick)
+    private void PublishGeneratorEvaluationStats(Simulation simulation, int tick)
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
@@ -222,6 +222,17 @@ internal sealed partial class GeneratorProgramRuntime
 
         _terrainFilterCount++;
         _terrainFilterIds[_terrainFilterCount] = terrainId;
+    }
+
+    private void AddTerrainFilterId(int terrainId, int[] starts, int[] counts, int slot)
+    {
+        if (counts[slot] == 0)
+        {
+            starts[slot] = _terrainFilterCount + 1;
+        }
+
+        AddTerrainFilterId(terrainId);
+        counts[slot]++;
     }
 
     private void EnsureOpenGenerator(int generatorSlot)

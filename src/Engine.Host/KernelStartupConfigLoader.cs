@@ -1,5 +1,6 @@
 namespace Engine.Host;
 
+using System.Globalization;
 using System.Text.Json;
 
 using Engine.Kernel;
@@ -112,12 +113,22 @@ internal static class KernelStartupConfigLoader
             return tuning;
         }
 
-        if (!TryGetBool(generators, out var retry, "retryFireTargets", "retry_fire_targets"))
+        if (TryGetBool(generators, out var retry, "retryFireTargets", "retry_fire_targets"))
         {
-            return tuning;
+            tuning = WithRetryFireTargets(tuning, retry);
         }
 
-        return WithRetryFireTargets(tuning, retry);
+        if (TryGetInt(generators, out var pulseWidthTicks, "pulseWidthTicks", "pulse_width_ticks"))
+        {
+            tuning = WithGeneratorPulseWidth(tuning, pulseWidthTicks);
+        }
+
+        if (TryGetInt(generators, out var firesPerPulse, "firesPerPulse", "fires_per_pulse"))
+        {
+            tuning = WithGeneratorFiresPerPulse(tuning, firesPerPulse);
+        }
+
+        return tuning;
     }
 
     private static KernelTuningOptions ApplyJsonUpkeepTuning(JsonElement programs, KernelTuningOptions tuning)
@@ -273,10 +284,26 @@ internal static class KernelStartupConfigLoader
         string value,
         KernelTuningOptions tuning)
     {
-        return string.Equals(key, "RETRYFIRETARGETS", StringComparison.Ordinal) &&
-               bool.TryParse(value, out var retry)
-            ? WithRetryFireTargets(tuning, retry)
-            : tuning;
+        var scalar = ReadBareTomlValue(value);
+        if (string.Equals(key, "RETRYFIRETARGETS", StringComparison.Ordinal) &&
+            bool.TryParse(scalar, out var retry))
+        {
+            return WithRetryFireTargets(tuning, retry);
+        }
+
+        if (string.Equals(key, "PULSEWIDTHTICKS", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var pulseWidthTicks))
+        {
+            return WithGeneratorPulseWidth(tuning, pulseWidthTicks);
+        }
+
+        if (string.Equals(key, "FIRESPERPULSE", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var firesPerPulse))
+        {
+            return WithGeneratorFiresPerPulse(tuning, firesPerPulse);
+        }
+
+        return tuning;
     }
 
     private static KernelTuningOptions ApplyTomlUpkeepValue(
@@ -297,6 +324,34 @@ internal static class KernelStartupConfigLoader
                 Generators = tuning.Programs.Generators with
                 {
                     RetryFireTargets = retry,
+                },
+            },
+        };
+    }
+
+    private static KernelTuningOptions WithGeneratorPulseWidth(KernelTuningOptions tuning, int pulseWidthTicks)
+    {
+        return tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                Generators = tuning.Programs.Generators with
+                {
+                    PulseWidthTicks = pulseWidthTicks,
+                },
+            },
+        };
+    }
+
+    private static KernelTuningOptions WithGeneratorFiresPerPulse(KernelTuningOptions tuning, int firesPerPulse)
+    {
+        return tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                Generators = tuning.Programs.Generators with
+                {
+                    FiresPerPulse = firesPerPulse,
                 },
             },
         };
@@ -370,6 +425,24 @@ internal static class KernelStartupConfigLoader
                 value = property.GetBoolean();
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetInt(JsonElement element, out int value, params string[] propertyNames)
+    {
+        value = 0;
+        for (var i = 0; i < propertyNames.Length; i++)
+        {
+            if (!element.TryGetProperty(propertyNames[i], out var property) ||
+                property.ValueKind != JsonValueKind.Number ||
+                !property.TryGetInt32(out value))
+            {
+                continue;
+            }
+
+            return true;
         }
 
         return false;

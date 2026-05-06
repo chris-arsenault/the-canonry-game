@@ -207,7 +207,6 @@ public sealed class DefinitionGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
-    public bool AllowWilderness { get; init; }
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
@@ -243,7 +242,15 @@ public sealed class DefinitionProducedEntity
     public float CreateChance { get; init; } = 1f;
     public bool CreateIfMissing { get; init; } = true;
     public SemanticPlacement PhysicalPlacement { get; init; } = SemanticPlacement.Near;
+    public IReadOnlySet<string>? PhysicalPlacementPreferredTerrains { get; init; }
+    public IReadOnlySet<string>? PhysicalPlacementAllowedTerrains { get; init; }
+    public IReadOnlySet<string>? PhysicalPlacementAvoidedTerrains { get; init; }
+    public string? PhysicalPlacementFallbackTerrain { get; init; }
     public SemanticPlacement SemanticPlacement { get; init; } = SemanticPlacement.Near;
+    public IReadOnlySet<string>? SemanticPlacementPreferredTerrains { get; init; }
+    public IReadOnlySet<string>? SemanticPlacementAllowedTerrains { get; init; }
+    public IReadOnlySet<string>? SemanticPlacementAvoidedTerrains { get; init; }
+    public string? SemanticPlacementFallbackTerrain { get; init; }
     public string PlacementRef { get; init; } = "$target";
     public required string InheritCultureFrom { get; init; }
     public DefinitionEntityQuery? Query { get; init; }

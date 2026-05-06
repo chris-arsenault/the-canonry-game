@@ -97,8 +97,8 @@ nothing. Generators can also create relationships and apply secondary effects.
 
 Both systems are data-defined through the domain and compiled into primitive
 kernel program data. Their gates and mutations use shared kernel query and
-effect primitives; cadence, target selection, scoring, and production order
-remain caller policy.
+effect primitives; pulse budgeting, target selection, scoring, and production
+order remain caller policy.
 
 ## Observability
 

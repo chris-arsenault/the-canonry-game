@@ -111,7 +111,7 @@ visible during review without adding a second semantic validator.
 | Generator | Causal limit |
 | --- | --- |
 | `ice_settles_accounts` | Depends on an `at_war_with` relationship and an offered penguin; marks the penguin historical and removes the selected war relationship. |
-| `what_the_spring_remembers` | Depends on an incoming `cleansed_by` relationship and absence of `anchored`; creates an anchored relic on the region. |
+| `what_the_spring_remembers` | Depends on an incoming `cleansed_by` relationship and absence of incoming `memorializes`; creates an anchored memorial relic on the region. |
 | `war_breaks_the_land` | Depends on an `at_war_with` relationship and fewer than eight local waste cells; creates a scar region that turns finite nearby land into wastes. |
 | `routes_draw_readers` | Depends on high `trade_route` strength and reduces the selected trade route strength. |
 | `what_the_artifact_knows` | Depends on a held artifact and absence of `home_base`; creates a home-base relationship for the penguin. |

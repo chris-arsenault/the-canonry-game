@@ -21,142 +21,93 @@ internal sealed partial class GeneratorProgramRuntime
         return _subtypeIds[_producedSubtypeChoiceStarts[producedSlot] + selected];
     }
 
-    private void ResolvePhysicalPlacement(
+    private bool ResolvePlacement(
         Simulation simulation,
         int anchorEntityId,
+        int planeCode,
+        int producedSlot,
         int placementCode,
+        int minRadius,
+        int maxRadius,
         out int q,
         out int r)
     {
         var world = simulation.World;
-        var originQ = world.EntityPhysicalQ(anchorEntityId);
-        var originR = world.EntityPhysicalR(anchorEntityId);
-        switch (placementCode)
+        var originQ = planeCode == PlaneCodes.Physical
+            ? world.EntityPhysicalQ(anchorEntityId)
+            : world.EntitySemanticQ(anchorEntityId);
+        var originR = planeCode == PlaneCodes.Physical
+            ? world.EntityPhysicalR(anchorEntityId)
+            : world.EntitySemanticR(anchorEntityId);
+        if (placementCode == GeneratorPlacementCodes.Locality)
         {
-            case GeneratorPlacementCodes.On:
-                if (!KernelQuery.PhysicalCellIsOccupied(world, originQ, originR))
-                {
-                    q = originQ;
-                    r = originR;
-                    return;
-                }
-
-                if (FindFreePhysicalHex(world, originQ, originR, maxRadius: 5, out q, out r))
-                {
-                    return;
-                }
-
-                q = originQ;
-                r = originR;
-                return;
-            case GeneratorPlacementCodes.Across:
-                var mirroredQ = -originQ;
-                var mirroredR = -originR;
-                if (IsFreePhysical(world, mirroredQ, mirroredR))
-                {
-                    q = mirroredQ;
-                    r = mirroredR;
-                    return;
-                }
-
-                if (FindFreePhysicalHex(world, mirroredQ, mirroredR, world.MapRadius, out q, out r))
-                {
-                    return;
-                }
-
-                q = originQ;
-                r = originR;
-                return;
-            case GeneratorPlacementCodes.InCoverageLocality:
-                if (FindRandomFreePhysicalHexInCoverage(simulation, anchorEntityId, out q, out r))
-                {
-                    return;
-                }
-
-                goto default;
-            default:
-                if (FindFreePhysicalHex(world, originQ, originR, maxRadius: 5, out q, out r))
-                {
-                    return;
-                }
-
-                q = originQ;
-                r = originR;
-                return;
-        }
-    }
-
-    private void ResolveSemanticPlacement(
-        Simulation simulation,
-        int anchorEntityId,
-        int placementCode,
-        out int q,
-        out int r)
-    {
-        var world = simulation.World;
-        var originQ = world.EntitySemanticQ(anchorEntityId);
-        var originR = world.EntitySemanticR(anchorEntityId);
-        switch (placementCode)
-        {
-            case GeneratorPlacementCodes.On:
-                if (SemanticCoordinateAllowed(world, originQ, originR) && !KernelQuery.SemanticCellIsOccupied(world, originQ, originR))
-                {
-                    q = originQ;
-                    r = originR;
-                    return;
-                }
-
-                if (FindFreeSemanticHex(world, originQ, originR, maxRadius: 5, out q, out r))
-                {
-                    return;
-                }
-
-                ResolveSemanticFallback(world, originQ, originR, out q, out r);
-                return;
-            case GeneratorPlacementCodes.Across:
-                var mirroredQ = -originQ;
-                var mirroredR = -originR;
-                if (SemanticCoordinateAllowed(world, mirroredQ, mirroredR) && !KernelQuery.SemanticCellIsOccupied(world, mirroredQ, mirroredR))
-                {
-                    q = mirroredQ;
-                    r = mirroredR;
-                    return;
-                }
-
-                if (FindFreeSemanticHex(world, mirroredQ, mirroredR, maxRadius: EffectiveSemanticRadius(world), out q, out r))
-                {
-                    return;
-                }
-
-                ResolveSemanticFallback(world, originQ, originR, out q, out r);
-                return;
-            default:
-                if (FindFreeSemanticHex(world, originQ, originR, maxRadius: 5, out q, out r))
-                {
-                    return;
-                }
-
-                ResolveSemanticFallback(world, originQ, originR, out q, out r);
-                return;
-        }
-    }
-
-    private void ResolveSemanticFallback(WorldState world, int originQ, int originR, out int q, out int r)
-    {
-        if (SemanticCoordinateAllowed(world, originQ, originR))
-        {
-            q = originQ;
-            r = originR;
-            return;
+            return FindTerrainAwareFreeHexInCoverage(
+                simulation,
+                planeCode,
+                producedSlot,
+                anchorEntityId,
+                originQ,
+                originR,
+                minRadius,
+                maxRadius,
+                out q,
+                out r);
         }
 
-        if (FindFreeSemanticHex(world, 0, 0, maxRadius: EffectiveSemanticRadius(world), out q, out r))
+        if (placementCode == GeneratorPlacementCodes.Area)
         {
-            return;
+            return FindTerrainAwareHex(
+                simulation,
+                planeCode,
+                producedSlot,
+                originQ,
+                originR,
+                minRadius,
+                maxRadius,
+                out q,
+                out r);
         }
 
         q = 0;
         r = 0;
+        return false;
+    }
+
+    private bool ResolveProducedPlacement(
+        Simulation simulation,
+        int anchorEntityId,
+        int produced,
+        out int physicalQ,
+        out int physicalR,
+        out int semanticQ,
+        out int semanticR)
+    {
+        if (!ResolvePlacement(
+                simulation,
+                anchorEntityId,
+                PlaneCodes.Physical,
+                produced,
+                _producedPhysicalPlacementCodes[produced],
+                _producedPhysicalPlacementMinRadii[produced],
+                _producedPhysicalPlacementMaxRadii[produced],
+                out physicalQ,
+                out physicalR))
+        {
+            semanticQ = 0;
+            semanticR = 0;
+            return false;
+        }
+
+        return ResolvePlacement(
+            simulation,
+            anchorEntityId,
+            PlaneCodes.Semantic,
+            produced,
+            _producedSemanticPlacementCodes[produced],
+            _producedSemanticPlacementMinRadii[produced],
+            _producedSemanticPlacementMaxRadii[produced],
+            out semanticQ,
+            out semanticR);
     }
 
     private bool CreateCoverage(
@@ -763,128 +714,16 @@ internal sealed partial class GeneratorProgramRuntime
         return false;
     }
 
-    private static bool FindFreePhysicalHex(
-        WorldState world,
-        int originQ,
-        int originR,
-        int maxRadius,
-        out int q,
-        out int r)
+    private int EffectivePlacementMaxRadius(WorldState world, int planeCode, int maxRadius)
     {
-        for (var radius = 0; radius <= maxRadius; radius++)
+        if (maxRadius != GeneratorProgramConstants.UnboundedPlacementMaxRadius)
         {
-            for (var dq = -radius; dq <= radius; dq++)
-            {
-                var minDr = global::System.Math.Max(-radius, -dq - radius);
-                var maxDr = global::System.Math.Min(radius, -dq + radius);
-                for (var dr = minDr; dr <= maxDr; dr++)
-                {
-                    q = originQ + dq;
-                    r = originR + dr;
-                    if (KernelQuery.HexDistance(originQ, originR, q, r) == radius && IsFreePhysical(world, q, r))
-                    {
-                        return true;
-                    }
-                }
-            }
+            return maxRadius;
         }
 
-        q = originQ;
-        r = originR;
-        return false;
-    }
-
-    private static bool FindRandomFreePhysicalHexInCoverage(
-        Simulation simulation,
-        int coverageOwnerId,
-        out int q,
-        out int r)
-    {
-        var world = simulation.World;
-        var candidateCount = 0;
-        KernelQuery.ForEachCoverageCell(
-            world,
-            coverageOwnerId,
-            (cq, cr) =>
-            {
-                if (IsFreePhysical(world, cq, cr))
-                {
-                    candidateCount++;
-                }
-
-                return true;
-            });
-
-        if (candidateCount == 0)
-        {
-            q = 0;
-            r = 0;
-            return false;
-        }
-
-        var selected = simulation.NextInt(candidateCount);
-        var seen = 0;
-        var selectedQ = 0;
-        var selectedR = 0;
-        var found = false;
-        KernelQuery.ForEachCoverageCell(
-            world,
-            coverageOwnerId,
-            (cq, cr) =>
-            {
-                if (!IsFreePhysical(world, cq, cr))
-                {
-                    return true;
-                }
-
-                if (seen == selected)
-                {
-                    selectedQ = cq;
-                    selectedR = cr;
-                    found = true;
-                    return false;
-                }
-
-                seen++;
-                return true;
-            });
-
-        q = selectedQ;
-        r = selectedR;
-        return found;
-    }
-
-    private bool FindFreeSemanticHex(
-        WorldState world,
-        int originQ,
-        int originR,
-        int maxRadius,
-        out int q,
-        out int r)
-    {
-        for (var radius = 0; radius <= maxRadius; radius++)
-        {
-            for (var dq = -radius; dq <= radius; dq++)
-            {
-                var minDr = global::System.Math.Max(-radius, -dq - radius);
-                var maxDr = global::System.Math.Min(radius, -dq + radius);
-                for (var dr = minDr; dr <= maxDr; dr++)
-                {
-                    q = originQ + dq;
-                    r = originR + dr;
-                    if (KernelQuery.HexDistance(originQ, originR, q, r) == radius &&
-                        SemanticCoordinateAllowed(world, q, r) &&
-                        !KernelQuery.SemanticCellIsOccupied(world, q, r))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        q = originQ;
-        r = originR;
-        return false;
+        return planeCode == PlaneCodes.Physical
+            ? world.MapRadius
+            : EffectiveSemanticRadius(world);
     }
 
     private bool SemanticCoordinateAllowed(WorldState world, int q, int r)

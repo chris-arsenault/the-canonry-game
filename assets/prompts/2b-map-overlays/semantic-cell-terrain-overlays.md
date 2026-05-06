@@ -1,7 +1,5 @@
-# Semantic Cell Terrain Overlays
+# Semantic Texture Mark Overlay
 
-Transparent PNG overlays for semantic-plane hex cells. Produce a small set of tinted abstract terrain treatments that can sit over the stained-glass rose without obscuring axis color: smooth waterlike flow, fractured crag, packed ice, reef texture, wastes scarring, and tundra grain.
+A stylized semantic texture overlay marker. Simplified app-icon geometry.
 
-These should read as semantic meaning overlays rather than physical ground tiles.
-
-Initial runtime placeholder path: `assets/game/map-overlays/semantic-cell-overlay.png`.
+A compact cluster of five small abstract glyphs: a three-line wave, a zigzag fracture, a five-dot grain mark, a two-prong fork, and two short slash ticks. Each glyph is a flat saturated palette shape with sharp clean edges and clear spacing. Reads as semantic texture at map scale.

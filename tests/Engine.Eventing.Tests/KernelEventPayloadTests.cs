@@ -113,7 +113,7 @@ public sealed class KernelEventPayloadTests
         var kernelStorageGrown = new KernelStorageGrownKernelEvent(22, 23, 24, 25, 26, 27, 28, 29);
         Assert.Equal(kernelStorageGrown, KernelEvent.From(kernelStorageGrown).AsKernelStorageGrown());
 
-        var trace = new TraceKernelEvent(23, 24, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 0, 0, 1.25f, 2.5f, 3.75f, 5f, 0f, 0f);
+        var trace = new TraceKernelEvent(23, 24, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 0, 0, 3, 8, 2, 1, 1, 1, 1.25f, 2.5f, 3.75f, 5f, 0f, 0f);
         Assert.Equal(trace, KernelEvent.From(trace).AsTrace());
     }
 }

@@ -18,14 +18,10 @@ public static partial class IceRemembersDefinition
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateLowAltitudeVerbs() =>
     [
         ..CreatePhysicalMovementVerbs(),
-        ..CreateNewKindsPhysicalMovementVerbs(),
         ..CreateSemanticMovementVerbs(),
-        ..CreateNewKindsSemanticMovementVerbs(),
         ..CreateRelationshipStrengthMutationVerbs(),
         ..CreateSemanticInfluenceVerbs(),
-        ..CreateNewKindsSemanticInfluenceVerbs(),
         ..CreatePhysicalInfluenceVerbs(),
-        ..CreateNewKindsPhysicalInfluenceVerbs(),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalMovementVerbs() =>
@@ -55,10 +51,6 @@ public static partial class IceRemembersDefinition
             targetKind: K.Region, ticks: (40, 120), dwell: 10, radius: 1, samples: 14, weights: (0.65f, 0.4f, 0.6f, 0.25f, 0.2f, 1.1f)),
         MovementVerb(Verb.ArtifactSinkSeaward, "Sink Seaward", K.Artifact, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (35, 120), dwell: 14, radius: 1, samples: 28, weights: (0.7f, 1.0f, 1.1f, 0.25f, 0.2f, 0.5f)),
-    ];
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsPhysicalMovementVerbs() =>
-    [
         MovementVerb(Verb.OrcaHuntTheMark, "Hunt the Mark", K.Orca, Mode.EntityKind,
             targetKind: K.Penguin, ticks: (30, 90), dwell: 10, radius: 1, samples: 14, weights: (0.7f, 0.2f, 0.4f, 0.5f, 0.2f, 1.0f),
             affinityRelationshipKind: L(Rel.RivalOf), affinityWeight: 1.6f),
@@ -103,10 +95,6 @@ public static partial class IceRemembersDefinition
             targetKind: K.Artifact, ticks: (60, 160), dwell: 16, radius: 1, samples: 12, weights: (0.6f, 0.2f, 0.6f, 0.45f, 0.15f, 0.5f), plane: PrimaryPlane.Semantic),
         MovementVerb(Verb.RegionDream, "Dream", K.Region, Mode.Explore,
             ticks: (55, 150), dwell: 12, samples: 24, weights: (0.8f, 1.0f, 1.5f, 0.25f, 0.25f, 0.2f), plane: PrimaryPlane.Semantic),
-    ];
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsSemanticMovementVerbs() =>
-    [
         MovementVerb(Verb.OrcaCarryTheDeedName, "Carry the Deed-Name", K.Orca, Mode.Explore,
             ticks: (50, 140), dwell: 8, samples: 22, weights: (0.6f, 1.0f, 1.4f, 0.2f, 0.2f, 0.25f), plane: PrimaryPlane.Semantic),
         MovementVerb(Verb.PointOfInterestResonateThroughTheStratum, "Resonate Through the Stratum", K.PointOfInterest, Mode.Explore,
@@ -141,47 +129,55 @@ public static partial class IceRemembersDefinition
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateRelationshipStrengthMutationVerbs() =>
     [
         RelationshipStrengthVerb(Verb.FactionTendAlliance, "Tend Alliance", K.Faction, L(Rel.AlliedWith),
-            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 12, delta: 0.002f, radius: 1, samples: 12,
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 12, delta: 0.0037f, radius: 1, samples: 12,
             weights: (0.55f, 0.15f, 0.35f, 0.35f, 0.1f, 0.5f), affinityWeight: 0.8f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.FactionFrayAlliance, "Fray Alliance", K.Faction, L(Rel.AlliedWith),
-            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 10, delta: -0.0018f, radius: 1, samples: 12,
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 10, delta: -0.0037f, radius: 1, samples: 12,
             weights: (0.35f, 0.1f, 0.4f, 0.45f, 0.1f, 0.35f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.FactionInflameRivalry, "Inflame Rivalry", K.Faction, L(Rel.RivalOf),
-            LowAltitudeVerbRelationshipDirection.Either, ticks: (30, 90), dwell: 8, delta: 0.0018f, radius: 1, samples: 12,
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (30, 90), dwell: 8, delta: 0.0042f, radius: 1, samples: 12,
             weights: (0.45f, 0.1f, 0.35f, 0.45f, 0.1f, 0.4f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.FactionCoolRivalry, "Cool Rivalry", K.Faction, L(Rel.RivalOf),
-            LowAltitudeVerbRelationshipDirection.Either, ticks: (30, 90), dwell: 10, delta: -0.0016f, radius: 1, samples: 12,
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (30, 90), dwell: 10, delta: -0.0042f, radius: 1, samples: 12,
             weights: (0.35f, 0.1f, 0.45f, 0.3f, 0.1f, 0.35f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.SettlementTrade, "Tend Trade Route", K.Settlement, L(Rel.TradeRoute),
-            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 12, delta: 0.0016f, radius: 1, samples: 12,
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 12, delta: 0.0044f, radius: 1, samples: 12,
             weights: (0.5f, 0.1f, 0.35f, 0.3f, 0.1f, 0.55f), affinityWeight: 0.8f),
         RelationshipStrengthVerb(Verb.AbilityReinforcePractice, "Reinforce Practice", K.Ability, L(Rel.PracticedBy),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.002f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.0037f, radius: 1, samples: 10,
             weights: (0.45f, 0.1f, 0.35f, 0.25f, 0.1f, 0.5f), affinityWeight: 0.9f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.AbilityLetPracticeFade, "Let Practice Fade", K.Ability, L(Rel.PracticedBy),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: -0.0016f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: -0.0037f, radius: 1, samples: 10,
             weights: (0.35f, 0.1f, 0.4f, 0.3f, 0.1f, 0.35f), affinityWeight: 0.8f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.OrcaReinforcePodTie, "Reinforce Pod Tie", K.Orca, L(Rel.MemberOf),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (30, 90), dwell: 10, delta: 0.0017f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (30, 90), dwell: 10, delta: 0.0042f, radius: 1, samples: 10,
             weights: (0.45f, 0.1f, 0.4f, 0.25f, 0.1f, 0.45f), affinityWeight: 0.8f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.PointOfInterestLoosenClaim, "Loosen the Claim", K.PointOfInterest, L(Rel.ClaimedBy),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 115), dwell: 12, delta: -0.0014f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 115), dwell: 12, delta: -0.0032f, radius: 1, samples: 10,
             weights: (0.35f, 0.1f, 0.45f, 0.35f, 0.1f, 0.35f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.AbilityChargeConduit, "Charge the Conduit", K.Ability, L(Rel.ConduitOf),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.0015f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.0037f, radius: 1, samples: 10,
             weights: (0.45f, 0.1f, 0.35f, 0.25f, 0.1f, 0.45f), affinityWeight: 0.8f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.MonsterDeepenCorruption, "Deepen Corruption", K.Monster, L(Rel.CorruptedBy),
-            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 100), dwell: 10, delta: 0.0017f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 100), dwell: 10, delta: 0.0037f, radius: 1, samples: 10,
             weights: (0.45f, 0.1f, 0.35f, 0.45f, 0.1f, 0.4f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.TransportOverstrainConduit, "Overstrain the Conduit", K.Transport, L(Rel.ConduitOf),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: -0.0014f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: -0.0037f, radius: 1, samples: 10,
             weights: (0.35f, 0.1f, 0.4f, 0.35f, 0.1f, 0.35f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.OccurrenceExhaustWar, "Exhaust the War", K.Occurrence, L(Rel.AtWarWith),
-            LowAltitudeVerbRelationshipDirection.Either, ticks: (40, 120), dwell: 12, delta: -0.0015f, radius: 1, samples: 10,
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (40, 120), dwell: 12, delta: -0.0031f, radius: 1, samples: 10,
             weights: (0.4f, 0.1f, 0.4f, 0.35f, 0.1f, 0.45f), affinityWeight: 0.7f, plane: PrimaryPlane.Semantic),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticInfluenceVerbs() =>
+    [
+        ..CreatePenguinArtifactSemanticInfluenceVerbs(),
+        ..CreateSettlementFactionRegionSemanticInfluenceVerbs(),
+        ..CreateOrcaPointOfInterestSemanticInfluenceVerbs(),
+        ..CreateAbilityMonsterTransportOccurrenceSemanticInfluenceVerbs(),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreatePenguinArtifactSemanticInfluenceVerbs() =>
     [
         InfluenceVerb(Verb.PenguinWitness, "Leave Witness", K.Penguin,
             Op.GrowInfluence, Mode.OwnInfluence,
@@ -201,6 +197,10 @@ public static partial class IceRemembersDefinition
         InfluenceVerb(Verb.ArtifactCorrupt, "Bleed Corruption", K.Artifact,
             Op.ReduceInfluence, Mode.ForeignInfluence,
             ticks: (35, 100), dwell: 8, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.5f, 0.2f, 0.5f, 0.45f, 0.05f, 0.25f), plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateSettlementFactionRegionSemanticInfluenceVerbs() =>
+    [
         InfluenceVerb(Verb.SettlementPropaganda, "Paint the Hearth-Signs", K.Settlement,
             Op.GrowInfluence, Mode.OwnInfluence,
             ticks: (35, 95), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.85f, 0.7f, 1.0f, 0.35f, 0.25f, 0.35f), plane: PrimaryPlane.Semantic),
@@ -230,7 +230,7 @@ public static partial class IceRemembersDefinition
             ticks: (45, 130), dwell: 12, influence: (4f, 1, 0f, 0f, 0f), samples: 22, weights: (0.45f, 0.2f, 0.6f, 0.35f, 0.05f, 0.2f), plane: PrimaryPlane.Semantic),
     ];
 
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsSemanticInfluenceVerbs() =>
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateOrcaPointOfInterestSemanticInfluenceVerbs() =>
     [
         InfluenceVerb(Verb.OrcaSingTheLiturgy, "Sing the Liturgy", K.Orca,
             Op.GrowInfluence, Mode.OwnInfluence,
@@ -247,6 +247,10 @@ public static partial class IceRemembersDefinition
         InfluenceVerb(Verb.PointOfInterestDrainTheApproach, "Drain the Approach", K.PointOfInterest,
             Op.ReduceInfluence, Mode.ForeignInfluence,
             ticks: (40, 115), dwell: 10, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.45f, 0.2f, 0.5f, 0.35f, 0.05f, 0.25f), plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateAbilityMonsterTransportOccurrenceSemanticInfluenceVerbs() =>
+    [
         InfluenceVerb(Verb.AbilitySpreadTheForm, "Spread the Form", K.Ability,
             Op.GrowInfluence, Mode.OwnInfluence,
             ticks: (35, 100), dwell: 10, influence: (3f, 1, 0f, 0f, 0f), samples: 18, weights: (0.65f, 0.4f, 0.7f, 0.3f, 0.15f, 0.4f), plane: PrimaryPlane.Semantic),
@@ -303,10 +307,6 @@ public static partial class IceRemembersDefinition
         InfluenceVerb(Verb.FactionMoveSeat, "Move the Seat", K.Faction,
             Op.MoveHeadquarters, Mode.OwnInfluence,
             ticks: (45, 140), dwell: 18, influence: (2f, 0, 0f, 0.04f, 65f), samples: 24, weights: (0.25f, 0.3f, 0.7f, 0.25f, 0.1f, 0.4f)),
-    ];
-
-    private static IReadOnlyList<LowAltitudeVerbConfig> CreateNewKindsPhysicalInfluenceVerbs() =>
-    [
         InfluenceVerb(Verb.OrcaMarkTheHuntingGround, "Mark the Hunting Ground", K.Orca,
             Op.GrowInfluence, Mode.OwnInfluence,
             ticks: (30, 90), dwell: 8, influence: (3.5f, 1, 0f, 0f, 0f), samples: 22, weights: (0.85f, 0.7f, 1.0f, 0.3f, 0.2f, 0.4f)),

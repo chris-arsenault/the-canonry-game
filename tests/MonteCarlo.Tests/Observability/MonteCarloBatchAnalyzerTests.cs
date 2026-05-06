@@ -165,6 +165,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     public void Options_PerfModeDisablesStateTelemetryAndAnalysisByDefault()
     {
         var options = MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "perf-mode-test",
             "--runs", "1",
             "--ticks", "3",
             "--seed", "7200",
@@ -244,6 +246,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     public void Options_ParseTraceFlagEnablesTrace()
     {
         var options = MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "trace-test",
             "--trace",
         ]);
 
@@ -254,6 +258,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     public void Options_ConfigFileFlagSetsKernelConfigPath()
     {
         var options = MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "config-test",
             "--config-file",
             "kernel-tuning.toml",
         ]);
@@ -265,12 +271,85 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     public void Options_TraceKeepsStateTelemetryEnabledInPerfMode()
     {
         var options = MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "perf-trace-test",
             "--perf",
             "--trace",
         ]);
 
         Assert.True(options.TraceEnabled);
         Assert.True(options.CollectStateTelemetry);
+    }
+
+    [Fact]
+    public void Options_RunCommandRequiresRunId()
+    {
+        var error = Assert.Throws<ArgumentException>(() => MonteCarloOptions.Parse([
+            "run",
+            "--runs", "1",
+        ]));
+
+        Assert.Contains("--run-id", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Options_RejectsLegacyOutPath()
+    {
+        var error = Assert.Throws<ArgumentException>(() => MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "legacy-out-test",
+            "--out", "somewhere",
+        ]));
+
+        Assert.Contains("--artifact-root", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Cli_RegisterAppendStatsAndDeleteRunAreRegistryOwned()
+    {
+        var artifactRoot = CreateTempDirectory();
+        var runId = "registry-owned-test";
+
+        var registerExit = MonteCarloCli.Run([
+            "register",
+            "--run-id", runId,
+            "--artifact-root", artifactRoot,
+            "--runs", "1",
+            "--ticks", "2",
+            "--seed", "1111",
+        ]);
+        Assert.Equal(0, registerExit);
+
+        var duplicateExit = MonteCarloCli.Run([
+            "register",
+            "--run-id", runId,
+            "--artifact-root", artifactRoot,
+        ]);
+        Assert.Equal(2, duplicateExit);
+
+        var appendExit = MonteCarloCli.Run([
+            "append-stats",
+            "--run-id", runId,
+            "--artifact-root", artifactRoot,
+            "semantic_road_moves=28",
+            "--stat", "placement_coord_diffs=6818",
+        ]);
+        Assert.Equal(0, appendExit);
+
+        var manifestPath = Path.Combine(artifactRoot, runId, "manifest.json");
+        var manifest = File.ReadAllText(manifestPath);
+        Assert.Contains("\"runId\": \"registry-owned-test\"", manifest, StringComparison.Ordinal);
+        Assert.Contains("\"semantic_road_moves\": \"28\"", manifest, StringComparison.Ordinal);
+        Assert.Contains("\"placement_coord_diffs\": \"6818\"", manifest, StringComparison.Ordinal);
+
+        var deleteExit = MonteCarloCli.Run([
+            "delete-run",
+            "--run-id", runId,
+            "--artifact-root", artifactRoot,
+        ]);
+        Assert.Equal(0, deleteExit);
+        Assert.False(Directory.Exists(Path.Combine(artifactRoot, runId)));
+        Assert.True(Directory.Exists(Path.Combine(artifactRoot, ".deleted")));
     }
 
     public void Dispose()
@@ -429,6 +508,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static void AddLowAltitudeTraceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
+        AddOfferedLowAltitudeTraceTelemetry(batch, seed);
+        AddSelectedLowAltitudeTraceTelemetry(batch, seed);
+    }
+
+    private static void AddOfferedLowAltitudeTraceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed) =>
         batch.TraceEvents.Add(new TraceRow(
             seed.RunId,
             20,
@@ -447,12 +531,20 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             AffordanceSourceKindCode: AffordanceSourceKindCodes.Generator,
             AffordanceSourceId: 5,
             AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.TerrainPresence,
+            AffordanceSourceKindMask: 3,
+            AffordanceShapeMask: 24,
+            AffordanceContributionCount: 2,
+            GeneratorAffordanceCount: 1,
+            GambitAffordanceCount: 1,
+            HiddenAffordanceCount: 1,
             Urgency: 1f,
             RewardOrBaseScore: 1f,
             RawWeight: 1f,
             AdjustedWeight: 1f,
             AffordanceScore: 0.5f,
             AffordanceBonus: 0.25f));
+
+    private static void AddSelectedLowAltitudeTraceTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed) =>
         batch.TraceEvents.Add(new TraceRow(
             seed.RunId,
             20,
@@ -471,13 +563,18 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             AffordanceSourceKindCode: AffordanceSourceKindCodes.Generator,
             AffordanceSourceId: 5,
             AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.TerrainPresence,
+            AffordanceSourceKindMask: 1,
+            AffordanceShapeMask: 16,
+            AffordanceContributionCount: 1,
+            GeneratorAffordanceCount: 1,
+            GambitAffordanceCount: 0,
+            HiddenAffordanceCount: 0,
             Urgency: 1f,
             RewardOrBaseScore: 1f,
             RawWeight: 1f,
             AdjustedWeight: 1.2f,
             AffordanceScore: 0.5f,
             AffordanceBonus: 0.25f));
-    }
 
     private static void AddLowAltitudeMovementTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
@@ -601,7 +698,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             InactiveRejectedCount: 0,
             SubtypeRejectedCount: 0,
             SecondaryTargetRejectedCount: 0,
-            WildernessRejectedCount: 0,
             TriggerRejectedCount: 0,
             CandidateCount: 1,
             FailedFireCount: 0,
@@ -618,7 +714,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             InactiveRejectedCount: 0,
             SubtypeRejectedCount: 0,
             SecondaryTargetRejectedCount: 0,
-            WildernessRejectedCount: 0,
             TriggerRejectedCount: 0,
             CandidateCount: 0,
             FailedFireCount: 0,

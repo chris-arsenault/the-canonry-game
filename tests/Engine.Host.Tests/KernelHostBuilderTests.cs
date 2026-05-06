@@ -265,7 +265,12 @@ public sealed class KernelHostBuilderTests
             .RegisterProjection("ui", _ => ui)
             .Build();
 
-        Assert.Equal(startupSeed.Cells.Count, map.HexesById(PlaneCodes.Physical).Count);
+        Assert.Equal(
+            startupSeed.Cells.Count(cell => cell.PlaneCode == PlaneCodes.Physical),
+            map.HexesById(PlaneCodes.Physical).Count);
+        Assert.Equal(
+            startupSeed.Cells.Count(cell => cell.PlaneCode == PlaneCodes.Semantic),
+            map.HexesById(PlaneCodes.Semantic).Count);
         Assert.Equal(host.SeedEventCount, host.Events.NextSequence);
         Assert.True(host.Symbols.TryResolve(ProjectionSymbolKind.Continent, 1, out var continentSymbol));
         Assert.Equal("The Near Shelf", continentSymbol.DisplayName);

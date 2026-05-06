@@ -8,13 +8,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private const int MaxScratchCells = 4096;
     private readonly GeneratorProgramScratch _scratch;
     private int[] _generatorIds => Data.GeneratorIds;
-    private int[] _cadences => Data.Cadences;
     private int[] _targetKindIds => Data.TargetKindIds;
-    private int[] _targetAllowWilderness => Data.TargetAllowWilderness;
     private int[] _pulseWeights => Data.PulseWeights;
     private int[] _maxRuns => Data.MaxRuns;
     private int[] _runCounts => State.RunCounts;
     private bool[] _enabled => State.Enabled;
+    private ref int _currentPulseIndex => ref State.CurrentPulseIndex;
+    private ref int _firesThisPulse => ref State.FiresThisPulse;
     private int[] _targetSubtypeStarts => Data.TargetSubtypeStarts;
     private int[] _targetSubtypeCounts => Data.TargetSubtypeCounts;
     private int[] _targetRequiredOutgoingStarts => Data.TargetRequiredOutgoingStarts;
@@ -68,6 +68,17 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedHasQuery => Data.ProducedHasQuery;
     private int[] _producedPhysicalPlacementCodes => Data.ProducedPhysicalPlacementCodes;
     private int[] _producedSemanticPlacementCodes => Data.ProducedSemanticPlacementCodes;
+    private int[] _producedPhysicalPlacementMinRadii => Data.ProducedPhysicalPlacementMinRadii;
+    private int[] _producedPhysicalPlacementMaxRadii => Data.ProducedPhysicalPlacementMaxRadii;
+    private int[] _producedSemanticPlacementMinRadii => Data.ProducedSemanticPlacementMinRadii;
+    private int[] _producedSemanticPlacementMaxRadii => Data.ProducedSemanticPlacementMaxRadii;
+    private int[] _producedPlacementPreferredTerrainStarts => Data.ProducedPlacementPreferredTerrainStarts;
+    private int[] _producedPlacementPreferredTerrainCounts => Data.ProducedPlacementPreferredTerrainCounts;
+    private int[] _producedPlacementAllowedTerrainStarts => Data.ProducedPlacementAllowedTerrainStarts;
+    private int[] _producedPlacementAllowedTerrainCounts => Data.ProducedPlacementAllowedTerrainCounts;
+    private int[] _producedPlacementAvoidedTerrainStarts => Data.ProducedPlacementAvoidedTerrainStarts;
+    private int[] _producedPlacementAvoidedTerrainCounts => Data.ProducedPlacementAvoidedTerrainCounts;
+    private int[] _producedPlacementFallbackTerrainIds => Data.ProducedPlacementFallbackTerrainIds;
     private int[] _producedPlacementRefCodes => Data.ProducedPlacementRefCodes;
     private int[] _producedCultureRefCodes => Data.ProducedCultureRefCodes;
     private float[] _producedCreateChances => Data.ProducedCreateChances;
@@ -162,6 +173,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        if (tuning.Generators.PulseWidthTicks <= 0 || tuning.Generators.FiresPerPulse < 0)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(tuning));
+        }
+
         Data = data;
         State = state;
         _scratch = scratch;
@@ -191,14 +207,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
     public int RegisterGenerator(
         int generatorId,
-        int cadence,
         int targetKindId,
         int pulseWeight,
-        int maxRuns,
-        bool targetAllowWilderness)
+        int maxRuns)
     {
         ValidatePositive(generatorId);
-        ValidatePositive(cadence);
         ValidatePositive(targetKindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(pulseWeight);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxRuns);
@@ -210,9 +223,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _generatorCount++;
         var slot = _generatorCount;
         _generatorIds[slot] = generatorId;
-        _cadences[slot] = cadence;
         _targetKindIds[slot] = targetKindId;
-        _targetAllowWilderness[slot] = targetAllowWilderness ? 1 : 0;
         _pulseWeights[slot] = pulseWeight;
         _maxRuns[slot] = maxRuns;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
@@ -404,7 +415,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int coverageMinimumCellCount,
         int coverageMinimumSourceRemainingCellCount,
         int coverageRespectTerrainBoundaries,
-        int coverageTransformTerrainId)
+        int coverageTransformTerrainId,
+        int physicalPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
+        int physicalPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
+        int semanticPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
+        int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(refCode);
@@ -413,6 +428,16 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         ValidatePositive(queryCultureMatchCode);
         ValidatePositive(physicalPlacementCode);
         ValidatePositive(semanticPlacementCode);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMinRadius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMaxRadius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMinRadius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMaxRadius);
+        if (physicalPlacementMaxRadius < physicalPlacementMinRadius ||
+            semanticPlacementMaxRadius < semanticPlacementMinRadius)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         ValidatePositive(placementRefCode);
         ValidatePositive(cultureRefCode);
         if (createChance < 0f || createChance > 1f)
@@ -446,7 +471,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             coverageMinimumCellCount,
             coverageMinimumSourceRemainingCellCount,
             coverageRespectTerrainBoundaries,
-            coverageTransformTerrainId);
+            coverageTransformTerrainId,
+            physicalPlacementMinRadius,
+            physicalPlacementMaxRadius,
+            semanticPlacementMinRadius,
+            semanticPlacementMaxRadius);
         _producedCounts[generatorSlot]++;
         _openProducedSlot = _producedCount;
         return _producedCount;
@@ -472,7 +501,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int coverageMinimumCellCount,
         int coverageMinimumSourceRemainingCellCount,
         int coverageRespectTerrainBoundaries,
-        int coverageTransformTerrainId)
+        int coverageTransformTerrainId,
+        int physicalPlacementMinRadius,
+        int physicalPlacementMaxRadius,
+        int semanticPlacementMinRadius,
+        int semanticPlacementMaxRadius)
     {
         _producedRefCodes[producedSlot] = refCode;
         _producedKindIds[producedSlot] = kindId;
@@ -481,6 +514,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _producedHasQuery[producedSlot] = hasQuery;
         _producedPhysicalPlacementCodes[producedSlot] = physicalPlacementCode;
         _producedSemanticPlacementCodes[producedSlot] = semanticPlacementCode;
+        _producedPhysicalPlacementMinRadii[producedSlot] = physicalPlacementMinRadius;
+        _producedPhysicalPlacementMaxRadii[producedSlot] = physicalPlacementMaxRadius;
+        _producedSemanticPlacementMinRadii[producedSlot] = semanticPlacementMinRadius;
+        _producedSemanticPlacementMaxRadii[producedSlot] = semanticPlacementMaxRadius;
         _producedPlacementRefCodes[producedSlot] = placementRefCode;
         _producedCultureRefCodes[producedSlot] = cultureRefCode;
         _producedCreateChances[producedSlot] = createChance;
@@ -497,6 +534,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _producedQuerySubtypeStarts[producedSlot] = _subtypeCount + 1;
         _producedQueryWithoutOutgoingStarts[producedSlot] = _relationshipKindFilterCount + 1;
         _producedQueryWithoutIncomingStarts[producedSlot] = _relationshipKindFilterCount + 1;
+        InitializeProducedPlacementTerrainFilters(producedSlot);
         _producedCoveragePreferredTerrainStarts[producedSlot] = _terrainFilterCount + 1;
         _producedCoverageAllowedTerrainStarts[producedSlot] = _terrainFilterCount + 1;
     }
@@ -527,129 +565,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         EnsureOpenProduced(producedSlot);
         AddRelationshipKindFilterId(relationshipKindId);
         _producedQueryWithoutIncomingCounts[producedSlot]++;
-    }
-
-    public void AddProducedCoveragePreferredTerrain(int producedSlot, int terrainId)
-    {
-        EnsureOpenProduced(producedSlot);
-        AddTerrainFilterId(terrainId);
-        _producedCoveragePreferredTerrainCounts[producedSlot]++;
-    }
-
-    public void AddProducedCoverageAllowedTerrain(int producedSlot, int terrainId)
-    {
-        EnsureOpenProduced(producedSlot);
-        AddTerrainFilterId(terrainId);
-        _producedCoverageAllowedTerrainCounts[producedSlot]++;
-    }
-
-    public void AddRelationship(
-        int generatorSlot,
-        int sourceRefCode,
-        int destinationRefCode,
-        int relationshipKindId,
-        float strength,
-        int replaceExistingOutgoing)
-    {
-        EnsureOpenGenerator(generatorSlot);
-        ValidatePositive(sourceRefCode);
-        ValidatePositive(destinationRefCode);
-        ValidatePositive(relationshipKindId);
-        if (_relationshipCount + 1 >= _relationshipKindIds.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _relationshipCount++;
-        _relationshipSourceRefCodes[_relationshipCount] = sourceRefCode;
-        _relationshipDestinationRefCodes[_relationshipCount] = destinationRefCode;
-        _relationshipKindIds[_relationshipCount] = relationshipKindId;
-        _relationshipStrengths[_relationshipCount] = strength;
-        _relationshipReplaceExistingOutgoing[_relationshipCount] = replaceExistingOutgoing;
-        _relationshipCounts[generatorSlot]++;
-    }
-
-    public int AddEffect(
-        int generatorSlot,
-        int effectTypeCode,
-        int refOrKindId,
-        int instanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
-        int optionCode = 0,
-        float value = 0f,
-        int radius = 0,
-        int maxCellCount = 0,
-        int planeCode = PlaneCodes.Physical)
-    {
-        EnsureOpenGenerator(generatorSlot);
-        ValidatePositive(effectTypeCode);
-        ValidatePositive(refOrKindId);
-        ValidateEffectInstanceSelection(effectTypeCode, instanceSelectionCode);
-        ValidatePlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(optionCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxCellCount);
-        if (_effectCount + 1 >= _effectTypeCodes.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _effectCount++;
-        _effectTypeCodes[_effectCount] = effectTypeCode;
-        _effectRefOrKindIds[_effectCount] = refOrKindId;
-        _effectInstanceSelectionCodes[_effectCount] = instanceSelectionCode;
-        _effectOptionCodes[_effectCount] = optionCode;
-        _effectPlaneCodes[_effectCount] = planeCode;
-        _effectValues[_effectCount] = value;
-        _effectRadii[_effectCount] = radius;
-        _effectMaxCellCounts[_effectCount] = maxCellCount;
-        _effectPreferredTerrainStarts[_effectCount] = _terrainFilterCount + 1;
-        _effectAllowedTerrainStarts[_effectCount] = _terrainFilterCount + 1;
-        _effectCounts[generatorSlot]++;
-        _openEffectSlot = _effectCount;
-        return _effectCount;
-    }
-
-    public void AddEffectPreferredTerrain(int effectSlot, int terrainId)
-    {
-        EnsureOpenEffect(effectSlot);
-        AddTerrainFilterId(terrainId);
-        _effectPreferredTerrainCounts[effectSlot]++;
-    }
-
-    public void AddEffectAllowedTerrain(int effectSlot, int terrainId)
-    {
-        EnsureOpenEffect(effectSlot);
-        AddTerrainFilterId(terrainId);
-        _effectAllowedTerrainCounts[effectSlot]++;
-    }
-
-    private static void ValidateEffectInstanceSelection(int effectTypeCode, int instanceSelectionCode)
-    {
-        if (effectTypeCode == GeneratorEffectTypeCodes.RemoveTargetRelationships ||
-            effectTypeCode == GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength)
-        {
-            ValidateRelationshipInstanceSelection(instanceSelectionCode);
-            return;
-        }
-
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(instanceSelectionCode);
-    }
-
-    private static void ValidatePlaneCode(int planeCode)
-    {
-        if (planeCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
-        }
-    }
-
-    private static void ValidateRelationshipInstanceSelection(int instanceSelectionCode)
-    {
-        if (instanceSelectionCode is not (GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships or
-            GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship))
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(instanceSelectionCode));
-        }
     }
 
     public void DisableGenerator(int generatorSlot)
@@ -698,7 +613,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        if (!EvaluateDueGenerators(simulation, tick))
+        ResetPulseBudgetIfNeeded(tick);
+        if (!HasGeneratorFireBudget() || !EvaluateGenerators(simulation, tick))
         {
             return;
         }
@@ -707,32 +623,53 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         {
             if (TryFireEligibleGenerator(simulation, selectedGeneratorSlot, tick))
             {
+                _firesThisPulse++;
                 return;
             }
         }
 
-        PublishDueGeneratorStats(simulation, tick);
+        PublishGeneratorEvaluationStats(simulation, tick);
     }
 
-    private bool EvaluateDueGenerators(Simulation simulation, int tick)
+    private void ResetPulseBudgetIfNeeded(int tick)
     {
-        var anyDue = false;
+        if (tick <= 0)
+        {
+            return;
+        }
+
+        var pulseIndex = (tick - 1) / Tuning.Generators.PulseWidthTicks;
+        if (_currentPulseIndex == pulseIndex)
+        {
+            return;
+        }
+
+        _currentPulseIndex = pulseIndex;
+        _firesThisPulse = 0;
+    }
+
+    private bool HasGeneratorFireBudget() =>
+        _firesThisPulse < Tuning.Generators.FiresPerPulse;
+
+    private bool EvaluateGenerators(Simulation simulation, int tick)
+    {
+        var anyEvaluated = false;
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
             _pulseStatusCodes[slot] = GeneratorStatusCodes.NotEvaluated;
             _pulseCandidateCounts[slot] = 0;
             _pulseSelectedTargetIds[slot] = 0;
             _pulseFailedFireCounts[slot] = 0;
-            if (!_enabled[slot] || tick <= 0 || tick % _cadences[slot] != 0)
+            if (!_enabled[slot] || tick <= 0)
             {
                 continue;
             }
 
-            anyDue = true;
+            anyEvaluated = true;
             EvaluateGenerator(simulation, slot);
         }
 
-        return anyDue;
+        return anyEvaluated;
     }
 
     private bool TryFireEligibleGenerator(Simulation simulation, int selectedGeneratorSlot, int tick)
@@ -756,7 +693,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         {
             _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
             MarkEligibleGeneratorsNotSelected();
-            PublishDueGeneratorStats(simulation, tick);
+            PublishGeneratorEvaluationStats(simulation, tick);
             return true;
         }
 
@@ -786,7 +723,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             {
                 _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
                 MarkEligibleGeneratorsNotSelected();
-                PublishDueGeneratorStats(simulation, tick);
+                PublishGeneratorEvaluationStats(simulation, tick);
                 return true;
             }
 

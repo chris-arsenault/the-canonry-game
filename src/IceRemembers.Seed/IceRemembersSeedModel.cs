@@ -1,5 +1,6 @@
 namespace IceRemembers.Seed;
 
+using Engine.Constants;
 using Engine.Domain.Startup;
 using Engine.Graph;
 using Engine.Kinds;
@@ -13,6 +14,7 @@ internal sealed class SeedAssembly
 {
     private readonly List<SeedEntity> _entities = [];
     private readonly List<DomainSeedRelationship> _relationships = [];
+    private readonly Dictionary<SemanticHexCoord, DomainSeedCell> _semanticCells = [];
 
     public SeedAssembly(
         HexGrid grid,
@@ -41,6 +43,8 @@ internal sealed class SeedAssembly
     public IReadOnlyList<SeedEntity> Entities => _entities;
 
     public IReadOnlyList<DomainSeedRelationship> Relationships => _relationships;
+
+    public IReadOnlyDictionary<SemanticHexCoord, DomainSeedCell> SemanticCells => _semanticCells;
 
     public SeedEntity CreateEntity(
         EntityKind kind,
@@ -87,6 +91,34 @@ internal sealed class SeedAssembly
             Math.Clamp(strength, 0f, 1f)));
     }
 
+    public void SetSemanticCell(
+        SemanticHexCoord coord,
+        string terrain,
+        int? ownerSeedEntityId,
+        int superregionId,
+        int continentId)
+    {
+        if (ownerSeedEntityId is { } owner)
+        {
+            _ = Entity(owner);
+        }
+
+        var resolvedOwner = ownerSeedEntityId;
+        if (resolvedOwner is null && _semanticCells.TryGetValue(coord, out var existing))
+        {
+            resolvedOwner = existing.OwnerSeedEntityId;
+        }
+
+        _semanticCells[coord] = new DomainSeedCell(
+            coord.Q,
+            coord.R,
+            terrain,
+            resolvedOwner,
+            superregionId,
+            continentId,
+            PlaneCode: PlaneCodes.Semantic);
+    }
+
     public DomainStartupSeed ToStartupSeed()
     {
         var entities = CreateStartupEntities();
@@ -118,8 +150,9 @@ internal sealed class SeedAssembly
                 entity.Name))
             .ToArray();
 
-    private DomainSeedCell[] CreateStartupCells() =>
-        Grid.AllCells
+    private DomainSeedCell[] CreateStartupCells()
+    {
+        var physicalCells = Grid.AllCells
             .OrderBy(cell => cell.Coord.Q)
             .ThenBy(cell => cell.Coord.R)
             .Select(cell =>
@@ -132,8 +165,12 @@ internal sealed class SeedAssembly
                     CoverageMap.GetCoverageForCell(cell.Coord)?.OwnerEntityId,
                     subdivision.SuperregionId,
                     subdivision.ContinentId);
-            })
-            .ToArray();
+            });
+        var semanticCells = _semanticCells.Values
+            .OrderBy(cell => cell.Q)
+            .ThenBy(cell => cell.R);
+        return physicalCells.Concat(semanticCells).ToArray();
+    }
 
     private DomainSeedRelationship[] CreateStartupRelationships() =>
         _relationships

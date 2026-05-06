@@ -183,6 +183,12 @@ internal sealed partial class GambitProgramRuntime
             return true;
         }
 
+        if (code == BehaviorExpressionCodes.SameCulture)
+        {
+            Push(stack, ref stackCount, world.EntityCultureId(entityId) == world.EntityCultureId(targetId) ? 1f : 0f);
+            return true;
+        }
+
         if (code != BehaviorExpressionCodes.Distance)
         {
             return false;

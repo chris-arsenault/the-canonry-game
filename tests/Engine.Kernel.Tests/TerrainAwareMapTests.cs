@@ -189,11 +189,9 @@ public sealed class TerrainAwareMapTests
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,
-            cadence: 1,
             targetKindId,
             pulseWeight: 1,
-            maxRuns: 1,
-            targetAllowWilderness: false);
+            maxRuns: 1);
         simulation.Generators.AddTrigger(slot, targetKindId);
         simulation.Generators.AddEffect(
             slot,
@@ -227,11 +225,9 @@ public sealed class TerrainAwareMapTests
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 1, -1, 0, tick: 0);
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,
-            cadence: 1,
             targetKindId,
             pulseWeight: 1,
-            maxRuns: 1,
-            targetAllowWilderness: false);
+            maxRuns: 1);
         simulation.Generators.AddTrigger(slot, targetKindId);
         simulation.Generators.AddEffect(
             slot,

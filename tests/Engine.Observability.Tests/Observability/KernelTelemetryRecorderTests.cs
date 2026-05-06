@@ -166,6 +166,12 @@ public sealed class KernelTelemetryRecorderTests
             AffordanceSourceKindCode: 0,
             AffordanceSourceId: 0,
             AffordanceShapeCode: 0,
+            AffordanceSourceKindMask: 0,
+            AffordanceShapeMask: 0,
+            AffordanceContributionCount: 0,
+            GeneratorAffordanceCount: 0,
+            GambitAffordanceCount: 0,
+            HiddenAffordanceCount: 0,
             Urgency: 0.5f,
             RewardOrBaseScore: 0.75f,
             RawWeight: 1.25f,
@@ -286,6 +292,22 @@ public sealed class KernelTelemetryRecorderTests
         var log = new KernelEventLog(capacity: 32);
         using var recorder = new KernelPerformanceRecorder(log, "run-1", requestedTicks: 5);
 
+        WritePerformanceEvents(log);
+        recorder.RecordTick(1, TimeSpan.FromMilliseconds(4));
+        var tick = Assert.Single(recorder.Batch.TickPerformance);
+
+        Assert.Equal(1, tick.ActiveEntities);
+        Assert.Equal(1, tick.GeneratorEvents);
+        Assert.Equal(3, tick.TotalMessages);
+
+        var completed = recorder.Complete(processedTicks: 1);
+        var run = Assert.Single(completed.RunPerformance);
+        Assert.Equal(5, run.RequestedTicks);
+        Assert.Equal(1, run.ProcessedTicks);
+    }
+
+    private static void WritePerformanceEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
             Tick: 1,
             WorldVersion: 1,
@@ -317,6 +339,12 @@ public sealed class KernelTelemetryRecorderTests
             AffordanceSourceKindCode: 0,
             AffordanceSourceId: 0,
             AffordanceShapeCode: 0,
+            AffordanceSourceKindMask: 0,
+            AffordanceShapeMask: 0,
+            AffordanceContributionCount: 0,
+            GeneratorAffordanceCount: 0,
+            GambitAffordanceCount: 0,
+            HiddenAffordanceCount: 0,
             Urgency: 0.5f,
             RewardOrBaseScore: 0.75f,
             RawWeight: 1.25f,
@@ -330,17 +358,5 @@ public sealed class KernelTelemetryRecorderTests
             TargetEntityId: 0,
             CreatedEntityCount: 0,
             CreatedRelationshipCount: 0))));
-
-        recorder.RecordTick(1, TimeSpan.FromMilliseconds(4));
-        var tick = Assert.Single(recorder.Batch.TickPerformance);
-
-        Assert.Equal(1, tick.ActiveEntities);
-        Assert.Equal(1, tick.GeneratorEvents);
-        Assert.Equal(3, tick.TotalMessages);
-
-        var completed = recorder.Complete(processedTicks: 1);
-        var run = Assert.Single(completed.RunPerformance);
-        Assert.Equal(5, run.RequestedTicks);
-        Assert.Equal(1, run.ProcessedTicks);
     }
 }

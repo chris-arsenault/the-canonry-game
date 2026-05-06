@@ -53,7 +53,9 @@ public sealed class KernelRuntimeFactoryTests
                     "enabled": false
                   },
                   "generators": {
-                    "retryFireTargets": false
+                    "retryFireTargets": false,
+                    "pulseWidthTicks": 17,
+                    "firesPerPulse": 2
                   },
                   "gambits": {
                     "enabled": true
@@ -86,6 +88,8 @@ public sealed class KernelRuntimeFactoryTests
             """
             [kernel_tuning.programs.generators]
             retry_fire_targets = false
+            pulse_width_ticks = 17
+            fires_per_pulse = 2
 
             [kernel_tuning.programs.movement]
             enabled = false
@@ -182,6 +186,8 @@ public sealed class KernelRuntimeFactoryTests
     private static void AssertConfiguredTuningOptions(SimulationOptions options)
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
+        Assert.Equal(17, options.KernelTuning.Programs.Generators.PulseWidthTicks);
+        Assert.Equal(2, options.KernelTuning.Programs.Generators.FiresPerPulse);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, options.KernelTuning.Programs.Upkeep.AgingModelCode);

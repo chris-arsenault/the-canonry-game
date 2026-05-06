@@ -5,6 +5,7 @@ using Engine.Domain.Compilation;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Graph;
 using Engine.Wiring;
+
 using IceRemembers;
 
 public sealed class CapabilityKnowledgeContractTests
@@ -33,7 +34,9 @@ public sealed class CapabilityKnowledgeContractTests
             produced.CreateChance == 0.45f);
         Assert.Contains(compiledRule.ProducedEntities, produced =>
             produced.CreateChance == 0.45f &&
-            produced.PhysicalPlacement == GeneratorProgramPlacement.On);
+            produced.PhysicalPlacement == GeneratorProgramPlacement.Area &&
+            produced.PhysicalPlacementPreferredTerrainIds.Count > 0 &&
+            produced.SemanticPlacementPreferredTerrainIds.Count > 0);
     }
 
     [Fact]
@@ -41,7 +44,6 @@ public sealed class CapabilityKnowledgeContractTests
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var cleanseId = compiled.Ids.GambitIdOf(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId()).Value;
-        var anchoredId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.Anchored.ToDomainName()).Value;
         var cleansedById = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.CleansedBy.ToDomainName()).Value;
         var conditionId = compiled.Ids.AttributeIdOf(IceRemembersAttributeId.Condition.ToDomainName()).Value;
         var hotSpringsId = compiled.Ids.TerrainIdOf(IceRemembersTerrain.HotSprings.ToDomainName()).Value;
@@ -62,11 +64,6 @@ public sealed class CapabilityKnowledgeContractTests
             selector.Scope == RefScope.Structural &&
             selector.Kind == IceRemembersKinds.Region);
 
-        Assert.Contains(compiledRule.Preconditions, precondition =>
-            precondition.Code == BehaviorProgramPrecondition.SelfHasRelationshipToTarget &&
-            precondition.A == anchoredId &&
-            precondition.B == 1 &&
-            precondition.X == 0.45f);
         Assert.Contains(compiledRule.Preconditions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfAttributeRange &&
             precondition.A == conditionId);

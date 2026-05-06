@@ -61,20 +61,22 @@ Each generator names:
   world condition that enables repeat firing and the spend, transform, or lock
   that prevents immediate repetition.
 
-Placement is automatic: produced entities go *on* the target hex, *near*
-it, or — with `AllowWilderness` — on a free hex within the target region.
-Both physical and semantic hex coordinates are assigned.
+Placement is automatic: produced entities use their authored placement area or
+locality and terrain profile on both physical and semantic planes.
 
 ## Pulse model
 
-- Every 25 ticks the system asks: *which generators are applicable
-  somewhere right now?*
+- Generators are evaluated within a pulse window. The default pulse window is
+  25 ticks.
+- A generator can fire on any tick in that window when it is applicable.
+- Successful fires spend the generator fire budget for the current pulse
+  window. The default budget is one fire per pulse.
+- The fire budget resets when the next pulse window starts.
 - Applicable = on the tableau AND has at least one target entity whose
   gates pass.
-- **One winner fires per pulse**, weighted-random by `PulseWeight` — NOT
-  by how many targets it has. (Otherwise a generator targeting settlements
-  would crowd out one targeting factions just because there are more
-  settlements.)
+- Winners are selected weighted-random by `PulseWeight` — NOT by how many
+  targets they have. (Otherwise a generator targeting settlements would crowd
+  out one targeting factions just because there are more settlements.)
 - Tableau-gating is the whole point: remove the generator's card → it
   stops being applicable, even if world state would otherwise trigger it.
   This is "your deck defines the world's nature" in action.
@@ -124,8 +126,6 @@ Authoring violations fail the build, not the runtime.
 - Required target relationships must exist.
 - Required relationship strength thresholds must pass when authored.
 - `MaxRunsPerSim` not exceeded.
-- For `AllowWilderness`: region must have a free physical hex nearby.
-
 Relationship strength should be the default numeric gate. For example, a
 generator or gambit around cleansing should require a strong relevant
 relationship such as `anchored`, `holds`, or `cleansed_by`, not an invented

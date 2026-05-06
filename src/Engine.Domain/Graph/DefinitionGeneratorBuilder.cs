@@ -91,7 +91,6 @@ public static class DefinitionGeneratorBuilder
             Subtypes = config.Target.Subtypes is null
                 ? null
                 : new HashSet<string>(config.Target.Subtypes, StringComparer.Ordinal),
-            AllowWilderness = config.Target.AllowWilderness,
             RequiredOutgoingRelationships = CopyRelationshipSet(config.Target.RequiredOutgoingRelationships),
             RequiredIncomingRelationships = CopyRelationshipSet(config.Target.RequiredIncomingRelationships),
             RequiredRelationships = CopyRelationshipSet(config.Target.RequiredRelationships),
@@ -202,7 +201,15 @@ public static class DefinitionGeneratorBuilder
             CreateChance = produced.CreateChance,
             CreateIfMissing = produced.CreateIfMissing,
             PhysicalPlacement = produced.PhysicalPlacement,
+            PhysicalPlacementPreferredTerrains = CopyTerrainSet(produced.PhysicalPlacementPreferredTerrains),
+            PhysicalPlacementAllowedTerrains = CopyTerrainSet(produced.PhysicalPlacementAllowedTerrains),
+            PhysicalPlacementAvoidedTerrains = CopyTerrainSet(produced.PhysicalPlacementAvoidedTerrains),
+            PhysicalPlacementFallbackTerrain = produced.PhysicalPlacementFallbackTerrain,
             SemanticPlacement = produced.SemanticPlacement,
+            SemanticPlacementPreferredTerrains = CopyTerrainSet(produced.SemanticPlacementPreferredTerrains),
+            SemanticPlacementAllowedTerrains = CopyTerrainSet(produced.SemanticPlacementAllowedTerrains),
+            SemanticPlacementAvoidedTerrains = CopyTerrainSet(produced.SemanticPlacementAvoidedTerrains),
+            SemanticPlacementFallbackTerrain = produced.SemanticPlacementFallbackTerrain,
             PlacementRef = produced.PlacementRef,
             InheritCultureFrom = produced.InheritCultureFrom,
             Query = BuildQuery(graph, produced.Kind, produced.Query),
@@ -597,6 +604,11 @@ public static class DefinitionGeneratorBuilder
         relationshipKinds is null
             ? null
             : new HashSet<string>(relationshipKinds, StringComparer.Ordinal);
+
+    private static HashSet<string>? CopyTerrainSet(IReadOnlySet<string>? terrains) =>
+        terrains is null
+            ? null
+            : new HashSet<string>(terrains, StringComparer.Ordinal);
 
     private static void ValidateRelationshipRequirements(
         DefinitionGraph graph,

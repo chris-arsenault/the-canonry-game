@@ -59,7 +59,6 @@ internal sealed record GeneratorAnalysisRow(
     int InactiveRejected,
     int SubtypeRejected,
     int SecondaryTargetRejected,
-    int WildernessRejected,
     int TriggerRejected,
     string PrimaryBlocker,
     int CreatedEntityCount,

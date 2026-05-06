@@ -89,9 +89,6 @@ public static partial class IceRemembersDefinition
             K.Settlement,
             All(
                 new TargetIsNotSelf(),
-                new WithinPlaneDistancePrecondition(10, PrimaryPlane.Physical),
-                new WithinPlaneDistancePrecondition(3, PrimaryPlane.Semantic),
-                new SharedInfluencePrecondition(PrimaryPlane.Physical, selfMinimum: 20f, targetMinimum: 20f),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.TradeRoute), maximumExclusive: 2),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.TradeRoute), maximumExclusive: 2),
                 Not(new SelfHasRelationshipToTarget(L(Rel.TradeRoute))),
@@ -99,11 +96,14 @@ public static partial class IceRemembersDefinition
                 new SelfAttributeThreshold(A(Attr.TempHp), min: 45f, max: null, behaviorRelevant: false),
                 new TargetAttributeThreshold(A(Attr.TempHp), min: 35f, max: null, behaviorRelevant: false)),
             scoreExpression: GambitScore(
-                baseline: 3f,
-                dynamicRange: 4f,
-                Mean2(
-                    Normalized(Expr.Self(A(Attr.TempHp))),
-                    Normalized(Expr.Target(A(Attr.TempHp))))),
+                baseline: 0.5f,
+                dynamicRange: 8f,
+                Weighted3(
+                    (DistanceFalloff(5f), 0.75f),
+                    (Expr.SameCulture(), 0.20f),
+                    (Mean2(
+                        Normalized(Expr.Self(A(Attr.TempHp))),
+                        Normalized(Expr.Target(A(Attr.TempHp)))), 0.05f))),
             success: InitialGambitSuccessChance,
             cooldown: 110,
             entityCooldown: 24);
@@ -112,7 +112,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.TempHp), K.Settlement));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
-        gambit.Description = "Two viable settlements with overlapping influence open a trade route. Wares move; brokers begin to read the path.";
+        gambit.Description = "Two viable settlements open a trade route. Nearby settlements, and settlements of shared culture, are more likely to bind first.";
         return gambit;
     }
 
@@ -127,7 +127,6 @@ public static partial class IceRemembersDefinition
                 new TargetIsNotSelf(),
                 new WithinPlaneDistancePrecondition(2, PrimaryPlane.Physical),
                 Not(new SelfHasRelationshipToTarget(L(Rel.CleansedBy))),
-                new SelfHasRelationshipToTarget(L(Rel.Anchored), minStrength: 0.45f, behaviorRelevant: false),
                 new SelfAttributeThreshold(A(Attr.Condition), min: 40f, max: null, behaviorRelevant: false),
                 Not(new TargetHasRelationshipToSelf(L(Rel.CleansedBy)))),
             scoreExpression: GambitScore(
@@ -139,10 +138,9 @@ public static partial class IceRemembersDefinition
             entityCooldown: 30);
         AddRelationshipWrite(gambit, Rel.CleansedBy, K.Region);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Condition), K.Artifact));
-        gambit.Reads.Add(AttributeRef.TargetRelation(L(Rel.Anchored), K.Region));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.CleansedBy, RelationshipPolarity.Positive, 0.78f));
         gambit.Mutations.Add(new SetTargetCoverageTerrainMutation(Terrain.HotSprings.ToDomainName()));
-        gambit.Description = "An intact artifact with a strong anchor to a nearby region cleanses the scar. The ice forgets the cold; hot springs surface.";
+        gambit.Description = "An intact artifact brought near a scarred region cleanses it. The ice forgets the cold; hot springs surface.";
         return gambit;
     }
 
@@ -222,6 +220,21 @@ public static partial class IceRemembersDefinition
 
     private static Divide Mean2(IExpression a, IExpression b) =>
         Expr.Div(Expr.Add(a, b), Expr.Lit(2f));
+
+    private static Divide DistanceFalloff(float halfScoreDistance)
+    {
+        var normalizedDistance = Expr.Div(Expr.Distance(), Expr.Lit(halfScoreDistance));
+        return Expr.Div(Expr.Lit(1f), Expr.Add(Expr.Lit(1f), Expr.Mul(normalizedDistance, normalizedDistance)));
+    }
+
+    private static Add Weighted3(
+        (IExpression Factor, float Weight) a,
+        (IExpression Factor, float Weight) b,
+        (IExpression Factor, float Weight) c) =>
+        Expr.Add(Expr.Add(WeightedTerm(a), WeightedTerm(b)), WeightedTerm(c));
+
+    private static Multiply WeightedTerm((IExpression Factor, float Weight) term) =>
+        Expr.Mul(Expr.Lit(term.Weight), term.Factor);
 
     private static CreateContextRelationshipMutation Relationship(
         TransferEndpoint source,

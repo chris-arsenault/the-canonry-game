@@ -1,0 +1,34 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-lineage",
+  "file": "terrain/lineage.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED RUBY-CRIMSON flat color field — think #B04646,\nthe color of inherited ritual, ancestry, and remembered obligation on\na semantic map. The hue must read unmistakably as RED, not brown, not\ntan, not muted rose. Clearly distinct from the warm-tan wastes tile and\nfrom the orange severance tile. Fill the ENTIRE 1024x1024 square edge-to-\nedge with this one ruby-crimson color corner to corner — NO drawn hex,\nNO paper border, NO vignette, NO centered composition, NO symbols, NO\nfigures, NO roots, NO script. Only the faintest paint-texture variation\nwithin the same red hue. A semantic terrain region-fill swatch, not an\nillustration.",
+  "formatted_prompt": {
+    "scene": "Vibrant comic-map terrain tile rendered in confident saturated ink wash, pure ruby-crimson field filling the entire square edge-to-edge, faint paint-texture variation within the same bold red hue, no figures or symbols.",
+    "subjects": [
+      {
+        "type": "color field",
+        "description": "Flat saturated ruby-crimson wash covering every pixel corner to corner, subtle brushstroke texture variation within the same red tone, uniform game-tile terrain fill.",
+        "position": "entire frame edge-to-edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "5cf2f1b6-17f5-4484-b511-24093a3d7661",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007023,
+  "duration_ms": 12327,
+  "generated_at": "2026-05-05T19:06:55.339Z"
+}

@@ -1,0 +1,48 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "road-heavy-overlay",
+  "file": "map-overlays/road-heavy.png",
+  "spec_type": "icon",
+  "section_id": "2b-map-overlays",
+  "section": "2b · Map overlays",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "# Heavy Travel Mark Overlay\n\nA stylized heavy-road overlay marker. Simplified app-icon geometry.\n\nTwo thick parallel dash strokes cross diagonally through the icon center. Add a short dashed center line and six tiny round dots beside the strokes. Flat saturated palette colors, sharp clean edges, generous padding. This represents road quality above 0.75.",
+  "formatted_prompt": {
+    "scene": "Flat filled-vector app icon on off-white canvas, two bold diagonal parallel road stripes with dashed center line and six small round dots, vivid electric blue and bright red on warm white ground, crisp geometric edges at 32px",
+    "subjects": [
+      {
+        "type": "parallel road stripes",
+        "description": "Two thick bold parallel diagonal bars crossing icon center, clean sharp rectangular vector fills, strongly separated",
+        "position": "center diagonal",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "dashed center line",
+        "description": "Short segmented dash stroke running between the parallel bars, three equal rectangular dashes",
+        "position": "center between stripes",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "round dot cluster",
+        "description": "Six small solid circles arranged in two vertical columns flanking the stripes, perfectly round flat fills",
+        "position": "left and right of stripes",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "36c6f636-b2b6-4563-ae87-7888ea400e1d",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.0077610000000000005,
+  "duration_ms": 15192,
+  "generated_at": "2026-05-06T15:23:44.383Z"
+}

@@ -32,6 +32,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             candidate.AffordanceSourceKindCode,
             candidate.AffordanceSourceId,
             candidate.AffordanceShapeCode,
+            candidate.AffordanceSourceKindMask,
+            candidate.AffordanceShapeMask,
+            candidate.AffordanceContributionCount,
+            candidate.GeneratorAffordanceCount,
+            candidate.GambitAffordanceCount,
+            candidate.HiddenAffordanceCount,
             candidate.AffordanceScore,
             candidate.AffordanceBonus);
     }
@@ -52,7 +58,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int r,
         int s,
         float baseWeight) =>
-        new(rule, planeCode, targetEntityId, targetKindId, q, r, s, baseWeight, 0f, 0f, 0, 0, 0, baseWeight);
+        new(rule, planeCode, targetEntityId, targetKindId, q, r, s, baseWeight, 0f, 0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, baseWeight);
 
     private static VerbTargetCandidate Candidate(
         int rule,
@@ -66,8 +72,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         AffordanceContribution affordance,
         float affordanceWeight)
     {
-        var affordanceBonus = affordance.Score * affordanceWeight;
+        var affordanceBonus = affordance.Score * affordanceWeight * AffordanceWeightMultiplier;
         var weight = ClampCandidateWeight(baseWeight + affordanceBonus);
+        var hiddenAffordanceCount = affordance.ContributionCount > 0
+            ? affordance.ContributionCount - 1
+            : 0;
         return new(
             rule,
             planeCode,
@@ -82,6 +91,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             affordance.SourceKindCode,
             affordance.SourceId,
             affordance.ShapeCode,
+            affordance.SourceKindMask,
+            affordance.ShapeMask,
+            affordance.ContributionCount,
+            affordance.GeneratorContributionCount,
+            affordance.GambitContributionCount,
+            hiddenAffordanceCount,
             weight);
     }
 
@@ -152,5 +167,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int AffordanceSourceKindCode,
         int AffordanceSourceId,
         int AffordanceShapeCode,
+        int AffordanceSourceKindMask,
+        int AffordanceShapeMask,
+        int AffordanceContributionCount,
+        int GeneratorAffordanceCount,
+        int GambitAffordanceCount,
+        int HiddenAffordanceCount,
         float Weight);
 }

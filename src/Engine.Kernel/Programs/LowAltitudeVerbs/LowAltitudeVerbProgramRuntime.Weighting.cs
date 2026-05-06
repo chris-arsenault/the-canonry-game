@@ -3,6 +3,7 @@ namespace Engine.Kernel;
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
     private const float AffordanceScoreCap = 3f;
+    private const float AffordanceWeightMultiplier = 3f;
 
     private void AddEntityCandidate(
         Simulation simulation,
@@ -379,15 +380,17 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return contribution;
         }
 
+        var rowSourceKindCode = Data.AffordanceSourceKindCode(affordance);
+        var rowShapeCode = Data.AffordanceShapeCode(affordance);
         var sourceKindCode = contribution.SourceKindCode;
         var sourceId = contribution.SourceId;
         var shapeCode = contribution.ShapeCode;
         var topScore = contribution.TopScore;
         if (rowScore > topScore)
         {
-            sourceKindCode = Data.AffordanceSourceKindCode(affordance);
+            sourceKindCode = rowSourceKindCode;
             sourceId = Data.AffordanceSourceId(affordance);
-            shapeCode = Data.AffordanceShapeCode(affordance);
+            shapeCode = rowShapeCode;
             topScore = rowScore;
         }
 
@@ -396,18 +399,45 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             sourceKindCode,
             sourceId,
             shapeCode,
-            topScore);
+            topScore,
+            contribution.SourceKindMask | AffordanceSourceKindBit(rowSourceKindCode),
+            contribution.ShapeMask | AffordanceShapeBit(rowShapeCode),
+            contribution.ContributionCount + 1,
+            contribution.GeneratorContributionCount + (rowSourceKindCode == AffordanceSourceKindCodes.Generator ? 1 : 0),
+            contribution.GambitContributionCount + (rowSourceKindCode == AffordanceSourceKindCodes.Gambit ? 1 : 0));
     }
 
     private static float CandidateWeight(float baseWeight, AffordanceContribution affordance, float affordanceWeight) =>
-        ClampCandidateWeight(baseWeight + (affordance.Score * affordanceWeight));
+        ClampCandidateWeight(baseWeight + (affordance.Score * affordanceWeight * AffordanceWeightMultiplier));
 
     private static float ClampCandidateWeight(float weight) => weight <= 0.01f ? 0.01f : weight;
+
+    private static int AffordanceSourceKindBit(int sourceKindCode) => sourceKindCode switch
+    {
+        AffordanceSourceKindCodes.Generator => 1,
+        AffordanceSourceKindCodes.Gambit => 2,
+        _ => 0,
+    };
+
+    private static int AffordanceShapeBit(int shapeCode) => shapeCode switch
+    {
+        LowAltitudeAffordanceShapeCodes.PresenceNearEntity => 1,
+        LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget => 2,
+        LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange => 4,
+        LowAltitudeAffordanceShapeCodes.InfluenceChange => 8,
+        LowAltitudeAffordanceShapeCodes.TerrainPresence => 16,
+        _ => 0,
+    };
 
     private readonly record struct AffordanceContribution(
         float Score,
         int SourceKindCode,
         int SourceId,
         int ShapeCode,
-        float TopScore);
+        float TopScore,
+        int SourceKindMask,
+        int ShapeMask,
+        int ContributionCount,
+        int GeneratorContributionCount,
+        int GambitContributionCount);
 }

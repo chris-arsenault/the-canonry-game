@@ -64,6 +64,11 @@ public sealed class Distance : IExpression
 {
 }
 
+/// <summary>Returns 1 when self and target have the same culture, otherwise 0.</summary>
+public sealed class SameCulture : IExpression
+{
+}
+
 public sealed class Min(IExpression a, IExpression b) : IExpression
 {
     public IExpression A { get; } = a;
@@ -106,6 +111,7 @@ public static class Expr
     public static AttributePath Target(string attr) => new("target", attr);
     public static VariableRef Var(string name) => new(name);
     public static Distance Distance() => new();
+    public static SameCulture SameCulture() => new();
     public static Add Add(IExpression l, IExpression r) => new(l, r);
     public static Subtract Sub(IExpression l, IExpression r) => new(l, r);
     public static Multiply Mul(IExpression l, IExpression r) => new(l, r);

@@ -61,7 +61,12 @@ internal static class KernelQuery
 
     public static void ForEachCoverageCell(WorldState world, int ownerEntityId, global::System.Func<int, int, bool> visit)
     {
-        var cursor = world.CoverageCells(ownerEntityId);
+        ForEachCoverageCell(world, ownerEntityId, PlaneCodes.Physical, visit);
+    }
+
+    public static void ForEachCoverageCell(WorldState world, int ownerEntityId, int planeCode, global::System.Func<int, int, bool> visit)
+    {
+        var cursor = world.CoverageCells(ownerEntityId, planeCode);
         while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
         {
             if (!visit(q, r))

@@ -180,11 +180,9 @@ internal static partial class KernelProgramInstaller
     {
         var generatorSlot = context.RegisterGenerator(
             generator.GeneratorId,
-            generator.CadenceTicks,
             generator.TargetKindId,
             generator.PulseWeight,
-            generator.MaxRuns,
-            generator.TargetAllowWilderness);
+            generator.MaxRuns);
         InstallGeneratorTarget(context, generatorSlot, generator);
         InstallGeneratorBindings(context, generatorSlot, generator);
         InstallGeneratorProducedEntities(context, generatorSlot, generator);
@@ -348,8 +346,13 @@ internal static partial class KernelProgramInstaller
             CoverageMinimumCellCount(coverage),
             CoverageMinimumSourceRemainingCellCount(coverage),
             CoverageRespectTerrainBoundaries(coverage),
-            CoverageTransformTerrainId(coverage));
+            CoverageTransformTerrainId(coverage),
+            produced.PhysicalPlacementMinRadius,
+            produced.PhysicalPlacementMaxRadius,
+            produced.SemanticPlacementMinRadius,
+            produced.SemanticPlacementMaxRadius);
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
+        InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)
         {
             InstallGeneratorProducedQuery(context, producedSlot, query);
@@ -358,6 +361,52 @@ internal static partial class KernelProgramInstaller
         if (coverage is not null)
         {
             InstallGeneratorProducedCoverage(context, producedSlot, coverage);
+        }
+    }
+
+    private static void InstallGeneratorProducedPlacementTerrains(
+        KernelConfigurationContext context,
+        int producedSlot,
+        GeneratorProducedEntityRule produced)
+    {
+        foreach (var terrainId in produced.PhysicalPlacementPreferredTerrainIds)
+        {
+            context.AddGeneratorProducedPlacementPreferredTerrain(producedSlot, PlaneCodes.Physical, terrainId);
+        }
+
+        foreach (var terrainId in produced.PhysicalPlacementAllowedTerrainIds)
+        {
+            context.AddGeneratorProducedPlacementAllowedTerrain(producedSlot, PlaneCodes.Physical, terrainId);
+        }
+
+        foreach (var terrainId in produced.PhysicalPlacementAvoidedTerrainIds)
+        {
+            context.AddGeneratorProducedPlacementAvoidedTerrain(producedSlot, PlaneCodes.Physical, terrainId);
+        }
+
+        if (produced.PhysicalPlacementFallbackTerrainId > 0)
+        {
+            context.SetGeneratorProducedPlacementFallbackTerrain(producedSlot, PlaneCodes.Physical, produced.PhysicalPlacementFallbackTerrainId);
+        }
+
+        foreach (var terrainId in produced.SemanticPlacementPreferredTerrainIds)
+        {
+            context.AddGeneratorProducedPlacementPreferredTerrain(producedSlot, PlaneCodes.Semantic, terrainId);
+        }
+
+        foreach (var terrainId in produced.SemanticPlacementAllowedTerrainIds)
+        {
+            context.AddGeneratorProducedPlacementAllowedTerrain(producedSlot, PlaneCodes.Semantic, terrainId);
+        }
+
+        foreach (var terrainId in produced.SemanticPlacementAvoidedTerrainIds)
+        {
+            context.AddGeneratorProducedPlacementAvoidedTerrain(producedSlot, PlaneCodes.Semantic, terrainId);
+        }
+
+        if (produced.SemanticPlacementFallbackTerrainId > 0)
+        {
+            context.SetGeneratorProducedPlacementFallbackTerrain(producedSlot, PlaneCodes.Semantic, produced.SemanticPlacementFallbackTerrainId);
         }
     }
 
@@ -675,6 +724,7 @@ internal static partial class KernelProgramInstaller
         {
             BehaviorProgramExpression.Variable => BehaviorExpressionCodes.Variable,
             BehaviorProgramExpression.Distance => BehaviorExpressionCodes.Distance,
+            BehaviorProgramExpression.SameCulture => BehaviorExpressionCodes.SameCulture,
             _ => -1,
         };
         return code >= 0;
@@ -692,10 +742,8 @@ internal static partial class KernelProgramInstaller
 
     private static int GeneratorPlacementCode(GeneratorProgramPlacement placement) => placement switch
     {
-        GeneratorProgramPlacement.On => GeneratorPlacementCodes.On,
-        GeneratorProgramPlacement.Near => GeneratorPlacementCodes.Near,
-        GeneratorProgramPlacement.Across => GeneratorPlacementCodes.Across,
-        GeneratorProgramPlacement.InCoverageLocality => GeneratorPlacementCodes.InCoverageLocality,
+        GeneratorProgramPlacement.Area => GeneratorPlacementCodes.Area,
+        GeneratorProgramPlacement.Locality => GeneratorPlacementCodes.Locality,
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

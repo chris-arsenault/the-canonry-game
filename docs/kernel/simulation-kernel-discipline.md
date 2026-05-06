@@ -247,6 +247,8 @@ Current tuning keys:
 
 - `programs.upkeep.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.
+- `programs.generators.pulse_width_ticks`: positive integer.
+- `programs.generators.fires_per_pulse`: non-negative integer.
 
 ## Review Checklist
 

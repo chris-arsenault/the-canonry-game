@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-taboo-ridge",
+  "file": "terrain/taboo-ridge.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED DARK MAGENTA flat color field — think #9B1B6A,\nthe color of taboo, danger, and costly semantic boundary on a semantic\nmap. The hue must read as DARK MAGENTA, not red lineage, not violet\nsilence, not brown crags. Clearly distinct from all physical terrain\ntiles. Fill the ENTIRE 1024x1024 square edge-to-edge with this one dark-\nmagenta color corner to corner — NO drawn hex, NO paper border, NO\nvignette, NO centered composition, NO symbols, NO ridges, NO figures,\nNO script. Only the faintest paint-texture variation within the same\nmagenta hue. A semantic terrain region-fill swatch, not an illustration.",
+  "formatted_prompt": {
+    "scene": "Ink-and-watercolor game-map terrain tile rendered as a single saturated dark-magenta color wash filling the entire square frame edge-to-edge, corner-to-corner, with only the faintest paint-texture variation within the same deep magenta hue.",
+    "subjects": [
+      {
+        "type": "color field",
+        "description": "Flat saturated dark magenta wash covering the full 1024x1024 tile surface, uniform hue with barely perceptible brushstroke texture variation within the same magenta register",
+        "position": "full frame, edge-to-edge",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "paint texture",
+        "description": "Extremely subtle watercolor granulation within the magenta field, same hue throughout, no contrast shift, no secondary color, pure surface variation only",
+        "position": "distributed evenly across entire tile",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "ecad7d68-fd22-4682-929e-32261a8d7349",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.008145,
+  "duration_ms": 10620,
+  "generated_at": "2026-05-05T19:07:26.089Z"
+}

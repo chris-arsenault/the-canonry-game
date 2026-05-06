@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "terrain-silence",
+  "file": "terrain/silence.png",
+  "spec_type": "hex-tile",
+  "section_id": "2-terrain-hex-tiles",
+  "section": "2 · Terrain hex tiles",
+  "style_id": "cartogram",
+  "palette_id": "cartogram",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is a top-down hex tile. Compose it for clear map readability, with the terrain filling the frame evenly and no horizon line.",
+  "raw_description": "A uniform SATURATED DEEP VIOLET flat color field — think #5B3F92,\nthe color of concealment, unspoken history, and suppressed memory on a\nsemantic map. The hue must read as VIOLET, not black, not slate, not\nocean blue. Clearly distinct from yoke maroon and cave-pocket indigo.\nFill the ENTIRE 1024x1024 square edge-to-edge with this one deep-violet\ncolor corner to corner — NO drawn hex, NO paper border, NO vignette, NO\ncentered composition, NO symbols, NO caves, NO figures, NO script. Only\nthe faintest paint-texture variation within the same violet hue. A\nsemantic terrain region-fill swatch, not an illustration.",
+  "formatted_prompt": {
+    "scene": "Saturated deep violet flat wash in bold comic-map ink, pure solid terrain fill of vivid purple-violet hue, edge-to-edge across the entire square tile with faint painterly texture variation within the same violet register.",
+    "subjects": [
+      {
+        "type": "terrain wash",
+        "description": "Uniform saturated deep violet color field, full 1024x1024 fill, subtle paint-stroke texture within the same hue, no motifs, no figures",
+        "position": "edge-to-edge, corner-to-corner, entire frame",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "surface texture",
+        "description": "Barely perceptible brushstroke grain rippling through the violet field, same hue throughout, tonal micro-variation only",
+        "position": "distributed evenly across full tile",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "656ea536-3878-486c-a270-92267bd9f79d",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.007962,
+  "duration_ms": 9571,
+  "generated_at": "2026-05-05T19:07:10.183Z"
+}

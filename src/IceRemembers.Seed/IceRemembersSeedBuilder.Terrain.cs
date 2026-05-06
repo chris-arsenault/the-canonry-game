@@ -395,27 +395,11 @@ internal static partial class IceRemembersSeedBuilder
         grid.SetCell(coord, terrain.ToDomainName());
     }
 
-    private static float TerrainScore(TerrainDefinition actual, IceRemembersTerrain desired, float value) =>
-        string.Equals(actual.StableName, desired.ToDomainName(), StringComparison.Ordinal) ? value : 0f;
-
     private static bool IsTerrain(HexCell cell, IceRemembersTerrain terrain) =>
         string.Equals(cell.Terrain.StableName, terrain.ToDomainName(), StringComparison.Ordinal);
 
     private static HashSet<string> TerrainSet(params IceRemembersTerrain[] terrains) =>
         terrains.Select(terrain => terrain.ToDomainName()).ToHashSet(StringComparer.Ordinal);
-
-    private static int CountTerrainsInRadius(
-        HexGrid grid,
-        HexCoord center,
-        int radius,
-        params IceRemembersTerrain[] terrains)
-    {
-        var set = TerrainSet(terrains);
-        return HexCoord.CoordsInRadius(center, radius)
-            .Where(grid.ContainsCoord)
-            .Select(grid.GetCell)
-            .Count(cell => cell is not null && set.Contains(cell.Terrain.StableName));
-    }
 
     private static int CountAdjacentTerrains(
         HexGrid grid,

@@ -17,18 +17,78 @@ public sealed class GeneratorProgramRuntimeTests
     private const int CreatedRef = 2;
 
     [Fact]
-    public void Tick_BeforeCadence_DoesNotFire()
+    public void PulseWindow_FiresWhenGeneratorBecomesEligibleAfterWindowStart()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
-        CreateTarget(simulation);
-        RegisterGenerator(simulation, cadence: 5);
+        var target = CreateTarget(simulation);
+        var source = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredIncomingRelationship(slot, RelationshipKindId);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
-        simulation.AdvanceTicks(4);
+        simulation.AdvanceTicks(1);
 
-        Assert.Equal(1, simulation.World.EntityHighWatermark);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
         Assert.DoesNotContain(ReadAvailableEventTypes(simulation, cursor), type => type == KernelEventType.GeneratorFired);
+
+        simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+        Assert.Contains(ReadAvailableEventTypes(simulation, cursor), type => type == KernelEventType.GeneratorFired);
+    }
+
+    [Fact]
+    public void PulseBudget_BlocksSecondFireUntilNextPulse()
+    {
+        var simulation = CreateSimulation(pulseWidthTicks: 2, firesPerPulse: 1);
+        SeedMap(simulation);
+        CreateTarget(simulation);
+        RegisterGenerator(simulation);
+
+        simulation.AdvanceTicks(2);
+
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void FiresPerPulse_AllowsConfiguredFiresWithinPulse()
+    {
+        var simulation = CreateSimulation(pulseWidthTicks: 25, firesPerPulse: 2);
+        SeedMap(simulation);
+        CreateTarget(simulation);
+        RegisterGenerator(simulation);
+
+        simulation.AdvanceTicks(2);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void Snapshot_RestoresPulseBudget()
+    {
+        var simulation = CreateSimulation(pulseWidthTicks: 3, firesPerPulse: 1);
+        SeedMap(simulation);
+        CreateTarget(simulation);
+        RegisterGenerator(simulation);
+
+        simulation.AdvanceTicks(1);
+        using var stream = new MemoryStream();
+        KernelSnapshot.SaveKernelState(simulation, stream);
+
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+
+        loaded.AdvanceTicks(1);
+        Assert.Equal(2, loaded.World.EntityHighWatermark);
+
+        loaded.AdvanceTicks(2);
+        Assert.Equal(3, loaded.World.EntityHighWatermark);
     }
 
     [Fact]
@@ -371,8 +431,8 @@ public sealed class GeneratorProgramRuntimeTests
             hasQuery: 0,
             queryAdjacentToTarget: 0,
             queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
-            physicalPlacementCode: GeneratorPlacementCodes.Near,
-            semanticPlacementCode: GeneratorPlacementCodes.Near,
+            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
             createChance: 1f,
@@ -402,47 +462,6 @@ public sealed class GeneratorProgramRuntimeTests
             Assert.Equal(created, evt.CurrentOwnerEntityId);
         });
         Assert.True(simulation.World.CoverageOwnerCellCount(created) >= 1);
-    }
-
-    [Fact]
-    public void Fire_UsesConfiguredSemanticBoundsForProducedPlacement()
-    {
-        var simulation = CreateSimulation();
-        SeedMap(simulation);
-        simulation.World.SetMapRadius(5);
-        simulation.Generators.ConfigureSemanticBounds(-1, 1, -1, 1);
-        simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 4, 0, -4, tick: 0);
-        var slot = RegisterGenerator(simulation, includeProduced: false);
-        simulation.Generators.AddProduced(
-            slot,
-            CreatedRef,
-            CreatedKindId,
-            CreatedSubtypeId,
-            createIfMissing: 1,
-            hasQuery: 0,
-            queryAdjacentToTarget: 0,
-            queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
-            physicalPlacementCode: GeneratorPlacementCodes.Near,
-            semanticPlacementCode: GeneratorPlacementCodes.On,
-            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
-            coverageModeCode: GeneratorCoverageModeCodes.None,
-            coverageSourceRefCode: 0,
-            coverageDesiredCellCount: 0,
-            coverageMinimumCellCount: 0,
-            coverageMinimumSourceRemainingCellCount: 0,
-            coverageRespectTerrainBoundaries: 0,
-            coverageTransformTerrainId: 0);
-
-        simulation.AdvanceTicks(1);
-
-        var created = simulation.World.EntityHighWatermark;
-        var q = simulation.World.EntitySemanticQ(created);
-        var r = simulation.World.EntitySemanticR(created);
-        Assert.InRange(q, -1, 1);
-        Assert.InRange(r, -1, 1);
-        Assert.True(HexDistance(0, 0, q, r) <= 1);
     }
 
     [Fact]
@@ -626,17 +645,14 @@ public sealed class GeneratorProgramRuntimeTests
 
     private static int RegisterGenerator(
         Simulation simulation,
-        int cadence = 1,
         int maxRuns = 0,
         bool includeProduced = true)
     {
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
-            cadence,
             TargetKindId,
             pulseWeight: 1,
-            maxRuns,
-            targetAllowWilderness: false);
+            maxRuns);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         if (includeProduced)
         {
@@ -657,8 +673,8 @@ public sealed class GeneratorProgramRuntimeTests
             hasQuery: 0,
             queryAdjacentToTarget: 0,
             queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
-            physicalPlacementCode: GeneratorPlacementCodes.Near,
-            semanticPlacementCode: GeneratorPlacementCodes.Near,
+            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
             createChance,
@@ -690,8 +706,8 @@ public sealed class GeneratorProgramRuntimeTests
             hasQuery: 0,
             queryAdjacentToTarget: 0,
             queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
-            physicalPlacementCode: GeneratorPlacementCodes.On,
-            semanticPlacementCode: GeneratorPlacementCodes.Near,
+            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
             createChance: 1f,
@@ -714,7 +730,10 @@ public sealed class GeneratorProgramRuntimeTests
     {
         simulation.World.SetMapRadius(20);
         simulation.RegisterTerrain(1, boundaryGroupId: 1);
+        simulation.RegisterTerrain(2, boundaryGroupId: 2);
         simulation.CreateCell(0, 0, terrainId: 1, ownerEntityId: 0);
+        simulation.CreateCell(1, 0, terrainId: 2, ownerEntityId: 0);
+        SeedSemanticPlacementCells(simulation);
         return CreateTarget(simulation, physicalQ: 0, physicalR: 0);
     }
 
@@ -723,12 +742,30 @@ public sealed class GeneratorProgramRuntimeTests
         simulation.CreateCell(10, 0, terrainId: 1, ownerEntityId: 0);
         simulation.CreateCell(10, 1, terrainId: 1, ownerEntityId: 0);
         simulation.CreateCell(11, 0, terrainId: 1, ownerEntityId: 0);
+        SeedSemanticPlacementCells(simulation);
         return CreateTarget(simulation, physicalQ: 10, physicalR: 0);
+    }
+
+    private static void SeedSemanticPlacementCells(Simulation simulation)
+    {
+        for (var q = -2; q <= 2; q++)
+        {
+            var minR = Math.Max(-2, -q - 2);
+            var maxR = Math.Min(2, -q + 2);
+            for (var r = minR; r <= maxR; r++)
+            {
+                if (!simulation.World.CellIsKnown(PlaneCodes.Semantic, q, r))
+                {
+                    simulation.CreateCell(PlaneCodes.Semantic, q, r, terrainId: 1, ownerEntityId: 0);
+                }
+            }
+        }
     }
 
     private static void SeedMap(Simulation simulation)
     {
         simulation.RegisterTerrain(1, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(2);
         for (var q = -2; q <= 2; q++)
         {
             var minR = Math.Max(-2, -q - 2);
@@ -736,15 +773,9 @@ public sealed class GeneratorProgramRuntimeTests
             for (var r = minR; r <= maxR; r++)
             {
                 simulation.CreateCell(q, r, terrainId: 1, ownerEntityId: 0);
+                simulation.SetCellState(PlaneCodes.Semantic, q, r, terrainId: 1, ownerEntityId: 0, tick: 0);
             }
         }
-    }
-
-    private static int HexDistance(int aq, int ar, int bq, int br)
-    {
-        var asCoord = -aq - ar;
-        var bsCoord = -bq - br;
-        return (Math.Abs(aq - bq) + Math.Abs(ar - br) + Math.Abs(asCoord - bsCoord)) / 2;
     }
 
     private static KernelEventType[] ReadAvailableEventTypes(Simulation simulation, KernelEventCursor cursor)
@@ -779,28 +810,34 @@ public sealed class GeneratorProgramRuntimeTests
         return result.ToArray();
     }
 
-    private static Simulation CreateSimulation(int seed = 1, bool retryFireTargets = true) => new(new SimulationOptions
-    {
-        EntityCapacity = 16,
-        RelationshipCapacity = 16,
-        AttributeCapacity = 32,
-        MapCellCapacity = 128,
-        EventCapacity = 512,
-        GeneratorCapacity = 4,
-        GeneratorItemCapacity = 64,
-        RelationshipKindIdCapacity = 64,
-        TerrainIdCapacity = 8,
-        SystemCapacity = 16,
-        KernelTuning = new KernelTuningOptions
+    private static Simulation CreateSimulation(
+        int seed = 1,
+        bool retryFireTargets = true,
+        int pulseWidthTicks = GeneratorProgramConstants.DefaultPulseWidthTicks,
+        int firesPerPulse = GeneratorProgramConstants.DefaultFiresPerPulse) => new(new SimulationOptions
         {
-            Programs = new KernelProgramTuningOptions
+            EntityCapacity = 16,
+            RelationshipCapacity = 16,
+            AttributeCapacity = 32,
+            MapCellCapacity = 128,
+            EventCapacity = 512,
+            GeneratorCapacity = 4,
+            GeneratorItemCapacity = 64,
+            RelationshipKindIdCapacity = 64,
+            TerrainIdCapacity = 8,
+            SystemCapacity = 16,
+            KernelTuning = new KernelTuningOptions
             {
-                Generators = new GeneratorProgramTuningOptions
+                Programs = new KernelProgramTuningOptions
                 {
-                    RetryFireTargets = retryFireTargets,
+                    Generators = new GeneratorProgramTuningOptions
+                    {
+                        RetryFireTargets = retryFireTargets,
+                        PulseWidthTicks = pulseWidthTicks,
+                        FiresPerPulse = firesPerPulse,
+                    },
                 },
             },
-        },
-        Seed = seed,
-    });
+            Seed = seed,
+        });
 }

@@ -340,7 +340,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             InactiveRejected: ReadInt(reader, "inactive_rejected"),
             SubtypeRejected: ReadInt(reader, "subtype_rejected"),
             SecondaryTargetRejected: ReadInt(reader, "secondary_target_rejected"),
-            WildernessRejected: ReadInt(reader, "wilderness_rejected"),
             TriggerRejected: ReadInt(reader, "trigger_rejected"),
             CreatedEntityCount: ReadInt(reader, "created_entity_count"),
             CreatedRelationshipCount: ReadInt(reader, "created_relationship_count")))
@@ -377,7 +376,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 InactiveRejected: observedRow.InactiveRejected,
                 SubtypeRejected: observedRow.SubtypeRejected,
                 SecondaryTargetRejected: observedRow.SecondaryTargetRejected,
-                WildernessRejected: observedRow.WildernessRejected,
                 TriggerRejected: observedRow.TriggerRejected,
                 PrimaryBlocker: primaryBlocker,
                 CreatedEntityCount: observedRow.CreatedEntityCount,

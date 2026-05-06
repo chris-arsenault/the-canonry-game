@@ -2,6 +2,7 @@ namespace IceRemembers;
 
 using Engine.Domain.Config;
 using Engine.WorldGen;
+
 using K = IceRemembers.IceRemembersKinds;
 
 public enum IceRemembersTerrain
@@ -14,22 +15,49 @@ public enum IceRemembersTerrain
     Shelf,
     Reef,
     Ocean,
+    Lineage,
+    Yoke,
+    Witness,
+    Silence,
+    Severance,
+    Breakaway,
+    BeaconSpire,
+    TabooRidge,
+    CavePocket,
+    OpenField,
 }
 
 public static class IceRemembersTerrainExtensions
 {
-    public static string ToDomainName(this IceRemembersTerrain terrain) => terrain switch
+    private static readonly string[] DomainNames =
+    [
+        "wastes",
+        "crags",
+        "tundra",
+        "ice",
+        "hot_springs",
+        "shelf",
+        "reef",
+        "ocean",
+        "lineage",
+        "yoke",
+        "witness",
+        "silence",
+        "severance",
+        "breakaway",
+        "beacon_spire",
+        "taboo_ridge",
+        "cave_pocket",
+        "open_field",
+    ];
+
+    public static string ToDomainName(this IceRemembersTerrain terrain)
     {
-        IceRemembersTerrain.Wastes => "wastes",
-        IceRemembersTerrain.Crags => "crags",
-        IceRemembersTerrain.Tundra => "tundra",
-        IceRemembersTerrain.Ice => "ice",
-        IceRemembersTerrain.HotSprings => "hot_springs",
-        IceRemembersTerrain.Shelf => "shelf",
-        IceRemembersTerrain.Reef => "reef",
-        IceRemembersTerrain.Ocean => "ocean",
-        _ => throw new ArgumentOutOfRangeException(nameof(terrain), terrain, "Unknown Ice Remembers terrain"),
-    };
+        var index = (int)terrain;
+        return (uint)index < (uint)DomainNames.Length
+            ? DomainNames[index]
+            : throw new ArgumentOutOfRangeException(nameof(terrain), terrain, "Unknown Ice Remembers terrain");
+    }
 }
 
 public static class IceRemembersTerrainCatalog
@@ -64,6 +92,16 @@ public static class IceRemembersTerrainCatalog
             0.2f,
             1.15f,
             OrcaWaterProfile(0.75f)),
+        DomainTerrain(IceRemembersTerrain.Lineage, "Lineage", "semantic_memory", 0.9f, 1.15f, 0.85f, 1.25f, 1.1f, 1.45f),
+        DomainTerrain(IceRemembersTerrain.Yoke, "Yoke", "semantic_authority", 1.25f, 1.05f, 0.75f, 1.35f, 0.8f, 1.3f, YokeProfiles()),
+        DomainTerrain(IceRemembersTerrain.Witness, "Witness", "semantic_memory", 0.95f, 1.4f, 0.9f, 1.15f, 1.35f, 1.55f),
+        DomainTerrain(IceRemembersTerrain.Silence, "Silence", "semantic_shadow", 1.4f, 0.65f, 1.2f, 0.9f, 0.7f, 1.25f, HiddenSemanticProfiles()),
+        DomainTerrain(IceRemembersTerrain.Severance, "Severance", "semantic_rupture", 1.6f, 0.7f, 1.5f, 0.65f, 0.55f, 1.2f),
+        DomainTerrain(IceRemembersTerrain.Breakaway, "Breakaway", "semantic_rupture", 0.8f, 1.05f, 1.25f, 0.75f, 1.3f, 1.6f),
+        DomainTerrain(IceRemembersTerrain.BeaconSpire, "Beacon Spire", "semantic_memory", 1.2f, 1.55f, 0.8f, 1.2f, 1.45f, 1.75f),
+        DomainTerrain(IceRemembersTerrain.TabooRidge, "Taboo Ridge", "semantic_shadow", 1.75f, 0.5f, 1.7f, 0.55f, 0.35f, 1.1f),
+        DomainTerrain(IceRemembersTerrain.CavePocket, "Cave Pocket", "semantic_shadow", 1.3f, 0.6f, 0.9f, 1.15f, 0.6f, 1.2f, HiddenSemanticProfiles()),
+        DomainTerrain(IceRemembersTerrain.OpenField, "Open Field", "semantic_open", 1f, 1f, 1f, 1f, 1f, 1.35f),
     ];
 
     public static TerrainCatalog CreateWorldGenCatalog() =>
@@ -111,6 +149,52 @@ public static class IceRemembersTerrainCatalog
             Kind = K.Orca,
             MovementCost = movementCost,
             InfluenceMultiplier = 1.2f,
+            ClaimCostMultiplier = 0.8f,
+            ClaimChanceMultiplier = 1.2f,
+        },
+    ];
+
+    private static IReadOnlyList<TerrainKindProfileConfig> YokeProfiles() =>
+    [
+        new()
+        {
+            Kind = K.Faction,
+            MovementCost = 0.9f,
+            ClaimCostMultiplier = 0.65f,
+            ClaimChanceMultiplier = 1.45f,
+        },
+        new()
+        {
+            Kind = K.Settlement,
+            MovementCost = 1f,
+            ClaimCostMultiplier = 0.8f,
+            ClaimChanceMultiplier = 1.25f,
+        },
+    ];
+
+    private static IReadOnlyList<TerrainKindProfileConfig> HiddenSemanticProfiles() =>
+    [
+        new()
+        {
+            Kind = K.Artifact,
+            MovementCost = 0.85f,
+            InfluenceMultiplier = 0.8f,
+            ClaimCostMultiplier = 0.8f,
+            ClaimChanceMultiplier = 1.2f,
+        },
+        new()
+        {
+            Kind = K.Monster,
+            MovementCost = 0.75f,
+            InfluenceMultiplier = 1.15f,
+            ClaimCostMultiplier = 0.65f,
+            ClaimChanceMultiplier = 1.35f,
+        },
+        new()
+        {
+            Kind = K.Occurrence,
+            MovementCost = 0.9f,
+            InfluenceMultiplier = 1.05f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.2f,
         },

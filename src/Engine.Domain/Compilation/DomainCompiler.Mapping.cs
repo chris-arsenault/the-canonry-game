@@ -208,10 +208,8 @@ public static partial class DomainCompiler
             var refCodes = BuildGeneratorRefCodes(generator);
             generators.Add(new CompiledGeneratorRule(
                 generator.RuntimeId,
-                GeneratorProgramConstants.DefaultCadenceTicks,
                 ids.KindIdOf(generator.Target.Kind).Value,
                 CompileGeneratorSubtypeIds(generator.Target.Subtypes, ids),
-                generator.Target.AllowWilderness,
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.PulseWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
@@ -341,6 +339,8 @@ public static partial class DomainCompiler
         var compiled = new List<GeneratorProducedEntityRule>();
         foreach (var produced in producedEntities)
         {
+            var physicalPlacement = ToGeneratorPlacement(produced.PhysicalPlacement);
+            var semanticPlacement = ToGeneratorPlacement(produced.SemanticPlacement);
             compiled.Add(new GeneratorProducedEntityRule(
                 refCodes[produced.Ref],
                 ids.KindIdOf(produced.Kind).Value,
@@ -353,8 +353,20 @@ public static partial class DomainCompiler
                 produced.Query is null
                     ? null
                     : CompileGeneratorQuery(produced.Query, ids, ProducedQuerySubtypes(produced)),
-                ToGeneratorPlacement(produced.PhysicalPlacement),
-                ToGeneratorPlacement(produced.SemanticPlacement),
+                physicalPlacement.Placement,
+                physicalPlacement.MinRadius,
+                physicalPlacement.MaxRadius,
+                CompileTerrainIds(produced.PhysicalPlacementPreferredTerrains, terrainByName, ids),
+                CompileTerrainIds(produced.PhysicalPlacementAllowedTerrains, terrainByName, ids),
+                CompileTerrainIds(produced.PhysicalPlacementAvoidedTerrains, terrainByName, ids),
+                CompileOptionalTerrainId(produced.PhysicalPlacementFallbackTerrain, terrainByName, ids),
+                semanticPlacement.Placement,
+                semanticPlacement.MinRadius,
+                semanticPlacement.MaxRadius,
+                CompileTerrainIds(produced.SemanticPlacementPreferredTerrains, terrainByName, ids),
+                CompileTerrainIds(produced.SemanticPlacementAllowedTerrains, terrainByName, ids),
+                CompileTerrainIds(produced.SemanticPlacementAvoidedTerrains, terrainByName, ids),
+                CompileOptionalTerrainId(produced.SemanticPlacementFallbackTerrain, terrainByName, ids),
                 refCodes[produced.PlacementRef],
                 refCodes[produced.InheritCultureFrom],
                 produced.CreateChance,
@@ -543,13 +555,21 @@ public static partial class DomainCompiler
         return compiled;
     }
 
+    private static int CompileOptionalTerrainId(
+        string? terrain,
+        Dictionary<string, TerrainConfig> terrainByName,
+        DomainIdRegistry ids) =>
+        string.IsNullOrWhiteSpace(terrain)
+            ? 0
+            : ids.TerrainIdOf(ResolveTerrain(terrainByName, terrain).Name).Value;
+
     private static TerrainConfig ResolveTerrain(
         Dictionary<string, TerrainConfig> terrainByName,
         string terrainName)
     {
         if (!terrainByName.TryGetValue(terrainName, out var terrain))
         {
-            throw new InvalidOperationException($"Generator coverage references undeclared terrain '{terrainName}'.");
+            throw new InvalidOperationException($"Generator references undeclared terrain '{terrainName}'.");
         }
 
         return terrain;
@@ -578,12 +598,24 @@ public static partial class DomainCompiler
             _ => throw new ArgumentOutOfRangeException(nameof(selection), selection, null),
         };
 
-    private static GeneratorProgramPlacement ToGeneratorPlacement(SemanticPlacement placement) => placement switch
+    private static (GeneratorProgramPlacement Placement, int MinRadius, int MaxRadius) ToGeneratorPlacement(SemanticPlacement placement) => placement switch
     {
-        SemanticPlacement.On => GeneratorProgramPlacement.On,
-        SemanticPlacement.Near => GeneratorProgramPlacement.Near,
-        SemanticPlacement.Across => GeneratorProgramPlacement.Across,
-        SemanticPlacement.InRegionLocality => GeneratorProgramPlacement.InCoverageLocality,
+        SemanticPlacement.On => (
+            GeneratorProgramPlacement.Area,
+            0,
+            0),
+        SemanticPlacement.Near => (
+            GeneratorProgramPlacement.Area,
+            GeneratorProgramConstants.DefaultPlacementMinRadius,
+            GeneratorProgramConstants.DefaultPlacementMaxRadius),
+        SemanticPlacement.Across => (
+            GeneratorProgramPlacement.Area,
+            GeneratorProgramConstants.FarPlacementMinRadius,
+            GeneratorProgramConstants.UnboundedPlacementMaxRadius),
+        SemanticPlacement.InRegionLocality => (
+            GeneratorProgramPlacement.Locality,
+            GeneratorProgramConstants.DefaultPlacementMinRadius,
+            GeneratorProgramConstants.UnboundedPlacementMaxRadius),
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

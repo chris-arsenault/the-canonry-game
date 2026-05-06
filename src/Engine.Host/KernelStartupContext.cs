@@ -38,6 +38,16 @@ internal sealed class KernelStartupContext
         int continentId = 0) =>
         _kernel.SeedCell(q, r, terrainId, ownerEntityId, superregionId, continentId);
 
+    public void SeedCell(
+        int planeCode,
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId,
+        int superregionId = 0,
+        int continentId = 0) =>
+        _kernel.SeedCell(planeCode, q, r, terrainId, ownerEntityId, superregionId, continentId);
+
     public void SeedEntity(
         int entityId,
         int kindId,

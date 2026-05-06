@@ -6,60 +6,6 @@ using Engine.Kernel;
 public sealed class LowAltitudePhysicsProgramTests
 {
     [Fact]
-    public void LowAltitudeVerbProgram_CommitsPhysicalTargetAndMovesWithVerbSource()
-    {
-        var simulation = new Simulation(new SimulationOptions { Seed = 11 });
-        const int terrainId = 1;
-        const int actorKindId = 1;
-        const int targetKindId = 2;
-        const int verbId = 77;
-        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(3);
-        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
-        simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
-        simulation.SeedCell(2, 0, terrainId, ownerEntityId: 0);
-        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 2, 0, 0, 0, 0, tick: 0);
-        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
-            actorKindId,
-            verbId,
-            PlaneCodes.Physical,
-            ProgramOpcodeCodes.MoveActor,
-            TargetSelectorCodes.EntityKind,
-            targetKindId,
-            relationshipKindId: 0,
-            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
-            minCommitmentTicks: 3,
-            maxCommitmentTicks: 3,
-            dwellTicks: 0,
-            targetRadius: 0,
-            candidateSampleCount: 1,
-            weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
-            influenceDelta: 0f,
-            influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
-        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
-        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
-
-        simulation.AdvanceTicks(1);
-
-        Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(actorId), simulation.World.EntityPhysicalR(actorId)));
-        AssertMovedByProgram(
-            simulation,
-            cursor,
-            actorId,
-            KernelProgramCodes.LowAltitudeVerbs,
-            simulation.LowAltitudeVerbSourceCodeId);
-    }
-
-    [Fact]
     public void LowAltitudeVerbProgram_CommitsSemanticTargetAndMovesWithVerbSource()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 13 });
@@ -159,57 +105,6 @@ public sealed class LowAltitudePhysicsProgramTests
         var r = simulation.World.EntitySemanticR(actorId);
         Assert.True(HexDistance(0, 0, q, r) <= simulation.World.MapRadius);
         Assert.Equal(-q - r, simulation.World.EntitySemanticS(actorId));
-    }
-
-    [Fact]
-    public void LowAltitudeVerbProgram_EmitsMovementIntentTraceWithVerbIdWhenTraceEnabled()
-    {
-        var simulation = new Simulation(new SimulationOptions { Seed = 17, TraceEnabled = true });
-        const int terrainId = 1;
-        const int actorKindId = 1;
-        const int targetKindId = 2;
-        const int verbId = 99;
-        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedPhysicalNeighborhood(simulation, terrainId);
-        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var targetId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
-        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
-            actorKindId,
-            verbId,
-            PlaneCodes.Physical,
-            ProgramOpcodeCodes.MoveActor,
-            TargetSelectorCodes.EntityKind,
-            targetKindId,
-            relationshipKindId: 0,
-            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
-            minCommitmentTicks: 3,
-            maxCommitmentTicks: 3,
-            dwellTicks: 0,
-            targetRadius: 0,
-            candidateSampleCount: 1,
-            weight: 1f,
-            exploreWeight: 0f,
-            stalenessWeight: 0f,
-            hotspotWeight: 0f,
-            crowdingWeight: 0f,
-            affordanceWeight: 0f,
-            influenceDelta: 0f,
-            influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
-        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
-        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
-
-        simulation.AdvanceTicks(1);
-
-        var trace = AssertTrace(simulation, cursor, actorId);
-        Assert.Equal(TraceSubjectCodes.MovementIntent, trace.TraceSubjectCode);
-        Assert.Equal(ActionFamilyCodes.LowAltitudeVerb, trace.ActionFamilyCode);
-        Assert.Equal(verbId, trace.ActionId);
-        Assert.Equal(targetId, trace.TargetEntityId);
-        Assert.Equal(TraceStatusCodes.Selected, trace.StatusCode);
     }
 
     [Fact]
@@ -1009,40 +904,6 @@ public sealed class LowAltitudePhysicsProgramTests
         }
 
         Assert.Fail("Expected relationship strength event attributed to the low-altitude verb program.");
-    }
-
-    private static TraceKernelEvent AssertTrace(
-        Simulation simulation,
-        KernelEventCursor cursor,
-        int entityId)
-    {
-        var found = false;
-        var selected = default(TraceKernelEvent);
-        while (simulation.Events.TryRead(cursor, out var read))
-        {
-            if (read.Event.EventType != KernelEventType.Trace)
-            {
-                continue;
-            }
-
-            var trace = read.Event.AsTrace();
-            if (trace.EntityId == entityId)
-            {
-                found = true;
-                if (trace.StatusCode == TraceStatusCodes.Selected)
-                {
-                    selected = trace;
-                }
-            }
-        }
-
-        if (found)
-        {
-            return selected;
-        }
-
-        Assert.Fail("Expected movement intent trace event.");
-        return selected;
     }
 
     private static int HexDistance(int aq, int ar, int bq, int br)

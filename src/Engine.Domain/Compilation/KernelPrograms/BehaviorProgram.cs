@@ -90,6 +90,7 @@ public enum BehaviorProgramExpression
     Abs,
     Variable,
     Distance,
+    SameCulture,
 }
 
 public enum BehaviorProgramProviderSelector

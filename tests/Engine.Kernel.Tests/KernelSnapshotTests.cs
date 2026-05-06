@@ -33,11 +33,9 @@ public sealed class KernelSnapshotTests
             tick: 0);
         simulation.Generators.RegisterGenerator(
             generatorId: 50,
-            cadence: 1,
             targetKindId: 1,
             pulseWeight: 1,
-            maxRuns: 3,
-            targetAllowWilderness: true);
+            maxRuns: 3);
         Assert.True(simulation.Generators.TrySetGeneratorEnabledById(50, enabled: false));
         simulation.SetProgramEnabled(KernelProgramCodes.Generators, enabled: false);
 
@@ -96,7 +94,7 @@ public sealed class KernelSnapshotTests
 
     private static void RegisterProvenanceSnapshotGenerator(Simulation simulation)
     {
-        var generator = simulation.Generators.RegisterGenerator(50, 1, 1, 1, 1, targetAllowWilderness: false);
+        var generator = simulation.Generators.RegisterGenerator(50, 1, 1, 1);
         simulation.Generators.AddTrigger(generator, 1);
         simulation.Generators.AddProduced(
             generator,
@@ -107,8 +105,8 @@ public sealed class KernelSnapshotTests
             hasQuery: 0,
             queryAdjacentToTarget: 0,
             queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
-            physicalPlacementCode: GeneratorPlacementCodes.Near,
-            semanticPlacementCode: GeneratorPlacementCodes.Near,
+            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
             createChance: 1f,
@@ -168,6 +166,8 @@ public sealed class KernelSnapshotTests
                 Generators = new GeneratorProgramTuningOptions
                 {
                     RetryFireTargets = false,
+                    PulseWidthTicks = 17,
+                    FiresPerPulse = 2,
                 },
             },
         };
@@ -196,6 +196,8 @@ public sealed class KernelSnapshotTests
         Assert.False(generatorEnabled);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
+        Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.PulseWidthTicks);
+        Assert.Equal(2, loaded.Options.KernelTuning.Programs.Generators.FiresPerPulse);
         Assert.Equal(expectedRandom, loaded.NextInt(10000));
     }
 

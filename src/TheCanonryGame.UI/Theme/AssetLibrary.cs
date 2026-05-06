@@ -206,9 +206,9 @@ public static class AssetLibrary
 
     private static void LoadMapOverlays()
     {
-        RoadLightOverlay = LoadTexture("map-overlays/road-light.png");
-        RoadHeavyOverlay = LoadTexture("map-overlays/road-heavy.png");
-        SemanticCellOverlay = LoadTexture("map-overlays/semantic-cell-overlay.png");
+        RoadLightOverlay = LoadTexture("map-overlays/road-light@128.png");
+        RoadHeavyOverlay = LoadTexture("map-overlays/road-heavy@128.png");
+        SemanticCellOverlay = LoadTexture("map-overlays/semantic-cell-overlay@128.png");
     }
 
     /// <summary>Get a per-kind sprite texture, or null if not available.</summary>

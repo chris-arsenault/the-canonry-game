@@ -199,24 +199,24 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             outgoing,
             (relationshipId, otherEntityId) =>
             {
-            if (!world.EntityIsActive(otherEntityId))
-            {
-                return true;
-            }
+                if (!world.EntityIsActive(otherEntityId))
+                {
+                    return true;
+                }
 
-            if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
-            {
-                return true;
-            }
+                if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
+                {
+                    return true;
+                }
 
-            var influence = world.GetCellInfluence(otherEntityId, planeCode, q, r);
-            if (influence <= 0f)
-            {
-                return true;
-            }
+                var influence = world.GetCellInfluence(otherEntityId, planeCode, q, r);
+                if (influence <= 0f)
+                {
+                    return true;
+                }
 
-            total += KernelQuery.ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
-                KernelQuery.RelationshipStrength(world, relationshipId);
+                total += KernelQuery.ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
+                    KernelQuery.RelationshipStrength(world, relationshipId);
                 return total < 1f;
             });
 
@@ -260,20 +260,20 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             outgoing,
             (relationshipId, otherEntityId) =>
             {
-            if (!world.EntityIsActive(otherEntityId))
-            {
-                return true;
-            }
+                if (!world.EntityIsActive(otherEntityId))
+                {
+                    return true;
+                }
 
-            if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
-            {
-                return true;
-            }
+                if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
+                {
+                    return true;
+                }
 
-            var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
-            var evidence = KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
-                KernelQuery.RelationshipStrength(world, relationshipId);
-            total += evidence;
+                var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
+                var evidence = KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
+                    KernelQuery.RelationshipStrength(world, relationshipId);
+                total += evidence;
                 return total < 1f;
             });
 

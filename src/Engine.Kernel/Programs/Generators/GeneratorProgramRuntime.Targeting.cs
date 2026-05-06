@@ -23,12 +23,6 @@ internal sealed partial class GeneratorProgramRuntime
 
         var targetOriginQ = world.EntityPhysicalQ(targetId);
         var targetOriginR = world.EntityPhysicalR(targetId);
-        if (_targetAllowWilderness[generatorSlot] != 0 &&
-            !FindFreePhysicalHex(world, targetOriginQ, targetOriginR, maxRadius: 5, out targetOriginQ, out targetOriginR))
-        {
-            return false;
-        }
-
         SetRef(refCodes, refEntityIds, ref refCount, GeneratorProgramConstants.TargetReferenceCode, targetId);
         return ResolveSecondaryBindings(
             world,

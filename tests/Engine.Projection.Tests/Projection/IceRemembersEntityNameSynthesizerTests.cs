@@ -1,6 +1,7 @@
 namespace Engine.Projection.Tests.Projection;
 
 using Engine.Projection;
+
 using IceRemembers;
 
 public sealed class IceRemembersEntityNameSynthesizerTests

@@ -1,13 +1,14 @@
 namespace Engine.Domain.Tests.Domain.Graph;
 
+using Engine.Behaviors;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
 using Engine.Gambits;
-using IceRemembers;
 using Engine.Kinds;
-using Engine.Behaviors;
 using Engine.Wiring;
+
+using IceRemembers;
 
 public class DefinitionGraphTests
 {

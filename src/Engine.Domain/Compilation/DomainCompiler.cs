@@ -560,6 +560,9 @@ public static partial class DomainCompiler
             case Distance:
                 ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Distance));
                 return true;
+            case SameCulture:
+                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.SameCulture));
+                return true;
             default:
                 return false;
         }

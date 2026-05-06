@@ -16,7 +16,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 COALESCE(SUM(inactive_rejected_count), 0) AS inactive_rejected,
                 COALESCE(SUM(subtype_rejected_count), 0) AS subtype_rejected,
                 COALESCE(SUM(secondary_target_rejected_count), 0) AS secondary_target_rejected,
-                COALESCE(SUM(wilderness_rejected_count), 0) AS wilderness_rejected,
                 COALESCE(SUM(trigger_rejected_count), 0) AS trigger_rejected
             FROM generator_events
             WHERE event_type = 'pulse'
@@ -45,7 +44,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
             COALESCE(p.inactive_rejected, 0) AS inactive_rejected,
             COALESCE(p.subtype_rejected, 0) AS subtype_rejected,
             COALESCE(p.secondary_target_rejected, 0) AS secondary_target_rejected,
-            COALESCE(p.wilderness_rejected, 0) AS wilderness_rejected,
             COALESCE(p.trigger_rejected, 0) AS trigger_rejected,
             COALESCE(f.created_entity_count, 0) AS created_entity_count,
             COALESCE(f.created_relationship_count, 0) AS created_relationship_count

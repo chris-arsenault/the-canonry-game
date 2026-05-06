@@ -1,5 +1,6 @@
 namespace IceRemembers.Seed.Tests;
 
+using Engine.Constants;
 using Engine.Domain.Startup;
 using Engine.WorldGen;
 
@@ -74,16 +75,24 @@ public sealed class IceRemembersSeedBuilderTests
     public void BuildStartupSeed_PreservesGeneratedMapEntitiesAndRelationships()
     {
         var startupSeed = IceRemembersSeedBuilder.BuildStartupSeed(seed: 42);
+        var physicalCells = startupSeed.Cells
+            .Where(cell => cell.PlaneCode == PlaneCodes.Physical)
+            .ToArray();
+        var semanticCells = startupSeed.Cells
+            .Where(cell => cell.PlaneCode == PlaneCodes.Semantic)
+            .ToArray();
 
         Assert.Equal(40, startupSeed.MapRadius);
-        Assert.Equal(3 * 40 * 40 + 3 * 40 + 1, startupSeed.Cells.Count);
+        Assert.Equal(3 * 40 * 40 + 3 * 40 + 1, physicalCells.Length);
+        Assert.Equal(3 * 40 * 40 + 3 * 40 + 1, semanticCells.Length);
         Assert.Equal(Seed.Entities.Count, startupSeed.Entities.Count);
-        Assert.Equal(3, startupSeed.MapSubdivisions.Count(subdivision =>
-            subdivision.Level == DomainMapSubdivisionLevel.Continent));
         Assert.Equal(7, startupSeed.MapSubdivisions.Count(subdivision =>
+            subdivision.Level == DomainMapSubdivisionLevel.Continent));
+        Assert.Equal(17, startupSeed.MapSubdivisions.Count(subdivision =>
             subdivision.Level == DomainMapSubdivisionLevel.Superregion));
         Assert.Contains(startupSeed.Entities, entity => entity.DisplayName == "Aurora Stack");
-        Assert.Contains(startupSeed.Cells, cell => cell.OwnerSeedEntityId is not null);
+        Assert.Contains(physicalCells, cell => cell.OwnerSeedEntityId is not null);
+        Assert.DoesNotContain(semanticCells, cell => cell.OwnerSeedEntityId is not null);
         Assert.All(startupSeed.Cells, cell =>
         {
             Assert.True(cell.SuperregionId > 0, $"Cell {cell.Q},{cell.R} has no superregion.");
@@ -96,7 +105,7 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void Grid_UsesIceRemembersTerrainCatalog()
     {
-        var terrainNames = Seed.Cells
+        var terrainNames = PhysicalCells()
             .Select(cell => cell.Terrain)
             .Distinct(StringComparer.Ordinal)
             .ToHashSet(StringComparer.Ordinal);
@@ -110,12 +119,13 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void TerrainGeneration_UsesExpandedMapInsteadOfOldTundraBands()
     {
-        var terrainCounts = Seed.Cells
+        var cells = PhysicalCells();
+        var terrainCounts = cells
             .GroupBy(cell => cell.Terrain, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
-        var total = Seed.Cells.Count;
+        var total = cells.Length;
         var tundraShare = terrainCounts.GetValueOrDefault(T(IceRemembersTerrain.Tundra)) / (float)total;
-        var wetShare = Seed.Cells.Count(cell =>
+        var wetShare = cells.Count(cell =>
             IsAnyTerrain(cell.Terrain, IceRemembersTerrain.Ocean, IceRemembersTerrain.Shelf, IceRemembersTerrain.Reef)) /
             (float)total;
         var largestShare = terrainCounts.Values.Max() / (float)total;
@@ -123,6 +133,35 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.True(tundraShare < 0.55f, $"Tundra dominates expanded map at {tundraShare:P1}.");
         Assert.True(wetShare >= 0.18f, $"Expected meaningful ocean/shelf/reef separation, got {wetShare:P1}.");
         Assert.True(largestShare < 0.65f, $"Single terrain dominates expanded map at {largestShare:P1}.");
+    }
+
+    [Fact]
+    public void SemanticTerrainGeneration_MaterializesConceptualMap()
+    {
+        var semanticCells = SemanticCells();
+        var terrainNames = semanticCells
+            .Select(cell => cell.Terrain)
+            .Distinct(StringComparer.Ordinal)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(3 * 40 * 40 + 3 * 40 + 1, semanticCells.Length);
+        Assert.DoesNotContain(T(IceRemembersTerrain.Wastes), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.OpenField), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.Lineage), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.Yoke), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.Witness), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.Silence), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.Severance), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.Breakaway), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.BeaconSpire), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.TabooRidge), terrainNames);
+        Assert.Contains(T(IceRemembersTerrain.CavePocket), terrainNames);
+        Assert.All(semanticCells, cell =>
+        {
+            Assert.Equal(PlaneCodes.Semantic, cell.PlaneCode);
+            Assert.True(cell.SuperregionId >= 100, $"Semantic cell {cell.Q},{cell.R} has physical superregion {cell.SuperregionId}.");
+            Assert.True(cell.ContinentId >= 100, $"Semantic cell {cell.Q},{cell.R} has physical continent {cell.ContinentId}.");
+        });
     }
 
     [Fact]
@@ -224,20 +263,21 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void SeedSubdivisions_CreateLargeScaleGeographyWithoutGraphEntities()
     {
-        var continents = Seed.Cells
+        var cells = PhysicalCells();
+        var continents = cells
             .Select(cell => cell.ContinentId)
             .Distinct()
             .ToArray();
-        var superregions = Seed.Cells
+        var superregions = cells
             .Select(cell => cell.SuperregionId)
             .Distinct()
             .ToArray();
 
         Assert.True(continents.Length >= 3, $"Expected at least 3 continents, got {continents.Length}.");
         Assert.True(superregions.Length >= 6, $"Expected at least 6 superregions, got {superregions.Length}.");
-        Assert.Equal(3, Seed.MapSubdivisions.Count(subdivision =>
-            subdivision.Level == DomainMapSubdivisionLevel.Continent));
         Assert.Equal(7, Seed.MapSubdivisions.Count(subdivision =>
+            subdivision.Level == DomainMapSubdivisionLevel.Continent));
+        Assert.Equal(17, Seed.MapSubdivisions.Count(subdivision =>
             subdivision.Level == DomainMapSubdivisionLevel.Superregion));
         Assert.Contains(Seed.MapSubdivisions, subdivision =>
             subdivision.Level == DomainMapSubdivisionLevel.Continent &&
@@ -253,10 +293,11 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void SeedSubdivisions_SeparateContinentsWithWaterBands()
     {
-        var cells = Seed.Cells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
+        var physicalCells = PhysicalCells();
+        var cells = physicalCells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
         var boundaryEdges = 0;
         var wetBoundaryEdges = 0;
-        foreach (var cell in Seed.Cells)
+        foreach (var cell in physicalCells)
         {
             var coord = new HexCoord(cell.Q, cell.R);
             foreach (var neighborCoord in coord.Neighbors())
@@ -285,7 +326,8 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void SeedSubdivisions_GiveEveryContinentAndSuperregionLandToPlayOn()
     {
-        foreach (var continent in Seed.Cells.GroupBy(cell => cell.ContinentId))
+        var cells = PhysicalCells();
+        foreach (var continent in cells.GroupBy(cell => cell.ContinentId))
         {
             var landCells = continent.Count(cell => !IsWaterBoundaryTerrain(cell.Terrain));
             Assert.True(
@@ -293,7 +335,7 @@ public sealed class IceRemembersSeedBuilderTests
                 $"Continent {continent.Key} has only {landCells} non-water cells.");
         }
 
-        foreach (var superregion in Seed.Cells.GroupBy(cell => cell.SuperregionId))
+        foreach (var superregion in cells.GroupBy(cell => cell.SuperregionId))
         {
             var landCells = superregion.Count(cell => !IsWaterBoundaryTerrain(cell.Terrain));
             Assert.True(
@@ -335,13 +377,24 @@ public sealed class IceRemembersSeedBuilderTests
             relationship.RelationshipKind == relationshipKind);
 
     private DomainSeedCell? CellAt(HexCoord coord) =>
-        Seed.Cells.FirstOrDefault(cell => cell.Q == coord.Q && cell.R == coord.R);
+        PhysicalCells().FirstOrDefault(cell => cell.Q == coord.Q && cell.R == coord.R);
 
     private bool NamedCoverageIsSparse()
     {
-        var covered = Seed.Cells.Count(cell => cell.OwnerSeedEntityId is not null);
-        return covered / (float)Seed.Cells.Count is >= 0.08f and <= 0.20f;
+        var cells = PhysicalCells();
+        var covered = cells.Count(cell => cell.OwnerSeedEntityId is not null);
+        return covered / (float)cells.Length is >= 0.08f and <= 0.20f;
     }
+
+    private static DomainSeedCell[] PhysicalCells() =>
+        Seed.Cells
+            .Where(cell => cell.PlaneCode == PlaneCodes.Physical)
+            .ToArray();
+
+    private static DomainSeedCell[] SemanticCells() =>
+        Seed.Cells
+            .Where(cell => cell.PlaneCode == PlaneCodes.Semantic)
+            .ToArray();
 
     private static HexCoord Coord(DomainSeedEntity entity) => new(entity.PhysicalQ, entity.PhysicalR);
 

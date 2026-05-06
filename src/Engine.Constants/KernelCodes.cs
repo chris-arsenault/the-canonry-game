@@ -94,6 +94,7 @@ public static class BehaviorExpressionCodes
     public const int Abs = 13;
     public const int Variable = 14;
     public const int Distance = 15;
+    public const int SameCulture = 16;
 }
 
 public static class RelationshipTraversalDirectionCodes
@@ -211,10 +212,8 @@ public static class GeneratorStatusCodes
 
 public static class GeneratorPlacementCodes
 {
-    public const int On = 1;
-    public const int Near = 2;
-    public const int Across = 3;
-    public const int InCoverageLocality = 4;
+    public const int Area = 1;
+    public const int Locality = 2;
 }
 
 public static class GeneratorCultureMatchCodes
@@ -353,7 +352,12 @@ public static class KernelCommandRejectReasonCodes
 public static class GeneratorProgramConstants
 {
     public const int TargetReferenceCode = 1;
-    public const int DefaultCadenceTicks = 25;
+    public const int DefaultPulseWidthTicks = 25;
+    public const int DefaultFiresPerPulse = 1;
+    public const int DefaultPlacementMinRadius = 0;
+    public const int DefaultPlacementMaxRadius = 5;
+    public const int FarPlacementMinRadius = 20;
+    public const int UnboundedPlacementMaxRadius = int.MaxValue;
 }
 
 public static class GeneratorEffectTypeCodes

@@ -89,6 +89,10 @@ is covered there as `cell_road_events`, `road_creation`, `road_usage`, and
 `road_reinforcement`; prioritization analysis is intentionally excluded until
 candidate path/cost choice telemetry exists.
 
+Monte Carlo evidence runs are registered with unique run ids. Use the CLI
+workflow in [docs/tools/monte-carlo.md](docs/tools/monte-carlo.md) instead of
+manually choosing artifact directories.
+
 To play in Godot:
 
 1. Open the project in Godot 4.6.

@@ -1,7 +1,5 @@
-# Heavy Road Cell Overlay
+# Heavy Travel Mark Overlay
 
-Transparent PNG overlay for a single hex cell. Show a strong, repeated-travel road mark crossing the cell interior with compact snow, exposed stone, and subtle gold-white highlights. It must remain cell-oriented, not an edge connector.
+A stylized heavy-road overlay marker. Simplified app-icon geometry.
 
-Use for road quality > 0.75.
-
-Approved runtime asset path: `assets/game/map-overlays/road-heavy.png`.
+Two thick parallel dash strokes cross diagonally through the icon center. Add a short dashed center line and six tiny round dots beside the strokes. Flat saturated palette colors, sharp clean edges, generous padding. This represents road quality above 0.75.

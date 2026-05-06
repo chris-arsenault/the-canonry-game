@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "road-light-overlay",
+  "file": "map-overlays/road-light.png",
+  "spec_type": "icon",
+  "section_id": "2b-map-overlays",
+  "section": "2b · Map overlays",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "# Light Travel Mark Overlay\n\nA stylized light-road overlay marker. Simplified app-icon geometry.\n\nTwo short thin parallel dash strokes cross diagonally through the icon center. Add three tiny round dots beside the dash pair. Flat saturated palette colors, sharp clean edges, generous padding. This represents road quality above 0.25 and up to 0.75.",
+  "formatted_prompt": {
+    "scene": "Flat filled-vector app icon, two diagonal parallel dash strokes with three tiny round dots, centered on a warm off-white canvas, bold yellow and black punchy color fills.",
+    "subjects": [
+      {
+        "type": "diagonal dash pair",
+        "description": "Two short thin parallel rectangular dashes angled 45 degrees through icon center, crisp sharp edges, bold flat fills",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "dot cluster",
+        "description": "Three tiny perfect circles arranged in a tight row beside the dash pair, small but readable at 16px",
+        "position": "center-right",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "706a9152-9d7b-4bb3-9653-9fcc139ad1c7",
+  "cost_usd": 3,
+  "claude_cost_usd": 0.006927000000000001,
+  "duration_ms": 9622,
+  "generated_at": "2026-05-06T15:23:37.587Z"
+}

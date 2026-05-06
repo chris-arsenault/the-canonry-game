@@ -433,18 +433,14 @@ internal sealed class KernelConfigurationContext
 
     public int RegisterGenerator(
         int generatorId,
-        int cadenceTicks,
         int targetKindId,
         int pulseWeight,
-        int maxRuns,
-        bool targetAllowWilderness) =>
+        int maxRuns) =>
         _kernel.Generators.RegisterGenerator(
             generatorId,
-            cadenceTicks,
             targetKindId,
             pulseWeight,
-            maxRuns,
-            targetAllowWilderness);
+            maxRuns);
 
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
@@ -525,7 +521,11 @@ internal sealed class KernelConfigurationContext
         int coverageMinimumCellCount,
         int coverageMinimumSourceRemainingCellCount,
         bool coverageRespectTerrainBoundaries,
-        int coverageTransformTerrainId) =>
+        int coverageTransformTerrainId,
+        int physicalPlacementMinRadius,
+        int physicalPlacementMaxRadius,
+        int semanticPlacementMinRadius,
+        int semanticPlacementMaxRadius) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -546,7 +546,11 @@ internal sealed class KernelConfigurationContext
             coverageMinimumCellCount,
             coverageMinimumSourceRemainingCellCount,
             coverageRespectTerrainBoundaries ? 1 : 0,
-            coverageTransformTerrainId);
+            coverageTransformTerrainId,
+            physicalPlacementMinRadius,
+            physicalPlacementMaxRadius,
+            semanticPlacementMinRadius,
+            semanticPlacementMaxRadius);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);
@@ -559,6 +563,18 @@ internal sealed class KernelConfigurationContext
 
     public void AddGeneratorProducedQueryWithoutIncomingRelationship(int producedSlot, int relationshipKindId) =>
         _kernel.Generators.AddProducedQueryWithoutIncomingRelationship(producedSlot, relationshipKindId);
+
+    public void AddGeneratorProducedPlacementPreferredTerrain(int producedSlot, int planeCode, int terrainId) =>
+        _kernel.Generators.AddProducedPlacementPreferredTerrain(producedSlot, planeCode, terrainId);
+
+    public void AddGeneratorProducedPlacementAllowedTerrain(int producedSlot, int planeCode, int terrainId) =>
+        _kernel.Generators.AddProducedPlacementAllowedTerrain(producedSlot, planeCode, terrainId);
+
+    public void AddGeneratorProducedPlacementAvoidedTerrain(int producedSlot, int planeCode, int terrainId) =>
+        _kernel.Generators.AddProducedPlacementAvoidedTerrain(producedSlot, planeCode, terrainId);
+
+    public void SetGeneratorProducedPlacementFallbackTerrain(int producedSlot, int planeCode, int terrainId) =>
+        _kernel.Generators.SetProducedPlacementFallbackTerrain(producedSlot, planeCode, terrainId);
 
     public void AddGeneratorProducedCoveragePreferredTerrain(int producedSlot, int terrainId) =>
         _kernel.Generators.AddProducedCoveragePreferredTerrain(producedSlot, terrainId);

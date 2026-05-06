@@ -15,28 +15,111 @@ internal static class MonteCarloCli
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        var options = MonteCarloOptions.Parse(args);
-        var domain = IceRemembersRuntime.CreateDomainConfig();
-        var analyzer = new MonteCarloBatchAnalyzer(domain);
-
-        if (options.AnalyzeOnly)
+        try
         {
-            return RunAnalysisOnly(options, analyzer);
+            var options = MonteCarloOptions.Parse(args);
+            var domain = IceRemembersRuntime.CreateDomainConfig();
+            var analyzer = new MonteCarloBatchAnalyzer(domain);
+            return RunCommand(args, options, analyzer);
         }
-
-        RunBatch(options, analyzer);
-        return 0;
+        catch (ArgumentException ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 2;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 2;
+        }
+        catch (IOException ex)
+        {
+            Console.Error.WriteLine(ex.Message);
+            return 2;
+        }
     }
 
-    private static int RunAnalysisOnly(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    private static int RunCommand(string[] args, MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
     {
-        var batchDirectory = options.AnalyzeDirectory!;
-        analyzer.AnalyzeToFiles(batchDirectory);
-        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(batchDirectory, "analysis"))}");
-        return 0;
+        using var registry = new MonteCarloRunRegistry(options.ArtifactRoot);
+        switch (options.Command)
+        {
+            case MonteCarloCommandKind.Run:
+                return RunRegisteredBatch(args, options, analyzer, registry);
+            case MonteCarloCommandKind.Register:
+                RegisterOnly(args, options, registry);
+                return 0;
+            case MonteCarloCommandKind.Analyze:
+                AnalyzeRegistered(options, analyzer, registry);
+                return 0;
+            case MonteCarloCommandKind.AppendStats:
+                registry.AppendManualStats(options.RunId!, options.Stats);
+                Console.WriteLine($"updated Monte Carlo stats: {options.RunId}");
+                return 0;
+            case MonteCarloCommandKind.List:
+                PrintRunList(registry);
+                return 0;
+            case MonteCarloCommandKind.Show:
+                Console.WriteLine(registry.ShowManifest(options.RunId!));
+                return 0;
+            case MonteCarloCommandKind.DeleteRun:
+                registry.DeleteRun(options.RunId!);
+                Console.WriteLine($"deleted Monte Carlo run: {options.RunId}");
+                return 0;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(options), $"Unsupported Monte Carlo command {options.Command}.");
+        }
     }
 
-    private static void RunBatch(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    private static int RunRegisteredBatch(
+        string[] args,
+        MonteCarloOptions options,
+        MonteCarloBatchAnalyzer analyzer,
+        MonteCarloRunRegistry registry)
+    {
+        var provenance = MonteCarloProvenance.Capture(args);
+        MonteCarloProvenance.ThrowIfBuildIsStale(provenance);
+        registry.Register(options, provenance, status: "running");
+        try
+        {
+            var report = RunBatch(options, analyzer);
+            registry.MarkCompleted(options.RunId!, StandardStats(report));
+            return 0;
+        }
+        catch
+        {
+            registry.MarkFailed(options.RunId!);
+            throw;
+        }
+    }
+
+    private static void RegisterOnly(string[] args, MonteCarloOptions options, MonteCarloRunRegistry registry)
+    {
+        var provenance = MonteCarloProvenance.Capture(args);
+        registry.Register(options, provenance, status: "registered");
+        Console.WriteLine($"registered Monte Carlo run: {options.RunId}");
+        Console.WriteLine($"artifact directory: {Path.GetFullPath(options.OutputDirectory)}");
+    }
+
+    private static void AnalyzeRegistered(
+        MonteCarloOptions options,
+        MonteCarloBatchAnalyzer analyzer,
+        MonteCarloRunRegistry registry)
+    {
+        var report = analyzer.AnalyzeToFiles(options.OutputDirectory);
+        registry.MarkAnalyzed(options.RunId!, StandardStats(report));
+        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
+    }
+
+    private static void PrintRunList(MonteCarloRunRegistry registry)
+    {
+        foreach (var run in registry.ListRuns())
+        {
+            Console.WriteLine($"{run.RunId}\t{run.Status}\t{FormatUnixMilliseconds(run.RegisteredUtcMilliseconds)}\t{run.ArtifactPath}");
+        }
+    }
+
+    private static MonteCarloAnalysisReport? RunBatch(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
     {
         ResetOutputDirectory(options.OutputDirectory);
         DuckDbTelemetryStore? stateStore = null;
@@ -53,8 +136,9 @@ internal static class MonteCarloCli
 
             var totals = ExecuteRuns(options, stateStore, performanceStore);
             ExportStateTelemetry(options, stateStore, performanceStore, totals.StateRowsWritten);
-            ExportAnalysis(options, analyzer, performanceStore);
+            var report = ExportAnalysis(options, analyzer, performanceStore);
             ExportPerformanceTelemetry(options, performanceStore, totals.PerformanceRowsWritten);
+            return report;
         }
         finally
         {
@@ -118,20 +202,22 @@ internal static class MonteCarloCli
         Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
     }
 
-    private static void ExportAnalysis(
+    private static MonteCarloAnalysisReport? ExportAnalysis(
         MonteCarloOptions options,
         MonteCarloBatchAnalyzer analyzer,
         DuckDbPerformanceTelemetryStore? performanceStore)
     {
         if (!options.ShouldAnalyze)
         {
-            return;
+            return null;
         }
 
         const string step = "analysis";
-        var export = TimedExport(step, rowsWritten: 0, () => analyzer.AnalyzeToFiles(options.OutputDirectory));
+        MonteCarloAnalysisReport? report = null;
+        var export = TimedExport(step, rowsWritten: 0, () => report = analyzer.AnalyzeToFiles(options.OutputDirectory));
         performanceStore?.AppendExport(export, step);
         Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
+        return report;
     }
 
     private static void ExportPerformanceTelemetry(
@@ -389,6 +475,55 @@ internal static class MonteCarloCli
         batch.TickPerformance.Count +
         batch.SystemPerformance.Count +
         batch.ExportPerformance.Count;
+
+    private static List<MonteCarloStatInput> StandardStats(MonteCarloAnalysisReport? report)
+    {
+        if (report is null)
+        {
+            return [];
+        }
+
+        var stats = new List<MonteCarloStatInput>
+        {
+            Stat("run_count", report.Overview.RunCount),
+            Stat("max_tick", report.Overview.MaxTick),
+            Stat("generator_fires_total", report.Overview.TotalGeneratorFires),
+            Stat("generator_fires_average_per_run", report.Overview.AverageFiresPerRun),
+            Stat("final_active_entities_average", report.Overview.AverageFinalActiveEntities),
+            Stat("final_historical_entities_average", report.Overview.AverageFinalHistoricalEntities),
+            Stat("final_physical_spread_average", report.Overview.AverageFinalPhysicalSpread),
+            Stat("final_semantic_spread_average", report.Overview.AverageFinalSemanticSpread),
+            Stat("gambit_attempts_total", report.GambitSuccess.Sum(row => row.AttemptCount)),
+            Stat("gambit_successes_total", report.GambitSuccess.Sum(row => row.SuccessCount)),
+            Stat("low_altitude_offered_total", report.LowAltitudeVerbUtilization.Sum(row => row.OfferedCount)),
+            Stat("low_altitude_selected_total", report.LowAltitudeVerbUtilization.Sum(row => row.SelectedCount)),
+        };
+
+        foreach (var row in report.GeneratorBalance)
+        {
+            stats.Add(Stat($"generator.{row.GeneratorId}.fires", row.FiredCount));
+        }
+
+        foreach (var row in report.GambitSuccess)
+        {
+            stats.Add(Stat($"gambit.{row.GambitId}.attempts", row.AttemptCount));
+            stats.Add(Stat($"gambit.{row.GambitId}.successes", row.SuccessCount));
+        }
+
+        return stats;
+    }
+
+    private static MonteCarloStatInput Stat(string name, int value) =>
+        new(name, value.ToString(CultureInfo.InvariantCulture));
+
+    private static MonteCarloStatInput Stat(string name, double value) =>
+        new(name, value.ToString("G17", CultureInfo.InvariantCulture));
+
+    private static string FormatUnixMilliseconds(long utcMilliseconds) =>
+        DateTimeOffset
+            .FromUnixTimeMilliseconds(utcMilliseconds)
+            .UtcDateTime
+            .ToString("O", CultureInfo.InvariantCulture);
 
     private static void ResetOutputDirectory(string outputDirectory)
     {

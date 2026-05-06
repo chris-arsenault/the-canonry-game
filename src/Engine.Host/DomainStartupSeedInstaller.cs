@@ -1,5 +1,6 @@
 namespace Engine.Host;
 
+using Engine.Constants;
 using Engine.Domain;
 using Engine.Domain.Compilation;
 using Engine.Domain.Startup;
@@ -17,8 +18,9 @@ internal static class DomainStartupSeedInstaller
             .GroupBy(rule => rule.KindId)
             .ToDictionary(group => group.Key, group => group.Count());
 
+        var cellEventCount = seed.Cells.Sum(StartupCellEventCount);
         var count = checked(
-            seed.Cells.Count +
+            cellEventCount +
             seed.Relationships.Count +
             seed.Attributes.Count);
 
@@ -106,6 +108,7 @@ internal static class DomainStartupSeedInstaller
         foreach (var cell in seed.Cells)
         {
             context.SeedCell(
+                cell.PlaneCode,
                 cell.Q,
                 cell.R,
                 context.DomainIds.TerrainIdOf(cell.Terrain).Value,
@@ -114,6 +117,14 @@ internal static class DomainStartupSeedInstaller
                 cell.ContinentId);
         }
     }
+
+    private static int StartupCellEventCount(DomainSeedCell cell) =>
+        cell.PlaneCode switch
+        {
+            PlaneCodes.Physical => 2,
+            PlaneCodes.Semantic => 1,
+            _ => throw new InvalidOperationException($"Unknown seed cell plane code {cell.PlaneCode}."),
+        };
 
     private static void SeedAttributes(
         KernelStartupContext context,

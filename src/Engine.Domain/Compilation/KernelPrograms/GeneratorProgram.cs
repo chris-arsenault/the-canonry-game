@@ -10,10 +10,8 @@ public sealed class GeneratorProgram
 
 public sealed record CompiledGeneratorRule(
     int GeneratorId,
-    int CadenceTicks,
     int TargetKindId,
     IReadOnlyList<int> TargetSubtypeIds,
-    bool TargetAllowWilderness,
     GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
     int PulseWeight,
     int MaxRuns,
@@ -63,7 +61,19 @@ public sealed record GeneratorProducedEntityRule(
     bool HasQuery,
     GeneratorEntityQueryRule? Query,
     GeneratorProgramPlacement PhysicalPlacement,
+    int PhysicalPlacementMinRadius,
+    int PhysicalPlacementMaxRadius,
+    IReadOnlyList<int> PhysicalPlacementPreferredTerrainIds,
+    IReadOnlyList<int> PhysicalPlacementAllowedTerrainIds,
+    IReadOnlyList<int> PhysicalPlacementAvoidedTerrainIds,
+    int PhysicalPlacementFallbackTerrainId,
     GeneratorProgramPlacement SemanticPlacement,
+    int SemanticPlacementMinRadius,
+    int SemanticPlacementMaxRadius,
+    IReadOnlyList<int> SemanticPlacementPreferredTerrainIds,
+    IReadOnlyList<int> SemanticPlacementAllowedTerrainIds,
+    IReadOnlyList<int> SemanticPlacementAvoidedTerrainIds,
+    int SemanticPlacementFallbackTerrainId,
     int PlacementRefCode,
     int CultureRefCode,
     float CreateChance,
@@ -96,10 +106,8 @@ public sealed record GeneratorRelationshipRule(
 
 public enum GeneratorProgramPlacement
 {
-    On,
-    Near,
-    Across,
-    InCoverageLocality,
+    Area,
+    Locality,
 }
 
 public enum GeneratorProgramCultureMatch
