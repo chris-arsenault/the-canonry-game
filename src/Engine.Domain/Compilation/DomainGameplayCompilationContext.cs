@@ -10,13 +10,20 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
 {
     private readonly DomainConfig _config;
     private readonly DomainIdRegistry _ids;
+    private readonly List<DomainCompileDiagnostic> _diagnostics;
+    private readonly HashSet<DomainCompileDiagnostic> _seenDiagnostics = [];
 
-    public DomainGameplayCompilationContext(DomainConfig config, DomainIdRegistry ids)
+    public DomainGameplayCompilationContext(
+        DomainConfig config,
+        DomainIdRegistry ids,
+        List<DomainCompileDiagnostic> diagnostics)
     {
         ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(ids);
+        ArgumentNullException.ThrowIfNull(diagnostics);
         _config = config;
         _ids = ids;
+        _diagnostics = diagnostics;
     }
 
     public int ResolveKindId(string kind, string context) =>
@@ -94,7 +101,6 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
             var source = generator.Id;
             var targetKind = generator.Target.Kind.Value;
             AddGeneratorRelationshipAffordances(affordances, seen, generator);
-            AddGeneratorTerrainAffordances(affordances, seen, generator);
             foreach (var binding in generator.SecondaryTargets)
             {
                 if (binding.Query?.AdjacentToTarget != true)
@@ -114,65 +120,30 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         }
     }
 
-    private static void AddGeneratorRelationshipAffordances(
+    private void AddGeneratorRelationshipAffordances(
         List<AffordanceDefinition> affordances,
         HashSet<AffordanceDefinition> seen,
         SemanticGeneratorConfig generator)
     {
         var source = generator.Id;
         var targetKind = generator.Target.Kind.Value;
-        foreach (var relationship in RelationshipsOrEmpty(generator.Target.RequiredOutgoingRelationships))
-        {
-            AddRelationshipTargetPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, relationship, RelationshipMatchDirectionCodes.Outgoing);
-        }
-
-        foreach (var relationship in RelationshipsOrEmpty(generator.Target.RequiredIncomingRelationships))
-        {
-            AddRelationshipTargetPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, relationship, RelationshipMatchDirectionCodes.Incoming);
-        }
-
-        foreach (var relationship in RelationshipsOrEmpty(generator.Target.RequiredRelationships))
-        {
-            AddRelationshipTargetPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, relationship, RelationshipMatchDirectionCodes.Either);
-        }
-
         foreach (var requirement in generator.Target.RequiredOutgoingRelationshipRequirements)
         {
-            AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, requirement.RelationshipKind, RelationshipMatchDirectionCodes.Outgoing, requirement.MinimumStrength, AffordancePolarityCodes.Strengthen);
+            AddActionableRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, requirement.RelationshipKind, RelationshipMatchDirectionCodes.Outgoing, requirement.MinimumStrength, AffordancePolarityCodes.Strengthen);
         }
 
         foreach (var requirement in generator.Target.RequiredIncomingRelationshipRequirements)
         {
-            AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, requirement.RelationshipKind, RelationshipMatchDirectionCodes.Incoming, requirement.MinimumStrength, AffordancePolarityCodes.Strengthen);
+            AddActionableRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, requirement.RelationshipKind, RelationshipMatchDirectionCodes.Incoming, requirement.MinimumStrength, AffordancePolarityCodes.Strengthen);
         }
 
         foreach (var requirement in generator.Target.RequiredRelationshipRequirements)
         {
-            AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, requirement.RelationshipKind, RelationshipMatchDirectionCodes.Either, requirement.MinimumStrength, AffordancePolarityCodes.Strengthen);
+            AddActionableRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, source, targetKind, requirement.RelationshipKind, RelationshipMatchDirectionCodes.Either, requirement.MinimumStrength, AffordancePolarityCodes.Strengthen);
         }
     }
 
-    private static void AddGeneratorTerrainAffordances(
-        List<AffordanceDefinition> affordances,
-        HashSet<AffordanceDefinition> seen,
-        SemanticGeneratorConfig generator)
-    {
-        foreach (var requirement in generator.Target.TerrainCountRequirements)
-        {
-            AddAffordance(
-                affordances,
-                seen,
-                new AffordanceDefinition(
-                    AffordanceSourceKindCodes.Generator,
-                    generator.Id,
-                    LowAltitudeAffordanceShapeCodes.TerrainPresence,
-                    generator.Target.Kind.Value,
-                    Plane: "physical",
-                    Terrain: requirement.TerrainName));
-        }
-    }
-
-    private static void AddGeneratorEffectAffordance(
+    private void AddGeneratorEffectAffordance(
         List<AffordanceDefinition> affordances,
         HashSet<AffordanceDefinition> seen,
         SemanticGeneratorConfig generator,
@@ -181,10 +152,7 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         switch (effect)
         {
             case AdjustTargetRelationshipStrengthEffect adjust when adjust.Delta < 0f:
-                AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, generator.Id, generator.Target.Kind.Value, adjust.RelationshipKind, RelationshipMatchDirectionCodes.Either, 1f, AffordancePolarityCodes.Strengthen, weight: -adjust.Delta);
-                break;
-            case RemoveTargetRelationshipsEffect remove:
-                AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, generator.Id, generator.Target.Kind.Value, remove.RelationshipKind, RelationshipMatchDirectionCodes.Either, 0f, AffordancePolarityCodes.Weaken);
+                AddActionableRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Generator, generator.Id, generator.Target.Kind.Value, adjust.RelationshipKind, RelationshipMatchDirectionCodes.Either, 1f, AffordancePolarityCodes.Strengthen, weight: -adjust.Delta);
                 break;
         }
     }
@@ -200,11 +168,6 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
             AddGambitDistanceAffordances(affordances, seen, gambit, source, actorKind);
             AddGambitRelationshipAffordances(affordances, seen, gambit.Precondition, source, actorKind);
             AddGambitInfluenceAffordances(affordances, seen, gambit.Precondition, source, actorKind);
-
-            foreach (var mutation in gambit.Mutations)
-            {
-                AddGambitMutationAffordance(affordances, seen, source, actorKind, mutation);
-            }
         }
     }
 
@@ -269,7 +232,7 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
     private string VerbPlane(LowAltitudeVerbConfig verb) =>
         verb.Plane ?? PlaneName(_config.Kinds[ResolveKind(verb.Kind, $"Low-altitude verb '{verb.Id}' kind")].PrimaryPlane);
 
-    private static void AddGambitRelationshipAffordances(
+    private void AddGambitRelationshipAffordances(
         List<AffordanceDefinition> affordances,
         HashSet<AffordanceDefinition> seen,
         IPrecondition precondition,
@@ -292,7 +255,7 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         }
     }
 
-    private static void AddGambitRelationshipRequirement(
+    private void AddGambitRelationshipRequirement(
         List<AffordanceDefinition> affordances,
         HashSet<AffordanceDefinition> seen,
         string source,
@@ -301,10 +264,9 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         int directionCode,
         float? minimumStrength)
     {
-        AddRelationshipTargetPresenceAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, relationshipKind, directionCode);
         if (minimumStrength is { } minimum)
         {
-            AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, relationshipKind, directionCode, minimum, AffordancePolarityCodes.Strengthen);
+            AddActionableRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, relationshipKind, directionCode, minimum, AffordancePolarityCodes.Strengthen);
         }
     }
 
@@ -323,24 +285,6 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         foreach (var shared in PreconditionLeaves<SharedInfluencePrecondition>(precondition, includeNegated: false))
         {
             AddInfluenceAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, shared.Plane, shared.SelfMinimum);
-        }
-    }
-
-    private static void AddGambitMutationAffordance(
-        List<AffordanceDefinition> affordances,
-        HashSet<AffordanceDefinition> seen,
-        string source,
-        string actorKind,
-        IMutation mutation)
-    {
-        switch (mutation)
-        {
-            case SetContextRelationshipStrengthMutation set:
-                AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, set.RelationshipKind, RelationshipMatchDirectionCodes.Either, set.Strength, AffordancePolarityCodes.Strengthen);
-                break;
-            case RemoveContextRelationshipMutation remove:
-                AddRelationshipStrengthAffordance(affordances, seen, AffordanceSourceKindCodes.Gambit, source, actorKind, remove.RelationshipKind, RelationshipMatchDirectionCodes.Either, 0f, AffordancePolarityCodes.Weaken);
-                break;
         }
     }
 
@@ -365,25 +309,85 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
                 CandidateKind: candidateKind));
     }
 
-    private static void AddRelationshipTargetPresenceAffordance(
+    private void AddActionableRelationshipStrengthAffordance(
         List<AffordanceDefinition> affordances,
         HashSet<AffordanceDefinition> seen,
         int sourceKindCode,
         string source,
         string actorKind,
         string relationshipKind,
-        int relationshipDirectionCode)
+        int relationshipDirectionCode,
+        float threshold,
+        int polarityCode,
+        float weight = 1f)
     {
-        AddAffordance(
-            affordances,
-            seen,
-            new AffordanceDefinition(
+        if (!HasRelationshipStrengthVerb(actorKind, relationshipKind, relationshipDirectionCode, polarityCode))
+        {
+            AddSuppressedRelationshipStrengthAffordanceDiagnostic(
                 sourceKindCode,
                 source,
-                LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget,
                 actorKind,
-                RelationshipKind: relationshipKind,
-                RelationshipDirectionCode: relationshipDirectionCode));
+                relationshipKind,
+                relationshipDirectionCode,
+                polarityCode,
+                threshold);
+            return;
+        }
+
+        AddRelationshipStrengthAffordance(affordances, seen, sourceKindCode, source, actorKind, relationshipKind, relationshipDirectionCode, threshold, polarityCode, weight);
+    }
+
+    private bool HasRelationshipStrengthVerb(
+        string actorKind,
+        string relationshipKind,
+        int relationshipDirectionCode,
+        int polarityCode)
+    {
+        if (_config.Gameplay is null)
+        {
+            return false;
+        }
+
+        foreach (var verb in _config.Gameplay.LowAltitudeVerbs)
+        {
+            if (verb is RelationshipStrengthLowAltitudeVerbConfig relationshipVerb &&
+                string.Equals(verb.Kind, actorKind, StringComparison.Ordinal) &&
+                string.Equals(verb.RelationshipKind, relationshipKind, StringComparison.Ordinal) &&
+                RelationshipDirectionsOverlap(RelationshipDirectionCode(verb.RelationshipDirection), relationshipDirectionCode) &&
+                RelationshipStrengthPolarityCode(relationshipVerb.RelationshipStrengthDelta) == polarityCode)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AddSuppressedRelationshipStrengthAffordanceDiagnostic(
+        int sourceKindCode,
+        string source,
+        string actorKind,
+        string relationshipKind,
+        int relationshipDirectionCode,
+        int polarityCode,
+        float threshold)
+    {
+        var sourceKind = SourceKindName(sourceKindCode);
+        var diagnostic = new DomainCompileDiagnostic(
+            DomainCompileDiagnosticSeverity.Warning,
+            DomainCompileDiagnosticCodes.SuppressedRelationshipStrengthAffordance,
+            $"Suppressed relationship-strength affordance for {sourceKind} '{source}' on actor kind '{actorKind}' and relationship '{relationshipKind}' ({RelationshipDirectionName(relationshipDirectionCode)}, {PolarityName(polarityCode)}) because no matching low-altitude relationship-strength verb exists.",
+            sourceKind,
+            source,
+            actorKind,
+            relationshipKind,
+            relationshipDirectionCode,
+            polarityCode,
+            threshold);
+        if (_seenDiagnostics.Add(diagnostic))
+        {
+            _diagnostics.Add(diagnostic);
+        }
     }
 
     private static void AddRelationshipStrengthAffordance(
@@ -512,8 +516,43 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
     private static string PlaneName(PrimaryPlane plane) =>
         plane == PrimaryPlane.Semantic ? "semantic" : "physical";
 
-    private static IEnumerable<string> RelationshipsOrEmpty(IReadOnlySet<string>? relationships) =>
-        relationships is null ? Array.Empty<string>() : relationships;
+    private static int RelationshipDirectionCode(LowAltitudeVerbRelationshipDirection direction) => direction switch
+    {
+        LowAltitudeVerbRelationshipDirection.Outgoing => RelationshipMatchDirectionCodes.Outgoing,
+        LowAltitudeVerbRelationshipDirection.Incoming => RelationshipMatchDirectionCodes.Incoming,
+        LowAltitudeVerbRelationshipDirection.Either => RelationshipMatchDirectionCodes.Either,
+        _ => RelationshipMatchDirectionCodes.Either,
+    };
+
+    private static bool RelationshipDirectionsOverlap(int first, int second) =>
+        first == RelationshipMatchDirectionCodes.Either ||
+        second == RelationshipMatchDirectionCodes.Either ||
+        first == second;
+
+    private static int RelationshipStrengthPolarityCode(float delta) =>
+        delta >= 0f ? AffordancePolarityCodes.Strengthen : AffordancePolarityCodes.Weaken;
+
+    private static string SourceKindName(int sourceKindCode) => sourceKindCode switch
+    {
+        AffordanceSourceKindCodes.Generator => "generator",
+        AffordanceSourceKindCodes.Gambit => "gambit",
+        _ => "unknown",
+    };
+
+    private static string RelationshipDirectionName(int relationshipDirectionCode) => relationshipDirectionCode switch
+    {
+        RelationshipMatchDirectionCodes.Outgoing => "outgoing",
+        RelationshipMatchDirectionCodes.Incoming => "incoming",
+        RelationshipMatchDirectionCodes.Either => "either",
+        _ => "unknown",
+    };
+
+    private static string PolarityName(int polarityCode) => polarityCode switch
+    {
+        AffordancePolarityCodes.Strengthen => "strengthen",
+        AffordancePolarityCodes.Weaken => "weaken",
+        _ => "none",
+    };
 
     private EntityKind ResolveKind(string kindName, string context)
     {

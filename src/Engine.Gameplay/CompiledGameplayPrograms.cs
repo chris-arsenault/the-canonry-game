@@ -3,18 +3,11 @@ namespace Engine.Gameplay;
 public sealed class LowAltitudeVerbProgram
 {
     public bool EnabledByDefault { get; init; } = true;
-    public CompiledSemanticPlaneBounds SemanticBounds { get; init; } = new(-24, 24, -24, 24);
     public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
     public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
     public IReadOnlyList<CompiledAffordanceRule> Affordances { get; init; } = [];
     public IReadOnlyList<CompiledTraitLowAltitudeWeightModifierRule> TraitWeightModifiers { get; init; } = [];
 }
-
-public sealed record CompiledSemanticPlaneBounds(
-    int MinQ,
-    int MaxQ,
-    int MinR,
-    int MaxR);
 
 public sealed record LowAltitudeVerbRule(
     int KindId,
@@ -72,7 +65,6 @@ public sealed record CompiledAffordanceRule(
     int RelationshipKindId,
     int RelationshipDirectionCode,
     int OperationCode,
-    int TerrainId,
     int PolarityCode,
     float Threshold,
     float Weight);

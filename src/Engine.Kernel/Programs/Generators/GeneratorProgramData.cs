@@ -109,10 +109,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] EffectAllowedTerrainStarts = [];
     internal int[] EffectAllowedTerrainCounts = [];
     internal float[] EffectValues = [];
-    internal int SemanticMinQ = -24;
-    internal int SemanticMaxQ = 24;
-    internal int SemanticMinR = -24;
-    internal int SemanticMaxR = 24;
     internal int GeneratorCount;
     internal int SubtypeCount;
     internal int RelationshipKindFilterCount;
@@ -284,16 +280,4 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int SchemaVersion => 14;
 
-    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
-    {
-        if (minQ > maxQ || minR > maxR)
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(minQ));
-        }
-
-        SemanticMinQ = minQ;
-        SemanticMaxQ = maxQ;
-        SemanticMinR = minR;
-        SemanticMaxR = maxR;
-    }
 }

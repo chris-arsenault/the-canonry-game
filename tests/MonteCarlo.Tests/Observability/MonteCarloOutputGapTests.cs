@@ -365,9 +365,26 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         fixture.AssertRawTablesExist("map_snapshots", "coverage_snapshots", "coverage_terrain_snapshots");
         fixture.AssertAnalysisTablesExist("map_spread", "coverage_development", "terrain_occupancy");
 
-        Assert.True(fixture.AnalysisQueryLong(["map_spread"], "SELECT COUNT(*) FROM map_spread WHERE total_cell_count > 0;") > 0);
-        Assert.True(fixture.AnalysisQueryLong(["coverage_development"], "SELECT COUNT(*) FROM coverage_development WHERE final_cell_count >= 0;") > 0);
-        Assert.True(fixture.AnalysisQueryLong(["terrain_occupancy"], "SELECT COUNT(*) FROM terrain_occupancy WHERE terrain_id <> 0;") > 0);
+        Assert.True(fixture.AnalysisQueryLong(["map_spread"], "SELECT COUNT(*) FROM map_spread WHERE plane_code IN (1, 2) AND total_cell_count > 0;") > 0);
+        Assert.True(fixture.AnalysisQueryLong(["coverage_development"], "SELECT COUNT(*) FROM coverage_development WHERE plane_code IN (1, 2) AND final_cell_count >= 0;") > 0);
+        Assert.True(fixture.AnalysisQueryLong(["terrain_occupancy"], "SELECT COUNT(*) FROM terrain_occupancy WHERE plane_code IN (1, 2) AND terrain_id <> 0;") > 0);
+    }
+
+    [MonteCarloAcceptanceFact]
+    public void SpatialOutput_MapAndPlacementTelemetryMustBePlaneAware()
+    {
+        fixture.AssertRawTablesExist("map_cell_events", "map_snapshots", "placement_events");
+
+        Assert.True(fixture.DistinctRawValueCount("map_cell_events", "plane_code") >= 2);
+        Assert.True(fixture.DistinctRawValueCount("map_snapshots", "plane_code") >= 2);
+        Assert.True(fixture.RawQueryLong(
+            ["placement_events"],
+            """
+            SELECT COUNT(*)
+            FROM placement_events
+            WHERE selected
+              AND plane_code = 2;
+            """) > 0);
     }
 
     [MonteCarloAcceptanceFact]
@@ -450,12 +467,12 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("attribute_events", "run_id,tick,entity_id,attribute_id,old_value,new_value,delta,source_code_id", "Attribute events explain stock changes.");
         data.Add("movement_events", "run_id,tick,entity_id,plane_code,source_code_id,from_q,from_r,from_s,to_q,to_r,to_s,distance", "Movement events explain physical and semantic motion.");
         data.Add("trace_events", "run_id,tick,intent_id,entity_id,trace_subject_code,candidate_index,parent_candidate_index,action_family_code,action_id,effect_scope_code,effect_value_id,effect_kind_id,target_entity_id,status_code,affordance_source_kind_code,affordance_source_id,affordance_shape_code,affordance_source_kind_mask,affordance_shape_mask,affordance_contribution_count,generator_affordance_count,gambit_affordance_count,hidden_affordance_count,selection_bucket_code,urgency,reward_or_base_score,raw_weight,adjusted_weight,affordance_score,affordance_bonus", "Raw trace events remain primitive payload, not the semantic analysis contract.");
-        data.Add("map_cell_events", "run_id,tick,event_type_code,source_code_id,cause_id,q,r,previous_terrain_id,current_terrain_id,previous_owner_entity_id,current_owner_entity_id", "Cell mutation history owns terrain and coverage changes.");
+        data.Add("map_cell_events", "run_id,tick,event_type_code,source_code_id,plane_code,cause_id,q,r,previous_terrain_id,current_terrain_id,previous_owner_entity_id,current_owner_entity_id", "Cell mutation history owns plane-aware terrain and coverage changes.");
         data.Add("cell_influence_events", "run_id,tick,source_code_id,action_id,entity_id,plane_code,q,r,previous_influence,current_influence,delta", "Cell influence events own plane-aware influence deltas for the low-altitude map layer.");
         data.Add("cell_road_events", "run_id,tick,source_code_id,plane_code,q,r,travel_count,previous_quality,current_quality,delta", "Cell road events own plane-aware road creation and reinforcement facts.");
-        data.Add("map_snapshots", "run_id,tick,terrain_id,cell_count,covered_cell_count,active_entity_count", "Map snapshots own terrain aggregates.");
-        data.Add("coverage_snapshots", "run_id,tick,owner_entity_id,coverage_kind_code,cell_count,min_q,max_q,min_r,max_r,active_entity_count", "Coverage snapshots own named territory size and spread.");
-        data.Add("coverage_terrain_snapshots", "run_id,tick,owner_entity_id,terrain_id,cell_count", "Coverage terrain snapshots explain named coverage terrain mix.");
+        data.Add("map_snapshots", "run_id,tick,plane_code,terrain_id,cell_count,covered_cell_count,active_entity_count", "Map snapshots own plane-aware terrain aggregates.");
+        data.Add("coverage_snapshots", "run_id,tick,plane_code,owner_entity_id,coverage_kind_code,cell_count,min_q,max_q,min_r,max_r,active_entity_count", "Coverage snapshots own named territory size and spread by plane.");
+        data.Add("coverage_terrain_snapshots", "run_id,tick,plane_code,owner_entity_id,terrain_id,cell_count", "Coverage terrain snapshots explain named coverage terrain mix by plane.");
         data.Add("placement_events", "run_id,tick,cause_id,anchor_entity_id,placement_mode_code,plane_code,q,r,s,terrain_id,coverage_owner_entity_id,rejection_reason_code,selected", "Placement events explain spatial creation decisions.");
         data.Add("generator_events", "run_id,tick,event_type_code,generator_id,status_code,cause_id,target_pool_count,inactive_rejected_count,subtype_rejected_count,secondary_target_rejected_count,trigger_rejected_count,candidate_count,failed_fire_count,selected_target_entity_id,created_entity_count,created_relationship_count,created_map_cell_count", "Generator events own eligibility and fire counts.");
         data.Add("generator_outputs", "run_id,tick,cause_id,generator_id,output_domain_code,output_entity_id,output_relationship_kind_id,output_source_entity_id,output_target_entity_id,output_q,output_r,output_s,placement_event_id", "Generator outputs explicitly attribute created domain rows.");
@@ -477,7 +494,7 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("generator_balance", "generator_id,pulses,eligible_pulses,blocked_pulses,eligible_not_selected_pulses,fired_count,fire_failed_pulses,selection_rate_when_eligible,average_target_pool,average_candidate_count,created_entity_count,created_relationship_count,created_map_cell_count,primary_blocker_code", "Generator balance explains pulse, rejection, and output counts.");
         data.Add("generated_subtype_coverage", "generator_id,kind_id,subtype_id,produced_count", "Generated subtype coverage tracks generator output coverage.");
         data.Add("low_altitude_verb_utilization", "kind_id,verb_id,operation_code,plane_code,target_mode_code,target_kind_id,trace_event_count,offered_count,selected_count,no_target_count,selection_rate_when_offered,average_selected_weight,average_selected_affordance_score,average_selected_affordance_bonus,selected_with_affordance_count,distinct_entities", "Low-altitude verb utilization is the active verb-deck report for movement and influence physics.");
-        data.Add("low_altitude_affordance_utilization", "source_kind_code,source_id,shape_code,verb_id,operation_code,plane_code,target_mode_code,target_kind_id,offered_count,selected_count,contribution_count,hidden_contribution_count,generator_contribution_count,gambit_contribution_count,rows_with_gambit_contribution,rows_with_presence_contribution,rows_with_relationship_target_contribution,rows_with_relationship_strength_contribution,rows_with_influence_contribution,rows_with_terrain_contribution,selection_rate_when_offered,average_offered_score,average_selected_score,average_offered_bonus,average_selected_bonus,distinct_entities", "Low-altitude affordance utilization shows which generator and gambit affordances are affecting verb candidates.");
+        data.Add("low_altitude_affordance_utilization", "source_kind_code,source_id,shape_code,verb_id,operation_code,plane_code,target_mode_code,target_kind_id,offered_count,selected_count,contribution_count,hidden_contribution_count,generator_contribution_count,gambit_contribution_count,rows_with_gambit_contribution,rows_with_presence_contribution,rows_with_relationship_strength_contribution,rows_with_influence_contribution,selection_rate_when_offered,average_offered_score,average_selected_score,average_offered_bonus,average_selected_bonus,distinct_entities", "Low-altitude affordance utilization shows which generator and gambit affordances are affecting verb candidates.");
         data.Add("entity_roaming", "run_id,entity_id,kind_id,subtype_id,culture_id,status_code,plane_code,move_count,total_distance,unique_positions,roam_radius_max,roam_radius_p95,path_efficiency", "Entity roaming measures physical and semantic variance without treating movement volume as failure.");
         data.Add("roaming_summary", "kind_id,plane_code,entity_count,mover_count,zero_move_share,average_move_count,average_unique_positions,average_roam_radius,p50_roam_radius,p75_roam_radius,p95_roam_radius,overclustered_roam_share", "Roaming summary tracks whether entities actually traverse meaningful space by kind and plane.");
         data.Add("influence_dynamics", "run_id,entity_id,plane_code,kind_id,subtype_id,event_count,positive_delta_events,negative_delta_events,net_influence_delta,influenced_cell_count,average_final_influence,max_final_influence,isolated_cell_count,neighbor_connection_count,mean_anchor_distance,p95_anchor_distance,max_anchor_distance", "Influence dynamics tracks low-altitude settlement/faction influence shape and discontinuity by plane.");
@@ -486,9 +503,9 @@ public sealed class MonteCarloOutputGapTests(MonteCarloOutputGapFixture fixture)
         data.Add("road_reinforcement", "run_id,plane_code,road_cell_count,reused_road_cell_count,reused_road_cell_share,positive_reinforcement_event_count,average_moves_before_road,average_moves_after_road,average_moves_after_light_road,average_moves_after_heavy_road,average_travel_count,average_final_quality,max_quality", "Road reinforcement tracks whether created roads receive later movement and quality growth.");
         data.Add("action_utilization", "kind_id,action_id,candidate_evaluations,selected_count,selection_rate_when_offered,average_score,precondition_pass_rate,cooldown_rate,top_failure_diagnostic_code,evidence_source_code", "Action utilization must be derived from current trace telemetry.");
         data.Add("stock_dynamics", "run_id,entity_id,kind_id,attribute_id,sample_count,minimum_observed,maximum_observed,variance,reversal_count,dwell_low_ticks,dwell_mid_ticks,dwell_high_ticks,pinned_low_ticks,pinned_high_ticks,normalized_range", "Stock dynamics answers whether entity stocks fluctuate or pin.");
-        data.Add("map_spread", "run_id,snapshot_tick,total_cell_count,active_entities,activity_event_count,activity_cells,activity_cell_share,activity_entropy,activity_top_cell_share,activity_bounding_box_area,activity_coverage_within_bounding_box,activity_axis_anisotropy,largest_unoccupied_strict_hex_radius", "Map spread measures activity footprint, concentration, corridor bias, and strict empty radius.");
-        data.Add("coverage_development", "run_id,owner_entity_id,coverage_kind_code,initial_cell_count,final_cell_count,cell_growth,terrain_mix_count,active_entities_inside", "Coverage development measures named coverage growth.");
-        data.Add("terrain_occupancy", "terrain_id,average_final_active_entities,average_named_coverage_share", "Terrain occupancy explains terrain utilization.");
+        data.Add("map_spread", "run_id,snapshot_tick,plane_code,total_cell_count,active_entities,activity_event_count,activity_cells,activity_cell_share,activity_entropy,activity_top_cell_share,activity_bounding_box_area,activity_coverage_within_bounding_box,activity_axis_anisotropy,largest_unoccupied_strict_hex_radius", "Map spread measures activity footprint, concentration, corridor bias, and strict empty radius by plane.");
+        data.Add("coverage_development", "run_id,plane_code,owner_entity_id,coverage_kind_code,initial_cell_count,final_cell_count,cell_growth,terrain_mix_count,active_entities_inside", "Coverage development measures named coverage growth by plane.");
+        data.Add("terrain_occupancy", "plane_code,terrain_id,average_final_active_entities,average_named_coverage_share", "Terrain occupancy explains terrain utilization by plane.");
         data.Add("lifecycle", "kind_id,deaths,deaths_per_run,average_death_tick,average_final_active,average_final_historical,average_final_health", "Lifecycle summarizes deaths and kind health outcomes.");
         data.Add("experiment_comparison", "experiment_id,variant_id,run_count,average_fires_per_run,average_final_active_entities,average_final_physical_spread,average_final_uncovered_cells", "Experiment comparison is keyed by structured variant metadata.");
     }

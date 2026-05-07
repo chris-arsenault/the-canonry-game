@@ -73,31 +73,35 @@ internal sealed partial class MonteCarloBatchAnalyzer
 
     private static void AddMapSpreadFlags(List<AnalysisFlagRow> flags, List<MapSpreadSummaryRow> mapRows)
     {
-        var averageActivityShare = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.ActivityCellShare);
-        var averageAnisotropy = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.ActivityAxisAnisotropy);
-        var averageEmptyRadius = mapRows.Count == 0 ? 0d : mapRows.Average(row => row.LargestUnoccupiedStrictHexRadius);
-        if (averageActivityShare > 0d && averageActivityShare <= 0.15d)
+        foreach (var planeRows in mapRows.GroupBy(row => row.Plane, StringComparer.Ordinal))
         {
-            flags.Add(new AnalysisFlagRow(
-                Category: "map",
-                Severity: "warning",
-                Message: string.Create(CultureInfo.InvariantCulture, $"Physical activity cell share averages {averageActivityShare:P1}; expansion is still sparse.")));
-        }
+            var rows = planeRows.ToList();
+            var averageActivityShare = rows.Count == 0 ? 0d : rows.Average(row => row.ActivityCellShare);
+            var averageAnisotropy = rows.Count == 0 ? 0d : rows.Average(row => row.ActivityAxisAnisotropy);
+            var averageEmptyRadius = rows.Count == 0 ? 0d : rows.Average(row => row.LargestUnoccupiedStrictHexRadius);
+            if (averageActivityShare > 0d && averageActivityShare <= 0.15d)
+            {
+                flags.Add(new AnalysisFlagRow(
+                    Category: "map",
+                    Severity: "warning",
+                    Message: string.Create(CultureInfo.InvariantCulture, $"{planeRows.Key} activity cell share averages {averageActivityShare:P1}; expansion is still sparse.")));
+            }
 
-        if (averageAnisotropy >= 3.5d)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "map",
-                Severity: "warning",
-                Message: string.Create(CultureInfo.InvariantCulture, $"Physical activity anisotropy averages {averageAnisotropy:F2}; the map is still corridor-biased.")));
-        }
+            if (averageAnisotropy >= 3.5d)
+            {
+                flags.Add(new AnalysisFlagRow(
+                    Category: "map",
+                    Severity: "warning",
+                    Message: string.Create(CultureInfo.InvariantCulture, $"{planeRows.Key} activity anisotropy averages {averageAnisotropy:F2}; the map is still corridor-biased.")));
+            }
 
-        if (averageEmptyRadius >= 8d)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "map",
-                Severity: "warning",
-                Message: string.Create(CultureInfo.InvariantCulture, $"Largest strict empty physical radius averages {averageEmptyRadius:F1}; large map regions remain unused.")));
+            if (averageEmptyRadius >= 8d)
+            {
+                flags.Add(new AnalysisFlagRow(
+                    Category: "map",
+                    Severity: "warning",
+                    Message: string.Create(CultureInfo.InvariantCulture, $"Largest strict empty {planeRows.Key} radius averages {averageEmptyRadius:F1}; large map regions remain unused.")));
+            }
         }
     }
 

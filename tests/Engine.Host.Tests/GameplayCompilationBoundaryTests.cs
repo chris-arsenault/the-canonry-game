@@ -7,39 +7,67 @@ using IceRemembers;
 public sealed class GameplayCompilationBoundaryTests
 {
     [Fact]
-    public void IceRemembersGeneratorAffordancesComeFromEligibilitySignals()
+    public void IceRemembersAffordanceCompilerDoesNotExposeHighAltitudeOnlyPrerequisites()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var affordances = compiled.Programs.LowAltitudeVerbs.Affordances;
-        var factionId = compiled.Ids.KindIdOf(IceRemembersKinds.Faction).Value;
-        var regionId = compiled.Ids.KindIdOf(IceRemembersKinds.Region).Value;
+        var allowedShapeCodes = AllowedAffordanceShapeCodes();
         var settlementId = compiled.Ids.KindIdOf(IceRemembersKinds.Settlement).Value;
-        var cleansedById = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.CleansedBy.ToDomainName()).Value;
+        var routesId = compiled.Ids.GeneratorIdOf("routes_draw_readers").Value;
+        var tradeRouteGambitId = compiled.Ids.GambitIdOf(IceRemembersGambitId.SettlementOpensTradeRoute.ToGambitId()).Value;
+        var peaceGambitId = compiled.Ids.GambitIdOf(IceRemembersGambitId.FactionSuesForPeace.ToGambitId()).Value;
+        var atWarId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.AtWarWith.ToDomainName()).Value;
         var tradeRouteId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.TradeRoute.ToDomainName()).Value;
-        var wastesId = compiled.Ids.TerrainIdOf(IceRemembersTerrain.Wastes.ToDomainName()).Value;
 
-        var generatorAffordances = affordances
-            .Where(rule => rule.SourceKindCode == AffordanceSourceKindCodes.Generator)
-            .ToArray();
-
-        Assert.DoesNotContain(generatorAffordances, rule =>
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity);
-        Assert.Contains(generatorAffordances, rule =>
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget &&
-            rule.ActorKindId == regionId &&
-            rule.RelationshipKindId == cleansedById &&
-            rule.RelationshipDirectionCode == RelationshipMatchDirectionCodes.Incoming);
-        Assert.Contains(generatorAffordances, rule =>
+        Assert.All(affordances, rule => Assert.Contains(rule.ShapeCode, allowedShapeCodes));
+        Assert.DoesNotContain(affordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearEntity &&
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator);
+        Assert.DoesNotContain(affordances, rule =>
             rule.ShapeCode == LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange &&
+            rule.SourceKindCode == AffordanceSourceKindCodes.Gambit &&
+            rule.SourceId == tradeRouteGambitId &&
+            rule.RelationshipKindId == tradeRouteId);
+        Assert.DoesNotContain(affordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange &&
+            rule.SourceKindCode == AffordanceSourceKindCodes.Gambit &&
+            rule.SourceId == peaceGambitId &&
+            rule.RelationshipKindId == atWarId);
+        Assert.Contains(affordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange &&
+            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+            rule.SourceId == routesId &&
             rule.ActorKindId == settlementId &&
             rule.RelationshipKindId == tradeRouteId &&
             rule.RelationshipDirectionCode == RelationshipMatchDirectionCodes.Outgoing &&
             rule.PolarityCode == AffordancePolarityCodes.Strengthen);
-        Assert.Contains(generatorAffordances, rule =>
-            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.TerrainPresence &&
-            rule.SourceKindCode == AffordanceSourceKindCodes.Generator &&
+    }
+
+    [Fact]
+    public void IceRemembersAffordanceCompilerKeepsActionableInfluencePressure()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var affordances = compiled.Programs.LowAltitudeVerbs.Affordances;
+        var factionId = compiled.Ids.KindIdOf(IceRemembersKinds.Faction).Value;
+        var warGambitId = compiled.Ids.GambitIdOf(IceRemembersGambitId.FactionDeclaresTerritorialWar.ToGambitId()).Value;
+
+        Assert.Contains(affordances, rule =>
+            rule.ShapeCode == LowAltitudeAffordanceShapeCodes.InfluenceChange &&
+            rule.SourceKindCode == AffordanceSourceKindCodes.Gambit &&
+            rule.SourceId == warGambitId &&
             rule.ActorKindId == factionId &&
-            rule.TerrainId == wastesId);
+            rule.PlaneCode == PlaneCodes.Physical &&
+            rule.OperationCode == ProgramOpcodeCodes.AddOwnedCellScalar &&
+            rule.PolarityCode == AffordancePolarityCodes.Increase);
+    }
+
+    [Fact]
+    public void LowAltitudeAffordanceShapeCodesDoNotDefineHighAltitudeOnlyShapes()
+    {
+        var shapeNames = AffordanceShapeNames();
+
+        Assert.DoesNotContain("PresenceNearRelationshipTarget", shapeNames);
+        Assert.DoesNotContain("TerrainPresence", shapeNames);
     }
 
     [Fact]
@@ -82,4 +110,19 @@ public sealed class GameplayCompilationBoundaryTests
             Assert.Equal(50f, verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
         });
     }
+
+    private static HashSet<int> AllowedAffordanceShapeCodes() =>
+        AffordanceShapeFields()
+            .Select(field => (int)field.GetRawConstantValue()!)
+            .ToHashSet();
+
+    private static HashSet<string> AffordanceShapeNames() =>
+        AffordanceShapeFields()
+            .Select(field => field.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+    private static IEnumerable<System.Reflection.FieldInfo> AffordanceShapeFields() =>
+        typeof(LowAltitudeAffordanceShapeCodes)
+            .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(field => field.IsLiteral && !field.IsInitOnly);
 }

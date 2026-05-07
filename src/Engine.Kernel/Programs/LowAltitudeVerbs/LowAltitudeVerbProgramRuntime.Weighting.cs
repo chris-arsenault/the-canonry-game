@@ -232,37 +232,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             shapeCode);
     }
 
-    private AffordanceContribution CombineAffordancesForCellTarget(
-        int actorKindId,
-        int planeCode,
-        int terrainId)
-    {
-        var accumulator = AffordanceAccumulator.Create();
-        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
-        {
-            if (!CellTargetAffordanceMatches(affordance, actorKindId, planeCode, terrainId))
-            {
-                continue;
-            }
-
-            RecordAffordanceContribution(ref accumulator, affordance, Data.AffordanceWeight(affordance));
-        }
-
-        return BuildContribution(ref accumulator);
-    }
-
-    private bool CellTargetAffordanceMatches(int affordance, int actorKindId, int planeCode, int terrainId)
-    {
-        if (Data.AffordanceShapeCode(affordance) != LowAltitudeAffordanceShapeCodes.TerrainPresence ||
-            !AffordanceMatchesActorPlane(affordance, actorKindId, planeCode))
-        {
-            return false;
-        }
-
-        var requiredTerrainId = Data.AffordanceTerrainId(affordance);
-        return requiredTerrainId == 0 || requiredTerrainId == terrainId;
-    }
-
     private AffordanceContribution CombineAffordancesForEntityTarget(
         int actorKindId,
         int planeCode,
@@ -363,11 +332,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private float ResolveRelationshipShapeWeight(int affordance, float currentStrength, float strengthDelta)
     {
         var shapeCode = Data.AffordanceShapeCode(affordance);
-        if (shapeCode == LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget)
-        {
-            return Data.AffordanceWeight(affordance);
-        }
-
         if (shapeCode == LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange &&
             strengthDelta != 0f &&
             AffordanceOperationMatches(affordance, ProgramOpcodeCodes.AdjustRelationshipStrength) &&
@@ -582,10 +546,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private static int AffordanceShapeBit(int shapeCode) => shapeCode switch
     {
         LowAltitudeAffordanceShapeCodes.PresenceNearEntity => 1,
-        LowAltitudeAffordanceShapeCodes.PresenceNearRelationshipTarget => 2,
-        LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange => 4,
-        LowAltitudeAffordanceShapeCodes.InfluenceChange => 8,
-        LowAltitudeAffordanceShapeCodes.TerrainPresence => 16,
+        LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange => 2,
+        LowAltitudeAffordanceShapeCodes.InfluenceChange => 4,
         _ => 0,
     };
 

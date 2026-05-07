@@ -555,28 +555,32 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                  AND ms.tick = ft.final_tick
             )
             SELECT
+                plane,
                 terrain,
                 COALESCE(AVG(CAST(active_entity_count AS DOUBLE)), 0.0) AS average_final_active_entities,
                 COALESCE(AVG(CASE WHEN cell_count = 0 THEN 0.0 ELSE CAST(covered_cell_count AS DOUBLE) / cell_count END), 0.0) AS average_named_coverage_share
             FROM final_map
-            GROUP BY terrain;
+            GROUP BY plane, terrain;
             """;
 
         return Query(connection, sql, reader => new TerrainOccupancyRow(
+                Plane: ReadString(reader, "plane"),
                 Terrain: ReadString(reader, "terrain"),
                 AverageFinalActiveEntities: ReadDouble(reader, "average_final_active_entities"),
                 AverageNamedCoverageShare: ReadDouble(reader, "average_named_coverage_share")))
             .OrderByDescending(row => row.AverageFinalActiveEntities)
+            .ThenBy(row => row.Plane, StringComparer.Ordinal)
             .ThenBy(row => row.Terrain, StringComparer.Ordinal)
             .ToList();
     }
 
     private static List<MapSpreadSummaryRow> LoadMapSpreadRows(DuckDBConnection connection)
     {
-        var sql = $"{MapSpreadSql} ORDER BY run_id;";
+        var sql = $"{MapSpreadSql} ORDER BY run_id, plane_code;";
         return Query(connection, sql, reader => new MapSpreadSummaryRow(
             RunId: ReadString(reader, "run_id"),
             SnapshotTick: ReadInt(reader, "snapshot_tick"),
+            Plane: PlaneName(ReadInt(reader, "plane_code")),
             ActiveEntities: ReadInt(reader, "active_entities"),
             ActivityEventCount: ReadInt(reader, "activity_event_count"),
             ActivityCells: ReadInt(reader, "activity_cells"),

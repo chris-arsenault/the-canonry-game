@@ -70,12 +70,6 @@ internal static partial class KernelProgramInstaller
 
     private static void ConfigureLowAltitudeVerbs(KernelConfigurationContext context, LowAltitudeVerbProgram program)
     {
-        context.ConfigureGameplaySemanticBounds(
-            program.SemanticBounds.MinQ,
-            program.SemanticBounds.MaxQ,
-            program.SemanticBounds.MinR,
-            program.SemanticBounds.MaxR);
-
         foreach (var verb in program.Verbs)
         {
             RegisterLowAltitudeVerb(context, verb);
@@ -101,7 +95,6 @@ internal static partial class KernelProgramInstaller
                 rule.RelationshipKindId,
                 rule.RelationshipDirectionCode,
                 rule.OperationCode,
-                rule.TerrainId,
                 rule.PolarityCode,
                 rule.Threshold,
                 rule.Weight);

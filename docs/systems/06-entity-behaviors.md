@@ -87,6 +87,25 @@ path. Traits may adjust base verb weight, opportunity bonus, and relationship
 fitness weight. New weighting inputs should be reusable primitives, not
 trait-name or kind-name special cases inside the low-altitude runtime.
 
+## Affordance Causal Boundary
+
+Generator and gambit affordances may only point at things low-altitude verbs
+can actually do. Some generator and gambit preconditions are intentionally met
+through low-altitude behavior, such as moving to a locality, growing influence,
+or changing strength on an existing relationship. Other preconditions are only
+created by generators or gambits, and that breakpoint is part of the layer
+model.
+
+Low-altitude verbs may mutate existing relationship strength, but they do not
+create or remove relationship topology. A relationship-existence precondition
+therefore must not compile into a relationship-creation affordance. Low-altitude
+verbs also do not create or change terrain types, so terrain creation,
+conversion, or count constraints must not compile into terrain-modification
+affordances. If a precondition cannot be moved toward by an existing
+low-altitude verb shape, it should create no low-altitude affordance pressure;
+the pressure must come from the high-altitude content that can actually create
+that state.
+
 The goal is not perfect local optimality. The goal is map life: entities should
 commit to plausible medium-term behavior, wander and dwell around targets, and
 produce activity that later systems can read.

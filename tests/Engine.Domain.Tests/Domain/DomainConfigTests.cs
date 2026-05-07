@@ -1,6 +1,8 @@
 namespace Engine.Domain.Tests.Domain;
 
 using Engine.Behaviors;
+using Engine.Constants;
+using Engine.Domain.Compilation;
 using Engine.Domain.Config;
 using Engine.Domain.Loader;
 using Engine.Gameplay;
@@ -170,6 +172,33 @@ public class DomainConfigTests
     }
 
     [Fact]
+    public void IceRemembers_EmitsNoSuppressedRelationshipStrengthAffordanceDiagnostics()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var diagnostics = compiled.Diagnostics
+            .Where(diagnostic => diagnostic.Code == DomainCompileDiagnosticCodes.SuppressedRelationshipStrengthAffordance)
+            .Select(diagnostic => diagnostic.Message)
+            .ToArray();
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
+    public void DomainCompiler_EmitsDiagnosticWhenRelationshipStrengthAffordanceHasNoMatchingVerb()
+    {
+        var config = WithArtifactGeneratorRequiringStrongHoldsRelationship(IceRemembersDefinition.Create());
+        var compiled = DomainCompiler.Compile(config);
+
+        var diagnostic = Assert.Single(
+            compiled.Diagnostics,
+            diagnostic => diagnostic.Code == DomainCompileDiagnosticCodes.SuppressedRelationshipStrengthAffordance);
+        Assert.Equal("generator", diagnostic.SourceKind);
+        Assert.Equal("what_the_artifact_knows", diagnostic.Source);
+        Assert.Equal(IceRemembersKinds.Penguin.Value, diagnostic.ActorKind);
+        Assert.Equal(Rel.Holds.ToDomainName(), diagnostic.RelationshipKind);
+    }
+
+    [Fact]
     public void IceRemembers_KindsHaveSubtypes()
     {
         var config = IceRemembersDefinition.Create();
@@ -303,6 +332,69 @@ public class DomainConfigTests
 
         Assert.InRange(totalDrain, 89f, 91f);
     }
+
+    private static DomainConfig WithArtifactGeneratorRequiringStrongHoldsRelationship(DomainConfig config)
+    {
+        var semantics = config.Semantics!;
+        var generators = semantics.Generators
+            .Select(generator => generator.Id == "what_the_artifact_knows"
+                ? CopyGeneratorWithTarget(
+                    generator,
+                    new SemanticGeneratorTarget
+                    {
+                        Kind = generator.Target.Kind,
+                        RequiredOutgoingRelationshipRequirements =
+                        [
+                            new SemanticGeneratorRelationshipRequirement
+                            {
+                                RelationshipKind = Rel.Holds.ToDomainName(),
+                                MinimumStrength = 0.7f,
+                            },
+                        ],
+                        WithoutOutgoingRelationships = generator.Target.WithoutOutgoingRelationships,
+                    })
+                : generator)
+            .ToArray();
+
+        return new DomainConfig
+        {
+            Kinds = config.Kinds,
+            Gambits = config.Gambits,
+            Relationships = config.Relationships,
+            Lifecycles = config.Lifecycles,
+            Terrains = config.Terrains,
+            Cultures = config.Cultures,
+            Gameplay = config.Gameplay,
+            Semantics = new SemanticDomainConfig
+            {
+                Stocks = semantics.Stocks,
+                Verbs = semantics.Verbs,
+                Flows = semantics.Flows,
+                Modifiers = semantics.Modifiers,
+                Generators = generators,
+            },
+            Chronicle = config.Chronicle,
+        };
+    }
+
+    private static SemanticGeneratorConfig CopyGeneratorWithTarget(
+        SemanticGeneratorConfig generator,
+        SemanticGeneratorTarget target) =>
+        new()
+        {
+            Id = generator.Id,
+            Name = generator.Name,
+            Description = generator.Description,
+            CausalLimit = generator.CausalLimit,
+            Target = target,
+            SecondaryTargets = generator.SecondaryTargets,
+            Produces = generator.Produces,
+            Relationships = generator.Relationships,
+            Effects = generator.Effects,
+            Triggers = generator.Triggers,
+            PulseWeight = generator.PulseWeight,
+            MaxRunsPerSim = generator.MaxRunsPerSim,
+        };
 
     private static Dictionary<string, bool> RelationshipStrengthMeaningByName() =>
         new Dictionary<string, bool>(StringComparer.Ordinal)

@@ -15,7 +15,26 @@ public sealed class CompiledDomain
     public required KernelProgramSet Programs { get; init; }
     public required IReadOnlyList<DomainSymbolSeed> Symbols { get; init; }
     public required IReadOnlyList<CompiledChronicleQuery> ChronicleQueries { get; init; }
+    public required IReadOnlyList<DomainCompileDiagnostic> Diagnostics { get; init; }
 }
+
+public enum DomainCompileDiagnosticSeverity
+{
+    Info,
+    Warning,
+}
+
+public sealed record DomainCompileDiagnostic(
+    DomainCompileDiagnosticSeverity Severity,
+    string Code,
+    string Message,
+    string SourceKind,
+    string Source,
+    string ActorKind,
+    string RelationshipKind,
+    int RelationshipDirectionCode,
+    int PolarityCode,
+    float Threshold);
 
 public sealed record CompiledChronicleQuery(
     string Id,

@@ -151,10 +151,8 @@ public static class AffordanceSourceKindCodes
 public static class LowAltitudeAffordanceShapeCodes
 {
     public const int PresenceNearEntity = 1;
-    public const int PresenceNearRelationshipTarget = 2;
     public const int RelationshipStrengthChange = 3;
     public const int InfluenceChange = 4;
-    public const int TerrainPresence = 5;
 }
 
 public static class AffordancePolarityCodes

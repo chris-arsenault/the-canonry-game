@@ -202,9 +202,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
     public int Count => _generatorCount;
 
-    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
-        Data.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
-
     public int RegisterGenerator(
         int generatorId,
         int targetKindId,

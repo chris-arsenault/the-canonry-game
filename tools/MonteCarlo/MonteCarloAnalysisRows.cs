@@ -130,6 +130,7 @@ internal sealed record AttributeBandSummaryRow(
 internal sealed record MapSpreadSummaryRow(
     string RunId,
     int SnapshotTick,
+    string Plane,
     int ActiveEntities,
     int ActivityEventCount,
     int ActivityCells,
@@ -151,6 +152,7 @@ internal sealed record MapGenerationSummaryRow(
     int MaxAttempt);
 
 internal sealed record TerrainOccupancyRow(
+    string Plane,
     string Terrain,
     double AverageFinalActiveEntities,
     double AverageNamedCoverageShare);

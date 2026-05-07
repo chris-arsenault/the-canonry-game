@@ -318,6 +318,7 @@ public sealed record MapCellEventRow(
     int Tick,
     int EventTypeCode,
     int SourceCodeId,
+    int PlaneCode,
     int Q,
     int R,
     int SuperregionId,
@@ -356,6 +357,7 @@ public sealed record CellRoadEventRow(
 public sealed record MapSnapshotRow(
     int RunId,
     int Tick,
+    int PlaneCode,
     int TerrainId,
     int CellCount,
     int CoveredCellCount,
@@ -364,6 +366,7 @@ public sealed record MapSnapshotRow(
 public sealed record CoverageSnapshotRow(
     int RunId,
     int Tick,
+    int PlaneCode,
     int OwnerEntityId,
     int CoverageKindCode,
     int CellCount,
@@ -376,6 +379,7 @@ public sealed record CoverageSnapshotRow(
 public sealed record CoverageTerrainSnapshotRow(
     int RunId,
     int Tick,
+    int PlaneCode,
     int OwnerEntityId,
     int TerrainId,
     int CellCount);

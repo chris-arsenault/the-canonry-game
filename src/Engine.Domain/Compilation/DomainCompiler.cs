@@ -20,6 +20,11 @@ public static partial class DomainCompiler
 
         var ids = BuildCatalog(config);
         var graph = DefinitionGraphBuilder.Build(config, ids);
+        var diagnostics = new List<DomainCompileDiagnostic>();
+        var kernelData = BuildKernelData(config, ids);
+        var programs = BuildPrograms(config, ids, graph, diagnostics);
+        var symbols = BuildSymbols(config, ids);
+        var chronicleQueries = BuildChronicleQueries(config, ids);
 
         return new CompiledDomain
         {
@@ -39,10 +44,11 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.MapSignalsSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode)),
-            KernelData = BuildKernelData(config, ids),
-            Programs = BuildPrograms(config, ids, graph),
-            Symbols = BuildSymbols(config, ids),
-            ChronicleQueries = BuildChronicleQueries(config, ids),
+            KernelData = kernelData,
+            Programs = programs,
+            Symbols = symbols,
+            ChronicleQueries = chronicleQueries,
+            Diagnostics = diagnostics,
         };
     }
 

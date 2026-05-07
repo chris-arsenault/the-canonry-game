@@ -708,73 +708,92 @@ internal sealed partial class MonteCarloBatchAnalyzer
             FROM raw_tick_snapshots
             GROUP BY run_id
         ),
+        planes(plane_code) AS (
+            VALUES (1), (2)
+        ),
+        snapshot_planes AS (
+            SELECT ticks.run_id, ticks.tick, planes.plane_code
+            FROM snapshot_ticks ticks
+            CROSS JOIN planes
+        ),
         map_totals AS (
-            SELECT run_id, tick, SUM(cell_count) AS total_cell_count
+            SELECT run_id, tick, plane_code, SUM(cell_count) AS total_cell_count
             FROM raw_map_snapshots
-            GROUP BY run_id, tick
+            GROUP BY run_id, tick, plane_code
         ),
         active_entities AS (
-            SELECT run_id, tick, COUNT(DISTINCT entity_id) AS active_entities
-            FROM raw_entity_snapshots
-            WHERE status_code = 1
-            GROUP BY run_id, tick
+            SELECT run_id, tick, plane_code, COUNT(DISTINCT entity_id) AS active_entities
+            FROM (
+                SELECT run_id, tick, 1 AS plane_code, entity_id
+                FROM raw_entity_snapshots
+                WHERE status_code = 1
+                UNION ALL
+                SELECT run_id, tick, 2 AS plane_code, entity_id
+                FROM raw_entity_snapshots
+                WHERE status_code = 1
+            ) entities
+            GROUP BY run_id, tick, plane_code
         ),
         known_cells AS (
-            SELECT DISTINCT run_id, q, r
+            SELECT DISTINCT run_id, plane_code, q, r, -q - r AS s
             FROM raw_map_cell_events
             UNION
-            SELECT DISTINCT run_id, q, r
+            SELECT DISTINCT run_id, plane_code, q, r, -q - r AS s
             FROM raw_cell_influence_events
-            WHERE plane_code = 1
             UNION
-            SELECT DISTINCT run_id, physical_q AS q, physical_r AS r
+            SELECT DISTINCT run_id, 1 AS plane_code, physical_q AS q, physical_r AS r, -physical_q - physical_r AS s
             FROM raw_entity_snapshots
             UNION
-            SELECT DISTINCT run_id, from_q AS q, from_r AS r
-            FROM raw_movement_events
-            WHERE plane_code = 1
+            SELECT DISTINCT run_id, 2 AS plane_code, semantic_q AS q, semantic_r AS r, semantic_s AS s
+            FROM raw_entity_snapshots
             UNION
-            SELECT DISTINCT run_id, to_q AS q, to_r AS r
+            SELECT DISTINCT run_id, plane_code, from_q AS q, from_r AS r, from_s AS s
             FROM raw_movement_events
-            WHERE plane_code = 1
+            UNION
+            SELECT DISTINCT run_id, plane_code, to_q AS q, to_r AS r, to_s AS s
+            FROM raw_movement_events
         ),
         raw_activity AS (
-            SELECT run_id, tick, physical_q AS q, physical_r AS r
+            SELECT run_id, tick, 1 AS plane_code, physical_q AS q, physical_r AS r, -physical_q - physical_r AS s
             FROM raw_entity_snapshots
             WHERE status_code = 1
             UNION ALL
-            SELECT run_id, tick, from_q AS q, from_r AS r
-            FROM raw_movement_events
-            WHERE plane_code = 1
+            SELECT run_id, tick, 2 AS plane_code, semantic_q AS q, semantic_r AS r, semantic_s AS s
+            FROM raw_entity_snapshots
+            WHERE status_code = 1
             UNION ALL
-            SELECT run_id, tick, to_q AS q, to_r AS r
+            SELECT run_id, tick, plane_code, from_q AS q, from_r AS r, from_s AS s
             FROM raw_movement_events
-            WHERE plane_code = 1
             UNION ALL
-            SELECT run_id, tick, q, r
+            SELECT run_id, tick, plane_code, to_q AS q, to_r AS r, to_s AS s
+            FROM raw_movement_events
+            UNION ALL
+            SELECT run_id, tick, plane_code, q, r, s
             FROM raw_placement_events
-            WHERE plane_code = 1 AND selected AND tick > 0
+            WHERE selected AND tick > 0
             UNION ALL
-            SELECT run_id, tick, q, r
+            SELECT run_id, tick, plane_code, q, r, -q - r AS s
             FROM raw_map_cell_events
             WHERE tick > 0
             UNION ALL
-            SELECT run_id, tick, q, r
+            SELECT run_id, tick, plane_code, q, r, -q - r AS s
             FROM raw_cell_influence_events
-            WHERE plane_code = 1 AND tick > 0
+            WHERE tick > 0
         ),
         activity_by_snapshot AS (
-            SELECT ticks.run_id, ticks.tick AS snapshot_tick, activity.q, activity.r, COUNT(*) AS activity_count
-            FROM snapshot_ticks ticks
+            SELECT ticks.run_id, ticks.tick AS snapshot_tick, ticks.plane_code, activity.q, activity.r, activity.s, COUNT(*) AS activity_count
+            FROM snapshot_planes ticks
             JOIN raw_activity activity
               ON activity.run_id = ticks.run_id
+             AND activity.plane_code = ticks.plane_code
              AND activity.tick <= ticks.tick
-            GROUP BY ticks.run_id, ticks.tick, activity.q, activity.r
+            GROUP BY ticks.run_id, ticks.tick, ticks.plane_code, activity.q, activity.r, activity.s
         ),
         activity_totals AS (
             SELECT
                 run_id,
                 snapshot_tick,
+                plane_code,
                 COUNT(*) AS activity_cells,
                 SUM(activity_count) AS activity_event_count,
                 MAX(activity_count) AS top_cell_activity_count,
@@ -782,25 +801,28 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 MAX(q) AS max_q,
                 MIN(r) AS min_r,
                 MAX(r) AS max_r,
-                MIN(q + r) AS min_s,
-                MAX(q + r) AS max_s
+                MIN(s) AS min_s,
+                MAX(s) AS max_s
             FROM activity_by_snapshot
-            GROUP BY run_id, snapshot_tick
+            GROUP BY run_id, snapshot_tick, plane_code
         ),
         activity_probabilities AS (
             SELECT
                 activity.run_id,
                 activity.snapshot_tick,
+                activity.plane_code,
                 activity.activity_count::DOUBLE / NULLIF(totals.activity_event_count, 0) AS probability
             FROM activity_by_snapshot activity
             JOIN activity_totals totals
               ON totals.run_id = activity.run_id
              AND totals.snapshot_tick = activity.snapshot_tick
+             AND totals.plane_code = activity.plane_code
         ),
         activity_entropy AS (
             SELECT
                 probabilities.run_id,
                 probabilities.snapshot_tick,
+                probabilities.plane_code,
                 CASE WHEN MAX(totals.activity_cells) <= 1 THEN 0.0
                      ELSE -SUM(probabilities.probability * LN(probabilities.probability)) /
                           LN(MAX(totals.activity_cells)::DOUBLE)
@@ -809,36 +831,42 @@ internal sealed partial class MonteCarloBatchAnalyzer
             JOIN activity_totals totals
               ON totals.run_id = probabilities.run_id
              AND totals.snapshot_tick = probabilities.snapshot_tick
-            GROUP BY probabilities.run_id, probabilities.snapshot_tick
+             AND totals.plane_code = probabilities.plane_code
+            GROUP BY probabilities.run_id, probabilities.snapshot_tick, probabilities.plane_code
         ),
         nearest_activity AS (
             SELECT
                 ticks.run_id,
                 ticks.tick AS snapshot_tick,
+                ticks.plane_code,
                 cells.q,
                 cells.r,
                 MIN((ABS(cells.q - activity.q) +
                      ABS(cells.r - activity.r) +
-                     ABS((cells.q + cells.r) - (activity.q + activity.r))) / 2) AS nearest_activity_radius
-            FROM snapshot_ticks ticks
+                     ABS(cells.s - activity.s)) / 2) AS nearest_activity_radius
+            FROM snapshot_planes ticks
             JOIN known_cells cells
               ON cells.run_id = ticks.run_id
+             AND cells.plane_code = ticks.plane_code
             LEFT JOIN activity_by_snapshot activity
               ON activity.run_id = ticks.run_id
              AND activity.snapshot_tick = ticks.tick
-            GROUP BY ticks.run_id, ticks.tick, cells.q, cells.r
+             AND activity.plane_code = ticks.plane_code
+            GROUP BY ticks.run_id, ticks.tick, ticks.plane_code, cells.q, cells.r
         ),
         empty_radius AS (
             SELECT
                 run_id,
                 snapshot_tick,
+                plane_code,
                 COALESCE(MAX(nearest_activity_radius), 0) AS largest_unoccupied_strict_hex_radius
             FROM nearest_activity
-            GROUP BY run_id, snapshot_tick
+            GROUP BY run_id, snapshot_tick, plane_code
         )
         SELECT
             ticks.run_id,
             ticks.tick AS snapshot_tick,
+            ticks.plane_code,
             COALESCE(map_totals.total_cell_count, 0) AS total_cell_count,
             COALESCE(active_entities.active_entities, 0) AS active_entities,
             COALESCE(totals.activity_event_count, 0) AS activity_event_count,
@@ -868,38 +896,44 @@ internal sealed partial class MonteCarloBatchAnalyzer
                             totals.max_s - totals.min_s + 1))
             END AS activity_axis_anisotropy,
             COALESCE(empty_radius.largest_unoccupied_strict_hex_radius, 0) AS largest_unoccupied_strict_hex_radius
-        FROM snapshot_ticks ticks
+        FROM snapshot_planes ticks
         LEFT JOIN map_totals
           ON map_totals.run_id = ticks.run_id
          AND map_totals.tick = ticks.tick
+         AND map_totals.plane_code = ticks.plane_code
         LEFT JOIN active_entities
           ON active_entities.run_id = ticks.run_id
          AND active_entities.tick = ticks.tick
+         AND active_entities.plane_code = ticks.plane_code
         LEFT JOIN activity_totals totals
           ON totals.run_id = ticks.run_id
          AND totals.snapshot_tick = ticks.tick
+         AND totals.plane_code = ticks.plane_code
         LEFT JOIN activity_entropy entropy
           ON entropy.run_id = ticks.run_id
          AND entropy.snapshot_tick = ticks.tick
+         AND entropy.plane_code = ticks.plane_code
         LEFT JOIN empty_radius
           ON empty_radius.run_id = ticks.run_id
          AND empty_radius.snapshot_tick = ticks.tick
+         AND empty_radius.plane_code = ticks.plane_code
         """;
 
     private const string CoverageDevelopmentSql = """
         WITH ranked AS (
             SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY run_id, owner_entity_id ORDER BY tick) AS first_rank,
-                   ROW_NUMBER() OVER (PARTITION BY run_id, owner_entity_id ORDER BY tick DESC) AS last_rank
+                   ROW_NUMBER() OVER (PARTITION BY run_id, plane_code, owner_entity_id ORDER BY tick) AS first_rank,
+                   ROW_NUMBER() OVER (PARTITION BY run_id, plane_code, owner_entity_id ORDER BY tick DESC) AS last_rank
             FROM raw_coverage_snapshots
         ),
         terrain_mix AS (
-            SELECT run_id, owner_entity_id, COUNT(DISTINCT terrain_id) AS terrain_mix_count
+            SELECT run_id, plane_code, owner_entity_id, COUNT(DISTINCT terrain_id) AS terrain_mix_count
             FROM raw_coverage_terrain_snapshots
-            GROUP BY run_id, owner_entity_id
+            GROUP BY run_id, plane_code, owner_entity_id
         )
         SELECT
             final.run_id,
+            final.plane_code,
             final.owner_entity_id,
             final.coverage_kind_code,
             COALESCE(initial.cell_count, 0) AS initial_cell_count,
@@ -910,35 +944,16 @@ internal sealed partial class MonteCarloBatchAnalyzer
         FROM ranked final
         LEFT JOIN ranked initial
           ON initial.run_id = final.run_id
+         AND initial.plane_code = final.plane_code
          AND initial.owner_entity_id = final.owner_entity_id
          AND initial.first_rank = 1
         LEFT JOIN terrain_mix
           ON terrain_mix.run_id = final.run_id
+         AND terrain_mix.plane_code = final.plane_code
          AND terrain_mix.owner_entity_id = final.owner_entity_id
         WHERE final.last_rank = 1
-        GROUP BY final.run_id, final.owner_entity_id, final.coverage_kind_code,
+        GROUP BY final.run_id, final.plane_code, final.owner_entity_id, final.coverage_kind_code,
                  initial.cell_count, final.cell_count, final.active_entity_count
-        """;
-
-    private const string TerrainOccupancySql = """
-        WITH final_ticks AS (
-            SELECT run_id, MAX(tick) AS final_tick
-            FROM raw_map_snapshots
-            GROUP BY run_id
-        ),
-        final_map AS (
-            SELECT map.*
-            FROM raw_map_snapshots map
-            JOIN final_ticks final
-              ON final.run_id = map.run_id
-             AND final.final_tick = map.tick
-        )
-        SELECT
-            terrain_id,
-            COALESCE(AVG(CAST(active_entity_count AS DOUBLE)), 0.0) AS average_final_active_entities,
-            COALESCE(AVG(CASE WHEN cell_count = 0 THEN 0.0 ELSE covered_cell_count::DOUBLE / cell_count END), 0.0) AS average_named_coverage_share
-        FROM final_map
-        GROUP BY terrain_id
         """;
 
     private const string LifecycleSql = """

@@ -20,7 +20,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
-    private readonly Dictionary<int, Queue<ObservedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
+    private readonly Dictionary<int, Queue<PendingCreatedEntity>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
     private int _totalGeneratorFires;
@@ -73,9 +73,10 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         var activeEntities = _entities.Values.Where(entity => IsActiveStatus(entity.StatusCode)).ToList();
         var historicalCount = _entities.Values.Count(entity => IsHistoricalStatus(entity.StatusCode));
         var activeRelationships = _relationships.Values.Where(relationship => relationship.IsActive).ToList();
-        var coveredCells = _mapCells.Values.Count(cell => cell.OwnerEntityId > 0);
+        var physicalCells = _mapCells.Values.Where(cell => cell.Key.PlaneCode == PlaneCodes.Physical).ToList();
+        var coveredCells = physicalCells.Count(cell => cell.OwnerEntityId > 0);
         var coverageCount = _mapCells.Values
-            .Where(cell => cell.OwnerEntityId > 0)
+            .Where(cell => cell.Key.PlaneCode == PlaneCodes.Physical && cell.OwnerEntityId > 0)
             .Select(cell => cell.OwnerEntityId)
             .Distinct()
             .Count();
@@ -89,7 +90,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             activeRelationships.Count,
             coverageCount,
             coveredCells,
-            _mapCells.Count - coveredCells,
+            physicalCells.Count - coveredCells,
             ComputePhysicalSpread(activeEntities),
             ComputeSemanticSpread(activeEntities)));
     }
@@ -171,19 +172,18 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             return;
         }
 
-        var activeEntitiesByCell = _entities.Values
-            .Where(entity => IsActiveStatus(entity.StatusCode))
-            .GroupBy(entity => new ObservedMapCellKey(entity.PhysicalQ, entity.PhysicalR))
-            .ToDictionary(group => group.Key, group => group.Count());
+        var activeEntitiesByCell = ActiveEntitiesByPlaneCell();
 
         foreach (var group in _mapCells.Values
-                     .OrderBy(cell => cell.TerrainId)
-                     .GroupBy(cell => cell.TerrainId))
+                     .OrderBy(cell => cell.Key.PlaneCode)
+                     .ThenBy(cell => cell.TerrainId)
+                     .GroupBy(cell => (cell.Key.PlaneCode, cell.TerrainId)))
         {
             _batch.MapSnapshots.Add(new MapSnapshotRow(
                 _runId,
                 tick,
-                group.Key,
+                group.Key.PlaneCode,
+                group.Key.TerrainId,
                 group.Count(),
                 group.Count(cell => cell.OwnerEntityId > 0),
                 group.Sum(cell => activeEntitiesByCell.GetValueOrDefault(cell.Key))));
@@ -199,13 +199,14 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     {
         foreach (var group in _mapCells.Values
                      .Where(cell => cell.OwnerEntityId > 0)
-                     .GroupBy(cell => cell.OwnerEntityId))
+                     .GroupBy(cell => (cell.Key.PlaneCode, cell.OwnerEntityId)))
         {
             var cells = group.ToList();
             _batch.CoverageSnapshots.Add(new CoverageSnapshotRow(
                 _runId,
                 tick,
-                group.Key,
+                group.Key.PlaneCode,
+                group.Key.OwnerEntityId,
                 CoverageKindCode: 1,
                 cells.Count,
                 cells.Min(cell => cell.Key.Q),
@@ -219,11 +220,25 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 _batch.CoverageTerrainSnapshots.Add(new CoverageTerrainSnapshotRow(
                     _runId,
                     tick,
-                    group.Key,
+                    group.Key.PlaneCode,
+                    group.Key.OwnerEntityId,
                     terrain.Key,
                     terrain.Count()));
             }
         }
+    }
+
+    private Dictionary<ObservedMapCellKey, int> ActiveEntitiesByPlaneCell()
+    {
+        var activeEntities = _entities.Values.Where(entity => IsActiveStatus(entity.StatusCode)).ToList();
+        return activeEntities
+            .SelectMany(entity => new[]
+            {
+                new ObservedMapCellKey(PlaneCodes.Physical, entity.PhysicalQ, entity.PhysicalR),
+                new ObservedMapCellKey(PlaneCodes.Semantic, entity.SemanticQ, entity.SemanticR),
+            })
+            .GroupBy(key => key)
+            .ToDictionary(group => group.Key, group => group.Count());
     }
 
     private void RecordGeneratorStateSnapshots(int tick)
@@ -277,7 +292,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SemanticR,
             evt.SemanticS));
 
-        TrackCreatedEntityForGeneratorAttribution(entity);
+        TrackCreatedEntityForGeneratorAttribution(evt);
         MarkProjected(sequence);
     }
 
@@ -413,63 +428,62 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
     {
-        var key = new ObservedMapCellKey(evt.Q, evt.R);
-        UpsertMapCell(
-            key,
-            evt.TerrainId,
-            evt.OwnerEntityId,
-            evt.SuperregionId,
-            evt.ContinentId,
-            evt.Tick,
-            evt.WorldVersion);
-        var causeId = evt.SourceCodeId;
-        _batch.MapCellEvents.Add(new MapCellEventRow(
-            _runId,
-            evt.Tick,
-            (int)KernelEventType.CellCreated,
-            evt.SourceCodeId,
-            evt.Q,
-            evt.R,
-            evt.SuperregionId,
-            evt.ContinentId,
-            PreviousTerrainId: 0,
-            evt.TerrainId,
-            PreviousOwnerEntityId: 0,
-            evt.OwnerEntityId,
-            causeId));
-        _batch.PlacementEvents.Add(new PlacementEventRow(
-            _runId,
-            evt.Tick,
-            causeId,
-            AnchorEntityId: evt.OwnerEntityId,
-            PlacementModeCode: 1,
-            PlaneCode: PlaneCodes.Physical,
-            evt.Q,
-            evt.R,
-            S: 0,
-            evt.TerrainId,
-            evt.OwnerEntityId,
-            RejectionReasonCode: 0,
-            Selected: true));
+        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R);
+        if (!_mapCells.ContainsKey(key))
+        {
+            RecordMapCellState(
+                evt.Tick,
+                evt.WorldVersion,
+                (int)KernelEventType.CellCreated,
+                evt.SourceCodeId,
+                PlaneCodes.Physical,
+                evt.Q,
+                evt.R,
+                evt.SuperregionId,
+                evt.ContinentId,
+                previousTerrainId: 0,
+                evt.TerrainId,
+                previousOwnerEntityId: 0,
+                evt.OwnerEntityId);
+        }
+
         MarkProjected(sequence);
     }
 
     protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
     {
-        var key = new ObservedMapCellKey(evt.Q, evt.R);
-        UpsertMapCell(
-            key,
-            evt.CurrentTerrainId,
-            evt.CurrentOwnerEntityId,
-            evt.SuperregionId,
-            evt.ContinentId,
+        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R);
+        if (!_mapCells.TryGetValue(key, out var cell) ||
+            cell.TerrainId != evt.CurrentTerrainId ||
+            cell.OwnerEntityId != evt.CurrentOwnerEntityId)
+        {
+            RecordMapCellState(
+                evt.Tick,
+                evt.WorldVersion,
+                (int)KernelEventType.CellChanged,
+                evt.SourceCodeId,
+                PlaneCodes.Physical,
+                evt.Q,
+                evt.R,
+                evt.SuperregionId,
+                evt.ContinentId,
+                evt.PreviousTerrainId,
+                evt.CurrentTerrainId,
+                evt.PreviousOwnerEntityId,
+                evt.CurrentOwnerEntityId);
+        }
+
+        MarkProjected(sequence);
+    }
+
+    protected override void OnMapCellStateChanged(long sequence, in MapCellStateChangedKernelEvent evt)
+    {
+        RecordMapCellState(
             evt.Tick,
-            evt.WorldVersion);
-        _batch.MapCellEvents.Add(new MapCellEventRow(
-            _runId,
-            evt.Tick,
-            (int)KernelEventType.CellChanged,
+            evt.WorldVersion,
+            (int)KernelEventType.MapCellStateChanged,
             evt.SourceCodeId,
+            evt.PlaneCode,
             evt.Q,
             evt.R,
             evt.SuperregionId,
@@ -477,8 +491,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousTerrainId,
             evt.CurrentTerrainId,
             evt.PreviousOwnerEntityId,
-            evt.CurrentOwnerEntityId,
-            CauseId: 0));
+            evt.CurrentOwnerEntityId);
         MarkProjected(sequence);
     }
 
@@ -689,6 +702,80 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             worldVersion);
     }
 
+    private void RecordMapCellState(
+        int tick,
+        long worldVersion,
+        int eventTypeCode,
+        int sourceCodeId,
+        int planeCode,
+        int q,
+        int r,
+        int superregionId,
+        int continentId,
+        int previousTerrainId,
+        int currentTerrainId,
+        int previousOwnerEntityId,
+        int currentOwnerEntityId)
+    {
+        var key = new ObservedMapCellKey(planeCode, q, r);
+        UpsertMapCell(
+            key,
+            currentTerrainId,
+            currentOwnerEntityId,
+            superregionId,
+            continentId,
+            tick,
+            worldVersion);
+        var causeId = sourceCodeId;
+        _batch.MapCellEvents.Add(new MapCellEventRow(
+            _runId,
+            tick,
+            eventTypeCode,
+            sourceCodeId,
+            planeCode,
+            q,
+            r,
+            superregionId,
+            continentId,
+            previousTerrainId,
+            currentTerrainId,
+            previousOwnerEntityId,
+            currentOwnerEntityId,
+            causeId));
+
+        if (previousTerrainId == 0 && currentTerrainId != 0)
+        {
+            AddPlacementEvent(tick, causeId, currentOwnerEntityId, planeCode, q, r, -q - r);
+        }
+    }
+
+    private void AddPlacementEvent(
+        int tick,
+        int causeId,
+        int anchorEntityId,
+        int planeCode,
+        int q,
+        int r,
+        int s)
+    {
+        var key = new ObservedMapCellKey(planeCode, q, r);
+        _mapCells.TryGetValue(key, out var cell);
+        _batch.PlacementEvents.Add(new PlacementEventRow(
+            _runId,
+            tick,
+            causeId,
+            anchorEntityId,
+            GeneratorPlacementCodes.Area,
+            planeCode,
+            q,
+            r,
+            s,
+            TerrainId: cell?.TerrainId ?? 0,
+            CoverageOwnerEntityId: cell?.OwnerEntityId ?? 0,
+            RejectionReasonCode: 0,
+            Selected: true));
+    }
+
     private void RegisterEntityNameSymbol(ObservedEntityProjection entity)
     {
         if (!_exportedEntityNameSymbols.Add(entity.EntityId))
@@ -714,21 +801,25 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             displayName));
     }
 
-    private void TrackCreatedEntityForGeneratorAttribution(ObservedEntityProjection entity)
+    private void TrackCreatedEntityForGeneratorAttribution(in EntityCreatedKernelEvent evt)
     {
-        if (entity.CreatedTick is not { } createdTick)
-        {
-            return;
-        }
-
-        if (!_unassignedCreatedEntitiesByTick.TryGetValue(createdTick, out var createdEntities))
+        if (!_unassignedCreatedEntitiesByTick.TryGetValue(evt.Tick, out var createdEntities))
         {
             createdEntities = [];
-            _unassignedCreatedEntitiesByTick[createdTick] = createdEntities;
+            _unassignedCreatedEntitiesByTick[evt.Tick] = createdEntities;
         }
 
-        createdEntities.Enqueue(entity);
-        AssignGeneratedEntities(createdTick);
+        createdEntities.Enqueue(new PendingCreatedEntity(
+            evt.EntityId,
+            evt.KindId,
+            evt.SubtypeId,
+            evt.CultureId,
+            evt.PhysicalQ,
+            evt.PhysicalR,
+            evt.SemanticQ,
+            evt.SemanticR,
+            evt.SemanticS));
+        AssignGeneratedEntities(evt.Tick);
     }
 
     private void AssignGeneratedEntities(int tick)
@@ -743,34 +834,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             while (pending.Remaining > 0 && createdEntities.Count > 0)
             {
                 var entity = createdEntities.Dequeue();
-                RegisterEntityNameSymbol(entity);
-                _batch.GeneratedEntities.Add(new GeneratedEntityRow(
-                    _runId,
-                    tick,
-                    pending.GeneratorId,
-                    entity.EntityId,
-                    entity.KindId,
-                    entity.SubtypeId,
-                    entity.CultureId,
-                    entity.PhysicalQ,
-                    entity.PhysicalR,
-                    entity.SemanticQ,
-                    entity.SemanticR,
-                    entity.SemanticS));
-                _batch.GeneratorOutputs.Add(new GeneratorOutputRow(
-                    _runId,
-                    tick,
-                    pending.CauseId,
-                    pending.GeneratorId,
-                    OutputDomainCode: 1,
-                    entity.EntityId,
-                    OutputRelationshipKindId: 0,
-                    OutputSourceEntityId: 0,
-                    OutputTargetEntityId: 0,
-                    entity.PhysicalQ,
-                    entity.PhysicalR,
-                    OutputS: 0,
-                    pending.CauseId));
+                RecordGeneratedEntity(tick, pending, entity);
                 pending.Remaining--;
             }
         }
@@ -781,6 +845,54 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
 
         _pendingGeneratorFires.RemoveAll(pending => pending.Remaining == 0);
+    }
+
+    private void RecordGeneratedEntity(int tick, PendingGeneratorFire pending, PendingCreatedEntity entity)
+    {
+        RegisterEntityNameSymbol(GetOrCreateEntity(entity.EntityId));
+        _batch.GeneratedEntities.Add(new GeneratedEntityRow(
+            _runId,
+            tick,
+            pending.GeneratorId,
+            entity.EntityId,
+            entity.KindId,
+            entity.SubtypeId,
+            entity.CultureId,
+            entity.PhysicalQ,
+            entity.PhysicalR,
+            entity.SemanticQ,
+            entity.SemanticR,
+            entity.SemanticS));
+        _batch.GeneratorOutputs.Add(new GeneratorOutputRow(
+            _runId,
+            tick,
+            pending.CauseId,
+            pending.GeneratorId,
+            OutputDomainCode: 1,
+            entity.EntityId,
+            OutputRelationshipKindId: 0,
+            OutputSourceEntityId: 0,
+            OutputTargetEntityId: 0,
+            entity.PhysicalQ,
+            entity.PhysicalR,
+            OutputS: 0,
+            pending.CauseId));
+        AddPlacementEvent(
+            tick,
+            pending.CauseId,
+            entity.EntityId,
+            PlaneCodes.Physical,
+            entity.PhysicalQ,
+            entity.PhysicalR,
+            -entity.PhysicalQ - entity.PhysicalR);
+        AddPlacementEvent(
+            tick,
+            pending.CauseId,
+            entity.EntityId,
+            PlaneCodes.Semantic,
+            entity.SemanticQ,
+            entity.SemanticR,
+            entity.SemanticS);
     }
 
     private void MarkProjected(long sequence)

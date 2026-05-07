@@ -142,7 +142,6 @@ public sealed class LowAltitudeVerbSelectionTests
             relationshipKindId: 0,
             relationshipDirectionCode: 0,
             operationCode: 0,
-            terrainId: 0,
             polarityCode: AffordancePolarityCodes.None,
             threshold: 0f,
             weight: 5f);
@@ -734,7 +733,6 @@ public sealed class LowAltitudeVerbSelectionTests
             relationshipKindId: 0,
             relationshipDirectionCode: 0,
             operationCode: 0,
-            terrainId: 0,
             polarityCode: AffordancePolarityCodes.None,
             threshold: 0f,
             weight: weight);

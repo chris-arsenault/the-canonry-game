@@ -81,13 +81,6 @@ public static partial class IceRemembersDefinition
                 new GameplayModule("attribute_effects"),
             ],
             LowAltitudeVerbs = CreateLowAltitudeVerbs(),
-            SemanticPlane = new SemanticPlaneConfig
-            {
-                MinQ = -20,
-                MaxQ = 20,
-                MinR = -20,
-                MaxR = 20,
-            },
             InitialInfluence = CreateInitialInfluenceRules(),
             Effects = CreateEffects(),
             MapSignals = CreateMapSignals(),

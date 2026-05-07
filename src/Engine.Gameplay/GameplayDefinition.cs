@@ -14,7 +14,7 @@ public sealed class GameplayDefinition
 
     public IReadOnlyList<MapControlDefinition> MapControl { get; init; } = [];
 
-    public SemanticPlaneConfig SemanticPlane { get; init; } = new();
+    public SemanticPlaneConfig SemanticPlane { get; init; } = SemanticPlaneConfig.Default;
 }
 
 public sealed record GameplayModule(string Id);
@@ -51,8 +51,5 @@ public sealed record MapControlDefinition(
 
 public sealed class SemanticPlaneConfig
 {
-    public int MinQ { get; init; } = -24;
-    public int MaxQ { get; init; } = 24;
-    public int MinR { get; init; } = -24;
-    public int MaxR { get; init; } = 24;
+    public static SemanticPlaneConfig Default { get; } = new();
 }

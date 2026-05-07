@@ -68,14 +68,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                     continue;
                 }
 
-                var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
                 var distance = DistancePref(rule, TargetSelectorCodes.Explore, actorQ, actorR, q, r);
                 var saturationDivisor = CellSaturationDivisor(simulation, planeCode, q, r);
                 var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
                 var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
                 var baseWeight = scalars.Weight * distance * saturationDivisor * recency;
-                var affordance = CombineAffordancesForCellTarget(actorKindId, planeCode, terrainId);
-                sumAffordanceScore += affordance.Score;
+                var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
                 ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
             }
@@ -124,8 +122,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
                 var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
                 var baseWeight = scalars.Weight * distance * saturationDivisor * recency;
-                var affordance = CombineAffordancesForCellTarget(actorKindId, planeCode, terrainId);
-                sumAffordanceScore += affordance.Score;
+                var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
                 ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
             }

@@ -108,9 +108,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue) =>
         Data.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
-    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
-        Data.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
-
     public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument) =>
         Data.AddPrimitiveStep(rule, opcode, intArgument, floatArgument);
 
@@ -124,7 +121,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int relationshipKindId,
         int relationshipDirectionCode,
         int operationCode,
-        int terrainId,
         int polarityCode,
         float threshold,
         float weight) =>
@@ -138,7 +134,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             relationshipKindId,
             relationshipDirectionCode,
             operationCode,
-            terrainId,
             polarityCode,
             threshold,
             weight);

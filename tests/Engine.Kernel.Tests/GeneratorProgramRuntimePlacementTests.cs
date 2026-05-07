@@ -304,30 +304,29 @@ public sealed class GeneratorProgramRuntimePlacementTests
     }
 
     [Fact]
-    public void Fire_UsesConfiguredSemanticBoundsForProducedPlacement()
+    public void Fire_UsesWorldMapRadiusForSemanticProducedPlacement()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
-        simulation.World.SetMapRadius(5);
-        simulation.Generators.ConfigureSemanticBounds(-1, 1, -1, 1);
-        simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 4, 0, -4, tick: 0);
+        simulation.World.SetMapRadius(30);
+        simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 25, 0, -25, tick: 0);
         var slot = RegisterGenerator(simulation, includeProduced: false);
         AddAreaProducedEntity(
             simulation,
             slot,
-            physicalMinRadius: 0,
-            physicalMaxRadius: 5,
+            physicalMinRadius: 1,
+            physicalMaxRadius: 1,
             semanticMinRadius: 0,
-            semanticMaxRadius: 5);
+            semanticMaxRadius: 0);
 
         simulation.AdvanceTicks(1);
 
         var created = simulation.World.EntityHighWatermark;
         var q = simulation.World.EntitySemanticQ(created);
         var r = simulation.World.EntitySemanticR(created);
-        Assert.InRange(q, -1, 1);
-        Assert.InRange(r, -1, 1);
-        Assert.True(HexDistance(0, 0, q, r) <= 1);
+        Assert.Equal(25, q);
+        Assert.Equal(0, r);
+        Assert.True(HexDistance(0, 0, q, r) <= simulation.World.MapRadius);
     }
 
     private static int RegisterGenerator(

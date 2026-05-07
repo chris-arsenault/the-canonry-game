@@ -122,6 +122,8 @@ public sealed class KernelTelemetryRecorderTests
             OwnerEntityId: 100,
             SuperregionId: 4,
             ContinentId: 2))));
+        WriteMapCellStateChanged(log, tick: 1, planeCode: PlaneCodes.Physical, q: 2, r: -1, previousTerrainId: 0, currentTerrainId: 12, previousOwnerEntityId: 0, currentOwnerEntityId: 100, superregionId: 4, continentId: 2);
+        WriteMapCellStateChanged(log, tick: 1, planeCode: PlaneCodes.Semantic, q: 4, r: -2, previousTerrainId: 0, currentTerrainId: 14, previousOwnerEntityId: 0, currentOwnerEntityId: 100, superregionId: 0, continentId: 0);
         Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
             Tick: 2,
             WorldVersion: 5,
@@ -144,6 +146,35 @@ public sealed class KernelTelemetryRecorderTests
             CurrentOwnerEntityId: 101,
             SuperregionId: 4,
             ContinentId: 2))));
+        WriteMapCellStateChanged(log, tick: 3, planeCode: PlaneCodes.Physical, q: 2, r: -1, previousTerrainId: 12, currentTerrainId: 13, previousOwnerEntityId: 100, currentOwnerEntityId: 101, superregionId: 4, continentId: 2);
+    }
+
+    private static void WriteMapCellStateChanged(
+        KernelEventLog log,
+        int tick,
+        int planeCode,
+        int q,
+        int r,
+        int previousTerrainId,
+        int currentTerrainId,
+        int previousOwnerEntityId,
+        int currentOwnerEntityId,
+        int superregionId,
+        int continentId)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
+            Tick: tick,
+            WorldVersion: tick == 1 ? 2 : 8,
+            PlaneCode: planeCode,
+            Q: q,
+            R: r,
+            SourceCodeId: 5,
+            PreviousTerrainId: previousTerrainId,
+            CurrentTerrainId: currentTerrainId,
+            PreviousOwnerEntityId: previousOwnerEntityId,
+            CurrentOwnerEntityId: currentOwnerEntityId,
+            SuperregionId: superregionId,
+            ContinentId: continentId))));
     }
 
     private static void WriteActionAndGeneratorEvents(KernelEventLog log)
@@ -230,23 +261,7 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(45f, road.CurrentQuality);
         Assert.Equal(15f, road.Delta);
 
-        var createdCell = Assert.Single(
-            batch.MapCellEvents,
-            row => row.EventTypeCode == (int)KernelEventType.CellCreated);
-        Assert.Equal(12, createdCell.CurrentTerrainId);
-        Assert.Equal(100, createdCell.CurrentOwnerEntityId);
-        Assert.Equal(4, createdCell.SuperregionId);
-        Assert.Equal(2, createdCell.ContinentId);
-
-        var changedCell = Assert.Single(
-            batch.MapCellEvents,
-            row => row.EventTypeCode == (int)KernelEventType.CellChanged);
-        Assert.Equal(12, changedCell.PreviousTerrainId);
-        Assert.Equal(13, changedCell.CurrentTerrainId);
-        Assert.Equal(100, changedCell.PreviousOwnerEntityId);
-        Assert.Equal(101, changedCell.CurrentOwnerEntityId);
-        Assert.Equal(4, changedCell.SuperregionId);
-        Assert.Equal(2, changedCell.ContinentId);
+        AssertMapCellRows(batch);
 
         var relationship = Assert.Single(batch.RelationshipEvents);
         Assert.Equal(7, relationship.ChangeCodeId);
@@ -260,6 +275,54 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(TraceStatusCodes.Actionable, trace.StatusCode);
         Assert.Equal(11, trace.ActionId);
         Assert.Equal(1.5f, trace.AdjustedWeight);
+
+        AssertMapPlacementRows(batch);
+    }
+
+    private static void AssertMapCellRows(TelemetryBatch batch)
+    {
+        var createdCell = Assert.Single(
+            batch.MapCellEvents,
+            row => row.EventTypeCode == (int)KernelEventType.MapCellStateChanged &&
+                   row.PlaneCode == PlaneCodes.Physical &&
+                   row.PreviousTerrainId == 0);
+        Assert.Equal(12, createdCell.CurrentTerrainId);
+        Assert.Equal(100, createdCell.CurrentOwnerEntityId);
+        Assert.Equal(4, createdCell.SuperregionId);
+        Assert.Equal(2, createdCell.ContinentId);
+
+        var semanticCreatedCell = Assert.Single(
+            batch.MapCellEvents,
+            row => row.EventTypeCode == (int)KernelEventType.MapCellStateChanged &&
+                   row.PlaneCode == PlaneCodes.Semantic);
+        Assert.Equal(14, semanticCreatedCell.CurrentTerrainId);
+        Assert.Equal(100, semanticCreatedCell.CurrentOwnerEntityId);
+
+        var changedCell = Assert.Single(
+            batch.MapCellEvents,
+            row => row.EventTypeCode == (int)KernelEventType.MapCellStateChanged &&
+                   row.PlaneCode == PlaneCodes.Physical &&
+                   row.PreviousTerrainId == 12);
+        Assert.Equal(12, changedCell.PreviousTerrainId);
+        Assert.Equal(13, changedCell.CurrentTerrainId);
+        Assert.Equal(100, changedCell.PreviousOwnerEntityId);
+        Assert.Equal(101, changedCell.CurrentOwnerEntityId);
+        Assert.Equal(4, changedCell.SuperregionId);
+        Assert.Equal(2, changedCell.ContinentId);
+    }
+
+    private static void AssertMapPlacementRows(TelemetryBatch batch)
+    {
+        Assert.Contains(batch.PlacementEvents, row =>
+            row.Selected &&
+            row.PlaneCode == PlaneCodes.Physical &&
+            row.Q == 2 &&
+            row.R == -1);
+        Assert.Contains(batch.PlacementEvents, row =>
+            row.Selected &&
+            row.PlaneCode == PlaneCodes.Semantic &&
+            row.Q == 4 &&
+            row.R == -2);
     }
 
     private static void AssertGeneratedAndTickRows(TelemetryBatch batch)
@@ -271,6 +334,19 @@ public sealed class KernelTelemetryRecorderTests
         var generated = Assert.Single(batch.GeneratedEntities);
         Assert.Equal(101, generated.EntityId);
         Assert.Equal(10, generated.GeneratorId);
+        Assert.Contains(batch.PlacementEvents, row =>
+            row.Selected &&
+            row.AnchorEntityId == 101 &&
+            row.PlaneCode == PlaneCodes.Physical &&
+            row.Q == 3 &&
+            row.R == -1);
+        Assert.Contains(batch.PlacementEvents, row =>
+            row.Selected &&
+            row.AnchorEntityId == 101 &&
+            row.PlaneCode == PlaneCodes.Semantic &&
+            row.Q == 1 &&
+            row.R == 0 &&
+            row.S == -1);
 
         var tick = Assert.Single(batch.TickSnapshots);
         Assert.Equal(2, tick.ActiveEntities);
@@ -280,11 +356,17 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(1, tick.CoveredCells);
         Assert.Equal(0, tick.UncoveredCells);
 
-        var map = Assert.Single(batch.MapSnapshots);
-        Assert.Equal(13, map.TerrainId);
-        Assert.Equal(1, map.CellCount);
-        Assert.Equal(1, map.CoveredCellCount);
-        Assert.Equal(1, map.ActiveEntityCount);
+        var physicalMap = Assert.Single(batch.MapSnapshots, row => row.PlaneCode == PlaneCodes.Physical);
+        Assert.Equal(13, physicalMap.TerrainId);
+        Assert.Equal(1, physicalMap.CellCount);
+        Assert.Equal(1, physicalMap.CoveredCellCount);
+        Assert.Equal(1, physicalMap.ActiveEntityCount);
+
+        var semanticMap = Assert.Single(batch.MapSnapshots, row => row.PlaneCode == PlaneCodes.Semantic);
+        Assert.Equal(14, semanticMap.TerrainId);
+        Assert.Equal(1, semanticMap.CellCount);
+        Assert.Equal(1, semanticMap.CoveredCellCount);
+        Assert.Equal(0, semanticMap.ActiveEntityCount);
     }
 
     [Fact]

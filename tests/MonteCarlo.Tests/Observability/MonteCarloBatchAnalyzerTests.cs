@@ -530,9 +530,9 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             TraceStatusCodes.Offered,
             AffordanceSourceKindCode: AffordanceSourceKindCodes.Generator,
             AffordanceSourceId: 5,
-            AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.TerrainPresence,
+            AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.InfluenceChange,
             AffordanceSourceKindMask: 3,
-            AffordanceShapeMask: 24,
+            AffordanceShapeMask: 5,
             AffordanceContributionCount: 2,
             GeneratorAffordanceCount: 1,
             GambitAffordanceCount: 1,
@@ -563,9 +563,9 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             TraceStatusCodes.Selected,
             AffordanceSourceKindCode: AffordanceSourceKindCodes.Generator,
             AffordanceSourceId: 5,
-            AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.TerrainPresence,
+            AffordanceShapeCode: LowAltitudeAffordanceShapeCodes.InfluenceChange,
             AffordanceSourceKindMask: 1,
-            AffordanceShapeMask: 16,
+            AffordanceShapeMask: 4,
             AffordanceContributionCount: 1,
             GeneratorAffordanceCount: 1,
             GambitAffordanceCount: 0,
@@ -636,10 +636,12 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static void AddMapTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
-        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.ShelfTerrainId, 20, 8, 2));
-        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, seed.OceanTerrainId, 40, 12, 0));
-        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.ShelfTerrainId, 20, 10, 1));
-        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, seed.OceanTerrainId, 40, 18, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, PlaneCodes.Physical, seed.ShelfTerrainId, 20, 8, 2));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 0, PlaneCodes.Physical, seed.OceanTerrainId, 40, 12, 0));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Physical, seed.ShelfTerrainId, 20, 10, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Physical, seed.OceanTerrainId, 40, 18, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Semantic, seed.ShelfTerrainId, 12, 4, 1));
+        batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Semantic, seed.OceanTerrainId, 8, 0, 0));
         batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
         batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
         batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 20, 0, PlaneCodes.Physical, 1, 0, 1, 0f, 30f, 30f));

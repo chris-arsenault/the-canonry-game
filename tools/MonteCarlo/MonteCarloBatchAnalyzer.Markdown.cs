@@ -142,6 +142,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             builder,
             rows.Take(10),
             ("run", row => row.RunId),
+            ("plane", row => row.Plane),
             ("activity_cells", row => row.ActivityCells.ToString(CultureInfo.InvariantCulture)),
             ("activity_share", row => FormatPercent(row.ActivityCellShare)),
             ("entropy", row => row.ActivityEntropy.ToString("F2", CultureInfo.InvariantCulture)),

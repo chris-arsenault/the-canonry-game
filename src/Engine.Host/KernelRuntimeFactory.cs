@@ -147,6 +147,7 @@ public sealed class KernelRuntimeFactory
             Programs = cachedDomain.Programs,
             Symbols = cachedDomain.Symbols,
             ChronicleQueries = cachedDomain.ChronicleQueries,
+            Diagnostics = cachedDomain.Diagnostics,
         };
 
     private static RealtimeDriverConfig DriverConfigFor(KernelFunctionProfile profile) => profile switch

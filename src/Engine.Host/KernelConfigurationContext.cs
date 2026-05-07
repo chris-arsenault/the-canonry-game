@@ -247,15 +247,6 @@ internal sealed class KernelConfigurationContext
         float influenceValue) =>
         _kernel.LowAltitudeVerbs.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
-    public void ConfigureGameplaySemanticBounds(int minQ, int maxQ, int minR, int maxR)
-    {
-        _kernel.LowAltitudeVerbs.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
-        _kernel.Generators.ConfigureSemanticBounds(minQ, maxQ, minR, maxR);
-    }
-
-    public void ConfigureLowAltitudeSemanticBounds(int minQ, int maxQ, int minR, int maxR) =>
-        ConfigureGameplaySemanticBounds(minQ, maxQ, minR, maxR);
-
     public int RegisterLowAltitudeAffordance(
         int sourceKindCode,
         int sourceId,
@@ -266,7 +257,6 @@ internal sealed class KernelConfigurationContext
         int relationshipKindId,
         int relationshipDirectionCode,
         int operationCode,
-        int terrainId,
         int polarityCode,
         float threshold,
         float weight) =>
@@ -280,7 +270,6 @@ internal sealed class KernelConfigurationContext
             relationshipKindId,
             relationshipDirectionCode,
             operationCode,
-            terrainId,
             polarityCode,
             threshold,
             weight);

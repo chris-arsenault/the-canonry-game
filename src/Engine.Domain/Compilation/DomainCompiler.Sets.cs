@@ -11,11 +11,14 @@ public static partial class DomainCompiler
     private static KernelProgramSet BuildPrograms(
         DomainConfig config,
         DomainIdRegistry ids,
-        DefinitionGraph graph)
+        DefinitionGraph graph,
+        List<DomainCompileDiagnostic> diagnostics)
     {
+        var gameplayContext = new DomainGameplayCompilationContext(config, ids, diagnostics);
         var gameplayPrograms = GameplayCompiler
-            .CompileGameplay(config.Gameplay ?? new GameplayDefinition(), new DomainGameplayCompilationContext(config, ids))
+            .CompileGameplay(config.Gameplay ?? new GameplayDefinition(), gameplayContext)
             .Programs;
+
         return new KernelProgramSet
         {
             LowAltitudeVerbs = gameplayPrograms.LowAltitudeVerbs,

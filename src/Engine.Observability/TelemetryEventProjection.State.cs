@@ -28,6 +28,16 @@ internal sealed partial class TelemetryEventProjection
         public int Remaining { get; set; } = remaining;
     }
 
+    private sealed record PendingCreatedEntity(
+        int EntityId,
+        int KindId,
+        int SubtypeId,
+        int CultureId,
+        int PhysicalQ,
+        int PhysicalR,
+        int SemanticQ,
+        int SemanticR,
+        int SemanticS);
 }
 
 internal readonly record struct ObservedRelationshipKey(
@@ -35,7 +45,7 @@ internal readonly record struct ObservedRelationshipKey(
     int TargetEntityId,
     int RelationshipKindId);
 
-internal readonly record struct ObservedMapCellKey(int Q, int R);
+internal readonly record struct ObservedMapCellKey(int PlaneCode, int Q, int R);
 
 internal sealed class GeneratorStateProjection(int generatorId)
 {

@@ -6,7 +6,6 @@ public static class GameplayValidator
     {
         ArgumentNullException.ThrowIfNull(definition);
         var errors = new List<GameplayValidationError>();
-        ValidateSemanticPlane(definition.SemanticPlane, errors);
         ValidateLowAltitudeVerbDefinitions(definition.LowAltitudeVerbs, errors);
         return new GameplayValidationResult(errors);
     }
@@ -23,18 +22,6 @@ public static class GameplayValidator
         }
 
         return errors;
-    }
-
-    private static void ValidateSemanticPlane(
-        SemanticPlaneConfig semanticPlane,
-        List<GameplayValidationError> errors)
-    {
-        if (semanticPlane.MinQ > semanticPlane.MaxQ || semanticPlane.MinR > semanticPlane.MaxR)
-        {
-            errors.Add(new GameplayValidationError(
-                "InvalidSemanticPlaneBounds",
-                "Semantic plane bounds must have minimum coordinates less than or equal to maximum coordinates."));
-        }
     }
 
     private static void ValidateLowAltitudeVerbDefinitions(

@@ -56,7 +56,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _affordanceRelationshipKindIds = [];
     private int[] _affordanceRelationshipDirectionCodes = [];
     private int[] _affordanceOperationCodes = [];
-    private int[] _affordanceTerrainIds = [];
     private int[] _affordancePolarityCodes = [];
     private float[] _affordanceThresholds = [];
     private float[] _affordanceWeights = [];
@@ -72,11 +71,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int _initialInfluenceRuleCount;
     private int _affordanceCount;
     private int _traitWeightModifierCount;
-    private int _semanticMinQ = -24;
-    private int _semanticMaxQ = 24;
-    private int _semanticMinR = -24;
-    private int _semanticMaxR = 24;
-
     public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ruleCapacity);
@@ -176,7 +170,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _affordanceRelationshipKindIds = new int[itemLength];
         _affordanceRelationshipDirectionCodes = new int[itemLength];
         _affordanceOperationCodes = new int[itemLength];
-        _affordanceTerrainIds = new int[itemLength];
         _affordancePolarityCodes = new int[itemLength];
         _affordanceThresholds = new float[itemLength];
         _affordanceWeights = new float[itemLength];
@@ -203,27 +196,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     public int AffordanceCount => _affordanceCount;
 
     public int TraitWeightModifierCount => _traitWeightModifierCount;
-
-    public int SemanticMinQ => _semanticMinQ;
-
-    public int SemanticMaxQ => _semanticMaxQ;
-
-    public int SemanticMinR => _semanticMinR;
-
-    public int SemanticMaxR => _semanticMaxR;
-
-    public void ConfigureSemanticBounds(int minQ, int maxQ, int minR, int maxR)
-    {
-        if (minQ > maxQ || minR > maxR)
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(minQ));
-        }
-
-        _semanticMinQ = minQ;
-        _semanticMaxQ = maxQ;
-        _semanticMinR = minR;
-        _semanticMaxR = maxR;
-    }
 
     public int RegisterVerb(
         in LowAltitudeVerbRegistration registration)
@@ -337,7 +309,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         int relationshipKindId,
         int relationshipDirectionCode,
         int operationCode,
-        int terrainId,
         int polarityCode,
         float threshold,
         float weight)
@@ -351,7 +322,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipDirectionCode);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(operationCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(terrainId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(polarityCode);
         if (_affordanceCount + 1 >= _affordanceActorKindIds.Length)
         {
@@ -370,7 +340,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             ? LowAltitudeVerbRelationshipDirectionCodes.Either
             : relationshipDirectionCode;
         _affordanceOperationCodes[_affordanceCount] = operationCode;
-        _affordanceTerrainIds[_affordanceCount] = terrainId;
         _affordancePolarityCodes[_affordanceCount] = polarityCode;
         _affordanceThresholds[_affordanceCount] = global::System.Math.Max(0f, threshold);
         _affordanceWeights[_affordanceCount] = global::System.Math.Max(0f, weight);
@@ -500,8 +469,6 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     public int AffordanceRelationshipDirectionCode(int rule) => _affordanceRelationshipDirectionCodes[rule];
 
     public int AffordanceOperationCode(int rule) => _affordanceOperationCodes[rule];
-
-    public int AffordanceTerrainId(int rule) => _affordanceTerrainIds[rule];
 
     public int AffordancePolarityCode(int rule) => _affordancePolarityCodes[rule];
 

@@ -220,11 +220,15 @@ internal sealed partial class MonteCarloBatchAnalyzer
             "map_snapshots",
             $"""
             SELECT runs.run_id, ms.tick,
+                   COALESCE(plane_symbol.stable_name, CAST(ms.plane_code AS VARCHAR)) AS plane,
                    COALESCE(terrain_symbol.stable_name, CAST(ms.terrain_id AS VARCHAR)) AS terrain,
                    ms.cell_count, ms.covered_cell_count, ms.active_entity_count
             FROM raw_map_snapshots ms
             JOIN raw_runs rr ON rr.run_id = ms.run_id
             JOIN runs ON runs.seed = rr.seed
+            LEFT JOIN symbol_lookup plane_symbol
+              ON plane_symbol.symbol_kind = {TelemetrySymbolKinds.Plane}
+             AND plane_symbol.id = ms.plane_code
             LEFT JOIN symbol_lookup terrain_symbol
               ON terrain_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Terrain}
              AND terrain_symbol.id = ms.terrain_id
@@ -235,6 +239,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT runs.run_id, mce.tick,
                    COALESCE(event_symbol.stable_name, CAST(mce.event_type_code AS VARCHAR)) AS event_type,
                    COALESCE(source_symbol.stable_name, CAST(mce.source_code_id AS VARCHAR)) AS source_code,
+                   COALESCE(plane_symbol.stable_name, CAST(mce.plane_code AS VARCHAR)) AS plane,
                    mce.q, mce.r,
                    COALESCE(previous_terrain_symbol.stable_name, CAST(mce.previous_terrain_id AS VARCHAR)) AS previous_terrain,
                    COALESCE(current_terrain_symbol.stable_name, CAST(mce.current_terrain_id AS VARCHAR)) AS current_terrain,
@@ -251,6 +256,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
             LEFT JOIN symbol_lookup source_symbol
               ON source_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.SourceCode}
              AND source_symbol.id = mce.source_code_id
+            LEFT JOIN symbol_lookup plane_symbol
+              ON plane_symbol.symbol_kind = {TelemetrySymbolKinds.Plane}
+             AND plane_symbol.id = mce.plane_code
             LEFT JOIN symbol_lookup previous_terrain_symbol
               ON previous_terrain_symbol.symbol_kind = {(int)Engine.Projection.ProjectionSymbolKind.Terrain}
              AND previous_terrain_symbol.id = mce.previous_terrain_id

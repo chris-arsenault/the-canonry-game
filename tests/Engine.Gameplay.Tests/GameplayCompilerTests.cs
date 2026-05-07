@@ -58,20 +58,17 @@ public sealed class GameplayCompilerTests
     }
 
     [Fact]
-    public void Validate_RejectsInvalidSemanticPlaneBounds()
+    public void SemanticPlaneConfig_DoesNotOwnSpatialBounds()
     {
-        var result = GameplayValidator.Validate(new GameplayDefinition
-        {
-            SemanticPlane = new SemanticPlaneConfig
-            {
-                MinQ = 4,
-                MaxQ = -4,
-                MinR = -4,
-                MaxR = 4,
-            },
-        });
+        var propertyNames = typeof(SemanticPlaneConfig)
+            .GetProperties()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Contains(result.Errors, error => error.Code == "InvalidSemanticPlaneBounds");
+        Assert.DoesNotContain("MinQ", propertyNames);
+        Assert.DoesNotContain("MaxQ", propertyNames);
+        Assert.DoesNotContain("MinR", propertyNames);
+        Assert.DoesNotContain("MaxR", propertyNames);
     }
 
     [Fact]
@@ -175,23 +172,16 @@ public sealed class GameplayCompilerTests
     }
 
     [Fact]
-    public void CompileGameplay_PropagatesSemanticPlaneBounds()
+    public void CompileGameplay_DoesNotCompileSemanticBoundsIntoLowAltitudeRuntimeProgram()
     {
-        var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
-        {
-            SemanticPlane = new SemanticPlaneConfig
-            {
-                MinQ = -7,
-                MaxQ = 9,
-                MinR = -5,
-                MaxR = 11,
-            },
-        }, new TestGameplayContext());
+        var result = GameplayCompiler.CompileGameplay(new GameplayDefinition(), new TestGameplayContext());
+        var propertyNames = result.Programs.LowAltitudeVerbs
+            .GetType()
+            .GetProperties()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(-7, result.Programs.LowAltitudeVerbs.SemanticBounds.MinQ);
-        Assert.Equal(9, result.Programs.LowAltitudeVerbs.SemanticBounds.MaxQ);
-        Assert.Equal(-5, result.Programs.LowAltitudeVerbs.SemanticBounds.MinR);
-        Assert.Equal(11, result.Programs.LowAltitudeVerbs.SemanticBounds.MaxR);
+        Assert.DoesNotContain("SemanticBounds", propertyNames);
     }
 
     [Fact]

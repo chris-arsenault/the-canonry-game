@@ -80,7 +80,6 @@ public static class GameplayCompiler
 
         return new LowAltitudeVerbProgram
         {
-            SemanticBounds = CompileSemanticBounds(definition.SemanticPlane),
             Verbs = rules,
             InitialInfluence = CompileInitialInfluenceRules(definition, context),
             Affordances = CompileAffordances(context),
@@ -102,9 +101,6 @@ public static class GameplayCompiler
             targeting.MinimumRelationshipStrength,
             targeting.AllowUnrelatedInfluenceAtOrAbove);
     }
-
-    private static CompiledSemanticPlaneBounds CompileSemanticBounds(SemanticPlaneConfig semanticPlane) =>
-        new(semanticPlane.MinQ, semanticPlane.MaxQ, semanticPlane.MinR, semanticPlane.MaxR);
 
     private static List<CompiledInitialInfluenceRule> CompileInitialInfluenceRules(
         GameplayDefinition definition,
@@ -140,7 +136,6 @@ public static class GameplayCompiler
                 affordance.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(affordance.RelationshipKind),
                 affordance.RelationshipDirectionCode,
                 affordance.OperationCode,
-                affordance.Terrain is null ? 0 : context.ResolveTerrainId(affordance.Terrain),
                 affordance.PolarityCode,
                 affordance.Threshold,
                 affordance.Weight));
@@ -499,7 +494,6 @@ public sealed record AffordanceDefinition(
     string? RelationshipKind = null,
     int RelationshipDirectionCode = RelationshipMatchDirectionCodes.Either,
     int OperationCode = 0,
-    string? Terrain = null,
     int PolarityCode = AffordancePolarityCodes.None,
     float Threshold = 0f,
     float Weight = 1f);

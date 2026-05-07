@@ -55,7 +55,7 @@ public sealed class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
-    public void LowAltitudeVerbProgram_SemanticMovementDoesNotLeaveVisualMapRadius()
+    public void LowAltitudeVerbProgram_SemanticMovementUsesWorldMapRadius()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 29 });
         const int actorKindId = 1;
@@ -63,10 +63,9 @@ public sealed class LowAltitudePhysicsProgramTests
         const int terrainId = 1;
         const int verbId = 89;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        simulation.LowAltitudeVerbs.ConfigureSemanticBounds(-4, 4, -4, 4);
-        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 1, 1, -2, tick: 0);
+        simulation.World.SetMapRadius(30);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 24, 0, -24, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 25, 0, -25, tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
             verbId,
@@ -89,10 +88,12 @@ public sealed class LowAltitudePhysicsProgramTests
             requiredInfluence: 0f);
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
 
-        simulation.AdvanceTicks(8);
+        simulation.AdvanceTicks(1);
 
         var q = simulation.World.EntitySemanticQ(actorId);
         var r = simulation.World.EntitySemanticR(actorId);
+        Assert.Equal(25, q);
+        Assert.Equal(0, r);
         Assert.True(HexDistance(0, 0, q, r) <= simulation.World.MapRadius);
         Assert.Equal(-q - r, simulation.World.EntitySemanticS(actorId));
     }
@@ -825,7 +826,6 @@ public sealed class LowAltitudePhysicsProgramTests
             relationshipKindId: 0,
             relationshipDirectionCode: 0,
             operationCode: ProgramOpcodeCodes.SubtractOtherCellScalar,
-            terrainId: 0,
             polarityCode: AffordancePolarityCodes.Reduce,
             threshold: 0f,
             weight: 3f);
