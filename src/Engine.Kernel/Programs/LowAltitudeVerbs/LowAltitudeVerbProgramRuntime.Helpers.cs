@@ -140,26 +140,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return value > 1f ? 1f : value;
     }
 
-    private static int DirectionQ(int direction) => direction switch
-    {
-        0 => 1,
-        1 => 1,
-        2 => 0,
-        3 => -1,
-        4 => -1,
-        _ => 0,
-    };
-
-    private static int DirectionR(int direction) => direction switch
-    {
-        0 => 0,
-        1 => -1,
-        2 => -1,
-        3 => 0,
-        4 => 1,
-        _ => 1,
-    };
-
     private readonly record struct VerbTargetCandidate(
         int RuleSlot,
         int PlaneCode,

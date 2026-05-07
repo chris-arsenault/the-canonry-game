@@ -961,7 +961,7 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void KernelPrograms_ModifyEntityCoordinatesOnlyThroughMovementProgram()
+    public void KernelPrograms_ModifyEntityCoordinatesOnlyThroughUnifiedMovementApi()
     {
         var root = FindRepoRoot();
         var programDirectory = Path.Combine(root.FullName, "src", "Engine.Kernel", "Programs");
@@ -976,6 +976,8 @@ public sealed class GameplayBoundaryArchitectureTests
             "World.MoveEntitySemantic(",
             "world.MoveEntityPhysical(",
             "world.MoveEntitySemantic(",
+            "simulation.Movement.TryMovePhysical(",
+            "simulation.Movement.TryMoveSemantic(",
         };
         var violations = new List<string>();
         foreach (var file in Directory.GetFiles(programDirectory, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
@@ -992,8 +994,8 @@ public sealed class GameplayBoundaryArchitectureTests
         var effectExecutor = ReadSource(root, "src/Engine.Kernel/KernelEffectExecutor.cs");
         var requiredExecutorFragments = new[]
         {
-            "simulation.Movement.TryMovePhysical(",
-            "simulation.Movement.TryMoveSemantic(",
+            "simulation.Movement.Navigate(",
+            "simulation.Movement.Place(",
         };
         violations.AddRange(MissingFragments(effectExecutor, requiredExecutorFragments)
             .Select(fragment => $"KernelEffectExecutor missing movement delegation: {fragment}"));

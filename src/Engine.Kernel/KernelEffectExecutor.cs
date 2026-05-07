@@ -33,8 +33,16 @@ internal static class KernelEffectExecutor
         int entityId,
         int q,
         int r,
-        int causeCode = MovementCauseCodes.Placement) =>
-        simulation.Movement.TryMovePhysical(simulation, entityId, q, r, simulation.CurrentTick, causeCode);
+        int causeCode = MovementCauseCodes.Placement)
+    {
+        if (causeCode == MovementCauseCodes.Travel)
+        {
+            simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Physical, q, r, simulation.CurrentTick);
+            return;
+        }
+
+        simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, simulation.CurrentTick, causeCode);
+    }
 
     public static void MoveSemantic(
         Simulation simulation,
@@ -42,8 +50,17 @@ internal static class KernelEffectExecutor
         int q,
         int r,
         int s,
-        int causeCode = MovementCauseCodes.Placement) =>
-        simulation.Movement.TryMoveSemantic(simulation, entityId, q, r, s, simulation.CurrentTick, causeCode);
+        int causeCode = MovementCauseCodes.Placement)
+    {
+        _ = s;
+        if (causeCode == MovementCauseCodes.Travel)
+        {
+            simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.CurrentTick);
+            return;
+        }
+
+        simulation.Movement.Place(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.CurrentTick, causeCode);
+    }
 
     public static void SetCellState(Simulation simulation, int q, int r, int terrainId, int ownerEntityId) =>
         simulation.SetCellState(q, r, terrainId, ownerEntityId, simulation.CurrentTick);

@@ -77,7 +77,8 @@ internal sealed partial class Simulation : IKernel
     private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
         new(
             new MovementProgramData(),
-            new MovementProgramState(options.MovementCellCapacity));
+            new MovementProgramState(options.MovementCellCapacity),
+            new MovementProgramScratch(options.MapCellCapacity));
 
     private static MapActivityProgramRuntime CreateMapActivityRuntime(SimulationOptions options) =>
         new(
@@ -107,9 +108,7 @@ internal sealed partial class Simulation : IKernel
                 options.GambitCapacity,
                 options.GambitCooldownCapacity,
                 options.EntityCapacity),
-            new GambitProgramScratch(
-                options.MapCellCapacity,
-                options.EntityCapacity),
+            new GambitProgramScratch(options.EntityCapacity),
             options.KernelTuning.Programs);
 
     private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options)
@@ -551,12 +550,17 @@ internal sealed partial class Simulation : IKernel
 
     internal void MoveEntityPhysical(int entityId, int q, int r, int tick)
     {
-        _ = Movement.TryMovePhysical(this, entityId, q, r, tick, MovementCauseCodes.Forced);
+        _ = Movement.Place(this, entityId, PlaneCodes.Physical, q, r, tick, MovementCauseCodes.Forced);
     }
 
     internal MovementMoveResult MoveEntityPhysical(int entityId, int q, int r, int tick, int causeCode)
     {
-        return Movement.TryMovePhysical(this, entityId, q, r, tick, causeCode);
+        if (causeCode == MovementCauseCodes.Travel)
+        {
+            return Movement.Navigate(this, entityId, PlaneCodes.Physical, q, r, tick);
+        }
+
+        return Movement.Place(this, entityId, PlaneCodes.Physical, q, r, tick, causeCode);
     }
 
     internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int tick)
@@ -566,12 +570,19 @@ internal sealed partial class Simulation : IKernel
 
     internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
     {
-        _ = Movement.TryMoveSemantic(this, entityId, q, r, s, tick, MovementCauseCodes.Forced);
+        _ = Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, MovementCauseCodes.Forced);
+        _ = s;
     }
 
-    internal MovementSemanticMoveResult MoveEntitySemantic(int entityId, int q, int r, int s, int tick, int causeCode)
+    internal MovementMoveResult MoveEntitySemantic(int entityId, int q, int r, int s, int tick, int causeCode)
     {
-        return Movement.TryMoveSemantic(this, entityId, q, r, s, tick, causeCode);
+        _ = s;
+        if (causeCode == MovementCauseCodes.Travel)
+        {
+            return Movement.Navigate(this, entityId, PlaneCodes.Semantic, q, r, tick);
+        }
+
+        return Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, causeCode);
     }
 
     internal void MoveEntitySemanticUnchecked(int entityId, int q, int r, int s, int tick)

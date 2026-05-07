@@ -51,12 +51,6 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private float[] _mutationExpressionX => Data.MutationExpressionX;
     private PrimitiveIntTable _cooldowns => State.Cooldowns;
     private PrimitiveIntTable _entityCooldowns => State.EntityCooldowns;
-    private int[] _pathOpenSet => _scratch.PathOpenSet;
-    private ref EpochStampSet _pathOpen => ref _scratch.PathOpen;
-    private ref EpochStampSet _pathClosed => ref _scratch.PathClosed;
-    private ref EpochStampedArray<int> _pathCameFrom => ref _scratch.PathCameFrom;
-    private ref EpochStampedArray<float> _pathGScore => ref _scratch.PathGScore;
-    private ref EpochStampedArray<float> _pathFScore => ref _scratch.PathFScore;
     private int[] _actionHistoryTicks => State.ActionHistoryTicks;
     private int[] _actionHistoryGambitIds => State.ActionHistoryGambitIds;
     private int[] _actionHistoryCounts => State.ActionHistoryCounts;

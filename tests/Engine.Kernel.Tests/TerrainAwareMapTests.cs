@@ -108,14 +108,13 @@ public sealed class TerrainAwareMapTests
         simulation.World.SetMapRadius(2);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
 
-        var result = simulation.Movement.TryMoveSemantic(
+        var result = simulation.Movement.Navigate(
             simulation,
             entityId,
-            q: 1,
-            r: -1,
-            s: 0,
-            tick: 0,
-            MovementCauseCodes.Travel);
+            PlaneCodes.Semantic,
+            targetQ: 1,
+            targetR: -1,
+            tick: 0);
         simulation.AdvanceTicks(1);
 
         Assert.True(result.Moved);

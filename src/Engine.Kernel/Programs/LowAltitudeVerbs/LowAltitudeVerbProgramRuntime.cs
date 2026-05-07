@@ -3,7 +3,6 @@ namespace Engine.Kernel;
 internal sealed partial class LowAltitudeVerbProgramRuntime :
     IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
 {
-    private const int DirectionCount = 6;
     private const int VerbBucketCapacity = 64;
 
     private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
@@ -655,7 +654,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return;
         }
 
-        simulation.Movement.TryMovePhysical(simulation, entityId, q, r, tick, MovementCauseCodes.Relocation);
+        simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, tick, MovementCauseCodes.Relocation);
     }
 
     private bool CellCanBeClaimedFromEntity(WorldState world, int planeCode, int entityId, int q, int r)

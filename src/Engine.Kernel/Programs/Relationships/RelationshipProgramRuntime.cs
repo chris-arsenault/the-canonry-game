@@ -102,7 +102,7 @@ internal sealed class RelationshipProgramRuntime :
             return;
         }
 
-        simulation.Movement.TryMovePhysical(simulation, targetId, sourceQ, sourceR, tick, MovementCauseCodes.Follow);
+        simulation.Movement.Place(simulation, targetId, PlaneCodes.Physical, sourceQ, sourceR, tick, MovementCauseCodes.Follow);
     }
 
     private void UpdateContactMemory(WorldState world, int relationshipId, int relationshipKindId, int tick)

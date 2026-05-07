@@ -8,6 +8,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public MovementProgramState(int cellCapacity)
     {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellCapacity);
         _roadQuality = new PrimitiveFloatTable(cellCapacity);
         _roadTravelCounts = new PrimitiveIntTable(cellCapacity);
         _lastRoadTicks = new PrimitiveIntTable(cellCapacity);
