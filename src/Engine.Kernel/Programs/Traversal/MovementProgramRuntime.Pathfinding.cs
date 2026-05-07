@@ -17,22 +17,338 @@ internal sealed partial class MovementProgramRuntime
         nextQ = startQ;
         nextR = startR;
         var world = simulation.World;
-        if (!world.CellIsKnown(planeCode, startQ, startR) ||
+        if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
+            !world.CellIsKnown(planeCode, startQ, startR) ||
             !world.CellIsKnown(planeCode, targetQ, targetR))
         {
             return false;
         }
 
-        var radius = world.MapRadius;
-        var width = (radius * 2) + 1;
-        if (width <= 0 || (long)width * width > Scratch.PathCapacity)
+        var movementProfileId = Data.MovementProfileFor(world, entityId, planeCode);
+        return TryPlanHierarchicalNextStep(
+            simulation,
+            world,
+            planeCode,
+            startQ,
+            startR,
+            targetQ,
+            targetR,
+            movementProfileId,
+            tick,
+            out nextQ,
+            out nextR);
+    }
+
+    private bool TryPlanHierarchicalNextStep(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int movementProfileId,
+        int tick,
+        out int nextQ,
+        out int nextR)
+    {
+        nextQ = startQ;
+        nextR = startR;
+        if (!TryBuildSegmentRouteContext(
+                world,
+                LocalPathSegmentSize,
+                startQ,
+                startR,
+                targetQ,
+                targetR,
+                out var localContext) ||
+            !TryBuildSegmentRouteContext(
+                world,
+                RegionalPathSegmentSize,
+                startQ,
+                startR,
+                targetQ,
+                targetR,
+                out var regionalContext))
         {
             return false;
         }
 
-        var startIndex = PathIndex(radius, width, startQ, startR);
-        var targetIndex = PathIndex(radius, width, targetQ, targetR);
-        if (startIndex < 0 || targetIndex < 0)
+        if (localContext.StartSegment == localContext.TargetSegment)
+        {
+            return TrySearchPathWithinSegments(
+                simulation, world, planeCode, startQ, startR, targetQ, targetR, movementProfileId, tick,
+                localContext.Radius, localContext.SegmentSize, localContext.GridWidth,
+                localContext.StartSegment, secondSegment: -1, out nextQ, out nextR);
+        }
+
+        if (regionalContext.StartSegment == regionalContext.TargetSegment)
+        {
+            return TrySearchNextLocalStep(
+                simulation, world, planeCode, startQ, startR, targetQ, targetR, movementProfileId, tick,
+                localContext, localContext.TargetSegment, targetQ, targetR, out nextQ, out nextR);
+        }
+
+        return TrySearchNextRegionalStep(
+            simulation, world, planeCode, startQ, startR, targetQ, targetR, movementProfileId, tick,
+            localContext, regionalContext, out nextQ, out nextR);
+    }
+
+    private bool TryBuildSegmentRouteContext(
+        WorldState world,
+        int segmentSize,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        out SegmentRouteContext context)
+    {
+        var radius = world.MapRadius;
+        var segmentGridWidth = SegmentGridWidth(radius, segmentSize);
+        context = new SegmentRouteContext(radius, segmentSize, segmentGridWidth, -1, -1);
+        if (segmentGridWidth <= 0 ||
+            (long)segmentGridWidth * segmentGridWidth > Scratch.SegmentCapacity)
+        {
+            return false;
+        }
+
+        var startSegment = SegmentIndex(radius, segmentSize, segmentGridWidth, startQ, startR);
+        var targetSegment = SegmentIndex(radius, segmentSize, segmentGridWidth, targetQ, targetR);
+        context = new SegmentRouteContext(radius, segmentSize, segmentGridWidth, startSegment, targetSegment);
+        return startSegment >= 0 && targetSegment >= 0;
+    }
+
+    private bool TrySearchNextRegionalStep(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int movementProfileId,
+        int tick,
+        SegmentRouteContext localContext,
+        SegmentRouteContext regionalContext,
+        out int nextQ,
+        out int nextR)
+    {
+        nextQ = startQ;
+        nextR = startR;
+        if (!TryFindNextRouteSegment(
+                simulation,
+                world,
+                planeCode,
+                startQ,
+                startR,
+                targetQ,
+                targetR,
+                movementProfileId,
+                regionalContext,
+                regionalContext.StartSegment,
+                regionalContext.TargetSegment,
+                out var _,
+                out var regionalPortalQ,
+                out var regionalPortalR))
+        {
+            return false;
+        }
+
+        var portalLocalSegment = SegmentIndex(
+            localContext.Radius,
+            localContext.SegmentSize,
+            localContext.GridWidth,
+            regionalPortalQ,
+            regionalPortalR);
+        if (portalLocalSegment < 0)
+        {
+            return false;
+        }
+
+        return TrySearchNextLocalStep(
+            simulation,
+            world,
+            planeCode,
+            startQ,
+            startR,
+            regionalPortalQ,
+            regionalPortalR,
+            movementProfileId,
+            tick,
+            localContext,
+            portalLocalSegment,
+            regionalPortalQ,
+            regionalPortalR,
+            out nextQ,
+            out nextR);
+    }
+
+    private bool TrySearchNextLocalStep(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int movementProfileId,
+        int tick,
+        SegmentRouteContext localContext,
+        int targetLocalSegment,
+        int localTargetQ,
+        int localTargetR,
+        out int nextQ,
+        out int nextR)
+    {
+        nextQ = startQ;
+        nextR = startR;
+        if (localContext.StartSegment == targetLocalSegment)
+        {
+            return TrySearchSingleLocalSegment(
+                simulation, world, planeCode, startQ, startR, localTargetQ, localTargetR, movementProfileId, tick,
+                localContext, out nextQ, out nextR);
+        }
+
+        return TrySearchRoutedLocalStep(
+            simulation, world, planeCode, startQ, startR, targetQ, targetR, movementProfileId, tick,
+            localContext, targetLocalSegment, localTargetQ, localTargetR, out nextQ, out nextR);
+    }
+
+    private bool TrySearchSingleLocalSegment(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int movementProfileId,
+        int tick,
+        SegmentRouteContext localContext,
+        out int nextQ,
+        out int nextR) =>
+        TrySearchPathWithinSegments(
+            simulation,
+            world,
+            planeCode,
+            startQ,
+            startR,
+            targetQ,
+            targetR,
+            movementProfileId,
+            tick,
+            localContext.Radius,
+            localContext.SegmentSize,
+            localContext.GridWidth,
+            localContext.StartSegment,
+            secondSegment: -1,
+            out nextQ,
+            out nextR);
+
+    private bool TrySearchRoutedLocalStep(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int movementProfileId,
+        int tick,
+        SegmentRouteContext localContext,
+        int targetLocalSegment,
+        int localTargetQ,
+        int localTargetR,
+        out int nextQ,
+        out int nextR)
+    {
+        if (!TryFindNextRouteSegment(
+                simulation,
+                world,
+                planeCode,
+                startQ,
+                startR,
+                targetQ,
+                targetR,
+                movementProfileId,
+                localContext,
+                localContext.StartSegment,
+                targetLocalSegment,
+                out var nextSegment,
+                out var portalQ,
+                out var portalR))
+        {
+            nextQ = startQ;
+            nextR = startR;
+            return false;
+        }
+
+        if (nextSegment == targetLocalSegment)
+        {
+            portalQ = localTargetQ;
+            portalR = localTargetR;
+        }
+
+        return TrySearchPathWithinSegments(
+            simulation,
+            world,
+            planeCode,
+            startQ,
+            startR,
+            portalQ,
+            portalR,
+            movementProfileId,
+            tick,
+            localContext.Radius,
+            localContext.SegmentSize,
+            localContext.GridWidth,
+            localContext.StartSegment,
+            nextSegment,
+            out nextQ,
+            out nextR);
+    }
+
+    private bool TrySearchPathWithinSegments(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int movementProfileId,
+        int tick,
+        int radius,
+        int segmentSize,
+        int segmentGridWidth,
+        int firstSegment,
+        int secondSegment,
+        out int nextQ,
+        out int nextR)
+    {
+        nextQ = startQ;
+        nextR = startR;
+        if (!TrySegmentBounds(radius, segmentSize, segmentGridWidth, firstSegment, out var minQ, out var minR, out var maxQ, out var maxR))
+        {
+            return false;
+        }
+
+        if (secondSegment >= 0)
+        {
+            if (!TrySegmentBounds(radius, segmentSize, segmentGridWidth, secondSegment, out var secondMinQ, out var secondMinR, out var secondMaxQ, out var secondMaxR))
+            {
+                return false;
+            }
+
+            minQ = global::System.Math.Min(minQ, secondMinQ);
+            minR = global::System.Math.Min(minR, secondMinR);
+            maxQ = global::System.Math.Max(maxQ, secondMaxQ);
+            maxR = global::System.Math.Max(maxR, secondMaxR);
+        }
+
+        var widthQ = (maxQ - minQ) + 1;
+        var widthR = (maxR - minR) + 1;
+        if (widthQ <= 0 || widthR <= 0 || (long)widthQ * widthR > Scratch.PathCapacity)
         {
             return false;
         }
@@ -40,17 +356,22 @@ internal sealed partial class MovementProgramRuntime
         return SearchPath(
             simulation,
             world,
-            startIndex,
-            targetIndex,
-            radius,
-            width,
+            planeCode,
             startQ,
             startR,
             targetQ,
             targetR,
-            world.EntityKindId(entityId),
-            planeCode,
+            movementProfileId,
             tick,
+            minQ,
+            minR,
+            widthQ,
+            widthR,
+            radius,
+            segmentSize,
+            segmentGridWidth,
+            firstSegment,
+            secondSegment,
             out nextQ,
             out nextR);
     }
@@ -58,32 +379,69 @@ internal sealed partial class MovementProgramRuntime
     private bool SearchPath(
         Simulation simulation,
         WorldState world,
-        int startIndex,
-        int targetIndex,
-        int radius,
-        int width,
+        int planeCode,
         int startQ,
         int startR,
         int targetQ,
         int targetR,
-        int actorKindId,
-        int planeCode,
+        int movementProfileId,
         int tick,
+        int pathMinQ,
+        int pathMinR,
+        int pathWidthQ,
+        int pathWidthR,
+        int radius,
+        int segmentSize,
+        int segmentGridWidth,
+        int firstAllowedSegment,
+        int secondAllowedSegment,
         out int nextQ,
         out int nextR)
     {
         nextQ = startQ;
         nextR = startR;
+        var startIndex = PathIndex(pathMinQ, pathMinR, pathWidthQ, pathWidthR, startQ, startR);
+        var targetIndex = PathIndex(pathMinQ, pathMinR, pathWidthQ, pathWidthR, targetQ, targetR);
+        if (startIndex < 0 || targetIndex < 0)
+        {
+            return false;
+        }
+
         var openCount = InitializePathSearch(startIndex, startQ, startR, targetQ, targetR);
         while (openCount > 0)
         {
             var currentIndex = TakeLowestPathOpenNode(ref openCount);
             if (currentIndex == targetIndex)
             {
-                return TryResolveNextPathStep(startIndex, targetIndex, radius, width, out nextQ, out nextR);
+                return TryResolveNextPathStep(
+                    startIndex,
+                    targetIndex,
+                    pathMinQ,
+                    pathMinR,
+                    pathWidthR,
+                    out nextQ,
+                    out nextR);
             }
 
-            if (!VisitPathNeighbors(simulation, world, currentIndex, radius, width, targetQ, targetR, actorKindId, planeCode, tick, ref openCount))
+            if (!VisitPathNeighbors(
+                    simulation,
+                    world,
+                    currentIndex,
+                    pathMinQ,
+                    pathMinR,
+                    pathWidthQ,
+                    pathWidthR,
+                    targetQ,
+                    targetR,
+                    movementProfileId,
+                    planeCode,
+                    tick,
+                    radius,
+                    segmentSize,
+                    segmentGridWidth,
+                    firstAllowedSegment,
+                    secondAllowedSegment,
+                    ref openCount))
             {
                 return false;
             }
@@ -121,20 +479,48 @@ internal sealed partial class MovementProgramRuntime
         Simulation simulation,
         WorldState world,
         int currentIndex,
-        int radius,
-        int width,
+        int pathMinQ,
+        int pathMinR,
+        int pathWidthQ,
+        int pathWidthR,
         int targetQ,
         int targetR,
-        int actorKindId,
+        int movementProfileId,
         int planeCode,
         int tick,
+        int radius,
+        int segmentSize,
+        int segmentGridWidth,
+        int firstAllowedSegment,
+        int secondAllowedSegment,
         ref int openCount)
     {
-        var currentQ = PathQ(radius, width, currentIndex);
-        var currentR = PathR(radius, width, currentIndex);
+        var currentQ = PathQ(pathMinQ, pathWidthR, currentIndex);
+        var currentR = PathR(pathMinR, pathWidthR, currentIndex);
         for (var direction = 0; direction < 6; direction++)
         {
-            if (!TryVisitPathNeighbor(simulation, world, currentIndex, currentQ, currentR, direction, radius, width, targetQ, targetR, actorKindId, planeCode, tick, ref openCount))
+            if (!TryVisitPathNeighbor(
+                    simulation,
+                    world,
+                    currentIndex,
+                    currentQ,
+                    currentR,
+                    direction,
+                    pathMinQ,
+                    pathMinR,
+                    pathWidthQ,
+                    pathWidthR,
+                    targetQ,
+                    targetR,
+                    movementProfileId,
+                    planeCode,
+                    tick,
+                    radius,
+                    segmentSize,
+                    segmentGridWidth,
+                    firstAllowedSegment,
+                    secondAllowedSegment,
+                    ref openCount))
             {
                 return false;
             }
@@ -150,30 +536,40 @@ internal sealed partial class MovementProgramRuntime
         int currentQ,
         int currentR,
         int direction,
-        int radius,
-        int width,
+        int pathMinQ,
+        int pathMinR,
+        int pathWidthQ,
+        int pathWidthR,
         int targetQ,
         int targetR,
-        int actorKindId,
+        int movementProfileId,
         int planeCode,
         int tick,
+        int radius,
+        int segmentSize,
+        int segmentGridWidth,
+        int firstAllowedSegment,
+        int secondAllowedSegment,
         ref int openCount)
     {
         var neighborQ = currentQ + DirectionQ(direction);
         var neighborR = currentR + DirectionR(direction);
-        _ = world;
-        if (!CanEnter(simulation, planeCode, actorKindId, neighborQ, neighborR))
-        {
-            return true;
-        }
-
-        var neighborIndex = PathIndex(radius, width, neighborQ, neighborR);
+        var neighborIndex = PathIndex(pathMinQ, pathMinR, pathWidthQ, pathWidthR, neighborQ, neighborR);
         if (neighborIndex < 0 || Scratch.PathClosed.Contains(neighborIndex))
         {
             return true;
         }
 
-        var movementCost = TravelCost(simulation, planeCode, actorKindId, neighborQ, neighborR, tick);
+        if (!world.CellIsKnown(planeCode, neighborQ, neighborR) ||
+            !PathSegmentAllowed(radius, segmentSize, segmentGridWidth, neighborQ, neighborR, firstAllowedSegment, secondAllowedSegment))
+        {
+            return true;
+        }
+
+        var movementCost = simulation.KernelData.Terrain.RoadAdjustedTravelCost(
+            world.CellTerrainId(planeCode, neighborQ, neighborR),
+            movementProfileId,
+            RoadQuality(planeCode, neighborQ, neighborR, tick));
         if (float.IsInfinity(movementCost) || movementCost <= 0f)
         {
             return true;
@@ -227,8 +623,9 @@ internal sealed partial class MovementProgramRuntime
     private bool TryResolveNextPathStep(
         int startIndex,
         int targetIndex,
-        int radius,
-        int width,
+        int pathMinQ,
+        int pathMinR,
+        int pathWidthR,
         out int nextQ,
         out int nextR)
     {
@@ -247,31 +644,76 @@ internal sealed partial class MovementProgramRuntime
             parentIndex = Scratch.PathCameFrom.GetOrDefault(currentIndex, -1);
         }
 
-        nextQ = PathQ(radius, width, currentIndex);
-        nextR = PathR(radius, width, currentIndex);
+        nextQ = PathQ(pathMinQ, pathWidthR, currentIndex);
+        nextR = PathR(pathMinR, pathWidthR, currentIndex);
         return true;
     }
 
-    private int PathIndex(int radius, int width, int q, int r)
+    private static bool PathSegmentAllowed(
+        int radius,
+        int segmentSize,
+        int segmentGridWidth,
+        int q,
+        int r,
+        int firstAllowedSegment,
+        int secondAllowedSegment)
     {
-        var adjustedQ = q + radius;
-        var adjustedR = r + radius;
-        if ((uint)adjustedQ >= (uint)width || (uint)adjustedR >= (uint)width)
+        var segment = SegmentIndex(radius, segmentSize, segmentGridWidth, q, r);
+        return segment == firstAllowedSegment || segment == secondAllowedSegment;
+    }
+
+    private static int PathIndex(
+        int minQ,
+        int minR,
+        int widthQ,
+        int widthR,
+        int q,
+        int r)
+    {
+        var adjustedQ = q - minQ;
+        var adjustedR = r - minR;
+        if ((uint)adjustedQ >= (uint)widthQ || (uint)adjustedR >= (uint)widthR)
         {
             return -1;
         }
 
-        var index = (adjustedQ * width) + adjustedR;
-        return (uint)index < (uint)Scratch.PathCapacity ? index : -1;
+        return (adjustedQ * widthR) + adjustedR;
     }
 
-    private static int PathQ(int radius, int width, int index)
+    private static int PathQ(int minQ, int widthR, int index)
     {
-        return (index / width) - radius;
+        return (index / widthR) + minQ;
     }
 
-    private static int PathR(int radius, int width, int index)
+    private static int PathR(int minR, int widthR, int index)
     {
-        return (index % width) - radius;
+        return (index % widthR) + minR;
+    }
+
+    private readonly struct SegmentRouteContext
+    {
+        public SegmentRouteContext(
+            int radius,
+            int segmentSize,
+            int segmentGridWidth,
+            int startSegment,
+            int targetSegment)
+        {
+            Radius = radius;
+            SegmentSize = segmentSize;
+            GridWidth = segmentGridWidth;
+            StartSegment = startSegment;
+            TargetSegment = targetSegment;
+        }
+
+        public int Radius { get; }
+
+        public int SegmentSize { get; }
+
+        public int GridWidth { get; }
+
+        public int StartSegment { get; }
+
+        public int TargetSegment { get; }
     }
 }

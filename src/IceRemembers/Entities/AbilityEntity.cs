@@ -10,6 +10,7 @@ using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Rel = IceRemembers.IceRemembersRelationship;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
@@ -42,6 +43,9 @@ internal static class AbilityEntity
         MapSignal = MapSignal(radius: 1, capacity: 0.2f, support: 0.3f, threat: 0f,
             baseMass: 3f, coverageScale: 0f, influenceScale: 0.02f, activityScale: 0.02f,
             healthScale: 0.03f, attractorRadius: 1),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Commons),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.Lineage, Terrain.Witness, Terrain.OpenField),

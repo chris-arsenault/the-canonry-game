@@ -185,10 +185,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         if (planeCode == PlaneCodes.Semantic)
         {
             return SemanticCoordinateAllowed(simulation.World, q, r) &&
-                simulation.Movement.CanEnter(simulation, planeCode, simulation.World.EntityKindId(entityId), q, r);
+                simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r);
         }
 
-        return simulation.Movement.CanEnter(simulation, simulation.World.EntityKindId(entityId), q, r);
+        return simulation.Movement.CanEnter(simulation, entityId, q, r);
     }
 
     private float MovementShapeCellWeight(Simulation simulation, int rule, int planeCode, int q, int r)

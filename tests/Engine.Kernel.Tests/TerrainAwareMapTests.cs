@@ -29,7 +29,7 @@ public sealed class TerrainAwareMapTests
 
         Assert.True(result.Moved);
         Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick) > 0f);
-        Assert.True(simulation.Movement.PhysicalTravelCost(simulation, kindId, 1, 0, simulation.CurrentTick) < 2f);
+        Assert.True(simulation.Movement.PhysicalTravelCost(simulation, entityId, 1, 0, simulation.CurrentTick) < 2f);
     }
 
     [Fact]
@@ -124,8 +124,149 @@ public sealed class TerrainAwareMapTests
             simulation.World.EntitySemanticR(entityId),
             simulation.World.EntitySemanticS(entityId)));
         Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Semantic, 1, -1, simulation.CurrentTick) > 0f);
-        Assert.True(simulation.Movement.TravelCost(simulation, PlaneCodes.Semantic, kindId, 1, -1, simulation.CurrentTick) < 3f);
+        Assert.True(simulation.Movement.TravelCost(simulation, PlaneCodes.Semantic, entityId, 1, -1, simulation.CurrentTick) < 3f);
         Assert.Equal(0f, simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, -1, simulation.CurrentTick));
+    }
+
+    [Fact]
+    public void HierarchicalMovementPlansWhenFullGridPathScratchWouldOverflow()
+    {
+        var (simulation, entityId) = CreateLargePathingSimulation(roadBuildPerTravel: 1f);
+
+        var result = simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: 12,
+            targetR: 0,
+            tick: 0);
+
+        Assert.True(result.Moved);
+        Assert.Equal(-11, simulation.World.EntityPhysicalQ(entityId));
+        Assert.Equal(0, simulation.World.EntityPhysicalR(entityId));
+        Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+    }
+
+    [Fact]
+    public void HierarchicalRouteCacheRoundTripsThroughSnapshot()
+    {
+        var (simulation, entityId) = CreateLargePathingSimulation(roadBuildPerTravel: 1f);
+        simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: 12,
+            targetR: 0,
+            tick: 0);
+        Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+        using var stream = new global::System.IO.MemoryStream();
+
+        KernelSnapshot.SaveKernelState(simulation, stream);
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+
+        Assert.Equal(simulation.Movement.State.RouteCacheCount, loaded.Movement.State.RouteCacheCount);
+        var result = loaded.Movement.Navigate(
+            loaded,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: 12,
+            targetR: 0,
+            tick: loaded.CurrentTick);
+        Assert.True(result.Moved);
+    }
+
+    [Fact]
+    public void TerrainTopologyChangeClearsHierarchicalRouteCache()
+    {
+        var (simulation, entityId) = CreateLargePathingSimulation(roadBuildPerTravel: 1f);
+        simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: 12,
+            targetR: 0,
+            tick: 0);
+        var topologyEpoch = simulation.Movement.State.PathingTopologyEpoch;
+        Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+
+        simulation.SetCellTerrain(PlaneCodes.Physical, q: 0, r: 0, terrainId: 2, tick: 0);
+
+        Assert.True(simulation.Movement.State.PathingTopologyEpoch > topologyEpoch);
+        Assert.Equal(0, simulation.Movement.State.RouteCacheCount);
+    }
+
+    [Fact]
+    public void RoadMarkReconciliationOnlyClearsRouteCacheWhenMarksChange()
+    {
+        var (simulation, entityId) = CreateLargePathingSimulation(roadBuildPerTravel: 70f);
+        simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: 12,
+            targetR: 0,
+            tick: 0);
+        var roadMarkEpoch = simulation.Movement.State.RoadMarkEpoch;
+        Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+
+        simulation.AdvanceTicks(10);
+
+        Assert.True(simulation.Movement.State.RoadMarkEpoch > roadMarkEpoch);
+        Assert.Equal(0, simulation.Movement.State.RouteCacheCount);
+        roadMarkEpoch = simulation.Movement.State.RoadMarkEpoch;
+        simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: 12,
+            targetR: 0,
+            tick: simulation.CurrentTick);
+        Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+
+        simulation.AdvanceTicks(10);
+
+        Assert.Equal(roadMarkEpoch, simulation.Movement.State.RoadMarkEpoch);
+        Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+    }
+
+    [Fact]
+    public void MovementProfilesResolveKindDefaultSubtypeAndTraitRules()
+    {
+        var simulation = new Simulation(new SimulationOptions
+        {
+            EntityCapacity = 8,
+            MapCellCapacity = 16,
+            TerrainIdCapacity = 4,
+            MovementProfileRuleCapacity = 8,
+        });
+        const int terrainId = 1;
+        const int waterTerrainId = 2;
+        const int kindId = 1;
+        const int defaultSubtypeId = 1;
+        const int shoreSubtypeId = 2;
+        const int swimTraitId = 3;
+        const int trailProfileId = 1;
+        const int shoreProfileId = 2;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.RegisterTerrain(waterTerrainId, boundaryGroupId: 1);
+        simulation.RegisterTerrainMovementProfile(waterTerrainId, trailProfileId, movementCost: 0f);
+        simulation.RegisterTerrainMovementProfile(waterTerrainId, shoreProfileId, movementCost: 6f);
+        simulation.Movement.RegisterDefaultMovementProfile(kindId, PlaneCodes.Physical, trailProfileId);
+        simulation.Movement.RegisterSubtypeMovementProfile(kindId, shoreSubtypeId, PlaneCodes.Physical, shoreProfileId);
+        simulation.Movement.RegisterTraitMovementProfile(kindId, swimTraitId, PlaneCodes.Physical, shoreProfileId);
+        simulation.World.SetMapRadius(1);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        simulation.SeedCell(1, 0, waterTerrainId, ownerEntityId: 0);
+        var trailEntityId = simulation.CreateEntity(kindId, defaultSubtypeId, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var shoreEntityId = simulation.CreateEntity(kindId, shoreSubtypeId, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var swimmerEntityId = simulation.CreateEntity(kindId, defaultSubtypeId, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.World.AddTrait(swimmerEntityId, swimTraitId, tick: 0);
+
+        Assert.False(simulation.Movement.CanEnter(simulation, trailEntityId, 1, 0));
+        Assert.True(simulation.Movement.CanEnter(simulation, shoreEntityId, 1, 0));
+        Assert.True(simulation.Movement.CanEnter(simulation, swimmerEntityId, 1, 0));
+        Assert.Equal(6f, simulation.Movement.PhysicalTravelCost(simulation, shoreEntityId, 1, 0, tick: 0));
     }
 
     [Fact]
@@ -253,6 +394,56 @@ public sealed class TerrainAwareMapTests
         }
 
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+    }
+
+    private static (Simulation Simulation, int EntityId) CreateLargePathingSimulation(float roadBuildPerTravel)
+    {
+        var simulation = new Simulation(new SimulationOptions
+        {
+            EntityCapacity = 4,
+            MapCellCapacity = 512,
+            TerrainIdCapacity = 4,
+            MovementCellCapacity = 512,
+        });
+        const int terrainId = 1;
+        const int alternateTerrainId = 2;
+        const int kindId = 1;
+        simulation.Movement.Data.RoadBuildPerTravel = roadBuildPerTravel;
+        simulation.RegisterTerrain(
+            terrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.RegisterTerrain(
+            alternateTerrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.World.SetMapRadius(12);
+        SeedHexMap(simulation, radius: 12, terrainId);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, -12, 0, 0, 0, 0, tick: 0);
+        return (simulation, entityId);
+    }
+
+    private static void SeedHexMap(Simulation simulation, int radius, int terrainId)
+    {
+        for (var q = -radius; q <= radius; q++)
+        {
+            var minR = global::System.Math.Max(-radius, -q - radius);
+            var maxR = global::System.Math.Min(radius, -q + radius);
+            for (var r = minR; r <= maxR; r++)
+            {
+                simulation.SeedCell(q, r, terrainId, ownerEntityId: 0);
+            }
+        }
     }
 
     private static int CountTerrain(Simulation simulation, int terrainId)

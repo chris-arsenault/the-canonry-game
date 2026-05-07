@@ -10,6 +10,7 @@ using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 
@@ -42,6 +43,15 @@ internal static class SettlementEntity
         MapSignal = MapSignal(radius: 2, capacity: 3.0f, support: 2.5f, threat: 0f,
             baseMass: 12f, coverageScale: 0.35f, influenceScale: 0.12f, activityScale: 0.05f,
             healthScale: 0.08f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Commons,
+            subtypeRules:
+            [
+                MovementSubtypeRule("harbor", physical: Profile.Shore),
+                MovementSubtypeRule("reefhold", physical: Profile.Shore),
+                MovementSubtypeRule("holdfast", physical: Profile.Shore),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Shelf, Terrain.Ice),
             semanticDefault: Semantic(Terrain.Lineage, Terrain.OpenField, Terrain.Witness),

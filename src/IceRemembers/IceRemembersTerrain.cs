@@ -4,6 +4,7 @@ using Engine.Domain.Config;
 using Engine.WorldGen;
 
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 
 public enum IceRemembersTerrain
 {
@@ -64,12 +65,18 @@ public static class IceRemembersTerrainCatalog
 {
     public static IReadOnlyList<TerrainConfig> DomainTerrains { get; } =
     [
-        DomainTerrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land", 5.2f, 0.75f, 1.35f, 0.8f, 0.6f, 4.6f),
-        DomainTerrain(IceRemembersTerrain.Crags, "Crags", "harsh_land", 6f, 0.8f, 1.5f, 0.75f, 0.4f, 4.2f),
-        DomainTerrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land", 3f, 1f, 1f, 1f, 1f, 3.8f),
-        DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land", 4f, 0.9f, 1.1f, 0.95f, 0.8f, 3.6f),
-        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary", 2.5f, 1.35f, 0.75f, 1.25f, 0.7f, 3.2f),
-        DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime", 3.3f, 1f, 1f, 1f, 1.2f, 4f),
+        DomainTerrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land", 5.2f, 0.75f, 1.35f, 0.8f, 0.6f, 4.6f,
+            movementProfiles: PhysicalMovement(trail: 5.2f, shore: 6f, wake: 0f)),
+        DomainTerrain(IceRemembersTerrain.Crags, "Crags", "harsh_land", 6f, 0.8f, 1.5f, 0.75f, 0.4f, 4.2f,
+            movementProfiles: PhysicalMovement(trail: 6f, shore: 6.5f, wake: 0f)),
+        DomainTerrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land", 3f, 1f, 1f, 1f, 1f, 3.8f,
+            movementProfiles: PhysicalMovement(trail: 3f, shore: 3.2f, wake: 6f)),
+        DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land", 4f, 0.9f, 1.1f, 0.95f, 0.8f, 3.6f,
+            movementProfiles: PhysicalMovement(trail: 4f, shore: 4.2f, wake: 5f)),
+        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary", 2.5f, 1.35f, 0.75f, 1.25f, 0.7f, 3.2f,
+            movementProfiles: PhysicalMovement(trail: 2.5f, shore: 2.6f, wake: 0f)),
+        DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime", 3.3f, 1f, 1f, 1f, 1.2f, 4f,
+            movementProfiles: PhysicalMovement(trail: 3.3f, shore: 2.8f, wake: 2.4f)),
         DomainTerrain(
             IceRemembersTerrain.Reef,
             "Reef",
@@ -80,7 +87,7 @@ public static class IceRemembersTerrainCatalog
             0.9f,
             0.5f,
             3.5f,
-            OrcaWaterProfile(2.2f)),
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 4.8f, wake: 2.2f)),
         DomainTerrain(
             IceRemembersTerrain.Ocean,
             "Ocean",
@@ -91,17 +98,30 @@ public static class IceRemembersTerrainCatalog
             0.5f,
             0.2f,
             3f,
-            OrcaWaterProfile(2f)),
-        DomainTerrain(IceRemembersTerrain.Lineage, "Lineage", "semantic_memory", 2.6f, 1.15f, 0.85f, 1.25f, 1.1f, 3.8f),
-        DomainTerrain(IceRemembersTerrain.Yoke, "Yoke", "semantic_authority", 4.1f, 1.05f, 0.75f, 1.35f, 0.8f, 3.4f, YokeProfiles()),
-        DomainTerrain(IceRemembersTerrain.Witness, "Witness", "semantic_memory", 2.8f, 1.4f, 0.9f, 1.15f, 1.35f, 4.2f),
-        DomainTerrain(IceRemembersTerrain.Silence, "Silence", "semantic_shadow", 4.8f, 0.65f, 1.2f, 0.9f, 0.7f, 3.2f, HiddenSemanticProfiles()),
-        DomainTerrain(IceRemembersTerrain.Severance, "Severance", "semantic_rupture", 5.4f, 0.7f, 1.5f, 0.65f, 0.55f, 3f),
-        DomainTerrain(IceRemembersTerrain.Breakaway, "Breakaway", "semantic_rupture", 2.4f, 1.05f, 1.25f, 0.75f, 1.3f, 4.3f),
-        DomainTerrain(IceRemembersTerrain.BeaconSpire, "Beacon Spire", "semantic_memory", 3.4f, 1.55f, 0.8f, 1.2f, 1.45f, 4.8f),
-        DomainTerrain(IceRemembersTerrain.TabooRidge, "Taboo Ridge", "semantic_shadow", 6.2f, 0.5f, 1.7f, 0.55f, 0.35f, 2.8f),
-        DomainTerrain(IceRemembersTerrain.CavePocket, "Cave Pocket", "semantic_shadow", 4.4f, 0.6f, 0.9f, 1.15f, 0.6f, 3.1f, HiddenSemanticProfiles()),
-        DomainTerrain(IceRemembersTerrain.OpenField, "Open Field", "semantic_open", 3f, 1f, 1f, 1f, 1f, 3.6f),
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 6f, wake: 2f)),
+        DomainTerrain(IceRemembersTerrain.Lineage, "Lineage", "semantic_memory", 2.6f, 1.15f, 0.85f, 1.25f, 1.1f, 3.8f,
+            movementProfiles: SemanticMovement(commons: 2.4f, mandate: 2.8f, veil: 4f, rift: 5f)),
+        DomainTerrain(IceRemembersTerrain.Yoke, "Yoke", "semantic_authority", 4.1f, 1.05f, 0.75f, 1.35f, 0.8f, 3.4f,
+            movementProfiles: SemanticMovement(commons: 4.3f, mandate: 2.8f, veil: 6f, rift: 6f),
+            kindProfiles: YokeProfiles()),
+        DomainTerrain(IceRemembersTerrain.Witness, "Witness", "semantic_memory", 2.8f, 1.4f, 0.9f, 1.15f, 1.35f, 4.2f,
+            movementProfiles: SemanticMovement(commons: 2.6f, mandate: 3f, veil: 4.5f, rift: 5f)),
+        DomainTerrain(IceRemembersTerrain.Silence, "Silence", "semantic_shadow", 4.8f, 0.65f, 1.2f, 0.9f, 0.7f, 3.2f,
+            movementProfiles: SemanticMovement(commons: 6f, mandate: 6f, veil: 2.4f, rift: 4f),
+            kindProfiles: HiddenSemanticProfiles()),
+        DomainTerrain(IceRemembersTerrain.Severance, "Severance", "semantic_rupture", 5.4f, 0.7f, 1.5f, 0.65f, 0.55f, 3f,
+            movementProfiles: SemanticMovement(commons: 6f, mandate: 6f, veil: 4f, rift: 3f)),
+        DomainTerrain(IceRemembersTerrain.Breakaway, "Breakaway", "semantic_rupture", 2.4f, 1.05f, 1.25f, 0.75f, 1.3f, 4.3f,
+            movementProfiles: SemanticMovement(commons: 3.2f, mandate: 4f, veil: 3f, rift: 2.2f)),
+        DomainTerrain(IceRemembersTerrain.BeaconSpire, "Beacon Spire", "semantic_memory", 3.4f, 1.55f, 0.8f, 1.2f, 1.45f, 4.8f,
+            movementProfiles: SemanticMovement(commons: 3f, mandate: 3.2f, veil: 6f, rift: 5.5f)),
+        DomainTerrain(IceRemembersTerrain.TabooRidge, "Taboo Ridge", "semantic_shadow", 6.2f, 0.5f, 1.7f, 0.55f, 0.35f, 2.8f,
+            movementProfiles: SemanticMovement(commons: 0f, mandate: 5f, veil: 3.5f, rift: 3.8f)),
+        DomainTerrain(IceRemembersTerrain.CavePocket, "Cave Pocket", "semantic_shadow", 4.4f, 0.6f, 0.9f, 1.15f, 0.6f, 3.1f,
+            movementProfiles: SemanticMovement(commons: 5.5f, mandate: 6f, veil: 2.5f, rift: 4.2f),
+            kindProfiles: HiddenSemanticProfiles()),
+        DomainTerrain(IceRemembersTerrain.OpenField, "Open Field", "semantic_open", 3f, 1f, 1f, 1f, 1f, 3.6f,
+            movementProfiles: SemanticMovement(commons: 2.8f, mandate: 3f, veil: 3.3f, rift: 3.2f)),
     ];
 
     public static TerrainCatalog CreateWorldGenCatalog() =>
@@ -127,6 +147,7 @@ public static class IceRemembersTerrainCatalog
         float claimChanceMultiplier,
         float roadBuildMultiplier,
         float roadSpeedMultiplier,
+        IReadOnlyList<TerrainMovementProfileConfig>? movementProfiles = null,
         IReadOnlyList<TerrainKindProfileConfig>? kindProfiles = null) =>
         new()
         {
@@ -139,34 +160,50 @@ public static class IceRemembersTerrainCatalog
             ClaimChanceMultiplier = claimChanceMultiplier,
             RoadBuildMultiplier = roadBuildMultiplier,
             RoadSpeedMultiplier = roadSpeedMultiplier,
+            MovementProfiles = movementProfiles ?? [],
             KindProfiles = kindProfiles ?? [],
         };
 
-    private static IReadOnlyList<TerrainKindProfileConfig> OrcaWaterProfile(float movementCost) =>
+    private static IReadOnlyList<TerrainMovementProfileConfig> PhysicalMovement(
+        float trail,
+        float shore,
+        float wake) =>
     [
+        Move(Profile.Trail, trail),
+        Move(Profile.Shore, shore),
+        Move(Profile.Wake, wake),
+    ];
+
+    private static IReadOnlyList<TerrainMovementProfileConfig> SemanticMovement(
+        float commons,
+        float mandate,
+        float veil,
+        float rift) =>
+    [
+        Move(Profile.Commons, commons),
+        Move(Profile.Mandate, mandate),
+        Move(Profile.Veil, veil),
+        Move(Profile.Rift, rift),
+    ];
+
+    private static TerrainMovementProfileConfig Move(Profile profile, float movementCost) =>
         new()
         {
-            Kind = K.Orca,
+            Profile = profile.ToDomainName(),
             MovementCost = movementCost,
-            InfluenceMultiplier = 1.2f,
-            ClaimCostMultiplier = 0.8f,
-            ClaimChanceMultiplier = 1.2f,
-        },
-    ];
+        };
 
     private static IReadOnlyList<TerrainKindProfileConfig> YokeProfiles() =>
     [
         new()
         {
             Kind = K.Faction,
-            MovementCost = 3f,
             ClaimCostMultiplier = 0.65f,
             ClaimChanceMultiplier = 1.45f,
         },
         new()
         {
             Kind = K.Settlement,
-            MovementCost = 3.2f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.25f,
         },
@@ -177,7 +214,6 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Artifact,
-            MovementCost = 2.5f,
             InfluenceMultiplier = 0.8f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.2f,
@@ -185,7 +221,6 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Monster,
-            MovementCost = 2.2f,
             InfluenceMultiplier = 1.15f,
             ClaimCostMultiplier = 0.65f,
             ClaimChanceMultiplier = 1.35f,
@@ -193,7 +228,6 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Occurrence,
-            MovementCost = 2.7f,
             InfluenceMultiplier = 1.05f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.2f,

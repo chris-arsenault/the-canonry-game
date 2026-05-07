@@ -120,6 +120,19 @@ internal sealed partial class PrimitiveFloatTable
         _count = 0;
     }
 
+    internal void GetEntry(int index, out int firstKey, out int secondKey, out float value)
+    {
+        if ((uint)index >= (uint)_count)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(index));
+        }
+
+        var slot = _occupiedSlots[index];
+        firstKey = _firstKeys[slot];
+        secondKey = _secondKeys[slot];
+        value = _values[slot];
+    }
+
     private void RebuildOccupiedSlots()
     {
         _count = 0;

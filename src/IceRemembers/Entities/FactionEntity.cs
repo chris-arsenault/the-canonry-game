@@ -10,6 +10,7 @@ using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Rel = IceRemembers.IceRemembersRelationship;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
@@ -46,6 +47,16 @@ internal static class FactionEntity
         MapSignal = MapSignal(radius: 2, capacity: 1.0f, support: 1.2f, threat: 0f,
             baseMass: 8f, coverageScale: 0.2f, influenceScale: 0.10f, activityScale: 0.04f,
             healthScale: 0.06f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Mandate,
+            subtypeRules:
+            [
+                MovementSubtypeRule("choir", physical: Profile.Shore, semantic: Profile.Commons),
+                MovementSubtypeRule("cell", semantic: Profile.Veil),
+                MovementSubtypeRule("order", semantic: Profile.Mandate),
+                MovementSubtypeRule("compact", semantic: Profile.Mandate),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.Yoke, Terrain.Lineage, Terrain.OpenField),

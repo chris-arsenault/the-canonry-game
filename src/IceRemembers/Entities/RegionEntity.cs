@@ -9,6 +9,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 
@@ -40,6 +41,15 @@ internal static class RegionEntity
         MapSignal = MapSignal(radius: 2, capacity: 1.5f, support: 0.3f, threat: 0.3f,
             baseMass: 6f, coverageScale: 0.10f, influenceScale: 0.03f, activityScale: 0.02f,
             healthScale: 0.03f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Commons,
+            subtypeRules:
+            [
+                MovementSubtypeRule("shelf", physical: Profile.Shore),
+                MovementSubtypeRule("sea", physical: Profile.Shore),
+                MovementSubtypeRule("scar", semantic: Profile.Rift),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.OpenField, Terrain.Lineage, Terrain.Witness),

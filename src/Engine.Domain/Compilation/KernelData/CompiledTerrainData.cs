@@ -14,13 +14,18 @@ public sealed record CompiledTerrainDefinition(
     float ClaimChanceMultiplier,
     float RoadBuildMultiplier,
     float RoadSpeedMultiplier,
+    IReadOnlyList<CompiledTerrainMovementProfileDefinition> MovementProfiles,
     IReadOnlyList<CompiledTerrainKindProfileDefinition> KindProfiles);
+
+public sealed record CompiledTerrainMovementProfileDefinition(
+    int TerrainId,
+    int MovementProfileId,
+    float MovementCost);
 
 public sealed record CompiledTerrainKindProfileDefinition(
     int TerrainId,
     int KindId,
     int FieldFlags,
-    float MovementCost,
     float InfluenceMultiplier,
     float ClaimCostMultiplier,
     float ClaimChanceMultiplier);

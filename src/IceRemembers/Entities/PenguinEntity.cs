@@ -8,6 +8,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 using Verb = IceRemembers.IceRemembersVerbId;
@@ -32,6 +33,10 @@ internal static class PenguinEntity
                 TraitVerbWeight(Verb.PenguinExplore, weightDelta: 1.0f),
                 TraitVerbWeight(Verb.PenguinGoFishing, weightDelta: 0.4f),
                 TraitVerbWeight(Verb.PenguinVisitRookery, weightDelta: -0.5f)),
+            PositiveTrait(
+                Trait.PenguinSureSwimmer,
+                "Sure Swimmer",
+                "Can follow shore and water routes on the physical plane."),
             NegativeTrait(
                 Trait.PenguinHearthbound,
                 "Hearthbound",
@@ -42,6 +47,18 @@ internal static class PenguinEntity
         MapSignal = MapSignal(radius: 1, capacity: 0.2f, support: 0.2f, threat: 0f,
             baseMass: 2f, coverageScale: 0f, influenceScale: 0.02f, activityScale: 0.02f,
             healthScale: 0.02f, attractorRadius: 1),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Commons,
+            subtypeRules:
+            [
+                MovementSubtypeRule("warden", semantic: Profile.Mandate),
+                MovementSubtypeRule("exile", semantic: Profile.Rift),
+            ],
+            traitRules:
+            [
+                MovementTraitRule(Trait.PenguinSureSwimmer, physical: Profile.Shore),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.Lineage, Terrain.OpenField, Terrain.Witness),

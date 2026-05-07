@@ -16,6 +16,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
+        int movementProfileId,
         int originQ,
         int originR,
         int minRadius,
@@ -36,6 +37,7 @@ internal sealed partial class GeneratorProgramRuntime
                 simulation,
                 planeCode,
                 producedSlot,
+                movementProfileId,
                 originQ,
                 originR,
                 radius,
@@ -56,6 +58,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
+        int movementProfileId,
         int originQ,
         int originR,
         int radius,
@@ -73,6 +76,7 @@ internal sealed partial class GeneratorProgramRuntime
                 simulation,
                 planeCode,
                 producedSlot,
+                movementProfileId,
                 originQ,
                 originR,
                 radius,
@@ -92,6 +96,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
+        int movementProfileId,
         int originQ,
         int originR,
         int radius,
@@ -114,10 +119,12 @@ internal sealed partial class GeneratorProgramRuntime
                 simulation,
                 planeCode,
                 producedSlot,
+                movementProfileId,
                 candidateQ,
                 candidateR,
                 originQ,
                 originR,
+                radius,
                 minRadius,
                 maxRadius,
                 ref bestScore,
@@ -133,6 +140,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
+        int movementProfileId,
         int coverageOwnerId,
         int originQ,
         int originR,
@@ -158,10 +166,12 @@ internal sealed partial class GeneratorProgramRuntime
                     simulation,
                     planeCode,
                     producedSlot,
+                    movementProfileId,
                     cq,
                     cr,
                     originQ,
                     originR,
+                    KernelQuery.HexDistance(originQ, originR, cq, cr),
                     minRadius,
                     effectiveMaxRadius,
                     ref bestScore,
@@ -180,10 +190,12 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
+        int movementProfileId,
         int candidateQ,
         int candidateR,
         int originQ,
         int originR,
+        int searchRadius,
         int minRadius,
         int maxRadius,
         ref int bestScore,
@@ -191,16 +203,16 @@ internal sealed partial class GeneratorProgramRuntime
         ref int selectedQ,
         ref int selectedR)
     {
-        var kindId = _producedKindIds[producedSlot];
         if (!PlacementCandidateMatches(
                 simulation,
                 planeCode,
                 producedSlot,
-                kindId,
+                movementProfileId,
                 candidateQ,
                 candidateR,
                 originQ,
                 originR,
+                searchRadius,
                 minRadius,
                 maxRadius))
         {
@@ -226,19 +238,21 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
-        int kindId,
+        int movementProfileId,
         int q,
         int r,
         int originQ,
         int originR,
+        int searchRadius,
         int minRadius,
         int maxRadius)
     {
         var distance = KernelQuery.HexDistance(originQ, originR, q, r);
-        return distance >= minRadius &&
+        return distance == searchRadius &&
+            distance >= minRadius &&
             distance <= maxRadius &&
             PlacementCellIsFree(simulation.World, planeCode, q, r) &&
-            PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, kindId, q, r);
+            PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, movementProfileId, q, r);
     }
 
     private bool PlacementCellIsFree(WorldState world, int planeCode, int q, int r)
@@ -252,7 +266,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
-        int kindId,
+        int movementProfileId,
         int q,
         int r)
     {
@@ -260,7 +274,7 @@ internal sealed partial class GeneratorProgramRuntime
         var allowedStart = PlacementAllowedTerrainStart(planeCode, producedSlot);
         var allowedCount = PlacementAllowedTerrainCount(planeCode, producedSlot);
         return TerrainInFilter(terrainId, allowedStart, allowedCount, emptyPasses: true) &&
-            simulation.KernelData.Terrain.CanEnter(terrainId, kindId);
+            simulation.KernelData.Terrain.CanEnter(terrainId, movementProfileId);
     }
 
     private int ScorePlacementCell(

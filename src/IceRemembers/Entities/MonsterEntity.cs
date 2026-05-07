@@ -9,6 +9,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 
@@ -40,6 +41,9 @@ internal static class MonsterEntity
         MapSignal = MapSignal(radius: 2, capacity: 0.3f, support: 0f, threat: 1.0f,
             baseMass: 6f, coverageScale: 0f, influenceScale: 0.03f, activityScale: 0.04f,
             healthScale: 0.05f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Veil),
         Placement = Placement(
             physicalDefault: Land(Terrain.Wastes, Terrain.Crags, Terrain.Ice),
             semanticDefault: Semantic(Terrain.Silence, Terrain.Severance, Terrain.CavePocket)),

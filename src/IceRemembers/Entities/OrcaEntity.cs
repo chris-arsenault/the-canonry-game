@@ -8,6 +8,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Rel = IceRemembers.IceRemembersRelationship;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
@@ -40,6 +41,9 @@ internal static class OrcaEntity
         MapSignal = MapSignal(radius: 2, capacity: 0.4f, support: 0.3f, threat: 0.6f,
             baseMass: 5f, coverageScale: 0f, influenceScale: 0.03f, activityScale: 0.04f,
             healthScale: 0.04f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Wake,
+            semanticDefault: Profile.Commons),
         Placement = Placement(
             physicalDefault: Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.Breakaway, Terrain.Lineage, Terrain.OpenField)),

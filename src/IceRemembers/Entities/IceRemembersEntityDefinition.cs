@@ -9,6 +9,7 @@ using Engine.Wiring;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using GambitId = IceRemembers.IceRemembersGambitId;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Rel = IceRemembers.IceRemembersRelationship;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
@@ -36,6 +37,7 @@ public sealed class IceRemembersEntityDefinition
     public required IceRemembersKindMapSignalProfile MapSignal { get; init; }
     public bool CreatesSemanticStock { get; init; } = true;
     public string SemanticStockNotes { get; init; } = "Health (integrity). Dies at 0.";
+    public required MovementProfileAssignmentConfig MovementProfiles { get; init; }
     public required IceRemembersEntityPlacementProfiles Placement { get; init; }
 }
 
@@ -216,6 +218,7 @@ public static class IceRemembersEntities
                 Subtypes = entity.Subtypes,
                 Health = Health(entity.HealthAttribute, entity.HealthDisplayName),
                 Traits = entity.Traits,
+                MovementProfiles = entity.MovementProfiles,
                 Description = entity.Description,
                 PrimaryPlane = entity.PrimaryPlane,
             });
@@ -398,6 +401,41 @@ internal static class IceRemembersEntityDsl
             PhysicalRules = physicalRules ?? [],
             SemanticDefault = semanticDefault,
             SemanticRules = semanticRules ?? [],
+        };
+
+    public static MovementProfileAssignmentConfig MovementProfiles(
+        Profile physicalDefault,
+        Profile semanticDefault,
+        IReadOnlyList<MovementProfileSubtypeRuleConfig>? subtypeRules = null,
+        IReadOnlyList<MovementProfileTraitRuleConfig>? traitRules = null) =>
+        new()
+        {
+            PhysicalDefault = physicalDefault.ToDomainName(),
+            SemanticDefault = semanticDefault.ToDomainName(),
+            SubtypeRules = subtypeRules ?? [],
+            TraitRules = traitRules ?? [],
+        };
+
+    public static MovementProfileSubtypeRuleConfig MovementSubtypeRule(
+        string subtype,
+        Profile? physical = null,
+        Profile? semantic = null) =>
+        new()
+        {
+            Subtype = subtype,
+            PhysicalProfile = physical?.ToDomainName(),
+            SemanticProfile = semantic?.ToDomainName(),
+        };
+
+    public static MovementProfileTraitRuleConfig MovementTraitRule(
+        Trait trait,
+        Profile? physical = null,
+        Profile? semantic = null) =>
+        new()
+        {
+            Trait = trait.ToDomainName(),
+            PhysicalProfile = physical?.ToDomainName(),
+            SemanticProfile = semantic?.ToDomainName(),
         };
 
     public static IceRemembersTerrainProfile Land(params Terrain[] preferred) =>

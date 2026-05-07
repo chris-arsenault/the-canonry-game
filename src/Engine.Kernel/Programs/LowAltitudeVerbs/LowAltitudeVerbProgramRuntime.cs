@@ -4,9 +4,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
 {
     private const int VerbBucketCapacity = 64;
+    private const int ForeignInfluenceScratchCapacity = 4096;
 
     private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
     private readonly float[] _verbAffordanceSumScratch = new float[VerbBucketCapacity];
+    private readonly int[] _foreignInfluenceEpochScratch = new int[ForeignInfluenceScratchCapacity];
+    private readonly int[] _foreignInfluenceEntityScratch = new int[ForeignInfluenceScratchCapacity];
+    private readonly float[] _foreignInfluenceValueScratch = new float[ForeignInfluenceScratchCapacity];
+    private int _foreignInfluenceScratchEpoch;
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())

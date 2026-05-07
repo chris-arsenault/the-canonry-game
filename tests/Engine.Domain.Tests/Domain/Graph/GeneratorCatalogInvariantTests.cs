@@ -532,6 +532,7 @@ public class GeneratorCatalogInvariantTests
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Cultures = config.Cultures,
+            MovementProfiles = config.MovementProfiles,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {

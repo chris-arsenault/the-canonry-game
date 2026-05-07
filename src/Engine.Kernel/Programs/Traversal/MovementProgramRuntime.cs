@@ -22,25 +22,68 @@ internal sealed partial class MovementProgramRuntime :
 
     public MovementProgramScratch Scratch { get; }
 
-    public bool CanEnter(Simulation simulation, int kindId, int q, int r)
+    public void RegisterDefaultMovementProfile(
+        int kindId,
+        int planeCode,
+        int movementProfileId) =>
+        Data.RegisterDefaultMovementProfile(kindId, planeCode, movementProfileId);
+
+    public void RegisterSubtypeMovementProfile(
+        int kindId,
+        int subtypeId,
+        int planeCode,
+        int movementProfileId) =>
+        Data.RegisterSubtypeMovementProfile(kindId, subtypeId, planeCode, movementProfileId);
+
+    public void RegisterTraitMovementProfile(
+        int kindId,
+        int traitId,
+        int planeCode,
+        int movementProfileId) =>
+        Data.RegisterTraitMovementProfile(kindId, traitId, planeCode, movementProfileId);
+
+    public int MovementProfileFor(Simulation simulation, int entityId, int planeCode)
     {
-        return CanEnter(simulation, PlaneCodes.Physical, kindId, q, r);
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        return Data.MovementProfileFor(simulation.World, entityId, planeCode);
     }
 
-    public bool CanEnter(Simulation simulation, int planeCode, int kindId, int q, int r)
+    public int MovementProfileFor(int kindId, int subtypeId, int planeCode) =>
+        Data.MovementProfileFor(kindId, subtypeId, planeCode);
+
+    public bool CanEnter(Simulation simulation, int entityId, int q, int r)
+    {
+        return CanEnter(simulation, PlaneCodes.Physical, entityId, q, r);
+    }
+
+    public bool CanEnter(Simulation simulation, int planeCode, int entityId, int q, int r)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        return CanEnterProfile(simulation, planeCode, movementProfileId, q, r);
+    }
+
+    public bool CanEnterProfile(Simulation simulation, int planeCode, int movementProfileId, int q, int r)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         return simulation.ProgramIsEnabled(KernelProgramCodes.Movement) &&
             simulation.World.CellIsKnown(planeCode, q, r) &&
-            simulation.KernelData.Terrain.CanEnter(simulation.World.CellTerrainId(planeCode, q, r), kindId);
+            simulation.KernelData.Terrain.CanEnter(simulation.World.CellTerrainId(planeCode, q, r), movementProfileId);
     }
 
-    public float PhysicalTravelCost(Simulation simulation, int kindId, int q, int r, int tick)
+    public float PhysicalTravelCost(Simulation simulation, int entityId, int q, int r, int tick)
     {
-        return TravelCost(simulation, PlaneCodes.Physical, kindId, q, r, tick);
+        return TravelCost(simulation, PlaneCodes.Physical, entityId, q, r, tick);
     }
 
-    public float TravelCost(Simulation simulation, int planeCode, int kindId, int q, int r, int tick)
+    public float TravelCost(Simulation simulation, int planeCode, int entityId, int q, int r, int tick)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        return TravelCostProfile(simulation, planeCode, movementProfileId, q, r, tick);
+    }
+
+    public float TravelCostProfile(Simulation simulation, int planeCode, int movementProfileId, int q, int r, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
@@ -51,7 +94,7 @@ internal sealed partial class MovementProgramRuntime :
 
         return simulation.KernelData.Terrain.RoadAdjustedTravelCost(
             simulation.World.CellTerrainId(planeCode, q, r),
-            kindId,
+            movementProfileId,
             RoadQuality(planeCode, q, r, tick));
     }
 
@@ -59,6 +102,8 @@ internal sealed partial class MovementProgramRuntime :
         State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick);
 
     public int RoadTravelCount(int planeCode, int q, int r) => State.RoadTravelCount(planeCode, q, r);
+
+    internal void RecordTopologyChanged() => State.RecordTopologyChanged();
 
     public int SnapshotEventCount() => State.RoadCellCount;
 
@@ -92,7 +137,15 @@ internal sealed partial class MovementProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        _ = tick;
+        if (tick % LocalRoadMarkCadence == 0)
+        {
+            ReconcileRoadMarks(simulation, tick, LocalPathSegmentSize);
+        }
+
+        if (tick % RegionalRoadMarkCadence == 0)
+        {
+            ReconcileRoadMarks(simulation, tick, RegionalPathSegmentSize);
+        }
     }
 
     public MovementMoveResult Navigate(
@@ -143,7 +196,6 @@ internal sealed partial class MovementProgramRuntime :
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         ValidatePlane(planeCode);
         var world = simulation.World;
-        var actorKindId = world.EntityKindId(entityId);
         var fromQ = CurrentQ(world, entityId, planeCode);
         var fromR = CurrentR(world, entityId, planeCode);
         var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
@@ -154,7 +206,7 @@ internal sealed partial class MovementProgramRuntime :
         {
             var q = fromQ + DirectionQ(direction);
             var r = fromR + DirectionR(direction);
-            if (!CanEnter(simulation, planeCode, actorKindId, q, r))
+            if (!CanEnter(simulation, planeCode, entityId, q, r))
             {
                 continue;
             }
@@ -165,7 +217,7 @@ internal sealed partial class MovementProgramRuntime :
                 continue;
             }
 
-            var cost = TravelCost(simulation, planeCode, actorKindId, q, r, tick);
+            var cost = TravelCost(simulation, planeCode, entityId, q, r, tick);
             if (float.IsInfinity(cost) || cost <= 0f)
             {
                 continue;
@@ -262,7 +314,7 @@ internal sealed partial class MovementProgramRuntime :
             return 1f;
         }
 
-        return TravelCost(simulation, planeCode, simulation.World.EntityKindId(entityId), q, r, tick);
+        return TravelCost(simulation, planeCode, entityId, q, r, tick);
     }
 
     private bool MoveAllowed(
@@ -286,7 +338,7 @@ internal sealed partial class MovementProgramRuntime :
 
         return !float.IsInfinity(stepCost) &&
             stepCost > 0f &&
-            CanEnter(simulation, planeCode, simulation.World.EntityKindId(entityId), q, r);
+            CanEnter(simulation, planeCode, entityId, q, r);
     }
 
     private void ApplyTravelSurface(Simulation simulation, int planeCode, int q, int r, int tick)

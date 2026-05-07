@@ -45,7 +45,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int tick)
     {
         var planeCode = Data.PlaneCode(rule);
-        var actorKindId = simulation.World.EntityKindId(entityId);
         var scalars = EffectiveScalars(simulation.World, entityId, rule);
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
         var actorR = CurrentR(simulation.World, entityId, planeCode);
@@ -63,7 +62,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var r = actorR + dr;
                 if ((q == actorQ && r == actorR) ||
                     !CellTargetCoordinateAllowed(simulation.World, planeCode, q, r) ||
-                    !simulation.Movement.CanEnter(simulation, planeCode, actorKindId, q, r))
+                    !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r))
                 {
                     continue;
                 }
@@ -89,7 +88,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int tick)
     {
         var planeCode = Data.PlaneCode(rule);
-        var actorKindId = simulation.World.EntityKindId(entityId);
         var scalars = EffectiveScalars(simulation.World, entityId, rule);
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
         var actorR = CurrentR(simulation.World, entityId, planeCode);
@@ -112,7 +110,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
                 var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
                 if (!Data.TerrainAllowed(rule, terrainId) ||
-                    !simulation.Movement.CanEnter(simulation, planeCode, actorKindId, q, r))
+                    !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r))
                 {
                     continue;
                 }
@@ -345,12 +343,55 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int rule,
         int tick)
     {
+        var world = simulation.World;
         var planeCode = Data.PlaneCode(rule);
-        var actorKindId = simulation.World.EntityKindId(entityId);
-        var scalars = EffectiveScalars(simulation.World, entityId, rule);
-        var actorQ = CurrentQ(simulation.World, entityId, planeCode);
-        var actorR = CurrentR(simulation.World, entityId, planeCode);
-        var searchRadius = CellTargetSearchRadius(simulation.World, rule, TargetSelectorCodes.OtherMapValue);
+        var actorKindId = world.EntityKindId(entityId);
+        var scalars = EffectiveScalars(world, entityId, rule);
+        var actorQ = CurrentQ(world, entityId, planeCode);
+        var actorR = CurrentR(world, entityId, planeCode);
+        var searchRadius = CellTargetSearchRadius(world, rule, TargetSelectorCodes.OtherMapValue);
+        var scratchWidth = (searchRadius * 2) + 1;
+        if ((long)scratchWidth * scratchWidth <= ForeignInfluenceScratchCapacity)
+        {
+            return TryBuildForeignInfluenceCandidateFromInfluenceCells(
+                simulation,
+                entityId,
+                rule,
+                tick,
+                planeCode,
+                actorKindId,
+                scalars,
+                actorQ,
+                actorR,
+                searchRadius,
+                scratchWidth);
+        }
+
+        return TryBuildForeignInfluenceCandidateFromSearchCells(
+            simulation,
+            entityId,
+            rule,
+            tick,
+            planeCode,
+            actorKindId,
+            scalars,
+            actorQ,
+            actorR,
+            searchRadius);
+    }
+
+    private CandidateBuildResult TryBuildForeignInfluenceCandidateFromSearchCells(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick,
+        int planeCode,
+        int actorKindId,
+        EffectiveVerbScalars scalars,
+        int actorQ,
+        int actorR,
+        int searchRadius)
+    {
         var totalWeight = 0f;
         var sumAffordanceScore = 0f;
         var selected = default(VerbTargetCandidate);
@@ -394,6 +435,244 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         return new CandidateBuildResult(selected, sumAffordanceScore);
+    }
+
+    private CandidateBuildResult TryBuildForeignInfluenceCandidateFromInfluenceCells(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick,
+        int planeCode,
+        int actorKindId,
+        EffectiveVerbScalars scalars,
+        int actorQ,
+        int actorR,
+        int searchRadius,
+        int scratchWidth)
+    {
+        var epoch = BeginForeignInfluenceScratchEpoch();
+        PopulateForeignInfluenceScratch(
+            simulation.World,
+            entityId,
+            rule,
+            planeCode,
+            actorQ,
+            actorR,
+            searchRadius,
+            scratchWidth,
+            epoch);
+        return ScoreForeignInfluenceScratch(
+            simulation,
+            entityId,
+            rule,
+            tick,
+            planeCode,
+            actorKindId,
+            scalars,
+            actorQ,
+            actorR,
+            searchRadius,
+            scratchWidth,
+            epoch);
+    }
+
+    private int BeginForeignInfluenceScratchEpoch()
+    {
+        if (_foreignInfluenceScratchEpoch == int.MaxValue)
+        {
+            global::System.Array.Clear(_foreignInfluenceEpochScratch);
+            _foreignInfluenceScratchEpoch = 0;
+        }
+
+        _foreignInfluenceScratchEpoch++;
+        return _foreignInfluenceScratchEpoch;
+    }
+
+    private void PopulateForeignInfluenceScratch(
+        WorldState world,
+        int entityId,
+        int rule,
+        int planeCode,
+        int actorQ,
+        int actorR,
+        int searchRadius,
+        int scratchWidth,
+        int epoch)
+    {
+        for (var otherEntityId = 1; otherEntityId <= world.EntityHighWatermark; otherEntityId++)
+        {
+            if (otherEntityId == entityId || !world.EntityIsActive(otherEntityId))
+            {
+                continue;
+            }
+
+            AddForeignInfluenceCellsForEntity(
+                world,
+                entityId,
+                otherEntityId,
+                rule,
+                planeCode,
+                actorQ,
+                actorR,
+                searchRadius,
+                scratchWidth,
+                epoch);
+        }
+    }
+
+    private void AddForeignInfluenceCellsForEntity(
+        WorldState world,
+        int entityId,
+        int otherEntityId,
+        int rule,
+        int planeCode,
+        int actorQ,
+        int actorR,
+        int searchRadius,
+        int scratchWidth,
+        int epoch)
+    {
+        var cursor = world.InfluenceCells(otherEntityId, planeCode);
+        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var candidateInfluence))
+        {
+            if (!ForeignInfluenceScratchCellAllowed(world, planeCode, actorQ, actorR, q, r, searchRadius))
+            {
+                continue;
+            }
+
+            var slot = ForeignInfluenceScratchSlot(actorQ, actorR, q, r, searchRadius, scratchWidth);
+            if (_foreignInfluenceEpochScratch[slot] == epoch &&
+                candidateInfluence <= _foreignInfluenceValueScratch[slot])
+            {
+                continue;
+            }
+
+            if (!ForeignInfluenceTargetAllowed(world, entityId, otherEntityId, rule, candidateInfluence))
+            {
+                continue;
+            }
+
+            _foreignInfluenceEpochScratch[slot] = epoch;
+            _foreignInfluenceEntityScratch[slot] = otherEntityId;
+            _foreignInfluenceValueScratch[slot] = candidateInfluence;
+        }
+    }
+
+    private bool ForeignInfluenceScratchCellAllowed(
+        WorldState world,
+        int planeCode,
+        int actorQ,
+        int actorR,
+        int q,
+        int r,
+        int searchRadius) =>
+        HexDistance(actorQ, actorR, q, r) <= searchRadius &&
+        CellTargetCoordinateAllowed(world, planeCode, q, r);
+
+    private static int ForeignInfluenceScratchSlot(
+        int actorQ,
+        int actorR,
+        int q,
+        int r,
+        int searchRadius,
+        int scratchWidth)
+    {
+        var scratchQ = q - actorQ + searchRadius;
+        var scratchR = r - actorR + searchRadius;
+        return (scratchQ * scratchWidth) + scratchR;
+    }
+
+    private CandidateBuildResult ScoreForeignInfluenceScratch(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick,
+        int planeCode,
+        int actorKindId,
+        EffectiveVerbScalars scalars,
+        int actorQ,
+        int actorR,
+        int searchRadius,
+        int scratchWidth,
+        int epoch)
+    {
+        var totalWeight = 0f;
+        var sumAffordanceScore = 0f;
+        var selected = default(VerbTargetCandidate);
+        for (var dq = -searchRadius; dq <= searchRadius; dq++)
+        {
+            var minDr = global::System.Math.Max(-searchRadius, -dq - searchRadius);
+            var maxDr = global::System.Math.Min(searchRadius, -dq + searchRadius);
+            for (var dr = minDr; dr <= maxDr; dr++)
+            {
+                AddForeignInfluenceScratchCandidate(
+                    simulation,
+                    entityId,
+                    rule,
+                    tick,
+                    planeCode,
+                    actorKindId,
+                    scalars,
+                    actorQ,
+                    actorR,
+                    actorQ + dq,
+                    actorR + dr,
+                    searchRadius,
+                    scratchWidth,
+                    epoch,
+                    ref totalWeight,
+                    ref sumAffordanceScore,
+                    ref selected);
+            }
+        }
+
+        return new CandidateBuildResult(selected, sumAffordanceScore);
+    }
+
+    private void AddForeignInfluenceScratchCandidate(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick,
+        int planeCode,
+        int actorKindId,
+        EffectiveVerbScalars scalars,
+        int actorQ,
+        int actorR,
+        int q,
+        int r,
+        int searchRadius,
+        int scratchWidth,
+        int epoch,
+        ref float totalWeight,
+        ref float sumAffordanceScore,
+        ref VerbTargetCandidate selected)
+    {
+        var slot = ForeignInfluenceScratchSlot(actorQ, actorR, q, r, searchRadius, scratchWidth);
+        if (_foreignInfluenceEpochScratch[slot] != epoch)
+        {
+            return;
+        }
+
+        var influencerId = _foreignInfluenceEntityScratch[slot];
+        var influence = _foreignInfluenceValueScratch[slot];
+        var influencerKindId = simulation.World.EntityKindId(influencerId);
+        var presenceBias = Tuning.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor * (influence / 100f);
+        var distance = DistancePref(rule, TargetSelectorCodes.OtherMapValue, actorQ, actorR, q, r);
+        var saturationDivisor = CellSaturationDivisor(simulation, planeCode, q, r);
+        var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(influencerId);
+        var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
+        var baseWeight = scalars.Weight * (0.25f + presenceBias) * distance * saturationDivisor * recency;
+        var affordance = CombineAffordancesForInfluenceTarget(
+            actorKindId,
+            planeCode,
+            Data.OperationCode(rule),
+            influencerKindId,
+            AffordancePolarityCodes.Reduce,
+            influence);
+        sumAffordanceScore += affordance.Score;
+        var candidate = Candidate(rule, planeCode, influencerId, influencerKindId, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
+        ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
     }
 
     private static void ConsiderCandidate(

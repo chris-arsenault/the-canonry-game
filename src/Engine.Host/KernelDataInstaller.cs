@@ -11,6 +11,7 @@ internal static class KernelDataInstaller
         ArgumentNullException.ThrowIfNull(kernelData);
 
         InstallEntityData(context, kernelData.Entities);
+        InstallMovement(context, kernelData.Movement);
         InstallTerrain(context, kernelData.Terrain);
     }
 
@@ -50,17 +51,53 @@ internal static class KernelDataInstaller
                 terrain.RoadBuildMultiplier,
                 terrain.RoadSpeedMultiplier);
 
+            foreach (var profile in terrain.MovementProfiles)
+            {
+                context.RegisterTerrainMovementProfile(
+                    profile.TerrainId,
+                    profile.MovementProfileId,
+                    profile.MovementCost);
+            }
+
             foreach (var profile in terrain.KindProfiles)
             {
                 context.RegisterTerrainKindProfile(
                     profile.TerrainId,
                     profile.KindId,
                     profile.FieldFlags,
-                    profile.MovementCost,
                     profile.InfluenceMultiplier,
                     profile.ClaimCostMultiplier,
                     profile.ClaimChanceMultiplier);
             }
+        }
+    }
+
+    private static void InstallMovement(KernelConfigurationContext context, CompiledMovementData data)
+    {
+        foreach (var profile in data.Defaults)
+        {
+            context.RegisterDefaultMovementProfile(
+                profile.KindId,
+                profile.PlaneCode,
+                profile.MovementProfileId);
+        }
+
+        foreach (var profile in data.SubtypeRules)
+        {
+            context.RegisterSubtypeMovementProfile(
+                profile.KindId,
+                profile.SubtypeId,
+                profile.PlaneCode,
+                profile.MovementProfileId);
+        }
+
+        foreach (var profile in data.TraitRules)
+        {
+            context.RegisterTraitMovementProfile(
+                profile.KindId,
+                profile.TraitId,
+                profile.PlaneCode,
+                profile.MovementProfileId);
         }
     }
 }

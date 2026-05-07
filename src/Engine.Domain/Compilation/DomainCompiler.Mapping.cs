@@ -118,7 +118,8 @@ public static partial class DomainCompiler
 
     private static CompiledTerrainData BuildTerrainData(
         DomainConfig config,
-        DomainIdRegistry ids)
+        DomainIdRegistry ids,
+        Dictionary<string, int> movementProfileIds)
     {
         var terrains = new List<CompiledTerrainDefinition>();
         var boundaryGroups = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -134,10 +135,28 @@ public static partial class DomainCompiler
                 ClampNonNegative(terrain.ClaimChanceMultiplier),
                 ClampNonNegative(terrain.RoadBuildMultiplier),
                 ClampAtLeast(terrain.RoadSpeedMultiplier, 1f),
+                CompileTerrainMovementProfiles(terrainId, terrain.MovementProfiles, movementProfileIds),
                 CompileTerrainKindProfiles(terrainId, terrain.KindProfiles, ids)));
         }
 
         return new CompiledTerrainData { Terrains = terrains };
+    }
+
+    private static List<CompiledTerrainMovementProfileDefinition> CompileTerrainMovementProfiles(
+        int terrainId,
+        IReadOnlyList<TerrainMovementProfileConfig> profiles,
+        Dictionary<string, int> movementProfileIds)
+    {
+        var compiled = new List<CompiledTerrainMovementProfileDefinition>(profiles.Count);
+        foreach (var profile in profiles)
+        {
+            compiled.Add(new CompiledTerrainMovementProfileDefinition(
+                terrainId,
+                ResolveMovementProfileId(profile.Profile, movementProfileIds),
+                ClampNonNegative(profile.MovementCost)));
+        }
+
+        return compiled;
     }
 
     private static List<CompiledTerrainKindProfileDefinition> CompileTerrainKindProfiles(
@@ -158,7 +177,6 @@ public static partial class DomainCompiler
                 terrainId,
                 ids.KindIdOf(profile.Kind).Value,
                 fieldFlags,
-                ClampNonNegative(profile.MovementCost ?? 0f),
                 ClampNonNegative(profile.InfluenceMultiplier ?? 0f),
                 ClampNonNegative(profile.ClaimCostMultiplier ?? 0f),
                 ClampNonNegative(profile.ClaimChanceMultiplier ?? 0f)));
@@ -170,11 +188,6 @@ public static partial class DomainCompiler
     private static int TerrainKindProfileFieldFlags(TerrainKindProfileConfig profile)
     {
         var flags = 0;
-        if (profile.MovementCost.HasValue)
-        {
-            flags |= TerrainKindProfileFieldCodes.MovementCost;
-        }
-
         if (profile.InfluenceMultiplier.HasValue)
         {
             flags |= TerrainKindProfileFieldCodes.InfluenceMultiplier;

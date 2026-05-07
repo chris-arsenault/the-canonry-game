@@ -28,6 +28,9 @@ public sealed class DomainConfig
     /// <summary>Terrain definitions used by world generation and startup seeding.</summary>
     public required IReadOnlyList<TerrainConfig> Terrains { get; init; }
 
+    /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
+    public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
+
     /// <summary>Culture definitions.</summary>
     public required IReadOnlyList<CultureConfig> Cultures { get; init; }
 
@@ -84,6 +87,7 @@ public sealed class KindConfig
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required HealthConfig Health { get; init; }
     public IReadOnlyList<TraitConfig> Traits { get; init; } = [];
+    public MovementProfileAssignmentConfig MovementProfiles { get; init; } = new();
 
     /// <summary>
     /// Design-time prose: what this kind represents in the world — distinct from
@@ -181,13 +185,47 @@ public sealed class TerrainConfig
     public float ClaimChanceMultiplier { get; init; } = 1f;
     public float RoadBuildMultiplier { get; init; } = 1f;
     public float RoadSpeedMultiplier { get; init; } = 1f;
+    public IReadOnlyList<TerrainMovementProfileConfig> MovementProfiles { get; init; } = [];
     public IReadOnlyList<TerrainKindProfileConfig> KindProfiles { get; init; } = [];
+}
+
+public sealed class MovementProfileConfig
+{
+    public required string Name { get; init; }
+    public string? DisplayName { get; init; }
+}
+
+public sealed class MovementProfileAssignmentConfig
+{
+    public string? PhysicalDefault { get; init; }
+    public string? SemanticDefault { get; init; }
+    public IReadOnlyList<MovementProfileSubtypeRuleConfig> SubtypeRules { get; init; } = [];
+    public IReadOnlyList<MovementProfileTraitRuleConfig> TraitRules { get; init; } = [];
+}
+
+public sealed class MovementProfileSubtypeRuleConfig
+{
+    public required string Subtype { get; init; }
+    public string? PhysicalProfile { get; init; }
+    public string? SemanticProfile { get; init; }
+}
+
+public sealed class MovementProfileTraitRuleConfig
+{
+    public required string Trait { get; init; }
+    public string? PhysicalProfile { get; init; }
+    public string? SemanticProfile { get; init; }
+}
+
+public sealed class TerrainMovementProfileConfig
+{
+    public required string Profile { get; init; }
+    public required float MovementCost { get; init; }
 }
 
 public sealed class TerrainKindProfileConfig
 {
     public required EntityKind Kind { get; init; }
-    public float? MovementCost { get; init; }
     public float? InfluenceMultiplier { get; init; }
     public float? ClaimCostMultiplier { get; init; }
     public float? ClaimChanceMultiplier { get; init; }

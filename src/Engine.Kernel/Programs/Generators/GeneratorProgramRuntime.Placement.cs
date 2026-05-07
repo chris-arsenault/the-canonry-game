@@ -26,6 +26,7 @@ internal sealed partial class GeneratorProgramRuntime
         int anchorEntityId,
         int planeCode,
         int producedSlot,
+        int producedSubtypeId,
         int placementCode,
         int minRadius,
         int maxRadius,
@@ -39,12 +40,17 @@ internal sealed partial class GeneratorProgramRuntime
         var originR = planeCode == PlaneCodes.Physical
             ? world.EntityPhysicalR(anchorEntityId)
             : world.EntitySemanticR(anchorEntityId);
+        var movementProfileId = simulation.Movement.MovementProfileFor(
+            _producedKindIds[producedSlot],
+            producedSubtypeId,
+            planeCode);
         if (placementCode == GeneratorPlacementCodes.Locality)
         {
             return FindTerrainAwareFreeHexInCoverage(
                 simulation,
                 planeCode,
                 producedSlot,
+                movementProfileId,
                 anchorEntityId,
                 originQ,
                 originR,
@@ -60,6 +66,7 @@ internal sealed partial class GeneratorProgramRuntime
                 simulation,
                 planeCode,
                 producedSlot,
+                movementProfileId,
                 originQ,
                 originR,
                 minRadius,
@@ -77,6 +84,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int anchorEntityId,
         int produced,
+        int producedSubtypeId,
         out int physicalQ,
         out int physicalR,
         out int semanticQ,
@@ -87,6 +95,7 @@ internal sealed partial class GeneratorProgramRuntime
                 anchorEntityId,
                 PlaneCodes.Physical,
                 produced,
+                producedSubtypeId,
                 _producedPhysicalPlacementCodes[produced],
                 _producedPhysicalPlacementMinRadii[produced],
                 _producedPhysicalPlacementMaxRadii[produced],
@@ -103,6 +112,7 @@ internal sealed partial class GeneratorProgramRuntime
             anchorEntityId,
             PlaneCodes.Semantic,
             produced,
+            producedSubtypeId,
             _producedSemanticPlacementCodes[produced],
             _producedSemanticPlacementMinRadii[produced],
             _producedSemanticPlacementMaxRadii[produced],

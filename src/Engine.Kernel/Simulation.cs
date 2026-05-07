@@ -76,7 +76,7 @@ internal sealed partial class Simulation : IKernel
 
     private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
         new(
-            new MovementProgramData(),
+            new MovementProgramData(options.MovementProfileRuleCapacity),
             new MovementProgramState(options.MovementCellCapacity),
             new MovementProgramScratch(options.MapCellCapacity));
 
@@ -389,11 +389,18 @@ internal sealed partial class Simulation : IKernel
         return terrainId;
     }
 
+    internal void RegisterTerrainMovementProfile(
+        int terrainId,
+        int movementProfileId,
+        float movementCost)
+    {
+        KernelData.Terrain.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
+    }
+
     internal void RegisterTerrainKindProfile(
         int terrainId,
         int kindId,
         int fieldFlags,
-        float movementCost,
         float influenceMultiplier,
         float claimCostMultiplier,
         float claimChanceMultiplier)
@@ -402,7 +409,6 @@ internal sealed partial class Simulation : IKernel
             terrainId,
             kindId,
             fieldFlags,
-            movementCost,
             influenceMultiplier,
             claimCostMultiplier,
             claimChanceMultiplier);

@@ -9,6 +9,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 
@@ -42,6 +43,16 @@ internal static class OccurrenceEntity
         MapSignal = MapSignal(radius: 2, capacity: 0.4f, support: 0.5f, threat: 0.5f,
             baseMass: 5f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.05f,
             healthScale: 0.04f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Rift,
+            subtypeRules:
+            [
+                MovementSubtypeRule("trade_conference", semantic: Profile.Commons),
+                MovementSubtypeRule("festival", semantic: Profile.Commons),
+                MovementSubtypeRule("plague", semantic: Profile.Veil),
+                MovementSubtypeRule("war", semantic: Profile.Rift),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.Witness, Terrain.Severance, Terrain.OpenField)),

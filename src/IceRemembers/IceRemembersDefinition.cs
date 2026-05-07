@@ -30,6 +30,7 @@ public static partial class IceRemembersDefinition
             Relationships = CreateRelationships(),
             Lifecycles = CreateLifecycles(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
+            MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,

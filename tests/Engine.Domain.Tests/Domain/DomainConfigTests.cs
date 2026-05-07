@@ -363,6 +363,7 @@ public class DomainConfigTests
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Terrains = config.Terrains,
+            MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

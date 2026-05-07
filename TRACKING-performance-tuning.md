@@ -8,9 +8,9 @@ This is a backlog, not an active task list. An item moves into a proposal
 only when Monte Carlo evidence shows tick budget, run wall-clock, or memory
 has moved past tolerance.
 
-## 1. Per-entity path cache for low-altitude movement
+## 1. Hierarchical route planning for low-altitude movement
 
-Status: open, not yet evidenced.
+Status: promoted to proposal.
 
 Origin: deferred Phase 2 of the unified movement API rework documented under
 the road-network fix. Phase 1 routes low-altitude verb stepping through the
@@ -19,21 +19,17 @@ prior A* caller (gambit movement) is rare; low-altitude movement runs every
 `IntentStepIntervalTicks` for every moving entity in the world, so per-step
 replanning may push the kernel's per-tick budget.
 
-Hypothesis: cache the planner's outbound cell sequence on per-entity state.
-Replan only when:
+Updated direction: do not treat per-entity full-path caching as the final
+form. Low-altitude movement can choose world-spanning entity-kind and
+relationship targets, and the intended map is materially larger than the
+current profile map. Prefer hierarchical route planning with segment-level
+route caches, discrete movement profiles, and cadence-based road
+reconciliation.
 
-- Intent target changes (new verb begins, target invalidated, dwell ends).
-- Entity drifted off the cached path.
-- Terrain on a cached cell changed, or `CanEnter` for the actor flipped.
-- Road quality on a cached cell changed enough to alter the planner's choice
-  (cheap proxy: epoch counter on relevant cells).
-- Defensive replan cooldown expires.
+Detailed proposal: `TRACKING-pathfinding-hierarchy.md`.
 
-Trigger: open the proposal once Phase 1 lands and MC tick-budget telemetry
-shows replanning is non-trivial. If MC shows no measurable per-tick cost
-increase from the Phase 1 wiring, this stays open indefinitely.
+Trigger: continue work once dotnet-trace hotspot analysis shows movement
+pathfinding remains non-trivial after the current loop-shape optimizations.
 
 Out of scope for this item:
-- Changes to the A* implementation itself.
-- Changes to road quality, decay, or `RoadAdjustedTravelCost`.
 - Changes to verb / gambit / generator authoring.

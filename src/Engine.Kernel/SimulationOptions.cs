@@ -31,6 +31,7 @@ internal sealed record SimulationOptions
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbItemCapacity { get; init; } = 1024;
     public int MovementCellCapacity { get; init; } = 32768;
+    public int MovementProfileRuleCapacity { get; init; } = 256;
     public int MapActivityCellCapacity { get; init; } = 32768;
     public int MapSignalCellCapacity { get; init; } = 32768;
     public int EffectRuleCapacity { get; init; } = 512;

@@ -381,10 +381,9 @@ public static class GeneratorRelationshipInstanceSelectionCodes
 
 public static class TerrainKindProfileFieldCodes
 {
-    public const int MovementCost = 1 << 0;
-    public const int InfluenceMultiplier = 1 << 1;
-    public const int ClaimCostMultiplier = 1 << 2;
-    public const int ClaimChanceMultiplier = 1 << 3;
+    public const int InfluenceMultiplier = 1 << 0;
+    public const int ClaimCostMultiplier = 1 << 1;
+    public const int ClaimChanceMultiplier = 1 << 2;
 }
 
 public static class ProvenanceProducerKindCodes

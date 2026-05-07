@@ -6,6 +6,32 @@ public sealed class KernelProgramStateArchitectureTests
     public void KernelProgramStates_UseBareArraysOnlyByExplicitException()
     {
         var root = FindRepoRoot();
+        var allowed = BareArrayStateExceptions();
+        var programDirectory = Path.Combine(root.FullName, "src", "Engine.Kernel", "Programs");
+        var violations = new List<string>();
+        foreach (var file in Directory.GetFiles(programDirectory, "*ProgramState.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            var relativePath = Path.GetRelativePath(root.FullName, file).Replace('\\', '/');
+            foreach (var line in File.ReadLines(file))
+            {
+                if (!TryParseBareArrayFieldName(line, out var fieldName))
+                {
+                    continue;
+                }
+
+                var key = $"{relativePath}:{fieldName}";
+                if (!allowed.Contains(key))
+                {
+                    violations.Add(key);
+                }
+            }
+        }
+
+        Assert.Empty(violations);
+    }
+
+    private static HashSet<string> BareArrayStateExceptions()
+    {
         var allowed = new HashSet<string>(StringComparer.Ordinal)
         {
             "src/Engine.Kernel/Programs/Gambits/GambitProgramState.cs:GambitEnabled",
@@ -37,27 +63,23 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/Relationships/RelationshipProgramState.cs:_contactTicks",
             "src/Engine.Kernel/Programs/Relationships/RelationshipProgramState.cs:_lastContactTicks",
         };
-        var programDirectory = Path.Combine(root.FullName, "src", "Engine.Kernel", "Programs");
-        var violations = new List<string>();
-        foreach (var file in Directory.GetFiles(programDirectory, "*ProgramState.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
-        {
-            var relativePath = Path.GetRelativePath(root.FullName, file).Replace('\\', '/');
-            foreach (var line in File.ReadLines(file))
-            {
-                if (!TryParseBareArrayFieldName(line, out var fieldName))
-                {
-                    continue;
-                }
+        AddMovementRouteCacheStateExceptions(allowed);
+        return allowed;
+    }
 
-                var key = $"{relativePath}:{fieldName}";
-                if (!allowed.Contains(key))
-                {
-                    violations.Add(key);
-                }
-            }
-        }
-
-        Assert.Empty(violations);
+    private static void AddMovementRouteCacheStateExceptions(HashSet<string> allowed)
+    {
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCachePlaneCodes");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheProfileIds");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheLevelSizes");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheSourceSegments");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheTargetSegments");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheTopologyEpochs");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheRoadEpochs");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheNextSegments");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCachePortalQ");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCachePortalR");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheOccupied");
     }
 
     private static bool TryParseBareArrayFieldName(string line, out string fieldName)

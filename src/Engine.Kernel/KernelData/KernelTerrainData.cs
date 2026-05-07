@@ -10,8 +10,8 @@ internal sealed partial class KernelTerrainData
     private readonly float[] _claimChanceMultipliers;
     private readonly float[] _roadBuildMultipliers;
     private readonly float[] _roadSpeedMultipliers;
+    private readonly PrimitiveFloatTable _movementProfileCosts;
     private readonly PrimitiveIntTable _kindProfileFlags;
-    private readonly PrimitiveFloatTable _kindMovementCosts;
     private readonly PrimitiveFloatTable _kindInfluenceMultipliers;
     private readonly PrimitiveFloatTable _kindClaimCostMultipliers;
     private readonly PrimitiveFloatTable _kindClaimChanceMultipliers;
@@ -28,8 +28,8 @@ internal sealed partial class KernelTerrainData
         _roadBuildMultipliers = new float[terrainIdCapacity + 1];
         _roadSpeedMultipliers = new float[terrainIdCapacity + 1];
         var overrideCapacity = global::System.Math.Max(16, terrainIdCapacity * 8);
+        _movementProfileCosts = new PrimitiveFloatTable(overrideCapacity);
         _kindProfileFlags = new PrimitiveIntTable(overrideCapacity);
-        _kindMovementCosts = new PrimitiveFloatTable(overrideCapacity);
         _kindInfluenceMultipliers = new PrimitiveFloatTable(overrideCapacity);
         _kindClaimCostMultipliers = new PrimitiveFloatTable(overrideCapacity);
         _kindClaimChanceMultipliers = new PrimitiveFloatTable(overrideCapacity);
@@ -73,11 +73,20 @@ internal sealed partial class KernelTerrainData
         _roadSpeedMultipliers[terrainId] = ClampAtLeast(roadSpeedMultiplier, 1f);
     }
 
+    public void RegisterTerrainMovementProfile(
+        int terrainId,
+        int movementProfileId,
+        float movementCost)
+    {
+        EnsureTerrain(terrainId);
+        ValidatePositive(movementProfileId);
+        _movementProfileCosts.Set(terrainId, movementProfileId, ClampNonNegative(movementCost));
+    }
+
     public void RegisterTerrainKindProfile(
         int terrainId,
         int kindId,
         int fieldFlags,
-        float movementCost,
         float influenceMultiplier,
         float claimCostMultiplier,
         float claimChanceMultiplier)
@@ -90,11 +99,6 @@ internal sealed partial class KernelTerrainData
         }
 
         _kindProfileFlags.Set(terrainId, kindId, fieldFlags);
-        if ((fieldFlags & TerrainKindProfileFieldCodes.MovementCost) != 0)
-        {
-            _kindMovementCosts.Set(terrainId, kindId, ClampNonNegative(movementCost));
-        }
-
         if ((fieldFlags & TerrainKindProfileFieldCodes.InfluenceMultiplier) != 0)
         {
             _kindInfluenceMultipliers.Set(terrainId, kindId, ClampNonNegative(influenceMultiplier));
@@ -117,22 +121,18 @@ internal sealed partial class KernelTerrainData
         return _boundaryGroupIds[terrainId];
     }
 
-    public bool CanEnter(int terrainId, int kindId) => TravelCost(terrainId, kindId) > 0f;
+    public bool CanEnter(int terrainId, int movementProfileId) => TravelCost(terrainId, movementProfileId) > 0f;
 
-    public float TravelCost(int terrainId, int kindId)
+    public float TravelCost(int terrainId, int movementProfileId)
     {
         EnsureTerrain(terrainId);
-        return KindProfileValue(
-            terrainId,
-            kindId,
-            TerrainKindProfileFieldCodes.MovementCost,
-            _kindMovementCosts,
-            _movementCosts[terrainId]);
+        ValidatePositive(movementProfileId);
+        return _movementProfileCosts.GetOrDefault(terrainId, movementProfileId, _movementCosts[terrainId]);
     }
 
-    public float RoadAdjustedTravelCost(int terrainId, int kindId, float roadQuality)
+    public float RoadAdjustedTravelCost(int terrainId, int movementProfileId, float roadQuality)
     {
-        var travelCost = TravelCost(terrainId, kindId);
+        var travelCost = TravelCost(terrainId, movementProfileId);
         if (travelCost <= 0f)
         {
             return float.PositiveInfinity;

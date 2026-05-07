@@ -134,6 +134,129 @@ public static partial class DomainCompiler
         };
     }
 
+    private static CompiledMovementData BuildMovementData(
+        DomainConfig config,
+        DomainIdRegistry ids,
+        Dictionary<string, int> movementProfileIds)
+    {
+        var defaults = new List<CompiledMovementProfileDefault>();
+        var subtypeRules = new List<CompiledMovementProfileSubtypeRule>();
+        var traitRules = new List<CompiledMovementProfileTraitRule>();
+        foreach (var (kind, kindConfig) in config.Kinds)
+        {
+            var kindId = ids.KindIdOf(kind).Value;
+            AddMovementProfileDefault(defaults, kindId, PlaneCodes.Physical, kindConfig.MovementProfiles.PhysicalDefault, movementProfileIds);
+            AddMovementProfileDefault(defaults, kindId, PlaneCodes.Semantic, kindConfig.MovementProfiles.SemanticDefault, movementProfileIds);
+            AddMovementProfileSubtypeRules(subtypeRules, kindId, kindConfig.MovementProfiles.SubtypeRules, ids, movementProfileIds);
+            AddMovementProfileTraitRules(traitRules, kindId, kindConfig.MovementProfiles.TraitRules, ids, movementProfileIds);
+        }
+
+        return new CompiledMovementData
+        {
+            Defaults = defaults,
+            SubtypeRules = subtypeRules,
+            TraitRules = traitRules,
+        };
+    }
+
+    private static void AddMovementProfileDefault(
+        List<CompiledMovementProfileDefault> defaults,
+        int kindId,
+        int planeCode,
+        string? profile,
+        Dictionary<string, int> movementProfileIds)
+    {
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return;
+        }
+
+        defaults.Add(new CompiledMovementProfileDefault(
+            kindId,
+            planeCode,
+            ResolveMovementProfileId(profile, movementProfileIds)));
+    }
+
+    private static void AddMovementProfileSubtypeRules(
+        List<CompiledMovementProfileSubtypeRule> rules,
+        int kindId,
+        IReadOnlyList<MovementProfileSubtypeRuleConfig> source,
+        DomainIdRegistry ids,
+        Dictionary<string, int> movementProfileIds)
+    {
+        foreach (var rule in source)
+        {
+            var subtypeId = ids.SubtypeIdOf(rule.Subtype).Value;
+            AddMovementProfileSubtypeRule(rules, kindId, subtypeId, PlaneCodes.Physical, rule.PhysicalProfile, movementProfileIds);
+            AddMovementProfileSubtypeRule(rules, kindId, subtypeId, PlaneCodes.Semantic, rule.SemanticProfile, movementProfileIds);
+        }
+    }
+
+    private static void AddMovementProfileSubtypeRule(
+        List<CompiledMovementProfileSubtypeRule> rules,
+        int kindId,
+        int subtypeId,
+        int planeCode,
+        string? profile,
+        Dictionary<string, int> movementProfileIds)
+    {
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return;
+        }
+
+        rules.Add(new CompiledMovementProfileSubtypeRule(
+            kindId,
+            subtypeId,
+            planeCode,
+            ResolveMovementProfileId(profile, movementProfileIds)));
+    }
+
+    private static void AddMovementProfileTraitRules(
+        List<CompiledMovementProfileTraitRule> rules,
+        int kindId,
+        IReadOnlyList<MovementProfileTraitRuleConfig> source,
+        DomainIdRegistry ids,
+        Dictionary<string, int> movementProfileIds)
+    {
+        foreach (var rule in source)
+        {
+            var traitId = ids.TraitIdOf(rule.Trait).Value;
+            AddMovementProfileTraitRule(rules, kindId, traitId, PlaneCodes.Physical, rule.PhysicalProfile, movementProfileIds);
+            AddMovementProfileTraitRule(rules, kindId, traitId, PlaneCodes.Semantic, rule.SemanticProfile, movementProfileIds);
+        }
+    }
+
+    private static void AddMovementProfileTraitRule(
+        List<CompiledMovementProfileTraitRule> rules,
+        int kindId,
+        int traitId,
+        int planeCode,
+        string? profile,
+        Dictionary<string, int> movementProfileIds)
+    {
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return;
+        }
+
+        rules.Add(new CompiledMovementProfileTraitRule(
+            kindId,
+            traitId,
+            planeCode,
+            ResolveMovementProfileId(profile, movementProfileIds)));
+    }
+
+    private static int ResolveMovementProfileId(string profile, Dictionary<string, int> movementProfileIds)
+    {
+        if (movementProfileIds.TryGetValue(profile, out var profileId))
+        {
+            return profileId;
+        }
+
+        throw new InvalidOperationException($"Unknown movement profile '{profile}'.");
+    }
+
     private static UpkeepProgram BuildUpkeepProgram(
         DomainConfig config,
         DomainIdRegistry ids)

@@ -9,6 +9,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Rel = IceRemembers.IceRemembersRelationship;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
@@ -44,6 +45,17 @@ internal static class ArtifactEntity
         MapSignal = MapSignal(radius: 1, capacity: 0.3f, support: 0.4f, threat: 0.2f,
             baseMass: 10f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.04f,
             healthScale: 0.08f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Veil,
+            subtypeRules:
+            [
+                MovementSubtypeRule("weapon", semantic: Profile.Rift),
+                MovementSubtypeRule("seal", semantic: Profile.Rift),
+                MovementSubtypeRule("instrument", semantic: Profile.Commons),
+                MovementSubtypeRule("relic", semantic: Profile.Commons),
+                MovementSubtypeRule("tome", semantic: Profile.Veil),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Crags, Terrain.Wastes, Terrain.Tundra),
             semanticDefault: Semantic(Terrain.Silence, Terrain.CavePocket, Terrain.OpenField),

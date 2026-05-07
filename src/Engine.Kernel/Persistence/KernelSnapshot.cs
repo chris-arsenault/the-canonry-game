@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 31;
+    private const int FormatVersion = 33;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -109,6 +109,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.LowAltitudeVerbRuleCapacity);
         writer.Write(options.LowAltitudeVerbItemCapacity);
         writer.Write(options.MovementCellCapacity);
+        writer.Write(options.MovementProfileRuleCapacity);
         writer.Write(options.MapActivityCellCapacity);
         writer.Write(options.MapSignalCellCapacity);
         writer.Write(options.EffectRuleCapacity);
@@ -241,6 +242,7 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeVerbRuleCapacity = reader.ReadInt32();
         values.LowAltitudeVerbItemCapacity = reader.ReadInt32();
         values.MovementCellCapacity = reader.ReadInt32();
+        values.MovementProfileRuleCapacity = reader.ReadInt32();
         values.MapActivityCellCapacity = reader.ReadInt32();
         values.MapSignalCellCapacity = reader.ReadInt32();
         values.EffectRuleCapacity = reader.ReadInt32();
@@ -369,6 +371,7 @@ internal static class KernelSnapshotOptions
             LowAltitudeVerbRuleCapacity = values.LowAltitudeVerbRuleCapacity,
             LowAltitudeVerbItemCapacity = values.LowAltitudeVerbItemCapacity,
             MovementCellCapacity = values.MovementCellCapacity,
+            MovementProfileRuleCapacity = values.MovementProfileRuleCapacity,
             MapActivityCellCapacity = values.MapActivityCellCapacity,
             MapSignalCellCapacity = values.MapSignalCellCapacity,
             EffectRuleCapacity = values.EffectRuleCapacity,
@@ -476,6 +479,7 @@ internal static class KernelSnapshotOptions
         public int LowAltitudeVerbRuleCapacity;
         public int LowAltitudeVerbItemCapacity;
         public int MovementCellCapacity;
+        public int MovementProfileRuleCapacity;
         public int MapActivityCellCapacity;
         public int MapSignalCellCapacity;
         public int EffectRuleCapacity;

@@ -9,6 +9,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 
@@ -42,6 +43,9 @@ internal static class TransportEntity
         MapSignal = MapSignal(radius: 2, capacity: 0.5f, support: 0.6f, threat: 0.4f,
             baseMass: 8f, coverageScale: 0f, influenceScale: 0.05f, activityScale: 0.06f,
             healthScale: 0.06f, attractorRadius: 2),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Wake,
+            semanticDefault: Profile.Commons),
         Placement = Placement(
             physicalDefault: Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf),
             semanticDefault: Semantic(Terrain.Breakaway, Terrain.OpenField, Terrain.Witness)),

@@ -4,24 +4,24 @@ using Engine.Eventing;
 
 internal sealed partial class Simulation
 {
-    internal bool PhysicalTerrainCanEnter(int kindId, int q, int r)
+    internal bool PhysicalTerrainCanEnterProfile(int movementProfileId, int q, int r)
     {
-        return TerrainCanEnter(PlaneCodes.Physical, kindId, q, r);
+        return TerrainCanEnterProfile(PlaneCodes.Physical, movementProfileId, q, r);
     }
 
-    internal bool TerrainCanEnter(int planeCode, int kindId, int q, int r)
+    internal bool TerrainCanEnterProfile(int planeCode, int movementProfileId, int q, int r)
     {
-        return Movement.CanEnter(this, planeCode, kindId, q, r);
+        return Movement.CanEnterProfile(this, planeCode, movementProfileId, q, r);
     }
 
-    internal float PhysicalTravelCost(int kindId, int q, int r, int tick)
+    internal float PhysicalTravelCostProfile(int movementProfileId, int q, int r, int tick)
     {
-        return TravelCost(PlaneCodes.Physical, kindId, q, r, tick);
+        return TravelCostProfile(PlaneCodes.Physical, movementProfileId, q, r, tick);
     }
 
-    internal float TravelCost(int planeCode, int kindId, int q, int r, int tick)
+    internal float TravelCostProfile(int planeCode, int movementProfileId, int q, int r, int tick)
     {
-        return Movement.TravelCost(this, planeCode, kindId, q, r, tick);
+        return Movement.TravelCostProfile(this, planeCode, movementProfileId, q, r, tick);
     }
 
     internal float PhysicalInfluenceMultiplier(int kindId, int q, int r)
@@ -115,6 +115,7 @@ internal sealed partial class Simulation
     {
         AssertExecutionSource();
         World.MaterializeCell(planeCode, q, r, terrainId, ownerEntityId, superregionId, continentId);
+        Movement.RecordTopologyChanged();
         WriteKernelEvent(KernelEvent.From(new MapCellStateChangedKernelEvent(
             CurrentTick,
             WorldVersion,
@@ -150,7 +151,13 @@ internal sealed partial class Simulation
 
     internal void SetCellState(int planeCode, int q, int r, int terrainId, int ownerEntityId, int tick)
     {
+        var wasKnown = World.CellIsKnown(planeCode, q, r);
+        var previousTerrainId = wasKnown ? World.CellTerrainId(planeCode, q, r) : 0;
         World.SetCellState(planeCode, q, r, terrainId, ownerEntityId, tick, _executionContext);
+        if (!wasKnown || previousTerrainId != terrainId)
+        {
+            Movement.RecordTopologyChanged();
+        }
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick)
@@ -170,6 +177,12 @@ internal sealed partial class Simulation
 
     internal void SetCellTerrain(int planeCode, int q, int r, int terrainId, int tick)
     {
+        var wasKnown = World.CellIsKnown(planeCode, q, r);
+        var previousTerrainId = wasKnown ? World.CellTerrainId(planeCode, q, r) : 0;
         World.SetCellTerrain(planeCode, q, r, terrainId, tick, _executionContext);
+        if (!wasKnown || previousTerrainId != terrainId)
+        {
+            Movement.RecordTopologyChanged();
+        }
     }
 }

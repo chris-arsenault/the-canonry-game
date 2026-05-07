@@ -337,6 +337,7 @@ internal sealed partial class GeneratorProgramRuntime
                 simulation,
                 placementAnchorId,
                 produced,
+                subtypeId,
                 out var physicalQ,
                 out var physicalR,
                 out var semanticQ,

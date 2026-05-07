@@ -9,6 +9,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
+using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Trait = IceRemembers.IceRemembersTraitId;
 
@@ -40,6 +41,14 @@ internal static class PointOfInterestEntity
         MapSignal = MapSignal(radius: 1, capacity: 0.6f, support: 0.5f, threat: 0f,
             baseMass: 4f, coverageScale: 0f, influenceScale: 0.03f, activityScale: 0.02f,
             healthScale: 0.04f, attractorRadius: 1),
+        MovementProfiles = MovementProfiles(
+            physicalDefault: Profile.Trail,
+            semanticDefault: Profile.Commons,
+            subtypeRules:
+            [
+                MovementSubtypeRule("shoal", physical: Profile.Shore),
+                MovementSubtypeRule("bloom", physical: Profile.Shore, semantic: Profile.Rift),
+            ]),
         Placement = Placement(
             physicalDefault: Land(Terrain.Tundra, Terrain.Crags, Terrain.Ice),
             semanticDefault: Semantic(Terrain.Witness, Terrain.OpenField, Terrain.Lineage),

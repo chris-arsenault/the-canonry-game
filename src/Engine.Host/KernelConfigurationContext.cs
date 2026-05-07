@@ -77,7 +77,6 @@ internal sealed class KernelConfigurationContext
         int terrainId,
         int kindId,
         int fieldFlags,
-        float movementCost,
         float influenceMultiplier,
         float claimCostMultiplier,
         float claimChanceMultiplier) =>
@@ -85,10 +84,35 @@ internal sealed class KernelConfigurationContext
             terrainId,
             kindId,
             fieldFlags,
-            movementCost,
             influenceMultiplier,
             claimCostMultiplier,
             claimChanceMultiplier);
+
+    public void RegisterTerrainMovementProfile(
+        int terrainId,
+        int movementProfileId,
+        float movementCost) =>
+        _kernel.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
+
+    public void RegisterDefaultMovementProfile(
+        int kindId,
+        int planeCode,
+        int movementProfileId) =>
+        _kernel.Movement.RegisterDefaultMovementProfile(kindId, planeCode, movementProfileId);
+
+    public void RegisterSubtypeMovementProfile(
+        int kindId,
+        int subtypeId,
+        int planeCode,
+        int movementProfileId) =>
+        _kernel.Movement.RegisterSubtypeMovementProfile(kindId, subtypeId, planeCode, movementProfileId);
+
+    public void RegisterTraitMovementProfile(
+        int kindId,
+        int traitId,
+        int planeCode,
+        int movementProfileId) =>
+        _kernel.Movement.RegisterTraitMovementProfile(kindId, traitId, planeCode, movementProfileId);
 
     public int RegisterAttribute(
         int kindId,
