@@ -3,6 +3,10 @@
 Monte Carlo batches are registered evidence. Do not create, rename, edit, or
 delete Monte Carlo registry or manifest files by hand.
 
+Use Monte Carlo output for simulation behavior and balance evidence. For CPU
+hotspot analysis, use [performance testing](../methodology/performance-testing.md)
+instead of adding profiling telemetry to the Monte Carlo batch.
+
 ## Registered Runs
 
 Every new batch requires a unique human-readable run id:

@@ -7,9 +7,6 @@ public static class TelemetrySymbolKinds
     public const int MapGenerationPhase = 1003;
     public const int MapGenerationDescription = 1004;
     public const int MapGenerationReason = 1005;
-    public const int PerformancePhase = 1006;
-    public const int PerformanceSystem = 1007;
-    public const int PerformanceExportStep = 1008;
     public const int BehaviorProvider = 1009;
     public const int BehaviorPreconditionDiagnostic = 1010;
     public const int EntityStatus = 1011;

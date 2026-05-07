@@ -108,31 +108,6 @@ public sealed class ObservabilitySmokeTests
         Assert.NotEmpty(recorder.Batch.RelationshipEvents);
     }
 
-    [Fact]
-    public void PerformanceRecorder_CapturesTickTimings()
-    {
-        using var runtime = CreateRuntime(seed: 7101);
-        var host = runtime.Host;
-        using var recorder = new KernelPerformanceRecorder(
-            host.Events,
-            "perf-run",
-            requestedTicks: 5,
-            seed: 7101);
-
-        for (var i = 0; i < 5; i++)
-        {
-            var started = DateTime.UtcNow;
-            var advanced = host.Time.AdvanceSingleStep(1);
-            Assert.Equal(1, advanced);
-            recorder.RecordTick(host.CurrentTick, DateTime.UtcNow - started);
-        }
-
-        recorder.Complete(processedTicks: 5);
-
-        Assert.Single(recorder.Batch.RunPerformance);
-        Assert.Equal(5, recorder.Batch.TickPerformance.Count);
-    }
-
     private static KernelRuntime CreateRuntime(int seed) =>
         IceRemembersRuntime.CreateRuntimeFactory().Start(new KernelStartRequest(
             IceRemembersRuntime.DomainName,

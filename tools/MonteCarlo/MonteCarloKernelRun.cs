@@ -24,7 +24,6 @@ internal readonly record struct MonteCarloWorldSeed(
 
 internal readonly record struct MonteCarloRunExecutionResult(
     long StateRowsWritten,
-    long PerformanceRowsWritten,
     int ProcessedTicks,
     MonteCarloRunSummary Summary);
 

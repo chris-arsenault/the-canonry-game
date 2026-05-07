@@ -21,12 +21,8 @@ internal sealed partial record MonteCarloOptions(
     int Ticks,
     int Seed,
     int EntitySnapshotCadence,
-    int PerformanceSampleCadence,
-    int SystemPerformanceSampleCadence,
     string ArtifactRoot,
     bool SkipAnalysis,
-    bool PerformanceMode,
-    bool IncludeStateTelemetry,
     bool DisableEntitySnapshots,
     bool TraceEnabled,
     string? ConfigFilePath,
@@ -37,15 +33,14 @@ internal sealed partial record MonteCarloOptions(
         : Path.Combine(ArtifactRoot, RunId);
 
     public string RegistryPath => Path.Combine(ArtifactRoot, "registry.duckdb");
-    public bool CollectStateTelemetry => !PerformanceMode || IncludeStateTelemetry || TraceEnabled;
-    public bool ShouldAnalyze => Command == MonteCarloCommandKind.Run && !SkipAnalysis && CollectStateTelemetry;
+    public bool ShouldAnalyze => Command == MonteCarloCommandKind.Run && !SkipAnalysis;
 
     public static MonteCarloOptions Parse(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
         var command = ParseCommand(args, out var optionArgs);
-        RejectLegacyPathArguments(optionArgs);
+        RejectUnsupportedArguments(optionArgs);
 
         var runId = ReadString(optionArgs, "--run-id", null);
         if (runId is not null)
@@ -71,12 +66,8 @@ internal sealed partial record MonteCarloOptions(
             Ticks: ReadInt(optionArgs, "--ticks", 500),
             Seed: ReadInt(optionArgs, "--seed", 1000),
             EntitySnapshotCadence: ReadInt(optionArgs, "--entity-snapshot-cadence", 25),
-            PerformanceSampleCadence: ReadInt(optionArgs, "--perf-sample-cadence", 1),
-            SystemPerformanceSampleCadence: ReadInt(optionArgs, "--system-perf-sample-cadence", 1),
             ArtifactRoot: artifactRoot,
             SkipAnalysis: HasFlag(optionArgs, "--no-analysis"),
-            PerformanceMode: HasFlag(optionArgs, "--perf"),
-            IncludeStateTelemetry: HasFlag(optionArgs, "--include-state-telemetry"),
             DisableEntitySnapshots: HasFlag(optionArgs, "--disable-entity-snapshots"),
             TraceEnabled: HasFlag(optionArgs, "--trace"),
             ConfigFilePath: ReadString(optionArgs, "--config-file", null),
@@ -132,7 +123,7 @@ internal sealed partial record MonteCarloOptions(
         };
     }
 
-    private static void RejectLegacyPathArguments(string[] args)
+    private static void RejectUnsupportedArguments(string[] args)
     {
         if (ReadString(args, "--out", null) is not null)
         {
@@ -142,6 +133,16 @@ internal sealed partial record MonteCarloOptions(
         if (ReadString(args, "--analyze", null) is not null)
         {
             throw new ArgumentException("Use 'analyze --run-id <id>' instead of --analyze.", nameof(args));
+        }
+
+        if (HasFlag(args, "--perf") ||
+            HasFlag(args, "--include-state-telemetry") ||
+            ReadString(args, "--perf-sample-cadence", null) is not null ||
+            ReadString(args, "--system-perf-sample-cadence", null) is not null)
+        {
+            throw new ArgumentException(
+                "Monte Carlo --perf mode has been removed. Use docs/methodology/performance-testing.md for dotnet-trace profiling.",
+                nameof(args));
         }
     }
 

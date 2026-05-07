@@ -94,12 +94,6 @@ internal static class TelemetrySymbolIds
         AddFixedCodeSymbols(batch.Symbols);
     }
 
-    public static void AddFixedCodeSymbols(PerformanceTelemetryBatch batch)
-    {
-        ArgumentNullException.ThrowIfNull(batch);
-        AddFixedCodeSymbols(batch.Symbols);
-    }
-
     private static void AddFixedCodeSymbols(Collection<SymbolRow> symbols)
     {
         symbols.Add(CreateWithId(TelemetrySymbolKinds.EntityStatus, EntityStatusCodes.Active, "active", "Active"));

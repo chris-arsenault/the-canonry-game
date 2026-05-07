@@ -162,84 +162,15 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
-    public void Options_PerfModeDisablesStateTelemetryAndAnalysisByDefault()
+    public void Options_RejectsRemovedPerfMode()
     {
-        var options = MonteCarloOptions.Parse([
+        var error = Assert.Throws<ArgumentException>(() => MonteCarloOptions.Parse([
             "run",
             "--run-id", "perf-mode-test",
-            "--runs", "1",
-            "--ticks", "3",
-            "--seed", "7200",
             "--perf",
-        ]);
+        ]));
 
-        Assert.Equal(1, options.Runs);
-        Assert.Equal(3, options.Ticks);
-        Assert.Equal(7200, options.Seed);
-        Assert.True(options.PerformanceMode);
-        Assert.False(options.CollectStateTelemetry);
-        Assert.False(options.ShouldAnalyze);
-    }
-
-    [Fact]
-    public void PerformanceTelemetryStore_WritesLeanPerformanceParquetSet()
-    {
-        var batchDirectory = CreateTempDirectory();
-
-        using var store = new DuckDbPerformanceTelemetryStore(batchDirectory);
-        var batch = new PerformanceTelemetryBatch();
-        batch.RunPerformance.Add(new RunPerformanceRow(
-            RunId: 1,
-            Seed: 7200,
-            DomainId: TelemetrySymbolIds.StableId(TelemetrySymbolKinds.Domain, "ice_remembers"),
-            StartedUnixMilliseconds: 10,
-            CompletedUnixMilliseconds: 20,
-            RequestedTicks: 3,
-            ProcessedTicks: 3,
-            TotalSimulationMilliseconds: 1,
-            AverageSampledTickMilliseconds: 1,
-            P95SampledTickMilliseconds: 1,
-            MaxSampledTickMilliseconds: 1,
-            Gen0Collections: 0,
-            Gen1Collections: 0,
-            Gen2Collections: 0,
-            PeakManagedMemoryBytes: 1024,
-            TickSampleCadence: 1,
-            SystemSampleCadence: 1,
-            FullTelemetryEnabled: false));
-        batch.TickPerformance.Add(new TickPerformanceRow(
-            RunId: 1,
-            Tick: 1,
-            ElapsedMilliseconds: 1,
-            ActiveEntities: 2,
-            ActiveRelationships: 3,
-            GeneratorEvents: 0,
-            TotalMessages: 0,
-            ManagedMemoryBytes: 1024));
-        batch.SystemPerformance.Add(new SystemPerformanceRow(
-            RunId: 1,
-            Tick: 1,
-            PhaseId: TelemetrySymbolIds.StableId(TelemetrySymbolKinds.PerformancePhase, "advance"),
-            SystemId: TelemetrySymbolIds.StableId(TelemetrySymbolKinds.PerformanceSystem, "test_system"),
-            ElapsedMilliseconds: 1));
-        store.Append(batch);
-        store.ExportCoreParquet();
-        store.AppendExport(new ExportPerformanceRow(
-            ExportId: 1,
-            StepId: TelemetrySymbolIds.StableId(TelemetrySymbolKinds.PerformanceExportStep, "performance_parquet"),
-            StartedUnixMilliseconds: 20,
-            CompletedUnixMilliseconds: 21,
-            ElapsedMilliseconds: 1,
-            RowsWritten: 3), "performance_parquet");
-        store.ExportExportPerformanceParquet();
-
-        Assert.True(File.Exists(Path.Combine(batchDirectory, "run_perf.parquet")));
-        Assert.True(File.Exists(Path.Combine(batchDirectory, "tick_perf.parquet")));
-        Assert.True(File.Exists(Path.Combine(batchDirectory, "system_perf.parquet")));
-        Assert.True(File.Exists(Path.Combine(batchDirectory, "export_perf.parquet")));
-        Assert.True(File.Exists(Path.Combine(batchDirectory, "performance_symbols.parquet")));
-        Assert.False(File.Exists(Path.Combine(batchDirectory, "tick_snapshots.parquet")));
-        Assert.False(Directory.Exists(Path.Combine(batchDirectory, "analysis")));
+        Assert.Contains("removed", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -265,20 +196,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         ]);
 
         Assert.Equal("kernel-tuning.toml", options.ConfigFilePath);
-    }
-
-    [Fact]
-    public void Options_TraceKeepsStateTelemetryEnabledInPerfMode()
-    {
-        var options = MonteCarloOptions.Parse([
-            "run",
-            "--run-id", "perf-trace-test",
-            "--perf",
-            "--trace",
-        ]);
-
-        Assert.True(options.TraceEnabled);
-        Assert.True(options.CollectStateTelemetry);
     }
 
     [Fact]

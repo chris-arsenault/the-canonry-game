@@ -16,6 +16,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="TheCanonryGame.Game" />
     <InternalsVisibleTo Include="MonteCarlo" />
+    <InternalsVisibleTo Include="KernelProfile" />
     <InternalsVisibleTo Include="Engine.Domain.Tests" />
     <InternalsVisibleTo Include="Engine.Host.Tests" />
     <InternalsVisibleTo Include="Engine.Observability.Tests" />

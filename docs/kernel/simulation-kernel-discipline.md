@@ -72,7 +72,7 @@ Allowed outside the simulation kernel:
 - debug traces
 - logs
 - Monte Carlo exports
-- profiler summaries
+- profiler analysis
 - narrative text
 - human-readable analysis files
 
@@ -183,7 +183,7 @@ Allowed off-thread work:
 - log writing
 - Monte Carlo parquet/CSV export
 - batch analysis
-- profiler/perf aggregation
+- profiler analysis
 - activity computation from immutable snapshots
 - pathfinding/scoring batches that return primitive deltas or intents
 
@@ -199,7 +199,7 @@ return `PlanIntent` records, but the sim thread decides whether the source world
 version is still current and whether the intent remains legal.
 
 Async work belongs on the consumer side of the primitive event boundary. UI,
-logs, telemetry, profiler aggregation, Monte Carlo export, debug trace building,
+logs, telemetry, profiler analysis, Monte Carlo export, debug trace building,
 and plugin services should run as independent consumers. The kernel remains
 synchronous and deterministic; consumers are asynchronous and independently
 paced.
