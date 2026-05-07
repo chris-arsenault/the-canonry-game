@@ -33,9 +33,32 @@ Generators place entities on the physical and semantic planes. Placement may be
 near a target, across the map, inside a region, or based on other authored
 placement strategies.
 
+Placement uses the same plane-aware kernel placement model for physical and
+semantic coordinates. Area placement searches an authored radius band around a
+point; locality placement searches inside the target locality. The old
+semantic/physical shortcuts are not separate placement systems.
+
+Produced entities can author preferred and allowed terrain per plane. Allowed
+terrain is a hard filter; preferred terrain biases scored candidates after
+locality, radius, occupancy, semantic bounds, and coverage constraints pass.
 For physical regions and coverage, placement must respect terrain and named
 coverage rules. For semantic placement, entities are placed within the bounded
-semantic plane.
+semantic plane against semantic terrain.
+
+If no legal placement candidate exists, the generator fire fails cleanly and
+does not consume pulse budget. This keeps invalid placement from suppressing
+later valid fires inside the same pulse window.
+
+## Pulse Budget
+
+Generators are evaluated every tick, but fire budget is reset by pulse windows.
+The default tuning is `PulseWidthTicks = 25` and `FiresPerPulse = 1`. A
+generator can fire on any tick inside the current pulse window while budget
+remains, instead of only on an exact modulo boundary.
+
+When multiple generators are eligible, selection is weighted by authored pulse
+weight. Fire budget limits how many successful fires can occur in one window;
+it does not increase the low-altitude tick frequency.
 
 ## Preconditions
 

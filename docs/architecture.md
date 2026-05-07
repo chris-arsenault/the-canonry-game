@@ -94,7 +94,8 @@ The kernel world contains:
 
 - entities, health, traits, status, physical and semantic coordinates;
 - relationships and relationship strength;
-- physical map cells, terrain, named coverage, and map influence layers;
+- physical and semantic map cells, terrain, named coverage, roads, and map
+  influence layers;
 - provenance invocation/output history for high-altitude and authored effects;
 - program data/state/scratch for each registered kernel program.
 

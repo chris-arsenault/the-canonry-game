@@ -13,10 +13,11 @@ content is in `src/IceRemembers/IceRemembersGeneratorDefinition.cs`.
 ## What generators are
 
 A generator is a **world event that spawns a pre-wired package of entities
-on a pulse**. Each pulse, the system picks one applicable generator and
-fires it. They are the mechanism by which the simulation introduces new
-actors, factions, settlements, and artifacts over time, rather than
-starting with a fixed census and only losing pieces.
+inside a pulse-window budget**. The runtime evaluates generators every tick and
+fires an applicable generator while the current pulse window still has fire
+budget. Generators are the mechanism by which the simulation introduces new
+actors, factions, settlements, and artifacts over time, rather than starting
+with a fixed census and only losing pieces.
 
 A generator is not just "spawn a penguin" — it spawns **a bundle** (entities +
 relationships + placement), because the interesting narrative units are
@@ -61,20 +62,28 @@ meaning.
 world condition that enables repeat firing and the spend, transform, or lock
 that prevents immediate repetition.
 
-Placement is automatic: produced entities go *on* the target hex, *near*
-it, or — with `AllowWilderness` — on a free hex within the target region.
-Both physical and semantic hex coordinates are assigned.
+Placement is automatic but terrain-aware. Produced entities receive independent
+physical and semantic coordinates. Each plane can use locality placement or an
+area search around an anchor point, and each produced entity can author
+preferred and allowed terrain. Allowed terrain is a hard filter; preferred
+terrain biases scored candidates after locality, radius, occupancy, semantic
+bounds, and coverage constraints pass.
 
 ## Pulse model
 
-* Every 25 ticks the system asks: *which generators are applicable
-somewhere right now?*
+* The generator runtime evaluates every tick.
+* A pulse window resets fire budget. Default tuning is
+`PulseWidthTicks = 25` and `FiresPerPulse = 1`.
+* A generator may fire on any tick inside the current pulse window while
+fire budget remains.
 * Applicable = on the tableau AND has at least one target entity whose
 gates pass.
-* **One winner fires per pulse**, weighted-random by `PulseWeight` — NOT
-by how many targets it has. (Otherwise a generator targeting settlements
-would crowd out one targeting factions just because there are more
-settlements.)
+* Within available fire budget, one eligible generator candidate is selected
+weighted-random by `PulseWeight` — NOT by how many targets it has. Otherwise a
+generator targeting settlements would crowd out one targeting factions just
+because there are more settlements.
+* If a selected generator cannot legally place its produced entities, that fire
+fails cleanly and does not consume the pulse window's fire budget.
 * Tableau-gating is the whole point: remove the generator's card → it
 stops being applicable, even if world state would otherwise trigger it.
 This is "your deck defines the world's nature" in action.
@@ -117,14 +126,15 @@ is probably not a generator — it's an action.
 generator cannot depend on relationships that do not exist in the
 seed unless some earlier generator in the active set can create them.
 
-## Runtime preconditions (per pulse)
+## Runtime preconditions
 
 * Target entity must be `Active` (not Historical).
 * Target subtype must match if filter present.
 * Required target relationships must exist.
 * Required relationship strength thresholds must pass when authored.
 * `MaxRunsPerSim` not exceeded.
-* For `AllowWilderness`: region must have a free physical hex nearby.
+* Placement constraints must have at least one valid physical and semantic
+  candidate for every produced entity.
 
 Relationship strength should be the default numeric gate. For example, a
 generator or gambit around cleansing should require a strong relevant

@@ -3,12 +3,25 @@
 The map is the physical substrate and one half of placement. The other half is
 the semantic plane.
 
-## Physical Map
+## Physical And Semantic Maps
 
 The physical map is a hex grid with Ice Remembers terrain vocabulary: shelf,
 wastes, tundra, ice, hot springs, ocean, reef, scar, and related variants.
 Procedural generation creates terrain-aware seeds rather than full-cover
 placeholder partitions.
+
+The semantic plane is an analogous map model, not a mirror of the physical
+map. It has the same plane-aware storage, movement, influence, road, coverage,
+superregion, and continent surfaces, but its coordinates and terrain mean
+conceptual position rather than physical location. Physical `(6, 5)` and
+semantic `(6, 5)` have no direct implied relationship.
+
+Semantic terrain is first-class Ice Remembers terrain: lineage, yoke, witness,
+silence, severance, breakaway, beacon spire, taboo ridge, cave pocket, open
+field, and related authored media. Semantic terrain changes movement cost,
+enterability, influence propagation, claim viability, and road formation just
+as physical terrain does, with semantic interpretation instead of physical
+material.
 
 Named regions are physical coverage. There is no separate concept of anonymous
 partition plus local named coverage. A region is the named geographic coverage.
@@ -43,16 +56,21 @@ memory, and affinity.
 
 ## Placement
 
-Generators can place entities:
+Generators place entities independently on the physical and semantic planes:
 
-- near a target
-- across the map
-- in a target region
-- by resolving an existing target or creating one if allowed
+- in a locality;
+- in an authored area around a point, including near, on, or far/across shapes;
+- by resolving an existing target or creating one if allowed.
 
 Physical and semantic placement are independent. A splinter faction may be near
 physically but distant semantically; a colony may be far physically but close
 semantically.
+
+Placement is terrain-aware on both planes. Authored allowed terrain is a hard
+filter. Authored preferred terrain biases scored placement after locality,
+radius, occupancy, semantic bounds, and coverage constraints are applied.
+Generator placement failure rejects the fire instead of consuming generator
+pulse budget.
 
 ## Quality Metrics
 

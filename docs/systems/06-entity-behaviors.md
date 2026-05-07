@@ -147,6 +147,13 @@ shared decision-modifier path. Gambit-specific code owns direct target choice,
 score/reward evaluation, cooldowns, success rolls, and ordered operation
 sequencing.
 
+Low-altitude verbs and gambits do not yet share one activity lane or action
+budget. The same entity can perform ordinary low-altitude work and a gambit in
+the same tick, and multiple movement sources can request movement through the
+movement program independently. Treat same-tick contradictions as analysis
+targets and future activity-lane design work, not as evidence that the removed
+process deck should return.
+
 ## Non-Goals
 
 Entity behavior should not reintroduce the removed process deck under a new

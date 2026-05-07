@@ -15,6 +15,7 @@ Each active generator or gambit should expose:
 - preconditions
 - target requirements
 - outputs
+- produced entities and relationship changes from compiled definitions
 - last run tick
 - execution count
 - recent failure or waiting reason

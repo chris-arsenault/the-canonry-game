@@ -16,6 +16,9 @@ tableau; the tableau gates generators and gambits.
 - Low-altitude verbs are domain gameplay config, not player cards.
 - Process cards and standing drives are removed and should not be restored under
   deck terminology.
+- Generator and gambit card structure should be derived from compiled domain
+  definitions and the definition graph, not hardcoded UI metadata or symbol
+  strings.
 
 ## Card Families
 
@@ -31,3 +34,6 @@ tableau; the tableau gates generators and gambits.
 - Different active generator/gambit sets should produce different histories.
 - Cards should be narratively meaningful, not only graph-interesting.
 - The deck should not become a hidden planner or resource economy.
+- Per-card modifiers are future card-instance state. They should layer on top
+  of immutable compiled definitions and only enter the kernel when they change
+  runtime-observable behavior.

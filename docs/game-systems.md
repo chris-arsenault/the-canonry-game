@@ -12,11 +12,12 @@ culture, status, health, traits, physical coordinates, semantic coordinates,
 and relationships. Relationships are typed, directional or symmetric, polar,
 and strength-bearing.
 
-The map is a physical hex grid with terrain and named coverage. Regions and
-settlements are not a separate abstraction from map coverage: they are named
-coverage over physical space. The semantic plane is currently an axial q/r
-space with `s = -q-r`; it is treated as a bounded second plane, not a fully
-independent 3D map.
+The map has physical and semantic planes. The physical plane is a hex grid with
+terrain and named coverage. Regions and settlements are not a separate
+abstraction from map coverage: they are named coverage over physical space. The
+semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
+semantic terrain, influence, roads, and placement. It is not a coordinate copy
+of the physical plane.
 
 Domain content is authored in `DomainConfig` and Ice Remembers-specific files.
 Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into
