@@ -575,3 +575,60 @@ Follow-up questions:
   explicit high-altitude demand?
 - Does reducing influence-verb pressure make settlement route bootstrap and
   other gambits more observable without weakening territorial behavior too far?
+
+## 12. Reorient Semantic Movement Around Stable Anchors
+
+Status: open.
+
+Current finding:
+
+Semantic movement volume is close enough to physical movement volume that raw
+movement count is not the main semantic-road failure. In the latest registered
+10x500 run, semantic road building had a higher average per-move road-quality
+delta than physical road building, but semantic movement did not converge on
+the same cells or edges often enough to create strong roads.
+
+Observed in `.artifacts/monte-carlo/semantic-radius-mapradius-10x500`:
+
+- Semantic road build average delta: `1.068872`.
+- Physical road build average delta: `0.583805`.
+- Semantic max road-cell travel count: `29`.
+- Physical max road-cell travel count: `106`.
+- Semantic p99 road-cell travel count: `12`.
+- Physical p99 road-cell travel count: `22`.
+- Semantic max repeated edge travel count: `19`.
+- Physical max repeated edge travel count: `106`.
+- Semantic edges used at least `10` times: `29`.
+- Physical edges used at least `10` times: `218`.
+- Semantic terrain-target movement intents selected: `0`.
+- Physical terrain-target movement intents selected: `261`.
+
+Gap:
+
+Physical movement has settlement-centered convergence: many physical verbs
+point at settlements, rookeries, ports, fishing areas, or artifacts connected
+to physical anchors. Semantic movement currently has no equivalent stable
+semantic attractor structure. Many semantic movement verbs point at entities
+that also move semantically or at broad explore behavior, so semantic motion
+creates diffuse traces instead of repeated highways.
+
+Likely direction:
+
+- Reorient some semantic entity-kind movement toward stable anchors, especially
+  penguins and artifacts where that fits the domain.
+- Add or retune semantic terrain-target movement only if the terrain is a real
+  destination structure, not as a generic road-building hack.
+- Prefer authored-domain verb changes before engine movement changes.
+- Measure whether semantic road maturation improves through repeated cell and
+  edge use, not only through total semantic movement count.
+
+Follow-up questions:
+
+- Which semantic movement verbs should target penguins, artifacts, or other
+  stable semantic anchors instead of factions, regions, or broad explore?
+- Should penguins and artifacts be considered stable enough semantically, or do
+  we need a small set of explicit semantic landmarks?
+- Should stable-anchor semantic movement be weighted by relationship fitness,
+  affordance pressure, or terrain preference?
+- Does semantic convergence create meaningful roads without collapsing semantic
+  roaming into a few hubs?

@@ -15,6 +15,8 @@ using Verb = IceRemembers.IceRemembersVerbId;
 
 public static partial class IceRemembersDefinition
 {
+    private const int MovementCommitmentScale = 3;
+
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateLowAltitudeVerbs() =>
     [
         ..CreatePhysicalMovementVerbs(),
@@ -362,8 +364,8 @@ public static partial class IceRemembersDefinition
             TargetKind = targetKind?.Value,
             RelationshipKind = relationshipKind,
             Terrains = terrains,
-            MinCommitmentTicks = ticks.Min,
-            MaxCommitmentTicks = ticks.Max,
+            MinCommitmentTicks = ScaleMovementTicks(ticks.Min),
+            MaxCommitmentTicks = ScaleMovementTicks(ticks.Max),
             DwellTicks = dwell,
             TargetRadius = radius,
             CandidateSampleCount = samples,
@@ -373,6 +375,8 @@ public static partial class IceRemembersDefinition
             FitnessRelationshipDirection = fitnessDirection,
             FitnessWeight = fitnessWeight,
         };
+
+    private static int ScaleMovementTicks(int ticks) => ticks * MovementCommitmentScale;
 
     private static RelationshipStrengthLowAltitudeVerbConfig RelationshipStrengthVerb(
         Verb verb,

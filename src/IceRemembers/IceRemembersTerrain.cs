@@ -64,44 +64,44 @@ public static class IceRemembersTerrainCatalog
 {
     public static IReadOnlyList<TerrainConfig> DomainTerrains { get; } =
     [
-        DomainTerrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land", 1.6f, 0.75f, 1.35f, 0.8f, 0.6f, 1.8f),
-        DomainTerrain(IceRemembersTerrain.Crags, "Crags", "harsh_land", 1.8f, 0.8f, 1.5f, 0.75f, 0.4f, 1.5f),
-        DomainTerrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land", 1f, 1f, 1f, 1f, 1f, 1.5f),
-        DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land", 1.25f, 0.9f, 1.1f, 0.95f, 0.8f, 1.4f),
-        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary", 0.9f, 1.35f, 0.75f, 1.25f, 0.7f, 1.2f),
-        DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime", 1.1f, 1f, 1f, 1f, 1.2f, 1.6f),
+        DomainTerrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land", 5.2f, 0.75f, 1.35f, 0.8f, 0.6f, 4.6f),
+        DomainTerrain(IceRemembersTerrain.Crags, "Crags", "harsh_land", 6f, 0.8f, 1.5f, 0.75f, 0.4f, 4.2f),
+        DomainTerrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land", 3f, 1f, 1f, 1f, 1f, 3.8f),
+        DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land", 4f, 0.9f, 1.1f, 0.95f, 0.8f, 3.6f),
+        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary", 2.5f, 1.35f, 0.75f, 1.25f, 0.7f, 3.2f),
+        DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime", 3.3f, 1f, 1f, 1f, 1.2f, 4f),
         DomainTerrain(
             IceRemembersTerrain.Reef,
             "Reef",
             "maritime",
-            1.35f,
+            4.4f,
             0.95f,
             1.1f,
             0.9f,
             0.5f,
-            1.3f,
-            OrcaWaterProfile(0.8f)),
+            3.5f,
+            OrcaWaterProfile(2.2f)),
         DomainTerrain(
             IceRemembersTerrain.Ocean,
             "Ocean",
             "maritime",
-            1.6f,
+            5.3f,
             0.7f,
             1.6f,
             0.5f,
             0.2f,
-            1.15f,
-            OrcaWaterProfile(0.75f)),
-        DomainTerrain(IceRemembersTerrain.Lineage, "Lineage", "semantic_memory", 0.9f, 1.15f, 0.85f, 1.25f, 1.1f, 1.45f),
-        DomainTerrain(IceRemembersTerrain.Yoke, "Yoke", "semantic_authority", 1.25f, 1.05f, 0.75f, 1.35f, 0.8f, 1.3f, YokeProfiles()),
-        DomainTerrain(IceRemembersTerrain.Witness, "Witness", "semantic_memory", 0.95f, 1.4f, 0.9f, 1.15f, 1.35f, 1.55f),
-        DomainTerrain(IceRemembersTerrain.Silence, "Silence", "semantic_shadow", 1.4f, 0.65f, 1.2f, 0.9f, 0.7f, 1.25f, HiddenSemanticProfiles()),
-        DomainTerrain(IceRemembersTerrain.Severance, "Severance", "semantic_rupture", 1.6f, 0.7f, 1.5f, 0.65f, 0.55f, 1.2f),
-        DomainTerrain(IceRemembersTerrain.Breakaway, "Breakaway", "semantic_rupture", 0.8f, 1.05f, 1.25f, 0.75f, 1.3f, 1.6f),
-        DomainTerrain(IceRemembersTerrain.BeaconSpire, "Beacon Spire", "semantic_memory", 1.2f, 1.55f, 0.8f, 1.2f, 1.45f, 1.75f),
-        DomainTerrain(IceRemembersTerrain.TabooRidge, "Taboo Ridge", "semantic_shadow", 1.75f, 0.5f, 1.7f, 0.55f, 0.35f, 1.1f),
-        DomainTerrain(IceRemembersTerrain.CavePocket, "Cave Pocket", "semantic_shadow", 1.3f, 0.6f, 0.9f, 1.15f, 0.6f, 1.2f, HiddenSemanticProfiles()),
-        DomainTerrain(IceRemembersTerrain.OpenField, "Open Field", "semantic_open", 1f, 1f, 1f, 1f, 1f, 1.35f),
+            3f,
+            OrcaWaterProfile(2f)),
+        DomainTerrain(IceRemembersTerrain.Lineage, "Lineage", "semantic_memory", 2.6f, 1.15f, 0.85f, 1.25f, 1.1f, 3.8f),
+        DomainTerrain(IceRemembersTerrain.Yoke, "Yoke", "semantic_authority", 4.1f, 1.05f, 0.75f, 1.35f, 0.8f, 3.4f, YokeProfiles()),
+        DomainTerrain(IceRemembersTerrain.Witness, "Witness", "semantic_memory", 2.8f, 1.4f, 0.9f, 1.15f, 1.35f, 4.2f),
+        DomainTerrain(IceRemembersTerrain.Silence, "Silence", "semantic_shadow", 4.8f, 0.65f, 1.2f, 0.9f, 0.7f, 3.2f, HiddenSemanticProfiles()),
+        DomainTerrain(IceRemembersTerrain.Severance, "Severance", "semantic_rupture", 5.4f, 0.7f, 1.5f, 0.65f, 0.55f, 3f),
+        DomainTerrain(IceRemembersTerrain.Breakaway, "Breakaway", "semantic_rupture", 2.4f, 1.05f, 1.25f, 0.75f, 1.3f, 4.3f),
+        DomainTerrain(IceRemembersTerrain.BeaconSpire, "Beacon Spire", "semantic_memory", 3.4f, 1.55f, 0.8f, 1.2f, 1.45f, 4.8f),
+        DomainTerrain(IceRemembersTerrain.TabooRidge, "Taboo Ridge", "semantic_shadow", 6.2f, 0.5f, 1.7f, 0.55f, 0.35f, 2.8f),
+        DomainTerrain(IceRemembersTerrain.CavePocket, "Cave Pocket", "semantic_shadow", 4.4f, 0.6f, 0.9f, 1.15f, 0.6f, 3.1f, HiddenSemanticProfiles()),
+        DomainTerrain(IceRemembersTerrain.OpenField, "Open Field", "semantic_open", 3f, 1f, 1f, 1f, 1f, 3.6f),
     ];
 
     public static TerrainCatalog CreateWorldGenCatalog() =>
@@ -159,14 +159,14 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Faction,
-            MovementCost = 0.9f,
+            MovementCost = 3f,
             ClaimCostMultiplier = 0.65f,
             ClaimChanceMultiplier = 1.45f,
         },
         new()
         {
             Kind = K.Settlement,
-            MovementCost = 1f,
+            MovementCost = 3.2f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.25f,
         },
@@ -177,7 +177,7 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Artifact,
-            MovementCost = 0.85f,
+            MovementCost = 2.5f,
             InfluenceMultiplier = 0.8f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.2f,
@@ -185,7 +185,7 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Monster,
-            MovementCost = 0.75f,
+            MovementCost = 2.2f,
             InfluenceMultiplier = 1.15f,
             ClaimCostMultiplier = 0.65f,
             ClaimChanceMultiplier = 1.35f,
@@ -193,7 +193,7 @@ public static class IceRemembersTerrainCatalog
         new()
         {
             Kind = K.Occurrence,
-            MovementCost = 0.9f,
+            MovementCost = 2.7f,
             InfluenceMultiplier = 1.05f,
             ClaimCostMultiplier = 0.8f,
             ClaimChanceMultiplier = 1.2f,
