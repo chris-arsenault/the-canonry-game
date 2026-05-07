@@ -91,6 +91,10 @@ only.
 When a previous answer or proposal was corrected, treat the correction as a new
 constraint for the rest of the task.
 
+Do not create or switch to a feature branch unless the user explicitly commands
+branching. When asked to commit or push, use the current branch, which is usually
+`main`.
+
 ## Architecture Rules
 
 Before editing engine runtime code, read
