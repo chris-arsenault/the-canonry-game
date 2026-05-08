@@ -94,6 +94,8 @@ public interface IHexSurfaceIndex
 public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 {
     private readonly Dictionary<int, HexSurfaceProjection> _surfacesByPlane = [];
+    private readonly Dictionary<int, int> _ownerColorUseCounts = [];
+    private readonly List<int> _ownerColorEntityIds = [];
 
     public IReadOnlyDictionary<int, HexProjection> HexesById(int planeCode) => GetSurface(planeCode).HexesById;
 
@@ -112,6 +114,10 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
     public long CellVersion { get; private set; }
 
     public long FrameVersion { get; private set; }
+
+    public long OwnerColorVersion { get; private set; }
+
+    public IReadOnlyList<int> OwnerColorEntityIds => _ownerColorEntityIds;
 
     public long DroppedEvents { get; private set; }
 
@@ -172,6 +178,19 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         return neighbors;
     }
 
+    public IReadOnlyCollection<int> DirtyCellIds(int planeCode) =>
+        TryGetSurface(planeCode, out var surface)
+            ? surface.DirtyCellIds
+            : [];
+
+    public void ClearDirtyCells(int planeCode)
+    {
+        if (TryGetSurface(planeCode, out var surface))
+        {
+            surface.DirtyCellIds.Clear();
+        }
+    }
+
     public override void OnEventsDropped(long droppedEventCount, long nextSequence)
     {
         DroppedEvents += droppedEventCount;
@@ -212,7 +231,10 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
     {
         var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
 
-        var influences = UpsertInfluence(existing.Influences, evt.EntityId, evt.CurrentInfluence, evt.Tick, sequence);
+        var entityId = evt.EntityId;
+        var influenceWasActive = existing.Influences.Any(influence => influence.EntityId == entityId);
+        var influenceIsActive = evt.CurrentInfluence > 0f;
+        var influences = UpsertInfluence(existing.Influences, entityId, evt.CurrentInfluence, evt.Tick, sequence);
         GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
         {
             Influences = influences,
@@ -220,7 +242,9 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             WorldVersion = evt.WorldVersion,
             Sequence = sequence,
         };
+        UpdateOwnerColorMembership(entityId, influenceWasActive, influenceIsActive);
         CellVersion++;
+        MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -251,6 +275,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             Sequence = sequence,
         };
         CellVersion++;
+        MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -290,9 +315,90 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             sequence);
         surface.HexIdsByCoord[coord] = hexId;
         MapRadius = Math.Max(MapRadius, coord.DistanceFromOrigin);
+        UpdateOwnerColorMembership(existing?.OwnerEntityId ?? 0, ownerEntityId);
         CellVersion++;
         FrameVersion++;
+        MarkCellDirty(planeCode, hexId);
         MarkProjected(sequence, tick, worldVersion);
+    }
+
+    private void MarkCellDirty(int planeCode, int hexId)
+    {
+        GetSurface(planeCode).DirtyCellIds.Add(hexId);
+    }
+
+    private void UpdateOwnerColorMembership(int oldOwnerEntityId, int newOwnerEntityId)
+    {
+        if (oldOwnerEntityId == newOwnerEntityId)
+        {
+            return;
+        }
+
+        if (oldOwnerEntityId > 0)
+        {
+            DecrementOwnerColorUse(oldOwnerEntityId);
+        }
+
+        if (newOwnerEntityId > 0)
+        {
+            IncrementOwnerColorUse(newOwnerEntityId);
+        }
+    }
+
+    private void UpdateOwnerColorMembership(int entityId, bool wasActive, bool isActive)
+    {
+        if (entityId <= 0 || wasActive == isActive)
+        {
+            return;
+        }
+
+        if (wasActive)
+        {
+            DecrementOwnerColorUse(entityId);
+            return;
+        }
+
+        IncrementOwnerColorUse(entityId);
+    }
+
+    private void IncrementOwnerColorUse(int entityId)
+    {
+        if (_ownerColorUseCounts.TryGetValue(entityId, out var count))
+        {
+            _ownerColorUseCounts[entityId] = count + 1;
+            return;
+        }
+
+        _ownerColorUseCounts[entityId] = 1;
+        InsertOwnerColorEntityId(entityId);
+        OwnerColorVersion++;
+    }
+
+    private void DecrementOwnerColorUse(int entityId)
+    {
+        if (!_ownerColorUseCounts.TryGetValue(entityId, out var count))
+        {
+            return;
+        }
+
+        if (count > 1)
+        {
+            _ownerColorUseCounts[entityId] = count - 1;
+            return;
+        }
+
+        _ownerColorUseCounts.Remove(entityId);
+        _ownerColorEntityIds.Remove(entityId);
+        OwnerColorVersion++;
+    }
+
+    private void InsertOwnerColorEntityId(int entityId)
+    {
+        var index = _ownerColorEntityIds.BinarySearch(entityId);
+        if (index < 0)
+        {
+            _ownerColorEntityIds.Insert(~index, entityId);
+        }
     }
 
     private HexProjection EnsureCell(
@@ -405,5 +511,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         public Dictionary<int, HexProjection> HexesById { get; } = [];
 
         public Dictionary<HexCoord, int> HexIdsByCoord { get; } = [];
+
+        public HashSet<int> DirtyCellIds { get; } = [];
     }
 }

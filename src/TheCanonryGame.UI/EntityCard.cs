@@ -236,55 +236,16 @@ public partial class EntityCard : PanelContainer
 
     private (List<UiRelationshipProjection> Outgoing, List<UiRelationshipProjection> Incoming) CollectVisibleRelationships()
     {
-        var outgoing = new List<UiRelationshipProjection>();
-        var incoming = new List<UiRelationshipProjection>();
         if (EntityIsHistorical(_entityId))
         {
-            return (outgoing, incoming);
+            return ([], []);
         }
 
-        foreach (var rel in _projection!.Relationships.Values)
-        {
-            AddVisibleRelationship(rel, outgoing, incoming);
-        }
-
+        var outgoing = _projection!.ActiveOutgoingRelationships(_entityId).ToList();
+        var incoming = _projection.ActiveIncomingRelationships(_entityId).ToList();
         outgoing.Sort(static (left, right) => left.Key.TargetEntityId.CompareTo(right.Key.TargetEntityId));
         incoming.Sort(static (left, right) => left.Key.SourceEntityId.CompareTo(right.Key.SourceEntityId));
         return (outgoing, incoming);
-    }
-
-    private void AddVisibleRelationship(
-        UiRelationshipProjection rel,
-        List<UiRelationshipProjection> outgoing,
-        List<UiRelationshipProjection> incoming)
-    {
-        if (!rel.IsActive)
-        {
-            return;
-        }
-
-        var key = rel.Key;
-        if (key.SourceEntityId == _entityId)
-        {
-            AddRelationshipIfEndpointsActive(key, rel, outgoing);
-            return;
-        }
-
-        if (key.TargetEntityId == _entityId)
-        {
-            AddRelationshipIfEndpointsActive(key, rel, incoming);
-        }
-    }
-
-    private void AddRelationshipIfEndpointsActive(
-        UiRelationshipKey key,
-        UiRelationshipProjection rel,
-        List<UiRelationshipProjection> relationships)
-    {
-        if (!RelationshipHasHistoricalEndpoint(key))
-        {
-            relationships.Add(rel);
-        }
     }
 
     private void AppendOutgoingRelationships(
@@ -320,9 +281,6 @@ public partial class EntityCard : PanelContainer
             sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  <- {relationshipName} <- {sourceName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
     }
-
-    private bool RelationshipHasHistoricalEndpoint(UiRelationshipKey key) =>
-        EntityIsHistorical(key.SourceEntityId) || EntityIsHistorical(key.TargetEntityId);
 
     private bool EntityIsHistorical(int entityId) =>
         !_projection!.Entities.TryGetValue(entityId, out var entity) ||

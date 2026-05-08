@@ -9,7 +9,8 @@ namespace TheCanonryGame.UI;
 
 public partial class EntityLayer : Node2D
 {
-    private readonly ViewSync<int, Entity> _entities = new();
+    private readonly Dictionary<int, Entity> _entityNodes = [];
+    private readonly Dictionary<int, HexCoord> _renderedCoordsByEntity = [];
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
     private PackedScene? _entityScene;
@@ -20,6 +21,8 @@ public partial class EntityLayer : Node2D
     public float HexSize { get; set; } = 30f;
 
     public PlaneMode CurrentPlane { get; private set; } = PlaneMode.Physical;
+
+    public int CurrentPlaneCode => PlaneCodeForCurrentPlane();
 
     public bool ShowEntityNames { get; private set; } = true;
 
@@ -62,54 +65,114 @@ public partial class EntityLayer : Node2D
     {
         if (_projection is null)
         {
-            _entities.Clear();
+            ClearEntityNodes();
             return;
         }
 
-        var snapshot = BuildSnapshot();
-        _entities.Sync(
-            this,
-            snapshot,
-            CreateEntityNode,
-            UpdateEntityNode);
+        var currentIds = new HashSet<int>();
+        var offsetsByHex = new Dictionary<HexCoord, int>();
+        foreach (var entity in ActiveEntitiesInRenderOrder())
+        {
+            var coord = EntityCoordForCurrentPlane(entity);
+            if (!offsetsByHex.TryGetValue(coord, out var index))
+            {
+                index = 0;
+            }
+
+            currentIds.Add(entity.EntityId);
+            UpdateEntity(entity, coord, index);
+            offsetsByHex[coord] = index + 1;
+        }
+
+        foreach (var entityId in _entityNodes.Keys.Where(entityId => !currentIds.Contains(entityId)).ToArray())
+        {
+            RemoveEntity(entityId);
+        }
     }
 
-    private KeyValuePair<int, EntityLayerItem>[] BuildSnapshot()
+    public void RefreshDirty(IReadOnlyCollection<HexCoord> dirtyHexes)
     {
-        var offsetsByHex = new Dictionary<HexCoord, int>();
-        return _projection!.Entities.Values
-            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
-            .OrderBy(entity => entity.EntityId)
-            .Select(entity =>
+        ArgumentNullException.ThrowIfNull(dirtyHexes);
+
+        if (_projection is null)
+        {
+            ClearEntityNodes();
+            return;
+        }
+
+        if (dirtyHexes.Count == 0)
+        {
+            return;
+        }
+
+        var dirty = dirtyHexes.ToHashSet();
+        var currentIdsInDirtyHexes = new HashSet<int>();
+        foreach (var coord in dirty.OrderBy(coord => coord.Q).ThenBy(coord => coord.R))
+        {
+            var index = 0;
+            foreach (var entityId in _projection.ActiveOccupants(PlaneCodeForCurrentPlane(), coord).Order())
             {
-                var coord = EntityCoordForCurrentPlane(entity);
-                if (!offsetsByHex.TryGetValue(coord, out var index))
+                if (!_projection.Entities.TryGetValue(entityId, out var entity) ||
+                    entity.StatusCode != EntityStatusCodes.Active)
                 {
-                    index = 0;
+                    continue;
                 }
 
-                var worldPosition = HexToPixel(coord) + FanOffset(index, HexSize * 0.38f);
-                offsetsByHex[coord] = index + 1;
-                return KeyValuePair.Create(
-                    entity.EntityId,
-                    new EntityLayerItem(entity, worldPosition, ShowEntityNames));
-            })
-            .ToArray();
+                currentIdsInDirtyHexes.Add(entityId);
+                UpdateEntity(entity, coord, index);
+                index++;
+            }
+        }
+
+        foreach (var (entityId, coord) in _renderedCoordsByEntity.ToArray())
+        {
+            if (dirty.Contains(coord) && !currentIdsInDirtyHexes.Contains(entityId))
+            {
+                RemoveEntity(entityId);
+            }
+        }
     }
 
-    private Entity CreateEntityNode(EntityLayerItem data)
+    private IEnumerable<UiEntityProjection> ActiveEntitiesInRenderOrder() =>
+        _projection!.Entities.Values
+            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
+            .OrderBy(entity => entity.EntityId);
+
+    private void UpdateEntity(UiEntityProjection entity, HexCoord coord, int offsetIndex)
     {
-        _ = data;
-        var entity = _entityScene?.Instantiate<Entity>()
-            ?? throw new InvalidOperationException("Entity scene is not loaded.");
-        entity.Selected += OnEntitySelected;
-        return entity;
+        var worldPosition = HexToPixel(coord) + FanOffset(offsetIndex, HexSize * 0.38f);
+        if (!_entityNodes.TryGetValue(entity.EntityId, out var node))
+        {
+            node = _entityScene?.Instantiate<Entity>()
+                ?? throw new InvalidOperationException("Entity scene is not loaded.");
+            node.Selected += OnEntitySelected;
+            AddChild(node);
+            _entityNodes[entity.EntityId] = node;
+        }
+
+        _renderedCoordsByEntity[entity.EntityId] = coord;
+        node.BindTo(entity, _symbols, ShowEntityNames);
+        node.MoveTo(worldPosition);
     }
 
-    private void UpdateEntityNode(Entity node, EntityLayerItem data)
+    private void RemoveEntity(int entityId)
     {
-        node.BindTo(data.Entity, _symbols, data.ShowName);
-        node.MoveTo(data.WorldPosition);
+        _renderedCoordsByEntity.Remove(entityId);
+        if (_entityNodes.Remove(entityId, out var node))
+        {
+            node.QueueFree();
+        }
+    }
+
+    private void ClearEntityNodes()
+    {
+        foreach (var node in _entityNodes.Values)
+        {
+            node.QueueFree();
+        }
+
+        _entityNodes.Clear();
+        _renderedCoordsByEntity.Clear();
     }
 
     private void OnEntitySelected(int entityIdValue) =>
@@ -140,5 +203,6 @@ public partial class EntityLayer : Node2D
         return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
     }
 
-    private sealed record EntityLayerItem(UiEntityProjection Entity, Vector2 WorldPosition, bool ShowName);
+    private int PlaneCodeForCurrentPlane() =>
+        CurrentPlane == PlaneMode.Physical ? PlaneCodes.Physical : PlaneCodes.Semantic;
 }

@@ -291,10 +291,18 @@ internal sealed class GameRenderTree
         public void Present(HexMapRenderer renderer, HexMapProjection map)
         {
             var state = MapRenderState.From(renderer, map);
-            if (_lastCells != state with { FrameVersion = 0 })
+            var cellState = state with { FrameVersion = 0 };
+            if (_lastCells is null || CellLayoutChanged(_lastCells.Value, cellState))
             {
                 renderer.RefreshCells();
-                _lastCells = state with { FrameVersion = 0 };
+                map.ClearDirtyCells(renderer.CurrentPlaneCode);
+                _lastCells = cellState;
+            }
+            else if (_lastCells != cellState)
+            {
+                renderer.RefreshDirtyCells(map.DirtyCellIds(renderer.CurrentPlaneCode));
+                map.ClearDirtyCells(renderer.CurrentPlaneCode);
+                _lastCells = cellState;
             }
 
             if (_lastFrame != state)
@@ -303,6 +311,12 @@ internal sealed class GameRenderTree
                 _lastFrame = state;
             }
         }
+
+        private static bool CellLayoutChanged(MapRenderState previous, MapRenderState current) =>
+            previous.Plane != current.Plane ||
+            previous.ShowTerritory != current.ShowTerritory ||
+            previous.ShowInfluence != current.ShowInfluence ||
+            previous.HexSize != current.HexSize;
     }
 
     private sealed class EntityMapRender
@@ -321,8 +335,19 @@ internal sealed class GameRenderTree
                 return;
             }
 
+            var shouldFullRefresh = _lastState is null ||
+                _lastState.Value.Plane != state.Plane ||
+                _lastState.Value.ShowNames != state.ShowNames;
             _lastState = state;
-            layer.Refresh();
+            if (shouldFullRefresh)
+            {
+                layer.Refresh();
+                ui.ClearDirtyEntityHexes(layer.CurrentPlaneCode);
+                return;
+            }
+
+            layer.RefreshDirty(ui.DirtyEntityHexes(layer.CurrentPlaneCode));
+            ui.ClearDirtyEntityHexes(layer.CurrentPlaneCode);
         }
     }
 

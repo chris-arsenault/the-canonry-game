@@ -185,6 +185,39 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
+    public void HexMapProjection_TracksDirtyCellsAndOwnerColorInputs()
+    {
+        var log = new KernelEventLog(capacity: 8);
+        var projection = new HexMapProjection();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        WritePhysicalCellCreated(log, ownerEntityId: 100);
+        pump.DrainAvailable();
+
+        Assert.True(projection.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var cell));
+        Assert.Equal([cell.HexId], projection.DirtyCellIds(PlaneCodes.Physical).ToArray());
+        Assert.Equal([100], projection.OwnerColorEntityIds.ToArray());
+        projection.ClearDirtyCells(PlaneCodes.Physical);
+
+        WritePhysicalInfluenceChanged(log, entityId: 200, value: 35f, worldVersion: 2);
+        pump.DrainAvailable();
+
+        Assert.Equal([cell.HexId], projection.DirtyCellIds(PlaneCodes.Physical).ToArray());
+        Assert.Equal([100, 200], projection.OwnerColorEntityIds.ToArray());
+        var ownerColorVersion = projection.OwnerColorVersion;
+        projection.ClearDirtyCells(PlaneCodes.Physical);
+
+        WritePhysicalInfluenceChanged(log, entityId: 200, value: 60f, worldVersion: 3);
+        pump.DrainAvailable();
+
+        Assert.Equal([cell.HexId], projection.DirtyCellIds(PlaneCodes.Physical).ToArray());
+        Assert.Equal(ownerColorVersion, projection.OwnerColorVersion);
+    }
+
+    [Fact]
     public void PrimitiveProjectionPump_DisposeReleasesCursor()
     {
         var log = new KernelEventLog(capacity: 1, KernelEventOverflowPolicy.RejectWrite);
@@ -221,5 +254,38 @@ public sealed class PrimitiveEventProjectionTests
             GoalCount: 4,
             ActionableGoalCount: 2,
             State: KernelEventState.None))));
+    }
+
+    private static void WritePhysicalCellCreated(KernelEventLog log, int ownerEntityId)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+            Tick: 0,
+            WorldVersion: 1,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 5,
+            TerrainId: 10,
+            OwnerEntityId: ownerEntityId,
+            SuperregionId: 3,
+            ContinentId: 1))));
+    }
+
+    private static void WritePhysicalInfluenceChanged(
+        KernelEventLog log,
+        int entityId,
+        float value,
+        long worldVersion)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            Tick: (int)worldVersion,
+            WorldVersion: worldVersion,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Physical,
+            EntityId: entityId,
+            ActionId: 0,
+            PreviousInfluence: 0f,
+            CurrentInfluence: value))));
     }
 }

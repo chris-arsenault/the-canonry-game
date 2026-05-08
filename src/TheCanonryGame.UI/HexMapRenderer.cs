@@ -20,13 +20,15 @@ public enum PlaneMode
 /// </summary>
 public partial class HexMapRenderer : Node2D
 {
-    private readonly ViewSync<int, HexCell> _cells = new();
+    private readonly Dictionary<int, HexCell> _cellNodes = [];
+    private readonly Dictionary<int, Color> _ownerColors = [];
     private HexMapProjection? _map;
     private IProjectionSymbolCatalog? _symbols;
     private PackedScene? _cellScene;
     private Node2D? _cellLayer;
     private HexMapBackdropLayer? _backdropLayer;
     private HexMapFrameLayer? _frameLayer;
+    private long _ownerColorVersion = -1;
 
     [Export] public float HexSize { get; set; } = 30f;
 
@@ -37,6 +39,8 @@ public partial class HexMapRenderer : Node2D
     [Export] public bool ShowRegionBorders { get; set; } = true;
 
     public PlaneMode CurrentPlane { get; set; } = PlaneMode.Physical;
+
+    public int CurrentPlaneCode => PlaneCodeForCurrentPlane();
 
     public override void _Ready()
     {
@@ -50,6 +54,8 @@ public partial class HexMapRenderer : Node2D
     {
         _map = map;
         _symbols = symbols;
+        _ownerColors.Clear();
+        _ownerColorVersion = -1;
         Refresh();
     }
 
@@ -62,6 +68,35 @@ public partial class HexMapRenderer : Node2D
     public void RefreshCells()
     {
         SyncCellLayer();
+    }
+
+    public void RefreshDirtyCells(IReadOnlyCollection<int> dirtyHexIds)
+    {
+        ArgumentNullException.ThrowIfNull(dirtyHexIds);
+
+        if (_map is null || _cellLayer is null)
+        {
+            ClearCellLayer();
+            return;
+        }
+
+        if (dirtyHexIds.Count == 0)
+        {
+            return;
+        }
+
+        var ownerColors = ResolveOwnerColors();
+        var planeCode = PlaneCodeForCurrentPlane();
+        foreach (var hexId in dirtyHexIds)
+        {
+            if (_map.TryGetHex(planeCode, hexId, out var cell))
+            {
+                UpdateCell(cell, ownerColors);
+                continue;
+            }
+
+            RemoveCell(hexId);
+        }
     }
 
     public void RefreshFrame()
@@ -89,33 +124,72 @@ public partial class HexMapRenderer : Node2D
     {
         if (_map is null || _cellLayer is null)
         {
-            _cells.Clear();
+            ClearCellLayer();
             return;
         }
 
-        var ownerColors = AssignOwnerColors();
-        var snapshot = OrderedHexes(PlaneCodeForCurrentPlane())
-            .Select(cell => KeyValuePair.Create(cell.HexId, BuildCellRenderItem(cell, ownerColors)))
-            .ToArray();
-        _cells.Sync(_cellLayer, snapshot, CreateCellNode, UpdateCellNode);
+        var ownerColors = ResolveOwnerColors();
+        var currentIds = new HashSet<int>();
+        var index = 0;
+        foreach (var cell in OrderedHexes(PlaneCodeForCurrentPlane()))
+        {
+            currentIds.Add(cell.HexId);
+            var node = UpdateCell(cell, ownerColors);
+            if (node.GetParent() == _cellLayer && _cellLayer.GetChild(index) != node)
+            {
+                _cellLayer.MoveChild(node, index);
+            }
+
+            index++;
+        }
+
+        foreach (var hexId in _cellNodes.Keys.Where(hexId => !currentIds.Contains(hexId)).ToArray())
+        {
+            RemoveCell(hexId);
+        }
     }
 
-    private HexCell CreateCellNode(HexCellRenderItem data)
+    private HexCell UpdateCell(
+        HexProjection cell,
+        IReadOnlyDictionary<int, Color> ownerColors)
     {
-        _ = data;
-        return _cellScene?.Instantiate<HexCell>()
-            ?? throw new InvalidOperationException("HexCell scene is not loaded.");
+        if (!_cellNodes.TryGetValue(cell.HexId, out var node))
+        {
+            node = _cellScene?.Instantiate<HexCell>()
+                ?? throw new InvalidOperationException("HexCell scene is not loaded.");
+            _cellLayer!.AddChild(node);
+            _cellNodes[cell.HexId] = node;
+        }
+
+        node.Position = HexToPixel(cell.Coord);
+        node.Bind(BuildCellRenderItem(cell, ownerColors));
+        return node;
     }
 
-    private void UpdateCellNode(HexCell node, HexCellRenderItem data)
+    private void RemoveCell(int hexId)
     {
-        node.Position = HexToPixel(data.Cell.Coord);
-        node.Bind(data);
+        if (!_cellNodes.TryGetValue(hexId, out var node))
+        {
+            return;
+        }
+
+        _cellNodes.Remove(hexId);
+        node.QueueFree();
+    }
+
+    private void ClearCellLayer()
+    {
+        foreach (var node in _cellNodes.Values)
+        {
+            node.QueueFree();
+        }
+
+        _cellNodes.Clear();
     }
 
     private HexCellRenderItem BuildCellRenderItem(
         HexProjection cell,
-        Dictionary<int, Color> ownerColors)
+        IReadOnlyDictionary<int, Color> ownerColors)
     {
         var terrainStableName = ResolveStableName(
             ProjectionSymbolKind.Terrain,
@@ -140,7 +214,7 @@ public partial class HexMapRenderer : Node2D
 
     private static HexInfluenceRenderItem[] BuildInfluenceRenderItems(
         HexProjection cell,
-        Dictionary<int, Color> ownerColors)
+        IReadOnlyDictionary<int, Color> ownerColors)
     {
         var items = new List<HexInfluenceRenderItem>(4);
         foreach (var influence in cell.Influences.Where(influence => influence.Value > 0f))
@@ -160,28 +234,30 @@ public partial class HexMapRenderer : Node2D
         return [.. items];
     }
 
-    private Dictionary<int, Color> AssignOwnerColors()
+    private Dictionary<int, Color> ResolveOwnerColors()
     {
-        var colors = new Dictionary<int, Color>();
         if (_map is null)
         {
-            return colors;
+            return _ownerColors;
         }
 
-        var ownerIds = _map.Hexes(PlaneCodes.Physical)
-            .Concat(_map.Hexes(PlaneCodes.Semantic))
-            .SelectMany(hex => hex.Influences.Select(influence => influence.EntityId).Append(hex.OwnerEntityId))
-            .Where(ownerId => ownerId > 0)
-            .Distinct()
-            .Order()
-            .ToArray();
-
-        for (var i = 0; i < ownerIds.Length; i++)
+        if (_ownerColorVersion == _map.OwnerColorVersion)
         {
-            colors[ownerIds[i]] = UiTokens.FactionPalette[i % UiTokens.FactionPalette.Length];
+            return _ownerColors;
         }
 
-        return colors;
+        foreach (var ownerId in _map.OwnerColorEntityIds)
+        {
+            if (_ownerColors.ContainsKey(ownerId))
+            {
+                continue;
+            }
+
+            _ownerColors[ownerId] = UiTokens.FactionPalette[_ownerColors.Count % UiTokens.FactionPalette.Length];
+        }
+
+        _ownerColorVersion = _map.OwnerColorVersion;
+        return _ownerColors;
     }
 
     private HexProjection[] OrderedHexes(int planeCode) =>

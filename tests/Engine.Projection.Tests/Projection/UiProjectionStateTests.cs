@@ -210,6 +210,62 @@ public sealed class UiProjectionStateTests
         Assert.Equal(2, projection.TopBarVersion);
     }
 
+    [Fact]
+    public void Projection_IndexesActiveOccupantsAndDirtyEntityHexes()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        WriteEntityCreated(log, entityId: 10, physicalQ: 0, physicalR: 0, semanticQ: 1, semanticR: -1);
+        pump.DrainAvailable();
+
+        Assert.Equal([10], projection.ActiveOccupants(PlaneCodes.Physical, new HexCoord(0, 0)).ToArray());
+        Assert.Equal([10], projection.ActiveOccupants(PlaneCodes.Semantic, new HexCoord(1, -1)).ToArray());
+        projection.ClearDirtyEntityHexes(PlaneCodes.Physical);
+
+        WriteEntityMoved(log, entityId: 10, fromQ: 0, fromR: 0, toQ: 1, toR: 0);
+        pump.DrainAvailable();
+
+        Assert.Empty(projection.ActiveOccupants(PlaneCodes.Physical, new HexCoord(0, 0)));
+        Assert.Equal([10], projection.ActiveOccupants(PlaneCodes.Physical, new HexCoord(1, 0)).ToArray());
+        Assert.Equal([new HexCoord(0, 0), new HexCoord(1, 0)], projection.DirtyEntityHexes(PlaneCodes.Physical).OrderBy(coord => coord.Q).ThenBy(coord => coord.R).ToArray());
+
+        WriteEntityStatusChanged(log, entityId: 10, EntityStatusCodes.Active, EntityStatusCodes.Historical);
+        pump.DrainAvailable();
+
+        Assert.Empty(projection.ActiveOccupants(PlaneCodes.Physical, new HexCoord(1, 0)));
+        Assert.Empty(projection.ActiveOccupants(PlaneCodes.Semantic, new HexCoord(1, -1)));
+    }
+
+    [Fact]
+    public void Projection_IndexesActiveRelationshipsOnly()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        WriteEntityCreated(log, entityId: 10, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0);
+        WriteEntityCreated(log, entityId: 11, physicalQ: 1, physicalR: 0, semanticQ: 1, semanticR: -1);
+        WriteRelationship(log, sourceEntityId: 10, targetEntityId: 11, strength: 1f);
+        pump.DrainAvailable();
+
+        Assert.Equal([11], projection.ActiveOutgoingRelationships(10).Select(rel => rel.Key.TargetEntityId).ToArray());
+        Assert.Equal([10], projection.ActiveIncomingRelationships(11).Select(rel => rel.Key.SourceEntityId).ToArray());
+
+        WriteEntityStatusChanged(log, entityId: 11, EntityStatusCodes.Active, EntityStatusCodes.Historical);
+        pump.DrainAvailable();
+
+        Assert.Empty(projection.ActiveOutgoingRelationships(10));
+        Assert.Empty(projection.ActiveIncomingRelationships(11));
+    }
+
     private static void WriteVersionTestEntityCreated(KernelEventLog log)
     {
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
@@ -278,6 +334,82 @@ public sealed class UiProjectionStateTests
         Assert.True(log.TryWrite(KernelEvent.From(new TickCompletedKernelEvent(
             Tick: 5,
             WorldVersion: 5))));
+    }
+
+    private static void WriteEntityCreated(
+        KernelEventLog log,
+        int entityId,
+        int physicalQ,
+        int physicalR,
+        int semanticQ,
+        int semanticR)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: entityId,
+            EntityId: entityId,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            PhysicalQ: physicalQ,
+            PhysicalR: physicalR,
+            SemanticQ: semanticQ,
+            SemanticR: semanticR,
+            SemanticS: -semanticQ - semanticR))));
+    }
+
+    private static void WriteEntityMoved(KernelEventLog log, int entityId, int fromQ, int fromR, int toQ, int toR)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
+            Tick: 2,
+            WorldVersion: 20,
+            EntityId: entityId,
+            SourceCodeId: 40,
+            PlaneCode: PlaneCodes.Physical,
+            FromQ: fromQ,
+            FromR: fromR,
+            FromS: -fromQ - fromR,
+            ToQ: toQ,
+            ToR: toR,
+            ToS: -toQ - toR))));
+    }
+
+    private static void WriteEntityStatusChanged(
+        KernelEventLog log,
+        int entityId,
+        int previousStatus,
+        int currentStatus)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityStatusChangedKernelEvent(
+            Tick: 3,
+            WorldVersion: 30 + entityId,
+            EntityId: entityId,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            PreviousStatusCode: previousStatus,
+            CurrentStatusCode: currentStatus))));
+    }
+
+    private static void WriteRelationship(
+        KernelEventLog log,
+        int sourceEntityId,
+        int targetEntityId,
+        float strength)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 40,
+            ChangeCodeId: 9,
+            SourceCodeId: 8,
+            RelationshipKindId: 10,
+            PolarityCode: RelationshipPolarityCodes.Positive,
+            SourceEntityId: sourceEntityId,
+            TargetEntityId: targetEntityId,
+            RelationshipId: 12,
+            PreviousStrength: 0f,
+            NewStrength: strength))));
     }
 
     private static void WritePrimitiveEntityAndMutationEvents(KernelEventLog log)

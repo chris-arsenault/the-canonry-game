@@ -1,133 +1,141 @@
 # UI Performance Tracking
 
-Status: active investigation; first quick wins and component render tree landed.
+Status: active investigation; component render tree, dirty map/entity
+rendering, and default hot-path indexes have landed.
 
-Observed symptom: by about tick 5,000, interactive UI advancement can become slower than 1 second per tick. The simulation performance budget remains 10 ticks/second, so UI work must not scale with total historical state on the default display path.
+Observed symptom: by about tick 5,000, interactive UI advancement can become
+slower than 1 second per tick. The simulation performance budget remains 10
+ticks/second, so default UI work must not scale with total historical state.
 
-This document records visual-inspection findings only. Numbers below are code-path counts, fanout, or known runtime targets, not profiler timings.
+This document records visual-inspection findings only. Numbers below are
+code-path counts, fanout, or known runtime targets, not profiler timings.
 
-## Findings
+## Current State
 
-1. `Main._Process` fans one tick pulse into 6 full UI refreshes.
-   - Source: `src/TheCanonryGame.App/Main.cs:70`.
-   - On any `pulse.TicksProcessed > 0`, the app refreshes map renderer, entity layer, entity browser, card layer, attribute graph, and tableau.
-   - Chronicle, top bar, HUD positioning, camera movement, and tooltip update run every frame regardless of tick pulse.
-   - Risk: a single processed tick causes multiple full-world rebuilds, and a stalled frame can accumulate more event/projection work before the next presentation.
+1. Whole-UI tick fanout is removed.
+   - Current path: `Main._Process` pumps the runtime, then calls
+     `GameRenderTree.Present`.
+   - `GameRenderTree` gates top bar, map cells, map frame, entity map,
+     browser, cards, chronicle, tableau, and attribute graph with component
+     versions.
+   - A kernel tick no longer directly means map + entities + browser + cards +
+     chronicle + tableau all redraw.
 
-2. The map renderer rebuilds and redraws all visible cells every tick.
-   - Sources: `src/TheCanonryGame.UI/HexMapRenderer.cs:56`, `src/TheCanonryGame.UI/HexMapRenderer.cs:87`, `src/TheCanonryGame.UI/HexCell.cs:29`.
-   - Each refresh sorts all hexes for the current plane and materializes an array.
-   - Every cell bind calls `QueueRedraw()`.
-   - Owner color assignment scans physical and semantic planes together, so the default physical view still pays for 2 planes of owner/influence data.
-   - Per-cell drawing allocates point arrays and closed polylines during redraw.
+2. Map rendering is component-version gated and cell-delta gated.
+   - `HexMapProjection.CellVersion` and `FrameVersion` split dynamic cell
+     content from static-ish frame/backdrop work.
+   - `HexMapProjection.DirtyCellIds` tracks changed cells per plane, and
+     `HexMapRenderer.RefreshDirtyCells` updates only those cell nodes after the
+     initial/full refresh path.
+   - Owner/influence color inputs are tracked by `OwnerColorEntityIds` and
+     `OwnerColorVersion`; the renderer no longer scans both map planes to build
+     colors on each cell refresh.
+   - Remaining cost: dirty cell updates still rebuild the changed cell's render
+     item and queue redraw for that cell.
 
-3. The static map frame is redrawn every tick.
-   - Source: `src/TheCanonryGame.UI/HexMapFrameLayer.cs:17`.
-   - `Bind` always calls `QueueRedraw()`.
-   - `_Draw` materializes all cells for the plane, then performs 3 border passes: continent, superregion, and owner/region borders.
-   - Each border pass checks up to 6 neighbors per cell.
-   - Subdivision labels group all cells twice, once for continent and once for superregion.
-   - Risk: terrain/subdivision borders are mostly static but are currently tick-driven.
+3. Static map frame redraw is no longer tick-driven.
+   - `MapRender` calls `RefreshFrame` only when `FrameVersion`, plane, region
+     visibility, or hex size changes.
+   - Remaining cost: a frame refresh still recomputes full backdrop/frame
+     geometry and labels.
 
-4. The entity browser is a full unvirtualized history list.
-   - Source: `src/TheCanonryGame.UI/EntityBrowser.cs:90`.
-   - Each refresh sorts every projected entity by kind and display name, groups by kind, materializes group arrays, and updates every row.
-   - Historical entities are included by default.
-   - Tracking item: default UI lists should display active entities only. Historical entities need an explicit filter/view/query path for memorialization and audit features.
+4. Historical entities are removed from the default hot display path.
+   - Entity browser defaults to active entities only.
+   - Entity map layer defaults to active entities only.
+   - Entity card relationship display ignores inactive relationships and
+     relationships with historical endpoints.
+   - Historical entities and relationships remain queryable through the
+     projection state for future history/memorialization views.
 
-5. The map entity layer refreshes all entities, including historical entities.
-   - Source: `src/TheCanonryGame.UI/EntityLayer.cs:51`.
-   - Each refresh sorts all projected entities by entity id, builds a new hex offset dictionary, and updates every entity node.
-   - `Entity.BindTo` resolves display state, resets label/texture/state, and calls `QueueRedraw()`.
-   - `Entity.MoveTo` kills and recreates a tween when position changes.
-   - Risk: map entity rendering scales with total entity history rather than active visible actors.
+5. Entity browser invalidation is isolated from movement and relationships.
+   - `UiProjectionState.EntityBrowserVersion` advances for active-list changes
+     and row-summary changes.
+   - Movement-only and relationship-only events do not rebuild the registry.
+   - Remaining cost: when the browser is dirty, it still sorts/groups all active
+     entities and uses `ViewSync` over the full active registry.
 
-6. Chronicle refresh scans accumulated provenance every frame.
-   - Sources: `src/TheCanonryGame.App/Main.cs:344`, `src/TheCanonryGame.Game/Chronicle/GameRuntimeChronicle.cs:40`, `src/TheCanonryGame.Game/Chronicle/GameRuntimeChronicle.cs:49`.
-   - `RefreshChronicleLabel` calls `Lines` every frame.
-   - `Lines` sorts all provenance invocations by sequence before skipping already emitted chains.
-   - The base chronicle is capped at 160 lines, but the provenance search space is not capped.
-   - Risk: the visible chronicle is small while the scan cost grows with total generator/gambit history.
+6. Entity map rendering is version gated and dirty-hex delta updated.
+   - `EntityMapRender` checks `UiProjectionState.EntityMapVersion`, plane, and
+     name visibility before refreshing.
+   - `UiProjectionState` tracks active occupants and dirty entity hexes per
+     plane; movement updates source/destination hexes, and `EntityLayer`
+     refreshes only entities in dirty hexes.
+   - Remaining cost: full refresh still runs on runtime bind, plane changes, and
+     name visibility changes.
 
-7. UI runtime always performs run logging.
-   - Sources: `src/Engine.Host/KernelRuntimeFactory.cs:48`, `src/Engine.Host/KernelRuntimeFactory.cs:77`, `src/Engine.Observability/RunLogger.cs:33`, `src/Engine.Observability/RunLogger.cs:54`.
-   - UI startup registers 4 projections: map, ui, provenance, and chronicle.
-   - A separate `RunLogger` also drains the event log.
-   - `KernelUiRuntime.Pump` drains registered consumers, drains the logger, then calls `RunLogger.OnTickEnded` for every tick advanced.
-   - `RunLogger` writes with `AutoFlush = true`.
-   - Risk: interactive play pays disk logging and an extra projection pass even when the user only needs visual state.
+7. Chronicle rendering is incremental enough to avoid full provenance sorting.
+   - `GameRuntimeChronicle` caches visible lines, tracks provenance sequence,
+     scans only new invocations into pending chain candidates, and only updates
+     the panel when `Version` changes.
+   - Remaining cost: `GameRenderTree.Present` still calls
+     `GameRuntimeChronicle.Refresh` every frame, and pending chain candidates
+     can be revisited until their parent/trigger data appears.
+   - Remaining cost: provenance projection still retains invocation history for
+     later chain queries.
 
-8. Open entity cards scan all relationships twice per refresh.
-   - Source: `src/TheCanonryGame.UI/EntityCard.cs:223`.
-   - Each open card scans all UI relationships once for outgoing and once for incoming, then sorts both result sets.
-   - Risk: acceptable for 1 card and small graphs, but costly once relationships grow and multiple cards are open.
+8. Interactive run logging is opt-in.
+   - UI runtime creates `RunLogger` only when a run log path is provided.
+   - Normal interactive play no longer pays disk logging or the extra logger
+     drain.
 
-9. Tooltip hex picking is O(map) every frame while the map can be hovered.
-   - Sources: `src/TheCanonryGame.UI/HexTooltipPanel.cs:63`, `src/TheCanonryGame.UI/HexMapRenderer.cs:65`.
-   - `GetHexAtWorldPosition` loops over all current-plane coordinates and computes distance to each center.
-   - It also materializes current-plane coordinate keys into an array.
-   - Semantic tooltip formatting scans all active entities for occupants.
-   - Risk: this will worsen with the intended larger map size even when simulation ticks are paused.
+9. Entity cards use active relationship indexes.
+   - `UiProjectionState` maintains outgoing and incoming active relationship
+     indexes and excludes inactive relationships or historical endpoints when
+     indexing.
+   - Entity cards query only the selected entity's active edges.
+   - Remaining cost grows with the selected entity's visible degree and number
+     of open cards, not total relationship graph size.
 
-10. Shared `ViewSync` updates every node in every snapshot.
-    - Sources: `src/TheCanonryGame.UI/ViewSync.cs:21`, `src/TheCanonryGame.UI.Core/ViewSyncCore.cs:28`.
-    - `ViewSyncCore.Sync` allocates a `HashSet`, calls `update` for every snapshot item, and removes missing keys via a keys filter plus `ToArray`.
-    - Godot `ViewSync` then checks and may reorder every ordered node.
-    - Risk: the helper is useful for small dynamic lists, but it is too blunt for map cells, entity rows, and entity nodes on every tick.
+10. Tooltip hex picking and occupant lookup are indexed.
+    - `HexMapRenderer.GetHexAtWorldPosition` converts world position directly
+      to axial coordinates and validates with `TryGetHex`.
+    - Semantic tooltip occupant text reads `UiProjectionState.ActiveOccupants`
+      for the hovered semantic coordinate.
 
-11. Tableau and attribute graph are secondary but still tick-driven.
-    - Sources: `src/TheCanonryGame.UI/TableauPanel.cs:65`, `src/TheCanonryGame.UI/AttributeGraphPanel.cs:91`.
-    - Tableau sorts all cards and recomputes recent fire text each refresh.
-    - Attribute graph sorts active entities and attributes when present.
-    - Risk: these are not the largest offenders, but should become dirty/version driven after the main surfaces are fixed.
+11. `ViewSync` is no longer called by every surface every tick, but it remains
+    too blunt for dirty large collections.
+    - `ViewSyncCore.Sync` allocates a removal set, calls update for every
+      snapshot item, and reorders nodes.
+    - Remaining hot use: entity browser rows whenever the browser is dirty.
 
-## Work Queue
+12. Tableau and attribute graph are version gated.
+    - Tableau refreshes only when visible and `UiProjectionState.TableauVersion`
+      changes.
+    - Attribute graph refreshes only when visible and entity detail version
+      changes.
+    - Remaining cost: when dirty, both still rebuild/sort their visible data
+      from projection-wide state.
 
-1. Replace whole-UI tick refresh with projection/version invalidation.
-   - Status: implemented through `GameRenderTree`; `Main._Process` no longer tick-refreshes every surface.
-   - Entity browser invalidation is isolated behind `EntityBrowserVersion`; movement-only and relationship-only events do not rebuild the registry.
-   - Map, entity layer, browser, cards, tableau, chronicle, and attribute graph should each expose or consume a relevant version/dirty set.
-   - A tick pulse should not imply every surface changed.
+13. Per-frame layout and tooltip work remain.
+    - `GameRenderTree.PositionFloatingHud` runs every frame to size/place the
+      floating tableau panel.
+    - `HexTooltipPanel.UpdateTooltip` runs every frame while the UI is active.
+    - These are smaller than full redraw fanout, but should become
+      layout/hover-state driven if profiling shows frame overhead while paused.
 
-2. Make map rendering delta-aware.
-   - Status: partially implemented at component level; map cells and frame now have separate versions, but per-cell dirty deltas remain future work.
-   - Separate static terrain/subdivision frame rendering from dynamic owner/influence/road rendering.
-   - Redraw only dirty cells for cell changes, influence changes, and road-quality changes.
-   - Recompute owner color tables only when owner/influence membership changes.
+## Remaining Improvement Targets
 
-3. Do not display historical entities by default.
-   - Status: implemented for entity browser and map entity layer.
-   - Entity browser default: active entities only.
-   - Entity map layer default: active entities only.
-   - Entity cards and explicit history/memorialization features must still be able to query historical entities.
-   - Relationship display should ignore inactive relationships and relationships with historical endpoints by default.
+1. Replace `ViewSync` on the remaining large collection.
+   - Keep `ViewSync` for small panels.
+   - Entity browser still uses `ViewSync` and rebuilds/sorts/group all active
+     rows whenever `EntityBrowserVersion` changes.
+   - Consider browser virtualization or incremental row updates if active entity
+     count becomes large enough.
 
-4. Remove or gate interactive run logging.
-   - Status: implemented as opt-in run logging when a run log path is provided.
-   - UI runtime should not create `RunLogger` unless explicitly requested.
-   - If kept for debugging, buffer writes and avoid `AutoFlush` per tick.
+2. Bound chronicle/provenance UI work.
+   - Keep chain matching incremental, but cap or age out unresolved pending
+     chain candidates if they can accumulate.
+   - Consider disabling provenance projection for UI modes that do not display
+     history chains.
 
-5. Make chronicle incremental.
-   - Do not scan and sort all provenance invocations on every frame.
-   - Maintain a last-seen provenance sequence or invocation cursor.
-   - Only update the `RichTextLabel` when the rendered chronicle text actually changes.
+3. Reduce per-frame non-simulation UI work.
+   - Make floating tableau placement respond to layout/visibility changes
+     instead of every frame.
+   - Make tooltip formatting update only when hovered hex, plane, or relevant
+     projection version changes.
 
-6. Index UI relationships for entity cards.
-   - Maintain outgoing and incoming active relationship indexes in `UiProjectionState`.
-   - Default card relationship sections should query active edges only.
-
-7. Replace O(map) tooltip picking with hex-coordinate inversion.
-   - Status: implemented for map hex picking.
-   - Convert world position to axial/cube hex coordinate and validate with `TryGetHex`.
-   - Avoid materializing all coordinate keys every frame.
-
-8. Limit `ViewSync` use on hot paths.
-   - Keep it for small panels.
-   - Avoid it for map cells and large entity collections unless update can be skipped for unchanged data.
-
-## First Implementation Candidates
-
-1. Stop refreshing the static map frame every tick.
-2. Make chronicle chain generation incremental.
-3. Add dirty-cell refresh for map cells.
-4. Design map render deltas/component render trees before implementing broader map invalidation.
+4. Lower-priority panel rebuilds.
+   - Attribute graph can use per-entity detail versions if it becomes visible
+     during long runs.
+   - Tableau can maintain pre-sorted generator/gambit summaries if tableau
+     interaction becomes a measured bottleneck.

@@ -133,10 +133,10 @@ public partial class HexTooltipPanel : PanelContainer
     private string FormatSemanticHexTooltip(HexCoord coord)
     {
         var s = -coord.Q - coord.R;
-        var occupants = _projection!.Entities.Values
-            .Where(entity => entity.StatusCode == EntityStatusCodes.Active &&
-                             entity.SemanticQ == coord.Q &&
-                             entity.SemanticR == coord.R)
+        var occupants = _projection!.ActiveOccupants(PlaneCodes.Semantic, coord)
+            .Order()
+            .Select(entityId => _projection.Entities.TryGetValue(entityId, out var entity) ? entity : null)
+            .OfType<UiEntityProjection>()
             .Select(FormatProjectedEntityLine)
             .ToList();
         var occupantsLine = occupants.Count == 0 ? "uninhabited" : string.Join('\n', occupants);

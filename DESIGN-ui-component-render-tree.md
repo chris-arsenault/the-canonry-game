@@ -50,11 +50,15 @@ GameRootRender
 ## Version Ownership
 
 - `HexMapProjection.CellVersion`: terrain, influence, owner, road, or cell content changed.
+- `HexMapProjection.DirtyCellIds`: changed map cells for the visible-plane delta renderer.
+- `HexMapProjection.OwnerColorEntityIds` and `OwnerColorVersion`: owner/influence color input membership changed.
 - `HexMapProjection.FrameVersion`: map frame/subdivision/region boundary inputs changed.
 - `UiProjectionState.EntityMapVersion`: active map entity set or positions changed.
+- `UiProjectionState.DirtyEntityHexes`: changed occupied hexes for entity-map delta rendering.
+- `UiProjectionState.ActiveOccupants`: active entity ids indexed by plane and hex for entity-map and tooltip lookup.
 - `UiProjectionState.EntityBrowserVersion`: active entity list/grouping or row summary changed.
 - `UiProjectionState.EntityDetailVersion`: selected-card/readings details changed.
-- `UiProjectionState.RelationshipVersion`: relationship details changed.
+- `UiProjectionState.RelationshipVersion`: relationship details changed; active relationship indexes feed entity cards.
 - `UiProjectionState.TableauVersion`: generator/gambit/tableau-visible counters changed.
 - `UiChronicleProjection.Version` and `GameRuntimeChronicle.Version`: chronicle text changed.
 
@@ -66,12 +70,11 @@ Examples:
 
 - `ChronicleRender` checks `GameRuntimeChronicle.Version`; no other screen change can update chronicle UI.
 - `EntityBrowserRender` checks `EntityBrowserVersion`; movement-only and relationship-only events do not rebuild the registry.
-- `EntityMapRender` checks `EntityMapVersion`; relationship-only events do not move or redraw map entities.
-- `MapRender` checks `CellVersion` for cells and `FrameVersion` for frame/backdrop.
+- `EntityMapRender` checks `EntityMapVersion`; movement updates only dirty occupied hexes.
+- `MapRender` checks `CellVersion` for dirty cells and `FrameVersion` for frame/backdrop.
 - `TableauRender` owns tableau visibility and data versions; `Main` does not tick-refresh it.
 
 ## Non-goals
 
-- Do not implement full map cell deltas until the component tree is in place.
 - Do not make projections mutate Godot nodes directly.
 - Do not collapse all consumers behind one cursor unless projection-drain cost becomes the next measured bottleneck.

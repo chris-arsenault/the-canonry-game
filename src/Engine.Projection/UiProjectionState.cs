@@ -11,6 +11,10 @@ public sealed class UiProjectionState : KernelEventProjector
 {
     private readonly Dictionary<int, UiEntityProjection> _entities = [];
     private readonly Dictionary<UiRelationshipKey, UiRelationshipProjection> _relationships = [];
+    private readonly Dictionary<int, HashSet<UiRelationshipKey>> _activeOutgoingRelationshipsByEntity = [];
+    private readonly Dictionary<int, HashSet<UiRelationshipKey>> _activeIncomingRelationshipsByEntity = [];
+    private readonly Dictionary<int, Dictionary<HexCoord, HashSet<int>>> _activeOccupantsByPlane = [];
+    private readonly Dictionary<int, HashSet<HexCoord>> _dirtyEntityHexesByPlane = [];
     private readonly Dictionary<int, UiGeneratorProjection> _generators = [];
     private readonly List<UiGeneratorFireProjection> _generatorFires = [];
     private readonly Dictionary<int, UiGambitProjection> _gambits = [];
@@ -65,6 +69,30 @@ public sealed class UiProjectionState : KernelEventProjector
 
     public bool IsComplete => DroppedEvents == 0;
 
+    public IReadOnlyCollection<int> ActiveOccupants(int planeCode, HexCoord coord) =>
+        TryGetOccupants(planeCode, coord, out var occupants)
+            ? occupants
+            : [];
+
+    public IReadOnlyCollection<HexCoord> DirtyEntityHexes(int planeCode) =>
+        _dirtyEntityHexesByPlane.TryGetValue(planeCode, out var dirtyHexes)
+            ? dirtyHexes
+            : [];
+
+    public void ClearDirtyEntityHexes(int planeCode)
+    {
+        if (_dirtyEntityHexesByPlane.TryGetValue(planeCode, out var dirtyHexes))
+        {
+            dirtyHexes.Clear();
+        }
+    }
+
+    public IReadOnlyList<UiRelationshipProjection> ActiveOutgoingRelationships(int entityId) =>
+        ActiveRelationships(_activeOutgoingRelationshipsByEntity, entityId);
+
+    public IReadOnlyList<UiRelationshipProjection> ActiveIncomingRelationships(int entityId) =>
+        ActiveRelationships(_activeIncomingRelationshipsByEntity, entityId);
+
     public override void OnEventsDropped(long droppedEventCount, long nextSequence)
     {
         DroppedEvents += droppedEventCount;
@@ -90,11 +118,13 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
         entity.WasCreatedFromEvent = true;
+        AddActiveOccupants(entity);
         ActiveEntityCount++;
         TopBarVersion++;
         EntityMapVersion++;
         EntityBrowserVersion++;
         EntityDetailVersion++;
+        ReindexRelationshipsForEntity(evt.EntityId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -111,11 +141,22 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.WorldVersion = evt.WorldVersion;
         if (wasActive != isActive)
         {
+            if (wasActive)
+            {
+                RemoveActiveOccupants(entity);
+            }
+
             ActiveEntityCount += isActive ? 1 : -1;
             TopBarVersion++;
             EntityMapVersion++;
         }
 
+        if (isActive && !wasActive)
+        {
+            AddActiveOccupants(entity);
+        }
+
+        ReindexRelationshipsForEntity(evt.EntityId);
         EntityDetailVersion++;
         EntityBrowserVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
@@ -124,6 +165,9 @@ public sealed class UiProjectionState : KernelEventProjector
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
+        var wasActive = entity.StatusCode == EntityStatusCodes.Active;
+        var fromCoord = new HexCoord(evt.FromQ, evt.FromR);
+        var toCoord = new HexCoord(evt.ToQ, evt.ToR);
         if (evt.PlaneCode == PlaneCodes.Physical)
         {
             entity.PhysicalQ = evt.ToQ;
@@ -147,7 +191,12 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.ToS);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        EntityMapVersion++;
+        if (wasActive)
+        {
+            MoveActiveOccupant(evt.PlaneCode, evt.EntityId, fromCoord, toCoord);
+            EntityMapVersion++;
+        }
+
         EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
@@ -194,6 +243,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.NewStrength > 0f,
             evt.Tick,
             evt.WorldVersion);
+        ReindexRelationship(key);
         RelationshipVersion++;
         EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
@@ -327,6 +377,172 @@ public sealed class UiProjectionState : KernelEventProjector
         gambit = new UiGambitProjection(gambitId);
         _gambits.Add(gambitId, gambit);
         return gambit;
+    }
+
+    private List<UiRelationshipProjection> ActiveRelationships(
+        Dictionary<int, HashSet<UiRelationshipKey>> index,
+        int entityId)
+    {
+        if (!index.TryGetValue(entityId, out var keys) || keys.Count == 0)
+        {
+            return [];
+        }
+
+        var relationships = new List<UiRelationshipProjection>(keys.Count);
+        foreach (var key in keys)
+        {
+            if (_relationships.TryGetValue(key, out var relationship))
+            {
+                relationships.Add(relationship);
+            }
+        }
+
+        return relationships;
+    }
+
+    private void ReindexRelationshipsForEntity(int entityId)
+    {
+        foreach (var key in _relationships.Keys
+            .Where(key => key.SourceEntityId == entityId || key.TargetEntityId == entityId)
+            .ToArray())
+        {
+            ReindexRelationship(key);
+        }
+    }
+
+    private void ReindexRelationship(UiRelationshipKey key)
+    {
+        RemoveIndexedRelationship(key);
+        if (!_relationships.TryGetValue(key, out var relationship) ||
+            !relationship.IsActive ||
+            EntityIsHistorical(key.SourceEntityId) ||
+            EntityIsHistorical(key.TargetEntityId))
+        {
+            return;
+        }
+
+        AddIndexedRelationship(_activeOutgoingRelationshipsByEntity, key.SourceEntityId, key);
+        AddIndexedRelationship(_activeIncomingRelationshipsByEntity, key.TargetEntityId, key);
+    }
+
+    private void RemoveIndexedRelationship(UiRelationshipKey key)
+    {
+        RemoveIndexedRelationship(_activeOutgoingRelationshipsByEntity, key.SourceEntityId, key);
+        RemoveIndexedRelationship(_activeIncomingRelationshipsByEntity, key.TargetEntityId, key);
+    }
+
+    private static void AddIndexedRelationship(
+        Dictionary<int, HashSet<UiRelationshipKey>> index,
+        int entityId,
+        UiRelationshipKey key)
+    {
+        if (!index.TryGetValue(entityId, out var keys))
+        {
+            keys = [];
+            index[entityId] = keys;
+        }
+
+        keys.Add(key);
+    }
+
+    private static void RemoveIndexedRelationship(
+        Dictionary<int, HashSet<UiRelationshipKey>> index,
+        int entityId,
+        UiRelationshipKey key)
+    {
+        if (!index.TryGetValue(entityId, out var keys))
+        {
+            return;
+        }
+
+        keys.Remove(key);
+        if (keys.Count == 0)
+        {
+            index.Remove(entityId);
+        }
+    }
+
+    private bool EntityIsHistorical(int entityId) =>
+        !_entities.TryGetValue(entityId, out var entity) ||
+        entity.StatusCode != EntityStatusCodes.Active;
+
+    private void AddActiveOccupants(UiEntityProjection entity)
+    {
+        AddActiveOccupant(PlaneCodes.Physical, entity.EntityId, new HexCoord(entity.PhysicalQ, entity.PhysicalR));
+        AddActiveOccupant(PlaneCodes.Semantic, entity.EntityId, new HexCoord(entity.SemanticQ, entity.SemanticR));
+    }
+
+    private void RemoveActiveOccupants(UiEntityProjection entity)
+    {
+        RemoveActiveOccupant(PlaneCodes.Physical, entity.EntityId, new HexCoord(entity.PhysicalQ, entity.PhysicalR));
+        RemoveActiveOccupant(PlaneCodes.Semantic, entity.EntityId, new HexCoord(entity.SemanticQ, entity.SemanticR));
+    }
+
+    private void MoveActiveOccupant(int planeCode, int entityId, HexCoord fromCoord, HexCoord toCoord)
+    {
+        RemoveActiveOccupant(planeCode, entityId, fromCoord);
+        AddActiveOccupant(planeCode, entityId, toCoord);
+    }
+
+    private void AddActiveOccupant(int planeCode, int entityId, HexCoord coord)
+    {
+        var occupantsByCoord = OccupantsByCoord(planeCode);
+        if (!occupantsByCoord.TryGetValue(coord, out var occupants))
+        {
+            occupants = [];
+            occupantsByCoord[coord] = occupants;
+        }
+
+        occupants.Add(entityId);
+        MarkEntityHexDirty(planeCode, coord);
+    }
+
+    private void RemoveActiveOccupant(int planeCode, int entityId, HexCoord coord)
+    {
+        if (TryGetOccupants(planeCode, coord, out var occupants))
+        {
+            occupants.Remove(entityId);
+            if (occupants.Count == 0)
+            {
+                _activeOccupantsByPlane[planeCode].Remove(coord);
+            }
+        }
+
+        MarkEntityHexDirty(planeCode, coord);
+    }
+
+    private Dictionary<HexCoord, HashSet<int>> OccupantsByCoord(int planeCode)
+    {
+        if (!_activeOccupantsByPlane.TryGetValue(planeCode, out var occupantsByCoord))
+        {
+            occupantsByCoord = [];
+            _activeOccupantsByPlane[planeCode] = occupantsByCoord;
+        }
+
+        return occupantsByCoord;
+    }
+
+    private bool TryGetOccupants(int planeCode, HexCoord coord, out HashSet<int> occupants)
+    {
+        if (_activeOccupantsByPlane.TryGetValue(planeCode, out var occupantsByCoord) &&
+            occupantsByCoord.TryGetValue(coord, out occupants!))
+        {
+            return true;
+        }
+
+        occupants = null!;
+        return false;
+    }
+
+    private void MarkEntityHexDirty(int planeCode, HexCoord coord)
+    {
+        if (!_dirtyEntityHexesByPlane.TryGetValue(planeCode, out var dirtyHexes))
+        {
+            dirtyHexes = [];
+            _dirtyEntityHexesByPlane[planeCode] = dirtyHexes;
+        }
+
+        dirtyHexes.Add(coord);
     }
 
     private void MarkProjected(long sequence, int tick, long worldVersion)
