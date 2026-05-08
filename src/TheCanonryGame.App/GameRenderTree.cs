@@ -37,6 +37,7 @@ internal sealed class GameRenderTree
     private readonly CardLayerRender _cardLayerRender = new();
     private readonly AttributeGraphRender _attributeGraphRender = new();
     private readonly TableauRender _tableauRender = new();
+    private readonly FloatingHudLayoutRender _floatingHudLayoutRender = new();
     private CanonryGameRuntime? _runtime;
     private HexMapProjection? _map;
     private UiProjectionState? _ui;
@@ -76,6 +77,8 @@ internal sealed class GameRenderTree
         _hexTooltipPanel = hexTooltipPanel;
         _worldCanvas = worldCanvas;
         _theme = theme;
+        _mapArea.Resized += _floatingHudLayoutRender.Invalidate;
+        _tableauPanel.VisibilityChanged += _floatingHudLayoutRender.Invalidate;
     }
 
     public void BindRuntime(CanonryGameRuntime runtime)
@@ -113,7 +116,7 @@ internal sealed class GameRenderTree
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
         _tableauRender.Present(_tableauPanel, _ui);
-        PositionFloatingHud();
+        _floatingHudLayoutRender.Present(_mapArea, _tableauPanel);
     }
 
     public void PresentTooltip() => _hexTooltipPanel.UpdateTooltip();
@@ -173,6 +176,7 @@ internal sealed class GameRenderTree
     {
         _tableauPanel.Visible = !_tableauPanel.Visible;
         _bottomBar.SetTableauVisible(_tableauPanel.Visible);
+        _floatingHudLayoutRender.Invalidate();
         _tableauRender.Invalidate();
     }
 
@@ -209,6 +213,7 @@ internal sealed class GameRenderTree
         _cardLayerRender.Reset();
         _attributeGraphRender.Reset();
         _tableauRender.Reset();
+        _floatingHudLayoutRender.Reset();
     }
 
     private AttributeGraphPanel? ActiveAttributeGraph()
@@ -227,18 +232,6 @@ internal sealed class GameRenderTree
         _bottomBar.SetReadingsVisible(false);
         _attributeGraphRender.Invalidate();
         return null;
-    }
-
-    private void PositionFloatingHud()
-    {
-        var mapRect = _mapArea.GetGlobalRect();
-        var padding = UiTokens.Space4 * 2f;
-        var width = Mathf.Min(Mathf.Max(720f, mapRect.Size.X - padding), 1080f);
-        var height = Mathf.Min(Mathf.Max(520f, mapRect.Size.Y - padding), 780f);
-        _tableauPanel.CustomMinimumSize = new Vector2(width, height);
-        _tableauPanel.Position = new Vector2(
-            mapRect.Position.X + (mapRect.Size.X - width) * 0.5f,
-            mapRect.Position.Y + (mapRect.Size.Y - height) * 0.5f);
     }
 
     private sealed class TopBarRender
@@ -453,6 +446,56 @@ internal sealed class GameRenderTree
         }
     }
 
+    private sealed class FloatingHudLayoutRender
+    {
+        private FloatingHudLayoutState? _lastState;
+        private bool _dirty = true;
+
+        public void Reset()
+        {
+            _lastState = null;
+            _dirty = true;
+        }
+
+        public void Invalidate() => _dirty = true;
+
+        public void Present(MapArea mapArea, TableauPanel tableauPanel)
+        {
+            if (!tableauPanel.Visible)
+            {
+                return;
+            }
+
+            if (!_dirty)
+            {
+                return;
+            }
+
+            var mapRect = mapArea.GetGlobalRect();
+            var state = new FloatingHudLayoutState(mapRect.Position, mapRect.Size);
+            if (_lastState == state)
+            {
+                _dirty = false;
+                return;
+            }
+
+            PositionFloatingHud(tableauPanel, mapRect);
+            _lastState = state;
+            _dirty = false;
+        }
+
+        private static void PositionFloatingHud(TableauPanel tableauPanel, Rect2 mapRect)
+        {
+            var padding = UiTokens.Space4 * 2f;
+            var width = Mathf.Min(Mathf.Max(720f, mapRect.Size.X - padding), 1080f);
+            var height = Mathf.Min(Mathf.Max(520f, mapRect.Size.Y - padding), 780f);
+            tableauPanel.CustomMinimumSize = new Vector2(width, height);
+            tableauPanel.Position = new Vector2(
+                mapRect.Position.X + ((mapRect.Size.X - width) * 0.5f),
+                mapRect.Position.Y + ((mapRect.Size.Y - height) * 0.5f));
+        }
+    }
+
     private readonly record struct TopBarState(
         int Tick,
         string TimeState,
@@ -489,4 +532,6 @@ internal sealed class GameRenderTree
     private readonly record struct CardLayerState(long CardVersion, long EntityDetailVersion, long RelationshipVersion);
 
     private readonly record struct TableauState(bool Visible, long Version);
+
+    private readonly record struct FloatingHudLayoutState(Vector2 MapPosition, Vector2 MapSize);
 }

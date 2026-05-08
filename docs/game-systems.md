@@ -112,6 +112,13 @@ Monte Carlo analysis should be performed against parquet output with SQL,
 DuckDB, or Python. The stable simulation-quality metrics are described in
 [simulation-principles.md](./systems/simulation-principles.md).
 
+## Presentation
+
+The Godot UI presents projection/read-model state. It must not compute
+simulation truth, mutate runtime state, or redraw every panel just because a
+kernel tick advanced. Current UI presentation principles are recorded in
+[ui-principles.md](./design/ui-principles.md).
+
 ## System Index
 
 - [01 Entity Graph](./systems/01-entity-graph.md)
@@ -133,3 +140,4 @@ DuckDB, or Python. The stable simulation-quality metrics are described in
 - [18 Action Executor](./systems/18-action-executor.md)
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
 - [20 Generator Causal Limits](./systems/20-generator-causal-limits.md)
+- [UI Principles](./design/ui-principles.md)

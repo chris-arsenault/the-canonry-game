@@ -24,6 +24,8 @@ public partial class HexTooltipPanel : PanelContainer
     private HexCoord? _hoveredHex;
     private Vector2 _hoverScreenPosition;
     private ulong _hoverStartedAtMs;
+    private TooltipTextState? _lastTextState;
+    private TooltipPositionState? _lastPositionState;
 
     public override void _Ready()
     {
@@ -88,6 +90,8 @@ public partial class HexTooltipPanel : PanelContainer
         {
             _hoveredHex = pointedHex.Value;
             _hoverStartedAtMs = Time.GetTicksMsec();
+            _lastTextState = null;
+            _lastPositionState = null;
             Visible = false;
             return;
         }
@@ -97,7 +101,7 @@ public partial class HexTooltipPanel : PanelContainer
             return;
         }
 
-        _label.Text = FormatHexTooltip(pointedHex.Value);
+        PresentTooltipText(pointedHex.Value);
         Visible = true;
         PositionTooltip(_hoverScreenPosition);
     }
@@ -105,6 +109,8 @@ public partial class HexTooltipPanel : PanelContainer
     public void ClearTooltip()
     {
         _hoveredHex = null;
+        _lastTextState = null;
+        _lastPositionState = null;
         Visible = false;
     }
 
@@ -128,6 +134,29 @@ public partial class HexTooltipPanel : PanelContainer
         return _renderer?.CurrentPlane == PlaneMode.Semantic
             ? FormatSemanticHexTooltip(coord)
             : FormatPhysicalHexTooltip(coord);
+    }
+
+    private void PresentTooltipText(HexCoord coord)
+    {
+        if (_label is null || _renderer is null)
+        {
+            return;
+        }
+
+        var plane = _renderer.CurrentPlane;
+        var textState = new TooltipTextState(
+            coord,
+            plane,
+            _map?.CellVersion ?? -1,
+            plane == PlaneMode.Semantic ? _projection?.EntityMapVersion ?? -1 : -1);
+        if (_lastTextState == textState)
+        {
+            return;
+        }
+
+        _label.Text = FormatHexTooltip(coord);
+        _lastTextState = textState;
+        _lastPositionState = null;
     }
 
     private string FormatSemanticHexTooltip(HexCoord coord)
@@ -240,11 +269,29 @@ public partial class HexTooltipPanel : PanelContainer
     {
         var viewportSize = GetViewportRect().Size;
         var panelSize = GetCombinedMinimumSize();
+        var state = new TooltipPositionState(screenPos, viewportSize, panelSize);
+        if (_lastPositionState == state)
+        {
+            return;
+        }
+
         var pos = screenPos + new Vector2(16f, 18f);
         pos.X = Mathf.Min(pos.X, viewportSize.X - panelSize.X - 8f);
         pos.Y = Mathf.Min(pos.Y, viewportSize.Y - panelSize.Y - 8f);
         pos.X = Mathf.Max(pos.X, 8f);
         pos.Y = Mathf.Max(pos.Y, 8f);
         Position = pos;
+        _lastPositionState = state;
     }
+
+    private readonly record struct TooltipTextState(
+        HexCoord Coord,
+        PlaneMode Plane,
+        long CellVersion,
+        long EntityMapVersion);
+
+    private readonly record struct TooltipPositionState(
+        Vector2 ScreenPosition,
+        Vector2 ViewportSize,
+        Vector2 PanelSize);
 }

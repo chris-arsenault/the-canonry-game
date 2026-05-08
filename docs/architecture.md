@@ -65,6 +65,11 @@ Consumers must not stall kernel advancement. If a consumer needs richer
 materialized state, it builds that state from events or snapshots on its own
 side of the boundary.
 
+The Godot UI follows the same consumer boundary. Projections expose versions,
+dirty sets, and active-state indexes; render components own Godot subtrees and
+present only when their inputs change. The stable UI rules are recorded in
+[ui-principles.md](./design/ui-principles.md).
+
 ## Kernel Tick
 
 `Simulation.AdvanceTicks` is the single mutation entrypoint. Each tick drains

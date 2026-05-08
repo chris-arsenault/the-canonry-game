@@ -3,6 +3,10 @@
 Map visualization makes the simulation observable. It reads simulation state and
 writes nothing back.
 
+Map presentation follows the durable UI rules in
+[ui-principles.md](../design/ui-principles.md): projection state owns versions
+and dirty sets, while Godot render components own node mutation.
+
 ## Current Visual Responsibilities
 
 - Render terrain and region coverage.
@@ -10,7 +14,9 @@ writes nothing back.
 - Render semantic position in the bounded semantic plane.
 - Render influence overlays by entity and plane.
 - Render activity and signal overlays when useful for debugging or play.
-- Show generated entities and historical/dead entities distinctly.
+- Show active entities by default.
+- Keep historical/dead entities available for explicit history views rather
+  than default hot-path map rendering.
 - Keep the tableau inspectable without covering the entity list or hiding the
   map.
 
