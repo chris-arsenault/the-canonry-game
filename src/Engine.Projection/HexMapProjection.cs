@@ -109,6 +109,10 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     public long WorldVersion { get; private set; }
 
+    public long CellVersion { get; private set; }
+
+    public long FrameVersion { get; private set; }
+
     public long DroppedEvents { get; private set; }
 
     public bool IsComplete => DroppedEvents == 0;
@@ -216,6 +220,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             WorldVersion = evt.WorldVersion,
             Sequence = sequence,
         };
+        CellVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -245,6 +250,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             WorldVersion = evt.WorldVersion,
             Sequence = sequence,
         };
+        CellVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -284,6 +290,8 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             sequence);
         surface.HexIdsByCoord[coord] = hexId;
         MapRadius = Math.Max(MapRadius, coord.DistanceFromOrigin);
+        CellVersion++;
+        FrameVersion++;
         MarkProjected(sequence, tick, worldVersion);
     }
 

@@ -40,7 +40,7 @@ public partial class EntityRow : VBoxContainer
         _subtitleLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
     }
 
-    public void BindTo(UiEntityProjection entity, IProjectionSymbolCatalog? symbols, int currentTick)
+    public void BindTo(UiEntityProjection entity, IProjectionSymbolCatalog? symbols)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
@@ -60,7 +60,7 @@ public partial class EntityRow : VBoxContainer
 
         if (_subtitleLabel is not null)
         {
-            var subtitle = FormatLastActionSubtitle(entity, symbols, currentTick);
+            var subtitle = FormatLastActionSubtitle(entity, symbols);
             _subtitleLabel.Text = subtitle ?? string.Empty;
             _subtitleLabel.Visible = subtitle is not null;
         }
@@ -116,8 +116,7 @@ public partial class EntityRow : VBoxContainer
 
     private static string? FormatLastActionSubtitle(
         UiEntityProjection entity,
-        IProjectionSymbolCatalog? symbols,
-        int currentTick)
+        IProjectionSymbolCatalog? symbols)
     {
         var last = entity.LastGambitExecution;
         if (last is null)
@@ -130,8 +129,6 @@ public partial class EntityRow : VBoxContainer
             ProjectionSymbolKind.Gambit,
             last.GambitId,
             $"Gambit {last.GambitId}");
-        var age = System.Math.Max(0, currentTick - last.Tick);
-        var ageText = age == 0 ? "now" : $"{age}t ago";
-        return $"    {actionName} | {ageText}";
+        return $"    {actionName} | t{last.Tick}";
     }
 }

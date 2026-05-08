@@ -162,6 +162,124 @@ public sealed class UiProjectionStateTests
         Assert.Equal(60, projection.Entities[20].LastGambitExecution?.GambitId);
     }
 
+    [Fact]
+    public void Projection_SplitsUiVersionsByConsumerSurface()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        WriteVersionTestEntityCreated(log);
+        pump.DrainAvailable();
+
+        Assert.Equal(1, projection.ActiveEntityCount);
+        Assert.Equal(1, projection.TopBarVersion);
+        Assert.Equal(1, projection.EntityMapVersion);
+        Assert.Equal(1, projection.EntityBrowserVersion);
+        Assert.Equal(1, projection.EntityDetailVersion);
+
+        var browserVersion = projection.EntityBrowserVersion;
+        WriteVersionTestEntityMoved(log);
+        pump.DrainAvailable();
+
+        Assert.Equal(browserVersion, projection.EntityBrowserVersion);
+        Assert.Equal(2, projection.EntityMapVersion);
+        Assert.Equal(2, projection.EntityDetailVersion);
+
+        WriteVersionTestRelationshipChanged(log);
+        pump.DrainAvailable();
+
+        Assert.Equal(browserVersion, projection.EntityBrowserVersion);
+        Assert.Equal(1, projection.RelationshipVersion);
+        Assert.Equal(3, projection.EntityDetailVersion);
+
+        WriteVersionTestGambitExecuted(log);
+        pump.DrainAvailable();
+
+        browserVersion++;
+        Assert.Equal(browserVersion, projection.EntityBrowserVersion);
+        Assert.Equal(4, projection.EntityDetailVersion);
+
+        WriteVersionTestTickCompleted(log);
+        pump.DrainAvailable();
+
+        Assert.Equal(browserVersion, projection.EntityBrowserVersion);
+        Assert.Equal(2, projection.TopBarVersion);
+    }
+
+    private static void WriteVersionTestEntityCreated(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: 1,
+            EntityId: 10,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0))));
+    }
+
+    private static void WriteVersionTestEntityMoved(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            EntityId: 10,
+            SourceCodeId: 40,
+            PlaneCode: PlaneCodes.Physical,
+            FromQ: 0,
+            FromR: 0,
+            FromS: 0,
+            ToQ: 1,
+            ToR: 0,
+            ToS: 0))));
+    }
+
+    private static void WriteVersionTestRelationshipChanged(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
+            Tick: 3,
+            WorldVersion: 3,
+            ChangeCodeId: 9,
+            SourceCodeId: 8,
+            RelationshipKindId: 10,
+            PolarityCode: RelationshipPolarityCodes.Positive,
+            SourceEntityId: 10,
+            TargetEntityId: 11,
+            RelationshipId: 12,
+            PreviousStrength: 0f,
+            NewStrength: 1f))));
+    }
+
+    private static void WriteVersionTestGambitExecuted(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
+            Tick: 4,
+            WorldVersion: 4,
+            ActorId: 10,
+            ActorKindId: 2,
+            GambitId: 50,
+            AffectedEntityId0: 11,
+            AffectedEntityId1: 0,
+            AffectedEntityCount: 1,
+            State: KernelEventState.Succeeded))));
+    }
+
+    private static void WriteVersionTestTickCompleted(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new TickCompletedKernelEvent(
+            Tick: 5,
+            WorldVersion: 5))));
+    }
+
     private static void WritePrimitiveEntityAndMutationEvents(KernelEventLog log)
     {
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(

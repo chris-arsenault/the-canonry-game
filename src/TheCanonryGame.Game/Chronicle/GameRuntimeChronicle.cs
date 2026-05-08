@@ -18,7 +18,14 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     private readonly IProjectionSymbolCatalog _symbols;
     private readonly GameDomainKnowledge _knowledge;
     private readonly HashSet<int> _emittedChainInvocationIds = [];
+    private readonly List<ProvenanceInvocationProjection> _pendingChainCandidates = [];
     private readonly List<string> _chainLines = [];
+    private IReadOnlyList<string> _cachedLines = [];
+    private int _nextInvocationIndex;
+    private long _lastBaseChronicleVersion = -1;
+    private long _lastProvenanceSequence = -1;
+    private long _lastCombinedChainVersion = -1;
+    private long _chainVersion;
 
     internal GameRuntimeChronicle(
         UiChronicleProjection baseChronicle,
@@ -37,37 +44,97 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
         _knowledge = knowledge;
     }
 
+    public long Version { get; private set; }
+
     public IReadOnlyList<string> Lines
     {
         get
         {
-            RefreshChains();
-            return CombinedLines();
+            Refresh();
+            return _cachedLines;
         }
+    }
+
+    public void Refresh()
+    {
+        var provenanceChanged = _lastProvenanceSequence != _provenance.LastProjectedSequence;
+        if (provenanceChanged)
+        {
+            RefreshChains();
+            _lastProvenanceSequence = _provenance.LastProjectedSequence;
+        }
+
+        if (_lastBaseChronicleVersion == _baseChronicle.Version &&
+            _lastCombinedChainVersion == _chainVersion)
+        {
+            return;
+        }
+
+        _cachedLines = CombinedLines();
+        _lastBaseChronicleVersion = _baseChronicle.Version;
+        _lastCombinedChainVersion = _chainVersion;
+        Version++;
     }
 
     private void RefreshChains()
     {
         if (_knowledge.ChronicleQueries.Count == 0)
         {
+            _nextInvocationIndex = _provenance.InvocationsInProjectionOrder.Count;
             return;
         }
 
-        foreach (var invocation in _provenance.Invocations.Values.OrderBy(static invocation => invocation.Sequence))
+        EnqueueNewChainCandidates();
+        ProcessPendingChainCandidates();
+    }
+
+    private void EnqueueNewChainCandidates()
+    {
+        var invocations = _provenance.InvocationsInProjectionOrder;
+        for (; _nextInvocationIndex < invocations.Count; _nextInvocationIndex++)
         {
-            if (_emittedChainInvocationIds.Contains(invocation.InvocationId))
+            var invocation = invocations[_nextInvocationIndex];
+            if (IsChainChildCandidate(invocation))
             {
+                _pendingChainCandidates.Add(invocation);
+            }
+        }
+    }
+
+    private void ProcessPendingChainCandidates()
+    {
+        for (var i = 0; i < _pendingChainCandidates.Count;)
+        {
+            if (TryAppendChain(_pendingChainCandidates[i]))
+            {
+                _pendingChainCandidates.RemoveAt(i);
                 continue;
             }
 
-            foreach (var query in _knowledge.ChronicleQueries)
+            i++;
+        }
+    }
+
+    private bool IsChainChildCandidate(ProvenanceInvocationProjection invocation) =>
+        _knowledge.ChronicleQueries.Any(query =>
+            MatchesProducer(invocation, query.ChildProducerKindCode, query.ChildProducerId));
+
+    private bool TryAppendChain(ProvenanceInvocationProjection child)
+    {
+        if (_emittedChainInvocationIds.Contains(child.InvocationId))
+        {
+            return true;
+        }
+
+        foreach (var query in _knowledge.ChronicleQueries)
+        {
+            if (TryAppendChain(query, child))
             {
-                if (TryAppendChain(query, invocation))
-                {
-                    break;
-                }
+                return true;
             }
         }
+
+        return false;
     }
 
     private bool TryAppendChain(
@@ -86,6 +153,7 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
         _emittedChainInvocationIds.Add(child.InvocationId);
         _chainLines.Add(FormatChainLine(child, parent, trigger));
+        _chainVersion++;
         TrimChainLines();
         return true;
     }

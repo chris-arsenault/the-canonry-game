@@ -36,16 +36,26 @@ public partial class EntityLayer : Node2D
         Refresh();
     }
 
-    public void SetPlane(PlaneMode plane)
+    public bool SetPlane(PlaneMode plane)
     {
+        if (CurrentPlane == plane)
+        {
+            return false;
+        }
+
         CurrentPlane = plane;
-        Refresh();
+        return true;
     }
 
-    public void SetShowEntityNames(bool showEntityNames)
+    public bool SetShowEntityNames(bool showEntityNames)
     {
+        if (ShowEntityNames == showEntityNames)
+        {
+            return false;
+        }
+
         ShowEntityNames = showEntityNames;
-        Refresh();
+        return true;
     }
 
     public void Refresh()
@@ -68,6 +78,7 @@ public partial class EntityLayer : Node2D
     {
         var offsetsByHex = new Dictionary<HexCoord, int>();
         return _projection!.Entities.Values
+            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
             .OrderBy(entity => entity.EntityId)
             .Select(entity =>
             {

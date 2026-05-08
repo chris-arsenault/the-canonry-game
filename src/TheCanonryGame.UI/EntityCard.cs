@@ -223,20 +223,75 @@ public partial class EntityCard : PanelContainer
     private void AppendRelationships(StringBuilder sb, string whisper)
     {
         sb.AppendLine(SectionHeader("Relationships"));
-        var outgoing = _projection!.Relationships.Values
-            .Where(rel => rel.Key.SourceEntityId == _entityId && rel.IsActive)
-            .OrderBy(rel => rel.Key.TargetEntityId)
-            .ToArray();
-        var incoming = _projection.Relationships.Values
-            .Where(rel => rel.Key.TargetEntityId == _entityId && rel.IsActive)
-            .OrderBy(rel => rel.Key.SourceEntityId)
-            .ToArray();
 
-        if (outgoing.Length == 0 && incoming.Length == 0)
+        var (outgoing, incoming) = CollectVisibleRelationships();
+        if (outgoing.Count == 0 && incoming.Count == 0)
         {
             sb.AppendLine($"  [color={whisper}]none[/color]");
         }
 
+        AppendOutgoingRelationships(sb, outgoing, whisper);
+        AppendIncomingRelationships(sb, incoming, whisper);
+    }
+
+    private (List<UiRelationshipProjection> Outgoing, List<UiRelationshipProjection> Incoming) CollectVisibleRelationships()
+    {
+        var outgoing = new List<UiRelationshipProjection>();
+        var incoming = new List<UiRelationshipProjection>();
+        if (EntityIsHistorical(_entityId))
+        {
+            return (outgoing, incoming);
+        }
+
+        foreach (var rel in _projection!.Relationships.Values)
+        {
+            AddVisibleRelationship(rel, outgoing, incoming);
+        }
+
+        outgoing.Sort(static (left, right) => left.Key.TargetEntityId.CompareTo(right.Key.TargetEntityId));
+        incoming.Sort(static (left, right) => left.Key.SourceEntityId.CompareTo(right.Key.SourceEntityId));
+        return (outgoing, incoming);
+    }
+
+    private void AddVisibleRelationship(
+        UiRelationshipProjection rel,
+        List<UiRelationshipProjection> outgoing,
+        List<UiRelationshipProjection> incoming)
+    {
+        if (!rel.IsActive)
+        {
+            return;
+        }
+
+        var key = rel.Key;
+        if (key.SourceEntityId == _entityId)
+        {
+            AddRelationshipIfEndpointsActive(key, rel, outgoing);
+            return;
+        }
+
+        if (key.TargetEntityId == _entityId)
+        {
+            AddRelationshipIfEndpointsActive(key, rel, incoming);
+        }
+    }
+
+    private void AddRelationshipIfEndpointsActive(
+        UiRelationshipKey key,
+        UiRelationshipProjection rel,
+        List<UiRelationshipProjection> relationships)
+    {
+        if (!RelationshipHasHistoricalEndpoint(key))
+        {
+            relationships.Add(rel);
+        }
+    }
+
+    private void AppendOutgoingRelationships(
+        StringBuilder sb,
+        IEnumerable<UiRelationshipProjection> outgoing,
+        string whisper)
+    {
         foreach (var rel in outgoing)
         {
             var targetName = ProjectionDisplay.EntityName(_symbols, _projection, rel.Key.TargetEntityId);
@@ -247,7 +302,13 @@ public partial class EntityCard : PanelContainer
                 $"Relationship {rel.Key.RelationshipKindId}");
             sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  -> {relationshipName} -> {targetName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
+    }
 
+    private void AppendIncomingRelationships(
+        StringBuilder sb,
+        IEnumerable<UiRelationshipProjection> incoming,
+        string whisper)
+    {
         foreach (var rel in incoming)
         {
             var sourceName = ProjectionDisplay.EntityName(_symbols, _projection, rel.Key.SourceEntityId);
@@ -259,6 +320,13 @@ public partial class EntityCard : PanelContainer
             sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  <- {relationshipName} <- {sourceName} [color={whisper}]({rel.NewStrength:F2})[/color]");
         }
     }
+
+    private bool RelationshipHasHistoricalEndpoint(UiRelationshipKey key) =>
+        EntityIsHistorical(key.SourceEntityId) || EntityIsHistorical(key.TargetEntityId);
+
+    private bool EntityIsHistorical(int entityId) =>
+        !_projection!.Entities.TryGetValue(entityId, out var entity) ||
+        entity.StatusCode != EntityStatusCodes.Active;
 
     private void AppendActions(StringBuilder sb, UiEntityProjection entity, string whisper)
     {

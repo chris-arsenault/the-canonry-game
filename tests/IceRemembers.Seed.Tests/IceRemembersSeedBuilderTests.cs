@@ -223,6 +223,26 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
+    public void DreamingTooth_IsClaimedWithoutBeingPhysicallyHeld()
+    {
+        var dreamingTooth = EntityNamed(K.Artifact.Value, "The Dreaming Tooth");
+        var corpseCurrent = EntityNamed(K.PointOfInterest.Value, "The Corpse Current");
+        var wakeSingers = EntityNamed(K.Faction.Value, "The Wake-Singers");
+
+        Assert.Contains(Seed.Relationships, relationship =>
+            relationship.RelationshipKind == "anchored" &&
+            relationship.SourceSeedEntityId == dreamingTooth.SeedEntityId &&
+            relationship.TargetSeedEntityId == corpseCurrent.SeedEntityId);
+        Assert.Contains(Seed.Relationships, relationship =>
+            relationship.RelationshipKind == "claimed_by" &&
+            relationship.SourceSeedEntityId == dreamingTooth.SeedEntityId &&
+            relationship.TargetSeedEntityId == wakeSingers.SeedEntityId);
+        Assert.DoesNotContain(Seed.Relationships, relationship =>
+            relationship.RelationshipKind == "holds" &&
+            relationship.TargetSeedEntityId == dreamingTooth.SeedEntityId);
+    }
+
+    [Fact]
     public void SeedSettlements_SpanMeaningfulPhysicalAndTerrainSpace()
     {
         var settlementCoords = EntitiesByKind(K.Settlement)

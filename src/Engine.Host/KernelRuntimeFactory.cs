@@ -74,7 +74,9 @@ public sealed class KernelRuntimeFactory
                         });
             });
 
-        var logger = new RunLogger(runLogPath ?? RunLogger.DefaultLogPath(), runtime.Host.Events, runtime.Host.Symbols);
+        var logger = runLogPath is null
+            ? null
+            : new RunLogger(runLogPath, runtime.Host.Events, runtime.Host.Symbols);
         return new KernelUiRuntime(
             runtime,
             map ?? throw new InvalidOperationException("UI map projection was not registered."),
@@ -248,7 +250,7 @@ public readonly record struct KernelRuntimePulse(
 public sealed class KernelUiRuntime : IDisposable
 {
     private readonly KernelRuntime _runtime;
-    private readonly RunLogger _runLogger;
+    private readonly RunLogger? _runLogger;
     private bool _disposed;
 
     internal KernelUiRuntime(
@@ -257,14 +259,13 @@ public sealed class KernelUiRuntime : IDisposable
         UiProjectionState ui,
         ProvenanceProjection provenance,
         UiChronicleProjection chronicle,
-        RunLogger runLogger)
+        RunLogger? runLogger)
     {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(ui);
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(chronicle);
-        ArgumentNullException.ThrowIfNull(runLogger);
 
         _runtime = runtime;
         Map = map;
@@ -294,7 +295,7 @@ public sealed class KernelUiRuntime : IDisposable
 
     public ICommandSubmitter Commands => _runtime.Host.Commands;
 
-    public string RunLogPath => _runLogger.LogPath;
+    public string? RunLogPath => _runLogger?.LogPath;
 
     public KernelRuntimePulse Pump()
     {
@@ -302,12 +303,14 @@ public sealed class KernelUiRuntime : IDisposable
 
         var previousTick = Ui.CurrentTick;
         _runtime.Host.DrainConsumers();
-        _runLogger.DrainAvailable();
         var currentTick = Ui.CurrentTick;
-
-        for (var tick = previousTick + 1; tick <= currentTick; tick++)
+        if (_runLogger is not null)
         {
-            _runLogger.OnTickEnded(tick);
+            _runLogger.DrainAvailable();
+            for (var tick = previousTick + 1; tick <= currentTick; tick++)
+            {
+                _runLogger.OnTickEnded(tick);
+            }
         }
 
         return new KernelRuntimePulse(previousTick, currentTick);
@@ -321,7 +324,7 @@ public sealed class KernelUiRuntime : IDisposable
         }
 
         _disposed = true;
-        _runLogger.Dispose();
+        _runLogger?.Dispose();
         _runtime.Dispose();
     }
 }

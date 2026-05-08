@@ -10,9 +10,14 @@ public sealed class ProvenanceProjection : KernelEventProjector
     private readonly Dictionary<int, int> _relationshipCreatedByInvocation = [];
     private readonly Dictionary<int, int> _relationshipLastChangedByInvocation = [];
     private readonly Dictionary<int, ProvenanceRelationshipProjection> _relationships = [];
+    private readonly List<ProvenanceInvocationProjection> _invocationsInProjectionOrder = [];
     private int _currentInvocationId;
 
     public IReadOnlyDictionary<int, ProvenanceInvocationProjection> Invocations => _invocations;
+
+    public IReadOnlyList<ProvenanceInvocationProjection> InvocationsInProjectionOrder => _invocationsInProjectionOrder;
+
+    public long LastProjectedSequence { get; private set; } = -1;
 
     public IReadOnlyDictionary<int, int> EntityCreatedByInvocation => _entityCreatedByInvocation;
 
@@ -23,6 +28,7 @@ public sealed class ProvenanceProjection : KernelEventProjector
     protected override void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
     {
         _currentInvocationId = kernelEvent.Event.ProvenanceInvocationId;
+        LastProjectedSequence = kernelEvent.Sequence;
     }
 
     protected override void OnEntityCreated(long sequence, in EntityCreatedKernelEvent evt)
@@ -137,7 +143,7 @@ public sealed class ProvenanceProjection : KernelEventProjector
 
     protected override void OnProvenanceInvocationRecorded(long sequence, in ProvenanceInvocationRecordedKernelEvent evt)
     {
-        _invocations[evt.InvocationId] = new ProvenanceInvocationProjection(
+        var invocation = new ProvenanceInvocationProjection(
             evt.InvocationId,
             sequence,
             evt.Tick,
@@ -149,6 +155,8 @@ public sealed class ProvenanceProjection : KernelEventProjector
             evt.TriggerKindCode,
             evt.TriggerId,
             evt.OutputCount);
+        _invocations[evt.InvocationId] = invocation;
+        _invocationsInProjectionOrder.Add(invocation);
     }
 
     public bool TryGetInvocation(int invocationId, out ProvenanceInvocationProjection invocation) =>

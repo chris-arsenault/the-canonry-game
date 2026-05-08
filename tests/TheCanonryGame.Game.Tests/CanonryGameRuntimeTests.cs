@@ -67,6 +67,15 @@ public sealed class CanonryGameRuntimeTests
         }
     }
 
+    [Fact]
+    public void Start_WithoutRunLogPathDisablesInteractiveRunLogging()
+    {
+        using var runtime = CanonryGameRuntimeFactory.Start(GameSeedPolicy.Requested(44));
+        runtime.Controls.Pause();
+
+        Assert.Null(runtime.RunLogPath);
+    }
+
     private static string TempRunLogPath() =>
         Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.log");
 

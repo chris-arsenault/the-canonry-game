@@ -24,6 +24,8 @@ public sealed class UiChronicleProjection : KernelEventProjector
 
     public IReadOnlyList<string> Lines => _lines;
 
+    public long Version { get; private set; }
+
     protected override void OnEntityCreated(long sequence, in EntityCreatedKernelEvent evt)
     {
         _entityInfo[evt.EntityId] = new EntityInfo(evt.KindId, evt.SubtypeId, evt.CultureId);
@@ -104,6 +106,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
     private void Append(string line)
     {
         _lines.Add(line);
+        Version++;
         if (_lines.Count > MaxLines)
         {
             _lines.RemoveRange(0, _lines.Count - MaxLines);

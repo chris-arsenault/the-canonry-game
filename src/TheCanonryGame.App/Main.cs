@@ -2,12 +2,9 @@
 #pragma warning disable CA1305
 #pragma warning disable CA2000 // Godot nodes managed by scene tree
 #pragma warning disable CA2213 // Godot nodes are managed by the scene tree
-using Engine.Projection;
-
 using Godot;
 
 using TheCanonryGame.Game;
-using TheCanonryGame.Game.Runtime;
 using TheCanonryGame.UI;
 using TheCanonryGame.UI.Theme;
 
@@ -31,16 +28,10 @@ public partial class Main : Node2D
     private VBoxContainer? _rootColumn;
     private EntityCardLayer? _cardLayer;
     private Control? _uiRoot;
-    private AttributeGraphPanel? _attributeGraph;
     private TableauPanel? _tableauPanel;
-    private UiProjectionState? _uiProjection;
-    private HexMapProjection? _hexMapProjection;
-    private IProjectionSymbolCatalog? _projectionSymbols;
-    private IGameChronicleFeed? _chronicleProjection;
     private HexTooltipPanel? _hexTooltipPanel;
+    private GameRenderTree? _renderTree;
     private Godot.Theme? _theme;
-    private int _currentSeed;
-    private int _currentSeedAttempt;
     private double _displayTicksPerSecond = NormalTicksPerSecond;
     private bool _displayPaused;
 
@@ -77,21 +68,9 @@ public partial class Main : Node2D
         var pulse = _runtime.Update();
         var currentTick = pulse.CurrentTick;
 
-        if (pulse.TicksProcessed > 0)
-        {
-            _mapRenderer?.Refresh();
-            _entityLayer?.Refresh();
-            _browser?.Refresh();
-            _cardLayer?.Refresh();
-            _attributeGraph?.Refresh();
-            _tableauPanel?.Refresh();
-        }
-
-        RefreshChronicleLabel();
-        RefreshTopBar(currentTick);
-        PositionFloatingHud();
+        _renderTree?.Present(currentTick, FormatKernelTimeState());
         HandleCameraMovement((float)delta);
-        _hexTooltipPanel?.UpdateTooltip();
+        _renderTree?.PresentTooltip();
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -170,13 +149,7 @@ public partial class Main : Node2D
         PauseKernelDriver();
     }
 
-    private void ToggleEntityNames()
-    {
-        if (_entityLayer is not null)
-        {
-            _entityLayer.SetShowEntityNames(!_entityLayer.ShowEntityNames);
-        }
-    }
+    private void ToggleEntityNames() => _renderTree?.ToggleEntityNames();
 
     private void AdjustZoom(float factor)
     {
@@ -220,6 +193,21 @@ public partial class Main : Node2D
             _rootColumn.AddThemeConstantOverride("separation", 0);
         }
 
+        _renderTree = new GameRenderTree(
+            _mapRenderer!,
+            _entityLayer!,
+            _browser!,
+            _topBar!,
+            _bottomBar!,
+            _chroniclePanel!,
+            _mapArea!,
+            _rootColumn!,
+            _cardLayer!,
+            _uiRoot!,
+            _tableauPanel!,
+            _hexTooltipPanel!,
+            this,
+            _theme);
     }
 
     private void WireSceneSignals()
@@ -260,18 +248,11 @@ public partial class Main : Node2D
 
     private void StartNewRun(GameSeedPolicy seedPolicy, bool pauseAfterStart)
     {
-        CloseOpenCards();
-        _hexTooltipPanel?.ClearTooltip();
+        _renderTree?.CloseOpenCards();
+        _renderTree?.ClearTooltip();
 
         _runtime?.Dispose();
         _runtime = CanonryGameRuntimeFactory.Start(seedPolicy);
-
-        _hexMapProjection = _runtime.ReadModels.Map;
-        _uiProjection = _runtime.ReadModels.Entities;
-        _projectionSymbols = _runtime.ReadModels.Symbols;
-        _chronicleProjection = _runtime.ReadModels.Chronicle;
-        _currentSeed = _runtime.Seed.BaseSeed;
-        _currentSeedAttempt = _runtime.Seed.Attempt;
 
         if (pauseAfterStart)
         {
@@ -282,141 +263,22 @@ public partial class Main : Node2D
             SetKernelTickRate(NormalTicksPerSecond);
         }
 
-        RebindRuntimeToUi();
-        RefreshChronicleLabel();
-        RefreshTopBar(_runtime.ReadModels.Entities.CurrentTick);
+        _renderTree?.BindRuntime(_runtime);
+        _renderTree?.Present(_runtime.ReadModels.Entities.CurrentTick, FormatKernelTimeState());
 
+        var runLogText = _runtime.RunLogPath is { Length: > 0 } runLogPath
+            ? $" Run log -> {runLogPath}"
+            : " Run logging disabled.";
         GD.Print(
             $"Simulation initialized: seed {_runtime.Seed.BaseSeed}/{_runtime.Seed.Attempt}, " +
-            $"{_runtime.ReadModels.Entities.Entities.Count} projected entities. Run log -> {_runtime.RunLogPath}");
+            $"{_runtime.ReadModels.Entities.Entities.Count} projected entities.{runLogText}");
     }
 
-    private void RebindRuntimeToUi()
-    {
-        RebindMapRuntime();
-        RebindEntityRuntime();
-        RebindOverlayRuntime();
-        _chroniclePanel?.Clear();
-    }
+    private void OnTogglePlanePressed() => _renderTree?.TogglePlane();
 
-    private void RebindMapRuntime()
-    {
-        if (_hexMapProjection is not null)
-        {
-            _mapRenderer?.Initialize(_hexMapProjection, _projectionSymbols);
-            _mapRenderer?.Refresh();
-        }
+    private void OnToggleInfluencePressed() => _renderTree?.ToggleInfluence();
 
-        _entityLayer?.Initialize(_uiProjection, _projectionSymbols, _mapRenderer?.HexSize ?? 30f);
-        if (_mapRenderer is not null)
-        {
-            RebindMapOverlayState(_mapRenderer);
-        }
-    }
-
-    private void RebindMapOverlayState(HexMapRenderer mapRenderer)
-    {
-        _entityLayer?.SetPlane(mapRenderer.CurrentPlane);
-        _mapArea?.SetPlane(mapRenderer.CurrentPlane);
-        _mapArea?.SetInfluenceVisible(mapRenderer.ShowInfluence);
-    }
-
-    private void RebindEntityRuntime()
-    {
-        _browser?.Initialize(_uiProjection, _projectionSymbols);
-        _attributeGraph?.Initialize(_uiProjection, _projectionSymbols);
-        _cardLayer?.Initialize(_uiProjection, _projectionSymbols, _theme);
-    }
-
-    private void RebindOverlayRuntime()
-    {
-        _hexTooltipPanel?.Initialize(
-            _hexMapProjection,
-            _uiProjection,
-            _projectionSymbols,
-            _mapRenderer,
-            this,
-            [_rootColumn, _mapArea, _uiRoot]);
-        _tableauPanel?.Initialize(_runtime?.Tableau);
-        _tableauPanel?.Refresh();
-    }
-
-    private void RefreshChronicleLabel()
-    {
-        if (_chronicleProjection is not null)
-        {
-            _chroniclePanel?.SetLines(_chronicleProjection.Lines);
-        }
-    }
-
-    private void RefreshTopBar(int currentTick)
-    {
-        _topBar?.SetStatus(
-            currentTick,
-            FormatKernelTimeState(),
-            _uiProjection?.Entities.Count ?? 0,
-            _uiProjection?.GeneratorFires.Count ?? 0,
-            _currentSeed,
-            _currentSeedAttempt);
-    }
-
-    private void CloseOpenCards()
-    {
-        _cardLayer?.CloseAll();
-    }
-
-    private void OnTogglePlanePressed()
-    {
-        if (_mapRenderer is null)
-        {
-            return;
-        }
-
-        _mapRenderer.CurrentPlane = _mapRenderer.CurrentPlane == PlaneMode.Physical
-            ? PlaneMode.Semantic
-            : PlaneMode.Physical;
-        _mapRenderer.Refresh();
-        _entityLayer?.SetPlane(_mapRenderer.CurrentPlane);
-        _mapArea?.SetPlane(_mapRenderer.CurrentPlane);
-        _hexTooltipPanel?.ClearTooltip();
-    }
-
-    private void OnToggleInfluencePressed()
-    {
-        if (_mapRenderer is null)
-        {
-            return;
-        }
-
-        _mapRenderer.ShowInfluence = !_mapRenderer.ShowInfluence;
-        _mapRenderer.Refresh();
-        _mapArea?.SetInfluenceVisible(_mapRenderer.ShowInfluence);
-    }
-
-    private void ToggleAttributeGraph()
-    {
-        if (_attributeGraph is not null)
-        {
-            _attributeGraph.QueueFree();
-            _attributeGraph = null;
-            _bottomBar?.SetReadingsVisible(false);
-            return;
-        }
-
-        if (_uiProjection is null || _cardLayer is null)
-        {
-            return;
-        }
-
-        _attributeGraph = new AttributeGraphPanel
-        {
-            Theme = _theme,
-        };
-        _cardLayer.AddChild(_attributeGraph);
-        _attributeGraph.Initialize(_uiProjection, _projectionSymbols);
-        _attributeGraph.Position = new Vector2(320, UiTokens.Space7);
-        _bottomBar?.SetReadingsVisible(true);
-    }
+    private void ToggleAttributeGraph() => _renderTree?.ToggleAttributeGraph();
 
     private void ResetSimulation()
     {
@@ -426,12 +288,12 @@ public partial class Main : Node2D
 
     private void OnBrowserEntitySelected(int entityIdValue)
     {
-        _cardLayer?.Open(entityIdValue, new Vector2(300, 100));
+        _renderTree?.OpenCard(entityIdValue, new Vector2(300, 100));
     }
 
     private void OnMapEntitySelected(int entityIdValue)
     {
-        _cardLayer?.Open(entityIdValue, GetViewport().GetMousePosition() + new Vector2(20, -20));
+        _renderTree?.OpenCard(entityIdValue, GetViewport().GetMousePosition() + new Vector2(20, -20));
     }
 
     private void PauseKernelDriver()
@@ -466,37 +328,7 @@ public partial class Main : Node2D
         return $"{_displayTicksPerSecond:0.##} t/s";
     }
 
-    private void ToggleTableauVisibility()
-    {
-        if (_tableauPanel is null)
-        {
-            return;
-        }
-
-        _tableauPanel.Visible = !_tableauPanel.Visible;
-        _bottomBar?.SetTableauVisible(_tableauPanel.Visible);
-        if (_tableauPanel.Visible)
-        {
-            _tableauPanel.Refresh();
-        }
-    }
-
-    private void PositionFloatingHud()
-    {
-        if (_mapArea is null || _tableauPanel is null)
-        {
-            return;
-        }
-
-        var mapRect = _mapArea.GetGlobalRect();
-        var padding = UiTokens.Space4 * 2f;
-        var width = Mathf.Min(Mathf.Max(720f, mapRect.Size.X - padding), 1080f);
-        var height = Mathf.Min(Mathf.Max(520f, mapRect.Size.Y - padding), 780f);
-        _tableauPanel.CustomMinimumSize = new Vector2(width, height);
-        _tableauPanel.Position = new Vector2(
-            mapRect.Position.X + (mapRect.Size.X - width) * 0.5f,
-            mapRect.Position.Y + (mapRect.Size.Y - height) * 0.5f);
-    }
+    private void ToggleTableauVisibility() => _renderTree?.ToggleTableauVisibility();
 
     private void HandleCameraMovement(float delta)
     {

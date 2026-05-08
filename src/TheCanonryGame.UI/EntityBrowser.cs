@@ -108,6 +108,7 @@ public partial class EntityBrowser : PanelContainer
         var firstKind = true;
 
         foreach (var group in _projection!.Entities.Values
+            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
             .OrderBy(entity => ProjectionDisplay.StableName(_symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}"), StringComparer.Ordinal)
             .ThenBy(entity => ProjectionDisplay.EntityName(_symbols, entity), StringComparer.Ordinal)
             .GroupBy(entity => entity.KindId))
@@ -161,7 +162,7 @@ public partial class EntityBrowser : PanelContainer
 
         if (data.Entity is not null && node is EntityRow row)
         {
-            row.BindTo(data.Entity, _symbols, _projection?.CurrentTick ?? 0);
+            row.BindTo(data.Entity, _symbols);
         }
     }
 

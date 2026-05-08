@@ -47,6 +47,20 @@ public sealed class UiProjectionState : KernelEventProjector
 
     public long WorldVersion { get; private set; }
 
+    public int ActiveEntityCount { get; private set; }
+
+    public long TopBarVersion { get; private set; }
+
+    public long EntityMapVersion { get; private set; }
+
+    public long EntityBrowserVersion { get; private set; }
+
+    public long EntityDetailVersion { get; private set; }
+
+    public long RelationshipVersion { get; private set; }
+
+    public long TableauVersion { get; private set; }
+
     public long DroppedEvents { get; private set; }
 
     public bool IsComplete => DroppedEvents == 0;
@@ -76,18 +90,34 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
         entity.WasCreatedFromEvent = true;
+        ActiveEntityCount++;
+        TopBarVersion++;
+        EntityMapVersion++;
+        EntityBrowserVersion++;
+        EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnEntityStatusChanged(long sequence, in EntityStatusChangedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
+        var wasActive = entity.StatusCode == EntityStatusCodes.Active;
+        var isActive = evt.CurrentStatusCode == EntityStatusCodes.Active;
         entity.KindId = evt.KindId;
         entity.SubtypeId = evt.SubtypeId;
         entity.PreviousStatusCode = evt.PreviousStatusCode;
         entity.StatusCode = evt.CurrentStatusCode;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+        if (wasActive != isActive)
+        {
+            ActiveEntityCount += isActive ? 1 : -1;
+            TopBarVersion++;
+            EntityMapVersion++;
+        }
+
+        EntityDetailVersion++;
+        EntityBrowserVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -117,6 +147,8 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.ToS);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+        EntityMapVersion++;
+        EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -132,6 +164,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+        EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -141,6 +174,7 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.Traits.Add(evt.TraitId);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+        EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -160,6 +194,8 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.NewStrength > 0f,
             evt.Tick,
             evt.WorldVersion);
+        RelationshipVersion++;
+        EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -175,6 +211,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
+        EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -188,6 +225,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.CandidateCount,
             evt.FailedFireCount,
             evt.WorldVersion);
+        TableauVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -204,6 +242,8 @@ public sealed class UiProjectionState : KernelEventProjector
         generator.TotalFired++;
         generator.LastFire = fire;
         _generatorFires.Add(fire);
+        TopBarVersion++;
+        TableauVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -227,13 +267,17 @@ public sealed class UiProjectionState : KernelEventProjector
             var gambit = GetOrCreateGambit(evt.GambitId);
             gambit.TotalSucceeded++;
             gambit.LastSucceededTick = evt.Tick;
+            TableauVersion++;
         }
 
+        EntityDetailVersion++;
+        EntityBrowserVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     protected override void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt)
     {
+        TopBarVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -245,6 +289,7 @@ public sealed class UiProjectionState : KernelEventProjector
             evt.Tick,
             evt.Enabled != 0,
             evt.WorldVersion);
+        TableauVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 

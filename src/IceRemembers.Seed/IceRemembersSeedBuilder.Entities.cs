@@ -124,7 +124,7 @@ internal static partial class IceRemembersSeedBuilder
         takenPhysical.Add(dreamingToothCoord);
         SetSemanticNaturalNear(seed, dreamingTooth, corpseCurrent, random, takenSemantic, searchRadius: 12);
         CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, corpseCurrent.SeedEntityId, 1f);
-        CreateRelationship(seed, "holds", RelationshipPolarity.Neutral, factions.WakeSingers.SeedEntityId, dreamingTooth.SeedEntityId, 1f);
+        CreateRelationship(seed, "claimed_by", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, factions.WakeSingers.SeedEntityId, 1f);
     }
 
     private static void CreateLeadershipRelationships(

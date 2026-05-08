@@ -8,7 +8,11 @@ using TheCanonryGame.Game.Domain;
 
 internal interface IGameChronicleFeed
 {
+    long Version { get; }
+
     IReadOnlyList<string> Lines { get; }
+
+    void Refresh();
 }
 
 internal sealed class GameRuntimeReadModels

@@ -75,7 +75,7 @@ internal sealed class CanonryGameRuntime : IDisposable
 
     public GameSeedIdentity Seed { get; }
 
-    public string RunLogPath => _runtime.RunLogPath;
+    public string? RunLogPath => _runtime.RunLogPath;
 
     public GameRuntimePulse Update()
     {

@@ -18,6 +18,8 @@ public partial class EntityCardLayer : CanvasLayer
     private Godot.Theme? _theme;
     private PackedScene? _entityCardScene;
 
+    public long Version { get; private set; }
+
     public override void _Ready()
     {
         _entityCardScene = GD.Load<PackedScene>("res://scenes/ui/EntityCard.tscn");
@@ -28,6 +30,7 @@ public partial class EntityCardLayer : CanvasLayer
         _projection = projection;
         _symbols = symbols;
         _theme = theme;
+        Version++;
         Refresh();
     }
 
@@ -41,12 +44,14 @@ public partial class EntityCardLayer : CanvasLayer
         if (_openCardPositions.ContainsKey(entityId))
         {
             Promote(entityId);
+            Version++;
             Refresh();
             return;
         }
 
         _openCardPositions[entityId] = position;
         _openCardOrder.Add(entityId);
+        Version++;
         Refresh();
     }
 
@@ -54,6 +59,7 @@ public partial class EntityCardLayer : CanvasLayer
     {
         _openCardPositions.Clear();
         _openCardOrder.Clear();
+        Version++;
         _openCards.Clear(static card => card.QueueFree());
     }
 
@@ -104,6 +110,7 @@ public partial class EntityCardLayer : CanvasLayer
     {
         _openCardPositions.Remove(card.EntityId);
         _openCardOrder.Remove(card.EntityId);
+        Version++;
         Refresh();
     }
 

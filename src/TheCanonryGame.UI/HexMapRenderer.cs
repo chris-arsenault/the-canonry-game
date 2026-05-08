@@ -55,7 +55,17 @@ public partial class HexMapRenderer : Node2D
 
     public void Refresh()
     {
+        RefreshCells();
+        RefreshFrame();
+    }
+
+    public void RefreshCells()
+    {
         SyncCellLayer();
+    }
+
+    public void RefreshFrame()
+    {
         _backdropLayer?.Bind(_map, CurrentPlane, HexSize);
         _frameLayer?.Bind(_map, _symbols, CurrentPlane, HexSize, ShowRegionBorders);
     }
@@ -64,24 +74,15 @@ public partial class HexMapRenderer : Node2D
 
     public HexCoord? GetHexAtWorldPosition(Vector2 worldPos)
     {
-        if (_map is null)
+        if (_map is null || HexSize <= 0f)
         {
             return null;
         }
 
-        HexCoord? nearest = null;
-        var nearestDist = HexSize;
-        foreach (var coord in HexCoordsForCurrentPlane())
-        {
-            var dist = worldPos.DistanceTo(HexToPixel(coord));
-            if (dist < nearestDist)
-            {
-                nearestDist = dist;
-                nearest = coord;
-            }
-        }
-
-        return nearest;
+        var coord = PixelToHex(worldPos);
+        return _map.TryGetHex(PlaneCodeForCurrentPlane(), coord, out _)
+            ? coord
+            : null;
     }
 
     private void SyncCellLayer()
@@ -186,22 +187,38 @@ public partial class HexMapRenderer : Node2D
     private HexProjection[] OrderedHexes(int planeCode) =>
         _map?.Hexes(planeCode).OrderBy(hex => hex.HexId).ToArray() ?? [];
 
-    private IEnumerable<HexCoord> HexCoordsForCurrentPlane()
-    {
-        if (_map is null)
-        {
-            return [];
-        }
-
-        var planeCode = PlaneCodeForCurrentPlane();
-        var projectedCoords = _map.HexIdsByCoord(planeCode).Keys.ToArray();
-        return projectedCoords.Length == 0
-            ? HexCoord.CoordsInRadius(new HexCoord(0, 0), _map.MapRadius)
-            : projectedCoords;
-    }
-
     private int PlaneCodeForCurrentPlane() =>
         CurrentPlane == PlaneMode.Physical ? PlaneCodes.Physical : PlaneCodes.Semantic;
+
+    private HexCoord PixelToHex(Vector2 pixel)
+    {
+        var q = ((Mathf.Sqrt(3f) / 3f * pixel.X) - (pixel.Y / 3f)) / HexSize;
+        var r = (2f / 3f * pixel.Y) / HexSize;
+        return RoundAxial(q, r);
+    }
+
+    private static HexCoord RoundAxial(float q, float r)
+    {
+        var s = -q - r;
+        var roundedQ = (int)MathF.Round(q, MidpointRounding.AwayFromZero);
+        var roundedR = (int)MathF.Round(r, MidpointRounding.AwayFromZero);
+        var roundedS = (int)MathF.Round(s, MidpointRounding.AwayFromZero);
+
+        var qDiff = MathF.Abs(roundedQ - q);
+        var rDiff = MathF.Abs(roundedR - r);
+        var sDiff = MathF.Abs(roundedS - s);
+
+        if (qDiff > rDiff && qDiff > sDiff)
+        {
+            roundedQ = -roundedR - roundedS;
+        }
+        else if (rDiff > sDiff)
+        {
+            roundedR = -roundedQ - roundedS;
+        }
+
+        return new HexCoord(roundedQ, roundedR);
+    }
 
     private Vector2 HexToPixel(HexCoord coord)
     {
