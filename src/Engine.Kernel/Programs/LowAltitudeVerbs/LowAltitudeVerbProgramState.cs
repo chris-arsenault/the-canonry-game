@@ -62,6 +62,8 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
 
     public int SchemaVersion => 5;
 
+    public int EntityCapacity => _activeVerbSlots.Length - 1;
+
     public int ActiveVerbSlot(int entityId) => _activeVerbSlots[entityId];
 
     public int IntentId(int entityId) => _intentIds[entityId];

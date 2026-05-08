@@ -103,7 +103,7 @@ public sealed class KernelTelemetryRecorderTests
             RelationshipKindId: 8,
             PolarityCode: RelationshipPolarityCodes.Neutral,
             SourceEntityId: 100,
-            TargetEntityId: 200,
+            TargetEntityId: 101,
             RelationshipId: 300,
             PreviousStrength: 0f,
             NewStrength: 0.75f,

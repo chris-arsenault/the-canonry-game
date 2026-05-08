@@ -54,6 +54,29 @@ Current physical influence uses:
 Semantic influence mirrors this on the semantic plane for ideas, doctrine,
 memory, and affinity.
 
+## Movement Routing
+
+Movement is terrain-aware on both physical and semantic planes. Entities route
+through a small set of definitive movement profiles rather than arbitrary
+per-kind pathing rules. A kind can define a default profile, and subtype or
+trait rules can refine it; culture does not override movement.
+
+The movement planner uses hierarchical route planning over deterministic hex
+segments. It routes through 10-hex and 5-hex segment structure before refining
+to local cell steps near the actor and destination. Segment route cache entries
+are keyed by plane, movement profile, segment size, source segment, destination
+segment, and pathing epochs. The cache is segment-level, not per-entity full
+path state.
+
+Roads are derived from travel. For route-cache purposes, road quality is
+reconciled on cadence into coarse marks such as none, low, and high. Small
+quality changes inside the same mark do not invalidate cached segment routes;
+only topology changes or reconciled road-mark changes advance route epochs.
+
+Direct full-grid A* is not kept as a legacy fallback in the normal movement
+path. Degenerate movement should fail explicitly rather than silently switching
+back to the old whole-map search shape.
+
 ## Placement
 
 Generators place entities independently on the physical and semantic planes:

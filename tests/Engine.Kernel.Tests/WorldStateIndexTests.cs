@@ -1,5 +1,6 @@
 namespace Engine.Kernel.Tests;
 
+using Engine.Constants;
 using Engine.Kernel;
 
 public sealed class WorldStateIndexTests
@@ -71,6 +72,29 @@ public sealed class WorldStateIndexTests
 
         Assert.Equal([low, mid], OutgoingRelationshipsOfKind(simulation.World, source, 9));
         Assert.Equal([incomingLow, incomingMid], IncomingRelationshipsOfKind(simulation.World, sink, 9));
+    }
+
+    [Fact]
+    public void DefaultRelationshipCursorsSkipRelationshipsWithHistoricalEndpoints()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var activeTarget = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, 0);
+        var historicalTarget = simulation.CreateEntity(2, 1, 1, 2, 0, 0, 0, 0, 0);
+        var kept = simulation.World.CreateRelationship(9, 0, source, activeTarget, 0.9f, 0);
+        var archived = simulation.World.CreateRelationship(9, 0, source, historicalTarget, 0.9f, 0);
+
+        simulation.World.SetEntityStatus(historicalTarget, EntityStatusCodes.Historical, 1);
+
+        Assert.True(simulation.World.RelationshipIsStoredActive(archived));
+        Assert.False(simulation.World.RelationshipIsActive(archived));
+        Assert.Equal(0, simulation.World.FindRelationship(source, historicalTarget, 9));
+        Assert.Equal(archived, simulation.World.FindRelationshipIncludingHistoricalEndpoints(source, historicalTarget, 9));
+        Assert.Equal([kept], OutgoingRelationshipsOfKind(simulation.World, source, 9));
+
+        simulation.World.CompactRelationshipGraph();
+
+        Assert.Equal([kept], OutgoingRelationshipsOfKind(simulation.World, source, 9));
     }
 
     [Fact]

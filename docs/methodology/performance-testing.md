@@ -64,6 +64,23 @@ Ignore JIT, assembly load, and startup frames unless the work item is specifical
 
 Do not use Monte Carlo telemetry exports for hotspot analysis. They are observational artifacts for simulation behavior, not a CPU profiler.
 
+## Tick Budget
+
+The current kernel performance budget is at least 10 ticks/sec for deterministic
+batch simulation. A completed `KernelProfile` run is the source of truth for
+ticks/sec because it prints the processed tick count, elapsed seconds, and
+computed rate after the run exits normally.
+
+Do not infer ticks/sec from a partial `dotnet-trace` artifact. Speedscope and
+topN reports show sampled stack time, not completed tick counts. If a long trace
+fails before `KernelProfile` prints `profile complete`, keep the trace for
+hotspot direction but treat throughput as unknown.
+
+For very long runs, prefer adding or enabling periodic progress output before
+profiling. A 100,000-tick single-run trace can produce useful steady-state
+hotspots, but it is large enough for trace collection or conversion to fail
+before the harness emits its final throughput line.
+
 ## Profiling The Running App
 
 To attach to an already-running .NET process:

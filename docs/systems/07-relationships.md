@@ -82,6 +82,12 @@ Culling moves a relationship out of active use while preserving history. The
 historical graph remains useful for narrative queries and generator
 preconditions.
 
+Default relationship queries operate on hot-active edges only: the relationship
+itself must be active, and both endpoints must be active entities. Relationships
+whose source or target has moved to historical status are preserved for explicit
+history-facing queries, but they are excluded from ordinary low-altitude,
+gambit, generator, map-signal, and relationship-maintenance hot paths.
+
 ## Interactions
 
 Low-altitude verbs use relationships for targeting, signed fitness scoring, and

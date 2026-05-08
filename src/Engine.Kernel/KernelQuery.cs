@@ -15,9 +15,18 @@ internal static class KernelQuery
 
     public static void ForEachActiveEntity(WorldState world, global::System.Func<int, bool> visit)
     {
-        ForEachEntity(
-            world,
-            entityId => !world.EntityIsActive(entityId) || visit(entityId));
+        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        {
+            if (!world.EntityIsActive(entityId))
+            {
+                continue;
+            }
+
+            if (!visit(entityId))
+            {
+                return;
+            }
+        }
     }
 
     public static void ForEachEntityOfKind(WorldState world, int kindId, global::System.Func<int, bool> visit)
@@ -26,6 +35,24 @@ internal static class KernelQuery
              entityId > 0;
              entityId = world.NextEntityOfKind(entityId))
         {
+            if (!visit(entityId))
+            {
+                return;
+            }
+        }
+    }
+
+    public static void ForEachActiveEntityOfKind(WorldState world, int kindId, global::System.Func<int, bool> visit)
+    {
+        for (var entityId = world.FirstEntityOfKind(kindId);
+             entityId > 0;
+             entityId = world.NextEntityOfKind(entityId))
+        {
+            if (!world.EntityIsActive(entityId))
+            {
+                continue;
+            }
+
             if (!visit(entityId))
             {
                 return;
@@ -176,7 +203,7 @@ internal static class KernelQuery
         var bindingValue = binding;
         var count = 0;
         var selectedEntityId = 0;
-        ForEachEntity(
+        ForEachActiveEntity(
             world,
             entityId =>
             {

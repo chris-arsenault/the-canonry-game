@@ -1,5 +1,6 @@
 namespace Engine.Kernel.Tests;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Graph;
 using Engine.Kernel;
@@ -47,6 +48,30 @@ public sealed class RelationshipProgramRuntimeTests
         simulation.Relationships.Tick(simulation, tick: 1);
 
         Assert.False(simulation.World.RelationshipIsActive(relationship));
+    }
+
+    [Fact]
+    public void Tick_IgnoresStoredRelationshipsWithHistoricalEndpoints()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(1, 1, 1, 0, 1, 0, 0, 0, 0);
+        var relationship = simulation.CreateRelationship(9, (int)RelationshipPolarity.Positive, source, target, 0.5f, tick: 0);
+        simulation.Relationships.RegisterRelationshipKind(9, cullThreshold: 0.05f);
+        simulation.Relationships.AddMaintenanceRule(
+            9,
+            RelationshipMaintenanceConditionCodes.Always,
+            PlaneCodes.None,
+            maxDistance: 0,
+            threshold: 0f,
+            delta: 0.1f);
+        simulation.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 1);
+
+        simulation.Relationships.Tick(simulation, tick: 2);
+
+        Assert.True(simulation.World.RelationshipIsStoredActive(relationship));
+        Assert.False(simulation.World.RelationshipIsActive(relationship));
+        Assert.Equal(0.5f, simulation.World.RelationshipStrength(relationship));
     }
 
     [Fact]

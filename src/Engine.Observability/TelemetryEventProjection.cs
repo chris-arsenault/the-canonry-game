@@ -72,7 +72,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     {
         var activeEntities = _entities.Values.Where(entity => IsActiveStatus(entity.StatusCode)).ToList();
         var historicalCount = _entities.Values.Count(entity => IsHistoricalStatus(entity.StatusCode));
-        var activeRelationships = _relationships.Values.Where(relationship => relationship.IsActive).ToList();
+        var activeRelationships = _relationships.Values.Where(RelationshipIsHotActive).ToList();
         var physicalCells = _mapCells.Values.Where(cell => cell.Key.PlaneCode == PlaneCodes.Physical).ToList();
         var coveredCells = physicalCells.Count(cell => cell.OwnerEntityId > 0);
         var coverageCount = _mapCells.Values
@@ -150,7 +150,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     public void RecordRelationshipSnapshots(int tick)
     {
         foreach (var group in _relationships.Values
-                     .Where(relationship => relationship.IsActive)
+                     .Where(RelationshipIsHotActive)
                      .GroupBy(relationship => relationship.RelationshipKindId))
         {
             var strengths = group.Select(relationship => relationship.Strength).ToList();
@@ -192,6 +192,13 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
         RecordGeneratorStateSnapshots(tick);
     }
+
+    private bool RelationshipIsHotActive(ObservedRelationshipProjection relationship) =>
+        relationship.IsActive &&
+        _entities.TryGetValue(relationship.Key.SourceEntityId, out var source) &&
+        IsActiveStatus(source.StatusCode) &&
+        _entities.TryGetValue(relationship.Key.TargetEntityId, out var target) &&
+        IsActiveStatus(target.StatusCode);
 
     private void RecordCoverageSnapshots(
         int tick,

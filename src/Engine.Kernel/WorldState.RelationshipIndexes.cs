@@ -218,7 +218,7 @@ internal sealed partial class WorldState
 
     private void AddRelationshipToGraphDelta(int relationshipId)
     {
-        if (!_relationshipActive[relationshipId])
+        if (!RelationshipIsHotActive(relationshipId))
         {
             return;
         }
@@ -329,7 +329,7 @@ internal sealed partial class WorldState
         global::System.Array.Clear(relationships);
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
-            if (!_relationshipActive[relationshipId])
+            if (!RelationshipIsHotActive(relationshipId))
             {
                 continue;
             }
@@ -347,7 +347,7 @@ internal sealed partial class WorldState
         global::System.Array.Copy(offsets, _relationshipBuildCursors, offsets.Length);
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
-            if (!_relationshipActive[relationshipId])
+            if (!RelationshipIsHotActive(relationshipId))
             {
                 continue;
             }
@@ -400,6 +400,21 @@ internal sealed partial class WorldState
     private bool RelationshipComesBefore(int leftRelationshipId, int rightRelationshipId)
     {
         return leftRelationshipId < rightRelationshipId;
+    }
+
+    private bool RelationshipIsHotActive(int relationshipId)
+    {
+        return (uint)relationshipId < (uint)_relationshipActive.Length &&
+            _relationshipActive[relationshipId] &&
+            EntityIsActiveRaw(_relationshipSourceId[relationshipId]) &&
+            EntityIsActiveRaw(_relationshipTargetId[relationshipId]);
+    }
+
+    private bool EntityIsActiveRaw(int entityId)
+    {
+        return (uint)entityId < (uint)_entityAllocated.Length &&
+            _entityAllocated[entityId] &&
+            _entityStatus[entityId] == EntityStatusCodes.Active;
     }
 
     private int RelationshipRowIndex(int entityId, int kindId)

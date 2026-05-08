@@ -810,7 +810,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var count = 0;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
-        KernelQuery.ForEachEntityOfKind(
+        KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
             entityId =>
@@ -834,7 +834,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
-        KernelQuery.ForEachEntityOfKind(
+        KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
             entityId =>
@@ -884,7 +884,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
-        KernelQuery.ForEachEntityOfKind(
+        KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
             entityId =>
@@ -917,7 +917,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var count = 0;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
-        KernelQuery.ForEachEntityOfKind(
+        KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
             entityId =>

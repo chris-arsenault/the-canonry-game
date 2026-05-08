@@ -299,6 +299,46 @@ public sealed class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
+    public void LowAltitudeVerbProgram_ReduceInfluencePositiveRelationshipWinsOverNegativeRelationship()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 27 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 92;
+        const int relationshipKindId = 9;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var mixedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
+        _ = simulation.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Negative,
+            actorId,
+            mixedInfluencerId,
+            0.5f,
+            tick: 0);
+        _ = simulation.CreateRelationship(
+            relationshipKindId,
+            RelationshipPolarityCodes.Positive,
+            mixedInfluencerId,
+            actorId,
+            0.5f,
+            tick: 0);
+        RegisterFilteredReduceVerb(simulation, actorKindId, verbId);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(overextendedInfluencerId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(100f, simulation.World.GetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0));
+        Assert.True(simulation.World.GetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0) < 60f);
+    }
+
+    [Fact]
     public void LowAltitudeVerbProgram_AssignsDivergentMovementShapeToSameVerbIntents()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 21 });

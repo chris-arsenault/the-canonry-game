@@ -629,6 +629,27 @@ internal sealed partial class WorldState
         return 0;
     }
 
+    public int FindRelationshipIncludingHistoricalEndpoints(int sourceEntityId, int targetEntityId, int kindId)
+    {
+        EnsureEntity(sourceEntityId);
+        EnsureEntity(targetEntityId);
+        ValidatePositive(kindId);
+        for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
+        {
+            if (!_relationshipActive[relationshipId] ||
+                _relationshipSourceId[relationshipId] != sourceEntityId ||
+                _relationshipTargetId[relationshipId] != targetEntityId ||
+                _relationshipKindId[relationshipId] != kindId)
+            {
+                continue;
+            }
+
+            return relationshipId;
+        }
+
+        return 0;
+    }
+
     public int FirstEntityOfKind(int kindId)
     {
         EnsureKindIndex(kindId);
@@ -728,7 +749,7 @@ internal sealed partial class WorldState
         while (cursor.FrozenIndex < cursor.FrozenEnd)
         {
             var frozenRelationshipId = FrozenCursorRelationshipId(cursor);
-            if (_relationshipActive[frozenRelationshipId] && !_relationshipInDeltaGraph[frozenRelationshipId])
+            if (RelationshipIsHotActive(frozenRelationshipId) && !_relationshipInDeltaGraph[frozenRelationshipId])
             {
                 if (_relationshipStrength[frozenRelationshipId] >= cursor.MinimumStrength)
                 {
@@ -745,7 +766,7 @@ internal sealed partial class WorldState
         while (cursor.DeltaIndex < cursor.DeltaEnd)
         {
             var deltaRelationshipId = DeltaCursorRelationshipId(cursor);
-            if (_relationshipActive[deltaRelationshipId])
+            if (RelationshipIsHotActive(deltaRelationshipId))
             {
                 if (_relationshipStrength[deltaRelationshipId] >= cursor.MinimumStrength)
                 {
@@ -937,6 +958,11 @@ internal sealed partial class WorldState
     internal int RelationshipHighWatermark => _relationshipHighWatermark;
 
     public bool RelationshipIsActive(int relationshipId)
+    {
+        return RelationshipIsHotActive(relationshipId);
+    }
+
+    public bool RelationshipIsStoredActive(int relationshipId)
     {
         return (uint)relationshipId < (uint)_relationshipActive.Length && _relationshipActive[relationshipId];
     }

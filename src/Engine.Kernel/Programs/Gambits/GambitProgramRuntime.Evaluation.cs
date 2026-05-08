@@ -389,7 +389,7 @@ internal sealed partial class GambitProgramRuntime
         var total = 0f;
         var world = simulation.World;
         var state = new TargetSelectionState(candidateCount);
-        KernelQuery.ForEachEntityOfKind(
+        KernelQuery.ForEachActiveEntityOfKind(
             world,
             _gambitTargetKindIds[gambitSlot],
             targetId =>
@@ -424,7 +424,7 @@ internal sealed partial class GambitProgramRuntime
         var total = 0f;
         var world = simulation.World;
         var state = new TargetSelectionState(candidateCount);
-        KernelQuery.ForEachEntity(
+        KernelQuery.ForEachActiveEntity(
             world,
             targetId =>
             {
