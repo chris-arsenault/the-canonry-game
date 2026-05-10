@@ -47,14 +47,6 @@ public partial class HexCell : Node2D
 
     private void DrawBase(HexCellRenderItem data)
     {
-        if (data.Plane == PlaneMode.Semantic)
-        {
-            var fill = new Color(data.TerrainColor.R, data.TerrainColor.G, data.TerrainColor.B, 0.24f);
-            DrawColoredPolygon(GetHexPoints(data.HexSize * 0.94f), fill);
-            DrawOverlayTexture(AssetLibrary.SemanticCellOverlay, data.HexSize);
-            return;
-        }
-
         var points = GetHexPoints(data.HexSize);
         var tile = AssetLibrary.Terrain(data.TerrainStableName);
         if (tile is null)
@@ -64,6 +56,13 @@ public partial class HexCell : Node2D
         else
         {
             DrawColoredPolygon(points, Colors.White, BuildHexUvs(points, data.HexSize), tile);
+        }
+
+        if (data.Plane == PlaneMode.Semantic)
+        {
+            DrawOverlayTexture(AssetLibrary.SemanticCellOverlay, data.HexSize, new Color(1f, 1f, 1f, 0.18f));
+            DrawPolyline([.. points, points[0]], UiTokens.Hairline, 1f);
+            return;
         }
 
         DrawPolyline([.. points, points[0]], UiTokens.Hairline, 1f);
@@ -140,7 +139,7 @@ public partial class HexCell : Node2D
         }
     }
 
-    private void DrawOverlayTexture(Texture2D? texture, float hexSize)
+    private void DrawOverlayTexture(Texture2D? texture, float hexSize, Color? modulate = null)
     {
         if (texture is null)
         {
@@ -151,7 +150,8 @@ public partial class HexCell : Node2D
         DrawTextureRect(
             texture,
             new Rect2(new Vector2(-extent / 2f, -extent / 2f), new Vector2(extent, extent)),
-            tile: false);
+            false,
+            modulate ?? Colors.White);
     }
 
     private static Vector2[] BuildHexUvs(Vector2[] points, float hexSize)

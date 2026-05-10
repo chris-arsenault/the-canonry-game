@@ -76,6 +76,27 @@ public sealed class IceRemembersGambitDefinitionTests
     }
 
     [Fact]
+    public void SettlementOpensTradeRouteStartsWithWeakTradeRoute()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var trade = Gambit(compiled, IceRemembersGambitId.SettlementOpensTradeRoute);
+        var tradeRouteId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.TradeRoute.ToDomainName()).Value;
+        var routeSteps = trade.Steps
+            .Where(step =>
+                step.Operation == BehaviorProgramOperation.CreateEndpointRelationship &&
+                step.A == tradeRouteId)
+            .ToArray();
+
+        Assert.Equal(2, routeSteps.Length);
+        Assert.All(routeSteps, step =>
+        {
+            Assert.Equal(IceRemembersRelationshipStrengths.InitialTradeRoute, step.X);
+            Assert.True(step.X > 0.05f);
+            Assert.True(step.X < 0.70f);
+        });
+    }
+
+    [Fact]
     public void IceRemembers_CleansingScarTransformsTargetCoverageTerrain()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());

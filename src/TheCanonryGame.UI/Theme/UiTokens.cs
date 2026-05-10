@@ -56,6 +56,38 @@ public static class UiTokens
     public static readonly Color TerrainShelf = Hex(0x6889A1);
     public static readonly Color TerrainReef = Hex(0x3E6078);
     public static readonly Color TerrainOcean = Hex(0x1C2B3F);
+    public static readonly Color TerrainLineage = Hex(0xBFA36A);
+    public static readonly Color TerrainYoke = Hex(0x7E5D74);
+    public static readonly Color TerrainWitness = Hex(0x5AAE9B);
+    public static readonly Color TerrainSilence = Hex(0x2F3445);
+    public static readonly Color TerrainSeverance = Hex(0xA16A4D);
+    public static readonly Color TerrainBreakaway = Hex(0x6C93C8);
+    public static readonly Color TerrainBeaconSpire = Hex(0xB8D6D2);
+    public static readonly Color TerrainTabooRidge = Hex(0x5A3D55);
+    public static readonly Color TerrainCavePocket = Hex(0x4B5966);
+    public static readonly Color TerrainOpenField = Hex(0x8FAF8A);
+
+    private static readonly global::System.Collections.Generic.Dictionary<string, Color> TerrainColors = new(global::System.StringComparer.Ordinal)
+    {
+        [TerrainKey.Wastes] = TerrainWastes,
+        [TerrainKey.Crags] = TerrainCrags,
+        [TerrainKey.Tundra] = TerrainTundra,
+        [TerrainKey.Ice] = TerrainIce,
+        [TerrainKey.HotSprings] = TerrainHotSprings,
+        [TerrainKey.Shelf] = TerrainShelf,
+        [TerrainKey.Reef] = TerrainReef,
+        [TerrainKey.Ocean] = TerrainOcean,
+        [TerrainKey.Lineage] = TerrainLineage,
+        [TerrainKey.Yoke] = TerrainYoke,
+        [TerrainKey.Witness] = TerrainWitness,
+        [TerrainKey.Silence] = TerrainSilence,
+        [TerrainKey.Severance] = TerrainSeverance,
+        [TerrainKey.Breakaway] = TerrainBreakaway,
+        [TerrainKey.BeaconSpire] = TerrainBeaconSpire,
+        [TerrainKey.TabooRidge] = TerrainTabooRidge,
+        [TerrainKey.CavePocket] = TerrainCavePocket,
+        [TerrainKey.OpenField] = TerrainOpenField,
+    };
 
     // Faction palette on the map — cold, distinguishable.
     public static readonly Color[] FactionPalette =
@@ -137,18 +169,8 @@ public static class UiTokens
         _ => KindDefault,
     };
 
-    public static Color TerrainColor(string stableName) => TerrainKey.Canonicalize(stableName) switch
-    {
-        TerrainKey.Wastes => TerrainWastes,
-        TerrainKey.Crags => TerrainCrags,
-        TerrainKey.Tundra => TerrainTundra,
-        TerrainKey.Ice => TerrainIce,
-        TerrainKey.HotSprings => TerrainHotSprings,
-        TerrainKey.Shelf => TerrainShelf,
-        TerrainKey.Reef => TerrainReef,
-        TerrainKey.Ocean => TerrainOcean,
-        _ => Whisper,
-    };
+    public static Color TerrainColor(string stableName) =>
+        TerrainColors.TryGetValue(TerrainKey.Canonicalize(stableName), out var color) ? color : Whisper;
 
     public static Color WithAlpha(Color color, float alpha) =>
         new(color.R, color.G, color.B, alpha);

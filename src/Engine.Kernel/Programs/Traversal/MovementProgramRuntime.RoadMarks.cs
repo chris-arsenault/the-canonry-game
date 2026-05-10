@@ -6,8 +6,6 @@ internal sealed partial class MovementProgramRuntime
     private const int RegionalPathSegmentSize = 10;
     private const int LocalRoadMarkCadence = 10;
     private const int RegionalRoadMarkCadence = 25;
-    private const float LowRoadMarkQuality = 25f;
-    private const float HighRoadMarkQuality = 65f;
 
     private void ReconcileRoadMarks(Simulation simulation, int tick, int segmentSize)
     {
@@ -63,12 +61,12 @@ internal sealed partial class MovementProgramRuntime
 
     private static int RoadMarkForQuality(float roadQuality)
     {
-        if (roadQuality >= HighRoadMarkQuality)
+        if (roadQuality >= MovementProgramState.HighRoadQualityCheckpoint)
         {
             return MovementProgramState.RoadMarkHigh;
         }
 
-        return roadQuality >= LowRoadMarkQuality
+        return roadQuality >= MovementProgramState.LowRoadQualityCheckpoint
             ? MovementProgramState.RoadMarkLow
             : MovementProgramState.RoadMarkNone;
     }

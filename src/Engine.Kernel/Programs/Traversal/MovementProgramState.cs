@@ -5,8 +5,11 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     internal const int RoadMarkNone = 0;
     internal const int RoadMarkLow = 1;
     internal const int RoadMarkHigh = 2;
+    internal const float LowRoadQualityCheckpoint = 25f;
+    internal const float HighRoadQualityCheckpoint = 75f;
 
     private readonly PrimitiveFloatTable _roadQuality;
+    private readonly PrimitiveFloatTable _roadQualityFloors;
     private readonly PrimitiveIntTable _roadTravelCounts;
     private readonly PrimitiveIntTable _lastRoadTicks;
     private readonly PrimitiveIntTable _localRoadMarks;
@@ -16,8 +19,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     private readonly int[] _routeCachePlaneCodes;
     private readonly int[] _routeCacheProfileIds;
     private readonly int[] _routeCacheLevelSizes;
-    private readonly int[] _routeCacheSourceSegments;
-    private readonly int[] _routeCacheTargetSegments;
+    private readonly int[] _routeCacheSourceKeys;
+    private readonly int[] _routeCacheTargetKeys;
     private readonly int[] _routeCacheTopologyEpochs;
     private readonly int[] _routeCacheRoadEpochs;
     private readonly int[] _routeCacheNextSegments;
@@ -32,6 +35,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellCapacity);
         _roadQuality = new PrimitiveFloatTable(cellCapacity);
+        _roadQualityFloors = new PrimitiveFloatTable(cellCapacity);
         _roadTravelCounts = new PrimitiveIntTable(cellCapacity);
         _lastRoadTicks = new PrimitiveIntTable(cellCapacity);
         _localRoadMarks = new PrimitiveIntTable(cellCapacity);
@@ -41,8 +45,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _routeCachePlaneCodes = new int[cellCapacity];
         _routeCacheProfileIds = new int[cellCapacity];
         _routeCacheLevelSizes = new int[cellCapacity];
-        _routeCacheSourceSegments = new int[cellCapacity];
-        _routeCacheTargetSegments = new int[cellCapacity];
+        _routeCacheSourceKeys = new int[cellCapacity];
+        _routeCacheTargetKeys = new int[cellCapacity];
         _routeCacheTopologyEpochs = new int[cellCapacity];
         _routeCacheRoadEpochs = new int[cellCapacity];
         _routeCacheNextSegments = new int[cellCapacity];
@@ -53,7 +57,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.Movement;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 4;
 
     internal int RoadCellCount => _roadQuality.Count;
 
@@ -80,6 +84,12 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         var key = CoordinateKey(q, r);
         var decayedQuality = DecayedRoadQuality(planeCode, key, tick, roadDecayPerTick);
         var nextQuality = Clamp(decayedQuality + roadBuild, 0f, 100f);
+        var nextFloor = QualityFloor(nextQuality);
+        if (nextFloor > _roadQualityFloors.GetOrDefault(planeCode, key))
+        {
+            _roadQualityFloors.Set(planeCode, key, nextFloor);
+        }
+
         _roadQuality.Set(planeCode, key, nextQuality);
         _roadTravelCounts.Add(planeCode, key, 1);
         _lastRoadTicks.Set(planeCode, key, tick);
@@ -133,8 +143,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int planeCode,
         int movementProfileId,
         int segmentSize,
-        int sourceSegment,
-        int targetSegment,
+        int sourceKey,
+        int targetKey,
         int topologyEpoch,
         int roadEpoch,
         out int nextSegment,
@@ -145,8 +155,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
             planeCode,
             movementProfileId,
             segmentSize,
-            sourceSegment,
-            targetSegment,
+            sourceKey,
+            targetKey,
             topologyEpoch,
             roadEpoch);
         if (_routeCacheOccupied[slot] &&
@@ -155,8 +165,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
                 planeCode,
                 movementProfileId,
                 segmentSize,
-                sourceSegment,
-                targetSegment,
+                sourceKey,
+                targetKey,
                 topologyEpoch,
                 roadEpoch))
         {
@@ -166,7 +176,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
             return true;
         }
 
-        nextSegment = sourceSegment;
+        nextSegment = 0;
         portalQ = 0;
         portalR = 0;
         return false;
@@ -176,8 +186,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int planeCode,
         int movementProfileId,
         int segmentSize,
-        int sourceSegment,
-        int targetSegment,
+        int sourceKey,
+        int targetKey,
         int topologyEpoch,
         int roadEpoch,
         int nextSegment,
@@ -188,8 +198,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
             planeCode,
             movementProfileId,
             segmentSize,
-            sourceSegment,
-            targetSegment,
+            sourceKey,
+            targetKey,
             topologyEpoch,
             roadEpoch);
         if (!_routeCacheOccupied[slot])
@@ -201,8 +211,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _routeCachePlaneCodes[slot] = planeCode;
         _routeCacheProfileIds[slot] = movementProfileId;
         _routeCacheLevelSizes[slot] = segmentSize;
-        _routeCacheSourceSegments[slot] = sourceSegment;
-        _routeCacheTargetSegments[slot] = targetSegment;
+        _routeCacheSourceKeys[slot] = sourceKey;
+        _routeCacheTargetKeys[slot] = targetKey;
         _routeCacheTopologyEpochs[slot] = topologyEpoch;
         _routeCacheRoadEpochs[slot] = roadEpoch;
         _routeCacheNextSegments[slot] = nextSegment;
@@ -253,8 +263,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int planeCode,
         int movementProfileId,
         int segmentSize,
-        int sourceSegment,
-        int targetSegment,
+        int sourceKey,
+        int targetKey,
         int topologyEpoch,
         int roadEpoch)
     {
@@ -263,8 +273,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
             var hash = (uint)planeCode * 2654435761u;
             hash ^= (uint)movementProfileId * 2246822519u;
             hash ^= (uint)segmentSize * 3266489917u;
-            hash ^= (uint)sourceSegment * 668265263u;
-            hash ^= (uint)targetSegment * 374761393u;
+            hash ^= (uint)sourceKey * 668265263u;
+            hash ^= (uint)targetKey * 374761393u;
             hash ^= (uint)topologyEpoch * 1274126177u;
             hash ^= (uint)roadEpoch * 1597334677u;
             return (int)(hash % (uint)_routeCacheOccupied.Length);
@@ -276,16 +286,16 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int planeCode,
         int movementProfileId,
         int segmentSize,
-        int sourceSegment,
-        int targetSegment,
+        int sourceKey,
+        int targetKey,
         int topologyEpoch,
         int roadEpoch)
     {
         return _routeCachePlaneCodes[slot] == planeCode &&
             _routeCacheProfileIds[slot] == movementProfileId &&
             _routeCacheLevelSizes[slot] == segmentSize &&
-            _routeCacheSourceSegments[slot] == sourceSegment &&
-            _routeCacheTargetSegments[slot] == targetSegment &&
+            _routeCacheSourceKeys[slot] == sourceKey &&
+            _routeCacheTargetKeys[slot] == targetKey &&
             _routeCacheTopologyEpochs[slot] == topologyEpoch &&
             _routeCacheRoadEpochs[slot] == roadEpoch;
     }
@@ -335,14 +345,33 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     private float DecayedRoadQuality(int planeCode, int key, int tick, float roadDecayPerTick)
     {
         var roadQuality = _roadQuality.GetOrDefault(planeCode, key);
+        var floor = _roadQualityFloors.GetOrDefault(planeCode, key);
         var lastRoadTick = _lastRoadTicks.GetOrDefault(planeCode, key);
         var elapsedTicks = tick - lastRoadTick;
-        if (roadQuality <= 0f || elapsedTicks <= 0)
+        if (roadQuality <= 0f)
         {
-            return roadQuality;
+            return floor > roadQuality ? floor : roadQuality;
         }
 
-        return roadQuality * (float)global::System.Math.Pow(Clamp(roadDecayPerTick, 0f, 1f), elapsedTicks);
+        if (elapsedTicks <= 0)
+        {
+            return floor > roadQuality ? floor : roadQuality;
+        }
+
+        var decayed = roadQuality * (float)global::System.Math.Pow(Clamp(roadDecayPerTick, 0f, 1f), elapsedTicks);
+        return floor > decayed ? floor : decayed;
+    }
+
+    private static float QualityFloor(float roadQuality)
+    {
+        if (roadQuality >= HighRoadQualityCheckpoint)
+        {
+            return HighRoadQualityCheckpoint;
+        }
+
+        return roadQuality >= LowRoadQualityCheckpoint
+            ? LowRoadQualityCheckpoint
+            : 0f;
     }
 
     private static float Clamp(float value, float minimum, float maximum)

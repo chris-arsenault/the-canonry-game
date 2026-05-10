@@ -223,6 +223,19 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
+    public void SeedEntities_UseExpandedSemanticPlane()
+    {
+        var semanticCoords = Seed.Entities
+            .Select(SemanticCoord)
+            .ToArray();
+        var maxDistance = semanticCoords.Max(coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord));
+
+        Assert.True(
+            maxDistance >= 30,
+            $"Expected at least one seed entity outside semantic radius 30 on radius-{Seed.MapRadius} map, got max radius {maxDistance}.");
+    }
+
+    [Fact]
     public void DreamingTooth_IsClaimedWithoutBeingPhysicallyHeld()
     {
         var dreamingTooth = EntityNamed(K.Artifact.Value, "The Dreaming Tooth");
@@ -417,6 +430,8 @@ public sealed class IceRemembersSeedBuilderTests
             .ToArray();
 
     private static HexCoord Coord(DomainSeedEntity entity) => new(entity.PhysicalQ, entity.PhysicalR);
+
+    private static SemanticHexCoord SemanticCoord(DomainSeedEntity entity) => new(entity.SemanticQ, entity.SemanticR);
 
     private static string T(IceRemembersTerrain terrain) => terrain.ToDomainName();
 

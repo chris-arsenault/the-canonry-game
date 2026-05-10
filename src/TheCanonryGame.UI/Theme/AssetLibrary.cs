@@ -194,14 +194,24 @@ public static class AssetLibrary
 
     private static void LoadTerrainTextures()
     {
-        _terrain["Wastes"] = LoadTexture("terrain/wastes.png");
-        _terrain["Crags"] = LoadTexture("terrain/crags.png");
-        _terrain["Tundra"] = LoadTexture("terrain/tundra.png");
-        _terrain["Ice"] = LoadTexture("terrain/ice.png");
-        _terrain["HotSprings"] = LoadTexture("terrain/hotsprings.png");
-        _terrain["Shelf"] = LoadTexture("terrain/shelf.png");
-        _terrain["Reef"] = LoadTexture("terrain/reef.png");
-        _terrain["Ocean"] = LoadTexture("terrain/ocean.png");
+        _terrain[TerrainKey.Wastes] = LoadTexture("terrain/wastes.png");
+        _terrain[TerrainKey.Crags] = LoadTexture("terrain/crags.png");
+        _terrain[TerrainKey.Tundra] = LoadTexture("terrain/tundra.png");
+        _terrain[TerrainKey.Ice] = LoadTexture("terrain/ice.png");
+        _terrain[TerrainKey.HotSprings] = LoadTexture("terrain/hotsprings.png");
+        _terrain[TerrainKey.Shelf] = LoadTexture("terrain/shelf.png");
+        _terrain[TerrainKey.Reef] = LoadTexture("terrain/reef.png");
+        _terrain[TerrainKey.Ocean] = LoadTexture("terrain/ocean.png");
+        _terrain[TerrainKey.Lineage] = LoadTexture("terrain/lineage.png");
+        _terrain[TerrainKey.Yoke] = LoadTexture("terrain/yoke.png");
+        _terrain[TerrainKey.Witness] = LoadTexture("terrain/witness.png");
+        _terrain[TerrainKey.Silence] = LoadTexture("terrain/silence.png");
+        _terrain[TerrainKey.Severance] = LoadTexture("terrain/severance.png");
+        _terrain[TerrainKey.Breakaway] = LoadTexture("terrain/breakaway.png");
+        _terrain[TerrainKey.BeaconSpire] = LoadTexture("terrain/beacon-spire.png");
+        _terrain[TerrainKey.TabooRidge] = LoadTexture("terrain/taboo-ridge.png");
+        _terrain[TerrainKey.CavePocket] = LoadTexture("terrain/cave-pocket.png");
+        _terrain[TerrainKey.OpenField] = LoadTexture("terrain/open-field.png");
     }
 
     private static void LoadMapOverlays()

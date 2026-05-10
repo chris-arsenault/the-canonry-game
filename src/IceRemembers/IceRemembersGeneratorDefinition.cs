@@ -141,7 +141,7 @@ public static class IceRemembersGeneratorDefinition
         [
             R("$broker", "$harbor", Rel.HomeBase, 1f),
             R("$harbor", "$target", Rel.FoundedFrom, 0.90f),
-            R("$harbor", "$target", Rel.TradeRoute, 0.72f),
+            R("$harbor", "$target", Rel.TradeRoute, IceRemembersRelationshipStrengths.InitialTradeRoute),
             R("$harbor", "$order", Rel.ControlledBy, 0.82f),
             R("$broker", "$order", Rel.MemberOf, 0.80f),
             R("$instrument", "$harbor", Rel.NativeTo, 0.82f),

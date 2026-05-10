@@ -133,6 +133,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         if (result.Moved)
         {
             State.MarkStepped(entityId, tick, result.StepCost);
+            return;
+        }
+
+        if (float.IsInfinity(result.StepCost))
+        {
+            ClearIntentAndPushRecent(entityId, tick);
         }
     }
 
@@ -180,15 +186,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int r,
         int tick)
     {
-        _ = rule;
-        _ = tick;
         if (planeCode == PlaneCodes.Semantic)
         {
             return SemanticCoordinateAllowed(simulation.World, q, r) &&
-                simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r);
+                simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r) &&
+                MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick);
         }
 
-        return simulation.Movement.CanEnter(simulation, entityId, q, r);
+        return simulation.Movement.CanEnter(simulation, entityId, q, r) &&
+            MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick);
     }
 
     private float MovementShapeCellWeight(Simulation simulation, int rule, int planeCode, int q, int r)

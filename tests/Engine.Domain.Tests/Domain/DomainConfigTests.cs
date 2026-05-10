@@ -105,6 +105,11 @@ public class DomainConfigTests
         Assert.Equal(GeneratorRelationshipInstanceSelection.TriggerRelationship, routeEffect.InstanceSelection);
         Assert.True(routeEffect.IncludeReciprocal);
         Assert.True(routeEffect.Delta < 0f);
+        var producedRoute = Assert.Single(routes.Relationships, relationship =>
+            relationship.Kind == IceRemembersRelationship.TradeRoute.ToDomainName());
+        Assert.Equal(IceRemembersRelationshipStrengths.InitialTradeRoute, producedRoute.Strength);
+        Assert.True(producedRoute.Strength > 0.05f);
+        Assert.True(producedRoute.Strength < routeRequirement.MinimumStrength);
 
         Assert.Contains(IceRemembersRelationship.HomeBase.ToDomainName(), artifact.Target.WithoutOutgoingRelationships!);
     }

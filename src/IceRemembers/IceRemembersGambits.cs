@@ -110,8 +110,18 @@ public static partial class IceRemembersDefinition
         AddRelationshipWrite(gambit, Rel.TradeRoute, K.Settlement);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.TempHp), K.Settlement));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.TempHp), K.Settlement));
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.TradeRoute, RelationshipPolarity.Positive, 0.72f));
+        gambit.Mutations.Add(Relationship(
+            TransferEndpoint.Self,
+            TransferEndpoint.Target,
+            Rel.TradeRoute,
+            RelationshipPolarity.Positive,
+            IceRemembersRelationshipStrengths.InitialTradeRoute));
+        gambit.Mutations.Add(Relationship(
+            TransferEndpoint.Target,
+            TransferEndpoint.Self,
+            Rel.TradeRoute,
+            RelationshipPolarity.Positive,
+            IceRemembersRelationshipStrengths.InitialTradeRoute));
         gambit.Description = "Two viable settlements open a trade route. Nearby settlements, and settlements of shared culture, are more likely to bind first.";
         return gambit;
     }

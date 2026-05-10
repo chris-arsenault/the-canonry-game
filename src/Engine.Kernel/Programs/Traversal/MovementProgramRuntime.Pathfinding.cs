@@ -84,9 +84,10 @@ internal sealed partial class MovementProgramRuntime
 
         if (regionalContext.StartSegment == regionalContext.TargetSegment)
         {
-            return TrySearchNextLocalStep(
+            return TrySearchPathWithinSegments(
                 simulation, world, planeCode, startQ, startR, targetQ, targetR, movementProfileId, tick,
-                localContext, localContext.TargetSegment, targetQ, targetR, out nextQ, out nextR);
+                regionalContext.Radius, regionalContext.SegmentSize, regionalContext.GridWidth,
+                regionalContext.StartSegment, secondSegment: -1, out nextQ, out nextR);
         }
 
         return TrySearchNextRegionalStep(

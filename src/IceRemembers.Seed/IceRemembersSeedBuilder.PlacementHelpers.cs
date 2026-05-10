@@ -305,7 +305,6 @@ internal static partial class IceRemembersSeedBuilder
         var score = TerrainProfilePlacementScore(cell.Terrain, profile);
         score += CountPreferredSemanticNeighbors(seed, coord, profile, radius: 1) * SeedPlacementNearPreferredNeighborScore;
         score += CountPreferredSemanticNeighbors(seed, coord, profile, radius: 2) * SeedPlacementDistantPreferredNeighborScore;
-        score -= SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) * SeedPlacementCenterPenaltyStep;
         if (origin.HasValue)
         {
             score += Math.Max(0f, SeedPlacementOriginBonusBase - (SemanticHexCoord.Distance(origin.Value, coord) * SeedPlacementOriginBonusStep));

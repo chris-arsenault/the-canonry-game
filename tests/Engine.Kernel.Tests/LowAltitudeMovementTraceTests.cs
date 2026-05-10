@@ -36,6 +36,25 @@ public sealed class LowAltitudeMovementTraceTests
     }
 
     [Fact]
+    public void LowAltitudeVerbProgram_DoesNotCommitUnreachableMovementTarget()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 13 });
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 78;
+        SeedWaterBarrier(simulation);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, -2, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 2, 0, 0, 0, 0, tick: 0);
+        var verbSlot = RegisterMovementVerb(simulation, actorKindId, verbId, targetKindId);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.ActiveVerbSlot(actorId));
+        Assert.Equal((-2, 0), (simulation.World.EntityPhysicalQ(actorId), simulation.World.EntityPhysicalR(actorId)));
+    }
+
+    [Fact]
     public void LowAltitudeVerbProgram_EmitsMovementIntentTraceWithAffordanceAggregateAttribution()
     {
         var simulation = new Simulation(new SimulationOptions
@@ -140,6 +159,40 @@ public sealed class LowAltitudeMovementTraceTests
         for (var direction = 0; direction < 6; direction++)
         {
             simulation.SeedCell(DirectionQ(direction), DirectionR(direction), terrainId, ownerEntityId: 0);
+        }
+    }
+
+    private static void SeedWaterBarrier(Simulation simulation)
+    {
+        const int landTerrainId = 1;
+        const int waterTerrainId = 2;
+        simulation.RegisterTerrain(
+            landTerrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.RegisterTerrain(
+            waterTerrainId,
+            boundaryGroupId: 2,
+            movementCost: 0f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.World.SetMapRadius(2);
+        for (var q = -2; q <= 2; q++)
+        {
+            var minR = global::System.Math.Max(-2, -q - 2);
+            var maxR = global::System.Math.Min(2, -q + 2);
+            for (var r = minR; r <= maxR; r++)
+            {
+                simulation.SeedCell(q, r, q == 0 ? waterTerrainId : landTerrainId, ownerEntityId: 0);
+            }
         }
     }
 

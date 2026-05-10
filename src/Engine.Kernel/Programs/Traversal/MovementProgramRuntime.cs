@@ -105,6 +105,33 @@ internal sealed partial class MovementProgramRuntime :
 
     internal void RecordTopologyChanged() => State.RecordTopologyChanged();
 
+    public bool CanReach(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int targetQ,
+        int targetR,
+        int tick)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        ValidatePlane(planeCode);
+        var world = simulation.World;
+        var fromQ = CurrentQ(world, entityId, planeCode);
+        var fromR = CurrentR(world, entityId, planeCode);
+        return fromQ == targetQ && fromR == targetR ||
+            TryPlanNextStep(
+                simulation,
+                entityId,
+                planeCode,
+                fromQ,
+                fromR,
+                targetQ,
+                targetR,
+                tick,
+                out _,
+                out _);
+    }
+
     public int SnapshotEventCount() => State.RoadCellCount;
 
     public void EmitSnapshotEvents(Simulation simulation, int tick)
@@ -200,7 +227,7 @@ internal sealed partial class MovementProgramRuntime :
         var fromR = CurrentR(world, entityId, planeCode);
         var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
 
-        var totalWeight = 0f;
+        var candidateCount = 0;
         var selectedDirection = -1;
         for (var direction = 0; direction < 6; direction++)
         {
@@ -217,15 +244,8 @@ internal sealed partial class MovementProgramRuntime :
                 continue;
             }
 
-            var cost = TravelCost(simulation, planeCode, entityId, q, r, tick);
-            if (float.IsInfinity(cost) || cost <= 0f)
-            {
-                continue;
-            }
-
-            var weight = 1f / global::System.MathF.Max(0.25f, cost);
-            totalWeight += weight;
-            if (simulation.NextFloat() * totalWeight <= weight)
+            candidateCount++;
+            if (simulation.NextFloat() * candidateCount < 1f)
             {
                 selectedDirection = direction;
             }
@@ -239,7 +259,8 @@ internal sealed partial class MovementProgramRuntime :
 
         var toQ = fromQ + DirectionQ(selectedDirection);
         var toR = fromR + DirectionR(selectedDirection);
-        return StepUnchecked(simulation, entityId, planeCode, toQ, toR, tick, MovementCauseCodes.Travel);
+        var stepCost = BaseTravelCost(simulation, planeCode, entityId, toQ, toR);
+        return StepUnchecked(simulation, entityId, planeCode, toQ, toR, tick, MovementCauseCodes.Travel, stepCost);
     }
 
     public MovementMoveResult Place(
@@ -271,12 +292,25 @@ internal sealed partial class MovementProgramRuntime :
         int tick,
         int causeCode)
     {
+        var stepCost = StepCostForMove(simulation, planeCode, entityId, q, r, tick, causeCode);
+        return StepUnchecked(simulation, entityId, planeCode, q, r, tick, causeCode, stepCost);
+    }
+
+    private MovementMoveResult StepUnchecked(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int tick,
+        int causeCode,
+        float stepCost)
+    {
         var world = simulation.World;
         var fromQ = CurrentQ(world, entityId, planeCode);
         var fromR = CurrentR(world, entityId, planeCode);
         var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
         var toS = planeCode == PlaneCodes.Semantic ? -q - r : 0;
-        var stepCost = StepCostForMove(simulation, planeCode, entityId, q, r, tick, causeCode);
         if (!MoveAllowed(simulation, planeCode, entityId, q, r, stepCost, causeCode))
         {
             return new MovementMoveResult(false, stepCost, planeCode, fromQ, fromR, fromS, q, r, toS, causeCode);
@@ -315,6 +349,19 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         return TravelCost(simulation, planeCode, entityId, q, r, tick);
+    }
+
+    private float BaseTravelCost(
+        Simulation simulation,
+        int planeCode,
+        int entityId,
+        int q,
+        int r)
+    {
+        var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        return simulation.KernelData.Terrain.TravelCost(
+            simulation.World.CellTerrainId(planeCode, q, r),
+            movementProfileId);
     }
 
     private bool MoveAllowed(

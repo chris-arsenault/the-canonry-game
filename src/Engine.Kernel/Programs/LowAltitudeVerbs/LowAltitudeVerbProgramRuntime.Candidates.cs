@@ -62,7 +62,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var r = actorR + dr;
                 if ((q == actorQ && r == actorR) ||
                     !CellTargetCoordinateAllowed(simulation.World, planeCode, q, r) ||
-                    !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r))
+                    !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r) ||
+                    !MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
                 {
                     continue;
                 }
@@ -110,7 +111,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
                 var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
                 if (!Data.TerrainAllowed(rule, terrainId) ||
-                    !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r))
+                    !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r) ||
+                    !MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
                 {
                     continue;
                 }
@@ -162,6 +164,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
             var targetQ = CurrentQ(world, targetEntityId, planeCode);
             var targetR = CurrentR(world, targetEntityId, planeCode);
+            if (!MovementTargetReachable(simulation, entityId, rule, planeCode, targetQ, targetR, tick))
+            {
+                continue;
+            }
+
             var targetS = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
             var distance = DistancePref(rule, TargetSelectorCodes.EntityKind, actorQ, actorR, targetQ, targetR);
             var fitness = RelationshipFitness(world, entityId, targetEntityId, rule, scalars);
@@ -241,6 +248,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
             var targetQ = CurrentQ(world, targetEntityId, planeCode);
             var targetR = CurrentR(world, targetEntityId, planeCode);
+            if (!MovementTargetReachable(simulation, entityId, rule, planeCode, targetQ, targetR, tick))
+            {
+                continue;
+            }
+
             var targetS = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
             var fitness = RelationshipFitness(world, entityId, targetEntityId, rule, scalars);
             var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
@@ -288,6 +300,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                     continue;
                 }
 
+                if (!MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
+                {
+                    continue;
+                }
+
                 var influence = simulation.World.GetCellInfluence(entityId, planeCode, q, r);
                 if (influence <= 0f)
                 {
@@ -302,6 +319,17 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         return new CandidateBuildResult(selected, sumAffordanceScore);
     }
+
+    private bool MovementTargetReachable(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int planeCode,
+        int q,
+        int r,
+        int tick) =>
+        Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor ||
+        simulation.Movement.CanReach(simulation, entityId, planeCode, q, r, tick);
 
     private VerbTargetCandidate ScoreOwnInfluenceCell(
         Simulation simulation,
@@ -408,6 +436,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var q = actorQ + dq;
                 var r = actorR + dr;
                 if (!CellTargetCoordinateAllowed(simulation.World, planeCode, q, r))
+                {
+                    continue;
+                }
+
+                if (!MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
                 {
                     continue;
                 }
@@ -694,6 +727,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var scratchR = slot - (scratchQ * scratchWidth);
         var q = actorQ + scratchQ - searchRadius;
         var r = actorR + scratchR - searchRadius;
+        if (!MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
+        {
+            return;
+        }
+
         var influencerId = _foreignInfluenceEntityScratch[slot];
         var influence = _foreignInfluenceValueScratch[slot];
         var influencerKindId = simulation.World.EntityKindId(influencerId);

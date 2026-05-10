@@ -15,6 +15,17 @@ public sealed class TerrainKeyTests
     [InlineData("shelf", TerrainKey.Shelf)]
     [InlineData("reef", TerrainKey.Reef)]
     [InlineData("ocean", TerrainKey.Ocean)]
+    [InlineData("lineage", TerrainKey.Lineage)]
+    [InlineData("yoke", TerrainKey.Yoke)]
+    [InlineData("witness", TerrainKey.Witness)]
+    [InlineData("silence", TerrainKey.Silence)]
+    [InlineData("severance", TerrainKey.Severance)]
+    [InlineData("breakaway", TerrainKey.Breakaway)]
+    [InlineData("beacon_spire", TerrainKey.BeaconSpire)]
+    [InlineData("Beacon Spire", TerrainKey.BeaconSpire)]
+    [InlineData("taboo-ridge", TerrainKey.TabooRidge)]
+    [InlineData("cave pocket", TerrainKey.CavePocket)]
+    [InlineData("open_field", TerrainKey.OpenField)]
     public void CanonicalizeMapsDomainTerrainNamesToUiAssetKeys(
         string terrainName,
         string expected)

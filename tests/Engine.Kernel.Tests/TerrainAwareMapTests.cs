@@ -59,6 +59,42 @@ public sealed class TerrainAwareMapTests
     }
 
     [Fact]
+    public void WanderUsesEnterableNeighborsWithoutRoadAdjustedPacing()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 11 });
+        const int terrainId = 1;
+        const int kindId = 1;
+        simulation.RegisterTerrain(
+            terrainId,
+            boundaryGroupId: 1,
+            movementCost: 6f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 20f,
+            roadSpeedMultiplier: 2f);
+        simulation.World.SetMapRadius(1);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+
+        var result = simulation.Movement.Wander(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            tick: 0,
+            anchorQ: 0,
+            anchorR: 0,
+            maxDistanceFromAnchor: 1);
+
+        Assert.True(result.Moved);
+        Assert.Equal(6f, result.StepCost);
+        Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(entityId), simulation.World.EntityPhysicalR(entityId)));
+        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick) > 0f);
+        Assert.True(simulation.Movement.PhysicalTravelCost(simulation, entityId, 1, 0, simulation.CurrentTick) < result.StepCost);
+    }
+
+    [Fact]
     public void MovementRoadQualityRoundTripsThroughSnapshot()
     {
         var simulation = new Simulation();
@@ -88,6 +124,36 @@ public sealed class TerrainAwareMapTests
         Assert.Equal(
             simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick),
             loaded.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, loaded.CurrentTick));
+    }
+
+    [Theory]
+    [InlineData(30f, 25f)]
+    [InlineData(80f, 75f)]
+    public void RoadQualityDoesNotDecayBelowReachedCheckpoint(float roadBuildPerTravel, float expectedFloor)
+    {
+        var simulation = new Simulation();
+        const int terrainId = 1;
+        const int kindId = 1;
+        simulation.Movement.Data.RoadBuildPerTravel = roadBuildPerTravel;
+        simulation.RegisterTerrain(
+            terrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 2f);
+        simulation.World.SetMapRadius(1);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+
+        var result = simulation.MoveEntityPhysical(entityId, 1, 0, tick: 0, MovementCauseCodes.Travel);
+        var agedQuality = simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, tick: 100_000);
+
+        Assert.True(result.Moved);
+        Assert.InRange(agedQuality, expectedFloor, expectedFloor + 0.001f);
     }
 
     [Fact]
@@ -145,6 +211,61 @@ public sealed class TerrainAwareMapTests
         Assert.Equal(-11, simulation.World.EntityPhysicalQ(entityId));
         Assert.Equal(0, simulation.World.EntityPhysicalR(entityId));
         Assert.True(simulation.Movement.State.RouteCacheCount >= 2);
+    }
+
+    [Fact]
+    public void SameRegionalSegmentMovementUsesConcretePathToTarget()
+    {
+        var simulation = new Simulation(new SimulationOptions
+        {
+            EntityCapacity = 4,
+            MapCellCapacity = 1024,
+            TerrainIdCapacity = 4,
+            MovementCellCapacity = 1024,
+        });
+        const int landTerrainId = 1;
+        const int waterTerrainId = 2;
+        const int kindId = 1;
+        simulation.RegisterTerrain(
+            landTerrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.RegisterTerrain(
+            waterTerrainId,
+            boundaryGroupId: 2,
+            movementCost: 0f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.World.SetMapRadius(12);
+        SeedHexMap(simulation, radius: 12, waterTerrainId);
+        simulation.SeedCell(-6, -10, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-5, -11, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-7, -9, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-8, -8, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-8, -7, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-8, -6, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-8, -5, landTerrainId, ownerEntityId: 0);
+        simulation.SeedCell(-8, -4, landTerrainId, ownerEntityId: 0);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, -6, -10, 0, 0, 0, tick: 0);
+
+        var result = simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ: -8,
+            targetR: -4,
+            tick: 0);
+
+        Assert.True(result.Moved);
+        Assert.Equal((-7, -9), (simulation.World.EntityPhysicalQ(entityId), simulation.World.EntityPhysicalR(entityId)));
     }
 
     [Fact]
@@ -267,6 +388,14 @@ public sealed class TerrainAwareMapTests
         Assert.True(simulation.Movement.CanEnter(simulation, shoreEntityId, 1, 0));
         Assert.True(simulation.Movement.CanEnter(simulation, swimmerEntityId, 1, 0));
         Assert.Equal(6f, simulation.Movement.PhysicalTravelCost(simulation, shoreEntityId, 1, 0, tick: 0));
+    }
+
+    [Fact]
+    public void MovementReachabilityRejectsLandTargetAcrossImpassableWaterBarrier()
+    {
+        var simulation = CreateWaterBarrierSimulation(out var entityId, out var targetQ, out var targetR);
+
+        Assert.False(simulation.Movement.CanReach(simulation, entityId, PlaneCodes.Physical, targetQ, targetR, tick: 0));
     }
 
     [Fact]
@@ -431,6 +560,47 @@ public sealed class TerrainAwareMapTests
         SeedHexMap(simulation, radius: 12, terrainId);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, -12, 0, 0, 0, 0, tick: 0);
         return (simulation, entityId);
+    }
+
+    private static Simulation CreateWaterBarrierSimulation(out int entityId, out int targetQ, out int targetR)
+    {
+        var simulation = new Simulation();
+        const int landTerrainId = 1;
+        const int waterTerrainId = 2;
+        const int kindId = 1;
+        simulation.RegisterTerrain(
+            landTerrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.RegisterTerrain(
+            waterTerrainId,
+            boundaryGroupId: 2,
+            movementCost: 0f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.World.SetMapRadius(2);
+        for (var q = -2; q <= 2; q++)
+        {
+            var minR = global::System.Math.Max(-2, -q - 2);
+            var maxR = global::System.Math.Min(2, -q + 2);
+            for (var r = minR; r <= maxR; r++)
+            {
+                simulation.SeedCell(q, r, q == 0 ? waterTerrainId : landTerrainId, ownerEntityId: 0);
+            }
+        }
+
+        entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, -2, 0, 0, 0, 0, tick: 0);
+        targetQ = 2;
+        targetR = 0;
+        return simulation;
     }
 
     private static void SeedHexMap(Simulation simulation, int radius, int terrainId)
