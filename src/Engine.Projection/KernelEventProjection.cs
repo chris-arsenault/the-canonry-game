@@ -40,7 +40,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     private static bool IsWorldEvent(KernelEventType eventType) =>
-        eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CellRoadChanged and not KernelEventType.GambitEvaluated;
+        eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CellTravelStructureChanged and not KernelEventType.GambitEvaluated;
 
     private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
     {
@@ -93,6 +93,18 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
     private void ProjectWorldEvent(in SequencedKernelEvent kernelEvent)
     {
+        var eventType = kernelEvent.Event.EventType;
+        if (eventType is KernelEventType.TickCompleted or KernelEventType.GeneratorEnabledChanged)
+        {
+            ProjectWorldControlEvent(kernelEvent);
+            return;
+        }
+
+        ProjectWorldMapEvent(kernelEvent);
+    }
+
+    private void ProjectWorldControlEvent(in SequencedKernelEvent kernelEvent)
+    {
         var evt = kernelEvent.Event;
         switch (evt.EventType)
         {
@@ -102,6 +114,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.GeneratorEnabledChanged:
                 OnGeneratorEnabledChanged(kernelEvent.Sequence, evt.AsGeneratorEnabledChanged());
                 break;
+        }
+    }
+
+    private void ProjectWorldMapEvent(in SequencedKernelEvent kernelEvent)
+    {
+        var evt = kernelEvent.Event;
+        switch (evt.EventType)
+        {
             case KernelEventType.CellCreated:
                 OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
                 break;
@@ -116,6 +136,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.CellRoadChanged:
                 OnCellRoadChanged(kernelEvent.Sequence, evt.AsCellRoadChanged());
+                break;
+            case KernelEventType.CellTravelStructureChanged:
+                OnCellTravelStructureChanged(kernelEvent.Sequence, evt.AsCellTravelStructureChanged());
                 break;
             case KernelEventType.ProvenanceInvocationRecorded:
                 OnProvenanceInvocationRecorded(kernelEvent.Sequence, evt.AsProvenanceInvocationRecorded());
@@ -203,6 +226,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnCellTravelStructureChanged(long sequence, in CellTravelStructureChangedKernelEvent evt)
     {
     }
 

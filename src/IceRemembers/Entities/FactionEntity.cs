@@ -62,7 +62,7 @@ internal static class FactionEntity
             semanticDefault: Semantic(Terrain.Yoke, Terrain.Lineage, Terrain.OpenField),
             physicalRules:
             [
-                SubtypeRule("choir", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
+                SubtypeRule("choir", Maritime(Terrain.Shelf, Terrain.HotSprings, Terrain.Tundra, Terrain.Ice, Terrain.Reef, Terrain.Ocean)),
                 CultureRule(Culture.WakeSingers.ToDomainName(), Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
                 SubtypeRule("order", Land(Terrain.Shelf, Terrain.Ice, Terrain.Tundra)),
                 CultureRule(Culture.Nightshelf.ToDomainName(), Land(Terrain.Shelf, Terrain.Ice, Terrain.Tundra)),

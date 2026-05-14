@@ -535,6 +535,11 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
+    protected override void OnCellTravelStructureChanged(long sequence, in CellTravelStructureChangedKernelEvent evt)
+    {
+        MarkProjected(sequence);
+    }
+
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);

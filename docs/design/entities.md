@@ -9,7 +9,7 @@ the design narrative around that schema, not a duplicate registry.
 - Kind definitions and relationships: `src/IceRemembers/IceRemembersDefinition.cs`
 - Low-altitude verbs: `src/IceRemembers/IceRemembersLowAltitudeVerbs.cs`
 - Generators: `src/IceRemembers/IceRemembersGeneratorDefinition.cs`
-- Gambits: `src/IceRemembers/IceRemembersGambitDefinition.cs`
+- Gambits: `src/IceRemembers/IceRemembersGambits.cs`
 
 ## Current Kinds
 
@@ -25,6 +25,7 @@ the design narrative around that schema, not a duplicate registry.
 | `artifact` | Asset | `condition` | `artifact_restorative_aura`, `artifact_volatile_resonance` | Physical |
 | `ability` | Asset | `clarity` | `ability_practiced_form`, `ability_brittle_lineage` | Semantic |
 | `transport` | Asset | `integrity` | `transport_proven_make`, `transport_hidden_fault` | Physical |
+| `occurrence` | Agency | `momentum` | `occurrence_gathering_force`, `occurrence_grinding_attrition` | Semantic |
 
 Culture is orthogonal to morphology. Wake-Singers are not "the orca kind";
 they are a culture largely associated with orcas, with possible penguin

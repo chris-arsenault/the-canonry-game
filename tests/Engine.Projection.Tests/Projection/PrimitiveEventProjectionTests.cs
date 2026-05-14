@@ -8,7 +8,7 @@ public sealed class PrimitiveEventProjectionTests
     [Fact]
     public void PrimitiveProjectionPump_ReplacesObjectMessageSubscription()
     {
-        var log = new KernelEventLog(capacity: 4);
+        var log = new KernelEventLog(capacity: 5);
         var projection = new UiProjectionState();
         using var pump = new KernelEventProjectionPump(
             log,
@@ -138,6 +138,15 @@ public sealed class PrimitiveEventProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
+        WriteSemanticSurfaceEvents(log);
+
+        pump.DrainAvailable();
+
+        AssertSemanticSurfaceProjection(projection);
+    }
+
+    private static void WriteSemanticSurfaceEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
             Tick: 0,
             WorldVersion: 1,
@@ -172,9 +181,19 @@ public sealed class PrimitiveEventProjectionTests
             TravelCount: 4,
             PreviousQuality: 20f,
             CurrentQuality: 80f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellTravelStructureChangedKernelEvent(
+            Tick: 3,
+            WorldVersion: 4,
+            PlaneCode: PlaneCodes.Semantic,
+            Q: -1,
+            R: 1,
+            SourceCodeId: 8,
+            PreviousTravelStructureId: 0,
+            CurrentTravelStructureId: 12))));
+    }
 
-        pump.DrainAvailable();
-
+    private static void AssertSemanticSurfaceProjection(HexMapProjection projection)
+    {
         Assert.True(projection.TryGetHex(PlaneCodes.Semantic, new HexCoord(-1, 1), out var cell));
         Assert.Equal(PlaneCodes.Semantic, cell.PlaneCode);
         Assert.Equal(10, cell.TerrainId);
@@ -182,6 +201,7 @@ public sealed class PrimitiveEventProjectionTests
         Assert.Equal([200], cell.Influences.Select(influence => influence.EntityId).ToArray());
         Assert.Equal(80f, cell.RoadQuality);
         Assert.Equal(4, cell.RoadTravelCount);
+        Assert.Equal(12, cell.TravelStructureId);
     }
 
     [Fact]

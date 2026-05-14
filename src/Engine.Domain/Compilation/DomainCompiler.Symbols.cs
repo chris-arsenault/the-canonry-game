@@ -82,6 +82,15 @@ public static partial class DomainCompiler
         {
             symbols.Add(DomainSymbolKind.Terrain, ids.TerrainIdOf(terrain.Name).Value, terrain.Name, terrain.DisplayName);
         }
+
+        foreach (var structure in config.TravelStructures)
+        {
+            symbols.Add(
+                DomainSymbolKind.TravelStructure,
+                ids.TravelStructureIdOf(structure.Name).Value,
+                structure.Name,
+                structure.DisplayName);
+        }
     }
 
     private static void AddCultureSymbols(
@@ -204,6 +213,7 @@ public static partial class DomainCompiler
     private static DomainSymbolKind? ToSecondarySymbolKind(DomainIdCategory category) => category switch
     {
         DomainIdCategory.Terrain => DomainSymbolKind.Terrain,
+        DomainIdCategory.TravelStructure => DomainSymbolKind.TravelStructure,
         DomainIdCategory.Subtype => DomainSymbolKind.Subtype,
         DomainIdCategory.Culture => DomainSymbolKind.Culture,
         DomainIdCategory.Generator => DomainSymbolKind.Generator,

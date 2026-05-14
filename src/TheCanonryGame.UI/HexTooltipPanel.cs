@@ -198,7 +198,7 @@ public partial class HexTooltipPanel : PanelContainer
         var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
         var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
         return
-            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatRoad(cell)}\n" +
+            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
             $"{continent}   {superregion}\n" +
             FormatInfluence(cell);
     }
@@ -233,6 +233,22 @@ public partial class HexTooltipPanel : PanelContainer
             > 0.25f => $"light road {roadQuality:0.00}",
             _ => "no road",
         };
+    }
+
+    private string FormatSurface(HexProjection cell)
+    {
+        var road = FormatRoad(cell);
+        if (cell.TravelStructureId <= 0)
+        {
+            return road;
+        }
+
+        var structure = ProjectionDisplay.DisplayName(
+            _symbols,
+            ProjectionSymbolKind.TravelStructure,
+            cell.TravelStructureId,
+            $"Structure {cell.TravelStructureId}");
+        return $"{structure}; {road}";
     }
 
     private string FormatInfluence(HexProjection cell)

@@ -156,7 +156,48 @@ public static partial class DomainCompiler
             Defaults = defaults,
             SubtypeRules = subtypeRules,
             TraitRules = traitRules,
+            TravelStructures = BuildTravelStructureData(config, ids, movementProfileIds),
         };
+    }
+
+    private static List<CompiledTravelStructureDefinition> BuildTravelStructureData(
+        DomainConfig config,
+        DomainIdRegistry ids,
+        Dictionary<string, int> movementProfileIds)
+    {
+        var structures = new List<CompiledTravelStructureDefinition>(config.TravelStructures.Count);
+        foreach (var structure in config.TravelStructures)
+        {
+            if (structure.PlaneCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
+            {
+                throw new InvalidOperationException($"Travel structure '{structure.Name}' uses unsupported plane code {structure.PlaneCode}.");
+            }
+
+            var structureId = ids.TravelStructureIdOf(structure.Name).Value;
+            structures.Add(new CompiledTravelStructureDefinition(
+                structureId,
+                structure.PlaneCode,
+                CompileTravelStructureMovementProfiles(structureId, structure.MovementProfiles, movementProfileIds)));
+        }
+
+        return structures;
+    }
+
+    private static List<CompiledTravelStructureMovementProfileDefinition> CompileTravelStructureMovementProfiles(
+        int structureId,
+        IReadOnlyList<TravelStructureMovementProfileConfig> profiles,
+        Dictionary<string, int> movementProfileIds)
+    {
+        var compiled = new List<CompiledTravelStructureMovementProfileDefinition>(profiles.Count);
+        foreach (var profile in profiles)
+        {
+            compiled.Add(new CompiledTravelStructureMovementProfileDefinition(
+                structureId,
+                ResolveMovementProfileId(profile.Profile, movementProfileIds),
+                profile.MovementCost < 0f ? 0f : profile.MovementCost));
+        }
+
+        return compiled;
     }
 
     private static void AddMovementProfileDefault(
@@ -918,6 +959,13 @@ public static partial class DomainCompiler
                 steps.Add(new BehaviorProgramStepRule(
                     BehaviorProgramOperation.SetTargetCoverageTerrain,
                     ids.TerrainIdOf(setTerrain.TerrainName).Value));
+                return true;
+            case BuildTravelStructureLineMutation buildStructure:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.BuildTravelStructureLine,
+                    ids.TravelStructureIdOf(buildStructure.StructureName).Value,
+                    buildStructure.PlaneCode,
+                    buildStructure.MaxDistance));
                 return true;
             default:
                 return false;

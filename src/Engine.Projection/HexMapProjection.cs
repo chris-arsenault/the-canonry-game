@@ -64,6 +64,7 @@ public sealed record HexProjection(
     IReadOnlyList<HexInfluenceProjection> Influences,
     float RoadQuality,
     int RoadTravelCount,
+    int TravelStructureId,
     int Tick,
     long WorldVersion,
     long Sequence);
@@ -279,6 +280,21 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
+    protected override void OnCellTravelStructureChanged(long sequence, in CellTravelStructureChangedKernelEvent evt)
+    {
+        var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
+        GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
+        {
+            TravelStructureId = evt.CurrentTravelStructureId,
+            Tick = evt.Tick,
+            WorldVersion = evt.WorldVersion,
+            Sequence = sequence,
+        };
+        CellVersion++;
+        MarkCellDirty(evt.PlaneCode, existing.HexId);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
     private void UpsertCell(
         long sequence,
         int tick,
@@ -299,7 +315,8 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             surface.HexIdsByCoord.Remove(existing.Coord);
         }
 
-        surface.HexesById[hexId] = new HexProjection(
+        surface.HexesById[hexId] = CreateCellProjection(
+            existing,
             hexId,
             planeCode,
             coord,
@@ -307,9 +324,6 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             ownerEntityId,
             superregionId,
             continentId,
-            existing?.Influences ?? [],
-            existing?.RoadQuality ?? 0f,
-            existing?.RoadTravelCount ?? 0,
             tick,
             worldVersion,
             sequence);
@@ -321,6 +335,34 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         MarkCellDirty(planeCode, hexId);
         MarkProjected(sequence, tick, worldVersion);
     }
+
+    private static HexProjection CreateCellProjection(
+        HexProjection? existing,
+        int hexId,
+        int planeCode,
+        HexCoord coord,
+        int terrainId,
+        int ownerEntityId,
+        int superregionId,
+        int continentId,
+        int tick,
+        long worldVersion,
+        long sequence) =>
+        new(
+            hexId,
+            planeCode,
+            coord,
+            terrainId,
+            ownerEntityId,
+            superregionId,
+            continentId,
+            existing?.Influences ?? [],
+            existing?.RoadQuality ?? 0f,
+            existing?.RoadTravelCount ?? 0,
+            existing?.TravelStructureId ?? 0,
+            tick,
+            worldVersion,
+            sequence);
 
     private void MarkCellDirty(int planeCode, int hexId)
     {

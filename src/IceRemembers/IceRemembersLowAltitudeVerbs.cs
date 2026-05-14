@@ -130,6 +130,14 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateRelationshipStrengthMutationVerbs() =>
     [
+        ..CreateAgencyAndPracticeStrengthVerbs(),
+        ..CreatePointOfInterestClaimStrengthVerbs(),
+        ..CreateRecoveryAndConduitStrengthVerbs(),
+        ..CreateMonsterAndOccurrenceStrengthVerbs(),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateAgencyAndPracticeStrengthVerbs() =>
+    [
         RelationshipStrengthVerb(Verb.FactionTendAlliance, "Tend Alliance", K.Faction, L(Rel.AlliedWith),
             LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 12, delta: 0.0037f, radius: 1, samples: 12,
             weight: 0.55f, opportunityBonusOverride: 0.5f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
@@ -142,6 +150,12 @@ public static partial class IceRemembersDefinition
         RelationshipStrengthVerb(Verb.FactionCoolRivalry, "Cool Rivalry", K.Faction, L(Rel.RivalOf),
             LowAltitudeVerbRelationshipDirection.Either, ticks: (30, 90), dwell: 10, delta: -0.0042f, radius: 1, samples: 12,
             weight: 0.35f, opportunityBonusOverride: 0.35f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.FactionPressTheWar, "Press the War", K.Faction, L(Rel.AtWarWith),
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 10, delta: 0.0039f, radius: 1, samples: 12,
+            weight: 0.42f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.FactionLetWarCool, "Let the War Cool", K.Faction, L(Rel.AtWarWith),
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (40, 115), dwell: 12, delta: -0.0033f, radius: 1, samples: 12,
+            weight: 0.34f, opportunityBonusOverride: 0.35f, fitnessWeight: 0.70f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.SettlementTrade, "Tend Trade Route", K.Settlement, L(Rel.TradeRoute),
             LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 100), dwell: 12, delta: 0.0044f, radius: 1, samples: 12,
             weight: 0.5f, opportunityBonusOverride: 0.55f, fitnessWeight: 0.8f),
@@ -154,21 +168,75 @@ public static partial class IceRemembersDefinition
         RelationshipStrengthVerb(Verb.OrcaReinforcePodTie, "Reinforce Pod Tie", K.Orca, L(Rel.MemberOf),
             LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (30, 90), dwell: 10, delta: 0.0042f, radius: 1, samples: 10,
             weight: 0.45f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
-        RelationshipStrengthVerb(Verb.PointOfInterestLoosenClaim, "Loosen the Claim", K.PointOfInterest, L(Rel.ClaimedBy),
-            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 115), dwell: 12, delta: -0.0032f, radius: 1, samples: 10,
-            weight: 0.35f, opportunityBonusOverride: 0.35f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.OrcaPressRouteWar, "Press Route War", K.Orca, L(Rel.AtWarWith),
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (32, 95), dwell: 10, delta: 0.0040f, radius: 1, samples: 12,
+            weight: 0.46f, opportunityBonusOverride: 0.48f, fitnessWeight: 0.78f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.PenguinPressMonsterHunt, "Press Monster Hunt", K.Penguin, L(Rel.AtWarWith),
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (32, 95), dwell: 10, delta: 0.0038f, radius: 1, samples: 12,
+            weight: 0.42f, opportunityBonusOverride: 0.46f, fitnessWeight: 0.76f, plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateRecoveryAndConduitStrengthVerbs() =>
+    [
+        RelationshipStrengthVerb(Verb.RegionDeepenCorruption, "Deepen Corruption", K.Region, L(Rel.CorruptedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 120), dwell: 12, delta: 0.0036f, radius: 1, samples: 10,
+            weight: 0.42f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.RegionCoolCorruption, "Cool Corruption", K.Region, L(Rel.CorruptedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (45, 130), dwell: 14, delta: -0.0030f, radius: 1, samples: 10,
+            weight: 0.32f, opportunityBonusOverride: 0.30f, fitnessWeight: 0.65f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.ArtifactTendCleansing, "Tend Cleansing", K.Artifact, L(Rel.CleansedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 120), dwell: 12, delta: 0.0034f, radius: 1, samples: 10,
+            weight: 0.38f, opportunityBonusOverride: 0.42f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.RegionHoldCleansing, "Hold Cleansing", K.Region, L(Rel.CleansedBy),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (40, 120), dwell: 12, delta: 0.0031f, radius: 1, samples: 10,
+            weight: 0.34f, opportunityBonusOverride: 0.38f, fitnessWeight: 0.72f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.RegionForgetCleansing, "Forget Cleansing", K.Region, L(Rel.CleansedBy),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (45, 135), dwell: 12, delta: -0.0028f, radius: 1, samples: 10,
+            weight: 0.28f, opportunityBonusOverride: 0.30f, fitnessWeight: 0.65f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.AbilityChargeConduit, "Charge the Conduit", K.Ability, L(Rel.ConduitOf),
             LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.0037f, radius: 1, samples: 10,
             weight: 0.45f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
-        RelationshipStrengthVerb(Verb.MonsterDeepenCorruption, "Deepen Corruption", K.Monster, L(Rel.CorruptedBy),
-            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 100), dwell: 10, delta: 0.0037f, radius: 1, samples: 10,
-            weight: 0.45f, opportunityBonusOverride: 0.4f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.ArtifactTightenWard, "Tighten the Ward", K.Artifact, L(Rel.WardAgainst),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0038f, radius: 1, samples: 10,
+            weight: 0.40f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.TransportOverstrainConduit, "Overstrain the Conduit", K.Transport, L(Rel.ConduitOf),
             LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: -0.0037f, radius: 1, samples: 10,
             weight: 0.35f, opportunityBonusOverride: 0.35f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.TransportChartConduit, "Chart the Conduit", K.Transport, L(Rel.ConduitOf),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.0034f, radius: 1, samples: 10,
+            weight: 0.38f, opportunityBonusOverride: 0.40f, fitnessWeight: 0.72f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.TransportCarryTheHaunting, "Carry the Haunting", K.Transport, L(Rel.CorruptedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 10, delta: 0.0034f, radius: 1, samples: 10,
+            weight: 0.38f, opportunityBonusOverride: 0.38f, fitnessWeight: 0.70f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.TransportTightenTheWard, "Tighten the Ward", K.Transport, L(Rel.WardAgainst),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0034f, radius: 1, samples: 10,
+            weight: 0.36f, opportunityBonusOverride: 0.38f, fitnessWeight: 0.72f, plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateMonsterAndOccurrenceStrengthVerbs() =>
+    [
+        RelationshipStrengthVerb(Verb.MonsterDeepenCorruption, "Deepen Corruption", K.Monster, L(Rel.CorruptedBy),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 100), dwell: 10, delta: 0.0037f, radius: 1, samples: 10,
+            weight: 0.45f, opportunityBonusOverride: 0.4f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.MonsterHoldWard, "Hold the Ward", K.Monster, L(Rel.WardAgainst),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 105), dwell: 12, delta: 0.0032f, radius: 1, samples: 10,
+            weight: 0.32f, opportunityBonusOverride: 0.36f, fitnessWeight: 0.68f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.MonsterGnawWard, "Gnaw the Ward", K.Monster, L(Rel.WardAgainst),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 105), dwell: 10, delta: -0.0038f, radius: 1, samples: 10,
+            weight: 0.38f, opportunityBonusOverride: 0.40f, fitnessWeight: 0.70f, plane: PrimaryPlane.Semantic),
         RelationshipStrengthVerb(Verb.OccurrenceExhaustWar, "Exhaust the War", K.Occurrence, L(Rel.AtWarWith),
             LowAltitudeVerbRelationshipDirection.Either, ticks: (40, 120), dwell: 12, delta: -0.0031f, radius: 1, samples: 10,
             weight: 0.4f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreatePointOfInterestClaimStrengthVerbs() =>
+    [
+        RelationshipStrengthVerb(Verb.PointOfInterestTightenClaim, "Tighten the Claim", K.PointOfInterest, L(Rel.ClaimedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0035f, radius: 1, samples: 10,
+            weight: 0.42f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.PointOfInterestLoosenClaim, "Loosen the Claim", K.PointOfInterest, L(Rel.ClaimedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 115), dwell: 12, delta: -0.0032f, radius: 1, samples: 10,
+            weight: 0.35f, opportunityBonusOverride: 0.35f, fitnessWeight: 0.7f, plane: PrimaryPlane.Semantic),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticInfluenceVerbs() =>

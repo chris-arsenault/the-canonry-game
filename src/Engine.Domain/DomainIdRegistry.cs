@@ -12,6 +12,7 @@ public enum DomainIdCategory
     StructuralFact,
     RelationshipKind,
     Terrain,
+    TravelStructure,
     Subtype,
     Culture,
     Generator,
@@ -42,6 +43,8 @@ public sealed class DomainIdRegistry
         new(static value => new RelationshipKindRuntimeId(value), static id => id.Value, "relationship kind");
     private readonly StableNameRegistry<TerrainRuntimeId> _terrains =
         new(static value => new TerrainRuntimeId(value), static id => id.Value, "terrain");
+    private readonly StableNameRegistry<TravelStructureRuntimeId> _travelStructures =
+        new(static value => new TravelStructureRuntimeId(value), static id => id.Value, "travel structure");
     private readonly StableNameRegistry<SubtypeRuntimeId> _subtypes =
         new(static value => new SubtypeRuntimeId(value), static id => id.Value, "subtype");
     private readonly StableNameRegistry<CultureRuntimeId> _cultures =
@@ -90,6 +93,10 @@ public sealed class DomainIdRegistry
     public TerrainRuntimeId TerrainIdOf(string stableName) => _terrains.Resolve(stableName);
     public string TerrainNameOf(TerrainRuntimeId id) => _terrains.NameOf(id);
 
+    public TravelStructureRuntimeId RegisterTravelStructure(string stableName) => _travelStructures.Register(stableName);
+    public TravelStructureRuntimeId TravelStructureIdOf(string stableName) => _travelStructures.Resolve(stableName);
+    public string TravelStructureNameOf(TravelStructureRuntimeId id) => _travelStructures.NameOf(id);
+
     public SubtypeRuntimeId RegisterSubtype(string stableName) => _subtypes.Register(stableName);
     public SubtypeRuntimeId SubtypeIdOf(string stableName) => _subtypes.Resolve(stableName);
     public string SubtypeNameOf(SubtypeRuntimeId id) => _subtypes.NameOf(id);
@@ -137,6 +144,7 @@ public sealed class DomainIdRegistry
     private IEnumerable<DomainIdEntry> SecondaryEntries()
     {
         foreach (var entry in _terrains.Entries(DomainIdCategory.Terrain)) yield return entry;
+        foreach (var entry in _travelStructures.Entries(DomainIdCategory.TravelStructure)) yield return entry;
         foreach (var entry in _subtypes.Entries(DomainIdCategory.Subtype)) yield return entry;
         foreach (var entry in _cultures.Entries(DomainIdCategory.Culture)) yield return entry;
         foreach (var entry in _generators.Entries(DomainIdCategory.Generator)) yield return entry;
@@ -205,6 +213,9 @@ public sealed class DomainIdRegistry
         {
             case DomainIdCategory.Terrain:
                 clone.RegisterTerrain(entry.StableName);
+                return true;
+            case DomainIdCategory.TravelStructure:
+                clone.RegisterTravelStructure(entry.StableName);
                 return true;
             case DomainIdCategory.Subtype:
                 clone.RegisterSubtype(entry.StableName);

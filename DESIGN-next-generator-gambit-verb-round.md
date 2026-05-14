@@ -23,11 +23,16 @@ layers reinforce each other repeatedly over long runs.
 ## Design Goals
 
 High-altitude content should be broader, earlier, and more causal. The active
-catalog currently has only five generators and five gambits. Recent runs show
-that once trade routes enter the world, `routes_draw_readers` can dominate while
-`ice_settles_accounts`, `what_the_spring_remembers`, and
-`what_the_artifact_knows` remain at zero in some evidence runs. That points to a
-content-graph shape problem, not just a cadence problem.
+catalog entered this round with only five generators and six gambits. It now has
+thirty-one generators and twenty gambits, with monster, orca-transport,
+orca-route-war, stolen-artifact hunt, haunted-transport, named-war,
+trade-conference, cleansing, conduit-network, reefhold-then-depths, colony, and
+ward-order loops tied to documented causal rows rather than one-off targets.
+Earlier evidence runs showed that once trade routes entered the world,
+`routes_draw_readers` could dominate while `ice_settles_accounts`,
+`what_the_spring_remembers`, and `what_the_artifact_knows` stayed at zero. The
+current tuned baseline addresses that specific absence, but the lesson remains:
+distribution problems usually point to content-graph shape, not just cadence.
 
 Early generators should be minor world-condensation events rather than more
 pulse relaxation. The pulse-window runtime now lets generators fire any tick
@@ -124,10 +129,11 @@ catalog needs stronger paths into and out of `holds`, `practiced_by`,
 
 Second-wave kinds need actual high-altitude hooks. Orcas, points of interest,
 abilities, transports, occurrences, and monsters should not exist only as
-low-altitude activity. Monsters in particular remain absent because there is no
-spawning path. The design goal is not to force every kind into every system, but
-each kind should have at least one real causal role in the generator/gambit
-catalog before its low-altitude activity is judged.
+low-altitude activity. Monsters now have a spawning path and a binding gambit,
+so the next useful question is whether their ward and corruption edges produce
+interesting aftermath. The design goal is not to force every kind into every
+system, but each kind should have at least one real causal role in the
+generator/gambit catalog before its low-altitude activity is judged.
 
 Influence should become a selective precondition, not a universal behavior tax.
 When a gambit or generator really cares about territorial pressure, influence is
@@ -208,6 +214,15 @@ That is the clearest evidence that the next round needs broader causal content.
 hard gates with scores: the settlement trade gambit produced hundreds of
 attempts and dozens of successes after physical distance and shared-influence
 requirements were removed as preconditions.
+
+`authoring-distribution-tune-10x5000-20260514` is the current balance baseline:
+10/10 runs reached 200 generator fires with `map_degenerate=0`. Generator fires
+spanned `17` to `160` per generator (`9.41x`), gambit successes spanned `53` to
+`507` per gambit (`9.57x`), and `corruption_wakes_monsters` fired `33` times.
+The intertwined loops are active at long-run scale: `orca_route_wars_get_names`
+fired `37` times, `stolen_artifacts_draw_hunters` fired `160` times,
+`penguin_slays_monster` succeeded `107` times, and
+`monster_slayings_become_festivals` fired `102` times.
 
 ## Non-Goals
 

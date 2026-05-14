@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "deep-current-overlay",
+  "file": "map-overlays/deep-current.png",
+  "spec_type": "icon",
+  "section_id": "2b-map-overlays",
+  "section": "2b · Map overlays",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "# Deep Current Travel Structure Overlay\n\nA stylized deep-current overlay marker for a hex map. Simplified app-icon geometry.\n\nThree bold parallel wave strokes sweep diagonally through the icon center, with two small arrowhead fins indicating directed water flow. Use flat saturated palette colors, sharp clean edges, generous padding. The shape should read as a travel lane through water, distinct from road dashes and distinct from terrain texture marks. No ocean background, no scene, no gradients.",
+  "formatted_prompt": {
+    "scene": "Flat filled-vector app icon, three bold diagonal parallel wave bands with two arrowhead fins on a warm off-white canvas, electric blue and vivid yellow punching sharp contrast.",
+    "subjects": [
+      {
+        "type": "wave band trio",
+        "description": "Three thick parallel diagonal wave strokes sweeping lower-left to upper-right, equal spacing, crisp flat fills, reading as a directed flow lane",
+        "position": "centered, filling 70% of canvas diagonally",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "arrowhead fins",
+        "description": "Two sharp equilateral arrowhead shapes riding the center wave band, pointing upper-right, flat solid fills, bold readable geometry at 16px",
+        "position": "staggered along center wave, mid and upper third",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "21175f99-b92b-47c4-aeb9-8ed9861331a3",
+  "cost_usd": 0.03,
+  "claude_cost_usd": 0.007548000000000001,
+  "duration_ms": 9557,
+  "generated_at": "2026-05-11T20:14:40.496Z"
+}

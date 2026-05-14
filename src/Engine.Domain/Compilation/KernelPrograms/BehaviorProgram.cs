@@ -35,6 +35,7 @@ public enum BehaviorProgramOperation
     RemoveEndpointRelationship,
     MoveTargetToSelfPhysical,
     SetTargetCoverageTerrain,
+    BuildTravelStructureLine,
 }
 
 public enum BehaviorProgramEndpoint

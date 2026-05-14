@@ -48,6 +48,7 @@ internal static class RegionEntity
             [
                 MovementSubtypeRule("shelf", physical: Profile.Shore),
                 MovementSubtypeRule("sea", physical: Profile.Shore),
+                MovementSubtypeRule("depths", physical: Profile.Shore, semantic: Profile.Veil),
                 MovementSubtypeRule("scar", semantic: Profile.Rift),
             ]),
         Placement = Placement(
@@ -59,7 +60,12 @@ internal static class RegionEntity
                 SubtypeRule("reach", Land(Terrain.Tundra, Terrain.HotSprings, Terrain.Wastes)),
                 SubtypeRule("shelf", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Tundra)),
                 SubtypeRule("sea", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
+                SubtypeRule("depths", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
                 SubtypeRule("scar", Land(Terrain.Wastes, Terrain.Crags, Terrain.Tundra)),
+            ],
+            semanticRules:
+            [
+                SubtypeRule("depths", Semantic(Terrain.Silence, Terrain.CavePocket, Terrain.TabooRidge)),
             ]),
     };
 }

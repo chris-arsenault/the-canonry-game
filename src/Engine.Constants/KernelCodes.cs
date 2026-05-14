@@ -40,6 +40,7 @@ public static class BehaviorOperationCodes
     public const int MoveTargetToSelfPhysical = 28;
     public const int SetTargetCoverageTerrain = 29;
     public const int RemoveEndpointRelationship = 30;
+    public const int BuildTravelStructureLine = 31;
 }
 
 public static class BehaviorTargetModeCodes

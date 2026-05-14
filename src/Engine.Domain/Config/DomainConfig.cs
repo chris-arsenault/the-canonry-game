@@ -1,5 +1,6 @@
 namespace Engine.Domain.Config;
 
+using Engine.Constants;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
@@ -27,6 +28,9 @@ public sealed class DomainConfig
 
     /// <summary>Terrain definitions used by world generation and startup seeding.</summary>
     public required IReadOnlyList<TerrainConfig> Terrains { get; init; }
+
+    /// <summary>Non-entity, non-terrain travel structures that can alter movement over cells.</summary>
+    public IReadOnlyList<TravelStructureConfig> TravelStructures { get; init; } = [];
 
     /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
     public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
@@ -218,6 +222,20 @@ public sealed class MovementProfileTraitRuleConfig
 }
 
 public sealed class TerrainMovementProfileConfig
+{
+    public required string Profile { get; init; }
+    public required float MovementCost { get; init; }
+}
+
+public sealed class TravelStructureConfig
+{
+    public required string Name { get; init; }
+    public required string DisplayName { get; init; }
+    public int PlaneCode { get; init; } = PlaneCodes.Physical;
+    public IReadOnlyList<TravelStructureMovementProfileConfig> MovementProfiles { get; init; } = [];
+}
+
+public sealed class TravelStructureMovementProfileConfig
 {
     public required string Profile { get; init; }
     public required float MovementCost { get; init; }

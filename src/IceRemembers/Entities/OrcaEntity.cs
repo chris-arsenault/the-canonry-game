@@ -23,7 +23,7 @@ internal static class OrcaEntity
         HealthAttribute = Attr.Endurance,
         HealthDisplayName = "Endurance",
         PrimaryPlane = PrimaryPlane.Physical,
-        LifecycleBand = IceRemembersLifecycleBand.Brief,
+        LifecycleBand = IceRemembersLifecycleBand.Standard,
         Description = "A named orca, member of a matriarchal pod. Mobile actor on the physical plane, primarily aligned with the Wake-Singers but capable of independent allegiance.",
         Traits =
         [

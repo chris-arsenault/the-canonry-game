@@ -107,6 +107,9 @@ public sealed class KernelEventPayloadTests
         var cellRoadChanged = new CellRoadChangedKernelEvent(20, 21, PlaneCodes.Physical, -3, 3, 4, 5, 0.25f, 0.75f);
         Assert.Equal(cellRoadChanged, KernelEvent.From(cellRoadChanged).AsCellRoadChanged());
 
+        var cellTravelStructureChanged = new CellTravelStructureChangedKernelEvent(20, 21, PlaneCodes.Physical, -3, 3, 4, 5, 6);
+        Assert.Equal(cellTravelStructureChanged, KernelEvent.From(cellTravelStructureChanged).AsCellTravelStructureChanged());
+
         var provenanceInvocationRecorded = new ProvenanceInvocationRecordedKernelEvent(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
         Assert.Equal(provenanceInvocationRecorded, KernelEvent.From(provenanceInvocationRecorded).AsProvenanceInvocationRecorded());
 

@@ -309,6 +309,23 @@ public sealed class SetTargetCoverageTerrainMutation(string terrainName) : IMuta
 }
 
 /// <summary>
+/// Builds a travel structure on the straight hex line between self and target.
+/// The structure is a movement-surface overlay; it does not change terrain or
+/// create an entity.
+/// </summary>
+public sealed class BuildTravelStructureLineMutation(
+    string structureName,
+    int planeCode,
+    int maxDistance) : IMutation
+{
+    public string StructureName { get; } = structureName;
+    public int PlaneCode { get; } = planeCode;
+    public int MaxDistance { get; } = maxDistance;
+
+    public string Describe() => $"build_travel_structure_line({StructureName}, plane={PlaneCode}, max={MaxDistance})";
+}
+
+/// <summary>
 /// Semantic-plane drift. Steps self's SemanticPosition to a uniformly random
 /// neighbor on the autonomy/resonance/tradition plane.
 /// </summary>

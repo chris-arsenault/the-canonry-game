@@ -99,5 +99,20 @@ internal static class KernelDataInstaller
                 profile.PlaneCode,
                 profile.MovementProfileId);
         }
+
+        foreach (var structure in data.TravelStructures)
+        {
+            context.RegisterTravelStructure(
+                structure.TravelStructureId,
+                structure.PlaneCode);
+
+            foreach (var profile in structure.MovementProfiles)
+            {
+                context.RegisterTravelStructureMovementProfile(
+                    profile.TravelStructureId,
+                    profile.MovementProfileId,
+                    profile.MovementCost);
+            }
+        }
     }
 }

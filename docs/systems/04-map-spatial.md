@@ -73,6 +73,19 @@ reconciled on cadence into coarse marks such as none, low, and high. Small
 quality changes inside the same mark do not invalidate cached segment routes;
 only topology changes or reconciled road-mark changes advance route epochs.
 
+Travel structures are a separate map surface from terrain and roads. They are
+not entities and do not convert the underlying cell terrain. Domains declare
+travel-structure types, their plane, and movement-profile costs. A cell may
+then carry a travel-structure id; movement uses the cheaper enterable surface
+between terrain and structure, so a structure can make otherwise blocked cells
+crossable for matching movement profiles without changing terrain semantics.
+
+In Ice Remembers, `ice_causeway` and `deep_current` are the initial travel
+structures. The authored `settlement_raises_causeway` gambit builds an
+`ice_causeway` line between mutually connected settlements with an existing
+trade route. This is the first implementation of bridges/currents/water-tubes
+as travel surfaces rather than terrain rewrites or special road cases.
+
 Direct full-grid A* is not kept as a legacy fallback in the normal movement
 path. Degenerate movement should fail explicitly rather than silently switching
 back to the old whole-map search shape.

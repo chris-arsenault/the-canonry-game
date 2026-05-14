@@ -24,6 +24,7 @@ public class DomainConfigTests
         Assert.True(config.Relationships.Count > 10);
         Assert.Equal(IceRemembersKinds.All.Count, config.Lifecycles.Count);
         Assert.Equal(3, config.Cultures.Count);
+        Assert.Equal(2, config.TravelStructures.Count);
         Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, config.Semantics!.Generators.Count);
     }
 
@@ -66,6 +67,18 @@ public class DomainConfigTests
             relationship => relationship.Name == IceRemembersRelationship.TaughtBy.ToDomainName());
         Assert.Contains(EntityCategory.Agency, taughtBy.ValidSourceCategories);
         Assert.Contains(EntityCategory.Agency, taughtBy.ValidTargetCategories);
+    }
+
+    [Fact]
+    public void IceRemembers_WardsCanBindMonsterScaleThreats()
+    {
+        var config = IceRemembersDefinition.Create();
+
+        var wardAgainst = Assert.Single(
+            config.Relationships,
+            relationship => relationship.Name == IceRemembersRelationship.WardAgainst.ToDomainName());
+        Assert.Contains(EntityCategory.Asset, wardAgainst.ValidSourceCategories);
+        Assert.Contains(EntityCategory.Agency, wardAgainst.ValidTargetCategories);
     }
 
     [Fact]
@@ -112,6 +125,341 @@ public class DomainConfigTests
         Assert.True(producedRoute.Strength < routeRequirement.MinimumStrength);
 
         Assert.Contains(IceRemembersRelationship.HomeBase.ToDomainName(), artifact.Target.WithoutOutgoingRelationships!);
+    }
+
+    [Fact]
+    public void IceRemembers_SecondWaveGeneratorSliceUsesRelationshipLocks()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+
+        var places = Assert.Single(generators, generator => generator.Id == "unclaimed_places_draw_wardens");
+        Assert.Equal(IceRemembersKinds.PointOfInterest, places.Target.Kind);
+        Assert.Contains(Rel.ClaimedBy.ToDomainName(), places.Target.WithoutOutgoingRelationships!);
+        Assert.Contains(places.Relationships, relationship =>
+            relationship.SourceRef == "$target" &&
+            relationship.DestinationRef == "$patron" &&
+            relationship.Kind == Rel.ClaimedBy.ToDomainName());
+
+        var forms = Assert.Single(generators, generator => generator.Id == "practiced_forms_find_tomes");
+        Assert.Equal(IceRemembersKinds.Ability, forms.Target.Kind);
+        Assert.Contains(Rel.PracticedBy.ToDomainName(), forms.Target.RequiredOutgoingRelationships!);
+        Assert.Contains(Rel.ConduitOf.ToDomainName(), forms.Target.WithoutOutgoingRelationships!);
+        Assert.Contains(forms.Relationships, relationship =>
+            relationship.SourceRef == "$target" &&
+            relationship.Kind == Rel.ConduitOf.ToDomainName());
+
+        var charters = Assert.Single(generators, generator => generator.Id == "charters_find_harbors");
+        Assert.Equal(IceRemembersKinds.Transport, charters.Target.Kind);
+        Assert.Contains(Rel.Holds.ToDomainName(), charters.Target.RequiredIncomingRelationships!);
+        Assert.Contains(Rel.NativeTo.ToDomainName(), charters.Target.WithoutOutgoingRelationships!);
+        Assert.Contains(charters.Relationships, relationship =>
+            relationship.SourceRef == "$target" &&
+            relationship.Kind == Rel.NativeTo.ToDomainName());
+
+        var vigils = Assert.Single(generators, generator => generator.Id == "vigils_leave_relics");
+        Assert.Equal(IceRemembersKinds.Occurrence, vigils.Target.Kind);
+        Assert.Contains(Rel.HomeBase.ToDomainName(), vigils.Target.RequiredOutgoingRelationships!);
+        Assert.Contains(Rel.Memorializes.ToDomainName(), vigils.Target.WithoutIncomingRelationships!);
+        Assert.Contains(vigils.Relationships, relationship =>
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.Memorializes.ToDomainName());
+    }
+
+    [Fact]
+    public void IceRemembers_SecondLedgerGeneratorPassUsesCausalSpendAndLocks()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+
+        var corruption = Assert.Single(generators, generator => generator.Id == "corruption_wakes_monsters");
+        Assert.Equal(IceRemembersKinds.Region, corruption.Target.Kind);
+        Assert.Contains("scar", corruption.Target.Subtypes!);
+        var corruptionRequirement = Assert.Single(corruption.Target.RequiredOutgoingRelationshipRequirements);
+        Assert.Equal(Rel.CorruptedBy.ToDomainName(), corruptionRequirement.RelationshipKind);
+        Assert.True(corruptionRequirement.MinimumStrength > 0f);
+        Assert.Contains(Rel.CleansedBy.ToDomainName(), corruption.Target.WithoutIncomingRelationships!);
+        var corruptionSpend = Assert.IsType<AdjustTargetRelationshipStrengthEffect>(
+            Assert.Single(corruption.Effects, effect => effect is AdjustTargetRelationshipStrengthEffect));
+        Assert.Equal(GeneratorRelationshipInstanceSelection.TriggerRelationship, corruptionSpend.InstanceSelection);
+        Assert.True(corruptionSpend.Delta < 0f);
+        Assert.Contains(corruption.Relationships, relationship =>
+            relationship.SourceRef == "$target" &&
+            relationship.DestinationRef == "$monster" &&
+            relationship.Kind == Rel.CorruptedBy.ToDomainName());
+        Assert.Contains(corruption.Relationships, relationship =>
+            relationship.SourceRef == "$scout" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.NativeTo.ToDomainName());
+
+        var namedWar = Assert.Single(generators, generator => generator.Id == "wars_get_names");
+        Assert.Equal(IceRemembersKinds.Faction, namedWar.Target.Kind);
+        var warRequirement = Assert.Single(namedWar.Target.RequiredOutgoingRelationshipRequirements);
+        Assert.Equal(Rel.AtWarWith.ToDomainName(), warRequirement.RelationshipKind);
+        var warSpend = Assert.IsType<AdjustTargetRelationshipStrengthEffect>(
+            Assert.Single(namedWar.Effects, effect => effect is AdjustTargetRelationshipStrengthEffect));
+        Assert.True(warSpend.IncludeReciprocal);
+        Assert.True(warSpend.Delta < 0f);
+        Assert.Contains(namedWar.Produces, produce =>
+            produce.Kind == IceRemembersKinds.Occurrence &&
+            produce.Subtype == "war");
+        Assert.Contains(namedWar.Relationships, relationship =>
+            relationship.SourceRef == "$war" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.AtWarWith.ToDomainName());
+
+        var conference = Assert.Single(generators, generator => generator.Id == "trade_routes_convene_negotiation");
+        Assert.Equal(IceRemembersKinds.Settlement, conference.Target.Kind);
+        var tradeRequirement = Assert.Single(conference.Target.RequiredOutgoingRelationshipRequirements);
+        Assert.Equal(Rel.TradeRoute.ToDomainName(), tradeRequirement.RelationshipKind);
+        Assert.Contains(Rel.Memorializes.ToDomainName(), conference.Target.WithoutIncomingRelationships!);
+        var tradeSpend = Assert.IsType<AdjustTargetRelationshipStrengthEffect>(
+            Assert.Single(conference.Effects, effect => effect is AdjustTargetRelationshipStrengthEffect));
+        Assert.True(tradeSpend.IncludeReciprocal);
+        Assert.True(tradeSpend.Delta < 0f);
+        Assert.Contains(conference.Produces, produce =>
+            produce.Kind == IceRemembersKinds.Occurrence &&
+            produce.Subtype == "trade_conference");
+        Assert.Contains(conference.Relationships, relationship =>
+            relationship.SourceRef == "$accord" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.Memorializes.ToDomainName());
+    }
+
+    [Fact]
+    public void IceRemembers_CorrectiveSecondWaveGeneratorPassProducesSecondWaveKinds()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+        var produced = generators
+            .SelectMany(generator => generator.Produces.Select(produce => (generator.Id, produce.Kind, produce.Subtype)))
+            .ToHashSet();
+
+        Assert.Contains(produced, item => item.Id == "claimed_waters_draw_bulls" &&
+            item.Kind == IceRemembersKinds.Orca &&
+            item.Subtype == "bull");
+        Assert.Contains(produced, item => item.Id == "conduits_map_hidden_peaks" &&
+            item.Kind == IceRemembersKinds.PointOfInterest &&
+            item.Subtype == "peak");
+        Assert.Contains(produced, item => item.Id == "mapped_peaks_birth_techniques" &&
+            item.Kind == IceRemembersKinds.Ability &&
+            item.Subtype == "technique");
+        Assert.Contains(produced, item => item.Id == "controlled_depths_wake_leviathans" &&
+            item.Kind == IceRemembersKinds.Monster &&
+            item.Subtype == "leviathan");
+        Assert.Contains(produced, item => item.Id == "overclaimed_blooms_draw_beasts" &&
+            item.Kind == IceRemembersKinds.Monster &&
+            item.Subtype == "beast");
+        Assert.Contains(produced, item => item.Id == "corrupted_monsters_raise_revenants" &&
+            item.Kind == IceRemembersKinds.Monster &&
+            item.Subtype == "revenant");
+        Assert.Contains(produced, item => item.Id == "war_occurrences_launch_scouts" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "scout");
+        Assert.Contains(produced, item => item.Id == "trade_conferences_raise_citadels" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "citadel");
+        Assert.Contains(produced, item => item.Id == "controlled_depths_wake_leviathans" &&
+            item.Kind == IceRemembersKinds.Occurrence &&
+            item.Subtype == "plague");
+        Assert.Contains(produced, item => item.Id == "conferences_become_festivals" &&
+            item.Kind == IceRemembersKinds.Occurrence &&
+            item.Subtype == "festival");
+
+        var secondWaveKinds = new HashSet<EntityKind>
+        {
+            IceRemembersKinds.Orca,
+            IceRemembersKinds.PointOfInterest,
+            IceRemembersKinds.Ability,
+            IceRemembersKinds.Monster,
+            IceRemembersKinds.Transport,
+            IceRemembersKinds.Occurrence,
+        };
+        var secondWaveProducedKinds = produced
+            .Where(item => secondWaveKinds.Contains(item.Kind))
+            .Select(item => item.Kind)
+            .ToHashSet();
+
+        Assert.Empty(secondWaveKinds.Except(secondWaveProducedKinds));
+    }
+
+    [Fact]
+    public void IceRemembers_NextGeneratorPassProducesWeakSubtypeTargets()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+        var produced = generators
+            .SelectMany(generator => generator.Produces.Select(produce => (generator.Id, produce.Kind, produce.Subtype)))
+            .ToHashSet();
+
+        Assert.Contains(produced, item => item.Id == "cleansed_springs_found_sanctuaries" &&
+            item.Kind == IceRemembersKinds.Settlement &&
+            item.Subtype == "sanctuary");
+        Assert.Contains(produced, item => item.Id == "cleansed_springs_found_sanctuaries" &&
+            item.Kind == IceRemembersKinds.Faction &&
+            item.Subtype == "choir");
+        Assert.Contains(produced, item => item.Id == "cleansed_springs_found_sanctuaries" &&
+            item.Kind == IceRemembersKinds.Ability &&
+            item.Subtype == "rite");
+        Assert.Contains(produced, item => item.Id == "sanctuaries_anchor_colonies" &&
+            item.Kind == IceRemembersKinds.Settlement &&
+            item.Subtype == "colony");
+        Assert.Contains(produced, item => item.Id == "sanctuaries_anchor_colonies" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "trade");
+        Assert.Contains(produced, item => item.Id == "conduit_points_found_reefholds" &&
+            item.Kind == IceRemembersKinds.Settlement &&
+            item.Subtype == "reefhold");
+        Assert.Contains(produced, item => item.Id == "deep_conduits_name_depths" &&
+            item.Kind == IceRemembersKinds.Region &&
+            item.Subtype == "depths");
+        Assert.Contains(produced, item => item.Id == "warded_monsters_found_orders" &&
+            item.Kind == IceRemembersKinds.Faction &&
+            item.Subtype == "order");
+        Assert.Contains(produced, item => item.Id == "warded_monsters_found_orders" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "battleship");
+    }
+
+    [Fact]
+    public void IceRemembers_OrcaMonsterTransportLoopsGenerateTheirOwnActors()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+        var produced = generators
+            .SelectMany(generator => generator.Produces.Select(produce => (generator.Id, produce.Kind, produce.Subtype)))
+            .ToHashSet();
+
+        Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
+            item.Kind == IceRemembersKinds.Orca &&
+            item.Subtype == "scout");
+        Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "scout");
+        Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
+            item.Kind == IceRemembersKinds.PointOfInterest &&
+            item.Subtype == "shoal");
+        Assert.Contains(produced, item => item.Id == "orca_route_wars_get_names" &&
+            item.Kind == IceRemembersKinds.Occurrence &&
+            item.Subtype == "war");
+        Assert.Contains(produced, item => item.Id == "orca_route_wars_get_names" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "trade");
+        Assert.Contains(produced, item => item.Id == "stolen_artifacts_draw_hunters" &&
+            item.Kind == IceRemembersKinds.Penguin &&
+            item.Subtype == "warden");
+        Assert.Contains(produced, item => item.Id == "stolen_artifacts_draw_hunters" &&
+            item.Kind == IceRemembersKinds.Orca &&
+            item.Subtype == "scout");
+        Assert.Contains(produced, item => item.Id == "monster_slayings_become_festivals" &&
+            item.Kind == IceRemembersKinds.Occurrence &&
+            item.Subtype == "festival");
+        Assert.Contains(produced, item => item.Id == "monster_slayings_become_festivals" &&
+            item.Kind == IceRemembersKinds.Transport &&
+            item.Subtype == "trade");
+        Assert.Contains(produced, item => item.Id == "haunted_transports_spread_plague" &&
+            item.Kind == IceRemembersKinds.Monster &&
+            item.Subtype == "wraith");
+        Assert.Contains(produced, item => item.Id == "haunted_transports_spread_plague" &&
+            item.Kind == IceRemembersKinds.Occurrence &&
+            item.Subtype == "plague");
+    }
+
+    [Fact]
+    public void IceRemembers_NextGeneratorPassUsesCausalLocks()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+
+        var sanctuaries = Assert.Single(generators, generator => generator.Id == "cleansed_springs_found_sanctuaries");
+        var cleansingRequirement = Assert.Single(sanctuaries.Target.RequiredIncomingRelationshipRequirements);
+        Assert.Equal(Rel.CleansedBy.ToDomainName(), cleansingRequirement.RelationshipKind);
+        Assert.Contains(Rel.FoundedFrom.ToDomainName(), sanctuaries.Target.WithoutIncomingRelationships!);
+        Assert.Contains(sanctuaries.Relationships, relationship =>
+            relationship.SourceRef == "$sanctuary" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.FoundedFrom.ToDomainName());
+
+        var reefholds = Assert.Single(generators, generator => generator.Id == "conduit_points_found_reefholds");
+        Assert.Contains(Rel.ConduitOf.ToDomainName(), reefholds.Target.RequiredIncomingRelationships!);
+        Assert.Contains(Rel.FoundedFrom.ToDomainName(), reefholds.Target.WithoutIncomingRelationships!);
+        Assert.Contains(reefholds.Relationships, relationship =>
+            relationship.SourceRef == "$reefhold" &&
+            relationship.Kind == Rel.TradeRoute.ToDomainName());
+
+        var depths = Assert.Single(generators, generator => generator.Id == "deep_conduits_name_depths");
+        Assert.Contains(Rel.ConduitOf.ToDomainName(), depths.Target.RequiredIncomingRelationships!);
+        Assert.Contains(Rel.FoundedFrom.ToDomainName(), depths.Target.RequiredIncomingRelationships!);
+        Assert.Contains(Rel.FoundedFrom.ToDomainName(), depths.Target.WithoutOutgoingRelationships!);
+        Assert.Contains(depths.Relationships, relationship =>
+            relationship.SourceRef == "$target" &&
+            relationship.DestinationRef == "$depths" &&
+            relationship.Kind == Rel.FoundedFrom.ToDomainName());
+
+        var orders = Assert.Single(generators, generator => generator.Id == "warded_monsters_found_orders");
+        var wardRequirement = Assert.Single(orders.Target.RequiredIncomingRelationshipRequirements);
+        Assert.Equal(Rel.WardAgainst.ToDomainName(), wardRequirement.RelationshipKind);
+        Assert.Contains(Rel.Memorializes.ToDomainName(), orders.Target.WithoutIncomingRelationships!);
+        Assert.Contains(orders.Relationships, relationship =>
+            relationship.SourceRef == "$battleship" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.Memorializes.ToDomainName());
+    }
+
+    [Fact]
+    public void IceRemembers_OrcaMonsterTransportLoopsUseCausalLocksAndSpend()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
+
+        var orcas = Assert.Single(generators, generator => generator.Id == "pod_currents_launch_scouts");
+        Assert.Equal(IceRemembersKinds.Orca, orcas.Target.Kind);
+        Assert.Contains(Rel.HomeBase.ToDomainName(), orcas.Target.RequiredOutgoingRelationships!);
+        Assert.Contains(Rel.MemberOf.ToDomainName(), orcas.Target.WithoutIncomingRelationships!);
+        Assert.Contains(orcas.Relationships, relationship =>
+            relationship.SourceRef == "$scout" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.MemberOf.ToDomainName());
+        Assert.Contains(orcas.Relationships, relationship =>
+            relationship.SourceRef == "$skiff" &&
+            relationship.DestinationRef == "$shoal" &&
+            relationship.Kind == Rel.ConduitOf.ToDomainName());
+
+        var routeWar = Assert.Single(generators, generator => generator.Id == "orca_route_wars_get_names");
+        Assert.Equal(IceRemembersKinds.Orca, routeWar.Target.Kind);
+        var warRequirement = Assert.Single(routeWar.Target.RequiredOutgoingRelationshipRequirements);
+        Assert.Equal(Rel.AtWarWith.ToDomainName(), warRequirement.RelationshipKind);
+        Assert.Contains(Rel.Memorializes.ToDomainName(), routeWar.Target.WithoutIncomingRelationships!);
+        var warSpend = Assert.IsType<AdjustTargetRelationshipStrengthEffect>(
+            Assert.Single(routeWar.Effects, effect => effect is AdjustTargetRelationshipStrengthEffect));
+        Assert.Equal(Rel.AtWarWith.ToDomainName(), warSpend.RelationshipKind);
+        Assert.True(warSpend.Delta < 0f);
+        Assert.True(warSpend.IncludeReciprocal);
+        Assert.Contains(routeWar.Relationships, relationship =>
+            relationship.SourceRef == "$convoy" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.Memorializes.ToDomainName());
+
+        var hunters = Assert.Single(generators, generator => generator.Id == "stolen_artifacts_draw_hunters");
+        Assert.Equal(IceRemembersKinds.Monster, hunters.Target.Kind);
+        Assert.Contains(Rel.Holds.ToDomainName(), hunters.Target.RequiredOutgoingRelationships!);
+        Assert.Contains(Rel.AtWarWith.ToDomainName(), hunters.Target.WithoutIncomingRelationships!);
+        Assert.Contains(hunters.Relationships, relationship =>
+            relationship.SourceRef == "$hunter" &&
+            relationship.DestinationRef == "$target" &&
+            relationship.Kind == Rel.AtWarWith.ToDomainName());
+
+        var festivals = Assert.Single(generators, generator => generator.Id == "monster_slayings_become_festivals");
+        Assert.Equal(IceRemembersKinds.Penguin, festivals.Target.Kind);
+        Assert.Contains(Rel.CleansedBy.ToDomainName(), festivals.Target.RequiredOutgoingRelationships!);
+        Assert.Contains(Rel.Memorializes.ToDomainName(), festivals.Target.WithoutIncomingRelationships!);
+        Assert.Contains(festivals.Relationships, relationship =>
+            relationship.SourceRef == "$convoy" &&
+            relationship.DestinationRef == "$rite" &&
+            relationship.Kind == Rel.ConduitOf.ToDomainName());
+
+        var haunted = Assert.Single(generators, generator => generator.Id == "haunted_transports_spread_plague");
+        Assert.Equal(IceRemembersKinds.Transport, haunted.Target.Kind);
+        var corruptionRequirement = Assert.Single(haunted.Target.RequiredOutgoingRelationshipRequirements);
+        Assert.Equal(Rel.CorruptedBy.ToDomainName(), corruptionRequirement.RelationshipKind);
+        Assert.Contains(Rel.Memorializes.ToDomainName(), haunted.Target.WithoutOutgoingRelationships!);
+        var spend = Assert.IsType<AdjustTargetRelationshipStrengthEffect>(
+            Assert.Single(haunted.Effects, effect => effect is AdjustTargetRelationshipStrengthEffect));
+        Assert.Equal(Rel.CorruptedBy.ToDomainName(), spend.RelationshipKind);
+        Assert.True(spend.Delta < 0f);
     }
 
     [Fact]
@@ -278,7 +626,7 @@ public class DomainConfigTests
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Region], targetTicks: 800f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Settlement], targetTicks: 1200f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Artifact], targetTicks: 1200f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 500f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 800f);
         AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 1200f);
         AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 800f);
         AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 1200f);
@@ -368,6 +716,7 @@ public class DomainConfigTests
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Terrains = config.Terrains,
+            TravelStructures = config.TravelStructures,
             MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,

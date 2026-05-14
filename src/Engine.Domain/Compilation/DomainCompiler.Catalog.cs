@@ -55,6 +55,7 @@ public static partial class DomainCompiler
     {
         RegisterRelationshipCatalog(config, state);
         RegisterTerrainCatalog(config, state);
+        RegisterTravelStructureCatalog(config, state);
     }
 
     private static void RegisterRelationshipCatalog(DomainConfig config, CatalogRegistrationState state)
@@ -71,6 +72,18 @@ public static partial class DomainCompiler
         foreach (var terrain in config.Terrains)
         {
             RegisterOnceStrict(state.Terrains, terrain.Name, state.Registry.RegisterTerrain, "terrain");
+        }
+    }
+
+    private static void RegisterTravelStructureCatalog(DomainConfig config, CatalogRegistrationState state)
+    {
+        foreach (var structure in config.TravelStructures)
+        {
+            RegisterOnceStrict(
+                state.TravelStructures,
+                structure.Name,
+                state.Registry.RegisterTravelStructure,
+                "travel structure");
         }
     }
 
@@ -150,6 +163,7 @@ public static partial class DomainCompiler
         public HashSet<string> StructuralFacts { get; } = new(StringComparer.Ordinal);
         public HashSet<string> RelationshipKinds { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Terrains { get; } = new(StringComparer.Ordinal);
+        public HashSet<string> TravelStructures { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Subtypes { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Cultures { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Generators { get; } = new(StringComparer.Ordinal);

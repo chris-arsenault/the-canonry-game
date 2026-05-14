@@ -199,12 +199,19 @@ public partial class HexMapRenderer : Node2D
             ? resolvedOwner
             : (Color?)null;
         var influences = BuildInfluenceRenderItems(cell, ownerColors);
+        var travelStructureStableName = cell.TravelStructureId > 0
+            ? ResolveStableName(
+                ProjectionSymbolKind.TravelStructure,
+                cell.TravelStructureId,
+                $"travel-structure-{cell.TravelStructureId}")
+            : null;
 
         return new HexCellRenderItem(
             cell,
             CurrentPlane,
             HexSize,
             terrainStableName,
+            travelStructureStableName,
             UiTokens.TerrainColor(terrainStableName),
             ownerColor,
             influences,

@@ -13,6 +13,7 @@ public sealed record HexCellRenderItem(
     PlaneMode Plane,
     float HexSize,
     string TerrainStableName,
+    string? TravelStructureStableName,
     Color TerrainColor,
     Color? OwnerColor,
     IReadOnlyList<HexInfluenceRenderItem> Influences,
@@ -42,6 +43,7 @@ public partial class HexCell : Node2D
         DrawBase(_data);
         DrawTerritory(_data);
         DrawInfluence(_data);
+        DrawTravelStructure(_data);
         DrawRoad(_data);
     }
 
@@ -137,6 +139,43 @@ public partial class HexCell : Node2D
         {
             DrawCircle(Vector2.Zero, strokeWidth * 0.55f, roadColor);
         }
+    }
+
+    private void DrawTravelStructure(HexCellRenderItem data)
+    {
+        if (data.Cell.TravelStructureId <= 0)
+        {
+            return;
+        }
+
+        var texture = AssetLibrary.TravelStructureOverlay(data.TravelStructureStableName);
+        if (texture is not null)
+        {
+            DrawOverlayTexture(texture, data.HexSize);
+            return;
+        }
+
+        var bridgeColor = StructureColor(data.TravelStructureStableName);
+        var shadow = new Color(UiTokens.Ink.R, UiTokens.Ink.G, UiTokens.Ink.B, 0.74f);
+        var strokeWidth = data.HexSize * 0.12f;
+        var span = new[]
+        {
+            new Vector2(-data.HexSize * 0.58f, 0f),
+            new Vector2(-data.HexSize * 0.18f, data.HexSize * 0.08f),
+            new Vector2(data.HexSize * 0.18f, -data.HexSize * 0.08f),
+            new Vector2(data.HexSize * 0.58f, 0f),
+        };
+
+        DrawPolyline(span, shadow, strokeWidth + 2.6f, antialiased: true);
+        DrawPolyline(span, bridgeColor, strokeWidth, antialiased: true);
+        DrawCircle(Vector2.Zero, strokeWidth * 0.45f, bridgeColor);
+    }
+
+    private static Color StructureColor(string? stableName)
+    {
+        return stableName is not null && stableName.Contains("current", StringComparison.Ordinal)
+            ? new Color(UiTokens.Aurora.R, UiTokens.Aurora.G, UiTokens.Aurora.B, 0.84f)
+            : new Color(UiTokens.Gilt.R, UiTokens.Gilt.G, UiTokens.Gilt.B, 0.88f);
     }
 
     private void DrawOverlayTexture(Texture2D? texture, float hexSize, Color? modulate = null)

@@ -67,6 +67,8 @@ public static class AssetLibrary
 
     public static Texture2D? RoadLightOverlay { get; private set; }
     public static Texture2D? RoadHeavyOverlay { get; private set; }
+    public static Texture2D? IceCausewayOverlay { get; private set; }
+    public static Texture2D? DeepCurrentOverlay { get; private set; }
     public static Texture2D? SemanticCellOverlay { get; private set; }
 
     private static readonly Dictionary<string, Texture2D?> _terrain = new(StringComparer.Ordinal);
@@ -218,6 +220,8 @@ public static class AssetLibrary
     {
         RoadLightOverlay = LoadTexture("map-overlays/road-light@128.png");
         RoadHeavyOverlay = LoadTexture("map-overlays/road-heavy@128.png");
+        IceCausewayOverlay = LoadTexture("map-overlays/ice-causeway@128.png");
+        DeepCurrentOverlay = LoadTexture("map-overlays/deep-current@128.png");
         SemanticCellOverlay = LoadTexture("map-overlays/semantic-cell-overlay@128.png");
     }
 
@@ -263,6 +267,15 @@ public static class AssetLibrary
         var key = TerrainKey.Canonicalize(stableName);
         return _terrain.TryGetValue(key, out var tex) ? tex : null;
     }
+
+    /// <summary>Get a per-travel-structure map overlay texture, or null if not available.</summary>
+    public static Texture2D? TravelStructureOverlay(string? stableName) =>
+        stableName switch
+        {
+            "ice_causeway" => IceCausewayOverlay,
+            "deep_current" => DeepCurrentOverlay,
+            _ => null,
+        };
 
     /// <summary>Get a per-attribute glyph icon (dominion, echo, food, etc.).</summary>
     public static Texture2D? AttributeIcon(string attributeName)

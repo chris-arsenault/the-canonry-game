@@ -72,8 +72,8 @@ public sealed class KernelProgramStateArchitectureTests
         allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCachePlaneCodes");
         allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheProfileIds");
         allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheLevelSizes");
-        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheSourceSegments");
-        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheTargetSegments");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheSourceKeys");
+        allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheTargetKeys");
         allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheTopologyEpochs");
         allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheRoadEpochs");
         allowed.Add("src/Engine.Kernel/Programs/Traversal/MovementProgramState.cs:_routeCacheNextSegments");

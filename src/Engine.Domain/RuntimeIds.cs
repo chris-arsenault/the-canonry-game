@@ -30,6 +30,11 @@ public readonly record struct TerrainRuntimeId(int Value)
     public static TerrainRuntimeId None => default;
 }
 
+public readonly record struct TravelStructureRuntimeId(int Value)
+{
+    public static TravelStructureRuntimeId None => default;
+}
+
 public readonly record struct SubtypeRuntimeId(int Value)
 {
     public static SubtypeRuntimeId None => default;

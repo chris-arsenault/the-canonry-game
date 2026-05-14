@@ -140,8 +140,27 @@ internal sealed partial class Simulation
             r,
             _executionContext.SourceCodeId,
             travelCount,
-            previousQuality,
-            currentQuality)));
+                previousQuality,
+                currentQuality)));
+    }
+
+    internal void EmitCellTravelStructureChanged(
+        int tick,
+        int planeCode,
+        int q,
+        int r,
+        int previousTravelStructureId,
+        int currentTravelStructureId)
+    {
+        WriteKernelEvent(KernelEvent.From(new CellTravelStructureChangedKernelEvent(
+            tick,
+            WorldVersion,
+            planeCode,
+            q,
+            r,
+            _executionContext.SourceCodeId,
+            previousTravelStructureId,
+            currentTravelStructureId)));
     }
 
     internal bool TraceEnabled() => Options.TraceEnabled;

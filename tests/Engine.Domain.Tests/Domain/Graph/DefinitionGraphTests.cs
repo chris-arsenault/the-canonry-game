@@ -145,6 +145,7 @@ public class DefinitionGraphTests
         {
             Kinds = config.Kinds,
             Terrains = config.Terrains,
+            TravelStructures = config.TravelStructures,
             Gambits = config.Gambits,
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,

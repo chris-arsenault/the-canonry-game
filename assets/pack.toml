@@ -650,6 +650,18 @@ type = "icon"
 prompt = "prompts/2b-map-overlays/road-heavy-overlay.md"
 
 [[section.asset]]
+id = "ice-causeway-overlay"
+file = "map-overlays/ice-causeway.png"
+type = "icon"
+prompt = "prompts/2b-map-overlays/ice-causeway-overlay.md"
+
+[[section.asset]]
+id = "deep-current-overlay"
+file = "map-overlays/deep-current.png"
+type = "icon"
+prompt = "prompts/2b-map-overlays/deep-current-overlay.md"
+
+[[section.asset]]
 id = "semantic-cell-terrain-overlays"
 file = "map-overlays/semantic-cell-overlay.png"
 type = "icon"

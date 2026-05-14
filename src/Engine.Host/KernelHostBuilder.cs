@@ -494,6 +494,9 @@ internal sealed class KernelHostBuilder
             case DomainSymbolKind.Terrain:
                 symbolKind = ProjectionSymbolKind.Terrain;
                 return true;
+            case DomainSymbolKind.TravelStructure:
+                symbolKind = ProjectionSymbolKind.TravelStructure;
+                return true;
             default:
                 symbolKind = default;
                 return false;

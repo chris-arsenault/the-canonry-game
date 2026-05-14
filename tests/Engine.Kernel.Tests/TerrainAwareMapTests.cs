@@ -399,6 +399,60 @@ public sealed class TerrainAwareMapTests
     }
 
     [Fact]
+    public void TravelStructureAllowsMatchingProfileToCrossBlockedTerrain()
+    {
+        var simulation = CreateWaterBarrierSimulation(out var entityId, out var targetQ, out var targetR);
+        const int travelStructureId = 1;
+        const int movementProfileId = 1;
+        simulation.Movement.RegisterTravelStructure(travelStructureId, PlaneCodes.Physical);
+        simulation.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost: 2.5f);
+
+        var changed = simulation.Movement.SetTravelStructure(
+            simulation,
+            PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            travelStructureId,
+            tick: 0);
+        var result = simulation.Movement.Navigate(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            targetQ,
+            targetR,
+            tick: 0);
+
+        Assert.True(changed);
+        Assert.True(simulation.Movement.CanEnter(simulation, entityId, 0, 0));
+        Assert.Equal(2.5f, simulation.Movement.PhysicalTravelCost(simulation, entityId, 0, 0, tick: 0));
+        Assert.True(simulation.Movement.CanReach(simulation, entityId, PlaneCodes.Physical, targetQ, targetR, tick: 0));
+        Assert.True(result.Moved);
+    }
+
+    [Fact]
+    public void TravelStructureStateRoundTripsThroughSnapshot()
+    {
+        var simulation = CreateWaterBarrierSimulation(out _, out _, out _);
+        const int travelStructureId = 1;
+        simulation.Movement.RegisterTravelStructure(travelStructureId, PlaneCodes.Physical);
+        simulation.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId: 1, movementCost: 2.5f);
+        simulation.Movement.SetTravelStructure(
+            simulation,
+            PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            travelStructureId,
+            tick: 0);
+        using var stream = new global::System.IO.MemoryStream();
+
+        KernelSnapshot.SaveKernelState(simulation, stream);
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+
+        Assert.Equal(travelStructureId, loaded.Movement.TravelStructureId(PlaneCodes.Physical, 0, 0));
+    }
+
+    [Fact]
     public void SemanticCellStateAndCoverageAreIsolatedFromPhysicalCells()
     {
         var simulation = new Simulation();

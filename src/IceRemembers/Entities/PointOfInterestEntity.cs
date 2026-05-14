@@ -46,6 +46,8 @@ internal static class PointOfInterestEntity
             semanticDefault: Profile.Commons,
             subtypeRules:
             [
+                MovementSubtypeRule("vent", physical: Profile.Shore),
+                MovementSubtypeRule("peak", physical: Profile.Shore),
                 MovementSubtypeRule("shoal", physical: Profile.Shore),
                 MovementSubtypeRule("bloom", physical: Profile.Shore, semantic: Profile.Rift),
             ]),
@@ -54,7 +56,8 @@ internal static class PointOfInterestEntity
             semanticDefault: Semantic(Terrain.Witness, Terrain.OpenField, Terrain.Lineage),
             physicalRules:
             [
-                SubtypeRule("vent", Land(Terrain.HotSprings, Terrain.Crags, Terrain.Wastes)),
+                SubtypeRule("vent", Maritime(Terrain.HotSprings, Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Crags)),
+                SubtypeRule("peak", Maritime(Terrain.Reef, Terrain.Shelf, Terrain.Crags, Terrain.Ice, Terrain.Ocean)),
                 SubtypeRule("shoal", Maritime(Terrain.Reef, Terrain.Shelf, Terrain.Ocean)),
                 SubtypeRule("bloom", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Wastes)),
             ],

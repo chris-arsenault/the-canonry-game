@@ -12,6 +12,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     private readonly PrimitiveFloatTable _roadQualityFloors;
     private readonly PrimitiveIntTable _roadTravelCounts;
     private readonly PrimitiveIntTable _lastRoadTicks;
+    private readonly PrimitiveIntTable _travelStructureIds;
     private readonly PrimitiveIntTable _localRoadMarks;
     private readonly PrimitiveIntTable _regionalRoadMarks;
     private readonly PrimitiveIntTable _localRoadMarkScratch;
@@ -38,6 +39,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _roadQualityFloors = new PrimitiveFloatTable(cellCapacity);
         _roadTravelCounts = new PrimitiveIntTable(cellCapacity);
         _lastRoadTicks = new PrimitiveIntTable(cellCapacity);
+        _travelStructureIds = new PrimitiveIntTable(cellCapacity);
         _localRoadMarks = new PrimitiveIntTable(cellCapacity);
         _regionalRoadMarks = new PrimitiveIntTable(cellCapacity);
         _localRoadMarkScratch = new PrimitiveIntTable(cellCapacity);
@@ -57,9 +59,11 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.Movement;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 
     internal int RoadCellCount => _roadQuality.Count;
+
+    internal int TravelStructureCellCount => _travelStructureIds.Count;
 
     internal int PathingTopologyEpoch => _pathingTopologyEpoch;
 
@@ -72,6 +76,22 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int RoadTravelCount(int planeCode, int q, int r) =>
         _roadTravelCounts.GetOrDefault(planeCode, CoordinateKey(q, r));
+
+    public int TravelStructureId(int planeCode, int q, int r) =>
+        _travelStructureIds.GetOrDefault(planeCode, CoordinateKey(q, r));
+
+    internal bool SetTravelStructure(int planeCode, int q, int r, int travelStructureId)
+    {
+        var key = CoordinateKey(q, r);
+        if (_travelStructureIds.GetOrDefault(planeCode, key) == travelStructureId)
+        {
+            return false;
+        }
+
+        _travelStructureIds.Set(planeCode, key, travelStructureId);
+        RecordTopologyChanged();
+        return true;
+    }
 
     internal void RecordTravel(
         int planeCode,
@@ -232,6 +252,16 @@ internal sealed partial class MovementProgramState : IKernelProgramState
                 quality,
                 lastTick,
                 travelCount);
+        }
+    }
+
+    internal void ForEachTravelStructureCell(global::System.Action<int, int, int> visitor)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(visitor);
+        for (var index = 0; index < _travelStructureIds.Count; index++)
+        {
+            _travelStructureIds.GetEntry(index, out var planeCode, out var coordinateKey, out var travelStructureId);
+            visitor(planeCode, coordinateKey, travelStructureId);
         }
     }
 

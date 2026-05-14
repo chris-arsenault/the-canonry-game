@@ -159,6 +159,7 @@ internal static class TelemetrySymbolIds
         AddKernelEventType(symbols, KernelEventType.CellInfluenceChanged, "cell_influence_changed", "Cell Influence Changed");
         AddKernelEventType(symbols, KernelEventType.MapCellStateChanged, "map_cell_state_changed", "Map Cell State Changed");
         AddKernelEventType(symbols, KernelEventType.CellRoadChanged, "cell_road_changed", "Cell Road Changed");
+        AddKernelEventType(symbols, KernelEventType.CellTravelStructureChanged, "cell_travel_structure_changed", "Cell Travel Structure Changed");
         AddKernelEventType(symbols, KernelEventType.ProvenanceInvocationRecorded, "provenance_invocation_recorded", "Provenance Invocation Recorded");
         AddKernelEventType(symbols, KernelEventType.KernelStorageGrown, "kernel_storage_grown", "Kernel Storage Grown");
         AddKernelEventType(symbols, KernelEventType.Trace, "trace", "Trace");

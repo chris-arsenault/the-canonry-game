@@ -315,6 +315,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Terrains = config.Terrains,
+            TravelStructures = config.TravelStructures,
+            MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

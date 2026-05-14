@@ -18,6 +18,7 @@ public enum ProjectionSymbolKind
     StructuralFact = 6,
     RelationshipKind = 7,
     Terrain = 10,
+    TravelStructure = 11,
     Generator = 12,
     Gambit = 13,
     EventCode = 14,

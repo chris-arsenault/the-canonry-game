@@ -94,6 +94,12 @@ public sealed class KernelHostBuilderTests
             structuralFactSeed.Id,
             out var structuralFactSymbol));
         Assert.Equal(structuralFactSeed.StableName, structuralFactSymbol.StableName);
+        var causewayId = host.DomainIds.TravelStructureIdOf(IceRemembersTravelStructure.IceCauseway.ToDomainName()).Value;
+        Assert.True(host.Symbols.TryResolve(
+            ProjectionSymbolKind.TravelStructure,
+            causewayId,
+            out var travelStructureSymbol));
+        Assert.Equal(IceRemembersTravelStructure.IceCauseway.ToDomainName(), travelStructureSymbol.StableName);
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Upkeep));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapActivity));

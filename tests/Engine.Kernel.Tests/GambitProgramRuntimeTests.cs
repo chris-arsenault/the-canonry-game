@@ -1,5 +1,6 @@
 namespace Engine.Kernel.Tests;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Kernel;
 
@@ -439,6 +440,46 @@ public sealed class GambitProgramRuntimeTests
         Assert.Equal(transformedTerrainId, simulation.World.CellTerrainId(1, 0));
         Assert.Equal(transformedTerrainId, simulation.World.CellTerrainId(1, -1));
         Assert.Equal(originalTerrainId, simulation.World.CellTerrainId(-1, 0));
+    }
+
+    [Fact]
+    public void SuccessfulGambitCanBuildTravelStructureLine()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int terrainId = 1;
+        const int travelStructureId = 9;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.Movement.RegisterTravelStructure(travelStructureId, PlaneCodes.Physical);
+        simulation.CreateCell(0, 0, terrainId, ownerEntityId: 0);
+        simulation.CreateCell(1, 0, terrainId, ownerEntityId: 0);
+        simulation.CreateCell(2, 0, terrainId, ownerEntityId: 0);
+        simulation.CreateCell(0, 1, terrainId, ownerEntityId: 0);
+        _ = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        _ = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 109,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(
+            gambit,
+            BehaviorOperationCodes.BuildTravelStructureLine,
+            travelStructureId,
+            PlaneCodes.Physical,
+            c: 4);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(travelStructureId, simulation.Movement.TravelStructureId(PlaneCodes.Physical, 0, 0));
+        Assert.Equal(travelStructureId, simulation.Movement.TravelStructureId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(travelStructureId, simulation.Movement.TravelStructureId(PlaneCodes.Physical, 2, 0));
+        Assert.Equal(0, simulation.Movement.TravelStructureId(PlaneCodes.Physical, 0, 1));
     }
 
     [Fact]

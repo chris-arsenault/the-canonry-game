@@ -12,6 +12,8 @@ internal sealed partial class MovementProgramData : IKernelProgramData
     private readonly int[] _traitProfileTraitIds;
     private readonly int[] _traitProfilePlaneCodes;
     private readonly int[] _traitProfileIds;
+    private readonly PrimitiveIntTable _travelStructurePlaneCodes;
+    private readonly PrimitiveFloatTable _travelStructureProfileCosts;
     private int _subtypeProfileRuleCount;
     private int _traitProfileRuleCount;
 
@@ -30,13 +32,15 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         _traitProfileTraitIds = new int[profileRuleCapacity + 1];
         _traitProfilePlaneCodes = new int[profileRuleCapacity + 1];
         _traitProfileIds = new int[profileRuleCapacity + 1];
+        _travelStructurePlaneCodes = new PrimitiveIntTable(profileRuleCapacity);
+        _travelStructureProfileCosts = new PrimitiveFloatTable(profileRuleCapacity);
         RoadBuildPerTravel = roadBuildPerTravel;
         RoadDecayPerTick = roadDecayPerTick;
     }
 
     public int ProgramId => KernelProgramCodes.Movement;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 
     public float RoadBuildPerTravel { get; set; }
 
@@ -91,6 +95,55 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         _traitProfileIds[_traitProfileRuleCount] = movementProfileId;
     }
 
+    public void RegisterTravelStructure(
+        int travelStructureId,
+        int planeCode)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(travelStructureId);
+        ValidatePlaneCode(planeCode);
+        _travelStructurePlaneCodes.Set(travelStructureId, 0, planeCode);
+    }
+
+    public void RegisterTravelStructureMovementProfile(
+        int travelStructureId,
+        int movementProfileId,
+        float movementCost)
+    {
+        EnsureTravelStructureRegistered(travelStructureId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(movementProfileId);
+        _travelStructureProfileCosts.Set(
+            travelStructureId,
+            movementProfileId,
+            movementCost < 0f ? 0f : movementCost);
+    }
+
+    public bool TravelStructureRegistered(int travelStructureId)
+    {
+        return travelStructureId > 0 &&
+            _travelStructurePlaneCodes.GetOrDefault(travelStructureId, 0) != 0;
+    }
+
+    public int TravelStructurePlaneCode(int travelStructureId)
+    {
+        EnsureTravelStructureRegistered(travelStructureId);
+        return _travelStructurePlaneCodes.GetOrDefault(travelStructureId, 0);
+    }
+
+    public float TravelStructureCost(int travelStructureId, int planeCode, int movementProfileId)
+    {
+        if (travelStructureId <= 0)
+        {
+            return 0f;
+        }
+
+        if (_travelStructurePlaneCodes.GetOrDefault(travelStructureId, 0) != planeCode)
+        {
+            return 0f;
+        }
+
+        return _travelStructureProfileCosts.GetOrDefault(travelStructureId, movementProfileId);
+    }
+
     public int MovementProfileFor(WorldState world, int entityId, int planeCode)
     {
         global::System.ArgumentNullException.ThrowIfNull(world);
@@ -108,6 +161,15 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         }
 
         return profileId;
+    }
+
+    private void EnsureTravelStructureRegistered(int travelStructureId)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(travelStructureId);
+        if (!TravelStructureRegistered(travelStructureId))
+        {
+            throw new global::System.InvalidOperationException();
+        }
     }
 
     public int MovementProfileFor(int kindId, int subtypeId, int planeCode)

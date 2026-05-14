@@ -12,7 +12,7 @@ interesting enough to keep investing.
 
 Done means:
 
-- The Ice Remembers domain runs with the current five kinds: region,
+- The Ice Remembers domain runs with at least the core MVP kind slice: region,
   settlement, faction, penguin, artifact.
 - Low-altitude physics creates visible movement, influence, relationship drift,
   aging, and death.

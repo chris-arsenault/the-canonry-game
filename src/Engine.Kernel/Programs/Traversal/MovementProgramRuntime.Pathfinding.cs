@@ -567,10 +567,13 @@ internal sealed partial class MovementProgramRuntime
             return true;
         }
 
-        var movementCost = simulation.KernelData.Terrain.RoadAdjustedTravelCost(
-            world.CellTerrainId(planeCode, neighborQ, neighborR),
+        var movementCost = SurfaceTravelCost(
+            simulation,
+            planeCode,
             movementProfileId,
-            RoadQuality(planeCode, neighborQ, neighborR, tick));
+            neighborQ,
+            neighborR,
+            tick);
         if (float.IsInfinity(movementCost) || movementCost <= 0f)
         {
             return true;

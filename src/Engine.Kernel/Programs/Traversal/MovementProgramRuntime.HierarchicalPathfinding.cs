@@ -612,8 +612,8 @@ internal sealed partial class MovementProgramRuntime
         ref int portalR,
         ref float edgeCost)
     {
-        if (!TryGetPortalTerrainCost(simulation, world, planeCode, q, r, movementProfileId, out _) ||
-            !TryGetPortalTerrainCost(simulation, world, planeCode, neighborQ, neighborR, movementProfileId, out var neighborTerrainCost))
+        if (!TryGetPortalSurfaceCost(simulation, world, planeCode, q, r, movementProfileId, out _) ||
+            !TryGetPortalSurfaceCost(simulation, world, planeCode, neighborQ, neighborR, movementProfileId, out var neighborTerrainCost))
         {
             return;
         }
@@ -652,8 +652,8 @@ internal sealed partial class MovementProgramRuntime
         ref bool found,
         ref float edgeCost)
     {
-        if (!TryGetPortalTerrainCost(simulation, world, planeCode, q, r, movementProfileId, out _) ||
-            !TryGetPortalTerrainCost(simulation, world, planeCode, neighborQ, neighborR, movementProfileId, out var neighborTerrainCost))
+        if (!TryGetPortalSurfaceCost(simulation, world, planeCode, q, r, movementProfileId, out _) ||
+            !TryGetPortalSurfaceCost(simulation, world, planeCode, neighborQ, neighborR, movementProfileId, out var neighborTerrainCost))
         {
             return;
         }
@@ -687,7 +687,7 @@ internal sealed partial class MovementProgramRuntime
             edgeBaseCost + global::System.MathF.Min(terrainCost, 10f));
     }
 
-    private static bool TryGetPortalTerrainCost(
+    private bool TryGetPortalSurfaceCost(
         Simulation simulation,
         WorldState world,
         int planeCode,
@@ -702,7 +702,7 @@ internal sealed partial class MovementProgramRuntime
             return false;
         }
 
-        terrainCost = simulation.KernelData.Terrain.TravelCost(world.CellTerrainId(planeCode, q, r), movementProfileId);
+        terrainCost = SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r);
         return terrainCost > 0f;
     }
 

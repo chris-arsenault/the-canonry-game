@@ -39,7 +39,7 @@ internal sealed partial class GambitProgramRuntime
         var operationCode = _stepOperationCodes[step];
         if (ExecuteAttributeStep(simulation, entityId, targetId, tick, step, operationCode, variableIds, variableValues, ref variableCount) ||
             ExecuteMovementStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
-            ExecuteMapStep(simulation, world, targetId, tick, step, operationCode) ||
+            ExecuteMapStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
             ExecuteEntityStep(simulation, world, entityId, targetId, tick, step, operationCode))
         {
             return;
@@ -138,12 +138,15 @@ internal sealed partial class GambitProgramRuntime
         }
     }
 
-    private bool ExecuteMapStep(Simulation simulation, WorldState world, int targetId, int tick, int step, int operationCode)
+    private bool ExecuteMapStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step, int operationCode)
     {
         switch (operationCode)
         {
             case BehaviorOperationCodes.SetTargetCoverageTerrain:
                 SetTargetCoverageTerrain(simulation, world, targetId, tick, _stepA[step]);
+                return true;
+            case BehaviorOperationCodes.BuildTravelStructureLine:
+                BuildTravelStructureLine(simulation, world, entityId, targetId, tick, step);
                 return true;
             default:
                 return false;
@@ -208,6 +211,98 @@ internal sealed partial class GambitProgramRuntime
                 KernelEffectExecutor.SetCellTerrain(simulation, q, r, terrainId);
                 return true;
             });
+    }
+
+    private void BuildTravelStructureLine(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)
+    {
+        var planeCode = _stepB[step];
+        var startQ = CurrentQ(world, entityId, planeCode);
+        var startR = CurrentR(world, entityId, planeCode);
+        var targetQ = CurrentQ(world, targetId, planeCode);
+        var targetR = CurrentR(world, targetId, planeCode);
+        var distance = KernelQuery.HexDistance(startQ, startR, targetQ, targetR);
+        var maxDistance = _stepC[step];
+        if (maxDistance > 0 && distance > maxDistance)
+        {
+            return;
+        }
+
+        if (distance == 0)
+        {
+            simulation.Movement.SetTravelStructure(
+                simulation,
+                planeCode,
+                startQ,
+                startR,
+                _stepA[step],
+                tick);
+            return;
+        }
+
+        for (var index = 0; index <= distance; index++)
+        {
+            CubeLineCoordinate(startQ, startR, targetQ, targetR, index, distance, out var q, out var r);
+            simulation.Movement.SetTravelStructure(
+                simulation,
+                planeCode,
+                q,
+                r,
+                _stepA[step],
+                tick);
+        }
+    }
+
+    private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
+
+    private static int CurrentR(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
+
+    private static void CubeLineCoordinate(
+        int startQ,
+        int startR,
+        int targetQ,
+        int targetR,
+        int index,
+        int distance,
+        out int q,
+        out int r)
+    {
+        var t = (float)index / distance;
+        var startS = -startQ - startR;
+        var targetS = -targetQ - targetR;
+        var x = Lerp(startQ, targetQ, t);
+        var z = Lerp(startR, targetR, t);
+        var y = Lerp(startS, targetS, t);
+        CubeRound(x, y, z, out q, out r);
+    }
+
+    private static float Lerp(int start, int target, float t) => start + ((target - start) * t);
+
+    private static void CubeRound(float x, float y, float z, out int q, out int r)
+    {
+        var roundedX = (int)global::System.MathF.Round(x, global::System.MidpointRounding.AwayFromZero);
+        var roundedY = (int)global::System.MathF.Round(y, global::System.MidpointRounding.AwayFromZero);
+        var roundedZ = (int)global::System.MathF.Round(z, global::System.MidpointRounding.AwayFromZero);
+        var xDiff = global::System.MathF.Abs(roundedX - x);
+        var yDiff = global::System.MathF.Abs(roundedY - y);
+        var zDiff = global::System.MathF.Abs(roundedZ - z);
+        if (xDiff > yDiff && xDiff > zDiff)
+        {
+            roundedX = -roundedY - roundedZ;
+        }
+        else if (yDiff > zDiff)
+        {
+            roundedY = -roundedX - roundedZ;
+        }
+        else
+        {
+            roundedZ = -roundedX - roundedY;
+        }
+
+        _ = roundedY;
+        q = roundedX;
+        r = roundedZ;
     }
 
     private void AddAttributeFromVariable(

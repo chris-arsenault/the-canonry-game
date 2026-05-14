@@ -25,6 +25,7 @@ public enum KernelEventType
     KernelStorageGrown = 24,
     MapCellStateChanged = 25,
     CellRoadChanged = 26,
+    CellTravelStructureChanged = 27,
     Trace = 120,
 }
 
@@ -376,6 +377,23 @@ public readonly record struct CellRoadChangedKernelEvent(
     float PreviousQuality,
     [KernelEventFloatSlot(1, "current_quality", KernelEventSemanticKind.RawScalar)]
     float CurrentQuality);
+
+[KernelEventLayout(KernelEventType.CellTravelStructureChanged, schemaMinor: 0)]
+public readonly record struct CellTravelStructureChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "plane_code", KernelEventSemanticKind.PlaneCode)]
+    int PlaneCode,
+    [KernelEventIntSlot(1, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(2, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(4, "previous_travel_structure_id", KernelEventSemanticKind.RawScalar)]
+    int PreviousTravelStructureId,
+    [KernelEventIntSlot(5, "current_travel_structure_id", KernelEventSemanticKind.RawScalar)]
+    int CurrentTravelStructureId);
 
 [KernelEventLayout(KernelEventType.ProvenanceInvocationRecorded, schemaMinor: 0)]
 public readonly record struct ProvenanceInvocationRecordedKernelEvent(

@@ -603,6 +603,7 @@ internal static partial class KernelProgramInstaller
         code = operation switch
         {
             BehaviorProgramOperation.SetTargetCoverageTerrain => BehaviorOperationCodes.SetTargetCoverageTerrain,
+            BehaviorProgramOperation.BuildTravelStructureLine => BehaviorOperationCodes.BuildTravelStructureLine,
             _ => -1,
         };
         return code >= 0;

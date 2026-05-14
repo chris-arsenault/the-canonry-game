@@ -114,6 +114,17 @@ internal sealed class KernelConfigurationContext
         int movementProfileId) =>
         _kernel.Movement.RegisterTraitMovementProfile(kindId, traitId, planeCode, movementProfileId);
 
+    public void RegisterTravelStructure(
+        int travelStructureId,
+        int planeCode) =>
+        _kernel.Movement.RegisterTravelStructure(travelStructureId, planeCode);
+
+    public void RegisterTravelStructureMovementProfile(
+        int travelStructureId,
+        int movementProfileId,
+        float movementCost) =>
+        _kernel.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost);
+
     public int RegisterAttribute(
         int kindId,
         AttributeRuntimeId attributeId,

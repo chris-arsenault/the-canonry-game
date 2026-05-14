@@ -1,0 +1,41 @@
+{
+  "pack_title": "The Canonry Game",
+  "preset": "glacial-archive",
+  "spec_id": "ice-causeway-overlay",
+  "file": "map-overlays/ice-causeway.png",
+  "spec_type": "icon",
+  "section_id": "2b-map-overlays",
+  "section": "2b · Map overlays",
+  "style_id": "app-icon",
+  "palette_id": "comic-bold",
+  "identity_id": null,
+  "model": "flux-2-pro",
+  "size": "1024x1024",
+  "aspect": "1:1",
+  "prompt_fragment": "This asset is an icon. Use crisp, reduced shapes, bold edges, and high readability at very small sizes.\nKeep the icon silhouette bold, crisp, and readable at 16px.",
+  "raw_description": "# Ice Causeway Travel Structure Overlay\n\nA stylized ice-causeway overlay marker for a hex map. Simplified app-icon geometry.\n\nThree interlocking rectangular ice slabs form a short bridge path across the icon center. The slabs should step slightly from lower-left to upper-right, with two tiny dark crack lines and small triangular notches to make them read as ice blocks, not a road. Flat saturated palette colors, sharp clean edges, generous padding. This represents a built physical travel structure over difficult or blocked terrain.",
+  "formatted_prompt": {
+    "scene": "Flat filled-vector app icon, three stepped rectangular ice slabs forming a short diagonal causeway bridge, centered on off-white canvas, vivid cyan-blue slabs with black crack details and white edge highlights.",
+    "subjects": [
+      {
+        "type": "ice slab stack",
+        "description": "Three interlocking rectangles stepping lower-left to upper-right, bold flat slabs with sharp corners, slightly offset to read as layered ice blocks",
+        "position": "center",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      },
+      {
+        "type": "crack detail shapes",
+        "description": "Two tiny angular crack lines and small triangular notches cut into slab surfaces, flat secondary shapes reading as fractured ice texture",
+        "position": "center-overlay",
+        "color_match": "exact",
+        "detail_preservation": "high"
+      }
+    ]
+  },
+  "bfl_task_id": "b8237f19-3c24-4847-953c-1c39c3f88062",
+  "cost_usd": 0.03,
+  "claude_cost_usd": 0.007347,
+  "duration_ms": 9715,
+  "generated_at": "2026-05-11T20:14:39.112Z"
+}

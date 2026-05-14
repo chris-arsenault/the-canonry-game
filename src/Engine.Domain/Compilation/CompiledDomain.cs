@@ -71,6 +71,7 @@ public enum DomainSymbolKind
     StructuralFact,
     RelationshipKind,
     Terrain,
+    TravelStructure,
     Generator,
     Verb,
     EventCode,

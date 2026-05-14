@@ -42,6 +42,17 @@ internal sealed partial class MovementProgramRuntime :
         int movementProfileId) =>
         Data.RegisterTraitMovementProfile(kindId, traitId, planeCode, movementProfileId);
 
+    public void RegisterTravelStructure(
+        int travelStructureId,
+        int planeCode) =>
+        Data.RegisterTravelStructure(travelStructureId, planeCode);
+
+    public void RegisterTravelStructureMovementProfile(
+        int travelStructureId,
+        int movementProfileId,
+        float movementCost) =>
+        Data.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost);
+
     public int MovementProfileFor(Simulation simulation, int entityId, int planeCode)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
@@ -68,7 +79,7 @@ internal sealed partial class MovementProgramRuntime :
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         return simulation.ProgramIsEnabled(KernelProgramCodes.Movement) &&
             simulation.World.CellIsKnown(planeCode, q, r) &&
-            simulation.KernelData.Terrain.CanEnter(simulation.World.CellTerrainId(planeCode, q, r), movementProfileId);
+            SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r) > 0f;
     }
 
     public float PhysicalTravelCost(Simulation simulation, int entityId, int q, int r, int tick)
@@ -92,16 +103,49 @@ internal sealed partial class MovementProgramRuntime :
             return float.PositiveInfinity;
         }
 
-        return simulation.KernelData.Terrain.RoadAdjustedTravelCost(
-            simulation.World.CellTerrainId(planeCode, q, r),
-            movementProfileId,
-            RoadQuality(planeCode, q, r, tick));
+        return SurfaceTravelCost(simulation, planeCode, movementProfileId, q, r, tick);
     }
 
     public float RoadQuality(int planeCode, int q, int r, int tick) =>
         State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick);
 
     public int RoadTravelCount(int planeCode, int q, int r) => State.RoadTravelCount(planeCode, q, r);
+
+    public int TravelStructureId(int planeCode, int q, int r) => State.TravelStructureId(planeCode, q, r);
+
+    public bool SetTravelStructure(
+        Simulation simulation,
+        int planeCode,
+        int q,
+        int r,
+        int travelStructureId,
+        int tick)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        ValidatePlane(planeCode);
+        if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
+            !simulation.World.CellIsKnown(planeCode, q, r) ||
+            !Data.TravelStructureRegistered(travelStructureId) ||
+            Data.TravelStructurePlaneCode(travelStructureId) != planeCode)
+        {
+            return false;
+        }
+
+        var previousStructureId = State.TravelStructureId(planeCode, q, r);
+        if (!State.SetTravelStructure(planeCode, q, r, travelStructureId))
+        {
+            return false;
+        }
+
+        simulation.EmitCellTravelStructureChanged(
+            tick,
+            planeCode,
+            q,
+            r,
+            previousStructureId,
+            travelStructureId);
+        return true;
+    }
 
     internal void RecordTopologyChanged() => State.RecordTopologyChanged();
 
@@ -132,7 +176,7 @@ internal sealed partial class MovementProgramRuntime :
                 out _);
     }
 
-    public int SnapshotEventCount() => State.RoadCellCount;
+    public int SnapshotEventCount() => State.RoadCellCount + State.TravelStructureCellCount;
 
     public void EmitSnapshotEvents(Simulation simulation, int tick)
     {
@@ -158,6 +202,25 @@ internal sealed partial class MovementProgramRuntime :
                 0f,
                 RoadQuality(planeCode, q, r, tick),
                 travelCount);
+        });
+        State.ForEachTravelStructureCell((planeCode, coordinateKey, travelStructureId) =>
+        {
+            if (!simulation.World.TryResolveCoordinateKey(
+                    coordinateKey,
+                    planeCode == PlaneCodes.Semantic ? 4 : 0,
+                    out var q,
+                    out var r))
+            {
+                return;
+            }
+
+            simulation.EmitCellTravelStructureChanged(
+                tick,
+                planeCode,
+                q,
+                r,
+                0,
+                travelStructureId);
         });
     }
 
@@ -359,9 +422,7 @@ internal sealed partial class MovementProgramRuntime :
         int r)
     {
         var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
-        return simulation.KernelData.Terrain.TravelCost(
-            simulation.World.CellTerrainId(planeCode, q, r),
-            movementProfileId);
+        return SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r);
     }
 
     private bool MoveAllowed(
@@ -413,6 +474,70 @@ internal sealed partial class MovementProgramRuntime :
             previousQuality,
             currentQuality,
             RoadTravelCount(planeCode, q, r));
+    }
+
+    private float SurfaceTravelCost(
+        Simulation simulation,
+        int planeCode,
+        int movementProfileId,
+        int q,
+        int r,
+        int tick)
+    {
+        var baseCost = SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r);
+        if (baseCost <= 0f)
+        {
+            return float.PositiveInfinity;
+        }
+
+        var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
+        var normalizedRoadQuality = Clamp01(RoadQuality(planeCode, q, r, tick) / 100f);
+        var roadSpeed = 1f + ((simulation.KernelData.Terrain.RoadSpeedMultiplier(terrainId) - 1f) * normalizedRoadQuality);
+        return baseCost / roadSpeed;
+    }
+
+    private float SurfaceBaseTravelCost(
+        Simulation simulation,
+        int planeCode,
+        int movementProfileId,
+        int q,
+        int r)
+    {
+        if (!simulation.World.CellIsKnown(planeCode, q, r))
+        {
+            return 0f;
+        }
+
+        var terrainCost = simulation.KernelData.Terrain.TravelCost(
+            simulation.World.CellTerrainId(planeCode, q, r),
+            movementProfileId);
+        var structureCost = Data.TravelStructureCost(
+            State.TravelStructureId(planeCode, q, r),
+            planeCode,
+            movementProfileId);
+        return SelectSurfaceBaseCost(terrainCost, structureCost);
+    }
+
+    private static float SelectSurfaceBaseCost(float terrainCost, float structureCost)
+    {
+        if (terrainCost <= 0f)
+        {
+            return structureCost > 0f ? structureCost : 0f;
+        }
+
+        return structureCost > 0f && structureCost < terrainCost
+            ? structureCost
+            : terrainCost;
+    }
+
+    private static float Clamp01(float value)
+    {
+        if (value < 0f)
+        {
+            return 0f;
+        }
+
+        return value > 1f ? 1f : value;
     }
 
     private static int CurrentQ(WorldState world, int entityId, int planeCode) =>

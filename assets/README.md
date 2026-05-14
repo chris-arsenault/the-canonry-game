@@ -33,7 +33,8 @@ Outputs land in `assets/output/` by default — `output/raw/` for the raw Flux
 PNGs + sidecar JSONs, `output/processed/` for post-processed variants and
 atlases. Generated files are tracked in git so the game builds without
 needing anyone to regenerate; the raw/ PNGs average ~2 MB each and the
-processed/ atlases are smaller, so a full 46-asset pack is ~100 MB.
+processed/ atlases are smaller, so a full pack is large enough to review
+before committing.
 
 A `.gdignore` file at `assets/` keeps Godot from auto-importing the prompt
 files or generated PNGs. If you later want Godot to consume specific
@@ -48,7 +49,7 @@ with-cred -- node ../illuminator/dist/cli.js generate assets --dry-run
 with-cred -- node ../illuminator/dist/cli.js generate assets \
   --smoke-test --and-process --concurrency 3
 
-# full batch: 46 assets with post-processing
+# full batch with post-processing
 with-cred -- node ../illuminator/dist/cli.js generate assets \
   --and-process --concurrency 3
 ```

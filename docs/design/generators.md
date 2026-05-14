@@ -195,20 +195,30 @@ supports the active generator/gambit catalog.
 |`PointOfInterest`|`Vent`, `Peak`, `Bloom`, `Shoal`|Named natural features smaller than regions and not built like settlements.|
 |`Ability`|`Technique`, `Rite`, `Craft`|Combat techniques, magical rites, and technological practices.|
 |`Monster`|`Leviathan`, `Wraith`, `Beast`, `Revenant`|Different forms of bound or emerging peril; sealed/unbound/risen remains status, not subtype.|
+|`Transport`|`Trade`, `Battleship`, `Scout`, `Citadel`|Named mobile assets: route carriers, escalation vessels, reconnaissance craft, and fortified moving ground.|
+|`Occurrence`|`War`, `TradeConference`, `Plague`, `Festival`|Named active events with momentum: conflict, negotiation, loss, and collective attention while they are still happening.|
 
 ### Coverage read
 
-* Strong: `Settlement`, `Artifact`, `Region` — the active set exercises
-`Holdfast`, `Reefhold`, `Scar`, `Sea`, `Relic`, `Instrument`, and `Seal`.
-* Weaker: `Penguin` and `Faction` coverage is intentionally partial in the
-current catalog.
+* Strong produced coverage: `Artifact`, `Monster`, `Occurrence`, and
+`Transport` all have multiple generated subtypes in active generators.
+* Corrected second-wave coverage: `Orca`, `PointOfInterest`, `Ability`,
+`Monster`, `Transport`, and `Occurrence` are not only targets; each kind is now
+produced by at least one generator.
+* Third-pass coverage: `Settlement`, `Region`, and `Faction` now have generated
+rows for `colony`, `reefhold`, `depths`, `choir`, and `order`. These rows are
+tied to cleansing, conduit, and ward topology rather than broad kind targeting.
+`cell` and `compact` remain lighter because they still mostly enter as optional
+outputs on older rows.
+* Weaker by design for now: `Penguin` remains a frequent witness/actor payload;
+new passes should avoid using penguins as the default answer to every new cause.
 
-Stable subtype families to design against matter more than forcing full
-generator coverage from a small catalog.
+Stable subtype families matter, but the catalog must prove that a subtype can
+enter the world through a causal loop. Kind participation alone is not coverage.
 
 ## Catalog: current generators
 
-The active Ice Remembers catalog currently contains five relationship-driven
+The active Ice Remembers catalog currently contains twenty-six relationship-driven
 generators:
 
 * `ice\_settles\_accounts`
@@ -216,8 +226,35 @@ generators:
 * `war\_breaks\_the\_land`
 * `routes\_draw\_readers`
 * `what\_the\_artifact\_knows`
+* `unclaimed\_places\_draw\_wardens`
+* `practiced\_forms\_find\_tomes`
+* `charters\_find\_harbors`
+* `vigils\_leave\_relics`
+* `corruption\_wakes\_monsters`
+* `wars\_get\_names`
+* `trade\_routes\_convene\_negotiation`
+* `claimed\_waters\_draw\_bulls`
+* `conduits\_map\_hidden\_peaks`
+* `mapped\_peaks\_birth\_techniques`
+* `controlled\_depths\_wake\_leviathans`
+* `overclaimed\_blooms\_draw\_beasts`
+* `corrupted\_monsters\_raise\_revenants`
+* `war\_occurrences\_launch\_scouts`
+* `trade\_conferences\_raise\_citadels`
+* `conferences\_become\_festivals`
+* `cleansed\_springs\_found\_sanctuaries`
+* `sanctuaries\_anchor\_colonies`
+* `conduit\_points\_found\_reefholds`
+* `deep\_conduits\_name\_depths`
+* `warded\_monsters\_found\_orders`
 
 These start from graph state the simulation already produces, such as
-`holds`, `at\_war\_with`, `trade\_route`, and `cleansed\_by`, then create
-cross-kind bundles. Target subtype filters are broad in the active catalog
-because subtype coverage is still sparse.
+`holds`, `at\_war\_with`, `trade\_route`, `cleansed\_by`, `claimed\_by`,
+`practiced\_by`, `native\_to`, `corrupted\_by`, `ward\_against`, and
+`memorializes`, then create cross-kind bundles. Target subtype filters and
+strong relationship gates are used where they carry mechanical meaning: scars
+wake wraiths, controlled blooms and shoals wake leviathans, mapped shore-peaks
+and vents produce techniques or conduit settlements, named occurrences launch
+transports or festivals, cleansed regions found sanctuaries, conduit points
+first found reefholds and then reefhold-founded conduit points name depths, and
+warded monsters produce containment orders.
