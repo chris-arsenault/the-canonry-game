@@ -1,0 +1,14 @@
+{
+  "id": "aurora_permanence",
+  "description": "Forms of permanence for memorials - how memory is preserved",
+  "entries": [
+    "light",
+    "echo",
+    "flame",
+    "stone",
+    "mark",
+    "song",
+    "name"
+  ],
+  "source": "manual"
+}

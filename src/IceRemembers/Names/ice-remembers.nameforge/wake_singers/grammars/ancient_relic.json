@@ -1,0 +1,14 @@
+{
+  "id": "ancient_relic",
+  "start": "name",
+  "capitalization": "",
+  "rules": {
+    "name": [
+      [
+        "domain:ancient_tech_prefix^-^domain:ancient_tech_serial",
+        "(^slot:ancient_relic_epithets",
+        "slot:ancient_relic_types^)"
+      ]
+    ]
+  }
+}

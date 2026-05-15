@@ -1,0 +1,12 @@
+{
+  "id": "nightshelf_succession_prefix",
+  "description": "Political/void Latin prefixes for succession crises",
+  "entries": [
+    "Vacuum",
+    "Thronus",
+    "Regnum",
+    "Potestas",
+    "Heredis"
+  ],
+  "source": "manual"
+}

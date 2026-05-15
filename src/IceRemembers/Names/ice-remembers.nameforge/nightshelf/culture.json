@@ -1,0 +1,49 @@
+{
+  "lexemeSpecs": [
+    {
+      "id": "nightshelf_shadow_gen",
+      "pos": "core",
+      "style": "Shadow and mystery words",
+      "wordStyle": {
+        "etymology": "germanic",
+        "syllables": {
+          "min": 1,
+          "max": 2
+        },
+        "phonetics": {
+          "consonants": "soft"
+        },
+        "register": "neutral"
+      },
+      "targetCount": 50,
+      "maxWords": 1,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "nightshelf"
+    },
+    {
+      "id": "nightshelf_faction_groups",
+      "pos": "collective",
+      "style": "secrative and cryptic slightly evil ice ccold organizations",
+      "wordStyle": {
+        "etymology": "mixed",
+        "syllables": {
+          "min": 1,
+          "max": 2
+        },
+        "register": "visceral"
+      },
+      "targetCount": 40,
+      "maxWords": 2,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "nightshelf"
+    }
+  ],
+  "id": "nightshelf",
+  "name": "Nightshelf"
+}

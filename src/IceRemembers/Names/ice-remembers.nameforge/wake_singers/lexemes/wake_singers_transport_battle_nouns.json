@@ -1,0 +1,15 @@
+{
+  "id": "wake_singers_transport_battle_nouns",
+  "description": "Wake-Singer names for war transports.",
+  "entries": [
+    "killship",
+    "warwake",
+    "warcanoe",
+    "bloodbarge",
+    "warback",
+    "guardback",
+    "blackkeel",
+    "currentknife"
+  ],
+  "source": "manual"
+}

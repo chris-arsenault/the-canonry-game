@@ -1,0 +1,44 @@
+{
+  "id": "nightshelf_monster_leviathan",
+  "description": "Nightshelf names for deep-water leviathan monsters",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Leviathan^~"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:nightshelf_domain~cap^~",
+        "context:primary_entity_name~poss",
+        "Leviathan^~"
+      ],
+      [
+        "☽'^slot:nightshelf_darkness_source~lower",
+        "leviathan^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_darkness_source~lower",
+        "leviathan^~"
+      ],
+      [
+        "slot:nightshelf_forbidden_truth^∴undertow"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_forbidden_truth^∴undertow"
+      ],
+      [
+        "slot:nightshelf_latin_roots~cap^∴deep-hunger∴"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_latin_roots~cap^∴deep-hunger∴"
+      ]
+    ]
+  }
+}

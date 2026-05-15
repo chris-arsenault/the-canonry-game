@@ -1,0 +1,14 @@
+{
+  "id": "aurora_disaster_memories",
+  "description": "What the ice remembers about disasters - parenthetical annotations for catastrophe names",
+  "entries": [
+    "frost-scarred",
+    "ice-witnessed",
+    "berg-marked",
+    "void-touched",
+    "thaw-survivor",
+    "ruin-frozen",
+    "loss-held"
+  ],
+  "source": "manual"
+}

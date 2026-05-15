@@ -1,0 +1,14 @@
+{
+  "id": "aurora_monster_nouns",
+  "description": "Ice Remembers monster epithets",
+  "entries": [
+    "leviathan",
+    "wraith",
+    "maw",
+    "breach",
+    "hunger",
+    "watcher",
+    "beast"
+  ],
+  "source": "ice-remembers"
+}

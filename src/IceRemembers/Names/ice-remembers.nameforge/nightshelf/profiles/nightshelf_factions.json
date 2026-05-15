@@ -1,0 +1,57 @@
+{
+  "id": "nightshelf_factions",
+  "strategyGroups": [
+    {
+      "name": "Conditional",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "faction"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.85,
+          "grammarId": "nightshelf_faction"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.15,
+          "grammarId": "nightshelf_faction_regional"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "faction"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region"
+        }
+      ]
+    }
+  ],
+  "entityKinds": [
+    "faction"
+  ]
+}

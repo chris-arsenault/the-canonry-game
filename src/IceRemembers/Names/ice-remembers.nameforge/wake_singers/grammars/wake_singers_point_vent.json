@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_point_vent",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-vent"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-vent"
+      ],
+      [
+        "slot:orca_deed_root^-firevent"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-firevent"
+      ]
+    ]
+  }
+}

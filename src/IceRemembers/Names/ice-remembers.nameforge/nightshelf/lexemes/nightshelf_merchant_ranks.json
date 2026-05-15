@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_merchant_ranks",
+  "description": "Trade titles for Nightshelf merchants",
+  "entries": [
+    "Mercator",
+    "Negotiator",
+    "Factor Umbrae",
+    "Glow-Trader",
+    "Fissure-Dealer",
+    "Shadow-Broker",
+    "Void-Merchant",
+    "Depth-Purveyor",
+    "Crypt-Vendor",
+    "Veil-Factor",
+    "Night-Assessor",
+    "Obscura-Dealer",
+    "Whisper-Trader",
+    "Penumbra-Factor",
+    "Twilight-Broker"
+  ],
+  "source": "manual"
+}

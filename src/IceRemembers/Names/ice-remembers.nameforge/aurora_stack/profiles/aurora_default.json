@@ -1,0 +1,41 @@
+{
+  "id": "aurora_default",
+  "name": "Aurora Default",
+  "strategyGroups": [
+    {
+      "name": "Magic Names",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_region"
+        }
+      ]
+    },
+    {
+      "name": "Default Fallback",
+      "priority": 10,
+      "conditions": null,
+      "strategies": [
+        {
+          "type": "phonotactic",
+          "weight": 1,
+          "domainId": "aurora_domain_short"
+        }
+      ]
+    }
+  ],
+  "isDefault": true,
+  "entityKinds": []
+}

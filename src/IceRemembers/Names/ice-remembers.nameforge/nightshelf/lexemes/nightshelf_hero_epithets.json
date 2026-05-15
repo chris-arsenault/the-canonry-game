@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_hero_epithets",
+  "description": "Heroic epithets for legendary Nightshelf NPCs",
+  "entries": [
+    "Lux in Tenebris",
+    "the Undimmed",
+    "Glow-bringer",
+    "Fissure-sealer",
+    "the Steadfast",
+    "Shadow-bane",
+    "the Illuminated",
+    "Veil-render",
+    "the Watchful",
+    "Night-defier",
+    "the Unbroken",
+    "Depth-walker",
+    "the Resolute",
+    "Void-banisher",
+    "the Luminous"
+  ],
+  "source": "manual"
+}

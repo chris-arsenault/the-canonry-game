@@ -1,0 +1,22 @@
+{
+  "id": "aurora_hero_deeds",
+  "description": "Legendary deed-names and epithets for heroic NPCs",
+  "entries": [
+    "Fissure-Sealer",
+    "Tide-Turner",
+    "Storm-Caller",
+    "Ice-Breaker",
+    "Dawn-Bringer",
+    "Frost-Bane",
+    "Glow-Walker",
+    "Deep-Diver",
+    "Crest-Defender",
+    "Shelf-Guardian",
+    "Rime-Singer",
+    "Light-Bearer",
+    "Berg-Shaper",
+    "Void-Banisher",
+    "Abyss-Watcher"
+  ],
+  "source": "manual"
+}

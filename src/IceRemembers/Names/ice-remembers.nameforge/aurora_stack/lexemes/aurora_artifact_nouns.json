@@ -1,0 +1,27 @@
+{
+  "id": "aurora_artifact_nouns",
+  "description": "Artifact-related nouns for Aurora Stack",
+  "entries": [
+    "scepter",
+    "crown",
+    "orb",
+    "staff",
+    "blade",
+    "chalice",
+    "ring",
+    "amulet",
+    "tome",
+    "codex",
+    "crystal",
+    "mirror",
+    "compass",
+    "beacon",
+    "seal",
+    "medallion",
+    "gauntlet",
+    "helm",
+    "mantle",
+    "key"
+  ],
+  "source": "manual"
+}

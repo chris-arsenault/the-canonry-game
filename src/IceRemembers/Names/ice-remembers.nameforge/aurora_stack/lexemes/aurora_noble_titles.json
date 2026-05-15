@@ -1,0 +1,22 @@
+{
+  "id": "aurora_noble_titles",
+  "description": "Formal titles for mayors and political leaders",
+  "entries": [
+    "High-Beak",
+    "Arch-Warden",
+    "Premier",
+    "Summit-Lord",
+    "Tier-Master",
+    "Grand Auditor",
+    "Crest-Speaker",
+    "Beacon-Keeper",
+    "Frost-Chancellor",
+    "Light-Regent",
+    "Chief Arbiter",
+    "Stack-Sovereign",
+    "Prime Assessor",
+    "Elder-Voice",
+    "Shelf-Protector"
+  ],
+  "source": "manual"
+}

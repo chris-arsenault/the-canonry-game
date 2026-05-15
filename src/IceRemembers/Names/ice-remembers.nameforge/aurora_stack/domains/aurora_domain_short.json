@@ -1,0 +1,110 @@
+{
+  "id": "aurora_domain_short",
+  "phonology": {
+    "consonants": [
+      "zh",
+      "sh",
+      "ch",
+      "x",
+      "q",
+      "j",
+      "l",
+      "m",
+      "n",
+      "h",
+      "f"
+    ],
+    "vowels": [
+      "a",
+      "o",
+      "e",
+      "i",
+      "u",
+      "ai",
+      "ei",
+      "ang",
+      "ing"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "V"
+    ],
+    "lengthRange": [
+      1,
+      1
+    ],
+    "favoredClusters": [],
+    "forbiddenClusters": [],
+    "favoredClusterBoost": 1,
+    "consonantWeights": [
+      1.3,
+      1.2,
+      1.1,
+      1.2,
+      1,
+      1.1,
+      1,
+      0.9,
+      1,
+      0.9,
+      0.8
+    ],
+    "vowelWeights": [
+      1.2,
+      1.1,
+      1,
+      1.3,
+      1.1,
+      1,
+      0.9,
+      1,
+      1
+    ],
+    "templateWeights": [
+      1.5,
+      0.5
+    ]
+  },
+  "morphology": {
+    "prefixes": [
+      "Xue",
+      "Zhi",
+      "Lian",
+      "Feng",
+      "Ming",
+      "Qing"
+    ],
+    "suffixes": [
+      "long",
+      "hua",
+      "wei",
+      "lin"
+    ],
+    "structure": [
+      "root",
+      "root-suffix",
+      "prefix-root"
+    ],
+    "structureWeights": [
+      0.5,
+      0.25,
+      0.25
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0,
+    "hyphenRate": 0,
+    "preferredEndings": [
+      "ng",
+      "n",
+      "i",
+      "a"
+    ],
+    "preferredEndingBoost": 1.3,
+    "rhythmBias": "neutral"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

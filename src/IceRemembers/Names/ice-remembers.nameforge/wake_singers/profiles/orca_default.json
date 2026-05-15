@@ -1,0 +1,20 @@
+{
+  "id": "orca_default",
+  "name": "Orca Default",
+  "strategyGroups": [
+    {
+      "name": "Default Fallback",
+      "priority": 10,
+      "conditions": null,
+      "strategies": [
+        {
+          "type": "phonotactic",
+          "weight": 1,
+          "domainId": "orca_domain"
+        }
+      ]
+    }
+  ],
+  "isDefault": true,
+  "entityKinds": []
+}

@@ -1,0 +1,111 @@
+{
+  "id": "orca_artifacts",
+  "name": "Orca Artifacts",
+  "strategyGroups": [
+    {
+      "name": "Anomaly-Born Artifacts",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [
+          "anomaly_born"
+        ],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_artifact"
+        }
+      ]
+    },
+    {
+      "name": "Ancient Relics",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "relic",
+          "seal",
+          "tome"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.4,
+          "grammarId": "ancient_relic"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.6,
+          "grammarId": "orca_artifact"
+        }
+      ]
+    },
+    {
+      "name": "Instruments",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "instrument"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_instrument"
+        }
+      ]
+    },
+    {
+      "name": "Artifact Names",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "seal",
+          "tome",
+          "weapon"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_artifact"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "artifact"
+  ]
+}

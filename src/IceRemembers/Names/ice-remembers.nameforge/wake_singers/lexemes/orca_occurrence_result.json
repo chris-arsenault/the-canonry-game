@@ -1,0 +1,17 @@
+{
+  "id": "orca_occurrence_result",
+  "description": "Result/outcome words for occurrence noun chains - what happened",
+  "entries": [
+    "tide",
+    "death",
+    "end",
+    "fall",
+    "rise",
+    "blood",
+    "ruin",
+    "doom",
+    "kill",
+    "storm"
+  ],
+  "source": "manual"
+}

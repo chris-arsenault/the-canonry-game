@@ -1,0 +1,21 @@
+{
+  "id": "nightshelf_noble_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "slot:nightshelf_noble_titles",
+        "☽'^domain:nightshelf_domain"
+      ],
+      [
+        "slot:nightshelf_latin_titles",
+        "domain:nightshelf_domain^~",
+        "slot:nightshelf_whisper_roots~cap"
+      ],
+      [
+        "slot:nightshelf_noble_titles",
+        "domain:nightshelf_domain^-^slot:nightshelf_shadow_gen^~"
+      ]
+    ]
+  }
+}

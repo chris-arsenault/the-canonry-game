@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_region_reach",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-reach"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-reach"
+      ],
+      [
+        "slot:orca_deed_root^-reach"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-reach"
+      ]
+    ]
+  }
+}

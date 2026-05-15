@@ -1,0 +1,27 @@
+{
+  "id": "orca_prey_glyph",
+  "description": "Harsh compressed words for prey types in Orca language - these ARE the prey, compressed into guttural sounds",
+  "entries": [
+    "kzul",
+    "threk",
+    "gruk",
+    "pngk",
+    "krath",
+    "zund",
+    "gnark",
+    "rrak",
+    "thund",
+    "grul",
+    "skul",
+    "ghund",
+    "khrak",
+    "brund",
+    "zrag",
+    "thrung",
+    "gath",
+    "drrak",
+    "knuz",
+    "zkrund"
+  ],
+  "source": "manual"
+}

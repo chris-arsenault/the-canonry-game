@@ -1,0 +1,125 @@
+{
+  "id": "orca_rules",
+  "name": "Orca Rules",
+  "strategyGroups": [
+    {
+      "name": "Social Customs",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tagMatchAll": false,
+        "tags": [],
+        "subtypes": [
+          "social"
+        ]
+      },
+      "strategies": [
+        {
+          "grammarId": "orca_social_name",
+          "type": "grammar",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "name": "Memorials",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tagMatchAll": false,
+        "tags": [],
+        "subtypes": [
+          "memorial"
+        ]
+      },
+      "strategies": [
+        {
+          "grammarId": "orca_memorial_name",
+          "type": "grammar",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "name": "Ideology",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tagMatchAll": false,
+        "tags": [],
+        "subtypes": [
+          "ideology"
+        ]
+      },
+      "strategies": [
+        {
+          "grammarId": "orca_ideology_name",
+          "type": "grammar",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "name": "Laws",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tagMatchAll": false,
+        "tags": [],
+        "subtypes": [
+          "law"
+        ]
+      },
+      "strategies": [
+        {
+          "grammarId": "orca_law",
+          "type": "grammar",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_region"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "rule"
+  ]
+}

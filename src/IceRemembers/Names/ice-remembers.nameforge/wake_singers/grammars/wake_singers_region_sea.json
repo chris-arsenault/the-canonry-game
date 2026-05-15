@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_region_sea",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-sea"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-sea"
+      ],
+      [
+        "slot:orca_prey_glyph^-bloodsea"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-bloodsea"
+      ]
+    ]
+  }
+}

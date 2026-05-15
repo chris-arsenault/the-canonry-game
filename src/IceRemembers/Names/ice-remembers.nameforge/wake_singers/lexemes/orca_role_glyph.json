@@ -1,0 +1,17 @@
+{
+  "id": "orca_role_glyph",
+  "description": "Compressed pod-role sounds for romanized Wake-Singer deed records.",
+  "entries": [
+    "matr",
+    "kran",
+    "ngath",
+    "thrum",
+    "drak",
+    "grund",
+    "khral",
+    "zrag",
+    "brund",
+    "gath"
+  ],
+  "source": "manual"
+}

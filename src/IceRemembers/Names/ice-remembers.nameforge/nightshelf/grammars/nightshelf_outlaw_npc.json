@@ -1,0 +1,19 @@
+{
+  "id": "nightshelf_outlaw_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "☽'^domain:nightshelf_domain",
+        "slot:nightshelf_criminal_epithets"
+      ],
+      [
+        "slot:nightshelf_criminal_epithets~cap",
+        "domain:nightshelf_domain^~"
+      ],
+      [
+        "☽'^domain:nightshelf_domain^-^domain:nightshelf_domain^~"
+      ]
+    ]
+  }
+}

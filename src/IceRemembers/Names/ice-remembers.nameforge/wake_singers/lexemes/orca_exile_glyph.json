@@ -1,0 +1,23 @@
+{
+  "id": "orca_exile_glyph",
+  "description": "Compressed exile, rogue, and law-breaker sounds for Wake-Singer names.",
+  "entries": [
+    "skarr",
+    "khrul",
+    "zrak",
+    "ghund",
+    "krazk",
+    "drung",
+    "thraz",
+    "grusk",
+    "vrak",
+    "dusk",
+    "krund",
+    "brask",
+    "graz",
+    "thrusk",
+    "zundr",
+    "khrask"
+  ],
+  "source": "manual"
+}

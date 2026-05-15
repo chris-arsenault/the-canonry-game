@@ -1,0 +1,41 @@
+{
+  "id": "nightshelf_monster",
+  "description": "Ice Remembers monster names",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:nightshelf_monster_nouns~cap"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:nightshelf_domain~cap^~",
+        "context:primary_entity_name~poss",
+        "slot:nightshelf_monster_nouns~cap"
+      ],
+      [
+        "☽'^slot:nightshelf_shadow_gen~chopL^'",
+        "slot:nightshelf_monster_nouns~cap"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_shadow_gen~chopL^'",
+        "slot:nightshelf_monster_nouns~cap"
+      ],
+      [
+        "slot:nightshelf_darkness_source~cap^∴^slot:nightshelf_monster_nouns~chopR"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_darkness_source~cap^∴^slot:nightshelf_monster_nouns~chopR"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_monster_nouns~cap"
+      ]
+    ]
+  }
+}

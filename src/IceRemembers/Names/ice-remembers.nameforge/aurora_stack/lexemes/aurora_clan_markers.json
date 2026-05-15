@@ -1,0 +1,17 @@
+{
+  "id": "aurora_clan_markers",
+  "description": "Clan/lineage prefix markers for patronymic names. Used as name'marker pattern.",
+  "entries": [
+    "val",
+    "kria",
+    "rukar",
+    "molok",
+    "skael",
+    "pelm",
+    "vorwi",
+    "teir",
+    "orum",
+    "nael"
+  ],
+  "source": "manual"
+}

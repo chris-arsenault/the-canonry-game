@@ -1,0 +1,125 @@
+{
+  "id": "nightshelf_rules",
+  "name": "Nightshelf Rules",
+  "strategyGroups": [
+    {
+      "name": "Social Gatherings",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "social"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_social_name"
+        }
+      ]
+    },
+    {
+      "name": "Memorials",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "memorial"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_memorial_name"
+        }
+      ]
+    },
+    {
+      "name": "Ideology",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "ideology"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_ideology_name"
+        }
+      ]
+    },
+    {
+      "name": "Laws",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "law"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_law_name"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "rule"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "rule"
+  ]
+}

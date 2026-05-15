@@ -1,0 +1,64 @@
+{
+  "id": "orca_factions",
+  "name": "Orca Factions",
+  "strategyGroups": [
+    {
+      "name": "Faction Names",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "faction"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.55,
+          "grammarId": "orca_faction"
+        },
+        {
+          "type": "phonotactic",
+          "weight": 0.3,
+          "domainId": "orca_domain"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.15,
+          "grammarId": "orca_faction_regional"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "faction"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_region"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "faction"
+  ]
+}

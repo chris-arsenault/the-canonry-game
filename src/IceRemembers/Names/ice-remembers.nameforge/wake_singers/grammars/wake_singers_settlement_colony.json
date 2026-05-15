@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_settlement_colony",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-colony"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-colony"
+      ],
+      [
+        "slot:orca_prey_glyph^-^slot:orca_location_nouns"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-^slot:orca_location_nouns"
+      ]
+    ]
+  }
+}

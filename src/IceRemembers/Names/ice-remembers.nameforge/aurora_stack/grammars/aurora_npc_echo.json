@@ -1,0 +1,18 @@
+{
+  "id": "aurora_npc_echo",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)",
+        "slot:aurora_clan_markers^'^slot:aurora_gen_nouns~cap"
+      ]
+    ]
+  }
+}

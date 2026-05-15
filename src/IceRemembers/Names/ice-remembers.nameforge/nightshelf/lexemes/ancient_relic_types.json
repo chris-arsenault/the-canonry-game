@@ -1,0 +1,27 @@
+{
+  "id": "ancient_relic_types",
+  "description": "Weapon/device types for ancient alien relics",
+  "entries": [
+    "Cannon",
+    "Array",
+    "Core",
+    "Engine",
+    "Beam",
+    "Matrix",
+    "Pulse",
+    "Drive",
+    "Lance",
+    "Hammer",
+    "Shard",
+    "Sphere",
+    "Prism",
+    "Node",
+    "Conduit",
+    "Nexus",
+    "Crucible",
+    "Furnace",
+    "Spire",
+    "Obelisk"
+  ],
+  "source": "manual"
+}

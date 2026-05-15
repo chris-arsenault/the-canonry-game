@@ -1,0 +1,31 @@
+{
+  "id": "orca_faction_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "The",
+        "context:region",
+        "slot:orca_faction_types"
+      ],
+      [
+        "The",
+        "domain:orca_domain_short",
+        "context:region",
+        "slot:orca_faction_types"
+      ],
+      [
+        "context:region^'s",
+        "slot:orca_power_words",
+        "slot:orca_faction_types"
+      ],
+      [
+        "domain:orca_domain_short",
+        "context:region^'s",
+        "slot:orca_power_words",
+        "slot:orca_faction_types"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "nightshelf_war_names",
+  "description": "War and conflict names for Nightshelf",
+  "entries": [
+    "Obscurum",
+    "Tenebrae",
+    "Silentium",
+    "Interregnum",
+    "Schisma",
+    "Nox Aeterna",
+    "Umbra Fracta",
+    "Bellum Veli",
+    "Conflictus",
+    "Dissidium"
+  ],
+  "source": "manual"
+}

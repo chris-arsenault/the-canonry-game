@@ -16,5 +16,8 @@
     <EmbeddedResource
       Include="Names\ice-remembers.nameforge.json"
       LogicalName="IceRemembers.Names.ice-remembers.nameforge.json" />
+    <EmbeddedResource
+      Include="Names\ice-remembers.nameforge\**\*.json"
+      LogicalName="IceRemembers.Names.ice-remembers.nameforge/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

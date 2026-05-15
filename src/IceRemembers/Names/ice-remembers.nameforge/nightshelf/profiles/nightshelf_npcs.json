@@ -1,0 +1,250 @@
+{
+  "id": "nightshelf_npcs",
+  "name": "Nightshelf NPCs",
+  "strategyGroups": [
+    {
+      "name": "Legendary Heroes",
+      "priority": 75,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [
+          "mythic"
+        ],
+        "subtypes": [
+          "hero",
+          "warden",
+          "witness"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.7,
+          "grammarId": "nightshelf_hero_legendary"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.3,
+          "grammarId": "nightshelf_hero_npc"
+        }
+      ]
+    },
+    {
+      "name": "Heroes",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "hero",
+          "warden",
+          "witness"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.6,
+          "grammarId": "nightshelf_hero_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.4,
+          "grammarId": "nightshelf_hero_legendary"
+        }
+      ]
+    },
+    {
+      "name": "Mayors and Leaders",
+      "priority": 68,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "mayor",
+          "warden"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_noble_npc"
+        }
+      ]
+    },
+    {
+      "name": "Merchants",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "broker",
+          "merchant"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.7,
+          "grammarId": "nightshelf_merchant_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.3,
+          "grammarId": "nightshelf_npc"
+        }
+      ]
+    },
+    {
+      "name": "Outlaws and Criminals",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "exile",
+          "outlaw"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.8,
+          "grammarId": "nightshelf_outlaw_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.2,
+          "grammarId": "nightshelf_npc"
+        }
+      ]
+    },
+    {
+      "name": "Elite NPCs",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [
+          "mythic",
+          "renowned"
+        ],
+        "subtypes": [
+          "warden",
+          "witness"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.6,
+          "grammarId": "nightshelf_elite_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.4,
+          "grammarId": "nightshelf_noble_npc"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region"
+        }
+      ]
+    },
+    {
+      "name": "Default NPC Names",
+      "priority": 0,
+      "conditions": {
+        "entityKinds": [
+          "penguin"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.35,
+          "grammarId": "nightshelf_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.3,
+          "grammarId": "nightshelf_npc_whisper"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.15,
+          "grammarId": "nightshelf_elite_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.1,
+          "grammarId": "nightshelf_merchant_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.1,
+          "grammarId": "nightshelf_npc_regional"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "penguin"
+  ]
+}

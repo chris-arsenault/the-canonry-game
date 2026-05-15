@@ -1,0 +1,48 @@
+{
+  "id": "aurora_hero_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "when:producer=stolen_artifacts_draw_hunters",
+        "when:parent_producer=monster_steals_artifact",
+        "domain:aurora_domain~cap",
+        "Retriever",
+        "of",
+        "context:trigger_relationship_target_entity_name"
+      ],
+      [
+        "when:producer=stolen_artifacts_draw_hunters",
+        "when:parent_producer=monster_steals_artifact",
+        "domain:aurora_domain~cap",
+        "Hunter",
+        "of",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:aurora_domain~cap",
+        "Defender",
+        "Against",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)",
+        "slot:aurora_hero_epithets"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)",
+        "the",
+        "slot:aurora_hero_deeds"
+      ],
+      [
+        "slot:aurora_hero_deeds",
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)"
+      ]
+    ]
+  }
+}

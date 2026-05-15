@@ -1,0 +1,75 @@
+{
+  "id": "aurora_transport_battleship",
+  "description": "Aurora names for armed transports",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "Ward",
+        "Against",
+        "context:trigger_relationship_source_entity_name",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:aurora_domain~cap",
+        "Ward",
+        "Against",
+        "context:trigger_relationship_source_entity_name",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "context:trigger_relationship_target_entity_name~poss",
+        "Escort",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:aurora_domain~cap",
+        "context:trigger_relationship_target_entity_name~poss",
+        "Escort",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Shield",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Shield",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "slot:aurora_nature~cap^-Shield",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_nature~cap^-Shield",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "Beacon",
+        "Barge",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "Beacon",
+        "Barge",
+        "(^slot:aurora_place_echoes_short^)"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "nightshelf_transport_battleship",
+  "description": "Nightshelf names for armed transports",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "Ward",
+        "∴against∴",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:nightshelf_domain~cap^~",
+        "Ward",
+        "∴against∴",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "context:trigger_relationship_target_entity_name~poss",
+        "Escort^~"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:nightshelf_domain~cap^~",
+        "context:trigger_relationship_target_entity_name~poss",
+        "Escort^~"
+      ],
+      [
+        "☽'^slot:nightshelf_darkness_source~lower^'",
+        "watch-keel^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_darkness_source~lower^'",
+        "watch-keel^~"
+      ],
+      [
+        "slot:nightshelf_rule_anchors^∴hush-guard"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_rule_anchors^∴hush-guard"
+      ],
+      [
+        "slot:nightshelf_shadow_gen~cap^∴black-bastion∴"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_shadow_gen~cap^∴black-bastion∴"
+      ]
+    ]
+  }
+}

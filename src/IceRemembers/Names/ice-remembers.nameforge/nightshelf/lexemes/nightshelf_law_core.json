@@ -1,0 +1,15 @@
+{
+  "id": "nightshelf_law_core",
+  "description": "Core Latin words for laws - symmetric double-moon pattern ☽word☽",
+  "entries": [
+    "Silentium",
+    "Vinculum",
+    "Pactum",
+    "Jugum",
+    "Nexum",
+    "Mandatum",
+    "Decretum",
+    "Edictum"
+  ],
+  "source": "manual"
+}

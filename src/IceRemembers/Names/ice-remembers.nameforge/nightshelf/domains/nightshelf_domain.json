@@ -1,0 +1,129 @@
+{
+  "id": "nightshelf_domain",
+  "phonology": {
+    "consonants": [
+      "v",
+      "s",
+      "c",
+      "m",
+      "n",
+      "l",
+      "r",
+      "t"
+    ],
+    "vowels": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "u",
+      "ae",
+      "ia"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "CVC",
+      "VC"
+    ],
+    "lengthRange": [
+      2,
+      3
+    ],
+    "favoredClusters": [
+      "ct",
+      "nt",
+      "st",
+      "sc",
+      "nc",
+      "rm",
+      "lv",
+      "rv"
+    ],
+    "forbiddenClusters": [
+      "cc",
+      "tt",
+      "ss",
+      "mm",
+      "nn",
+      "ll",
+      "rr",
+      "vv",
+      "aa",
+      "ee",
+      "ii",
+      "oo",
+      "uu"
+    ],
+    "favoredClusterBoost": 1.4,
+    "consonantWeights": [
+      1.4,
+      1.5,
+      1.3,
+      1.1,
+      1.2,
+      1.3,
+      1.2,
+      1.3
+    ],
+    "vowelWeights": [
+      1.3,
+      1.4,
+      1.3,
+      1.1,
+      1,
+      0.9,
+      0.8
+    ],
+    "templateWeights": [
+      1.4,
+      1.2,
+      0.6
+    ]
+  },
+  "morphology": {
+    "prefixes": [
+      "Umbr",
+      "Noct",
+      "Silv",
+      "Tene",
+      "Luc",
+      "Sanct"
+    ],
+    "suffixes": [
+      "us",
+      "is",
+      "a",
+      "ae",
+      "ia",
+      "um",
+      "ius"
+    ],
+    "structure": [
+      "root-suffix",
+      "prefix-root-suffix",
+      "root"
+    ],
+    "structureWeights": [
+      0.5,
+      0.35,
+      0.15
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0,
+    "hyphenRate": 0,
+    "preferredEndings": [
+      "us",
+      "is",
+      "ia",
+      "ae",
+      "um"
+    ],
+    "preferredEndingBoost": 1.6,
+    "rhythmBias": "flowing"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

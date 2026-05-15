@@ -1,0 +1,38 @@
+{
+  "id": "aurora_disaster_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Calamity"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Calamity"
+      ],
+      [
+        "slot:aurora_disaster_types",
+        "(^slot:aurora_ice_reaction^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_disaster_types",
+        "(^slot:aurora_ice_reaction^)"
+      ],
+      [
+        "slot:aurora_disaster_types",
+        "(^slot:aurora_disaster_memories^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_disaster_types",
+        "(^slot:aurora_disaster_memories^)"
+      ]
+    ]
+  }
+}

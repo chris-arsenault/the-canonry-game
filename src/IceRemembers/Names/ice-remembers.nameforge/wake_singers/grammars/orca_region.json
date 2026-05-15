@@ -1,0 +1,21 @@
+{
+  "id": "orca_region",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^grund"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-^slot:orca_territory_glyph"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-^slot:orca_territory_glyph^-^slot:orca_deed_root^maw"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

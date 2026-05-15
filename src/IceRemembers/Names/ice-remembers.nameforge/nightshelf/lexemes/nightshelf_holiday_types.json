@@ -1,0 +1,31 @@
+{
+  "id": "nightshelf_holiday_types",
+  "description": "Generated title list: types of events, celebrations, occurrences that happen in the cold ice (copied from aurora-stack)",
+  "entries": [
+    "Observance",
+    "Convocation",
+    "Vigil",
+    "Commoration",
+    "Reckoning",
+    "Anamnesis",
+    "Office",
+    "Canticle",
+    "Obsequy",
+    "Liturgy",
+    "Sacrament",
+    "Conclave",
+    "Offering",
+    "Exequy",
+    "Dirge",
+    "Invocation",
+    "Ordinance",
+    "Consecration",
+    "Communion",
+    "Judgment",
+    "Witness",
+    "Binding",
+    "Accord",
+    "Atonement"
+  ],
+  "source": "llm"
+}

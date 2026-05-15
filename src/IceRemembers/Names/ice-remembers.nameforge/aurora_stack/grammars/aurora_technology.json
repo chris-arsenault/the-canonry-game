@@ -1,0 +1,38 @@
+{
+  "id": "aurora_technology",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "The",
+        "slot:aurora_tech",
+        "slot:aurora_progress_verbs"
+      ],
+      [
+        "The",
+        "domain:aurora_domain~cap",
+        "slot:aurora_tech",
+        "slot:aurora_progress_verbs"
+      ],
+      [
+        "slot:aurora_progress_verbs",
+        "slot:aurora_tech"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_progress_verbs",
+        "slot:aurora_tech"
+      ],
+      [
+        "domain:aurora_domain_short^'s",
+        "slot:aurora_tech"
+      ],
+      [
+        "domain:aurora_domain_short^'s",
+        "slot:aurora_tech",
+        "slot:aurora_progress_verbs"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "postProcessing": {
+    "hyphenRomanization": "join_first_two"
+  },
+  "lexemeSpecs": [
+    {
+      "id": "orca_combat_actions",
+      "pos": "verb",
+      "style": "primative combat actions, things orcas do that are violent",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "orca"
+    },
+    {
+      "id": "orca_superlatives",
+      "pos": "epithet",
+      "style": "superlatives that an marital artists would like (e.g. extreme, awesome, divine)",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "orca"
+    },
+    {
+      "id": "orca_region_names",
+      "pos": "place",
+      "style": "places where orcas do things such as hunting grounds, waters, terretories. make them violent, preditorial, evil",
+      "targetCount": 20,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "orca"
+    },
+    {
+      "id": "orca_power_words",
+      "pos": "core",
+      "style": "Strength and hunting words that deal with oceans / naval predators.",
+      "wordStyle": {
+        "etymology": "germanic",
+        "syllables": {
+          "min": 1,
+          "max": 1
+        },
+        "phonetics": {
+          "consonants": "hard"
+        },
+        "dualUse": true,
+        "register": "visceral"
+      },
+      "targetCount": 50,
+      "maxWords": 1,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "orca"
+    }
+  ],
+  "id": "wake_singers",
+  "name": "Wake-Singers"
+}

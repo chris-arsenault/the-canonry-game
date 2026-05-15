@@ -1,0 +1,17 @@
+{
+  "id": "aurora_war_epithets",
+  "description": "Names for wars and major conflicts",
+  "entries": [
+    "Schism",
+    "Fracture",
+    "Sundering",
+    "Reckoning",
+    "Breach",
+    "Collapse",
+    "Upheaval",
+    "Severance",
+    "Divide",
+    "Clash"
+  ],
+  "source": "manual"
+}

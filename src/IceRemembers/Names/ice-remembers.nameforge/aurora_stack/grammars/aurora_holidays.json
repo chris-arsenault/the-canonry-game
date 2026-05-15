@@ -1,0 +1,25 @@
+{
+  "id": "aurora_holidays",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_holiday_types",
+        "of",
+        "slot:aurora_progress_verbs~ing"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_holiday_types",
+        "of",
+        "slot:aurora_progress_verbs~ing"
+      ],
+      [
+        "slot:aurora_holiday_types",
+        "for",
+        "domain:aurora_domain"
+      ]
+    ]
+  }
+}

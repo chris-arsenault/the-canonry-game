@@ -1,0 +1,44 @@
+{
+  "id": "nightshelf_monster_beast",
+  "description": "Nightshelf names for embodied beast monsters",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Beast^~"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:nightshelf_domain~cap^~",
+        "context:primary_entity_name~poss",
+        "Beast^~"
+      ],
+      [
+        "☽'^slot:nightshelf_shadow_gen",
+        "cage-beast^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_shadow_gen",
+        "cage-beast^~"
+      ],
+      [
+        "slot:nightshelf_darkness_source~cap^∴threshold-hunger"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_darkness_source~cap^∴threshold-hunger"
+      ],
+      [
+        "slot:nightshelf_rule_anchors^∴maw∴"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_rule_anchors^∴maw∴"
+      ]
+    ]
+  }
+}

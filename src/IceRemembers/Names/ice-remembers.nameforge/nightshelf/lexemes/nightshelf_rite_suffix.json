@@ -1,0 +1,13 @@
+{
+  "id": "nightshelf_rite_suffix",
+  "description": "Ecclesiastical Latin suffixes for celebrations",
+  "entries": [
+    "Consecrat",
+    "Liturg",
+    "Canticle",
+    "Vigil",
+    "Sanctum",
+    "Officium"
+  ],
+  "source": "manual"
+}

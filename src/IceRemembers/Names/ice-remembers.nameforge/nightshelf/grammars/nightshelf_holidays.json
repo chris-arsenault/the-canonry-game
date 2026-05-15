@@ -1,0 +1,43 @@
+{
+  "id": "nightshelf_holidays",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "☽'^slot:nightshelf_magic_part_a~chopL~lower^'",
+        "slot:nightshelf_holiday_types~cap"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_magic_part_a~chopL~lower^'",
+        "slot:nightshelf_holiday_types~cap"
+      ],
+      [
+        "slot:nightshelf_holiday_types~cap^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_holiday_types~cap^~"
+      ],
+      [
+        "slot:nightshelf_magic_part_c~cap^∴^slot:nightshelf_holiday_types~chopR~cap"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_magic_part_c~cap^∴^slot:nightshelf_holiday_types~chopR~cap"
+      ],
+      [
+        "The",
+        "slot:nightshelf_shadow_gen~chopL~cap^'",
+        "slot:nightshelf_holiday_types~cap"
+      ],
+      [
+        "The",
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_shadow_gen~chopL~cap^'",
+        "slot:nightshelf_holiday_types~cap"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "orca_disaster_epithets",
+  "description": "Disaster names for Orca culture",
+  "entries": [
+    "Depthquake",
+    "Stormwrack",
+    "Tidecollapse",
+    "Voidbreach",
+    "Abyssfall",
+    "Surgefury",
+    "Rendstorm",
+    "Wavecatastrophe",
+    "Deeprupture",
+    "Currentdeath"
+  ],
+  "source": "manual"
+}

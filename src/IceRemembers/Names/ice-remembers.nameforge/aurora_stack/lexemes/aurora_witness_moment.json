@@ -1,0 +1,15 @@
+{
+  "id": "aurora_witness_moment",
+  "description": "Moments when the ice witnessed laws being made - temporal markers for agreements",
+  "entries": [
+    "Dawn",
+    "Frost",
+    "Thaw",
+    "Stillness",
+    "Clear-sky",
+    "Deep-cold",
+    "First-light",
+    "Long-dark"
+  ],
+  "source": "manual"
+}

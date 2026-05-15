@@ -1,0 +1,46 @@
+{
+  "id": "wake_singers_transport_scout",
+  "description": "Wake-Singer names for scout transports",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer=war_occurrences_launch_scouts",
+        "context:primary_entity_name~poss",
+        "scout"
+      ],
+      [
+        "when:producer=war_occurrences_launch_scouts",
+        "domain:orca_domain_short",
+        "context:primary_entity_name~poss",
+        "scout"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_transport_scout_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:orca_domain_short",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_transport_scout_nouns"
+      ],
+      [
+        "slot:orca_territory_glyph^-^slot:wake_singers_transport_scout_nouns"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:wake_singers_transport_scout_nouns"
+      ],
+      [
+        "slot:orca_role_glyph^-^slot:orca_deed_root^-^slot:wake_singers_transport_scout_nouns"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_role_glyph^-^slot:orca_deed_root^-^slot:wake_singers_transport_scout_nouns"
+      ]
+    ]
+  }
+}

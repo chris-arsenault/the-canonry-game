@@ -1,0 +1,56 @@
+{
+  "id": "aurora_transport_citadel",
+  "description": "Aurora names for fortified mobile citadels",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer=trade_conferences_raise_citadels",
+        "context:primary_entity_name~poss",
+        "Citadel",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer=trade_conferences_raise_citadels",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Citadel",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Citadel",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Citadel",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "Huddle",
+        "Citadel",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "Huddle",
+        "Citadel",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "slot:aurora_nature~cap^-Hold",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_nature~cap^-Hold",
+        "(^slot:aurora_place_echoes_short^)"
+      ]
+    ]
+  }
+}

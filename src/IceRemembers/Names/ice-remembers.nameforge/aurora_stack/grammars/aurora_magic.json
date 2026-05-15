@@ -1,0 +1,18 @@
+{
+  "id": "aurora_magic",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_magic_part_a^-^slot:aurora_magic_partb",
+        "(^slot:aurora_magic_part_c^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_magic_part_a^-^slot:aurora_magic_partb",
+        "(^slot:aurora_magic_part_c^)"
+      ]
+    ]
+  }
+}

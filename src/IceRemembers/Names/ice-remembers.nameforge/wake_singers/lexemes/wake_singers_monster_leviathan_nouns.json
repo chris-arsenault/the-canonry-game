@@ -1,0 +1,17 @@
+{
+  "id": "wake_singers_monster_leviathan_nouns",
+  "description": "Wake-Singer names for abyssal or immense monsters.",
+  "entries": [
+    "deepmaw",
+    "pressuremaw",
+    "abyssjaw",
+    "voidback",
+    "blackthroat",
+    "gulletdepth",
+    "corpseheart",
+    "oldblood",
+    "redgullet",
+    "drowndeep"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_settlement_holdfast",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-holdfast"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-holdfast"
+      ],
+      [
+        "slot:orca_deed_root^-^slot:orca_territory_glyph^-wall"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-^slot:orca_territory_glyph^-wall"
+      ]
+    ]
+  }
+}

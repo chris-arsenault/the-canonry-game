@@ -1,0 +1,56 @@
+{
+  "id": "aurora_transport_scout",
+  "description": "Aurora names for survey and scout transports",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer=war_occurrences_launch_scouts",
+        "context:primary_entity_name~poss",
+        "Scout",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer=war_occurrences_launch_scouts",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Scout",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Runner",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Runner",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "Survey",
+        "Runner",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "Survey",
+        "Runner",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "slot:aurora_place_echoes_short~cap^-Lantern",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_place_echoes_short~cap^-Lantern",
+        "(^slot:aurora_place_echoes_short^)"
+      ]
+    ]
+  }
+}

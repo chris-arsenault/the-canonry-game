@@ -1,0 +1,19 @@
+{
+  "id": "aurora_instrument_nouns",
+  "description": "Penguin-specific musical instruments for Aurora Stack",
+  "entries": [
+    "glaciolin",
+    "frostflute",
+    "iceberggan",
+    "brinechimes",
+    "aurora-harp",
+    "crystalbells",
+    "shimmer-pipes",
+    "polar-lyre",
+    "dawnstrings",
+    "glowhorn",
+    "lightdrum",
+    "radiant-psaltery"
+  ],
+  "source": "manual"
+}

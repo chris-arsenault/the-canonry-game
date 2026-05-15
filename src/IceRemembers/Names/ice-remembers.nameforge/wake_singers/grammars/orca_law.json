@@ -1,0 +1,23 @@
+{
+  "id": "orca_law",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_law_words^-of^-^slot:orca_territory_glyph"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_law_words^-of^-^slot:orca_territory_glyph"
+      ],
+      [
+        "slot:orca_law_words^-as^-^slot:orca_territory_glyph"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_law_words^-as^-^slot:orca_territory_glyph"
+      ]
+    ]
+  }
+}

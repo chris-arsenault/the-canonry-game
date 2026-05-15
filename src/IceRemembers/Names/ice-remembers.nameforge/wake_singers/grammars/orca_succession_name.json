@@ -1,0 +1,23 @@
+{
+  "id": "orca_succession_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_bloodnames^-^slot:orca_warrior_ranks^-^slot:orca_occurrence_result"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_bloodnames^-^slot:orca_warrior_ranks^-^slot:orca_occurrence_result"
+      ],
+      [
+        "slot:orca_bloodnames^-^slot:orca_occurrence_result"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_bloodnames^-^slot:orca_occurrence_result"
+      ]
+    ]
+  }
+}

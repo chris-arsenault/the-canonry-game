@@ -1,0 +1,24 @@
+{
+  "id": "orca_hero_legendary",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "when:producer=stolen_artifacts_draw_hunters",
+        "when:parent_producer=monster_steals_artifact",
+        "domain:orca_domain_short",
+        "context:trigger_relationship_target_entity_name~poss",
+        "monster hunter"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:orca_deed_root^-^slot:orca_territory_glyph^-^slot:orca_role_glyph"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-^slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:orca_deed_root"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

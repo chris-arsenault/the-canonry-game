@@ -1,0 +1,15 @@
+{
+  "id": "nightshelf_rule_anchors",
+  "description": "Anchor words for rules - signals this is a law/custom (Latin-esque)",
+  "entries": [
+    "Pactum",
+    "Codex",
+    "Ritus",
+    "Lex",
+    "Votum",
+    "Foedus",
+    "Mandatum",
+    "Iudicium"
+  ],
+  "source": "manual"
+}

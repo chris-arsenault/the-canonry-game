@@ -1,0 +1,15 @@
+{
+  "id": "nightshelf_nature",
+  "description": "Light and trade words (copied from aurora-stack)",
+  "entries": [
+    "sun",
+    "light",
+    "gold",
+    "ice",
+    "trade",
+    "stack",
+    "tier",
+    "banner"
+  ],
+  "source": "manual"
+}

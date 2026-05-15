@@ -1,0 +1,36 @@
+{
+  "id": "nightshelf_magic",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "☽'^slot:nightshelf_magic_part_c",
+        "slot:nightshelf_magic_part_a^~",
+        "slot:nightshelf_magic_partb"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_magic_part_c",
+        "slot:nightshelf_magic_part_a^~",
+        "slot:nightshelf_magic_partb"
+      ],
+      [
+        "slot:nightshelf_shadow_gen~cap^☽",
+        "slot:nightshelf_magic_part_c"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_shadow_gen~cap^☽",
+        "slot:nightshelf_magic_part_c"
+      ],
+      [
+        "slot:nightshelf_magic_part_c^∴^slot:nightshelf_magic_partb"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_magic_part_c^∴^slot:nightshelf_magic_partb"
+      ]
+    ]
+  }
+}

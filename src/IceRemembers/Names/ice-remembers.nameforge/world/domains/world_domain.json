@@ -1,0 +1,57 @@
+{
+  "id": "world_domain",
+  "cultureId": "world",
+  "phonology": {
+    "consonants": [
+      "p",
+      "l",
+      "m",
+      "n",
+      "k"
+    ],
+    "vowels": [
+      "o",
+      "oo"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "VCV"
+    ],
+    "lengthRange": [
+      1,
+      4
+    ],
+    "favoredClusters": [
+      "pl"
+    ],
+    "forbiddenClusters": [
+      "ooo"
+    ],
+    "favoredClusterBoost": 1
+  },
+  "morphology": {
+    "prefixes": [],
+    "suffixes": [
+      "ion"
+    ],
+    "structure": [
+      "root",
+      "root-suffix"
+    ],
+    "structureWeights": [
+      0.5,
+      0.5
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0,
+    "hyphenRate": 0,
+    "preferredEndings": [],
+    "preferredEndingBoost": 1,
+    "rhythmBias": "neutral"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

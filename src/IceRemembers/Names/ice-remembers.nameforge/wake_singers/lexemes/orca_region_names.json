@@ -1,0 +1,27 @@
+{
+  "id": "orca_region_names",
+  "description": "Generated place list: places where orcas do things such as hunting grounds, waters, terretories. make them violent, preditorial, evil",
+  "entries": [
+    "blight",
+    "maw",
+    "fang",
+    "slaughter",
+    "deep",
+    "trench",
+    "gorge",
+    "scar",
+    "gulf",
+    "lair",
+    "warren",
+    "pit",
+    "grave",
+    "haunt",
+    "void",
+    "abyss",
+    "rend",
+    "tusk",
+    "shoal",
+    "sepulcher"
+  ],
+  "source": "llm"
+}

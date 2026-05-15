@@ -1,0 +1,249 @@
+{
+  "id": "orca_npc_names",
+  "name": "Orca NPCs",
+  "strategyGroups": [
+    {
+      "name": "Legendary Heroes",
+      "priority": 75,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [
+          "mythic"
+        ],
+        "subtypes": [
+          "bull",
+          "elder",
+          "hero",
+          "matriarch"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.7,
+          "grammarId": "orca_hero_legendary"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.3,
+          "grammarId": "orca_hero_npc"
+        }
+      ]
+    },
+    {
+      "name": "Heroes",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "bull",
+          "elder",
+          "hero",
+          "matriarch"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.6,
+          "grammarId": "orca_hero_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.4,
+          "grammarId": "orca_hero_legendary"
+        }
+      ]
+    },
+    {
+      "name": "Chieftains and Mayors",
+      "priority": 68,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "elder",
+          "matriarch",
+          "mayor"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.7,
+          "grammarId": "orca_chieftain_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.3,
+          "grammarId": "orca_hero_npc"
+        }
+      ]
+    },
+    {
+      "name": "Merchants",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "merchant",
+          "scout"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.7,
+          "grammarId": "orca_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.3,
+          "grammarId": "orca_npc_deed"
+        }
+      ]
+    },
+    {
+      "name": "Outlaws and Criminals",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "bull",
+          "outlaw"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.8,
+          "grammarId": "orca_outlaw_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.2,
+          "grammarId": "orca_npc"
+        }
+      ]
+    },
+    {
+      "name": "Elite NPCs",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [
+          "mythic",
+          "renowned"
+        ],
+        "subtypes": [
+          "bull",
+          "elder",
+          "matriarch"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.5,
+          "grammarId": "orca_hero_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.5,
+          "grammarId": "orca_npc"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_region"
+        }
+      ]
+    },
+    {
+      "name": "Default NPC Names",
+      "priority": 0,
+      "conditions": {
+        "entityKinds": [
+          "orca"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.5,
+          "grammarId": "orca_npc"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.35,
+          "grammarId": "orca_npc_deed"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.15,
+          "grammarId": "orca_npc_regional"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "orca"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "aurora_compact_type",
+  "description": "How the ice sealed or witnessed an agreement",
+  "entries": [
+    "witnessed",
+    "sealed",
+    "spoken",
+    "held",
+    "bound",
+    "marked",
+    "kept"
+  ],
+  "source": "manual"
+}

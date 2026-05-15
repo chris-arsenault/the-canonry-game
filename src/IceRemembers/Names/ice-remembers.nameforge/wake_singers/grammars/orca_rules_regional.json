@@ -1,0 +1,33 @@
+{
+  "id": "orca_rules_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "context:region^'s",
+        "slot:orca_power_words",
+        "Law"
+      ],
+      [
+        "domain:orca_domain_short",
+        "context:region^'s",
+        "slot:orca_power_words",
+        "Law"
+      ],
+      [
+        "The",
+        "slot:orca_power_words",
+        "Code of",
+        "context:region"
+      ],
+      [
+        "The",
+        "domain:orca_domain_short",
+        "slot:orca_power_words",
+        "Code of",
+        "context:region"
+      ]
+    ]
+  }
+}

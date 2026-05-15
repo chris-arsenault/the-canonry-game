@@ -1,0 +1,44 @@
+{
+  "id": "nightshelf_hero_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "when:producer=stolen_artifacts_draw_hunters",
+        "when:parent_producer=monster_steals_artifact",
+        "domain:nightshelf_domain~cap^~",
+        "Retriever",
+        "of",
+        "context:trigger_relationship_target_entity_name"
+      ],
+      [
+        "when:producer=stolen_artifacts_draw_hunters",
+        "when:parent_producer=monster_steals_artifact",
+        "domain:nightshelf_domain~cap^~",
+        "Hunter",
+        "of",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:nightshelf_domain~cap^~",
+        "Defender",
+        "Against",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "☽'^domain:nightshelf_domain",
+        "slot:nightshelf_hero_epithets"
+      ],
+      [
+        "slot:nightshelf_hero_epithets^,",
+        "domain:nightshelf_domain^~"
+      ],
+      [
+        "domain:nightshelf_domain^~",
+        "slot:nightshelf_latin_titles"
+      ]
+    ]
+  }
+}

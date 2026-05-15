@@ -1,0 +1,29 @@
+{
+  "id": "nightshelf_faction_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "☽'^context:region^'",
+        "slot:nightshelf_faction_groups"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^context:region^'",
+        "slot:nightshelf_faction_groups"
+      ],
+      [
+        "slot:nightshelf_faction_groups^☽",
+        "of",
+        "context:region"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_faction_groups^☽",
+        "of",
+        "context:region"
+      ]
+    ]
+  }
+}

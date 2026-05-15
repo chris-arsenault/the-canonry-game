@@ -1,0 +1,62 @@
+{
+  "id": "orca_meta_ability",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "The",
+        "slot:orca_prey_glyph~cap^-^slot:orca_territory_glyph",
+        "School"
+      ],
+      [
+        "The",
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph~cap^-^slot:orca_territory_glyph",
+        "School"
+      ],
+      [
+        "slot:orca_deed_root~cap^-^slot:orca_prey_glyph",
+        "Tradition"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root~cap^-^slot:orca_prey_glyph",
+        "Tradition"
+      ],
+      [
+        "Way of the",
+        "slot:orca_territory_glyph~cap",
+        "slot:orca_prey_glyph~cap^s"
+      ],
+      [
+        "domain:orca_domain_short",
+        "Way of the",
+        "slot:orca_territory_glyph~cap",
+        "slot:orca_prey_glyph~cap^s"
+      ],
+      [
+        "The",
+        "slot:orca_deed_root~cap^-^slot:orca_territory_glyph^-blood",
+        "Arts"
+      ],
+      [
+        "The",
+        "domain:orca_domain_short",
+        "slot:orca_deed_root~cap^-^slot:orca_territory_glyph^-blood",
+        "Arts"
+      ],
+      [
+        "slot:orca_prey_glyph~cap",
+        "slot:orca_deed_root~cap^-masters'",
+        "Path"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph~cap",
+        "slot:orca_deed_root~cap^-masters'",
+        "Path"
+      ]
+    ]
+  }
+}

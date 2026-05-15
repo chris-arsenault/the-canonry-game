@@ -1,0 +1,34 @@
+{
+  "id": "orca_disaster_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:orca_disaster_suffix"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:orca_domain_short",
+        "context:primary_entity_name~poss",
+        "slot:orca_disaster_suffix"
+      ],
+      [
+        "slot:orca_disaster_prefix^-^slot:orca_disaster_suffix^-^slot:orca_occurrence_result"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_disaster_prefix^-^slot:orca_disaster_suffix^-^slot:orca_occurrence_result"
+      ],
+      [
+        "slot:orca_disaster_prefix^-^slot:orca_occurrence_result"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_disaster_prefix^-^slot:orca_occurrence_result"
+      ]
+    ]
+  }
+}

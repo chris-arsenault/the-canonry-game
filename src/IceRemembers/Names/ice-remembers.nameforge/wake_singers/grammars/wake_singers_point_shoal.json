@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_point_shoal",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-shoal"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-shoal"
+      ],
+      [
+        "slot:orca_prey_glyph^-deathshoal"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-deathshoal"
+      ]
+    ]
+  }
+}

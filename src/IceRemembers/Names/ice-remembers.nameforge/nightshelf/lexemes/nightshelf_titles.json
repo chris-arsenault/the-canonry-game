@@ -1,0 +1,11 @@
+{
+  "id": "nightshelf_titles",
+  "description": "Nightshelf honorifics",
+  "entries": [
+    "Shadow-Broker",
+    "Fissure-Walker",
+    "Night-Warden",
+    "Veil-Keeper"
+  ],
+  "source": "manual"
+}

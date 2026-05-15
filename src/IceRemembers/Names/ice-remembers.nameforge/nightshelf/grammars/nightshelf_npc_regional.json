@@ -1,0 +1,18 @@
+{
+  "id": "nightshelf_npc_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "☽'^domain:nightshelf_domain",
+        "context:region^'born"
+      ],
+      [
+        "domain:nightshelf_domain^~",
+        "of",
+        "☽'^context:region"
+      ]
+    ]
+  }
+}

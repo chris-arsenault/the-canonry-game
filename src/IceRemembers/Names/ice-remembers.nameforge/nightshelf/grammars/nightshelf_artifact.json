@@ -1,0 +1,39 @@
+{
+  "id": "nightshelf_artifact",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:nightshelf_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:nightshelf_domain~cap^~",
+        "context:primary_entity_name~poss",
+        "slot:nightshelf_artifact_nouns"
+      ],
+      [
+        "The",
+        "slot:nightshelf_shadow_gen^ed^~",
+        "slot:nightshelf_artifact_nouns"
+      ],
+      [
+        "The",
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_shadow_gen^ed^~",
+        "slot:nightshelf_artifact_nouns"
+      ],
+      [
+        "slot:nightshelf_artifact_nouns^☽",
+        "domain:nightshelf_domain~cap^~"
+      ],
+      [
+        "☽'^domain:nightshelf_domain~lower^'",
+        "slot:nightshelf_artifact_nouns~cap"
+      ]
+    ]
+  }
+}

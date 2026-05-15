@@ -1,0 +1,15 @@
+{
+  "id": "nightshelf_communion_type",
+  "description": "Types of communion/gathering for social rules",
+  "entries": [
+    "murmur",
+    "circle",
+    "rite",
+    "bond",
+    "vigil",
+    "whisper",
+    "communion",
+    "accord"
+  ],
+  "source": "manual"
+}

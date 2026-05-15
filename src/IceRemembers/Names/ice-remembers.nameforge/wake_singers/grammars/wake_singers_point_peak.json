@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_point_peak",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-peak"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-peak"
+      ],
+      [
+        "slot:orca_prey_glyph^-icepeak"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-icepeak"
+      ]
+    ]
+  }
+}

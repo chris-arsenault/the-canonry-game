@@ -1,0 +1,63 @@
+{
+  "id": "wake_singers_transport_battleship",
+  "description": "Wake-Singer names for battleship transports",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "ward",
+        "against",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:orca_domain_short",
+        "ward",
+        "against",
+        "context:trigger_relationship_source_entity_name"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "context:trigger_relationship_target_entity_name~poss",
+        "escort"
+      ],
+      [
+        "when:producer=orca_route_wars_get_names",
+        "when:parent_producer=orca_raids_trade_route",
+        "domain:orca_domain_short",
+        "context:trigger_relationship_target_entity_name~poss",
+        "escort"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_transport_battle_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:orca_domain_short",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_transport_battle_nouns"
+      ],
+      [
+        "slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:wake_singers_transport_battle_nouns"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:wake_singers_transport_battle_nouns"
+      ],
+      [
+        "slot:orca_territory_glyph^-^slot:wake_singers_transport_battle_nouns"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:wake_singers_transport_battle_nouns"
+      ]
+    ]
+  }
+}

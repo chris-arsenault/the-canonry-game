@@ -1,0 +1,28 @@
+{
+  "id": "aurora_faction",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_faction_groups",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "The",
+        "slot:aurora_faction_groups",
+        "(^slot:aurora_gen_trade^-bound)"
+      ],
+      [
+        "The",
+        "domain:aurora_domain~cap",
+        "slot:aurora_faction_groups",
+        "(^slot:aurora_gen_trade^-bound)"
+      ],
+      [
+        "domain:aurora_domain_short~cap^'^slot:aurora_faction_groups"
+      ]
+    ]
+  }
+}

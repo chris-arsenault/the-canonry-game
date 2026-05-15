@@ -1,0 +1,48 @@
+{
+  "id": "aurora_transport",
+  "description": "Ice Remembers transport names",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:aurora_transport_nouns~cap",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "slot:aurora_transport_nouns~cap",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "slot:aurora_gen_trade~cap",
+        "slot:aurora_transport_nouns~cap",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_gen_trade~cap",
+        "slot:aurora_transport_nouns~cap",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain_short~cap^'s",
+        "slot:aurora_transport_nouns~cap",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "slot:aurora_nature~cap^-^slot:aurora_transport_nouns",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_nature~cap^-^slot:aurora_transport_nouns",
+        "(^slot:aurora_place_echoes_short^)"
+      ]
+    ]
+  }
+}

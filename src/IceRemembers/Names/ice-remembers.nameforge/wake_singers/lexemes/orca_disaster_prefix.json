@@ -1,0 +1,14 @@
+{
+  "id": "orca_disaster_prefix",
+  "description": "Nature/element prefixes for orca disaster names",
+  "entries": [
+    "Depth",
+    "Tide",
+    "Current",
+    "Abyss",
+    "Storm",
+    "Wave",
+    "Deep"
+  ],
+  "source": "manual"
+}

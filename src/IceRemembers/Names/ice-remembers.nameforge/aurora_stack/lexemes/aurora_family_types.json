@@ -1,0 +1,12 @@
+{
+  "id": "aurora_family_types",
+  "description": "Generated collective list: types of family units appropriate for a penguin (e.g. clan, herd)",
+  "entries": [
+    "rookery",
+    "waddle",
+    "floe",
+    "huddle",
+    "ice-pack"
+  ],
+  "source": "llm"
+}

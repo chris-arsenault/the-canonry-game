@@ -1,0 +1,23 @@
+{
+  "id": "nightshelf_law_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_law_core~chopL"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_law_core~chopL"
+      ],
+      [
+        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_law_core~chopR"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_law_core~chopR"
+      ]
+    ]
+  }
+}

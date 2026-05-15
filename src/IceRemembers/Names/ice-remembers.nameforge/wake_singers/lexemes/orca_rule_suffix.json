@@ -1,0 +1,15 @@
+{
+  "id": "orca_rule_suffix",
+  "description": "Suffix words for rules - signals this is a law/code",
+  "entries": [
+    "way",
+    "code",
+    "law",
+    "rite",
+    "pact",
+    "oath",
+    "bond",
+    "rule"
+  ],
+  "source": "manual"
+}

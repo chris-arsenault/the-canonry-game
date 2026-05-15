@@ -1,0 +1,19 @@
+{
+  "id": "aurora_place_echoes_short",
+  "description": "Compact ice-memory annotations for map labels and other space-sensitive place names.",
+  "entries": [
+    "sun",
+    "kept",
+    "trade",
+    "frost",
+    "light",
+    "tide",
+    "old",
+    "warm",
+    "star",
+    "sung",
+    "scar",
+    "seen"
+  ],
+  "source": "manual"
+}

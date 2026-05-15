@@ -1,0 +1,15 @@
+{
+  "id": "aurora_warmth_source",
+  "description": "What brings warmth to the huddle - sources of community joy",
+  "entries": [
+    "Feast",
+    "Song",
+    "Share",
+    "Gift",
+    "Return",
+    "Light",
+    "Dance",
+    "Trade"
+  ],
+  "source": "manual"
+}

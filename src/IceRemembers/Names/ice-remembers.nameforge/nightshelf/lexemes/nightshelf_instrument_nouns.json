@@ -1,0 +1,19 @@
+{
+  "id": "nightshelf_instrument_nouns",
+  "description": "Penguin-specific musical instruments for Nightshelf",
+  "entries": [
+    "shadowpipes",
+    "cryptchimes",
+    "voidharp",
+    "dusklute",
+    "hollowdrum",
+    "murkhorn",
+    "gloomstrings",
+    "twilight-bells",
+    "wraithfiddle",
+    "bone-flute",
+    "whisper-organ",
+    "nightfall-psaltery"
+  ],
+  "source": "manual"
+}

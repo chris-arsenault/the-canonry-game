@@ -1,0 +1,56 @@
+{
+  "id": "orca_artifact",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:orca_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:orca_domain_short",
+        "context:primary_entity_name~poss",
+        "slot:orca_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:secondary_entity_name~poss",
+        "slot:orca_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:orca_domain_short",
+        "context:secondary_entity_name~poss",
+        "slot:orca_artifact_nouns"
+      ],
+      [
+        "slot:orca_prey_glyph^-^slot:orca_deed_root^-tooth"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-^slot:orca_deed_root^-tooth"
+      ],
+      [
+        "slot:orca_deed_root^-^slot:orca_territory_glyph^-bone"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-^slot:orca_territory_glyph^-bone"
+      ],
+      [
+        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-claw"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-claw"
+      ],
+      [
+        "domain:orca_domain_short^'s",
+        "slot:orca_artifact_nouns"
+      ]
+    ]
+  }
+}

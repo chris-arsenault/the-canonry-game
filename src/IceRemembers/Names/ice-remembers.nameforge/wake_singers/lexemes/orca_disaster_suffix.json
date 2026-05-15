@@ -1,0 +1,14 @@
+{
+  "id": "orca_disaster_suffix",
+  "description": "Destruction suffixes for orca disaster names",
+  "entries": [
+    "quake",
+    "collapse",
+    "fall",
+    "death",
+    "breach",
+    "fury",
+    "rupture"
+  ],
+  "source": "manual"
+}

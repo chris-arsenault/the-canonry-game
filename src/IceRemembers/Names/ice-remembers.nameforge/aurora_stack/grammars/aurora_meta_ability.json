@@ -1,0 +1,76 @@
+{
+  "id": "aurora_meta_ability",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "The",
+        "tradition",
+        "Way of the",
+        "slot:aurora_magic_part_a~cap",
+        "slot:aurora_magic_part_c~cap"
+      ],
+      [
+        "The",
+        "domain:aurora_domain~cap",
+        "tradition",
+        "Way of the",
+        "slot:aurora_magic_part_a~cap",
+        "slot:aurora_magic_part_c~cap"
+      ],
+      [
+        "tradition",
+        "slot:aurora_magic_part_a~cap^-^slot:aurora_magic_partb~er",
+        "Discipline"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "tradition",
+        "slot:aurora_magic_part_a~cap^-^slot:aurora_magic_partb~er",
+        "Discipline"
+      ],
+      [
+        "The",
+        "slot:aurora_magic_part_c~cap",
+        "School"
+      ],
+      [
+        "The",
+        "domain:aurora_domain~cap",
+        "slot:aurora_magic_part_c~cap",
+        "School"
+      ],
+      [
+        "tradition",
+        "slot:aurora_place_echoes~cap",
+        "Arts"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "tradition",
+        "slot:aurora_place_echoes~cap",
+        "Arts"
+      ],
+      [
+        "Path of",
+        "slot:aurora_magic_partb~ing",
+        "slot:aurora_magic_part_c~cap"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "Path of",
+        "slot:aurora_magic_partb~ing",
+        "slot:aurora_magic_part_c~cap"
+      ]
+    ],
+    "tradition": [
+      [
+        "domain:aurora_domain~cap^'^s"
+      ],
+      [
+        ""
+      ]
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_whisper_roots",
+  "description": "Core Latin-ish shadow and mystery word roots",
+  "entries": [
+    "umbra",
+    "nox",
+    "tenebr",
+    "vesper",
+    "crypt",
+    "oss",
+    "morb",
+    "fusc",
+    "vel",
+    "obscur",
+    "nebul",
+    "phantasm",
+    "spect",
+    "larv",
+    "livor"
+  ],
+  "source": "manual"
+}

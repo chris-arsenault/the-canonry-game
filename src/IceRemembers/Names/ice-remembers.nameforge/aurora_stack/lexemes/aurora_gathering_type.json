@@ -1,0 +1,14 @@
+{
+  "id": "aurora_gathering_type",
+  "description": "Types of social gatherings - how the community comes together",
+  "entries": [
+    "huddle",
+    "circle",
+    "kindling",
+    "chorus",
+    "tide",
+    "ring",
+    "warm"
+  ],
+  "source": "manual"
+}

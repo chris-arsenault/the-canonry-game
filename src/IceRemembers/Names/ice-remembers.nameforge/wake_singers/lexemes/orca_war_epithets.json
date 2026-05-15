@@ -1,0 +1,17 @@
+{
+  "id": "orca_war_epithets",
+  "description": "War and conflict names for Orca",
+  "entries": [
+    "Bloodtide",
+    "Gorewake",
+    "Rendstorm",
+    "Crushfall",
+    "Mawstrike",
+    "Fangwar",
+    "Devourfall",
+    "Ravageflux",
+    "Surgeclash",
+    "Tidesunder"
+  ],
+  "source": "manual"
+}

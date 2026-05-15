@@ -1,0 +1,14 @@
+{
+  "id": "nightshelf_depth_prefix",
+  "description": "Depth/rupture Latin prefixes for disaster names",
+  "entries": [
+    "Profundis",
+    "Abyssus",
+    "Rupta",
+    "Fracta",
+    "Vorax",
+    "Cavum",
+    "Imum"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,57 @@
+{
+  "id": "aurora_artifact",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:aurora_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "slot:aurora_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:secondary_entity_name~poss",
+        "slot:aurora_artifact_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:secondary_entity_name~poss",
+        "slot:aurora_artifact_nouns"
+      ],
+      [
+        "The",
+        "slot:aurora_artifact_modifiers",
+        "slot:aurora_artifact_nouns"
+      ],
+      [
+        "The",
+        "domain:aurora_domain~cap",
+        "slot:aurora_artifact_modifiers",
+        "slot:aurora_artifact_nouns"
+      ],
+      [
+        "slot:aurora_artifact_nouns",
+        "of",
+        "slot:aurora_gen_nouns"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_artifact_nouns",
+        "of",
+        "slot:aurora_gen_nouns"
+      ],
+      [
+        "domain:aurora_domain_short^'s",
+        "slot:aurora_artifact_nouns"
+      ]
+    ]
+  }
+}

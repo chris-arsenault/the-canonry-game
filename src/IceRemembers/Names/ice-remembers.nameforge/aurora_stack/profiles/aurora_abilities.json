@@ -1,0 +1,108 @@
+{
+  "id": "aurora_abilities",
+  "strategyGroups": [
+    {
+      "name": "Meta-Entity Schools",
+      "priority": 80,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [
+          "meta-entity"
+        ],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_meta_ability"
+        }
+      ]
+    },
+    {
+      "name": "Magic",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "magic",
+          "rite"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_magic"
+        }
+      ]
+    },
+    {
+      "name": "Technology",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "craft",
+          "technology"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_technology"
+        }
+      ]
+    },
+    {
+      "name": "Combat",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "combat",
+          "technique"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.5,
+          "grammarId": "aurora_technology"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.5,
+          "grammarId": "aurora_magic"
+        }
+      ]
+    }
+  ],
+  "entityKinds": [
+    "ability"
+  ]
+}

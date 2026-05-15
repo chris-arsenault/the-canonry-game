@@ -1,0 +1,18 @@
+{
+  "id": "orca_artifact_nouns",
+  "description": "Artifact-related nouns for Orca",
+  "entries": [
+    "fang",
+    "tooth",
+    "bone",
+    "skull",
+    "talon",
+    "spine",
+    "trophy",
+    "war-horn",
+    "blood-stone",
+    "death-mark",
+    "hunters-prize"
+  ],
+  "source": "manual"
+}

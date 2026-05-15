@@ -1,0 +1,29 @@
+{
+  "id": "aurora_rules_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "context:region^'",
+        "slot:aurora_law_terms",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "context:region^'",
+        "slot:aurora_law_terms",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "slot:aurora_law_terms",
+        "(^context:region^-sworn)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_law_terms",
+        "(^context:region^-sworn)"
+      ]
+    ]
+  }
+}

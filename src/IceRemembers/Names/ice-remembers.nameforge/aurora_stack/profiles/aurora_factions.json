@@ -1,0 +1,59 @@
+{
+  "id": "aurora_factions",
+  "name": "Aurora Default",
+  "strategyGroups": [
+    {
+      "name": "Faction Names",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "faction"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.85,
+          "grammarId": "aurora_faction"
+        },
+        {
+          "type": "grammar",
+          "weight": 0.15,
+          "grammarId": "aurora_faction_regional"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "faction"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_region"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "faction"
+  ]
+}

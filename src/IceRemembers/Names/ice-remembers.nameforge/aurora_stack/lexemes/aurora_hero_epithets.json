@@ -1,0 +1,22 @@
+{
+  "id": "aurora_hero_epithets",
+  "description": "Grandiose epithets preceding hero names",
+  "entries": [
+    "the Undaunted",
+    "the Radiant",
+    "the Unyielding",
+    "the Frostborn",
+    "the Eternal",
+    "the Shimmering",
+    "the Resolute",
+    "the Icebound",
+    "the Gilded",
+    "the Ascendant",
+    "Ever-Vigilant",
+    "Star-Touched",
+    "Twice-Blessed",
+    "the Unbroken",
+    "the Luminous"
+  ],
+  "source": "manual"
+}

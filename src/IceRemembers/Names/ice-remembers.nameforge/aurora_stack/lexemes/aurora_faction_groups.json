@@ -1,0 +1,32 @@
+{
+  "id": "aurora_faction_groups",
+  "description": "Generated collective list: groups of people, organizations, plurals. ethereal in nature, trade focused, ice and gold.",
+  "entries": [
+    "Frostlings",
+    "Covenant",
+    "Spire",
+    "Auryn",
+    "Threshold",
+    "Syndicate",
+    "Nexus",
+    "Glacialite",
+    "Vault",
+    "Order",
+    "Luminarch",
+    "Frosthold",
+    "Meridian",
+    "Bastion",
+    "Silvarch",
+    "Tribunal",
+    "Aether-Conclave",
+    "Citadel",
+    "Aureate",
+    "Compact",
+    "Pinnacle",
+    "Cryarch-wright",
+    "Collective",
+    "Crescent",
+    "Glaciery"
+  ],
+  "source": "llm"
+}

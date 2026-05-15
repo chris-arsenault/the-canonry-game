@@ -1,0 +1,32 @@
+{
+  "id": "nightshelf_point_vent",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "☽'^slot:nightshelf_darkness_source~lower",
+        "fire-vent^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_darkness_source~lower",
+        "fire-vent^~"
+      ],
+      [
+        "slot:nightshelf_rule_anchors^∴vent"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_rule_anchors^∴vent"
+      ],
+      [
+        "slot:nightshelf_shadow_gen~cap^∴warm-fissure"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_shadow_gen~cap^∴warm-fissure"
+      ]
+    ]
+  }
+}

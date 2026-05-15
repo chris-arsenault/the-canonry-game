@@ -1,0 +1,22 @@
+{
+  "id": "aurora_merchant_ranks",
+  "description": "Trade-specific honorifics and ranks for merchant NPCs",
+  "entries": [
+    "Factor",
+    "Assessor",
+    "Comptroller",
+    "Bursar",
+    "Steward",
+    "Purser",
+    "Tallyman",
+    "Weighmaster",
+    "Vault-Keeper",
+    "Ledger-Warden",
+    "Coin-Counter",
+    "Trade-Arbiter",
+    "Gilt-Hand",
+    "Scale-Master",
+    "Tithe-Keeper"
+  ],
+  "source": "manual"
+}

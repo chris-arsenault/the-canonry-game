@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_criminal_epithets",
+  "description": "Epithets for criminal and outlaw NPCs",
+  "entries": [
+    "the Unseen",
+    "Void-touched",
+    "the Silent",
+    "Shadow-sworn",
+    "the Nameless",
+    "Fissure-born",
+    "the Faceless",
+    "Glow-drinker",
+    "the Hollow",
+    "Veil-piercer",
+    "the Forgotten",
+    "Night-walker",
+    "the Erased",
+    "Crypt-keeper",
+    "the Phantom"
+  ],
+  "source": "manual"
+}

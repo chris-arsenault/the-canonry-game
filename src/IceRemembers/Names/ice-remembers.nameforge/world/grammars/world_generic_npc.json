@@ -1,0 +1,20 @@
+{
+  "id": "world_generic_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "domain:world_domain"
+      ],
+      [
+        "slot:world_generic_titles",
+        "domain:world_domain"
+      ],
+      [
+        "domain:world_domain",
+        "slot:world_generic_epithets"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

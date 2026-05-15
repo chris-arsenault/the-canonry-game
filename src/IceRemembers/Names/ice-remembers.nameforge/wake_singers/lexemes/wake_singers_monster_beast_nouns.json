@@ -1,0 +1,17 @@
+{
+  "id": "wake_singers_monster_beast_nouns",
+  "description": "Wake-Singer names for embodied hunting beasts.",
+  "entries": [
+    "crackjaw",
+    "hookspine",
+    "coldtooth",
+    "thawbeast",
+    "frostgut",
+    "blackfin",
+    "bonewake",
+    "killscar",
+    "riftmouth",
+    "woundreef"
+  ],
+  "source": "manual"
+}

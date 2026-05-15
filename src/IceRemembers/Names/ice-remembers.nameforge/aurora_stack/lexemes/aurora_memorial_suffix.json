@@ -1,0 +1,14 @@
+{
+  "id": "aurora_memorial_suffix",
+  "description": "Suffixes for memorials - ways of remembering",
+  "entries": [
+    "Vigil",
+    "Remembrance",
+    "Watch",
+    "Flame",
+    "Light",
+    "Memory",
+    "Honor"
+  ],
+  "source": "manual"
+}

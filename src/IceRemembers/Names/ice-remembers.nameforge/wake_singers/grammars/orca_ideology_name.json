@@ -1,0 +1,23 @@
+{
+  "id": "orca_ideology_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_power_words^-^slot:orca_superlatives^-^slot:orca_rule_suffix"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_power_words^-^slot:orca_superlatives^-^slot:orca_rule_suffix"
+      ],
+      [
+        "slot:orca_power_words^-^slot:orca_rule_suffix"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_power_words^-^slot:orca_rule_suffix"
+      ]
+    ]
+  }
+}

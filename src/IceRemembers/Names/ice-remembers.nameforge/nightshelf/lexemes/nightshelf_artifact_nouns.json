@@ -1,0 +1,19 @@
+{
+  "id": "nightshelf_artifact_nouns",
+  "description": "Artifact-related nouns for Nightshelf",
+  "entries": [
+    "mask",
+    "veil",
+    "dagger",
+    "lantern",
+    "grimoire",
+    "skull",
+    "chain",
+    "shroud",
+    "whisper-blade",
+    "shadow-glass",
+    "bone-key",
+    "crypt-seal"
+  ],
+  "source": "manual"
+}

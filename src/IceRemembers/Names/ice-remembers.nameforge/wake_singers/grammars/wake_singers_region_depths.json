@@ -1,0 +1,30 @@
+{
+  "id": "wake_singers_region_depths",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-depth"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-depth"
+      ],
+      [
+        "slot:wake_singers_monster_leviathan_nouns^-depth"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:wake_singers_monster_leviathan_nouns^-depth"
+      ],
+      [
+        "slot:orca_prey_glyph^-deep"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-deep"
+      ]
+    ]
+  }
+}

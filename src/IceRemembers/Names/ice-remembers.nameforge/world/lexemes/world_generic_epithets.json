@@ -1,0 +1,17 @@
+{
+  "id": "world_generic_epithets",
+  "description": "Generic epithets for notable figures",
+  "entries": [
+    "the Great",
+    "the Wise",
+    "the Bold",
+    "the Swift",
+    "the Silent",
+    "the Steadfast",
+    "the Unbroken",
+    "the Eternal",
+    "the First",
+    "the Last"
+  ],
+  "source": "manual"
+}

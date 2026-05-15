@@ -1,0 +1,20 @@
+{
+  "id": "aurora_npc_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)",
+        "of",
+        "context:region"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)",
+        "slot:aurora_clan_markers^'^context:region"
+      ]
+    ]
+  }
+}

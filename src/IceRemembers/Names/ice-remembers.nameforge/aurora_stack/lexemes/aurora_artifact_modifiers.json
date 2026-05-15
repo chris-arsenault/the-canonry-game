@@ -1,0 +1,18 @@
+{
+  "id": "aurora_artifact_modifiers",
+  "description": "Modifiers for Aurora artifacts",
+  "entries": [
+    "eternal",
+    "frozen",
+    "radiant",
+    "celestial",
+    "gilded",
+    "ancient",
+    "crystalline",
+    "luminous",
+    "sacred",
+    "pristine",
+    "aurora-forged"
+  ],
+  "source": "manual"
+}

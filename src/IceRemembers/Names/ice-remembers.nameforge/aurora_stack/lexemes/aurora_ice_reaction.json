@@ -1,0 +1,17 @@
+{
+  "id": "aurora_ice_reaction",
+  "description": "How the ice REACTED emotionally to events - for occurrence echoes. Distinct from trait echoes.",
+  "entries": [
+    "ice-wept",
+    "ice-screamed",
+    "ice-shattered",
+    "ice-mourned",
+    "ice-raged",
+    "ice-trembled",
+    "ice-cracked",
+    "berg-split",
+    "frost-wailed",
+    "cold-grieved"
+  ],
+  "source": "manual"
+}

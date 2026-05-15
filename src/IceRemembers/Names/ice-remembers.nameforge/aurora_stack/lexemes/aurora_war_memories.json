@@ -1,0 +1,14 @@
+{
+  "id": "aurora_war_memories",
+  "description": "What the ice remembers about wars - parenthetical annotations for conflict names",
+  "entries": [
+    "ice-remembered",
+    "blood-marked",
+    "strife-witnessed",
+    "conflict-scarred",
+    "war-echoed",
+    "battle-frozen",
+    "fury-held"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,247 @@
+{
+  "id": "aurora_locations",
+  "name": "Aurora Default",
+  "strategyGroups": [
+    {
+      "name": "Trade Transport Names",
+      "priority": 92,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "trade"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_transport_trade",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Armed Transport Names",
+      "priority": 91,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "battleship"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_transport_battleship",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Scout Transport Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "scout"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_transport_scout",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Citadel Transport Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "citadel"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_transport_citadel",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Transport Names",
+      "priority": 80,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_transport",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 75,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_region",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Settlement Names",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_location",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Point Names",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_location",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Location Names",
+      "priority": 40,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest",
+          "region",
+          "settlement",
+          "transport"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_location"
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest",
+          "region",
+          "settlement",
+          "transport"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_region"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "point_of_interest",
+    "region",
+    "settlement",
+    "transport"
+  ]
+}

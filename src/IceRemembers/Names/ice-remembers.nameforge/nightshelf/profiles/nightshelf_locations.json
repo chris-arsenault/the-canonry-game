@@ -1,0 +1,631 @@
+{
+  "id": "nightshelf_locations",
+  "name": "Nightshelf Locations",
+  "strategyGroups": [
+    {
+      "name": "Trade Transport Names",
+      "priority": 95,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "trade"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_transport_trade",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Armed Transport Names",
+      "priority": 94,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "battleship"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_transport_battleship",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Scout Transport Names",
+      "priority": 93,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "scout"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_transport_scout",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Citadel Transport Names",
+      "priority": 92,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [
+          "citadel"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_transport_citadel",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Face Region Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "face"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region_face",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Shelf Region Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "shelf"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region_shelf",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Depth Region Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "depths"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region_depths",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Reach Region Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "reach"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region_reach",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Sea Region Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "sea"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region_sea",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Scar Region Names",
+      "priority": 89,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "scar"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region_scar",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Rookery Settlement Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [
+          "rookery"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_settlement_rookery",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Colony Settlement Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [
+          "colony"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_settlement_colony",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Holdfast Settlement Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [
+          "holdfast"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_settlement_holdfast",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Sanctuary Settlement Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [
+          "sanctuary"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_settlement_sanctuary",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Harbor Settlement Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [
+          "harbor"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_settlement_harbor",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Reefhold Settlement Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [
+          "reefhold"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_settlement_reefhold",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Vent Point Names",
+      "priority": 87,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "vent"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_point_vent",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Peak Point Names",
+      "priority": 87,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "peak"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_point_peak",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Bloom Point Names",
+      "priority": 87,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "bloom"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_point_bloom",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Shoal Point Names",
+      "priority": 87,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "shoal"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_point_shoal",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Transport Names",
+      "priority": 80,
+      "conditions": {
+        "entityKinds": [
+          "transport"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_transport",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 75,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_region",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Settlement Names",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "settlement"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_location",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Point Names",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_location",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Region Names",
+      "priority": 50,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest",
+          "region",
+          "settlement",
+          "transport"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "region"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "phonotactic",
+          "weight": 1,
+          "domainId": "nightshelf_domain"
+        }
+      ]
+    },
+    {
+      "name": "Location Names",
+      "priority": 0,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest",
+          "region",
+          "settlement",
+          "transport"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "nightshelf_location"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "point_of_interest",
+    "region",
+    "settlement",
+    "transport"
+  ]
+}

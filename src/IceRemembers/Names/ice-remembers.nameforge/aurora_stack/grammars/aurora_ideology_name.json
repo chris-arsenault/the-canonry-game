@@ -1,0 +1,25 @@
+{
+  "id": "aurora_ideology_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_ice_truths^-^slot:aurora_rule_mandate"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_ice_truths^-^slot:aurora_rule_mandate"
+      ],
+      [
+        "slot:aurora_ice_truths",
+        "slot:aurora_rule_mandate"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_ice_truths",
+        "slot:aurora_rule_mandate"
+      ]
+    ]
+  }
+}

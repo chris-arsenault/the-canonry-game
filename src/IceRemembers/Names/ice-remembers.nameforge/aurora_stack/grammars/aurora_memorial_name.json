@@ -1,0 +1,25 @@
+{
+  "id": "aurora_memorial_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_hero_deed^-^slot:aurora_memorial_suffix"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_hero_deed^-^slot:aurora_memorial_suffix"
+      ],
+      [
+        "slot:aurora_hero_deed",
+        "slot:aurora_memorial_suffix"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_hero_deed",
+        "slot:aurora_memorial_suffix"
+      ]
+    ]
+  }
+}

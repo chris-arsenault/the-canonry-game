@@ -1,0 +1,74 @@
+{
+  "id": "orca_combat_techs",
+  "name": "Orca Abilities",
+  "strategyGroups": [
+    {
+      "name": "Meta-Entity Schools",
+      "priority": 80,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [],
+        "subtypeMatchAll": false,
+        "tags": [
+          "meta-entity"
+        ],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_meta_ability"
+        }
+      ]
+    },
+    {
+      "name": "Combat Tech",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "ability"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "combat",
+          "technique"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_combat_tech"
+        }
+      ]
+    },
+    {
+      "name": "Default Fallback",
+      "priority": 10,
+      "conditions": null,
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 0.4,
+          "grammarId": "orca_combat_tech"
+        },
+        {
+          "type": "phonotactic",
+          "weight": 0.6,
+          "domainId": "orca_domain"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "ability"
+  ]
+}

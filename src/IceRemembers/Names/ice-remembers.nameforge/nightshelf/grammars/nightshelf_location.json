@@ -1,0 +1,28 @@
+{
+  "id": "nightshelf_location",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "The",
+        "slot:nightshelf_shadow_gen~ed",
+        "slot:nightshelf_shadow_gen^~"
+      ],
+      [
+        "The",
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_shadow_gen~ed",
+        "slot:nightshelf_shadow_gen^~"
+      ],
+      [
+        "☽'^slot:nightshelf_shadow_gen",
+        "domain:nightshelf_domain^~"
+      ],
+      [
+        "slot:nightshelf_shadow_gen^☽",
+        "domain:nightshelf_domain"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

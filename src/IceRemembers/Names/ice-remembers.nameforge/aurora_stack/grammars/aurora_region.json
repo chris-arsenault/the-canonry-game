@@ -1,0 +1,31 @@
+{
+  "id": "aurora_region",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_nature~cap^span",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_nature~cap^span",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "slot:aurora_nature~cap^reach",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_nature~cap^reach",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap^hold",
+        "(^slot:aurora_place_echoes^)"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

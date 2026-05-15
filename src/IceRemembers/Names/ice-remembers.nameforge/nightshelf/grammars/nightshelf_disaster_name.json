@@ -1,0 +1,38 @@
+{
+  "id": "nightshelf_disaster_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Collapse"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:nightshelf_domain~cap^~",
+        "context:primary_entity_name~poss",
+        "Collapse"
+      ],
+      [
+        "The",
+        "slot:nightshelf_depth_prefix~chopR^∴^slot:nightshelf_disaster_types~chopL"
+      ],
+      [
+        "The",
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_depth_prefix~chopR^∴^slot:nightshelf_disaster_types~chopL"
+      ],
+      [
+        "The",
+        "slot:nightshelf_depth_prefix~chopL^∴^slot:nightshelf_disaster_types~chopR"
+      ],
+      [
+        "The",
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_depth_prefix~chopL^∴^slot:nightshelf_disaster_types~chopR"
+      ]
+    ]
+  }
+}

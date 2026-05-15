@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_point_bloom",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_prey_glyph^-bloom"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-bloom"
+      ],
+      [
+        "slot:orca_territory_glyph^-redbloom"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-redbloom"
+      ]
+    ]
+  }
+}

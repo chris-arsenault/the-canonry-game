@@ -11,6 +11,7 @@ using NameForge.Runtime;
 public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSynthesizer
 {
     private const string NameForgeResourceName = "IceRemembers.Names.ice-remembers.nameforge.json";
+    private const string NameForgeResourceIncludePrefix = "IceRemembers.Names.";
 
     private static readonly Lazy<NameForgeGenerator?> NameForge = new(LoadNameForgeGenerator);
 
@@ -354,17 +355,19 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
     private static NameForgeGenerator? LoadNameForgeGenerator()
     {
         var assembly = typeof(IceRemembersEntityNameSynthesizer).Assembly;
-        using var stream = assembly.GetManifestResourceStream(NameForgeResourceName);
-        if (stream is null)
-        {
-            return null;
-        }
 
         try
         {
-            return new NameForgeGenerator(NameForgeProject.Load(stream));
+            return new NameForgeGenerator(NameForgeProject.LoadEmbeddedResource(
+                assembly,
+                NameForgeResourceName,
+                NameForgeResourceIncludePrefix));
         }
         catch (JsonException)
+        {
+            return null;
+        }
+        catch (FileNotFoundException)
         {
             return null;
         }

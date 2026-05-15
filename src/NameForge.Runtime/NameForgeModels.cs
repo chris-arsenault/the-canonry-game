@@ -1,5 +1,6 @@
 namespace NameForge.Runtime;
 
+using System.Reflection;
 using System.Text.Json;
 
 public sealed class NameForgeProject
@@ -14,21 +15,200 @@ public sealed class NameForgeProject
     public string Id { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string Version { get; init; } = string.Empty;
+    public List<NameForgeProjectInclude> Includes { get; init; } = [];
     public Dictionary<string, NameForgeCulture> Cultures { get; init; } = new(StringComparer.Ordinal);
 
-    public static NameForgeProject Load(Stream stream)
+    public static NameForgeProject Load(Stream stream) =>
+        Load(stream, openInclude: null);
+
+    public static NameForgeProject Load(Stream stream, Func<string, Stream?>? openInclude)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        return JsonSerializer.Deserialize<NameForgeProject>(stream, JsonOptions)
+        var project = JsonSerializer.Deserialize<NameForgeProject>(stream, JsonOptions)
             ?? throw new JsonException("Name Forge project JSON did not contain a project object.");
+
+        return ResolveIncludes(project, openInclude);
     }
 
-    public static NameForgeProject LoadJson(string json)
+    public static NameForgeProject LoadJson(string json) =>
+        LoadJson(json, openInclude: null);
+
+    public static NameForgeProject LoadJson(string json, Func<string, Stream?>? openInclude)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        return JsonSerializer.Deserialize<NameForgeProject>(json, JsonOptions)
+        var project = JsonSerializer.Deserialize<NameForgeProject>(json, JsonOptions)
             ?? throw new JsonException("Name Forge project JSON did not contain a project object.");
+
+        return ResolveIncludes(project, openInclude);
     }
+
+    public static NameForgeProject LoadFile(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var projectPath = Directory.Exists(path)
+            ? Path.Combine(path, "ice-remembers.nameforge.json")
+            : path;
+        var root = Path.GetDirectoryName(Path.GetFullPath(projectPath)) ?? Environment.CurrentDirectory;
+
+        using var stream = File.OpenRead(projectPath);
+        return Load(stream, includePath => OpenRelativeInclude(root, includePath));
+    }
+
+    public static NameForgeProject LoadEmbeddedResource(
+        Assembly assembly,
+        string manifestResourceName,
+        string includeResourcePrefix)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestResourceName);
+        ArgumentNullException.ThrowIfNull(includeResourcePrefix);
+
+        using var stream = assembly.GetManifestResourceStream(manifestResourceName)
+            ?? throw new FileNotFoundException($"Embedded Name Forge project resource '{manifestResourceName}' was not found.");
+
+        return Load(
+            stream,
+            includePath => OpenEmbeddedInclude(assembly, includeResourcePrefix, includePath));
+    }
+
+    private static Stream? OpenRelativeInclude(string root, string includePath)
+    {
+        if (string.IsNullOrWhiteSpace(includePath))
+        {
+            return null;
+        }
+
+        var normalized = includePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+        var fullPath = Path.IsPathFullyQualified(normalized)
+            ? normalized
+            : Path.GetFullPath(Path.Combine(root, normalized));
+
+        return File.Exists(fullPath) ? File.OpenRead(fullPath) : null;
+    }
+
+    private static NameForgeProject ResolveIncludes(
+        NameForgeProject project,
+        Func<string, Stream?>? openInclude)
+    {
+        if (project.Includes.Count == 0)
+        {
+            return project;
+        }
+
+        if (openInclude is null)
+        {
+            throw new JsonException("Name Forge project contains includes, but no include resolver was provided.");
+        }
+
+        foreach (var include in project.Includes)
+        {
+            LoadInclude(project, include, openInclude);
+        }
+
+        return project;
+    }
+
+    private static void LoadInclude(
+        NameForgeProject project,
+        NameForgeProjectInclude include,
+        Func<string, Stream?> openInclude)
+    {
+        if (string.IsNullOrWhiteSpace(include.Path))
+        {
+            throw new JsonException("Name Forge include did not specify a path.");
+        }
+
+        using var stream = openInclude(include.Path)
+            ?? throw new FileNotFoundException($"Name Forge include '{include.Path}' was not found.");
+
+        switch (include.Type)
+        {
+            case "culture":
+                AddCulture(project, DeserializeInclude<NameForgeCulture>(stream, include.Path));
+                break;
+            case "domain":
+                CultureFor(project, include).Domains.Add(DeserializeInclude<NameForgeNamingDomain>(stream, include.Path));
+                break;
+            case "lexemeList":
+                AddLexemeList(CultureFor(project, include), DeserializeInclude<NameForgeLexemeList>(stream, include.Path));
+                break;
+            case "grammar":
+                CultureFor(project, include).Grammars.Add(DeserializeInclude<NameForgeGrammar>(stream, include.Path));
+                break;
+            case "profile":
+                CultureFor(project, include).Profiles.Add(DeserializeInclude<NameForgeProfile>(stream, include.Path));
+                break;
+            default:
+                throw new JsonException($"Name Forge include '{include.Path}' has unknown type '{include.Type}'.");
+        }
+    }
+
+    private static T DeserializeInclude<T>(Stream stream, string path) =>
+        JsonSerializer.Deserialize<T>(stream, JsonOptions)
+            ?? throw new JsonException($"Name Forge include '{path}' did not contain a {typeof(T).Name} object.");
+
+    private static void AddCulture(NameForgeProject project, NameForgeCulture culture)
+    {
+        if (string.IsNullOrWhiteSpace(culture.Id))
+        {
+            throw new JsonException("Name Forge culture include did not specify an id.");
+        }
+
+        project.Cultures[culture.Id] = culture;
+    }
+
+    private static void AddLexemeList(NameForgeCulture culture, NameForgeLexemeList lexemeList)
+    {
+        if (string.IsNullOrWhiteSpace(lexemeList.Id))
+        {
+            throw new JsonException($"Name Forge culture '{culture.Id}' included a lexeme list without an id.");
+        }
+
+        culture.LexemeLists[lexemeList.Id] = lexemeList;
+    }
+
+    private static NameForgeCulture CultureFor(NameForgeProject project, NameForgeProjectInclude include)
+    {
+        if (string.IsNullOrWhiteSpace(include.CultureId))
+        {
+            throw new JsonException($"Name Forge include '{include.Path}' did not specify a cultureId.");
+        }
+
+        if (!project.Cultures.TryGetValue(include.CultureId, out var culture))
+        {
+            throw new JsonException($"Name Forge include '{include.Path}' references unknown culture '{include.CultureId}'.");
+        }
+
+        return culture;
+    }
+
+    private static string NormalizeIncludePath(string includePath) =>
+        includePath.Replace('\\', '/');
+
+    private static Stream? OpenEmbeddedInclude(Assembly assembly, string includeResourcePrefix, string includePath)
+    {
+        var expected = includeResourcePrefix + NormalizeIncludePath(includePath);
+        var stream = assembly.GetManifestResourceStream(expected);
+        if (stream is not null)
+        {
+            return stream;
+        }
+
+        var normalizedExpected = expected.Replace('\\', '/');
+        var resourceName = assembly
+            .GetManifestResourceNames()
+            .FirstOrDefault(name => string.Equals(name.Replace('\\', '/'), normalizedExpected, StringComparison.Ordinal));
+
+        return resourceName is null ? null : assembly.GetManifestResourceStream(resourceName);
+    }
+}
+
+public sealed class NameForgeProjectInclude
+{
+    public string Type { get; init; } = string.Empty;
+    public string CultureId { get; init; } = string.Empty;
+    public string Path { get; init; } = string.Empty;
 }
 
 public sealed class NameForgeCulture

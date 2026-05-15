@@ -107,6 +107,30 @@ public sealed class NameForgeGeneratorTests
     [InlineData("aurora_stack", "artifact", "weapon")]
     [InlineData("aurora_stack", "ability", "rite")]
     [InlineData("aurora_stack", "faction", "order")]
+    [InlineData("nightshelf", "settlement", "rookery")]
+    [InlineData("nightshelf", "settlement", "colony")]
+    [InlineData("nightshelf", "settlement", "holdfast")]
+    [InlineData("nightshelf", "settlement", "sanctuary")]
+    [InlineData("nightshelf", "settlement", "harbor")]
+    [InlineData("nightshelf", "settlement", "reefhold")]
+    [InlineData("nightshelf", "region", "face")]
+    [InlineData("nightshelf", "region", "shelf")]
+    [InlineData("nightshelf", "region", "depths")]
+    [InlineData("nightshelf", "region", "reach")]
+    [InlineData("nightshelf", "region", "sea")]
+    [InlineData("nightshelf", "region", "scar")]
+    [InlineData("nightshelf", "point_of_interest", "vent")]
+    [InlineData("nightshelf", "point_of_interest", "peak")]
+    [InlineData("nightshelf", "point_of_interest", "bloom")]
+    [InlineData("nightshelf", "point_of_interest", "shoal")]
+    [InlineData("nightshelf", "transport", "trade")]
+    [InlineData("nightshelf", "transport", "battleship")]
+    [InlineData("nightshelf", "transport", "scout")]
+    [InlineData("nightshelf", "transport", "citadel")]
+    [InlineData("nightshelf", "monster", "leviathan")]
+    [InlineData("nightshelf", "monster", "wraith")]
+    [InlineData("nightshelf", "monster", "beast")]
+    [InlineData("nightshelf", "monster", "revenant")]
     [InlineData("wake_singers", "orca", "matriarch")]
     [InlineData("wake_singers", "orca", "bull")]
     [InlineData("wake_singers", "orca", "scout")]
@@ -137,8 +161,7 @@ public sealed class NameForgeGeneratorTests
     [InlineData("wake_singers", "monster", "revenant")]
     public void IceRemembersProject_CoversCurrentKinds(string culture, string kind, string subtype)
     {
-        using var stream = File.OpenRead(FindIceRemembersProjectPath());
-        var project = NameForgeProject.Load(stream);
+        var project = LoadIceRemembersProject();
         var generator = new NameForgeGenerator(project);
 
         var result = generator.TryGenerateOne(
@@ -169,13 +192,64 @@ public sealed class NameForgeGeneratorTests
             Assert.Contains("(", name, StringComparison.Ordinal);
             Assert.Contains(")", name, StringComparison.Ordinal);
         }
+
+        if (string.Equals(culture, "nightshelf", StringComparison.Ordinal) &&
+            kind is "settlement" or "region" or "point_of_interest" or "transport" or "monster")
+        {
+            Assert.True(HasNightshelfIncompleteMarker(name), $"Nightshelf {kind}/{subtype} name was too complete: {name}");
+        }
+    }
+
+    [Theory]
+    [InlineData("settlement", "rookery", "nightshelf_settlement_rookery")]
+    [InlineData("settlement", "colony", "nightshelf_settlement_colony")]
+    [InlineData("settlement", "holdfast", "nightshelf_settlement_holdfast")]
+    [InlineData("settlement", "sanctuary", "nightshelf_settlement_sanctuary")]
+    [InlineData("settlement", "harbor", "nightshelf_settlement_harbor")]
+    [InlineData("settlement", "reefhold", "nightshelf_settlement_reefhold")]
+    [InlineData("region", "face", "nightshelf_region_face")]
+    [InlineData("region", "shelf", "nightshelf_region_shelf")]
+    [InlineData("region", "depths", "nightshelf_region_depths")]
+    [InlineData("region", "reach", "nightshelf_region_reach")]
+    [InlineData("region", "sea", "nightshelf_region_sea")]
+    [InlineData("region", "scar", "nightshelf_region_scar")]
+    [InlineData("point_of_interest", "vent", "nightshelf_point_vent")]
+    [InlineData("point_of_interest", "peak", "nightshelf_point_peak")]
+    [InlineData("point_of_interest", "bloom", "nightshelf_point_bloom")]
+    [InlineData("point_of_interest", "shoal", "nightshelf_point_shoal")]
+    [InlineData("transport", "trade", "nightshelf_transport_trade")]
+    [InlineData("transport", "battleship", "nightshelf_transport_battleship")]
+    [InlineData("transport", "scout", "nightshelf_transport_scout")]
+    [InlineData("transport", "citadel", "nightshelf_transport_citadel")]
+    [InlineData("monster", "leviathan", "nightshelf_monster_leviathan")]
+    [InlineData("monster", "wraith", "nightshelf_monster_wraith")]
+    [InlineData("monster", "beast", "nightshelf_monster_beast")]
+    [InlineData("monster", "revenant", "nightshelf_monster_revenant")]
+    public void IceRemembersProject_NightshelfUsesSubtypeSpecificIncompleteRoutes(
+        string kind,
+        string subtype,
+        string grammarId)
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "nightshelf",
+            Kind = kind,
+            Subtype = subtype,
+            Count = 1,
+            Seed = $"nightshelf-route:{kind}:{subtype}",
+        });
+
+        Assert.Equal(grammarId, result.DebugInfo[0].GrammarId);
+        Assert.True(HasNightshelfIncompleteMarker(result.Names[0]), $"Nightshelf {kind}/{subtype} name was too complete: {result.Names[0]}");
     }
 
     [Fact]
     public void IceRemembersProject_ContextArtifactNamesAreAdditive()
     {
-        using var stream = File.OpenRead(FindIceRemembersProjectPath());
-        var project = NameForgeProject.Load(stream);
+        var project = LoadIceRemembersProject();
         var generator = new NameForgeGenerator(project);
 
         var result = generator.Generate(new NameForgeGenerateRequest
@@ -214,8 +288,7 @@ public sealed class NameForgeGeneratorTests
     [Fact]
     public void IceRemembersProject_WakeSingerContextNamesKeepRomanizedSurface()
     {
-        using var stream = File.OpenRead(FindIceRemembersProjectPath());
-        var project = NameForgeProject.Load(stream);
+        var project = LoadIceRemembersProject();
         var generator = new NameForgeGenerator(project);
 
         var result = generator.Generate(new NameForgeGenerateRequest
@@ -233,6 +306,185 @@ public sealed class NameForgeGeneratorTests
         });
 
         Assert.Contains(result.Names, name => name.Contains("Kaladin's", StringComparison.Ordinal));
+        Assert.All(result.Names, name => Assert.DoesNotContain("-", name, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void IceRemembersProject_CausalLoopWarNamesUseRaidEndpoints()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var context = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["producer_kind"] = "generator",
+            ["producer"] = "orca_route_wars_get_names",
+            ["parent_producer"] = "orca_raids_trade_route",
+            ["primary_entity_name"] = "Fallback Orca",
+            ["trigger_relationship_source_entity_name"] = "Blackfin Sounder",
+            ["trigger_relationship_target_entity_name"] = "High Rookery",
+        };
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "aurora_stack",
+            Kind = "occurrence",
+            Subtype = "war",
+            Count = 120,
+            Seed = "causal-loop-war",
+            Context = context,
+        });
+
+        Assert.Contains(result.Names, name =>
+            name.Contains("Blackfin Sounder", StringComparison.Ordinal) &&
+            name.Contains("High Rookery", StringComparison.Ordinal));
+
+        context.Remove("parent_producer");
+        var ungated = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "aurora_stack",
+            Kind = "occurrence",
+            Subtype = "war",
+            Count = 80,
+            Seed = "causal-loop-war",
+            Context = context,
+        });
+
+        Assert.DoesNotContain(ungated.Names, name => name.Contains("High Rookery", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void IceRemembersProject_CausalLoopTheftNamesUseMonsterAndArtifact()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "aurora_stack",
+            Kind = "penguin",
+            Subtype = "warden",
+            Count = 120,
+            Seed = "causal-loop-theft",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["producer_kind"] = "generator",
+                ["producer"] = "stolen_artifacts_draw_hunters",
+                ["parent_producer"] = "monster_steals_artifact",
+                ["primary_entity_name"] = "Glass Maw",
+                ["trigger_relationship_source_entity_name"] = "Glass Maw",
+                ["trigger_relationship_target_entity_name"] = "Storm Chalice",
+            },
+        });
+
+        Assert.Contains(result.Names, name => name.Contains("Storm Chalice", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(result.Names, name => name.Contains("Glass Maw", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void IceRemembersProject_CausalLoopFestivalNamesUseSlayerAndMonster()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "aurora_stack",
+            Kind = "occurrence",
+            Subtype = "festival",
+            Count = 120,
+            Seed = "causal-loop-festival",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["producer_kind"] = "generator",
+                ["producer"] = "monster_slayings_become_festivals",
+                ["parent_producer"] = "penguin_slays_monster",
+                ["primary_entity_name"] = "Kaladin",
+                ["trigger_relationship_source_entity_name"] = "Kaladin",
+                ["trigger_relationship_target_entity_name"] = "Glass Maw",
+            },
+        });
+
+        Assert.Contains(result.Names, name => name.Contains("Kaladin's", StringComparison.Ordinal));
+        Assert.Contains(result.Names, name => name.Contains("Glass Maw", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void IceRemembersProject_CausalLoopTradeTransportNamesUseRouteEndpoints()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "aurora_stack",
+            Kind = "transport",
+            Subtype = "trade",
+            Count = 80,
+            Seed = "causal-loop-trade-transport",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["producer_kind"] = "generator",
+                ["producer"] = "trade_routes_convene_negotiation",
+                ["primary_entity_name"] = "Rimewake",
+                ["trigger_relationship_source_entity_name"] = "Rimewake",
+                ["trigger_relationship_target_entity_name"] = "Pearl Harbor",
+            },
+        });
+
+        Assert.Contains(result.Names, name =>
+            name.Contains("Rimewake", StringComparison.Ordinal) &&
+            name.Contains("Pearl Harbor", StringComparison.Ordinal));
+
+        var nightshelf = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "nightshelf",
+            Kind = "transport",
+            Subtype = "trade",
+            Count = 80,
+            Seed = "causal-loop-nightshelf-trade-transport",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["producer_kind"] = "generator",
+                ["producer"] = "trade_routes_convene_negotiation",
+                ["primary_entity_name"] = "Rimewake",
+                ["trigger_relationship_source_entity_name"] = "Rimewake",
+                ["trigger_relationship_target_entity_name"] = "Pearl Harbor",
+            },
+        });
+
+        Assert.Contains(nightshelf.Names, name =>
+            name.Contains("Rimewake", StringComparison.Ordinal) &&
+            name.Contains("Pearl Harbor", StringComparison.Ordinal));
+        Assert.All(nightshelf.Names, name => Assert.True(HasNightshelfIncompleteMarker(name), $"Nightshelf trade transport name was too complete: {name}"));
+    }
+
+    [Fact]
+    public void IceRemembersProject_WakeSingerCausalLoopNamesKeepRomanizedSurface()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "wake_singers",
+            Kind = "transport",
+            Subtype = "trade",
+            Count = 80,
+            Seed = "causal-loop-wake-trade",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["producer_kind"] = "generator",
+                ["producer"] = "trade_routes_convene_negotiation",
+                ["primary_entity_name"] = "Tidehome",
+                ["trigger_relationship_source_entity_name"] = "Tidehome",
+                ["trigger_relationship_target_entity_name"] = "Moon Rookery",
+            },
+        });
+
+        Assert.Contains(result.Names, name =>
+            name.Contains("Tidehome", StringComparison.Ordinal) &&
+            name.Contains("Moon Rookery", StringComparison.Ordinal));
         Assert.All(result.Names, name => Assert.DoesNotContain("-", name, StringComparison.Ordinal));
     }
 
@@ -447,6 +699,14 @@ public sealed class NameForgeGeneratorTests
                 },
             ],
         };
+
+    private static bool HasNightshelfIncompleteMarker(string name) =>
+        name.Contains('~', StringComparison.Ordinal) ||
+        name.Contains('\u263D', StringComparison.Ordinal) ||
+        name.Contains('\u2234', StringComparison.Ordinal);
+
+    private static NameForgeProject LoadIceRemembersProject() =>
+        NameForgeProject.LoadFile(FindIceRemembersProjectPath());
 
     private static string FindIceRemembersProjectPath()
     {

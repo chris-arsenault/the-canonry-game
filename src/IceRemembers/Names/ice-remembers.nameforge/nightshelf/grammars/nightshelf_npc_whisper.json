@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_npc_whisper",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "☽'^domain:nightshelf_domain~chopL"
+      ],
+      [
+        "domain:nightshelf_domain~chopR^☽"
+      ],
+      [
+        "domain:nightshelf_domain^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "☽'^slot:nightshelf_shadow_gen~chopL^'",
+        "slot:nightshelf_faction_groups"
+      ]
+    ]
+  }
+}

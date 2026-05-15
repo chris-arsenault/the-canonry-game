@@ -1,0 +1,19 @@
+{
+  "id": "orca_faction_types",
+  "description": "Brutal faction/group names for Orca culture",
+  "entries": [
+    "pod",
+    "pack",
+    "horde",
+    "swarm",
+    "frenzy",
+    "blood-circle",
+    "kill-squad",
+    "death-pod",
+    "hunt-pack",
+    "war-band",
+    "ravagers",
+    "reavers"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "orca_warrior_ranks",
+  "description": "Warrior ranks and titles for Orca heroes",
+  "entries": [
+    "Fang",
+    "Maw",
+    "Claw",
+    "Tide-Hunter",
+    "Blood-Wake",
+    "Storm-Breaker",
+    "Deep-Striker",
+    "Prey-Caller",
+    "Gore-Master",
+    "Wave-Crusher",
+    "Fin-Render",
+    "Abyss-Lord",
+    "Kill-Count",
+    "Surge-Captain",
+    "Rend-Chief"
+  ],
+  "source": "manual"
+}

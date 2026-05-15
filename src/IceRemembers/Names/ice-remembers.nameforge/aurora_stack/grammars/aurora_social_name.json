@@ -1,0 +1,25 @@
+{
+  "id": "aurora_social_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_warmth_source^-^slot:aurora_social_suffix"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_warmth_source^-^slot:aurora_social_suffix"
+      ],
+      [
+        "slot:aurora_gathering_type~cap",
+        "slot:aurora_social_suffix"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_gathering_type~cap",
+        "slot:aurora_social_suffix"
+      ]
+    ]
+  }
+}

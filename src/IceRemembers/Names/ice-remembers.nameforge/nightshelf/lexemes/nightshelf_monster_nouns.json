@@ -1,0 +1,14 @@
+{
+  "id": "nightshelf_monster_nouns",
+  "description": "Ice Remembers monster epithets",
+  "entries": [
+    "wraith",
+    "revenant",
+    "beast",
+    "hollow",
+    "stalker",
+    "undertow",
+    "hunger"
+  ],
+  "source": "ice-remembers"
+}

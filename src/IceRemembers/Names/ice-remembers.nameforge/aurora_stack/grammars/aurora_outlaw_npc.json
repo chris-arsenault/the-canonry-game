@@ -1,0 +1,19 @@
+{
+  "id": "aurora_outlaw_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "domain:aurora_domain_short~cap",
+        "slot:aurora_outlaw_nicknames"
+      ],
+      [
+        "slot:aurora_outlaw_nicknames~cap",
+        "domain:aurora_domain_short~cap"
+      ],
+      [
+        "domain:aurora_domain_short~cap^-^domain:aurora_domain_short~cap"
+      ]
+    ]
+  }
+}

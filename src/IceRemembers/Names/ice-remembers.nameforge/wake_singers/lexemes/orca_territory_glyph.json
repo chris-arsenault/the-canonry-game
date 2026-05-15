@@ -1,0 +1,26 @@
+{
+  "id": "orca_territory_glyph",
+  "description": "Harsh compressed territory/hunting ground words",
+  "entries": [
+    "grund",
+    "zund",
+    "thung",
+    "maw",
+    "krift",
+    "grung",
+    "thrak",
+    "kzund",
+    "gnarlk",
+    "brak",
+    "skarn",
+    "ghruk",
+    "draz",
+    "khrund",
+    "zrak",
+    "thrang",
+    "grath",
+    "knarr",
+    "vrund"
+  ],
+  "source": "manual"
+}

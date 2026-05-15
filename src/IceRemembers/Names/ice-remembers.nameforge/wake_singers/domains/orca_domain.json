@@ -1,0 +1,102 @@
+{
+  "id": "orca_domain",
+  "phonology": {
+    "consonants": [
+      "k",
+      "r",
+      "g",
+      "n",
+      "m",
+      "b",
+      "d",
+      "th",
+      "z"
+    ],
+    "vowels": [
+      "i",
+      "u",
+      "ui",
+      "ai"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "CVC",
+      "CVCC"
+    ],
+    "lengthRange": [
+      2,
+      3
+    ],
+    "favoredClusters": [
+      "kr",
+      "gr",
+      "kn"
+    ],
+    "forbiddenClusters": [
+      "ii",
+      "ee"
+    ],
+    "favoredClusterBoost": 1.5,
+    "consonantWeights": [
+      1.5,
+      1.4,
+      1.3,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "vowelWeights": [
+      1.3,
+      1.3,
+      1.2,
+      1,
+      1
+    ],
+    "templateWeights": [
+      1,
+      1.4,
+      0.8
+    ]
+  },
+  "morphology": {
+    "prefixes": [
+      "Kra",
+      "Gor",
+      "Brak",
+      "Thun",
+      "Rok"
+    ],
+    "suffixes": [
+      "ak",
+      "or",
+      "ung",
+      "rath"
+    ],
+    "structure": [
+      "root",
+      "root-suffix"
+    ],
+    "structureWeights": [
+      0.4,
+      0.6
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0.02,
+    "hyphenRate": 0.01,
+    "preferredEndings": [
+      "ak",
+      "or",
+      "ung"
+    ],
+    "preferredEndingBoost": 1.4,
+    "rhythmBias": "harsh"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "nightshelf_default",
+  "name": "Nightshelf Default",
+  "strategyGroups": [
+    {
+      "name": "Default Fallback",
+      "priority": 10,
+      "conditions": null,
+      "strategies": [
+        {
+          "type": "phonotactic",
+          "weight": 1,
+          "domainId": "nightshelf_domain"
+        }
+      ]
+    }
+  ],
+  "isDefault": true,
+  "entityKinds": []
+}

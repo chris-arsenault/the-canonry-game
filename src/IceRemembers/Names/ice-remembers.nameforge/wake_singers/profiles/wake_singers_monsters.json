@@ -1,0 +1,128 @@
+{
+  "id": "wake_singers_monsters",
+  "name": "Monsters",
+  "entityKinds": [
+    "monster"
+  ],
+  "isDefault": false,
+  "strategyGroups": [
+    {
+      "name": "Leviathans",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "monster"
+        ],
+        "subtypes": [
+          "leviathan"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "wake_singers_monster_leviathan",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Wraiths",
+      "priority": 65,
+      "conditions": {
+        "entityKinds": [
+          "monster"
+        ],
+        "subtypes": [
+          "wraith"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "wake_singers_monster_wraith",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Revenants",
+      "priority": 63,
+      "conditions": {
+        "entityKinds": [
+          "monster"
+        ],
+        "subtypes": [
+          "revenant"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "wake_singers_monster_revenant",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Beasts",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "monster"
+        ],
+        "subtypes": [
+          "beast"
+        ],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "wake_singers_monster_beast",
+          "domainId": ""
+        }
+      ]
+    },
+    {
+      "name": "Default Monsters",
+      "priority": 10,
+      "conditions": {
+        "entityKinds": [
+          "monster"
+        ],
+        "subtypes": [],
+        "prominence": [],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "wake_singers_monster",
+          "domainId": ""
+        }
+      ]
+    }
+  ]
+}

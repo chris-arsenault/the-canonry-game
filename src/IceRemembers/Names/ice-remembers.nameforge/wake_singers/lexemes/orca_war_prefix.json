@@ -1,0 +1,14 @@
+{
+  "id": "orca_war_prefix",
+  "description": "Attack/violence action prefixes for orca war names",
+  "entries": [
+    "Fang",
+    "Maw",
+    "Rend",
+    "Crush",
+    "Devour",
+    "Gore",
+    "Blood"
+  ],
+  "source": "manual"
+}

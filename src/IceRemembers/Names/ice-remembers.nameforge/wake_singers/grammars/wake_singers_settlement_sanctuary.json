@@ -1,0 +1,30 @@
+{
+  "id": "wake_singers_settlement_sanctuary",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_exile_glyph^-sanctuary"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_exile_glyph^-sanctuary"
+      ],
+      [
+        "slot:orca_territory_glyph^-shelter"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-shelter"
+      ],
+      [
+        "slot:orca_prey_glyph^-refuge"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-refuge"
+      ]
+    ]
+  }
+}

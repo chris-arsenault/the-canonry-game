@@ -1,0 +1,15 @@
+{
+  "id": "aurora_hero_deed",
+  "description": "Deeds worth memorializing - what heroes did that must not be forgotten",
+  "entries": [
+    "Sacrifice",
+    "Valor",
+    "Vigil",
+    "Stand",
+    "Fall",
+    "Return",
+    "Defiance",
+    "Mercy"
+  ],
+  "source": "manual"
+}

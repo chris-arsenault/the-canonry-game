@@ -1,0 +1,13 @@
+{
+  "id": "orca_war_suffix",
+  "description": "War/conflict result suffixes for orca war names",
+  "entries": [
+    "war",
+    "strike",
+    "fall",
+    "tide",
+    "clash",
+    "storm"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "world_war_types",
+  "description": "Generic war and conflict types",
+  "entries": [
+    "Conflict",
+    "War",
+    "Struggle",
+    "Strife",
+    "Uprising",
+    "Rebellion",
+    "Schism",
+    "Crisis",
+    "Clash",
+    "Reckoning"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,25 @@
+{
+  "id": "aurora_law_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_witness_moment^-^slot:aurora_compact_type~cap"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_witness_moment^-^slot:aurora_compact_type~cap"
+      ],
+      [
+        "slot:aurora_witness_moment",
+        "slot:aurora_rule_mandate"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_witness_moment",
+        "slot:aurora_rule_mandate"
+      ]
+    ]
+  }
+}

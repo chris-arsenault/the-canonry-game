@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_noble_titles",
+  "description": "Formal titles for Nightshelf mayors and leaders",
+  "entries": [
+    "Archon",
+    "Umbra-Rex",
+    "Noctarch",
+    "Veil-Sovereign",
+    "Glow-Warden",
+    "Fissure-Lord",
+    "Shadow-Consul",
+    "Depth-Master",
+    "Night-Regent",
+    "Crypt-Chancellor",
+    "Tenebra-Premier",
+    "Vesper-King",
+    "Void-Arbiter",
+    "Obscura-Chief",
+    "Phantasm-Speaker"
+  ],
+  "source": "manual"
+}

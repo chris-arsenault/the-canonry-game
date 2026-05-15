@@ -1,0 +1,15 @@
+{
+  "id": "wake_singers_transport_citadel_nouns",
+  "description": "Wake-Singer names for fortified moving platforms.",
+  "entries": [
+    "bonecitadel",
+    "towcitadel",
+    "frostbarge",
+    "gulletship",
+    "icebreaker",
+    "bonekeel",
+    "blackkeel",
+    "guardback"
+  ],
+  "source": "manual"
+}

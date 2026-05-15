@@ -1,0 +1,38 @@
+{
+  "id": "aurora_succession_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Succession"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Succession"
+      ],
+      [
+        "slot:aurora_lineage_markers",
+        "(^slot:aurora_ice_reaction^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_lineage_markers",
+        "(^slot:aurora_ice_reaction^)"
+      ],
+      [
+        "slot:aurora_lineage_markers",
+        "(^slot:aurora_succession_memories^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_lineage_markers",
+        "(^slot:aurora_succession_memories^)"
+      ]
+    ]
+  }
+}

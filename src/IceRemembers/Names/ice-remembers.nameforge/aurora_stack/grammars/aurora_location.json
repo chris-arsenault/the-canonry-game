@@ -1,0 +1,27 @@
+{
+  "id": "aurora_location",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_nature",
+        "domain:aurora_domain",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "The",
+        "slot:aurora_nature",
+        "slot:aurora_nature",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "The",
+        "domain:aurora_domain~cap",
+        "slot:aurora_nature",
+        "slot:aurora_nature",
+        "(^slot:aurora_place_echoes_short^)"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

@@ -1,0 +1,70 @@
+{
+  "id": "ancient_tech_serial",
+  "phonology": {
+    "consonants": [
+      "X",
+      "V",
+      "N",
+      "K",
+      "R",
+      "Z",
+      "T",
+      "M",
+      "B",
+      "D",
+      "G",
+      "H",
+      "J",
+      "L",
+      "Q",
+      "W",
+      "Y",
+      "P"
+    ],
+    "vowels": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "CVC",
+      "VC"
+    ],
+    "lengthRange": [
+      2,
+      3
+    ],
+    "favoredClusters": [],
+    "forbiddenClusters": [],
+    "favoredClusterBoost": 1
+  },
+  "morphology": {
+    "prefixes": [],
+    "suffixes": [],
+    "structure": [
+      "root"
+    ],
+    "structureWeights": [
+      1
+    ]
+  },
+  "style": {
+    "capitalization": "",
+    "apostropheRate": 0,
+    "hyphenRate": 0,
+    "preferredEndings": [],
+    "preferredEndingBoost": 1,
+    "rhythmBias": "neutral"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

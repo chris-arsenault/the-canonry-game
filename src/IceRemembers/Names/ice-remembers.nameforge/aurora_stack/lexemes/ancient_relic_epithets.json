@@ -1,0 +1,27 @@
+{
+  "id": "ancient_relic_epithets",
+  "description": "Grandiose epithets for ancient alien relics",
+  "entries": [
+    "Apocalypse",
+    "Extinction",
+    "Annihilation",
+    "Oblivion",
+    "Cataclysm",
+    "Devastation",
+    "Terminus",
+    "Genesis",
+    "Omega",
+    "Alpha",
+    "Void",
+    "Stellar",
+    "Nova",
+    "Singularity",
+    "Quantum",
+    "Temporal",
+    "Null",
+    "Zero",
+    "Prime",
+    "Ultima"
+  ],
+  "source": "manual"
+}

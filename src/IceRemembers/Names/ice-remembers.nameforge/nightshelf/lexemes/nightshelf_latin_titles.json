@@ -1,0 +1,22 @@
+{
+  "id": "nightshelf_latin_titles",
+  "description": "Latin-style titles for Nightshelf nobility and officials",
+  "entries": [
+    "Dominus",
+    "Domina",
+    "Magister",
+    "Praefectus",
+    "Custos",
+    "Arbiter",
+    "Augur",
+    "Vigil",
+    "Praetor",
+    "Consul",
+    "Lector",
+    "Scriba",
+    "Umbra-Princeps",
+    "Nox-Dominus",
+    "Vox Silentii"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "nightshelf_magic_part_c",
+  "description": "Generated celestial list: ethereial ice magic outcomes (copied from aurora-stack)",
+  "entries": [
+    "star",
+    "moon",
+    "sun",
+    "dawn",
+    "dusk",
+    "comet",
+    "eclipse",
+    "aurora",
+    "zenith",
+    "constellation",
+    "frost",
+    "crystalus",
+    "shimmer",
+    "glacial",
+    "void",
+    "stellar",
+    "veil",
+    "prism",
+    "rime",
+    "glimmer",
+    "frozen",
+    "light",
+    "twilight",
+    "apex",
+    "ice",
+    "glow"
+  ],
+  "source": "llm"
+}

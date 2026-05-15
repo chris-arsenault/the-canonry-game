@@ -1,0 +1,37 @@
+{
+  "id": "aurora_monster_wraith",
+  "description": "Aurora names for wraith and revenant monsters",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "Wraith",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:aurora_domain~cap",
+        "context:primary_entity_name~poss",
+        "Wraith",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "slot:aurora_place_echoes_short~cap^-Wraith",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_place_echoes_short~cap^-Wraith",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "domain:aurora_domain_short~cap^'s",
+        "Echo",
+        "(^slot:aurora_place_echoes_short^)"
+      ]
+    ]
+  }
+}

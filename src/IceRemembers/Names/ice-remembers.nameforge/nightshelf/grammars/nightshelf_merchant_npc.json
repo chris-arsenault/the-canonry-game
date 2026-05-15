@@ -1,0 +1,20 @@
+{
+  "id": "nightshelf_merchant_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "slot:nightshelf_merchant_ranks",
+        "☽'^domain:nightshelf_domain"
+      ],
+      [
+        "domain:nightshelf_domain^~",
+        "slot:nightshelf_latin_titles"
+      ],
+      [
+        "slot:nightshelf_merchant_ranks",
+        "domain:nightshelf_domain^-^slot:nightshelf_whisper_roots^~"
+      ]
+    ]
+  }
+}

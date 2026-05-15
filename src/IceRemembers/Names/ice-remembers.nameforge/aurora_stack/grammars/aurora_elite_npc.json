@@ -1,0 +1,19 @@
+{
+  "id": "aurora_elite_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_gen_titles",
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)",
+        "domain:aurora_domain_short~lower^'^slot:aurora_nature~cap"
+      ],
+      [
+        "slot:aurora_gen_titles",
+        "domain:aurora_domain~cap",
+        "(^slot:aurora_ice_echoes^)"
+      ]
+    ]
+  }
+}

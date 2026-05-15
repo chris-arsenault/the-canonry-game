@@ -1,0 +1,12 @@
+{
+  "id": "nightshelf_memorial_anchor",
+  "description": "Anchor words for memorials",
+  "entries": [
+    "Memoria",
+    "Vestigium",
+    "Umbra",
+    "Echo",
+    "Signum"
+  ],
+  "source": "manual"
+}

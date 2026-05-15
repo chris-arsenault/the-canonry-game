@@ -15,8 +15,7 @@ internal static class NameForgeCli
 
         try
         {
-            using var stream = File.OpenRead(options.ProjectPath);
-            var project = NameForgeProject.Load(stream);
+            var project = NameForgeProject.LoadFile(options.ProjectPath);
             var generator = new NameForgeGenerator(project);
 
             if (options.ListCultures)
@@ -137,7 +136,7 @@ internal static class NameForgeCli
         Console.WriteLine("  dotnet run --project tools/NameForge -- --culture wake_singers --kind orca --subtype scout --count 10 --seed demo");
         Console.WriteLine();
         Console.WriteLine("Options:");
-        Console.WriteLine("  --project <path>      Name Forge project JSON. Defaults to src/IceRemembers/Names/ice-remembers.nameforge.json.");
+        Console.WriteLine("  --project <path>      Name Forge project JSON or manifest directory. Defaults to src/IceRemembers/Names/ice-remembers.nameforge.json.");
         Console.WriteLine("  --culture <id>        Culture id.");
         Console.WriteLine("  --kind <kind>         Entity kind.");
         Console.WriteLine("  --subtype <subtype>   Entity subtype.");

@@ -1,0 +1,23 @@
+{
+  "id": "nightshelf_social_name",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "Ritus^∴^slot:nightshelf_darkness_source~chopR"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "Ritus^∴^slot:nightshelf_darkness_source~chopR"
+      ],
+      [
+        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_communion_type~chopL"
+      ],
+      [
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_communion_type~chopL"
+      ]
+    ]
+  }
+}

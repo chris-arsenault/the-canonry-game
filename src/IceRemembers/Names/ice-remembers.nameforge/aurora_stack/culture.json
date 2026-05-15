@@ -1,0 +1,127 @@
+{
+  "lexemeSpecs": [
+    {
+      "id": "aurora_gen_titles",
+      "pos": "title",
+      "style": "Magic penguin titles similar to :\nHigh-Beak\nAuditor\nTide-Splitter\nStack-Master",
+      "targetCount": 15,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_gen_nouns",
+      "pos": "noun",
+      "style": "things magic penguins of good revere in there icy southern home similar to:\nsun\nlight\ngold\nice\ntrade\nstack\ntier\nbanner",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_faction_groups",
+      "pos": "collective",
+      "style": "groups of people, organizations, plurals. ethereal in nature, trade focused, ice and gold.",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 5,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_gen_trade",
+      "pos": "material",
+      "style": "things super magic penguin would trade with or for. etheral constructs. tangible echos.",
+      "targetCount": 45,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_family_types",
+      "pos": "collective",
+      "style": "types of family units appropriate for a penguin (e.g. clan, herd)",
+      "targetCount": 5,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_magic_part_a",
+      "pos": "element",
+      "style": "ethereal ice magic",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_magic_partb",
+      "pos": "verb",
+      "style": "etherial ice magic actions",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_magic_part_c",
+      "pos": "celestial",
+      "style": "ethereial ice magic outcomes",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_law_terms",
+      "pos": "abstract",
+      "style": "rigid penguin abstract constructs",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_tech",
+      "pos": "noun",
+      "style": "technology used by good penguins",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    },
+    {
+      "id": "aurora_progress_verbs",
+      "pos": "verb",
+      "style": "penguin progress verbs, new technology, developmental penguin goods",
+      "targetCount": 30,
+      "qualityFilter": {
+        "minLength": 3,
+        "maxLength": 15
+      },
+      "cultureId": "aurora-stack"
+    }
+  ],
+  "id": "aurora_stack",
+  "name": "Aurora Stack"
+}

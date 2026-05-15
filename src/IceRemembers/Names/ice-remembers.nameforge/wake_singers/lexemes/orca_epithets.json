@@ -1,0 +1,27 @@
+{
+  "id": "orca_epithets",
+  "description": "Fearsome titles and epithets for orca predators",
+  "entries": [
+    "Crusher",
+    "Ravager",
+    "Devourer",
+    "Render",
+    "Striker",
+    "Bloodied",
+    "Remorseless",
+    "Ruthless",
+    "Terrible",
+    "Dread",
+    "Breaker",
+    "Reaper",
+    "Hunter",
+    "Slayer",
+    "Marauder",
+    "Stalker",
+    "Wrecker",
+    "Maimer",
+    "Ripper",
+    "Gorger"
+  ],
+  "source": "manual"
+}

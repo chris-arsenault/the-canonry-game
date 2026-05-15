@@ -1,0 +1,18 @@
+{
+  "id": "nightshelf_elite_npc",
+  "start": "name",
+  "rules": {
+    "name": [
+      [
+        "slot:nightshelf_gen_titles",
+        "☽'^domain:nightshelf_domain~cap^'^slot:nightshelf_nature~cap"
+      ],
+      [
+        "slot:nightshelf_gen_titles",
+        "domain:nightshelf_domain~cap^~",
+        "slot:nightshelf_nature~cap"
+      ]
+    ]
+  },
+  "capitalization": "titleWords"
+}

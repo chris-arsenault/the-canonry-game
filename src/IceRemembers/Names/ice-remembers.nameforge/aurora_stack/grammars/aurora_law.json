@@ -1,0 +1,36 @@
+{
+  "id": "aurora_law",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:aurora_law_terms",
+        "(^slot:aurora_gen_trade^-sworn)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_law_terms",
+        "(^slot:aurora_gen_trade^-sworn)"
+      ],
+      [
+        "slot:aurora_gen_trade~cap^-^slot:aurora_law_terms",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_gen_trade~cap^-^slot:aurora_law_terms",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "slot:aurora_law_terms",
+        "(^slot:aurora_ice_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_law_terms",
+        "(^slot:aurora_ice_echoes^)"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "aurora_family_names",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "domain:aurora_domain",
+        "slot:aurora_family_types"
+      ]
+    ]
+  }
+}

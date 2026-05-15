@@ -1,0 +1,21 @@
+{
+  "id": "nightshelf_latin_roots",
+  "description": "Latin-influenced roots for truncated names. These are partial - the full name is never spoken.",
+  "entries": [
+    "umbra",
+    "nox",
+    "velum",
+    "tenebr",
+    "silv",
+    "cael",
+    "mort",
+    "void",
+    "noctis",
+    "profund",
+    "obscur",
+    "spect",
+    "flux",
+    "aeter"
+  ],
+  "source": "manual"
+}

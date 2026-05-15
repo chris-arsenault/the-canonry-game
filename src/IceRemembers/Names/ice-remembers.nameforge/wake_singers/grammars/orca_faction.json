@@ -1,0 +1,30 @@
+{
+  "id": "orca_faction",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_prey_glyph^-^slot:orca_deed_root^-pod"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-^slot:orca_deed_root^-pod"
+      ],
+      [
+        "slot:orca_deed_root^-^slot:orca_territory_glyph^-pack"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_deed_root^-^slot:orca_territory_glyph^-pack"
+      ],
+      [
+        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-hunters"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-hunters"
+      ]
+    ]
+  }
+}

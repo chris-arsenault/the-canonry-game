@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_settlement_reefhold",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-reefhold"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-reefhold"
+      ],
+      [
+        "slot:orca_prey_glyph^-reefhold"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-reefhold"
+      ]
+    ]
+  }
+}

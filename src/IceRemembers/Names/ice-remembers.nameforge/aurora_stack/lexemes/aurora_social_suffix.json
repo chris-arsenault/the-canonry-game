@@ -1,0 +1,13 @@
+{
+  "id": "aurora_social_suffix",
+  "description": "Suffixes for social customs - what kind of gathering",
+  "entries": [
+    "Rite",
+    "Custom",
+    "Tradition",
+    "Way",
+    "Circle",
+    "Gathering"
+  ],
+  "source": "manual"
+}

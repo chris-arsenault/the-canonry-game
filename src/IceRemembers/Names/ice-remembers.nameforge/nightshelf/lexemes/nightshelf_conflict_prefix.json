@@ -1,0 +1,14 @@
+{
+  "id": "nightshelf_conflict_prefix",
+  "description": "Shadow/darkness Latin prefixes for war names",
+  "entries": [
+    "Umbra",
+    "Nox",
+    "Tenebra",
+    "Obscura",
+    "Velum",
+    "Caenum",
+    "Furvum"
+  ],
+  "source": "manual"
+}

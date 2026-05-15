@@ -1,0 +1,34 @@
+{
+  "id": "orca_location",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "slot:orca_territory_glyph^-^slot:orca_location_nouns"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:orca_location_nouns"
+      ],
+      [
+        "slot:orca_prey_glyph^-^slot:orca_territory_glyph"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_prey_glyph^-^slot:orca_territory_glyph"
+      ],
+      [
+        "slot:orca_territory_glyph^-^slot:orca_deed_root^-waters"
+      ],
+      [
+        "domain:orca_domain_short",
+        "slot:orca_territory_glyph^-^slot:orca_deed_root^-waters"
+      ],
+      [
+        "domain:orca_domain_short^'s",
+        "slot:orca_location_nouns"
+      ]
+    ]
+  }
+}

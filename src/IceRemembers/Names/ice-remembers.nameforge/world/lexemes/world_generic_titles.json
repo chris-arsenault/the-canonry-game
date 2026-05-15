@@ -1,0 +1,17 @@
+{
+  "id": "world_generic_titles",
+  "description": "Generic honorific titles",
+  "entries": [
+    "Elder",
+    "Master",
+    "Chief",
+    "Guardian",
+    "Keeper",
+    "Warden",
+    "Sage",
+    "Speaker",
+    "Herald",
+    "Arbiter"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "aurora_faction_regional",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "context:region^'",
+        "slot:aurora_faction_groups",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "context:region^'",
+        "slot:aurora_faction_groups",
+        "(^slot:aurora_place_echoes^)"
+      ],
+      [
+        "slot:aurora_faction_groups",
+        "(^context:region^-born)"
+      ],
+      [
+        "domain:aurora_domain~cap",
+        "slot:aurora_faction_groups",
+        "(^context:region^-born)"
+      ]
+    ]
+  }
+}

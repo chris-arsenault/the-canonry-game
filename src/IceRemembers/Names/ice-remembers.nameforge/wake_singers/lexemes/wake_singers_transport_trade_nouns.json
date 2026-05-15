@@ -1,0 +1,15 @@
+{
+  "id": "wake_singers_transport_trade_nouns",
+  "description": "Wake-Singer names for trade route carriers and exchange craft.",
+  "entries": [
+    "tradefin",
+    "charterbone",
+    "reefhauler",
+    "routefang",
+    "tradeback",
+    "harborjaw",
+    "towbone",
+    "belltow"
+  ],
+  "source": "manual"
+}

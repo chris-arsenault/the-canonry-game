@@ -1,0 +1,19 @@
+{
+  "id": "nightshelf_whisper_ends",
+  "description": "Suffixes that indicate the name trails to whisper/silence - use with ~",
+  "entries": [
+    "ius",
+    "aea",
+    "um",
+    "is",
+    "us",
+    "ae",
+    "or",
+    "ix",
+    "ium",
+    "ia",
+    "oth",
+    "eth"
+  ],
+  "source": "manual"
+}

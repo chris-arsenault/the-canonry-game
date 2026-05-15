@@ -1,0 +1,106 @@
+{
+  "id": "orca_occurrences",
+  "name": "Orca Occurrences",
+  "strategyGroups": [
+    {
+      "name": "Wars and Conflicts",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "occurrence"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "war",
+          "conflict"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_war_name"
+        }
+      ]
+    },
+    {
+      "name": "Disasters",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "occurrence"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "disaster",
+          "plague"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_disaster_name"
+        }
+      ]
+    },
+    {
+      "name": "Celebrations",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "occurrence"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "celebration",
+          "festival",
+          "trade_conference"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_celebration"
+        }
+      ]
+    },
+    {
+      "name": "Succession Crises",
+      "priority": 55,
+      "conditions": {
+        "entityKinds": [
+          "occurrence"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "succession_crisis"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "orca_succession_name"
+        }
+      ]
+    }
+  ],
+  "isDefault": false,
+  "entityKinds": [
+    "occurrence"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "orca_power",
+  "description": "Strength and hunting words",
+  "entries": [
+    "hunt",
+    "blood",
+    "deep",
+    "tide",
+    "fang",
+    "storm",
+    "crush",
+    "dark"
+  ],
+  "source": "manual"
+}

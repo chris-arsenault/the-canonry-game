@@ -1,0 +1,17 @@
+{
+  "id": "nightshelf_disaster_types",
+  "description": "Disaster types for Nightshelf",
+  "entries": [
+    "Collapsum",
+    "Ruptio",
+    "Extinctio",
+    "Eruptio",
+    "Fluxus",
+    "Voragine",
+    "Calamitas",
+    "Ruina",
+    "Hiatus",
+    "Vorago"
+  ],
+  "source": "manual"
+}

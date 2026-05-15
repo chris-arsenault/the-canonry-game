@@ -1,0 +1,17 @@
+{
+  "id": "aurora_rule_mandate",
+  "description": "Codification words for rules - signals this is a law/custom",
+  "entries": [
+    "Accord",
+    "Silence",
+    "Binding",
+    "Pact",
+    "Code",
+    "Edict",
+    "Covenant",
+    "Mandate",
+    "Decree",
+    "Charter"
+  ],
+  "source": "manual"
+}

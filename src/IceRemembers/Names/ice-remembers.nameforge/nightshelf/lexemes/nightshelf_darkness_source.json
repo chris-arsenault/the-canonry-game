@@ -1,0 +1,15 @@
+{
+  "id": "nightshelf_darkness_source",
+  "description": "Darkness/depth words for social gatherings prefix",
+  "entries": [
+    "Nox",
+    "Umbra",
+    "Crypt",
+    "Veil",
+    "Depth",
+    "Fissure",
+    "Glow",
+    "Shadow"
+  ],
+  "source": "manual"
+}
