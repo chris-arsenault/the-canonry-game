@@ -1,9 +1,34 @@
 namespace IceRemembers;
 
+using System.Globalization;
+using System.Text.Json;
+
+using Engine.Constants;
 using Engine.Projection;
+
+using NameForge.Runtime;
 
 public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSynthesizer
 {
+    private const string NameForgeResourceName = "IceRemembers.Names.ice-remembers.nameforge.json";
+
+    private static readonly Lazy<NameForgeGenerator?> NameForge = new(LoadNameForgeGenerator);
+
+    private static readonly HashSet<string> NameForgeKinds = new(StringComparer.Ordinal)
+    {
+        "region",
+        "settlement",
+        "faction",
+        "penguin",
+        "artifact",
+        "orca",
+        "point_of_interest",
+        "ability",
+        "monster",
+        "transport",
+        "occurrence",
+    };
+
     private static readonly string[] NpcSyllables =
     [
         "bren",
@@ -156,41 +181,201 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
             return false;
         }
 
+        if (NameForgeKinds.Contains(kind) && TrySynthesizeNameForge(context, kind, out displayName))
+        {
+            return true;
+        }
+
         var subtype = context.Subtype?.StableName ?? string.Empty;
         var rng = CreateRandom(context.Key);
-
-        if (IsKind(kind, IceRemembersKinds.Penguin.Value))
+        var fallbackBuilder = ResolveFallbackBuilder(kind);
+        if (fallbackBuilder is null)
         {
-            displayName = BuildPenguinName(subtype, rng);
-            return true;
+            displayName = string.Empty;
+            return false;
         }
 
-        if (IsKind(kind, IceRemembersKinds.Settlement.Value))
-        {
-            displayName = BuildSettlementName(rng);
-            return true;
-        }
+        displayName = fallbackBuilder(subtype, rng);
+        return true;
+    }
 
-        if (IsKind(kind, IceRemembersKinds.Faction.Value))
+    private static Func<string, Random, string>? ResolveFallbackBuilder(string kind) =>
+        kind switch
         {
-            displayName = $"The {Pick(FactionAdjectives, rng)} {Pick(FactionNouns, rng)}";
-            return true;
-        }
+            var value when IsKind(value, IceRemembersKinds.Penguin.Value) => BuildPenguinName,
+            var value when IsKind(value, IceRemembersKinds.Settlement.Value) => static (_, rng) => BuildSettlementName(rng),
+            var value when IsKind(value, IceRemembersKinds.Faction.Value) => static (_, rng) => $"The {Pick(FactionAdjectives, rng)} {Pick(FactionNouns, rng)}",
+            var value when IsKind(value, IceRemembersKinds.Artifact.Value) => static (_, rng) => BuildArtifactName(rng),
+            var value when IsKind(value, IceRemembersKinds.Region.Value) => BuildRegionName,
+            _ => null,
+        };
 
-        if (IsKind(kind, IceRemembersKinds.Artifact.Value))
-        {
-            displayName = BuildArtifactName(rng);
-            return true;
-        }
-
-        if (IsKind(kind, IceRemembersKinds.Region.Value))
-        {
-            displayName = BuildRegionName(subtype, rng);
-            return true;
-        }
-
+    private static bool TrySynthesizeNameForge(
+        ProjectionEntityNameContext context,
+        string kind,
+        out string displayName)
+    {
         displayName = string.Empty;
-        return false;
+        var generator = NameForge.Value;
+        if (generator is null ||
+            !TryResolveNameForgeCulture(context.Culture?.StableName, out var cultureId))
+        {
+            return false;
+        }
+
+        var request = new NameForgeGenerateRequest
+        {
+            CultureId = cultureId,
+            Kind = kind,
+            Subtype = context.Subtype?.StableName ?? string.Empty,
+            Prominence = "recognized",
+            Context = BuildNameForgeContext(context),
+            Seed = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{context.Key.NameSeed}:{context.Key.EntityId}:{context.Key.KindId}:{context.Key.SubtypeId}:{context.Key.CultureId}"),
+        };
+
+        return generator.TryGenerateOne(request, out displayName);
+    }
+
+    private static Dictionary<string, string> BuildNameForgeContext(ProjectionEntityNameContext context)
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        var provenance = context.Provenance;
+        if (provenance is null)
+        {
+            return values;
+        }
+
+        AddInvocation(values, string.Empty, provenance.Invocation, provenance.Producer);
+        Add(values, "primary_entity_name", provenance.PrimaryEntityName);
+        Add(values, "secondary_entity_name", provenance.SecondaryEntityName);
+        Add(values, "selected", provenance.PrimaryEntityName);
+        Add(values, "created_by_invocation_id", provenance.Invocation.InvocationId);
+        Add(values, "parent_chain_depth", provenance.ParentChain.Count);
+        Add(values, "output_count", provenance.Outputs.Count);
+
+        if (provenance.ParentInvocation is { } parentInvocation)
+        {
+            AddInvocation(values, "parent_", parentInvocation, provenance.ParentProducer);
+            Add(values, "parent_primary_entity_name", provenance.ParentPrimaryEntityName);
+            Add(values, "parent_secondary_entity_name", provenance.ParentSecondaryEntityName);
+        }
+
+        if (provenance.RelationshipTrigger is { } relationshipTrigger)
+        {
+            Add(values, "trigger_relationship_id", relationshipTrigger.RelationshipId);
+            Add(values, "trigger_relationship_kind_id", relationshipTrigger.RelationshipKindId);
+            Add(values, "trigger_relationship_source_entity_id", relationshipTrigger.SourceEntityId);
+            Add(values, "trigger_relationship_target_entity_id", relationshipTrigger.TargetEntityId);
+            Add(values, "trigger_relationship_created_by_invocation_id", relationshipTrigger.CreatedByInvocationId);
+            Add(values, "trigger_relationship_last_changed_by_invocation_id", relationshipTrigger.LastChangedByInvocationId);
+            Add(values, "trigger_relationship_kind", provenance.RelationshipTriggerKind?.StableName);
+            Add(values, "trigger_relationship_kind_display_name", provenance.RelationshipTriggerKind?.DisplayName);
+            Add(values, "trigger_relationship_source_entity_name", provenance.RelationshipTriggerSourceEntityName);
+            Add(values, "trigger_relationship_target_entity_name", provenance.RelationshipTriggerTargetEntityName);
+        }
+
+        return values;
+    }
+
+    private static void AddInvocation(
+        Dictionary<string, string> values,
+        string prefix,
+        ProvenanceInvocationProjection invocation,
+        ProjectionSymbol? producer)
+    {
+        Add(values, $"{prefix}invocation_id", invocation.InvocationId);
+        Add(values, $"{prefix}tick", invocation.Tick);
+        Add(values, $"{prefix}producer_kind_code", invocation.ProducerKindCode);
+        Add(values, $"{prefix}producer_kind", ProducerKindName(invocation.ProducerKindCode));
+        Add(values, $"{prefix}producer_id", invocation.ProducerId);
+        Add(values, $"{prefix}producer", producer?.StableName);
+        Add(values, $"{prefix}producer_display_name", producer?.DisplayName);
+        Add(values, $"{prefix}primary_entity_id", invocation.PrimaryEntityId);
+        Add(values, $"{prefix}secondary_entity_id", invocation.SecondaryEntityId);
+        Add(values, $"{prefix}parent_invocation_id", invocation.ParentInvocationId);
+        Add(values, $"{prefix}trigger_kind_code", invocation.TriggerKindCode);
+        Add(values, $"{prefix}trigger_kind", TriggerKindName(invocation.TriggerKindCode));
+        Add(values, $"{prefix}trigger_id", invocation.TriggerId);
+        Add(values, $"{prefix}declared_output_count", invocation.OutputCount);
+    }
+
+    private static void Add(Dictionary<string, string> values, string key, int value)
+    {
+        if (value > 0)
+        {
+            values[key] = value.ToString(CultureInfo.InvariantCulture);
+        }
+    }
+
+    private static void Add(Dictionary<string, string> values, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            values[key] = value;
+        }
+    }
+
+    private static string ProducerKindName(int producerKindCode) =>
+        producerKindCode switch
+        {
+            ProvenanceProducerKindCodes.Generator => "generator",
+            ProvenanceProducerKindCodes.Gambit => "gambit",
+            ProvenanceProducerKindCodes.Action => "action",
+            ProvenanceProducerKindCodes.System => "system",
+            _ => string.Empty,
+        };
+
+    private static string TriggerKindName(int triggerKindCode) =>
+        triggerKindCode switch
+        {
+            ProvenanceTriggerKindCodes.Entity => "entity",
+            ProvenanceTriggerKindCodes.Relationship => "relationship",
+            ProvenanceTriggerKindCodes.Invocation => "invocation",
+            ProvenanceTriggerKindCodes.Attribute => "attribute",
+            _ => string.Empty,
+        };
+
+    private static bool TryResolveNameForgeCulture(string? culture, out string cultureId)
+    {
+        cultureId = culture switch
+        {
+            "aurora_stack" or "aurora-stack" => "aurora_stack",
+            "nightshelf" => "nightshelf",
+            "wake_singers" or "orca" => "wake_singers",
+            "world" => "world",
+            _ => string.Empty,
+        };
+
+        return cultureId.Length > 0;
+    }
+
+    private static NameForgeGenerator? LoadNameForgeGenerator()
+    {
+        var assembly = typeof(IceRemembersEntityNameSynthesizer).Assembly;
+        using var stream = assembly.GetManifestResourceStream(NameForgeResourceName);
+        if (stream is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return new NameForgeGenerator(NameForgeProject.Load(stream));
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private static string BuildPenguinName(string subtype, Random rng)

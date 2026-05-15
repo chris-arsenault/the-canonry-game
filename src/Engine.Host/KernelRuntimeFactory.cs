@@ -61,10 +61,24 @@ public sealed class KernelRuntimeFactory
                 provenance = new ProvenanceProjection();
                 builder
                     .RegisterProjection("map", _ => map)
-                    .RegisterProjection("ui", _ => ui)
+                    .RegisterProjection(
+                        "ui",
+                        context =>
+                        {
+                            var projection = ui ??
+                                throw new InvalidOperationException("UI projection was not initialized.");
+                            context.Symbols.UseEntityProjectionState(projection);
+                            return projection;
+                        })
                     .RegisterProjection(
                         "provenance",
-                        _ => provenance ?? throw new InvalidOperationException("UI provenance projection was not initialized."))
+                        context =>
+                        {
+                            var projection = provenance ??
+                                throw new InvalidOperationException("UI provenance projection was not initialized.");
+                            context.Symbols.UseProvenanceProjection(projection);
+                            return projection;
+                        })
                     .RegisterProjection(
                         "chronicle",
                         context =>
@@ -73,6 +87,8 @@ public sealed class KernelRuntimeFactory
                             return chronicle;
                         });
             });
+        var provenanceProjection = provenance ??
+            throw new InvalidOperationException("UI provenance projection was not registered.");
 
         var logger = runLogPath is null
             ? null
@@ -81,7 +97,7 @@ public sealed class KernelRuntimeFactory
             runtime,
             map ?? throw new InvalidOperationException("UI map projection was not registered."),
             ui ?? throw new InvalidOperationException("UI projection was not registered."),
-            provenance ?? throw new InvalidOperationException("UI provenance projection was not registered."),
+            provenanceProjection,
             chronicle ?? throw new InvalidOperationException("UI chronicle projection was not registered."),
             logger);
     }

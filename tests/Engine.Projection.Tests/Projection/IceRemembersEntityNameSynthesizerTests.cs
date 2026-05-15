@@ -7,15 +7,20 @@ using IceRemembers;
 public sealed class IceRemembersEntityNameSynthesizerTests
 {
     [Theory]
-    [InlineData("penguin", "warden")]
-    [InlineData("penguin", "scholar")]
-    [InlineData("settlement", "village")]
-    [InlineData("faction", "order")]
-    [InlineData("artifact", "weapon")]
-    [InlineData("region", "scar")]
-    public void SynthesizeName_WithSeededContext_IsDeterministic(string kind, string subtype)
+    [InlineData("penguin", "warden", "aurora_stack")]
+    [InlineData("settlement", "rookery", "aurora_stack")]
+    [InlineData("faction", "order", "nightshelf")]
+    [InlineData("artifact", "weapon", "aurora_stack")]
+    [InlineData("region", "scar", "nightshelf")]
+    [InlineData("orca", "scout", "wake_singers")]
+    [InlineData("point_of_interest", "vent", "aurora_stack")]
+    [InlineData("ability", "rite", "aurora_stack")]
+    [InlineData("monster", "wraith", "nightshelf")]
+    [InlineData("transport", "trade", "wake_singers")]
+    [InlineData("occurrence", "war", "wake_singers")]
+    public void SynthesizeName_WithSeededContext_IsDeterministic(string kind, string subtype, string culture)
     {
-        var context = CreateContext(kind, subtype, entityId: 10, nameSeed: 42);
+        var context = CreateContext(kind, subtype, culture, entityId: 10, nameSeed: 42);
 
         var first = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeName(context, out var firstName);
         var second = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeName(context, out var secondName);
@@ -24,13 +29,13 @@ public sealed class IceRemembersEntityNameSynthesizerTests
         Assert.True(second);
         Assert.Equal(firstName, secondName);
         Assert.False(string.IsNullOrWhiteSpace(firstName));
-        Assert.InRange(firstName.Length, 1, 40);
+        Assert.InRange(firstName.Length, 1, 96);
     }
 
     [Fact]
     public void SynthesizeName_ReturnsFalseForUnknownKind()
     {
-        var context = CreateContext("unknown", "none", entityId: 10, nameSeed: 42);
+        var context = CreateContext("unknown", "none", "aurora_stack", entityId: 10, nameSeed: 42);
 
         var result = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeName(context, out var displayName);
 
@@ -39,32 +44,34 @@ public sealed class IceRemembersEntityNameSynthesizerTests
     }
 
     [Fact]
-    public void RegionName_UsesRegionSpecificSuffix()
+    public void SynthesizedNames_VaryByCulture()
     {
-        var context = CreateContext("region", "shelf", entityId: 10, nameSeed: 42);
+        var aurora = CreateContext("penguin", "warden", "aurora_stack", entityId: 10, nameSeed: 42);
+        var nightshelf = CreateContext("penguin", "warden", "nightshelf", entityId: 10, nameSeed: 42);
 
-        var result = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeName(context, out var displayName);
+        var first = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeName(aurora, out var auroraName);
+        var second = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeName(nightshelf, out var nightshelfName);
 
-        Assert.True(result);
-        Assert.Contains(
-            displayName.Split(' ')[^1],
-            new[] { "Shelf", "Ledge", "Face", "Wall" });
+        Assert.True(first);
+        Assert.True(second);
+        Assert.NotEqual(auroraName, nightshelfName);
     }
 
     private static ProjectionEntityNameContext CreateContext(
         string kind,
         string subtype,
+        string culture,
         int entityId,
         int nameSeed)
     {
         var kindId = kind.GetHashCode(StringComparison.Ordinal) & 0x7fffffff;
         var subtypeId = subtype.GetHashCode(StringComparison.Ordinal) & 0x7fffffff;
-        var cultureId = "culture_a".GetHashCode(StringComparison.Ordinal) & 0x7fffffff;
+        var cultureId = culture.GetHashCode(StringComparison.Ordinal) & 0x7fffffff;
         return new ProjectionEntityNameContext(
             new ProjectionEntityNameKey(entityId, kindId, subtypeId, cultureId, nameSeed),
             new ProjectionSymbol(ProjectionSymbolKind.Kind, kindId, kind, ToDisplay(kind)),
             new ProjectionSymbol(ProjectionSymbolKind.Subtype, subtypeId, subtype, ToDisplay(subtype)),
-            new ProjectionSymbol(ProjectionSymbolKind.Culture, cultureId, "culture_a", "Culture A"));
+            new ProjectionSymbol(ProjectionSymbolKind.Culture, cultureId, culture, ToDisplay(culture)));
     }
 
     private static string ToDisplay(string stableName) =>

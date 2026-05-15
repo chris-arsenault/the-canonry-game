@@ -152,7 +152,8 @@
         "dependencies": {
           "Engine.Domain": "[1.0.0, )",
           "Engine.Projection": "[1.0.0, )",
-          "Engine.WorldGen": "[1.0.0, )"
+          "Engine.WorldGen": "[1.0.0, )",
+          "NameForge.Runtime": "[1.0.0, )"
         }
       },
       "iceremembers.seed": {
@@ -164,6 +165,9 @@
           "Engine.WorldGen": "[1.0.0, )",
           "IceRemembers": "[1.0.0, )"
         }
+      },
+      "nameforge.runtime": {
+        "type": "Project"
       }
     }
   }

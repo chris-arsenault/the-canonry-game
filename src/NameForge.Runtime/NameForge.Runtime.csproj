@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CA1002;CA1308;CA1859;CA2227;MA0009;MA0020;MA0051;MA0089;S1541;S1643;S3776</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource
+      Include="Data/Markov/Models/*.json"
+      LogicalName="NameForge.Runtime.Data.Markov.Models.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

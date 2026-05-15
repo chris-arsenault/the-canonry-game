@@ -9,5 +9,12 @@
     <ProjectReference Include="..\Engine.Domain\Engine.Domain.csproj" />
     <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
     <ProjectReference Include="..\Engine.WorldGen\Engine.WorldGen.csproj" />
+    <ProjectReference Include="..\NameForge.Runtime\NameForge.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource
+      Include="Names\ice-remembers.nameforge.json"
+      LogicalName="IceRemembers.Names.ice-remembers.nameforge.json" />
   </ItemGroup>
 </Project>

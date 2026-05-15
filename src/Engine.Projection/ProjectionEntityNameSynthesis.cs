@@ -4,7 +4,39 @@ public readonly record struct ProjectionEntityNameContext(
     ProjectionEntityNameKey Key,
     ProjectionSymbol? Kind,
     ProjectionSymbol? Subtype,
-    ProjectionSymbol? Culture);
+    ProjectionSymbol? Culture,
+    ProjectionEntityNameProvenance? Provenance = null);
+
+public sealed record ProjectionEntityNameProvenance
+{
+    public required ProvenanceInvocationProjection Invocation { get; init; }
+
+    public ProjectionSymbol? Producer { get; init; }
+
+    public string? PrimaryEntityName { get; init; }
+
+    public string? SecondaryEntityName { get; init; }
+
+    public ProvenanceInvocationProjection? ParentInvocation { get; init; }
+
+    public ProjectionSymbol? ParentProducer { get; init; }
+
+    public string? ParentPrimaryEntityName { get; init; }
+
+    public string? ParentSecondaryEntityName { get; init; }
+
+    public ProvenanceRelationshipTriggerProjection? RelationshipTrigger { get; init; }
+
+    public ProjectionSymbol? RelationshipTriggerKind { get; init; }
+
+    public string? RelationshipTriggerSourceEntityName { get; init; }
+
+    public string? RelationshipTriggerTargetEntityName { get; init; }
+
+    public required IReadOnlyList<ProvenanceOutputProjection> Outputs { get; init; }
+
+    public required IReadOnlyList<ProvenanceInvocationProjection> ParentChain { get; init; }
+}
 
 public interface IProjectionEntityNameSynthesizer
 {

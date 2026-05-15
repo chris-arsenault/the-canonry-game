@@ -17,6 +17,7 @@
     <Project Path="src/Engine.WorldGen/Engine.WorldGen.csproj" />
     <Project Path="src/IceRemembers/IceRemembers.csproj" />
     <Project Path="src/IceRemembers.Seed/IceRemembers.Seed.csproj" />
+    <Project Path="src/NameForge.Runtime/NameForge.Runtime.csproj" />
     <Project Path="src/TheCanonryGame.Game/TheCanonryGame.Game.csproj" />
     <Project Path="src/TheCanonryGame.UI.Core/TheCanonryGame.UI.Core.csproj" />
     <Project Path="src/TheCanonryGame.UI/TheCanonryGame.UI.csproj" />
@@ -33,7 +34,11 @@
     <Project Path="tests/Engine.WorldGen.Tests/Engine.WorldGen.Tests.csproj" />
     <Project Path="tests/IceRemembers.Seed.Tests/IceRemembers.Seed.Tests.csproj" />
     <Project Path="tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj" />
+    <Project Path="tests/NameForge.Runtime.Tests/NameForge.Runtime.Tests.csproj" />
     <Project Path="tests/TheCanonryGame.Game.Tests/TheCanonryGame.Game.Tests.csproj" />
     <Project Path="tests/TheCanonryGame.UI.Tests/TheCanonryGame.UI.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/NameForge/NameForge.csproj" />
   </Folder>
 </Solution>
