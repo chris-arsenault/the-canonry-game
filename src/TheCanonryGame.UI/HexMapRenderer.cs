@@ -36,6 +36,10 @@ public partial class HexMapRenderer : Node2D
 
     [Export] public bool ShowInfluence { get; set; } = true;
 
+    [Export] public bool ShowRoads { get; set; } = true;
+
+    [Export] public bool ShowMapFeatures { get; set; } = true;
+
     [Export] public bool ShowRegionBorders { get; set; } = true;
 
     public PlaneMode CurrentPlane { get; set; } = PlaneMode.Physical;
@@ -102,7 +106,7 @@ public partial class HexMapRenderer : Node2D
     public void RefreshFrame()
     {
         _backdropLayer?.Bind(_map, CurrentPlane, HexSize);
-        _frameLayer?.Bind(_map, _symbols, CurrentPlane, HexSize, ShowRegionBorders);
+        _frameLayer?.Bind(_map, _symbols, CurrentPlane, HexSize, ShowRegionBorders && ShowMapFeatures);
     }
 
     public Vector2 GetHexCenter(HexCoord coord) => HexToPixel(coord);
@@ -216,7 +220,9 @@ public partial class HexMapRenderer : Node2D
             ownerColor,
             influences,
             ShowTerritory,
-            ShowInfluence);
+            ShowInfluence,
+            ShowRoads,
+            ShowMapFeatures);
     }
 
     private static HexInfluenceRenderItem[] BuildInfluenceRenderItems(

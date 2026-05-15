@@ -14,6 +14,7 @@ internal sealed partial class Simulation : IKernel
     private int _systemCount;
 #if DEBUG
     private int _writerThreadId;
+    private int _writerActive;
 #endif
     private RandomSource _random;
     private KernelExecutionContext _executionContext;
@@ -786,27 +787,33 @@ internal sealed partial class Simulation : IKernel
     public int AdvanceTicks(int count, in AdvanceOptions options = default)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(count);
-        AssertWriterThread();
-
-        var advanced = 0;
-        while (advanced < count)
+        EnterWriterThread();
+        try
         {
-            if (options.Cancel.IsCancellationRequested)
+            var advanced = 0;
+            while (advanced < count)
             {
-                break;
+                if (options.Cancel.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                var stopContext = new KernelStopContext(CurrentTick, CurrentVersion, advanced);
+                if (options.StopAt is not null && options.StopAt(in stopContext))
+                {
+                    break;
+                }
+
+                AdvanceOneTick();
+                advanced++;
             }
 
-            var stopContext = new KernelStopContext(CurrentTick, CurrentVersion, advanced);
-            if (options.StopAt is not null && options.StopAt(in stopContext))
-            {
-                break;
-            }
-
-            AdvanceOneTick();
-            advanced++;
+            return advanced;
         }
-
-        return advanced;
+        finally
+        {
+            ExitWriterThread();
+        }
     }
 
     private void AdvanceOneTick()
@@ -918,12 +925,22 @@ internal sealed partial class Simulation : IKernel
         }
     }
 
-    private void AssertWriterThread()
+    private void EnterWriterThread()
     {
 #if DEBUG
         var currentThreadId = global::System.Environment.CurrentManagedThreadId;
-        var observedThreadId = global::System.Threading.Interlocked.CompareExchange(ref _writerThreadId, currentThreadId, 0);
-        global::System.Diagnostics.Debug.Assert(observedThreadId == 0 || observedThreadId == currentThreadId);
+        var wasActive = global::System.Threading.Interlocked.CompareExchange(ref _writerActive, 1, 0);
+        var observedThreadId = global::System.Threading.Volatile.Read(ref _writerThreadId);
+        global::System.Diagnostics.Debug.Assert(wasActive == 0 || observedThreadId == currentThreadId);
+        global::System.Threading.Volatile.Write(ref _writerThreadId, currentThreadId);
+#endif
+    }
+
+    private void ExitWriterThread()
+    {
+#if DEBUG
+        global::System.Threading.Volatile.Write(ref _writerThreadId, 0);
+        global::System.Threading.Volatile.Write(ref _writerActive, 0);
 #endif
     }
 

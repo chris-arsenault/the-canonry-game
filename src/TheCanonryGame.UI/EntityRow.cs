@@ -119,9 +119,10 @@ public partial class EntityRow : VBoxContainer
         IProjectionSymbolCatalog? symbols)
     {
         var last = entity.LastGambitExecution;
+        var source = FormatCreationSource(entity, symbols);
         if (last is null)
         {
-            return null;
+            return source is null ? null : $"    {source}";
         }
 
         var actionName = ProjectionDisplay.DisplayName(
@@ -129,6 +130,27 @@ public partial class EntityRow : VBoxContainer
             ProjectionSymbolKind.Gambit,
             last.GambitId,
             $"Gambit {last.GambitId}");
-        return $"    {actionName} | t{last.Tick}";
+        return source is null
+            ? $"    {actionName} | t{last.Tick}"
+            : $"    {source} | {actionName} | t{last.Tick}";
+    }
+
+    private static string? FormatCreationSource(
+        UiEntityProjection entity,
+        IProjectionSymbolCatalog? symbols)
+    {
+        if (entity.CreatedByGeneratorId is not { } generatorId)
+        {
+            return entity.WasCreatedFromEvent ? "seeded / untraced" : null;
+        }
+
+        var generatorName = ProjectionDisplay.DisplayName(
+            symbols,
+            ProjectionSymbolKind.Generator,
+            generatorId,
+            $"Generator {generatorId}");
+        return entity.CreatedByGeneratorTick is { } tick
+            ? $"from {generatorName} t{tick}"
+            : $"from {generatorName}";
     }
 }

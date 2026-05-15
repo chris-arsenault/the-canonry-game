@@ -21,6 +21,7 @@ public partial class Entity : Node2D
     private float _glyphSize = 10f;
     private bool _hasTexture;
     private bool _isHistorical;
+    private bool _isHighlighted;
     private bool _positionInitialized;
     private int _entityId;
 
@@ -42,11 +43,12 @@ public partial class Entity : Node2D
         _nameLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
     }
 
-    public void BindTo(UiEntityProjection entity, IProjectionSymbolCatalog? symbols, bool showName)
+    public void BindTo(UiEntityProjection entity, IProjectionSymbolCatalog? symbols, bool showName, bool isHighlighted = false)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
         _entityId = entity.EntityId;
+        _isHighlighted = isHighlighted;
         _kindStableName = ProjectionDisplay.StableName(symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}");
         var subtypeStableName = ProjectionDisplay.NullableStableName(symbols, ProjectionSymbolKind.Subtype, entity.SubtypeId);
         _accent = UiTokens.KindAccent(_kindStableName);
@@ -80,9 +82,17 @@ public partial class Entity : Node2D
 
     public override void _Draw()
     {
+        if (_isHighlighted)
+        {
+            var radius = _glyphSize * 3.25f;
+            DrawCircle(Vector2.Zero, radius + 2f, new Color(UiTokens.Ink.R, UiTokens.Ink.G, UiTokens.Ink.B, 0.7f));
+            DrawArc(Vector2.Zero, radius, 0f, Mathf.Tau, 72, UiTokens.Gilt, 3.5f, antialiased: true);
+        }
+
         if (!_hasTexture)
         {
-            KindGlyph.Draw(this, _kindStableName, Vector2.Zero, _glyphSize, _accent);
+            var glyphSize = _isHighlighted ? _glyphSize * 1.28f : _glyphSize;
+            KindGlyph.Draw(this, _kindStableName, Vector2.Zero, glyphSize, _accent);
         }
     }
 
@@ -101,7 +111,7 @@ public partial class Entity : Node2D
 
         if (texture is not null)
         {
-            var targetDiameter = _glyphSize * 4.8f;
+            var targetDiameter = _glyphSize * (_isHighlighted ? 6.1f : 4.8f);
             var textureSize = texture.GetSize();
             if (textureSize.X > 0f && textureSize.Y > 0f)
             {
@@ -120,7 +130,7 @@ public partial class Entity : Node2D
         _nameLabel.Text = entityName;
         _nameLabel.Visible = showName;
         _nameLabel.Size = new Vector2(160, 20);
-        _nameLabel.Position = new Vector2(-80, -_glyphSize - 26f);
+        _nameLabel.Position = new Vector2(-80, -_glyphSize - (_isHighlighted ? 34f : 26f));
     }
 
     private void BindShape()
@@ -136,7 +146,7 @@ public partial class Entity : Node2D
             _collisionShape.Shape = circle;
         }
 
-        circle.Radius = _glyphSize * 2.8f;
+        circle.Radius = _glyphSize * (_isHighlighted ? 3.6f : 2.8f);
     }
 
     private void BindHistorical(bool isHistorical)

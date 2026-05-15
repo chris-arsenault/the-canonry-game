@@ -163,6 +163,67 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
+    public void Projection_AttributesGeneratedEntitiesBySameTickFire()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 4,
+            WorldVersion: 4,
+            EntityId: 30,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0))));
+        Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
+            Tick: 4,
+            WorldVersion: 5,
+            GeneratorId: 90,
+            TargetEntityId: 12,
+            CreatedEntityCount: 1,
+            CreatedRelationshipCount: 0))));
+        Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
+            Tick: 5,
+            WorldVersion: 6,
+            GeneratorId: 91,
+            TargetEntityId: 13,
+            CreatedEntityCount: 1,
+            CreatedRelationshipCount: 0))));
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 5,
+            WorldVersion: 7,
+            EntityId: 31,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            PhysicalQ: 1,
+            PhysicalR: 0,
+            SemanticQ: 1,
+            SemanticR: -1,
+            SemanticS: 0))));
+
+        pump.DrainAvailable();
+
+        Assert.Equal(90, projection.Entities[30].CreatedByGeneratorId);
+        Assert.Equal(4, projection.Entities[30].CreatedByGeneratorTick);
+        Assert.Equal(12, projection.Entities[30].CreatedByGeneratorTargetEntityId);
+        Assert.Equal([30], projection.GeneratorFires[0].CreatedEntityIds);
+        Assert.Equal(91, projection.Entities[31].CreatedByGeneratorId);
+        Assert.Equal([31], projection.GeneratorFires[1].CreatedEntityIds);
+    }
+
+    [Fact]
     public void Projection_SplitsUiVersionsByConsumerSurface()
     {
         var log = new KernelEventLog(capacity: 16);
@@ -557,6 +618,9 @@ public sealed class UiProjectionStateTests
         Assert.Contains(
             UiProjectionState.FutureMigrationItems,
             item => item.Area == "initial attributes");
+        Assert.Contains(
+            UiProjectionState.FutureMigrationItems,
+            item => item.Area == "generated entity attribution");
         Assert.Contains(
             UiProjectionState.FutureMigrationItems,
             item => item.Area == "relationship removal semantics");

@@ -117,6 +117,29 @@ public sealed class DriverTests
     }
 
     [Fact]
+    public void TimeControllerSingleStepAfterRealtimeRunWorksWithSimulationKernel()
+    {
+        var simulation = new Simulation();
+        using var time = new KernelDriverTimeController(
+            simulation,
+            new RealtimeDriverConfig(
+                TicksPerSecond: 0d,
+                MaxTicksPerSlice: 8,
+                SliceInterval: TimeSpan.FromMilliseconds(1)));
+
+        time.SetTickRate(1000d);
+        Assert.True(SpinWait.SpinUntil(() => simulation.CurrentTick > 0, TimeSpan.FromSeconds(2)));
+
+        time.SetTickRate(0d);
+        var pausedTick = simulation.CurrentTick;
+        var stepped = time.AdvanceSingleStep(1);
+
+        Assert.Equal(1, stepped);
+        Assert.Equal(pausedTick + 1, simulation.CurrentTick);
+        Assert.True(time.IsPaused);
+    }
+
+    [Fact]
     public void TimeControllerResumeRestartsWithRememberedRate()
     {
         var kernel = new CountingKernel();

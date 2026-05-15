@@ -13,7 +13,9 @@ public partial class EntityLayer : Node2D
     private readonly Dictionary<int, HexCoord> _renderedCoordsByEntity = [];
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
+    private HashSet<int>? _visibleEntityIds;
     private PackedScene? _entityScene;
+    private int? _highlightedEntityId;
 
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
@@ -25,6 +27,8 @@ public partial class EntityLayer : Node2D
     public int CurrentPlaneCode => PlaneCodeForCurrentPlane();
 
     public bool ShowEntityNames { get; private set; } = true;
+
+    public int? HighlightedEntityId => _highlightedEntityId;
 
     public override void _Ready()
     {
@@ -59,6 +63,66 @@ public partial class EntityLayer : Node2D
 
         ShowEntityNames = showEntityNames;
         return true;
+    }
+
+    public bool SetVisibleEntityIds(IReadOnlySet<int>? visibleEntityIds)
+    {
+        if (visibleEntityIds is null)
+        {
+            if (_visibleEntityIds is null)
+            {
+                return false;
+            }
+
+            _visibleEntityIds = null;
+            return true;
+        }
+
+        if (_visibleEntityIds is not null && _visibleEntityIds.SetEquals(visibleEntityIds))
+        {
+            return false;
+        }
+
+        _visibleEntityIds = [.. visibleEntityIds];
+        return true;
+    }
+
+    public bool SetHighlightedEntity(int? entityId)
+    {
+        if (entityId is <= 0)
+        {
+            entityId = null;
+        }
+
+        if (_highlightedEntityId == entityId)
+        {
+            return false;
+        }
+
+        var previous = _highlightedEntityId;
+        _highlightedEntityId = entityId;
+        RefreshEntityAppearance(previous);
+        RefreshEntityAppearance(_highlightedEntityId);
+        return true;
+    }
+
+    public bool TryGetEntityWorldPosition(int entityId, out Vector2 worldPosition)
+    {
+        if (_entityNodes.TryGetValue(entityId, out var node))
+        {
+            worldPosition = node.GlobalPosition;
+            return true;
+        }
+
+        if (_projection?.Entities.TryGetValue(entityId, out var entity) == true &&
+            entity.StatusCode == EntityStatusCodes.Active)
+        {
+            worldPosition = HexToPixel(EntityCoordForCurrentPlane(entity));
+            return true;
+        }
+
+        worldPosition = default;
+        return false;
     }
 
     public void Refresh()
@@ -113,7 +177,8 @@ public partial class EntityLayer : Node2D
             foreach (var entityId in _projection.ActiveOccupants(PlaneCodeForCurrentPlane(), coord).Order())
             {
                 if (!_projection.Entities.TryGetValue(entityId, out var entity) ||
-                    entity.StatusCode != EntityStatusCodes.Active)
+                    entity.StatusCode != EntityStatusCodes.Active ||
+                    !EntityPassesVisibleFilter(entity))
                 {
                     continue;
                 }
@@ -135,7 +200,7 @@ public partial class EntityLayer : Node2D
 
     private IEnumerable<UiEntityProjection> ActiveEntitiesInRenderOrder() =>
         _projection!.Entities.Values
-            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
+            .Where(entity => entity.StatusCode == EntityStatusCodes.Active && EntityPassesVisibleFilter(entity))
             .OrderBy(entity => entity.EntityId);
 
     private void UpdateEntity(UiEntityProjection entity, HexCoord coord, int offsetIndex)
@@ -151,8 +216,26 @@ public partial class EntityLayer : Node2D
         }
 
         _renderedCoordsByEntity[entity.EntityId] = coord;
-        node.BindTo(entity, _symbols, ShowEntityNames);
+        node.BindTo(entity, _symbols, ShowEntityNames, entity.EntityId == _highlightedEntityId);
+        node.ZIndex = entity.EntityId == _highlightedEntityId ? 20 : 0;
         node.MoveTo(worldPosition);
+    }
+
+    private bool EntityPassesVisibleFilter(UiEntityProjection entity) =>
+        _visibleEntityIds is null || _visibleEntityIds.Contains(entity.EntityId);
+
+    private void RefreshEntityAppearance(int? entityId)
+    {
+        if (entityId is not { } id ||
+            _projection is null ||
+            !_projection.Entities.TryGetValue(id, out var entity) ||
+            !_entityNodes.TryGetValue(id, out var node))
+        {
+            return;
+        }
+
+        node.BindTo(entity, _symbols, ShowEntityNames, id == _highlightedEntityId);
+        node.ZIndex = id == _highlightedEntityId ? 20 : 0;
     }
 
     private void RemoveEntity(int entityId)

@@ -110,8 +110,8 @@ internal sealed class GameRenderTree
         _chronicle.Refresh();
         _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt);
         _mapRender.Present(_mapRenderer, _map);
-        _entityMapRender.Present(_entityLayer, _ui);
         _browserRender.Present(_browser, _ui);
+        _entityMapRender.Present(_entityLayer, _ui, _browser);
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
@@ -141,11 +141,43 @@ internal sealed class GameRenderTree
         _entityMapRender.Invalidate();
     }
 
-    public void ToggleInfluence()
+    public void InvalidateEntityMap() => _entityMapRender.Invalidate();
+
+    public void SetMapLayerVisible(string layerKey, bool visible)
     {
-        _mapRenderer.ShowInfluence = !_mapRenderer.ShowInfluence;
-        _mapArea.SetInfluenceVisible(_mapRenderer.ShowInfluence);
-        _mapRender.InvalidateCells();
+        switch (layerKey)
+        {
+            case MapArea.LayerRoads:
+                if (_mapRenderer.ShowRoads == visible)
+                {
+                    return;
+                }
+
+                _mapRenderer.ShowRoads = visible;
+                _mapArea.SetLayerVisible(layerKey, visible);
+                _mapRender.InvalidateCells();
+                break;
+            case MapArea.LayerMapFeatures:
+                if (_mapRenderer.ShowMapFeatures == visible)
+                {
+                    return;
+                }
+
+                _mapRenderer.ShowMapFeatures = visible;
+                _mapArea.SetLayerVisible(layerKey, visible);
+                _mapRender.Invalidate();
+                break;
+            case MapArea.LayerInfluence:
+                if (_mapRenderer.ShowInfluence == visible)
+                {
+                    return;
+                }
+
+                _mapRenderer.ShowInfluence = visible;
+                _mapArea.SetLayerVisible(layerKey, visible);
+                _mapRender.InvalidateCells();
+                break;
+        }
     }
 
     public void ToggleAttributeGraph()
@@ -198,7 +230,9 @@ internal sealed class GameRenderTree
         _hexTooltipPanel.Initialize(_map, _ui, _symbols, _mapRenderer, _worldCanvas, [_rootColumn, _mapArea, _uiRoot]);
         _tableauPanel.Initialize(_runtime?.Tableau);
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
-        _mapArea.SetInfluenceVisible(_mapRenderer.ShowInfluence);
+        _mapArea.SetLayerVisible(MapArea.LayerRoads, _mapRenderer.ShowRoads);
+        _mapArea.SetLayerVisible(MapArea.LayerMapFeatures, _mapRenderer.ShowMapFeatures);
+        _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
         _bottomBar.SetTableauVisible(_tableauPanel.Visible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
     }
@@ -309,6 +343,8 @@ internal sealed class GameRenderTree
             previous.Plane != current.Plane ||
             previous.ShowTerritory != current.ShowTerritory ||
             previous.ShowInfluence != current.ShowInfluence ||
+            previous.ShowRoads != current.ShowRoads ||
+            previous.ShowMapFeatures != current.ShowMapFeatures ||
             previous.HexSize != current.HexSize;
     }
 
@@ -320,17 +356,25 @@ internal sealed class GameRenderTree
 
         public void Invalidate() => Reset();
 
-        public void Present(EntityLayer layer, UiProjectionState ui)
+        public void Present(EntityLayer layer, UiProjectionState ui, EntityBrowser browser)
         {
-            var state = new EntityMapState(ui.EntityMapVersion, layer.CurrentPlane, layer.ShowEntityNames);
+            var state = new EntityMapState(
+                ui.EntityMapVersion,
+                layer.CurrentPlane,
+                layer.ShowEntityNames,
+                browser.FilterVersion,
+                browser.FilterMapToBrowser,
+                browser.SelectedGeneratorFilterId);
             if (_lastState == state)
             {
                 return;
             }
 
+            var filterChanged = layer.SetVisibleEntityIds(browser.VisibleEntityIdsForMap());
             var shouldFullRefresh = _lastState is null ||
                 _lastState.Value.Plane != state.Plane ||
-                _lastState.Value.ShowNames != state.ShowNames;
+                _lastState.Value.ShowNames != state.ShowNames ||
+                filterChanged;
             _lastState = state;
             if (shouldFullRefresh)
             {
@@ -511,6 +555,8 @@ internal sealed class GameRenderTree
         PlaneMode Plane,
         bool ShowTerritory,
         bool ShowInfluence,
+        bool ShowRoads,
+        bool ShowMapFeatures,
         bool ShowRegionBorders,
         float HexSize)
     {
@@ -521,11 +567,19 @@ internal sealed class GameRenderTree
                 renderer.CurrentPlane,
                 renderer.ShowTerritory,
                 renderer.ShowInfluence,
+                renderer.ShowRoads,
+                renderer.ShowMapFeatures,
                 renderer.ShowRegionBorders,
                 renderer.HexSize);
     }
 
-    private readonly record struct EntityMapState(long Version, PlaneMode Plane, bool ShowNames);
+    private readonly record struct EntityMapState(
+        long Version,
+        PlaneMode Plane,
+        bool ShowNames,
+        long BrowserFilterVersion,
+        bool FilterMapToBrowser,
+        int SelectedGeneratorFilterId);
 
     private readonly record struct BrowserState(long Version);
 

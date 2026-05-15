@@ -10,7 +10,4 @@ script = ExtResource("1_maparea")
 [node name="PlaneToggleButton" type="Button" parent="."]
 text = "Physical"
 
-[node name="InfluenceToggleButton" type="Button" parent="."]
-text = "Influence On"
-
 [node name="LegendPanel" parent="." instance=ExtResource("2_legend")]

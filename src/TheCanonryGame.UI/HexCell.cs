@@ -18,7 +18,9 @@ public sealed record HexCellRenderItem(
     Color? OwnerColor,
     IReadOnlyList<HexInfluenceRenderItem> Influences,
     bool ShowTerritory,
-    bool ShowInfluence);
+    bool ShowInfluence,
+    bool ShowRoads,
+    bool ShowMapFeatures);
 
 public partial class HexCell : Node2D
 {
@@ -107,6 +109,11 @@ public partial class HexCell : Node2D
 
     private void DrawRoad(HexCellRenderItem data)
     {
+        if (!data.ShowRoads)
+        {
+            return;
+        }
+
         var normalizedQuality = Mathf.Clamp(data.Cell.RoadQuality / 100f, 0f, 1f);
         if (normalizedQuality <= LightRoadThreshold)
         {
@@ -143,7 +150,7 @@ public partial class HexCell : Node2D
 
     private void DrawTravelStructure(HexCellRenderItem data)
     {
-        if (data.Cell.TravelStructureId <= 0)
+        if (!data.ShowMapFeatures || data.Cell.TravelStructureId <= 0)
         {
             return;
         }

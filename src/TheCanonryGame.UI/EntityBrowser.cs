@@ -18,6 +18,8 @@ public partial class EntityBrowser : PanelContainer
     private const float HeaderLeadingGapHeight = 12f;
     private const float EntityRowHeight = 46f;
     private const int OverscanItemCount = 4;
+    private const int AllGeneratorFilterId = 0;
+    private const int SeedGeneratorFilterId = -1;
 
     private readonly List<RegistryItemData> _items = [];
     private readonly List<float> _itemOffsets = [];
@@ -32,13 +34,27 @@ public partial class EntityBrowser : PanelContainer
     private VBoxContainer? _visibleContainer;
     private Control? _topSpacer;
     private Control? _bottomSpacer;
+    private OptionButton? _generatorFilterOption;
+    private CheckBox? _filterMapCheckBox;
+    private Label? _filterSummaryLabel;
     private PackedScene? _entityRowScene;
     private PackedScene? _kindHeaderScene;
     private float _totalHeight;
     private bool _visibleRefreshQueued;
+    private bool _updatingFilterControls;
+    private int _selectedGeneratorFilterId = AllGeneratorFilterId;
 
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
+
+    [Signal]
+    public delegate void EntityFilterChangedEventHandler();
+
+    public long FilterVersion { get; private set; }
+
+    public bool FilterMapToBrowser => _filterMapCheckBox?.ButtonPressed == true;
+
+    public int SelectedGeneratorFilterId => _selectedGeneratorFilterId;
 
     public void Initialize(UiProjectionState? projection, IProjectionSymbolCatalog? symbols)
     {
@@ -68,6 +84,7 @@ public partial class EntityBrowser : PanelContainer
     {
         vbox.AddChild(CreateHeaderLabel("Registry", UiTokens.SizeTitleMedium, UiTokens.Vellum));
         vbox.AddChild(CreateHeaderLabel("ACTIVE ENTITIES", UiTokens.SizeMicro, UiTokens.Whisper));
+        AddFilterControls(vbox);
         vbox.AddChild(new ColorRect
         {
             Color = UiTokens.Hairline,
@@ -87,6 +104,78 @@ public partial class EntityBrowser : PanelContainer
         label.AddThemeFontSizeOverride("font_size", size);
         label.AddThemeColorOverride("font_color", color);
         return label;
+    }
+
+    private void AddFilterControls(VBoxContainer vbox)
+    {
+        var controls = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        controls.AddThemeConstantOverride("separation", UiTokens.Space1);
+        controls.AddChild(CreateGeneratorFilterRow());
+        controls.AddChild(CreateMapFilterRow());
+        vbox.AddChild(controls);
+    }
+
+    private HBoxContainer CreateGeneratorFilterRow()
+    {
+        var row = new HBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        row.AddThemeConstantOverride("separation", UiTokens.Space1);
+
+        var label = new Label
+        {
+            Text = "Generator",
+            CustomMinimumSize = new Vector2(72, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        label.AddThemeFontOverride("font", UiTheme.BodyFont);
+        label.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        label.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        row.AddChild(label);
+
+        _generatorFilterOption = new OptionButton
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0, 28),
+            TooltipText = "Filter entities by the generator that spawned them.",
+        };
+        _generatorFilterOption.ItemSelected += OnGeneratorFilterSelected;
+        row.AddChild(_generatorFilterOption);
+        return row;
+    }
+
+    private HBoxContainer CreateMapFilterRow()
+    {
+        var row = new HBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        row.AddThemeConstantOverride("separation", UiTokens.Space1);
+
+        _filterMapCheckBox = new CheckBox
+        {
+            Text = "Filter map",
+            TooltipText = "Only draw browser-matched entities on the map.",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _filterMapCheckBox.Toggled += OnFilterMapToggled;
+        row.AddChild(_filterMapCheckBox);
+
+        _filterSummaryLabel = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            CustomMinimumSize = new Vector2(64, 0),
+        };
+        _filterSummaryLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        _filterSummaryLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _filterSummaryLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        row.AddChild(_filterSummaryLabel);
+        return row;
     }
 
     private void AddVirtualizedList(VBoxContainer vbox)
@@ -119,9 +208,20 @@ public partial class EntityBrowser : PanelContainer
             return;
         }
 
+        RebuildGeneratorFilterOptions();
         RebuildSnapshot();
         PresentVisibleItems();
         QueueVisibleRefresh();
+    }
+
+    public HashSet<int>? VisibleEntityIdsForMap()
+    {
+        if (!FilterMapToBrowser || _projection is null || _selectedGeneratorFilterId == AllGeneratorFilterId)
+        {
+            return null;
+        }
+
+        return FilteredActiveEntities().Select(static entity => entity.EntityId).ToHashSet();
     }
 
     private void RebuildSnapshot()
@@ -131,8 +231,7 @@ public partial class EntityBrowser : PanelContainer
         _totalHeight = 0f;
         var firstKind = true;
 
-        foreach (var group in _projection!.Entities.Values
-            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
+        foreach (var group in FilteredActiveEntities()
             .OrderBy(entity => ProjectionDisplay.StableName(_symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}"), StringComparer.Ordinal)
             .ThenBy(entity => ProjectionDisplay.EntityName(_symbols, entity), StringComparer.Ordinal)
             .GroupBy(entity => entity.KindId))
@@ -161,6 +260,100 @@ public partial class EntityBrowser : PanelContainer
                     entity));
             }
         }
+    }
+
+    private IEnumerable<UiEntityProjection> FilteredActiveEntities() =>
+        _projection!.Entities.Values
+            .Where(entity => entity.StatusCode == EntityStatusCodes.Active && EntityMatchesGeneratorFilter(entity));
+
+    private bool EntityMatchesGeneratorFilter(UiEntityProjection entity) =>
+        _selectedGeneratorFilterId switch
+        {
+            AllGeneratorFilterId => true,
+            SeedGeneratorFilterId => entity.CreatedByGeneratorId is null,
+            _ => entity.CreatedByGeneratorId == _selectedGeneratorFilterId,
+        };
+
+    private void RebuildGeneratorFilterOptions()
+    {
+        if (_generatorFilterOption is null || _projection is null)
+        {
+            return;
+        }
+
+        var activeEntities = _projection.Entities.Values
+            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
+            .ToArray();
+        var countsByGenerator = activeEntities
+            .Where(static entity => entity.CreatedByGeneratorId is not null)
+            .GroupBy(static entity => entity.CreatedByGeneratorId!.Value)
+            .ToDictionary(static group => group.Key, static group => group.Count());
+        var seedCount = activeEntities.Count(static entity => entity.CreatedByGeneratorId is null);
+        var generatorOptions = countsByGenerator.Keys
+            .Select(generatorId => new
+            {
+                GeneratorId = generatorId,
+                Name = ProjectionDisplay.DisplayName(
+                    _symbols,
+                    ProjectionSymbolKind.Generator,
+                    generatorId,
+                    $"Generator {generatorId}"),
+                Count = countsByGenerator[generatorId],
+            })
+            .OrderBy(option => option.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        if (_selectedGeneratorFilterId > 0 && !countsByGenerator.ContainsKey(_selectedGeneratorFilterId))
+        {
+            _selectedGeneratorFilterId = AllGeneratorFilterId;
+        }
+
+        _updatingFilterControls = true;
+        _generatorFilterOption.Clear();
+        _generatorFilterOption.AddItem($"All generators ({activeEntities.Length})", AllGeneratorFilterId);
+        _generatorFilterOption.AddItem($"Seeded / untraced ({seedCount})", SeedGeneratorFilterId);
+        foreach (var option in generatorOptions)
+        {
+            _generatorFilterOption.AddItem($"{option.Name} ({option.Count})", option.GeneratorId);
+        }
+
+        var selectedIndex = FindOptionIndexById(_generatorFilterOption, _selectedGeneratorFilterId);
+        if (selectedIndex < 0)
+        {
+            _selectedGeneratorFilterId = AllGeneratorFilterId;
+            selectedIndex = FindOptionIndexById(_generatorFilterOption, AllGeneratorFilterId);
+        }
+
+        if (selectedIndex >= 0)
+        {
+            _generatorFilterOption.Select(selectedIndex);
+        }
+
+        _updatingFilterControls = false;
+        UpdateFilterSummary();
+    }
+
+    private void UpdateFilterSummary()
+    {
+        if (_filterSummaryLabel is null || _projection is null)
+        {
+            return;
+        }
+
+        _filterSummaryLabel.Text = $"{FilteredActiveEntities().Count()} shown";
+    }
+
+    private static int FindOptionIndexById(OptionButton option, int id)
+    {
+        for (var i = 0; i < option.ItemCount; i++)
+        {
+            if (option.GetItemId(i) == id)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private void AddSnapshotItem(RegistryItemData data)
@@ -424,6 +617,46 @@ public partial class EntityBrowser : PanelContainer
 
     private void OnRowEntitySelected(int entityIdValue) =>
         EmitSignal(SignalName.EntitySelected, entityIdValue);
+
+    private void OnGeneratorFilterSelected(long selectedIndex)
+    {
+        if (_updatingFilterControls || _generatorFilterOption is null)
+        {
+            return;
+        }
+
+        var filterId = _generatorFilterOption.GetItemId((int)selectedIndex);
+        if (_selectedGeneratorFilterId == filterId)
+        {
+            return;
+        }
+
+        _selectedGeneratorFilterId = filterId;
+        ApplyFilterChange(resetScroll: true);
+    }
+
+    private void OnFilterMapToggled(bool pressed)
+    {
+        _ = pressed;
+        if (_updatingFilterControls)
+        {
+            return;
+        }
+
+        ApplyFilterChange(resetScroll: false);
+    }
+
+    private void ApplyFilterChange(bool resetScroll)
+    {
+        FilterVersion++;
+        if (resetScroll && _scroll is not null)
+        {
+            _scroll.ScrollVertical = 0;
+        }
+
+        Refresh();
+        EmitSignal(SignalName.EntityFilterChanged);
+    }
 
     private readonly record struct RegistryItemKey(RegistryItemType ItemType, int KindId, int EntityId);
 

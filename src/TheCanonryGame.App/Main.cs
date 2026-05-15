@@ -229,12 +229,13 @@ public partial class Main : Node2D
         if (_browser is not null)
         {
             _browser.EntitySelected += OnBrowserEntitySelected;
+            _browser.EntityFilterChanged += OnBrowserEntityFilterChanged;
         }
 
         if (_mapArea is not null)
         {
             _mapArea.PlaneToggleRequested += OnTogglePlanePressed;
-            _mapArea.InfluenceToggleRequested += OnToggleInfluencePressed;
+            _mapArea.MapLayerVisibilityChanged += OnMapLayerVisibilityChanged;
         }
 
         if (_entityLayer is not null)
@@ -276,7 +277,10 @@ public partial class Main : Node2D
 
     private void OnTogglePlanePressed() => _renderTree?.TogglePlane();
 
-    private void OnToggleInfluencePressed() => _renderTree?.ToggleInfluence();
+    private void OnMapLayerVisibilityChanged(string layerKey, bool visible) =>
+        _renderTree?.SetMapLayerVisible(layerKey, visible);
+
+    private void OnBrowserEntityFilterChanged() => _renderTree?.InvalidateEntityMap();
 
     private void ToggleAttributeGraph() => _renderTree?.ToggleAttributeGraph();
 
@@ -288,12 +292,32 @@ public partial class Main : Node2D
 
     private void OnBrowserEntitySelected(int entityIdValue)
     {
+        FocusEntityOnMap(entityIdValue);
         _renderTree?.OpenCard(entityIdValue, new Vector2(300, 100));
     }
 
     private void OnMapEntitySelected(int entityIdValue)
     {
+        _entityLayer?.SetHighlightedEntity(entityIdValue);
         _renderTree?.OpenCard(entityIdValue, GetViewport().GetMousePosition() + new Vector2(20, -20));
+    }
+
+    private void FocusEntityOnMap(int entityIdValue)
+    {
+        if (_entityLayer is null || _camera is null)
+        {
+            return;
+        }
+
+        _ = _entityLayer.SetHighlightedEntity(entityIdValue);
+        if (!_entityLayer.TryGetEntityWorldPosition(entityIdValue, out var worldPosition))
+        {
+            return;
+        }
+
+        _camera.Position = worldPosition;
+        var zoom = MathF.Max(_camera.Zoom.X, 2.25f);
+        _camera.Zoom = new Vector2(zoom, zoom).Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
     }
 
     private void PauseKernelDriver()
