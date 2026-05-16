@@ -1,0 +1,25 @@
+{
+  "id": "aurora_relic_nouns",
+  "description": "Aurora sacred preserved objects. Reliquaries, founder-bones, first-lights. Before-Times serials roll separately via ancient_relic.",
+  "entries": [
+    "Reliquary",
+    "Shard",
+    "Fragment",
+    "Bone",
+    "Urn",
+    "Vessel",
+    "Memento",
+    "Ice-Bound",
+    "Sacred-Crystal",
+    "Lost-Token",
+    "Mirror-Fragment",
+    "Founder's-Bone",
+    "First-Light",
+    "Old-Lantern",
+    "Frozen-Relic",
+    "Watcher-Bone",
+    "Founders-Ash",
+    "Sungiven Heirloom"
+  ],
+  "source": "manual"
+}

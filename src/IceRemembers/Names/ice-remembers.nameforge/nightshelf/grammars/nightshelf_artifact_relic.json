@@ -1,0 +1,34 @@
+{
+  "id": "nightshelf_artifact_relic",
+  "description": "nightshelf relic-subtype artifact names",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:nightshelf_relic_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:secondary_entity_name~poss",
+        "slot:nightshelf_relic_nouns"
+      ],
+      [
+        "The",
+        "slot:nightshelf_artifact_modifiers~title",
+        "slot:nightshelf_relic_nouns"
+      ],
+      [
+        "slot:nightshelf_relic_nouns",
+        "of",
+        "slot:nightshelf_shadow_gen~title"
+      ],
+      [
+        "domain:nightshelf_domain~cap^'s",
+        "slot:nightshelf_relic_nouns"
+      ]
+    ]
+  }
+}

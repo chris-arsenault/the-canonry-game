@@ -1,0 +1,23 @@
+{
+  "id": "aurora_seal_nouns",
+  "description": "Aurora binding-marks. Sigils, signets, ward-stones.",
+  "entries": [
+    "Sigil",
+    "Signet",
+    "Ward-Stone",
+    "Crystal-Lock",
+    "Frost-Sigil",
+    "Light-Brand",
+    "Council-Seal",
+    "Pact-Sigil",
+    "Bond-Stone",
+    "Witness-Mark",
+    "Auditor-Seal",
+    "Compact-Token",
+    "Hearth-Sigil",
+    "Aurora-Brand",
+    "Stack-Signet",
+    "Crest-Mark"
+  ],
+  "source": "manual"
+}

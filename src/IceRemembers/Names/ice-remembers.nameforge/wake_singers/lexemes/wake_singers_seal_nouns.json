@@ -1,0 +1,22 @@
+{
+  "id": "wake_singers_seal_nouns",
+  "description": "Wake-Singer binding-marks. Hunt-marks, kill-stamps, pact-teeth, bone-brands.",
+  "entries": [
+    "Hunt-Mark",
+    "Blood-Sigil",
+    "Bone-Brand",
+    "Kill-Stamp",
+    "Tide-Lock",
+    "Pact-Tooth",
+    "Wake-Mark",
+    "Pod-Seal",
+    "Reef-Sigil",
+    "Marrow-Bind",
+    "Salt-Lock",
+    "Foe-Stamp",
+    "Pressure-Brand",
+    "Kin-Mark",
+    "Wave-Sigil"
+  ],
+  "source": "manual"
+}

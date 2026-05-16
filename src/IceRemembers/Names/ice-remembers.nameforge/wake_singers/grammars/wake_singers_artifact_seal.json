@@ -1,0 +1,33 @@
+{
+  "id": "wake_singers_artifact_seal",
+  "description": "wake singers seal-subtype artifact names",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_seal_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:secondary_entity_name~poss",
+        "slot:wake_singers_seal_nouns"
+      ],
+      [
+        "slot:orca_territory_glyph~cap^slot:orca_prey_glyph",
+        "slot:wake_singers_seal_nouns"
+      ],
+      [
+        "slot:wake_singers_seal_nouns",
+        "of",
+        "slot:orca_territory_glyph~title"
+      ],
+      [
+        "domain:wake_singers_domain_short~cap^'s",
+        "slot:wake_singers_seal_nouns"
+      ]
+    ]
+  }
+}

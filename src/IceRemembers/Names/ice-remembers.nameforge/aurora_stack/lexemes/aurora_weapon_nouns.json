@@ -1,0 +1,27 @@
+{
+  "id": "aurora_weapon_nouns",
+  "description": "Aurora ceremonial-edged weapons. Crystal/light/martial.",
+  "entries": [
+    "Blade",
+    "Sword",
+    "Scepter",
+    "Spear",
+    "Lance",
+    "Halberd",
+    "Glaive",
+    "Mace",
+    "Frost-Edge",
+    "Crystal-Lance",
+    "Aurora-Sword",
+    "Ice-Spear",
+    "Sun-Halberd",
+    "Mirror-Sword",
+    "Light-Mace",
+    "Ember-Pike",
+    "Pinion",
+    "Crystalline Pike",
+    "Aurora-Blade",
+    "Glow-Falchion"
+  ],
+  "source": "manual"
+}

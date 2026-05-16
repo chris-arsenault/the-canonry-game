@@ -1,0 +1,24 @@
+{
+  "id": "nightshelf_tome_nouns",
+  "description": "Nightshelf record-bearing artifacts. Grimoires, ledgers, wax-tablets, hush-scrolls.",
+  "entries": [
+    "Grimoire",
+    "Whisper-Scroll",
+    "Shadow-Codex",
+    "Wax-Tablet",
+    "Hush-Ledger",
+    "Crypt-Tome",
+    "Bone-Manual",
+    "Veiled-Roll",
+    "Sealed-Codex",
+    "Liber Tenebris",
+    "Nox-Scroll",
+    "Lost-Almanac",
+    "Foedus-Codex",
+    "Silentium",
+    "Memoria",
+    "Debt-Ledger",
+    "Hidden Folio"
+  ],
+  "source": "manual"
+}

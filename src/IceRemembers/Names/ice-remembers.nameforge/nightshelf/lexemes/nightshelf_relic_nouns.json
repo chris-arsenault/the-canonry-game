@@ -1,0 +1,23 @@
+{
+  "id": "nightshelf_relic_nouns",
+  "description": "Nightshelf sacred preserved objects. Saint-bones, sealed vessels. Before-Times serials roll separately via ancient_relic.",
+  "entries": [
+    "Reliquary",
+    "Bone",
+    "Skull",
+    "Veil",
+    "Shroud",
+    "Crypt-Shard",
+    "Old-Tablet",
+    "Saint-Bone",
+    "Sealed-Vessel",
+    "Hush-Vessel",
+    "Marrow-Ash",
+    "Vesper-Bone",
+    "Hidden Reliquary",
+    "Pact-Bone",
+    "Vow-Shard",
+    "Censure-Urn"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,41 @@
+{
+  "id": "aurora_artifact_tome",
+  "description": "aurora tome-subtype artifact names",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:aurora_tome_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "context:secondary_entity_name~poss",
+        "slot:aurora_tome_nouns"
+      ],
+      [
+        "The",
+        "slot:aurora_artifact_modifiers~title",
+        "slot:aurora_tome_nouns"
+      ],
+      [
+        "slot:aurora_tome_nouns",
+        "of",
+        "slot:aurora_gen_nouns~title"
+      ],
+      [
+        "The",
+        "slot:aurora_artifact_modifiers~title",
+        "slot:aurora_tome_nouns",
+        "of",
+        "slot:aurora_gen_nouns~title"
+      ],
+      [
+        "domain:aurora_domain_short~cap^'s",
+        "slot:aurora_tome_nouns"
+      ]
+    ]
+  }
+}

@@ -4,7 +4,7 @@
   "strategyGroups": [
     {
       "name": "Anomaly-Born Artifacts",
-      "priority": 65,
+      "priority": 80,
       "conditions": {
         "entityKinds": [
           "artifact"
@@ -26,17 +26,15 @@
       ]
     },
     {
-      "name": "Ancient Relics",
-      "priority": 60,
+      "name": "Relics (sacred preserved + Before-Times serials)",
+      "priority": 70,
       "conditions": {
         "entityKinds": [
           "artifact"
         ],
         "prominence": [],
         "subtypes": [
-          "relic",
-          "seal",
-          "tome"
+          "relic"
         ],
         "subtypeMatchAll": false,
         "tags": [],
@@ -51,13 +49,82 @@
         {
           "type": "grammar",
           "weight": 0.6,
-          "grammarId": "aurora_artifact"
+          "grammarId": "aurora_artifact_relic"
+        }
+      ]
+    },
+    {
+      "name": "Tomes (record-bearing)",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "tome"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_artifact_tome"
+        }
+      ]
+    },
+    {
+      "name": "Seals (binding-marks)",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "seal"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_artifact_seal"
+        }
+      ]
+    },
+    {
+      "name": "Weapons",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "artifact"
+        ],
+        "prominence": [],
+        "subtypes": [
+          "weapon"
+        ],
+        "subtypeMatchAll": false,
+        "tags": [],
+        "tagMatchAll": false
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "aurora_artifact_weapon"
         }
       ]
     },
     {
       "name": "Instruments",
-      "priority": 55,
+      "priority": 70,
       "conditions": {
         "entityKinds": [
           "artifact"
@@ -79,18 +146,14 @@
       ]
     },
     {
-      "name": "Artifact Names",
+      "name": "Default Artifact (no specific subtype)",
       "priority": 50,
       "conditions": {
         "entityKinds": [
           "artifact"
         ],
         "prominence": [],
-        "subtypes": [
-          "seal",
-          "tome",
-          "weapon"
-        ],
+        "subtypes": [],
         "subtypeMatchAll": false,
         "tags": [],
         "tagMatchAll": false

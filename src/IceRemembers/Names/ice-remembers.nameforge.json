@@ -1589,6 +1589,126 @@
       "type": "profile",
       "cultureId": "wake_singers",
       "path": "ice-remembers.nameforge/wake_singers/profiles/wake_singers_monsters.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/lexemes/aurora_weapon_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/lexemes/aurora_tome_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/lexemes/aurora_seal_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/lexemes/aurora_relic_nouns.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/grammars/aurora_artifact_weapon.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/grammars/aurora_artifact_tome.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/grammars/aurora_artifact_seal.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/aurora_stack/grammars/aurora_artifact_relic.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/lexemes/nightshelf_weapon_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/lexemes/nightshelf_tome_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/lexemes/nightshelf_seal_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/lexemes/nightshelf_relic_nouns.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/grammars/nightshelf_artifact_weapon.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/grammars/nightshelf_artifact_tome.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/grammars/nightshelf_artifact_seal.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/grammars/nightshelf_artifact_relic.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/lexemes/wake_singers_weapon_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/lexemes/wake_singers_tome_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/lexemes/wake_singers_seal_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/lexemes/wake_singers_relic_nouns.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/grammars/wake_singers_artifact_weapon.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/grammars/wake_singers_artifact_tome.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/grammars/wake_singers_artifact_seal.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/grammars/wake_singers_artifact_relic.json"
     }
   ]
 }

@@ -1,0 +1,25 @@
+{
+  "id": "nightshelf_weapon_nouns",
+  "description": "Nightshelf concealed-edged weapons. Whisper-blades, hush-edges, daggers.",
+  "entries": [
+    "Whisper-Blade",
+    "Dagger",
+    "Shadow-Sword",
+    "Hush-Edge",
+    "Crypt-Dagger",
+    "Veil-Blade",
+    "Bone-Dagger",
+    "Shroud-Pike",
+    "Silent-Lance",
+    "Mooncrescent",
+    "Smother-Iron",
+    "Ash-Edge",
+    "Hollow-Sword",
+    "Night-Mace",
+    "Throat-Iron",
+    "Vespertine Blade",
+    "Censor-Knife",
+    "Marrow-Spike"
+  ],
+  "source": "manual"
+}

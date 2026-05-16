@@ -1,0 +1,23 @@
+{
+  "id": "wake_singers_tome_nouns",
+  "description": "Wake-Singer records. Bone-carvings, blood-tallies, hunt-rolls. The oral tradition rendered in physical artifacts.",
+  "entries": [
+    "Bloodtally",
+    "Carving",
+    "Hunt-Roll",
+    "Ancestry-Bone",
+    "Memory-Tooth",
+    "Wake-Tally",
+    "Song-Bone",
+    "Tide-Carving",
+    "Kin-Etching",
+    "Pod-Tally",
+    "Reef-Carving",
+    "Marrow-Script",
+    "Kill-Tally",
+    "Pressure-Etching",
+    "Lineage-Skull",
+    "Wave-Tally"
+  ],
+  "source": "manual"
+}

@@ -1,0 +1,22 @@
+{
+  "id": "wake_singers_relic_nouns",
+  "description": "Wake-Singer sacred preserved objects. Trophies of foundational kills. Before-Times serials roll separately via ancient_relic.",
+  "entries": [
+    "Trophy",
+    "Skull",
+    "Bone",
+    "Mawhide",
+    "Spinetrophy",
+    "Marrow-Crown",
+    "Old-Carving",
+    "Kin-Skull",
+    "Founder-Tooth",
+    "Wave-Anvil",
+    "First-Kill Tooth",
+    "Pod-Skull",
+    "Tide-Relic",
+    "Pact-Bone",
+    "Ancestor-Spine"
+  ],
+  "source": "manual"
+}

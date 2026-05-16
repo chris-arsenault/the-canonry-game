@@ -1,0 +1,27 @@
+{
+  "id": "aurora_tome_nouns",
+  "description": "Aurora record-bearing artifacts. Books, scrolls, crystal-tablets, ice-scripts.",
+  "entries": [
+    "Codex",
+    "Tome",
+    "Scroll",
+    "Ledger",
+    "Almanac",
+    "Primer",
+    "Ice-Script",
+    "Crystal-Tablet",
+    "Frost-Folio",
+    "Aurora-Annals",
+    "Light-Manual",
+    "Mirror-Catalog",
+    "Long-Record",
+    "Watch-Roll",
+    "Pact-Book",
+    "Auditor-Log",
+    "Memoria-Crystal",
+    "Sungiven Roll",
+    "Glow-Folio",
+    "Council-Register"
+  ],
+  "source": "manual"
+}

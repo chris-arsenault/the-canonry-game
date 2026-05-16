@@ -1,0 +1,26 @@
+{
+  "id": "wake_singers_weapon_nouns",
+  "description": "Wake-Singer wielded weapons. Teeth, claws, bone-spears, tide-hooks.",
+  "entries": [
+    "Tooth",
+    "Claw",
+    "Fang",
+    "Bone-Spear",
+    "Tide-Hook",
+    "Wave-Anvil",
+    "Marrow-Pick",
+    "Wakecutter",
+    "Crest-Slicer",
+    "Skin-Knife",
+    "Talon",
+    "Hunter Prize",
+    "Deathmark",
+    "Reef-Cleaver",
+    "Spine-Pick",
+    "Saltcarve",
+    "Saltforged Tooth",
+    "Tide-Snapper",
+    "Blood-Hook"
+  ],
+  "source": "manual"
+}

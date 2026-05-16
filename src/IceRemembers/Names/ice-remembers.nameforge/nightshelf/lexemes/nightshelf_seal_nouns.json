@@ -1,0 +1,23 @@
+{
+  "id": "nightshelf_seal_nouns",
+  "description": "Nightshelf binding-marks. Crypt-seals, bone-keys, debt-marks.",
+  "entries": [
+    "Crypt-Seal",
+    "Whisper-Sigil",
+    "Bone-Key",
+    "Hush-Brand",
+    "Veil-Mark",
+    "Shroud-Sigil",
+    "Shadow-Lock",
+    "Oath-Iron",
+    "Silence-Stone",
+    "Debt-Mark",
+    "Foedus-Seal",
+    "Pact-Ring",
+    "Vow-Ash",
+    "Foedus Anulus",
+    "Hollow-Key",
+    "Vesper-Mark"
+  ],
+  "source": "manual"
+}
