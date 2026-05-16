@@ -24,7 +24,20 @@
     "Shadowcodex",
     "Vesperfolio",
     "Foeduscodex",
-    "LiberTenebris"
+    "LiberTenebris",
+    "Codicilla",
+    "Tabella",
+    "Volumen",
+    "Albumen",
+    "Diploma",
+    "Pugillares",
+    "Catalogus",
+    "Praeceptum",
+    "Commentarius",
+    "Hagiographia",
+    "Annales",
+    "Sylloge",
+    "Speculum"
   ],
   "source": "manual"
 }

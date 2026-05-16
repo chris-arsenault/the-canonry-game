@@ -19,7 +19,16 @@
     "VoxSilentii",
     "Censor",
     "Vesperarch",
-    "Tenebrarch"
+    "Tenebrarch",
+    "Sacerdos",
+    "Pontifex",
+    "Auspex",
+    "Lictor",
+    "Tribunus",
+    "Quaestor",
+    "Decurio",
+    "Centurio",
+    "Praetorianus"
   ],
   "source": "manual"
 }

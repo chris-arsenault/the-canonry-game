@@ -16,7 +16,14 @@
     "Vesperate",
     "Veilkeep",
     "Magister",
-    "Praetor"
+    "Praetor",
+    "Sacerdos",
+    "Pontifex",
+    "Tribunus",
+    "Quaestor",
+    "Decemvir",
+    "Sanctissimus",
+    "Vesperator"
   ],
   "source": "manual"
 }

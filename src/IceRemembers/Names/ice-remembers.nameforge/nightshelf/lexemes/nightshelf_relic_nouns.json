@@ -22,7 +22,16 @@
     "Hiddenreliquary",
     "Pactbone",
     "Vowshard",
-    "Censureurn"
+    "Censureurn",
+    "Memorabilia",
+    "Sacrarium",
+    "Reliquium",
+    "Ossarium",
+    "Capsa",
+    "Pyxis",
+    "Lipsanotheca",
+    "Vitrum",
+    "Theca"
   ],
   "source": "manual"
 }

@@ -27,7 +27,21 @@
     "Vespertine",
     "Censorknife",
     "Veilblade",
-    "Bonedagger"
+    "Bonedagger",
+    "Gladius",
+    "Spatha",
+    "Pugio",
+    "Falcata",
+    "Hasta",
+    "Pilum",
+    "Sica",
+    "Verutum",
+    "Lancea",
+    "Mucro",
+    "Telum",
+    "Romphaea",
+    "Acinaces",
+    "Sagitta"
   ],
   "source": "manual"
 }
