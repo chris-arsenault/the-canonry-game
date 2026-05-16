@@ -1,0 +1,119 @@
+{
+  "id": "monster_tongue",
+  "phonology": {
+    "consonants": [
+      "s",
+      "sh",
+      "h",
+      "hr",
+      "m",
+      "n",
+      "ng",
+      "v",
+      "r",
+      "rr",
+      "l"
+    ],
+    "vowels": [
+      "a",
+      "o",
+      "u",
+      "aa",
+      "oo"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "CVC",
+      "VCV",
+      "CVCC"
+    ],
+    "lengthRange": [
+      2,
+      2
+    ],
+    "favoredClusters": [
+      "hr",
+      "rr",
+      "ng",
+      "sh",
+      "rrn",
+      "mhn",
+      "shn",
+      "lhr"
+    ],
+    "forbiddenClusters": [
+      "aaa",
+      "ooo",
+      "uuu",
+      "aao",
+      "aau",
+      "ooa",
+      "oou",
+      "uua",
+      "uuo",
+      "uoo",
+      "oau",
+      "hh",
+      "mm",
+      "nn",
+      "ss",
+      "ngng",
+      "rrrr"
+    ],
+    "favoredClusterBoost": 1.4,
+    "consonantWeights": [
+      1.2,
+      1.3,
+      1.0,
+      1.3,
+      1.1,
+      1.0,
+      0.9,
+      1.3,
+      1.2,
+      1.2,
+      1.1
+    ],
+    "vowelWeights": [
+      1.2,
+      1.1,
+      1.0,
+      1.4,
+      1.3
+    ],
+    "templateWeights": [
+      1.2,
+      1.4,
+      0.7,
+      0.9
+    ]
+  },
+  "morphology": {
+    "prefixes": [],
+    "suffixes": [],
+    "structure": [
+      "root"
+    ],
+    "structureWeights": [
+      1.0
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0.55,
+    "hyphenRate": 0,
+    "preferredEndings": [
+      "rr",
+      "rrn",
+      "oor",
+      "aar",
+      "mhn",
+      "shn"
+    ],
+    "preferredEndingBoost": 1.5,
+    "rhythmBias": "flowing"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

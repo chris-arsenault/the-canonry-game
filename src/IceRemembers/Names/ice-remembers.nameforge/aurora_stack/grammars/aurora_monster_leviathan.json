@@ -6,38 +6,29 @@
   "rules": {
     "reference_name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "Leviathan",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "when:producer_kind=generator",
-        "domain:aurora_domain~cap",
-        "context:primary_entity_name~poss",
-        "Leviathan",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "slot:aurora_nature~cap",
-        "Leviathan",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "domain:aurora_domain~cap",
-        "slot:aurora_nature~cap",
-        "Leviathan",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "domain:aurora_domain~cap",
-        "Depth",
-        "(^slot:aurora_place_echoes_short^)"
+        "domain:monster_tongue~cap"
       ]
     ],
     "name": [
       [
-        "context:reference_name"
+        "when:producer_kind=generator",
+        "context:reference_name^,",
+        "context:primary_entity_name~poss",
+        "Leviathan",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "context:reference_name^,",
+        "the",
+        "slot:aurora_nature~cap",
+        "Leviathan",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "context:reference_name^,",
+        "the",
+        "Depth",
+        "(^slot:aurora_place_echoes_short^)"
       ]
     ]
   },

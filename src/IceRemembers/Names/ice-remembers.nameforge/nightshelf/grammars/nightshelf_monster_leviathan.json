@@ -6,28 +6,33 @@
   "rules": {
     "reference_name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "Leviathan"
-      ],
-      [
-        "☽'^slot:nightshelf_darkness_source~lower",
-        "Leviathan"
-      ],
-      [
-        "slot:nightshelf_forbidden_truth~cap^∴undertow"
-      ],
-      [
-        "slot:nightshelf_latin_roots~cap^∴deep-hunger"
-      ],
-      [
-        "slot:nightshelf_darkness_source~cap",
-        "Leviathan^☽"
+        "domain:monster_tongue~cap"
       ]
     ],
     "name": [
       [
-        "context:reference_name"
+        "when:producer_kind=generator",
+        "context:reference_name^,",
+        "context:primary_entity_name~poss",
+        "Leviathan"
+      ],
+      [
+        "context:reference_name^,",
+        "☽'^slot:nightshelf_darkness_source~lower",
+        "Leviathan"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_forbidden_truth~cap^∴undertow"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_latin_roots~cap^∴deep-hunger"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_darkness_source~cap",
+        "Leviathan^☽"
       ]
     ]
   },

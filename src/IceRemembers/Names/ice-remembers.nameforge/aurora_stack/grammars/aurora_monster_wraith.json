@@ -6,36 +6,28 @@
   "rules": {
     "reference_name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "Wraith",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "when:producer_kind=generator",
-        "domain:aurora_domain~cap",
-        "context:primary_entity_name~poss",
-        "Wraith",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "slot:aurora_place_echoes_short~cap^-Wraith",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "domain:aurora_domain~cap",
-        "slot:aurora_place_echoes_short~cap^-Wraith",
-        "(^slot:aurora_place_echoes_short^)"
-      ],
-      [
-        "domain:aurora_domain_short~cap^'s",
-        "Echo",
-        "(^slot:aurora_place_echoes_short^)"
+        "domain:monster_tongue~cap"
       ]
     ],
     "name": [
       [
-        "context:reference_name"
+        "when:producer_kind=generator",
+        "context:reference_name^,",
+        "context:primary_entity_name~poss",
+        "Wraith",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "context:reference_name^,",
+        "the",
+        "slot:aurora_place_echoes_short~cap^-Wraith",
+        "(^slot:aurora_place_echoes_short^)"
+      ],
+      [
+        "context:reference_name^,",
+        "the",
+        "Echo",
+        "(^slot:aurora_place_echoes_short^)"
       ]
     ]
   },

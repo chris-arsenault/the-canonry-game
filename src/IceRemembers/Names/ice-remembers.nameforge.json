@@ -28,6 +28,11 @@
       "path": "ice-remembers.nameforge/aurora_stack/domains/aurora_domain_short.json"
     },
     {
+      "type": "domain",
+      "cultureId": "aurora_stack",
+      "path": "ice-remembers.nameforge/shared/domains/monster_tongue.json"
+    },
+    {
       "type": "lexemeList",
       "cultureId": "aurora_stack",
       "path": "ice-remembers.nameforge/aurora_stack/lexemes/aurora_nature.json"
@@ -540,6 +545,11 @@
       "type": "domain",
       "cultureId": "nightshelf",
       "path": "ice-remembers.nameforge/nightshelf/domains/nightshelf_domain.json"
+    },
+    {
+      "type": "domain",
+      "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/shared/domains/monster_tongue.json"
     },
     {
       "type": "lexemeList",
@@ -1069,6 +1079,11 @@
       "type": "domain",
       "cultureId": "wake_singers",
       "path": "ice-remembers.nameforge/wake_singers/domains/wake_singers_domain_short.json"
+    },
+    {
+      "type": "domain",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/shared/domains/monster_tongue.json"
     },
     {
       "type": "lexemeList",

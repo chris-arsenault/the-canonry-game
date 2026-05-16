@@ -6,28 +6,33 @@
   "rules": {
     "reference_name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "Wraith"
-      ],
-      [
-        "slot:nightshelf_remnant~cap^∴wraith"
-      ],
-      [
-        "☽'^slot:nightshelf_latin_roots",
-        "Name-Wraith"
-      ],
-      [
-        "slot:nightshelf_shadow_gen~cap^∴unspoken"
-      ],
-      [
-        "slot:nightshelf_remnant~cap",
-        "Wraith^~"
+        "domain:monster_tongue~cap"
       ]
     ],
     "name": [
       [
-        "context:reference_name"
+        "when:producer_kind=generator",
+        "context:reference_name^,",
+        "context:primary_entity_name~poss",
+        "Wraith"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_remnant~cap^∴wraith"
+      ],
+      [
+        "context:reference_name^,",
+        "☽'^slot:nightshelf_latin_roots",
+        "Voice-Wraith"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_shadow_gen~cap^∴unspoken"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_remnant~cap",
+        "Wraith^~"
       ]
     ]
   },

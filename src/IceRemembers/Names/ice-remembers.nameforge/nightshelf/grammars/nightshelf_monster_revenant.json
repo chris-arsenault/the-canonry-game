@@ -6,28 +6,33 @@
   "rules": {
     "reference_name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "Revenant"
-      ],
-      [
-        "slot:nightshelf_remnant~cap^∴returned"
-      ],
-      [
-        "☽'^slot:nightshelf_latin_roots",
-        "Debt-Revenant"
-      ],
-      [
-        "slot:nightshelf_forbidden_truth~cap^∴after-name"
-      ],
-      [
-        "slot:nightshelf_remnant~cap",
-        "Revenant^~"
+        "domain:monster_tongue~cap"
       ]
     ],
     "name": [
       [
-        "context:reference_name"
+        "when:producer_kind=generator",
+        "context:reference_name^,",
+        "context:primary_entity_name~poss",
+        "Revenant"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_remnant~cap^∴returned"
+      ],
+      [
+        "context:reference_name^,",
+        "☽'^slot:nightshelf_latin_roots",
+        "Debt-Revenant"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_forbidden_truth~cap^∴after-echo"
+      ],
+      [
+        "context:reference_name^,",
+        "slot:nightshelf_remnant~cap",
+        "Revenant^~"
       ]
     ]
   },
