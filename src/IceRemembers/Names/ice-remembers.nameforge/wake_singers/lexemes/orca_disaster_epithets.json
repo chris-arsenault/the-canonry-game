@@ -11,14 +11,14 @@
     "Depth",
     "Boil",
     "Pall",
-    "Tide-Held",
-    "Marrow-Cold",
+    "Tidebound",
+    "Marrowcold",
     "Saltworn",
-    "Bone-Counted",
-    "Pressure-Wracked",
-    "Hush-Bringing",
-    "Reef-Choking",
-    "Echo-Loosed"
+    "Bonecounted",
+    "Pressurewracked",
+    "Hushbringing",
+    "Reefchoking",
+    "Echoloosed"
   ],
   "source": "manual"
 }

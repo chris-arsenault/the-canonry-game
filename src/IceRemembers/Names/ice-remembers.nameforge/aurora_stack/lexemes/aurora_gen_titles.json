@@ -2,19 +2,23 @@
   "id": "aurora_gen_titles",
   "description": "Generated title list: Magic penguin titles similar to :\nHigh-Beak\nAuditor\nTide-Splitter\nStack-Master",
   "entries": [
-    "Frost-ward",
-    "Floe-Master",
+    "Frostward",
+    "Floemaster",
     "Keeper",
     "Waddler",
-    "Ice-Crowned",
-    "Plunge-Caller",
-    "Depth-Seer",
+    "Icecrowned",
+    "Plungecaller",
+    "Depthseer",
     "Blizzard",
     "Flipper",
-    "Chill-Breaker",
+    "Chillbreaker",
     "Glacial",
     "Iceholm",
-    "Glaciarch"
+    "Glaciarch",
+    "Lumina",
+    "Aurorist",
+    "Stackwarden",
+    "Crestkeeper"
   ],
   "source": "llm"
 }

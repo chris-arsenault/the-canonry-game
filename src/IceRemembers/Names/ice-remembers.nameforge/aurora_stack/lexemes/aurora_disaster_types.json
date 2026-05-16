@@ -12,13 +12,13 @@
     "Storm",
     "Plague",
     "Darkening",
-    "Void-breach",
-    "Pale-blight",
-    "Schism-thaw",
-    "Floe-Sundering",
-    "Crystal-Plague",
-    "Ice-Memory-Loss",
-    "Sun-Failure"
+    "Voidbreach",
+    "Paleblight",
+    "Schismthaw",
+    "Floesundering",
+    "Crystalplague",
+    "Icememoryloss",
+    "Sunfailure"
   ],
   "source": "manual"
 }

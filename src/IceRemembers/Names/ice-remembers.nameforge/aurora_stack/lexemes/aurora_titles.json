@@ -2,10 +2,14 @@
   "id": "aurora_titles",
   "description": "Aurora honorifics",
   "entries": [
-    "High-Beak",
-    "Auditor",
-    "Tide-Splitter",
-    "Stack-Master"
+    "HighBeak",
+    "Floemaster",
+    "Auroralord",
+    "Aurorist",
+    "Lumina",
+    "Sungaze",
+    "Stackwarden",
+    "Crestkeeper"
   ],
   "source": "manual"
 }

@@ -2,10 +2,24 @@
   "id": "nightshelf_titles",
   "description": "Nightshelf honorifics",
   "entries": [
-    "Shadow-Broker",
-    "Fissure-Walker",
-    "Night-Warden",
-    "Veil-Keeper"
+    "Magister",
+    "Praefectus",
+    "Dominus",
+    "Domina",
+    "Custos",
+    "Arbiter",
+    "Augur",
+    "Vigil",
+    "Consul",
+    "Lector",
+    "Praetor",
+    "Scriba",
+    "UmbraPrinceps",
+    "NoxDominus",
+    "VoxSilentii",
+    "Censor",
+    "Vesperarch",
+    "Tenebrarch"
   ],
   "source": "manual"
 }

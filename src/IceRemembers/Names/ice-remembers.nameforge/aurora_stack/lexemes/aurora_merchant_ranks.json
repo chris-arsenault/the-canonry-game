@@ -10,13 +10,15 @@
     "Purser",
     "Tallyman",
     "Weighmaster",
-    "Vault-Keeper",
-    "Ledger-Warden",
-    "Coin-Counter",
-    "Trade-Arbiter",
-    "Gilt-Hand",
-    "Scale-Master",
-    "Tithe-Keeper"
+    "Vaultkeeper",
+    "Ledgerwarden",
+    "Coincounter",
+    "Tradearbiter",
+    "Gilthand",
+    "Scalemaster",
+    "Tithekeeper",
+    "Auditor",
+    "Aestimator"
   ],
   "source": "manual"
 }
