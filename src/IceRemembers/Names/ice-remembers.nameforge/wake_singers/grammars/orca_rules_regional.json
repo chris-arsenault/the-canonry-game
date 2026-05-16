@@ -3,14 +3,14 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "context:region^'s",
         "slot:orca_power_words",
         "Law"
       ],
       [
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:region^'s",
         "slot:orca_power_words",
         "Law"
@@ -23,11 +23,19 @@
       ],
       [
         "The",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "slot:orca_power_words",
         "Code of",
         "context:region"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "slot:nightshelf_shadow_gen~ed~cap",
         "slot:nightshelf_shadow_gen~cap^☽"
@@ -15,6 +15,14 @@
       [
         "slot:nightshelf_shadow_gen~cap^∴^domain:nightshelf_domain"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

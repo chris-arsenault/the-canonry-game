@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "slot:orca_prey_glyph~cap^slot:orca_deed_root",
         "pod"
@@ -20,6 +20,14 @@
         "slot:orca_role_glyph~cap^slot:orca_deed_root",
         "kin"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

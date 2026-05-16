@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "slot:orca_territory_glyph~cap^depth"
       ],
@@ -19,6 +19,14 @@
       [
         "slot:orca_location_roots~cap^slot:orca_prey_glyph^deep"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

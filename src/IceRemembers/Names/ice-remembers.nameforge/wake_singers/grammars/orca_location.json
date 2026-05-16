@@ -3,32 +3,42 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
-        "slot:orca_territory_glyph^-^slot:orca_location_nouns"
+        "slot:orca_territory_glyph~cap^slot:orca_location_nouns"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-^slot:orca_location_nouns"
+        "domain:wake_singers_domain_short",
+        "slot:orca_territory_glyph~cap^slot:orca_location_nouns"
       ],
       [
-        "slot:orca_prey_glyph^-^slot:orca_territory_glyph"
+        "slot:orca_prey_glyph~cap^slot:orca_territory_glyph"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-^slot:orca_territory_glyph"
+        "domain:wake_singers_domain_short",
+        "slot:orca_prey_glyph~cap^slot:orca_territory_glyph"
       ],
       [
-        "slot:orca_territory_glyph^-^slot:orca_deed_root^-waters"
+        "slot:orca_territory_glyph~cap^slot:orca_deed_root",
+        "waters"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-^slot:orca_deed_root^-waters"
+        "domain:wake_singers_domain_short",
+        "slot:orca_territory_glyph~cap^slot:orca_deed_root",
+        "waters"
       ],
       [
-        "domain:orca_domain_short^'s",
+        "domain:wake_singers_domain_short^'s",
         "slot:orca_location_nouns"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

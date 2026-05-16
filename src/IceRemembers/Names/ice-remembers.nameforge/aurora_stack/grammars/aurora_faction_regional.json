@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "context:region^'",
         "slot:aurora_faction_groups",
@@ -24,6 +24,14 @@
         "slot:aurora_faction_groups",
         "(^context:region^-born)"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

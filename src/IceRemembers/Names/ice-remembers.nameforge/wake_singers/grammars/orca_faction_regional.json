@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "context:region~cap",
         "slot:orca_faction_types"
@@ -17,6 +17,14 @@
         "context:region^'s",
         "slot:orca_power_words~cap^slot:orca_faction_types"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

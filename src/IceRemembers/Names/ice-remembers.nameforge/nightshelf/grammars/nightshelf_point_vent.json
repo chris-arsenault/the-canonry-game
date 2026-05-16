@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "☽'^slot:nightshelf_darkness_source~lower",
         "Fire-Vent"
@@ -18,6 +18,14 @@
         "slot:nightshelf_darkness_source~cap",
         "Vent^☽"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

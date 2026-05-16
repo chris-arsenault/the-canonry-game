@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "slot:nightshelf_latin_roots~cap^∴colony"
       ],
@@ -18,6 +18,14 @@
         "slot:nightshelf_shadow_gen~cap",
         "Quarter^☽"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

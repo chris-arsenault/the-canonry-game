@@ -5,18 +5,24 @@
   "rules": {
     "name": [
       [
-        "slot:orca_warrior_ranks^-^slot:orca_faction_types^-^slot:orca_rule_suffix"
+        "slot:orca_warrior_ranks",
+        "slot:orca_faction_types",
+        "slot:orca_rule_suffix"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_warrior_ranks^-^slot:orca_faction_types^-^slot:orca_rule_suffix"
+        "domain:wake_singers_domain_short",
+        "slot:orca_warrior_ranks",
+        "slot:orca_faction_types",
+        "slot:orca_rule_suffix"
       ],
       [
-        "slot:orca_warrior_ranks^-^slot:orca_rule_suffix"
+        "slot:orca_warrior_ranks",
+        "slot:orca_rule_suffix"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_warrior_ranks^-^slot:orca_rule_suffix"
+        "domain:wake_singers_domain_short",
+        "slot:orca_warrior_ranks",
+        "slot:orca_rule_suffix"
       ]
     ]
   }

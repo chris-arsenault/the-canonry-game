@@ -4,7 +4,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
@@ -45,6 +45,14 @@
         "slot:aurora_monster_nouns~cap",
         "(^slot:aurora_place_echoes_short^)"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

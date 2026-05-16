@@ -2,7 +2,7 @@
   "id": "aurora_location",
   "start": "name",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "slot:aurora_nature",
         "domain:aurora_domain",
@@ -21,7 +21,15 @@
         "slot:aurora_nature",
         "(^slot:aurora_place_echoes_short^)"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
   },
-  "capitalization": "titleWords"
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
 }

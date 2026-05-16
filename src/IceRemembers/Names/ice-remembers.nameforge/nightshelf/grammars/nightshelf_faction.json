@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "☽'^slot:nightshelf_latin_roots^'",
         "slot:nightshelf_faction_groups~title"
@@ -20,6 +20,14 @@
         "of the",
         "slot:nightshelf_shadow_gen~cap^~"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

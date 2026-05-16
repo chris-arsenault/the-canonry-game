@@ -14,7 +14,7 @@
       [
         "when:producer=orca_route_wars_get_names",
         "when:parent_producer=orca_raids_trade_route",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:trigger_relationship_source_entity_name",
         "against",
         "context:trigger_relationship_target_entity_name"
@@ -29,7 +29,7 @@
       [
         "when:producer=orca_route_wars_get_names",
         "when:parent_producer=orca_raids_trade_route",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:trigger_relationship_source_entity_name~poss",
         "route",
         "war"
@@ -41,7 +41,7 @@
       ],
       [
         "when:producer_kind=generator",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:primary_entity_name~poss",
         "slot:orca_war_suffix"
       ],
@@ -52,23 +52,29 @@
       ],
       [
         "when:producer_kind=generator",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:secondary_entity_name~poss",
         "slot:orca_war_prefix"
       ],
       [
-        "slot:orca_war_prefix^-^slot:orca_war_suffix^-^slot:orca_occurrence_result"
+        "slot:orca_war_prefix",
+        "slot:orca_war_suffix",
+        "slot:orca_occurrence_result"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_war_prefix^-^slot:orca_war_suffix^-^slot:orca_occurrence_result"
+        "domain:wake_singers_domain_short",
+        "slot:orca_war_prefix",
+        "slot:orca_war_suffix",
+        "slot:orca_occurrence_result"
       ],
       [
-        "slot:orca_war_prefix^-^slot:orca_occurrence_result"
+        "slot:orca_war_prefix",
+        "slot:orca_occurrence_result"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_war_prefix^-^slot:orca_occurrence_result"
+        "domain:wake_singers_domain_short",
+        "slot:orca_war_prefix",
+        "slot:orca_occurrence_result"
       ]
     ]
   }

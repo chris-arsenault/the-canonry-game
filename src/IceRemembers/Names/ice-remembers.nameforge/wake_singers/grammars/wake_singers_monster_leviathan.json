@@ -4,32 +4,42 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
+    "reference_name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_monster_leviathan_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:wake_singers_domain_short",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_monster_leviathan_nouns"
+      ],
+      [
+        "slot:orca_territory_glyph~cap^slot:wake_singers_monster_leviathan_nouns"
+      ],
+      [
+        "domain:wake_singers_domain_short",
+        "slot:orca_territory_glyph~cap^slot:wake_singers_monster_leviathan_nouns"
+      ],
+      [
+        "slot:orca_prey_glyph~cap^slot:orca_deed_root",
+        "slot:wake_singers_monster_leviathan_nouns~cap"
+      ],
+      [
+        "domain:wake_singers_domain_short",
+        "slot:orca_prey_glyph~cap^slot:orca_deed_root",
+        "slot:wake_singers_monster_leviathan_nouns~cap"
+      ]
+    ],
     "name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "slot:wake_singers_monster_leviathan_nouns"
-      ],
-      [
-        "when:producer_kind=generator",
-        "domain:orca_domain_short",
-        "context:primary_entity_name~poss",
-        "slot:wake_singers_monster_leviathan_nouns"
-      ],
-      [
-        "slot:orca_territory_glyph^-^slot:wake_singers_monster_leviathan_nouns"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-^slot:wake_singers_monster_leviathan_nouns"
-      ],
-      [
-        "slot:orca_prey_glyph^-^slot:orca_deed_root^-^slot:wake_singers_monster_leviathan_nouns"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-^slot:orca_deed_root^-^slot:wake_singers_monster_leviathan_nouns"
+        "context:reference_name"
       ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

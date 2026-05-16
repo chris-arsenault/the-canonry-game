@@ -2,7 +2,7 @@
   "id": "aurora_region",
   "start": "name",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "slot:aurora_nature~cap^span",
         "(^slot:aurora_place_echoes^)"
@@ -25,7 +25,15 @@
         "domain:aurora_domain~cap^hold",
         "(^slot:aurora_place_echoes^)"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
   },
-  "capitalization": "titleWords"
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
 }

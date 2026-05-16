@@ -14,7 +14,7 @@
       [
         "when:producer=monster_slayings_become_festivals",
         "when:parent_producer=penguin_slays_monster",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:trigger_relationship_source_entity_name~poss",
         "slaying",
         "feast"
@@ -29,7 +29,7 @@
       [
         "when:producer=monster_slayings_become_festivals",
         "when:parent_producer=penguin_slays_monster",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:trigger_relationship_target_entity_name",
         "fallen",
         "feast"
@@ -43,7 +43,7 @@
       ],
       [
         "when:producer=trade_routes_convene_negotiation",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:trigger_relationship_source_entity_name",
         "to",
         "context:trigger_relationship_target_entity_name",
@@ -57,7 +57,7 @@
       ],
       [
         "when:producer=trade_routes_convene_negotiation",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:trigger_relationship_source_entity_name~poss",
         "route",
         "gathering"
@@ -69,7 +69,7 @@
       ],
       [
         "when:producer_kind=generator",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:primary_entity_name~poss",
         "slot:orca_celebration_types"
       ],
@@ -80,23 +80,29 @@
       ],
       [
         "when:producer_kind=generator",
-        "domain:orca_domain_short",
+        "domain:wake_singers_domain_short",
         "context:secondary_entity_name~poss",
         "slot:orca_celebration_types"
       ],
       [
-        "slot:orca_prey_glyph^-^slot:orca_celebration_types^-^slot:orca_occurrence_result"
+        "slot:orca_prey_glyph~cap",
+        "slot:orca_celebration_types",
+        "slot:orca_occurrence_result"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-^slot:orca_celebration_types^-^slot:orca_occurrence_result"
+        "domain:wake_singers_domain_short",
+        "slot:orca_prey_glyph~cap",
+        "slot:orca_celebration_types",
+        "slot:orca_occurrence_result"
       ],
       [
-        "slot:orca_prey_glyph^-^slot:orca_celebration_types"
+        "slot:orca_prey_glyph~cap",
+        "slot:orca_celebration_types"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-^slot:orca_celebration_types"
+        "domain:wake_singers_domain_short",
+        "slot:orca_prey_glyph~cap",
+        "slot:orca_celebration_types"
       ]
     ]
   }

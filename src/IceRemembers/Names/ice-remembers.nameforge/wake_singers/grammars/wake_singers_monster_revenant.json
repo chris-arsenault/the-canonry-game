@@ -4,32 +4,42 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
+    "reference_name": [
+      [
+        "when:producer_kind=generator",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_monster_revenant_nouns"
+      ],
+      [
+        "when:producer_kind=generator",
+        "domain:wake_singers_domain_short",
+        "context:primary_entity_name~poss",
+        "slot:wake_singers_monster_revenant_nouns"
+      ],
+      [
+        "slot:orca_exile_glyph~cap^slot:wake_singers_monster_revenant_nouns"
+      ],
+      [
+        "domain:wake_singers_domain_short",
+        "slot:orca_exile_glyph~cap^slot:wake_singers_monster_revenant_nouns"
+      ],
+      [
+        "slot:orca_deed_root~cap^slot:orca_prey_glyph",
+        "slot:wake_singers_monster_revenant_nouns~cap"
+      ],
+      [
+        "domain:wake_singers_domain_short",
+        "slot:orca_deed_root~cap^slot:orca_prey_glyph",
+        "slot:wake_singers_monster_revenant_nouns~cap"
+      ]
+    ],
     "name": [
       [
-        "when:producer_kind=generator",
-        "context:primary_entity_name~poss",
-        "slot:wake_singers_monster_revenant_nouns"
-      ],
-      [
-        "when:producer_kind=generator",
-        "domain:orca_domain_short",
-        "context:primary_entity_name~poss",
-        "slot:wake_singers_monster_revenant_nouns"
-      ],
-      [
-        "slot:orca_exile_glyph^-^slot:wake_singers_monster_revenant_nouns"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_exile_glyph^-^slot:wake_singers_monster_revenant_nouns"
-      ],
-      [
-        "slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:wake_singers_monster_revenant_nouns"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:wake_singers_monster_revenant_nouns"
+        "context:reference_name"
       ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }

@@ -3,7 +3,7 @@
   "start": "name",
   "capitalization": "titleWords",
   "rules": {
-    "name": [
+    "reference_name": [
       [
         "domain:aurora_domain~cap",
         "slot:aurora_faction_groups",
@@ -23,6 +23,14 @@
       [
         "domain:aurora_domain_short~cap^'^slot:aurora_faction_groups"
       ]
+    ],
+    "name": [
+      [
+        "context:reference_name"
+      ]
     ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
   }
 }
