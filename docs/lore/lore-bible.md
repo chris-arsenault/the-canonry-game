@@ -255,30 +255,57 @@ It is from these depths that artifacts of The Before Times occasionally surface 
 
 Penguins don't experience time linearly — the ice holds memory, and names are echoes rather than labels. The three cultures think about identity differently, and their naming conventions are the visible consequence.
 
-### 6.2 Aurora Stack — Parenthetical Echoes
+### 6.2 NameForge Authoring Rules
 
-Aurora names carry the ice's annotations in parentheses. These are **not optional flourishes**; they are the ice's witness to existence.
+Names have two surfaces:
+- **Display name** — the full ceremonial or public name shown on the entity.
+- **Reference name** — the compact inheritable name used when another name refers to the entity. Artifacts, transports, festivals, wars, and ownership names should use the reference name when one exists.
 
-**Simple Echo** — `Name (ice-memory)`:
-- Piien (twice-hatched) — survived something, reborn.
-- Losek (trade-blessed) — ice saw prosperity follow them.
-- Valmori (echo: Valum) — carries an ancestor's echo.
-- Quillen (frost-scarred, echo: Quilara) — our annotator.
+This is a hard naming rule, not a style preference. If a penguin's display name is `Lightbringer Guldan The Spirit Keeper`, an owned weapon should be `Guldan's Mace`, not `Lightbringer Guldan The Spirit Keeper's Mace`. If a context lacks a reference name, the system may fall back to the full display name, but grammars should generate reference names for actors and other entities whose names are likely to be inherited.
 
-**Clan-Echo Chain** — `Name (echo) clan'Place`:
-- Voraesueina (frost-written) kria'Spire
-- Peiaeesi (light-descended) rukar'Reach
-- Teime (ice-spoken) molok'Depths
+Context-aware names are **additive and gated**. A context branch may enter the lottery when the matching context exists; it must not replace all generic names. If the required context does not exist, that option is disabled instead of emitting placeholder text. This permits `Kaladin's Chalice`, `Firegoblet`, and `The Crystal Skull` when Kaladin is present, but only `Firegoblet` and `The Crystal Skull` when no owner context exists.
 
-The clan marker indicates lineage (via mentorship, not blood); the place indicates origin-territory.
+Use existing provenance and lineage fields when writing causal names. The expected context surfaces are producer lineage (`producer`, `parent_producer`, `producer_kind`), invocation targets (`primary_entity_*`, `secondary_entity_*`, `selected_*`, `parent_primary_entity_*`, `parent_secondary_entity_*`), and relationship endpoints (`trigger_relationship_source_entity_*`, `trigger_relationship_target_entity_*`). Do not invent new semantic fields unless the engine actually exposes them.
 
-**Layered Echoes** — more echoes = more history = more significance:
-- Skailaen (twice-blessed, light-bearer, echo: Skai)
-- Nalreniro (frost-bane, void-touched, echo: Nalren, echo: Nal)
+Causal-loop names should reflect the loop that created them, not just the taxonomy of the new entity. Authored loops that need naming support:
+- Orca raids on trade routes becoming named orca-vs-penguin wars.
+- Monsters stealing artifacts and drawing named hunters.
+- Monster-slaying retrievals becoming festivals or commemorative routes.
+- Trade routes, transports, scouts, battleships, and citadels tied to their endpoints or parent occurrences.
 
-**Sound profile.** Chinese-influenced phonetics: zh, sh, ch, x, q, j; no consonant clusters. Vowels/finals: a, o, e, i, u, ai, ei, ou, ong, ang, ing. Common roots: Xue-, Zhi-, Lian-, Feng-, Ming-, Qing-. Endings: -long, -hua, -wei, -lin, -jun. Parenthetical content uses more English sounds — the ice "translating."
+Phonotactic/domain generation should carry the culture. Penguins and orcas should almost always include a culture-domain core; other entity kinds should still use domain generation often enough that the output does not collapse into generic ice-fantasy noun phrases. Lexeme lists add semantic pressure; they should not replace the sound of the culture.
 
-### 6.3 Nightshelf — Incomplete Names
+### 6.3 Aurora Stack — Emoji Echoes
+
+Aurora names carry the ice's annotations. In formal prose and archival recitation, parenthetical echoes remain valid. In generated game-facing names, prefer compact emoji echo markers so the name reads quickly without losing the sense that the ice has annotated the life.
+
+Use a small controlled glyph set:
+- 🧊 — witnessed by the ice, preserved, remembered.
+- ✨ — aurora-light, blessing, seer-work, luminous prominence.
+- ❄️ — frost ordeal, survival, scar, cold-mark.
+- 📜 — ledger, trade, oath, procedure, public record.
+- ⚔️ — war, defense, slaying, martial witness.
+- 🪞 — ancestor echo or reflected former name.
+
+**Simple Echo**:
+- `Piien 🧊 Twice-Hatched` — survived something, reborn.
+- `Losek 📜 Trade-Blessed` — ice saw prosperity follow them.
+- `Valmori 🪞 Valum` — carries an ancestor's echo.
+- `Quillen ❄️ Frost-Scarred 🪞 Quilara` — our annotator.
+
+**Ceremonial/Archive Form**:
+- `Quillen (frost-scarred, echo: Quilara) val'Foundation`
+- `Skailaen (twice-blessed, light-bearer, echo: Skai)`
+
+**Generated/UI Form**:
+- `Quillen ❄️ Frost-Scarred 🪞 Quilara val'Foundation`
+- `Skailaen 🧊 Twice-Blessed ✨ Light-Bearer 🪞 Skai`
+
+The clan marker indicates lineage through mentorship, not blood; the place indicates origin-territory. More echoes still mean more history and more significance, but the generated form should stay scanable. Do not let echo text grow into paragraph-length deed chains.
+
+**Sound profile.** Chinese-influenced phonetics: zh, sh, ch, x, q, j; no consonant clusters. Vowels/finals: a, o, e, i, u, ai, ei, ou, ong, ang, ing. Common roots: Xue-, Zhi-, Lian-, Feng-, Ming-, Qing-. Endings: -long, -hua, -wei, -lin, -jun. Echo text uses more English sounds because the ice is being translated.
+
+### 6.4 Nightshelf — Incomplete Names
 
 Full names hold power, so they are never spoken. Truncation marks:
 - ☽ (crescent moon) — shadow has consumed part of the name.
@@ -305,37 +332,46 @@ Full names hold power, so they are never spoken. Truncation marks:
 - Deal' Covenant~
 - The Shawled Scar~
 
-**Sound profile.** Faux-Latin: v, s, c, m, n, l, r, t; flowing, no hard stops. Vowels: a, e, i, o, u, ae, ia. Common roots: Umbr-, Noct-, Silv-, Tene-, Luc-, Sanct-. Endings: -us, -is, -ae, -ia, -um, -ius. The ☽ and ∴ are *pronounced* — brief pauses or throat-catches.
+Nightshelf subtype routes should be distinct for places, transports, and monsters. A rookery, vent, battleship, leviathan, and revenant should not all share the same incomplete-name structure with one noun swapped. The rule is incompletion, not mechanical sameness: some names are moon-bitten, some internally elided, some trailing, and some use the mark as a syntactic pause.
 
-### 6.4 Orca — Deed-Names
+**Sound profile.** Faux-Latin and shadow ledger speech: v, s, c, m, n, l, r, t; flowing, no hard stops. Vowels: a, e, i, o, u, ae, ia. Common roots: Umbr-, Noct-, Silv-, Tene-, Luc-, Sanct-. Endings: -us, -is, -ae, -ia, -um, -ius. The ☽ and ∴ are *pronounced* as brief pauses or throat-catches.
 
-Orca don't have names in the penguin sense. Identity IS kills, territory, pod-role.
+### 6.5 Wake-Singers / Orca — Romanized Deed Names
 
-**Kill-names** — `[Method]-[Prey]`:
-- Rend-kzul (seal-render; kzul = seal)
-- Gnash-threk (whale-gnasher)
-- Crush-pngk (penguin-crusher)
+Orca do not have names in the penguin sense. Identity is kills, territory, pod-role, and pressure-song. The true name may be a long sung history, but the generated game-facing surface should be a **romanized handle**, not a raw hyphenated deed chain.
 
-**Accumulation** — more kills = longer name:
-- Young: Kzul-rend
-- Experienced: Kzul-threk-rend-vor
-- Elder: Deep-kzul-threk-pngk-rend-vor-grrul (barely pronounceable)
+Do not generate names like `Gork-Mork-Pork`. Generate the correct surface directly: combine the first two morphemes into a capitalized first word and leave later role/deed words as separate title-case words.
 
-**Sound profile (strict).** Consonants: k, g, r, th, ng, z, kh, gh, rr, d, n; hard only. Vowels: u, i, a (short), occasional schwa. Clusters *required*: kr, gr, th, ng, zk, khr, rnd, thng. **No soft sounds, no diphthongs, no articles.**
+**Romanized form**:
+- `Gorkmork Pork`
+- `Rughak Routebiter`
+- `Khrangzund Deepwake`
+- `Thrakcurrent Knife`
 
-### 6.5 Differentiation at a Glance
+Wake-Singer context names should keep this romanized surface even when they incorporate penguin or place context: `Tidehome To Moon Rookery Carrier`, not a hyphen chain. Places, transports, and monsters in the Wake-Singer culture should generally avoid leading articles in generated names; `Blackkeel`, `Murkvent`, or `Rughak War Carrier` read better than `The Black Keel`.
+
+Possessives and inherited names use the reference name, not the full sung or ceremonial display name. If the display name is `Rughak Routebiter Deepwake`, an artifact can be `Rughak's Tooth`; it should not repeat the full display name.
+
+This rule applies to Wake-Singer/orca surface names. Do not use it as an excuse to strip meaningful hyphens from Aurora or Nightshelf names where those marks are culturally doing work.
+
+**Sound profile (strict).** Consonants: k, g, r, th, ng, z, kh, gh, rr, d, n; hard only. Vowels: u, i, a (short), occasional schwa. Clusters are welcome: kr, gr, th, ng, zk, khr, rnd, thng. No soft sounds and no diphthongs in the generated orca core.
+
+### 6.6 Differentiation at a Glance
 
 | Feature | Aurora | Nightshelf | Orca |
 |---|---|---|---|
-| Parenthetical echoes `()` | core | — | — |
+| Emoji echo markers | core for generated display | — | — |
+| Parenthetical echoes `()` | ceremonial/archive | — | — |
 | Moon truncation `☽` | — | core | — |
 | Internal elision `∴` | — | yes | — |
 | Whisper trailing `~` | — | yes | — |
-| Deed-chains | — | — | core |
+| Raw hyphen deed-chains | — | — | avoid in generated display |
+| Romanized deed handles | — | — | core |
+| Reference/inheritable names | yes | yes | yes |
 | Vowel richness | high | medium | minimal |
 | Consonant clusters | low | low | required |
 
-### 6.6 Exception: Before Times Serial Numbers
+### 6.7 Exception: Before Times Serial Numbers
 
 Before Times artifacts resist all three naming systems. They bear alphanumeric designations like `8H-H1Y0B` or `T5-W5WJ3P`. Aurora penguins cannot add echoes — the ice refuses to annotate what it cannot comprehend. Nightshelf cannot truncate what is already incomplete. Orca cannot claim kills they did not make. Common names exist (Prime Shard, Extinction Node), but serial numbers persist in formal contexts. Documents that use the common names have a way of being lost. Penguins who speak the common names too often begin dreaming of numbers.
 

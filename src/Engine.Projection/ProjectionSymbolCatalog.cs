@@ -53,7 +53,8 @@ public sealed record ProjectionSymbolSeed(
 
 public sealed record ProjectionEntityNameSeed(
     int EntityId,
-    string DisplayName);
+    string DisplayName,
+    string? ReferenceName = null);
 
 public readonly record struct ProjectionEntityNameKey(
     int EntityId,
@@ -73,12 +74,18 @@ public interface IProjectionSymbolCatalog
     bool TryResolveEntityName(ProjectionEntityNameKey key, out string displayName);
 
     string ResolveEntityName(ProjectionEntityNameKey key, string? fallback = null);
+
+    bool TryResolveEntityNames(ProjectionEntityNameKey key, out ProjectionEntityNames names);
+
+    bool TryResolveEntityReferenceName(ProjectionEntityNameKey key, out string referenceName);
+
+    string ResolveEntityReferenceName(ProjectionEntityNameKey key, string? fallback = null);
 }
 
 public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
 {
     private readonly Dictionary<ProjectionSymbolKey, ProjectionSymbol> _symbols = [];
-    private readonly Dictionary<int, string> _entityNamesById = [];
+    private readonly Dictionary<int, ProjectionEntityNames> _entityNamesById = [];
     private IProjectionEntityNameSynthesizer? _entityNameSynthesizer;
     private ProvenanceProjection? _provenance;
     private Func<int, ProjectionEntityNameKey?>? _entityNameKeyProvider;
@@ -88,7 +95,9 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         new ReadOnlyDictionary<ProjectionSymbolKey, ProjectionSymbol>(_symbols);
 
     public IReadOnlyDictionary<int, string> ExplicitEntityNames =>
-        new ReadOnlyDictionary<int, string>(_entityNamesById);
+        new ReadOnlyDictionary<int, string>(_entityNamesById.ToDictionary(
+            static entry => entry.Key,
+            static entry => entry.Value.DisplayName));
 
     public ProjectionSymbolCatalog UseEntityNameSynthesizer(IProjectionEntityNameSynthesizer synthesizer)
     {
@@ -163,7 +172,7 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         return this;
     }
 
-    public ProjectionSymbolCatalog RegisterEntityName(int entityId, string displayName)
+    public ProjectionSymbolCatalog RegisterEntityName(int entityId, string displayName, string? referenceName = null)
     {
         if (entityId <= 0)
         {
@@ -171,7 +180,9 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
-        _entityNamesById[entityId] = displayName;
+        _entityNamesById[entityId] = new ProjectionEntityNames(
+            displayName,
+            string.IsNullOrWhiteSpace(referenceName) ? displayName : referenceName);
         return this;
     }
 
@@ -199,21 +210,33 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
 
     public bool TryResolveEntityName(ProjectionEntityNameKey key, out string displayName)
     {
+        if (TryResolveEntityNames(key, out var names))
+        {
+            displayName = names.DisplayName;
+            return true;
+        }
+
+        displayName = string.Empty;
+        return false;
+    }
+
+    public bool TryResolveEntityNames(ProjectionEntityNameKey key, out ProjectionEntityNames names)
+    {
         if (key.EntityId <= 0)
         {
-            displayName = string.Empty;
+            names = ProjectionEntityNames.FromDisplayName(string.Empty);
             return false;
         }
 
         if (_entityNamesById.TryGetValue(key.EntityId, out var explicitName))
         {
-            displayName = explicitName;
+            names = explicitName;
             return true;
         }
 
         if (!_resolvingEntityNames.Add(key.EntityId))
         {
-            displayName = string.Empty;
+            names = ProjectionEntityNames.FromDisplayName(string.Empty);
             return false;
         }
 
@@ -221,13 +244,13 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         {
             var context = CreateEntityNameContext(key);
             if (_entityNameSynthesizer is not null &&
-                _entityNameSynthesizer.TrySynthesizeName(context, out displayName) &&
-                !string.IsNullOrWhiteSpace(displayName))
+                TrySynthesizeEntityNames(_entityNameSynthesizer, context, out names) &&
+                !string.IsNullOrWhiteSpace(names.DisplayName))
             {
                 return true;
             }
 
-            return DefaultProjectionEntityNameSynthesizer.Instance.TrySynthesizeName(context, out displayName);
+            return DefaultProjectionEntityNameSynthesizer.Instance.TrySynthesizeNames(context, out names);
         }
         finally
         {
@@ -245,6 +268,28 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         return fallback ?? $"E{key.EntityId}";
     }
 
+    public bool TryResolveEntityReferenceName(ProjectionEntityNameKey key, out string referenceName)
+    {
+        if (TryResolveEntityNames(key, out var names) && !string.IsNullOrWhiteSpace(names.ReferenceName))
+        {
+            referenceName = names.ReferenceName;
+            return true;
+        }
+
+        referenceName = string.Empty;
+        return false;
+    }
+
+    public string ResolveEntityReferenceName(ProjectionEntityNameKey key, string? fallback = null)
+    {
+        if (TryResolveEntityReferenceName(key, out var referenceName))
+        {
+            return referenceName;
+        }
+
+        return fallback ?? ResolveEntityName(key);
+    }
+
     public static string ToDisplayName(string stableName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stableName);
@@ -258,6 +303,27 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         }
 
         return string.Join(' ', chars.Select(Capitalize));
+    }
+
+    private static bool TrySynthesizeEntityNames(
+        IProjectionEntityNameSynthesizer synthesizer,
+        ProjectionEntityNameContext context,
+        out ProjectionEntityNames names)
+    {
+        if (synthesizer is IProjectionEntityNamesSynthesizer structuredSynthesizer)
+        {
+            return structuredSynthesizer.TrySynthesizeNames(context, out names);
+        }
+
+        if (synthesizer.TrySynthesizeName(context, out var displayName) &&
+            !string.IsNullOrWhiteSpace(displayName))
+        {
+            names = ProjectionEntityNames.FromDisplayName(displayName);
+            return true;
+        }
+
+        names = ProjectionEntityNames.FromDisplayName(string.Empty);
+        return false;
     }
 
     private ProjectionEntityNameContext CreateEntityNameContext(ProjectionEntityNameKey key)
@@ -294,25 +360,39 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
 
         var parent = CreateParentInvocationContext(entityId, invocation.InvocationId);
         var trigger = CreateRelationshipTriggerContext(entityId, invocation.InvocationId);
+        var primary = TryResolveReferencedEntityNames(entityId, invocation.PrimaryEntityId);
+        var secondary = TryResolveReferencedEntityNames(entityId, invocation.SecondaryEntityId);
 
         return new ProjectionEntityNameProvenance
         {
             Invocation = invocation,
             Producer = ResolveProducerSymbolOrNull(invocation.ProducerKindCode, invocation.ProducerId),
-            PrimaryEntityName = TryResolveReferencedEntityName(entityId, invocation.PrimaryEntityId),
-            SecondaryEntityName = TryResolveReferencedEntityName(entityId, invocation.SecondaryEntityId),
+            PrimaryEntityName = DisplayNameOrNull(primary),
+            PrimaryEntityReferenceName = ReferenceNameOrNull(primary),
+            SecondaryEntityName = DisplayNameOrNull(secondary),
+            SecondaryEntityReferenceName = ReferenceNameOrNull(secondary),
             ParentInvocation = parent.Invocation,
             ParentProducer = parent.Producer,
-            ParentPrimaryEntityName = parent.PrimaryEntityName,
-            ParentSecondaryEntityName = parent.SecondaryEntityName,
+            ParentPrimaryEntityName = DisplayNameOrNull(parent.PrimaryEntityNames),
+            ParentPrimaryEntityReferenceName = ReferenceNameOrNull(parent.PrimaryEntityNames),
+            ParentSecondaryEntityName = DisplayNameOrNull(parent.SecondaryEntityNames),
+            ParentSecondaryEntityReferenceName = ReferenceNameOrNull(parent.SecondaryEntityNames),
             RelationshipTrigger = trigger.Trigger,
             RelationshipTriggerKind = trigger.RelationshipKind,
-            RelationshipTriggerSourceEntityName = trigger.SourceEntityName,
-            RelationshipTriggerTargetEntityName = trigger.TargetEntityName,
+            RelationshipTriggerSourceEntityName = DisplayNameOrNull(trigger.SourceEntityNames),
+            RelationshipTriggerSourceEntityReferenceName = ReferenceNameOrNull(trigger.SourceEntityNames),
+            RelationshipTriggerTargetEntityName = DisplayNameOrNull(trigger.TargetEntityNames),
+            RelationshipTriggerTargetEntityReferenceName = ReferenceNameOrNull(trigger.TargetEntityNames),
             Outputs = _provenance.OutputsOfInvocation(invocation.InvocationId),
             ParentChain = _provenance.EnumerateParentChain(invocation.InvocationId).ToArray(),
         };
     }
+
+    private static string? DisplayNameOrNull(ProjectionEntityNames? names) =>
+        names is null ? null : names.DisplayName;
+
+    private static string? ReferenceNameOrNull(ProjectionEntityNames? names) =>
+        names is null ? null : names.ReferenceName;
 
     private ParentInvocationNameContext CreateParentInvocationContext(int entityId, int invocationId)
     {
@@ -325,8 +405,8 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         return new ParentInvocationNameContext(
             parent,
             ResolveProducerSymbolOrNull(parent.ProducerKindCode, parent.ProducerId),
-            TryResolveReferencedEntityName(entityId, parent.PrimaryEntityId),
-            TryResolveReferencedEntityName(entityId, parent.SecondaryEntityId));
+            TryResolveReferencedEntityNames(entityId, parent.PrimaryEntityId),
+            TryResolveReferencedEntityNames(entityId, parent.SecondaryEntityId));
     }
 
     private RelationshipTriggerNameContext CreateRelationshipTriggerContext(int entityId, int invocationId)
@@ -347,8 +427,8 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
         return new RelationshipTriggerNameContext(
             trigger,
             relationshipKind,
-            TryResolveReferencedEntityName(entityId, trigger.SourceEntityId),
-            TryResolveReferencedEntityName(entityId, trigger.TargetEntityId));
+            TryResolveReferencedEntityNames(entityId, trigger.SourceEntityId),
+            TryResolveReferencedEntityNames(entityId, trigger.TargetEntityId));
     }
 
     private ProjectionSymbol? ResolveProducerSymbolOrNull(int producerKindCode, int producerId) =>
@@ -356,7 +436,7 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
             ? producer
             : null;
 
-    private string? TryResolveReferencedEntityName(int currentEntityId, int referencedEntityId)
+    private ProjectionEntityNames? TryResolveReferencedEntityNames(int currentEntityId, int referencedEntityId)
     {
         if (referencedEntityId <= 0 || referencedEntityId == currentEntityId)
         {
@@ -375,9 +455,9 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
             return null;
         }
 
-        return TryResolveEntityName(key, out var displayName) &&
-            !string.IsNullOrWhiteSpace(displayName)
-            ? displayName
+        return TryResolveEntityNames(key, out var names) &&
+            !string.IsNullOrWhiteSpace(names.DisplayName)
+            ? names
             : null;
     }
 
@@ -412,14 +492,14 @@ public sealed class ProjectionSymbolCatalog : IProjectionSymbolCatalog
     private readonly record struct ParentInvocationNameContext(
         ProvenanceInvocationProjection? Invocation,
         ProjectionSymbol? Producer,
-        string? PrimaryEntityName,
-        string? SecondaryEntityName);
+        ProjectionEntityNames? PrimaryEntityNames,
+        ProjectionEntityNames? SecondaryEntityNames);
 
     private readonly record struct RelationshipTriggerNameContext(
         ProvenanceRelationshipTriggerProjection? Trigger,
         ProjectionSymbol? RelationshipKind,
-        string? SourceEntityName,
-        string? TargetEntityName);
+        ProjectionEntityNames? SourceEntityNames,
+        ProjectionEntityNames? TargetEntityNames);
 
     private static string Capitalize(string value)
     {
@@ -457,7 +537,7 @@ public static class ProjectionSymbolCatalogSeeder
 
         foreach (var name in entityNames)
         {
-            catalog.RegisterEntityName(name.EntityId, name.DisplayName);
+            catalog.RegisterEntityName(name.EntityId, name.DisplayName, name.ReferenceName);
         }
     }
 }

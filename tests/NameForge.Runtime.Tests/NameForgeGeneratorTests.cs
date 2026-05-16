@@ -74,20 +74,114 @@ public sealed class NameForgeGeneratorTests
     }
 
     [Fact]
-    public void Generate_WithJoinFirstTwoRomanization_RewritesHyphenChains()
+    public void Generate_WithoutContext_DisablesContextProductionAlternative()
     {
-        var project = CreateRomanizedProject();
-        var generator = new NameForgeGenerator(project);
+        var generator = new NameForgeGenerator(CreateContextProductionProject());
+
+        var fallbackResult = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "test",
+            Kind = "artifact",
+            Count = 1,
+            Seed = "missing-production-context",
+        });
+        var contextResult = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "test",
+            Kind = "artifact",
+            Count = 1,
+            Seed = "missing-production-context",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["region"] = "trade terrace",
+            },
+        });
+
+        Assert.Equal("Ice", fallbackResult.Names[0]);
+        Assert.Equal("Trade Terrace Gate", contextResult.Names[0]);
+    }
+
+    [Fact]
+    public void Generate_WithoutContext_DisablesContextOnlyStrategy()
+    {
+        var generator = new NameForgeGenerator(CreateContextStrategyProject());
+
+        var fallbackResult = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "test",
+            Kind = "artifact",
+            Count = 4,
+            Seed = "missing-strategy-context",
+        });
+        var contextResult = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "test",
+            Kind = "artifact",
+            Count = 1,
+            Seed = "missing-strategy-context",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["region"] = "trade terrace",
+            },
+        });
+
+        Assert.All(fallbackResult.Names, name => Assert.Equal("Ice", name));
+        Assert.Equal("Trade Terrace Gate", contextResult.Names[0]);
+    }
+
+    [Fact]
+    public void Generate_ContextEntityNameTokenPrefersReferenceNameAutomatically()
+    {
+        var generator = new NameForgeGenerator(CreateReferenceContextProject());
 
         var result = generator.Generate(new NameForgeGenerateRequest
         {
             CultureId = "test",
-            Kind = "orca",
+            Kind = "artifact",
             Count = 1,
-            Seed = "romanized",
+            Seed = "reference-context",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["primary_entity_name"] = "Lightbringer Guldan The Spirit Keeper",
+                ["primary_entity_reference_name"] = "Guldan",
+            },
         });
 
-        Assert.Equal("Gorkmork Pork", result.Names[0]);
+        Assert.Equal("Guldan's Mace", result.Names[0]);
+    }
+
+    [Fact]
+    public void Generate_WithGeneratedContext_ReturnsReferenceNameAndUsesItInDisplayName()
+    {
+        var generator = new NameForgeGenerator(CreateGeneratedContextProject());
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "test",
+            Kind = "penguin",
+            Count = 1,
+            Seed = "generated-context",
+        });
+
+        Assert.Equal("Lightbringer Guldan The Spirit Keeper", result.Names[0]);
+        Assert.Equal("Guldan", result.ReferenceNames[0]);
+    }
+
+    [Fact]
+    public void Generate_WithGeneratedHyphenatedContextKey_DoesNotSplitContextKey()
+    {
+        var generator = new NameForgeGenerator(CreateGeneratedHyphenContextProject());
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "test",
+            Kind = "artifact",
+            Count = 1,
+            Seed = "generated-hyphen-context",
+        });
+
+        Assert.Equal("Guldan's Mace", result.Names[0]);
+        Assert.Equal("Guldan", result.ReferenceNames[0]);
     }
 
     [Theory]
@@ -283,6 +377,52 @@ public sealed class NameForgeGeneratorTests
             },
         });
         Assert.DoesNotContain(ungated.Names, name => name.Contains("Kaladin's", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void IceRemembersProject_ActorNamesExposeCompactReferenceNames()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "wake_singers",
+            Kind = "orca",
+            Subtype = "scout",
+            Count = 1,
+            Seed = "orca-reference-name",
+        });
+
+        Assert.False(string.IsNullOrWhiteSpace(result.ReferenceNames[0]));
+        Assert.NotEqual(result.Names[0], result.ReferenceNames[0]);
+        Assert.Contains(result.ReferenceNames[0], result.Names[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IceRemembersProject_ArtifactOwnerNamesUseReferenceNameWhenAvailable()
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+        const string fullOwnerName = "Lightbringer Guldan The Spirit Keeper";
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "aurora_stack",
+            Kind = "artifact",
+            Subtype = "weapon",
+            Count = 80,
+            Seed = "reference-owner-artifact",
+            Context = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["producer_kind"] = "generator",
+                ["primary_entity_name"] = fullOwnerName,
+                ["primary_entity_reference_name"] = "Guldan",
+            },
+        });
+
+        Assert.Contains(result.Names, name => name.Contains("Guldan's", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Names, name => name.Contains(fullOwnerName, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -581,51 +721,6 @@ public sealed class NameForgeGeneratorTests
             },
         };
 
-    private static NameForgeProject CreateRomanizedProject() =>
-        new()
-        {
-            Id = "romanized",
-            Cultures = new Dictionary<string, NameForgeCulture>(StringComparer.Ordinal)
-            {
-                ["test"] = new()
-                {
-                    Id = "test",
-                    PostProcessing = new NameForgeNamePostProcessing { HyphenRomanization = "join_first_two" },
-                    Grammars =
-                    [
-                        new()
-                        {
-                            Id = "orca_name",
-                            Start = "name",
-                            Capitalization = "mixed",
-                            Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
-                            {
-                                ["name"] = [["gork-mork-pork"]],
-                            },
-                        },
-                    ],
-                    Profiles =
-                    [
-                        new()
-                        {
-                            Id = "orcas",
-                            EntityKinds = ["orca"],
-                            StrategyGroups =
-                            [
-                                new()
-                                {
-                                    Name = "Orcas",
-                                    Priority = 10,
-                                    Conditions = new NameForgeGroupConditions { EntityKinds = ["orca"] },
-                                    Strategies = [new() { Type = "grammar", Weight = 1, GrammarId = "orca_name" }],
-                                },
-                            ],
-                        },
-                    ],
-                },
-            },
-        };
-
     private static NameForgeProject CreateContextProject() =>
         new()
         {
@@ -641,6 +736,109 @@ public sealed class NameForgeGeneratorTests
                     },
                     Grammars = CreateContextGrammars(),
                     Profiles = [CreateContextProfile()],
+                },
+            },
+        };
+
+    private static NameForgeProject CreateContextProductionProject() =>
+        CreateSingleProfileProject(
+            "context-production",
+            [
+                new()
+                {
+                    Id = "context_name",
+                    Start = "name",
+                    Capitalization = "titleWords",
+                    Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
+                    {
+                        ["name"] = [["context:region", "gate"], ["ice"]],
+                    },
+                },
+            ],
+            [
+                new() { Type = "grammar", Weight = 1, GrammarId = "context_name" },
+            ]);
+
+    private static NameForgeProject CreateContextStrategyProject() =>
+        CreateSingleProfileProject(
+            "context-strategy",
+            [
+                new()
+                {
+                    Id = "context_name",
+                    Start = "name",
+                    Capitalization = "titleWords",
+                    Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
+                    {
+                        ["name"] = [["context:region", "gate"]],
+                    },
+                },
+                new()
+                {
+                    Id = "fallback_name",
+                    Start = "name",
+                    Capitalization = "titleWords",
+                    Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
+                    {
+                        ["name"] = [["ice"]],
+                    },
+                },
+            ],
+            [
+                new() { Type = "grammar", Weight = 1, GrammarId = "context_name" },
+                new() { Type = "grammar", Weight = 0, GrammarId = "fallback_name" },
+            ]);
+
+    private static NameForgeProject CreateReferenceContextProject() =>
+        CreateSingleProfileProject(
+            "reference-context",
+            [
+                new()
+                {
+                    Id = "owner_artifact",
+                    Start = "name",
+                    Capitalization = "titleWords",
+                    Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
+                    {
+                        ["name"] = [["context:primary_entity_name~poss", "mace"]],
+                    },
+                },
+            ],
+            [
+                new() { Type = "grammar", Weight = 1, GrammarId = "owner_artifact" },
+            ]);
+
+    private static NameForgeProject CreateSingleProfileProject(
+        string id,
+        List<NameForgeGrammar> grammars,
+        List<NameForgeStrategy> strategies) =>
+        new()
+        {
+            Id = id,
+            Cultures = new Dictionary<string, NameForgeCulture>(StringComparer.Ordinal)
+            {
+                ["test"] = new()
+                {
+                    Id = "test",
+                    Grammars = grammars,
+                    Profiles =
+                    [
+                        new()
+                        {
+                            Id = "profile",
+                            EntityKinds = ["artifact"],
+                            StrategyGroups =
+                            [
+                                new()
+                                {
+                                    Name = "Names",
+                                    Priority = 1,
+                                    Conditions = new NameForgeGroupConditions { EntityKinds = ["artifact"] },
+                                    Strategies = strategies,
+                                },
+                            ],
+                        },
+                    ],
                 },
             },
         };
@@ -668,6 +866,73 @@ public sealed class NameForgeGeneratorTests
                 },
             },
         ];
+
+    private static NameForgeProject CreateGeneratedContextProject() =>
+        CreateGeneratedContextProject("penguin", "context_actor", new()
+        {
+            Id = "context_actor",
+            Start = "name",
+            Capitalization = "titleWords",
+            GeneratedContext = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["reference_name"] = "reference_name",
+            },
+            Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
+            {
+                ["reference_name"] = [["guldan"]],
+                ["name"] = [["lightbringer", "context:reference_name", "the", "spirit keeper"]],
+            },
+        });
+
+    private static NameForgeProject CreateGeneratedHyphenContextProject() =>
+        CreateGeneratedContextProject("artifact", "context_artifact", new()
+        {
+            Id = "context_artifact",
+            Start = "name",
+            Capitalization = "titleWords",
+            GeneratedContext = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["reference_name"] = "reference_name",
+                ["inherit-name"] = "reference_name",
+            },
+            Rules = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal)
+            {
+                ["reference_name"] = [["guldan"]],
+                ["name"] = [["context:inherit-name~poss", "mace"]],
+            },
+        });
+
+    private static NameForgeProject CreateGeneratedContextProject(string kind, string grammarId, NameForgeGrammar grammar) =>
+        new()
+        {
+            Id = "generated-context",
+            Cultures = new Dictionary<string, NameForgeCulture>(StringComparer.Ordinal)
+            {
+                ["test"] = new()
+                {
+                    Id = "test",
+                    Grammars = [grammar],
+                    Profiles =
+                    [
+                        new()
+                        {
+                            Id = "profile",
+                            EntityKinds = [kind],
+                            StrategyGroups =
+                            [
+                                new()
+                                {
+                                    Name = "Generated Context",
+                                    Priority = 10,
+                                    Conditions = new NameForgeGroupConditions { EntityKinds = [kind] },
+                                    Strategies = [new() { Type = "grammar", Weight = 1, GrammarId = grammarId }],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        };
 
     private static NameForgeProfile CreateContextProfile() =>
         new()

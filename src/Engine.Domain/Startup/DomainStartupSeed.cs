@@ -30,7 +30,8 @@ public sealed record DomainSeedEntity(
     int SemanticQ,
     int SemanticR,
     int SemanticS,
-    string? DisplayName = null);
+    string? DisplayName = null,
+    string? ReferenceName = null);
 
 public sealed record DomainSeedCell(
     int Q,

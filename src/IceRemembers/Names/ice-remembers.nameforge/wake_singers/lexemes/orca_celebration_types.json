@@ -2,16 +2,16 @@
   "id": "orca_celebration_types",
   "description": "Brutal celebration/feast names for Orca culture",
   "entries": [
-    "Blood-feast",
-    "Kill-day",
-    "Gore-tide",
-    "Fang-festival",
-    "Hunt-rite",
-    "Death-dance",
-    "Slaughter-moon",
-    "Rend-night",
-    "Crush-feast",
-    "Bone-day"
+    "Blood Feast",
+    "Kill Day",
+    "Gore Tide",
+    "Fang Festival",
+    "Hunt Rite",
+    "Death Dance",
+    "Slaughter Moon",
+    "Rend Night",
+    "Crush Feast",
+    "Bone Day"
   ],
   "source": "manual"
 }

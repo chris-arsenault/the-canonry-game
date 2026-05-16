@@ -7,6 +7,12 @@ public readonly record struct ProjectionEntityNameContext(
     ProjectionSymbol? Culture,
     ProjectionEntityNameProvenance? Provenance = null);
 
+public sealed record ProjectionEntityNames(string DisplayName, string ReferenceName)
+{
+    public static ProjectionEntityNames FromDisplayName(string displayName) =>
+        new(displayName, displayName);
+}
+
 public sealed record ProjectionEntityNameProvenance
 {
     public required ProvenanceInvocationProjection Invocation { get; init; }
@@ -15,7 +21,11 @@ public sealed record ProjectionEntityNameProvenance
 
     public string? PrimaryEntityName { get; init; }
 
+    public string? PrimaryEntityReferenceName { get; init; }
+
     public string? SecondaryEntityName { get; init; }
+
+    public string? SecondaryEntityReferenceName { get; init; }
 
     public ProvenanceInvocationProjection? ParentInvocation { get; init; }
 
@@ -23,7 +33,11 @@ public sealed record ProjectionEntityNameProvenance
 
     public string? ParentPrimaryEntityName { get; init; }
 
+    public string? ParentPrimaryEntityReferenceName { get; init; }
+
     public string? ParentSecondaryEntityName { get; init; }
+
+    public string? ParentSecondaryEntityReferenceName { get; init; }
 
     public ProvenanceRelationshipTriggerProjection? RelationshipTrigger { get; init; }
 
@@ -31,7 +45,11 @@ public sealed record ProjectionEntityNameProvenance
 
     public string? RelationshipTriggerSourceEntityName { get; init; }
 
+    public string? RelationshipTriggerSourceEntityReferenceName { get; init; }
+
     public string? RelationshipTriggerTargetEntityName { get; init; }
+
+    public string? RelationshipTriggerTargetEntityReferenceName { get; init; }
 
     public required IReadOnlyList<ProvenanceOutputProjection> Outputs { get; init; }
 
@@ -43,7 +61,12 @@ public interface IProjectionEntityNameSynthesizer
     bool TrySynthesizeName(ProjectionEntityNameContext context, out string displayName);
 }
 
-public sealed class DefaultProjectionEntityNameSynthesizer : IProjectionEntityNameSynthesizer
+public interface IProjectionEntityNamesSynthesizer : IProjectionEntityNameSynthesizer
+{
+    bool TrySynthesizeNames(ProjectionEntityNameContext context, out ProjectionEntityNames names);
+}
+
+public sealed class DefaultProjectionEntityNameSynthesizer : IProjectionEntityNamesSynthesizer
 {
     private static readonly string[] GeneratedNameRoots =
     [
@@ -96,9 +119,21 @@ public sealed class DefaultProjectionEntityNameSynthesizer : IProjectionEntityNa
 
     public bool TrySynthesizeName(ProjectionEntityNameContext context, out string displayName)
     {
+        if (TrySynthesizeNames(context, out var names))
+        {
+            displayName = names.DisplayName;
+            return true;
+        }
+
+        displayName = string.Empty;
+        return false;
+    }
+
+    public bool TrySynthesizeNames(ProjectionEntityNameContext context, out ProjectionEntityNames names)
+    {
         if (context.Key.EntityId <= 0)
         {
-            displayName = string.Empty;
+            names = ProjectionEntityNames.FromDisplayName(string.Empty);
             return false;
         }
 
@@ -112,7 +147,8 @@ public sealed class DefaultProjectionEntityNameSynthesizer : IProjectionEntityNa
             context.Key.CultureId);
         var root = GeneratedNameRoots[hash % GeneratedNameRoots.Length];
         var tail = GeneratedNameTails[(hash / GeneratedNameRoots.Length) % GeneratedNameTails.Length];
-        displayName = $"{baseLabel} {root}{tail}";
+        var displayName = $"{baseLabel} {root}{tail}";
+        names = ProjectionEntityNames.FromDisplayName(displayName);
         return true;
     }
 

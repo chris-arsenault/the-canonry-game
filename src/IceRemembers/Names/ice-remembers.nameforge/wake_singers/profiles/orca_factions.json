@@ -24,7 +24,7 @@
         {
           "type": "phonotactic",
           "weight": 0.3,
-          "domainId": "orca_domain"
+          "domainId": "wake_singers_domain"
         },
         {
           "type": "grammar",

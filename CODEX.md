@@ -137,12 +137,21 @@ Use `make ci` as the final verification pass.
 
 Do not run tests in parallel in this repo.
 
-Prefer one meaningful verification run over many overlapping runs. If the full
-suite is cheap enough for the current task, run the full suite once instead of
+Default to the repo-level test commands. Use `make test` when the work needs a
+test pass, and `make ci` when the work needs final verification.
+
+Do not walk individual test projects one at a time. Serial focused-suite runs
+are explicitly disallowed as a normal verification strategy because command
+selection and process startup cost more than the full repo test pass.
+
+Prefer one meaningful full-suite verification run over many overlapping runs.
+If the full suite is cheap enough for the current task, run it once instead of
 stacking focused suites and then rerunning the same coverage.
 
-Run focused tests only while diagnosing a concrete failure or checking a narrow
-compile/runtime break before the final verification pass.
+Run a focused test command only while diagnosing a concrete failure that already
+appeared in a full-suite run, or while developing against a single known failing
+test. After the fix, return to `make test` or `make ci`; do not continue
+serially enumerating adjacent projects.
 
 Do not rerun passing tests unless code, configuration, generated sources, or
 test inputs changed after the previous run. Formatting checks, `git diff`, and

@@ -57,6 +57,20 @@ public sealed class IceRemembersEntityNameSynthesizerTests
         Assert.NotEqual(auroraName, nightshelfName);
     }
 
+    [Fact]
+    public void SynthesizeNames_ProvidesReferenceNameForGeneratedActors()
+    {
+        var context = CreateContext("orca", "scout", "wake_singers", entityId: 10, nameSeed: 42);
+
+        var result = IceRemembersEntityNameSynthesizer.Instance.TrySynthesizeNames(context, out var names);
+
+        Assert.True(result);
+        Assert.False(string.IsNullOrWhiteSpace(names.DisplayName));
+        Assert.False(string.IsNullOrWhiteSpace(names.ReferenceName));
+        Assert.NotEqual(names.DisplayName, names.ReferenceName);
+        Assert.Contains(names.ReferenceName, names.DisplayName, StringComparison.Ordinal);
+    }
+
     private static ProjectionEntityNameContext CreateContext(
         string kind,
         string subtype,

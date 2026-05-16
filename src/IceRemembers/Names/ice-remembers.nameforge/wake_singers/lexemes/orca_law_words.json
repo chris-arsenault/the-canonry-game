@@ -2,16 +2,16 @@
   "id": "orca_law_words",
   "description": "Brutal law/tradition names for Orca culture",
   "entries": [
-    "blood-law",
-    "kill-right",
-    "death-pact",
-    "hunt-code",
-    "fang-oath",
-    "bone-decree",
-    "gore-rite",
-    "rend-law",
-    "crush-rule",
-    "tear-bond"
+    "blood law",
+    "kill right",
+    "death pact",
+    "hunt code",
+    "fang oath",
+    "bone decree",
+    "gore rite",
+    "rend law",
+    "crush rule",
+    "tear bond"
   ],
   "source": "manual"
 }

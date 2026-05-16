@@ -802,7 +802,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             entity.SubtypeId,
             entity.CultureId,
             nameSeed);
-        var displayName = _symbols?.ResolveEntityName(key, $"E{entity.EntityId}") ?? $"E{entity.EntityId}";
+        var names = _symbols is not null && _symbols.TryResolveEntityNames(key, out var resolvedNames)
+            ? resolvedNames
+            : ProjectionEntityNames.FromDisplayName($"E{entity.EntityId}");
         _batch.EntityNameSymbols.Add(new EntityNameSymbolRow(
             _runId,
             entity.EntityId,
@@ -810,7 +812,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             entity.SubtypeId,
             entity.CultureId,
             nameSeed,
-            displayName));
+            names.DisplayName,
+            names.ReferenceName));
     }
 
     private void TrackCreatedEntityForGeneratorAttribution(in EntityCreatedKernelEvent evt)

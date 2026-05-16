@@ -590,7 +590,15 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
     private static void AddLifecycleTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
     {
-        batch.EntityNameSymbols.Add(new EntityNameSymbolRow(seed.RunId, 7, seed.ArtifactKindId, 0, 0, 7, "Broken Seal"));
+        batch.EntityNameSymbols.Add(new EntityNameSymbolRow(
+            seed.RunId,
+            7,
+            seed.ArtifactKindId,
+            0,
+            0,
+            7,
+            "Broken Seal",
+            "Broken Seal"));
         batch.LifecycleEvents.Add(new LifecycleEventRow(
             seed.RunId,
             18,

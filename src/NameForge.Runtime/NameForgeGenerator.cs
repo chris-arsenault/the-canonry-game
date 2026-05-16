@@ -95,21 +95,23 @@ public sealed partial class NameForgeGenerator
         var seed = string.IsNullOrWhiteSpace(request.Seed)
             ? $"name-forge:{culture.Id}:{request.Kind}:{request.Subtype}"
             : request.Seed;
+        var userContext = BuildEffectiveContext(request.Context);
         var context = new GenerationContext(
             new NameForgeRandom(seed),
             culture,
             _markovModels,
-            request.Context);
+            userContext);
         var groupMatch = FindMatchingGroup(
             profile.StrategyGroups,
             request.Kind,
             request.Subtype,
             request.Prominence,
             request.Tags,
-            request.Context);
+            userContext);
 
         var count = Math.Max(1, request.Count);
         var names = new List<string>(count);
+        var referenceNames = new List<string>(count);
         var debug = new List<NameForgeNameDebugInfo>(count);
         var strategyUsage = new Dictionary<string, int>(StringComparer.Ordinal)
         {
@@ -122,7 +124,8 @@ public sealed partial class NameForgeGenerator
         for (var i = 0; i < count; i++)
         {
             var single = GenerateSingleName(groupMatch.Group, context, i);
-            names.Add(ApplyPostProcessing(single.Name, culture.PostProcessing));
+            names.Add(single.Name);
+            referenceNames.Add(string.IsNullOrWhiteSpace(single.ReferenceName) ? single.Name : single.ReferenceName);
             strategyUsage[single.StrategyType] = strategyUsage.GetValueOrDefault(single.StrategyType) + 1;
             debug.Add(new NameForgeNameDebugInfo(
                 groupMatch.Group?.Name ?? "(fallback)",
@@ -133,7 +136,7 @@ public sealed partial class NameForgeGenerator
                 groupMatch.Debug));
         }
 
-        return new NameForgeGenerateResult(names, strategyUsage, debug);
+        return new NameForgeGenerateResult(names, strategyUsage, debug, referenceNames);
     }
 
     private static NameForgeProfile? SelectProfile(
@@ -344,7 +347,17 @@ public sealed partial class NameForgeGenerator
             return SingleNameResult.Fallback(GenerateFallbackName(context.Culture.LexemeLists.Values.ToArray(), context.Rng, index), "No strategies in group");
         }
 
-        var strategy = PickWeightedStrategy(group.Strategies, context.Rng);
+        var viableStrategies = group.Strategies
+            .Where(strategy => StrategyCanGenerateName(strategy, context))
+            .ToArray();
+        if (viableStrategies.Length == 0)
+        {
+            return SingleNameResult.Fallback(
+                GenerateFallbackName(context.Culture.LexemeLists.Values.ToArray(), context.Rng, index),
+                "No viable strategies under context");
+        }
+
+        var strategy = PickWeightedStrategy(viableStrategies, context.Rng);
         if (string.Equals(strategy.Type, "grammar", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(strategy.GrammarId))
         {
             var grammar = context.Culture.Grammars.FirstOrDefault(grammar =>
@@ -354,6 +367,7 @@ public sealed partial class NameForgeGenerator
                 var result = ExpandGrammar(grammar, context);
                 return new SingleNameResult(
                     result.Name,
+                    result.ReferenceName,
                     result.UsedMarkov ? "markov" : "grammar",
                     $"grammar:{strategy.GrammarId}",
                     strategy.GrammarId,
@@ -374,6 +388,7 @@ public sealed partial class NameForgeGenerator
             {
                 return new SingleNameResult(
                     NameForgePhonotactics.Generate(context.Rng, domain),
+                    string.Empty,
                     "phonotactic",
                     $"phonotactic:{strategy.DomainId}",
                     string.Empty,
@@ -384,6 +399,7 @@ public sealed partial class NameForgeGenerator
             {
                 return new SingleNameResult(
                     NameForgePhonotactics.Generate(context.Rng, context.Culture.Domains[0]),
+                    string.Empty,
                     "phonotactic",
                     $"phonotactic:{strategy.DomainId} NOT FOUND, used {context.Culture.Domains[0].Id}",
                     string.Empty,
@@ -427,6 +443,7 @@ public sealed partial class NameForgeGenerator
     private static GrammarExpansionResult ExpandGrammar(NameForgeGrammar grammar, GenerationContext context)
     {
         var expansion = new GrammarExpansionContext(context.UserContext);
+        PopulateGeneratedContext(grammar, context, expansion);
         var name = ExpandSymbol(
             string.IsNullOrWhiteSpace(grammar.Start) ? "name" : grammar.Start,
             grammar.Rules,
@@ -440,7 +457,39 @@ public sealed partial class NameForgeGenerator
         }
 
         name = ApplyTokenCapitalizationMarkers(name);
-        return new GrammarExpansionResult(name, expansion.UsedMarkov);
+        expansion.GeneratedContext.TryGetValue(NameForgeContextKeys.ReferenceName, out var referenceName);
+        if (!string.IsNullOrWhiteSpace(referenceName) &&
+            !string.Equals(grammar.Capitalization, "mixed", StringComparison.Ordinal))
+        {
+            referenceName = NameForgeText.ApplyCapitalization(referenceName, grammar.Capitalization);
+        }
+
+        referenceName = ApplyTokenCapitalizationMarkers(referenceName ?? string.Empty);
+        return new GrammarExpansionResult(name, expansion.UsedMarkov, referenceName);
+    }
+
+    private static void PopulateGeneratedContext(
+        NameForgeGrammar grammar,
+        GenerationContext context,
+        GrammarExpansionContext expansion)
+    {
+        foreach (var (contextKey, ruleName) in grammar.GeneratedContext)
+        {
+            if (string.IsNullOrWhiteSpace(contextKey) ||
+                string.IsNullOrWhiteSpace(ruleName) ||
+                expansion.UserContext.ContainsKey(contextKey))
+            {
+                continue;
+            }
+
+            var value = ExpandSymbol(ruleName, grammar.Rules, context, expansion, 0);
+            value = ApplyTokenCapitalizationMarkers(value);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                expansion.UserContext[contextKey] = value;
+                expansion.GeneratedContext[contextKey] = value;
+            }
+        }
     }
 
     private static string ExpandSymbol(
@@ -461,15 +510,21 @@ public sealed partial class NameForgeGenerator
         }
 
         var viable = productions
-            .Where(production => !ProductionNeedsMissingContext(production, expansion.UserContext))
+            .Where(production => !ProductionNeedsMissingContext(production, rules, expansion.UserContext, depth))
             .ToArray();
-        IReadOnlyList<List<string>> candidates = viable.Length > 0 ? viable : productions;
-        var production = context.Rng.Pick(candidates, []);
+        if (viable.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var production = context.Rng.Pick(viable, []);
         var parts = new List<string>(production.Count);
 
         foreach (var token in production)
         {
-            if (token.Contains('-', StringComparison.Ordinal) && ContainsPatternPrefix(token))
+            if (token.Contains('-', StringComparison.Ordinal) &&
+                ContainsPatternPrefix(token) &&
+                ShouldSplitHyphenatedPatternToken(token))
             {
                 var subParts = token.Split('-');
                 parts.Add(string.Join(
@@ -497,36 +552,63 @@ public sealed partial class NameForgeGenerator
 
     private static bool ProductionNeedsMissingContext(
         IReadOnlyList<string> production,
-        IReadOnlyDictionary<string, string> userContext)
+        IReadOnlyDictionary<string, List<List<string>>> rules,
+        IReadOnlyDictionary<string, string> userContext,
+        int depth)
     {
-        foreach (var token in production)
-        {
-            if (TryParseContextGuard(token, out var guardKey, out var expectedValue) &&
-                (!userContext.TryGetValue(guardKey, out var guardValue) ||
-                 string.IsNullOrEmpty(guardValue) ||
-                 (expectedValue is not null && !string.Equals(guardValue, expectedValue, StringComparison.Ordinal))))
-            {
-                return true;
-            }
+        return production.Any(token => TokenNeedsMissingContext(token, rules, userContext, depth));
+    }
 
-            var index = token.IndexOf("context:", StringComparison.Ordinal);
+    private static bool TokenNeedsMissingContext(
+        string token,
+        IReadOnlyDictionary<string, List<List<string>>> rules,
+        IReadOnlyDictionary<string, string> userContext,
+        int depth)
+    {
+        if (rules.ContainsKey(token))
+        {
+            return !SymbolCanGenerate(token, rules, userContext, depth + 1);
+        }
+
+        if (token.Contains('-', StringComparison.Ordinal) &&
+            ContainsPatternPrefix(token) &&
+            ShouldSplitHyphenatedPatternToken(token))
+        {
+            return token.Split('-').Any(part =>
+                TokenNeedsMissingContext(part.Trim(), rules, userContext, depth + 1));
+        }
+
+        if (TryParseContextGuard(token, out var guardKey, out var expectedValue) &&
+            (!userContext.TryGetValue(guardKey, out var guardValue) ||
+             string.IsNullOrEmpty(guardValue) ||
+             (expectedValue is not null && !string.Equals(guardValue, expectedValue, StringComparison.Ordinal))))
+        {
+            return true;
+        }
+
+        var index = 0;
+        while (index < token.Length)
+        {
+            index = token.IndexOf("context:", index, StringComparison.Ordinal);
             if (index < 0)
             {
-                continue;
+                return false;
             }
 
             var start = index + "context:".Length;
             var end = start;
-            while (end < token.Length && (char.IsAsciiLetter(token[end]) || token[end] == '_'))
+            while (end < token.Length && IsContextKeyCharacter(token[end]))
             {
                 end++;
             }
 
             var key = token[start..end];
-            if (!userContext.TryGetValue(key, out var value) || string.IsNullOrEmpty(value))
+            if (!TryResolveContextValue(key, userContext, out _))
             {
                 return true;
             }
+
+            index = end;
         }
 
         return false;
@@ -648,12 +730,12 @@ public sealed partial class NameForgeGenerator
         if (pattern.StartsWith("context:", StringComparison.Ordinal))
         {
             var key = pattern["context:".Length..];
-            return context.UserContext.TryGetValue(key, out var value) && value.Length > 0 ? value : null;
+            return TryResolveContextValue(key, expansion.UserContext, out var value) ? value : null;
         }
 
         if (pattern.StartsWith("when:", StringComparison.Ordinal))
         {
-            return TryContextGuardMatches(pattern, context.UserContext) ? string.Empty : null;
+            return TryContextGuardMatches(pattern, expansion.UserContext) ? string.Empty : null;
         }
 
         return token;
@@ -806,6 +888,12 @@ public sealed partial class NameForgeGenerator
     private static bool ContainsPatternPrefix(string value) =>
         PatternPrefixes.Any(prefix => value.Contains(prefix, StringComparison.Ordinal));
 
+    private static bool ShouldSplitHyphenatedPatternToken(string token) =>
+        !token.StartsWith("context:", StringComparison.Ordinal);
+
+    private static bool IsContextKeyCharacter(char ch) =>
+        char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-';
+
     private static bool TryCapitalizationModifier(string modifier, out string capitalization)
     {
         capitalization = modifier switch
@@ -854,63 +942,6 @@ public sealed partial class NameForgeGenerator
             Seed = request.Seed,
         };
 
-    private static string ApplyPostProcessing(string name, NameForgeNamePostProcessing postProcessing) =>
-        postProcessing.HyphenRomanization switch
-        {
-            "join_first_two" => RomanizeHyphenChains(name),
-            _ => name,
-        };
-
-    private static string RomanizeHyphenChains(string name)
-    {
-        var parts = name.Split(' ', StringSplitOptions.None);
-        for (var i = 0; i < parts.Length; i++)
-        {
-            if (parts[i].Contains('-', StringComparison.Ordinal))
-            {
-                parts[i] = RomanizeHyphenToken(parts[i]);
-            }
-        }
-
-        return string.Join(' ', parts);
-    }
-
-    private static string RomanizeHyphenToken(string token)
-    {
-        var prefixLength = 0;
-        while (prefixLength < token.Length && !char.IsLetterOrDigit(token[prefixLength]))
-        {
-            prefixLength++;
-        }
-
-        var suffixStart = token.Length;
-        while (suffixStart > prefixLength && !char.IsLetterOrDigit(token[suffixStart - 1]))
-        {
-            suffixStart--;
-        }
-
-        var core = token[prefixLength..suffixStart];
-        var segments = core.Split('-', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length < 2)
-        {
-            return token;
-        }
-
-        var first = CapitalizeLower(segments[0]) + segments[1].ToLowerInvariant();
-        var romanized = new List<string> { first };
-        for (var i = 2; i < segments.Length; i++)
-        {
-            romanized.Add(CapitalizeLower(segments[i]));
-        }
-
-        return token[..prefixLength] + string.Join(' ', romanized) + token[suffixStart..];
-    }
-
-    private static string CapitalizeLower(string value) =>
-        string.IsNullOrEmpty(value)
-            ? value
-            : char.ToUpperInvariant(value[0]) + value[1..].ToLowerInvariant();
-
     [GeneratedRegex(@"\uE000(cap|lower|upper|title)\uE001([^\uE002]*)\uE002")]
     private static partial Regex TokenCapitalizationRegex();
 
@@ -922,8 +953,17 @@ public sealed partial class NameForgeGenerator
         INameForgeMarkovModelProvider MarkovModels,
         IReadOnlyDictionary<string, string> UserContext);
 
-    private sealed record GrammarExpansionContext(IReadOnlyDictionary<string, string> UserContext)
+    private sealed class GrammarExpansionContext
     {
+        public GrammarExpansionContext(IReadOnlyDictionary<string, string> userContext)
+        {
+            UserContext = new Dictionary<string, string>(userContext, StringComparer.Ordinal);
+        }
+
+        public Dictionary<string, string> UserContext { get; }
+
+        public Dictionary<string, string> GeneratedContext { get; } = new(StringComparer.Ordinal);
+
         public bool UsedMarkov { get; set; }
     }
 
@@ -933,16 +973,17 @@ public sealed partial class NameForgeGenerator
 
     private sealed record SingleNameResult(
         string Name,
+        string ReferenceName,
         string StrategyType,
         string StrategyDescription,
         string GrammarId,
         string DomainId)
     {
         public static SingleNameResult Fallback(string name, string description, string grammarId = "") =>
-            new(name, "fallback", description, grammarId, string.Empty);
+            new(name, string.Empty, "fallback", description, grammarId, string.Empty);
     }
 
-    private sealed record GrammarExpansionResult(string Name, bool UsedMarkov);
+    private sealed record GrammarExpansionResult(string Name, bool UsedMarkov, string ReferenceName);
 
     private sealed record ParsedModifiers(
         string Pattern,
@@ -955,4 +996,9 @@ internal static class NameForgeStrategyGroupExtensions
 {
     public static string NameOrFallback(this NameForgeStrategyGroup group) =>
         string.IsNullOrWhiteSpace(group.Name) ? "(unnamed)" : group.Name;
+}
+
+internal static class NameForgeContextKeys
+{
+    public const string ReferenceName = "reference_name";
 }

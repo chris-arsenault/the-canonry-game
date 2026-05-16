@@ -216,16 +216,10 @@ public sealed class NameForgeCulture
     public string Id { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
-    public NameForgeNamePostProcessing PostProcessing { get; init; } = new();
     public List<NameForgeNamingDomain> Domains { get; init; } = [];
     public Dictionary<string, NameForgeLexemeList> LexemeLists { get; init; } = new(StringComparer.Ordinal);
     public List<NameForgeGrammar> Grammars { get; init; } = [];
     public List<NameForgeProfile> Profiles { get; init; } = [];
-}
-
-public sealed class NameForgeNamePostProcessing
-{
-    public string HyphenRomanization { get; init; } = string.Empty;
 }
 
 public sealed class NameForgeLexemeList
@@ -241,6 +235,7 @@ public sealed class NameForgeGrammar
     public string Id { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public string Start { get; init; } = "name";
+    public Dictionary<string, string> GeneratedContext { get; init; } = new(StringComparer.Ordinal);
     public Dictionary<string, List<List<string>>> Rules { get; init; } = new(StringComparer.Ordinal);
     public string Capitalization { get; init; } = "title";
 }
@@ -369,4 +364,5 @@ public sealed record NameForgeNameDebugInfo(
 public sealed record NameForgeGenerateResult(
     IReadOnlyList<string> Names,
     IReadOnlyDictionary<string, int> StrategyUsage,
-    IReadOnlyList<NameForgeNameDebugInfo> DebugInfo);
+    IReadOnlyList<NameForgeNameDebugInfo> DebugInfo,
+    IReadOnlyList<string> ReferenceNames);

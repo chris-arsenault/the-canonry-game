@@ -26,7 +26,7 @@ public sealed class ProjectionSymbolCatalogTests
         var catalog = new ProjectionSymbolCatalog()
             .RegisterSymbol(ProjectionSymbolKind.Kind, 2, "settlement")
             .RegisterSymbol(ProjectionSymbolKind.Subtype, 3, "harbor")
-            .RegisterEntityName(42, "Port Rime");
+            .RegisterEntityName(42, "Port Rime", "Rime");
 
         var name = catalog.ResolveEntityName(new ProjectionEntityNameKey(
             EntityId: 42,
@@ -36,6 +36,12 @@ public sealed class ProjectionSymbolCatalogTests
             NameSeed: 99));
 
         Assert.Equal("Port Rime", name);
+        Assert.Equal("Rime", catalog.ResolveEntityReferenceName(new ProjectionEntityNameKey(
+            EntityId: 42,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            NameSeed: 99)));
     }
 
     [Fact]
@@ -78,13 +84,17 @@ public sealed class ProjectionSymbolCatalogTests
         Assert.Equal(50, nameProvenance.Invocation.ProducerId);
         Assert.Equal("monster_steals_artifact", nameProvenance.Producer?.StableName);
         Assert.Equal("Farwake Reach", nameProvenance.PrimaryEntityName);
+        Assert.Equal("Farwake", nameProvenance.PrimaryEntityReferenceName);
         Assert.Equal("Aurora Stack", nameProvenance.SecondaryEntityName);
+        Assert.Equal("Aurora", nameProvenance.SecondaryEntityReferenceName);
         Assert.Equal(1, nameProvenance.ParentInvocation?.InvocationId);
         Assert.Equal("artifact_curse_wakes_monster", nameProvenance.ParentProducer?.StableName);
         Assert.Equal(30, nameProvenance.RelationshipTrigger?.RelationshipId);
         Assert.Equal("stole_artifact", nameProvenance.RelationshipTriggerKind?.StableName);
         Assert.Equal("Aurora Stack", nameProvenance.RelationshipTriggerSourceEntityName);
+        Assert.Equal("Aurora", nameProvenance.RelationshipTriggerSourceEntityReferenceName);
         Assert.Equal("Farwake Reach", nameProvenance.RelationshipTriggerTargetEntityName);
+        Assert.Equal("Farwake", nameProvenance.RelationshipTriggerTargetEntityReferenceName);
         Assert.Single(nameProvenance.Outputs);
         Assert.Single(nameProvenance.ParentChain);
     }
@@ -132,8 +142,8 @@ public sealed class ProjectionSymbolCatalogTests
             .RegisterSymbol(ProjectionSymbolKind.Gambit, 40, "artifact_curse_wakes_monster")
             .RegisterSymbol(ProjectionSymbolKind.Generator, 50, "monster_steals_artifact")
             .RegisterSymbol(ProjectionSymbolKind.RelationshipKind, 7, "stole_artifact")
-            .RegisterEntityName(10, "Aurora Stack")
-            .RegisterEntityName(20, "Farwake Reach")
+            .RegisterEntityName(10, "Aurora Stack", "Aurora")
+            .RegisterEntityName(20, "Farwake Reach", "Farwake")
             .UseProvenanceProjection(provenance)
             .UseEntityNameSynthesizer(synthesizer);
 

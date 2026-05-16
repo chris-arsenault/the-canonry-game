@@ -33,9 +33,9 @@ public sealed class KernelSymbolContext
         return this;
     }
 
-    public KernelSymbolContext RegisterEntityName(int entityId, string displayName)
+    public KernelSymbolContext RegisterEntityName(int entityId, string displayName, string? referenceName = null)
     {
-        _symbols.RegisterEntityName(entityId, displayName);
+        _symbols.RegisterEntityName(entityId, displayName, referenceName);
         return this;
     }
 

@@ -55,7 +55,8 @@ public sealed record EntityNameSymbolRow(
     int SubtypeId,
     int CultureId,
     int NameSeed,
-    string DisplayName);
+    string DisplayName,
+    string ReferenceName);
 
 public sealed record RunRow(
     int RunId,

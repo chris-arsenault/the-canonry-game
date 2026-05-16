@@ -20,7 +20,7 @@ public sealed class ProjectionSymbolCatalogSeederTests
                     "cold"),
             ],
             [
-                new ProjectionEntityNameSeed(42, "Aster"),
+                new ProjectionEntityNameSeed(42, "Aster the Bright", "Aster"),
             ]);
 
         Assert.True(catalog.TryResolve(ProjectionSymbolKind.Generator, 7, out var symbol));
@@ -29,7 +29,8 @@ public sealed class ProjectionSymbolCatalogSeederTests
         Assert.Equal("A generator.", symbol.Description);
         Assert.Equal("generator-icon", symbol.IconKey);
         Assert.Equal("cold", symbol.ColorKey);
-        Assert.Equal("Aster", catalog.ResolveEntityName(new ProjectionEntityNameKey(42, 0, 0, 0, 0)));
+        Assert.Equal("Aster the Bright", catalog.ResolveEntityName(new ProjectionEntityNameKey(42, 0, 0, 0, 0)));
+        Assert.Equal("Aster", catalog.ResolveEntityReferenceName(new ProjectionEntityNameKey(42, 0, 0, 0, 0)));
     }
 
     [Fact]

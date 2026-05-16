@@ -1,7 +1,4 @@
 {
-  "postProcessing": {
-    "hyphenRomanization": "join_first_two"
-  },
   "lexemeSpecs": [
     {
       "id": "orca_combat_actions",

@@ -595,7 +595,7 @@
         {
           "type": "phonotactic",
           "weight": 0.4,
-          "domainId": "orca_domain"
+          "domainId": "wake_singers_domain"
         }
       ]
     }

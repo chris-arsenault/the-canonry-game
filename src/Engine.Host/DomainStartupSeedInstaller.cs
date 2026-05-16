@@ -75,7 +75,10 @@ internal static class DomainStartupSeedInstaller
         {
             if (!string.IsNullOrWhiteSpace(entity.DisplayName))
             {
-                context.Symbols.RegisterEntityName(entityIds[entity.SeedEntityId], entity.DisplayName);
+                context.Symbols.RegisterEntityName(
+                    entityIds[entity.SeedEntityId],
+                    entity.DisplayName,
+                    entity.ReferenceName);
             }
         }
     }
