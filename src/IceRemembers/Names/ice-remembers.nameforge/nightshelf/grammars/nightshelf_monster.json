@@ -11,30 +11,19 @@
         "slot:nightshelf_monster_nouns~cap"
       ],
       [
-        "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
+        "☽'^slot:nightshelf_shadow_gen",
         "slot:nightshelf_monster_nouns~cap"
       ],
       [
-        "☽'^slot:nightshelf_shadow_gen~chopL^'",
-        "slot:nightshelf_monster_nouns~cap"
+        "slot:nightshelf_darkness_source~cap^∴^slot:nightshelf_monster_nouns"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen~chopL^'",
-        "slot:nightshelf_monster_nouns~cap"
+        "slot:nightshelf_monster_nouns~cap",
+        "slot:nightshelf_shadow_gen~cap^☽"
       ],
       [
-        "slot:nightshelf_darkness_source~cap^∴^slot:nightshelf_monster_nouns~chopR"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_darkness_source~cap^∴^slot:nightshelf_monster_nouns~chopR"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_monster_nouns~cap"
+        "slot:nightshelf_shadow_gen~cap",
+        "slot:nightshelf_monster_nouns~cap^~"
       ]
     ]
   }

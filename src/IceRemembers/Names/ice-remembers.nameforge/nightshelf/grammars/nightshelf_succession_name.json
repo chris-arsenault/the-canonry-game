@@ -11,27 +11,19 @@
       ],
       [
         "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "Succession"
+        "context:primary_entity_name",
+        "Successio☽"
       ],
       [
-        "The",
-        "slot:nightshelf_succession_prefix~chopR^∴^slot:nightshelf_war_names~chopL"
+        "slot:nightshelf_succession_prefix~cap^∴^slot:nightshelf_war_names"
       ],
       [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_succession_prefix~chopR^∴^slot:nightshelf_war_names~chopL"
+        "☽'^slot:nightshelf_succession_prefix",
+        "slot:nightshelf_war_names~cap"
       ],
       [
-        "The",
-        "slot:nightshelf_succession_prefix~chopL^∴^slot:nightshelf_war_names~chopR"
-      ],
-      [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_succession_prefix~chopL^∴^slot:nightshelf_war_names~chopR"
+        "slot:nightshelf_succession_prefix~cap",
+        "slot:nightshelf_war_names~cap^☽"
       ]
     ]
   }

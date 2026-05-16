@@ -7,16 +7,6 @@
       [
         "when:producer=orca_route_wars_get_names",
         "when:parent_producer=orca_raids_trade_route",
-        "The",
-        "context:trigger_relationship_source_entity_name",
-        "Against",
-        "context:trigger_relationship_target_entity_name"
-      ],
-      [
-        "when:producer=orca_route_wars_get_names",
-        "when:parent_producer=orca_raids_trade_route",
-        "The",
-        "domain:nightshelf_domain~cap^~",
         "context:trigger_relationship_source_entity_name",
         "Against",
         "context:trigger_relationship_target_entity_name"
@@ -29,41 +19,25 @@
         "War"
       ],
       [
-        "when:producer=orca_route_wars_get_names",
-        "when:parent_producer=orca_raids_trade_route",
-        "domain:nightshelf_domain~cap^~",
-        "context:trigger_relationship_source_entity_name~poss",
-        "Route",
-        "War"
-      ],
-      [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
         "War"
       ],
       [
         "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "War"
+        "context:primary_entity_name",
+        "Bellum☽"
       ],
       [
-        "The",
-        "slot:nightshelf_conflict_prefix~chopR^∴^slot:nightshelf_war_names~chopL"
+        "slot:nightshelf_conflict_prefix~cap^∴^slot:nightshelf_war_names"
       ],
       [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_conflict_prefix~chopR^∴^slot:nightshelf_war_names~chopL"
+        "slot:nightshelf_conflict_prefix~cap",
+        "slot:nightshelf_war_names~cap^☽"
       ],
       [
-        "The",
-        "slot:nightshelf_conflict_prefix~chopL^∴^slot:nightshelf_war_names~chopR"
-      ],
-      [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_conflict_prefix~chopL^∴^slot:nightshelf_war_names~chopR"
+        "☽'^slot:nightshelf_conflict_prefix",
+        "slot:nightshelf_war_names~cap"
       ]
     ]
   }

@@ -11,35 +11,16 @@
       [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
-        "slot:nightshelf_instrument_nouns^~"
+        "slot:nightshelf_instrument_nouns~title"
       ],
       [
         "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "slot:nightshelf_instrument_nouns^~"
+        "context:selected_name~poss",
+        "slot:nightshelf_instrument_nouns~title"
       ],
       [
-        "when:producer_kind=generator",
-        "context:selected~poss",
-        "slot:nightshelf_instrument_nouns^~"
-      ],
-      [
-        "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:selected~poss",
-        "slot:nightshelf_instrument_nouns^~"
-      ],
-      [
-        "The",
-        "slot:nightshelf_shadow_gen^ed^~",
-        "slot:nightshelf_instrument_nouns"
-      ],
-      [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_shadow_gen^ed^~",
-        "slot:nightshelf_instrument_nouns"
+        "slot:nightshelf_shadow_gen~ed~cap",
+        "slot:nightshelf_instrument_nouns~title^☽"
       ]
     ]
   }

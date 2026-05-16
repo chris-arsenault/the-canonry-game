@@ -1,18 +1,29 @@
 {
   "id": "nightshelf_elite_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
-    "name": [
+    "reference_name": [
       [
-        "slot:nightshelf_gen_titles",
-        "☽'^domain:nightshelf_domain~cap^'^slot:nightshelf_nature~cap"
+        "domain:nightshelf_domain~cap^☽"
       ],
       [
-        "slot:nightshelf_gen_titles",
-        "domain:nightshelf_domain~cap^~",
+        "☽'^domain:nightshelf_domain"
+      ]
+    ],
+    "name": [
+      [
+        "slot:nightshelf_gen_titles~title",
+        "context:reference_name",
         "slot:nightshelf_nature~cap"
+      ],
+      [
+        "slot:nightshelf_gen_titles~title",
+        "context:reference_name"
       ]
     ]
-  },
-  "capitalization": "titleWords"
+  }
 }

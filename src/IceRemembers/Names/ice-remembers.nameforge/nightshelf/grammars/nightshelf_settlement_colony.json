@@ -5,27 +5,18 @@
   "rules": {
     "name": [
       [
-        "slot:nightshelf_latin_roots~cap^∴colony∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_latin_roots~cap^∴colony∴"
+        "slot:nightshelf_latin_roots~cap^∴colony"
       ],
       [
         "☽'^slot:nightshelf_shadow_gen",
-        "quarter^~"
+        "Quarter"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen",
-        "quarter^~"
+        "slot:nightshelf_rule_anchors~cap^∴ward"
       ],
       [
-        "slot:nightshelf_rule_anchors^∴ward"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_rule_anchors^∴ward"
+        "slot:nightshelf_shadow_gen~cap",
+        "Quarter^☽"
       ]
     ]
   }

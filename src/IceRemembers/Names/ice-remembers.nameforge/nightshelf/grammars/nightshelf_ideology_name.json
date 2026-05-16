@@ -5,20 +5,18 @@
   "rules": {
     "name": [
       [
-        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_forbidden_truth~chopR"
+        "slot:nightshelf_rule_anchors~cap^∴^slot:nightshelf_forbidden_truth"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_forbidden_truth~chopR"
+        "Way^∴^slot:nightshelf_shadow_gen"
       ],
       [
-        "The",
-        "Way^∴^slot:nightshelf_shadow_gen~chopL"
+        "☽'^slot:nightshelf_rule_anchors",
+        "slot:nightshelf_forbidden_truth~cap"
       ],
       [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "Way^∴^slot:nightshelf_shadow_gen~chopL"
+        "slot:nightshelf_rule_anchors~cap",
+        "slot:nightshelf_forbidden_truth~cap^☽"
       ]
     ]
   }

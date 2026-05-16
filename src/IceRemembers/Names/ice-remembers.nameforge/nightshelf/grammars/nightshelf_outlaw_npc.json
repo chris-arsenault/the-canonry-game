@@ -1,18 +1,30 @@
 {
   "id": "nightshelf_outlaw_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:nightshelf_domain~cap^☽"
+      ],
+      [
+        "☽'^domain:nightshelf_domain"
+      ]
+    ],
     "name": [
       [
-        "☽'^domain:nightshelf_domain",
-        "slot:nightshelf_criminal_epithets"
+        "context:reference_name",
+        "slot:nightshelf_criminal_epithets~title"
       ],
       [
-        "slot:nightshelf_criminal_epithets~cap",
-        "domain:nightshelf_domain^~"
+        "slot:nightshelf_criminal_epithets~title",
+        "context:reference_name"
       ],
       [
-        "☽'^domain:nightshelf_domain^-^domain:nightshelf_domain^~"
+        "context:reference_name^-^domain:nightshelf_domain^~"
       ]
     ]
   }

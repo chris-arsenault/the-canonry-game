@@ -1,24 +1,21 @@
 {
   "id": "nightshelf_region",
   "start": "name",
+  "capitalization": "titleWords",
   "rules": {
     "name": [
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_latin_roots^slot:nightshelf_whisper_ends"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_shadow_gen~cap^'depths^~"
-      ],
       [
         "domain:nightshelf_domain~cap^☽"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_latin_roots~cap^slot:nightshelf_whisper_ends^☽"
+        "☽'^domain:nightshelf_domain^slot:nightshelf_whisper_ends"
+      ],
+      [
+        "slot:nightshelf_shadow_gen~cap^'depths^☽"
+      ],
+      [
+        "domain:nightshelf_domain~cap^slot:nightshelf_whisper_ends^~"
       ]
     ]
-  },
-  "capitalization": "titleWords"
+  }
 }

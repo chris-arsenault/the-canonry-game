@@ -1,20 +1,32 @@
 {
   "id": "nightshelf_noble_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
-    "name": [
+    "reference_name": [
       [
-        "slot:nightshelf_noble_titles",
-        "☽'^domain:nightshelf_domain"
+        "domain:nightshelf_domain~cap^☽"
       ],
       [
-        "slot:nightshelf_latin_titles",
-        "domain:nightshelf_domain^~",
+        "☽'^domain:nightshelf_domain"
+      ]
+    ],
+    "name": [
+      [
+        "slot:nightshelf_noble_titles~title",
+        "context:reference_name"
+      ],
+      [
+        "slot:nightshelf_latin_titles~title",
+        "context:reference_name",
         "slot:nightshelf_whisper_roots~cap"
       ],
       [
-        "slot:nightshelf_noble_titles",
-        "domain:nightshelf_domain^-^slot:nightshelf_shadow_gen^~"
+        "slot:nightshelf_noble_titles~title",
+        "context:reference_name^-^slot:nightshelf_shadow_gen"
       ]
     ]
   }

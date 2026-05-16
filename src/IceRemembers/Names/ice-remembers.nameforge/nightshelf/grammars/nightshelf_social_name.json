@@ -5,18 +5,17 @@
   "rules": {
     "name": [
       [
-        "Ritus^∴^slot:nightshelf_darkness_source~chopR"
+        "Ritus^∴^slot:nightshelf_darkness_source"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "Ritus^∴^slot:nightshelf_darkness_source~chopR"
+        "slot:nightshelf_rule_anchors~cap^∴^slot:nightshelf_communion_type"
       ],
       [
-        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_communion_type~chopL"
+        "☽'^slot:nightshelf_rule_anchors",
+        "slot:nightshelf_communion_type~cap"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_rule_anchors^∴^slot:nightshelf_communion_type~chopL"
+        "slot:nightshelf_communion_type~cap^☽"
       ]
     ]
   }

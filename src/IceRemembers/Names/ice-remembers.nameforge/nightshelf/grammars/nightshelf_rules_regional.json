@@ -7,24 +7,17 @@
       [
         "☽'^slot:nightshelf_shadow_gen",
         "Code of",
-        "context:region^~"
+        "context:region"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen",
-        "Code of",
-        "context:region^~"
+        "context:region^'s",
+        "slot:nightshelf_shadow_gen~cap",
+        "Covenant^☽"
       ],
       [
-        "context:region^'",
-        "☽'^slot:nightshelf_shadow_gen^☽",
-        "Covenant"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "context:region^'",
-        "☽'^slot:nightshelf_shadow_gen^☽",
-        "Covenant"
+        "slot:nightshelf_shadow_gen~cap^∴covenant",
+        "of",
+        "context:region"
       ]
     ]
   }

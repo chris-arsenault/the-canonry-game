@@ -8,36 +8,21 @@
       [
         "when:producer=war_occurrences_launch_scouts",
         "context:primary_entity_name~poss",
-        "Scout^~"
-      ],
-      [
-        "when:producer=war_occurrences_launch_scouts",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "Scout^~"
+        "Scout"
       ],
       [
         "☽'^slot:nightshelf_shadow_gen",
-        "runner^~"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen",
-        "runner^~"
+        "Runner"
       ],
       [
         "slot:nightshelf_latin_roots~cap^∴unlisted"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_latin_roots~cap^∴unlisted"
+        "slot:nightshelf_remnant~cap^∴signal-skiff"
       ],
       [
-        "slot:nightshelf_remnant^∴signal-skiff∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_remnant^∴signal-skiff∴"
+        "slot:nightshelf_shadow_gen~cap",
+        "Skiff^☽"
       ]
     ]
   }

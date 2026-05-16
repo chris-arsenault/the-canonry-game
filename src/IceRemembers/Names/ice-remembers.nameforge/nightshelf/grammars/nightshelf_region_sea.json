@@ -5,27 +5,18 @@
   "rules": {
     "name": [
       [
-        "☽'^slot:nightshelf_darkness_source~lower",
-        "blackwater^~"
+        "☽'^slot:nightshelf_shadow_gen",
+        "Blackwater"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_darkness_source~lower",
-        "blackwater^~"
+        "slot:nightshelf_forbidden_truth~cap^∴undersea"
       ],
       [
-        "slot:nightshelf_latin_roots~cap^∴undersea"
+        "slot:nightshelf_darkness_source~cap^∴salt-dark"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_latin_roots~cap^∴undersea"
-      ],
-      [
-        "slot:nightshelf_forbidden_truth^∴salt-dark∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_forbidden_truth^∴salt-dark∴"
+        "slot:nightshelf_shadow_gen~cap",
+        "Blackwater^☽"
       ]
     ]
   }

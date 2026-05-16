@@ -8,36 +8,21 @@
       [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
-        "Wraith^~"
+        "Wraith"
       ],
       [
-        "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "Wraith^~"
-      ],
-      [
-        "slot:nightshelf_remnant^∴wraith"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_remnant^∴wraith"
+        "slot:nightshelf_remnant~cap^∴wraith"
       ],
       [
         "☽'^slot:nightshelf_latin_roots",
-        "name-wraith^~"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_latin_roots",
-        "name-wraith^~"
+        "Name-Wraith"
       ],
       [
         "slot:nightshelf_shadow_gen~cap^∴unspoken"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_shadow_gen~cap^∴unspoken"
+        "slot:nightshelf_remnant~cap",
+        "Wraith^~"
       ]
     ]
   }

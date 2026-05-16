@@ -5,27 +5,18 @@
   "rules": {
     "name": [
       [
-        "slot:nightshelf_forbidden_truth^∴bloom"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_forbidden_truth^∴bloom"
+        "slot:nightshelf_forbidden_truth~cap^∴bloom"
       ],
       [
         "☽'^slot:nightshelf_shadow_gen",
-        "spore^~"
+        "Spore"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen",
-        "spore^~"
+        "slot:nightshelf_darkness_source~cap^∴rot-bloom"
       ],
       [
-        "slot:nightshelf_darkness_source~cap^∴rot-bloom∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_darkness_source~cap^∴rot-bloom∴"
+        "slot:nightshelf_shadow_gen~cap",
+        "Bloom^☽"
       ]
     ]
   }

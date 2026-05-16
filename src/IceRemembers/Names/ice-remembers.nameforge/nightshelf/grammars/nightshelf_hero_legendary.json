@@ -1,31 +1,43 @@
 {
   "id": "nightshelf_hero_legendary",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:nightshelf_domain~cap^☽"
+      ],
+      [
+        "☽'^domain:nightshelf_domain"
+      ]
+    ],
     "name": [
       [
         "when:producer=stolen_artifacts_draw_hunters",
         "when:parent_producer=monster_steals_artifact",
-        "domain:nightshelf_domain~cap^~",
+        "context:reference_name",
         "context:trigger_relationship_target_entity_name~poss",
         "Warden"
       ],
       [
         "when:producer=orca_route_wars_get_names",
         "when:parent_producer=orca_raids_trade_route",
-        "domain:nightshelf_domain~cap^~",
+        "context:reference_name",
         "context:trigger_relationship_target_entity_name~poss",
         "Route Warden"
       ],
       [
-        "slot:nightshelf_latin_titles",
-        "☽'^domain:nightshelf_domain^~",
-        "slot:nightshelf_hero_epithets"
+        "slot:nightshelf_latin_titles~title",
+        "context:reference_name",
+        "slot:nightshelf_hero_epithets~title"
       ],
       [
-        "☽'^domain:nightshelf_domain",
-        "slot:nightshelf_hero_epithets^,",
-        "slot:nightshelf_latin_titles"
+        "context:reference_name",
+        "slot:nightshelf_hero_epithets~title^,",
+        "slot:nightshelf_latin_titles~title"
       ]
     ]
   }

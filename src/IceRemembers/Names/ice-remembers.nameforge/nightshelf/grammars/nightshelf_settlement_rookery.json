@@ -6,28 +6,18 @@
     "name": [
       [
         "☽'^slot:nightshelf_latin_roots",
-        "rookery^~"
+        "Rookery"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_latin_roots",
-        "rookery^~"
+        "slot:nightshelf_shadow_gen~cap^∴hatchery"
       ],
       [
-        "slot:nightshelf_shadow_gen~cap^∴hatchery∴"
+        "slot:nightshelf_shadow_gen~cap",
+        "Brood-Vault^☽"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_shadow_gen~cap^∴hatchery∴"
-      ],
-      [
-        "☽'^slot:nightshelf_shadow_gen~chopL^'",
-        "brood-vault^~"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen~chopL^'",
-        "brood-vault^~"
+        "slot:nightshelf_latin_roots~cap",
+        "Rookery^☽"
       ]
     ]
   }

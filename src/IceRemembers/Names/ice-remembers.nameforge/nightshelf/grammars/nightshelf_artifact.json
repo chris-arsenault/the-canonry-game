@@ -7,32 +7,18 @@
       [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
-        "slot:nightshelf_artifact_nouns"
+        "slot:nightshelf_artifact_nouns~title"
       ],
       [
-        "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "slot:nightshelf_artifact_nouns"
-      ],
-      [
-        "The",
-        "slot:nightshelf_shadow_gen^ed^~",
-        "slot:nightshelf_artifact_nouns"
-      ],
-      [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_shadow_gen^ed^~",
-        "slot:nightshelf_artifact_nouns"
-      ],
-      [
-        "slot:nightshelf_artifact_nouns^☽",
-        "domain:nightshelf_domain~cap^~"
+        "slot:nightshelf_artifact_modifiers~title",
+        "slot:nightshelf_artifact_nouns~title^☽"
       ],
       [
         "☽'^domain:nightshelf_domain~lower^'",
         "slot:nightshelf_artifact_nouns~cap"
+      ],
+      [
+        "slot:nightshelf_artifact_modifiers~title^∴^slot:nightshelf_artifact_nouns"
       ]
     ]
   }

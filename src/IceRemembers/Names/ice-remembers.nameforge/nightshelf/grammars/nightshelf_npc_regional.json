@@ -2,16 +2,31 @@
   "id": "nightshelf_npc_regional",
   "start": "name",
   "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:nightshelf_domain~cap^☽"
+      ],
+      [
+        "☽'^domain:nightshelf_domain"
+      ]
+    ],
     "name": [
       [
         "☽'^domain:nightshelf_domain",
         "context:region^'born"
       ],
       [
-        "domain:nightshelf_domain^~",
+        "domain:nightshelf_domain^☽",
         "of",
-        "☽'^context:region"
+        "context:region"
+      ],
+      [
+        "context:region^'s",
+        "domain:nightshelf_domain~cap^☽"
       ]
     ]
   }

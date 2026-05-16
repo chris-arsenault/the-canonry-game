@@ -6,26 +6,17 @@
     "name": [
       [
         "☽'^slot:nightshelf_shadow_gen",
-        "tooth^~"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen",
-        "tooth^~"
+        "Tooth"
       ],
       [
         "slot:nightshelf_latin_roots~cap^∴spire"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_latin_roots~cap^∴spire"
+        "slot:nightshelf_darkness_source~cap^∴ridge"
       ],
       [
-        "slot:nightshelf_darkness_source~cap^∴ridge∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_darkness_source~cap^∴ridge∴"
+        "slot:nightshelf_shadow_gen~cap",
+        "Spire^☽"
       ]
     ]
   }

@@ -11,27 +11,19 @@
       ],
       [
         "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "Collapse"
+        "context:primary_entity_name",
+        "Ruina☽"
       ],
       [
-        "The",
-        "slot:nightshelf_depth_prefix~chopR^∴^slot:nightshelf_disaster_types~chopL"
+        "slot:nightshelf_depth_prefix~cap^∴^slot:nightshelf_disaster_types"
       ],
       [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_depth_prefix~chopR^∴^slot:nightshelf_disaster_types~chopL"
+        "slot:nightshelf_depth_prefix~cap",
+        "slot:nightshelf_disaster_types~cap^☽"
       ],
       [
-        "The",
-        "slot:nightshelf_depth_prefix~chopL^∴^slot:nightshelf_disaster_types~chopR"
-      ],
-      [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_depth_prefix~chopL^∴^slot:nightshelf_disaster_types~chopR"
+        "☽'^slot:nightshelf_depth_prefix",
+        "slot:nightshelf_disaster_types~cap"
       ]
     ]
   }

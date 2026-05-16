@@ -1,21 +1,26 @@
 {
   "id": "nightshelf_npc_whisper",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:nightshelf_domain~cap^~"
+      ],
+      [
+        "domain:nightshelf_domain~cap^☽"
+      ]
+    ],
     "name": [
       [
-        "☽'^domain:nightshelf_domain~chopL"
+        "context:reference_name"
       ],
       [
-        "domain:nightshelf_domain~chopR^☽"
-      ],
-      [
-        "domain:nightshelf_domain^~"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_shadow_gen~chopL^'",
-        "slot:nightshelf_faction_groups"
+        "context:reference_name",
+        "slot:nightshelf_faction_groups^~"
       ]
     ]
   }

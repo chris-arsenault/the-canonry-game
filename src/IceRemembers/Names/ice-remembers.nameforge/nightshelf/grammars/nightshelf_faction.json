@@ -5,40 +5,20 @@
   "rules": {
     "name": [
       [
-        "☽'^slot:nightshelf_latin_roots~chopL^'",
-        "slot:nightshelf_faction_groups"
+        "☽'^slot:nightshelf_latin_roots^'",
+        "slot:nightshelf_faction_groups~title"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_latin_roots~chopL^'",
-        "slot:nightshelf_faction_groups"
-      ],
-      [
-        "slot:nightshelf_faction_groups^∴^slot:nightshelf_shadow_gen~chopR^-bound~"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_faction_groups^∴^slot:nightshelf_shadow_gen~chopR^-bound~"
+        "slot:nightshelf_faction_groups~title^∴^slot:nightshelf_shadow_gen"
       ],
       [
         "slot:nightshelf_shadow_gen~cap^'",
-        "slot:nightshelf_faction_groups^~"
+        "slot:nightshelf_faction_groups~title^☽"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_shadow_gen~cap^'",
-        "slot:nightshelf_faction_groups^~"
-      ],
-      [
-        "The",
-        "slot:nightshelf_faction_groups",
-        "(^slot:nightshelf_shadow_gen~chopL^-sworn)"
-      ],
-      [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_faction_groups",
-        "(^slot:nightshelf_shadow_gen~chopL^-sworn)"
+        "slot:nightshelf_faction_groups~title",
+        "of the",
+        "slot:nightshelf_shadow_gen~cap^~"
       ]
     ]
   }

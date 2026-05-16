@@ -5,15 +5,7 @@
   "rules": {
     "name": [
       [
-        "☽The",
-        "slot:nightshelf_shadow_gen~cap",
-        "Rite☽"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽The",
-        "slot:nightshelf_shadow_gen~cap",
-        "Rite☽"
+        "slot:nightshelf_shadow_gen~cap^∴^slot:nightshelf_rite_suffix"
       ],
       [
         "Order of the",
@@ -21,29 +13,12 @@
         "slot:nightshelf_magic_partb~er~cap^s"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "Order of the",
-        "slot:nightshelf_magic_part_c~cap",
-        "slot:nightshelf_magic_partb~er~cap^s"
-      ],
-      [
-        "The",
         "slot:nightshelf_whisper_ends~cap",
         "Doctrine"
       ],
       [
-        "The",
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_whisper_ends~cap",
-        "Doctrine"
-      ],
-      [
-        "☽^slot:nightshelf_latin_roots~cap^-^slot:nightshelf_magic_part_a^☽",
-        "Arts"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "☽^slot:nightshelf_latin_roots~cap^-^slot:nightshelf_magic_part_a^☽",
+        "☽'^slot:nightshelf_latin_roots",
+        "slot:nightshelf_magic_part_a~cap",
         "Arts"
       ],
       [
@@ -52,10 +27,8 @@
         "slot:nightshelf_magic_part_c~cap"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "School of",
-        "slot:nightshelf_shadow_gen~cap",
-        "slot:nightshelf_magic_part_c~cap"
+        "slot:nightshelf_shadow_gen~cap^☽",
+        "Rite"
       ]
     ]
   }

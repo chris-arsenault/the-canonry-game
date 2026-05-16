@@ -8,36 +8,21 @@
       [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
-        "Leviathan^~"
-      ],
-      [
-        "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "Leviathan^~"
+        "Leviathan"
       ],
       [
         "☽'^slot:nightshelf_darkness_source~lower",
-        "leviathan^~"
+        "Leviathan"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_darkness_source~lower",
-        "leviathan^~"
+        "slot:nightshelf_forbidden_truth~cap^∴undertow"
       ],
       [
-        "slot:nightshelf_forbidden_truth^∴undertow"
+        "slot:nightshelf_latin_roots~cap^∴deep-hunger"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_forbidden_truth^∴undertow"
-      ],
-      [
-        "slot:nightshelf_latin_roots~cap^∴deep-hunger∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_latin_roots~cap^∴deep-hunger∴"
+        "slot:nightshelf_darkness_source~cap",
+        "Leviathan^☽"
       ]
     ]
   }

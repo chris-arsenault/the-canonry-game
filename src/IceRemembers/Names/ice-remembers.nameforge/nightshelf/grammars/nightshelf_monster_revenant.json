@@ -8,36 +8,21 @@
       [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
-        "Revenant^~"
+        "Revenant"
       ],
       [
-        "when:producer_kind=generator",
-        "domain:nightshelf_domain~cap^~",
-        "context:primary_entity_name~poss",
-        "Revenant^~"
-      ],
-      [
-        "slot:nightshelf_remnant^∴returned"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_remnant^∴returned"
+        "slot:nightshelf_remnant~cap^∴returned"
       ],
       [
         "☽'^slot:nightshelf_latin_roots",
-        "debt-revenant^~"
+        "Debt-Revenant"
       ],
       [
-        "domain:nightshelf_domain~cap^~",
-        "☽'^slot:nightshelf_latin_roots",
-        "debt-revenant^~"
+        "slot:nightshelf_forbidden_truth~cap^∴after-name"
       ],
       [
-        "slot:nightshelf_forbidden_truth^∴after-name∴"
-      ],
-      [
-        "domain:nightshelf_domain~cap^~",
-        "slot:nightshelf_forbidden_truth^∴after-name∴"
+        "slot:nightshelf_remnant~cap",
+        "Revenant^~"
       ]
     ]
   }
