@@ -1,0 +1,1784 @@
+
+======================================================================
+AURORA STACK
+======================================================================
+
+## Penguins — defaults
+  · Zhe 📜 Val'Arch
+  · Ahulong 📜 Skael'Crystal
+  · Che 📜
+  · Xouming 🧊 🪞 Qilong
+  · Juzhe ❄️
+  · U ji'Aurora
+  · Qeifinghua ❄️ 📜
+  · Nu ⚔️
+  · Floe-master Ishang 🧊
+  · Jaiwei ming'Frost
+
+## Penguins — heroes
+  · Keeper Nangjun 📜 ✨ The Ice-breaker
+  · Light-bearer Ya 🧊
+  · Shei 🧊 🪞 Zho The Hearthkeeper
+  · Floe-master Nulong ⚔️ 🧊 The Ice-breaker
+  · Light-bearer Hoshe ✨
+  · Zheichong 🧊 🪞 Mingsho The Hearthkeeper
+  · Mingong ❄️ 🪞 Zhishing The Long-witnessed
+  · Chiqou ✨ 🪞 Jahua The Hearthkeeper
+  · Iceholm Zheiai ✨ 📜 The Fissure-sealer
+  · Qingjonou ⚔️ 🪞 Fiwei The Crystal-voiced
+
+## Penguins — wardens
+  · Ajun ⚔️ The Crested
+  · Shelf-guardian Qingshong 📜
+  · Floe-master Yingshou ❄️ 📜 The Frost-bane
+  · Qingqo ❄️ The Gilded
+  · Neinei ❄️ 🪞 Ilong The Star-touched
+  · Shalong ⚔️ The Undaunted
+  · Flipper Hu ⚔️ ❄️ The Berg-shaper
+  · Depth-seer O 🧊 🧊 The Frost-bane
+  · Aijangjun ✨ 🪞 Milin The Unbroken
+  · Chill-breaker Qo ✨ 🧊 The Rime-singer
+
+## Penguins — witnesses
+  · Storm-caller Waimang 🧊
+  · Ice-breaker Yonghua 🧊
+  · Keeper Ong 🧊 ✨ The Frost-bane
+  · Waina ❄️ 🪞 Chu The Luminous
+  · Deep-diver Xeiujun ⚔️
+  · Chonglin 📜 The Unyielding
+  · Fissure-sealer Shaiouwei 📜
+  · Yezhong ⚔️ 🧊 The Glow-walker
+  · Frost-ward Zhonghanglong 🧊 📜 The Frost-bane
+  · Dawn-bringer Qinghongshing ✨
+
+## Penguins — mayors
+  · Light-regent Qong ⚔️ Star-kindred
+  · Premier Qo ❄️ fengxang'Eyrie
+  · Crest-speaker Xueqoling ⚔️ Of The Founding Huddle
+  · Arch-warden Fengmoshei
+  · High-beak Lianzhi 📜 e'Gate
+  · Summit-lord Ei ⚔️ Crest-line
+  · Stack-sovereign Yishe 🧊 Crest-line
+  · Chief Arbiter Zhiqou
+  · Grand Auditor Sheilin ✨ she'Ward
+  · Crest-speaker Loula 📜 lei'Mint
+
+## Penguins — merchants
+  · Purser Fengqing
+  · Eyai 📜
+  · Assessor Loqeilin 📜
+  · Wangwei 📜 u'Stellarite
+  · Ielin
+  · Xeiqing fo'Crystal
+  · Gilt-hand Mozhe 📜
+  · Mingnajo 📜 qingu'Whisperglass
+  · Scale-master Yunxang 📜
+  · Coin-counter Fai 📜
+
+## Penguins — brokers
+  · Tallyman Fingyi 📜
+  · Hingwei ❄️
+  · Qo 📜 xe'Starshatter
+  · Xouhongwei
+  · Assessor She
+  · Wou 🧊
+  · Bursar Lei 📜
+  · Qing 📜 zhuhua'Lightbane
+  · Mingfangchai shi'Radiance
+  · Gilt-hand Long 📜
+
+## Penguins — outlaws
+  · Anglonghua ✨
+  · Ice-slicer Ingwei
+  · Frostbite Inglong
+  · Xuene The Faceless
+  · Fengei Crevasse
+  · Chailin 🧊
+  · Jangfilong
+  · Qanghua-Zhiei
+  · Ice-slicer Angwei
+  · Qalin Powder-walker
+
+## Penguins — exiles
+  · Zhila-Fengha
+  · Hong nelong'Crest
+  · Aisha
+  · Qinging Ice-slicer
+  · Nu-Shi
+  · Lilin Slush-runner
+  · Qang The Unseen
+  · Anglong 🧊
+  · Blackfin Ing
+  · Hing
+
+## Hero — Kaladin hunting monster (context)
+  · Kaladin ⚔️ Retriever Of Dreaming Tooth
+  · Kaladin ❄️ ❄️ The Light-bearer
+  · Kaladin ⚔️ Dreaming Tooth's Warden
+  · Keeper Kaladin ⚔️ 🧊 The Dawn-bringer
+  · Kaladin ⚔️ Retriever Of Dreaming Tooth
+  · Kaladin ⚔️ Retriever Of Dreaming Tooth
+  · Frost-ward Kaladin 🧊 📜 The Deep-diver
+  · Kaladin ⚔️ Retriever Of Dreaming Tooth
+  · Tide-turner Kaladin ⚔️
+  · Kaladin ⚔️ Dreaming Tooth's Warden
+
+## Settlements
+  · The Slope Bridge (light)
+  · The Crown Beacon (warm)
+  · The Terrace Court (trade)
+  · The Reach Hearth (kept)
+  · The Stack Rookery (trade)
+  · The Shinglin Colony Trade (frost)
+  · Precipice Ano (warm)
+  · Commons Fengxingfang (old)
+  · The Ingulong Beacon Colony (old)
+  · The Perch Stack (sung)
+
+## Regions
+  · Wauhold (light-blessed)
+  · Crownreach (long-known)
+  · Colonyreach (mirror-still)
+  · Perchreach (ancient)
+  · Joxu Spirereach (mirror-still)
+  · Ledgespan (long-known)
+  · Zhang Colonyreach (huddle-warm)
+  · Rampartreach (tide-carved)
+  · Xangeilonghold (council-chose)
+  · A Tierreach (light-blessed)
+
+## Points of interest
+  · The Arch Arch (trade)
+  · Crest Yo (tide)
+  · The Chongyi Overhang Sun (light)
+  · The Ui Shelf Stack (frost)
+  · The Rookery Crown (kept)
+  · Court Ai (seen)
+  · The Angja Terrace Ledge (warm)
+  · The Changyahua Court Outlook (trade)
+  · The Hishong Gold Bastion (scar)
+  · The Vault Gleam (kept)
+
+## Factions
+  · The Crescent (moonsilver-bound)
+  · Alin'spire
+  · Ne'luminarch
+  · Shingi Threshold (light-blessed)
+  · The Xing Auryn (voidresin-bound)
+  · Lianshai'spire
+  · Mingjing'aureate
+  · Zhojojun Silvarch (aurora-touched)
+  · Neichou Luminarch (ice-sung)
+
+## Monsters — leviathans
+  · Jaijun Bridge Leviathan (trade)
+  · Forum Leviathan (scar)
+  · Forum Leviathan (seen)
+  · Fofai Depth (scar)
+  · Jingnawei Depth (scar)
+  · Frost Leviathan (old)
+  · Apex Leviathan (frost)
+  · Zhenong Crown Leviathan (old)
+  · Xi Depth (star)
+  · Halin Depth (light)
+
+## Monsters — beasts
+  · Sha Crest-maw (light)
+  · Falin Pathway-maw (frost)
+  · Xing Radiance-maw (sung)
+  · Jai Trade Beast (sun)
+  · Nest Beast (scar)
+  · Fangou Peak Beast (tide)
+  · Shang Realm-maw (scar)
+  · Spire-maw (light)
+  · Mingme Arch-maw (light)
+  · Zhinge Vault Beast (trade)
+
+## Monsters — wraiths
+  · Zhingalin Scar-wraith (trade)
+  · Frost-wraith (warm)
+  · Ojun Sun-wraith (trade)
+  · Shanou Star-wraith (sun)
+  · Seen-wraith (frost)
+  · Sun-wraith (kept)
+  · Tide-wraith (warm)
+  · Hiqujun Scar-wraith (tide)
+  · Ejei Frost-wraith (kept)
+  · Failong's Echo (star)
+
+## Monsters — revenants
+  · Elong's Echo (sun)
+  · Xiwei Trade-wraith (seen)
+  · U Sung-wraith (star)
+  · Helong's Echo (light)
+  · I's Echo (tide)
+  · Light-wraith (warm)
+  · Ai Warm-wraith (kept)
+  · Zhai's Echo (tide)
+  · Uwei's Echo (sun)
+  · Frost-wraith (sung)
+
+## Wars
+  · Breach (ice-screamed)
+  · Schism (berg-split)
+  · Shai Divide (berg-split)
+  · Mi Schism (schism-borne)
+  · Reckoning (blood-marked)
+  · Reckoning (ice-mourned)
+  · Chong Collapse (ice-cracked)
+  · Collapse (ice-trembled)
+  · Collapse (ice-mourned)
+  · Reckoning (ice-raged)
+
+## Wars vs Rughak (context)
+  · Rughak's War
+  · Severance (ice-raged)
+  · The Ai Rughak Against North Lantern
+  · Olong Collapse (spire-fallen)
+  · The Qou Rughak Against North Lantern
+  · Owei Rughak's Route War
+  · Rughak's War
+  · Eianglong Divide (berg-split)
+  · Shoxei Sundering (banner-lost)
+  · Sundering (accord-broken)
+
+## Disasters
+  · Crystal-plague (frost-wailed)
+  · Lianaei Crystal-plague (plague-named)
+  · Jangouwei Schism-thaw (ice-mourned)
+  · Xelin Cataclysm (ice-wept)
+  · Darkening (ice-mourned)
+  · Cataclysm (ice-trembled)
+  · Zhoqe Schism-thaw (ice-trembled)
+  · Avalanche (ice-wept)
+  · Collapse (thunder-counted)
+  · Chojun Cataclysm (blue-fissured)
+
+## Festivals
+  · Zhifo Gilding (mirror-still)
+  · Dedication (star-watched)
+  · Mingangma Celebration (huddle-warm)
+  · Dedication (feast-blessed)
+  · Exchange (sunward)
+  · Choxanglin Consecration (gratitude-laid)
+  · Hoa Benediction (map-marked)
+  · Nuyingwei Harvest (frost-held)
+  · Nishai Observance (hope-kindled)
+  · Convocation (map-marked)
+
+## Festival after slaying Murk Leviathan (context)
+  · Kaladin's Festival
+  · Zhanging Jubilee (star-watched)
+  · Festival Of Murk Leviathan Felled
+  · Winging Convocation (ancient)
+  · Accord (accord-bound)
+  · Kaladin's Slaying Festival
+  · Zho Convocation (beacon-shielded)
+  · I Kaladin's Slaying Festival
+  · Yunimu Kaladin's Festival
+  · Xanglong Thanksgiving (accord-kept)
+
+## Memorials
+  · Convocation (huddle-warm)
+  · Ea Revel (beacon-shielded)
+  · Xuejongshong Thanksgiving (frost-held)
+  · Observance (accord-kept)
+  · Liansha Celebration (long-thanksgiving)
+  · Benediction (light-blessed)
+  · Celebration (ice-sung)
+  · Concord (crystal-cored)
+  · Lianufa Revel (huddle-warm)
+  · Covenant (huddle-warm)
+
+## Succession crises
+  · Hayo Dawn-born (cold-grieved)
+  · Chojun Of The Elder Floe (ice-shattered)
+  · Yai Crest-line (lineage-broken)
+  · Dawn-born (cold-grieved)
+  · Shi Aurora-touched (ice-screamed)
+  · Dawn-born (cold-grieved)
+  · Of The High Tier (quartz-tested)
+  · Ingxa Of The Beacon Watch (ice-mourned)
+  · Of The Elder Floe (lineage-broken)
+  · Sun-blessed (ice-shattered)
+
+## Trade conferences
+  · Gilding (feast-blessed)
+  · Ijing Charter (sunward)
+  · Laijun Observance (ancient)
+  · Lang Jubilee (ice-sung)
+  · Jubilee (crystal-shared)
+  · Gilding (sunward)
+  · Gilding (hope-kindled)
+  · Shouulong Concord (light-blessed)
+  · Celebration (sunward)
+  · Investiture (crystal-cored)
+
+## Artifacts — weapons
+  · Helm Of Glow
+  · Youzhu Crystal Of Virtue
+  · The Qeilin Radiant Key
+  · Zhi Helm Of Eternal
+  · E's Crystal
+  · The Fouwei Ancient Scepter
+  · The Zhu Ancient Key
+  · Helm Of Ward
+  · Shu's Crown
+  · Compass Of Crest
+
+## Artifact owned by Guldan (context)
+  · Fesho Corpse Current's Chalice
+  · Ang's Gauntlet
+  · Corpse Current's Ring
+  · Meilin's Chalice
+  · Zhang's Crown
+  · Corpse Current's Helm
+  · Gauntlet Of Mirror
+  · Scepter Of Compass
+  · The Zhongja Crystalline Scepter
+  · Guldan's Mantle
+
+## Artifacts — instruments
+  · Dawnstrings Of Frost
+  · The Gilded Aurora-harp
+  · Fuu Frostflute Of Veil
+  · Chei's Frostflute
+  · The Ancient Glowhorn
+  · The Lozhang Radiant Polar-lyre
+  · Brinechimes Of Depths
+  · Brinechimes Of Oath
+  · Shai's Polar-lyre
+  · Chei's Radiant-psaltery
+
+## Instrument from Kaladin (context)
+  · Qangxou Corpse Current's Iceberggan
+  · Brinechimes Of Mirror
+  · Polar-lyre Of Haven
+  · Glowhorn Of Haven
+  · Xuejouhu Glowhorn Of Realm
+  · Corpse Current's Iceberggan
+  · The Ancient Glaciolin
+  · The Jongshahua Gilded Aurora-harp
+  · Imei Glowhorn Of Arch
+  · Brinechimes Of Radiance
+
+## Artifacts — tomes
+  · Q2-0LB4M5 (Cataclysm Shard)
+  · Ongchi Ring Of Spire
+  · D7-P9G48T (Void Beam)
+  · Qingcho's Codex
+  · The Crystalline Ring
+  · The Radiant Crown
+  · The Gilded Helm
+  · 0Y-5M9XG7X (Cataclysm Drive)
+  · N0-5PW7R (Cataclysm Spire)
+  · The Aurora-forged Tome
+
+## Artifacts — relics
+  · 2X-T58V5B (Prime Core)
+  · D4-G8K4T0M (Ultima Furnace)
+  · Xueqei's Gauntlet
+  · Compass Of Virtue
+  · Chalice Of Depths
+  · Y7-L6ZT9Y (Prime Engine)
+  · A Scepter Of Grace
+  · The Xueiqi Crystalline Amulet
+  · 9T-D0M8B (Terminus Prism)
+  · Xu's Chalice
+
+## Transports — trade
+  · Lu Pearlescent Convoy (star)
+  · Huong Trade Causeway (trade)
+  · Ong Silverthorn Convoy (trade)
+  · Ixulong Trade Causeway (seen)
+  · Trade Causeway (sun)
+  · She Stellarite Convoy (star)
+  · Humu Trade Causeway (old)
+  · Zhoufi Ethermist Convoy (old)
+  · Silverthorn Convoy (trade)
+  · Trade Causeway (frost)
+
+## Trade route North Lantern→Corpse Current (context)
+  · Trade Causeway (scar)
+  · Lianxu Driftwood Convoy (frost)
+  · Trade Causeway (star)
+  · Ongwei Echo Convoy (warm)
+  · Stellarite Convoy (light)
+  · Trade Causeway (kept)
+  · Nielong Frostecho Convoy (kept)
+  · Trade Causeway (kept)
+  · North Lantern To Corpse Current Convoy (trade)
+  · Trade Causeway (star)
+
+## Transports — battleships
+  · Mongzhiwei Plaza-shield (warm)
+  · Beacon Barge (warm)
+  · Fengmaiing Beacon Barge (old)
+  · Beacon Barge (sun)
+  · Nashang Beacon Barge (warm)
+  · Ji Bastion-shield (light)
+  · Woualong Beacon Barge (tide)
+  · Xehua Beacon Barge (warm)
+  · Banner-shield (star)
+  · Beacon Barge (sung)
+
+## Battleship guarding North Lantern (context)
+  · North Lantern's Escort (light)
+  · Perch-shield (kept)
+  · Rampart-shield (sung)
+  · Zhashelin Hollow-shield (trade)
+  · Ashei Bluff-shield (frost)
+  · Laxo Ward Against Rughak (old)
+  · Shaiyo Ward Against Rughak (trade)
+  · Ailin Apex-shield (warm)
+  · Beacon Barge (warm)
+  · Echei North Lantern's Escort (scar)
+
+## Transports — scouts
+  · Survey Runner (light)
+  · Ni Star-lantern (light)
+  · Sun-lantern (seen)
+  · Jonglo Warm-lantern (scar)
+  · Scar-lantern (sung)
+  · Survey Runner (frost)
+  · Light-lantern (trade)
+  · Cholong Survey Runner (star)
+  · Tide-lantern (seen)
+  · Waiqi Kept-lantern (star)
+
+## Scout launched by Rughak War (context)
+  · Yaihua Survey Runner (seen)
+  · Qingyu Star-lantern (light)
+  · Yinglin Survey Runner (old)
+  · Scar-lantern (trade)
+  · Rughak War's Runner (light)
+  · Oeilong Scar-lantern (old)
+  · Xueanging Rughak War's Scout (tide)
+  · Star-lantern (kept)
+  · Xaelong Rughak War's Runner (seen)
+  · Chu Survey Runner (sung)
+
+## Transports — citadels
+  · Court-hold (trade)
+  · Huddle Citadel (trade)
+  · Chu Huddle Citadel (star)
+  · Naang Outlook-hold (kept)
+  · Aiwanglin Forum-hold (trade)
+  · Huddle Citadel (light)
+  · Bridge-hold (kept)
+  · Nongshejun Huddle Citadel (sung)
+  · Ingwang Reach-hold (star)
+  · Zhexong Huddle Citadel (seen)
+
+## Conference citadel (context)
+  · Shanou North Lantern Conclave's Citadel (frost)
+  · North Lantern Conclave's Citadel (tide)
+  · North Lantern Conclave's Citadel (warm)
+  · Huddle Citadel (scar)
+  · Xachei Sun-hold (kept)
+  · Qie North Lantern Conclave's Citadel (star)
+  · Jingouwei Promenade-hold (seen)
+  · Zhonglin North Lantern Conclave's Citadel (scar)
+  · North Lantern Conclave's Citadel (kept)
+  · Huddle Citadel (trade)
+
+## Abilities — magic
+  · Frozen-crystallize (prism)
+  · Inge Freeze-enchant (dawn)
+  · Ing Pale-chill (dusk)
+  · Crystalline-glimmer (glow)
+  · Loe Ice-dwell (glow)
+  · Shai Shard-veil (stellar)
+  · Lai Drift-shimmer (glimmer)
+  · Zhoufe Ice-gleam (sun)
+  · Sleet-rime (void)
+  · Wi Freeze-freeze (aurora)
+
+## Abilities — combat
+  · The Floe Encode
+  · The Propeller Surge
+  · Mingmaiong Floe-spiral (astral)
+  · Frost-chill (stellar)
+  · La Transmute Vault
+  · Shatter-chill (crystalus)
+  · Fengu Encode Propeller
+  · Xingwei Shard-eclipse (dusk)
+  · Frozen-enthrall (frozen)
+  · Chaizhong Frost-enthrall (zenith)
+
+## Abilities — rite
+  · Stillness-pierce (frozen)
+  · Xangno Permafrost-dissolve (dusk)
+  · Pale-coalesce (rime)
+  · Rime-drift (celestis)
+  · Breath-breath (celestis)
+  · Drift-wither (shimmer)
+  · Cho Breath-dissolve (rime)
+  · Ethereal-glide (dawn)
+  · Floe-enchant (glimmer)
+  · Qingiyi Floe-enchant (glow)
+
+## Rules — laws
+  · Nou Long-dark-Marked
+  · Long-dark Decree
+  · Zhoo Clear-sky-Kept
+  · Long-dark-Marked
+  · Euhua First-light Charter
+  · Sho Clear-sky Binding
+  · Clear-sky-Held
+  · Mingouxu Stillness Code
+  · Zhango First-light Accord
+  · Yuno Frost-Sealed
+
+## Rules — ideology
+  · Silence Mandate
+  · Patience Covenant
+  · Longlong Return-edict
+  · Stillness-decree
+  · Clarity-binding
+  · Ni Silence Covenant
+  · Return Accord
+  · Ingfeilong Silence-mandate
+  · Qingshai Clarity-accord
+  · Clarity-binding
+
+======================================================================
+NIGHTSHELF
+======================================================================
+
+## Penguins — defaults
+  · Blizzard Lua☽
+  · Silvmiaum☽
+  · Co☽
+  · Si~
+  · Caemaa☽
+  · Ervae☽
+  · Teneomae☽
+  · Silvanum~ Society~
+  · Aes☽ Clique~
+  · Cia~
+
+## Penguins — heroes
+  · Umbra-princeps Tocus☽ The Resolute
+  · Fissure-sealer, Ir☽
+  · ☽'raermois The Watchful, Augur
+  · ☽'ci Glow-bringer, Praetor
+  · Praefectus ☽'nae Glow-bringer
+  · Roum☽ Shadow-bane, Praefectus
+  · Tianes☽ The Luminous, Dominus
+  · ☽'rea The Watchful, Augur
+  · Magister Silvicviaia☽ The Steadfast
+  · Consul ☽'cilmitae The Resolute
+
+## Penguins — wardens
+  · Emsium☽ Lux In Tenebris
+  · ☽'miavlea Fissure-sealer
+  · Meae☽ Umbra-princeps
+  · ☽'ucrelia The Steadfast, Praetor
+  · Scriba Cit☽ Void-banisher
+  · ☽'tiaerus The Unbroken, Augur
+  · ☽'revaecus Shadow-bane
+  · Night-defier, Vemucum☽
+  · ☽'vevemum Consul
+  · Vigil Ulus☽ The Resolute
+
+## Penguins — witnesses
+  · Magister ☽'aevcetius Night-defier
+  · Arbiter Caelaer☽ Fissure-sealer
+  · Augur ☽'silvarius Depth-walker
+  · Void-banisher, ☽'ucraum
+  · Praefectus ☽'vuius The Illuminated
+  · ☽'noctcisois Veil-render, Domina
+  · ☽'nina Void-banisher, Praefectus
+  · ☽'umbrtocara Augur
+  · Vox Silentii Sirus☽ Void-banisher
+  · ☽'avae Praetor
+
+## Penguins — mayors
+  · Veil-sovereign La☽-whisper
+  · Consul ☽'lauc Nebul
+  · Tenebra-premier Rius☽-fawn
+  · Tenebra-premier Lucvoia☽
+  · Vesper-king Cisvol☽
+  · Consul ☽'asvaeia Spect
+  · Noctarch ☽'saia-fissure
+  · Veil-sovereign Teneosis☽
+  · Noctarch Noctlaetcaa☽
+  · Magister ☽'taemno Phantasm
+
+## Penguins — merchants
+  · Ruae☽ Vox Silentii
+  · Negotiator Ti☽-nebul
+  · ☽'lilaus Domina
+  · Penumbra-factor Taetcaenia☽
+  · ☽'tu
+  · ☽'cunuvus Lector
+  · Crypt-vendor Sanctcituia☽
+  · ☽'le Lector
+  · Fissure-dealer ☽'caelae
+  · Nimromia☽ Magister
+
+## Penguins — brokers
+  · Masaenia☽
+  · Veil-factor ☽'tevis-phantasm
+  · Penumbra-factor ☽'soae
+  · Night-assessor Ciis☽-fusc
+  · Lucnaemlaeis☽
+  · Teneselus☽ Arbiter
+  · Shadow-broker Sea☽
+  · Night-assessor Vicum☽-vesper
+  · Leom☽ Praetor
+  · Night-assessor ☽'lia-oss
+
+## Penguins — outlaws
+  · Shadow-sworn Levum☽
+  · ☽'cucmaae The Silent
+  · ☽'te-silvlisuria~
+  · Sanctsesoius☽-muviae~
+  · ☽'taelae-molucum~
+  · The Silent Ciaum☽
+  · ☽'rot Obscuria~
+  · ☽'vire-tomia~
+  · Nucmaeis☽-temes~
+  · ☽'vutiac-ruviana~
+
+## Penguins — exiles
+  · ☽'riaia-suis~
+  · ☽'esnecum Crypt-keeper
+  · Tivecae☽ The Nameless
+  · Glow-drinker ☽'cinsor
+  · Shadow-sworn Lucleus☽
+  · Siae☽-tesvuvum~
+  · Void-touched ☽'riain
+  · The Forgotten ☽'caem
+  · Em☽-lo~
+  · Riaiala☽-liia~
+
+## Hero — Kaladin hunting monster (context)
+  · The Unbroken, Kaladin
+  · Kaladin Retriever Of Dreaming Tooth
+  · Nox-dominus Kaladin The Unbroken
+  · Kaladin Glow-bringer
+  · Kaladin Consul
+  · Scriba Kaladin The Steadfast
+  · Lux In Tenebris, Kaladin
+  · Kaladin Dominus
+  · Kaladin Dreaming Tooth's Warden
+  · Kaladin Depth-walker
+
+## Settlements — rookery
+  · Nox Rookery☽
+  · Fissure∴hatchery
+  · Night Brood-vault☽
+  · Silv Rookery☽
+  · ☽'tenebr Rookery
+  · Smelt∴hatchery
+  · ☽'aeter Rookery
+  · Cael Rookery☽
+  · Spect Rookery☽
+  · Moth∴hatchery
+
+## Settlements — colony
+  · Scathe Quarter☽
+  · Velum∴colony
+  · ☽'glow Quarter
+  · Ritus∴ward
+  · ☽'scowl Quarter
+  · Silv∴colony
+  · Velum∴colony
+  · Spect∴colony
+  · Whelm Quarter☽
+  · Mandatum∴ward
+
+## Settlements — holdfast
+  · Mandatum∴lockhold
+  · Veil Holdfast☽
+  · Iudicium∴lockhold
+  · Fissure Holdfast☽
+  · Thews∴deadbolt
+  · Foedus∴lockhold
+  · Veil Holdfast☽
+  · ☽'fissure' Holdfast
+  · Shend∴deadbolt
+  · Nox Holdfast☽
+
+## Settlements — harbor
+  · Veil Mooring☽
+  · ☽'frostveil Black-dock
+  · Shawl∴harbor
+  · Scathe Mooring☽
+  · Firth∴harbor
+  · ☽'frostbone Black-dock
+  · Shale Mooring☽
+  · Loam Mooring☽
+  · ☽'whisperstone Black-dock
+  · Slew Mooring☽
+
+## Settlements — sanctuary
+  · Fens Refuge☽
+  · Fissure∴mercy-vault
+  · Smelt Refuge☽
+  · Flay Refuge☽
+  · Nox∴mercy-vault
+  · Depth∴mercy-vault
+  · Shadow∴mercy-vault
+  · Flay Refuge☽
+  · Shadow∴mercy-vault
+  · ☽'scathe Refuge
+
+## Settlements — reefhold
+  · Iudicium∴brine-lock
+  · Smelt Reef-vault☽
+  · Pactum∴brine-lock
+  · ☽'thews Reef-vault
+  · Shadow∴reefhold
+  · Whisper Reef-vault☽
+  · Deal Reef-vault☽
+  · Secret Reef-vault☽
+  · Nox∴reefhold
+  · ☽'smite Reef-vault
+
+## Regions — depths
+  · Aeter∴third-depth
+  · ☽'weal Underdeep
+  · Glow Underdeep☽
+  · ☽'flense Underdeep
+  · Umbra∴third-depth
+  · Spect∴third-depth
+  · Umbra∴third-depth
+  · Rite∴descent
+  · Spect∴third-depth
+  · Accord∴descent
+
+## Regions — shelf
+  · ☽'sheen Shelf
+  · Accord∴gallery
+  · Fissure Shelf☽
+  · ☽'shade Shelf
+  · ☽'glow Shelf
+  · Nox∴ledge
+  · Seam Shelf☽
+  · ☽'night Shelf
+  · Murmur∴gallery
+  · ☽'swoon Shelf
+
+## Regions — reach
+  · ☽'shade Passage
+  · ☽'secret Passage
+  · ☽'whisper Passage
+  · ☽'mist Passage
+  · Nox∴corridor
+  · Nox∴corridor
+  · Glow∴corridor
+  · Silv Reach☽
+  · ☽'deal Passage
+  · Nox∴corridor
+
+## Regions — sea
+  · ☽'loam Blackwater
+  · Depth∴salt-dark
+  · Shend Blackwater☽
+  · Seam Blackwater☽
+  · Shadow∴salt-dark
+  · Shawl Blackwater☽
+  · Veil∴salt-dark
+  · ☽'scar Blackwater
+  · Ineffabile∴undersea
+  · ☽'scowl Blackwater
+
+## Regions — face
+  · Flense Veil☽
+  · ☽'flail Mask
+  · Absconditum∴face
+  · Glow Veil☽
+  · Umbra∴front
+  · Arcanum∴face
+  · ☽'smite Mask
+  · Umbra∴front
+  · Umbra∴front
+  · Umbra∴front
+
+## Regions — scar
+  · Fissure∴wound
+  · ☽'sheen Breach
+  · Secretum∴scar
+  · ☽'flense Breach
+  · Flail Scar~
+  · Weal Scar~
+  · Depth∴wound
+  · Whisper Scar~
+  · ☽'deal Breach
+  · Umbra∴wound
+
+## Points of interest — vents
+  · Crypt Vent☽
+  · Mandatum∴vent
+  · Pactum∴vent
+  · Crypt Vent☽
+  · ☽'shadow Fire-vent
+  · Veil Vent☽
+  · Foedus∴vent
+  · ☽'glow Fire-vent
+  · Glow Vent☽
+  · ☽'umbra Fire-vent
+
+## Points of interest — peaks
+  · Glow∴ridge
+  · Swoon Spire☽
+  · ☽'secret Tooth
+  · Umbra∴spire
+  · Secret Spire☽
+  · Flay Spire☽
+  · Flux∴spire
+  · Noctis∴spire
+  · ☽'swath Tooth
+  · ☽'thaw Tooth
+
+## Points of interest — bloom
+  · Veil∴rot-bloom
+  · Thaw Bloom☽
+  · ☽'hush Spore
+  · ☽'fens Spore
+  · Weal Bloom☽
+  · ☽'scar Spore
+  · ☽'fane Spore
+  · Arcanum∴bloom
+  · Umbra∴rot-bloom
+  · Depth∴rot-bloom
+
+## Points of interest — shoal
+  · Mort∴low-water
+  · Spect∴low-water
+  · Dwell Shoal☽
+  · Fissure∴crossing
+  · Noctis∴low-water
+  · Swoon Shoal☽
+  · Mort∴low-water
+  · Flux∴low-water
+  · ☽'loam Shoal
+  · Profund∴low-water
+
+## Factions
+  · Syndicate Of The Shade~
+  · Quorum∴sheen
+  · Cabal∴wane
+  · Crew∴shroud
+  · ☽'tenebr' Cell
+  · Covenant∴whelm
+  · Thaw' Crew☽
+  · Garrison Of The Shale~
+  · Scathe' Sect☽
+
+## Monsters — leviathans
+  · Ineffabile∴undertow
+  · Glow Leviathan☽
+  · Nox∴deep-hunger
+  · ☽'umbra Leviathan
+  · ☽'shadow Leviathan
+  · ☽'fissure Leviathan
+  · Secretum∴undertow
+  · Shadow Leviathan☽
+  · Depth Leviathan☽
+  · Umbra Leviathan☽
+
+## Monsters — beasts
+  · Foedus∴maw
+  · Mandatum∴maw
+  · Mandatum∴maw
+  · Fissure∴threshold-hunger
+  · Pactum∴maw
+  · Pactum∴maw
+  · Flail Beast☽
+  · Nox∴threshold-hunger
+  · ☽'swoon Cage-beast
+  · ☽'thrall Cage-beast
+
+## Monsters — wraiths
+  · Swale∴unspoken
+  · Imago Wraith~
+  · ☽'tenebr Name-wraith
+  · ☽'cael Name-wraith
+  · Shawl∴unspoken
+  · Nomen Wraith~
+  · Sleek∴unspoken
+  · ☽'profund Name-wraith
+  · Memoria∴wraith
+  · Nomen∴wraith
+
+## Monsters — revenants
+  · Echo∴returned
+  · ☽'flux Debt-revenant
+  · Umbra∴returned
+  · Signum∴returned
+  · Memoria Revenant~
+  · Nomen∴returned
+  · ☽'nox Debt-revenant
+  · Imago∴returned
+  · ☽'velum Debt-revenant
+  · ☽'cael Debt-revenant
+
+## Wars
+  · Nox∴interregnum
+  · Atratus∴silentium
+  · ☽'obscura Furvor
+  · Sine lumine Interregnum☽
+  · Caligo∴obscurum
+  · ☽'velum Hostilitas
+  · Tenebra∴furvor
+  · ☽'obscura Schisma velatum
+  · ☽'profundum Schisma velatum
+  · ☽'caenum Interregnum
+
+## Wars vs Rughak (context)
+  · Rughak's Route War
+  · Inter tenebras∴schisma Velatum
+  · Rughak's War
+  · Reticum∴obscurum
+  · Umbra Caligo☽
+  · Rughak Against North Lantern
+  · Caenum Sectio☽
+  · Rughak's War
+  · Rughak's War
+  · Rughak's Route War
+
+## Disasters
+  · ☽'fundis Eruptio
+  · ☽'plumbis Fractus
+  · Fundis∴ruina Magna
+  · Abyss∴exitium
+  · Fundis Tenebrae mortis☽
+  · ☽'profunditas Ruina magna
+  · Tenebr∴ruptio
+  · Subaquaneus Ruptio☽
+  · Profund Eruptio☽
+  · Byssus∴eruptio
+
+## Festivals
+  · Glacial∴canticle
+  · Shrift∴liturg
+  · Comet∴liturg
+  · Sleek∴consecrat
+  · ☽'night Canticle
+  · Flense∴canticle
+  · ☽'night Vigil
+  · Whisper∴sanctum
+  · Mist∴officium
+  · Veil∴liturg
+
+## Festival after slaying Murk Leviathan (context)
+  · Shadow Consecrat☽
+  · Shroud∴officium
+  · Rite Of Murk Leviathan Felled
+  · Kaladin's Rite
+  · Kaladin's Rite
+  · Wane∴canticle
+  · Kaladin's Rite
+  · Kaladin's Slaying Rite
+  · Shimmer∴officium
+  · Kaladin's Slaying Rite
+
+## Memorials
+  · ☽'night Officium
+  · Glow Sanctum☽
+  · Shade∴liturg
+  · ☽'seam Canticle
+  · Prism∴canticle
+  · Star∴sanctum
+  · Slew∴canticle
+  · Shimmer∴vigil
+  · Swoon Vigil☽
+  · ☽'weal Liturg
+
+## Artifacts — weapons
+  · Hush-locked Whisper-blade☽
+  · Sealed∴grimoire
+  · ☽'acis' Skull
+  · Doorless∴mask
+  · Silence-fed∴shroud
+  · Marrow-lit∴whisper-blade
+  · ☽'teia' Dagger
+  · Burn-marked Shroud☽
+  · Silence-fed Crypt-seal☽
+  · ☽'niasra' Lantern
+
+## Artifact owned by Guldan (context)
+  · Doorless∴shroud
+  · Veiled∴chain
+  · ☽'alvialum' Grimoire
+  · ☽'lenia' Shadow-glass
+  · Underlit Veil☽
+  · Guldan's Grimoire
+  · ☽'neclorius' Chain
+  · Sealed Shroud☽
+  · Smoke-held∴veil
+  · Guldan's Dagger
+
+## Artifacts — instruments
+  · ☽'vaemir' Shadowpipes
+  · ☽'otum' Shadowpipes
+  · ☽'cilsaae' Hollowdrum
+  · Shaded Gloomstrings☽
+  · ☽'utus' Hollowdrum
+  · Flayed Bone-flute☽
+  · Scarred Murkhorn☽
+  · ☽'ala' Wraithfiddle
+  · ☽'caelum' Nightfall-psaltery
+  · ☽'laeria' Wraithfiddle
+
+## Instrument from Kaladin (context)
+  · Kaladin's Dusklute
+  · Guldan's Nightfall-psaltery
+  · Kaladin's Twilight-bells
+  · Guldan's Hollowdrum
+  · Kaladin's Shadowpipes
+  · Kaladin's Nightfall-psaltery
+  · Sheened Whisper-organ☽
+  · Sheened Cryptchimes☽
+  · Shrouded Nightfall-psaltery☽
+  · ☽'tocnius' Whisper-organ
+
+## Transports — trade
+  · Spect∴ledger-keel
+  · Cael∴ledger-keel
+  · Aeter∴ledger-keel
+  · Smalt∴route-barge
+  · ☽'smelt Black-courier
+  · Void∴ledger-keel
+  · Firth∴route-barge
+  · Scar∴route-barge
+  · ☽'fane Black-courier
+  · Shrift∴route-barge
+
+## Trade route (context)
+  · ☽'fell Black-courier
+  · Corpse Current's Sealed Courier
+  · Obscur∴ledger-keel
+  · ☽'fissure Black-courier
+  · Weft∴route-barge
+  · North Lantern ∴ledger-route∴ Corpse Current
+  · ☽'weft Black-courier
+  · North Lantern ∴ledger-route∴ Corpse Current
+  · Night Courier☽
+  · Smite Courier☽
+
+## Transports — battleships
+  · Scar∴black-bastion
+  · Foedus∴hush-guard
+  · ☽'nox' Watch-keel
+  · Iudicium∴hush-guard
+  · ☽'nox' Watch-keel
+  · Moth∴black-bastion
+  · Shale Watch-keel☽
+  · Iudicium∴hush-guard
+  · Lex∴hush-guard
+  · Moth Watch-keel☽
+
+## Battleship guarding North Lantern (context)
+  · North Lantern's Escort
+  · North Lantern's Escort
+  · Ward Against Rughak
+  · ☽'depth' Watch-keel
+  · Ritus∴hush-guard
+  · ☽'depth' Watch-keel
+  · Weal Watch-keel☽
+  · Ward Against Rughak
+  · Veil∴black-bastion
+  · ☽'shadow' Watch-keel
+
+## Transports — scouts
+  · Reliquiae∴signal-skiff
+  · Silv∴unlisted
+  · Umbra∴unlisted
+  · ☽'scathe Runner
+  · Signum∴signal-skiff
+  · Shadow Skiff☽
+  · ☽'sheen Runner
+  · Weft Skiff☽
+  · Smalt Skiff☽
+  · Noctis∴unlisted
+
+## Transports — citadels
+  · Flail Citadel☽
+  · Scar Citadel☽
+  · Shawl Citadel☽
+  · ☽'umbra Tow-vault
+  · Ritus∴moving-vault
+  · Fissure∴citadel
+  · Ritus∴moving-vault
+  · Fissure∴citadel
+  · Shadow Citadel☽
+  · Glow∴citadel
+
+## Abilities — magic
+  · Shard Rime☽
+  · Veil∴shimmer
+  · Eclipse∴spiral
+  · Crystalline Numb☽
+  · Shrift Dwell~
+  · Smalt Whisper~
+  · Thaw Enthrall~
+  · Sheen Slumber~
+  · Scowl∴veil
+  · Moon∴drift
+
+## Abilities — rite
+  · Thews Dwell~
+  · Frostbite Gleam☽
+  · Shend∴glide
+  · Shrift Wither~
+  · ☽'apex Crystal
+  · Star∴spiral
+  · Mist Wither~
+  · Ice∴shimmer
+  · Glow∴glide
+  · Hush Gleam~
+
+## Rules — laws
+  · Pactum Vinculum☽
+  · ☽'iudicium Jugum
+  · ☽'votum Vinculum
+  · Decretum~
+  · ☽'codex Silentium
+  · ☽'pactum Decretum
+  · Votum Vinculum☽
+  · Votum∴edictum
+  · ☽'mandatum Mandatum
+  · ☽'codex Nexum
+
+## Rules — ideology
+  · Ritus∴mysterium
+  · Iudicium∴nihil
+  · ☽'mandatum Profundum
+  · Way∴smalt
+  · Ritus Veritas☽
+  · Mandatum∴profundum
+  · Way∴scowl
+  · ☽'codex Absconditum
+  · Way∴smelt
+  · ☽'ritus Absconditum
+
+======================================================================
+WAKE-SINGERS
+======================================================================
+
+## Orca — defaults
+  · Rrikhr Brundgnurl Zrag
+  · Krungk Drazskul
+  · Kthizkkhzund Zragsnap Thung
+  · Rrugh Thrakkrath
+  · Garr Zkarnkzul
+  · Khrthirrd Zundghrund
+  · Drndungung Zundkzul
+  · Rthikk Brakzrag
+  · Khrakthund Vrundzrag
+  · Girzkzund Kzulkhrak
+
+## Orca — heroes
+  · Dadthung Zkathbrund Thrang
+  · Ringung Grulkhrund Gath
+  · Thrndik Khrrakdrrak Draz
+  · Khukkhrak Brundgrrul Brund
+  · Ghirgthund Rrakgnurl Thrak
+  · Kkridkhrak Gnarlkgrul
+  · Gidzdrrak Drazzkrund
+  · Dukhrgath Brakgrend
+  · Kad Kriftzkarn
+  · Gkuthrath Thrangzkrund
+
+## Orca — elders
+  · Gizgath Knuzgrend Rrn
+  · Kukak Gnashthrung Ghruk
+  · Gradung Kriftgnark
+  · Gthan Gnarkgnurl Brund
+  · Nukhak Ghrundrrak Krift
+  · Zur Zundkhrund Thung
+  · Rrugrdrrak Thranggruk
+  · Gruzkz Ghundrndak Khrund
+  · Rirrr Zraggrend Drrak
+  · Ngiththrak Skarnthng
+
+## Orca — matriarchs
+  · Rrikhkr Vrundkhrak
+  · Ngazkkak Skulzkath Kran
+  · Krndar Threkrrend Khral
+  · Zkarnd Rendzrag Grath
+  · Rruzthrak Thngkrath Grul
+  · Dakrgath Knarrzkath
+  · Thizak Snapzkrund Thrang
+  · Gurrggath Drrakgruth Gath
+  · Nizkthrak Zrakthrung
+  · Krkhrukrngthrak Gnarlkkrul
+
+## Orca — bulls
+  · Rndurghthrak Khrakthrang Zrag
+  · Rukgath Ghundzkarn Rrn
+  · Thudk Gnarlkkrath
+  · Nunggh Grundbrund
+  · Grngikh Drrakgnash Drrak
+  · Ghirndzund Gruldrun Skarn
+  · Rukh Mawbrund
+  · Rizk Thrangbrak
+  · Grzukhrak Krathsnap Zrag
+  · Khirrak Vrundgruk
+
+## Orca — mayors
+  · Zkikh Khralzkath Grund
+  · Zkuthak Kzulgrrul Krath
+  · Rthugzund Mawbrund
+  · Narkr Thungghrund
+  · Rragrgath Thrumrend Brak
+  · Rzan Brakthrak
+  · Krazkthkhrak Grungkrul
+  · Ngakrrrung Threkgrrul Khral
+  · Dizkthund Knuzthng Thrak
+  · Kakzund Knarrskarn
+
+## Orca — merchants
+  · Zkarndkhrak Threkrrend Grul
+  · Kkung Rendzrag
+  · Khridak Zkarngath Drrak
+  · Ngkurndgath Grendknuz Drrak
+  · Ghunggath Zkarnthrek Gnurl
+  · Khaz Khrakrrak
+  · Nkangthund Rndakghund Zrag
+  · Rrughkrung Brakrrak
+  · Ngakhrthund Vrundthrek
+  · Rrughrdrrak Krushghund
+
+## Orca — outlaws
+  · Nguzkkhrak Thrazdrag
+  · Rkrugrthrak Zundrskul
+  · Rrgringthrak Vrakskul
+  · Thiz Zrakthrang
+  · Rrughzund Brakkhrask
+  · Zkragrthrak Krazkgarn
+  · Rrghaghk Drungrrend
+  · Kuzththrak Duskthrek
+  · Khagrghrath Rndakbrask
+  · Khrrukh Skarrrrak
+
+## Orca — scouts
+  · Khith Zundzkrund
+  · Ghikhthund Krushthrek Zrag
+  · Ngurnd Gruthkhrak Drak
+  · Rrrirndgrak Grrulghund
+  · Zkuthrath Knuzrndak Kran
+  · Dizkzund Grendbrund Gnurl
+  · Ngingung Gruthzrag Krath
+  · Kngigrngrath Rendskul Khrund
+  · Kgrundung Grrulthrung Gnurl
+  · Khathkhrzund Zrakbrund
+
+## Hero — Kaladin hunting monster (context)
+  · Kaladin Dreaming Tooth's Hunter
+  · Kaladin Thrangthrek Krath
+  · Kaladin Dreaming Tooth's Monsterhunter
+  · Kaladin Murk Leviathan's Thiefbreaker
+  · Kaladin Drrakzkath Ngath
+  · Kaladin Gruthrrak Thrak
+  · Kaladin Murk Leviathan's Thiefbreaker
+  · Kaladin Murk Leviathan's Thiefbreaker
+  · Kaladin Skulbrak Brund
+  · Kaladin Rendgruk Brak
+
+## Settlements — rookery
+  · Thundrookery
+  · Kriftnest
+  · Thrangnest
+  · Knarrnest
+  · Grathnest
+  · Kzulrookery
+  · Killkzulnest
+  · Gnarkrookery
+  · Drrakrookery
+  · Lurkerrookery
+
+## Settlements — colony
+  · Murkcolony
+  · Knuzquarter
+  · Teargrund
+  · Thungcolony
+  · Bloodbrak
+  · Ambushthrak
+  · Threkquarter
+  · Ghrukcolony
+  · Rendcolony
+  · Wakecolony
+
+## Settlements — holdfast
+  · Flenseholdfast
+  · Krulmaw Wall
+  · Fangzkrund Wall
+  · Brakbrak Wall
+  · Zrakholdfast
+  · Garnzund Wall
+  · Zrakholdfast
+  · Wakezund Wall
+  · Thungholdfast
+  · Drunthung Wall
+
+## Settlements — harbor
+  · Drrakharbor
+  · Jawharbor
+  · Rrakharbor
+  · Kzulharbor
+  · Ambushharbor
+  · Khrakharbor
+  · Grathharbor
+  · Mawharbor
+  · Wakebay
+  · Crushharbor
+
+## Settlements — sanctuary
+  · Skarrgrulrefuge
+  · Dusksanctuary
+  · Vraksanctuary
+  · Khrulsanctuary
+  · Darkshelter
+  · Vrundshelter
+  · Gnarlkshelter
+  · Dusksanctuary
+  · Driftshelter
+  · Drunggathrefuge
+
+## Settlements — reefhold
+  · Grungreefhold
+  · Rippergrathreef
+  · Shadowgrungreef
+  · Skulreefhold
+  · Hungerreef
+  · Coldgrundreef
+  · Voidreef
+  · Khrakreefhold
+  · Ripperreef
+  · Driftreef
+
+## Regions — depths
+  · Ripperdepth
+  · Gulletbrunddeep
+  · Zunddepth
+  · Hullbreakerdepth
+  · Tuskzkrunddeep
+  · Wakecrusherdepth
+  · Grunddepth
+  · Hullbreakerdepth
+  · Reef-shadowdepth
+  · Oldblooddepth
+
+## Regions — shelf
+  · Zundshelf
+  · Jawgrath
+  · Drazshelf
+  · Knarrshelf
+  · Mawthung
+  · Knifeshelf
+  · Ghundshelf
+  · Skulshelf
+  · Driftshelf
+  · Bonekrift
+
+## Regions — reach
+  · Flensethrekrange
+  · Corpsereach
+  · Deathreach
+  · Grathreach
+  · Thrakreach
+  · Tearknuzrange
+  · Thrakreach
+  · Zkathgrund
+  · Grundreach
+  · Killreach
+
+## Regions — sea
+  · Braksea
+  · Kriftsea
+  · Krathbloodsea
+  · Grundsea
+  · Driftsea
+  · Gnarlksea
+  · Shadowsea
+  · Hungersea
+  · Vrundsea
+  · Ghruksea
+
+## Regions — face
+  · Abyssface
+  · Bloodface
+  · Thngiceface
+  · Coldface
+  · Khrundface
+  · Grundface
+  · Hungerrrendface
+  · Shadowface
+  · Kzundface
+  · Knarrface
+
+## Regions — scar
+  · Rendscar
+  · Deepscar
+  · Zkathscar
+  · Knifescar
+  · Ripperscar
+  · Zrakwound
+  · Kzundwound
+  · Zkathscar
+  · Hungergarnbreach
+  · Thungwound
+
+## Points of interest — vents
+  · Garnfirevent
+  · Dragfirevent
+  · Brakfirevent
+  · Gathkhrrakvent
+  · Brakvent
+  · Grathvent
+  · Thngfirevent
+  · Snapfirevent
+  · Zundvent
+  · Kzulgruthvent
+
+## Points of interest — peaks
+  · Fangpeak
+  · Ghrukpeak
+  · Driftpeak
+  · Knarrpeak
+  · Thundicepeak
+  · Killzundcrag
+  · Gorepeak
+  · Gulletskarncrag
+  · Driftpeak
+  · Zragicepeak
+
+## Points of interest — bloom
+  · Ghrukredbloom
+  · Zragbloom
+  · Zundredbloom
+  · Deathknuzspore
+  · Jawbloom
+  · Killbloom
+  · Kzundredbloom
+  · Wakedrrakspore
+  · Rrakbloom
+  · Killbloom
+
+## Points of interest — shoal
+  · Grukdeathshoal
+  · Knifecrossing
+  · Bloodcrossing
+  · Thungshoal
+  · Khrakdeathshoal
+  · Grukdeathshoal
+  · Thrungdeathshoal
+  · Blackshoal
+  · Deathcrossing
+  · Scarcrossing
+
+## Factions
+  · Drrakkhrund Kin
+  · Ghirkhrak
+  · Rndthikrung
+  · Ngakhzkzkikhrthund
+  · Kzundgath Hunters
+  · Zukhgghak
+  · Ghirndzunrath
+  · Thrakthrak Kin
+
+## Faction by region (context)
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+  · Corpse Current
+
+## Monsters — leviathans
+  · Thrungbrak Blackthroat
+  · Zundkhrak Blackthroat
+  · Zragkhrak Drowndeep
+  · Kagrdrrak Kriftgulletdepth
+  · Thundzkarn Redgullet
+  · Gaththng Wakecrusher
+  · Rirthung Gnarkthrang Corpseheart
+  · Zundgrrul Corpseheart
+  · Zrakreef-shadow
+  · Ghrukwakecrusher
+
+## Monsters — beasts
+  · Khrundkzul Bonewake
+  · Ghrundbrund Brinejaw
+  · Khrundghund Coldtooth
+  · Ghgukhngkhrak Khrundwakebrute
+  · Thrangkillscar
+  · Khrakgruk Tidetooth
+  · Grrndungrath Thrakghund Blackfin
+  · Rrikrthund Knarrbrinejaw
+  · Mawthawbeast
+  · Grundbonewake
+
+## Monsters — wraiths
+  · Rendechohunger
+  · Rndurrthund Krushhuntspirit
+  · Gudrath Brakgnark Tidewhisper
+  · Zag Skarnzrag Graveecho
+  · Drazgnark Salt-shade
+  · Grgighzund Khrakhuntmurmur
+  · Kagr Vrundskul Cold-throat
+  · Thungkzul Coldwhisper
+  · Thrakcoldwhisper
+  · Kghuzn Gnarlkkhrak Crest-ghost
+
+## Monsters — revenants
+  · Grarrzthund Khrulthawborn
+  · Krundmawreturned
+  · Thruskcold-returner
+  · Ghrndikr Thrangthrung Echo-back
+  · Gruskcorpsewake
+  · Rrngukrngzund Vrakbonepilgrim
+  · Braskmawreturned
+  · Khuzrrthrak Khrakkzul Frostbone
+  · Kuggak Grusksaltreturn
+  · Rakhrung Skarrkill-rememberer
+
+## Wars
+  · Rndzkakthrak Blood War Blood
+  · Salt-tide Snap Doom
+  · Rringzund Tide End
+  · Rirnd Bone Boil Fall
+  · Tooth Carve Kill
+  · Blood Rise
+  · Tooth End Doom
+  · Ngagr Blood Kill Tide
+  · Khakhrdrrak Marrow Doom
+  · Kurrgath Tide Strike Death
+
+## Wars vs North Lantern (context)
+  · Garrz Rughak's Route War
+  · Salt-tide Kill
+  · Rughak Against North Lantern
+  · Zkzkigr Rughak Against North Lantern
+  · Reef Rite Kill
+  · Rughak's Carve
+  · Gik Rughak's Boil
+  · Wave Carve Tide
+  · Rndigrrzund Rughak's Boil
+  · Grak North Lantern's Blood
+
+## Disasters
+  · Ngakhr Vent Storm
+  · Gridung Tide Fall
+  · Tide Quake Storm
+  · Khrrirnd Crush Death
+  · Kran Vent Quake Tide
+  · Depth Ruin Kill
+  · Skin Rise
+  · Zkikhr Current Tide
+  · Gharrgh Depth Death
+  · Krirr Bone Crash Fall
+
+## Festivals
+  · Gkhunung Skul Blood Feast Rise
+  · Zund Bone Day
+  · Rndugrg Grul Rend Night Doom
+  · Gnark Slaughter Moon
+  · Thrung Gore Tide
+  · Rrak Hunt Rite
+  · Threk Bone Day
+  · Gizkhak Brund Blood Feast
+  · Zungkzund Threk Hunt Rite
+  · Gath Bone Day
+
+## Festival after slaying Murk Leviathan (context)
+  · Murk Leviathan Fallen Feast
+  · Ghkugrath Kaladin's Rend Night
+  · Kaladin's Gore Tide
+  · Zkrund Death Dance Ruin
+  · Kaladin's Slaying Feast
+  · Kzul Death Dance
+  · Kaladin's Slaying Feast
+  · Kaladin's Gore Tide
+  · Kaladin's Blood Feast
+  · Khrrrikh Kaladin's Hunt Rite
+
+## Plagues
+  · Reef-snap Blood
+  · Wave Death
+  · Thrrigdrrak Tide Quake Rise
+  · Zkakhrthrak Tide Fall
+  · Kurnd Current Doom
+  · Thagr Wave Storm Tide
+  · Krath Pressure Ruin
+  · Khrarrth Tide Kill
+  · Crush Sink Fall
+  · Krar Black-lung Rise
+
+## Artifacts — weapons
+  · Snapzrak Bone
+  · Thrangkrath Claw
+  · Krathkhrundwave-anvil
+  · Mawkzul Claw
+  · Gnarkkhrakhunter Prize
+  · Zragdrundeathmark
+  · Rrakkrush Tooth
+  · Kriftgath Claw
+  · Grundzkrund Claw
+  · Zundzkarn Tooth
+
+## Artifact owned by Guldan (context)
+  · Guldan's Wakeflag
+  · Corpse Current's Tideslab
+  · Gnurlzund Bone
+  · Gnarlkdrrak Claw
+  · Gnarkkrul Tooth
+  · Guldan's Wave-anvil
+  · Grungskul Claw
+  · Kzulrndak Tooth
+  · Corpse Current's Bone
+  · Zkarnbrak Bone
+
+## Artifacts — instruments
+  · Knuzthng Drum
+  · Skulgruth Drum
+  · Gnarkdrun Drum
+  · Gnashskarnwake-drum
+  · Ghrukghund Horn
+  · Kzundskul Horn
+  · Thrangbrundecho-bell
+  · Grenddrrakmarrowdrum
+  · Mawkrath Horn
+  · Grukrrend Drum
+
+## Instrument from Kaladin (context)
+  · Guldan's Warhowl
+  · Gnurlkrathtide-pipe
+  · Guldan's Horn
+  · Gnarlkrrak Horn
+  · Khrakgruth Drum
+  · Zundthrang Drum
+  · Thrakmatrkillbell
+  · Zundkhrak Horn
+  · Gnarkgrend Drum
+  · Rrenddrraksurfdrum
+
+## Transports — trade
+  · Thundrrak Thrang-grul-tidefreighter
+  · Nirrdrrak Zrak-brine-cart
+  · Rrgighg Zrak-saltcarrier
+  · Brak-tidefreighter
+  · Krakhrr Ghrund-skul-bartertow
+  · Khrakhr Thng-drrak-belltow
+  · Dthingkhrak Brak-threk-cargoback
+  · Draz-tradeback
+  · Ngthak Maw-conveyhull
+  · Gthazk Maw-routekeel
+
+## Trade route (context)
+  · Rghaghgr North Lantern To Corpse Current Carrier
+  · North Lantern To Corpse Current Carrier
+  · North Lantern To Corpse Current Carrier
+  · North Lantern To Corpse Current Carrier
+  · Grung-pressurefreight
+  · North Lantern To Corpse Current Carrier
+  · North Lantern To Corpse Current Carrier
+  · Nrndugr North Lantern To Corpse Current Carrier
+  · Grakr North Lantern To Corpse Current Carrier
+  · North Lantern To Corpse Current Carrier
+
+## Transports — battleships
+  · Dghughung Kzund-carverkeel
+  · Zkarn-zkrund-tidecrush
+  · Krugthrak Brak-zkrund-spinekeel
+  · Khkhrizk Grung-mawhull
+  · Khuk Thung-carverkeel
+  · Khrund-carverkeel
+  · Gnash-thrung-bonebreaker
+  · Grrul-rrak-blackkeel
+  · Gnash-krath-skullhull
+  · Zknazrath Thrang-crackship
+
+## Battleship vs Rughak (context)
+  · Zkkhunzund Thrak-crackship
+  · Ward Against Rughak
+  · Ngikgath Rughak's Skullhull
+  · North Lantern's Escort
+  · Thrang-skul-skullhull
+  · Rughak's Carverkeel
+  · Khiz North Lantern's Escort
+  · Khrthangdrrak Rughak's Tidecrush
+  · Rughak's Mawhull
+  · Krush-skul-pressureram
+
+## Transports — scouts
+  · Vrund-reefscout
+  · Draz-scoutfin
+  · Rndukhr Brak-crestrider
+  · Skarn-zkarn-slipwake
+  · Matr-snap-scoutfin
+  · Ngkhrugzung Thrak-wakecart
+  · Zrak-scoutfin
+  · Thkhrirndthrak Skarn-cuttercart
+  · Kzund-probefang
+  · Zkanung Skarn-grend-scoutfin
+
+## Transports — citadels
+  · Khrund-grul-hullkeep
+  · Grzagh Knarr-bonekeel
+  · Zkgrug Draz-towcitadel
+  · Zukhrkhr Gnurl-kran-pressure-vault
+  · Ghigrath Gnash-thung-anchorback
+  · Gkharrgath Grund-tide-throne
+  · Kughkhrak Thrak-khral-hullkeep
+  · Krift-tow-hold
+  · Thrak-drak-reef-castle
+  · Vrund-gulletship
+
+## Abilities — combat
+  · Rndakthrung Strike
+  · Gnarkrendcut
+  · Rendzkrund Strike
+  · Kzulzkath Art
+  · Ghrundrrak Strike
+  · Brundrrend Art
+  · Gnurldrrak
+  · Gruthdrrak
+  · Gruththrung Strike
+  · Rrakdrun Art
+
+## Abilities — technique
+  · Drrakgnashcut
+  · Thrungkhrak Art
+  · Drrakgnash Art
+  · Skarnkhrak Way
+  · Knarrkrul Way
+  · Garnmatr
+  · Rrakzkarn Art
+  · Zragrndakcut
+  · Thrungkhrundcut
+  · Thrangkrul Way
+
+## Rules — laws
+  · Gore Rite Of Draz
+  · Nakhrkhrak Gore Rite Of Grath
+  · Rurnd Hunt Code As Gnarlk
+  · Ruththund Fang Oath Of Brak
+  · Nikhr Crush Rule As Draz
+  · Tear Bond Of Thrang
+  · Rend Law Of Khrund
+  · Kazthrak Bone Decree Of Grath
+  · Gore Rite As Gnarlk
+  · Blood Law Of Brak
+
+## Rules — ideology
+  · Zakhr Welt Rule
+  · Krigrdrrak Thrust Eternal Code
+  · Khngughghthrak Torment Oath
+  · Grip Bond
+  · Khrangrrthrak Foe Exalted Way
+  · Break Exalted Law
+  · Zikung Lurch Way
+  · Kukhrdrrak Dark Unstained Pact
+  · Burn Titanborn Way
+  · Zigrak Helm Oath
