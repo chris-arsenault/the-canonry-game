@@ -1,10 +1,26 @@
 {
   "id": "aurora_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:aurora_domain~cap"
+      ]
+    ],
     "name": [
       [
-        "domain:aurora_domain~cap",
+        "context:reference_name"
+      ],
+      [
+        "context:reference_name",
+        "slot:aurora_ice_echoes"
+      ],
+      [
+        "context:reference_name",
         "domain:aurora_domain_short~lower^'^slot:aurora_gen_nouns~cap"
       ]
     ]

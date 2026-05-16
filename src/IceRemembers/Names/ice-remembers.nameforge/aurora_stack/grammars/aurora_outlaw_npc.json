@@ -1,18 +1,27 @@
 {
   "id": "aurora_outlaw_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:aurora_domain_short~cap"
+      ]
+    ],
     "name": [
       [
-        "domain:aurora_domain_short~cap",
-        "slot:aurora_outlaw_nicknames"
+        "context:reference_name",
+        "slot:aurora_outlaw_nicknames~title"
       ],
       [
-        "slot:aurora_outlaw_nicknames~cap",
-        "domain:aurora_domain_short~cap"
+        "slot:aurora_outlaw_nicknames~title",
+        "context:reference_name"
       ],
       [
-        "domain:aurora_domain_short~cap^-^domain:aurora_domain_short~cap"
+        "context:reference_name^-^domain:aurora_domain_short~cap"
       ]
     ]
   }

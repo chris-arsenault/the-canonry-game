@@ -1,0 +1,133 @@
+{
+  "id": "wake_singers_domain",
+  "phonology": {
+    "consonants": [
+      "k",
+      "g",
+      "r",
+      "th",
+      "ng",
+      "z",
+      "kh",
+      "gh",
+      "rr",
+      "d",
+      "n",
+      "kr",
+      "gr",
+      "zk",
+      "khr",
+      "rnd"
+    ],
+    "vowels": [
+      "a",
+      "i",
+      "u"
+    ],
+    "syllableTemplates": [
+      "CVC",
+      "CCVC",
+      "CVCC",
+      "CCVCC"
+    ],
+    "lengthRange": [
+      1,
+      2
+    ],
+    "favoredClusters": [
+      "kr",
+      "gr",
+      "th",
+      "ng",
+      "zk",
+      "khr",
+      "rnd"
+    ],
+    "forbiddenClusters": [
+      "ii",
+      "ee",
+      "oo",
+      "ai",
+      "ui",
+      "thth",
+      "ngng",
+      "rrrr"
+    ],
+    "favoredClusterBoost": 1.5,
+    "consonantWeights": [
+      1.5,
+      1.4,
+      1.3,
+      1.4,
+      1.4,
+      1.2,
+      1.2,
+      1.2,
+      1.2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "vowelWeights": [
+      1.3,
+      1.3,
+      1.2
+    ],
+    "templateWeights": [
+      1.6,
+      0.9,
+      0.6,
+      0.2
+    ]
+  },
+  "morphology": {
+    "prefixes": [
+      "Kra",
+      "Ghrun",
+      "Thrak",
+      "Zkarn",
+      "Khrun"
+    ],
+    "suffixes": [
+      "ak",
+      "ung",
+      "rath",
+      "gath",
+      "thrak",
+      "zund",
+      "drrak",
+      "khrak",
+      "thund"
+    ],
+    "structure": [
+      "root",
+      "root-suffix"
+    ],
+    "structureWeights": [
+      0.4,
+      0.6
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0,
+    "hyphenRate": 0,
+    "preferredEndings": [
+      "ak",
+      "ung",
+      "rath",
+      "zund",
+      "khrak",
+      "thund"
+    ],
+    "preferredEndingBoost": 1.4,
+    "rhythmBias": "harsh"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

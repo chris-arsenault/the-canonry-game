@@ -2,17 +2,25 @@
   "id": "aurora_npc_clan_echo",
   "start": "name",
   "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:aurora_domain~cap"
+      ]
+    ],
     "name": [
       [
-        "domain:aurora_domain~cap",
-        "(^slot:aurora_ice_echoes^,",
-        "echo:",
-        "domain:aurora_domain_short~cap^)"
+        "context:reference_name",
+        "slot:aurora_ice_echoes",
+        "🪞",
+        "domain:aurora_domain_short~cap"
       ],
       [
-        "domain:aurora_domain~cap",
-        "(^slot:aurora_ice_echoes^)",
+        "context:reference_name",
+        "slot:aurora_ice_echoes",
         "slot:aurora_clan_markers^'^slot:aurora_nature~cap"
       ]
     ]

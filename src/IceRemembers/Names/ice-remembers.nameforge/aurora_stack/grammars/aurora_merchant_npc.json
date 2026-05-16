@@ -1,20 +1,30 @@
 {
   "id": "aurora_merchant_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:aurora_domain~cap"
+      ]
+    ],
     "name": [
       [
-        "slot:aurora_merchant_ranks",
-        "domain:aurora_domain~cap",
-        "domain:aurora_domain_short~lower^'^slot:aurora_gen_nouns~cap"
+        "slot:aurora_merchant_ranks~cap",
+        "context:reference_name",
+        "📜"
       ],
       [
-        "domain:aurora_domain~cap",
+        "context:reference_name",
+        "📜",
         "domain:aurora_domain_short~lower^'^slot:aurora_gen_trade~cap"
       ],
       [
-        "slot:aurora_merchant_ranks",
-        "domain:aurora_domain~cap"
+        "slot:aurora_merchant_ranks~cap",
+        "context:reference_name"
       ]
     ]
   }

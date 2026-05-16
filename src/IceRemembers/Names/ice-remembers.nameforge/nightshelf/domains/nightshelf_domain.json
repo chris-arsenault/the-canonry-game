@@ -26,8 +26,8 @@
       "VC"
     ],
     "lengthRange": [
-      2,
-      3
+      1,
+      2
     ],
     "favoredClusters": [
       "ct",
@@ -104,9 +104,9 @@
       "root"
     ],
     "structureWeights": [
-      0.5,
-      0.35,
-      0.15
+      0.55,
+      0.1,
+      0.35
     ]
   },
   "style": {

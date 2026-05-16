@@ -1,33 +1,46 @@
 {
   "id": "aurora_hero_legendary",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:aurora_domain~cap"
+      ]
+    ],
     "name": [
       [
         "when:producer=stolen_artifacts_draw_hunters",
         "when:parent_producer=monster_steals_artifact",
-        "domain:aurora_domain~cap",
+        "context:reference_name",
+        "⚔️",
         "context:trigger_relationship_target_entity_name~poss",
         "Warden"
       ],
       [
         "when:producer=orca_route_wars_get_names",
         "when:parent_producer=orca_raids_trade_route",
-        "domain:aurora_domain~cap",
+        "context:reference_name",
+        "⚔️",
         "context:trigger_relationship_target_entity_name~poss",
         "Route Warden"
       ],
       [
-        "domain:aurora_domain~cap",
-        "(^slot:aurora_ice_echoes^,",
-        "echo:",
-        "slot:aurora_hero_deeds^)",
+        "context:reference_name",
+        "slot:aurora_ice_echoes",
+        "🪞",
+        "domain:aurora_domain_short~cap",
+        "the",
         "slot:aurora_hero_epithets"
       ],
       [
-        "slot:aurora_gen_titles",
-        "domain:aurora_domain~cap",
-        "(^slot:aurora_ice_echoes^)",
+        "slot:aurora_gen_titles~cap",
+        "context:reference_name",
+        "slot:aurora_ice_echoes",
+        "slot:aurora_ice_echoes",
         "the",
         "slot:aurora_hero_deeds"
       ]

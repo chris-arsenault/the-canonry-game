@@ -1,27 +1,12 @@
 {
   "id": "aurora_ice_echoes",
-  "description": "What the ice remembers - parenthetical annotations for names. These are witnessed qualities, birth circumstances, ancestor echoes.",
+  "description": "Emoji echo glyphs for game-facing Aurora names (lore-bible §6.3). Each glyph annotates a witnessed fact: 🧊 ice-witnessed/preserved/twice-hatched; ✨ aurora-light/blessing/seer-work; ❄️ frost ordeal/survival/scar; 📜 ledger/trade/oath/procedure; ⚔️ war/defense/slaying. 🪞 ancestor-echo is handled by separate grammar rules with an explicit ancestor reference name. Generated/UI names emit the bare glyph only. The word forms (twice-hatched, light-bearer, frost-scarred, trade-blessed, defender) remain valid in ceremonial/archive prose, but are not used in game-facing display.",
   "entries": [
-    "dawn-found",
-    "frost-born",
-    "twice-hatched",
-    "light-descended",
-    "ice-spoken",
-    "trade-blessed",
-    "tide-touched",
-    "star-marked",
-    "crystal-woken",
-    "void-banisher",
-    "rime-singer",
-    "frost-bane",
-    "abyss-watcher",
-    "beacon-lit",
-    "huddle-core",
-    "stack-risen",
-    "echo-bearer",
-    "ice-remembered",
-    "thaw-survivor",
-    "aurora-blessed"
+    "🧊",
+    "✨",
+    "❄️",
+    "📜",
+    "⚔️"
   ],
   "source": "manual"
 }

@@ -5,31 +5,18 @@
   "rules": {
     "name": [
       [
-        "slot:aurora_law_terms",
-        "(^slot:aurora_gen_trade^-sworn)"
+        "slot:aurora_law_terms"
       ],
       [
         "domain:aurora_domain~cap",
-        "slot:aurora_law_terms",
-        "(^slot:aurora_gen_trade^-sworn)"
+        "slot:aurora_law_terms"
       ],
       [
-        "slot:aurora_gen_trade~cap^-^slot:aurora_law_terms",
-        "(^slot:aurora_place_echoes^)"
-      ],
-      [
-        "domain:aurora_domain~cap",
-        "slot:aurora_gen_trade~cap^-^slot:aurora_law_terms",
-        "(^slot:aurora_place_echoes^)"
-      ],
-      [
-        "slot:aurora_law_terms",
-        "(^slot:aurora_ice_echoes^)"
+        "slot:aurora_gen_trade~cap^-^slot:aurora_law_terms"
       ],
       [
         "domain:aurora_domain~cap",
-        "slot:aurora_law_terms",
-        "(^slot:aurora_ice_echoes^)"
+        "slot:aurora_gen_trade~cap^-^slot:aurora_law_terms"
       ]
     ]
   }

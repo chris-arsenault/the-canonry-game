@@ -1,23 +1,32 @@
 {
   "id": "aurora_noble_npc",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:aurora_domain~cap"
+      ]
+    ],
     "name": [
       [
-        "slot:aurora_noble_titles",
-        "domain:aurora_domain~cap",
-        "(^slot:aurora_ice_echoes^)",
+        "slot:aurora_noble_titles~title",
+        "context:reference_name",
+        "slot:aurora_ice_echoes",
         "slot:aurora_lineage_markers"
       ],
       [
-        "slot:aurora_noble_titles",
-        "domain:aurora_domain~cap",
-        "(^slot:aurora_ice_echoes^)",
+        "slot:aurora_noble_titles~title",
+        "context:reference_name",
+        "slot:aurora_ice_echoes",
         "domain:aurora_domain_short~lower^'^slot:aurora_nature~cap"
       ],
       [
-        "slot:aurora_noble_titles",
-        "domain:aurora_domain~cap"
+        "slot:aurora_noble_titles~title",
+        "context:reference_name"
       ]
     ]
   }
