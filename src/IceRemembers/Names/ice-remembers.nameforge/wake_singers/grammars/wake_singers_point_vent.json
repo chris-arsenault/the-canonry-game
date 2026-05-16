@@ -5,18 +5,16 @@
   "rules": {
     "name": [
       [
-        "slot:orca_territory_glyph^-vent"
+        "slot:orca_territory_glyph~cap^vent"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-vent"
+        "slot:orca_location_roots~cap^vent"
       ],
       [
-        "slot:orca_deed_root^-firevent"
+        "slot:orca_deed_root~cap^firevent"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_deed_root^-firevent"
+        "slot:orca_prey_glyph~cap^slot:orca_deed_root^vent"
       ]
     ]
   }

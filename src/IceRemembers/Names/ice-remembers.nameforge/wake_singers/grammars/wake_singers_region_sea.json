@@ -5,18 +5,16 @@
   "rules": {
     "name": [
       [
-        "slot:orca_territory_glyph^-sea"
+        "slot:orca_territory_glyph~cap^sea"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-sea"
+        "slot:orca_location_roots~cap^sea"
       ],
       [
-        "slot:orca_prey_glyph^-bloodsea"
+        "slot:orca_prey_glyph~cap^bloodsea"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-bloodsea"
+        "slot:orca_location_roots~cap^slot:orca_prey_glyph^water"
       ]
     ]
   }

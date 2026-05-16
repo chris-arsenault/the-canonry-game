@@ -1,24 +1,38 @@
 {
   "id": "orca_hero_legendary",
   "start": "name",
+  "capitalization": "titleWords",
+  "generatedContext": {
+    "reference_name": "reference_name"
+  },
   "rules": {
+    "reference_name": [
+      [
+        "domain:wake_singers_domain_short"
+      ]
+    ],
     "name": [
       [
         "when:producer=stolen_artifacts_draw_hunters",
         "when:parent_producer=monster_steals_artifact",
-        "domain:orca_domain_short",
+        "context:reference_name",
         "context:trigger_relationship_target_entity_name~poss",
-        "monster hunter"
+        "monsterhunter"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:orca_deed_root^-^slot:orca_territory_glyph^-^slot:orca_role_glyph"
+        "context:reference_name",
+        "slot:orca_deed_root~cap^slot:orca_prey_glyph",
+        "slot:orca_territory_glyph~cap"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-^slot:orca_deed_root^-^slot:orca_prey_glyph^-^slot:orca_deed_root"
+        "context:reference_name",
+        "slot:orca_territory_glyph~cap^slot:orca_prey_glyph"
+      ],
+      [
+        "context:reference_name",
+        "slot:orca_prey_glyph~cap^slot:orca_deed_root",
+        "slot:orca_role_glyph~cap"
       ]
     ]
-  },
-  "capitalization": "titleWords"
+  }
 }

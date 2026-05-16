@@ -5,33 +5,25 @@
   "rules": {
     "name": [
       [
-        "domain:orca_domain_short^'s",
-        "slot:orca_instrument_nouns"
-      ],
-      [
         "when:producer_kind=generator",
         "context:primary_entity_name~poss",
         "slot:orca_instrument_nouns"
       ],
       [
         "when:producer_kind=generator",
-        "domain:orca_domain_short",
-        "context:primary_entity_name~poss",
+        "context:secondary_entity_name~poss",
         "slot:orca_instrument_nouns"
       ],
       [
-        "slot:orca_prey_glyph^-^slot:orca_deed_root^-drum"
+        "slot:orca_prey_glyph~cap^slot:orca_deed_root",
+        "drum"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-^slot:orca_deed_root^-drum"
+        "slot:orca_territory_glyph~cap^slot:orca_prey_glyph",
+        "horn"
       ],
       [
-        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-horn"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-^slot:orca_prey_glyph^-horn"
+        "slot:orca_deed_root~cap^slot:orca_role_glyph^slot:orca_instrument_nouns"
       ]
     ]
   }

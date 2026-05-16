@@ -5,25 +5,16 @@
   "rules": {
     "name": [
       [
-        "slot:orca_exile_glyph^-sanctuary"
+        "slot:orca_exile_glyph~cap^sanctuary"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_exile_glyph^-sanctuary"
+        "slot:orca_location_roots~cap^shelter"
       ],
       [
-        "slot:orca_territory_glyph^-shelter"
+        "slot:orca_territory_glyph~cap^shelter"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-shelter"
-      ],
-      [
-        "slot:orca_prey_glyph^-refuge"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph^-refuge"
+        "slot:orca_exile_glyph~cap^slot:orca_prey_glyph^refuge"
       ]
     ]
   }

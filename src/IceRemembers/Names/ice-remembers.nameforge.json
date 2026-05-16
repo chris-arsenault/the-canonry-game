@@ -743,6 +743,11 @@
     {
       "type": "lexemeList",
       "cultureId": "nightshelf",
+      "path": "ice-remembers.nameforge/nightshelf/lexemes/nightshelf_artifact_modifiers.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "nightshelf",
       "path": "ice-remembers.nameforge/nightshelf/lexemes/nightshelf_instrument_nouns.json"
     },
     {
@@ -1107,12 +1112,12 @@
     {
       "type": "domain",
       "cultureId": "wake_singers",
-      "path": "ice-remembers.nameforge/wake_singers/domains/orca_domain.json"
+      "path": "ice-remembers.nameforge/wake_singers/domains/wake_singers_domain.json"
     },
     {
       "type": "domain",
       "cultureId": "wake_singers",
-      "path": "ice-remembers.nameforge/wake_singers/domains/orca_domain_short.json"
+      "path": "ice-remembers.nameforge/wake_singers/domains/wake_singers_domain_short.json"
     },
     {
       "type": "lexemeList",
@@ -1208,6 +1213,11 @@
       "type": "lexemeList",
       "cultureId": "wake_singers",
       "path": "ice-remembers.nameforge/wake_singers/lexemes/orca_location_nouns.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "wake_singers",
+      "path": "ice-remembers.nameforge/wake_singers/lexemes/orca_location_roots.json"
     },
     {
       "type": "lexemeList",

@@ -5,26 +5,17 @@
   "rules": {
     "name": [
       [
-        "The",
-        "context:region",
+        "context:region~cap",
         "slot:orca_faction_types"
       ],
       [
-        "The",
-        "domain:orca_domain_short",
-        "context:region",
-        "slot:orca_faction_types"
+        "slot:orca_power_words~cap^slot:orca_faction_types",
+        "of",
+        "context:region"
       ],
       [
         "context:region^'s",
-        "slot:orca_power_words",
-        "slot:orca_faction_types"
-      ],
-      [
-        "domain:orca_domain_short",
-        "context:region^'s",
-        "slot:orca_power_words",
-        "slot:orca_faction_types"
+        "slot:orca_power_words~cap^slot:orca_faction_types"
       ]
     ]
   }

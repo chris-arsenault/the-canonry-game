@@ -5,57 +5,28 @@
   "rules": {
     "name": [
       [
-        "The",
-        "slot:orca_prey_glyph~cap^-^slot:orca_territory_glyph",
-        "School"
+        "slot:orca_prey_glyph~cap^slot:orca_territory_glyph",
+        "school"
       ],
       [
-        "The",
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph~cap^-^slot:orca_territory_glyph",
-        "School"
+        "slot:orca_deed_root~cap^slot:orca_prey_glyph",
+        "tradition"
       ],
       [
-        "slot:orca_deed_root~cap^-^slot:orca_prey_glyph",
-        "Tradition"
+        "slot:orca_territory_glyph~cap^slot:orca_prey_glyph",
+        "way"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_deed_root~cap^-^slot:orca_prey_glyph",
-        "Tradition"
+        "slot:orca_deed_root~cap^slot:orca_territory_glyph",
+        "bloodart"
       ],
       [
-        "Way of the",
-        "slot:orca_territory_glyph~cap",
-        "slot:orca_prey_glyph~cap^s"
+        "slot:orca_prey_glyph~cap^slot:orca_deed_root",
+        "path"
       ],
       [
-        "domain:orca_domain_short",
-        "Way of the",
-        "slot:orca_territory_glyph~cap",
-        "slot:orca_prey_glyph~cap^s"
-      ],
-      [
-        "The",
-        "slot:orca_deed_root~cap^-^slot:orca_territory_glyph^-blood",
-        "Arts"
-      ],
-      [
-        "The",
-        "domain:orca_domain_short",
-        "slot:orca_deed_root~cap^-^slot:orca_territory_glyph^-blood",
-        "Arts"
-      ],
-      [
-        "slot:orca_prey_glyph~cap",
-        "slot:orca_deed_root~cap^-masters'",
-        "Path"
-      ],
-      [
-        "domain:orca_domain_short",
-        "slot:orca_prey_glyph~cap",
-        "slot:orca_deed_root~cap^-masters'",
-        "Path"
+        "slot:orca_deed_root~cap^slot:orca_role_glyph",
+        "art"
       ]
     ]
   }

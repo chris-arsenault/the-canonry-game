@@ -5,18 +5,16 @@
   "rules": {
     "name": [
       [
-        "slot:orca_deed_root^-scar"
+        "slot:orca_deed_root~cap^scar"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_deed_root^-scar"
+        "slot:orca_location_roots~cap^scar"
       ],
       [
-        "slot:orca_territory_glyph^-wound"
+        "slot:orca_territory_glyph~cap^wound"
       ],
       [
-        "domain:orca_domain_short",
-        "slot:orca_territory_glyph^-wound"
+        "slot:orca_location_roots~cap^slot:orca_deed_root^breach"
       ]
     ]
   }
