@@ -2,16 +2,21 @@
   "id": "nightshelf_disaster_types",
   "description": "Disaster types for Nightshelf",
   "entries": [
-    "Collapsum",
-    "Ruptio",
-    "Extinctio",
-    "Eruptio",
-    "Fluxus",
-    "Voragine",
     "Calamitas",
-    "Ruina",
-    "Hiatus",
-    "Vorago"
+    "Ruptio",
+    "Collapsus",
+    "Voragines",
+    "Naufragium",
+    "Atratus",
+    "Fractus",
+    "Eruptio",
+    "Pestilentia",
+    "Exitium",
+    "Tenebrae Mortis",
+    "Ruina Magna",
+    "Caligo Gravis",
+    "Catabasis",
+    "Mortis Vexatio"
   ],
   "source": "manual"
 }

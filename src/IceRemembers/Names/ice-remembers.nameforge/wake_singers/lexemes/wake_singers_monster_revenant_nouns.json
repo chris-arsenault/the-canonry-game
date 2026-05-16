@@ -2,16 +2,21 @@
   "id": "wake_singers_monster_revenant_nouns",
   "description": "Wake-Singer names for returned dead and risen remains.",
   "entries": [
-    "bonewake",
-    "deadjaw",
-    "oldscar",
     "graveback",
-    "redmemory",
     "corpsewake",
-    "skulltide",
     "frostbone",
-    "bloodshade",
-    "icecorpse"
+    "duskback",
+    "redmemory",
+    "thawborn",
+    "mawreturned",
+    "tide-resumed",
+    "bonepilgrim",
+    "cold-returner",
+    "ledger-back",
+    "kill-rememberer",
+    "saltreturn",
+    "echo-back",
+    "wakerisen"
   ],
   "source": "manual"
 }

@@ -2,13 +2,27 @@
   "id": "aurora_war_memories",
   "description": "What the ice remembers about wars - parenthetical annotations for conflict names",
   "entries": [
-    "ice-remembered",
-    "blood-marked",
-    "strife-witnessed",
+    "ice-raged",
+    "ice-screamed",
+    "ice-trembled",
+    "ice-witnessed",
     "conflict-scarred",
+    "blood-marked",
+    "fury-held",
     "war-echoed",
-    "battle-frozen",
-    "fury-held"
+    "berg-split",
+    "strife-witnessed",
+    "ice-mourned",
+    "ice-remembered",
+    "frost-screamed",
+    "accord-broken",
+    "schism-borne",
+    "quarter-given",
+    "banner-lost",
+    "oath-fractured",
+    "siege-counted",
+    "spire-fallen",
+    "truce-witnessed"
   ],
   "source": "manual"
 }

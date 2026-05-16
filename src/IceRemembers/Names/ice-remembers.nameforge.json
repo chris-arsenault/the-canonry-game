@@ -5,55 +5,6 @@
   "includes": [
     {
       "type": "culture",
-      "path": "ice-remembers.nameforge/world/culture.json"
-    },
-    {
-      "type": "domain",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/domains/world_domain.json"
-    },
-    {
-      "type": "lexemeList",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/lexemes/world_generic_titles.json"
-    },
-    {
-      "type": "lexemeList",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/lexemes/world_generic_epithets.json"
-    },
-    {
-      "type": "lexemeList",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/lexemes/world_war_types.json"
-    },
-    {
-      "type": "lexemeList",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/lexemes/world_disaster_types.json"
-    },
-    {
-      "type": "grammar",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/grammars/world_generic_npc.json"
-    },
-    {
-      "type": "grammar",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/grammars/world_generic_war.json"
-    },
-    {
-      "type": "grammar",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/grammars/world_generic_disaster.json"
-    },
-    {
-      "type": "profile",
-      "cultureId": "world",
-      "path": "ice-remembers.nameforge/world/profiles/world_profile_default.json"
-    },
-    {
-      "type": "culture",
       "path": "ice-remembers.nameforge/aurora_stack/culture.json"
     },
     {

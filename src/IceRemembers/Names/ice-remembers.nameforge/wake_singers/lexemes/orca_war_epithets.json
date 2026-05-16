@@ -2,16 +2,23 @@
   "id": "orca_war_epithets",
   "description": "War and conflict names for Orca",
   "entries": [
-    "Bloodtide",
-    "Gorewake",
-    "Rendstorm",
-    "Crushfall",
-    "Mawstrike",
-    "Fangwar",
-    "Devourfall",
-    "Ravageflux",
-    "Surgeclash",
-    "Tidesunder"
+    "Blood",
+    "Rite",
+    "Storm",
+    "Fang",
+    "Tide",
+    "Doom",
+    "Strike",
+    "Maw",
+    "Crush",
+    "End",
+    "Hunt",
+    "Pack-Bound",
+    "Reef-Witnessed",
+    "Saltsworn",
+    "Pressure-Born",
+    "Kill-Sworn",
+    "Tide-Sung"
   ],
   "source": "manual"
 }

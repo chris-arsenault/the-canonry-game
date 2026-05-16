@@ -2,14 +2,21 @@
   "id": "wake_singers_transport_citadel_nouns",
   "description": "Wake-Singer names for fortified moving platforms.",
   "entries": [
-    "bonecitadel",
-    "towcitadel",
-    "frostbarge",
-    "gulletship",
-    "icebreaker",
-    "bonekeel",
-    "blackkeel",
-    "guardback"
+    "Bonecitadel",
+    "Bonekeel",
+    "Frostbarge",
+    "Towcitadel",
+    "Guardback",
+    "Gulletship",
+    "Hullkeep",
+    "Wardhull",
+    "Bone-Tower",
+    "Tow-Hold",
+    "Anchorback",
+    "Massivehull",
+    "Reef-Castle",
+    "Pressure-Vault",
+    "Tide-Throne"
   ],
   "source": "manual"
 }

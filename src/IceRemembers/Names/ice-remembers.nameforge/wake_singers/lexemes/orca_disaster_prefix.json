@@ -2,13 +2,21 @@
   "id": "orca_disaster_prefix",
   "description": "Nature/element prefixes for orca disaster names",
   "entries": [
-    "Depth",
-    "Tide",
-    "Current",
-    "Abyss",
-    "Storm",
     "Wave",
-    "Deep"
+    "Storm",
+    "Tide",
+    "Depth",
+    "Abyss",
+    "Current",
+    "Crush",
+    "Skin",
+    "Bone",
+    "Boil",
+    "Reef-Snap",
+    "Vent",
+    "Saltdark",
+    "Black-Lung",
+    "Pressure"
   ],
   "source": "manual"
 }

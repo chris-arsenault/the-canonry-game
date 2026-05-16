@@ -8,7 +8,7 @@ using Engine.Projection;
 
 using NameForge.Runtime;
 
-public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSynthesizer
+public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNamesSynthesizer
 {
     private const string NameForgeResourceName = "IceRemembers.Names.ice-remembers.nameforge.json";
     private const string NameForgeResourceIncludePrefix = "IceRemembers.Names.";
@@ -175,14 +175,26 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
 
     public bool TrySynthesizeName(ProjectionEntityNameContext context, out string displayName)
     {
+        if (TrySynthesizeNames(context, out var names))
+        {
+            displayName = names.DisplayName;
+            return true;
+        }
+
+        displayName = string.Empty;
+        return false;
+    }
+
+    public bool TrySynthesizeNames(ProjectionEntityNameContext context, out ProjectionEntityNames names)
+    {
         var kind = context.Kind?.StableName;
         if (string.IsNullOrWhiteSpace(kind))
         {
-            displayName = string.Empty;
+            names = ProjectionEntityNames.FromDisplayName(string.Empty);
             return false;
         }
 
-        if (NameForgeKinds.Contains(kind) && TrySynthesizeNameForge(context, kind, out displayName))
+        if (NameForgeKinds.Contains(kind) && TrySynthesizeNameForge(context, kind, out names))
         {
             return true;
         }
@@ -192,11 +204,11 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
         var fallbackBuilder = ResolveFallbackBuilder(kind);
         if (fallbackBuilder is null)
         {
-            displayName = string.Empty;
+            names = ProjectionEntityNames.FromDisplayName(string.Empty);
             return false;
         }
 
-        displayName = fallbackBuilder(subtype, rng);
+        names = ProjectionEntityNames.FromDisplayName(fallbackBuilder(subtype, rng));
         return true;
     }
 
@@ -214,9 +226,9 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
     private static bool TrySynthesizeNameForge(
         ProjectionEntityNameContext context,
         string kind,
-        out string displayName)
+        out ProjectionEntityNames names)
     {
-        displayName = string.Empty;
+        names = ProjectionEntityNames.FromDisplayName(string.Empty);
         var generator = NameForge.Value;
         if (generator is null ||
             !TryResolveNameForgeCulture(context.Culture?.StableName, out var cultureId))
@@ -231,12 +243,23 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
             Subtype = context.Subtype?.StableName ?? string.Empty,
             Prominence = "recognized",
             Context = BuildNameForgeContext(context),
+            Count = 1,
             Seed = string.Create(
                 CultureInfo.InvariantCulture,
                 $"{context.Key.NameSeed}:{context.Key.EntityId}:{context.Key.KindId}:{context.Key.SubtypeId}:{context.Key.CultureId}"),
         };
 
-        return generator.TryGenerateOne(request, out displayName);
+        var result = generator.Generate(request);
+        if (result.Names.Count == 0 || string.IsNullOrWhiteSpace(result.Names[0]))
+        {
+            return false;
+        }
+
+        var referenceName = result.ReferenceNames.Count > 0 && !string.IsNullOrWhiteSpace(result.ReferenceNames[0])
+            ? result.ReferenceNames[0]
+            : result.Names[0];
+        names = new ProjectionEntityNames(result.Names[0], referenceName);
+        return true;
     }
 
     private static Dictionary<string, string> BuildNameForgeContext(ProjectionEntityNameContext context)
@@ -249,9 +272,7 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
         }
 
         AddInvocation(values, string.Empty, provenance.Invocation, provenance.Producer);
-        Add(values, "primary_entity_name", provenance.PrimaryEntityName);
-        Add(values, "secondary_entity_name", provenance.SecondaryEntityName);
-        Add(values, "selected", provenance.PrimaryEntityName);
+        AddPrimarySecondaryEntityNames(values, provenance);
         Add(values, "created_by_invocation_id", provenance.Invocation.InvocationId);
         Add(values, "parent_chain_depth", provenance.ParentChain.Count);
         Add(values, "output_count", provenance.Outputs.Count);
@@ -259,25 +280,63 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
         if (provenance.ParentInvocation is { } parentInvocation)
         {
             AddInvocation(values, "parent_", parentInvocation, provenance.ParentProducer);
-            Add(values, "parent_primary_entity_name", provenance.ParentPrimaryEntityName);
-            Add(values, "parent_secondary_entity_name", provenance.ParentSecondaryEntityName);
+            AddParentEntityNames(values, provenance);
         }
 
         if (provenance.RelationshipTrigger is { } relationshipTrigger)
         {
-            Add(values, "trigger_relationship_id", relationshipTrigger.RelationshipId);
-            Add(values, "trigger_relationship_kind_id", relationshipTrigger.RelationshipKindId);
-            Add(values, "trigger_relationship_source_entity_id", relationshipTrigger.SourceEntityId);
-            Add(values, "trigger_relationship_target_entity_id", relationshipTrigger.TargetEntityId);
-            Add(values, "trigger_relationship_created_by_invocation_id", relationshipTrigger.CreatedByInvocationId);
-            Add(values, "trigger_relationship_last_changed_by_invocation_id", relationshipTrigger.LastChangedByInvocationId);
-            Add(values, "trigger_relationship_kind", provenance.RelationshipTriggerKind?.StableName);
-            Add(values, "trigger_relationship_kind_display_name", provenance.RelationshipTriggerKind?.DisplayName);
-            Add(values, "trigger_relationship_source_entity_name", provenance.RelationshipTriggerSourceEntityName);
-            Add(values, "trigger_relationship_target_entity_name", provenance.RelationshipTriggerTargetEntityName);
+            AddRelationshipTrigger(values, relationshipTrigger, provenance);
         }
 
         return values;
+    }
+
+    private static void AddPrimarySecondaryEntityNames(
+        Dictionary<string, string> values,
+        ProjectionEntityNameProvenance provenance)
+    {
+        Add(values, "primary_entity_name", provenance.PrimaryEntityName);
+        Add(values, "primary_entity_reference_name", provenance.PrimaryEntityReferenceName);
+        Add(values, "primary_entity_inherited_name", provenance.PrimaryEntityReferenceName);
+        Add(values, "secondary_entity_name", provenance.SecondaryEntityName);
+        Add(values, "secondary_entity_reference_name", provenance.SecondaryEntityReferenceName);
+        Add(values, "secondary_entity_inherited_name", provenance.SecondaryEntityReferenceName);
+        Add(values, "selected", provenance.PrimaryEntityName);
+        Add(values, "selected_reference_name", provenance.PrimaryEntityReferenceName);
+        Add(values, "selected_inherited_name", provenance.PrimaryEntityReferenceName);
+    }
+
+    private static void AddParentEntityNames(
+        Dictionary<string, string> values,
+        ProjectionEntityNameProvenance provenance)
+    {
+        Add(values, "parent_primary_entity_name", provenance.ParentPrimaryEntityName);
+        Add(values, "parent_primary_entity_reference_name", provenance.ParentPrimaryEntityReferenceName);
+        Add(values, "parent_primary_entity_inherited_name", provenance.ParentPrimaryEntityReferenceName);
+        Add(values, "parent_secondary_entity_name", provenance.ParentSecondaryEntityName);
+        Add(values, "parent_secondary_entity_reference_name", provenance.ParentSecondaryEntityReferenceName);
+        Add(values, "parent_secondary_entity_inherited_name", provenance.ParentSecondaryEntityReferenceName);
+    }
+
+    private static void AddRelationshipTrigger(
+        Dictionary<string, string> values,
+        ProvenanceRelationshipTriggerProjection relationshipTrigger,
+        ProjectionEntityNameProvenance provenance)
+    {
+        Add(values, "trigger_relationship_id", relationshipTrigger.RelationshipId);
+        Add(values, "trigger_relationship_kind_id", relationshipTrigger.RelationshipKindId);
+        Add(values, "trigger_relationship_source_entity_id", relationshipTrigger.SourceEntityId);
+        Add(values, "trigger_relationship_target_entity_id", relationshipTrigger.TargetEntityId);
+        Add(values, "trigger_relationship_created_by_invocation_id", relationshipTrigger.CreatedByInvocationId);
+        Add(values, "trigger_relationship_last_changed_by_invocation_id", relationshipTrigger.LastChangedByInvocationId);
+        Add(values, "trigger_relationship_kind", provenance.RelationshipTriggerKind?.StableName);
+        Add(values, "trigger_relationship_kind_display_name", provenance.RelationshipTriggerKind?.DisplayName);
+        Add(values, "trigger_relationship_source_entity_name", provenance.RelationshipTriggerSourceEntityName);
+        Add(values, "trigger_relationship_source_entity_reference_name", provenance.RelationshipTriggerSourceEntityReferenceName);
+        Add(values, "trigger_relationship_source_entity_inherited_name", provenance.RelationshipTriggerSourceEntityReferenceName);
+        Add(values, "trigger_relationship_target_entity_name", provenance.RelationshipTriggerTargetEntityName);
+        Add(values, "trigger_relationship_target_entity_reference_name", provenance.RelationshipTriggerTargetEntityReferenceName);
+        Add(values, "trigger_relationship_target_entity_inherited_name", provenance.RelationshipTriggerTargetEntityReferenceName);
     }
 
     private static void AddInvocation(
@@ -345,7 +404,6 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNameSyn
             "aurora_stack" or "aurora-stack" => "aurora_stack",
             "nightshelf" => "nightshelf",
             "wake_singers" or "orca" => "wake_singers",
-            "world" => "world",
             _ => string.Empty,
         };
 

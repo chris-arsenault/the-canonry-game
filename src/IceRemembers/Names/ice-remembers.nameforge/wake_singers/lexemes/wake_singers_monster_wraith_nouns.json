@@ -2,16 +2,21 @@
   "id": "wake_singers_monster_wraith_nouns",
   "description": "Wake-Singer names for bodiless and memory-haunting monsters.",
   "entries": [
-    "saltwraith",
-    "undersong",
     "deadwake",
-    "whiteeye",
-    "gravewake",
-    "rimejaw",
     "iceghost",
     "coldwhisper",
     "echohunger",
-    "frostshade"
+    "graveecho",
+    "huntmurmur",
+    "tidewhisper",
+    "salt-shade",
+    "crest-ghost",
+    "huntspirit",
+    "reef-haunt",
+    "pall-fang",
+    "wake-shroud",
+    "fading-thrum",
+    "cold-throat"
   ],
   "source": "manual"
 }

@@ -2,14 +2,21 @@
   "id": "wake_singers_transport_battle_nouns",
   "description": "Wake-Singer names for war transports.",
   "entries": [
-    "killship",
-    "warwake",
-    "warcanoe",
-    "bloodbarge",
-    "warback",
-    "guardback",
-    "blackkeel",
-    "currentknife"
+    "Blackkeel",
+    "Warcanoe",
+    "Killprow",
+    "Bloodprow",
+    "Mawhull",
+    "Spinekeel",
+    "Pressureram",
+    "Bonebreaker",
+    "Wakeknife",
+    "Reefdriver",
+    "Skullhull",
+    "Carverkeel",
+    "Tidecrush",
+    "Razorhull",
+    "Crackship"
   ],
   "source": "manual"
 }

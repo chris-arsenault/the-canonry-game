@@ -2,14 +2,21 @@
   "id": "wake_singers_transport_scout_nouns",
   "description": "Wake-Singer names for scout craft and route probes.",
   "entries": [
-    "scoutfin",
-    "runknife",
-    "wakerunner",
-    "signalfin",
-    "skiffjaw",
-    "podrunner",
-    "wakecart",
-    "deepdrum"
+    "Scoutfin",
+    "Skiffjaw",
+    "Wakecart",
+    "Wakerunner",
+    "Podrunner",
+    "Runknife",
+    "Signalfin",
+    "Slipwake",
+    "Forerider",
+    "Sightskin",
+    "Crestrider",
+    "Probefang",
+    "Cuttercart",
+    "Wakedart",
+    "Reefscout"
   ],
   "source": "manual"
 }

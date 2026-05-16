@@ -2,16 +2,23 @@
   "id": "aurora_disaster_types",
   "description": "Types of natural or magical disasters",
   "entries": [
-    "Calving",
-    "Collapse",
-    "Fracture",
-    "Thaw",
-    "Storm",
-    "Void-Breach",
-    "Fissure",
-    "Avalanche",
+    "Cataclysm",
     "Flux",
-    "Darkening"
+    "Avalanche",
+    "Calving",
+    "Thaw",
+    "Collapse",
+    "Fissure",
+    "Storm",
+    "Plague",
+    "Darkening",
+    "Void-breach",
+    "Pale-blight",
+    "Schism-thaw",
+    "Floe-Sundering",
+    "Crystal-Plague",
+    "Ice-Memory-Loss",
+    "Sun-Failure"
   ],
   "source": "manual"
 }

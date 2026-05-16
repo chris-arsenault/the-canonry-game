@@ -2,16 +2,23 @@
   "id": "orca_disaster_epithets",
   "description": "Disaster names for Orca culture",
   "entries": [
-    "Depthquake",
-    "Stormwrack",
-    "Tidecollapse",
-    "Voidbreach",
-    "Abyssfall",
-    "Surgefury",
-    "Rendstorm",
-    "Wavecatastrophe",
-    "Deeprupture",
-    "Currentdeath"
+    "Doom",
+    "Storm",
+    "Death",
+    "Fall",
+    "Crush",
+    "Wave",
+    "Depth",
+    "Boil",
+    "Pall",
+    "Tide-Held",
+    "Marrow-Cold",
+    "Saltworn",
+    "Bone-Counted",
+    "Pressure-Wracked",
+    "Hush-Bringing",
+    "Reef-Choking",
+    "Echo-Loosed"
   ],
   "source": "manual"
 }

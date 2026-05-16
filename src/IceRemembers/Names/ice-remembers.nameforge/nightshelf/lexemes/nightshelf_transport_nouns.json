@@ -2,12 +2,23 @@
   "id": "nightshelf_transport_nouns",
   "description": "Ice Remembers transport nouns",
   "entries": [
-    "black-skiff",
-    "hush-barge",
-    "shade-runner",
-    "undertow",
-    "tow-citadel",
-    "watch-keel"
+    "Skiff",
+    "Runner",
+    "Watch-Keel",
+    "Black-Courier",
+    "Tow-Vault",
+    "Citadel",
+    "Crypt-Barge",
+    "Lockhold-Skiff",
+    "Shadow-Ferry",
+    "Hush-Boat",
+    "Cinder-Carrier",
+    "Vein-Skiff",
+    "Ash-Ferry",
+    "Brine-Runner",
+    "Ledger-Hull",
+    "Veil-Sloop",
+    "Mourning-Tow"
   ],
   "source": "ice-remembers"
 }

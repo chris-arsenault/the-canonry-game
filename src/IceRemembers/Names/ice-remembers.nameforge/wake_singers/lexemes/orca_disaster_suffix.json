@@ -2,13 +2,21 @@
   "id": "orca_disaster_suffix",
   "description": "Destruction suffixes for orca disaster names",
   "entries": [
-    "quake",
-    "collapse",
-    "fall",
-    "death",
-    "breach",
-    "fury",
-    "rupture"
+    "Storm",
+    "Fall",
+    "Doom",
+    "Death",
+    "Tide",
+    "Crash",
+    "Kill",
+    "Quake",
+    "Drown",
+    "Ruin",
+    "Sundering",
+    "Pall",
+    "Sink",
+    "Boil",
+    "Wake-Crush"
   ],
   "source": "manual"
 }

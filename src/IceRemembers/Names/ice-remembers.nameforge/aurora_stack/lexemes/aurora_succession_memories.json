@@ -2,11 +2,18 @@
   "id": "aurora_succession_memories",
   "description": "What the ice remembers about succession crises - parenthetical annotations",
   "entries": [
-    "ice-fractured",
-    "throne-broken",
-    "line-severed",
     "crown-contested",
-    "heir-lost"
+    "line-severed",
+    "throne-broken",
+    "ice-shattered",
+    "cold-grieved",
+    "ice-mourned",
+    "echo-fractured",
+    "heir-disputed",
+    "lineage-broken",
+    "mantle-lost",
+    "quartz-tested",
+    "sigil-doubted"
   ],
   "source": "manual"
 }

@@ -2,16 +2,24 @@
   "id": "aurora_place_echoes",
   "description": "What the ice remembers about places - parenthetical annotations for locations/regions.",
   "entries": [
-    "sunward",
+    "ancient",
     "remembered",
-    "trade-born",
     "frost-held",
     "light-blessed",
-    "tide-carved",
-    "ancient",
-    "huddle-warm",
     "star-watched",
-    "ice-sung"
+    "tide-carved",
+    "huddle-warm",
+    "ice-sung",
+    "sunward",
+    "kept",
+    "long-known",
+    "accord-bound",
+    "mirror-still",
+    "crystal-cored",
+    "council-chose",
+    "aurora-touched",
+    "beacon-shielded",
+    "map-marked"
   ],
   "source": "manual"
 }
