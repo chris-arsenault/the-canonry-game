@@ -1,6 +1,7 @@
 #pragma warning disable CA1303
 #pragma warning disable CA2000
 #pragma warning disable CA2213
+using Engine.Kinds;
 using Engine.Projection;
 
 using Godot;
@@ -10,39 +11,29 @@ using TheCanonryGame.UI.Theme;
 namespace TheCanonryGame.UI;
 
 /// <summary>
-/// Left sidebar listing all entities. Click an entity to open its floating card.
+/// Left sidebar registry. Renders active entities as a nested tree grouped by
+/// realm and place affiliation. Realms appear at the top level, their controlled
+/// places nest below them, and the lives anchored to each place nest beneath
+/// it. Entities with no affiliation roll up into a "Wild" section at the bottom.
+/// Clicking a row opens that entity's floating card.
 /// </summary>
 public partial class EntityBrowser : PanelContainer
 {
-    private const float HeaderHeight = 24f;
-    private const float HeaderLeadingGapHeight = 12f;
-    private const float EntityRowHeight = 46f;
-    private const int OverscanItemCount = 4;
-    private const int AllGeneratorFilterId = 0;
-    private const int SeedGeneratorFilterId = -1;
+    private const int IndentStepPx = 14;
+    private const string WildSectionLabel = "Wild";
+    private const string UnaffiliatedPlacesLabel = "Unbound Places";
+    private const string UntieredSectionLabel = "Untiered";
 
-    private readonly List<RegistryItemData> _items = [];
-    private readonly List<float> _itemOffsets = [];
-    private readonly Dictionary<RegistryItemKey, Control> _visibleNodes = [];
-    private readonly Stack<EntityRow> _rowPool = [];
-    private readonly Stack<EntityKindHeader> _headerPool = [];
-    private readonly List<RegistryItemKey> _releaseKeys = [];
+    private readonly List<EntityRow> _rowPool = [];
+    private readonly List<EntityKindHeader> _headerPool = [];
+    private readonly List<Label> _labelPool = [];
+    private readonly List<MarginContainer> _activeWrappers = [];
+
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
-    private ScrollContainer? _scroll;
     private VBoxContainer? _listContainer;
-    private VBoxContainer? _visibleContainer;
-    private Control? _topSpacer;
-    private Control? _bottomSpacer;
-    private OptionButton? _generatorFilterOption;
-    private CheckBox? _filterMapCheckBox;
-    private Label? _filterSummaryLabel;
     private PackedScene? _entityRowScene;
     private PackedScene? _kindHeaderScene;
-    private float _totalHeight;
-    private bool _visibleRefreshQueued;
-    private bool _updatingFilterControls;
-    private int _selectedGeneratorFilterId = AllGeneratorFilterId;
 
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
@@ -50,11 +41,17 @@ public partial class EntityBrowser : PanelContainer
     [Signal]
     public delegate void EntityFilterChangedEventHandler();
 
-    public long FilterVersion { get; private set; }
+    /// <summary>Legacy filter API — the registry no longer filters; always 0.</summary>
+    public long FilterVersion => 0;
 
-    public bool FilterMapToBrowser => _filterMapCheckBox?.ButtonPressed == true;
+    /// <summary>Legacy filter API — the registry no longer filters; always false.</summary>
+    public bool FilterMapToBrowser => false;
 
-    public int SelectedGeneratorFilterId => _selectedGeneratorFilterId;
+    /// <summary>Legacy filter API — the registry no longer filters; always 0.</summary>
+    public int SelectedGeneratorFilterId => 0;
+
+    /// <summary>Legacy filter API — the registry no longer filters; always null.</summary>
+    public HashSet<int>? VisibleEntityIdsForMap() => null;
 
     public void Initialize(UiProjectionState? projection, IProjectionSymbolCatalog? symbols)
     {
@@ -76,15 +73,44 @@ public partial class EntityBrowser : PanelContainer
         AddChild(vbox);
 
         AddHeader(vbox);
-        AddVirtualizedList(vbox);
+        AddScrollList(vbox);
         Refresh();
+    }
+
+    public void Refresh()
+    {
+        if (_projection is null || _listContainer is null)
+        {
+            return;
+        }
+
+        ReleaseActiveWrappers();
+        var tree = BuildTree();
+        RenderTree(tree);
     }
 
     private void AddHeader(VBoxContainer vbox)
     {
-        vbox.AddChild(CreateHeaderLabel("Registry", UiTokens.SizeTitleMedium, UiTokens.Vellum));
-        vbox.AddChild(CreateHeaderLabel("ACTIVE ENTITIES", UiTokens.SizeMicro, UiTokens.Whisper));
-        AddFilterControls(vbox);
+        var title = new Label
+        {
+            Text = "Registry",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        title.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        title.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
+        title.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        vbox.AddChild(title);
+
+        var subtitle = new Label
+        {
+            Text = "BY AFFILIATION",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        subtitle.AddThemeFontOverride("font", UiTheme.BodyFont);
+        subtitle.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
+        subtitle.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        vbox.AddChild(subtitle);
+
         vbox.AddChild(new ColorRect
         {
             Color = UiTokens.Hairline,
@@ -93,382 +119,282 @@ public partial class EntityBrowser : PanelContainer
         });
     }
 
-    private static Label CreateHeaderLabel(string text, int size, Color color)
+    private void AddScrollList(VBoxContainer vbox)
     {
-        var label = new Label
-        {
-            Text = text,
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        label.AddThemeFontOverride("font", size == UiTokens.SizeTitleMedium ? UiTheme.DisplayFont : UiTheme.BodyFont);
-        label.AddThemeFontSizeOverride("font_size", size);
-        label.AddThemeColorOverride("font_color", color);
-        return label;
-    }
-
-    private void AddFilterControls(VBoxContainer vbox)
-    {
-        var controls = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        controls.AddThemeConstantOverride("separation", UiTokens.Space1);
-        controls.AddChild(CreateGeneratorFilterRow());
-        controls.AddChild(CreateMapFilterRow());
-        vbox.AddChild(controls);
-    }
-
-    private HBoxContainer CreateGeneratorFilterRow()
-    {
-        var row = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        row.AddThemeConstantOverride("separation", UiTokens.Space1);
-
-        var label = new Label
-        {
-            Text = "Generator",
-            CustomMinimumSize = new Vector2(72, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        label.AddThemeFontOverride("font", UiTheme.BodyFont);
-        label.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
-        label.AddThemeColorOverride("font_color", UiTokens.Whisper);
-        row.AddChild(label);
-
-        _generatorFilterOption = new OptionButton
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 28),
-            TooltipText = "Filter entities by the generator that spawned them.",
-        };
-        _generatorFilterOption.ItemSelected += OnGeneratorFilterSelected;
-        row.AddChild(_generatorFilterOption);
-        return row;
-    }
-
-    private HBoxContainer CreateMapFilterRow()
-    {
-        var row = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        row.AddThemeConstantOverride("separation", UiTokens.Space1);
-
-        _filterMapCheckBox = new CheckBox
-        {
-            Text = "Filter map",
-            TooltipText = "Only draw browser-matched entities on the map.",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        _filterMapCheckBox.Toggled += OnFilterMapToggled;
-        row.AddChild(_filterMapCheckBox);
-
-        _filterSummaryLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Right,
-            VerticalAlignment = VerticalAlignment.Center,
-            CustomMinimumSize = new Vector2(64, 0),
-        };
-        _filterSummaryLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
-        _filterSummaryLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
-        _filterSummaryLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
-        row.AddChild(_filterSummaryLabel);
-        return row;
-    }
-
-    private void AddVirtualizedList(VBoxContainer vbox)
-    {
-        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        vbox.AddChild(_scroll);
+        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+        vbox.AddChild(scroll);
 
         _listContainer = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _listContainer.AddThemeConstantOverride("separation", 0);
-        _scroll.AddChild(_listContainer);
-
-        _topSpacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _visibleContainer = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _visibleContainer.AddThemeConstantOverride("separation", 2);
-        _bottomSpacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _listContainer.AddChild(_topSpacer);
-        _listContainer.AddChild(_visibleContainer);
-        _listContainer.AddChild(_bottomSpacer);
-
-        _scroll.GetVScrollBar().ValueChanged += OnScrollValueChanged;
-        _scroll.Resized += QueueVisibleRefresh;
-        Resized += QueueVisibleRefresh;
+        _listContainer.AddThemeConstantOverride("separation", 2);
+        scroll.AddChild(_listContainer);
     }
 
-    public void Refresh()
+    private RegistryTree BuildTree()
     {
-        if (_projection is null || _listContainer is null || _visibleContainer is null)
+        var tree = new RegistryTree();
+        if (_projection is null)
         {
-            ClearVirtualizedItems();
-            return;
+            return tree;
         }
 
-        RebuildGeneratorFilterOptions();
-        RebuildSnapshot();
-        PresentVisibleItems();
-        QueueVisibleRefresh();
+        var byTier = _projection.Entities.Values
+            .Where(e => e.StatusCode == EntityStatusCodes.Active)
+            .GroupBy(e => _projection.EntityTierOf(e.EntityId))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        tree.Realms = byTier.GetValueOrDefault(EntityTier.Realm, []);
+        tree.Untiered = byTier.GetValueOrDefault(EntityTier.None, []);
+        var places = byTier.GetValueOrDefault(EntityTier.Place, []);
+        var lives = byTier.GetValueOrDefault(EntityTier.Life, []);
+        var realmIds = tree.Realms.Select(r => r.EntityId).ToHashSet();
+        var placeIds = places.Select(p => p.EntityId).ToHashSet();
+
+        AssignPlacesToRealms(places, realmIds, tree);
+        AssignLivesToPlacesAndRealms(lives, placeIds, realmIds, tree);
+        return tree;
     }
 
-    public HashSet<int>? VisibleEntityIdsForMap()
+    private void AssignPlacesToRealms(
+        List<UiEntityProjection> places,
+        HashSet<int> realmIds,
+        RegistryTree tree)
     {
-        if (!FilterMapToBrowser || _projection is null || _selectedGeneratorFilterId == AllGeneratorFilterId)
+        foreach (var place in places)
         {
-            return null;
+            var realmId = FirstAffiliationTarget(place.EntityId, realmIds);
+            if (realmId is { } id)
+            {
+                AppendChild(tree.PlacesByRealm, id, place);
+            }
+            else
+            {
+                tree.OrphanPlaces.Add(place);
+            }
+        }
+    }
+
+    private void AssignLivesToPlacesAndRealms(
+        List<UiEntityProjection> lives,
+        HashSet<int> placeIds,
+        HashSet<int> realmIds,
+        RegistryTree tree)
+    {
+        foreach (var life in lives)
+        {
+            var placeId = FirstAffiliationTarget(life.EntityId, placeIds);
+            if (placeId is { } pid)
+            {
+                AppendChild(tree.LivesByPlace, pid, life);
+                continue;
+            }
+
+            var realmId = FirstAffiliationTarget(life.EntityId, realmIds);
+            if (realmId is { } rid)
+            {
+                AppendChild(tree.LivesByRealm, rid, life);
+                continue;
+            }
+
+            tree.OrphanLives.Add(life);
+        }
+    }
+
+    private static void AppendChild(
+        Dictionary<int, List<UiEntityProjection>> map,
+        int key,
+        UiEntityProjection entity)
+    {
+        if (!map.TryGetValue(key, out var list))
+        {
+            list = [];
+            map[key] = list;
         }
 
-        return FilteredActiveEntities().Select(static entity => entity.EntityId).ToHashSet();
+        list.Add(entity);
     }
 
-    private void RebuildSnapshot()
+    private int? FirstAffiliationTarget(int entityId, HashSet<int> candidateTargets)
     {
-        _items.Clear();
-        _itemOffsets.Clear();
-        _totalHeight = 0f;
-        var firstKind = true;
-
-        foreach (var group in FilteredActiveEntities()
-            .OrderBy(entity => ProjectionDisplay.StableName(_symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}"), StringComparer.Ordinal)
-            .ThenBy(entity => ProjectionDisplay.EntityName(_symbols, entity), StringComparer.Ordinal)
-            .GroupBy(entity => entity.KindId))
+        foreach (var rel in _projection!.ActiveOutgoingRelationships(entityId))
         {
-            var entities = group.ToArray();
-            if (entities.Length == 0)
+            if (!_projection.IsAffiliationRelationship(rel.Key.RelationshipKindId))
             {
                 continue;
             }
 
-            var kindStableName = ProjectionDisplay.StableName(_symbols, ProjectionSymbolKind.Kind, group.Key, $"kind-{group.Key}");
-            var displayName = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Kind, group.Key, kindStableName);
-            var accent = UiTokens.KindAccent(kindStableName);
-            AddSnapshotItem(RegistryItemData.Header(
-                new RegistryItemKey(RegistryItemType.KindHeader, group.Key, 0),
-                displayName,
-                accent,
-                entities.Length,
-                hasLeadingGap: !firstKind));
-            firstKind = false;
-
-            foreach (var entity in entities)
+            if (candidateTargets.Contains(rel.Key.TargetEntityId))
             {
-                AddSnapshotItem(RegistryItemData.ForEntity(
-                    new RegistryItemKey(RegistryItemType.EntityRow, entity.KindId, entity.EntityId),
-                    entity));
+                return rel.Key.TargetEntityId;
             }
+        }
+
+        return null;
+    }
+
+    private void RenderTree(RegistryTree tree)
+    {
+        foreach (var realm in tree.Realms.OrderBy(NameOf, StringComparer.Ordinal))
+        {
+            RenderRealmSubtree(realm, tree);
+        }
+
+        RenderOrphanSection(UnaffiliatedPlacesLabel, tree.OrphanPlaces, tree, includeLivesUnderPlaces: true);
+        RenderOrphanLives(tree.OrphanLives);
+        RenderUntiered(tree.Untiered);
+    }
+
+    private void RenderRealmSubtree(UiEntityProjection realm, RegistryTree tree)
+    {
+        AddEntityRow(realm, indentLevel: 0);
+
+        foreach (var place in tree.PlacesByRealm.GetValueOrDefault(realm.EntityId, []).OrderBy(NameOf, StringComparer.Ordinal))
+        {
+            AddEntityRow(place, indentLevel: 1);
+            RenderLivesInPlace(place, tree);
+        }
+
+        foreach (var life in tree.LivesByRealm.GetValueOrDefault(realm.EntityId, []).OrderBy(NameOf, StringComparer.Ordinal))
+        {
+            AddEntityRow(life, indentLevel: 1);
         }
     }
 
-    private IEnumerable<UiEntityProjection> FilteredActiveEntities() =>
-        _projection!.Entities.Values
-            .Where(entity => entity.StatusCode == EntityStatusCodes.Active && EntityMatchesGeneratorFilter(entity));
-
-    private bool EntityMatchesGeneratorFilter(UiEntityProjection entity) =>
-        _selectedGeneratorFilterId switch
-        {
-            AllGeneratorFilterId => true,
-            SeedGeneratorFilterId => entity.CreatedByGeneratorId is null,
-            _ => entity.CreatedByGeneratorId == _selectedGeneratorFilterId,
-        };
-
-    private void RebuildGeneratorFilterOptions()
+    private void RenderLivesInPlace(UiEntityProjection place, RegistryTree tree)
     {
-        if (_generatorFilterOption is null || _projection is null)
+        foreach (var life in tree.LivesByPlace.GetValueOrDefault(place.EntityId, []).OrderBy(NameOf, StringComparer.Ordinal))
+        {
+            AddEntityRow(life, indentLevel: 2);
+        }
+    }
+
+    private void RenderOrphanSection(
+        string label,
+        List<UiEntityProjection> orphanPlaces,
+        RegistryTree tree,
+        bool includeLivesUnderPlaces)
+    {
+        if (orphanPlaces.Count == 0)
         {
             return;
         }
 
-        var activeEntities = _projection.Entities.Values
-            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
-            .ToArray();
-        var countsByGenerator = activeEntities
-            .Where(static entity => entity.CreatedByGeneratorId is not null)
-            .GroupBy(static entity => entity.CreatedByGeneratorId!.Value)
-            .ToDictionary(static group => group.Key, static group => group.Count());
-        var seedCount = activeEntities.Count(static entity => entity.CreatedByGeneratorId is null);
-        var generatorOptions = countsByGenerator.Keys
-            .Select(generatorId => new
+        AddSectionHeader(label, leadingGap: true);
+        foreach (var place in orphanPlaces.OrderBy(NameOf, StringComparer.Ordinal))
+        {
+            AddEntityRow(place, indentLevel: 1);
+            if (includeLivesUnderPlaces)
             {
-                GeneratorId = generatorId,
-                Name = ProjectionDisplay.DisplayName(
-                    _symbols,
-                    ProjectionSymbolKind.Generator,
-                    generatorId,
-                    $"Generator {generatorId}"),
-                Count = countsByGenerator[generatorId],
-            })
-            .OrderBy(option => option.Name, StringComparer.Ordinal)
-            .ToArray();
-
-        if (_selectedGeneratorFilterId > 0 && !countsByGenerator.ContainsKey(_selectedGeneratorFilterId))
-        {
-            _selectedGeneratorFilterId = AllGeneratorFilterId;
+                RenderLivesInPlace(place, tree);
+            }
         }
-
-        _updatingFilterControls = true;
-        _generatorFilterOption.Clear();
-        _generatorFilterOption.AddItem($"All generators ({activeEntities.Length})", AllGeneratorFilterId);
-        _generatorFilterOption.AddItem($"Seeded / untraced ({seedCount})", SeedGeneratorFilterId);
-        foreach (var option in generatorOptions)
-        {
-            _generatorFilterOption.AddItem($"{option.Name} ({option.Count})", option.GeneratorId);
-        }
-
-        var selectedIndex = FindOptionIndexById(_generatorFilterOption, _selectedGeneratorFilterId);
-        if (selectedIndex < 0)
-        {
-            _selectedGeneratorFilterId = AllGeneratorFilterId;
-            selectedIndex = FindOptionIndexById(_generatorFilterOption, AllGeneratorFilterId);
-        }
-
-        if (selectedIndex >= 0)
-        {
-            _generatorFilterOption.Select(selectedIndex);
-        }
-
-        _updatingFilterControls = false;
-        UpdateFilterSummary();
     }
 
-    private void UpdateFilterSummary()
+    private void RenderOrphanLives(List<UiEntityProjection> orphanLives)
     {
-        if (_filterSummaryLabel is null || _projection is null)
+        if (orphanLives.Count == 0)
         {
             return;
         }
 
-        _filterSummaryLabel.Text = $"{FilteredActiveEntities().Count()} shown";
-    }
-
-    private static int FindOptionIndexById(OptionButton option, int id)
-    {
-        for (var i = 0; i < option.ItemCount; i++)
+        AddSectionHeader(WildSectionLabel, leadingGap: true);
+        foreach (var life in orphanLives.OrderBy(NameOf, StringComparer.Ordinal))
         {
-            if (option.GetItemId(i) == id)
-            {
-                return i;
-            }
+            AddEntityRow(life, indentLevel: 1);
         }
-
-        return -1;
     }
 
-    private void AddSnapshotItem(RegistryItemData data)
+    private void RenderUntiered(List<UiEntityProjection> untiered)
     {
-        _itemOffsets.Add(_totalHeight);
-        _items.Add(data);
-        _totalHeight += data.Height;
-    }
-
-    private void PresentVisibleItems()
-    {
-        if (_scroll is null ||
-            _visibleContainer is null ||
-            _topSpacer is null ||
-            _bottomSpacer is null)
+        if (untiered.Count == 0)
         {
             return;
         }
 
-        if (_items.Count == 0)
+        AddSectionHeader(UntieredSectionLabel, leadingGap: true);
+        foreach (var entity in untiered.OrderBy(NameOf, StringComparer.Ordinal))
         {
-            ReleaseAllVisibleNodes();
-            SetSpacerHeights(0f, 0f);
+            AddEntityRow(entity, indentLevel: 1);
+        }
+    }
+
+    private string NameOf(UiEntityProjection entity) =>
+        ProjectionDisplay.EntityName(_symbols, entity);
+
+    private void AddSectionHeader(string text, bool leadingGap)
+    {
+        var header = RentHeader();
+        var wrapper = WrapWithIndent(header, indentLevel: 0);
+        _listContainer!.AddChild(wrapper);
+        header.BindTo(text, UiTokens.Parchment, count: 0, hasLeadingGap: leadingGap);
+    }
+
+    private void AddEntityRow(UiEntityProjection entity, int indentLevel)
+    {
+        var row = RentRow();
+        var wrapper = WrapWithIndent(row, indentLevel);
+        _listContainer!.AddChild(wrapper);
+        row.BindTo(entity, _symbols);
+    }
+
+    private MarginContainer WrapWithIndent(Control content, int indentLevel)
+    {
+        var wrapper = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        wrapper.AddThemeConstantOverride("margin_left", indentLevel * IndentStepPx);
+        wrapper.AddChild(content);
+        _activeWrappers.Add(wrapper);
+        return wrapper;
+    }
+
+    private void ReleaseActiveWrappers()
+    {
+        if (_listContainer is null)
+        {
             return;
         }
 
-        var range = VisibleRange();
-        ReleaseNodesOutside(range.First, range.Last);
-        SetSpacerHeights(_itemOffsets[range.First], BottomSpacerHeight(range.Last));
-        PresentRange(range.First, range.Last);
-    }
-
-    private (int First, int Last) VisibleRange()
-    {
-        var viewportHeight = Math.Max(1f, _scroll?.Size.Y ?? 1f);
-        var scrollTop = Math.Max(0f, _scroll?.ScrollVertical ?? 0);
-        var overscan = EntityRowHeight * OverscanItemCount;
-        var first = FindFirstVisibleIndex(Math.Max(0f, scrollTop - overscan));
-        var endOffset = scrollTop + viewportHeight + overscan;
-        var last = first;
-        while (last < _items.Count && _itemOffsets[last] < endOffset)
+        foreach (var wrapper in _activeWrappers)
         {
-            last++;
-        }
-
-        return (first, Math.Max(first + 1, last));
-    }
-
-    private int FindFirstVisibleIndex(float offset)
-    {
-        var low = 0;
-        var high = _items.Count - 1;
-        var result = _items.Count - 1;
-        while (low <= high)
-        {
-            var mid = low + ((high - low) / 2);
-            if (_itemOffsets[mid] + _items[mid].Height >= offset)
+            if (wrapper.GetChildCount() > 0)
             {
-                result = mid;
-                high = mid - 1;
-                continue;
+                var content = wrapper.GetChild<Control>(0);
+                wrapper.RemoveChild(content);
+                ReturnControlToPool(content);
             }
 
-            low = mid + 1;
-        }
-
-        return result;
-    }
-
-    private void PresentRange(int first, int last)
-    {
-        for (var i = first; i < last; i++)
-        {
-            var data = _items[i];
-            var node = GetOrCreateVisibleNode(data);
-            BindNode(node, data);
-            node.CustomMinimumSize = new Vector2(0, data.Height);
-            if (node.GetParent() != _visibleContainer)
+            if (wrapper.GetParent() == _listContainer)
             {
-                _visibleContainer!.AddChild(node);
+                _listContainer.RemoveChild(wrapper);
             }
 
-            if (_visibleContainer!.GetChild(i - first) != node)
-            {
-                _visibleContainer.MoveChild(node, i - first);
-            }
+            wrapper.QueueFree();
         }
+
+        _activeWrappers.Clear();
     }
 
-    private Control GetOrCreateVisibleNode(RegistryItemData data)
+    private void ReturnControlToPool(Control control)
     {
-        if (_visibleNodes.TryGetValue(data.Key, out var existing))
+        switch (control)
         {
-            return existing;
+            case EntityRow row:
+                _rowPool.Add(row);
+                break;
+            case EntityKindHeader header:
+                _headerPool.Add(header);
+                break;
+            case Label label:
+                _labelPool.Add(label);
+                break;
         }
-
-        var node = data.ItemType == RegistryItemType.KindHeader
-            ? (Control)RentHeader()
-            : RentRow();
-        node.Visible = true;
-        _visibleNodes[data.Key] = node;
-        return node;
     }
-
-    private EntityKindHeader RentHeader() =>
-        _headerPool.Count > 0
-            ? _headerPool.Pop()
-            : _kindHeaderScene?.Instantiate<EntityKindHeader>()
-                ?? throw new InvalidOperationException("EntityKindHeader scene is not loaded.");
 
     private EntityRow RentRow()
     {
         if (_rowPool.Count > 0)
         {
-            return _rowPool.Pop();
+            var pooled = _rowPool[^1];
+            _rowPool.RemoveAt(_rowPool.Count - 1);
+            return pooled;
         }
 
         var row = _entityRowScene?.Instantiate<EntityRow>()
@@ -477,222 +403,30 @@ public partial class EntityBrowser : PanelContainer
         return row;
     }
 
-    private void BindNode(Control node, RegistryItemData data)
+    private EntityKindHeader RentHeader()
     {
-        if (data.ItemType == RegistryItemType.KindHeader && node is EntityKindHeader header)
+        if (_headerPool.Count > 0)
         {
-            header.BindTo(data.DisplayName, data.Accent, data.Count, data.HasLeadingGap);
-        }
-        else if (data.Entity is not null && node is EntityRow row)
-        {
-            row.BindTo(data.Entity, _symbols);
-        }
-    }
-
-    private void ReleaseNodesOutside(int first, int last)
-    {
-        _releaseKeys.Clear();
-        foreach (var key in _visibleNodes.Keys)
-        {
-            if (!IsInVisibleRange(key, first, last))
-            {
-                _releaseKeys.Add(key);
-            }
+            var pooled = _headerPool[^1];
+            _headerPool.RemoveAt(_headerPool.Count - 1);
+            return pooled;
         }
 
-        foreach (var key in _releaseKeys)
-        {
-            ReleaseVisibleNode(key);
-        }
-
-        _releaseKeys.Clear();
-    }
-
-    private bool IsInVisibleRange(RegistryItemKey key, int first, int last)
-    {
-        for (var i = first; i < last; i++)
-        {
-            if (_items[i].Key == key)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void ReleaseAllVisibleNodes()
-    {
-        foreach (var key in _visibleNodes.Keys.ToArray())
-        {
-            ReleaseVisibleNode(key);
-        }
-    }
-
-    private void ReleaseVisibleNode(RegistryItemKey key)
-    {
-        if (!_visibleNodes.TryGetValue(key, out var node))
-        {
-            return;
-        }
-
-        _visibleNodes.Remove(key);
-        if (node.GetParent() == _visibleContainer)
-        {
-            _visibleContainer?.RemoveChild(node);
-        }
-
-        node.Visible = false;
-        if (node is EntityRow row)
-        {
-            _rowPool.Push(row);
-        }
-        else if (node is EntityKindHeader header)
-        {
-            _headerPool.Push(header);
-        }
-    }
-
-    private void ClearVirtualizedItems()
-    {
-        ReleaseAllVisibleNodes();
-        FreePool(_rowPool);
-        FreePool(_headerPool);
-        _items.Clear();
-        _itemOffsets.Clear();
-        _totalHeight = 0f;
-        SetSpacerHeights(0f, 0f);
-    }
-
-    private static void FreePool<TNode>(Stack<TNode> pool)
-        where TNode : Node
-    {
-        while (pool.Count > 0)
-        {
-            pool.Pop().QueueFree();
-        }
-    }
-
-    private float BottomSpacerHeight(int last)
-    {
-        var end = _itemOffsets[last - 1] + _items[last - 1].Height;
-        return Math.Max(0f, _totalHeight - end);
-    }
-
-    private void SetSpacerHeights(float top, float bottom)
-    {
-        if (_topSpacer is not null)
-        {
-            _topSpacer.CustomMinimumSize = new Vector2(0, top);
-        }
-
-        if (_bottomSpacer is not null)
-        {
-            _bottomSpacer.CustomMinimumSize = new Vector2(0, bottom);
-        }
-    }
-
-    private void QueueVisibleRefresh()
-    {
-        if (_visibleRefreshQueued)
-        {
-            return;
-        }
-
-        _visibleRefreshQueued = true;
-        CallDeferred(nameof(PresentVisibleItemsDeferred));
-    }
-
-    private void PresentVisibleItemsDeferred()
-    {
-        _visibleRefreshQueued = false;
-        PresentVisibleItems();
-    }
-
-    private void OnScrollValueChanged(double value)
-    {
-        _ = value;
-        PresentVisibleItems();
+        return _kindHeaderScene?.Instantiate<EntityKindHeader>()
+            ?? throw new InvalidOperationException("EntityKindHeader scene is not loaded.");
     }
 
     private void OnRowEntitySelected(int entityIdValue) =>
         EmitSignal(SignalName.EntitySelected, entityIdValue);
 
-    private void OnGeneratorFilterSelected(long selectedIndex)
+    private sealed class RegistryTree
     {
-        if (_updatingFilterControls || _generatorFilterOption is null)
-        {
-            return;
-        }
-
-        var filterId = _generatorFilterOption.GetItemId((int)selectedIndex);
-        if (_selectedGeneratorFilterId == filterId)
-        {
-            return;
-        }
-
-        _selectedGeneratorFilterId = filterId;
-        ApplyFilterChange(resetScroll: true);
-    }
-
-    private void OnFilterMapToggled(bool pressed)
-    {
-        _ = pressed;
-        if (_updatingFilterControls)
-        {
-            return;
-        }
-
-        ApplyFilterChange(resetScroll: false);
-    }
-
-    private void ApplyFilterChange(bool resetScroll)
-    {
-        FilterVersion++;
-        if (resetScroll && _scroll is not null)
-        {
-            _scroll.ScrollVertical = 0;
-        }
-
-        Refresh();
-        EmitSignal(SignalName.EntityFilterChanged);
-    }
-
-    private readonly record struct RegistryItemKey(RegistryItemType ItemType, int KindId, int EntityId);
-
-    private enum RegistryItemType
-    {
-        KindHeader,
-        EntityRow,
-    }
-
-    private sealed record RegistryItemData(
-        RegistryItemKey Key,
-        RegistryItemType ItemType,
-        UiEntityProjection? Entity,
-        string DisplayName,
-        Color Accent,
-        int Count,
-        bool HasLeadingGap,
-        float Height)
-    {
-        public static RegistryItemData Header(
-            RegistryItemKey key,
-            string displayName,
-            Color accent,
-            int count,
-            bool hasLeadingGap) =>
-            new(
-                key,
-                RegistryItemType.KindHeader,
-                null,
-                displayName,
-                accent,
-                count,
-                hasLeadingGap,
-                HeaderHeight + (hasLeadingGap ? HeaderLeadingGapHeight : 0f));
-
-        public static RegistryItemData ForEntity(RegistryItemKey key, UiEntityProjection entity) =>
-            new(key, RegistryItemType.EntityRow, entity, string.Empty, default, 0, false, EntityRowHeight);
+        public List<UiEntityProjection> Realms { get; set; } = [];
+        public Dictionary<int, List<UiEntityProjection>> PlacesByRealm { get; set; } = [];
+        public Dictionary<int, List<UiEntityProjection>> LivesByPlace { get; set; } = [];
+        public Dictionary<int, List<UiEntityProjection>> LivesByRealm { get; set; } = [];
+        public List<UiEntityProjection> OrphanPlaces { get; set; } = [];
+        public List<UiEntityProjection> OrphanLives { get; set; } = [];
+        public List<UiEntityProjection> Untiered { get; set; } = [];
     }
 }

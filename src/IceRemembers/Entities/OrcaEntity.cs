@@ -19,6 +19,7 @@ internal static class OrcaEntity
     {
         Kind = K.Orca,
         Category = EntityCategory.Agency,
+        Tier = EntityTier.Life,
         Subtypes = Subtypes("matriarch", "bull", "scout", "elder"),
         HealthAttribute = Attr.Endurance,
         HealthDisplayName = "Endurance",

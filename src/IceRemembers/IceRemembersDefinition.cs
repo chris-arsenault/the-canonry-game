@@ -9,6 +9,7 @@ using Attr = IceRemembers.IceRemembersAttributeId;
 using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using GambitId = IceRemembers.IceRemembersGambitId;
+using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
 using Terrain = IceRemembers.IceRemembersTerrain;
 using Verb = IceRemembers.IceRemembersVerbId;
@@ -109,22 +110,22 @@ public static partial class IceRemembersDefinition
 
         return
         [
-            new() { Name = L(Rel.ControlledBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = spatial, ValidTargetCategories = agency, IsExclusive = true, Maintenance = ControlledByMaintenance() },
-            new() { Name = L(Rel.HomeBase), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = spatial, IsExclusive = true },
-            new() { Name = L(Rel.AlliedWith), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, IsSymmetric = true, CullThreshold = 0.1f, Maintenance = AgencyBondMaintenance() },
+            new() { Name = L(Rel.ControlledBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = spatial, ValidTargetCategories = agency, IsExclusive = true, Maintenance = ControlledByMaintenance(), IsAffiliation = true },
+            new() { Name = L(Rel.HomeBase), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = spatial, IsExclusive = true, IsAffiliation = true },
+            new() { Name = L(Rel.AlliedWith), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, IsSymmetric = true, CullThreshold = 0.1f, Maintenance = AgencyBondMaintenance(), IsAffiliation = true },
             new() { Name = L(Rel.RivalOf), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AgencyConflictMaintenance() },
-            new() { Name = L(Rel.LedBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = agency, IsExclusive = true, Maintenance = AgencyBondMaintenance() },
-            new() { Name = L(Rel.MemberOf), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = agency, Maintenance = AgencyBondMaintenance() },
-            new() { Name = L(Rel.Holds), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = asset, TargetFollowsSourcePhysical = true },
+            new() { Name = L(Rel.LedBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = agency, IsExclusive = true, Maintenance = AgencyBondMaintenance(), IsAffiliation = true },
+            new() { Name = L(Rel.MemberOf), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = agency, Maintenance = AgencyBondMaintenance(), IsAffiliation = true },
+            new() { Name = L(Rel.Holds), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = asset, TargetFollowsSourcePhysical = true, IsAffiliation = true },
             new() { Name = L(Rel.CreatedBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = agency },
             new() { Name = L(Rel.Memorializes), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = spatialOrAsset, ValidTargetCategories = agencyOrSpatialOrAsset, Maintenance = SemanticBondMaintenance() },
-            new() { Name = L(Rel.ClaimedBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = spatialOrAsset, ValidTargetCategories = agency, Maintenance = ControlledByMaintenance() },
-            new() { Name = L(Rel.TradeRoute), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = spatial, ValidTargetCategories = spatial, IsSymmetric = true, CullThreshold = 0.05f, Maintenance = SpatialBondMaintenance() },
+            new() { Name = L(Rel.ClaimedBy), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = spatialOrAsset, ValidTargetCategories = agency, Maintenance = ControlledByMaintenance(), IsAffiliation = true },
+            new() { Name = L(Rel.TradeRoute), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = spatial, ValidTargetCategories = spatial, IsSymmetric = true, CullThreshold = 0.05f, Maintenance = SpatialBondMaintenance(), IsAffiliation = true },
             new() { Name = L(Rel.FoundedFrom), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = spatial, ValidTargetCategories = spatial },
-            new() { Name = L(Rel.NativeTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = spatial },
-            new() { Name = L(Rel.Anchored), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, Maintenance = ContactBondMaintenance() },
+            new() { Name = L(Rel.NativeTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsAffiliation = true },
+            new() { Name = L(Rel.Anchored), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, Maintenance = ContactBondMaintenance(), IsAffiliation = true },
             new() { Name = L(Rel.ConduitOf), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = spatialOrAsset, Maintenance = SemanticBondMaintenance() },
-            new() { Name = L(Rel.PartOf), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = asset },
+            new() { Name = L(Rel.PartOf), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = asset, IsAffiliation = true },
             new() { Name = L(Rel.WardAgainst), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = asset, ValidTargetCategories = agencyOrSpatialOrAsset, CullThreshold = 0.05f, Maintenance = SemanticBondMaintenance() },
             new() { Name = L(Rel.CorruptedBy), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agencyOrSpatialOrAsset, ValidTargetCategories = agencyOrSpatialOrAsset, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
             new() { Name = L(Rel.CleansedBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agencyOrSpatialOrAsset, ValidTargetCategories = agencyOrSpatialOrAsset, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
@@ -439,13 +440,158 @@ public static partial class IceRemembersDefinition
     private static string GameplayPlaneName(PrimaryPlane plane) =>
         plane == PrimaryPlane.Semantic ? "semantic" : "physical";
 
-    private static List<CultureConfig> CreateCultures()
-    {
-        return
-        [
-            new() { Id = C(Culture.AuroraStack), DisplayName = "Aurora Stack" },
-            new() { Id = C(Culture.Nightshelf), DisplayName = "Nightshelf" },
-            new() { Id = C(Culture.WakeSingers), DisplayName = "Wake-Singers" },
-        ];
-    }
+    private static List<CultureConfig> CreateCultures() =>
+    [
+        CreateAuroraStackCulture(),
+        CreateNightshelfCulture(),
+        CreateWakeSingersCulture(),
+    ];
+
+    private static CultureConfig CreateAuroraStackCulture() =>
+        CultureDefinition(
+            Culture.AuroraStack,
+            "Aurora Stack",
+            [
+                Slot("high_rookery", "High Rookery", CultureSlotPolarity.Positive, [K.Settlement], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.PhysicalCoverage, 0.85f),
+                    Score(CultureSlotScoreSignal.PhysicalInfluence, 0.018f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.75f, Rel.TradeRoute),
+                ], "The settlement whose public ground makes the Stack legible.", cultureBenefit: 0.015f),
+                Slot("open_court", "Open Court", CultureSlotPolarity.Positive, [K.Faction, K.Penguin], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 3f), Score(CultureSlotScoreSignal.SemanticInfluence, 0.018f),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.8f, Rel.MemberOf), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.8f, Rel.AlliedWith),
+                ], "The visible voice that keeps rival rookeries talking.", entityBenefit: 0.07f, cultureBenefit: 0.01f),
+                Slot("hearth_keeper", "Hearth Keeper", CultureSlotPolarity.Positive, [K.Settlement, K.Penguin], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 3f), Score(CultureSlotScoreSignal.PhysicalCoverage, 0.65f),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.HomeBase), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.HomeBase),
+                ], "The body or place most responsible for sheltering the culture.", entityBenefit: 0.06f, cultureBenefit: 0.01f),
+                Slot("beacon_bearer", "Beacon Bearer", CultureSlotPolarity.Neutral, [K.Artifact, K.Transport, K.Penguin], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.5f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.Holds),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.7f, Rel.Memorializes), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.55f, Rel.ConduitOf),
+                ], "The carried sign that lets scattered parties recognize one another.", entityBenefit: 0.055f),
+                Slot("public_rival", "Public Rival", CultureSlotPolarity.Negative, [K.Faction, K.Penguin, K.Orca], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.5f), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1f, Rel.RivalOf),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 1f, Rel.RivalOf), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1.1f, Rel.AtWarWith),
+                ], "The adversary whose opposition organizes the Stack's public stance.", entityBenefit: 0.04f),
+                Slot("broken_oath", "Broken Oath", CultureSlotPolarity.Negative, [], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2f), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1.2f, Rel.BetrayedBy),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.BetrayedBy), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.8f, Rel.CorruptedBy),
+                ], "The shame or breach that the culture cannot stop answering.", entityBenefit: 0.035f),
+            ]);
+
+    private static CultureConfig CreateNightshelfCulture() =>
+        CultureDefinition(
+            Culture.Nightshelf,
+            "Nightshelf",
+            [
+                Slot("ledger_seat", "Ledger Seat", CultureSlotPolarity.Positive, [K.Faction], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.ControlledBy),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.7f, Rel.MemberOf), Score(CultureSlotScoreSignal.SemanticInfluence, 0.016f),
+                ], "The faction that turns private obligation into policy.", entityBenefit: 0.075f, cultureBenefit: 0.015f),
+                Slot("charter_harbor", "Charter Harbor", CultureSlotPolarity.Positive, [K.Settlement, K.Transport], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 3f), Score(CultureSlotScoreSignal.PhysicalCoverage, 0.75f),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.85f, Rel.TradeRoute), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.85f, Rel.TradeRoute),
+                ], "The route-node that makes Nightshelf bargains move.", cultureBenefit: 0.012f),
+                Slot("quiet_patron", "Quiet Patron", CultureSlotPolarity.Neutral, [K.Faction, K.Penguin, K.Artifact], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.75f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 1f, Rel.ClaimedBy),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1f, Rel.ClaimedBy), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.5f, Rel.Holds),
+                ], "The hand behind claims, custody, and sponsorship.", entityBenefit: 0.06f, cultureBenefit: 0.006f),
+                Slot("seal_of_passage", "Seal of Passage", CultureSlotPolarity.Positive, [K.Artifact, K.Ability, K.Transport], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.5f), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.8f, Rel.ConduitOf),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.75f, Rel.PracticedBy), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.75f, Rel.Holds),
+                ], "The portable proof that turns travel into recognized passage.", entityBenefit: 0.055f, cultureBenefit: 0.008f),
+                Slot("black_ice_broker", "Black-Ice Broker", CultureSlotPolarity.Negative, [K.Faction, K.Penguin, K.Transport], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.25f), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1f, Rel.BetrayedBy),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.8f, Rel.RivalOf), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.7f, Rel.CorruptedBy),
+                ], "The bargain-maker whose leverage corrodes trust.", entityBenefit: 0.04f, cultureBenefit: 0.004f),
+                Slot("debt_anchor", "Debt Anchor", CultureSlotPolarity.Negative, [K.Settlement, K.PointOfInterest, K.Artifact], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.25f), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.ControlledBy),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.ClaimedBy), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.8f, Rel.CorruptedBy),
+                ], "The place or object around which obligations become a trap.", entityBenefit: 0.035f),
+            ]);
+
+    private static CultureConfig CreateWakeSingersCulture() =>
+        CultureDefinition(
+            Culture.WakeSingers,
+            "Wake-Singers",
+            [
+                Slot("oldest_voice", "Oldest Voice", CultureSlotPolarity.Positive, [K.Orca], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.SemanticInfluence, 0.02f),
+                    Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.LedBy), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.7f, Rel.AlliedWith),
+                ], "The whale whose memory gives the song a lead line.", entityBenefit: 0.08f, cultureBenefit: 0.015f),
+                Slot("chorus_mouth", "Chorus Mouth", CultureSlotPolarity.Positive, [K.Orca, K.Ability, K.PointOfInterest], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 3f), Score(CultureSlotScoreSignal.SemanticInfluence, 0.018f),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.8f, Rel.TaughtBy), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.8f, Rel.PracticedBy),
+                ], "The singer, form, or site through which the wake spreads.", entityBenefit: 0.065f, cultureBenefit: 0.01f),
+                Slot("reef_warden", "Reef Warden", CultureSlotPolarity.Neutral, [K.Orca, K.Monster, K.Artifact, K.Region], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.75f), Score(CultureSlotScoreSignal.PhysicalCoverage, 0.6f),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.WardAgainst), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.7f, Rel.Anchored),
+                ], "The boundary keeper that holds the old lines in place.", entityBenefit: 0.055f, cultureBenefit: 0.006f),
+                Slot("memory_carver", "Memory Carver", CultureSlotPolarity.Positive, [K.Artifact, K.PointOfInterest, K.Settlement], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.5f), Score(CultureSlotScoreSignal.SemanticCoverage, 0.7f),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.Memorializes), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.7f, Rel.ConduitOf),
+                ], "The thing that gives the song an enduring cut in the world.", entityBenefit: 0.06f, cultureBenefit: 0.008f),
+                Slot("deep_hunger", "Deep Hunger", CultureSlotPolarity.Negative, [K.Monster, K.Orca], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2.25f), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1f, Rel.CorruptedBy),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 1f, Rel.AtWarWith), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.8f, Rel.WardAgainst),
+                ], "The appetite or threat that pulls the wake out of harmony.", entityBenefit: 0.04f, cultureBenefit: 0.004f),
+                Slot("dissonant_wake", "Dissonant Wake", CultureSlotPolarity.Negative, [], [
+                    Score(CultureSlotScoreSignal.ActiveEntity, 2f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.CorruptedBy),
+                    Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.RivalOf), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.BetrayedBy),
+                ], "The trailing rupture that bends every song around it.", entityBenefit: 0.035f),
+            ]);
+
+    private static CultureConfig CultureDefinition(
+        Culture culture,
+        string displayName,
+        IReadOnlyList<CultureSlotConfig> slots) =>
+        new()
+        {
+            Id = C(culture),
+            DisplayName = displayName,
+            Slots = slots,
+        };
+
+    private static CultureSlotConfig Slot(
+        string id,
+        string displayName,
+        CultureSlotPolarity polarity,
+        EntityKind[] allowedKinds,
+        CultureSlotScoreRuleConfig[] scoreRules,
+        string description,
+        float minimumScore = 2.4f,
+        int minimumTenureTicks = 60,
+        float displacementMargin = 0.2f,
+        float entityBenefit = 0.05f,
+        float cultureBenefit = 0.005f) =>
+        new()
+        {
+            Id = id,
+            DisplayName = displayName,
+            Description = description,
+            Polarity = polarity,
+            AllowedKinds = allowedKinds.ToHashSet(),
+            ScoreRules = scoreRules,
+            Hysteresis = new CultureSlotHysteresisConfig
+            {
+                MinimumScore = minimumScore,
+                MinimumTenureTicks = minimumTenureTicks,
+                DisplacementMargin = displacementMargin,
+            },
+            Benefits = new CultureSlotBenefitConfig
+            {
+                EntityInfluenceMultiplierDelta = entityBenefit,
+                CultureInfluenceMultiplierDelta = cultureBenefit,
+            },
+        };
+
+    private static CultureSlotScoreRuleConfig Score(
+        CultureSlotScoreSignal signal,
+        float weight,
+        Rel? relationship = null) =>
+        new()
+        {
+            Signal = signal,
+            Weight = weight,
+            RelationshipKind = relationship is { } value ? L(value) : null,
+        };
 }

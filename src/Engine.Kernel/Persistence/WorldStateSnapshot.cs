@@ -37,6 +37,7 @@ internal sealed partial class WorldState
         count += _attributes.Count;
         count += _traits.Count;
         count += _mapLayers.Influence.Count;
+        count += _mapLayers.CultureInfluence.Count;
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
             if (_relationshipAllocated[relationshipId] && _relationshipActive[relationshipId])
@@ -57,6 +58,7 @@ internal sealed partial class WorldState
         EmitSnapshotAttributes(context, tick, version);
         EmitSnapshotTraits(context, tick, version);
         EmitSnapshotInfluence(context, tick, version);
+        EmitSnapshotCultureInfluence(context, tick, version);
         EmitSnapshotRelationships(context, tick, version);
     }
 
@@ -221,7 +223,8 @@ internal sealed partial class WorldState
     {
         _mapLayers.Influence.ForEach((entityId, planeCode, coordinateKey, value) =>
         {
-            if (_entityAllocated[entityId] &&
+            if (value > 0f &&
+                _entityAllocated[entityId] &&
                 TryResolveCoordinateKey(coordinateKey, planeCode == PlaneCodes.Semantic ? 4 : 0, out var q, out var r))
             {
                 Write(KernelEvent.From(new CellInfluenceChangedKernelEvent(
@@ -233,6 +236,28 @@ internal sealed partial class WorldState
                     planeCode,
                     entityId,
                     context.ActionId,
+                    0f,
+                    value)),
+                    context);
+            }
+        });
+    }
+
+    private void EmitSnapshotCultureInfluence(KernelExecutionContext context, int tick, long version)
+    {
+        _mapLayers.CultureInfluence.ForEach((cultureId, planeCode, coordinateKey, value) =>
+        {
+            if (value > 0f &&
+                TryResolveCoordinateKey(coordinateKey, planeCode == PlaneCodes.Semantic ? 4 : 0, out var q, out var r))
+            {
+                Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+                    tick,
+                    version,
+                    q,
+                    r,
+                    context.SourceCodeId,
+                    planeCode,
+                    cultureId,
                     0f,
                     value)),
                     context);

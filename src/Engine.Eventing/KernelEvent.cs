@@ -26,6 +26,8 @@ public enum KernelEventType
     MapCellStateChanged = 25,
     CellRoadChanged = 26,
     CellTravelStructureChanged = 27,
+    CellCultureInfluenceChanged = 28,
+    CultureSlotOccupancyChanged = 29,
     Trace = 120,
 }
 
@@ -333,6 +335,46 @@ public readonly record struct CellInfluenceChangedKernelEvent(
     float PreviousInfluence,
     [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]
     float CurrentInfluence);
+
+[KernelEventLayout(KernelEventType.CellCultureInfluenceChanged, schemaMinor: 0)]
+public readonly record struct CellCultureInfluenceChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(1, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(3, "plane_code", KernelEventSemanticKind.PlaneCode)]
+    int PlaneCode,
+    [KernelEventIntSlot(4, "culture_id", KernelEventSemanticKind.CultureId)]
+    int CultureId,
+    [KernelEventFloatSlot(0, "previous_share", KernelEventSemanticKind.RawScalar)]
+    float PreviousShare,
+    [KernelEventFloatSlot(1, "current_share", KernelEventSemanticKind.RawScalar)]
+    float CurrentShare);
+
+[KernelEventLayout(KernelEventType.CultureSlotOccupancyChanged, schemaMinor: 0)]
+public readonly record struct CultureSlotOccupancyChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(1, "culture_id", KernelEventSemanticKind.CultureId)]
+    int CultureId,
+    [KernelEventIntSlot(2, "slot_id", KernelEventSemanticKind.RawScalar)]
+    int SlotId,
+    [KernelEventIntSlot(3, "polarity_code", KernelEventSemanticKind.PolarityCode)]
+    int PolarityCode,
+    [KernelEventIntSlot(4, "previous_entity_id", KernelEventSemanticKind.EntityId)]
+    int PreviousEntityId,
+    [KernelEventIntSlot(5, "current_entity_id", KernelEventSemanticKind.EntityId)]
+    int CurrentEntityId,
+    [KernelEventFloatSlot(0, "previous_score", KernelEventSemanticKind.RawScalar)]
+    float PreviousScore,
+    [KernelEventFloatSlot(1, "current_score", KernelEventSemanticKind.RawScalar)]
+    float CurrentScore);
 
 [KernelEventLayout(KernelEventType.MapCellStateChanged, schemaMinor: 0)]
 public readonly record struct MapCellStateChangedKernelEvent(

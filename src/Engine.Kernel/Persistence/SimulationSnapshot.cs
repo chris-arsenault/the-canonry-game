@@ -16,6 +16,7 @@ internal sealed partial class Simulation
         MapActivityProgramSnapshot.Write(writer, MapActivity);
         MapSignalsProgramSnapshot.Write(writer, MapSignals);
         EffectsProgramSnapshot.Write(writer, Effects);
+        CultureSlotProgramSnapshot.Write(writer, CultureSlots);
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
         GambitProgramSnapshot.Write(writer, Gambits);
@@ -34,6 +35,7 @@ internal sealed partial class Simulation
         MapActivityProgramSnapshot.Read(reader, MapActivity);
         MapSignalsProgramSnapshot.Read(reader, MapSignals);
         EffectsProgramSnapshot.Read(reader, Effects);
+        CultureSlotProgramSnapshot.Read(reader, CultureSlots);
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);
         GambitProgramSnapshot.Read(reader, Gambits);
@@ -44,7 +46,9 @@ internal sealed partial class Simulation
     {
         World.EmitSnapshotEvents(_executionContext);
         Movement.EmitSnapshotEvents(this, CurrentTick);
+        CultureSlots.EmitSnapshotEvents(this, CurrentTick);
     }
 
-    internal int SnapshotEventCount() => World.SnapshotEventCount() + Movement.SnapshotEventCount();
+    internal int SnapshotEventCount() =>
+        World.SnapshotEventCount() + Movement.SnapshotEventCount() + CultureSlots.SnapshotEventCount();
 }

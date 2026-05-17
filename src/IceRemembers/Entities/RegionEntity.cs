@@ -19,6 +19,7 @@ internal static class RegionEntity
     {
         Kind = K.Region,
         Category = EntityCategory.Spatial,
+        Tier = EntityTier.Place,
         Subtypes = Subtypes("face", "shelf", "depths", "reach", "sea", "scar"),
         HealthAttribute = Attr.Stability,
         HealthDisplayName = "Stability",

@@ -21,6 +21,7 @@ internal static class FactionEntity
     {
         Kind = K.Faction,
         Category = EntityCategory.Agency,
+        Tier = EntityTier.Realm,
         Subtypes = Subtypes("order", "compact", "cell", "choir"),
         HealthAttribute = Attr.Cohesion,
         HealthDisplayName = "Cohesion",

@@ -29,6 +29,40 @@ public static partial class DomainCompiler
             Gambits = BuildGambitProgram(config, ids),
             Relationships = BuildRelationshipProgram(config, ids),
             Generators = BuildGeneratorProgram(config, ids, graph),
+            CultureSlots = BuildCultureSlotProgram(graph),
+        };
+    }
+
+    private static CultureSlotProgram BuildCultureSlotProgram(DefinitionGraph graph)
+    {
+        var slots = new List<CultureSlotRuntimeRule>();
+        foreach (var culture in graph.Cultures.Values)
+        {
+            foreach (var slot in culture.Slots.Values)
+            {
+                slots.Add(new CultureSlotRuntimeRule(
+                    culture.RuntimeId,
+                    slot.SlotId,
+                    slot.PolarityCode,
+                    slot.AllowedKindIds.ToArray(),
+                    slot.ScoreRules
+                        .Select(rule => new CultureSlotScoreRuntimeRule(
+                            rule.SignalCode,
+                            rule.RelationshipKindId,
+                            rule.Weight))
+                        .ToArray(),
+                    slot.MinimumScore,
+                    slot.MinimumTenureTicks,
+                    slot.DisplacementMargin,
+                    slot.EntityInfluenceMultiplierDelta,
+                    slot.CultureInfluenceMultiplierDelta));
+            }
+        }
+
+        return new CultureSlotProgram
+        {
+            EnabledByDefault = slots.Count > 0,
+            Slots = slots,
         };
     }
 

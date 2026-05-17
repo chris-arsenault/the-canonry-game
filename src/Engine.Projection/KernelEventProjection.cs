@@ -40,7 +40,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     private static bool IsWorldEvent(KernelEventType eventType) =>
-        eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CellTravelStructureChanged and not KernelEventType.GambitEvaluated;
+        eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CultureSlotOccupancyChanged and not KernelEventType.GambitEvaluated;
 
     private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
     {
@@ -100,6 +100,18 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
+        if (eventType == KernelEventType.CultureSlotOccupancyChanged)
+        {
+            OnCultureSlotOccupancyChanged(kernelEvent.Sequence, kernelEvent.Event.AsCultureSlotOccupancyChanged());
+            return;
+        }
+
+        if (eventType is KernelEventType.ProvenanceInvocationRecorded or KernelEventType.KernelStorageGrown)
+        {
+            ProjectWorldRecordEvent(kernelEvent);
+            return;
+        }
+
         ProjectWorldMapEvent(kernelEvent);
     }
 
@@ -131,6 +143,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.CellInfluenceChanged:
                 OnCellInfluenceChanged(kernelEvent.Sequence, evt.AsCellInfluenceChanged());
                 break;
+            case KernelEventType.CellCultureInfluenceChanged:
+                OnCellCultureInfluenceChanged(kernelEvent.Sequence, evt.AsCellCultureInfluenceChanged());
+                break;
             case KernelEventType.MapCellStateChanged:
                 OnMapCellStateChanged(kernelEvent.Sequence, evt.AsMapCellStateChanged());
                 break;
@@ -140,6 +155,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.CellTravelStructureChanged:
                 OnCellTravelStructureChanged(kernelEvent.Sequence, evt.AsCellTravelStructureChanged());
                 break;
+        }
+    }
+
+    private void ProjectWorldRecordEvent(in SequencedKernelEvent kernelEvent)
+    {
+        var evt = kernelEvent.Event;
+        switch (evt.EventType)
+        {
             case KernelEventType.ProvenanceInvocationRecorded:
                 OnProvenanceInvocationRecorded(kernelEvent.Sequence, evt.AsProvenanceInvocationRecorded());
                 break;
@@ -218,6 +241,14 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnCellCultureInfluenceChanged(long sequence, in CellCultureInfluenceChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
     {
     }
 

@@ -82,6 +82,7 @@ public sealed class SemanticLoopAnalyzerTests
             GameplayNodes = [],
             Generators = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal),
             Relationships = new Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode>(),
+            Cultures = new Dictionary<string, DefinitionCultureNode>(StringComparer.Ordinal),
             Lifecycles = new Dictionary<EntityKind, DefinitionLifecycleNode>(),
             Attributes = new Dictionary<DefinitionAttributeKey, DefinitionAttributeNode>(),
         };

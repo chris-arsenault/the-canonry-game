@@ -141,6 +141,7 @@
         "type": "Project",
         "dependencies": {
           "Engine.Constants": "[1.0.0, )",
+          "Engine.Domain": "[1.0.0, )",
           "Engine.Eventing": "[1.0.0, )"
         }
       },

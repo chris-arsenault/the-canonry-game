@@ -34,6 +34,8 @@ public partial class HexMapRenderer : Node2D
 
     [Export] public bool ShowTerritory { get; set; } = true;
 
+    [Export] public bool ShowCultureInfluence { get; set; } = true;
+
     [Export] public bool ShowInfluence { get; set; } = true;
 
     [Export] public bool ShowRoads { get; set; } = true;
@@ -203,6 +205,7 @@ public partial class HexMapRenderer : Node2D
             ? resolvedOwner
             : (Color?)null;
         var influences = BuildInfluenceRenderItems(cell, ownerColors);
+        var cultureInfluences = BuildCultureInfluenceRenderItems(cell, _symbols);
         var travelStructureStableName = cell.TravelStructureId > 0
             ? ResolveStableName(
                 ProjectionSymbolKind.TravelStructure,
@@ -219,7 +222,9 @@ public partial class HexMapRenderer : Node2D
             UiTokens.TerrainColor(terrainStableName),
             ownerColor,
             influences,
+            cultureInfluences,
             ShowTerritory,
+            ShowCultureInfluence,
             ShowInfluence,
             ShowRoads,
             ShowMapFeatures);
@@ -238,6 +243,31 @@ public partial class HexMapRenderer : Node2D
             }
 
             items.Add(new HexInfluenceRenderItem(influence.EntityId, influence.Value, color));
+            if (items.Count == 4)
+            {
+                break;
+            }
+        }
+
+        return [.. items];
+    }
+
+    private static HexCultureInfluenceRenderItem[] BuildCultureInfluenceRenderItems(
+        HexProjection cell,
+        IProjectionSymbolCatalog? symbols)
+    {
+        var items = new List<HexCultureInfluenceRenderItem>(4);
+        foreach (var influence in cell.CultureInfluences.Where(influence => influence.Share > 0f))
+        {
+            var cultureStableName = ProjectionDisplay.StableName(
+                symbols,
+                ProjectionSymbolKind.Culture,
+                influence.CultureId,
+                influence.CultureId == 0 ? "none" : $"culture-{influence.CultureId}");
+            items.Add(new HexCultureInfluenceRenderItem(
+                influence.CultureId,
+                influence.Share,
+                UiTokens.CultureColor(cultureStableName)));
             if (items.Count == 4)
             {
                 break;

@@ -62,6 +62,7 @@ public sealed record HexProjection(
     int SuperregionId,
     int ContinentId,
     IReadOnlyList<HexInfluenceProjection> Influences,
+    IReadOnlyList<HexCultureInfluenceProjection> CultureInfluences,
     float RoadQuality,
     int RoadTravelCount,
     int TravelStructureId,
@@ -74,6 +75,24 @@ public sealed record HexInfluenceProjection(
     float Value,
     int Tick,
     long Sequence);
+
+public sealed record HexCultureInfluenceProjection(
+    int CultureId,
+    float Share,
+    int Tick,
+    long Sequence);
+
+public sealed record CultureTheaterProjection(
+    int PlaneCode,
+    int TheaterId,
+    int DominantCultureId,
+    int RivalCultureId,
+    HexCoord Center,
+    int CellCount,
+    int ContestedCellCount,
+    int ControlMismatchCellCount,
+    float AverageDominantShare,
+    float AverageMargin);
 
 public interface IHexSurfaceIndex
 {
@@ -192,6 +211,48 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         }
     }
 
+    public IReadOnlyList<CultureTheaterProjection> CultureTheaters(
+        int planeCode,
+        Func<int, int> ownerCultureResolver)
+    {
+        ArgumentNullException.ThrowIfNull(ownerCultureResolver);
+        if (!TryGetSurface(planeCode, out var surface))
+        {
+            return [];
+        }
+
+        var contestedCells = surface.HexesById.Values
+            .Where(cell => CellHasCultureContest(cell, ownerCultureResolver))
+            .ToDictionary(cell => cell.Coord);
+        if (contestedCells.Count == 0)
+        {
+            return [];
+        }
+
+        var theaters = new List<CultureTheaterProjection>();
+        var visited = new HashSet<HexCoord>();
+        foreach (var start in contestedCells.Keys.OrderBy(coord => coord.Q).ThenBy(coord => coord.R))
+        {
+            if (!visited.Add(start))
+            {
+                continue;
+            }
+
+            theaters.Add(BuildCultureTheater(
+                planeCode,
+                theaters.Count + 1,
+                start,
+                contestedCells,
+                visited,
+                ownerCultureResolver));
+        }
+
+        return theaters
+            .OrderByDescending(theater => theater.ControlMismatchCellCount + theater.ContestedCellCount)
+            .ThenByDescending(theater => theater.CellCount)
+            .ToArray();
+    }
+
     public override void OnEventsDropped(long droppedEventCount, long nextSequence)
     {
         DroppedEvents += droppedEventCount;
@@ -244,6 +305,22 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             Sequence = sequence,
         };
         UpdateOwnerColorMembership(entityId, influenceWasActive, influenceIsActive);
+        CellVersion++;
+        MarkCellDirty(evt.PlaneCode, existing.HexId);
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnCellCultureInfluenceChanged(long sequence, in CellCultureInfluenceChangedKernelEvent evt)
+    {
+        var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
+        var cultureInfluences = UpsertCultureInfluence(existing.CultureInfluences, evt.CultureId, evt.CurrentShare, evt.Tick, sequence);
+        GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
+        {
+            CultureInfluences = cultureInfluences,
+            Tick = evt.Tick,
+            WorldVersion = evt.WorldVersion,
+            Sequence = sequence,
+        };
         CellVersion++;
         MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
@@ -347,8 +424,23 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         int continentId,
         int tick,
         long worldVersion,
-        long sequence) =>
-        new(
+        long sequence)
+    {
+        var influences = Array.Empty<HexInfluenceProjection>();
+        var cultureInfluences = Array.Empty<HexCultureInfluenceProjection>();
+        var roadQuality = 0f;
+        var roadTravelCount = 0;
+        var travelStructureId = 0;
+        if (existing is not null)
+        {
+            influences = [.. existing.Influences];
+            cultureInfluences = [.. existing.CultureInfluences];
+            roadQuality = existing.RoadQuality;
+            roadTravelCount = existing.RoadTravelCount;
+            travelStructureId = existing.TravelStructureId;
+        }
+
+        return new HexProjection(
             hexId,
             planeCode,
             coord,
@@ -356,13 +448,15 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             ownerEntityId,
             superregionId,
             continentId,
-            existing?.Influences ?? [],
-            existing?.RoadQuality ?? 0f,
-            existing?.RoadTravelCount ?? 0,
-            existing?.TravelStructureId ?? 0,
+            influences,
+            cultureInfluences,
+            roadQuality,
+            roadTravelCount,
+            travelStructureId,
             tick,
             worldVersion,
             sequence);
+    }
 
     private void MarkCellDirty(int planeCode, int hexId)
     {
@@ -539,6 +633,218 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             .OrderByDescending(influence => influence.Value)
             .ThenBy(influence => influence.EntityId)
             .ToArray();
+    }
+
+    private static HexCultureInfluenceProjection[] UpsertCultureInfluence(
+        IReadOnlyList<HexCultureInfluenceProjection> existing,
+        int cultureId,
+        float share,
+        int tick,
+        long sequence)
+    {
+        var influences = new List<HexCultureInfluenceProjection>(existing.Count + 1);
+        var updated = false;
+        foreach (var influence in existing)
+        {
+            if (influence.CultureId != cultureId)
+            {
+                influences.Add(influence);
+                continue;
+            }
+
+            updated = true;
+            if (share > 0f)
+            {
+                influences.Add(new HexCultureInfluenceProjection(cultureId, share, tick, sequence));
+            }
+        }
+
+        if (!updated && share > 0f)
+        {
+            influences.Add(new HexCultureInfluenceProjection(cultureId, share, tick, sequence));
+        }
+
+        return influences
+            .OrderByDescending(influence => influence.Share)
+            .ThenBy(influence => influence.CultureId)
+            .ToArray();
+    }
+
+    private static bool CellHasCultureContest(
+        HexProjection cell,
+        Func<int, int> ownerCultureResolver)
+    {
+        if (cell.CultureInfluences.Count == 0)
+        {
+            return false;
+        }
+
+        var dominant = cell.CultureInfluences[0];
+        var runnerUp = cell.CultureInfluences.Count > 1 ? cell.CultureInfluences[1] : null;
+        var margin = dominant.Share - (runnerUp?.Share ?? 0f);
+        if (dominant.Share < 60f || margin < 25f)
+        {
+            return true;
+        }
+
+        return CellHasControlMismatch(cell, dominant.CultureId, ownerCultureResolver);
+    }
+
+    private static CultureTheaterProjection BuildCultureTheater(
+        int planeCode,
+        int theaterId,
+        HexCoord start,
+        Dictionary<HexCoord, HexProjection> contestedCells,
+        HashSet<HexCoord> visited,
+        Func<int, int> ownerCultureResolver)
+    {
+        var cells = CollectTheaterCells(start, contestedCells, visited);
+        var dominantCultureId = MostCommonCulture(cells, static cell => cell.CultureInfluences[0].CultureId);
+        var rivalCultureId = MostCommonCulture(cells, cell => RivalCultureId(cell, ownerCultureResolver));
+        var stats = CultureTheaterStats.From(cells, ownerCultureResolver);
+
+        return new CultureTheaterProjection(
+            planeCode,
+            theaterId,
+            dominantCultureId,
+            rivalCultureId,
+            stats.Center,
+            stats.CellCount,
+            stats.ContestedCellCount,
+            stats.ControlMismatchCellCount,
+            stats.AverageDominantShare,
+            stats.AverageMargin);
+    }
+
+    private static List<HexProjection> CollectTheaterCells(
+        HexCoord start,
+        Dictionary<HexCoord, HexProjection> contestedCells,
+        HashSet<HexCoord> visited)
+    {
+        var queue = new Queue<HexCoord>();
+        var cells = new List<HexProjection>();
+        queue.Enqueue(start);
+        while (queue.Count > 0)
+        {
+            var coord = queue.Dequeue();
+            if (!contestedCells.TryGetValue(coord, out var cell))
+            {
+                continue;
+            }
+
+            cells.Add(cell);
+            EnqueueUnvisitedContestNeighbors(coord, contestedCells, visited, queue);
+        }
+
+        return cells;
+    }
+
+    private static void EnqueueUnvisitedContestNeighbors(
+        HexCoord coord,
+        Dictionary<HexCoord, HexProjection> contestedCells,
+        HashSet<HexCoord> visited,
+        Queue<HexCoord> queue)
+    {
+        foreach (var neighbor in coord.Neighbors())
+        {
+            if (contestedCells.ContainsKey(neighbor) && visited.Add(neighbor))
+            {
+                queue.Enqueue(neighbor);
+            }
+        }
+    }
+
+    private static int RivalCultureId(HexProjection cell, Func<int, int> ownerCultureResolver)
+    {
+        var dominantCultureId = cell.CultureInfluences[0].CultureId;
+        var ownerCultureId = cell.OwnerEntityId > 0 ? ownerCultureResolver(cell.OwnerEntityId) : 0;
+        if (ownerCultureId > 0 && ownerCultureId != dominantCultureId)
+        {
+            return ownerCultureId;
+        }
+
+        return cell.CultureInfluences.Count > 1 ? cell.CultureInfluences[1].CultureId : 0;
+    }
+
+    private static int MostCommonCulture(
+        IEnumerable<HexProjection> cells,
+        Func<HexProjection, int> selector) =>
+        cells
+            .Select(selector)
+            .Where(cultureId => cultureId > 0)
+            .GroupBy(cultureId => cultureId)
+            .OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key)
+            .Select(group => group.Key)
+            .FirstOrDefault();
+
+    private readonly record struct CultureTheaterStats(
+        HexCoord Center,
+        int CellCount,
+        int ContestedCellCount,
+        int ControlMismatchCellCount,
+        float AverageDominantShare,
+        float AverageMargin)
+    {
+        public static CultureTheaterStats From(
+            IReadOnlyList<HexProjection> cells,
+            Func<int, int> ownerCultureResolver)
+        {
+            var accumulator = new CultureTheaterStatsAccumulator();
+            foreach (var cell in cells)
+            {
+                accumulator.Add(cell, ownerCultureResolver);
+            }
+
+            return accumulator.ToStats();
+        }
+    }
+
+    private struct CultureTheaterStatsAccumulator
+    {
+        private int _contested;
+        private int _mismatch;
+        private float _dominantShareTotal;
+        private float _marginTotal;
+        private int _qTotal;
+        private int _rTotal;
+        private int _count;
+
+        public void Add(HexProjection cell, Func<int, int> ownerCultureResolver)
+        {
+            var dominant = cell.CultureInfluences[0];
+            var runnerUpShare = cell.CultureInfluences.Count > 1 ? cell.CultureInfluences[1].Share : 0f;
+            var margin = dominant.Share - runnerUpShare;
+            _contested += dominant.Share < 60f || margin < 25f ? 1 : 0;
+            _mismatch += CellHasControlMismatch(cell, dominant.CultureId, ownerCultureResolver) ? 1 : 0;
+            _dominantShareTotal += dominant.Share;
+            _marginTotal += margin;
+            _qTotal += cell.Coord.Q;
+            _rTotal += cell.Coord.R;
+            _count++;
+        }
+
+        public readonly CultureTheaterStats ToStats()
+        {
+            var q = (int)MathF.Round(_qTotal / (float)_count, MidpointRounding.AwayFromZero);
+            var r = (int)MathF.Round(_rTotal / (float)_count, MidpointRounding.AwayFromZero);
+            return new CultureTheaterStats(
+                new HexCoord(q, r),
+                _count,
+                _contested,
+                _mismatch,
+                _dominantShareTotal / _count,
+                _marginTotal / _count);
+        }
+    }
+
+    private static bool CellHasControlMismatch(
+        HexProjection cell,
+        int dominantCultureId,
+        Func<int, int> ownerCultureResolver)
+    {
+        var ownerCultureId = cell.OwnerEntityId > 0 ? ownerCultureResolver(cell.OwnerEntityId) : 0;
+        return ownerCultureId > 0 && ownerCultureId != dominantCultureId;
     }
 
     private void MarkProjected(long sequence, int tick, long worldVersion)

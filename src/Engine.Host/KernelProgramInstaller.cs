@@ -21,6 +21,7 @@ internal static partial class KernelProgramInstaller
         InstallGambits(context, programs.Gambits);
         InstallRelationships(context, programs.Relationships);
         InstallGenerators(context, programs.Generators);
+        InstallCultureSlots(context, programs.CultureSlots);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -38,6 +39,9 @@ internal static partial class KernelProgramInstaller
             KernelProgramCodes.Effects,
             programConfig.IsEnabled(KernelProgramCodes.Effects, programs.Effects.EnabledByDefault));
         context.SetProgramEnabled(
+            KernelProgramCodes.CultureSlots,
+            programConfig.IsEnabled(KernelProgramCodes.CultureSlots, programs.CultureSlots.EnabledByDefault));
+        context.SetProgramEnabled(
             KernelProgramCodes.Upkeep,
             programConfig.IsEnabled(KernelProgramCodes.Upkeep, programs.Upkeep.EnabledByDefault));
         context.SetProgramEnabled(
@@ -49,6 +53,35 @@ internal static partial class KernelProgramInstaller
         context.SetProgramEnabled(
             KernelProgramCodes.Generators,
             programConfig.IsEnabled(KernelProgramCodes.Generators, programs.Generators.EnabledByDefault));
+    }
+
+    private static void InstallCultureSlots(KernelConfigurationContext context, CultureSlotProgram program)
+    {
+        foreach (var slot in program.Slots)
+        {
+            var slotHandle = context.RegisterCultureSlot(
+                slot.CultureId,
+                slot.SlotId,
+                slot.PolarityCode,
+                slot.MinimumScore,
+                slot.MinimumTenureTicks,
+                slot.DisplacementMargin,
+                slot.EntityInfluenceMultiplierDelta,
+                slot.CultureInfluenceMultiplierDelta);
+            foreach (var kindId in slot.AllowedKindIds)
+            {
+                context.AddCultureSlotAllowedKind(slotHandle, kindId);
+            }
+
+            foreach (var rule in slot.ScoreRules)
+            {
+                context.AddCultureSlotScoreRule(
+                    slotHandle,
+                    rule.SignalCode,
+                    rule.RelationshipKindId,
+                    rule.Weight);
+            }
+        }
     }
 
     private static void InstallUpkeep(KernelConfigurationContext context, UpkeepProgram program)

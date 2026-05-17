@@ -8,6 +8,8 @@ namespace TheCanonryGame.UI;
 
 public sealed record HexInfluenceRenderItem(int EntityId, float Value, Color Color);
 
+public sealed record HexCultureInfluenceRenderItem(int CultureId, float Share, Color Color);
+
 public sealed record HexCellRenderItem(
     HexProjection Cell,
     PlaneMode Plane,
@@ -17,7 +19,9 @@ public sealed record HexCellRenderItem(
     Color TerrainColor,
     Color? OwnerColor,
     IReadOnlyList<HexInfluenceRenderItem> Influences,
+    IReadOnlyList<HexCultureInfluenceRenderItem> CultureInfluences,
     bool ShowTerritory,
+    bool ShowCultureInfluence,
     bool ShowInfluence,
     bool ShowRoads,
     bool ShowMapFeatures);
@@ -44,6 +48,7 @@ public partial class HexCell : Node2D
 
         DrawBase(_data);
         DrawTerritory(_data);
+        DrawCultureInfluence(_data);
         DrawInfluence(_data);
         DrawTravelStructure(_data);
         DrawRoad(_data);
@@ -104,6 +109,42 @@ public partial class HexCell : Node2D
             DrawColoredPolygon(points, new Color(influence.Color, alpha));
             DrawPolyline([.. points, points[0]], new Color(influence.Color, alpha + 0.08f), 1.2f, antialiased: true);
             band++;
+        }
+    }
+
+    private void DrawCultureInfluence(HexCellRenderItem data)
+    {
+        if (!data.ShowCultureInfluence || data.CultureInfluences.Count == 0)
+        {
+            return;
+        }
+
+        var dominant = data.CultureInfluences[0];
+        var fillAlpha = 0.08f + Mathf.Clamp(dominant.Share / 100f, 0f, 1f) * 0.18f;
+        DrawColoredPolygon(GetHexPoints(data.HexSize * 0.92f), new Color(dominant.Color, fillAlpha));
+
+        var radius = data.HexSize * 0.76f;
+        var width = MathF.Max(2.4f, data.HexSize * 0.12f);
+        var start = -Mathf.Pi / 2f;
+        foreach (var influence in data.CultureInfluences)
+        {
+            var share = Mathf.Clamp(influence.Share / 100f, 0f, 1f);
+            if (share <= 0f)
+            {
+                continue;
+            }
+
+            var end = start + (Mathf.Tau * share);
+            DrawArc(
+                Vector2.Zero,
+                radius,
+                start,
+                end,
+                Math.Max(8, (int)MathF.Ceiling(42 * share)),
+                new Color(influence.Color, 0.88f),
+                width,
+                antialiased: true);
+            start = end;
         }
     }
 

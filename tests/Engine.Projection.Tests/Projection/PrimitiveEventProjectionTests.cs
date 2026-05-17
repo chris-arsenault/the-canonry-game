@@ -129,6 +129,44 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
+    public void HexMapProjection_AppliesCultureInfluenceAsProportionalCellState()
+    {
+        var log = new KernelEventLog(capacity: 4);
+        var projection = new HexMapProjection();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: 2,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Physical,
+            CultureId: 10,
+            PreviousShare: 0f,
+            CurrentShare: 66.667f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: 2,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Physical,
+            CultureId: 20,
+            PreviousShare: 0f,
+            CurrentShare: 33.333f))));
+
+        pump.DrainAvailable();
+
+        Assert.True(projection.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var cell));
+        Assert.Equal([10, 20], cell.CultureInfluences.Select(influence => influence.CultureId).ToArray());
+        Assert.Equal([66.667f, 33.333f], cell.CultureInfluences.Select(influence => influence.Share).ToArray());
+    }
+
+    [Fact]
     public void HexMapProjection_ProjectsSemanticCellsInfluenceAndRoads()
     {
         var log = new KernelEventLog(capacity: 4);

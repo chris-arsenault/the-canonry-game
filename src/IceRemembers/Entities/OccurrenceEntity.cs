@@ -19,6 +19,7 @@ internal static class OccurrenceEntity
     {
         Kind = K.Occurrence,
         Category = EntityCategory.Agency,
+        Tier = EntityTier.None,
         Subtypes = Subtypes("war", "trade_conference", "plague", "festival"),
         HealthAttribute = Attr.Momentum,
         HealthDisplayName = "Momentum",

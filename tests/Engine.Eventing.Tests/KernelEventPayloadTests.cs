@@ -101,6 +101,9 @@ public sealed class KernelEventPayloadTests
         var cellInfluenceChanged = new CellInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 6, 10f, 25f);
         Assert.Equal(cellInfluenceChanged, KernelEvent.From(cellInfluenceChanged).AsCellInfluenceChanged());
 
+        var cellCultureInfluenceChanged = new CellCultureInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 10f, 25f);
+        Assert.Equal(cellCultureInfluenceChanged, KernelEvent.From(cellCultureInfluenceChanged).AsCellCultureInfluenceChanged());
+
         var mapCellStateChanged = new MapCellStateChangedKernelEvent(20, 21, PlaneCodes.Semantic, -3, 3, 4, 5, 6, 7, 8, 9, 10);
         Assert.Equal(mapCellStateChanged, KernelEvent.From(mapCellStateChanged).AsMapCellStateChanged());
 

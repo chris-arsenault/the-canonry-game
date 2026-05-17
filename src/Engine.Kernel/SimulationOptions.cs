@@ -35,6 +35,9 @@ internal sealed record SimulationOptions
     public int MapActivityCellCapacity { get; init; } = 32768;
     public int MapSignalCellCapacity { get; init; } = 32768;
     public int EffectRuleCapacity { get; init; } = 512;
+    public int CultureSlotCapacity { get; init; } = 64;
+    public int CultureSlotAllowedKindCapacity { get; init; } = 256;
+    public int CultureSlotScoreRuleCapacity { get; init; } = 512;
     public int EntityAttributeCapacity { get; init; } = 512;
     public int EntityTraitCapacity { get; init; } = 512;
     public int AttributeIdCapacity { get; init; } = 1024;
@@ -70,6 +73,7 @@ internal sealed record ProgramEnabledTuningOptions
     public int MapActivity { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int MapSignals { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Effects { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int CultureSlots { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Upkeep { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Gambits { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Relationships { get; init; } = ProgramEnabledOverrideCodes.Unspecified;

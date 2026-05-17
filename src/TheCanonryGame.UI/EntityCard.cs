@@ -4,6 +4,7 @@
 #pragma warning disable CA2213
 using System.Text;
 
+using Engine.Kinds;
 using Engine.Projection;
 
 using Godot;
@@ -40,6 +41,9 @@ public partial class EntityCard : PanelContainer
 
     [Signal]
     public delegate void CardClosedEventHandler(EntityCard card);
+
+    [Signal]
+    public delegate void EntitySelectedEventHandler(int entityIdValue);
 
     public int EntityId => _entityId;
 
@@ -97,6 +101,7 @@ public partial class EntityCard : PanelContainer
         _content.AddThemeFontSizeOverride("normal_font_size", UiTokens.SizeBodySmall);
         _content.AddThemeFontSizeOverride("mono_font_size", UiTokens.SizeBodySmall);
         _content.AddThemeColorOverride("default_color", UiTokens.Vellum);
+        _content.MetaClicked += OnContentMetaClicked;
 
         WireChromeButton("Outer/TitleBar/CopyButton", OnCopyPressed);
         WireChromeButton("Outer/TitleBar/CollapseButton", OnCollapsePressed);
@@ -169,6 +174,8 @@ public partial class EntityCard : PanelContainer
         sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"[code][color={whisper}]({entity.PhysicalQ}, {entity.PhysicalR})  |  age {currentTick - createdTick}t[/color][/code]");
 
         sb.AppendLine();
+        AppendHierarchy(sb, entity, whisper);
+        sb.AppendLine();
         AppendAttributes(sb, entity, whisper);
         sb.AppendLine();
         AppendTraits(sb, entity, whisper);
@@ -217,6 +224,133 @@ public partial class EntityCard : PanelContainer
                 traitId,
                 $"Trait {traitId}");
             sb.AppendLine($"  {name}");
+        }
+    }
+
+    private void AppendHierarchy(StringBuilder sb, UiEntityProjection entity, string whisper)
+    {
+        _ = entity;
+        sb.AppendLine(SectionHeader("Hierarchy"));
+
+        var tier = _projection!.EntityTierOf(_entityId);
+        if (tier == EntityTier.None)
+        {
+            sb.AppendLine($"  [color={whisper}](untiered)[/color]");
+            return;
+        }
+
+        sb.AppendLine($"  [color={whisper}]Tier:[/color] {tier}");
+
+        var (outgoing, incoming) = CollectVisibleRelationships();
+        var affiliationsUp = outgoing.Where(rel => _projection!.IsAffiliationRelationship(rel.Key.RelationshipKindId)).ToList();
+        var affiliationsDown = incoming.Where(rel => _projection!.IsAffiliationRelationship(rel.Key.RelationshipKindId)).ToList();
+        var siblings = CollectSiblings(affiliationsUp);
+
+        if (affiliationsUp.Count == 0 && affiliationsDown.Count == 0 && siblings.Count == 0)
+        {
+            sb.AppendLine($"  [color={whisper}]no affiliations[/color]");
+            return;
+        }
+
+        AppendAffiliationGroup(sb, "Belongs to", affiliationsUp, whisper, outgoing: true);
+        AppendSiblingsGroup(sb, siblings, whisper);
+        AppendAffiliationGroup(sb, "Contains", affiliationsDown, whisper, outgoing: false);
+    }
+
+    private void AppendAffiliationGroup(
+        StringBuilder sb,
+        string label,
+        List<UiRelationshipProjection> relationships,
+        string whisper,
+        bool outgoing)
+    {
+        if (relationships.Count == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine($"  [color={whisper}]{label}:[/color]");
+        foreach (var rel in relationships)
+        {
+            var otherId = outgoing ? rel.Key.TargetEntityId : rel.Key.SourceEntityId;
+            var otherName = ProjectionDisplay.EntityName(_symbols, _projection, otherId);
+            var relationshipName = ProjectionDisplay.DisplayName(
+                _symbols,
+                ProjectionSymbolKind.RelationshipKind,
+                rel.Key.RelationshipKindId,
+                $"Relationship {rel.Key.RelationshipKindId}");
+            sb.AppendLine(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"    {relationshipName} -> [url={otherId}]{otherName}[/url] [color={whisper}]({rel.NewStrength:F2})[/color]");
+        }
+    }
+
+    private void AppendSiblingsGroup(
+        StringBuilder sb,
+        IReadOnlyList<SiblingEntry> siblings,
+        string whisper)
+    {
+        if (siblings.Count == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine($"  [color={whisper}]Siblings:[/color]");
+        foreach (var sibling in siblings)
+        {
+            var name = ProjectionDisplay.EntityName(_symbols, _projection, sibling.EntityId);
+            sb.AppendLine(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"    via {sibling.SharedParentName} -> [url={sibling.EntityId}]{name}[/url]");
+        }
+    }
+
+    private readonly record struct SiblingEntry(int EntityId, string SharedParentName);
+
+    private List<SiblingEntry> CollectSiblings(List<UiRelationshipProjection> affiliationsUp)
+    {
+        var siblings = new List<SiblingEntry>();
+        if (_projection is null)
+        {
+            return siblings;
+        }
+
+        var seen = new HashSet<int> { _entityId };
+        foreach (var parentEdge in affiliationsUp)
+        {
+            var parentId = parentEdge.Key.TargetEntityId;
+            var parentName = ProjectionDisplay.EntityName(_symbols, _projection, parentId);
+            var parentInbound = _projection.ActiveIncomingRelationships(parentId);
+            foreach (var inbound in parentInbound)
+            {
+                if (inbound.Key.RelationshipKindId != parentEdge.Key.RelationshipKindId)
+                {
+                    continue;
+                }
+
+                var siblingId = inbound.Key.SourceEntityId;
+                if (!seen.Add(siblingId))
+                {
+                    continue;
+                }
+
+                siblings.Add(new SiblingEntry(siblingId, parentName));
+                if (siblings.Count >= 6)
+                {
+                    return siblings;
+                }
+            }
+        }
+
+        return siblings;
+    }
+
+    private void OnContentMetaClicked(Variant meta)
+    {
+        var raw = meta.AsString();
+        if (int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var entityId))
+        {
+            EmitSignal(SignalName.EntitySelected, entityId);
         }
     }
 

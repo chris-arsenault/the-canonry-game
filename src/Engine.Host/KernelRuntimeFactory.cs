@@ -194,6 +194,7 @@ public sealed class KernelRuntimeFactory
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapActivity, enabled.MapActivity);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapSignals, enabled.MapSignals);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Effects, enabled.Effects);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.CultureSlots, enabled.CultureSlots);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Upkeep, enabled.Upkeep);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Gambits, enabled.Gambits);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Relationships, enabled.Relationships);

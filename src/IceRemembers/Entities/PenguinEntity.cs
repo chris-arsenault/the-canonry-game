@@ -19,6 +19,7 @@ internal static class PenguinEntity
     {
         Kind = K.Penguin,
         Category = EntityCategory.Agency,
+        Tier = EntityTier.Life,
         Subtypes = Subtypes("warden", "broker", "witness", "exile"),
         HealthAttribute = Attr.Vitality,
         HealthDisplayName = "Vitality",

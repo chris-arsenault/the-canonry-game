@@ -18,6 +18,7 @@ public static class DefinitionGraphBuilder
         var kindNodes = BuildKindNodes(config, runtimeIds);
         var attributeIndex = BuildAttributeIndex(kindNodes);
         var relationshipNodes = BuildRelationshipNodes(config.Relationships, runtimeIds);
+        var cultureNodes = BuildCultureNodes(config, runtimeIds, kindNodes, relationshipNodes);
         var lifecycleNodes = BuildLifecycleNodes(config, kindNodes);
         var generatorNodes = new Dictionary<string, DefinitionGeneratorNode>(StringComparer.Ordinal);
         var gambitNodes = BuildGambitNodes(config.Gambits, kindNodes, relationshipNodes);
@@ -26,6 +27,7 @@ public static class DefinitionGraphBuilder
         var graph = new DefinitionGraph
         {
             Kinds = kindNodes,
+            Cultures = cultureNodes,
             Gambits = gambitNodes,
             GameplayNodes = gameplayNodes,
             Generators = generatorNodes,
@@ -116,6 +118,126 @@ public static class DefinitionGraphBuilder
         return attributeIndex;
     }
 
+    private static Dictionary<string, DefinitionCultureNode> BuildCultureNodes(
+        DomainConfig config,
+        global::Engine.Domain.DomainIdRegistry runtimeIds,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes)
+    {
+        var cultureNodes = new Dictionary<string, DefinitionCultureNode>(StringComparer.Ordinal);
+        foreach (var culture in config.Cultures)
+        {
+            if (cultureNodes.ContainsKey(culture.Id))
+            {
+                throw new DefinitionGraphException($"Domain declares duplicate culture '{culture.Id}'.");
+            }
+
+            cultureNodes[culture.Id] = new DefinitionCultureNode
+            {
+                Id = culture.Id,
+                RuntimeId = runtimeIds.CultureIdOf(culture.Id).Value,
+                DisplayName = culture.DisplayName,
+                Slots = BuildCultureSlotNodes(culture, kindNodes, relationshipNodes),
+            };
+        }
+
+        return cultureNodes;
+    }
+
+    private static Dictionary<string, DefinitionCultureSlotNode> BuildCultureSlotNodes(
+        CultureConfig culture,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes)
+    {
+        var slots = new Dictionary<string, DefinitionCultureSlotNode>(StringComparer.Ordinal);
+        var slotId = 0;
+        foreach (var slot in culture.Slots)
+        {
+            if (string.IsNullOrWhiteSpace(slot.Id))
+            {
+                throw new DefinitionGraphException($"Culture '{culture.Id}' declares a slot with no id.");
+            }
+
+            if (slots.ContainsKey(slot.Id))
+            {
+                throw new DefinitionGraphException($"Culture '{culture.Id}' declares duplicate slot '{slot.Id}'.");
+            }
+
+            slotId++;
+            slots[slot.Id] = new DefinitionCultureSlotNode
+            {
+                Id = slot.Id,
+                SlotId = slotId,
+                DisplayName = slot.DisplayName,
+                Description = slot.Description,
+                PolarityCode = (int)slot.Polarity,
+                AllowedKindIds = BuildCultureSlotAllowedKindIds(culture.Id, slot, kindNodes),
+                ScoreRules = BuildCultureSlotScoreRules(culture.Id, slot, relationshipNodes),
+                MinimumScore = slot.Hysteresis.MinimumScore,
+                MinimumTenureTicks = slot.Hysteresis.MinimumTenureTicks,
+                DisplacementMargin = slot.Hysteresis.DisplacementMargin,
+                EntityInfluenceMultiplierDelta = slot.Benefits.EntityInfluenceMultiplierDelta,
+                CultureInfluenceMultiplierDelta = slot.Benefits.CultureInfluenceMultiplierDelta,
+            };
+        }
+
+        return slots;
+    }
+
+    private static HashSet<int> BuildCultureSlotAllowedKindIds(
+        string cultureId,
+        CultureSlotConfig slot,
+        Dictionary<EntityKind, DefinitionKindNode> kindNodes)
+    {
+        var ids = new HashSet<int>();
+        foreach (var kind in slot.AllowedKinds)
+        {
+            if (!kindNodes.TryGetValue(kind, out var kindNode))
+            {
+                throw new DefinitionGraphException(
+                    $"Culture '{cultureId}' slot '{slot.Id}' allows unknown kind '{kind}'.");
+            }
+
+            ids.Add(kindNode.RuntimeId);
+        }
+
+        return ids;
+    }
+
+    private static List<DefinitionCultureSlotScoreRule> BuildCultureSlotScoreRules(
+        string cultureId,
+        CultureSlotConfig slot,
+        Dictionary<DefinitionRelationshipId, DefinitionRelationshipNode> relationshipNodes)
+    {
+        var rules = new List<DefinitionCultureSlotScoreRule>();
+        foreach (var rule in slot.ScoreRules)
+        {
+            var signalCode = (int)rule.Signal;
+            var relationshipKindId = 0;
+            if (rule.Signal is CultureSlotScoreSignal.OutgoingRelationshipStrength or CultureSlotScoreSignal.IncomingRelationshipStrength)
+            {
+                if (string.IsNullOrWhiteSpace(rule.RelationshipKind))
+                {
+                    throw new DefinitionGraphException(
+                        $"Culture '{cultureId}' slot '{slot.Id}' relationship score rule requires a relationship kind.");
+                }
+
+                var relationshipId = new DefinitionRelationshipId(rule.RelationshipKind);
+                if (!relationshipNodes.TryGetValue(relationshipId, out var relationshipNode))
+                {
+                    throw new DefinitionGraphException(
+                        $"Culture '{cultureId}' slot '{slot.Id}' references unknown relationship '{rule.RelationshipKind}'.");
+                }
+
+                relationshipKindId = relationshipNode.RuntimeId;
+            }
+
+            rules.Add(new DefinitionCultureSlotScoreRule(signalCode, relationshipKindId, rule.Weight));
+        }
+
+        return rules;
+    }
+
     private static Dictionary<string, DefinitionGambitNode> BuildGambitNodes(
         IReadOnlyList<GambitDefinition> gambits,
         Dictionary<EntityKind, DefinitionKindNode> kindNodes,
@@ -181,6 +303,7 @@ public static class DefinitionGraphBuilder
             HealthAttribute = healthAttribute,
             Description = kindConfig.Description,
             PrimaryPlane = kindConfig.PrimaryPlane,
+            Tier = kindConfig.Tier,
         };
     }
 

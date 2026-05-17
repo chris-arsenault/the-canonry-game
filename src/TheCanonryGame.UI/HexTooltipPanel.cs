@@ -182,6 +182,7 @@ public partial class HexTooltipPanel : PanelContainer
             $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n" +
             $"{terrain,-10}   {owner}   {FormatRoad(cell)}\n" +
             $"{continent}   {superregion}\n" +
+            $"{FormatCultureInfluence(cell)}\n" +
             $"{FormatInfluence(cell)}\n" +
             occupantsLine;
     }
@@ -200,6 +201,7 @@ public partial class HexTooltipPanel : PanelContainer
         return
             $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
             $"{continent}   {superregion}\n" +
+            $"{FormatCultureInfluence(cell)}\n" +
             FormatInfluence(cell);
     }
 
@@ -261,6 +263,29 @@ public partial class HexTooltipPanel : PanelContainer
         return influences.Length == 0
             ? "influence none"
             : $"influence {string.Join(" | ", influences)}";
+    }
+
+    private string FormatCultureInfluence(HexProjection cell)
+    {
+        if (cell.CultureInfluences.Count == 0)
+        {
+            return "culture none";
+        }
+
+        var cultures = cell.CultureInfluences
+            .Take(3)
+            .Select(influence =>
+                $"{ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Culture, influence.CultureId, $"Culture {influence.CultureId}")} {influence.Share:0}%")
+            .ToArray();
+        var dominantCultureId = cell.CultureInfluences[0].CultureId;
+        var ownerCultureId = cell.OwnerEntityId > 0 &&
+            _projection!.Entities.TryGetValue(cell.OwnerEntityId, out var owner)
+                ? owner.CultureId
+                : 0;
+        var mismatch = ownerCultureId > 0 && ownerCultureId != dominantCultureId
+            ? "  control mismatch"
+            : string.Empty;
+        return $"culture {string.Join(" | ", cultures)}{mismatch}";
     }
 
     private string FormatEntityName(int entityId)

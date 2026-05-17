@@ -163,6 +163,29 @@ internal sealed partial class Simulation
             currentTravelStructureId)));
     }
 
+    internal void EmitCultureSlotOccupancyChanged(
+        int tick,
+        int cultureId,
+        int slotId,
+        int polarityCode,
+        int previousEntityId,
+        int currentEntityId,
+        float previousScore,
+        float currentScore)
+    {
+        WriteKernelEvent(KernelEvent.From(new CultureSlotOccupancyChangedKernelEvent(
+            tick,
+            WorldVersion,
+            _executionContext.SourceCodeId,
+            cultureId,
+            slotId,
+            polarityCode,
+            previousEntityId,
+            currentEntityId,
+            previousScore,
+            currentScore)));
+    }
+
     internal bool TraceEnabled() => Options.TraceEnabled;
 
     internal void EmitTrace(

@@ -12,6 +12,7 @@ using Engine.WorldGen;
 public sealed class DefinitionGraph
 {
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
+    public required IReadOnlyDictionary<string, DefinitionCultureNode> Cultures { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
     public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
@@ -79,7 +80,37 @@ public sealed class DefinitionKindNode
     public DefinitionAttributeId? HealthAttribute { get; init; }
     public string? Description { get; init; }
     public required Engine.Domain.Config.PrimaryPlane PrimaryPlane { get; init; }
+    public EntityTier Tier { get; init; } = EntityTier.None;
 }
+
+public sealed class DefinitionCultureNode
+{
+    public required string Id { get; init; }
+    public required int RuntimeId { get; init; }
+    public required string DisplayName { get; init; }
+    public required IReadOnlyDictionary<string, DefinitionCultureSlotNode> Slots { get; init; }
+}
+
+public sealed class DefinitionCultureSlotNode
+{
+    public required string Id { get; init; }
+    public required int SlotId { get; init; }
+    public required string DisplayName { get; init; }
+    public string? Description { get; init; }
+    public required int PolarityCode { get; init; }
+    public required IReadOnlySet<int> AllowedKindIds { get; init; }
+    public required IReadOnlyList<DefinitionCultureSlotScoreRule> ScoreRules { get; init; }
+    public required float MinimumScore { get; init; }
+    public required int MinimumTenureTicks { get; init; }
+    public required float DisplacementMargin { get; init; }
+    public required float EntityInfluenceMultiplierDelta { get; init; }
+    public required float CultureInfluenceMultiplierDelta { get; init; }
+}
+
+public sealed record DefinitionCultureSlotScoreRule(
+    int SignalCode,
+    int RelationshipKindId,
+    float Weight);
 
 public sealed class DefinitionAttributeNode
 {

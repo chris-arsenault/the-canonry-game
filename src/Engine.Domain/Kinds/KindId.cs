@@ -57,3 +57,24 @@ public enum EntityCategory
     Asset,
     Record,
 }
+
+/// <summary>
+/// Significance tier for an entity kind. Used by read-side projections to bucket entities
+/// into the world's Stage (top-significance per tier) and to render the hierarchy of
+/// who-contains-what for the player. Not consumed by the kernel. Distinct from runtime
+/// altitude (low-altitude verbs vs high-altitude gambits/generators).
+/// </summary>
+public enum EntityTier
+{
+    /// <summary>Default. Entities without a meaningful tier (Occurrence-like records).</summary>
+    None,
+
+    /// <summary>Top tier: political/territorial entities. Factions, nations, federations.</summary>
+    Realm,
+
+    /// <summary>Mid tier: named locations. Settlements, regions, points of interest.</summary>
+    Place,
+
+    /// <summary>Bottom tier: individuals. Heroes, monsters, transports, artifacts, abilities.</summary>
+    Life,
+}

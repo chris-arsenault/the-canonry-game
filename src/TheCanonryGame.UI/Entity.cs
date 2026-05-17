@@ -18,12 +18,16 @@ public partial class Entity : Node2D
     private Tween? _fadeTween;
     private string _kindStableName = string.Empty;
     private Color _accent = Colors.White;
+    private Color _cultureAccent = UiTokens.CultureNone;
     private float _glyphSize = 10f;
+    private float _actionIntensity;
     private bool _hasTexture;
     private bool _isHistorical;
     private bool _isHighlighted;
     private bool _positionInitialized;
     private int _entityId;
+    private int _cultureSlotCount;
+    private int _cultureSlotPolarityCode;
 
     [Signal]
     public delegate void SelectedEventHandler(int entityIdValue);
@@ -43,16 +47,26 @@ public partial class Entity : Node2D
         _nameLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
     }
 
-    public void BindTo(UiEntityProjection entity, IProjectionSymbolCatalog? symbols, bool showName, bool isHighlighted = false)
+    public void BindTo(
+        UiEntityProjection entity,
+        IProjectionSymbolCatalog? symbols,
+        bool showName,
+        int currentTick,
+        bool isHighlighted = false)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
         _entityId = entity.EntityId;
         _isHighlighted = isHighlighted;
         _kindStableName = ProjectionDisplay.StableName(symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}");
+        var cultureStableName = ProjectionDisplay.StableName(symbols, ProjectionSymbolKind.Culture, entity.CultureId, "none");
         var subtypeStableName = ProjectionDisplay.NullableStableName(symbols, ProjectionSymbolKind.Subtype, entity.SubtypeId);
         _accent = UiTokens.KindAccent(_kindStableName);
+        _cultureAccent = UiTokens.CultureColor(cultureStableName);
+        _actionIntensity = RecentActionIntensity(entity, currentTick);
         _glyphSize = _kindStableName == "settlement" ? 14f : 10f;
+        _cultureSlotCount = entity.CultureSlotCount;
+        _cultureSlotPolarityCode = entity.CultureSlotPolarityCode;
 
         BindTexture(subtypeStableName);
         BindLabel(ProjectionDisplay.EntityName(symbols, entity), showName);
@@ -82,6 +96,26 @@ public partial class Entity : Node2D
 
     public override void _Draw()
     {
+        var cultureRadius = _glyphSize * (_isHighlighted ? 2.8f : 2.35f);
+        DrawCircle(Vector2.Zero, cultureRadius, new Color(_cultureAccent, _isHighlighted ? 0.38f : 0.24f));
+        DrawArc(Vector2.Zero, cultureRadius, 0f, Mathf.Tau, 72, new Color(_cultureAccent, 0.82f), 2.2f, antialiased: true);
+
+        if (_cultureSlotCount > 0)
+        {
+            var slotColor = SlotPolarityColor(_cultureSlotPolarityCode);
+            var slotRadius = cultureRadius + (_glyphSize * 0.45f);
+            var sweep = Mathf.Min(1f, 0.28f + (_cultureSlotCount * 0.14f)) * Mathf.Tau;
+            DrawArc(Vector2.Zero, slotRadius, -Mathf.Pi / 2f, (-Mathf.Pi / 2f) + sweep, 72, new Color(slotColor, 0.96f), 3.1f, antialiased: true);
+            DrawSlotPips(slotRadius, slotColor);
+        }
+
+        if (_actionIntensity > 0f)
+        {
+            var actionRadius = cultureRadius + (_glyphSize * 0.95f);
+            var alpha = 0.18f + (_actionIntensity * 0.46f);
+            DrawArc(Vector2.Zero, actionRadius, -Mathf.Pi / 2f, Mathf.Tau * 0.82f, 72, new Color(_cultureAccent, alpha), 3.2f, antialiased: true);
+        }
+
         if (_isHighlighted)
         {
             var radius = _glyphSize * 3.25f;
@@ -95,6 +129,53 @@ public partial class Entity : Node2D
             KindGlyph.Draw(this, _kindStableName, Vector2.Zero, glyphSize, _accent);
         }
     }
+
+    private void DrawSlotPips(float slotRadius, Color slotColor)
+    {
+        var pipCount = Math.Min(_cultureSlotCount, 4);
+        for (var i = 0; i < pipCount; i++)
+        {
+            var angle = (-Mathf.Pi / 2f) + ((i - ((pipCount - 1) * 0.5f)) * 0.34f);
+            var offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * slotRadius;
+            DrawCircle(offset, 2.4f, UiTokens.Ink);
+            DrawCircle(offset, 1.65f, slotColor);
+        }
+    }
+
+    private static float RecentActionIntensity(UiEntityProjection entity, int currentTick)
+    {
+        var lastActionTick = -1;
+        if (entity.LastMove is { } move)
+        {
+            lastActionTick = Math.Max(lastActionTick, move.Tick);
+        }
+
+        if (entity.LastGambitExecution is { } gambit)
+        {
+            lastActionTick = Math.Max(lastActionTick, gambit.Tick);
+        }
+
+        if (entity.CreatedByGeneratorTick is { } createdTick)
+        {
+            lastActionTick = Math.Max(lastActionTick, createdTick);
+        }
+
+        if (lastActionTick < 0)
+        {
+            return 0f;
+        }
+
+        var age = Math.Max(0, currentTick - lastActionTick);
+        return age > 80 ? 0f : 1f - (age / 80f);
+    }
+
+    private static Color SlotPolarityColor(int polarityCode) => polarityCode switch
+    {
+        RelationshipPolarityCodes.Positive => UiTokens.Aurora,
+        RelationshipPolarityCodes.Negative => UiTokens.Blood,
+        RelationshipPolarityCodes.Neutral => UiTokens.Gilt,
+        _ => UiTokens.Parchment,
+    };
 
     private void BindTexture(string? subtypeStableName)
     {

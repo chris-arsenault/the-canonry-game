@@ -21,6 +21,8 @@ internal sealed partial class WorldState
     private int[] _entityKindId = [];
     private int[] _entitySubtypeId = [];
     private int[] _entityCultureId = [];
+    private float[] _entityCultureInfluenceMultiplierDeltas = [];
+    private float[] _cultureInfluenceMultiplierDeltas = [];
     private int[] _entityPhysicalQ = [];
     private int[] _entityPhysicalR = [];
     private int[] _entitySemanticQ = [];
@@ -89,6 +91,7 @@ internal sealed partial class WorldState
     private int _relationshipKindCapacity;
     private int _relationshipGraphDeltaMergeThreshold;
     private int _entityHighWatermark;
+    private int _cultureHighWatermark;
     private int _relationshipHighWatermark;
     private int _provenanceInvocationHighWatermark;
     private int _provenanceOutputHighWatermark;
@@ -120,6 +123,8 @@ internal sealed partial class WorldState
         _entityKindId = new int[options.EntityCapacity + 1];
         _entitySubtypeId = new int[options.EntityCapacity + 1];
         _entityCultureId = new int[options.EntityCapacity + 1];
+        _entityCultureInfluenceMultiplierDeltas = new float[options.EntityCapacity + 1];
+        _cultureInfluenceMultiplierDeltas = new float[options.EntityCapacity + 1];
         _entityPhysicalQ = new int[options.EntityCapacity + 1];
         _entityPhysicalR = new int[options.EntityCapacity + 1];
         _entitySemanticQ = new int[options.EntityCapacity + 1];
@@ -218,6 +223,7 @@ internal sealed partial class WorldState
         _entityKindId[entityId] = kindId;
         _entitySubtypeId[entityId] = subtypeId;
         _entityCultureId[entityId] = cultureId;
+        _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
         _entityPhysicalQ[entityId] = physicalQ;
         _entityPhysicalR[entityId] = physicalR;
         _entitySemanticQ[entityId] = semanticQ;
@@ -252,6 +258,8 @@ internal sealed partial class WorldState
             return;
         }
 
+        var wasActive = previous == EntityStatusCodes.Active;
+        var isActive = statusCode == EntityStatusCodes.Active;
         EnsureProvenanceOutputCapacity(context);
         _entityStatus[entityId] = statusCode;
         _entityUpdatedAt[entityId] = tick;
@@ -274,6 +282,10 @@ internal sealed partial class WorldState
             previous,
             statusCode)),
             context);
+        if (wasActive != isActive)
+        {
+            UpdateCultureInfluenceForEntityStatusChange(entityId, isActive, tick, context);
+        }
     }
 
     public void MoveEntityPhysical(int entityId, int q, int r, int tick) =>

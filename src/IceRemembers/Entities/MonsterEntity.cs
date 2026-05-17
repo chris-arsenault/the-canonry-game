@@ -19,6 +19,7 @@ internal static class MonsterEntity
     {
         Kind = K.Monster,
         Category = EntityCategory.Agency,
+        Tier = EntityTier.Life,
         Subtypes = Subtypes("leviathan", "wraith", "beast", "revenant"),
         HealthAttribute = Attr.Containment,
         HealthDisplayName = "Containment",

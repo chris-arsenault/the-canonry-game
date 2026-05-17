@@ -199,6 +199,35 @@ internal sealed class KernelConfigurationContext
             requiredTargetTraitId,
             requiredRelatedTraitId);
 
+    public int RegisterCultureSlot(
+        int cultureId,
+        int slotId,
+        int polarityCode,
+        float minimumScore,
+        int minimumTenureTicks,
+        float displacementMargin,
+        float entityInfluenceMultiplierDelta,
+        float cultureInfluenceMultiplierDelta) =>
+        _kernel.CultureSlots.RegisterSlot(
+            cultureId,
+            slotId,
+            polarityCode,
+            minimumScore,
+            minimumTenureTicks,
+            displacementMargin,
+            entityInfluenceMultiplierDelta,
+            cultureInfluenceMultiplierDelta);
+
+    public void AddCultureSlotAllowedKind(int slot, int kindId) =>
+        _kernel.CultureSlots.AddAllowedKind(slot, kindId);
+
+    public void AddCultureSlotScoreRule(
+        int slot,
+        int signalCode,
+        int relationshipKindId,
+        float weight) =>
+        _kernel.CultureSlots.AddScoreRule(slot, signalCode, relationshipKindId, weight);
+
     public int RegisterLowAltitudeVerb(
         int kindId,
         int verbId,

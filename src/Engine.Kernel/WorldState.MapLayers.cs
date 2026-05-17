@@ -297,6 +297,32 @@ internal sealed partial class WorldState
         return _mapLayers.Influence.ValueAt(entityId, planeCode, CoordinateKey(q, r));
     }
 
+    internal int CultureInfluenceCellCount(int cultureId, int planeCode)
+    {
+        ValidatePositive(cultureId);
+        ValidateInfluencePlaneCode(planeCode);
+        return _mapLayers.CultureInfluence.ValueCellCount(cultureId, planeCode);
+    }
+
+    internal SpatialLayerCellCursor CultureInfluenceCells(int cultureId, int planeCode)
+    {
+        ValidatePositive(cultureId);
+        ValidateInfluencePlaneCode(planeCode);
+        return _mapLayers.CultureInfluence.CellsOfValue(cultureId, planeCode);
+    }
+
+    internal bool MoveNextCultureInfluenceCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out float value)
+    {
+        return _mapLayers.CultureInfluence.MoveNextCell(ref cursor, out q, out r, out value);
+    }
+
+    public float GetCellCultureInfluence(int cultureId, int planeCode, int q, int r)
+    {
+        ValidatePositive(cultureId);
+        ValidateInfluencePlaneCode(planeCode);
+        return _mapLayers.CultureInfluence.ValueAt(cultureId, planeCode, CoordinateKey(q, r));
+    }
+
     public void SetCellInfluence(
         int entityId,
         int planeCode,
@@ -340,6 +366,7 @@ internal sealed partial class WorldState
             previous,
             clamped)),
             context);
+        UpdateCultureInfluenceForEntityInfluenceChange(entityId, planeCode, q, r, previous, clamped, tick, context);
     }
 
     public void ModifyCellInfluence(
@@ -357,4 +384,239 @@ internal sealed partial class WorldState
 
     private static int MaxAbs(int a, int b, int c) =>
         global::System.Math.Max(global::System.Math.Abs(a), global::System.Math.Max(global::System.Math.Abs(b), global::System.Math.Abs(c)));
+
+    internal void ModifyEntityCultureInfluenceMultiplierDelta(
+        int entityId,
+        float delta,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        EnsureEntity(entityId);
+        if (delta == 0f)
+        {
+            return;
+        }
+
+        var previous = EffectiveCultureInfluenceMultiplier(entityId);
+        _entityCultureInfluenceMultiplierDeltas[entityId] += delta;
+        var current = EffectiveCultureInfluenceMultiplier(entityId);
+        UpdateCultureInfluenceForEntityMultiplierChange(entityId, previous, current, tick, context);
+    }
+
+    internal void ModifyCultureInfluenceMultiplierDelta(
+        int cultureId,
+        float delta,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        ValidatePositive(cultureId);
+        if ((uint)cultureId >= (uint)_cultureInfluenceMultiplierDeltas.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(cultureId));
+        }
+
+        if (delta == 0f)
+        {
+            return;
+        }
+
+        for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
+        {
+            if (EntityIsActive(entityId) && _entityCultureId[entityId] == cultureId)
+            {
+                UpdateCultureInfluenceForEntityMultiplierChange(
+                    entityId,
+                    EffectiveCultureInfluenceMultiplier(entityId),
+                    EffectiveCultureInfluenceMultiplierWithCultureDelta(entityId, delta),
+                    tick,
+                    context);
+            }
+        }
+
+        _cultureInfluenceMultiplierDeltas[cultureId] += delta;
+    }
+
+    private void UpdateCultureInfluenceForEntityInfluenceChange(
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        float previous,
+        float current,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        if (!EntityIsActive(entityId))
+        {
+            return;
+        }
+
+        var delta = current - previous;
+        if (global::System.MathF.Abs(delta) <= float.Epsilon)
+        {
+            return;
+        }
+
+        var cultureId = EntityCultureId(entityId);
+        var key = CoordinateKey(q, r);
+        var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, planeCode, key);
+        var weightedDelta = delta * EffectiveCultureInfluenceMultiplier(entityId);
+        _mapLayers.RawCultureInfluence.SetValue(
+            cultureId,
+            planeCode,
+            key,
+            q,
+            r,
+            global::System.MathF.Max(0f, raw + weightedDelta));
+        RecalculateCultureInfluenceAtCell(planeCode, q, r, key, tick, context);
+    }
+
+    private void UpdateCultureInfluenceForEntityStatusChange(
+        int entityId,
+        bool isActive,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        var sign = isActive ? 1f : -1f;
+        var cultureId = EntityCultureId(entityId);
+        UpdateCultureInfluenceForEntityStatusChange(entityId, cultureId, PlaneCodes.Physical, sign, tick, context);
+        UpdateCultureInfluenceForEntityStatusChange(entityId, cultureId, PlaneCodes.Semantic, sign, tick, context);
+    }
+
+    private void UpdateCultureInfluenceForEntityStatusChange(
+        int entityId,
+        int cultureId,
+        int planeCode,
+        float sign,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        var multiplier = EffectiveCultureInfluenceMultiplier(entityId);
+        var cursor = _mapLayers.Influence.CellsOfValue(entityId, planeCode);
+        while (_mapLayers.Influence.MoveNextCell(ref cursor, out var q, out var r, out var influence))
+        {
+            var key = CoordinateKey(q, r);
+            var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, planeCode, key);
+            _mapLayers.RawCultureInfluence.SetValue(
+                cultureId,
+                planeCode,
+                key,
+                q,
+                r,
+                global::System.MathF.Max(0f, raw + (influence * multiplier * sign)));
+            RecalculateCultureInfluenceAtCell(planeCode, q, r, key, tick, context);
+        }
+    }
+
+    private void UpdateCultureInfluenceForEntityMultiplierChange(
+        int entityId,
+        float previousMultiplier,
+        float currentMultiplier,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        if (!EntityIsActive(entityId))
+        {
+            return;
+        }
+
+        var deltaMultiplier = currentMultiplier - previousMultiplier;
+        if (global::System.MathF.Abs(deltaMultiplier) <= 0.0001f)
+        {
+            return;
+        }
+
+        var cultureId = EntityCultureId(entityId);
+        UpdateCultureInfluenceForEntityMultiplierChange(entityId, cultureId, PlaneCodes.Physical, deltaMultiplier, tick, context);
+        UpdateCultureInfluenceForEntityMultiplierChange(entityId, cultureId, PlaneCodes.Semantic, deltaMultiplier, tick, context);
+    }
+
+    private void UpdateCultureInfluenceForEntityMultiplierChange(
+        int entityId,
+        int cultureId,
+        int planeCode,
+        float deltaMultiplier,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        var cursor = _mapLayers.Influence.CellsOfValue(entityId, planeCode);
+        while (_mapLayers.Influence.MoveNextCell(ref cursor, out var q, out var r, out var influence))
+        {
+            var key = CoordinateKey(q, r);
+            var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, planeCode, key);
+            _mapLayers.RawCultureInfluence.SetValue(
+                cultureId,
+                planeCode,
+                key,
+                q,
+                r,
+                global::System.MathF.Max(0f, raw + (influence * deltaMultiplier)));
+            RecalculateCultureInfluenceAtCell(planeCode, q, r, key, tick, context);
+        }
+    }
+
+    private void RecalculateCultureInfluenceAtCell(
+        int planeCode,
+        int q,
+        int r,
+        int key,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        var total = 0f;
+        for (var cultureId = 1; cultureId <= _cultureHighWatermark; cultureId++)
+        {
+            total += PositiveCultureInfluenceRaw(cultureId, planeCode, key);
+        }
+
+        for (var cultureId = 1; cultureId <= _cultureHighWatermark; cultureId++)
+        {
+            var previous = _mapLayers.CultureInfluence.ValueAt(cultureId, planeCode, key);
+            var raw = PositiveCultureInfluenceRaw(cultureId, planeCode, key);
+            var current = total > 0f ? raw * 100f / total : 0f;
+            if (global::System.MathF.Abs(current - previous) <= 0.0001f)
+            {
+                continue;
+            }
+
+            _mapLayers.CultureInfluence.SetValue(cultureId, planeCode, key, q, r, current);
+            Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+                tick,
+                WorldVersion,
+                q,
+                r,
+                context.SourceCodeId,
+                planeCode,
+                cultureId,
+                previous,
+                current)),
+                context);
+        }
+    }
+
+    private float PositiveCultureInfluenceRaw(int cultureId, int planeCode, int key)
+    {
+        var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, planeCode, key);
+        return raw > 0f ? raw : 0f;
+    }
+
+    private float EffectiveCultureInfluenceMultiplier(int entityId)
+    {
+        var cultureId = _entityCultureId[entityId];
+        var raw = 1f + _entityCultureInfluenceMultiplierDeltas[entityId] +
+            (cultureId > 0 && cultureId < _cultureInfluenceMultiplierDeltas.Length
+                ? _cultureInfluenceMultiplierDeltas[cultureId]
+                : 0f);
+        return global::System.Math.Clamp(raw, 0.1f, 3f);
+    }
+
+    private float EffectiveCultureInfluenceMultiplierWithCultureDelta(int entityId, float cultureDelta)
+    {
+        var cultureId = _entityCultureId[entityId];
+        var raw = 1f + _entityCultureInfluenceMultiplierDeltas[entityId] +
+            (cultureId > 0 && cultureId < _cultureInfluenceMultiplierDeltas.Length
+                ? _cultureInfluenceMultiplierDeltas[cultureId] + cultureDelta
+                : 0f);
+        return global::System.Math.Clamp(raw, 0.1f, 3f);
+    }
 }

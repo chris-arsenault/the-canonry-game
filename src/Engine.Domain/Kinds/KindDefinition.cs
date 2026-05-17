@@ -8,6 +8,7 @@ public sealed class KindDefinition
 {
     public EntityKind Kind { get; }
     public EntityCategory Category { get; }
+    public EntityTier Tier { get; }
 
     /// <summary>Valid subtype strings for this kind. Domain-defined, generic placeholders for Phase 1.</summary>
     public IReadOnlySet<string> ValidSubtypes { get; }
@@ -23,13 +24,15 @@ public sealed class KindDefinition
         EntityCategory category,
         IReadOnlySet<string> validSubtypes,
         IReadOnlyList<AttributeDefinition> attributes,
-        string? healthAttribute = null)
+        string? healthAttribute = null,
+        EntityTier tier = EntityTier.None)
     {
         Kind = kind;
         Category = category;
         ValidSubtypes = validSubtypes;
         Attributes = attributes;
         HealthAttribute = healthAttribute;
+        Tier = tier;
     }
 
     public bool IsValidSubtype(string subtype) => ValidSubtypes.Contains(subtype);

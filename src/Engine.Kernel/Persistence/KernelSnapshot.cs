@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 33;
+    private const int FormatVersion = 35;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -113,6 +113,9 @@ internal static class KernelSnapshotOptions
         writer.Write(options.MapActivityCellCapacity);
         writer.Write(options.MapSignalCellCapacity);
         writer.Write(options.EffectRuleCapacity);
+        writer.Write(options.CultureSlotCapacity);
+        writer.Write(options.CultureSlotAllowedKindCapacity);
+        writer.Write(options.CultureSlotScoreRuleCapacity);
         writer.Write(options.EntityAttributeCapacity);
         writer.Write(options.EntityTraitCapacity);
         writer.Write(options.AttributeIdCapacity);
@@ -175,6 +178,7 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.MapActivity);
         writer.Write(enabled.MapSignals);
         writer.Write(enabled.Effects);
+        writer.Write(enabled.CultureSlots);
         writer.Write(enabled.Upkeep);
         writer.Write(enabled.Gambits);
         writer.Write(enabled.Relationships);
@@ -246,6 +250,9 @@ internal static class KernelSnapshotOptions
         values.MapActivityCellCapacity = reader.ReadInt32();
         values.MapSignalCellCapacity = reader.ReadInt32();
         values.EffectRuleCapacity = reader.ReadInt32();
+        values.CultureSlotCapacity = reader.ReadInt32();
+        values.CultureSlotAllowedKindCapacity = reader.ReadInt32();
+        values.CultureSlotScoreRuleCapacity = reader.ReadInt32();
         values.EntityAttributeCapacity = reader.ReadInt32();
         values.EntityTraitCapacity = reader.ReadInt32();
         values.AttributeIdCapacity = reader.ReadInt32();
@@ -284,6 +291,7 @@ internal static class KernelSnapshotOptions
         values.MapActivityProgramEnabled = reader.ReadInt32();
         values.MapSignalsProgramEnabled = reader.ReadInt32();
         values.EffectsProgramEnabled = reader.ReadInt32();
+        values.CultureSlotsProgramEnabled = reader.ReadInt32();
         values.UpkeepProgramEnabled = reader.ReadInt32();
         values.GambitsProgramEnabled = reader.ReadInt32();
         values.RelationshipsProgramEnabled = reader.ReadInt32();
@@ -375,6 +383,9 @@ internal static class KernelSnapshotOptions
             MapActivityCellCapacity = values.MapActivityCellCapacity,
             MapSignalCellCapacity = values.MapSignalCellCapacity,
             EffectRuleCapacity = values.EffectRuleCapacity,
+            CultureSlotCapacity = values.CultureSlotCapacity,
+            CultureSlotAllowedKindCapacity = values.CultureSlotAllowedKindCapacity,
+            CultureSlotScoreRuleCapacity = values.CultureSlotScoreRuleCapacity,
             EntityAttributeCapacity = values.EntityAttributeCapacity,
             EntityTraitCapacity = values.EntityTraitCapacity,
             AttributeIdCapacity = values.AttributeIdCapacity,
@@ -417,6 +428,7 @@ internal static class KernelSnapshotOptions
                     MapActivity = values.MapActivityProgramEnabled,
                     MapSignals = values.MapSignalsProgramEnabled,
                     Effects = values.EffectsProgramEnabled,
+                    CultureSlots = values.CultureSlotsProgramEnabled,
                     Upkeep = values.UpkeepProgramEnabled,
                     Gambits = values.GambitsProgramEnabled,
                     Relationships = values.RelationshipsProgramEnabled,
@@ -483,6 +495,9 @@ internal static class KernelSnapshotOptions
         public int MapActivityCellCapacity;
         public int MapSignalCellCapacity;
         public int EffectRuleCapacity;
+        public int CultureSlotCapacity;
+        public int CultureSlotAllowedKindCapacity;
+        public int CultureSlotScoreRuleCapacity;
         public int EntityAttributeCapacity;
         public int EntityTraitCapacity;
         public int AttributeIdCapacity;
@@ -509,6 +524,7 @@ internal static class KernelSnapshotOptions
         public int MapActivityProgramEnabled;
         public int MapSignalsProgramEnabled;
         public int EffectsProgramEnabled;
+        public int CultureSlotsProgramEnabled;
         public int UpkeepProgramEnabled;
         public int GambitsProgramEnabled;
         public int RelationshipsProgramEnabled;

@@ -240,6 +240,18 @@ public static class KernelProgramCodes
     public const int LowAltitudeVerbs = 11;
     public const int Effects = 12;
     public const int MapSignals = 13;
+    public const int CultureSlots = 14;
+}
+
+public static class CultureSlotScoreSignalCodes
+{
+    public const int ActiveEntity = 1;
+    public const int PhysicalInfluence = 2;
+    public const int SemanticInfluence = 3;
+    public const int PhysicalCoverage = 4;
+    public const int SemanticCoverage = 5;
+    public const int OutgoingRelationshipStrength = 6;
+    public const int IncomingRelationshipStrength = 7;
 }
 
 public static class MovementCauseCodes

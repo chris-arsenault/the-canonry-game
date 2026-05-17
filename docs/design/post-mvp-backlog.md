@@ -50,6 +50,10 @@ through a given teacher/student relationship.
 - multi-resource economy if resources can produce useful decisions rather than
   inert telemetry
 - culture innovation and spread
+- culture-specific medium-term goals that give each culture explicit strategic
+  pressure beyond static slot occupation; these should be authored, visible,
+  and eventually readable by generators/gambits, but are deferred until the
+  cultural static slot system exists
 - better procedural map/seed diversity
 
 ## Map And UI

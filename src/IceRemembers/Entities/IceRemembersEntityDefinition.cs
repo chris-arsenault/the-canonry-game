@@ -26,6 +26,7 @@ public sealed class IceRemembersEntityDefinition
 {
     public required EntityKind Kind { get; init; }
     public required EntityCategory Category { get; init; }
+    public required EntityTier Tier { get; init; }
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required Attr HealthAttribute { get; init; }
     public required string HealthDisplayName { get; init; }
@@ -215,6 +216,7 @@ public static class IceRemembersEntities
             result.Add(entity.Kind, new KindConfig
             {
                 Category = entity.Category,
+                Tier = entity.Tier,
                 Subtypes = entity.Subtypes,
                 Health = Health(entity.HealthAttribute, entity.HealthDisplayName),
                 Traits = entity.Traits,

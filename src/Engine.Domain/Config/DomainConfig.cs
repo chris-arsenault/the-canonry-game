@@ -88,6 +88,7 @@ public enum ChronicleProducerKind
 public sealed class KindConfig
 {
     public EntityCategory Category { get; init; } = EntityCategory.Agency;
+    public EntityTier Tier { get; init; } = EntityTier.None;
     public required IReadOnlySet<string> Subtypes { get; init; }
     public required HealthConfig Health { get; init; }
     public IReadOnlyList<TraitConfig> Traits { get; init; } = [];
@@ -167,6 +168,15 @@ public sealed class RelationshipConfig
     public bool TargetFollowsSourcePhysical { get; init; }
     public float CullThreshold { get; init; } = 0.05f;
     public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
+
+    /// <summary>
+    /// When true, this relationship counts as a structural affiliation edge: it
+    /// expresses where the source belongs, who controls it, or what territory it
+    /// occupies. Read-side Stage projections sum the strengths of affiliation edges
+    /// to derive entity significance. Affiliation edges are typically positive or
+    /// neutral and persistent. Conflict and event-shaped edges should leave this false.
+    /// </summary>
+    public bool IsAffiliation { get; init; }
 }
 
 /// <summary>Lifecycle drain configuration for a kind.</summary>
@@ -254,4 +264,56 @@ public sealed class CultureConfig
 {
     public required string Id { get; init; }
     public required string DisplayName { get; init; }
+    public IReadOnlyList<CultureSlotConfig> Slots { get; init; } = [];
+}
+
+public enum CultureSlotPolarity
+{
+    Positive = RelationshipPolarityCodes.Positive,
+    Neutral = RelationshipPolarityCodes.Neutral,
+    Negative = RelationshipPolarityCodes.Negative,
+}
+
+public enum CultureSlotScoreSignal
+{
+    None = 0,
+    ActiveEntity = CultureSlotScoreSignalCodes.ActiveEntity,
+    PhysicalInfluence = CultureSlotScoreSignalCodes.PhysicalInfluence,
+    SemanticInfluence = CultureSlotScoreSignalCodes.SemanticInfluence,
+    PhysicalCoverage = CultureSlotScoreSignalCodes.PhysicalCoverage,
+    SemanticCoverage = CultureSlotScoreSignalCodes.SemanticCoverage,
+    OutgoingRelationshipStrength = CultureSlotScoreSignalCodes.OutgoingRelationshipStrength,
+    IncomingRelationshipStrength = CultureSlotScoreSignalCodes.IncomingRelationshipStrength,
+}
+
+public sealed class CultureSlotConfig
+{
+    public required string Id { get; init; }
+    public required string DisplayName { get; init; }
+    public string? Description { get; init; }
+    public CultureSlotPolarity Polarity { get; init; } = CultureSlotPolarity.Neutral;
+    public IReadOnlySet<EntityKind> AllowedKinds { get; init; } = new HashSet<EntityKind>();
+    public IReadOnlyList<CultureSlotScoreRuleConfig> ScoreRules { get; init; } = [];
+    public CultureSlotHysteresisConfig Hysteresis { get; init; } = new();
+    public CultureSlotBenefitConfig Benefits { get; init; } = new();
+}
+
+public sealed class CultureSlotScoreRuleConfig
+{
+    public required CultureSlotScoreSignal Signal { get; init; }
+    public float Weight { get; init; } = 1f;
+    public string? RelationshipKind { get; init; }
+}
+
+public sealed class CultureSlotHysteresisConfig
+{
+    public float MinimumScore { get; init; } = 1f;
+    public int MinimumTenureTicks { get; init; } = 40;
+    public float DisplacementMargin { get; init; } = 0.15f;
+}
+
+public sealed class CultureSlotBenefitConfig
+{
+    public float EntityInfluenceMultiplierDelta { get; init; } = 0.05f;
+    public float CultureInfluenceMultiplierDelta { get; init; }
 }

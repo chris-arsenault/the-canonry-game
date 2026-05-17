@@ -1,6 +1,7 @@
 namespace Engine.Projection;
 
 using Engine.Eventing;
+using Engine.Kinds;
 
 public sealed record UiProjectionMigrationItem(
     string Area,
@@ -20,6 +21,12 @@ public sealed class UiProjectionState : KernelEventProjector
     private readonly Dictionary<int, Queue<PendingCreatedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
     private readonly List<PendingGeneratorFireProjection> _pendingGeneratorFires = [];
     private readonly Dictionary<int, UiGambitProjection> _gambits = [];
+    private IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection> _cultureSlotDefinitions =
+        new Dictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection>();
+    private readonly Dictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> _cultureSlots = [];
+
+    private IReadOnlyDictionary<int, EntityTier> _tierByKindId = new Dictionary<int, EntityTier>();
+    private IReadOnlySet<int> _affiliationRelationshipKindIds = new HashSet<int>();
 
     public static IReadOnlyList<UiProjectionMigrationItem> FutureMigrationItems { get; } =
     [
@@ -50,6 +57,11 @@ public sealed class UiProjectionState : KernelEventProjector
     public IReadOnlyList<UiGeneratorFireProjection> GeneratorFires => _generatorFires;
 
     public IReadOnlyDictionary<int, UiGambitProjection> Gambits => _gambits;
+
+    public IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection> CultureSlotDefinitions =>
+        _cultureSlotDefinitions;
+
+    public IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> CultureSlots => _cultureSlots;
 
     public long LastProjectedSequence { get; private set; } = -1;
 
@@ -98,6 +110,46 @@ public sealed class UiProjectionState : KernelEventProjector
 
     public IReadOnlyList<UiRelationshipProjection> ActiveIncomingRelationships(int entityId) =>
         ActiveRelationships(_activeIncomingRelationshipsByEntity, entityId);
+
+    /// <summary>
+    /// Register the domain's per-kind tier map and the set of relationship-kind
+    /// runtime ids that represent affiliation edges. Called once after domain
+    /// compilation. Downstream UI uses <see cref="EntityTierOf"/> and
+    /// <see cref="IsAffiliationRelationship"/> to read these tags.
+    /// </summary>
+    public void ConfigureHierarchyTags(
+        IReadOnlyDictionary<int, EntityTier> tierByKindId,
+        IReadOnlySet<int> affiliationRelationshipKindIds)
+    {
+        ArgumentNullException.ThrowIfNull(tierByKindId);
+        ArgumentNullException.ThrowIfNull(affiliationRelationshipKindIds);
+        _tierByKindId = tierByKindId;
+        _affiliationRelationshipKindIds = affiliationRelationshipKindIds;
+    }
+
+    /// <summary>
+    /// Tier classification for the given entity. <see cref="EntityTier.None"/> when
+    /// the entity is unknown or its kind has no tier assigned.
+    /// </summary>
+    public EntityTier EntityTierOf(int entityId) =>
+        _entities.TryGetValue(entityId, out var entity) &&
+        _tierByKindId.TryGetValue(entity.KindId, out var tier)
+            ? tier
+            : EntityTier.None;
+
+    /// <summary>
+    /// True when the given relationship-kind runtime id was registered as an
+    /// affiliation edge through <see cref="ConfigureHierarchyTags"/>.
+    /// </summary>
+    public bool IsAffiliationRelationship(int relationshipKindId) =>
+        _affiliationRelationshipKindIds.Contains(relationshipKindId);
+
+    public void ConfigureCultureSlots(IEnumerable<UiCultureSlotDefinitionProjection> slots)
+    {
+        ArgumentNullException.ThrowIfNull(slots);
+        _cultureSlotDefinitions = slots.ToDictionary(
+            slot => new UiCultureSlotKey(slot.CultureId, slot.SlotId));
+    }
 
     public override void OnEventsDropped(long droppedEventCount, long nextSequence)
     {
@@ -204,6 +256,48 @@ public sealed class UiProjectionState : KernelEventProjector
             EntityMapVersion++;
         }
 
+        EntityDetailVersion++;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
+    {
+        var key = new UiCultureSlotKey(evt.CultureId, evt.SlotId);
+        if (_cultureSlots.TryGetValue(key, out var existing) &&
+            existing.CurrentEntityId > 0 &&
+            existing.CurrentEntityId != evt.PreviousEntityId)
+        {
+            _cultureSlots.Remove(key);
+            UpdateEntitySlotFlags(existing.CurrentEntityId);
+        }
+
+        if (evt.CurrentEntityId > 0)
+        {
+            _cultureSlots[key] = new UiCultureSlotOccupancyProjection(
+                key,
+                evt.PolarityCode,
+                evt.CurrentEntityId,
+                evt.CurrentScore,
+                evt.Tick,
+                evt.WorldVersion);
+        }
+        else
+        {
+            _cultureSlots.Remove(key);
+        }
+
+        if (evt.PreviousEntityId > 0)
+        {
+            UpdateEntitySlotFlags(evt.PreviousEntityId);
+        }
+
+        if (evt.CurrentEntityId > 0)
+        {
+            UpdateEntitySlotFlags(evt.CurrentEntityId);
+        }
+
+        EntityMapVersion++;
+        EntityBrowserVersion++;
         EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
@@ -626,12 +720,54 @@ public sealed class UiProjectionState : KernelEventProjector
         EntityDetailVersion++;
     }
 
+    private void UpdateEntitySlotFlags(int entityId)
+    {
+        if (!_entities.TryGetValue(entityId, out var entity))
+        {
+            return;
+        }
+
+        var count = 0;
+        var polarityCode = 0;
+        foreach (var slot in _cultureSlots.Values)
+        {
+            if (slot.CurrentEntityId != entityId)
+            {
+                continue;
+            }
+
+            count++;
+            polarityCode = count == 1
+                ? slot.PolarityCode
+                : PreferredSlotPolarity(polarityCode, slot.PolarityCode);
+        }
+
+        entity.CultureSlotCount = count;
+        entity.CultureSlotPolarityCode = count == 0 ? 0 : polarityCode;
+    }
+
+    private static int PreferredSlotPolarity(int current, int candidate)
+    {
+        return SlotPolarityPriority(candidate) > SlotPolarityPriority(current)
+            ? candidate
+            : current;
+    }
+
+    private static int SlotPolarityPriority(int polarityCode) => polarityCode switch
+    {
+        RelationshipPolarityCodes.Negative => 3,
+        RelationshipPolarityCodes.Positive => 2,
+        RelationshipPolarityCodes.Neutral => 1,
+        _ => 0,
+    };
+
     private void MarkProjected(long sequence, int tick, long worldVersion)
     {
         LastProjectedSequence = sequence;
         CurrentTick = Math.Max(CurrentTick, tick);
         WorldVersion = Math.Max(WorldVersion, worldVersion);
     }
+
 
     private sealed class PendingGeneratorFireProjection(
         int tick,
@@ -703,6 +839,10 @@ public sealed class UiEntityProjection(int entityId)
     public UiGoalGenerationProjection? LastGoalGeneration { get; internal set; }
 
     public UiGambitExecutionProjection? LastGambitExecution { get; internal set; }
+
+    public int CultureSlotCount { get; internal set; }
+
+    public int CultureSlotPolarityCode { get; internal set; }
 }
 
 public sealed class UiGeneratorProjection(int generatorId)
@@ -733,6 +873,25 @@ public readonly record struct UiRelationshipKey(
     int SourceEntityId,
     int TargetEntityId,
     int RelationshipKindId);
+
+public readonly record struct UiCultureSlotKey(int CultureId, int SlotId);
+
+public sealed record UiCultureSlotDefinitionProjection(
+    UiCultureSlotKey Key,
+    int CultureId,
+    int SlotId,
+    string StableName,
+    string DisplayName,
+    string? Description,
+    int PolarityCode);
+
+public sealed record UiCultureSlotOccupancyProjection(
+    UiCultureSlotKey Key,
+    int PolarityCode,
+    int CurrentEntityId,
+    float CurrentScore,
+    int Tick,
+    long WorldVersion);
 
 public sealed record UiAttributeProjection(
     int AttributeId,

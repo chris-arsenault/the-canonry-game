@@ -47,6 +47,13 @@ public static class UiTokens
     public static readonly Color KindOrca = Hex(0x556A7F);
     public static readonly Color KindDefault = Hex(0xA0A498);
 
+    // Culture accents. These are used both on the cultural map roll-up and on
+    // entity action rings so cause and territory read as the same signal.
+    public static readonly Color CultureAuroraStack = Hex(0x78C9B2);
+    public static readonly Color CultureNightshelf = Hex(0x8E7CC3);
+    public static readonly Color CultureWakeSingers = Hex(0xC9A96B);
+    public static readonly Color CultureNone = Hex(0x6F7684);
+
     // Terrain — muted realistic palette.
     public static readonly Color TerrainWastes = Hex(0x8C8A80);
     public static readonly Color TerrainCrags = Hex(0x54555A);
@@ -169,6 +176,15 @@ public static class UiTokens
         _ => KindDefault,
     };
 
+    public static Color CultureColor(string cultureId) => cultureId switch
+    {
+        "aurora_stack" => CultureAuroraStack,
+        "nightshelf" => CultureNightshelf,
+        "wake_singers" => CultureWakeSingers,
+        "none" => CultureNone,
+        _ => FactionPalette[StablePaletteIndex(cultureId)],
+    };
+
     public static Color TerrainColor(string stableName) =>
         TerrainColors.TryGetValue(TerrainKey.Canonicalize(stableName), out var color) ? color : Whisper;
 
@@ -180,4 +196,18 @@ public static class UiTokens
             ((rgb >> 16) & 0xFF) / 255f,
             ((rgb >> 8) & 0xFF) / 255f,
             (rgb & 0xFF) / 255f);
+
+    private static int StablePaletteIndex(string value)
+    {
+        unchecked
+        {
+            var hash = 17;
+            for (var i = 0; i < value.Length; i++)
+            {
+                hash = (hash * 31) + value[i];
+            }
+
+            return (hash & 0x7FFFFFFF) % FactionPalette.Length;
+        }
+    }
 }

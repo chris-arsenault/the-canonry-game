@@ -12,14 +12,16 @@ public partial class MapArea : Control
     public const string LayerRoads = "roads";
     public const string LayerMapFeatures = "map_features";
     public const string LayerInfluence = "influence";
+    public const string LayerCultureInfluence = "culture_influence";
 
     private Button? _planeToggleButton;
     private Button? _influenceToggleButton;
     private PanelContainer? _layersPanel;
     private CheckBox? _roadsLayerCheckBox;
     private CheckBox? _featuresLayerCheckBox;
+    private CheckBox? _cultureLayerCheckBox;
     private CheckBox? _influenceLayerCheckBox;
-    private Control? _legendPanel;
+    private LegendPanel? _legendPanel;
     private bool _updatingLayerControls;
 
     [Signal]
@@ -36,7 +38,7 @@ public partial class MapArea : Control
 
         _planeToggleButton = GetNode<Button>("PlaneToggleButton");
         _influenceToggleButton = GetNodeOrNull<Button>("InfluenceToggleButton");
-        _legendPanel = GetNode<Control>("LegendPanel");
+        _legendPanel = GetNode<LegendPanel>("LegendPanel");
 
         _planeToggleButton.CustomMinimumSize = new Vector2(150, 30);
         _planeToggleButton.TooltipText = "Toggle physical / semantic plane";
@@ -76,6 +78,7 @@ public partial class MapArea : Control
         {
             LayerRoads => _roadsLayerCheckBox,
             LayerMapFeatures => _featuresLayerCheckBox,
+            LayerCultureInfluence => _cultureLayerCheckBox,
             LayerInfluence => _influenceLayerCheckBox,
             _ => null,
         };
@@ -114,8 +117,19 @@ public partial class MapArea : Control
 
         _roadsLayerCheckBox = AddLayerCheckBox(box, "Roads", LayerRoads);
         _featuresLayerCheckBox = AddLayerCheckBox(box, "Features", LayerMapFeatures);
-        _influenceLayerCheckBox = AddLayerCheckBox(box, "Influence", LayerInfluence);
+        _cultureLayerCheckBox = AddLayerCheckBox(box, "Culture", LayerCultureInfluence);
+        _influenceLayerCheckBox = AddLayerCheckBox(box, "Entities", LayerInfluence);
         AddChild(_layersPanel);
+    }
+
+    public void BindCultureOverview(
+        Engine.Projection.HexMapProjection? map,
+        Engine.Projection.UiProjectionState? projection,
+        Engine.Projection.IProjectionSymbolCatalog? symbols,
+        PlaneMode plane)
+    {
+        _legendPanel?.BindCultureOverview(map, projection, symbols, plane);
+        PositionOverlays();
     }
 
     private CheckBox AddLayerCheckBox(VBoxContainer box, string text, string layerKey)

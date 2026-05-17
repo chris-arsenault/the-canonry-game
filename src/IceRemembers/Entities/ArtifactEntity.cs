@@ -20,6 +20,7 @@ internal static class ArtifactEntity
     {
         Kind = K.Artifact,
         Category = EntityCategory.Asset,
+        Tier = EntityTier.Life,
         Subtypes = Subtypes("relic", "instrument", "weapon", "tome", "seal"),
         HealthAttribute = Attr.Condition,
         HealthDisplayName = "Condition",

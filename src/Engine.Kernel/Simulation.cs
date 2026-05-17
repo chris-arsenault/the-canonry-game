@@ -38,6 +38,7 @@ internal sealed partial class Simulation : IKernel
         MapActivity = CreateMapActivityRuntime(options);
         MapSignals = CreateMapSignalsRuntime(options);
         Effects = CreateEffectsRuntime(options);
+        CultureSlots = CreateCultureSlotRuntime(options);
         Gambits = CreateGambitRuntime(options);
         Generators = CreateGeneratorRuntime(options);
         Upkeep = CreateUpkeepRuntime(options);
@@ -99,6 +100,14 @@ internal sealed partial class Simulation : IKernel
             new EffectsProgramData(options.EffectRuleCapacity),
             new EffectsProgramState());
 
+    private static CultureSlotProgramRuntime CreateCultureSlotRuntime(SimulationOptions options) =>
+        new(
+            new CultureSlotProgramData(
+                options.CultureSlotCapacity,
+                options.CultureSlotAllowedKindCapacity,
+                options.CultureSlotScoreRuleCapacity),
+            new CultureSlotProgramState(options.CultureSlotCapacity));
+
     private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
         new(
             new GambitProgramData(
@@ -149,6 +158,7 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
         RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
         RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
+        RegisterProgram(KernelProgramCodes.CultureSlots, 10, CultureSlots);
         ValidateProgramDependencies();
     }
 
@@ -287,6 +297,7 @@ internal sealed partial class Simulation : IKernel
     internal MapActivityProgramRuntime MapActivity { get; }
     internal MapSignalsProgramRuntime MapSignals { get; }
     internal EffectsProgramRuntime Effects { get; }
+    internal CultureSlotProgramRuntime CultureSlots { get; }
     internal GambitProgramRuntime Gambits { get; }
     internal GeneratorProgramRuntime Generators { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
@@ -986,6 +997,7 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
+        KernelProgramCodes.CultureSlots => MapSignalsSourceCodeId,
         _ => 0,
     };
 

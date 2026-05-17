@@ -19,6 +19,7 @@ internal static class PointOfInterestEntity
     {
         Kind = K.PointOfInterest,
         Category = EntityCategory.Spatial,
+        Tier = EntityTier.Place,
         Subtypes = Subtypes("vent", "peak", "bloom", "shoal"),
         HealthAttribute = Attr.Presence,
         HealthDisplayName = "Presence",

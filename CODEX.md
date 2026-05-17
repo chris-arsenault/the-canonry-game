@@ -140,18 +140,25 @@ Do not run tests in parallel in this repo.
 Default to the repo-level test commands. Use `make test` when the work needs a
 test pass, and `make ci` when the work needs final verification.
 
-Do not walk individual test projects one at a time. Serial focused-suite runs
-are explicitly disallowed as a normal verification strategy because command
-selection and process startup cost more than the full repo test pass.
+Hard rule: do not run individual `dotnet test tests/*.csproj` suites as a
+verification strategy. This includes "just the affected project", a sequence of
+focused projects, or one project per subsystem. In this repo that is slower than
+using the repo-level commands and gives worse signal.
 
-Prefer one meaningful full-suite verification run over many overlapping runs.
-If the full suite is cheap enough for the current task, run it once instead of
-stacking focused suites and then rerunning the same coverage.
+The default verification decision is binary:
+- For normal test verification, run `make test`.
+- For final verification, run `make ci`.
 
-Run a focused test command only while diagnosing a concrete failure that already
-appeared in a full-suite run, or while developing against a single known failing
-test. After the fix, return to `make test` or `make ci`; do not continue
-serially enumerating adjacent projects.
+Run a focused test command only when one of these is true:
+- The user explicitly asked for that exact focused test command.
+- A repo-level `make test` or `make ci` run already exposed a concrete failing
+  test, and the focused command is being used only to shorten the debug loop for
+  that failure.
+- You are changing a single known failing test and need its exact repro while
+  developing the fix.
+
+After any focused debug run, return to `make test` or `make ci` for
+verification. Do not enumerate adjacent projects or subsystem suites.
 
 Do not rerun passing tests unless code, configuration, generated sources, or
 test inputs changed after the previous run. Formatting checks, `git diff`, and

@@ -12,4 +12,5 @@ public sealed class KernelProgramSet
     public required GambitProgram Gambits { get; init; }
     public required RelationshipProgram Relationships { get; init; }
     public required GeneratorProgram Generators { get; init; }
+    public required CultureSlotProgram CultureSlots { get; init; }
 }

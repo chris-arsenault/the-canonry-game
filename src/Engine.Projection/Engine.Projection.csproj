@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
+    <ProjectReference Include="..\Engine.Domain\Engine.Domain.csproj" />
     <ProjectReference Include="..\Engine.Eventing\Engine.Eventing.csproj" />
   </ItemGroup>
 </Project>

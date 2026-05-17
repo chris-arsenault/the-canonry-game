@@ -19,6 +19,7 @@ internal static class TransportEntity
     {
         Kind = K.Transport,
         Category = EntityCategory.Asset,
+        Tier = EntityTier.Life,
         Subtypes = Subtypes("trade", "battleship", "scout", "citadel"),
         HealthAttribute = Attr.Integrity,
         HealthDisplayName = "Integrity",

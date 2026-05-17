@@ -216,7 +216,7 @@ public partial class EntityLayer : Node2D
         }
 
         _renderedCoordsByEntity[entity.EntityId] = coord;
-        node.BindTo(entity, _symbols, ShowEntityNames, entity.EntityId == _highlightedEntityId);
+        node.BindTo(entity, _symbols, ShowEntityNames, _projection?.CurrentTick ?? 0, entity.EntityId == _highlightedEntityId);
         node.ZIndex = entity.EntityId == _highlightedEntityId ? 20 : 0;
         node.MoveTo(worldPosition);
     }
@@ -234,7 +234,7 @@ public partial class EntityLayer : Node2D
             return;
         }
 
-        node.BindTo(entity, _symbols, ShowEntityNames, id == _highlightedEntityId);
+        node.BindTo(entity, _symbols, ShowEntityNames, _projection.CurrentTick, id == _highlightedEntityId);
         node.ZIndex = id == _highlightedEntityId ? 20 : 0;
     }
 

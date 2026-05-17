@@ -13,6 +13,7 @@ public sealed class RelationshipKindDefinition
     public bool IsSymmetric { get; }
     public bool IsExclusive { get; }
     public float CullThreshold { get; }
+    public bool IsAffiliation { get; }
 
     /// <summary>Which source categories can create this relationship.</summary>
     public IReadOnlySet<EntityCategory> ValidSourceCategories { get; }
@@ -27,7 +28,8 @@ public sealed class RelationshipKindDefinition
         IReadOnlySet<EntityCategory> validTargetCategories,
         bool isSymmetric = false,
         bool isExclusive = false,
-        float cullThreshold = 0.05f)
+        float cullThreshold = 0.05f,
+        bool isAffiliation = false)
     {
         Name = name;
         Polarity = polarity;
@@ -36,5 +38,6 @@ public sealed class RelationshipKindDefinition
         IsSymmetric = isSymmetric;
         IsExclusive = isExclusive;
         CullThreshold = cullThreshold;
+        IsAffiliation = isAffiliation;
     }
 }

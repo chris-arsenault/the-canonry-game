@@ -42,7 +42,8 @@ public static class DomainLoader
                 kindConfig.Category,
                 new HashSet<string>(kindConfig.Subtypes, StringComparer.Ordinal),
                 attributes,
-                health.Name));
+                health.Name,
+                kindConfig.Tier));
         }
 
         foreach (var relConfig in config.Relationships)
@@ -54,7 +55,8 @@ public static class DomainLoader
                 new HashSet<EntityCategory>(relConfig.ValidTargetCategories),
                 relConfig.IsSymmetric,
                 relConfig.IsExclusive,
-                relConfig.CullThreshold));
+                relConfig.CullThreshold,
+                relConfig.IsAffiliation));
         }
 
         return registry;

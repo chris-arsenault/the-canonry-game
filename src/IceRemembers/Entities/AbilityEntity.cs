@@ -21,6 +21,7 @@ internal static class AbilityEntity
     {
         Kind = K.Ability,
         Category = EntityCategory.Asset,
+        Tier = EntityTier.Life,
         Subtypes = Subtypes("technique", "rite", "craft"),
         HealthAttribute = Attr.Clarity,
         HealthDisplayName = "Clarity",

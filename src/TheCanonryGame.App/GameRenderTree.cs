@@ -110,6 +110,7 @@ internal sealed class GameRenderTree
         _chronicle.Refresh();
         _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt);
         _mapRender.Present(_mapRenderer, _map);
+        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
         _browserRender.Present(_browser, _ui);
         _entityMapRender.Present(_entityLayer, _ui, _browser);
         _cardLayerRender.Present(_cardLayer, _ui);
@@ -177,6 +178,16 @@ internal sealed class GameRenderTree
                 _mapArea.SetLayerVisible(layerKey, visible);
                 _mapRender.InvalidateCells();
                 break;
+            case MapArea.LayerCultureInfluence:
+                if (_mapRenderer.ShowCultureInfluence == visible)
+                {
+                    return;
+                }
+
+                _mapRenderer.ShowCultureInfluence = visible;
+                _mapArea.SetLayerVisible(layerKey, visible);
+                _mapRender.InvalidateCells();
+                break;
         }
     }
 
@@ -232,7 +243,9 @@ internal sealed class GameRenderTree
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
         _mapArea.SetLayerVisible(MapArea.LayerRoads, _mapRenderer.ShowRoads);
         _mapArea.SetLayerVisible(MapArea.LayerMapFeatures, _mapRenderer.ShowMapFeatures);
+        _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
+        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
         _bottomBar.SetTableauVisible(_tableauPanel.Visible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
     }
@@ -342,6 +355,7 @@ internal sealed class GameRenderTree
         private static bool CellLayoutChanged(MapRenderState previous, MapRenderState current) =>
             previous.Plane != current.Plane ||
             previous.ShowTerritory != current.ShowTerritory ||
+            previous.ShowCultureInfluence != current.ShowCultureInfluence ||
             previous.ShowInfluence != current.ShowInfluence ||
             previous.ShowRoads != current.ShowRoads ||
             previous.ShowMapFeatures != current.ShowMapFeatures ||
@@ -362,6 +376,7 @@ internal sealed class GameRenderTree
                 ui.EntityMapVersion,
                 layer.CurrentPlane,
                 layer.ShowEntityNames,
+                ui.CurrentTick / 20,
                 browser.FilterVersion,
                 browser.FilterMapToBrowser,
                 browser.SelectedGeneratorFilterId);
@@ -374,6 +389,7 @@ internal sealed class GameRenderTree
             var shouldFullRefresh = _lastState is null ||
                 _lastState.Value.Plane != state.Plane ||
                 _lastState.Value.ShowNames != state.ShowNames ||
+                _lastState.Value.ActionPulseBucket != state.ActionPulseBucket ||
                 filterChanged;
             _lastState = state;
             if (shouldFullRefresh)
@@ -554,6 +570,7 @@ internal sealed class GameRenderTree
         long FrameVersion,
         PlaneMode Plane,
         bool ShowTerritory,
+        bool ShowCultureInfluence,
         bool ShowInfluence,
         bool ShowRoads,
         bool ShowMapFeatures,
@@ -566,6 +583,7 @@ internal sealed class GameRenderTree
                 map.FrameVersion,
                 renderer.CurrentPlane,
                 renderer.ShowTerritory,
+                renderer.ShowCultureInfluence,
                 renderer.ShowInfluence,
                 renderer.ShowRoads,
                 renderer.ShowMapFeatures,
@@ -577,6 +595,7 @@ internal sealed class GameRenderTree
         long Version,
         PlaneMode Plane,
         bool ShowNames,
+        int ActionPulseBucket,
         long BrowserFilterVersion,
         bool FilterMapToBrowser,
         int SelectedGeneratorFilterId);

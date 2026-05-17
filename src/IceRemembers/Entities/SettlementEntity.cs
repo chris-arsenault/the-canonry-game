@@ -20,6 +20,7 @@ internal static class SettlementEntity
     {
         Kind = K.Settlement,
         Category = EntityCategory.Spatial,
+        Tier = EntityTier.Place,
         Subtypes = Subtypes("rookery", "colony", "holdfast", "sanctuary", "harbor", "reefhold"),
         HealthAttribute = Attr.TempHp,
         HealthDisplayName = "Temp HP",
